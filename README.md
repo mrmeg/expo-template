@@ -1,50 +1,79 @@
-# Welcome to your Expo app 👋
+# Expo Template Project
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A feature-rich starter kit for React Native and Expo applications with pre-built UI components, theming, and modern development tools.
 
-## Get started
+## Features
 
-1. Install dependencies
+- 🎨 **Complete UI Component Library** - Buttons, inputs, alerts, popovers, toggles, and more
+- 🌓 **Comprehensive Theming** - Dark/light modes with system preference detection
+- 📱 **Cross-Platform** - Works on iOS, Android, and Web with consistent styling
+- 🧩 **File-based Routing** - Using Expo Router for simplified navigation
+- 🔄 **State Management** - Zustand for lightweight global state
+- 💪 **TypeScript** - Full type safety with strict mode
+- 📊 **Accessibility Focus** - WCAG-compliant contrast utilities
+- 📝 **Custom Typography** - Font system with Lato and Merriweather
 
+## UI Components
+
+- **Typography** - Styled text components with custom fonts
+- **Buttons** - Multiple variants (default, primary, outline) with proper states
+- **Text Inputs** - Regular, password, multiline with secure entry toggle
+- **Alerts & Notifications** - Centralized alert management
+- **Popovers** - Smart positioning system (top, bottom, left, right)
+- **Toggle Switches** - With optional custom labels
+- **Pressable Components** - Smart state feedback
+
+## Getting Started
+
+1. Clone this repository
+   ```bash
+   git clone https://github.com/yourusername/template.git my-app
+   cd my-app
+   ```
+
+2. Install dependencies
    ```bash
    npm install
    ```
 
-2. Start the app
-
+3. Start the development server
    ```bash
-    npx expo start
+   npm start
    ```
 
-In the output, you'll find options to open the app in a
+4. Choose your platform
+   - Press `i` for iOS simulator
+   - Press `a` for Android emulator
+   - Press `w` for web browser
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Development
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Available Scripts
 
-## Get a fresh project
+- `npm start` - Start the Expo development server
+- `npm run ios` - Start on iOS simulator
+- `npm run android` - Start on Android emulator
+- `npm run web` - Start for web development
+- `npm run build` - Build for web
+- `npm test` - Run tests in watch mode
+- `npm run lint` - Run ESLint
 
-When you're ready, run:
+## Architecture
 
-```bash
-npm run reset-project
-```
+- `/app` - Application screens using file-based routing
+- `/components/ui` - Reusable UI components
+- `/constants` - Design tokens and theme configuration
+- `/hooks` - Custom React hooks
+- `/stores` - Global state management
+- `/assets` - Fonts and images
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Special Features
 
-## Learn more
+- **Cross-platform shadows** - Consistent shadows across all platforms
+- **Smart contrast detection** - Automatically choose appropriate text colors
+- **Responsive layouts** - Adapts to different screen sizes
+- **Centralized UI notifications** - Global alert and notification system
 
-To learn more about developing your project with Expo, look at the following resources:
+## License
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+MIT
