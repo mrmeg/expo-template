@@ -4,8 +4,8 @@
   "version": "0.0.1",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "build": "expo export -p web --output-dir dist",
     "build-web": "npx expo export -p web",
@@ -52,7 +52,8 @@
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
     "zustand": "^5.0.3",
-    "expo-image": "~2.0.7"
+    "expo-image": "~2.0.7",
+    "expo-dev-client": "~5.0.19"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
