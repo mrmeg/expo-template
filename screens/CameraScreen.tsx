@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { CameraType, FlashMode, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { Image } from 'expo-image';
-import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import SDCameraView from '@/components/Camera/CameraView';
 import CameraControls from '@/components/Camera/CameraControls';
 import TimestampOverlay from '@/components/Camera/TimestampOverlay';
+import * as MediaLibrary from 'expo-media-library';
+import { ScrollView } from '@/components/ui/ScrollView';
+import { SansSerifText } from '@/components/ui/StyledText';
 
 export default function CameraScreen() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -21,12 +23,17 @@ export default function CameraScreen() {
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [lastRecordedVideo, setLastRecordedVideo] = useState<string | null>(null);
   const [latestVideoThumbnail, setLatestVideoThumbnail] = useState<string | null>(null);
-  const [showMediaPreview, setShowMediaPreview] = useState(false);
+  const [showMediaBrowser, setShowMediaBrowser] = useState(false);
+  const [mediaAssets, setMediaAssets] = useState<MediaLibrary.Asset[]>([]);
 
-  // Request media library permissions
+  useEffect(() => {
+    if (hasMediaPermission) {
+      getLatestVideoThumbnail();
+    }
+  }, [hasMediaPermission]);
+
   useEffect(() => {
     (async () => {
-      // Request camera and microphone permissions
       if (!cameraPermission?.granted) {
         await requestCameraPermission();
       }
@@ -34,9 +41,13 @@ export default function CameraScreen() {
         await requestMicrophonePermission();
       }
 
-      // Request media library permission
       const { status } = await MediaLibrary.requestPermissionsAsync();
       setHasMediaPermission(status === 'granted');
+
+      // Load initial thumbnail if permission granted
+      if (status === 'granted') {
+        getLatestVideoThumbnail();
+      }
     })();
   }, []);
 
@@ -56,7 +67,6 @@ export default function CameraScreen() {
           time: 1000
         });
         setLatestVideoThumbnail(uri);
-        setShowMediaPreview(true);
       }
     } catch (error) {
       console.error('Error getting video thumbnail:', error);
@@ -112,10 +122,30 @@ export default function CameraScreen() {
     console.log('Recording started');
   };
 
-  // Handle recording end and save/share video
+  const handleThumbnailPress = async () => {
+    if (!hasMediaPermission) {
+      Alert.alert(
+        "Permission Required",
+        "Media library access is required to view videos."
+      );
+      return;
+    }
+
+    try {
+      const { assets } = await MediaLibrary.getAssetsAsync({
+        mediaType: 'video',
+        sortBy: ['creationTime'],
+      });
+      setMediaAssets(assets);
+      setShowMediaBrowser(true);
+    } catch (error) {
+      console.error('Error loading videos:', error);
+      Alert.alert('Error', 'Could not load videos');
+    }
+  };
+
   const handleRecordingEnd = async (videoUri: string) => {
     console.log('Recording ended:', videoUri);
-    // Recording state is already managed by the record button
     setLastRecordedVideo(videoUri);
 
     if (hasMediaPermission) {
@@ -123,6 +153,13 @@ export default function CameraScreen() {
         // Save video to media library
         const asset = await MediaLibrary.createAssetAsync(videoUri);
         console.log('Video saved to library:', asset);
+
+        // Generate and set new thumbnail from the recorded video
+        const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
+          quality: 0.8,
+          time: 1000
+        });
+        setLatestVideoThumbnail(uri);
 
         // Show share option
         const canShare = await Sharing.isAvailableAsync();
@@ -167,7 +204,7 @@ export default function CameraScreen() {
 
       <TimestampOverlay
         enabled={timestampEnabled}
-        position="bottomRight"
+        position="topRight"
       />
 
       <CameraControls
@@ -180,12 +217,39 @@ export default function CameraScreen() {
         timestampEnabled={timestampEnabled}
       />
 
-      {showMediaPreview && latestVideoThumbnail && (
-        <View style={styles.mediaPreview}>
+      {latestVideoThumbnail && (
+        <TouchableOpacity
+          style={styles.mediaPreview}
+          onPress={handleThumbnailPress}
+        >
           <Image
             source={{ uri: latestVideoThumbnail }}
             style={styles.thumbnail}
           />
+        </TouchableOpacity>
+      )}
+
+      {showMediaBrowser && (
+        <View style={styles.mediaBrowser}>
+          <ScrollView horizontal>
+            {mediaAssets.map((asset) => (
+              <TouchableOpacity
+                key={asset.id}
+                onPress={() => Sharing.shareAsync(asset.uri)}
+              >
+                <Image
+                  source={{ uri: asset.uri }}
+                  style={styles.browserThumbnail}
+                />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setShowMediaBrowser(false)}
+          >
+            <SansSerifText style={styles.closeButtonText}>Close</SansSerifText>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -209,5 +273,25 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: '100%',
     height: '100%',
+  },
+  mediaBrowser: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    padding: 10,
+  },
+  browserThumbnail: {
+    width: 80,
+    height: 80,
+    marginRight: 10,
+  },
+  closeButton: {
+    alignSelf: 'center',
+    padding: 10,
+  },
+  closeButtonText: {
+    color: 'white',
   }
 });

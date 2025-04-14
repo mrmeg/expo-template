@@ -14,10 +14,10 @@ export default function TimestampOverlay({
   enabled,
   useCurrentDate = true,
   customDate,
-  position = 'bottomRight'
+  position = 'topRight'
 }: TimestampOverlayProps) {
   const [dateString, setDateString] = useState('');
-  
+
   useEffect(() => {
     if (useCurrentDate) {
       // Update the timestamp every second
@@ -26,37 +26,37 @@ export default function TimestampOverlay({
         const month = now.toLocaleString('en-US', { month: 'short' }).toUpperCase();
         const day = now.getDate().toString().padStart(2, '0');
         const year = now.getFullYear().toString();
-        const time = now.toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
+        const time = now.toLocaleTimeString('en-US', {
+          hour: '2-digit',
           minute: '2-digit',
           hour12: true
         });
-        
+
         setDateString(`${month} ${day} ${year} ${time}`);
       }, 1000);
-      
+
       return () => clearInterval(interval);
     } else if (customDate) {
       setDateString(customDate);
     }
   }, [useCurrentDate, customDate]);
-  
+
   const animatedStyle = useAnimatedStyle(() => {
     return {
       opacity: withTiming(enabled ? 1 : 0)
     };
   });
-  
+
   const positionStyle = (() => {
     switch(position) {
       case 'topLeft': return styles.topLeft;
       case 'topRight': return styles.topRight;
       case 'bottomLeft': return styles.bottomLeft;
-      case 'bottomRight': 
+      case 'bottomRight':
       default: return styles.bottomRight;
     }
   })();
-  
+
   return (
     <Animated.View style={[styles.container, positionStyle, animatedStyle]}>
       <SansSerifText style={styles.text}>{dateString}</SansSerifText>

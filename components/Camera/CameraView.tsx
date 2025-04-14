@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, Dimensions, Platform, TouchableOpacity } from 'react-native';
-import { CameraView as ExpoCameraView, CameraType, FlashMode, useCameraPermissions, CameraRecordingOptions } from 'expo-camera';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { CameraView as ExpoCameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
 import { SansSerifText } from '@/components/ui/StyledText';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-
-const WINDOW = Dimensions.get('window');
 
 interface SDCameraViewProps {
   onCameraReady?: () => void;
