@@ -77,27 +77,27 @@ export const PopoverModal = ({
       resolvedPlacement = canPlaceBelow
         ? "bottom"
         : canPlaceAbove
-        ? "top"
-        : "bottom";
+          ? "top"
+          : "bottom";
     }
 
     switch (resolvedPlacement) {
-      case "top":
-        finalTop = triggerRect.y - modalHeight - gap;
-        break;
-      case "bottom":
-        finalTop = triggerRect.y + triggerRect.height + gap - pixelNudge;
-        break;
-      case "left":
-        finalLeft = triggerRect.x - modalWidth - gap;
-        finalTop = triggerRect.y;
-        break;
-      case "right":
-        finalLeft = triggerRect.x + triggerRect.width + gap;
-        finalTop = triggerRect.y;
-        break;
-      default:
-        finalTop = triggerRect.y + triggerRect.height + gap - pixelNudge;
+    case "top":
+      finalTop = triggerRect.y - modalHeight - gap;
+      break;
+    case "bottom":
+      finalTop = triggerRect.y + triggerRect.height + gap - pixelNudge;
+      break;
+    case "left":
+      finalLeft = triggerRect.x - modalWidth - gap;
+      finalTop = triggerRect.y;
+      break;
+    case "right":
+      finalLeft = triggerRect.x + triggerRect.width + gap;
+      finalTop = triggerRect.y;
+      break;
+    default:
+      finalTop = triggerRect.y + triggerRect.height + gap - pixelNudge;
     }
 
     return { top: finalTop, left: finalLeft };

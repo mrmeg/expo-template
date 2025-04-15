@@ -32,13 +32,13 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-        <ThemeProvider value={colors[scheme ?? "light"]}>
-          <Stack>
-            <Stack.Screen name="index" />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-        <Notification />
+      <ThemeProvider value={colors[scheme ?? "light"]}>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+      <Notification />
     </QueryClientProvider>
   );
 }

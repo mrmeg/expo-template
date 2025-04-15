@@ -55,7 +55,7 @@ export function useTheme(): ExtendedColorScheme & {
   toggleTheme: () => void;
   setTheme: (theme: "system" | "light" | "dark") => void;
   currentTheme: "system" | "light" | "dark";
-} {
+  } {
   const { userTheme, setTheme } = useThemeStore();
   let defaultScheme = useColorSchemeDefault();
 

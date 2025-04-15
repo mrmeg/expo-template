@@ -1,34 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { SansSerifText } from '@/components/ui/StyledText';
-import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { SansSerifText } from "@/components/ui/StyledText";
+import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated";
 
 interface TimestampOverlayProps {
   enabled: boolean;
   useCurrentDate?: boolean;
   customDate?: string;
-  position?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
+  position?: "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
 }
 
 export default function TimestampOverlay({
   enabled,
   useCurrentDate = true,
   customDate,
-  position = 'topRight'
+  position = "topRight"
 }: TimestampOverlayProps) {
-  const [dateString, setDateString] = useState('');
+  const [dateString, setDateString] = useState("");
 
   useEffect(() => {
     if (useCurrentDate) {
       // Update the timestamp every second
       const interval = setInterval(() => {
         const now = new Date();
-        const month = now.toLocaleString('en-US', { month: 'short' }).toUpperCase();
-        const day = now.getDate().toString().padStart(2, '0');
+        const month = now.toLocaleString("en-US", { month: "short" }).toUpperCase();
+        const day = now.getDate().toString().padStart(2, "0");
         const year = now.getFullYear().toString();
-        const time = now.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
+        const time = now.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
           hour12: true
         });
 
@@ -49,11 +49,11 @@ export default function TimestampOverlay({
 
   const positionStyle = (() => {
     switch(position) {
-      case 'topLeft': return styles.topLeft;
-      case 'topRight': return styles.topRight;
-      case 'bottomLeft': return styles.bottomLeft;
-      case 'bottomRight':
-      default: return styles.bottomRight;
+    case "topLeft": return styles.topLeft;
+    case "topRight": return styles.topRight;
+    case "bottomLeft": return styles.bottomLeft;
+    case "bottomRight":
+    default: return styles.bottomRight;
     }
   })();
 
@@ -67,9 +67,9 @@ export default function TimestampOverlay({
 const styles = StyleSheet.create({
   container: {
     padding: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     borderRadius: 4,
-    position: 'absolute',
+    position: "absolute",
   },
   topLeft: {
     top: 40,
@@ -88,8 +88,8 @@ const styles = StyleSheet.create({
     right: 20,
   },
   text: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 16,
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
   }
 });

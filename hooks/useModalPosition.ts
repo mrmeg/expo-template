@@ -4,7 +4,7 @@ import { useDimensions } from "./useDimensions";
 type Position = { top: number; left: number };
 type Size = { width: number; height: number | undefined };
 type TriggerRect = { width: number; height: number; x: number; y: number };
-type Placement = 'top' | 'bottom' | 'left' | 'right' | 'auto';
+type Placement = "top" | "bottom" | "left" | "right" | "auto";
 
 /**
  * useModalPosition
@@ -47,22 +47,22 @@ export const useModalPosition = (
       const gap = 10; // Gap between trigger and popover
       
       switch (placement) {
-        case 'top':
-          newTop = triggerRect.y - modalHeight - gap;
-          newLeft = triggerRect.x + (triggerRect.width / 2) - (modalWidth / 2);
-          break;
-        case 'bottom':
-          newTop = triggerRect.y + triggerRect.height + gap;
-          newLeft = triggerRect.x + (triggerRect.width / 2) - (modalWidth / 2);
-          break;
-        case 'left':
-          newTop = triggerRect.y + (triggerRect.height / 2) - (modalHeight / 2);
-          newLeft = triggerRect.x - modalWidth - gap;
-          break;
-        case 'right':
-          newTop = triggerRect.y + (triggerRect.height / 2) - (modalHeight / 2);
-          newLeft = triggerRect.x + triggerRect.width + gap;
-          break;
+      case "top":
+        newTop = triggerRect.y - modalHeight - gap;
+        newLeft = triggerRect.x + (triggerRect.width / 2) - (modalWidth / 2);
+        break;
+      case "bottom":
+        newTop = triggerRect.y + triggerRect.height + gap;
+        newLeft = triggerRect.x + (triggerRect.width / 2) - (modalWidth / 2);
+        break;
+      case "left":
+        newTop = triggerRect.y + (triggerRect.height / 2) - (modalHeight / 2);
+        newLeft = triggerRect.x - modalWidth - gap;
+        break;
+      case "right":
+        newTop = triggerRect.y + (triggerRect.height / 2) - (modalHeight / 2);
+        newLeft = triggerRect.x + triggerRect.width + gap;
+        break;
         // Auto placement will use the initialPosition
       }
     }
