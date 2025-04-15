@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, TouchableOpacity } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { CameraType, FlashMode, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import { Image } from 'expo-image';
-import * as Sharing from 'expo-sharing';
-import * as VideoThumbnails from 'expo-video-thumbnails';
-import SDCameraView from '@/components/Camera/CameraView';
-import CameraControls from '@/components/Camera/CameraControls';
-import TimestampOverlay from '@/components/Camera/TimestampOverlay';
-import * as MediaLibrary from 'expo-media-library';
-import { ScrollView } from '@/components/ui/ScrollView';
-import { SansSerifText } from '@/components/ui/StyledText';
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, Alert, TouchableOpacity } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { CameraType, FlashMode, useCameraPermissions, useMicrophonePermissions } from "expo-camera";
+import { Image } from "expo-image";
+import * as Sharing from "expo-sharing";
+import * as VideoThumbnails from "expo-video-thumbnails";
+import SDCameraView from "@/components/Camera/CameraView";
+import CameraControls from "@/components/Camera/CameraControls";
+import TimestampOverlay from "@/components/Camera/TimestampOverlay";
+import * as MediaLibrary from "expo-media-library";
+import { ScrollView } from "@/components/ui/ScrollView";
+import { SansSerifText } from "@/components/ui/StyledText";
 
 export default function CameraScreen() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [microphonePermission, requestMicrophonePermission] = useMicrophonePermissions();
   const [hasMediaPermission, setHasMediaPermission] = useState<boolean | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [cameraType, setCameraType] = useState<CameraType>('back');
-  const [flash, setFlash] = useState<FlashMode>('off');
+  const [cameraType, setCameraType] = useState<CameraType>("back");
+  const [flash, setFlash] = useState<FlashMode>("off");
   const [timestampEnabled, setTimestampEnabled] = useState(true);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [lastRecordedVideo, setLastRecordedVideo] = useState<string | null>(null);
@@ -42,10 +42,10 @@ export default function CameraScreen() {
       }
 
       const { status } = await MediaLibrary.requestPermissionsAsync();
-      setHasMediaPermission(status === 'granted');
+      setHasMediaPermission(status === "granted");
 
       // Load initial thumbnail if permission granted
-      if (status === 'granted') {
+      if (status === "granted") {
         getLatestVideoThumbnail();
       }
     })();
@@ -56,8 +56,8 @@ export default function CameraScreen() {
 
     try {
       const { assets } = await MediaLibrary.getAssetsAsync({
-        mediaType: 'video',
-        sortBy: ['creationTime'],
+        mediaType: "video",
+        sortBy: ["creationTime"],
         first: 1
       });
 
@@ -69,7 +69,7 @@ export default function CameraScreen() {
         setLatestVideoThumbnail(uri);
       }
     } catch (error) {
-      console.error('Error getting video thumbnail:', error);
+      console.error("Error getting video thumbnail:", error);
     }
   };
 
@@ -96,14 +96,14 @@ export default function CameraScreen() {
   // Handle camera flip - toggle between front and back
   const handleFlipPress = () => {
     setCameraType(current =>
-      current === 'back' ? 'front' : 'back'
+      current === "back" ? "front" : "back"
     );
   };
 
   // Handle flash toggle - cycle between off and on
   const handleFlashPress = () => {
     setFlash(current =>
-      current === 'off' ? 'on' : 'off'
+      current === "off" ? "on" : "off"
     );
   };
 
@@ -119,7 +119,7 @@ export default function CameraScreen() {
 
   // Handle recording start callback
   const handleRecordingStart = () => {
-    console.log('Recording started');
+    console.log("Recording started");
   };
 
   const handleThumbnailPress = async () => {
@@ -133,26 +133,26 @@ export default function CameraScreen() {
 
     try {
       const { assets } = await MediaLibrary.getAssetsAsync({
-        mediaType: 'video',
-        sortBy: ['creationTime'],
+        mediaType: "video",
+        sortBy: ["creationTime"],
       });
       setMediaAssets(assets);
       setShowMediaBrowser(true);
     } catch (error) {
-      console.error('Error loading videos:', error);
-      Alert.alert('Error', 'Could not load videos');
+      console.error("Error loading videos:", error);
+      Alert.alert("Error", "Could not load videos");
     }
   };
 
   const handleRecordingEnd = async (videoUri: string) => {
-    console.log('Recording ended:', videoUri);
+    console.log("Recording ended:", videoUri);
     setLastRecordedVideo(videoUri);
 
     if (hasMediaPermission) {
       try {
         // Save video to media library
         const asset = await MediaLibrary.createAssetAsync(videoUri);
-        console.log('Video saved to library:', asset);
+        console.log("Video saved to library:", asset);
 
         // Generate and set new thumbnail from the recorded video
         const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
@@ -165,25 +165,25 @@ export default function CameraScreen() {
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
           Alert.alert(
-            'Video Recorded',
-            'Your retro video has been saved to your library. Do you want to share it?',
+            "Video Recorded",
+            "Your retro video has been saved to your library. Do you want to share it?",
             [
               {
-                text: 'No',
-                style: 'cancel',
+                text: "No",
+                style: "cancel",
               },
               {
-                text: 'Share',
+                text: "Share",
                 onPress: () => Sharing.shareAsync(videoUri),
               },
             ],
           );
         }
       } catch (error) {
-        console.error('Error saving video:', error);
+        console.error("Error saving video:", error);
         Alert.alert(
-          'Error',
-          'There was an error saving your video.'
+          "Error",
+          "There was an error saving your video."
         );
       }
     }
@@ -213,7 +213,7 @@ export default function CameraScreen() {
         onFlipPress={handleFlipPress}
         onFlashPress={handleFlashPress}
         onTimestampToggle={handleTimestampToggle}
-        flashEnabled={flash === 'on'}
+        flashEnabled={flash === "on"}
         timestampEnabled={timestampEnabled}
       />
 
@@ -259,27 +259,27 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: "#000",
   },
   mediaPreview: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 100,
     right: 20,
     width: 60,
     height: 80,
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   thumbnail: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   mediaBrowser: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: "rgba(0,0,0,0.8)",
     padding: 10,
   },
   browserThumbnail: {
@@ -288,10 +288,10 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   closeButton: {
-    alignSelf: 'center',
+    alignSelf: "center",
     padding: 10,
   },
   closeButtonText: {
-    color: 'white',
+    color: "white",
   }
 });

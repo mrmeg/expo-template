@@ -1,11 +1,11 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
+import React from "react";
+import { View, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 interface CameraControlsProps {
   isRecording: boolean;
@@ -36,7 +36,7 @@ export default function CameraControls({
       transform: [
         { scale: withTiming(isRecording ? 1.2 : 1) },
       ],
-      backgroundColor: withTiming(isRecording ? '#ff4040' : '#ffffff')
+      backgroundColor: withTiming(isRecording ? "#ff4040" : "#ffffff")
     };
   });
 
@@ -104,40 +104,40 @@ export default function CameraControls({
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: 20,
   },
   topControls: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
     marginBottom: 30,
   },
   bottomControls: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
   },
   controlButton: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
   recordButton: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -148,14 +148,14 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 35,
     borderWidth: 3,
-    borderColor: '#ff0000',
-    backgroundColor: 'transparent',
+    borderColor: "#ff0000",
+    backgroundColor: "transparent",
   },
   recordingButtonInner: {
     width: 30,
     height: 30,
     borderRadius: 4,
-    backgroundColor: '#ff0000',
+    backgroundColor: "#ff0000",
     borderWidth: 0,
   },
 });
