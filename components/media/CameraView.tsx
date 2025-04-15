@@ -1,15 +1,16 @@
 import React, { useRef, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
-import { CameraView as ExpoCameraView, CameraType, FlashMode, useCameraPermissions } from "expo-camera";
+import { CameraView as ExpoCameraView, CameraType, FlashMode, useCameraPermissions, CameraViewProps } from "expo-camera";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
 
-interface SDCameraViewProps {
+interface SDCameraViewProps extends CameraViewProps {
   onCameraReady?: () => void;
   onRecordingStart?: () => void;
   onRecordingEnd?: (uri: string) => void;
   isRecording?: boolean;
   cameraType?: CameraType;
   flash?: FlashMode;
+  pausePreview?: boolean
 }
 
 const ReanimatedCamera = Animated.createAnimatedComponent(ExpoCameraView);
@@ -20,13 +21,22 @@ export default function SDCameraView({
   onRecordingEnd,
   isRecording = false,
   cameraType = "back",
-  flash = "off"
+  flash = "off",
+  pausePreview = false
 }: SDCameraViewProps) {
   const [permission] = useCameraPermissions();
   const cameraRef = useRef<ExpoCameraView>(null);
   const isMounted = useRef(true);
   const isCurrentlyRecording = useRef(false);
   const recordingAnimation = useSharedValue(1);
+
+  useEffect(() => {
+    if (pausePreview) {
+      cameraRef.current?.pausePreview();
+    } else {
+      cameraRef.current?.resumePreview();
+    }
+  }, [pausePreview]);
 
   // Animation style for recording indicator
   const recordingIndicatorStyle = useAnimatedStyle(() => ({

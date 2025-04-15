@@ -4,9 +4,7 @@ import {
   StyleSheet,
   Alert,
   TouchableOpacity,
-  FlatList,
   Dimensions,
-  TouchableWithoutFeedback,
   Linking
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -14,11 +12,11 @@ import { CameraType, FlashMode, useCameraPermissions, useMicrophonePermissions }
 import { Image } from "expo-image";
 import * as Sharing from "expo-sharing";
 import * as VideoThumbnails from "expo-video-thumbnails";
-import SDCameraView from "@/components/Camera/CameraView";
-import TimestampOverlay from "@/components/Camera/TimestampOverlay";
+import SDCameraView from "@/components/media/CameraView";
+import TimestampOverlay from "@/components/media/TimestampOverlay";
 import * as MediaLibrary from "expo-media-library";
-import { SansSerifText } from "@/components/ui/StyledText";
 import { Ionicons } from "@expo/vector-icons";
+import MediaBrowser from "@/components/media/MediaBrowser";
 
 const { width } = Dimensions.get("window");
 
@@ -139,18 +137,6 @@ export default function CameraScreen() {
     console.log("Recording started");
   }, []);
 
-  const renderMediaItem = useCallback(({ item }: { item: MediaLibrary.Asset }) => (
-    <TouchableOpacity
-      style={styles.mediaItem}
-      onPress={() => Sharing.shareAsync(item.uri)}
-    >
-      <Image
-        source={{ uri: item.uri }}
-        style={styles.mediaItemImage}
-      />
-    </TouchableOpacity>
-  ), []);
-
   const handleThumbnailPress = useCallback(async () => {
     if (!hasMediaPermission) {
       Alert.alert(
@@ -234,6 +220,7 @@ export default function CameraScreen() {
         isRecording={isRecording}
         cameraType={cameraType}
         flash={flash}
+        pausePreview={showMediaBrowser}
       />
 
       <TimestampOverlay
@@ -269,38 +256,23 @@ export default function CameraScreen() {
       </View>
 
       {/* Record Button - Bottom Center */}
-      <View style={styles.recordButtonContainer}>
-        <TouchableOpacity
-          style={[styles.recordButton, isRecording && styles.recordingButton]}
-          onPress={handleRecordPress}
-        >
-          {isRecording ? (
-            <View style={styles.stopIcon} />
-          ) : null}
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={[styles.recordButton, isRecording && styles.recordingButton]}
+        onPress={handleRecordPress}
+      >
+        {isRecording ? (
+          <View style={styles.stopIcon} />
+        ) : null}
+      </TouchableOpacity>
 
       {/* Media Browser Overlay */}
       {showMediaBrowser && (
-        <View style={styles.mediaBrowserOverlay}>
-          <TouchableWithoutFeedback onPress={() => setShowMediaBrowser(false)}>
-            <View style={styles.mediaBrowserContent}>
-              <FlatList
-                data={mediaAssets}
-                renderItem={renderMediaItem}
-                keyExtractor={(item) => item.id}
-                numColumns={3}
-                contentContainerStyle={styles.mediaBrowserList}
-              />
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowMediaBrowser(false)}
-              >
-                <SansSerifText style={styles.closeButtonText}>Close</SansSerifText>
-              </TouchableOpacity>
-            </View>
-          </TouchableWithoutFeedback>
-        </View>
+        <MediaBrowser
+          assets={mediaAssets}
+          onClose={() => {
+            setShowMediaBrowser(false);
+          }}
+        />
       )}
     </View>
   );
@@ -354,6 +326,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   recordButton: {
+    position: "absolute",
+    bottom: 30,
+    alignSelf: "center",
     width: 70,
     height: 70,
     borderRadius: 35,

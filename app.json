@@ -43,7 +43,12 @@
         }
       ],
       "expo-audio",
-      "expo-video",
+      [
+        "expo-video",
+        {
+          "supportsPictureInPicture": true
+        }
+      ],
       [
         "expo-camera",
         {
