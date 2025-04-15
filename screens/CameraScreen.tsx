@@ -1,16 +1,26 @@
-import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Alert, TouchableOpacity } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  StyleSheet,
+  Alert,
+  TouchableOpacity,
+  FlatList,
+  Dimensions,
+  TouchableWithoutFeedback,
+  Linking
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { CameraType, FlashMode, useCameraPermissions, useMicrophonePermissions } from "expo-camera";
 import { Image } from "expo-image";
 import * as Sharing from "expo-sharing";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import SDCameraView from "@/components/Camera/CameraView";
-import CameraControls from "@/components/Camera/CameraControls";
 import TimestampOverlay from "@/components/Camera/TimestampOverlay";
 import * as MediaLibrary from "expo-media-library";
-import { ScrollView } from "@/components/ui/ScrollView";
 import { SansSerifText } from "@/components/ui/StyledText";
+import { Ionicons } from "@expo/vector-icons";
+
+const { width } = Dimensions.get("window");
 
 export default function CameraScreen() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -20,38 +30,11 @@ export default function CameraScreen() {
   const [cameraType, setCameraType] = useState<CameraType>("back");
   const [flash, setFlash] = useState<FlashMode>("off");
   const [timestampEnabled, setTimestampEnabled] = useState(true);
-  const [isCameraReady, setIsCameraReady] = useState(false);
-  const [lastRecordedVideo, setLastRecordedVideo] = useState<string | null>(null);
   const [latestVideoThumbnail, setLatestVideoThumbnail] = useState<string | null>(null);
   const [showMediaBrowser, setShowMediaBrowser] = useState(false);
   const [mediaAssets, setMediaAssets] = useState<MediaLibrary.Asset[]>([]);
 
-  useEffect(() => {
-    if (hasMediaPermission) {
-      getLatestVideoThumbnail();
-    }
-  }, [hasMediaPermission]);
-
-  useEffect(() => {
-    (async () => {
-      if (!cameraPermission?.granted) {
-        await requestCameraPermission();
-      }
-      if (!microphonePermission?.granted) {
-        await requestMicrophonePermission();
-      }
-
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      setHasMediaPermission(status === "granted");
-
-      // Load initial thumbnail if permission granted
-      if (status === "granted") {
-        getLatestVideoThumbnail();
-      }
-    })();
-  }, []);
-
-  const getLatestVideoThumbnail = async () => {
+  const getLatestVideoThumbnail = useCallback(async () => {
     if (!hasMediaPermission) return;
 
     try {
@@ -71,13 +54,50 @@ export default function CameraScreen() {
     } catch (error) {
       console.error("Error getting video thumbnail:", error);
     }
-  };
+  }, [hasMediaPermission]);
 
-  const handleRecordPress = async () => {
+  useEffect(() => {
+    if (hasMediaPermission) {
+      getLatestVideoThumbnail();
+    }
+  }, [hasMediaPermission, getLatestVideoThumbnail]);
+
+  useEffect(() => {
+    const initPermissions = async () => {
+      try {
+        if (!cameraPermission?.granted) {
+          await requestCameraPermission();
+        }
+        if (!microphonePermission?.granted) {
+          await requestMicrophonePermission();
+        }
+
+        const mediaResponse = await MediaLibrary.requestPermissionsAsync();
+        setHasMediaPermission(mediaResponse.status === "granted");
+      } catch (error) {
+        console.error("Error initializing permissions:", error);
+        Alert.alert("Error", "Failed to initialize camera permissions");
+      }
+    };
+
+    initPermissions();
+  }, []);
+
+  const handleRecordPress = useCallback(async () => {
     if (!cameraPermission?.granted) {
       Alert.alert(
         "Camera Access Required",
-        "Please enable camera access to record videos."
+        "Please enable camera access to record videos.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
+          },
+          {
+            text: "Open Settings",
+            onPress: () => Linking.openSettings()
+          }
+        ]
       );
       return;
     }
@@ -85,48 +105,67 @@ export default function CameraScreen() {
     if (!microphonePermission?.granted) {
       Alert.alert(
         "Microphone Required",
-        "Please enable microphone access to record videos with sound."
+        "Please enable microphone access to record videos with sound.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
+          },
+          {
+            text: "Open Settings",
+            onPress: () => Linking.openSettings()
+          }
+        ]
       );
       return;
     }
 
     setIsRecording(current => !current);
-  };
+  }, [cameraPermission, microphonePermission]);
 
-  // Handle camera flip - toggle between front and back
-  const handleFlipPress = () => {
-    setCameraType(current =>
-      current === "back" ? "front" : "back"
-    );
-  };
+  const handleFlipPress = useCallback(() => {
+    setCameraType(current => current === "back" ? "front" : "back");
+  }, []);
 
-  // Handle flash toggle - cycle between off and on
-  const handleFlashPress = () => {
-    setFlash(current =>
-      current === "off" ? "on" : "off"
-    );
-  };
+  const handleFlashPress = useCallback(() => {
+    setFlash(current => current === "off" ? "on" : "off");
+  }, []);
 
-  // Handle timestamp toggle
-  const handleTimestampToggle = () => {
-    setTimestampEnabled(!timestampEnabled);
-  };
+  const handleTimestampToggle = useCallback(() => {
+    setTimestampEnabled(current => !current);
+  }, []);
 
-  // Handle camera ready state
-  const handleCameraReady = () => {
-    setIsCameraReady(true);
-  };
-
-  // Handle recording start callback
-  const handleRecordingStart = () => {
+  const handleRecordingStart = useCallback(() => {
     console.log("Recording started");
-  };
+  }, []);
 
-  const handleThumbnailPress = async () => {
+  const renderMediaItem = useCallback(({ item }: { item: MediaLibrary.Asset }) => (
+    <TouchableOpacity
+      style={styles.mediaItem}
+      onPress={() => Sharing.shareAsync(item.uri)}
+    >
+      <Image
+        source={{ uri: item.uri }}
+        style={styles.mediaItemImage}
+      />
+    </TouchableOpacity>
+  ), []);
+
+  const handleThumbnailPress = useCallback(async () => {
     if (!hasMediaPermission) {
       Alert.alert(
         "Permission Required",
-        "Media library access is required to view videos."
+        "Media library access is required to view videos.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
+          },
+          {
+            text: "Open Settings",
+            onPress: () => Linking.openSettings()
+          }
+        ]
       );
       return;
     }
@@ -142,26 +181,22 @@ export default function CameraScreen() {
       console.error("Error loading videos:", error);
       Alert.alert("Error", "Could not load videos");
     }
-  };
+  }, [hasMediaPermission]);
 
-  const handleRecordingEnd = async (videoUri: string) => {
+  const handleRecordingEnd = useCallback(async (videoUri: string) => {
     console.log("Recording ended:", videoUri);
-    setLastRecordedVideo(videoUri);
 
     if (hasMediaPermission) {
       try {
-        // Save video to media library
         const asset = await MediaLibrary.createAssetAsync(videoUri);
         console.log("Video saved to library:", asset);
 
-        // Generate and set new thumbnail from the recorded video
         const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
           quality: 0.8,
           time: 1000
         });
         setLatestVideoThumbnail(uri);
 
-        // Show share option
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
           Alert.alert(
@@ -187,14 +222,13 @@ export default function CameraScreen() {
         );
       }
     }
-  };
+  }, [hasMediaPermission]);
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
 
       <SDCameraView
-        onCameraReady={handleCameraReady}
         onRecordingStart={handleRecordingStart}
         onRecordingEnd={handleRecordingEnd}
         isRecording={isRecording}
@@ -207,49 +241,65 @@ export default function CameraScreen() {
         position="topRight"
       />
 
-      <CameraControls
-        isRecording={isRecording}
-        onRecordPress={handleRecordPress}
-        onFlipPress={handleFlipPress}
-        onFlashPress={handleFlashPress}
-        onTimestampToggle={handleTimestampToggle}
-        flashEnabled={flash === "on"}
-        timestampEnabled={timestampEnabled}
-      />
+      {/* Media Library Button - Bottom Left */}
+      <TouchableOpacity
+        style={styles.mediaLibraryButton}
+        onPress={handleThumbnailPress}
+      >
+        {latestVideoThumbnail ? (
+          <Image source={{ uri: latestVideoThumbnail }} style={styles.mediaPreview} />
+        ) : (
+          <Ionicons name="images" size={24} color="white" />
+        )}
+      </TouchableOpacity>
 
-      {latestVideoThumbnail && (
-        <TouchableOpacity
-          style={styles.mediaPreview}
-          onPress={handleThumbnailPress}
-        >
-          <Image
-            source={{ uri: latestVideoThumbnail }}
-            style={styles.thumbnail}
-          />
+      {/* Secondary Controls - Right Side */}
+      <View style={styles.secondaryControls}>
+        <TouchableOpacity style={styles.controlButton} onPress={handleFlipPress}>
+          <Ionicons name="camera-reverse" size={24} color="white" />
         </TouchableOpacity>
-      )}
 
+        <TouchableOpacity style={styles.controlButton} onPress={handleFlashPress}>
+          <Ionicons name={flash === "on" ? "flash" : "flash-off"} size={24} color="white" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.controlButton} onPress={handleTimestampToggle}>
+          <Ionicons name={timestampEnabled ? "time" : "time-outline"} size={24} color="white" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Record Button - Bottom Center */}
+      <View style={styles.recordButtonContainer}>
+        <TouchableOpacity
+          style={[styles.recordButton, isRecording && styles.recordingButton]}
+          onPress={handleRecordPress}
+        >
+          {isRecording ? (
+            <View style={styles.stopIcon} />
+          ) : null}
+        </TouchableOpacity>
+      </View>
+
+      {/* Media Browser Overlay */}
       {showMediaBrowser && (
-        <View style={styles.mediaBrowser}>
-          <ScrollView horizontal>
-            {mediaAssets.map((asset) => (
+        <View style={styles.mediaBrowserOverlay}>
+          <TouchableWithoutFeedback onPress={() => setShowMediaBrowser(false)}>
+            <View style={styles.mediaBrowserContent}>
+              <FlatList
+                data={mediaAssets}
+                renderItem={renderMediaItem}
+                keyExtractor={(item) => item.id}
+                numColumns={3}
+                contentContainerStyle={styles.mediaBrowserList}
+              />
               <TouchableOpacity
-                key={asset.id}
-                onPress={() => Sharing.shareAsync(asset.uri)}
+                style={styles.closeButton}
+                onPress={() => setShowMediaBrowser(false)}
               >
-                <Image
-                  source={{ uri: asset.uri }}
-                  style={styles.browserThumbnail}
-                />
+                <SansSerifText style={styles.closeButtonText}>Close</SansSerifText>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setShowMediaBrowser(false)}
-          >
-            <SansSerifText style={styles.closeButtonText}>Close</SansSerifText>
-          </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
         </View>
       )}
     </View>
@@ -261,37 +311,105 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000",
   },
-  mediaPreview: {
+  mediaLibraryButton: {
     position: "absolute",
-    bottom: 100,
-    right: 20,
+    bottom: 30,
+    left: 20,
     width: 60,
-    height: 80,
-    borderRadius: 4,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     overflow: "hidden",
+    zIndex: 10,
   },
-  thumbnail: {
+  mediaPreview: {
     width: "100%",
     height: "100%",
   },
-  mediaBrowser: {
+  secondaryControls: {
     position: "absolute",
-    bottom: 20,
+    bottom: 40,
+    right: 20,
+    justifyContent: "space-between",
+    height: 180,
+    zIndex: 10,
+  },
+  controlButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  recordButtonContainer: {
+    position: "absolute",
+    bottom: 30,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(0,0,0,0.8)",
-    padding: 10,
+    alignItems: "center",
+    zIndex: 10,
   },
-  browserThumbnail: {
-    width: 80,
-    height: 80,
-    marginRight: 10,
+  recordButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: "white",
+    backgroundColor: "rgba(255,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  recordingButton: {
+    backgroundColor: "rgba(255,255,255,0.5)",
+    borderColor: "transparent",
+  },
+  stopIcon: {
+    width: 30,
+    height: 30,
+    backgroundColor: "white",
+    borderRadius: 3,
+  },
+  mediaBrowserOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    zIndex: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  mediaBrowserContent: {
+    width: "90%",
+    maxHeight: "80%",
+    backgroundColor: "rgba(30,30,30,0.9)",
+    borderRadius: 10,
+    padding: 15,
+  },
+  mediaBrowserList: {
+    paddingBottom: 15,
+  },
+  mediaItem: {
+    width: (width * 0.9 - 60) / 3,
+    height: (width * 0.9 - 60) / 3,
+    margin: 5,
+    borderRadius: 5,
+    overflow: "hidden",
+  },
+  mediaItemImage: {
+    width: "100%",
+    height: "100%",
   },
   closeButton: {
     alignSelf: "center",
     padding: 10,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 5,
+    marginTop: 10,
   },
   closeButtonText: {
     color: "white",
-  }
+    fontSize: 16,
+  },
 });
