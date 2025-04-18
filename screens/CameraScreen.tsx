@@ -50,7 +50,7 @@ export default function CameraScreen() {
         setLatestVideoThumbnail(uri);
       }
     } catch (error) {
-      console.error("Error getting video thumbnail:", error);
+      console.log("Error getting video thumbnail:", error);
     }
   }, [hasMediaPermission]);
 
