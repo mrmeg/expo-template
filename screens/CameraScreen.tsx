@@ -8,25 +8,26 @@ import {
   Linking
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { CameraType, FlashMode, useCameraPermissions, useMicrophonePermissions } from "expo-camera";
 import { Image } from "expo-image";
 import * as Sharing from "expo-sharing";
 import * as VideoThumbnails from "expo-video-thumbnails";
-import SDCameraView from "@/components/media/CameraView";
-import TimestampOverlay from "@/components/media/TimestampOverlay";
 import * as MediaLibrary from "expo-media-library";
 import { Ionicons } from "@expo/vector-icons";
+import { Camera } from "react-native-vision-camera";
+
+import SDCameraView from "@/components/media/CameraView";
+import TimestampOverlay from "@/components/media/TimestampOverlay";
 import MediaBrowser from "@/components/media/MediaBrowser";
 
 const { width } = Dimensions.get("window");
 
 export default function CameraScreen() {
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [microphonePermission, requestMicrophonePermission] = useMicrophonePermissions();
+  const [cameraPermission, setCameraPermission] = useState(false);
+  const [microphonePermission, setMicrophonePermission] = useState(false);
   const [hasMediaPermission, setHasMediaPermission] = useState<boolean | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [cameraType, setCameraType] = useState<CameraType>("back");
-  const [flash, setFlash] = useState<FlashMode>("off");
+  const [cameraType, setCameraType] = useState<"front" | "back">("back");
+  const [flash, setFlash] = useState<"off" | "on">("off");
   const [timestampEnabled, setTimestampEnabled] = useState(true);
   const [latestVideoThumbnail, setLatestVideoThumbnail] = useState<string | null>(null);
   const [showMediaBrowser, setShowMediaBrowser] = useState(false);
@@ -63,15 +64,13 @@ export default function CameraScreen() {
   useEffect(() => {
     const initPermissions = async () => {
       try {
-        if (!cameraPermission?.granted) {
-          await requestCameraPermission();
-        }
-        if (!microphonePermission?.granted) {
-          await requestMicrophonePermission();
-        }
+        const camStatus = await Camera.requestCameraPermission();
+        const micStatus = await Camera.requestMicrophonePermission();
+        const mediaStatus = await MediaLibrary.requestPermissionsAsync();
 
-        const mediaResponse = await MediaLibrary.requestPermissionsAsync();
-        setHasMediaPermission(mediaResponse.status === "granted");
+        setCameraPermission(camStatus === "granted");
+        setMicrophonePermission(micStatus === "granted");
+        setHasMediaPermission(mediaStatus.status === "granted");
       } catch (error) {
         console.error("Error initializing permissions:", error);
         Alert.alert("Error", "Failed to initialize camera permissions");
@@ -81,85 +80,55 @@ export default function CameraScreen() {
     initPermissions();
   }, []);
 
-  const handleRecordPress = useCallback(async () => {
-    if (!cameraPermission?.granted) {
-      Alert.alert(
-        "Camera Access Required",
-        "Please enable camera access to record videos.",
-        [
-          {
-            text: "Cancel",
-            style: "cancel"
-          },
-          {
-            text: "Open Settings",
-            onPress: () => Linking.openSettings()
-          }
-        ]
-      );
+  const handleRecordPress = useCallback(() => {
+    if (!cameraPermission) {
+      Alert.alert("Camera Access Required", "Please enable camera access to record videos.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Open Settings", onPress: () => Linking.openSettings() }
+      ]);
       return;
     }
 
-    if (!microphonePermission?.granted) {
-      Alert.alert(
-        "Microphone Required",
-        "Please enable microphone access to record videos with sound.",
-        [
-          {
-            text: "Cancel",
-            style: "cancel"
-          },
-          {
-            text: "Open Settings",
-            onPress: () => Linking.openSettings()
-          }
-        ]
-      );
+    if (!microphonePermission) {
+      Alert.alert("Microphone Required", "Please enable microphone access to record videos with sound.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Open Settings", onPress: () => Linking.openSettings() }
+      ]);
       return;
     }
 
     setIsRecording(current => !current);
   }, [cameraPermission, microphonePermission]);
 
-  const handleFlipPress = useCallback(() => {
-    setCameraType(current => current === "back" ? "front" : "back");
-  }, []);
+  const handleFlipPress = () => {
+    setCameraType(current => (current === "back" ? "front" : "back"));
+  };
 
-  const handleFlashPress = useCallback(() => {
-    setFlash(current => current === "off" ? "on" : "off");
-  }, []);
+  const handleFlashPress = () => {
+    setFlash(current => (current === "off" ? "on" : "off"));
+  };
 
-  const handleTimestampToggle = useCallback(() => {
+  const handleTimestampToggle = () => {
     setTimestampEnabled(current => !current);
-  }, []);
+  };
 
-  const handleRecordingStart = useCallback(() => {
+  const handleRecordingStart = () => {
     console.log("Recording started");
-  }, []);
+  };
 
   const handleThumbnailPress = useCallback(async () => {
     if (!hasMediaPermission) {
-      Alert.alert(
-        "Permission Required",
-        "Media library access is required to view videos.",
-        [
-          {
-            text: "Cancel",
-            style: "cancel"
-          },
-          {
-            text: "Open Settings",
-            onPress: () => Linking.openSettings()
-          }
-        ]
-      );
+      Alert.alert("Permission Required", "Media library access is required to view videos.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Open Settings", onPress: () => Linking.openSettings() }
+      ]);
       return;
     }
 
     try {
       const { assets } = await MediaLibrary.getAssetsAsync({
         mediaType: "video",
-        sortBy: ["creationTime"],
+        sortBy: ["creationTime"]
       });
       setMediaAssets(assets);
       setShowMediaBrowser(true);
@@ -172,12 +141,14 @@ export default function CameraScreen() {
   const handleRecordingEnd = useCallback(async (videoUri: string) => {
     console.log("Recording ended:", videoUri);
 
+    const formattedUri = videoUri.startsWith("file://") ? videoUri : `file://${videoUri}`;
+
     if (hasMediaPermission) {
       try {
-        const asset = await MediaLibrary.createAssetAsync(videoUri);
+        const asset = await MediaLibrary.createAssetAsync(formattedUri);
         console.log("Video saved to library:", asset);
 
-        const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
+        const { uri } = await VideoThumbnails.getThumbnailAsync(formattedUri, {
           quality: 0.8,
           time: 1000
         });
@@ -185,27 +156,14 @@ export default function CameraScreen() {
 
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
-          Alert.alert(
-            "Video Recorded",
-            "Your retro video has been saved to your library. Do you want to share it?",
-            [
-              {
-                text: "No",
-                style: "cancel",
-              },
-              {
-                text: "Share",
-                onPress: () => Sharing.shareAsync(videoUri),
-              },
-            ],
-          );
+          Alert.alert("Video Recorded", "Your retro video has been saved. Share it?", [
+            { text: "No", style: "cancel" },
+            { text: "Share", onPress: () => Sharing.shareAsync(formattedUri) }
+          ]);
         }
       } catch (error) {
         console.error("Error saving video:", error);
-        Alert.alert(
-          "Error",
-          "There was an error saving your video."
-        );
+        Alert.alert("Error", "There was an error saving your video.");
       }
     }
   }, [hasMediaPermission]);
@@ -223,16 +181,9 @@ export default function CameraScreen() {
         pausePreview={showMediaBrowser}
       />
 
-      <TimestampOverlay
-        enabled={timestampEnabled}
-        position="topRight"
-      />
+      <TimestampOverlay enabled={timestampEnabled} position="topRight" />
 
-      {/* Media Library Button - Bottom Left */}
-      <TouchableOpacity
-        style={styles.mediaLibraryButton}
-        onPress={handleThumbnailPress}
-      >
+      <TouchableOpacity style={styles.mediaLibraryButton} onPress={handleThumbnailPress}>
         {latestVideoThumbnail ? (
           <Image source={{ uri: latestVideoThumbnail }} style={styles.mediaPreview} />
         ) : (
@@ -240,7 +191,6 @@ export default function CameraScreen() {
         )}
       </TouchableOpacity>
 
-      {/* Secondary Controls - Right Side */}
       <View style={styles.secondaryControls}>
         <TouchableOpacity style={styles.controlButton} onPress={handleFlipPress}>
           <Ionicons name="camera-reverse" size={24} color="white" />
@@ -255,23 +205,17 @@ export default function CameraScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Record Button - Bottom Center */}
       <TouchableOpacity
         style={[styles.recordButton, isRecording && styles.recordingButton]}
         onPress={handleRecordPress}
       >
-        {isRecording ? (
-          <View style={styles.stopIcon} />
-        ) : null}
+        {isRecording && <View style={styles.stopIcon} />}
       </TouchableOpacity>
 
-      {/* Media Browser Overlay */}
       {showMediaBrowser && (
         <MediaBrowser
           assets={mediaAssets}
-          onClose={() => {
-            setShowMediaBrowser(false);
-          }}
+          onClose={() => setShowMediaBrowser(false)}
         />
       )}
     </View>
@@ -317,14 +261,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginVertical: 10,
   },
-  recordButtonContainer: {
-    position: "absolute",
-    bottom: 30,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 10,
-  },
   recordButton: {
     position: "absolute",
     bottom: 30,
@@ -347,44 +283,5 @@ const styles = StyleSheet.create({
     height: 30,
     backgroundColor: "white",
     borderRadius: 3,
-  },
-  mediaBrowserOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.9)",
-    zIndex: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  mediaBrowserContent: {
-    width: "90%",
-    maxHeight: "80%",
-    backgroundColor: "rgba(30,30,30,0.9)",
-    borderRadius: 10,
-    padding: 15,
-  },
-  mediaBrowserList: {
-    paddingBottom: 15,
-  },
-  mediaItem: {
-    width: (width * 0.9 - 60) / 3,
-    height: (width * 0.9 - 60) / 3,
-    margin: 5,
-    borderRadius: 5,
-    overflow: "hidden",
-  },
-  mediaItemImage: {
-    width: "100%",
-    height: "100%",
-  },
-  closeButton: {
-    alignSelf: "center",
-    padding: 10,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 5,
-    marginTop: 10,
-  },
-  closeButtonText: {
-    color: "white",
-    fontSize: 16,
   },
 });

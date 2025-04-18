@@ -1,19 +1,20 @@
 import React, { useRef, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
-import { CameraView as ExpoCameraView, CameraType, FlashMode, useCameraPermissions, CameraViewProps } from "expo-camera";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
+import { Camera, useCameraDevice, useCameraFormat, useMicrophonePermission } from "react-native-vision-camera";
 
-interface SDCameraViewProps extends CameraViewProps {
+interface SDCameraViewProps {
   onCameraReady?: () => void;
   onRecordingStart?: () => void;
   onRecordingEnd?: (uri: string) => void;
   isRecording?: boolean;
-  cameraType?: CameraType;
-  flash?: FlashMode;
-  pausePreview?: boolean
+  cameraType?: "front" | "back";
+  flash?: "off" | "on";
+  pausePreview?: boolean;
+  audioEnabled?: boolean;
 }
 
-const ReanimatedCamera = Animated.createAnimatedComponent(ExpoCameraView);
+const ReanimatedCamera = Animated.createAnimatedComponent(Camera);
 
 export default function SDCameraView({
   onCameraReady,
@@ -24,19 +25,17 @@ export default function SDCameraView({
   flash = "off",
   pausePreview = false
 }: SDCameraViewProps) {
-  const [permission] = useCameraPermissions();
-  const cameraRef = useRef<ExpoCameraView>(null);
+  const cameraRef = useRef<Camera>(null);
   const isMounted = useRef(true);
   const isCurrentlyRecording = useRef(false);
   const recordingAnimation = useSharedValue(1);
+  const { hasPermission: microphonePermission } = useMicrophonePermission();
 
-  useEffect(() => {
-    if (pausePreview) {
-      cameraRef.current?.pausePreview();
-    } else {
-      cameraRef.current?.resumePreview();
-    }
-  }, [pausePreview]);
+  const device = useCameraDevice(cameraType);
+  const format = useCameraFormat(device, [
+    { videoResolution: "max" },
+    { fps: 60 }
+  ]);
 
   // Animation style for recording indicator
   const recordingIndicatorStyle = useAnimatedStyle(() => ({
@@ -44,7 +43,7 @@ export default function SDCameraView({
     transform: [{ scale: recordingAnimation.value }]
   }));
 
-  const handleCameraReady = () => {
+  const CameraReady = () => {
     onCameraReady?.();
   };
 
@@ -57,27 +56,27 @@ export default function SDCameraView({
   };
 
   const startRecording = async () => {
-    if (!cameraRef.current || isCurrentlyRecording.current) return;
+    if (!cameraRef.current || isCurrentlyRecording.current || !device) return;
 
     try {
       isCurrentlyRecording.current = true;
       onRecordingStart?.();
       pulseRecording();
 
-      const recordingPromise = cameraRef.current.recordAsync({
-        maxDuration: 60,
-      });
-
-      recordingPromise.then(result => {
-        if (result?.uri && isMounted.current) {
-          onRecordingEnd?.(result.uri);
+      cameraRef.current.startRecording({
+        flash: flash,
+        onRecordingFinished: (video) => {
+          if (isMounted.current && video.path) {
+            onRecordingEnd?.(video.path);
+          }
+          isCurrentlyRecording.current = false;
+          recordingAnimation.value = 1;
+        },
+        onRecordingError: (error) => {
+          console.error("Recording error:", error);
+          isCurrentlyRecording.current = false;
+          recordingAnimation.value = 1;
         }
-        isCurrentlyRecording.current = false;
-        recordingAnimation.value = 1;
-      }).catch(error => {
-        console.error("Recording error:", error);
-        isCurrentlyRecording.current = false;
-        recordingAnimation.value = 1;
       });
     } catch (error) {
       console.error("Failed to start recording:", error);
@@ -86,9 +85,13 @@ export default function SDCameraView({
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = async () => {
     if (!isCurrentlyRecording.current) return;
-    cameraRef.current?.stopRecording();
+    try {
+      await cameraRef.current?.stopRecording();
+    } catch (error) {
+      console.error("Failed to stop recording:", error);
+    }
   };
 
   useEffect(() => {
@@ -96,7 +99,7 @@ export default function SDCameraView({
     return () => {
       isMounted.current = false;
       if (isCurrentlyRecording.current) {
-        cameraRef.current?.stopRecording();
+        stopRecording();
       }
     };
   }, []);
@@ -109,7 +112,7 @@ export default function SDCameraView({
     }
   }, [isRecording]);
 
-  if (!permission?.granted) {
+  if (!device) {
     return <View style={styles.container} />;
   }
 
@@ -118,12 +121,13 @@ export default function SDCameraView({
       <ReanimatedCamera
         ref={cameraRef}
         style={styles.camera}
-        facing={cameraType}
-        flash={flash}
-        enableTorch={flash === "on"}
-        onCameraReady={handleCameraReady}
-        mode="video"
-        zoom={0}
+        device={device}
+        isActive={!pausePreview}
+        video={true}
+        audio={microphonePermission}
+        format={format}
+        onInitialized={onCameraReady}
+        enableZoomGesture={false}
       >
         <Animated.View style={[styles.recordingIndicator, recordingIndicatorStyle]} />
       </ReanimatedCamera>
