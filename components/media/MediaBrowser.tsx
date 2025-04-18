@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { View, StyleSheet, FlatList, TouchableOpacity, Dimensions, Modal, Alert } from "react-native";
+import { View, StyleSheet, FlatList, TouchableOpacity, Dimensions, Modal, Alert, Platform } from "react-native";
 import { Image } from "expo-image";
 import { VideoView, useVideoPlayer } from "expo-video";
 import * as MediaLibrary from "expo-media-library";
 import * as Sharing from "expo-sharing";
 import { SansSerifText } from "@/components/ui/StyledText";
 import { Ionicons } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system";
 
 const { width } = Dimensions.get("window");
 
@@ -28,11 +29,57 @@ export default function MediaBrowser({ assets, onClose, onOpen }: MediaBrowserPr
     };
   }, [onOpen]);
 
-  const handlePlayVideo = useCallback((uri: string) => {
-    setSelectedVideo(uri);
-    player.replace(uri);
-    player.play();
-  }, [player]);
+  const handlePlayVideo = useCallback(
+    async (asset: MediaLibrary.Asset) => {
+      try {
+        console.log("Attempting to play video with asset ID:", asset.id);
+
+        const assetInfo = await MediaLibrary.getAssetInfoAsync(asset.id, {
+          shouldDownloadFromNetwork: true,
+        });
+
+        let sourceUri: string | null = null;
+
+        if (Platform.OS === "ios") {
+          if (!assetInfo.localUri) {
+            throw new Error("Could not retrieve localUri for the asset.");
+          }
+          sourceUri = assetInfo.localUri;
+        } else if (Platform.OS === "android") {
+          // Android uses assetInfo.uri directly
+          sourceUri = assetInfo.uri;
+          if (!sourceUri) {
+            throw new Error("Could not retrieve URI for the asset on Android.");
+          }
+        } else {
+          throw new Error("Unsupported platform.");
+        }
+
+        console.log("sourceUri:", sourceUri);
+
+        const filename = asset.filename || `video-${asset.id}.mp4`;
+        const localFileUri = `${FileSystem.documentDirectory}${filename}`;
+
+        // Check if file already exists locally
+        const fileExists = await FileSystem.getInfoAsync(localFileUri);
+        if (!fileExists.exists) {
+          await FileSystem.copyAsync({
+            from: sourceUri,
+            to: localFileUri,
+          });
+          console.log("File copied successfully to app storage:", localFileUri);
+        } else {
+          console.log("File already exists locally:", localFileUri);
+        }
+
+        setSelectedVideo(localFileUri);
+        player.replace(localFileUri);
+        player.play();
+      } catch (error) {
+        console.error("Error playing video:", error);
+        Alert.alert("Error", "Could not play video");
+      }
+    },[player]);
 
   const handleCloseVideo = useCallback(() => {
     player.pause();
@@ -41,8 +88,19 @@ export default function MediaBrowser({ assets, onClose, onOpen }: MediaBrowserPr
 
   const handleShareVideo = useCallback(async (uri: string) => {
     try {
+      let shareUri = uri;
+      if (Platform.OS === "ios") {
+        // For sharing on iOS, we still need to get the actual file
+        const assetInfo = await MediaLibrary.getAssetInfoAsync(uri, {
+          shouldDownloadFromNetwork: true
+        });
+        if (assetInfo?.localUri) {
+          shareUri = assetInfo.localUri;
+        }
+      }
+
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri);
+        await Sharing.shareAsync(shareUri);
       } else {
         Alert.alert("Sharing not available", "Sharing is not available on this device");
       }
@@ -56,7 +114,7 @@ export default function MediaBrowser({ assets, onClose, onOpen }: MediaBrowserPr
     <View style={styles.mediaItemContainer}>
       <TouchableOpacity
         style={styles.mediaItem}
-        onPress={() => handlePlayVideo(item.uri)}
+        onPress={() => handlePlayVideo(item)}
       >
         <Image source={{ uri: item.uri }} style={styles.mediaItemImage} />
         <Ionicons
