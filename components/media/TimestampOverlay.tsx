@@ -10,12 +10,12 @@ interface TimestampOverlayProps {
   position?: "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
 }
 
-export default function TimestampOverlay({
+export const TimestampOverlay = ({
   enabled,
   useCurrentDate = true,
   customDate,
   position = "topRight"
-}: TimestampOverlayProps) {
+}: TimestampOverlayProps) => {
   const [dateString, setDateString] = useState("");
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function TimestampOverlay({
       <SansSerifText style={styles.text}>{dateString}</SansSerifText>
     </Animated.View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {

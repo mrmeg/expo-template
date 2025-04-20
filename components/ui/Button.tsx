@@ -31,7 +31,7 @@ export const Button = ({
   withShadow = true,
   variant = "default",
 }: Props) => {
-  const { base, theme, themedStyles } = useTheme();
+  const { base, theme, themedStyles, getContrastingColor, getTextColorForBackground } = useTheme();
   const flattenedStyle = StyleSheet.flatten(style || {});
   const baseStyle: StyleProp<ViewStyle> = {
     borderRadius: flattenedStyle.borderRadius || 8,
@@ -91,29 +91,16 @@ export const Button = ({
       return theme.colors.primary;
     }
 
-    /**
-     * Text color defaults to white for dark mode and black for light mode
-     *
-     * If a custom background color is provided, the text color will be calculated
-     * to ensure contract.
-     */
-    if (variant === "default") {
-      // If custom background color is provided
-      if (flattenedStyle.backgroundColor) {
-        // For light backgrounds like white or very light gray, use dark text
-        if (flattenedStyle.backgroundColor === DEFAULT_TITLE_COLOR ||
-          flattenedStyle.backgroundColor === base.gray[50] ||
-          flattenedStyle.backgroundColor === base.gray[100]) {
-          return base.black;
-        }
-      }
+    // Get the background color from the button style
+    const backgroundColor = String(flattenedStyle.backgroundColor || theme.colors.primary);
 
-      // Default text color for buttons
-      return theme.dark ? base.black : base.white;
+    // Use the dynamic color functions to determine the best text color
+    if (variant === "default") {
+      return getContrastingColor(backgroundColor, String(base.white), String(base.black));
     }
 
     // For other variants, use appropriate text color based on theme
-    return theme.dark ? base.white : base.black;
+    return getTextColorForBackground(backgroundColor) === "light" ? base.white : base.black;
   };
 
   return (

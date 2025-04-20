@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { View, StyleSheet, FlatList, TouchableOpacity, Dimensions, Modal, Alert, Platform } from "react-native";
+import { View, StyleSheet, FlatList, TouchableOpacity, Dimensions, Modal, Platform } from "react-native";
 import { Image } from "expo-image";
 import { VideoView, useVideoPlayer } from "expo-video";
 import * as MediaLibrary from "expo-media-library";
@@ -7,6 +7,9 @@ import * as Sharing from "expo-sharing";
 import { SansSerifText } from "@/components/ui/StyledText";
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system";
+import { useTheme } from "@/hooks/useTheme";
+import { Alert } from "../ui/Alert";
+import { Button } from "../ui/Button";
 
 const { width } = Dimensions.get("window");
 
@@ -14,10 +17,14 @@ interface MediaBrowserProps {
   assets: MediaLibrary.Asset[];
   onClose: () => void;
   onOpen?: () => void;
+  onAssetDeleted?: (asset: MediaLibrary.Asset) => void;
+  hasMediaPermission: boolean;
 }
 
-export default function MediaBrowser({ assets, onClose, onOpen }: MediaBrowserProps) {
+export const MediaBrowser = ({ assets, onClose, onOpen, onAssetDeleted, hasMediaPermission }: MediaBrowserProps) => {
+  const { theme } = useTheme();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [assetToDelete, setAssetToDelete] = useState<MediaLibrary.Asset | null>(null);
   const player = useVideoPlayer(selectedVideo || "", (player) => {
     player.loop = false;
   });
@@ -28,6 +35,118 @@ export default function MediaBrowser({ assets, onClose, onOpen }: MediaBrowserPr
       // Cleanup if needed
     };
   }, [onOpen]);
+
+  const handleDeleteAsset = useCallback(async (asset: MediaLibrary.Asset) => {
+    try {
+      console.log("Starting deletion process for asset:", asset.id);
+      console.log("Asset details:", JSON.stringify(asset, null, 2));
+      
+      if (Platform.OS === "android") {
+        // On Android, first ensure we have the proper permissions by creating an asset
+        console.log("Android: Attempting to create asset for proper permissions...");
+        try {
+          const newAsset = await MediaLibrary.createAssetAsync(asset.uri);
+          console.log("Android: Created asset for permissions:", newAsset.id);
+        } catch (createError) {
+          console.warn("Android: Couldn't create asset for permissions:", createError);
+        }
+
+        // Then try to delete from media library
+        console.log("Android: Attempting to delete from media library...");
+        const deleteSuccess = await MediaLibrary.deleteAssetsAsync([asset.id]);
+        console.log("Android: Delete success:", deleteSuccess);
+
+        if (!deleteSuccess) {
+          throw new Error("Failed to delete from media library on Android");
+        }
+      } else {
+        // iOS deletion process
+        console.log("Fetching fresh asset info...");
+        const freshAsset = await MediaLibrary.getAssetInfoAsync(asset.id);
+        console.log("Fresh asset info:", JSON.stringify(freshAsset, null, 2));
+
+        console.log("Attempting to delete from media library...");
+        const deleteSuccess = await MediaLibrary.deleteAssetsAsync([asset.id]);
+        console.log("Delete success:", deleteSuccess);
+
+        if (!deleteSuccess) {
+          throw new Error("Failed to delete from media library");
+        }
+
+        // Delete the actual file if we have its path
+        if (freshAsset.localUri) {
+          try {
+            console.log("Attempting to delete local file:", freshAsset.localUri);
+            const fileInfo = await FileSystem.getInfoAsync(freshAsset.localUri);
+            console.log("Local file info before deletion:", JSON.stringify(fileInfo, null, 2));
+            await FileSystem.deleteAsync(freshAsset.localUri, { idempotent: true });
+            console.log("Local file deleted successfully");
+          } catch (fileError) {
+            console.warn("Couldn't delete local file:", fileError);
+            console.warn("File error details:", JSON.stringify(fileError, null, 2));
+          }
+        }
+      }
+
+      // Clean up cached files for both platforms
+      const cachedPath = `${FileSystem.documentDirectory}${asset.filename || asset.id}`;
+      try {
+        console.log("Attempting to delete cached file:", cachedPath);
+        const cacheInfo = await FileSystem.getInfoAsync(cachedPath);
+        console.log("Cached file info before deletion:", JSON.stringify(cacheInfo, null, 2));
+        await FileSystem.deleteAsync(cachedPath, { idempotent: true });
+        console.log("Cached file deleted successfully");
+      } catch (cacheError) {
+        console.warn("Couldn't delete cached file:", cacheError);
+        console.warn("Cache error details:", JSON.stringify(cacheError, null, 2));
+      }
+
+      // Update UI
+      console.log("Notifying parent component of deletion");
+      onAssetDeleted?.(asset);
+
+      console.log("Showing success alert");
+      Alert.show({
+        title: "Success",
+        message: "Media deleted",
+        buttons: [{ text: "OK", style: "default" }]
+      });
+
+    } catch (error: any) {
+      console.error("Full deletion error:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      console.error("Error stack:", error.stack);
+      Alert.show({
+        title: "Error",
+        message: "Could not delete media. Please try again.",
+        buttons: [{ text: "OK", style: "destructive" }]
+      });
+    }
+  }, [onAssetDeleted]);
+
+  const confirmDelete = useCallback((asset: MediaLibrary.Asset) => {
+    if (!hasMediaPermission) {
+      Alert.show({
+        title: "Permission Required",
+        message: "Media library access is required to delete videos.",
+        buttons: [{ text: "OK", style: "default" }]
+      });
+      return;
+    }
+    
+    setAssetToDelete(asset);
+  }, [hasMediaPermission]);
+
+  const executeDelete = useCallback(() => {
+    if (assetToDelete) {
+      handleDeleteAsset(assetToDelete);
+      setAssetToDelete(null);
+    }
+  }, [assetToDelete, handleDeleteAsset]);
+
+  const cancelDelete = useCallback(() => {
+    setAssetToDelete(null);
+  }, []);
 
   const handlePlayVideo = useCallback(
     async (asset: MediaLibrary.Asset) => {
@@ -77,7 +196,10 @@ export default function MediaBrowser({ assets, onClose, onOpen }: MediaBrowserPr
         player.play();
       } catch (error) {
         console.error("Error playing video:", error);
-        Alert.alert("Error", "Could not play video");
+        Alert.show({
+          title: "Error",
+          message: "Could not play video"
+        });
       }
     },[player]);
 
@@ -102,11 +224,17 @@ export default function MediaBrowser({ assets, onClose, onOpen }: MediaBrowserPr
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(shareUri);
       } else {
-        Alert.alert("Sharing not available", "Sharing is not available on this device");
+        Alert.show({
+          title: "Sharing not available",
+          message: "Sharing is not available on this device"
+        });
       }
     } catch (error) {
       console.error("Error sharing video:", error);
-      Alert.alert("Error", "Failed to share video");
+      Alert.show({
+        title: "Error",
+        message: "Failed to share video"
+      });
     }
   }, []);
 
@@ -130,8 +258,14 @@ export default function MediaBrowser({ assets, onClose, onOpen }: MediaBrowserPr
       >
         <Ionicons name="share-social" size={20} color="white" />
       </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.deleteButton, { backgroundColor: theme.colors.error }]}
+        onPress={() => confirmDelete(item)}
+      >
+        <Ionicons name="trash" size={20} color="white" />
+      </TouchableOpacity>
     </View>
-  ), [handlePlayVideo, handleShareVideo]);
+  ), [handlePlayVideo, handleShareVideo, confirmDelete]);
 
   return (
     <View style={styles.overlay}>
@@ -166,6 +300,34 @@ export default function MediaBrowser({ assets, onClose, onOpen }: MediaBrowserPr
         </View>
       </Modal>
 
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={!!assetToDelete}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={cancelDelete}
+      >
+        <View style={styles.confirmationOverlay}>
+          <View style={styles.confirmationDialog}>
+            <SansSerifText style={styles.confirmationTitle}>Delete Video</SansSerifText>
+            <SansSerifText style={styles.confirmationMessage}>
+              Are you sure you want to delete this video? This action cannot be undone.
+            </SansSerifText>
+            <View style={styles.confirmationButtons}>
+              <Button
+                title="Cancel"
+                onPress={cancelDelete}
+              />
+              <Button
+                title="Delete"
+                onPress={executeDelete}
+                style={{ backgroundColor: theme.colors.error }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.content}>
         <FlatList
           data={assets}
@@ -183,7 +345,7 @@ export default function MediaBrowser({ assets, onClose, onOpen }: MediaBrowserPr
       </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   overlay: {
@@ -266,5 +428,63 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: "white",
     fontSize: 16,
+  },
+  buttonContainer: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    flexDirection: "row",
+    gap: 5,
+    zIndex: 10,
+  },
+  deleteButton: {
+    width: 32,
+    borderRadius: 15,
+    padding: 5,
+  },
+  // Confirmation modal styles
+  confirmationOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  confirmationDialog: {
+    width: "80%",
+    backgroundColor: "rgba(30,30,30,0.95)",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+  },
+  confirmationTitle: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  confirmationMessage: {
+    color: "white",
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  confirmationButtons: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+  },
+  confirmationButton: {
+    padding: 12,
+    borderRadius: 8,
+    width: "48%",
+    alignItems: "center",
+  },
+  cancelButton: {
+    backgroundColor: "rgba(100,100,100,0.8)",
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
   },
 });
