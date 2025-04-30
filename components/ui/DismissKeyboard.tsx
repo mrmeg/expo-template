@@ -1,5 +1,5 @@
 import React from "react";
-import { TouchableWithoutFeedback, Keyboard, View, StyleProp, ViewStyle, Platform } from "react-native";
+import { TouchableWithoutFeedback, Keyboard, StyleProp, ViewStyle, Platform, KeyboardAvoidingView } from "react-native";
 
 type Props = {
   children: React.ReactNode;
@@ -14,7 +14,9 @@ export const DismissKeyboard = ({ children, style }: Props) => {
 
   return (
     <TouchableWithoutFeedback onPress={handlePress} accessible={false}>
-      <View style={style}>{children}</View>
+      <KeyboardAvoidingView style={[{ flex: 1, width: "100%" }, style]} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        {children}
+      </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   );
 };
