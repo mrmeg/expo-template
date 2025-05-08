@@ -6,7 +6,9 @@ import {
   TextStyle,
   ViewStyle,
   PressableProps,
-  Animated
+  Animated,
+  Platform,
+  ColorValue
 } from "react-native";
 import { SansSerifText } from "./StyledText";
 import { useTheme } from "@/hooks/useTheme";
@@ -31,18 +33,9 @@ export const Button = ({
   withShadow = true,
   variant = "default",
 }: Props) => {
-  const { base, theme, themedStyles, getContrastingColor, getTextColorForBackground } = useTheme();
-  const flattenedStyle = StyleSheet.flatten(style || {});
-  const baseStyle: StyleProp<ViewStyle> = {
-    borderRadius: flattenedStyle.borderRadius || 8,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-  };
-
-  const DEFAULT_TITLE_COLOR = base.white;
-
+  const { base, theme, themedStyles } = useTheme();
+  
+  // The animated value for the press animation
   const animated = useRef(new Animated.Value(1)).current;
 
   const fadeIn = () => {
@@ -61,62 +54,56 @@ export const Button = ({
     }).start();
   };
 
-  const getButtonStyle = (): StyleProp<ViewStyle> => {
-    if (variant === "outline") {
-      return {
-        ...baseStyle,
-        backgroundColor: "transparent",
-        borderWidth: 1,
-        borderColor: theme.colors.primary,
-      };
-    }
-
-    // Both "default" and "primary" variants use the primary color background
-    return {
-      ...baseStyle,
-      backgroundColor: theme.colors.primary,
+  // Determine background and text colors
+  let backgroundColor: ColorValue = theme.colors.primary;
+  let textColor: ColorValue = base.white;
+  let borderProps = {};
+  
+  // Adjust styling based on variant
+  if (variant === "outline") {
+    backgroundColor = "transparent";
+    textColor = theme.colors.primary;
+    borderProps = {
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
     };
-  };
-
-  const getTextColor = () => {
-    // Check if a specific text color was provided in titleStyle
-    // If it was, that color will be applied
-    const customTextColor = titleStyle && StyleSheet.flatten(titleStyle).color;
-    if (customTextColor) {
-      return customTextColor;
+  }
+  
+  // Check if custom text color was provided in titleStyle
+  if (titleStyle) {
+    const flattenedTitleStyle = StyleSheet.flatten(titleStyle);
+    if (flattenedTitleStyle.color) {
+      textColor = flattenedTitleStyle.color;
     }
+  }
 
-    // For outline buttons, use the primary color
-    if (variant === "outline") {
-      return theme.colors.primary;
-    }
-
-    // Get the background color from the button style
-    const backgroundColor = String(flattenedStyle.backgroundColor || theme.colors.primary);
-
-    // Use the dynamic color functions to determine the best text color
-    if (variant === "default") {
-      return getContrastingColor(backgroundColor, String(base.white), String(base.black));
-    }
-
-    // For other variants, use appropriate text color based on theme
-    return getTextColorForBackground(backgroundColor) === "light" ? base.white : base.black;
-  };
+  // Get platform-specific styles
+  const platformStyles = Platform.OS === "web" 
+    ? styles.webButton 
+    : Platform.OS === "ios" 
+      ? styles.iosButton 
+      : styles.androidButton;
 
   return (
     <Pressable
       onPress={onPress}
       onPressIn={fadeIn}
       onPressOut={fadeOut}
-      style={({ pressed }) => [
-        getButtonStyle(),
-        withShadow ? themedStyles.baseShadow : null,
+      style={[
+        styles.button,
+        platformStyles,
+        {
+          backgroundColor,
+          ...borderProps,
+        },
+        withShadow && themedStyles.baseShadow,
         style,
         disabled && styles.disabled,
       ]}
       disabled={disabled}
+      android_ripple={Platform.OS === "android" ? { color: "rgba(255, 255, 255, 0.2)" } : undefined}
     >
-      <Animated.View style={{ opacity: animated }}>
+      <Animated.View style={[styles.contentContainer, { opacity: animated }]}>
         {titleComponent ? (
           titleComponent
         ) : (
@@ -126,11 +113,10 @@ export const Button = ({
             style={[
               styles.title,
               {
-                color: getTextColor(),
+                color: disabled ? base.gray[50] : textColor,
                 fontSize: 16,
               },
-              titleStyle, // This will override the color if specified in titleStyle
-              disabled && { color: base.gray[400] },
+              titleStyle,
             ]}
           >
             {title}
@@ -142,6 +128,30 @@ export const Button = ({
 };
 
 const styles = StyleSheet.create({
+  button: {
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    minHeight: 48,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  webButton: {
+    // Web-specific styles
+    cursor: "pointer",
+  },
+  iosButton: {
+    // iOS-specific styles if needed
+  },
+  androidButton: {
+    // Android-specific styles if needed
+  },
+  contentContainer: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   title: {
     fontWeight: "500",
     textAlign: "center",
