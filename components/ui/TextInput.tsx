@@ -113,6 +113,8 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -10 }],
   },
   wrapper: {
+    flex: 1,
+    flexGrow: 1,
     backgroundColor: "transparent",
   },
   label: {

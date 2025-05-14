@@ -130,10 +130,8 @@ export const Button = ({
 const styles = StyleSheet.create({
   button: {
     borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    minHeight: 48,
-    width: "100%",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
   },
