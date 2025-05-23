@@ -10,6 +10,7 @@ interface Props extends TextInputProps {
   showSecureEntryToggle?: boolean;
   wrapperStyle?: StyleProp<ViewStyle>;
   label?: string;
+  forceLight?: boolean;
 }
 
 export const TextInput = ({
@@ -18,6 +19,7 @@ export const TextInput = ({
   showSecureEntryToggle,
   wrapperStyle,
   label,
+  forceLight,
   secureTextEntry,
   inputMode,
   style,
@@ -28,10 +30,11 @@ export const TextInput = ({
   multiline,
   ...rest
 }: Props) => {
-  const { base, theme } = useTheme();
+  const { base, theme, getContrastingColor } = useTheme();
   const [focused, setFocused] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [passwordVisible, setPasswordVisible] = useState(secureTextEntry || false);
+  const backgroundColor = forceLight ? base.white : (theme.dark ? base.gray[100] : base.white);
   const isWeb = Platform.OS === "web";
 
   const handleScrollBehavior = () => {
@@ -70,9 +73,9 @@ export const TextInput = ({
           placeholderTextColor={theme.colors.placeholder}
           style={[
             {
-              backgroundColor: theme.dark ? theme.colors.card : base.white,
-              borderColor: theme.colors.border,
-              color: theme.colors.text,
+              backgroundColor: backgroundColor,
+              borderColor: forceLight ? "#d1d5db" : theme.colors.border,
+              color: forceLight ? "#1f2937" : getContrastingColor(backgroundColor, base.charcoal, base.white),
             },
             styles.input,
             style,
@@ -103,18 +106,20 @@ const styles = StyleSheet.create({
     height: undefined,
     borderRadius: 10,
     borderWidth: 1,
-    paddingVertical: 5,
-    paddingHorizontal: 5,
+    paddingVertical: Platform.OS === "web" ? 5 : 8,
+    paddingHorizontal: Platform.OS === "web" ? 5 : 10,
   },
   passwordToggle: {
     position: "absolute",
     right: 10,
     top: "50%",
-    transform: [{ translateY: -10 }],
+    transform: [{ translateY: Platform.OS === "web" ? -10 : -12 }],
+    zIndex: 1,
   },
   wrapper: {
-    flex: 1,
-    flexGrow: 1,
+    width: "100%",
+    position: "relative",
+    minHeight: Platform.OS === "web" ? 30 : 40,
     backgroundColor: "transparent",
   },
   label: {
