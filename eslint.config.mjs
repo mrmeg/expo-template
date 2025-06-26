@@ -6,7 +6,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
-import tanstackQuery from "@tanstack/eslint-plugin-query";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,7 +27,6 @@ export default [{
   "eslint:recommended",
   "plugin:react/recommended",
   "plugin:@typescript-eslint/recommended",
-  "plugin:@tanstack/eslint-plugin-query/recommended",
 ), {
   plugins: {
     react,
