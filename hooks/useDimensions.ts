@@ -43,7 +43,7 @@ export const useDimensions = (): WindowDimensions => {
         width,
         height,
         orientation,
-        isSmallScreen: true,
+        isSmallScreen: width <= SCREEN_SIZES.SMALL,
         isMediumScreen: width > SCREEN_SIZES.SMALL,
         isLargeScreen: width > SCREEN_SIZES.MEDIUM,
       });
