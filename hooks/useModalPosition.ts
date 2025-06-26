@@ -28,9 +28,7 @@ type Placement = 'top' | 'bottom' | 'left' | 'right' | 'auto';
 export const useModalPosition = (
   initialPosition: Position,
   size?: Size,
-  padding: number = 8,
-  triggerRect?: TriggerRect,
-  placement?: Placement
+  padding: number = 8
 ) => {
   const { width: screenWidth, height: screenHeight } = useDimensions();
   const [adjustedPosition, setAdjustedPosition] = useState(initialPosition);
@@ -38,34 +36,9 @@ export const useModalPosition = (
   useEffect(() => {
     const modalWidth = size?.width || 120;
     const modalHeight = size?.height || 80;
-    
+
     let newTop = initialPosition.top;
     let newLeft = initialPosition.left;
-
-    // If we have trigger dimensions and a placement preference, calculate position
-    if (triggerRect && triggerRect.width > 0 && placement) {
-      const gap = 10; // Gap between trigger and popover
-      
-      switch (placement) {
-        case 'top':
-          newTop = triggerRect.y - modalHeight - gap;
-          newLeft = triggerRect.x + (triggerRect.width / 2) - (modalWidth / 2);
-          break;
-        case 'bottom':
-          newTop = triggerRect.y + triggerRect.height + gap;
-          newLeft = triggerRect.x + (triggerRect.width / 2) - (modalWidth / 2);
-          break;
-        case 'left':
-          newTop = triggerRect.y + (triggerRect.height / 2) - (modalHeight / 2);
-          newLeft = triggerRect.x - modalWidth - gap;
-          break;
-        case 'right':
-          newTop = triggerRect.y + (triggerRect.height / 2) - (modalHeight / 2);
-          newLeft = triggerRect.x + triggerRect.width + gap;
-          break;
-        // Auto placement will use the initialPosition
-      }
-    }
 
     // Screen boundary checks
     if (newTop + modalHeight > screenHeight - padding) {
@@ -79,7 +52,7 @@ export const useModalPosition = (
     newTop = Math.max(padding, newTop);
 
     setAdjustedPosition({ top: newTop, left: newLeft });
-  }, [initialPosition, size, padding, screenWidth, screenHeight, triggerRect, placement]);
+  }, [initialPosition, size, padding]);
 
   return adjustedPosition;
 };
