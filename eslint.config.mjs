@@ -30,7 +30,6 @@ export default [{
 ), {
   plugins: {
     react,
-    "@tanstack/query": tanstackQuery,
     "@typescript-eslint": typescriptEslint,
   },
 
