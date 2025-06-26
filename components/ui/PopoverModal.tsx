@@ -1,4 +1,3 @@
-// PopoverModal.tsx
 import React, { ReactNode, useMemo } from "react";
 import { Modal, Pressable, View, StyleSheet, Dimensions, StyleProp, ViewStyle } from "react-native";
 import { useTheme } from "@/hooks/useTheme";

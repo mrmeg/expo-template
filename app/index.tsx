@@ -188,14 +188,14 @@ export default function Index() {
                   style={styles.popoverButton}
                 />
               )}
-              gap={0}
-              popover={({ visible, triggerRect, onClose }) => (
+              preferredPosition="bottom"
+              popoverWidth={220}
+              popoverHeight={200}
+              popover={({ visible, position, onClose }) => (
                 <PopoverModal
                   visible={visible}
                   onClose={onClose}
-                  triggerRect={triggerRect}
-                  placement="auto"
-                  gap={0}
+                  position={position}
                   size={{ width: 220, height: 200 }}
                 >
                   <PopoverModal.Header>
@@ -227,13 +227,14 @@ export default function Index() {
                   style={styles.popoverButton}
                 />
               )}
-              popover={({ visible, triggerRect, onClose }) => (
+              preferredPosition="top"
+              popoverWidth={220}
+              popoverHeight={150}
+              popover={({ visible, position, onClose }) => (
                 <PopoverModal
                   visible={visible}
                   onClose={onClose}
-                  triggerRect={triggerRect}
-                  placement="top"
-                  gap={0}
+                  position={position}
                   size={{ width: 220, height: 150 }}
                 >
                   <PopoverModal.Content>
@@ -261,14 +262,14 @@ export default function Index() {
                     style={styles.directionButton}
                   />
                 )}
-                gap={0}
-                popover={({ visible, triggerRect, onClose }) => (
+                preferredPosition="top"
+                popoverWidth={180}
+                popoverHeight={120}
+                popover={({ visible, position, onClose }) => (
                   <PopoverModal
                     visible={visible}
                     onClose={onClose}
-                    triggerRect={triggerRect}
-                    placement="left"
-                    gap={0}
+                    position={position}
                     size={{ width: 180, height: 120 }}
                   >
                     <PopoverModal.Content>
@@ -293,14 +294,14 @@ export default function Index() {
                     style={styles.directionButton}
                   />
                 )}
-                gap={0}
-                popover={({ visible, triggerRect, onClose }) => (
+                preferredPosition="top"
+                popoverWidth={180}
+                popoverHeight={120}
+                popover={({ visible, position, onClose }) => (
                   <PopoverModal
                     visible={visible}
                     onClose={onClose}
-                    triggerRect={triggerRect}
-                    placement="right"
-                    gap={0}
+                    position={position}
                     size={{ width: 180, height: 120 }}
                   >
                     <PopoverModal.Content>

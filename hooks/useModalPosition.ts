@@ -3,28 +3,7 @@ import { useDimensions } from "./useDimensions";
 
 type Position = { top: number; left: number };
 type Size = { width: number; height: number | undefined };
-type TriggerRect = { width: number; height: number; x: number; y: number };
-type Placement = 'top' | 'bottom' | 'left' | 'right' | 'auto';
 
-/**
- * useModalPosition
- *
- * Ensures a modal is positioned within the visible screen bounds.
- * Useful for positioning popovers or tooltips triggered by user interaction.
- *
- * Params:
- * - initialPosition: top/left coordinates (e.g. from measure or click position)
- * - size: optional width/height of the modal (used to prevent overflow)
- * - padding: optional screen edge margin (default: 8px)
- * - triggerRect: optional dimensions and position of the trigger element
- * - placement: optional preferred placement relative to the trigger
- *
- * Returns:
- * - adjusted top/left position that fits within screen dimensions
- *
- * Example usage:
- * const position = useModalPosition({ top: 300, left: 100 }, { width: 250, height: 180 });
- */
 export const useModalPosition = (
   initialPosition: Position,
   size?: Size,
