@@ -15,13 +15,13 @@ A feature-rich starter kit for React Native and Expo applications with pre-built
 
 ## UI Components
 
-- **Typography** - Styled text components with custom fonts
-- **Buttons** - Multiple variants (default, primary, outline) with proper states
+- **Typography** - Styled text components with custom fonts (SansSerif, Serif, Bold variants)
+- **Buttons** - Declarative children pattern with multiple variants (default, primary, outline)
 - **Text Inputs** - Regular, password, multiline with secure entry toggle
-- **Alerts & Notifications** - Centralized alert management
-- **Popovers** - Smart positioning system (top, bottom, left, right)
-- **Toggle Switches** - With optional custom labels
-- **Pressable Components** - Smart state feedback
+- **Alerts & Notifications** - Centralized alert management with global state
+- **Popovers** - Context-based system with smart positioning and arrow support
+- **Toggle Switches** - With optional custom labels and theming
+- **Scroll Views** - Enhanced scrolling with keyboard handling
 
 ## Getting Started
 
@@ -61,10 +61,12 @@ A feature-rich starter kit for React Native and Expo applications with pre-built
 ## Architecture
 
 - `/app` - Application screens using file-based routing
-- `/components/ui` - Reusable UI components
+  - `index.tsx` - Main showcase page for all UI components
+  - `popover-test.tsx` - Dedicated popover testing page
+- `/components/ui` - Reusable UI components with TypeScript
 - `/constants` - Design tokens and theme configuration
-- `/hooks` - Custom React hooks
-- `/stores` - Global state management
+- `/hooks` - Custom React hooks (theme, etc.)
+- `/stores` - Global state management with Zustand
 - `/assets` - Fonts and images
 
 ## Special Features
@@ -73,6 +75,9 @@ A feature-rich starter kit for React Native and Expo applications with pre-built
 - **Smart contrast detection** - Automatically choose appropriate text colors
 - **Responsive layouts** - Adapts to different screen sizes
 - **Centralized UI notifications** - Global alert and notification system
+- **Declarative component patterns** - Modern React component design
+- **Context-based popovers** - Flexible popover system with hooks
+- **Comprehensive theming** - Dark/light mode with system detection
 
 ## License
 

@@ -1,10 +1,9 @@
 import React from "react";
-import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
+import { View, StyleSheet, StyleProp, ViewStyle, TouchableOpacity } from "react-native";
 import { useRouter, Href } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 import { SansSerifText } from "./StyledText";
-import { PressableDefault } from "./PressableDefault";
 
 interface BackButtonProps {
   style?: StyleProp<ViewStyle>;
@@ -27,14 +26,14 @@ export function BackButton({ title, route, style, iconSize = 24, iconColor}: Bac
   };
 
   return (
-    <PressableDefault onPress={handlePress} style={[styles.container, style]}>
+    <TouchableOpacity onPress={handlePress} style={[styles.container, style]}>
       <MaterialIcons name="arrow-back" size={iconSize} color={iconColor} />
       {title ? (
         <View style={styles.titleContainer}>
           <SansSerifText style={{ color: iconColor || theme.colors.text }}>{title}</SansSerifText>
         </View>
       ) : null}
-    </PressableDefault>
+    </TouchableOpacity>
   );
 }
 

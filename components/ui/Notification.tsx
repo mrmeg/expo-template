@@ -1,10 +1,9 @@
 import React, { useContext, useEffect } from "react";
-import { StyleSheet, View, ActivityIndicator, Animated } from "react-native";
+import { StyleSheet, View, ActivityIndicator, Animated, TouchableOpacity } from "react-native";
 import { globalUIStore } from "@/stores/globalUIStore";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { SansSerifText } from "./StyledText";
 import { Ionicons } from "@expo/vector-icons";
-import { PressableDefault } from "./PressableDefault";
 import { useTheme } from "@/hooks/useTheme";
 
 /**
@@ -200,13 +199,13 @@ export const Notification = () => {
             {alert?.messages?.[0] || ""}
           </SansSerifText>
         </View>
-        <PressableDefault
+        <TouchableOpacity
           style={styles.closeButton}
           hitSlop={8}
           onPress={animateOut}
         >
           <Ionicons name="close" size={20} color={theme.colors.icon} />
-        </PressableDefault>
+        </TouchableOpacity>
       </View>
     </Animated.View>
   );

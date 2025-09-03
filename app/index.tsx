@@ -5,12 +5,10 @@ import { ScrollView } from "@/components/ui/ScrollView";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Alert } from "@/components/ui/Alert";
-import { DismissKeyboard } from "@/components/ui/DismissKeyboard";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { SansSerifText, SerifText, SansSerifBoldText, SerifBoldText } from "@/components/ui/StyledText";
-import { PressableDefault } from "@/components/ui/PressableDefault";
 import { useTheme } from "@/hooks/useTheme";
-import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverBody, usePopover } from "@/components/ui/Popover";
+import { Popover, PopoverTrigger, PopoverContent, PopoverBody, usePopover } from "@/components/ui/Popover";
 
 function ThemeToggle() {
   const { toggleTheme, currentTheme, scheme } = useTheme();
@@ -21,10 +19,13 @@ function ThemeToggle() {
         Theme: {currentTheme === "system" ? "System" : (scheme === "dark" ? "Dark" : "Light")}
       </SansSerifText>
       <Button
-        title={`Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"}`}
         onPress={toggleTheme}
         style={styles.themeToggleButton}
-      />
+      >
+        <SansSerifBoldText style={styles.themeToggleButtonText}>
+          {`Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"}`}
+        </SansSerifBoldText>
+      </Button>
     </View>
   );
 }
@@ -43,10 +44,13 @@ const TestPopoverContent: React.FC = () => {
       <SansSerifText style={[styles.popoverItemText, { color: theme.colors.text }]}>Test Item 1</SansSerifText>
       <SansSerifText style={[styles.popoverItemText, { color: theme.colors.text }]}>Test Item 2</SansSerifText>
       <Button
-        title="Close Popover"
         onPress={() => handleItemPress(() => console.log("Closed"))}
         style={styles.popoverActionButton}
-      />
+      >
+        <SansSerifText style={styles.popoverActionButtonText}>
+          Close Popover
+        </SansSerifText>
+      </Button>
     </PopoverBody>
   );
 };
@@ -90,42 +94,75 @@ export default function Index() {
         {/* Button Section */}
         <ComponentSection title="Buttons">
           <View style={styles.buttonContainer}>
-            <Button title="Default Button" onPress={() => console.log("Default button pressed")} />
+            <Button onPress={() => console.log("Default button pressed")}>
+              <SansSerifBoldText style={styles.buttonText}>
+                Default Button
+              </SansSerifBoldText>
+            </Button>
             <View style={styles.spacer} />
 
-            <Button title="Primary Button"
+            <Button
               variant="primary"
-              onPress={() => console.log("Primary button pressed")} />
+              onPress={() => console.log("Primary button pressed")}
+            >
+              <SansSerifBoldText style={[styles.buttonText, { color: "white" }]}>
+                Primary Button
+              </SansSerifBoldText>
+            </Button>
             <View style={styles.spacer} />
 
-            <Button title="Outline Button"
+            <Button
               variant="outline"
-              onPress={() => console.log("Outline button pressed")} />
+              onPress={() => console.log("Outline button pressed")}
+            >
+              <SansSerifBoldText style={[styles.buttonText, { color: theme.colors.primary }]}>
+                Outline Button
+              </SansSerifBoldText>
+            </Button>
             <View style={styles.spacer} />
 
             <View style={styles.rowContainer}>
-              <Button title="Small"
+              <Button
                 onPress={() => console.log("Small button pressed")}
-                style={styles.inlineButton} />
-              <Button title="Medium"
+                style={styles.inlineButton}
+              >
+                <SansSerifBoldText style={styles.buttonText}>
+                  Small
+                </SansSerifBoldText>
+              </Button>
+              <Button
                 onPress={() => console.log("Medium button pressed")}
-                style={styles.inlineButton} />
-              <Button title="Large"
+                style={styles.inlineButton}
+              >
+                <SansSerifBoldText style={styles.buttonText}>
+                  Medium
+                </SansSerifBoldText>
+              </Button>
+              <Button
                 onPress={() => console.log("Large button pressed")}
-                style={styles.inlineButton} />
+                style={styles.inlineButton}
+              >
+                <SansSerifBoldText style={styles.buttonText}>
+                  Large
+                </SansSerifBoldText>
+              </Button>
             </View>
             <View style={styles.spacer} />
 
-            <Button title="Disabled Button"
+            <Button
               disabled
-              onPress={() => console.log("This won't execute")} />
+              onPress={() => console.log("This won't execute")}
+            >
+              <SansSerifBoldText style={[styles.buttonText, { color: theme.colors.text, opacity: 0.6 }]}>
+                Disabled Button
+              </SansSerifBoldText>
+            </Button>
             <View style={styles.spacer} />
           </View>
         </ComponentSection>
 
         {/* Text Input Section */}
         <ComponentSection title="Text Inputs">
-          <DismissKeyboard>
             <View style={styles.inputContainer}>
               <TextInput
                 placeholder="Regular Text Input"
@@ -162,7 +199,6 @@ export default function Index() {
                 style={styles.input}
               />
             </View>
-          </DismissKeyboard>
         </ComponentSection>
 
         {/* Toggles and Switches */}
@@ -192,10 +228,13 @@ export default function Index() {
         <ComponentSection title="Alert Dialog">
           <View style={styles.alertContainer}>
             <Button
-              title="Show Alert Dialog"
               onPress={showAlert}
               style={styles.alertButton}
-            />
+            >
+              <SansSerifBoldText style={styles.buttonText}>
+                Show Alert Dialog
+              </SansSerifBoldText>
+            </Button>
           </View>
         </ComponentSection>
 
@@ -204,7 +243,7 @@ export default function Index() {
           <View style={styles.popoverContainer}>
             <Popover placement="bottom" offset={4}>
               <PopoverTrigger asChild>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.testPopoverButton, { backgroundColor: theme.colors.primary }]}
                 >
                   <SansSerifBoldText style={styles.testPopoverButtonText}>
@@ -222,12 +261,12 @@ export default function Index() {
         {/* Pressable Components */}
         <ComponentSection title="Pressable Components">
           <View style={styles.pressableContainer}>
-            <PressableDefault
+            <TouchableOpacity
               onPress={() => Alert.show({ title: "Pressed", message: "You pressed the button!" })}
               style={[styles.pressableExample, { backgroundColor: theme.colors.card }]}
             >
               <SansSerifText>Press Me</SansSerifText>
-            </PressableDefault>
+            </TouchableOpacity>
           </View>
         </ComponentSection>
       </View>
@@ -406,5 +445,19 @@ const styles = StyleSheet.create({
   testPopoverButtonText: {
     color: "white",
     fontSize: 16,
+  },
+  themeToggleButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  popoverActionButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
 });
