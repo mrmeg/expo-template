@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, View as RNView, Platform } from "react-native";
+import { StyleSheet, View as RNView, Platform, TouchableOpacity } from "react-native";
 import { View } from "@/components/ui/Themed";
 import { ScrollView } from "@/components/ui/ScrollView";
 import { Button } from "@/components/ui/Button";
@@ -7,11 +7,10 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Alert } from "@/components/ui/Alert";
 import { DismissKeyboard } from "@/components/ui/DismissKeyboard";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
-import { PopoverTrigger } from "@/components/ui/PopoverTrigger";
-import { PopoverModal } from "@/components/ui/PopoverModal";
 import { SansSerifText, SerifText, SansSerifBoldText, SerifBoldText } from "@/components/ui/StyledText";
 import { PressableDefault } from "@/components/ui/PressableDefault";
 import { useTheme } from "@/hooks/useTheme";
+import { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverBody, usePopover } from "@/components/ui/Popover";
 
 function ThemeToggle() {
   const { toggleTheme, currentTheme, scheme } = useTheme();
@@ -29,6 +28,29 @@ function ThemeToggle() {
     </View>
   );
 }
+
+const TestPopoverContent: React.FC = () => {
+  const { close } = usePopover();
+  const { theme } = useTheme();
+
+  const handleItemPress = (action: () => void) => {
+    action();
+    close();
+  };
+
+  return (
+    <PopoverBody style={[styles.popoverContent, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+      <SansSerifText style={[styles.popoverItemText, { color: theme.colors.text }]}>Test Item 1</SansSerifText>
+      <SansSerifText style={[styles.popoverItemText, { color: theme.colors.text }]}>Test Item 2</SansSerifText>
+      <Button
+        title="Close Popover"
+        onPress={() => handleItemPress(() => console.log("Closed"))}
+        style={styles.popoverActionButton}
+      />
+    </PopoverBody>
+  );
+};
+
 
 export default function Index() {
   const { theme } = useTheme();
@@ -180,144 +202,20 @@ export default function Index() {
         {/* Popovers */}
         <ComponentSection title="Popovers">
           <View style={styles.popoverContainer}>
-            <PopoverTrigger
-              trigger={({ onPress }) => (
-                <Button
-                title="Bottom"
-                  onPress={onPress}
-                  style={styles.popoverButton}
-                />
-              )}
-              preferredPosition="bottom"
-              popoverWidth={220}
-              popoverHeight={200}
-              popover={({ visible, position, onClose }) => (
-                <PopoverModal
-                  visible={visible}
-                  onClose={onClose}
-                  position={position}
-                  size={{ width: 220, height: 200 }}
+            <Popover placement="bottom" offset={4}>
+              <PopoverTrigger asChild>
+                <TouchableOpacity 
+                  style={[styles.testPopoverButton, { backgroundColor: theme.colors.primary }]}
                 >
-                  <PopoverModal.Header>
-                    <View style={styles.popoverHeader}>
-                      <SansSerifBoldText>Positioned Popover</SansSerifBoldText>
-                    </View>
-                  </PopoverModal.Header>
-                  <PopoverModal.Content>
-                    <View>
-                      <SansSerifText>This popover uses the PopoverTrigger component which handles position calculations automatically.</SansSerifText>
-                      <Button
-                        title="Close"
-                        onPress={onClose}
-                        style={styles.popoverActionButton}
-                      />
-                    </View>
-                  </PopoverModal.Content>
-                </PopoverModal>
-              )}
-            />
-
-            <View style={styles.spacer} />
-
-            <PopoverTrigger
-              trigger={({ onPress }) => (
-                <Button
-                  title="Top"
-                  onPress={onPress}
-                  style={styles.popoverButton}
-                />
-              )}
-              preferredPosition="top"
-              popoverWidth={220}
-              popoverHeight={150}
-              popover={({ visible, position, onClose }) => (
-                <PopoverModal
-                  visible={visible}
-                  onClose={onClose}
-                  position={position}
-                  size={{ width: 220, height: 150 }}
-                >
-                  <PopoverModal.Content>
-                    <View>
-                      <SansSerifText>This popover is positioned above the trigger.</SansSerifText>
-                      <Button
-                        title="Close"
-                        onPress={onClose}
-                        style={styles.popoverActionButton}
-                      />
-                    </View>
-                  </PopoverModal.Content>
-                </PopoverModal>
-              )}
-            />
-
-            <View style={styles.spacer} />
-
-            <View style={styles.popoverDirectionRow}>
-              <PopoverTrigger
-                trigger={({ onPress }) => (
-                  <Button
-                    title="Left"
-                    onPress={onPress}
-                    style={styles.directionButton}
-                  />
-                )}
-                preferredPosition="top"
-                popoverWidth={180}
-                popoverHeight={120}
-                popover={({ visible, position, onClose }) => (
-                  <PopoverModal
-                    visible={visible}
-                    onClose={onClose}
-                    position={position}
-                    size={{ width: 180, height: 120 }}
-                  >
-                    <PopoverModal.Content>
-                      <View>
-                        <SansSerifText>Left positioned popover</SansSerifText>
-                        <Button
-                          title="Close"
-                          onPress={onClose}
-                          style={styles.popoverActionButton}
-                        />
-                      </View>
-                    </PopoverModal.Content>
-                  </PopoverModal>
-                )}
-              />
-
-              <PopoverTrigger
-                trigger={({ onPress }) => (
-                  <Button
-                    title="Right"
-                    onPress={onPress}
-                    style={styles.directionButton}
-                  />
-                )}
-                preferredPosition="top"
-                popoverWidth={180}
-                popoverHeight={120}
-                popover={({ visible, position, onClose }) => (
-                  <PopoverModal
-                    visible={visible}
-                    onClose={onClose}
-                    position={position}
-                    size={{ width: 180, height: 120 }}
-                  >
-                    <PopoverModal.Content>
-                      <View>
-                        <SansSerifText>Right positioned popover</SansSerifText>
-                        <Button
-                          title="Close"
-                          onPress={onClose}
-                          style={styles.popoverActionButton}
-                        />
-                      </View>
-                    </PopoverModal.Content>
-                  </PopoverModal>
-                )}
-              />
-            </View>
+                  <SansSerifBoldText style={styles.testPopoverButtonText}>
+                    Test Popover
+                  </SansSerifBoldText>
+                </TouchableOpacity>
+              </PopoverTrigger>
+              <PopoverContent width={220}>
+                <TestPopoverContent />
+              </PopoverContent>
+            </Popover>
           </View>
         </ComponentSection>
 
@@ -484,5 +382,29 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
+  },
+  menuItems: {
+    paddingVertical: 8,
+  },
+  popoverContent: {
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  popoverItemText: {
+    fontSize: 14,
+    fontWeight: "500",
+    padding: 8,
+  },
+  testPopoverButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  testPopoverButtonText: {
+    color: "white",
+    fontSize: 16,
   },
 });

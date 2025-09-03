@@ -6,7 +6,8 @@ type PopoverTriggerProps = {
   popover: (props: {
     visible: boolean;
     position: { top: number; left: number };
-    onClose: () => void
+    onClose: () => void;
+    onItemPress?: () => void;
   }) => ReactNode;
   position?: { top: number; left: number };
   preferredPosition?: "top" | "bottom" | "auto";
@@ -14,9 +15,9 @@ type PopoverTriggerProps = {
   popoverHeight?: number;
 };
 
-export const PopoverTrigger = ({ 
-  trigger, 
-  popover, 
+export const PopoverTrigger = ({
+  trigger,
+  popover,
   position: manualPosition,
   preferredPosition = "auto",
   popoverWidth = 200,
@@ -25,7 +26,7 @@ export const PopoverTrigger = ({
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<View & NativeMethods>(null);
-  
+
   const windowHeight = Dimensions.get("window").height;
   const windowWidth = Dimensions.get("window").width;
   const SCREEN_PADDING = 16;
@@ -38,28 +39,28 @@ export const PopoverTrigger = ({
       triggerRef.current?.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
         const spaceAbove = pageY;
         const spaceBelow = windowHeight - (pageY + height);
-        
+
         // Calculate vertical position
         let newTop = pageY + height + 4; // Add small gap below trigger
-        
-        if (preferredPosition === "top" || 
+
+        if (preferredPosition === "top" ||
             (preferredPosition === "auto" && spaceBelow < popoverHeight && spaceAbove > spaceBelow)) {
           newTop = Math.max(SCREEN_PADDING, pageY - popoverHeight - 4); // Add small gap above trigger
         }
-        
+
         // Calculate horizontal position - align right edge of popover with right edge of trigger
         let newLeft = pageX + width - popoverWidth;
-        
+
         // Ensure popover doesn't go off the left edge of screen
         if (newLeft < SCREEN_PADDING) {
           newLeft = SCREEN_PADDING;
         }
-        
+
         // Ensure popover doesn't go off the right edge of screen
         if (newLeft + popoverWidth > windowWidth - SCREEN_PADDING) {
           newLeft = windowWidth - popoverWidth - SCREEN_PADDING;
         }
-        
+
         setPosition({
           top: newTop,
           left: newLeft
@@ -77,7 +78,8 @@ export const PopoverTrigger = ({
       {popover({
         visible,
         position: manualPosition || position,
-        onClose: () => setVisible(false)
+        onClose: () => setVisible(false),
+        onItemPress: () => setVisible(false)
       })}
     </>
   );
