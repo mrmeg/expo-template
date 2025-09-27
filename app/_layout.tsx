@@ -1,4 +1,3 @@
-import "react-native-reanimated";
 import "@/lib/gesture-handler/gesture-handler";
 import { useEffect } from "react";
 import { ThemeProvider } from "@react-navigation/native";
@@ -32,13 +31,13 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-        <ThemeProvider value={colors[scheme ?? "light"]}>
-          <Stack>
-            <Stack.Screen name="index" />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-        <Notification />
+      <ThemeProvider value={colors[scheme ?? "light"]}>
+        <Stack>
+          <Stack.Screen name="index" />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+      <Notification />
     </QueryClientProvider>
   );
 }
