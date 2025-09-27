@@ -1,124 +1,272 @@
-import React, { ReactNode, useRef } from "react";
+import React, { ComponentType } from "react";
 import {
   Pressable,
-  StyleProp,
-  StyleSheet,
-  ViewStyle,
   PressableProps,
-  Animated,
-  Platform,
-  ColorValue
+  PressableStateCallbackType,
+  StyleProp,
+  TextStyle,
+  ViewStyle,
+  StyleSheet,
 } from "react-native";
+
 import { useTheme } from "@/hooks/useTheme";
+import { Text, TextProps } from "./Themed";
 
-type Props = PressableProps & {
-  children: ReactNode;
+type Presets = "default" | "filled" | "outline";
+
+export interface ButtonAccessoryProps {
+  style: StyleProp<any>;
+  pressableState: PressableStateCallbackType;
   disabled?: boolean;
+}
+
+export interface ButtonProps extends PressableProps {
+  /**
+   * Text which is looked up via i18n.
+   */
+  tx?: TextProps["tx"];
+  /**
+   * The text to display if not using `tx` or nested components.
+   */
+  text?: TextProps["text"];
+  /**
+   * Optional options to pass to i18n.
+   */
+  txOptions?: TextProps["txOptions"];
+  /**
+   * An optional style override useful for padding & margin.
+   */
   style?: StyleProp<ViewStyle>;
+  /**
+   * An optional style override for the "pressed" state.
+   */
+  pressedStyle?: StyleProp<ViewStyle>;
+  /**
+   * An optional style override for the button text.
+   */
+  textStyle?: StyleProp<TextStyle>;
+  /**
+   * An optional style override for the button text when in the "pressed" state.
+   */
+  pressedTextStyle?: StyleProp<TextStyle>;
+  /**
+   * An optional style override for the button text when in the "disabled" state.
+   */
+  disabledTextStyle?: StyleProp<TextStyle>;
+  /**
+   * One of the different types of button presets.
+   */
+  preset?: Presets;
+  /**
+   * An optional component to render on the right side of the text.
+   */
+  RightAccessory?: ComponentType<ButtonAccessoryProps>;
+  /**
+   * An optional component to render on the left side of the text.
+   */
+  LeftAccessory?: ComponentType<ButtonAccessoryProps>;
+  /**
+   * Children components.
+   */
+  children?: React.ReactNode;
+  /**
+   * disabled prop, accessed directly for declarative styling reasons.
+   */
+  disabled?: boolean;
+  /**
+   * An optional style override for the disabled state
+   */
+  disabledStyle?: StyleProp<ViewStyle>;
+  /**
+   * Whether to show shadow
+   */
   withShadow?: boolean;
-  variant?: "default" | "outline" | "primary";
-};
+}
 
-export const Button = ({
-  children,
-  style,
-  onPress,
-  disabled = false,
-  withShadow = true,
-  variant = "default",
-  ...props
-}: Props) => {
-  const { base, theme, themedStyles } = useTheme();
-  
-  // The animated value for the press animation
-  const animated = useRef(new Animated.Value(1)).current;
+export function Button(props: ButtonProps) {
+  const {
+    tx,
+    text,
+    txOptions,
+    style: styleOverride,
+    pressedStyle: pressedStyleOverride,
+    textStyle: textStyleOverride,
+    pressedTextStyle: pressedTextStyleOverride,
+    disabledTextStyle: disabledTextStyleOverride,
+    children,
+    RightAccessory,
+    LeftAccessory,
+    disabled,
+    disabledStyle: disabledStyleOverride,
+    withShadow = true,
+    preset = "default",
+    ...rest
+  } = props;
 
-  const fadeIn = () => {
-    Animated.timing(animated, {
-      toValue: 0.7,
-      duration: 100,
-      useNativeDriver: true,
-    }).start();
-  };
+  const { theme, themedStyles } = useTheme();
+  const styles = createStyles(theme);
 
-  const fadeOut = () => {
-    Animated.timing(animated, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  };
+  // Declarative style function for the button container
+  function getViewStyle({ pressed }: PressableStateCallbackType): StyleProp<ViewStyle> {
+    const baseStyle: StyleProp<ViewStyle>[] = [styles.button];
 
-  // Determine background and border colors based on variant
-  let backgroundColor: ColorValue = theme.colors.primary;
-  let borderProps = {};
-  
-  if (variant === "outline") {
-    backgroundColor = "transparent";
-    borderProps = {
-      borderWidth: 1,
-      borderColor: theme.colors.primary,
-    };
+    // Apply preset styles
+    if (preset === "default") {
+      baseStyle.push(styles.buttonDefault);
+    } else if (preset === "outline") {
+      baseStyle.push(styles.buttonOutline);
+    } else if (preset === "filled") {
+      baseStyle.push(styles.buttonFilled);
+    }
+
+    // Apply shadow if enabled
+    if (withShadow && !disabled) {
+      baseStyle.push(themedStyles.baseShadow);
+    }
+
+    // Apply pressed styles
+    if (pressed) {
+      baseStyle.push(styles.pressed);
+      if (pressedStyleOverride) {
+        baseStyle.push(pressedStyleOverride);
+      }
+    }
+
+    // Apply disabled styles
+    if (disabled) {
+      baseStyle.push(styles.disabled);
+      if (disabledStyleOverride) {
+        baseStyle.push(disabledStyleOverride);
+      }
+    }
+
+    // Apply custom style override
+    if (styleOverride) {
+      baseStyle.push(styleOverride);
+    }
+
+    return baseStyle;
   }
 
-  // Get platform-specific styles
-  const platformStyles = Platform.OS === "web" 
-    ? styles.webButton 
-    : Platform.OS === "ios" 
-      ? styles.iosButton 
-      : styles.androidButton;
+  // Declarative style function for the text
+  function getTextStyle({ pressed }: PressableStateCallbackType): StyleProp<TextStyle> {
+    const baseStyle: StyleProp<TextStyle>[] = [styles.text];
+
+    // Apply preset text colors
+    if (preset === "default" || preset === "filled") {
+      baseStyle.push(styles.textLight);
+    } else if (preset === "outline") {
+      baseStyle.push(styles.textPrimary);
+    }
+
+    // Apply pressed text styles
+    if (pressed) {
+      baseStyle.push(styles.pressedText);
+      if (pressedTextStyleOverride) {
+        baseStyle.push(pressedTextStyleOverride);
+      }
+    }
+
+    // Apply disabled text styles
+    if (disabled) {
+      if (disabledTextStyleOverride) {
+        baseStyle.push(disabledTextStyleOverride);
+      }
+    }
+
+    // Apply custom text style override
+    if (textStyleOverride) {
+      baseStyle.push(textStyleOverride);
+    }
+
+    return baseStyle;
+  }
 
   return (
     <Pressable
-      onPress={onPress}
-      onPressIn={fadeIn}
-      onPressOut={fadeOut}
-      style={[
-        styles.button,
-        platformStyles,
-        {
-          backgroundColor,
-          ...borderProps,
-        },
-        withShadow && themedStyles.baseShadow,
-        style,
-        disabled && styles.disabled,
-      ]}
+      style={getViewStyle}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
+      {...rest}
       disabled={disabled}
-      android_ripple={Platform.OS === "android" ? { color: "rgba(255, 255, 255, 0.2)" } : undefined}
-      {...props}
     >
-      <Animated.View style={[styles.contentContainer, { opacity: animated }]}>
-        {children}
-      </Animated.View>
+      {(state) => (
+        <>
+          {!!LeftAccessory && (
+            <LeftAccessory
+              style={styles.leftAccessory}
+              pressableState={state}
+              disabled={disabled}
+            />
+          )}
+
+          <Text
+            tx={tx}
+            text={text}
+            txOptions={txOptions}
+            style={getTextStyle(state)}
+          >
+            {children}
+          </Text>
+
+          {!!RightAccessory && (
+            <RightAccessory
+              style={styles.rightAccessory}
+              pressableState={state}
+              disabled={disabled}
+            />
+          )}
+        </>
+      )}
     </Pressable>
   );
-};
+}
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   button: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 8,
-    paddingVertical: 8,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  webButton: {
-    // Web-specific styles
-    cursor: "pointer",
-  },
-  iosButton: {
-    // iOS-specific styles if needed
-  },
-  androidButton: {
-    // Android-specific styles if needed
-  },
-  contentContainer: {
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    minHeight: 48,
+  } as ViewStyle,
+  buttonDefault: {
+    backgroundColor: theme.colors.primary,
+  } as ViewStyle,
+  buttonOutline: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  } as ViewStyle,
+  buttonFilled: {
+    backgroundColor: theme.colors.secondary,
+  } as ViewStyle,
+  text: {
+    fontSize: 16,
+    fontWeight: "500",
+    textAlign: "center",
+  } as TextStyle,
+  textLight: {
+    color: theme.colors.background,
+  } as TextStyle,
+  textPrimary: {
+    color: theme.colors.primary,
+  } as TextStyle,
+  pressed: {
+    opacity: 0.8,
+  } as ViewStyle,
+  pressedText: {
+    opacity: 0.9,
+  } as TextStyle,
   disabled: {
     opacity: 0.6,
-  },
+  } as ViewStyle,
+  leftAccessory: {
+    marginRight: 8,
+  } as ViewStyle,
+  rightAccessory: {
+    marginLeft: 8,
+  } as ViewStyle,
 });

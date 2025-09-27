@@ -19,6 +19,19 @@ type ThemeProps = {
 export type TextProps = ThemeProps & DefaultText["props"] & {
   variant?: "serif" | "sansSerif";
   fontWeight?: "regular" | "bold";
+  /**
+   * Text which is looked up via i18n.
+   */
+  tx?: string;
+  /**
+   * The text to display if not using `tx` or nested components.
+   */
+  text?: string;
+  /**
+   * Optional options to pass to i18n. Useful for interpolation
+   * as well as explicitly setting locale or translation fallbacks.
+   */
+  txOptions?: object;
 };
 
 export type ViewProps = ThemeProps & DefaultView["props"];
@@ -44,17 +57,27 @@ export function useThemeColor(
 
 export const Text = forwardRef<DefaultText, TextProps>((props, ref) => {
   const {
+    tx,
+    text,
+    txOptions,
     style,
     lightColor,
     darkColor,
     variant = "sansSerif",
     fontWeight = "regular",
+    children,
     ...otherProps
   } = props;
   const color = useThemeColor({ light: lightColor, dark: darkColor }, "text");
   const fontFamily = fontFamilies[variant][fontWeight];
 
-  return <DefaultText ref={ref} style={[styles.defaultText, { color, fontFamily }, style]} {...otherProps} />;
+  // Simple i18n placeholder - in a real app, this would use a proper i18n library
+  const i18nText = tx ? tx : text;
+  const content = i18nText || children;
+
+  return <DefaultText ref={ref} style={[styles.defaultText, { color, fontFamily }, style]} {...otherProps}>
+    {content}
+  </DefaultText>;
 });
 Text.displayName = "Text";
 

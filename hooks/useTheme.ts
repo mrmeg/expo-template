@@ -1,17 +1,6 @@
 import { Colors, colors } from "@/constants/colors";
 import { useColorScheme as useColorSchemeDefault, StyleSheet, ViewStyle, StyleProp, Platform } from "react-native";
-import { create } from "zustand";
-
-type ThemeStore = {
-  userTheme: "system" | "light" | "dark";
-  setTheme: (theme: "system" | "light" | "dark") => void;
-};
-
-// Create a store to persist theme selection across the app
-export const useThemeStore = create<ThemeStore>((set) => ({
-  userTheme: "system",
-  setTheme: (theme) => set({ userTheme: theme }),
-}));
+import { useThemeStore } from "@/stores/themeStore";
 
 interface ExtendedColorScheme {
   base: Colors["base"];
