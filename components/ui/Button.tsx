@@ -10,7 +10,8 @@ import {
 } from "react-native";
 
 import { useTheme } from "@/hooks/useTheme";
-import { Text, TextProps } from "./Themed";
+import { TextProps } from "./Themed";
+import { SansSerifText } from "./StyledText";
 
 type Presets = "default" | "filled" | "outline";
 
@@ -103,7 +104,7 @@ export function Button(props: ButtonProps) {
     ...rest
   } = props;
 
-  const { theme, themedStyles } = useTheme();
+  const { theme, themedStyles, getContrastingColor } = useTheme();
   const styles = createStyles(theme);
 
   // Declarative style function for the button container
@@ -152,12 +153,34 @@ export function Button(props: ButtonProps) {
   function getTextStyle({ pressed }: PressableStateCallbackType): StyleProp<TextStyle> {
     const baseStyle: StyleProp<TextStyle>[] = [styles.text];
 
-    // Apply preset text colors
-    if (preset === "default" || preset === "filled") {
-      baseStyle.push(styles.textLight);
+    // Determine the background color for contrast calculation
+    let backgroundColor: string;
+
+    // Check for custom background color in style override
+    const flattenedStyle = StyleSheet.flatten(styleOverride);
+    const customBgColor = flattenedStyle?.backgroundColor;
+
+    if (customBgColor && typeof customBgColor === 'string') {
+      backgroundColor = customBgColor;
+    } else if (preset === "default") {
+      backgroundColor = theme.colors.primary;
+    } else if (preset === "filled") {
+      backgroundColor = theme.colors.secondary;
     } else if (preset === "outline") {
-      baseStyle.push(styles.textPrimary);
+      // Outline has transparent background, use theme background for contrast
+      backgroundColor = theme.colors.background;
+    } else {
+      backgroundColor = theme.colors.primary; // fallback
     }
+
+    // Use theme's contrast helper to pick readable text color
+    const textColor = getContrastingColor(
+      backgroundColor,
+      theme.colors.textLight,  // white text for dark backgrounds
+      theme.colors.textDark    // black text for light backgrounds
+    );
+
+    baseStyle.push({ color: textColor });
 
     // Apply pressed text styles
     if (pressed) {
@@ -200,14 +223,14 @@ export function Button(props: ButtonProps) {
             />
           )}
 
-          <Text
+          <SansSerifText
             tx={tx}
             text={text}
             txOptions={txOptions}
             style={getTextStyle(state)}
           >
             {children}
-          </Text>
+          </SansSerifText>
 
           {!!RightAccessory && (
             <RightAccessory
@@ -247,12 +270,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     textAlign: "center",
-  } as TextStyle,
-  textLight: {
-    color: theme.colors.background,
-  } as TextStyle,
-  textPrimary: {
-    color: theme.colors.primary,
   } as TextStyle,
   pressed: {
     opacity: 0.8,
