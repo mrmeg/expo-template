@@ -5,6 +5,7 @@ import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { SansSerifText } from "./StyledText";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/constants/spacing";
 
 /**
  * Notification
@@ -23,9 +24,10 @@ import { useTheme } from "@/hooks/useTheme";
  * });
  */
 export const Notification = () => {
-  const { theme, themedStyles } = useTheme();
+  const { theme, getShadowStyle } = useTheme();
   const insets = useContext(SafeAreaInsetsContext);
   const { alert, hide } = globalUIStore();
+  const styles = createStyles(theme);
 
   // Store animation values in state instead of refs
   const [animationState] = React.useState({
@@ -118,7 +120,7 @@ export const Notification = () => {
 
   const getIconProps = () => {
     if (alert?.loading) {
-      return { name: "time", color: theme.colors.text };
+      return { name: "time", color: theme.colors["base-content"] };
     }
 
     switch (alert?.type) {
@@ -127,9 +129,9 @@ export const Notification = () => {
     case "success":
       return { name: "checkmark-circle", color: theme.colors.success };
     case "info":
-      return { name: "information-circle", color: theme.colors.text };
+      return { name: "information-circle", color: theme.colors["base-content"] };
     default:
-      return { name: "information-circle", color: theme.colors.text };
+      return { name: "information-circle", color: theme.colors["base-content"] };
     }
   };
 
@@ -166,52 +168,42 @@ export const Notification = () => {
     >
       <View style={[
         styles.alert,
-        {
-          borderColor: theme.colors.border,
-          backgroundColor: theme.colors.notification
-        },
-        !theme.dark && themedStyles.softShadow
+        !theme.dark && getShadowStyle('soft')
       ]}>
         <View style={styles.iconContainer}>
           {alert?.loading ? (
-            <ActivityIndicator size="small" color={theme.colors.text} />
+            <ActivityIndicator size="small" color={theme.colors["base-content"]} />
           ) : (
             <Ionicons
               name={getIconProps().name as React.ComponentProps<typeof Ionicons>["name"]}
-              size={24}
+              size={spacing.iconMd}
               color={getIconProps().color}
             />
           )}
         </View>
         <View style={styles.alertContent}>
           {getTitle() && (
-            <SansSerifText style={[
-              styles.alertTitle,
-              { color: theme.colors.text }
-            ]}>
+            <SansSerifText style={styles.alertTitle}>
               {getTitle()}
             </SansSerifText>
           )}
-          <SansSerifText style={[
-            styles.alertDescription,
-            { color: theme.colors.secondaryText }
-          ]}>
+          <SansSerifText style={styles.alertDescription}>
             {alert?.messages?.[0] || ""}
           </SansSerifText>
         </View>
         <TouchableOpacity
           style={styles.closeButton}
-          hitSlop={8}
+          hitSlop={spacing.sm}
           onPress={animateOut}
         >
-          <Ionicons name="close" size={20} color={theme.colors.icon} />
+          <Ionicons name="close" size={spacing.iconSm + 4} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
     </Animated.View>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     position: "absolute",
     zIndex: 1000,
@@ -220,34 +212,39 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   alert: {
-    margin: 16,
-    padding: 16,
-    borderRadius: 4,
+    margin: spacing.md,
+    padding: spacing.md,
+    borderRadius: spacing.radiusSm,
     borderWidth: 1,
+    borderColor: theme.colors["base-300"],
+    backgroundColor: theme.colors["base-200"],
     flexDirection: "row",
     alignItems: "center",
   },
   iconContainer: {
-    width: 24,
-    height: 24,
+    width: spacing.iconMd,
+    height: spacing.iconMd,
     justifyContent: "center",
     alignItems: "center",
   },
   alertContent: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: spacing.sm,
     justifyContent: "center",
   },
   alertTitle: {
     fontWeight: "bold",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
+    color: theme.colors["base-content"],
   },
-  alertDescription: {},
+  alertDescription: {
+    color: theme.colors["neutral-content"],
+  },
   closeButton: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    padding: 4,
+    top: spacing.sm,
+    right: spacing.sm,
+    padding: spacing.xs,
     justifyContent: "center",
     alignItems: "center",
   },

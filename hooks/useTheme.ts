@@ -1,17 +1,15 @@
 import { Colors, colors } from "@/constants/colors";
-import { useColorScheme as useColorSchemeDefault, StyleSheet, ViewStyle, StyleProp, Platform } from "react-native";
+import { useColorScheme as useColorSchemeDefault, ViewStyle, Platform } from "react-native";
 import { useThemeStore } from "@/stores/themeStore";
+
+type ShadowType = 'base' | 'soft' | 'sharp' | 'subtle';
 
 interface ExtendedColorScheme {
   base: Colors["base"];
   theme: Colors["light" | "dark"];
   scheme: "light" | "dark";
-  themedStyles: {
-    baseShadow: StyleProp<ViewStyle>;
-    softShadow: StyleProp<ViewStyle>;
-    sharpShadow: StyleProp<ViewStyle>;
-    subtleShadow: StyleProp<ViewStyle>;
-  };
+  // Shadow helper function
+  getShadowStyle: (type: ShadowType) => ViewStyle;
   // Color utility methods
   getContrastingColor: (backgroundColor: string, color1?: string, color2?: string) => string;
   getTextColorForBackground: (backgroundColor: string) => "light" | "dark";
@@ -29,7 +27,7 @@ interface ExtendedColorScheme {
  * - base: shared base colors
  * - theme: active theme colors (light or dark)
  * - scheme: "light" | "dark"
- * - themedStyles: cross-platform shadow styles
+ * - getShadowStyle(type): returns cross-platform shadow style object
  * - getContrastingColor(bg, color1?, color2?): pick best contrast of two options
  * - getTextColorForBackground(bg): returns "light" or "dark"
  * - withAlpha(color, alpha): adds transparency
@@ -39,6 +37,7 @@ interface ExtendedColorScheme {
  * - getTextColorForBackground("#000") → "light"
  * - getContrastingColor("#f4f4f4", "#222", "#fff") → "#222"
  * - withAlpha("#336699", 0.6) → "rgba(51,102,153,0.6)"
+ * - getShadowStyle('base') → { shadowColor, shadowOffset, ... }
  */
 export function useTheme(): ExtendedColorScheme & {
   toggleTheme: () => void;
@@ -52,11 +51,11 @@ export function useTheme(): ExtendedColorScheme & {
   if (!defaultScheme) {
     defaultScheme = "light";
   }
-  
+
   // Determine which theme to use (user preference or system)
   const effectiveScheme = userTheme === "system" ? defaultScheme : userTheme;
   const theme = colors[effectiveScheme];
-  
+
   // Toggle between light, dark, and system themes
   const toggleTheme = () => {
     if (userTheme === "system") {
@@ -68,56 +67,65 @@ export function useTheme(): ExtendedColorScheme & {
     }
   };
 
-  const styles = StyleSheet.create({
-    baseShadow: Platform.select({
+  /**
+   * getShadowStyle
+   * Returns platform-appropriate shadow styles
+   * - Web: uses boxShadow
+   * - Native: uses shadowColor, shadowOffset, shadowOpacity, shadowRadius, elevation
+   */
+  const getShadowStyle = (type: ShadowType): ViewStyle => {
+    const shadowConfigs = {
+      base: {
+        web: "0 2px 8px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)",
+        native: {
+          shadowColor: theme.colors.overlay,
+          shadowOffset: { width: 2, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 6,
+          elevation: 8,
+        },
+      },
+      soft: {
+        web: "0 4px 20px rgba(0,0,0,0.08), 0 8px 16px rgba(0,0,0,0.06)",
+        native: {
+          shadowColor: theme.colors.overlay,
+          shadowOffset: { width: 2, height: 10 },
+          shadowOpacity: 0.25,
+          shadowRadius: 15,
+          elevation: 12,
+        },
+      },
+      sharp: {
+        web: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14)",
+        native: {
+          shadowColor: theme.colors.overlay,
+          shadowOffset: { width: 1, height: 1 },
+          shadowOpacity: 0.5,
+          shadowRadius: 2,
+          elevation: 5,
+        },
+      },
+      subtle: {
+        web: "0 1px 4px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04)",
+        native: {
+          shadowColor: theme.colors.overlay,
+          shadowOffset: { width: 2, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        },
+      },
+    };
+
+    const config = shadowConfigs[type];
+
+    return Platform.select({
       web: {
-        boxShadow: "0 2px 8px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)",
-      },
-      default: {
-        shadowColor: theme.colors.shadow,
-        shadowOffset: { width: 2, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 8,
-      },
-    }),
-    softShadow: Platform.select({
-      web: {
-        boxShadow: "0 4px 20px rgba(0,0,0,0.08), 0 8px 16px rgba(0,0,0,0.06)",
-      },
-      default: {
-        shadowColor: theme.colors.shadow,
-        shadowOffset: { width: 2, height: 10 },
-        shadowOpacity: 0.25,
-        shadowRadius: 15,
-        elevation: 12,
-      },
-    }),
-    sharpShadow: Platform.select({
-      web: {
-        boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14)",
-      },
-      default: {
-        shadowColor: theme.colors.shadow,
-        shadowOffset: { width: 1, height: 1 },
-        shadowOpacity: 0.5,
-        shadowRadius: 2,
-        elevation: 5,
-      },
-    }),
-    subtleShadow: Platform.select({
-      web: {
-        boxShadow: "0 1px 4px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04)",
-      },
-      default: {
-        shadowColor: theme.colors.shadow,
-        shadowOffset: { width: 2, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-      },
-    }),
-  });
+        boxShadow: config.web,
+      } as ViewStyle,
+      default: config.native,
+    }) as ViewStyle;
+  };
 
   // Helper to calculate contrast ratio between two colors
   const getContrastRatio = (color1: string, color2: string): number => {
@@ -143,7 +151,8 @@ export function useTheme(): ExtendedColorScheme & {
     base: colors.base,
     theme: theme,
     scheme: theme.dark ? "dark" : "light",
-    themedStyles: styles,
+    // Shadow helper function
+    getShadowStyle,
     // Theme switching methods
     toggleTheme,
     setTheme,

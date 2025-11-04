@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, TextInput as RNTextInput, ViewStyle, TextInputProps, StyleProp, Platform, View } from "react-native";
 import { Entypo } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/constants/spacing";
 import { SansSerifText } from "./StyledText";
 
 interface Props extends TextInputProps {
@@ -31,6 +32,7 @@ export const TextInput = ({
   ...rest
 }: Props) => {
   const { base, theme, getContrastingColor } = useTheme();
+  const styles = createStyles(theme, base);
   const [focused, setFocused] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [passwordVisible, setPasswordVisible] = useState(secureTextEntry || false);
@@ -70,14 +72,14 @@ export const TextInput = ({
           onBlur={onBlur ?? (() => setFocused(false))}
           onContentSizeChange={e => setContentHeight(e.nativeEvent.contentSize.height)}
           scrollEnabled={handleScrollBehavior()}
-          placeholderTextColor={theme.colors.placeholder}
+          placeholderTextColor={theme.colors.neutral}
           style={[
+            styles.input,
             {
               backgroundColor: backgroundColor,
-              borderColor: forceLight ? "#d1d5db" : theme.colors.border,
-              color: forceLight ? "#1f2937" : getContrastingColor(backgroundColor, base.charcoal, base.white),
+              borderColor: forceLight ? "#d1d5db" : theme.colors["base-300"],
+              color: forceLight ? "#1f2937" : getContrastingColor(backgroundColor, base["base-content"], base.white),
             },
-            styles.input,
             style,
             focused && focusedStyle,
             isWeb && { fontSize: 16 },
@@ -89,8 +91,8 @@ export const TextInput = ({
         {(secureTextEntry && showSecureEntryToggle) && (
           <Entypo
             name={passwordVisible ? "eye-with-line" : "eye"}
-            size={20}
-            color={theme.colors.secondaryText}
+            size={spacing.iconSm + 4}
+            color={theme.colors["neutral-content"]}
             style={styles.passwordToggle}
             onPress={() => setPasswordVisible(!passwordVisible)}
           />
@@ -101,17 +103,17 @@ export const TextInput = ({
 };
 
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any, base: any) => StyleSheet.create({
   input: {
     height: undefined,
-    borderRadius: 10,
+    borderRadius: spacing.radiusMd,
     borderWidth: 1,
-    paddingVertical: Platform.OS === "web" ? 5 : 8,
-    paddingHorizontal: Platform.OS === "web" ? 5 : 10,
+    paddingVertical: Platform.OS === "web" ? 5 : spacing.sm,
+    paddingHorizontal: Platform.OS === "web" ? 5 : spacing.sm + 2,
   },
   passwordToggle: {
     position: "absolute",
-    right: 10,
+    right: spacing.sm + 2,
     top: "50%",
     transform: [{ translateY: Platform.OS === "web" ? -10 : -12 }],
     zIndex: 1,
@@ -123,7 +125,8 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   label: {
-    marginBottom: 4,
+    marginBottom: spacing.xs,
     fontSize: 14,
+    color: theme.colors["base-content"],
   }
 });

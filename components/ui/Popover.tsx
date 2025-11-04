@@ -11,6 +11,7 @@ import {
   AccessibilityRole,
 } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/constants/spacing";
 
 interface PopoverProps {
   children: ReactNode;
@@ -362,8 +363,8 @@ function PopoverContent({
             style={[
               styles.content,
               {
-                backgroundColor: theme.colors.card,
-                borderColor: theme.colors.border,
+                backgroundColor: theme.colors["base-200"],
+                borderColor: theme.colors["base-300"],
                 padding,
               },
               style,
@@ -381,7 +382,7 @@ function PopoverContent({
             {showArrow && position && (
               <PopoverArrow
                 placement={position.placement}
-                color={theme.colors.card}
+                color={theme.colors["base-200"]}
                 size={arrowSize}
               />
             )}
@@ -464,10 +465,10 @@ function PopoverArrow({ placement, color = "#fff", size = 8 }: PopoverArrowProps
           {
             ...arrowStyle,
             transform: [{ translateX: -1 }, { translateY: -1 }],
-            borderBottomColor: placement === "bottom" ? theme.colors.border : arrowStyle.borderBottomColor,
-            borderTopColor: placement === "top" ? theme.colors.border : arrowStyle.borderTopColor,
-            borderLeftColor: placement === "left" ? theme.colors.border : arrowStyle.borderLeftColor,
-            borderRightColor: placement === "right" ? theme.colors.border : arrowStyle.borderRightColor,
+            borderBottomColor: placement === "bottom" ? theme.colors["base-300"] : arrowStyle.borderBottomColor,
+            borderTopColor: placement === "top" ? theme.colors["base-300"] : arrowStyle.borderTopColor,
+            borderLeftColor: placement === "left" ? theme.colors["base-300"] : arrowStyle.borderLeftColor,
+            borderRightColor: placement === "right" ? theme.colors["base-300"] : arrowStyle.borderRightColor,
           },
         ]}
       />
@@ -482,7 +483,7 @@ function PopoverHeader({ children, style, ...props }: PopoverHeaderProps) {
     <View
       style={[
         styles.header,
-        { borderBottomColor: theme.colors.border },
+        { borderBottomColor: theme.colors["base-300"] },
         style,
       ]}
       {...props}
@@ -506,7 +507,7 @@ function PopoverFooter({ children, style, ...props }: PopoverFooterProps) {
     <View
       style={[
         styles.footer,
-        { borderTopColor: theme.colors.border },
+        { borderTopColor: theme.colors["base-300"] },
         style,
       ]}
       {...props}
@@ -529,7 +530,7 @@ const styles = StyleSheet.create({
     position: "absolute",
   },
   content: {
-    borderRadius: 8,
+    borderRadius: spacing.radiusMd,
     borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: {
@@ -541,17 +542,17 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.buttonPadding,
     borderBottomWidth: 1,
   },
   body: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.buttonPadding,
   },
   footer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.buttonPadding,
     borderTopWidth: 1,
   },
 });

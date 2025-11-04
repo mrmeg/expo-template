@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from "react";
 import { Animated, StyleSheet, TextStyle, Pressable } from "react-native";
 import { SansSerifBoldText } from "./StyledText";
 import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/constants/spacing";
 
 type Props = {
   enabled: boolean;
@@ -25,6 +26,7 @@ export const ToggleSwitch = ({
   marginHorizontal = 2, // Default horizontal margin for the circle
 }: Props) => {
   const { base, theme } = useTheme();
+  const styles = createStyles(theme, base);
   const animatedValue = useRef(new Animated.Value(enabled ? 1 : 0)).current;
 
   useEffect(() => {
@@ -58,28 +60,28 @@ export const ToggleSwitch = ({
           inputRange: [0, 1],
           outputRange: [base.inactive, base.success],
         }),
-        borderColor: theme.colors.border,
+        borderColor: theme.colors["base-300"],
         width: size.width,
         height: size.height,
         borderRadius: size.height / 2,
         padding: BORDER_WIDTH,
       }]}>
-        <SansSerifBoldText style={[labelStyle, { left: 10 }]}>{enabled ? labelOn : ""}</SansSerifBoldText>
+        <SansSerifBoldText style={[labelStyle, { left: spacing.sm + 2 }]}>{enabled ? labelOn : ""}</SansSerifBoldText>
         <Animated.View style={[styles.circle, {
           backgroundColor: base.white,
-          borderColor: theme.colors.border,
+          borderColor: theme.colors["base-300"],
           width: circleSize,
           height: circleSize,
           borderRadius: circleSize / 2,
           marginLeft
         }]} />
-        <SansSerifBoldText style={[labelStyle, { right: 10, color: base.charcoal }]}>{!enabled ? labelOff : ""}</SansSerifBoldText>
+        <SansSerifBoldText style={[labelStyle, { right: spacing.sm + 2, color: base["base-content"] }]}>{!enabled ? labelOff : ""}</SansSerifBoldText>
       </Animated.View>
     </Pressable>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any, base: any) => StyleSheet.create({
   container: {
     justifyContent: "center",
     borderWidth: BORDER_WIDTH,

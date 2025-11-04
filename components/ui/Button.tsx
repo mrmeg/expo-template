@@ -10,6 +10,7 @@ import {
 } from "react-native";
 
 import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/constants/spacing";
 import { TextProps } from "./Themed";
 import { SansSerifText } from "./StyledText";
 
@@ -104,7 +105,7 @@ export function Button(props: ButtonProps) {
     ...rest
   } = props;
 
-  const { theme, themedStyles, getContrastingColor } = useTheme();
+  const { theme, getShadowStyle, getContrastingColor } = useTheme();
   const styles = createStyles(theme);
 
   // Declarative style function for the button container
@@ -122,7 +123,7 @@ export function Button(props: ButtonProps) {
 
     // Apply shadow if enabled
     if (withShadow && !disabled) {
-      baseStyle.push(themedStyles.baseShadow);
+      baseStyle.push(getShadowStyle('base'));
     }
 
     // Apply pressed styles
@@ -168,7 +169,7 @@ export function Button(props: ButtonProps) {
       backgroundColor = theme.colors.secondary;
     } else if (preset === "outline") {
       // Outline has transparent background, use theme background for contrast
-      backgroundColor = theme.colors.background;
+      backgroundColor = theme.colors["base-100"];
     } else {
       backgroundColor = theme.colors.primary; // fallback
     }
@@ -176,8 +177,8 @@ export function Button(props: ButtonProps) {
     // Use theme's contrast helper to pick readable text color
     const textColor = getContrastingColor(
       backgroundColor,
-      theme.colors.textLight,  // white text for dark backgrounds
-      theme.colors.textDark    // black text for light backgrounds
+      theme.colors.white,           // white text for dark backgrounds
+      theme.colors["base-content"]  // dark text for light backgrounds
     );
 
     baseStyle.push({ color: textColor });
@@ -250,9 +251,9 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    borderRadius: spacing.radiusMd,
+    paddingVertical: spacing.buttonPadding,
+    paddingHorizontal: spacing.md,
     minHeight: 48,
   } as ViewStyle,
   buttonDefault: {
@@ -281,9 +282,9 @@ const createStyles = (theme: any) => StyleSheet.create({
     opacity: 0.6,
   } as ViewStyle,
   leftAccessory: {
-    marginRight: 8,
+    marginRight: spacing.sm,
   } as ViewStyle,
   rightAccessory: {
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   } as ViewStyle,
 });
