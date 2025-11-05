@@ -9,6 +9,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useResources } from "@/hooks/useResources";
 import { Notification } from "@/components/ui/Notification";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MaxWidthContainer } from "@/components/ui/MaxWidthContainer";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -32,9 +33,11 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={colors[scheme ?? "light"]}>
-        <Stack>
-          <Stack.Screen name="index" />
-        </Stack>
+        <MaxWidthContainer>
+          <Stack>
+            <Stack.Screen name="index" />
+          </Stack>
+        </MaxWidthContainer>
         <StatusBar style="auto" />
       </ThemeProvider>
       <Notification />

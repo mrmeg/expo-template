@@ -70,62 +70,53 @@ export function useTheme(): ExtendedColorScheme & {
   /**
    * getShadowStyle
    * Returns platform-appropriate shadow styles
-   * - Web: uses boxShadow
+   * - Web: returns empty object (boxShadow not supported by RN Web)
    * - Native: uses shadowColor, shadowOffset, shadowOpacity, shadowRadius, elevation
    */
   const getShadowStyle = (type: ShadowType): ViewStyle => {
     const shadowConfigs = {
       base: {
-        web: "0 2px 8px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)",
-        native: {
-          shadowColor: theme.colors.overlay,
-          shadowOffset: { width: 2, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 6,
-          elevation: 8,
-        },
+        shadowColor: theme.colors.overlay,
+        shadowOffset: { width: 2, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
       },
       soft: {
-        web: "0 4px 20px rgba(0,0,0,0.08), 0 8px 16px rgba(0,0,0,0.06)",
-        native: {
-          shadowColor: theme.colors.overlay,
-          shadowOffset: { width: 2, height: 10 },
-          shadowOpacity: 0.25,
-          shadowRadius: 15,
-          elevation: 12,
-        },
+        shadowColor: theme.colors.overlay,
+        shadowOffset: { width: 2, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 15,
+        elevation: 12,
       },
       sharp: {
-        web: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14)",
-        native: {
-          shadowColor: theme.colors.overlay,
-          shadowOffset: { width: 1, height: 1 },
-          shadowOpacity: 0.5,
-          shadowRadius: 2,
-          elevation: 5,
-        },
+        shadowColor: theme.colors.overlay,
+        shadowOffset: { width: 1, height: 1 },
+        shadowOpacity: 0.5,
+        shadowRadius: 2,
+        elevation: 5,
       },
       subtle: {
-        web: "0 1px 4px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04)",
-        native: {
-          shadowColor: theme.colors.overlay,
-          shadowOffset: { width: 2, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3,
-        },
+        shadowColor: theme.colors.overlay,
+        shadowOffset: { width: 2, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
       },
     };
 
     const config = shadowConfigs[type];
 
     return Platform.select({
-      web: {
-        boxShadow: config.web,
-      } as ViewStyle,
-      default: config.native,
+      web: {} as ViewStyle, // Empty on web - boxShadow causes crashes
+      default: config,
     }) as ViewStyle;
   };
+
+  // Cache for contrast calculations to avoid redundant computation
+  // React 19 compiler handles component-level memoization, but this cache
+  // optimizes across components and re-renders
+  const contrastCache = new Map<string, string>();
 
   // Helper to calculate contrast ratio between two colors
   const getContrastRatio = (color1: string, color2: string): number => {
@@ -143,6 +134,23 @@ export function useTheme(): ExtendedColorScheme & {
     return calculateContrastRatio(lum1, lum2);
   };
 
+  // Cached version of getContrastingColor for performance
+  const getCachedContrastingColor = (
+    backgroundColor: string,
+    color1?: string,
+    color2?: string
+  ): string => {
+    const cacheKey = `${backgroundColor}-${color1}-${color2}`;
+
+    if (contrastCache.has(cacheKey)) {
+      return contrastCache.get(cacheKey)!;
+    }
+
+    const result = getBetterContrast(backgroundColor, color1, color2);
+    contrastCache.set(cacheKey, result);
+    return result;
+  };
+
   const colorScheme: ExtendedColorScheme & {
     toggleTheme: () => void;
     setTheme: (theme: "system" | "light" | "dark") => void;
@@ -157,9 +165,8 @@ export function useTheme(): ExtendedColorScheme & {
     toggleTheme,
     setTheme,
     currentTheme: userTheme,
-    // Color utility methods
-    getContrastingColor: (backgroundColor: string, color1?: string, color2?: string) =>
-      getBetterContrast(backgroundColor, color1, color2),
+    // Color utility methods (using cached version for performance)
+    getContrastingColor: getCachedContrastingColor,
     getTextColorForBackground: (backgroundColor: string) =>
       getTextColorForBackground(backgroundColor),
     withAlpha: (color: string, alpha: number) =>

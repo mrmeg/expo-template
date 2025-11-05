@@ -102,6 +102,10 @@ export interface Theme {
     border: string;      // Required by React Navigation → maps to base-300
     notification: string; // Required by React Navigation → maps to info
 
+    // Text color utilities (used by Button for contrast calculations)
+    textLight: string;   // Light text (white) for dark backgrounds
+    textDark: string;    // Dark text for light backgrounds
+
     // DaisyUI theme variables
     "primary-focus": string;
     "primary-content": string;
@@ -139,6 +143,12 @@ export interface Theme {
     white: string;       // Pure white for overlays, icons
     black: string;       // Pure black for shadows, overlays
     overlay: string;     // Semi-transparent overlay for modals
+
+    // React Native Reusables color tokens (mapped to DaisyUI)
+    input: string;       // Input border color → maps to base-300
+    "primary-foreground": string;  // Text on primary → maps to primary-content
+    destructive: string; // Destructive/error color → maps to error
+    ring: string;        // Focus ring color → primary with opacity
   };
   dark: boolean;
   fonts: typeof navigationFonts;
@@ -254,6 +264,10 @@ const lightTheme: Colors["light"] = {
     border: defaultColors["base-300"],
     notification: defaultColors.info,
 
+    // Text color utilities (used by Button for contrast calculations)
+    textLight: defaultColors.white,
+    textDark: defaultColors["base-content"],
+
     // DaisyUI theme variables
     "primary-focus": defaultColors["primary-focus"],
     "primary-content": defaultColors["primary-content"],
@@ -291,6 +305,12 @@ const lightTheme: Colors["light"] = {
     white: defaultColors.white,
     black: defaultColors.black,
     overlay: defaultColors.overlay,
+
+    // React Native Reusables color tokens (mapped to DaisyUI)
+    input: defaultColors["base-300"],           // Border color
+    "primary-foreground": defaultColors["primary-content"], // Text on primary
+    destructive: defaultColors.error,           // Error color
+    ring: defaultColors.primary,                // Focus ring (primary color)
   },
 };
 
@@ -307,6 +327,10 @@ const darkTheme: Colors["dark"] = {
     text: "#E5E5E5",                 // Maps to base-content
     border: grayPalette[800],        // Maps to base-300
     notification: bluePalette[400],  // Maps to info
+
+    // Text color utilities (used by Button for contrast calculations)
+    textLight: "#FFFFFF",            // White text for dark backgrounds
+    textDark: "#E5E5E5",             // Light gray text (base-content)
 
     // DaisyUI theme variables
     "primary-focus": tealPalette[300], // Even lighter for hover
@@ -345,6 +369,12 @@ const darkTheme: Colors["dark"] = {
     white: "#FFFFFF",
     black: "#000000",
     overlay: "rgba(0, 0, 0, 0.7)",   // Darker overlay for dark mode
+
+    // React Native Reusables color tokens (mapped to DaisyUI)
+    input: grayPalette[800],          // Border color for dark mode
+    "primary-foreground": grayPalette[900], // Text on primary (dark text on light primary)
+    destructive: "#EF5350",           // Error color for dark mode
+    ring: tealPalette[400],           // Focus ring (lighter primary for dark mode)
   },
 };
 

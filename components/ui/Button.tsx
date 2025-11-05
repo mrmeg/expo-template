@@ -7,6 +7,8 @@ import {
   TextStyle,
   ViewStyle,
   StyleSheet,
+  View,
+  Platform,
 } from "react-native";
 
 import { useTheme } from "@/hooks/useTheme";
@@ -108,114 +110,55 @@ export function Button(props: ButtonProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
   const styles = createStyles(theme);
 
-  // Declarative style function for the button container
-  function getViewStyle({ pressed }: PressableStateCallbackType): StyleProp<ViewStyle> {
-    const baseStyle: StyleProp<ViewStyle>[] = [styles.button];
+  // Pre-compute background color for contrast calculation
+  // Always flatten to handle both array styles (from Slot) and RegisteredStyle
+  const flattenedStyle = styleOverride ? StyleSheet.flatten(styleOverride) : undefined;
+  const customBgColor = flattenedStyle?.backgroundColor;
 
-    // Apply preset styles
-    if (preset === "default") {
-      baseStyle.push(styles.buttonDefault);
-    } else if (preset === "outline") {
-      baseStyle.push(styles.buttonOutline);
-    } else if (preset === "filled") {
-      baseStyle.push(styles.buttonFilled);
-    }
-
-    // Apply shadow if enabled
-    if (withShadow && !disabled) {
-      baseStyle.push(getShadowStyle('base'));
-    }
-
-    // Apply pressed styles
-    if (pressed) {
-      baseStyle.push(styles.pressed);
-      if (pressedStyleOverride) {
-        baseStyle.push(pressedStyleOverride);
-      }
-    }
-
-    // Apply disabled styles
-    if (disabled) {
-      baseStyle.push(styles.disabled);
-      if (disabledStyleOverride) {
-        baseStyle.push(disabledStyleOverride);
-      }
-    }
-
-    // Apply custom style override
-    if (styleOverride) {
-      baseStyle.push(styleOverride);
-    }
-
-    return baseStyle;
+  let backgroundColor: string;
+  if (customBgColor && typeof customBgColor === 'string') {
+    backgroundColor = customBgColor;
+  } else if (preset === "default") {
+    backgroundColor = theme.colors.primary;
+  } else if (preset === "filled") {
+    backgroundColor = theme.colors.secondary;
+  } else if (preset === "outline") {
+    // Outline has transparent background, use theme background for contrast
+    backgroundColor = theme.colors["base-100"];
+  } else {
+    backgroundColor = theme.colors.primary; // fallback
   }
 
-  // Declarative style function for the text
-  function getTextStyle({ pressed }: PressableStateCallbackType): StyleProp<TextStyle> {
-    const baseStyle: StyleProp<TextStyle>[] = [styles.text];
-
-    // Determine the background color for contrast calculation
-    let backgroundColor: string;
-
-    // Check for custom background color in style override
-    const flattenedStyle = StyleSheet.flatten(styleOverride);
-    const customBgColor = flattenedStyle?.backgroundColor;
-
-    if (customBgColor && typeof customBgColor === 'string') {
-      backgroundColor = customBgColor;
-    } else if (preset === "default") {
-      backgroundColor = theme.colors.primary;
-    } else if (preset === "filled") {
-      backgroundColor = theme.colors.secondary;
-    } else if (preset === "outline") {
-      // Outline has transparent background, use theme background for contrast
-      backgroundColor = theme.colors["base-100"];
-    } else {
-      backgroundColor = theme.colors.primary; // fallback
-    }
-
-    // Use theme's contrast helper to pick readable text color
-    const textColor = getContrastingColor(
-      backgroundColor,
-      theme.colors.white,           // white text for dark backgrounds
-      theme.colors["base-content"]  // dark text for light backgrounds
-    );
-
-    baseStyle.push({ color: textColor });
-
-    // Apply pressed text styles
-    if (pressed) {
-      baseStyle.push(styles.pressedText);
-      if (pressedTextStyleOverride) {
-        baseStyle.push(pressedTextStyleOverride);
-      }
-    }
-
-    // Apply disabled text styles
-    if (disabled) {
-      if (disabledTextStyleOverride) {
-        baseStyle.push(disabledTextStyleOverride);
-      }
-    }
-
-    // Apply custom text style override
-    if (textStyleOverride) {
-      baseStyle.push(textStyleOverride);
-    }
-
-    return baseStyle;
-  }
+  // Pre-compute text color using theme's contrast helper
+  const textColor = getContrastingColor(
+    backgroundColor,
+    theme.colors.white,           // white text for dark backgrounds
+    theme.colors["base-content"]  // dark text for light backgrounds
+  );
 
   return (
     <Pressable
-      style={getViewStyle}
       accessibilityRole="button"
       accessibilityState={{ disabled: !!disabled }}
       {...rest}
       disabled={disabled}
     >
       {(state) => (
-        <>
+        <View
+          style={[
+            styles.button,
+            preset === "default" && styles.buttonDefault,
+            preset === "outline" && styles.buttonOutline,
+            preset === "filled" && styles.buttonFilled,
+            withShadow && !disabled && (Platform.OS === 'web' ? styles.shadowWeb : styles.shadowNative),
+            state.pressed && styles.pressed,
+            state.pressed && pressedStyleOverride,
+            disabled && styles.disabled,
+            disabled && disabledStyleOverride,
+            // Spread array styles from Slot to prevent nested arrays on web
+            ...(Array.isArray(styleOverride) ? styleOverride : [styleOverride]),
+          ]}
+        >
           {!!LeftAccessory && (
             <LeftAccessory
               style={styles.leftAccessory}
@@ -228,7 +171,14 @@ export function Button(props: ButtonProps) {
             tx={tx}
             text={text}
             txOptions={txOptions}
-            style={getTextStyle(state)}
+            style={[
+              styles.text,
+              { color: textColor },
+              state.pressed && styles.pressedText,
+              state.pressed && pressedTextStyleOverride,
+              disabled && disabledTextStyleOverride,
+              textStyleOverride,
+            ]}
           >
             {children}
           </SansSerifText>
@@ -240,7 +190,7 @@ export function Button(props: ButtonProps) {
               disabled={disabled}
             />
           )}
-        </>
+        </View>
       )}
     </Pressable>
   );
@@ -267,6 +217,22 @@ const createStyles = (theme: any) => StyleSheet.create({
   buttonFilled: {
     backgroundColor: theme.colors.secondary,
   } as ViewStyle,
+  shadowWeb: Platform.select({
+    web: {
+      // Empty object on web - no shadow to avoid CSS errors
+    },
+    default: {},
+  }) as ViewStyle,
+  shadowNative: Platform.select({
+    web: {},
+    default: {
+      shadowColor: theme.colors.overlay,
+      shadowOffset: { width: 2, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 8,
+    },
+  }) as ViewStyle,
   text: {
     fontSize: 16,
     fontWeight: "500",

@@ -1,11 +1,33 @@
-import React from "react";
-import { StyleSheet, Platform } from "react-native";
+import React, { useState } from "react";
+import { StyleSheet, Pressable } from "react-native";
 import { View } from "@/components/ui/Themed";
 import { ScrollView } from "@/components/ui/ScrollView";
 import { Button } from "@/components/ui/Button";
-import { SansSerifText, SansSerifBoldText } from "@/components/ui/StyledText";
+import { TextInput } from "@/components/ui/TextInput";
+import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { Popover, PopoverTrigger, PopoverContent, PopoverBody } from "@/components/ui/Popover";
+import { SansSerifBoldText, SansSerifText, SerifText, SerifBoldText } from "@/components/ui/StyledText";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
+
+function Section({ children }: { children: React.ReactNode }) {
+  const { theme, getShadowStyle } = useTheme();
+  return (
+    <View
+      style={[
+        styles.section,
+        {
+          backgroundColor: theme.colors["base-200"],
+          borderColor: theme.colors["base-300"],
+          ...getShadowStyle("soft"),
+        },
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
 
 function ThemeToggle() {
   const { toggleTheme, currentTheme, scheme } = useTheme();
@@ -13,51 +35,173 @@ function ThemeToggle() {
   return (
     <View style={styles.themeToggleContainer}>
       <SansSerifText style={styles.themeToggleLabel}>
-        Theme: {currentTheme === "system" ? "System" : (scheme === "dark" ? "Dark" : "Light")}
+        Theme: {currentTheme === "system" ? "System" : scheme === "dark" ? "Dark" : "Light"}
       </SansSerifText>
-      <Button
-        onPress={toggleTheme}
-        style={styles.themeToggleButton}
-        preset="outline"
-      >
+      <Button onPress={toggleTheme} style={styles.themeToggleButton} preset="outline">
         <SansSerifBoldText style={styles.themeToggleButtonText}>
-          {`Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"}`}
+          {`Switch to ${
+            currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"
+          }`}
         </SansSerifBoldText>
       </Button>
     </View>
   );
 }
 
-export default function Index() {
+export default function TestIndex() {
   const { theme } = useTheme();
+  const [textValue, setTextValue] = useState("");
+  const [passwordValue, setPasswordValue] = useState("");
+  const [toggleValue, setToggleValue] = useState(false);
+  const [checkbox1, setCheckbox1] = useState(false);
+  const [checkbox2, setCheckbox2] = useState(true);
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        {/* Header */}
         <View style={styles.headerContainer}>
           <SansSerifBoldText style={[styles.appTitle, { color: theme.colors["base-content"] }]}>
-            My App
+            Test Page
           </SansSerifBoldText>
+          <SansSerifText style={[styles.subtitle, { color: theme.colors["base-content"] }]}>
+            Minimal version to test
+          </SansSerifText>
           <ThemeToggle />
         </View>
 
-        {/* Main Content Area */}
-        <View style={styles.contentContainer}>
-          <SansSerifText style={[styles.welcomeText, { color: theme.colors["base-content"] }]}>
-            Welcome! Start building your app here.
+        <Section>
+          <SansSerifText style={{ marginBottom: spacing.sm }}>
+            Sans Serif Text - Default body text
           </SansSerifText>
+          <SansSerifBoldText style={{ marginBottom: spacing.sm }}>
+            Sans Serif Bold - Emphasized text
+          </SansSerifBoldText>
+          <SerifText style={{ marginBottom: spacing.sm }}>Serif Text - Elegant headings</SerifText>
+          <SerifBoldText>Serif Bold - Strong emphasis</SerifBoldText>
+        </Section>
 
-          {/* Example usage of your components */}
-          <View style={styles.exampleSection}>
-            <Button
-              text="Get Started"
-              preset="filled"
-              onPress={() => console.log("Getting started!")}
-              style={styles.getStartedButton}
-            />
+        <Section>
+          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Buttons:</SansSerifText>
+          <View style={styles.buttonRow}>
+            <Button preset="filled" onPress={() => console.log("Filled button pressed")}>
+              <SansSerifBoldText>Filled Button</SansSerifBoldText>
+            </Button>
           </View>
-        </View>
+          <View style={styles.buttonRow}>
+            <Button preset="outline" onPress={() => console.log("Outline button pressed")}>
+              <SansSerifBoldText>Outline Button</SansSerifBoldText>
+            </Button>
+          </View>
+          <View style={styles.buttonRow}>
+            <Button preset="default" onPress={() => console.log("Default button pressed")}>
+              <SansSerifBoldText>Default Button</SansSerifBoldText>
+            </Button>
+          </View>
+          <View style={styles.buttonRow}>
+            <Button preset="filled" disabled onPress={() => console.log("Won't be called")}>
+              <SansSerifBoldText>Disabled Button</SansSerifBoldText>
+            </Button>
+          </View>
+        </Section>
+
+        <Section>
+          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing TextInput:</SansSerifText>
+          <TextInput
+            label="Standard Input"
+            placeholder="Enter some text..."
+            value={textValue}
+            onChangeText={setTextValue}
+            style={{ marginBottom: spacing.md }}
+          />
+          <TextInput
+            label="Password Input"
+            placeholder="Enter password..."
+            secureTextEntry
+            value={passwordValue}
+            onChangeText={setPasswordValue}
+          />
+        </Section>
+
+        <Section>
+          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing ToggleSwitch:</SansSerifText>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: spacing.md }}>
+            <SansSerifText style={{ flex: 1 }}>Toggle Option</SansSerifText>
+            <ToggleSwitch value={toggleValue} onValueChange={setToggleValue} />
+          </View>
+        </Section>
+
+        <Section>
+          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Popover positioning:</SansSerifText>
+          <View style={{ flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap', marginBottom: spacing.md }}>
+            <Popover>
+              <PopoverTrigger>
+                <View style={{ padding: spacing.sm, backgroundColor: theme.colors.primary, borderRadius: spacing.radiusMd }}>
+                  <SansSerifBoldText style={{ color: theme.colors.white, fontSize: 12 }}>Top</SansSerifBoldText>
+                </View>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="center">
+                <PopoverBody>
+                  <SansSerifText>Popover on top</SansSerifText>
+                </PopoverBody>
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger>
+                <View style={{ padding: spacing.sm, backgroundColor: theme.colors.primary, borderRadius: spacing.radiusMd }}>
+                  <SansSerifBoldText style={{ color: theme.colors.white, fontSize: 12 }}>Bottom</SansSerifBoldText>
+                </View>
+              </PopoverTrigger>
+              <PopoverContent side="bottom" align="center">
+                <PopoverBody>
+                  <SansSerifText>Popover on bottom</SansSerifText>
+                </PopoverBody>
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger>
+                <View style={{ padding: spacing.sm, backgroundColor: theme.colors.primary, borderRadius: spacing.radiusMd }}>
+                  <SansSerifBoldText style={{ color: theme.colors.white, fontSize: 12 }}>Left</SansSerifBoldText>
+                </View>
+              </PopoverTrigger>
+              <PopoverContent side="left" align="center">
+                <PopoverBody>
+                  <SansSerifText>Popover on left</SansSerifText>
+                </PopoverBody>
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger>
+                <View style={{ padding: spacing.sm, backgroundColor: theme.colors.primary, borderRadius: spacing.radiusMd }}>
+                  <SansSerifBoldText style={{ color: theme.colors.white, fontSize: 12 }}>Right</SansSerifBoldText>
+                </View>
+              </PopoverTrigger>
+              <PopoverContent side="right" align="center">
+                <PopoverBody>
+                  <SansSerifText>Popover on right</SansSerifText>
+                </PopoverBody>
+              </PopoverContent>
+            </Popover>
+          </View>
+        </Section>
+
+        <Section>
+          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Popover WITH asChild (Button):</SansSerifText>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button preset="outline">
+                <SansSerifBoldText>Open Popover (asChild)</SansSerifBoldText>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side="bottom" align="start">
+              <PopoverBody>
+                <SansSerifText>This popover uses asChild with a Button trigger, positioned at bottom-start</SansSerifText>
+              </PopoverBody>
+            </PopoverContent>
+          </Popover>
+        </Section>
       </View>
     </ScrollView>
   );
@@ -71,21 +215,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: spacing.md,
-    maxWidth: Platform.OS === "web" ? 600 : "100%",
+    maxWidth: 800,
     width: "100%",
     alignSelf: "center",
   },
   headerContainer: {
     flexDirection: "column",
     alignItems: "center",
-    marginBottom: spacing.xl + spacing.sm,
-    marginTop: spacing.lg - 4,
+    marginBottom: spacing.xl,
+    marginTop: spacing.lg,
   },
   appTitle: {
     fontSize: 32,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: spacing.lg - 4,
+    marginBottom: spacing.sm,
+  },
+  subtitle: {
+    fontSize: 14,
+    textAlign: "center",
+    opacity: 0.7,
+    marginBottom: spacing.lg,
+  },
+  section: {
+    padding: spacing.md,
+    borderRadius: spacing.radiusMd,
+    borderWidth: 1,
+    marginBottom: spacing.md,
   },
   themeToggleContainer: {
     flexDirection: "row",
@@ -105,23 +261,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  contentContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  welcomeText: {
-    fontSize: 18,
-    textAlign: "center",
-    marginBottom: spacing.xl,
-    opacity: 0.8,
-  },
-  exampleSection: {
-    alignItems: "center",
-    width: "100%",
-  },
-  getStartedButton: {
-    minWidth: 200,
+  buttonRow: {
     marginBottom: spacing.md,
   },
 });

@@ -17,7 +17,7 @@ import { create } from "zustand";
 type State = {
   alert: {
     show: boolean
-    type: "error" | "success" | "info"
+    type: "error" | "success" | "info" | "warning"
     messages: string[]
     title?: string
     duration?: number

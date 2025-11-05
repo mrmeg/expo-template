@@ -5,8 +5,13 @@ import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 
 type Props = {
-  enabled: boolean;
-  setEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  // Standard React Native Switch API
+  value?: boolean;
+  onValueChange?: (value: boolean) => void;
+  // Legacy API (for backwards compatibility)
+  enabled?: boolean;
+  setEnabled?: React.Dispatch<React.SetStateAction<boolean>>;
+  // Customization
   size?: { width: number; height: number };
   circleSize?: number;
   labelOn?: string;
@@ -17,6 +22,8 @@ type Props = {
 const BORDER_WIDTH = 0;
 
 export const ToggleSwitch = ({
+  value,
+  onValueChange,
   enabled,
   setEnabled,
   size = { width: 100, height: 32 },
@@ -27,18 +34,23 @@ export const ToggleSwitch = ({
 }: Props) => {
   const { base, theme } = useTheme();
   const styles = createStyles(theme, base);
-  const animatedValue = useRef(new Animated.Value(enabled ? 1 : 0)).current;
+
+  // Support both value/onValueChange (standard) and enabled/setEnabled (legacy)
+  const isEnabled = value !== undefined ? value : enabled ?? false;
+  const handleChange = onValueChange || ((val: boolean) => setEnabled?.(val));
+
+  const animatedValue = useRef(new Animated.Value(isEnabled ? 1 : 0)).current;
 
   useEffect(() => {
     Animated.timing(animatedValue, {
-      toValue: enabled ? 1 : 0,
+      toValue: isEnabled ? 1 : 0,
       duration: 150,
       useNativeDriver: false  // Changed to `true` to improve performance
     }).start();
-  }, [enabled]);
+  }, [isEnabled]);
 
   const toggleSwitch = () => {
-    setEnabled(!enabled);
+    handleChange(!isEnabled);
   };
 
   const marginLeft = animatedValue.interpolate({
@@ -66,7 +78,7 @@ export const ToggleSwitch = ({
         borderRadius: size.height / 2,
         padding: BORDER_WIDTH,
       }]}>
-        <SansSerifBoldText style={[labelStyle, { left: spacing.sm + 2 }]}>{enabled ? labelOn : ""}</SansSerifBoldText>
+        <SansSerifBoldText style={[labelStyle, { left: spacing.sm + 2 }]}>{isEnabled ? labelOn : ""}</SansSerifBoldText>
         <Animated.View style={[styles.circle, {
           backgroundColor: base.white,
           borderColor: theme.colors["base-300"],
@@ -75,7 +87,7 @@ export const ToggleSwitch = ({
           borderRadius: circleSize / 2,
           marginLeft
         }]} />
-        <SansSerifBoldText style={[labelStyle, { right: spacing.sm + 2, color: base["base-content"] }]}>{!enabled ? labelOff : ""}</SansSerifBoldText>
+        <SansSerifBoldText style={[labelStyle, { right: spacing.sm + 2, color: base["base-content"] }]}>{!isEnabled ? labelOff : ""}</SansSerifBoldText>
       </Animated.View>
     </Pressable>
   );

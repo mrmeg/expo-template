@@ -124,14 +124,16 @@ export const Notification = () => {
     }
 
     switch (alert?.type) {
-    case "error":
-      return { name: "alert-circle", color: theme.colors.error };
-    case "success":
-      return { name: "checkmark-circle", color: theme.colors.success };
-    case "info":
-      return { name: "information-circle", color: theme.colors["base-content"] };
-    default:
-      return { name: "information-circle", color: theme.colors["base-content"] };
+      case "error":
+        return { name: "alert-circle", color: theme.colors.error };
+      case "success":
+        return { name: "checkmark-circle", color: theme.colors.success };
+      case "warning":
+        return { name: "warning", color: theme.colors.warning };
+      case "info":
+        return { name: "information-circle", color: theme.colors["base-content"] };
+      default:
+        return { name: "information-circle", color: theme.colors["base-content"] };
     }
   };
 
@@ -139,14 +141,16 @@ export const Notification = () => {
     if (alert?.title) return alert.title;
 
     switch (alert?.type) {
-    case "error":
-      return "Error";
-    case "success":
-      return "Success";
-    case "info":
-      return "";
-    default:
-      return "";
+      case "error":
+        return "Error";
+      case "success":
+        return "Success";
+      case "warning":
+        return "Warning";
+      case "info":
+        return "";
+      default:
+        return "";
     }
   };
 
@@ -168,7 +172,7 @@ export const Notification = () => {
     >
       <View style={[
         styles.alert,
-        !theme.dark && getShadowStyle('soft')
+        !theme.dark && { ...getShadowStyle('soft') }
       ]}>
         <View style={styles.iconContainer}>
           {alert?.loading ? (
@@ -235,10 +239,9 @@ const createStyles = (theme: any) => StyleSheet.create({
   alertTitle: {
     fontWeight: "bold",
     marginBottom: spacing.xs,
-    color: theme.colors["base-content"],
   },
   alertDescription: {
-    color: theme.colors["neutral-content"],
+    opacity: 0.8,
   },
   closeButton: {
     position: "absolute",
