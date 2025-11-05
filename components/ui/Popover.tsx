@@ -1,6 +1,5 @@
 import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view';
 import { TextClassContext } from '@/components/ui/StyledText';
-import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '@/constants/spacing';
 import * as PopoverPrimitive from '@rn-primitives/popover';
@@ -25,10 +24,6 @@ interface PopoverContentProps extends PopoverPrimitive.ContentProps {
    * Optional portal host name for custom portal mounting
    */
   portalHost?: string;
-  /**
-   * Additional className for styling via cn() utility
-   */
-  className?: string;
 }
 
 /**
@@ -37,7 +32,6 @@ interface PopoverContentProps extends PopoverPrimitive.ContentProps {
  * Supports smart positioning, animations, and theme integration
  */
 function PopoverContent({
-  className,
   align = 'center',
   sideOffset = 4,
   portalHost,
@@ -61,21 +55,10 @@ function PopoverContent({
       <FullWindowOverlay>
         <PopoverPrimitive.Overlay style={Platform.select({ native: StyleSheet.absoluteFill })}>
           <NativeOnlyAnimatedView enterDuration={200} exitDuration={150}>
-            <TextClassContext.Provider value="text-base-content">
+            <TextClassContext.Provider value="">
               <PopoverPrimitive.Content
                 align={align}
                 sideOffset={sideOffset}
-                className={cn(
-                  'z-50 w-72 rounded-md border p-4',
-                  Platform.select({
-                    web: cn(
-                      'animate-in fade-in-0 zoom-in-95 origin-(--radix-popover-content-transform-origin) cursor-auto',
-                      props.side === 'bottom' && 'slide-in-from-top-2',
-                      props.side === 'top' && 'slide-in-from-bottom-2'
-                    ),
-                  }),
-                  className
-                )}
                 style={contentStyle}
                 {...props}
               />

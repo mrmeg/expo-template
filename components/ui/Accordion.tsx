@@ -1,6 +1,5 @@
 import { Icon } from '@/components/ui/Icon';
 import { TextClassContext } from '@/components/ui/StyledText';
-import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '@/constants/spacing';
 import * as AccordionPrimitive from '@rn-primitives/accordion';
@@ -54,7 +53,6 @@ function Accordion({
  */
 function AccordionItem({
   children,
-  className,
   value,
   style: styleOverride,
   ...props
@@ -63,11 +61,6 @@ function AccordionItem({
 
   return (
     <AccordionPrimitive.Item
-      className={cn(
-        'border-border border-b',
-        Platform.select({ web: 'last:border-b-0' }),
-        className
-      )}
       value={value}
       asChild
       {...props}>
@@ -99,7 +92,6 @@ const Trigger = Platform.OS === 'web' ? View : Pressable;
  * Includes animated chevron icon
  */
 function AccordionTrigger({
-  className,
   children,
   style: styleOverride,
   ...props
@@ -122,17 +114,10 @@ function AccordionTrigger({
   );
 
   return (
-    <TextClassContext.Provider value={cn('text-left text-sm font-medium')}>
+    <TextClassContext.Provider value="">
       <AccordionPrimitive.Header>
         <AccordionPrimitive.Trigger {...props} asChild>
           <Trigger
-            className={cn(
-              'flex-row items-start justify-between gap-4 rounded-md py-4 disabled:opacity-50',
-              Platform.select({
-                web: 'focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 outline-none transition-all hover:underline focus-visible:ring-[3px] disabled:pointer-events-none [&[data-state=open]>svg]:rotate-180',
-              }),
-              className
-            )}
             style={[
               {
                 flexDirection: 'row',
@@ -154,12 +139,6 @@ function AccordionTrigger({
               <Icon
                 as={ChevronDown}
                 size={16}
-                className={cn(
-                  'text-muted-foreground shrink-0',
-                  Platform.select({
-                    web: 'pointer-events-none translate-y-0.5 transition-transform duration-200',
-                  })
-                )}
                 color={theme.colors['base-content']}
               />
             </Animated.View>
@@ -175,23 +154,13 @@ function AccordionTrigger({
  * Expandable content area with animations
  */
 function AccordionContent({
-  className,
   children,
   style: styleOverride,
   ...props
 }: AccordionPrimitive.ContentProps & React.RefAttributes<AccordionPrimitive.ContentRef>) {
-  const { isExpanded } = AccordionPrimitive.useItemContext();
-
   return (
-    <TextClassContext.Provider value="text-sm">
-      <AccordionPrimitive.Content
-        className={cn(
-          'overflow-hidden',
-          Platform.select({
-            web: isExpanded ? 'animate-accordion-down' : 'animate-accordion-up',
-          })
-        )}
-        {...props}>
+    <TextClassContext.Provider value="">
+      <AccordionPrimitive.Content {...props}>
         <Animated.View
           exiting={Platform.select({ native: FadeOutUp.duration(200) })}
           style={[
@@ -204,8 +173,7 @@ function AccordionContent({
               ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
               : []
             ),
-          ]}
-          className={cn(className)}>
+          ]}>
           {children}
         </Animated.View>
       </AccordionPrimitive.Content>

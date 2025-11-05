@@ -132,6 +132,24 @@ export default function TestIndex() {
         </Section>
 
         <Section>
+          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Checkbox:</SansSerifText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+            <Checkbox
+              checked={checkbox1}
+              onCheckedChange={setCheckbox1}
+            />
+            <SansSerifText>Checkbox Option 1</SansSerifText>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <Checkbox
+              checked={checkbox2}
+              onCheckedChange={setCheckbox2}
+            />
+            <SansSerifText>Checkbox Option 2 (initially checked)</SansSerifText>
+          </View>
+        </Section>
+
+        <Section>
           <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Accordion:</SansSerifText>
           <Accordion type="single" collapsible>
             <AccordionItem value="item-1">

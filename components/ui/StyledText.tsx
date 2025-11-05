@@ -1,6 +1,5 @@
 import React, { forwardRef } from "react";
 import { Text as RNText, TextProps as RNTextProps } from "react-native";
-import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
 import { fontFamilies } from "@/constants/fonts";
 import { Theme } from "@/constants/colors";
@@ -17,10 +16,6 @@ type ThemeProps = {
 };
 
 export type TextProps = ThemeProps & RNTextProps & {
-  /**
-   * Additional className for styling via cn() utility (React Native Reusables pattern)
-   */
-  className?: string;
   /**
    * Font variant - serif or sans-serif
    */
@@ -71,7 +66,6 @@ export const Text = forwardRef<RNText, TextProps>((props, ref) => {
     text,
     txOptions,
     style,
-    className,
     lightColor,
     darkColor,
     variant = "sansSerif",
@@ -79,9 +73,6 @@ export const Text = forwardRef<RNText, TextProps>((props, ref) => {
     children,
     ...otherProps
   } = props;
-
-  // Get className from context for primitives support
-  const textClassName = React.useContext(TextClassContext);
 
   // Get themed color
   const color = useThemeColor({ light: lightColor, dark: darkColor }, "base-content");
@@ -96,7 +87,6 @@ export const Text = forwardRef<RNText, TextProps>((props, ref) => {
   return (
     <RNText
       ref={ref}
-      className={cn(textClassName, className)}
       style={[
         {
           color,

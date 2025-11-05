@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import type { LucideIcon } from 'lucide-react-native';
 
@@ -53,8 +52,6 @@ export function Icon({
       size={size}
       strokeWidth={strokeWidth}
       color={iconColor}
-      // className is supported in lucide-react-native for web compatibility
-      className={cn(className)}
     />
   );
 }
