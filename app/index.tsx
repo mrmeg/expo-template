@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { StyleSheet, Pressable } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
 import { View } from "@/components/ui/Themed";
-import { ScrollView } from "@/components/ui/ScrollView";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
-import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
+import { Switch } from "@/components/ui/Switch";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { Toggle } from "@/components/ui/Toggle";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/ToggleGroup";
 import { Popover, PopoverTrigger, PopoverContent, PopoverBody } from "@/components/ui/Popover";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/Accordion";
 import { SansSerifBoldText, SansSerifText, SerifText, SerifBoldText } from "@/components/ui/StyledText";
@@ -40,9 +41,8 @@ function ThemeToggle() {
       </SansSerifText>
       <Button onPress={toggleTheme} style={styles.themeToggleButton} preset="outline">
         <SansSerifBoldText style={styles.themeToggleButtonText}>
-          {`Switch to ${
-            currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"
-          }`}
+          {`Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"
+            }`}
         </SansSerifBoldText>
       </Button>
     </View>
@@ -56,6 +56,9 @@ export default function TestIndex() {
   const [toggleValue, setToggleValue] = useState(false);
   const [checkbox1, setCheckbox1] = useState(false);
   const [checkbox2, setCheckbox2] = useState(true);
+  const [singleTogglePressed, setSingleTogglePressed] = useState(false);
+  const [alignment, setAlignment] = useState<string | undefined>("left");
+  const [formats, setFormats] = useState<string[]>(["bold"]);
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -124,10 +127,31 @@ export default function TestIndex() {
         </Section>
 
         <Section>
-          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing ToggleSwitch:</SansSerifText>
+          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Switch:</SansSerifText>
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: spacing.md }}>
-            <SansSerifText style={{ flex: 1 }}>Toggle Option</SansSerifText>
-            <ToggleSwitch value={toggleValue} onValueChange={setToggleValue} />
+            <SansSerifText style={{ flex: 1 }}>Basic Switch</SansSerifText>
+            <Switch checked={toggleValue} onCheckedChange={setToggleValue} />
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: spacing.md }}>
+            <SansSerifText style={{ flex: 1 }}>Switch with Labels</SansSerifText>
+            <Switch
+              size={{ width: 60, height: 32 }}
+              checked={toggleValue}
+              onCheckedChange={setToggleValue}
+              labelOn="ON"
+              labelOff="OFF"
+            />
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: spacing.md }}>
+            <SansSerifText style={{ flex: 1 }}>Large Switch</SansSerifText>
+            <Switch
+              checked={toggleValue}
+              onCheckedChange={setToggleValue}
+              size={{ width: 70, height: 36 }}
+              thumbSize={32}
+              labelOn="YES"
+              labelOff="NO"
+            />
           </View>
         </Section>
 
@@ -150,8 +174,94 @@ export default function TestIndex() {
         </Section>
 
         <Section>
+          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Toggle & ToggleGroup:</SansSerifText>
+
+          {/* Single Toggle */}
+          <View style={{ marginBottom: spacing.md }}>
+            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
+              Single Toggle:
+            </SansSerifText>
+            <Toggle pressed={singleTogglePressed} onPressedChange={setSingleTogglePressed}>
+              <SansSerifText>Toggle Me</SansSerifText>
+            </Toggle>
+          </View>
+
+          {/* ToggleGroup - Single Selection */}
+          <View style={{ marginBottom: spacing.md }}>
+            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
+              Single Selection (Alignment):
+            </SansSerifText>
+            <ToggleGroup type="single" value={alignment} onValueChange={setAlignment}>
+              <ToggleGroupItem value="left">
+                <SansSerifText>Left</SansSerifText>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="center">
+                <SansSerifText>Center</SansSerifText>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="right">
+                <SansSerifText>Right</SansSerifText>
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </View>
+
+          {/* ToggleGroup - Multiple Selection */}
+          <View style={{ marginBottom: spacing.md }}>
+            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
+              Multiple Selection (Text Formatting):
+            </SansSerifText>
+            <ToggleGroup type="multiple" value={formats} onValueChange={setFormats}>
+              <ToggleGroupItem value="bold">
+                <SansSerifBoldText>B</SansSerifBoldText>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="italic">
+                <SansSerifText style={{ fontStyle: "italic" }}>I</SansSerifText>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="underline">
+                <SansSerifText style={{ textDecorationLine: "underline" }}>U</SansSerifText>
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </View>
+
+          {/* Outline Variant */}
+          <View style={{ marginBottom: spacing.md }}>
+            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
+              Outline Variant:
+            </SansSerifText>
+            <ToggleGroup type="single" variant="outline" value={alignment} onValueChange={setAlignment}>
+              <ToggleGroupItem value="left">
+                <SansSerifText>Left</SansSerifText>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="center">
+                <SansSerifText>Center</SansSerifText>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="right">
+                <SansSerifText>Right</SansSerifText>
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </View>
+
+          {/* Small Size */}
+          <View>
+            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
+              Small Size:
+            </SansSerifText>
+            <ToggleGroup type="single" size="sm" value={alignment} onValueChange={setAlignment}>
+              <ToggleGroupItem value="left">
+                <SansSerifText>L</SansSerifText>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="center">
+                <SansSerifText>C</SansSerifText>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="right">
+                <SansSerifText>R</SansSerifText>
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </View>
+        </Section>
+
+        <Section>
           <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Accordion:</SansSerifText>
-          <Accordion type="single" collapsible>
+          <Accordion type="single" collapsible defaultValue={undefined}>
             <AccordionItem value="item-1">
               <AccordionTrigger>
                 <SansSerifBoldText>What is React Native?</SansSerifBoldText>
