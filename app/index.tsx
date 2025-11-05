@@ -9,6 +9,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/ToggleGroup";
 import { Popover, PopoverTrigger, PopoverContent, PopoverBody } from "@/components/ui/Popover";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/Accordion";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuCheckboxItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuShortcut } from "@/components/ui/DropdownMenu";
 import { SansSerifBoldText, SansSerifText, SerifText, SerifBoldText } from "@/components/ui/StyledText";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
@@ -59,6 +60,9 @@ export default function TestIndex() {
   const [singleTogglePressed, setSingleTogglePressed] = useState(false);
   const [alignment, setAlignment] = useState<string | undefined>("left");
   const [formats, setFormats] = useState<string[]>(["bold"]);
+  const [showBookmarks, setShowBookmarks] = useState(true);
+  const [showUrls, setShowUrls] = useState(false);
+  const [statusBarPosition, setStatusBarPosition] = useState("bottom");
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -340,6 +344,140 @@ export default function TestIndex() {
               </PopoverBody>
             </PopoverContent>
           </Popover>
+        </Section>
+
+        <Section>
+          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing DropdownMenu:</SansSerifText>
+
+          {/* Basic Dropdown */}
+          <View style={{ marginBottom: spacing.md }}>
+            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
+              Basic Dropdown:
+            </SansSerifText>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button preset="outline">
+                  <SansSerifBoldText>Open Menu</SansSerifBoldText>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>
+                  <SansSerifText>Profile</SansSerifText>
+                  <DropdownMenuShortcut>⌘P</DropdownMenuShortcut>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <SansSerifText>Settings</SansSerifText>
+                  <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive">
+                  <SansSerifText>Logout</SansSerifText>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </View>
+
+          {/* Dropdown with Checkboxes */}
+          <View style={{ marginBottom: spacing.md }}>
+            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
+              With Checkboxes:
+            </SansSerifText>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button preset="outline">
+                  <SansSerifBoldText>View Options</SansSerifBoldText>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>
+                  <SansSerifBoldText>Appearance</SansSerifBoldText>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={showBookmarks}
+                  onCheckedChange={setShowBookmarks}
+                >
+                  <SansSerifText>Show Bookmarks</SansSerifText>
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={showUrls}
+                  onCheckedChange={setShowUrls}
+                >
+                  <SansSerifText>Show Full URLs</SansSerifText>
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </View>
+
+          {/* Dropdown with Radio Group */}
+          <View style={{ marginBottom: spacing.md }}>
+            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
+              With Radio Group:
+            </SansSerifText>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button preset="outline">
+                  <SansSerifBoldText>Status Bar Position</SansSerifBoldText>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>
+                  <SansSerifBoldText>Panel Position</SansSerifBoldText>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={statusBarPosition} onValueChange={setStatusBarPosition}>
+                  <DropdownMenuRadioItem value="top">
+                    <SansSerifText>Top</SansSerifText>
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="bottom">
+                    <SansSerifText>Bottom</SansSerifText>
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="right">
+                    <SansSerifText>Right</SansSerifText>
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </View>
+
+          {/* Dropdown with Sub-menu */}
+          <View>
+            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
+              With Sub-menu:
+            </SansSerifText>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button preset="outline">
+                  <SansSerifBoldText>Advanced Menu</SansSerifBoldText>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>
+                  <SansSerifText>New File</SansSerifText>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <SansSerifText>New Window</SansSerifText>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <SansSerifText>More Tools</SansSerifText>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem>
+                      <SansSerifText>Developer Tools</SansSerifText>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <SansSerifText>Task Manager</SansSerifText>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <SansSerifText>Extensions</SansSerifText>
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </View>
         </Section>
       </View>
     </ScrollView>
