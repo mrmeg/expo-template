@@ -158,32 +158,6 @@ export default function TestIndex() {
                 </PopoverBody>
               </PopoverContent>
             </Popover>
-
-            <Popover>
-              <PopoverTrigger>
-                <View style={{ padding: spacing.sm, backgroundColor: theme.colors.primary, borderRadius: spacing.radiusMd }}>
-                  <SansSerifBoldText style={{ color: theme.colors.white, fontSize: 12 }}>Left</SansSerifBoldText>
-                </View>
-              </PopoverTrigger>
-              <PopoverContent side="left" align="center">
-                <PopoverBody>
-                  <SansSerifText>Popover on left</SansSerifText>
-                </PopoverBody>
-              </PopoverContent>
-            </Popover>
-
-            <Popover>
-              <PopoverTrigger>
-                <View style={{ padding: spacing.sm, backgroundColor: theme.colors.primary, borderRadius: spacing.radiusMd }}>
-                  <SansSerifBoldText style={{ color: theme.colors.white, fontSize: 12 }}>Right</SansSerifBoldText>
-                </View>
-              </PopoverTrigger>
-              <PopoverContent side="right" align="center">
-                <PopoverBody>
-                  <SansSerifText>Popover on right</SansSerifText>
-                </PopoverBody>
-              </PopoverContent>
-            </Popover>
           </View>
         </Section>
 

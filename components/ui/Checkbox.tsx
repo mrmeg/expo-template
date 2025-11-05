@@ -69,7 +69,11 @@ function Checkbox({
           borderColor: theme.colors.primary,
         },
         // Spread array styles from Slot to prevent nested arrays on web
-        ...(Array.isArray(styleOverride) ? styleOverride : [styleOverride]),
+        // Only spread if styleOverride is not a function
+        ...(styleOverride && typeof styleOverride !== 'function'
+          ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
+          : []
+        ),
       ]}
       hitSlop={DEFAULT_HIT_SLOP}
       {...props}

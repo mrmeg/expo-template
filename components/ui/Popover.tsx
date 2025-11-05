@@ -47,11 +47,12 @@ function PopoverContent({
 
   const contentStyle = StyleSheet.flatten([
     {
-      backgroundColor: theme.colors['base-200'],
+      backgroundColor: theme.colors['base-100'],
       borderColor: theme.colors['base-300'],
+      borderWidth: 2,
       borderRadius: spacing.radiusMd,
       padding: spacing.md,
-      ...getShadowStyle('base'),
+      ...getShadowStyle('soft'),
     },
   ]);
 
