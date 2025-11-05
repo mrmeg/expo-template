@@ -7,6 +7,7 @@ import { TextInput } from "@/components/ui/TextInput";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Popover, PopoverTrigger, PopoverContent, PopoverBody } from "@/components/ui/Popover";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/Accordion";
 import { SansSerifBoldText, SansSerifText, SerifText, SerifBoldText } from "@/components/ui/StyledText";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
@@ -128,6 +129,42 @@ export default function TestIndex() {
             <SansSerifText style={{ flex: 1 }}>Toggle Option</SansSerifText>
             <ToggleSwitch value={toggleValue} onValueChange={setToggleValue} />
           </View>
+        </Section>
+
+        <Section>
+          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Accordion:</SansSerifText>
+          <Accordion type="single" collapsible>
+            <AccordionItem value="item-1">
+              <AccordionTrigger>
+                <SansSerifBoldText>What is React Native?</SansSerifBoldText>
+              </AccordionTrigger>
+              <AccordionContent>
+                <SansSerifText>
+                  React Native is a framework for building native mobile applications using React and JavaScript.
+                </SansSerifText>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="item-2">
+              <AccordionTrigger>
+                <SansSerifBoldText>What is Expo?</SansSerifBoldText>
+              </AccordionTrigger>
+              <AccordionContent>
+                <SansSerifText>
+                  Expo is a platform that makes it easier to build and deploy React Native applications with a rich set of tools and services.
+                </SansSerifText>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="item-3">
+              <AccordionTrigger>
+                <SansSerifBoldText>What are primitives?</SansSerifBoldText>
+              </AccordionTrigger>
+              <AccordionContent>
+                <SansSerifText>
+                  Primitives are unstyled, accessible UI components that work across iOS, Android, and Web platforms.
+                </SansSerifText>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </Section>
 
         <Section>
