@@ -56,12 +56,12 @@ export function useTheme(): ExtendedColorScheme & {
 
   // Toggle between light, dark, and system themes
   const toggleTheme = () => {
-    if (userTheme === "system") {
-      setTheme("light");
-    } else if (userTheme === "light") {
+    if (userTheme === "light") {
       setTheme("dark");
-    } else {
+    } else if (userTheme === "dark") {
       setTheme("system");
+    } else {
+      setTheme("light");
     }
   };
 

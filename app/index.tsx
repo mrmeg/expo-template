@@ -108,9 +108,9 @@ export default function TestIndex() {
         </Section>
 
         <Section title="Buttons">
-          <SubSection label="Filled">
-            <Button preset="filled" onPress={() => console.log("Filled button pressed")}>
-              <SansSerifBoldText>Filled Button</SansSerifBoldText>
+          <SubSection label="Default">
+            <Button preset="default" onPress={() => console.log("Default button pressed")}>
+              <SansSerifBoldText>Default Button</SansSerifBoldText>
             </Button>
           </SubSection>
           <SubSection label="Outline">
@@ -118,13 +118,8 @@ export default function TestIndex() {
               <SansSerifBoldText>Outline Button</SansSerifBoldText>
             </Button>
           </SubSection>
-          <SubSection label="Default">
-            <Button preset="default" onPress={() => console.log("Default button pressed")}>
-              <SansSerifBoldText>Default Button</SansSerifBoldText>
-            </Button>
-          </SubSection>
           <SubSection label="Disabled">
-            <Button preset="filled" disabled onPress={() => console.log("Won't be called")}>
+            <Button preset="default" disabled onPress={() => console.log("Won't be called")}>
               <SansSerifBoldText>Disabled Button</SansSerifBoldText>
             </Button>
           </SubSection>
@@ -302,7 +297,7 @@ export default function TestIndex() {
             <View style={{ flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' }}>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button preset="filled" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                  <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
                     <SansSerifBoldText style={{ fontSize: 12 }}>Top</SansSerifBoldText>
                   </Button>
                 </PopoverTrigger>
@@ -315,7 +310,7 @@ export default function TestIndex() {
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button preset="filled" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                  <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
                     <SansSerifBoldText style={{ fontSize: 12 }}>Bottom</SansSerifBoldText>
                   </Button>
                 </PopoverTrigger>

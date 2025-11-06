@@ -16,7 +16,7 @@ import { spacing } from "@/constants/spacing";
 import { TextProps } from "./Themed";
 import { SansSerifText, TextColorContext } from "./StyledText";
 
-type Presets = "default" | "filled" | "outline";
+type Presets = "default" | "outline";
 
 export interface ButtonAccessoryProps {
   style: StyleProp<any>;
@@ -121,8 +121,6 @@ export function Button(props: ButtonProps) {
     backgroundColor = customBgColor;
   } else if (preset === "default") {
     backgroundColor = theme.colors.primary;
-  } else if (preset === "filled") {
-    backgroundColor = theme.colors.secondary;
   } else if (preset === "outline") {
     backgroundColor = "transparent";
   } else {
@@ -152,7 +150,6 @@ export function Button(props: ButtonProps) {
               styles.button,
               preset === "default" && styles.buttonDefault,
               preset === "outline" && styles.buttonOutline,
-              preset === "filled" && styles.buttonFilled,
               withShadow && !disabled && (Platform.OS === 'web' ? styles.shadowWeb : styles.shadowNative),
               state.pressed && styles.pressed,
               state.pressed && pressedStyleOverride,
@@ -218,9 +215,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: theme.colors.primary,
-  } as ViewStyle,
-  buttonFilled: {
-    backgroundColor: theme.colors.secondary,
   } as ViewStyle,
   shadowWeb: Platform.select({
     web: {
