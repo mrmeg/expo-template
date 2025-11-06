@@ -67,8 +67,8 @@ function Switch({
   // Calculate label color for ON state (when checked, background is primary)
   const labelOnColor = getContrastingColor(
     theme.colors.primary,
-    theme.colors.textOnDark,
-    theme.colors.textOnLight
+    theme.colors.textLight,
+    theme.colors.textDark
   );
 
   // Calculate positions and sizes

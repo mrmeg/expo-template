@@ -90,8 +90,8 @@ function Toggle({
         // When pressed with outline variant, background is primary
         return getContrastingColor(
           theme.colors.primary,
-          theme.colors.textOnDark,
-          theme.colors.textOnLight
+          theme.colors.textLight,
+          theme.colors.textDark
         );
       }
       // When pressed with default variant, use primary color

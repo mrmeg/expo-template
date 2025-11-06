@@ -132,8 +132,8 @@ export function Button(props: ButtonProps) {
     ? theme.colors.primary  // Outline uses primary color for text
     : getContrastingColor(
       backgroundColor,
-      theme.colors.textOnDark,
-      theme.colors.textOnLight
+      theme.colors.textLight,
+      theme.colors.textDark
     );
 
   return (

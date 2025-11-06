@@ -26,8 +26,8 @@ export interface Theme {
 
     // Text colors (clear purpose)
     textPrimary: string;    // Main text color
-    textOnDark: string;     // Light text for dark backgrounds
-    textOnLight: string;    // Dark text for light backgrounds
+    textLight: string;      // Light colored text
+    textDark: string;       // Dark colored text
 
     // Semantic states
     success: string;
@@ -77,8 +77,8 @@ const lightTheme: Colors["light"] = {
 
     // Text colors
     textPrimary: "#2C2C2C",
-    textOnDark: "#FFFFFF",
-    textOnLight: "#000000",
+    textLight: "#FFFFFF",
+    textDark: "#000000",
 
     // Semantic states
     success: "#4CAF50",
@@ -116,8 +116,8 @@ const darkTheme: Colors["dark"] = {
 
     // Text colors
     textPrimary: "#E5E5E5",
-    textOnDark: "#FFFFFF",
-    textOnLight: "#000000",
+    textLight: "#FFFFFF",
+    textDark: "#000000",
 
     // Semantic states
     success: "#66BB6A",
