@@ -2,13 +2,6 @@ import React, { forwardRef } from "react";
 import { Text as RNText, TextProps as RNTextProps } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { fontFamilies } from "@/constants/fonts";
-import { Theme } from "@/constants/colors";
-
-/**
- * TextClassContext provides className context for nested text components
- * Used by @rn-primitives to apply consistent styling through the component tree
- */
-export const TextClassContext = React.createContext<string | undefined>(undefined);
 
 /**
  * TextColorContext provides color context for nested text components
@@ -16,12 +9,7 @@ export const TextClassContext = React.createContext<string | undefined>(undefine
  */
 export const TextColorContext = React.createContext<string | undefined>(undefined);
 
-type ThemeProps = {
-  lightColor?: string;
-  darkColor?: string;
-};
-
-export type TextProps = ThemeProps & RNTextProps & {
+export type TextProps = RNTextProps & {
   /**
    * Font variant - serif or sans-serif
    */
@@ -46,25 +34,8 @@ export type TextProps = ThemeProps & RNTextProps & {
 };
 
 /**
- * Hook to get theme-aware colors with light/dark mode support
- */
-export function useThemeColor(
-  props: { light?: string; dark?: string },
-  colorName: keyof Theme["colors"]
-) {
-  const { theme, scheme } = useTheme();
-  const colorFromProps = props[scheme];
-
-  if (colorFromProps) {
-    return colorFromProps;
-  } else {
-    return theme.colors[colorName] as string;
-  }
-}
-
-/**
- * Base Text component with theme, className, and variant support
- * Compatible with @rn-primitives and React Native Reusables patterns
+ * Base Text component with theme and variant support
+ * Uses theme colors automatically - lightText in light mode, darkText in dark mode
  */
 export const Text = forwardRef<RNText, TextProps>((props, ref) => {
   const {
@@ -72,21 +43,19 @@ export const Text = forwardRef<RNText, TextProps>((props, ref) => {
     text,
     txOptions,
     style,
-    lightColor,
-    darkColor,
     variant = "sansSerif",
     fontWeight = "regular",
     children,
     ...otherProps
   } = props;
 
+  const { theme } = useTheme();
+
   // Check if there's a color override from parent context (e.g., Button)
   const contextColor = React.useContext(TextColorContext);
 
-  // Get themed color, prioritizing: explicit props > context > theme default
-  const themeColor = useThemeColor({ light: lightColor, dark: darkColor }, "base-content");
-  // If explicit color props are provided, use them; otherwise use context; fallback to theme
-  const color = (lightColor || darkColor) ? themeColor : (contextColor || themeColor);
+  // Use context color if provided, otherwise use theme default
+  const color = contextColor ?? theme.colors["base-content"];
 
   // Get font family based on variant and weight
   const fontFamily = fontFamilies[variant][fontWeight];
