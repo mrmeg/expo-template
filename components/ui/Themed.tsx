@@ -68,7 +68,7 @@ export const Text = forwardRef<DefaultText, TextProps>((props, ref) => {
     children,
     ...otherProps
   } = props;
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, "base-content");
+  const color = useThemeColor({ light: lightColor, dark: darkColor }, "textPrimary");
   const fontFamily = fontFamilies[variant][fontWeight];
 
   // Simple i18n placeholder - in a real app, this would use a proper i18n library

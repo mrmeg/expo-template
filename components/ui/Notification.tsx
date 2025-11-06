@@ -120,7 +120,7 @@ export const Notification = () => {
 
   const getIconProps = () => {
     if (alert?.loading) {
-      return { name: "time", color: theme.colors["base-content"] };
+      return { name: "time", color: theme.colors.textPrimary };
     }
 
     switch (alert?.type) {
@@ -131,9 +131,9 @@ export const Notification = () => {
       case "warning":
         return { name: "warning", color: theme.colors.warning };
       case "info":
-        return { name: "information-circle", color: theme.colors["base-content"] };
+        return { name: "information-circle", color: theme.colors.textPrimary };
       default:
-        return { name: "information-circle", color: theme.colors["base-content"] };
+        return { name: "information-circle", color: theme.colors.textPrimary };
     }
   };
 
@@ -176,7 +176,7 @@ export const Notification = () => {
       ]}>
         <View style={styles.iconContainer}>
           {alert?.loading ? (
-            <ActivityIndicator size="small" color={theme.colors["base-content"]} />
+            <ActivityIndicator size="small" color={theme.colors.textPrimary} />
           ) : (
             <Ionicons
               name={getIconProps().name as React.ComponentProps<typeof Ionicons>["name"]}
@@ -220,8 +220,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     padding: spacing.md,
     borderRadius: spacing.radiusSm,
     borderWidth: 1,
-    borderColor: theme.colors["base-300"],
-    backgroundColor: theme.colors["base-200"],
+    borderColor: theme.colors.bgTertiary,
+    backgroundColor: theme.colors.bgSecondary,
     flexDirection: "row",
     alignItems: "center",
   },

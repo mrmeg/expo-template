@@ -187,15 +187,15 @@ function ToggleGroupItem({
       if (context.variant === 'outline') {
         return getContrastingColor(
           theme.colors.primary,
-          theme.colors.textLight,
-          theme.colors.textDark
+          theme.colors.textOnDark,
+          theme.colors.textOnLight
         );
       }
       return theme.colors.primary;
     }
     return context.variant === 'outline'
       ? theme.colors.primary
-      : theme.colors['base-content'];
+      : theme.colors.textPrimary;
   };
 
   const textColor = getTextColor();
@@ -218,7 +218,7 @@ function ToggleGroupItem({
           // Base variant styles
           ...(context.variant === 'default' && !isSelected && {
             backgroundColor: 'transparent',
-            borderColor: theme.colors['base-300'],
+            borderColor: theme.colors.bgTertiary,
           }),
           ...(context.variant === 'default' && isSelected && {
             backgroundColor: withAlpha(theme.colors.primary, 0.1),

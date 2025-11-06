@@ -41,15 +41,15 @@ function PopoverContent({
 
   // Calculate text color for popover content based on background
   const textColor = getContrastingColor(
-    theme.colors['base-100'],
-    theme.colors.textLight,
-    theme.colors.textDark
+    theme.colors.bgPrimary,
+    theme.colors.textOnDark,
+    theme.colors.textOnLight
   );
 
   const contentStyle = StyleSheet.flatten([
     {
-      backgroundColor: theme.colors['base-100'],
-      borderColor: theme.colors['base-300'],
+      backgroundColor: theme.colors.bgPrimary,
+      borderColor: theme.colors.bgTertiary,
       borderWidth: 2,
       borderRadius: spacing.radiusMd,
       padding: spacing.md,
@@ -97,7 +97,7 @@ function PopoverHeader({ children, style, ...props }: PopoverHeaderProps) {
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.buttonPadding,
           borderBottomWidth: 1,
-          borderBottomColor: theme.colors['base-300'],
+          borderBottomColor: theme.colors.bgTertiary,
         },
         style,
       ]}
@@ -151,7 +151,7 @@ function PopoverFooter({ children, style, ...props }: PopoverFooterProps) {
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.buttonPadding,
           borderTopWidth: 1,
-          borderTopColor: theme.colors['base-300'],
+          borderTopColor: theme.colors.bgTertiary,
         },
         style,
       ]}

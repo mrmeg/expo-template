@@ -68,7 +68,7 @@ function AccordionItem({
         style={[
           {
             borderBottomWidth: 1,
-            borderBottomColor: theme.colors['base-300'],
+            borderBottomColor: theme.colors.bgTertiary,
             overflow: 'hidden',
           },
           // Spread array styles from primitives to prevent nested arrays on web
@@ -139,7 +139,7 @@ function AccordionTrigger({
               <Icon
                 as={ChevronDown}
                 size={16}
-                color={theme.colors['base-content']}
+                color={theme.colors.textPrimary}
               />
             </Animated.View>
           </Trigger>

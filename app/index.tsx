@@ -23,13 +23,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       style={[
         styles.section,
         {
-          backgroundColor: theme.colors["base-200"],
-          borderColor: theme.colors["base-300"],
+          backgroundColor: theme.colors.bgSecondary,
+          borderColor: theme.colors.bgTertiary,
         },
         shadowStyle,
       ]}
     >
-      <SerifBoldText style={[styles.sectionTitle, { color: theme.colors["base-content"] }]}>
+      <SerifBoldText style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
         {title}
       </SerifBoldText>
       {children}
@@ -87,10 +87,10 @@ export default function TestIndex() {
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
         <View style={styles.headerContainer}>
-          <SansSerifBoldText style={[styles.appTitle, { color: theme.colors["base-content"] }]}>
+          <SansSerifBoldText style={[styles.appTitle, { color: theme.colors.textPrimary }]}>
             Test Page
           </SansSerifBoldText>
-          <SansSerifText style={[styles.subtitle, { color: theme.colors["base-content"] }]}>
+          <SansSerifText style={[styles.subtitle, { color: theme.colors.textPrimary }]}>
             Minimal version to test
           </SansSerifText>
           <ThemeToggle />
@@ -494,7 +494,7 @@ export default function TestIndex() {
               </View>
               <View style={{
                 borderWidth: 1,
-                borderColor: theme.colors['base-300'],
+                borderColor: theme.colors.bgTertiary,
                 borderRadius: spacing.radiusMd,
                 padding: spacing.md,
                 marginBottom: spacing.sm
@@ -505,7 +505,7 @@ export default function TestIndex() {
                 <View style={{ gap: spacing.sm }}>
                   <View style={{
                     borderWidth: 1,
-                    borderColor: theme.colors['base-300'],
+                    borderColor: theme.colors.bgTertiary,
                     borderRadius: spacing.radiusMd,
                     padding: spacing.md
                   }}>
@@ -513,7 +513,7 @@ export default function TestIndex() {
                   </View>
                   <View style={{
                     borderWidth: 1,
-                    borderColor: theme.colors['base-300'],
+                    borderColor: theme.colors.bgTertiary,
                     borderRadius: spacing.radiusMd,
                     padding: spacing.md
                   }}>
