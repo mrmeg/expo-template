@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { View } from "@/components/ui/Themed";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { SansSerifBoldText, SansSerifText, SerifText, SerifBoldText } from "@/components/ui/StyledText";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { theme, getShadowStyle } = useTheme();
@@ -69,7 +70,7 @@ function ThemeToggle() {
 }
 
 export default function TestIndex() {
-  const { theme, getContrastingColor } = useTheme();
+  const { theme } = useTheme();
   const [textValue, setTextValue] = useState("");
   const [passwordValue, setPasswordValue] = useState("");
   const [toggleValue, setToggleValue] = useState(false);
@@ -84,7 +85,7 @@ export default function TestIndex() {
   const [collapsibleOpen, setCollapsibleOpen] = useState(false);
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
+    <KeyboardAwareScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
         <View style={styles.headerContainer}>
           <SansSerifBoldText style={[styles.appTitle, { color: theme.colors.textPrimary }]}>
@@ -520,7 +521,7 @@ export default function TestIndex() {
           </SubSection>
         </Section>
       </View>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 

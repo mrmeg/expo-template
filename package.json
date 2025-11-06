@@ -12,7 +12,8 @@
     "build-sourcemap": "npx expo export --dump-sourcemap",
     "view-sourcemap": "npx source-map-explorer dist/**/*.js --no-border-checks",
     "test": "jest --watchAll",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "postinstall": "patch-package"
   },
   "jest": {
     "preset": "jest-expo"
@@ -45,6 +46,7 @@
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-keyboard-controller": "1.18.5",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
@@ -63,6 +65,7 @@
     "eslint-plugin-react": "^7.37.5",
     "jest": "~29.7.0",
     "jest-expo": "~54.0.13",
+    "patch-package": "^8.0.1",
     "typescript": "~5.9.3"
   },
   "private": true
