@@ -34,12 +34,12 @@ const WEB_FONT_STACK =
 
 export const fontFamilies = {
   serif: {
-    regular: "Merriweather-Regular",
-    bold: "Merriweather-Bold",
+    regular: "Merriweather_400Regular",
+    bold: "Merriweather_700Bold",
   },
   sansSerif: {
-    regular: "Lato-Regular",
-    bold: "Lato-Bold",
+    regular: "Lato_400Regular",
+    bold: "Lato_700Bold",
   },
 };
 

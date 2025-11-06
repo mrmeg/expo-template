@@ -26,7 +26,7 @@
       [
         "expo-router",
         {
-          "origin": "https://mrmeg.com",
+          "origin": "",
           "asyncRoutes": {
             "web": true
           }
@@ -42,15 +42,7 @@
         }
       ],
       "expo-font",
-      "expo-web-browser",
-      [
-        "expo-navigation-bar",
-        {
-          "position": "relative",
-          "visibility": "visible",
-          "behavior": "overlay-swipe"
-        }
-      ]
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
