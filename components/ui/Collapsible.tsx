@@ -3,12 +3,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '@/constants/spacing';
 import * as CollapsiblePrimitive from '@rn-primitives/collapsible';
 import * as React from 'react';
-import { Platform, StyleSheet } from 'react-native';
-import Animated, {
-  FadeOutUp,
-  LayoutAnimationConfig,
-  LinearTransition,
-} from 'react-native-reanimated';
+import { Animated, Platform, StyleSheet, View } from 'react-native';
 
 /**
  * Collapsible Component (Root)
@@ -32,11 +27,9 @@ type CollapsibleProps = CollapsiblePrimitive.RootProps;
 
 function Collapsible({ children, ...props }: CollapsibleProps) {
   return (
-    <LayoutAnimationConfig skipEntering>
-      <CollapsiblePrimitive.Root {...props} asChild={Platform.OS !== 'web'}>
-        <Animated.View layout={LinearTransition.duration(200)}>{children}</Animated.View>
-      </CollapsiblePrimitive.Root>
-    </LayoutAnimationConfig>
+    <CollapsiblePrimitive.Root {...props} asChild={Platform.OS !== 'web'}>
+      <View>{children}</View>
+    </CollapsiblePrimitive.Root>
   );
 }
 
@@ -116,6 +109,7 @@ function CollapsibleContent({
   ...props
 }: CollapsibleContentProps) {
   const { theme } = useTheme();
+  const fadeAnim = React.useRef(new Animated.Value(1)).current;
 
   return (
     <TextClassContext.Provider value="">
@@ -124,9 +118,9 @@ function CollapsibleContent({
         forceMount={forceMount}
       >
         <Animated.View
-          exiting={Platform.select({ native: FadeOutUp.duration(200) })}
           style={{
             overflow: 'hidden',
+            opacity: fadeAnim,
             ...(styleOverride && typeof styleOverride !== 'function'
               ? StyleSheet.flatten(styleOverride)
               : {}),
