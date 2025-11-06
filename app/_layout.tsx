@@ -1,15 +1,17 @@
-import "@/lib/gesture-handler/gesture-handler";
+import "@/lib/gesture-handler";
 import { useEffect } from "react";
 import { ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
 import { colors } from "@/constants/colors";
 import { useTheme } from "@/hooks/useTheme";
 import { useResources } from "@/hooks/useResources";
 import { Notification } from "@/components/ui/Notification";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MaxWidthContainer } from "@/components/ui/MaxWidthContainer";
+import { PortalHost } from "@rn-primitives/portal";
+import { StatusBar } from "@/components/ui/StatusBar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -32,15 +34,18 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={colors[scheme ?? "light"]}>
-        <MaxWidthContainer>
-          <Stack>
-            <Stack.Screen name="index" />
-          </Stack>
-        </MaxWidthContainer>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <SafeAreaProvider>
+        <ThemeProvider value={colors[scheme ?? "light"]}>
+          <MaxWidthContainer>
+            <Stack>
+              <Stack.Screen name="index" />
+            </Stack>
+          </MaxWidthContainer>
+          <StatusBar />
+        </ThemeProvider>
+      </SafeAreaProvider>
       <Notification />
+      <PortalHost />
     </QueryClientProvider>
   );
 }

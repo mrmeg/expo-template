@@ -90,15 +90,15 @@ function Toggle({
         // When pressed with outline variant, background is primary
         return getContrastingColor(
           theme.colors.primary,
-          theme.colors.textLight,
-          theme.colors.textDark
+          theme.colors.textOnDark,
+          theme.colors.textOnLight
         );
       }
       // When pressed with default variant, use primary color
       return theme.colors.primary;
     }
     // When not pressed, use base content or primary for outline
-    return variant === 'outline' ? theme.colors.primary : theme.colors['base-content'];
+    return variant === 'outline' ? theme.colors.primary : theme.colors.textPrimary;
   };
 
   const textColor = getTextColor();
@@ -121,7 +121,7 @@ function Toggle({
           // Base variant styles
           ...(variant === 'default' && !props.pressed && {
             backgroundColor: 'transparent',
-            borderColor: theme.colors['base-300'],
+            borderColor: theme.colors.bgTertiary,
           }),
           ...(variant === 'default' && props.pressed && {
             backgroundColor: withAlpha(theme.colors.primary, 0.1),

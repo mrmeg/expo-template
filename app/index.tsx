@@ -23,13 +23,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       style={[
         styles.section,
         {
-          backgroundColor: theme.colors["base-200"],
-          borderColor: theme.colors["base-300"],
+          backgroundColor: theme.colors.bgSecondary,
+          borderColor: theme.colors.bgTertiary,
         },
         shadowStyle,
       ]}
     >
-      <SerifBoldText style={[styles.sectionTitle, { color: theme.colors["base-content"] }]}>
+      <SerifBoldText style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
         {title}
       </SerifBoldText>
       {children}
@@ -87,10 +87,10 @@ export default function TestIndex() {
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
         <View style={styles.headerContainer}>
-          <SansSerifBoldText style={[styles.appTitle, { color: theme.colors["base-content"] }]}>
+          <SansSerifBoldText style={[styles.appTitle, { color: theme.colors.textPrimary }]}>
             Test Page
           </SansSerifBoldText>
-          <SansSerifText style={[styles.subtitle, { color: theme.colors["base-content"] }]}>
+          <SansSerifText style={[styles.subtitle, { color: theme.colors.textPrimary }]}>
             Minimal version to test
           </SansSerifText>
           <ThemeToggle />
@@ -108,9 +108,9 @@ export default function TestIndex() {
         </Section>
 
         <Section title="Buttons">
-          <SubSection label="Filled">
-            <Button preset="filled" onPress={() => console.log("Filled button pressed")}>
-              <SansSerifBoldText>Filled Button</SansSerifBoldText>
+          <SubSection label="Default">
+            <Button preset="default" onPress={() => console.log("Default button pressed")}>
+              <SansSerifBoldText>Default Button</SansSerifBoldText>
             </Button>
           </SubSection>
           <SubSection label="Outline">
@@ -118,13 +118,8 @@ export default function TestIndex() {
               <SansSerifBoldText>Outline Button</SansSerifBoldText>
             </Button>
           </SubSection>
-          <SubSection label="Default">
-            <Button preset="default" onPress={() => console.log("Default button pressed")}>
-              <SansSerifBoldText>Default Button</SansSerifBoldText>
-            </Button>
-          </SubSection>
           <SubSection label="Disabled">
-            <Button preset="filled" disabled onPress={() => console.log("Won't be called")}>
+            <Button preset="default" disabled onPress={() => console.log("Won't be called")}>
               <SansSerifBoldText>Disabled Button</SansSerifBoldText>
             </Button>
           </SubSection>
@@ -302,7 +297,7 @@ export default function TestIndex() {
             <View style={{ flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' }}>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button preset="filled" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                  <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
                     <SansSerifBoldText style={{ fontSize: 12 }}>Top</SansSerifBoldText>
                   </Button>
                 </PopoverTrigger>
@@ -315,7 +310,7 @@ export default function TestIndex() {
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button preset="filled" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                  <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
                     <SansSerifBoldText style={{ fontSize: 12 }}>Bottom</SansSerifBoldText>
                   </Button>
                 </PopoverTrigger>
@@ -494,7 +489,7 @@ export default function TestIndex() {
               </View>
               <View style={{
                 borderWidth: 1,
-                borderColor: theme.colors['base-300'],
+                borderColor: theme.colors.bgTertiary,
                 borderRadius: spacing.radiusMd,
                 padding: spacing.md,
                 marginBottom: spacing.sm
@@ -505,7 +500,7 @@ export default function TestIndex() {
                 <View style={{ gap: spacing.sm }}>
                   <View style={{
                     borderWidth: 1,
-                    borderColor: theme.colors['base-300'],
+                    borderColor: theme.colors.bgTertiary,
                     borderRadius: spacing.radiusMd,
                     padding: spacing.md
                   }}>
@@ -513,7 +508,7 @@ export default function TestIndex() {
                   </View>
                   <View style={{
                     borderWidth: 1,
-                    borderColor: theme.colors['base-300'],
+                    borderColor: theme.colors.bgTertiary,
                     borderRadius: spacing.radiusMd,
                     padding: spacing.md
                   }}>

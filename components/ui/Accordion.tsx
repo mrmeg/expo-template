@@ -4,15 +4,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '@/constants/spacing';
 import * as AccordionPrimitive from '@rn-primitives/accordion';
 import { ChevronDown } from 'lucide-react-native';
-import { Platform, Pressable, View, ViewStyle } from 'react-native';
-import Animated, {
-  FadeOutUp,
-  LayoutAnimationConfig,
-  LinearTransition,
-  useAnimatedStyle,
-  useDerivedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import * as React from 'react';
+import { Animated, Platform, Pressable, View, ViewStyle } from 'react-native';
 
 /**
  * Accordion Root Component
@@ -35,15 +28,13 @@ function Accordion({
     style?: ViewStyle;
   }) {
   return (
-    <LayoutAnimationConfig skipEntering>
-      <AccordionPrimitive.Root
-        {...(props as AccordionPrimitive.RootProps)}
-        asChild={Platform.OS !== 'web'}>
-        <Animated.View layout={LinearTransition.duration(200)} style={style}>
-          {children}
-        </Animated.View>
-      </AccordionPrimitive.Root>
-    </LayoutAnimationConfig>
+    <AccordionPrimitive.Root
+      {...(props as AccordionPrimitive.RootProps)}
+      asChild={Platform.OS !== 'web'}>
+      <View style={style}>
+        {children}
+      </View>
+    </AccordionPrimitive.Root>
   );
 }
 
@@ -64,11 +55,11 @@ function AccordionItem({
       value={value}
       asChild
       {...props}>
-      <Animated.View
+      <View
         style={[
           {
             borderBottomWidth: 1,
-            borderBottomColor: theme.colors['base-300'],
+            borderBottomColor: theme.colors.bgTertiary,
             overflow: 'hidden',
           },
           // Spread array styles from primitives to prevent nested arrays on web
@@ -76,10 +67,9 @@ function AccordionItem({
             ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
             : []
           ),
-        ]}
-        layout={Platform.select({ native: LinearTransition.duration(200) })}>
+        ]}>
         {children}
-      </Animated.View>
+      </View>
     </AccordionPrimitive.Item>
   );
 }
@@ -100,18 +90,20 @@ function AccordionTrigger({
 } & React.RefAttributes<AccordionPrimitive.TriggerRef>) {
   const { theme } = useTheme();
   const { isExpanded } = AccordionPrimitive.useItemContext();
+  const rotateAnim = React.useRef(new Animated.Value(0)).current;
 
-  const progress = useDerivedValue(
-    () => (isExpanded ? withTiming(1, { duration: 250 }) : withTiming(0, { duration: 200 })),
-    [isExpanded]
-  );
+  React.useEffect(() => {
+    Animated.timing(rotateAnim, {
+      toValue: isExpanded ? 1 : 0,
+      duration: isExpanded ? 250 : 200,
+      useNativeDriver: true,
+    }).start();
+  }, [isExpanded, rotateAnim]);
 
-  const chevronStyle = useAnimatedStyle(
-    () => ({
-      transform: [{ rotate: `${progress.value * 180}deg` }],
-    }),
-    [progress]
-  );
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
 
   return (
     <TextClassContext.Provider value="">
@@ -135,11 +127,11 @@ function AccordionTrigger({
               ),
             ]}>
             <>{children}</>
-            <Animated.View style={chevronStyle}>
+            <Animated.View style={{ transform: [{ rotate }] }}>
               <Icon
                 as={ChevronDown}
                 size={16}
-                color={theme.colors['base-content']}
+                color={theme.colors.textPrimary}
               />
             </Animated.View>
           </Trigger>
@@ -161,8 +153,7 @@ function AccordionContent({
   return (
     <TextClassContext.Provider value="">
       <AccordionPrimitive.Content {...props}>
-        <Animated.View
-          exiting={Platform.select({ native: FadeOutUp.duration(200) })}
+        <View
           style={[
             {
               paddingBottom: spacing.md,
@@ -175,7 +166,7 @@ function AccordionContent({
             ),
           ]}>
           {children}
-        </Animated.View>
+        </View>
       </AccordionPrimitive.Content>
     </TextClassContext.Provider>
   );

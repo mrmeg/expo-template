@@ -5,7 +5,6 @@ import { useThemeStore } from "@/stores/themeStore";
 type ShadowType = 'base' | 'soft' | 'sharp' | 'subtle';
 
 interface ExtendedColorScheme {
-  base: Colors["base"];
   theme: Colors["light" | "dark"];
   scheme: "light" | "dark";
   // Shadow helper function
@@ -24,7 +23,6 @@ interface ExtendedColorScheme {
  * Includes helpers to determine readable text color for any background.
  *
  * Returns:
- * - base: shared base colors
  * - theme: active theme colors (light or dark)
  * - scheme: "light" | "dark"
  * - getShadowStyle(type): returns cross-platform shadow style object
@@ -58,12 +56,12 @@ export function useTheme(): ExtendedColorScheme & {
 
   // Toggle between light, dark, and system themes
   const toggleTheme = () => {
-    if (userTheme === "system") {
-      setTheme("light");
-    } else if (userTheme === "light") {
+    if (userTheme === "light") {
       setTheme("dark");
-    } else {
+    } else if (userTheme === "dark") {
       setTheme("system");
+    } else {
+      setTheme("light");
     }
   };
 
@@ -156,7 +154,6 @@ export function useTheme(): ExtendedColorScheme & {
     setTheme: (theme: "system" | "light" | "dark") => void;
     currentTheme: "system" | "light" | "dark";
   } = {
-    base: colors.base,
     theme: theme,
     scheme: theme.dark ? "dark" : "light",
     // Shadow helper function

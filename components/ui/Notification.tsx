@@ -3,7 +3,8 @@ import { StyleSheet, View, ActivityIndicator, Animated, TouchableOpacity } from 
 import { globalUIStore } from "@/stores/globalUIStore";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { SansSerifText } from "./StyledText";
-import { Ionicons } from "@expo/vector-icons";
+import { AlertCircle, CheckCircle, AlertTriangle, Info, X } from "lucide-react-native";
+import { Icon } from "./Icon";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 
@@ -119,21 +120,17 @@ export const Notification = () => {
   });
 
   const getIconProps = () => {
-    if (alert?.loading) {
-      return { name: "time", color: theme.colors["base-content"] };
-    }
-
     switch (alert?.type) {
       case "error":
-        return { name: "alert-circle", color: theme.colors.error };
+        return { icon: AlertCircle, color: theme.colors.error };
       case "success":
-        return { name: "checkmark-circle", color: theme.colors.success };
+        return { icon: CheckCircle, color: theme.colors.success };
       case "warning":
-        return { name: "warning", color: theme.colors.warning };
+        return { icon: AlertTriangle, color: theme.colors.warning };
       case "info":
-        return { name: "information-circle", color: theme.colors["base-content"] };
+        return { icon: Info, color: theme.colors.textPrimary };
       default:
-        return { name: "information-circle", color: theme.colors["base-content"] };
+        return { icon: Info, color: theme.colors.textPrimary };
     }
   };
 
@@ -176,10 +173,10 @@ export const Notification = () => {
       ]}>
         <View style={styles.iconContainer}>
           {alert?.loading ? (
-            <ActivityIndicator size="small" color={theme.colors["base-content"]} />
+            <ActivityIndicator size="small" color={theme.colors.textPrimary} />
           ) : (
-            <Ionicons
-              name={getIconProps().name as React.ComponentProps<typeof Ionicons>["name"]}
+            <Icon
+              as={getIconProps().icon}
               size={spacing.iconMd}
               color={getIconProps().color}
             />
@@ -200,7 +197,7 @@ export const Notification = () => {
           hitSlop={spacing.sm}
           onPress={animateOut}
         >
-          <Ionicons name="close" size={spacing.iconSm + 4} color={theme.colors.primary} />
+          <Icon as={X} size={spacing.iconSm + 4} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -220,8 +217,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     padding: spacing.md,
     borderRadius: spacing.radiusSm,
     borderWidth: 1,
-    borderColor: theme.colors["base-300"],
-    backgroundColor: theme.colors["base-200"],
+    borderColor: theme.colors.bgTertiary,
+    backgroundColor: theme.colors.bgSecondary,
     flexDirection: "row",
     alignItems: "center",
   },

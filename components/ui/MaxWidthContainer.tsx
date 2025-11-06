@@ -14,7 +14,6 @@ export function MaxWidthContainer({
   children,
   maxWidth = 2400,
   style,
-  noPadding = false
 }: MaxWidthContainerProps) {
   const { width } = useDimensions();
   const { theme, withAlpha } = useTheme();
@@ -31,7 +30,6 @@ export function MaxWidthContainer({
         alignSelf: "center",
         width: "100%",
       },
-      !noPadding && Platform.OS === "web" && styles.webPadding,
       style
     ]}>
       {children}
@@ -43,7 +41,4 @@ const createStyles = (theme: any, withAlpha: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
-  webPadding: {
-    // paddingHorizontal: 16,
-  }
 });

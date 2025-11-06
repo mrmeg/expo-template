@@ -54,8 +54,10 @@ export const Text = forwardRef<RNText, TextProps>((props, ref) => {
   // Check if there's a color override from parent context (e.g., Button)
   const contextColor = React.useContext(TextColorContext);
 
-  // Use context color if provided, otherwise use theme default
-  const color = contextColor ?? theme.colors["base-content"];
+  // Get themed color, prioritizing: explicit props > context > theme default
+  const themeColor = useThemeColor({ light: lightColor, dark: darkColor }, "textPrimary");
+  // If explicit color props are provided, use them; otherwise use context; fallback to theme
+  const color = (lightColor || darkColor) ? themeColor : (contextColor || themeColor);
 
   // Get font family based on variant and weight
   const fontFamily = fontFamilies[variant][fontWeight];
