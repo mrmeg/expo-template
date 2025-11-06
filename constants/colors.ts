@@ -98,13 +98,9 @@ export interface Theme {
     primary: string;     // Required by React Navigation
     background: string;  // Required by React Navigation → maps to base-100
     card: string;        // Required by React Navigation → maps to base-200
-    text: string;        // Required by React Navigation → maps to base-content
+    text: string;        // Required by React Navigation (use textLight/textDark for components)
     border: string;      // Required by React Navigation → maps to base-300
     notification: string; // Required by React Navigation → maps to info
-
-    // Text color utilities (used by Button for contrast calculations)
-    textLight: string;   // Light text (white) for dark backgrounds
-    textDark: string;    // Dark text for light backgrounds
 
     // DaisyUI theme variables
     "primary-focus": string;
@@ -143,6 +139,8 @@ export interface Theme {
     white: string;       // Pure white for overlays, icons
     black: string;       // Pure black for shadows, overlays
     overlay: string;     // Semi-transparent overlay for modals
+    textLight: string;   // Light text (white) for dark backgrounds
+    textDark: string;    // Dark text (black) for light backgrounds
 
     // React Native Reusables color tokens (mapped to DaisyUI)
     input: string;       // Input border color → maps to base-300
@@ -210,8 +208,8 @@ const defaultColors: Colors["base"] = {
   "neutral-content": "#FFFFFF",    // Text on neutral
 
   // Primary (teal brand)
-  primary: tealPalette[500],       // Primary teal
-  "primary-focus": tealPalette[600], // Darker teal for hover
+  primary: tealPalette[400],       // Primary teal
+  "primary-focus": tealPalette[500], // Darker teal for hover
   "primary-content": "#FFFFFF",    // Text on primary
 
   // Secondary (teal accent)
@@ -260,13 +258,9 @@ const lightTheme: Colors["light"] = {
     primary: defaultColors.primary,
     background: defaultColors["base-100"],
     card: defaultColors["base-200"],
-    text: defaultColors["base-content"],
+    text: defaultColors["base-content"],  // Required by React Navigation
     border: defaultColors["base-300"],
     notification: defaultColors.info,
-
-    // Text color utilities (used by Button for contrast calculations)
-    textLight: defaultColors.white,
-    textDark: defaultColors["base-content"],
 
     // DaisyUI theme variables
     "primary-focus": defaultColors["primary-focus"],
@@ -305,6 +299,8 @@ const lightTheme: Colors["light"] = {
     white: defaultColors.white,
     black: defaultColors.black,
     overlay: defaultColors.overlay,
+    textLight: "#FFFFFF",
+    textDark: "#000000",
 
     // React Native Reusables color tokens (mapped to DaisyUI)
     input: defaultColors["base-300"],           // Border color
@@ -324,21 +320,17 @@ const darkTheme: Colors["dark"] = {
     primary: tealPalette[400],       // Lighter teal for dark mode
     background: "#121212",           // Maps to base-100
     card: "#1E1E1E",                 // Maps to base-200
-    text: "#E5E5E5",                 // Maps to base-content
+    text: "#E5E5E5",                 // Required by React Navigation
     border: grayPalette[800],        // Maps to base-300
     notification: bluePalette[400],  // Maps to info
 
-    // Text color utilities (used by Button for contrast calculations)
-    textLight: "#FFFFFF",            // White text for dark backgrounds
-    textDark: "#E5E5E5",             // Light gray text (base-content)
-
     // DaisyUI theme variables
     "primary-focus": tealPalette[300], // Even lighter for hover
-    "primary-content": grayPalette[900], // Dark text on primary
+    "primary-content": "#FFFFFF", // White text on primary (for readability on teal)
 
     secondary: tealPalette[400],
     "secondary-focus": tealPalette[300],
-    "secondary-content": grayPalette[900],
+    "secondary-content": "#FFFFFF", // White text on secondary
 
     accent: tealPalette[200],        // Very light teal for dark mode
     "accent-focus": tealPalette[100],
@@ -369,6 +361,8 @@ const darkTheme: Colors["dark"] = {
     white: "#FFFFFF",
     black: "#000000",
     overlay: "rgba(0, 0, 0, 0.7)",   // Darker overlay for dark mode
+    textLight: "#FFFFFF",
+    textDark: "#000000",
 
     // React Native Reusables color tokens (mapped to DaisyUI)
     input: grayPalette[800],          // Border color for dark mode

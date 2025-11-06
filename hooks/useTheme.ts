@@ -324,9 +324,9 @@ function getTextColorForBackground(backgroundColor: string): "light" | "dark" {
     return "light"; // default to light if invalid color
   }
 
-  // Using WCAG recommended threshold of 0.179 (equivalent to contrast ratio of 4.5:1)
+  // Using threshold of 0.5 for better light/dark text discrimination
   const luminance = calculateLuminance(rgb[0], rgb[1], rgb[2]);
-  return luminance > 0.179 ? "dark" : "light";
+  return luminance > 0.5 ? "dark" : "light";
 }
 
 

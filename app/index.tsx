@@ -10,12 +10,14 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/ToggleGroup";
 import { Popover, PopoverTrigger, PopoverContent, PopoverBody } from "@/components/ui/Popover";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/Accordion";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuCheckboxItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuShortcut } from "@/components/ui/DropdownMenu";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/Collapsible";
 import { SansSerifBoldText, SansSerifText, SerifText, SerifBoldText } from "@/components/ui/StyledText";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 
-function Section({ children }: { children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { theme, getShadowStyle } = useTheme();
+  const shadowStyle = getShadowStyle("soft");
   return (
     <View
       style={[
@@ -23,10 +25,26 @@ function Section({ children }: { children: React.ReactNode }) {
         {
           backgroundColor: theme.colors["base-200"],
           borderColor: theme.colors["base-300"],
-          ...getShadowStyle("soft"),
         },
+        shadowStyle,
       ]}
     >
+      <SerifBoldText style={[styles.sectionTitle, { color: theme.colors["base-content"] }]}>
+        {title}
+      </SerifBoldText>
+      {children}
+    </View>
+  );
+}
+
+function SubSection({ label, children }: { label?: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.subSection}>
+      {label && (
+        <SansSerifText style={styles.subSectionLabel}>
+          {label}
+        </SansSerifText>
+      )}
       {children}
     </View>
   );
@@ -51,7 +69,7 @@ function ThemeToggle() {
 }
 
 export default function TestIndex() {
-  const { theme } = useTheme();
+  const { theme, getContrastingColor } = useTheme();
   const [textValue, setTextValue] = useState("");
   const [passwordValue, setPasswordValue] = useState("");
   const [toggleValue, setToggleValue] = useState(false);
@@ -63,6 +81,7 @@ export default function TestIndex() {
   const [showBookmarks, setShowBookmarks] = useState(true);
   const [showUrls, setShowUrls] = useState(false);
   const [statusBarPosition, setStatusBarPosition] = useState("bottom");
+  const [collapsibleOpen, setCollapsibleOpen] = useState(false);
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -77,7 +96,7 @@ export default function TestIndex() {
           <ThemeToggle />
         </View>
 
-        <Section>
+        <Section title="Typography">
           <SansSerifText style={{ marginBottom: spacing.sm }}>
             Sans Serif Text - Default body text
           </SansSerifText>
@@ -88,32 +107,30 @@ export default function TestIndex() {
           <SerifBoldText>Serif Bold - Strong emphasis</SerifBoldText>
         </Section>
 
-        <Section>
-          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Buttons:</SansSerifText>
-          <View style={styles.buttonRow}>
+        <Section title="Buttons">
+          <SubSection label="Filled">
             <Button preset="filled" onPress={() => console.log("Filled button pressed")}>
               <SansSerifBoldText>Filled Button</SansSerifBoldText>
             </Button>
-          </View>
-          <View style={styles.buttonRow}>
+          </SubSection>
+          <SubSection label="Outline">
             <Button preset="outline" onPress={() => console.log("Outline button pressed")}>
               <SansSerifBoldText>Outline Button</SansSerifBoldText>
             </Button>
-          </View>
-          <View style={styles.buttonRow}>
+          </SubSection>
+          <SubSection label="Default">
             <Button preset="default" onPress={() => console.log("Default button pressed")}>
               <SansSerifBoldText>Default Button</SansSerifBoldText>
             </Button>
-          </View>
-          <View style={styles.buttonRow}>
+          </SubSection>
+          <SubSection label="Disabled">
             <Button preset="filled" disabled onPress={() => console.log("Won't be called")}>
               <SansSerifBoldText>Disabled Button</SansSerifBoldText>
             </Button>
-          </View>
+          </SubSection>
         </Section>
 
-        <Section>
-          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing TextInput:</SansSerifText>
+        <Section title="Text Input">
           <TextInput
             label="Standard Input"
             placeholder="Enter some text..."
@@ -130,37 +147,41 @@ export default function TestIndex() {
           />
         </Section>
 
-        <Section>
-          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Switch:</SansSerifText>
-          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: spacing.md }}>
-            <SansSerifText style={{ flex: 1 }}>Basic Switch</SansSerifText>
-            <Switch checked={toggleValue} onCheckedChange={setToggleValue} />
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: spacing.md }}>
-            <SansSerifText style={{ flex: 1 }}>Switch with Labels</SansSerifText>
-            <Switch
-              size={{ width: 60, height: 32 }}
-              checked={toggleValue}
-              onCheckedChange={setToggleValue}
-              labelOn="ON"
-              labelOff="OFF"
-            />
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: spacing.md }}>
-            <SansSerifText style={{ flex: 1 }}>Large Switch</SansSerifText>
-            <Switch
-              checked={toggleValue}
-              onCheckedChange={setToggleValue}
-              size={{ width: 70, height: 36 }}
-              thumbSize={32}
-              labelOn="YES"
-              labelOff="NO"
-            />
-          </View>
+        <Section title="Switch">
+          <SubSection label="Basic">
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <SansSerifText>Basic Switch</SansSerifText>
+              <Switch checked={toggleValue} onCheckedChange={setToggleValue} />
+            </View>
+          </SubSection>
+          <SubSection label="With Labels">
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <SansSerifText>Switch with Labels</SansSerifText>
+              <Switch
+                size={{ width: 60, height: 32 }}
+                checked={toggleValue}
+                onCheckedChange={setToggleValue}
+                labelOn="ON"
+                labelOff="OFF"
+              />
+            </View>
+          </SubSection>
+          <SubSection label="Large Size">
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <SansSerifText>Large Switch</SansSerifText>
+              <Switch
+                checked={toggleValue}
+                onCheckedChange={setToggleValue}
+                size={{ width: 70, height: 36 }}
+                thumbSize={32}
+                labelOn="YES"
+                labelOff="NO"
+              />
+            </View>
+          </SubSection>
         </Section>
 
-        <Section>
-          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Checkbox:</SansSerifText>
+        <Section title="Checkbox">
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
             <Checkbox
               checked={checkbox1}
@@ -177,24 +198,14 @@ export default function TestIndex() {
           </View>
         </Section>
 
-        <Section>
-          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Toggle & ToggleGroup:</SansSerifText>
-
-          {/* Single Toggle */}
-          <View style={{ marginBottom: spacing.md }}>
-            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
-              Single Toggle:
-            </SansSerifText>
+        <Section title="Toggle & Toggle Group">
+          <SubSection label="Single Toggle">
             <Toggle pressed={singleTogglePressed} onPressedChange={setSingleTogglePressed}>
               <SansSerifText>Toggle Me</SansSerifText>
             </Toggle>
-          </View>
+          </SubSection>
 
-          {/* ToggleGroup - Single Selection */}
-          <View style={{ marginBottom: spacing.md }}>
-            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
-              Single Selection (Alignment):
-            </SansSerifText>
+          <SubSection label="Toggle Group - Single Selection">
             <ToggleGroup type="single" value={alignment} onValueChange={setAlignment}>
               <ToggleGroupItem value="left">
                 <SansSerifText>Left</SansSerifText>
@@ -206,13 +217,9 @@ export default function TestIndex() {
                 <SansSerifText>Right</SansSerifText>
               </ToggleGroupItem>
             </ToggleGroup>
-          </View>
+          </SubSection>
 
-          {/* ToggleGroup - Multiple Selection */}
-          <View style={{ marginBottom: spacing.md }}>
-            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
-              Multiple Selection (Text Formatting):
-            </SansSerifText>
+          <SubSection label="Toggle Group - Multiple Selection">
             <ToggleGroup type="multiple" value={formats} onValueChange={setFormats}>
               <ToggleGroupItem value="bold">
                 <SansSerifBoldText>B</SansSerifBoldText>
@@ -224,13 +231,9 @@ export default function TestIndex() {
                 <SansSerifText style={{ textDecorationLine: "underline" }}>U</SansSerifText>
               </ToggleGroupItem>
             </ToggleGroup>
-          </View>
+          </SubSection>
 
-          {/* Outline Variant */}
-          <View style={{ marginBottom: spacing.md }}>
-            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
-              Outline Variant:
-            </SansSerifText>
+          <SubSection label="Outline Variant">
             <ToggleGroup type="single" variant="outline" value={alignment} onValueChange={setAlignment}>
               <ToggleGroupItem value="left">
                 <SansSerifText>Left</SansSerifText>
@@ -242,13 +245,9 @@ export default function TestIndex() {
                 <SansSerifText>Right</SansSerifText>
               </ToggleGroupItem>
             </ToggleGroup>
-          </View>
+          </SubSection>
 
-          {/* Small Size */}
-          <View>
-            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
-              Small Size:
-            </SansSerifText>
+          <SubSection label="Small Size">
             <ToggleGroup type="single" size="sm" value={alignment} onValueChange={setAlignment}>
               <ToggleGroupItem value="left">
                 <SansSerifText>L</SansSerifText>
@@ -260,11 +259,10 @@ export default function TestIndex() {
                 <SansSerifText>R</SansSerifText>
               </ToggleGroupItem>
             </ToggleGroup>
-          </View>
+          </SubSection>
         </Section>
 
-        <Section>
-          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Accordion:</SansSerifText>
+        <Section title="Accordion">
           <Accordion type="single" collapsible defaultValue={undefined}>
             <AccordionItem value="item-1">
               <AccordionTrigger>
@@ -299,61 +297,55 @@ export default function TestIndex() {
           </Accordion>
         </Section>
 
-        <Section>
-          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Popover positioning:</SansSerifText>
-          <View style={{ flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap', marginBottom: spacing.md }}>
+        <Section title="Popover">
+          <SubSection label="Positioning">
+            <View style={{ flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' }}>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button preset="filled" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Top</SansSerifBoldText>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="top" align="center">
+                  <PopoverBody>
+                    <SansSerifText>Popover on top</SansSerifText>
+                  </PopoverBody>
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button preset="filled" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Bottom</SansSerifBoldText>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="center">
+                  <PopoverBody>
+                    <SansSerifText>Popover on bottom</SansSerifText>
+                  </PopoverBody>
+                </PopoverContent>
+              </Popover>
+            </View>
+          </SubSection>
+
+          <SubSection label="With Button (asChild)">
             <Popover>
-              <PopoverTrigger>
-                <View style={{ padding: spacing.sm, backgroundColor: theme.colors.primary, borderRadius: spacing.radiusMd }}>
-                  <SansSerifBoldText style={{ color: theme.colors.white, fontSize: 12 }}>Top</SansSerifBoldText>
-                </View>
+              <PopoverTrigger asChild>
+                <Button preset="outline">
+                  <SansSerifBoldText>Open Popover</SansSerifBoldText>
+                </Button>
               </PopoverTrigger>
-              <PopoverContent side="top" align="center">
+              <PopoverContent side="bottom" align="start">
                 <PopoverBody>
-                  <SansSerifText>Popover on top</SansSerifText>
+                  <SansSerifText>This popover uses asChild with a Button trigger</SansSerifText>
                 </PopoverBody>
               </PopoverContent>
             </Popover>
-
-            <Popover>
-              <PopoverTrigger>
-                <View style={{ padding: spacing.sm, backgroundColor: theme.colors.primary, borderRadius: spacing.radiusMd }}>
-                  <SansSerifBoldText style={{ color: theme.colors.white, fontSize: 12 }}>Bottom</SansSerifBoldText>
-                </View>
-              </PopoverTrigger>
-              <PopoverContent side="bottom" align="center">
-                <PopoverBody>
-                  <SansSerifText>Popover on bottom</SansSerifText>
-                </PopoverBody>
-              </PopoverContent>
-            </Popover>
-          </View>
+          </SubSection>
         </Section>
 
-        <Section>
-          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing Popover WITH asChild (Button):</SansSerifText>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button preset="outline">
-                <SansSerifBoldText>Open Popover (asChild)</SansSerifBoldText>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent side="bottom" align="start">
-              <PopoverBody>
-                <SansSerifText>This popover uses asChild with a Button trigger, positioned at bottom-start</SansSerifText>
-              </PopoverBody>
-            </PopoverContent>
-          </Popover>
-        </Section>
-
-        <Section>
-          <SansSerifText style={{ marginBottom: spacing.sm }}>Testing DropdownMenu:</SansSerifText>
-
-          {/* Basic Dropdown */}
-          <View style={{ marginBottom: spacing.md }}>
-            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
-              Basic Dropdown:
-            </SansSerifText>
+        <Section title="Dropdown Menu">
+          <SubSection label="Basic Menu">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button preset="outline">
@@ -375,13 +367,9 @@ export default function TestIndex() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </View>
+          </SubSection>
 
-          {/* Dropdown with Checkboxes */}
-          <View style={{ marginBottom: spacing.md }}>
-            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
-              With Checkboxes:
-            </SansSerifText>
+          <SubSection label="With Checkboxes">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button preset="outline">
@@ -407,22 +395,18 @@ export default function TestIndex() {
                 </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </View>
+          </SubSection>
 
-          {/* Dropdown with Radio Group */}
-          <View style={{ marginBottom: spacing.md }}>
-            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
-              With Radio Group:
-            </SansSerifText>
+          <SubSection label="With Radio Group">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button preset="outline">
-                  <SansSerifBoldText>Status Bar Position</SansSerifBoldText>
+                  <SansSerifBoldText>Panel Position</SansSerifBoldText>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuLabel>
-                  <SansSerifBoldText>Panel Position</SansSerifBoldText>
+                  <SansSerifBoldText>Position</SansSerifBoldText>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup value={statusBarPosition} onValueChange={setStatusBarPosition}>
@@ -438,13 +422,9 @@ export default function TestIndex() {
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
-          </View>
+          </SubSection>
 
-          {/* Dropdown with Sub-menu */}
-          <View>
-            <SansSerifText style={{ marginBottom: spacing.xs, fontSize: 12, opacity: 0.7 }}>
-              With Sub-menu:
-            </SansSerifText>
+          <SubSection label="With Sub-menu">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button preset="outline">
@@ -477,7 +457,72 @@ export default function TestIndex() {
                 </DropdownMenuSub>
               </DropdownMenuContent>
             </DropdownMenu>
-          </View>
+          </SubSection>
+        </Section>
+
+        <Section title="Collapsible">
+          <SubSection label="Basic Collapsible">
+            <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
+              <CollapsibleTrigger>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <SansSerifBoldText>Can I use this in my project?</SansSerifBoldText>
+                  <SansSerifText style={{ fontSize: 18, opacity: 0.7 }}>
+                    {collapsibleOpen ? '−' : '+'}
+                  </SansSerifText>
+                </View>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <View style={{ paddingTop: spacing.sm }}>
+                  <SansSerifText>
+                    Yes! This is a reusable collapsible component built with @rn-primitives/collapsible.
+                    It supports smooth animations and works across iOS, Android, and Web.
+                  </SansSerifText>
+                </View>
+              </CollapsibleContent>
+            </Collapsible>
+          </SubSection>
+
+          <SubSection label="With Button Trigger (asChild)">
+            <Collapsible>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+                <SansSerifBoldText>@peduarte starred 3 repositories</SansSerifBoldText>
+                <CollapsibleTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifText style={{ fontSize: 12 }}>Toggle</SansSerifText>
+                  </Button>
+                </CollapsibleTrigger>
+              </View>
+              <View style={{
+                borderWidth: 1,
+                borderColor: theme.colors['base-300'],
+                borderRadius: spacing.radiusMd,
+                padding: spacing.md,
+                marginBottom: spacing.sm
+              }}>
+                <SansSerifText>@radix-ui/primitives</SansSerifText>
+              </View>
+              <CollapsibleContent>
+                <View style={{ gap: spacing.sm }}>
+                  <View style={{
+                    borderWidth: 1,
+                    borderColor: theme.colors['base-300'],
+                    borderRadius: spacing.radiusMd,
+                    padding: spacing.md
+                  }}>
+                    <SansSerifText>@radix-ui/react</SansSerifText>
+                  </View>
+                  <View style={{
+                    borderWidth: 1,
+                    borderColor: theme.colors['base-300'],
+                    borderRadius: spacing.radiusMd,
+                    padding: spacing.md
+                  }}>
+                    <SansSerifText>@stitches/core</SansSerifText>
+                  </View>
+                </View>
+              </CollapsibleContent>
+            </Collapsible>
+          </SubSection>
         </Section>
       </View>
     </ScrollView>
@@ -515,10 +560,22 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   section: {
-    padding: spacing.md,
+    padding: spacing.lg,
     borderRadius: spacing.radiusMd,
     borderWidth: 1,
     marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    marginBottom: spacing.lg,
+  },
+  subSection: {
+    marginBottom: spacing.lg,
+  },
+  subSectionLabel: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginBottom: spacing.xs,
   },
   themeToggleContainer: {
     flexDirection: "row",
@@ -537,8 +594,5 @@ const styles = StyleSheet.create({
   themeToggleButtonText: {
     fontSize: 14,
     fontWeight: "500",
-  },
-  buttonRow: {
-    marginBottom: spacing.md,
   },
 });

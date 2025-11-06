@@ -1,5 +1,5 @@
 import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view';
-import { TextClassContext } from '@/components/ui/StyledText';
+import { TextClassContext, TextColorContext } from '@/components/ui/StyledText';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '@/constants/spacing';
 import * as PopoverPrimitive from '@rn-primitives/popover';
@@ -37,7 +37,14 @@ function PopoverContent({
   portalHost,
   ...props
 }: PopoverContentProps) {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme, getShadowStyle, getContrastingColor } = useTheme();
+
+  // Calculate text color for popover content based on background
+  const textColor = getContrastingColor(
+    theme.colors['base-100'],
+    theme.colors.textLight,
+    theme.colors.textDark
+  );
 
   const contentStyle = StyleSheet.flatten([
     {
@@ -55,14 +62,16 @@ function PopoverContent({
       <FullWindowOverlay>
         <PopoverPrimitive.Overlay style={Platform.select({ native: StyleSheet.absoluteFill })}>
           <NativeOnlyAnimatedView enterDuration={200} exitDuration={150}>
-            <TextClassContext.Provider value="">
-              <PopoverPrimitive.Content
-                align={align}
-                sideOffset={sideOffset}
-                style={contentStyle}
-                {...props}
-              />
-            </TextClassContext.Provider>
+            <TextColorContext.Provider value={textColor}>
+              <TextClassContext.Provider value="">
+                <PopoverPrimitive.Content
+                  align={align}
+                  sideOffset={sideOffset}
+                  style={contentStyle}
+                  {...props}
+                />
+              </TextClassContext.Provider>
+            </TextColorContext.Provider>
           </NativeOnlyAnimatedView>
         </PopoverPrimitive.Overlay>
       </FullWindowOverlay>

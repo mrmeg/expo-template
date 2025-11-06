@@ -14,7 +14,7 @@ import {
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import { TextProps } from "./Themed";
-import { SansSerifText } from "./StyledText";
+import { SansSerifText, TextColorContext } from "./StyledText";
 
 type Presets = "default" | "filled" | "outline";
 
@@ -102,12 +102,12 @@ export function Button(props: ButtonProps) {
     LeftAccessory,
     disabled,
     disabledStyle: disabledStyleOverride,
-    withShadow = true,
+    withShadow = false,
     preset = "default",
     ...rest
   } = props;
 
-  const { theme, getShadowStyle, getContrastingColor } = useTheme();
+  const { theme, getContrastingColor } = useTheme();
   const styles = createStyles(theme);
 
   // Pre-compute background color for contrast calculation
@@ -115,6 +115,7 @@ export function Button(props: ButtonProps) {
   const flattenedStyle = styleOverride ? StyleSheet.flatten(styleOverride) : undefined;
   const customBgColor = flattenedStyle?.backgroundColor;
 
+  // Calculate background color for each preset
   let backgroundColor: string;
   if (customBgColor && typeof customBgColor === 'string') {
     backgroundColor = customBgColor;
@@ -123,76 +124,81 @@ export function Button(props: ButtonProps) {
   } else if (preset === "filled") {
     backgroundColor = theme.colors.secondary;
   } else if (preset === "outline") {
-    // Outline has transparent background, use theme background for contrast
-    backgroundColor = theme.colors["base-100"];
+    backgroundColor = "transparent";
   } else {
-    backgroundColor = theme.colors.primary; // fallback
+    backgroundColor = theme.colors.primary;
   }
 
-  // Pre-compute text color using theme's contrast helper
-  const textColor = getContrastingColor(
-    backgroundColor,
-    theme.colors.white,           // white text for dark backgrounds
-    theme.colors["base-content"]  // dark text for light backgrounds
-  );
+  // Use contrast calculation for reliable, readable text color across platforms
+  const textColor = preset === "outline"
+    ? theme.colors.primary  // Outline uses primary color for text
+    : getContrastingColor(
+      backgroundColor,
+      theme.colors.textLight,
+      theme.colors.textDark
+    );
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !!disabled }}
-      {...rest}
-      disabled={disabled}
-    >
-      {(state) => (
-        <View
-          style={[
-            styles.button,
-            preset === "default" && styles.buttonDefault,
-            preset === "outline" && styles.buttonOutline,
-            preset === "filled" && styles.buttonFilled,
-            withShadow && !disabled && (Platform.OS === 'web' ? styles.shadowWeb : styles.shadowNative),
-            state.pressed && styles.pressed,
-            state.pressed && pressedStyleOverride,
-            disabled && styles.disabled,
-            disabled && disabledStyleOverride,
-            // Spread array styles from Slot to prevent nested arrays on web
-            ...(Array.isArray(styleOverride) ? styleOverride : [styleOverride]),
-          ]}
-        >
-          {!!LeftAccessory && (
-            <LeftAccessory
-              style={styles.leftAccessory}
-              pressableState={state}
-              disabled={disabled}
-            />
-          )}
-
-          <SansSerifText
-            tx={tx}
-            text={text}
-            txOptions={txOptions}
+    <TextColorContext.Provider value={textColor}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !!disabled }}
+        {...rest}
+        disabled={disabled}
+      >
+        {(state) => (
+          <View
             style={[
-              styles.text,
-              { color: textColor },
-              state.pressed && styles.pressedText,
-              state.pressed && pressedTextStyleOverride,
-              disabled && disabledTextStyleOverride,
-              textStyleOverride,
+              styles.button,
+              preset === "default" && styles.buttonDefault,
+              preset === "outline" && styles.buttonOutline,
+              preset === "filled" && styles.buttonFilled,
+              withShadow && !disabled && (Platform.OS === 'web' ? styles.shadowWeb : styles.shadowNative),
+              state.pressed && styles.pressed,
+              state.pressed && pressedStyleOverride,
+              disabled && styles.disabled,
+              disabled && disabledStyleOverride,
+              // Spread array styles from Slot to prevent nested arrays on web
+              ...(Array.isArray(styleOverride) ? styleOverride : [styleOverride]),
             ]}
           >
-            {children}
-          </SansSerifText>
+            {!!LeftAccessory && (
+              <LeftAccessory
+                style={styles.leftAccessory}
+                pressableState={state}
+                disabled={disabled}
+              />
+            )}
 
-          {!!RightAccessory && (
-            <RightAccessory
-              style={styles.rightAccessory}
-              pressableState={state}
-              disabled={disabled}
-            />
-          )}
-        </View>
-      )}
-    </Pressable>
+            {(tx || text) ? (
+              <SansSerifText
+                tx={tx}
+                text={text}
+                txOptions={txOptions}
+                style={[
+                  styles.text,
+                  state.pressed && styles.pressedText,
+                  state.pressed && pressedTextStyleOverride,
+                  disabled && disabledTextStyleOverride,
+                  textStyleOverride,
+                ]}
+              />
+            ) : (
+              children
+            )}
+
+            {!!RightAccessory && (
+              <RightAccessory
+                style={styles.rightAccessory}
+                pressableState={state}
+                disabled={disabled}
+              />
+            )}
+          </View>
+        )
+        }
+      </Pressable>
+    </TextColorContext.Provider>
   );
 }
 
@@ -204,7 +210,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     borderRadius: spacing.radiusMd,
     paddingVertical: spacing.buttonPadding,
     paddingHorizontal: spacing.md,
-    minHeight: 48,
   } as ViewStyle,
   buttonDefault: {
     backgroundColor: theme.colors.primary,
@@ -225,18 +230,21 @@ const createStyles = (theme: any) => StyleSheet.create({
   }) as ViewStyle,
   shadowNative: Platform.select({
     web: {},
-    default: {
+    ios: {
       shadowColor: theme.colors.overlay,
-      shadowOffset: { width: 2, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
-      elevation: 8,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 3,
     },
+    // No shadow on Android - causes text background artifact
+    android: {},
+    default: {},
   }) as ViewStyle,
   text: {
     fontSize: 16,
     fontWeight: "500",
     textAlign: "center",
+    lineHeight: 20,
   } as TextStyle,
   pressed: {
     opacity: 0.8,

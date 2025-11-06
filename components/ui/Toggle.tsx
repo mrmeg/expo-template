@@ -1,5 +1,5 @@
 import { Icon } from '@/components/ui/Icon';
-import { TextClassContext } from '@/components/ui/StyledText';
+import { TextClassContext, TextColorContext } from '@/components/ui/StyledText';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '@/constants/spacing';
 import * as TogglePrimitive from '@rn-primitives/toggle';
@@ -90,8 +90,8 @@ function Toggle({
         // When pressed with outline variant, background is primary
         return getContrastingColor(
           theme.colors.primary,
-          theme.colors.white,
-          theme.colors['base-content']
+          theme.colors.textLight,
+          theme.colors.textDark
         );
       }
       // When pressed with default variant, use primary color
@@ -104,8 +104,9 @@ function Toggle({
   const textColor = getTextColor();
 
   return (
-    <TextClassContext.Provider value="">
-      <TogglePrimitive.Root
+    <TextColorContext.Provider value={textColor}>
+      <TextClassContext.Provider value="">
+        <TogglePrimitive.Root
         {...props}
         style={{
           flexDirection: 'row',
@@ -148,6 +149,7 @@ function Toggle({
         {props.children}
       </TogglePrimitive.Root>
     </TextClassContext.Provider>
+    </TextColorContext.Provider>
   );
 }
 

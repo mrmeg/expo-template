@@ -10,6 +10,12 @@ import { Theme } from "@/constants/colors";
  */
 export const TextClassContext = React.createContext<string | undefined>(undefined);
 
+/**
+ * TextColorContext provides color context for nested text components
+ * Allows parent components (like Button) to override text color for all children
+ */
+export const TextColorContext = React.createContext<string | undefined>(undefined);
+
 type ThemeProps = {
   lightColor?: string;
   darkColor?: string;
@@ -74,8 +80,13 @@ export const Text = forwardRef<RNText, TextProps>((props, ref) => {
     ...otherProps
   } = props;
 
-  // Get themed color
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, "base-content");
+  // Check if there's a color override from parent context (e.g., Button)
+  const contextColor = React.useContext(TextColorContext);
+
+  // Get themed color, prioritizing: explicit props > context > theme default
+  const themeColor = useThemeColor({ light: lightColor, dark: darkColor }, "base-content");
+  // If explicit color props are provided, use them; otherwise use context; fallback to theme
+  const color = (lightColor || darkColor) ? themeColor : (contextColor || themeColor);
 
   // Get font family based on variant and weight
   const fontFamily = fontFamilies[variant][fontWeight];

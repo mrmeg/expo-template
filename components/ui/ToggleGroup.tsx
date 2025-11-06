@@ -1,5 +1,5 @@
 import { Icon } from '@/components/ui/Icon';
-import { TextClassContext } from '@/components/ui/StyledText';
+import { TextClassContext, TextColorContext } from '@/components/ui/StyledText';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '@/constants/spacing';
 import * as ToggleGroupPrimitive from '@rn-primitives/toggle-group';
@@ -132,13 +132,12 @@ function ToggleGroup({
         flexDirection: 'row',
         alignItems: 'center',
         borderRadius: spacing.radiusMd,
-        // Add shadow for outline variant
-        ...(variant === 'outline' && Platform.OS !== 'web' && {
+        // No shadow on Android - causes text background artifact
+        ...(variant === 'outline' && Platform.OS === 'ios' && {
           shadowColor: theme.colors.overlay,
           shadowOffset: { width: 0, height: 1 },
           shadowOpacity: 0.05,
           shadowRadius: 2,
-          elevation: 1,
         }),
         ...(Platform.OS === 'web' && {
           width: 'fit-content' as any,
@@ -188,8 +187,8 @@ function ToggleGroupItem({
       if (context.variant === 'outline') {
         return getContrastingColor(
           theme.colors.primary,
-          theme.colors.white,
-          theme.colors['base-content']
+          theme.colors.textLight,
+          theme.colors.textDark
         );
       }
       return theme.colors.primary;
@@ -202,8 +201,9 @@ function ToggleGroupItem({
   const textColor = getTextColor();
 
   return (
-    <TextClassContext.Provider value="">
-      <ToggleGroupPrimitive.Item
+    <TextColorContext.Provider value={textColor}>
+      <TextClassContext.Provider value="">
+        <ToggleGroupPrimitive.Item
         {...props}
         style={{
           flexDirection: 'row',
@@ -268,6 +268,7 @@ function ToggleGroupItem({
         {children}
       </ToggleGroupPrimitive.Item>
     </TextClassContext.Provider>
+    </TextColorContext.Provider>
   );
 }
 
