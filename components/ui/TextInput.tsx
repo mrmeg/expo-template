@@ -31,12 +31,12 @@ export const TextInput = ({
   multiline,
   ...rest
 }: Props) => {
-  const { base, theme, getContrastingColor } = useTheme();
-  const styles = createStyles(theme, base);
+  const { theme, getContrastingColor } = useTheme();
+  const styles = createStyles(theme);
   const [focused, setFocused] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [passwordVisible, setPasswordVisible] = useState(secureTextEntry || false);
-  const backgroundColor = forceLight ? base.white : (theme.dark ? base.gray[100] : base.white);
+  const backgroundColor = forceLight ? theme.colors.white : (theme.dark ? "#F1F3F5" : theme.colors.white);
   const isWeb = Platform.OS === "web";
 
   const handleScrollBehavior = () => {
@@ -78,7 +78,7 @@ export const TextInput = ({
             {
               backgroundColor: backgroundColor,
               borderColor: forceLight ? "#d1d5db" : theme.colors["base-300"],
-              color: forceLight ? "#1f2937" : getContrastingColor(backgroundColor, base["base-content"], base.white),
+              color: forceLight ? "#1f2937" : getContrastingColor(backgroundColor, theme.colors["base-content"], theme.colors.white),
             },
             style,
             focused && focusedStyle,
@@ -92,7 +92,7 @@ export const TextInput = ({
           <Entypo
             name={passwordVisible ? "eye-with-line" : "eye"}
             size={spacing.iconSm + 4}
-            color={theme.colors["neutral-content"]}
+            color={theme.colors.neutral}
             style={styles.passwordToggle}
             onPress={() => setPasswordVisible(!passwordVisible)}
           />
@@ -103,7 +103,7 @@ export const TextInput = ({
 };
 
 
-const createStyles = (theme: any, base: any) => StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   input: {
     height: undefined,
     borderRadius: spacing.radiusMd,
