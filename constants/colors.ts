@@ -19,11 +19,17 @@ export interface Theme {
     secondary: string;
     neutral: string;
 
-    "base-100": string;  // Main background
-    "base-200": string;  // Card/elevated background
-    "base-300": string;  // Borders and dividers
-    "base-content": string;  // Main text color
+    // Backgrounds (clear hierarchy)
+    bgPrimary: string;      // Main background
+    bgSecondary: string;    // Elevated/cards
+    bgTertiary: string;     // Borders/dividers
 
+    // Text colors (clear purpose)
+    textPrimary: string;    // Main text color
+    textOnDark: string;     // Light text for dark backgrounds
+    textOnLight: string;    // Dark text for light backgrounds
+
+    // Semantic states
     success: string;
     warning: string;
     error: string;
@@ -32,8 +38,6 @@ export interface Theme {
     white: string;
     black: string;
     overlay: string;
-    textLight: string;   // Light text for dark backgrounds
-    textDark: string;    // Dark text for light backgrounds
   };
   dark: boolean;
   fonts: typeof navigationFonts;
@@ -66,11 +70,17 @@ const lightTheme: Colors["light"] = {
     secondary: teal[500],
     neutral: "#6C757D",
 
-    "base-100": "#FFFFFF",
-    "base-200": "#F4F5F7",
-    "base-300": "#E9ECEF",
-    "base-content": "#2C2C2C",
+    // Backgrounds
+    bgPrimary: "#FFFFFF",
+    bgSecondary: "#F4F5F7",
+    bgTertiary: "#E9ECEF",
 
+    // Text colors
+    textPrimary: "#2C2C2C",
+    textOnDark: "#FFFFFF",
+    textOnLight: "#000000",
+
+    // Semantic states
     success: "#4CAF50",
     warning: "#F59E0B",
     error: "#FF5252",
@@ -79,8 +89,6 @@ const lightTheme: Colors["light"] = {
     white: "#FFFFFF",
     black: "#000000",
     overlay: "rgba(0, 0, 0, 0.5)",
-    textLight: "#FFFFFF",
-    textDark: "#000000",
   },
 };
 
@@ -101,11 +109,17 @@ const darkTheme: Colors["dark"] = {
     secondary: teal[400],
     neutral: "#495057",
 
-    "base-100": "#121212",
-    "base-200": "#1E1E1E",
-    "base-300": "#343A40",
-    "base-content": "#E5E5E5",
+    // Backgrounds
+    bgPrimary: "#121212",
+    bgSecondary: "#1E1E1E",
+    bgTertiary: "#343A40",
 
+    // Text colors
+    textPrimary: "#E5E5E5",
+    textOnDark: "#FFFFFF",
+    textOnLight: "#000000",
+
+    // Semantic states
     success: "#66BB6A",
     warning: "#FFA726",
     error: "#EF5350",
@@ -114,8 +128,6 @@ const darkTheme: Colors["dark"] = {
     white: "#FFFFFF",
     black: "#000000",
     overlay: "rgba(0, 0, 0, 0.7)",
-    textLight: "#FFFFFF",
-    textDark: "#000000",
   },
 };
 

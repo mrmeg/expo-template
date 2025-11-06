@@ -59,16 +59,16 @@ function Switch({
 
   // Dynamic border color with sufficient contrast against background
   const borderColor = getContrastingColor(
-    theme.colors['base-100'],
-    theme.colors['base-300'],
+    theme.colors.bgPrimary,
+    theme.colors.bgTertiary,
     theme.colors.neutral
   );
 
   // Calculate label color for ON state (when checked, background is primary)
   const labelOnColor = getContrastingColor(
     theme.colors.primary,
-    theme.colors.textLight,
-    theme.colors.textDark
+    theme.colors.textOnDark,
+    theme.colors.textOnLight
   );
 
   // Calculate positions and sizes
@@ -85,7 +85,7 @@ function Switch({
         borderRadius: size.height / 2,
         borderWidth: 0.75,
         borderColor: props.checked ? theme.colors.primary : borderColor,
-        backgroundColor: props.checked ? theme.colors.primary : theme.colors['base-300'],
+        backgroundColor: props.checked ? theme.colors.primary : theme.colors.bgTertiary,
         justifyContent: 'center',
         opacity: props.disabled ? 0.5 : 1,
         ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
@@ -147,7 +147,7 @@ function Switch({
           <SansSerifBoldText
             style={{
               fontSize: labelFontSize,
-              color: !props.checked ? theme.colors['base-content'] : 'transparent',
+              color: !props.checked ? theme.colors.textPrimary : 'transparent',
               userSelect: 'none',
             }}
           >

@@ -20,7 +20,7 @@ export interface IconProps {
    */
   className?: string;
   /**
-   * Icon color - defaults to theme's base-content
+   * Icon color - defaults to theme's textPrimary
    */
   color?: string;
 }
@@ -44,8 +44,8 @@ export function Icon({
 }: IconProps) {
   const { theme } = useTheme();
 
-  // Use provided color or default to theme's base-content
-  const iconColor = color || theme.colors['base-content'];
+  // Use provided color or default to theme's textPrimary
+  const iconColor = color || theme.colors.textPrimary;
 
   return (
     <LucideIconComponent

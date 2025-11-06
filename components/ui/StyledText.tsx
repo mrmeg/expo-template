@@ -84,7 +84,7 @@ export const Text = forwardRef<RNText, TextProps>((props, ref) => {
   const contextColor = React.useContext(TextColorContext);
 
   // Get themed color, prioritizing: explicit props > context > theme default
-  const themeColor = useThemeColor({ light: lightColor, dark: darkColor }, "base-content");
+  const themeColor = useThemeColor({ light: lightColor, dark: darkColor }, "textPrimary");
   // If explicit color props are provided, use them; otherwise use context; fallback to theme
   const color = (lightColor || darkColor) ? themeColor : (contextColor || themeColor);
 

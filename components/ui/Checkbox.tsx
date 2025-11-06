@@ -26,8 +26,8 @@ function Checkbox({
   // Dynamic border color with sufficient contrast against background
   // React 19 compiler automatically memoizes this calculation
   const borderColor = getContrastingColor(
-    theme.colors['base-100'],      // Background color
-    theme.colors['base-content'],  // Option 1: Main text color
+    theme.colors.bgPrimary,      // Background color
+    theme.colors.textPrimary,  // Option 1: Main text color
     theme.colors.neutral           // Option 2: Neutral gray
   );
 

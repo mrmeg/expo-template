@@ -77,8 +77,8 @@ export const TextInput = ({
             styles.input,
             {
               backgroundColor: backgroundColor,
-              borderColor: forceLight ? "#d1d5db" : theme.colors["base-300"],
-              color: forceLight ? "#1f2937" : getContrastingColor(backgroundColor, theme.colors["base-content"], theme.colors.white),
+              borderColor: forceLight ? "#d1d5db" : theme.colors.bgTertiary,
+              color: forceLight ? "#1f2937" : getContrastingColor(backgroundColor, theme.colors.textPrimary, theme.colors.white),
             },
             style,
             focused && focusedStyle,
@@ -127,6 +127,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   label: {
     marginBottom: spacing.xs,
     fontSize: 14,
-    color: theme.colors["base-content"],
+    color: theme.colors.textPrimary,
   }
 });
