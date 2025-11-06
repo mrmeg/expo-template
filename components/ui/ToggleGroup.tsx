@@ -187,8 +187,8 @@ function ToggleGroupItem({
       if (context.variant === 'outline') {
         return getContrastingColor(
           theme.colors.primary,
-          theme.colors.textOnDark,
-          theme.colors.textOnLight
+          theme.colors.textLight,
+          theme.colors.textDark
         );
       }
       return theme.colors.primary;

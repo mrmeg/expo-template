@@ -42,8 +42,8 @@ function PopoverContent({
   // Calculate text color for popover content based on background
   const textColor = getContrastingColor(
     theme.colors.bgPrimary,
-    theme.colors.textOnDark,
-    theme.colors.textOnLight
+    theme.colors.textLight,
+    theme.colors.textDark
   );
 
   const contentStyle = StyleSheet.flatten([
