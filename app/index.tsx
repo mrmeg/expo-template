@@ -325,12 +325,12 @@ export default function TestIndex() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Left</SansSerifBoldText>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Top Start</SansSerifBoldText>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent side="left" align="center">
+                <PopoverContent side="top" align="start">
                   <PopoverBody>
-                    <SansSerifText>Popover on left</SansSerifText>
+                    <SansSerifText>Aligned to start</SansSerifText>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -338,12 +338,12 @@ export default function TestIndex() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Right</SansSerifBoldText>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Top End</SansSerifBoldText>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent side="right" align="center">
+                <PopoverContent side="top" align="end">
                   <PopoverBody>
-                    <SansSerifText>Popover on right</SansSerifText>
+                    <SansSerifText>Aligned to end</SansSerifText>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -491,12 +491,12 @@ export default function TestIndex() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Left</SansSerifBoldText>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Bottom Start</SansSerifBoldText>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent side="left" align="center">
+                <DropdownMenuContent side="bottom" align="start">
                   <DropdownMenuItem>
-                    <SansSerifText>Menu on left</SansSerifText>
+                    <SansSerifText>Aligned to start</SansSerifText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -504,12 +504,12 @@ export default function TestIndex() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Right</SansSerifBoldText>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Bottom End</SansSerifBoldText>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="center">
+                <DropdownMenuContent side="bottom" align="end">
                   <DropdownMenuItem>
-                    <SansSerifText>Menu on right</SansSerifText>
+                    <SansSerifText>Aligned to end</SansSerifText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

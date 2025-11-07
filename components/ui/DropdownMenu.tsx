@@ -82,13 +82,10 @@ function DropdownMenuSubContent({
 }: DropdownMenuSubContentProps) {
   const { theme, getShadowStyle } = useTheme();
   const shadowStyle = StyleSheet.flatten(getShadowStyle("soft"));
-  const insets = useSafeAreaInsets();
 
   return (
     <NativeOnlyAnimatedView>
       <DropdownMenuPrimitive.SubContent
-        insets={insets}
-        avoidCollisions={true}
         {...props}
         style={{
           backgroundColor: theme.colors.bgPrimary,
