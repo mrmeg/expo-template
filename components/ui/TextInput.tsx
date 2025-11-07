@@ -3,7 +3,8 @@ import { StyleSheet, TextInput as RNTextInput, ViewStyle, TextInputProps, StyleP
 import { Entypo } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
-import { SansSerifText } from "./StyledText";
+import { fontFamilies } from "@/constants/fonts";
+import { Text } from "./StyledText";
 
 interface Props extends TextInputProps {
   focusedStyle?: object;
@@ -59,7 +60,7 @@ export const TextInput = ({
 
   return (
     <View style={wrapperStyle}>
-      {label && <SansSerifText style={styles.label}>{label}</SansSerifText>}
+      {label && <Text style={styles.label}>{label}</Text>}
       <View style={styles.wrapper}>
         <RNTextInput
           {...rest}
@@ -125,6 +126,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     backgroundColor: "transparent",
   },
   label: {
+    fontFamily: fontFamilies.sansSerif.regular,
     marginBottom: spacing.xs,
     fontSize: 14,
     color: theme.colors.textPrimary,

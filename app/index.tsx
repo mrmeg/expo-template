@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { StyleSheet } from "react-native";
 import { View } from "@/components/ui/Themed";
+import { Text } from "@/components/ui/StyledText";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Switch } from "@/components/ui/Switch";
@@ -11,9 +12,7 @@ import { Popover, PopoverTrigger, PopoverContent, PopoverBody } from "@/componen
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/Accordion";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuCheckboxItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuShortcut } from "@/components/ui/DropdownMenu";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/Collapsible";
-import { Alert } from "@/components/ui/Alert";
-import { Icon } from "@/components/ui/Icon";
-import { SansSerifBoldText, SansSerifText, SerifText, SerifBoldText } from "@/components/ui/StyledText";
+import { fontFamilies } from "@/constants/fonts";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -34,9 +33,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         shadowStyle,
       ]}
     >
-      <SerifBoldText style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
         {title}
-      </SerifBoldText>
+      </Text>
       {children}
     </View>
   );
@@ -46,9 +45,9 @@ function SubSection({ label, children }: { label?: string; children: React.React
   return (
     <View style={styles.subSection}>
       {label && (
-        <SansSerifText style={styles.subSectionLabel}>
+        <Text style={styles.subSectionLabel}>
           {label}
-        </SansSerifText>
+        </Text>
       )}
       {children}
     </View>
@@ -60,14 +59,14 @@ function ThemeToggle() {
 
   return (
     <View style={styles.themeToggleContainer}>
-      <SansSerifText style={styles.themeToggleLabel}>
+      <Text style={styles.themeToggleLabel}>
         Theme: {currentTheme === "system" ? "System" : scheme === "dark" ? "Dark" : "Light"}
-      </SansSerifText>
+      </Text>
       <Button onPress={toggleTheme} style={styles.themeToggleButton} preset="outline">
-        <SansSerifBoldText style={styles.themeToggleButtonText}>
+        <Text style={styles.themeToggleButtonText}>
           {`Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"
           }`}
-        </SansSerifBoldText>
+        </Text>
       </Button>
     </View>
   );
@@ -92,24 +91,24 @@ export default function ComponentShowcase() {
     <KeyboardAwareScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
         <View style={styles.headerContainer}>
-          <SansSerifBoldText style={[styles.appTitle, { color: theme.colors.textPrimary }]}>
-            Component Showcase
-          </SansSerifBoldText>
-          <SansSerifText style={[styles.subtitle, { color: theme.colors.textPrimary }]}>
-            Explore all the UI components and their variations
-          </SansSerifText>
+          <Text style={[styles.appTitle, { color: theme.colors.textPrimary }]}>
+            Test Page
+          </Text>
+          <Text style={[styles.subtitle, { color: theme.colors.textPrimary }]}>
+            Minimal version to test
+          </Text>
           <ThemeToggle />
         </View>
 
         <Section title="Typography">
-          <SansSerifText style={{ marginBottom: spacing.sm }}>
+          <Text style={styles.sansSerifText}>
             Sans Serif Text - Default body text
-          </SansSerifText>
-          <SansSerifBoldText style={{ marginBottom: spacing.sm }}>
+          </Text>
+          <Text style={styles.sansSerifBoldText}>
             Sans Serif Bold - Emphasized text
-          </SansSerifBoldText>
-          <SerifText style={{ marginBottom: spacing.sm }}>Serif Text - Elegant headings</SerifText>
-          <SerifBoldText>Serif Bold - Strong emphasis</SerifBoldText>
+          </Text>
+          <Text style={styles.serifText}>Serif Text - Elegant headings</Text>
+          <Text style={styles.serifBoldText}>Serif Bold - Strong emphasis</Text>
         </Section>
 
         <Section title="Alert">
@@ -245,17 +244,17 @@ export default function ComponentShowcase() {
         <Section title="Buttons">
           <SubSection label="Default">
             <Button preset="default" onPress={() => console.log("Default button pressed")}>
-              <SansSerifBoldText>Default Button</SansSerifBoldText>
+              <Text style={styles.buttonText}>Default Button</Text>
             </Button>
           </SubSection>
           <SubSection label="Outline">
             <Button preset="outline" onPress={() => console.log("Outline button pressed")}>
-              <SansSerifBoldText>Outline Button</SansSerifBoldText>
+              <Text style={styles.buttonText}>Outline Button</Text>
             </Button>
           </SubSection>
           <SubSection label="Disabled">
             <Button preset="default" disabled onPress={() => console.log("Won't be called")}>
-              <SansSerifBoldText>Disabled Button</SansSerifBoldText>
+              <Text style={styles.buttonText}>Disabled Button</Text>
             </Button>
           </SubSection>
         </Section>
@@ -280,13 +279,13 @@ export default function ComponentShowcase() {
         <Section title="Switch">
           <SubSection label="Basic">
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <SansSerifText>Basic Switch</SansSerifText>
+              <Text style={styles.labelText}>Basic Switch</Text>
               <Switch checked={toggleValue} onCheckedChange={setToggleValue} />
             </View>
           </SubSection>
           <SubSection label="With Labels">
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <SansSerifText>Switch with Labels</SansSerifText>
+              <Text style={styles.labelText}>Switch with Labels</Text>
               <Switch
                 size={{ width: 60, height: 32 }}
                 checked={toggleValue}
@@ -298,7 +297,7 @@ export default function ComponentShowcase() {
           </SubSection>
           <SubSection label="Large Size">
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <SansSerifText>Large Switch</SansSerifText>
+              <Text style={styles.labelText}>Large Switch</Text>
               <Switch
                 checked={toggleValue}
                 onCheckedChange={setToggleValue}
@@ -317,34 +316,34 @@ export default function ComponentShowcase() {
               checked={checkbox1}
               onCheckedChange={setCheckbox1}
             />
-            <SansSerifText>Checkbox Option 1</SansSerifText>
+            <Text style={styles.labelText}>Checkbox Option 1</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
             <Checkbox
               checked={checkbox2}
               onCheckedChange={setCheckbox2}
             />
-            <SansSerifText>Checkbox Option 2 (initially checked)</SansSerifText>
+            <Text style={styles.labelText}>Checkbox Option 2 (initially checked)</Text>
           </View>
         </Section>
 
         <Section title="Toggle & Toggle Group">
           <SubSection label="Single Toggle">
             <Toggle pressed={singleTogglePressed} onPressedChange={setSingleTogglePressed}>
-              <SansSerifText>Toggle Me</SansSerifText>
+              <Text style={styles.labelText}>Toggle Me</Text>
             </Toggle>
           </SubSection>
 
           <SubSection label="Toggle Group - Single Selection">
             <ToggleGroup type="single" value={alignment} onValueChange={setAlignment}>
               <ToggleGroupItem value="left">
-                <SansSerifText>Left</SansSerifText>
+                <Text style={styles.labelText}>Left</Text>
               </ToggleGroupItem>
               <ToggleGroupItem value="center">
-                <SansSerifText>Center</SansSerifText>
+                <Text style={styles.labelText}>Center</Text>
               </ToggleGroupItem>
               <ToggleGroupItem value="right">
-                <SansSerifText>Right</SansSerifText>
+                <Text style={styles.labelText}>Right</Text>
               </ToggleGroupItem>
             </ToggleGroup>
           </SubSection>
@@ -352,13 +351,13 @@ export default function ComponentShowcase() {
           <SubSection label="Toggle Group - Multiple Selection">
             <ToggleGroup type="multiple" value={formats} onValueChange={setFormats}>
               <ToggleGroupItem value="bold">
-                <SansSerifBoldText>B</SansSerifBoldText>
+                <Text style={styles.buttonText}>B</Text>
               </ToggleGroupItem>
               <ToggleGroupItem value="italic">
-                <SansSerifText style={{ fontStyle: "italic" }}>I</SansSerifText>
+                <Text style={[styles.labelText, { fontStyle: "italic" }]}>I</Text>
               </ToggleGroupItem>
               <ToggleGroupItem value="underline">
-                <SansSerifText style={{ textDecorationLine: "underline" }}>U</SansSerifText>
+                <Text style={[styles.labelText, { textDecorationLine: "underline" }]}>U</Text>
               </ToggleGroupItem>
             </ToggleGroup>
           </SubSection>
@@ -366,13 +365,13 @@ export default function ComponentShowcase() {
           <SubSection label="Outline Variant">
             <ToggleGroup type="single" variant="outline" value={alignment} onValueChange={setAlignment}>
               <ToggleGroupItem value="left">
-                <SansSerifText>Left</SansSerifText>
+                <Text style={styles.labelText}>Left</Text>
               </ToggleGroupItem>
               <ToggleGroupItem value="center">
-                <SansSerifText>Center</SansSerifText>
+                <Text style={styles.labelText}>Center</Text>
               </ToggleGroupItem>
               <ToggleGroupItem value="right">
-                <SansSerifText>Right</SansSerifText>
+                <Text style={styles.labelText}>Right</Text>
               </ToggleGroupItem>
             </ToggleGroup>
           </SubSection>
@@ -380,13 +379,13 @@ export default function ComponentShowcase() {
           <SubSection label="Small Size">
             <ToggleGroup type="single" size="sm" value={alignment} onValueChange={setAlignment}>
               <ToggleGroupItem value="left">
-                <SansSerifText>L</SansSerifText>
+                <Text style={styles.labelText}>L</Text>
               </ToggleGroupItem>
               <ToggleGroupItem value="center">
-                <SansSerifText>C</SansSerifText>
+                <Text style={styles.labelText}>C</Text>
               </ToggleGroupItem>
               <ToggleGroupItem value="right">
-                <SansSerifText>R</SansSerifText>
+                <Text style={styles.labelText}>R</Text>
               </ToggleGroupItem>
             </ToggleGroup>
           </SubSection>
@@ -396,32 +395,32 @@ export default function ComponentShowcase() {
           <Accordion type="single" collapsible defaultValue={undefined}>
             <AccordionItem value="item-1">
               <AccordionTrigger>
-                <SansSerifBoldText>What is React Native?</SansSerifBoldText>
+                <Text style={styles.buttonText}>What is React Native?</Text>
               </AccordionTrigger>
               <AccordionContent>
-                <SansSerifText>
+                <Text style={styles.labelText}>
                   React Native is a framework for building native mobile applications using React and JavaScript.
-                </SansSerifText>
+                </Text>
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-2">
               <AccordionTrigger>
-                <SansSerifBoldText>What is Expo?</SansSerifBoldText>
+                <Text style={styles.buttonText}>What is Expo?</Text>
               </AccordionTrigger>
               <AccordionContent>
-                <SansSerifText>
+                <Text style={styles.labelText}>
                   Expo is a platform that makes it easier to build and deploy React Native applications with a rich set of tools and services.
-                </SansSerifText>
+                </Text>
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-3">
               <AccordionTrigger>
-                <SansSerifBoldText>What are primitives?</SansSerifBoldText>
+                <Text style={styles.buttonText}>What are primitives?</Text>
               </AccordionTrigger>
               <AccordionContent>
-                <SansSerifText>
+                <Text style={styles.labelText}>
                   Primitives are unstyled, accessible UI components that work across iOS, Android, and Web platforms.
-                </SansSerifText>
+                </Text>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
@@ -433,12 +432,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Top</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Top</Text>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="top" align="center">
                   <PopoverBody>
-                    <SansSerifText>Popover on top</SansSerifText>
+                    <Text style={styles.labelText}>Popover on top</Text>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -446,12 +445,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Bottom</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Bottom</Text>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="center">
                   <PopoverBody>
-                    <SansSerifText>Popover on bottom</SansSerifText>
+                    <Text style={styles.labelText}>Popover on bottom</Text>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -459,12 +458,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Top Start</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Top Start</Text>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="top" align="start">
                   <PopoverBody>
-                    <SansSerifText>Aligned to start</SansSerifText>
+                    <Text style={styles.labelText}>Aligned to start</Text>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -472,12 +471,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Top End</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Top End</Text>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="top" align="end">
                   <PopoverBody>
-                    <SansSerifText>Aligned to end</SansSerifText>
+                    <Text style={styles.labelText}>Aligned to end</Text>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -489,12 +488,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Start</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Start</Text>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="start">
                   <PopoverBody>
-                    <SansSerifText>Aligned to start</SansSerifText>
+                    <Text style={styles.labelText}>Aligned to start</Text>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -502,12 +501,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Center</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Center</Text>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="center">
                   <PopoverBody>
-                    <SansSerifText>Aligned to center</SansSerifText>
+                    <Text style={styles.labelText}>Aligned to center</Text>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -515,12 +514,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>End</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>End</Text>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="end">
                   <PopoverBody>
-                    <SansSerifText>Aligned to end</SansSerifText>
+                    <Text style={styles.labelText}>Aligned to end</Text>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -532,12 +531,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Offset 0</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Offset 0</Text>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="start" sideOffset={0}>
                   <PopoverBody>
-                    <SansSerifText>No offset from trigger</SansSerifText>
+                    <Text style={styles.labelText}>No offset from trigger</Text>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -545,12 +544,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Offset 16</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Offset 16</Text>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="start" sideOffset={16}>
                   <PopoverBody>
-                    <SansSerifText>16px from trigger</SansSerifText>
+                    <Text style={styles.labelText}>16px from trigger</Text>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -558,12 +557,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Offset 32</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Offset 32</Text>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="start" sideOffset={32}>
                   <PopoverBody>
-                    <SansSerifText>32px from trigger</SansSerifText>
+                    <Text style={styles.labelText}>32px from trigger</Text>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -574,18 +573,18 @@ export default function ComponentShowcase() {
             <Popover>
               <PopoverTrigger asChild>
                 <Button preset="outline">
-                  <SansSerifBoldText>View Profile</SansSerifBoldText>
+                  <Text style={styles.buttonText}>View Profile</Text>
                 </Button>
               </PopoverTrigger>
               <PopoverContent side="bottom" align="start" sideOffset={8}>
                 <View style={{ minWidth: 200 }}>
                   <View style={{ paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.colors.bgTertiary }}>
-                    <SansSerifBoldText style={{ fontSize: 16 }}>John Doe</SansSerifBoldText>
-                    <SansSerifText style={{ fontSize: 12, opacity: 0.7 }}>john@example.com</SansSerifText>
+                    <Text style={[styles.buttonText, { fontSize: 16 }]}>John Doe</Text>
+                    <Text style={[styles.labelText, { fontSize: 12, opacity: 0.7 }]}>john@example.com</Text>
                   </View>
                   <View style={{ paddingTop: spacing.sm }}>
-                    <SansSerifText style={{ fontSize: 14, marginBottom: spacing.xs }}>Member since 2024</SansSerifText>
-                    <SansSerifText style={{ fontSize: 14 }}>Premium Account</SansSerifText>
+                    <Text style={[styles.labelText, { fontSize: 14, marginBottom: spacing.xs }]}>Member since 2024</Text>
+                    <Text style={[styles.labelText, { fontSize: 14 }]}>Premium Account</Text>
                   </View>
                 </View>
               </PopoverContent>
@@ -599,12 +598,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Top</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Top</Text>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="center">
                   <DropdownMenuItem>
-                    <SansSerifText>Menu on top</SansSerifText>
+                    <Text style={styles.labelText}>Menu on top</Text>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -612,12 +611,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Bottom</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Bottom</Text>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="center">
                   <DropdownMenuItem>
-                    <SansSerifText>Menu on bottom</SansSerifText>
+                    <Text style={styles.labelText}>Menu on bottom</Text>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -625,12 +624,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Bottom Start</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Bottom Start</Text>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="start">
                   <DropdownMenuItem>
-                    <SansSerifText>Aligned to start</SansSerifText>
+                    <Text style={styles.labelText}>Aligned to start</Text>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -638,12 +637,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Bottom End</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Bottom End</Text>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="end">
                   <DropdownMenuItem>
-                    <SansSerifText>Aligned to end</SansSerifText>
+                    <Text style={styles.labelText}>Aligned to end</Text>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -655,15 +654,15 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Start</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Start</Text>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="start">
                   <DropdownMenuItem>
-                    <SansSerifText>Aligned to start</SansSerifText>
+                    <Text style={styles.labelText}>Aligned to start</Text>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <SansSerifText>Option 2</SansSerifText>
+                    <Text style={styles.labelText}>Option 2</Text>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -671,15 +670,15 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Center</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Center</Text>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="center">
                   <DropdownMenuItem>
-                    <SansSerifText>Aligned to center</SansSerifText>
+                    <Text style={styles.labelText}>Aligned to center</Text>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <SansSerifText>Option 2</SansSerifText>
+                    <Text style={styles.labelText}>Option 2</Text>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -687,15 +686,15 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>End</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>End</Text>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="end">
                   <DropdownMenuItem>
-                    <SansSerifText>Aligned to end</SansSerifText>
+                    <Text style={styles.labelText}>Aligned to end</Text>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <SansSerifText>Option 2</SansSerifText>
+                    <Text style={styles.labelText}>Option 2</Text>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -707,12 +706,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Offset 0</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Offset 0</Text>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="start" sideOffset={0}>
                   <DropdownMenuItem>
-                    <SansSerifText>No offset</SansSerifText>
+                    <Text style={styles.labelText}>No offset</Text>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -720,12 +719,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Offset 16</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Offset 16</Text>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="start" sideOffset={16}>
                   <DropdownMenuItem>
-                    <SansSerifText>16px offset</SansSerifText>
+                    <Text style={styles.labelText}>16px offset</Text>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -733,12 +732,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifBoldText style={{ fontSize: 12 }}>Offset 32</SansSerifBoldText>
+                    <Text style={styles.smallButtonText}>Offset 32</Text>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="start" sideOffset={32}>
                   <DropdownMenuItem>
-                    <SansSerifText>32px offset</SansSerifText>
+                    <Text style={styles.labelText}>32px offset</Text>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -749,21 +748,21 @@ export default function ComponentShowcase() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button preset="outline">
-                  <SansSerifBoldText>Open Menu</SansSerifBoldText>
+                  <Text style={styles.buttonText}>Open Menu</Text>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem>
-                  <SansSerifText>Profile</SansSerifText>
+                  <Text style={styles.labelText}>Profile</Text>
                   <DropdownMenuShortcut>⌘P</DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <SansSerifText>Settings</SansSerifText>
+                  <Text style={styles.labelText}>Settings</Text>
                   <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive">
-                  <SansSerifText>Logout</SansSerifText>
+                  <Text style={styles.labelText}>Logout</Text>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -773,25 +772,25 @@ export default function ComponentShowcase() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button preset="outline">
-                  <SansSerifBoldText>View Options</SansSerifBoldText>
+                  <Text style={styles.buttonText}>View Options</Text>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuLabel>
-                  <SansSerifBoldText>Appearance</SansSerifBoldText>
+                  <Text style={styles.buttonText}>Appearance</Text>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuCheckboxItem
                   checked={showBookmarks}
                   onCheckedChange={setShowBookmarks}
                 >
-                  <SansSerifText>Show Bookmarks</SansSerifText>
+                  <Text style={styles.labelText}>Show Bookmarks</Text>
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem
                   checked={showUrls}
                   onCheckedChange={setShowUrls}
                 >
-                  <SansSerifText>Show Full URLs</SansSerifText>
+                  <Text style={styles.labelText}>Show Full URLs</Text>
                 </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -801,23 +800,23 @@ export default function ComponentShowcase() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button preset="outline">
-                  <SansSerifBoldText>Panel Position</SansSerifBoldText>
+                  <Text style={styles.buttonText}>Panel Position</Text>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuLabel>
-                  <SansSerifBoldText>Position</SansSerifBoldText>
+                  <Text style={styles.buttonText}>Position</Text>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup value={statusBarPosition} onValueChange={setStatusBarPosition}>
                   <DropdownMenuRadioItem value="top">
-                    <SansSerifText>Top</SansSerifText>
+                    <Text style={styles.labelText}>Top</Text>
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="bottom">
-                    <SansSerifText>Bottom</SansSerifText>
+                    <Text style={styles.labelText}>Bottom</Text>
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="right">
-                    <SansSerifText>Right</SansSerifText>
+                    <Text style={styles.labelText}>Right</Text>
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
@@ -828,30 +827,30 @@ export default function ComponentShowcase() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button preset="outline">
-                  <SansSerifBoldText>Advanced Menu</SansSerifBoldText>
+                  <Text style={styles.buttonText}>Advanced Menu</Text>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem>
-                  <SansSerifText>New File</SansSerifText>
+                  <Text style={styles.labelText}>New File</Text>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <SansSerifText>New Window</SansSerifText>
+                  <Text style={styles.labelText}>New Window</Text>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
-                    <SansSerifText>More Tools</SansSerifText>
+                    <Text style={styles.labelText}>More Tools</Text>
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     <DropdownMenuItem>
-                      <SansSerifText>Developer Tools</SansSerifText>
+                      <Text style={styles.labelText}>Developer Tools</Text>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
-                      <SansSerifText>Task Manager</SansSerifText>
+                      <Text style={styles.labelText}>Task Manager</Text>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
-                      <SansSerifText>Extensions</SansSerifText>
+                      <Text style={styles.labelText}>Extensions</Text>
                     </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
@@ -865,18 +864,18 @@ export default function ComponentShowcase() {
             <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
               <CollapsibleTrigger>
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
-                  <SansSerifBoldText>Can I use this in my project?</SansSerifBoldText>
-                  <SansSerifText style={{ fontSize: 18, opacity: 0.7 }}>
+                  <Text style={styles.buttonText}>Can I use this in my project?</Text>
+                  <Text style={[styles.labelText, { fontSize: 18, opacity: 0.7 }]}>
                     {collapsibleOpen ? "−" : "+"}
-                  </SansSerifText>
+                  </Text>
                 </View>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <View style={{ paddingTop: spacing.sm }}>
-                  <SansSerifText>
+                  <Text style={styles.labelText}>
                     Yes! This is a reusable collapsible component built with @rn-primitives/collapsible.
                     It supports smooth animations and works across iOS, Android, and Web.
-                  </SansSerifText>
+                  </Text>
                 </View>
               </CollapsibleContent>
             </Collapsible>
@@ -885,10 +884,10 @@ export default function ComponentShowcase() {
           <SubSection label="With Button Trigger (asChild)">
             <Collapsible>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm }}>
-                <SansSerifBoldText>@peduarte starred 3 repositories</SansSerifBoldText>
+                <Text style={styles.buttonText}>@peduarte starred 3 repositories</Text>
                 <CollapsibleTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <SansSerifText style={{ fontSize: 12 }}>Toggle</SansSerifText>
+                    <Text style={[styles.labelText, { fontSize: 12 }]}>Toggle</Text>
                   </Button>
                 </CollapsibleTrigger>
               </View>
@@ -899,7 +898,7 @@ export default function ComponentShowcase() {
                 padding: spacing.md,
                 marginBottom: spacing.sm
               }}>
-                <SansSerifText>@radix-ui/primitives</SansSerifText>
+                <Text style={styles.labelText}>@radix-ui/primitives</Text>
               </View>
               <CollapsibleContent>
                 <View style={{ gap: spacing.sm }}>
@@ -909,7 +908,7 @@ export default function ComponentShowcase() {
                     borderRadius: spacing.radiusMd,
                     padding: spacing.md
                   }}>
-                    <SansSerifText>@radix-ui/react</SansSerifText>
+                    <Text style={styles.labelText}>@radix-ui/react</Text>
                   </View>
                   <View style={{
                     borderWidth: 1,
@@ -917,7 +916,7 @@ export default function ComponentShowcase() {
                     borderRadius: spacing.radiusMd,
                     padding: spacing.md
                   }}>
-                    <SansSerifText>@stitches/core</SansSerifText>
+                    <Text style={styles.labelText}>@stitches/core</Text>
                   </View>
                 </View>
               </CollapsibleContent>
@@ -949,12 +948,14 @@ const styles = StyleSheet.create({
   },
   appTitle: {
     fontSize: 32,
+    fontFamily: fontFamilies.sansSerif.bold,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: 14,
+    fontFamily: fontFamilies.sansSerif.regular,
     textAlign: "center",
     opacity: 0.7,
     marginBottom: spacing.lg,
@@ -967,6 +968,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
+    fontFamily: fontFamilies.serif.bold,
     marginBottom: spacing.lg,
   },
   subSection: {
@@ -974,8 +976,36 @@ const styles = StyleSheet.create({
   },
   subSectionLabel: {
     fontSize: 12,
+    fontFamily: fontFamilies.sansSerif.regular,
     opacity: 0.7,
     marginBottom: spacing.xs,
+  },
+  // Typography demo styles
+  sansSerifText: {
+    fontFamily: fontFamilies.sansSerif.regular,
+    marginBottom: spacing.sm,
+  },
+  sansSerifBoldText: {
+    fontFamily: fontFamilies.sansSerif.bold,
+    marginBottom: spacing.sm,
+  },
+  serifText: {
+    fontFamily: fontFamilies.serif.regular,
+    marginBottom: spacing.sm,
+  },
+  serifBoldText: {
+    fontFamily: fontFamilies.serif.bold,
+  },
+  // Component text styles
+  labelText: {
+    fontFamily: fontFamilies.sansSerif.regular,
+  },
+  buttonText: {
+    fontFamily: fontFamilies.sansSerif.bold,
+  },
+  smallButtonText: {
+    fontFamily: fontFamilies.sansSerif.bold,
+    fontSize: 12,
   },
   themeToggleContainer: {
     flexDirection: "row",
@@ -983,6 +1013,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   themeToggleLabel: {
+    fontFamily: fontFamilies.sansSerif.regular,
     marginRight: spacing.buttonPadding,
     fontSize: 14,
   },
@@ -992,6 +1023,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   themeToggleButtonText: {
+    fontFamily: fontFamilies.sansSerif.bold,
     fontSize: 14,
     fontWeight: "500",
   },

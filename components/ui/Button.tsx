@@ -14,7 +14,8 @@ import {
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import { TextProps } from "./Themed";
-import { SansSerifText, TextColorContext } from "./StyledText";
+import { Text, TextColorContext } from "./StyledText";
+import { fontFamilies } from "@/constants/fonts";
 
 type Presets = "default" | "outline";
 
@@ -168,10 +169,7 @@ export function Button(props: ButtonProps) {
             )}
 
             {(tx || text) ? (
-              <SansSerifText
-                tx={tx}
-                text={text}
-                txOptions={txOptions}
+              <Text
                 style={[
                   styles.text,
                   state.pressed && styles.pressedText,
@@ -179,7 +177,9 @@ export function Button(props: ButtonProps) {
                   disabled && disabledTextStyleOverride,
                   textStyleOverride,
                 ]}
-              />
+              >
+                {tx || text}
+              </Text>
             ) : (
               children
             )}
@@ -235,6 +235,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     default: {},
   }) as ViewStyle,
   text: {
+    fontFamily: fontFamilies.sansSerif.bold,
     fontSize: 16,
     fontWeight: "500",
     textAlign: "center",
