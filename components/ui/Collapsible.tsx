@@ -1,9 +1,9 @@
-import { TextClassContext } from '@/components/ui/StyledText';
-import { useTheme } from '@/hooks/useTheme';
-import { spacing } from '@/constants/spacing';
-import * as CollapsiblePrimitive from '@rn-primitives/collapsible';
-import * as React from 'react';
-import { Animated, Platform, StyleSheet, View } from 'react-native';
+import { TextClassContext } from "@/components/ui/StyledText";
+import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/constants/spacing";
+import * as CollapsiblePrimitive from "@rn-primitives/collapsible";
+import * as React from "react";
+import { Animated, Platform, StyleSheet, View } from "react-native";
 
 /**
  * Collapsible Component (Root)
@@ -27,7 +27,7 @@ type CollapsibleProps = CollapsiblePrimitive.RootProps;
 
 function Collapsible({ children, ...props }: CollapsibleProps) {
   return (
-    <CollapsiblePrimitive.Root {...props} asChild={Platform.OS !== 'web'}>
+    <CollapsiblePrimitive.Root {...props} asChild={Platform.OS !== "web"}>
       <View>{children}</View>
     </CollapsiblePrimitive.Root>
   );
@@ -63,15 +63,15 @@ function CollapsibleTrigger({ style: styleOverride, ...props }: CollapsibleTrigg
       <CollapsiblePrimitive.Trigger
         {...props}
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
           paddingVertical: spacing.sm,
-          ...(Platform.OS === 'web' && {
-            cursor: 'pointer' as any,
-            outlineStyle: 'none' as any,
+          ...(Platform.OS === "web" && {
+            cursor: "pointer" as any,
+            outlineStyle: "none" as any,
           }),
-          ...(styleOverride && typeof styleOverride !== 'function'
+          ...(styleOverride && typeof styleOverride !== "function"
             ? StyleSheet.flatten(styleOverride)
             : {}),
         }}
@@ -119,9 +119,9 @@ function CollapsibleContent({
       >
         <Animated.View
           style={{
-            overflow: 'hidden',
+            overflow: "hidden",
             opacity: fadeAnim,
-            ...(styleOverride && typeof styleOverride !== 'function'
+            ...(styleOverride && typeof styleOverride !== "function"
               ? StyleSheet.flatten(styleOverride)
               : {}),
           }}

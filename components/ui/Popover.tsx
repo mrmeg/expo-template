@@ -1,11 +1,11 @@
-import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view';
-import { TextClassContext, TextColorContext } from '@/components/ui/StyledText';
-import { useTheme } from '@/hooks/useTheme';
-import { spacing } from '@/constants/spacing';
-import * as PopoverPrimitive from '@rn-primitives/popover';
-import * as React from 'react';
-import { Platform, StyleSheet, View, ViewProps } from 'react-native';
-import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
+import { NativeOnlyAnimatedView } from "@/components/ui/native-only-animated-view";
+import { TextClassContext, TextColorContext } from "@/components/ui/StyledText";
+import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/constants/spacing";
+import * as PopoverPrimitive from "@rn-primitives/popover";
+import * as React from "react";
+import { Platform, StyleSheet, View, ViewProps } from "react-native";
+import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 
 /**
  * Popover Trigger Component
@@ -17,7 +17,7 @@ const PopoverTrigger = PopoverPrimitive.Trigger;
  * FullWindowOverlay wrapper - uses native overlay on iOS for proper z-index handling
  * On Android/Web, uses Fragment to avoid unnecessary nesting
  */
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment;
+const FullWindowOverlay = Platform.OS === "ios" ? RNFullWindowOverlay : React.Fragment;
 
 interface PopoverContentProps extends PopoverPrimitive.ContentProps {
   /**
@@ -32,7 +32,7 @@ interface PopoverContentProps extends PopoverPrimitive.ContentProps {
  * Supports smart positioning, animations, and theme integration
  */
 function PopoverContent({
-  align = 'center',
+  align = "center",
   sideOffset = 4,
   portalHost,
   ...props
@@ -53,7 +53,7 @@ function PopoverContent({
       borderWidth: 2,
       borderRadius: spacing.radiusMd,
       padding: spacing.md,
-      ...getShadowStyle('soft'),
+      ...getShadowStyle("soft"),
     },
   ]);
 

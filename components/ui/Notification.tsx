@@ -121,16 +121,16 @@ export const Notification = () => {
 
   const getIconProps = () => {
     switch (alert?.type) {
-      case "error":
-        return { icon: AlertCircle, color: theme.colors.error };
-      case "success":
-        return { icon: CheckCircle, color: theme.colors.success };
-      case "warning":
-        return { icon: AlertTriangle, color: theme.colors.warning };
-      case "info":
-        return { icon: Info, color: theme.colors.textPrimary };
-      default:
-        return { icon: Info, color: theme.colors.textPrimary };
+    case "error":
+      return { icon: AlertCircle, color: theme.colors.error };
+    case "success":
+      return { icon: CheckCircle, color: theme.colors.success };
+    case "warning":
+      return { icon: AlertTriangle, color: theme.colors.warning };
+    case "info":
+      return { icon: Info, color: theme.colors.textPrimary };
+    default:
+      return { icon: Info, color: theme.colors.textPrimary };
     }
   };
 
@@ -138,16 +138,16 @@ export const Notification = () => {
     if (alert?.title) return alert.title;
 
     switch (alert?.type) {
-      case "error":
-        return "Error";
-      case "success":
-        return "Success";
-      case "warning":
-        return "Warning";
-      case "info":
-        return "";
-      default:
-        return "";
+    case "error":
+      return "Error";
+    case "success":
+      return "Success";
+    case "warning":
+      return "Warning";
+    case "info":
+      return "";
+    default:
+      return "";
     }
   };
 
@@ -169,7 +169,7 @@ export const Notification = () => {
     >
       <View style={[
         styles.alert,
-        !theme.dark && { ...getShadowStyle('soft') }
+        !theme.dark && { ...getShadowStyle("soft") }
       ]}>
         <View style={styles.iconContainer}>
           {alert?.loading ? (

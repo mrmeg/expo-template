@@ -16,17 +16,17 @@ export const useThemeStore = create<ThemeStore>((set) => ({
   setTheme: (theme) => {
     set({ userTheme: theme });
     // Save directly when setting theme
-    if (Platform.OS !== 'web') {
+    if (Platform.OS !== "web") {
       AsyncStorage.setItem(THEME_KEY, theme).catch(() => {
         // Silently fail if storage is not available
       });
-    } else if (typeof window !== 'undefined' && window.localStorage) {
+    } else if (typeof window !== "undefined" && window.localStorage) {
       localStorage.setItem(THEME_KEY, theme);
     }
   },
 
   loadTheme: () => {
-    if (Platform.OS !== 'web') {
+    if (Platform.OS !== "web") {
       AsyncStorage.getItem(THEME_KEY).then((saved) => {
         if (saved && (saved === "system" || saved === "light" || saved === "dark")) {
           set({ userTheme: saved });
@@ -34,7 +34,7 @@ export const useThemeStore = create<ThemeStore>((set) => ({
       }).catch(() => {
         // Use default if loading fails
       });
-    } else if (typeof window !== 'undefined' && window.localStorage) {
+    } else if (typeof window !== "undefined" && window.localStorage) {
       const saved = localStorage.getItem(THEME_KEY);
       if (saved && (saved === "system" || saved === "light" || saved === "dark")) {
         set({ userTheme: saved });

@@ -2,7 +2,7 @@ import { Colors, colors } from "@/constants/colors";
 import { useColorScheme as useColorSchemeDefault, ViewStyle, Platform } from "react-native";
 import { useThemeStore } from "@/stores/themeStore";
 
-type ShadowType = 'base' | 'soft' | 'sharp' | 'subtle';
+type ShadowType = "base" | "soft" | "sharp" | "subtle";
 
 interface ExtendedColorScheme {
   theme: Colors["light" | "dark"];
@@ -41,7 +41,7 @@ export function useTheme(): ExtendedColorScheme & {
   toggleTheme: () => void;
   setTheme: (theme: "system" | "light" | "dark") => void;
   currentTheme: "system" | "light" | "dark";
-} {
+  } {
   const { userTheme, setTheme } = useThemeStore();
   let defaultScheme = useColorSchemeDefault();
 

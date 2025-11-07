@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Animated, ViewProps } from 'react-native';
+import React, { useEffect, useState } from "react";
+import { Animated, ViewProps } from "react-native";
 
 interface AnimatedViewProps extends ViewProps {
   children: React.ReactNode;

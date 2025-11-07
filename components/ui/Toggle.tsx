@@ -1,11 +1,11 @@
-import { Icon } from '@/components/ui/Icon';
-import { TextClassContext, TextColorContext } from '@/components/ui/StyledText';
-import { useTheme } from '@/hooks/useTheme';
-import { spacing } from '@/constants/spacing';
-import * as TogglePrimitive from '@rn-primitives/toggle';
-import * as React from 'react';
-import { Platform, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import type { LucideIcon } from 'lucide-react-native';
+import { Icon } from "@/components/ui/Icon";
+import { TextClassContext, TextColorContext } from "@/components/ui/StyledText";
+import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/constants/spacing";
+import * as TogglePrimitive from "@rn-primitives/toggle";
+import * as React from "react";
+import { Platform, StyleSheet, ViewStyle, TextStyle } from "react-native";
+import type { LucideIcon } from "lucide-react-native";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -34,8 +34,8 @@ const TOGGLE_SIZES = {
   },
 };
 
-type ToggleVariant = 'default' | 'outline';
-type ToggleSize = 'sm' | 'default' | 'lg';
+type ToggleVariant = "default" | "outline";
+type ToggleSize = "sm" | "default" | "lg";
 
 interface ToggleProps extends TogglePrimitive.RootProps {
   /**
@@ -75,8 +75,8 @@ interface ToggleProps extends TogglePrimitive.RootProps {
  * ```
  */
 function Toggle({
-  variant = 'default',
-  size = 'default',
+  variant = "default",
+  size = "default",
   ...props
 }: ToggleProps) {
   const { theme, getContrastingColor, withAlpha } = useTheme();
@@ -86,7 +86,7 @@ function Toggle({
   // Calculate text color based on state and variant
   const getTextColor = () => {
     if (props.pressed) {
-      if (variant === 'outline') {
+      if (variant === "outline") {
         // When pressed with outline variant, background is primary
         return getContrastingColor(
           theme.colors.primary,
@@ -98,7 +98,7 @@ function Toggle({
       return theme.colors.primary;
     }
     // When not pressed, use base content or primary for outline
-    return variant === 'outline' ? theme.colors.primary : theme.colors.textPrimary;
+    return variant === "outline" ? theme.colors.primary : theme.colors.textPrimary;
   };
 
   const textColor = getTextColor();
@@ -107,48 +107,48 @@ function Toggle({
     <TextColorContext.Provider value={textColor}>
       <TextClassContext.Provider value="">
         <TogglePrimitive.Root
-        {...props}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: spacing.sm,
-          height: sizeConfig.height,
-          minWidth: sizeConfig.minWidth,
-          paddingHorizontal: sizeConfig.paddingHorizontal,
-          borderRadius: spacing.radiusMd,
-          borderWidth: 1,
-          // Base variant styles
-          ...(variant === 'default' && !props.pressed && {
-            backgroundColor: 'transparent',
-            borderColor: theme.colors.bgTertiary,
-          }),
-          ...(variant === 'default' && props.pressed && {
-            backgroundColor: withAlpha(theme.colors.primary, 0.1),
-            borderColor: theme.colors.primary,
-          }),
-          // Outline variant styles
-          ...(variant === 'outline' && !props.pressed && {
-            backgroundColor: 'transparent',
-            borderColor: theme.colors.primary,
-          }),
-          ...(variant === 'outline' && props.pressed && {
-            backgroundColor: theme.colors.primary,
-            borderColor: theme.colors.primary,
-          }),
-          // Disabled state
-          opacity: props.disabled ? 0.5 : 1,
-          // Web-specific styles
-          ...(Platform.OS === 'web' && {
-            cursor: props.disabled ? 'not-allowed' : ('pointer' as any),
-            transition: 'all 0.2s',
-          }),
-        }}
-        hitSlop={DEFAULT_HIT_SLOP}
-      >
-        {props.children}
-      </TogglePrimitive.Root>
-    </TextClassContext.Provider>
+          {...props}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: spacing.sm,
+            height: sizeConfig.height,
+            minWidth: sizeConfig.minWidth,
+            paddingHorizontal: sizeConfig.paddingHorizontal,
+            borderRadius: spacing.radiusMd,
+            borderWidth: 1,
+            // Base variant styles
+            ...(variant === "default" && !props.pressed && {
+              backgroundColor: "transparent",
+              borderColor: theme.colors.bgTertiary,
+            }),
+            ...(variant === "default" && props.pressed && {
+              backgroundColor: withAlpha(theme.colors.primary, 0.1),
+              borderColor: theme.colors.primary,
+            }),
+            // Outline variant styles
+            ...(variant === "outline" && !props.pressed && {
+              backgroundColor: "transparent",
+              borderColor: theme.colors.primary,
+            }),
+            ...(variant === "outline" && props.pressed && {
+              backgroundColor: theme.colors.primary,
+              borderColor: theme.colors.primary,
+            }),
+            // Disabled state
+            opacity: props.disabled ? 0.5 : 1,
+            // Web-specific styles
+            ...(Platform.OS === "web" && {
+              cursor: props.disabled ? "not-allowed" : ("pointer" as any),
+              transition: "all 0.2s",
+            }),
+          }}
+          hitSlop={DEFAULT_HIT_SLOP}
+        >
+          {props.children}
+        </TogglePrimitive.Root>
+      </TextClassContext.Provider>
     </TextColorContext.Provider>
   );
 }

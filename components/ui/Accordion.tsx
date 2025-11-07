@@ -1,11 +1,11 @@
-import { Icon } from '@/components/ui/Icon';
-import { TextClassContext } from '@/components/ui/StyledText';
-import { useTheme } from '@/hooks/useTheme';
-import { spacing } from '@/constants/spacing';
-import * as AccordionPrimitive from '@rn-primitives/accordion';
-import { ChevronDown } from 'lucide-react-native';
-import * as React from 'react';
-import { Animated, Platform, Pressable, View, ViewStyle } from 'react-native';
+import { Icon } from "@/components/ui/Icon";
+import { TextClassContext } from "@/components/ui/StyledText";
+import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/constants/spacing";
+import * as AccordionPrimitive from "@rn-primitives/accordion";
+import { ChevronDown } from "lucide-react-native";
+import * as React from "react";
+import { Animated, Platform, Pressable, View, ViewStyle } from "react-native";
 
 /**
  * Accordion Root Component
@@ -23,14 +23,14 @@ function Accordion({
   children,
   style,
   ...props
-}: Omit<AccordionPrimitive.RootProps, 'asChild'> &
+}: Omit<AccordionPrimitive.RootProps, "asChild"> &
   React.RefAttributes<AccordionPrimitive.RootRef> & {
     style?: ViewStyle;
   }) {
   return (
     <AccordionPrimitive.Root
       {...(props as AccordionPrimitive.RootProps)}
-      asChild={Platform.OS !== 'web'}>
+      asChild={Platform.OS !== "web"}>
       <View style={style}>
         {children}
       </View>
@@ -60,10 +60,10 @@ function AccordionItem({
           {
             borderBottomWidth: 1,
             borderBottomColor: theme.colors.bgTertiary,
-            overflow: 'hidden',
+            overflow: "hidden",
           },
           // Spread array styles from primitives to prevent nested arrays on web
-          ...(styleOverride && typeof styleOverride !== 'function'
+          ...(styleOverride && typeof styleOverride !== "function"
             ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
             : []
           ),
@@ -74,7 +74,7 @@ function AccordionItem({
   );
 }
 
-const Trigger = Platform.OS === 'web' ? View : Pressable;
+const Trigger = Platform.OS === "web" ? View : Pressable;
 
 /**
  * Accordion Trigger Component
@@ -102,7 +102,7 @@ function AccordionTrigger({
 
   const rotate = rotateAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '180deg'],
+    outputRange: ["0deg", "180deg"],
   });
 
   return (
@@ -112,16 +112,16 @@ function AccordionTrigger({
           <Trigger
             style={[
               {
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
+                flexDirection: "row",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
                 gap: spacing.md,
                 borderRadius: spacing.radiusMd,
                 paddingVertical: spacing.md,
-                ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
+                ...(Platform.OS === "web" && { cursor: "pointer" as any }),
               },
               // Spread array styles from primitives to prevent nested arrays on web
-              ...(styleOverride && typeof styleOverride !== 'function'
+              ...(styleOverride && typeof styleOverride !== "function"
                 ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
                 : []
               ),
@@ -157,10 +157,10 @@ function AccordionContent({
           style={[
             {
               paddingBottom: spacing.md,
-              overflow: 'hidden',
+              overflow: "hidden",
             },
             // Spread array styles from primitives to prevent nested arrays on web
-            ...(styleOverride && typeof styleOverride !== 'function'
+            ...(styleOverride && typeof styleOverride !== "function"
               ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
               : []
             ),

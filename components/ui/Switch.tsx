@@ -1,9 +1,9 @@
-import { useTheme } from '@/hooks/useTheme';
-import { spacing } from '@/constants/spacing';
-import * as SwitchPrimitives from '@rn-primitives/switch';
-import { Platform, View, Animated } from 'react-native';
-import { SansSerifBoldText } from './StyledText';
-import { useEffect, useRef } from 'react';
+import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/constants/spacing";
+import * as SwitchPrimitives from "@rn-primitives/switch";
+import { Platform, Animated } from "react-native";
+import { SansSerifBoldText } from "./StyledText";
+import { useEffect, useRef } from "react";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -82,7 +82,7 @@ function Switch({
 
   // Animate on checked state change
   useEffect(() => {
-    const useNativeDriver = Platform.OS !== 'web';
+    const useNativeDriver = Platform.OS !== "web";
 
     Animated.parallel([
       Animated.spring(thumbPosition, {
@@ -114,16 +114,16 @@ function Switch({
     <SwitchPrimitives.Root
       {...props}
       style={{
-        position: 'relative',
+        position: "relative",
         width: size.width,
         height: size.height,
         borderRadius: size.height / 2,
         borderWidth: 0.75,
         borderColor: props.checked ? theme.colors.primary : borderColor,
         backgroundColor: props.checked ? theme.colors.primary : theme.colors.bgTertiary,
-        justifyContent: 'center',
+        justifyContent: "center",
         opacity: props.disabled ? 0.5 : 1,
-        ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
+        ...(Platform.OS === "web" && { cursor: "pointer" as any }),
       }}
       hitSlop={DEFAULT_HIT_SLOP}
     >
@@ -131,10 +131,10 @@ function Switch({
       {labelOn && (
         <Animated.View
           style={{
-            position: 'absolute',
+            position: "absolute",
             left: spacing.sm,
-            justifyContent: 'center',
-            alignItems: 'center',
+            justifyContent: "center",
+            alignItems: "center",
             opacity: labelOnOpacity,
           }}
           pointerEvents="none"
@@ -143,7 +143,7 @@ function Switch({
             style={{
               fontSize: labelFontSize,
               color: labelOnColor,
-              userSelect: 'none',
+              userSelect: "none",
             }}
           >
             {labelOn}
@@ -162,7 +162,7 @@ function Switch({
             borderRadius: thumbSize / 2,
             backgroundColor: theme.colors.white,
             transform: [{ translateX: animatedThumbTranslateX }],
-            ...(Platform.OS !== 'web' && {
+            ...(Platform.OS !== "web" && {
               shadowColor: theme.colors.overlay,
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.25,
@@ -177,10 +177,10 @@ function Switch({
       {labelOff && (
         <Animated.View
           style={{
-            position: 'absolute',
+            position: "absolute",
             right: spacing.sm,
-            justifyContent: 'center',
-            alignItems: 'center',
+            justifyContent: "center",
+            alignItems: "center",
             opacity: labelOffOpacity,
           }}
           pointerEvents="none"
@@ -189,7 +189,7 @@ function Switch({
             style={{
               fontSize: labelFontSize,
               color: theme.colors.textPrimary,
-              userSelect: 'none',
+              userSelect: "none",
             }}
           >
             {labelOff}

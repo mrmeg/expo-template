@@ -1,9 +1,9 @@
-import { Icon } from '@/components/ui/Icon';
-import { useTheme } from '@/hooks/useTheme';
-import { spacing } from '@/constants/spacing';
-import * as CheckboxPrimitive from '@rn-primitives/checkbox';
-import { Check } from 'lucide-react-native';
-import { Platform } from 'react-native';
+import { Icon } from "@/components/ui/Icon";
+import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/constants/spacing";
+import * as CheckboxPrimitive from "@rn-primitives/checkbox";
+import { Check } from "lucide-react-native";
+import { Platform } from "react-native";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -36,21 +36,21 @@ function Checkbox({
       {...props}
       style={{
         borderColor: props.checked ? theme.colors.primary : borderColor,
-        backgroundColor: 'transparent',
+        backgroundColor: "transparent",
         borderRadius: spacing.radiusXs,
         borderWidth: 2,
         width: 20,
         height: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: "center",
+        alignItems: "center",
         opacity: props.disabled ? 0.5 : 1,
       }}
       hitSlop={DEFAULT_HIT_SLOP}
     >
       <CheckboxPrimitive.Indicator
         style={{
-          justifyContent: 'center',
-          alignItems: 'center',
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
         <Icon

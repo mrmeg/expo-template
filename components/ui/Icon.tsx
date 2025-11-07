@@ -1,6 +1,6 @@
-import * as React from 'react';
-import { useTheme } from '@/hooks/useTheme';
-import type { LucideIcon } from 'lucide-react-native';
+import * as React from "react";
+import { useTheme } from "@/hooks/useTheme";
+import type { LucideIcon } from "lucide-react-native";
 
 export interface IconProps {
   /**

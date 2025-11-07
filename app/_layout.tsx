@@ -12,7 +12,7 @@ import { MaxWidthContainer } from "@/components/ui/MaxWidthContainer";
 import { PortalHost } from "@rn-primitives/portal";
 import { StatusBar } from "@/components/ui/StatusBar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { KeyboardProvider } from "react-native-keyboard-controller"
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

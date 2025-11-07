@@ -1,13 +1,13 @@
-import { Icon } from '@/components/ui/Icon';
-import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view';
-import { TextClassContext } from '@/components/ui/StyledText';
-import { useTheme } from '@/hooks/useTheme';
-import { spacing } from '@/constants/spacing';
-import * as DropdownMenuPrimitive from '@rn-primitives/dropdown-menu';
-import { Check, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react-native';
-import * as React from 'react';
-import { Platform, StyleSheet, Text, type TextStyle, View } from 'react-native';
-import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
+import { Icon } from "@/components/ui/Icon";
+import { NativeOnlyAnimatedView } from "@/components/ui/native-only-animated-view";
+import { TextClassContext } from "@/components/ui/StyledText";
+import { useTheme } from "@/hooks/useTheme";
+import { spacing } from "@/constants/spacing";
+import * as DropdownMenuPrimitive from "@rn-primitives/dropdown-menu";
+import { Check, ChevronDown, ChevronRight, ChevronUp } from "lucide-react-native";
+import * as React from "react";
+import { Platform, StyleSheet, Text, type TextStyle, View } from "react-native";
+import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 
 // Re-export primitives that don't need styling
 const DropdownMenu = DropdownMenuPrimitive.Root;
@@ -18,7 +18,7 @@ const DropdownMenuSub = DropdownMenuPrimitive.Sub;
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
 // Platform-specific overlay
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment;
+const FullWindowOverlay = Platform.OS === "ios" ? RNFullWindowOverlay : React.Fragment;
 
 /**
  * DropdownMenuSubTrigger Component
@@ -37,31 +37,31 @@ function DropdownMenuSubTrigger({
 }: DropdownMenuSubTriggerProps) {
   const { theme } = useTheme();
   const { open } = DropdownMenuPrimitive.useSubContext();
-  const icon = Platform.OS === 'web' ? ChevronRight : open ? ChevronUp : ChevronDown;
+  const icon = Platform.OS === "web" ? ChevronRight : open ? ChevronUp : ChevronDown;
 
   return (
     <TextClassContext.Provider value="">
       <DropdownMenuPrimitive.SubTrigger
         {...props}
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: "row",
+          alignItems: "center",
           borderRadius: spacing.radiusSm,
           paddingHorizontal: spacing.sm,
           paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
-          backgroundColor: open ? theme.colors.bgSecondary : 'transparent',
-          ...(Platform.OS === 'web' && {
-            cursor: 'pointer' as any,
-            outlineStyle: 'none' as any,
+          backgroundColor: open ? theme.colors.bgSecondary : "transparent",
+          ...(Platform.OS === "web" && {
+            cursor: "pointer" as any,
+            outlineStyle: "none" as any,
           }),
           ...(inset && { paddingLeft: spacing.xl }),
-          ...(styleOverride && typeof styleOverride !== 'function'
+          ...(styleOverride && typeof styleOverride !== "function"
             ? StyleSheet.flatten(styleOverride)
             : {}),
         }}
       >
-        {typeof children === 'function' ? null : children}
-        <View style={{ marginLeft: 'auto' as any }}>
+        {typeof children === "function" ? null : children}
+        <View style={{ marginLeft: "auto" as any }}>
           <Icon as={icon} size={16} color={theme.colors.textPrimary} />
         </View>
       </DropdownMenuPrimitive.SubTrigger>
@@ -80,7 +80,7 @@ function DropdownMenuSubContent({
   ...props
 }: DropdownMenuSubContentProps) {
   const { theme, getShadowStyle } = useTheme();
-  const shadowStyle = StyleSheet.flatten(getShadowStyle('soft'));
+  const shadowStyle = StyleSheet.flatten(getShadowStyle("soft"));
 
   return (
     <NativeOnlyAnimatedView>
@@ -93,12 +93,12 @@ function DropdownMenuSubContent({
           borderRadius: spacing.radiusMd,
           padding: spacing.xs,
           minWidth: 128,
-          overflow: 'hidden',
+          overflow: "hidden",
           ...shadowStyle,
-          ...(Platform.OS === 'web' && {
+          ...(Platform.OS === "web" && {
             zIndex: 50,
           }),
-          ...(styleOverride && typeof styleOverride !== 'function'
+          ...(styleOverride && typeof styleOverride !== "function"
             ? StyleSheet.flatten(styleOverride)
             : {}),
         }}
@@ -121,7 +121,7 @@ function DropdownMenuContent({
   ...props
 }: DropdownMenuContentProps) {
   const { theme, getShadowStyle } = useTheme();
-  const shadowStyle = StyleSheet.flatten(getShadowStyle('soft'));
+  const shadowStyle = StyleSheet.flatten(getShadowStyle("soft"));
 
   return (
     <DropdownMenuPrimitive.Portal hostName={portalHost}>
@@ -143,13 +143,13 @@ function DropdownMenuContent({
                   borderRadius: spacing.radiusMd,
                   padding: spacing.xs,
                   minWidth: 128,
-                  overflow: 'hidden',
+                  overflow: "hidden",
                   ...shadowStyle,
-                  ...(Platform.OS === 'web' && {
+                  ...(Platform.OS === "web" && {
                     zIndex: 50,
-                    cursor: 'default' as any,
+                    cursor: "default" as any,
                   }),
-                  ...(styleOverride && typeof styleOverride !== 'function'
+                  ...(styleOverride && typeof styleOverride !== "function"
                     ? StyleSheet.flatten(styleOverride)
                     : {}),
                 }}
@@ -168,12 +168,12 @@ function DropdownMenuContent({
  */
 type DropdownMenuItemProps = DropdownMenuPrimitive.ItemProps & {
   inset?: boolean;
-  variant?: 'default' | 'destructive';
+  variant?: "default" | "destructive";
 };
 
 function DropdownMenuItem({
   inset = false,
-  variant = 'default',
+  variant = "default",
   style: styleOverride,
   ...props
 }: DropdownMenuItemProps) {
@@ -184,21 +184,21 @@ function DropdownMenuItem({
       <DropdownMenuPrimitive.Item
         {...props}
         style={{
-          position: 'relative',
-          flexDirection: 'row',
-          alignItems: 'center',
+          position: "relative",
+          flexDirection: "row",
+          alignItems: "center",
           gap: spacing.sm,
           borderRadius: spacing.radiusSm,
           paddingHorizontal: spacing.sm,
           paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
-          backgroundColor: 'transparent',
-          ...(Platform.OS === 'web' && {
-            cursor: props.disabled ? 'not-allowed' : ('pointer' as any),
-            outlineStyle: 'none' as any,
+          backgroundColor: "transparent",
+          ...(Platform.OS === "web" && {
+            cursor: props.disabled ? "not-allowed" : ("pointer" as any),
+            outlineStyle: "none" as any,
           }),
           ...(props.disabled && { opacity: 0.5 }),
           ...(inset && { paddingLeft: spacing.xl }),
-          ...(styleOverride && typeof styleOverride !== 'function'
+          ...(styleOverride && typeof styleOverride !== "function"
             ? StyleSheet.flatten(styleOverride)
             : {}),
         }}
@@ -225,33 +225,33 @@ function DropdownMenuCheckboxItem({
       <DropdownMenuPrimitive.CheckboxItem
         {...props}
         style={{
-          position: 'relative',
-          flexDirection: 'row',
-          alignItems: 'center',
+          position: "relative",
+          flexDirection: "row",
+          alignItems: "center",
           gap: spacing.sm,
           borderRadius: spacing.radiusSm,
           paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
           paddingLeft: spacing.xl,
           paddingRight: spacing.sm,
-          backgroundColor: 'transparent',
-          ...(Platform.OS === 'web' && {
-            cursor: props.disabled ? 'not-allowed' : ('pointer' as any),
-            outlineStyle: 'none' as any,
+          backgroundColor: "transparent",
+          ...(Platform.OS === "web" && {
+            cursor: props.disabled ? "not-allowed" : ("pointer" as any),
+            outlineStyle: "none" as any,
           }),
           ...(props.disabled && { opacity: 0.5 }),
-          ...(styleOverride && typeof styleOverride !== 'function'
+          ...(styleOverride && typeof styleOverride !== "function"
             ? StyleSheet.flatten(styleOverride)
             : {}),
         }}
       >
         <View
           style={{
-            position: 'absolute',
+            position: "absolute",
             left: spacing.sm,
             height: 14,
             width: 14,
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
           <DropdownMenuPrimitive.ItemIndicator>
@@ -259,11 +259,11 @@ function DropdownMenuCheckboxItem({
               as={Check}
               size={16}
               color={theme.colors.textPrimary}
-              {...(Platform.OS === 'web' && { style: { pointerEvents: 'none' as any } })}
+              {...(Platform.OS === "web" && { style: { pointerEvents: "none" as any } })}
             />
           </DropdownMenuPrimitive.ItemIndicator>
         </View>
-        {typeof children === 'function' ? null : children}
+        {typeof children === "function" ? null : children}
       </DropdownMenuPrimitive.CheckboxItem>
     </TextClassContext.Provider>
   );
@@ -287,33 +287,33 @@ function DropdownMenuRadioItem({
       <DropdownMenuPrimitive.RadioItem
         {...props}
         style={{
-          position: 'relative',
-          flexDirection: 'row',
-          alignItems: 'center',
+          position: "relative",
+          flexDirection: "row",
+          alignItems: "center",
           gap: spacing.sm,
           borderRadius: spacing.radiusSm,
           paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
           paddingLeft: spacing.xl,
           paddingRight: spacing.sm,
-          backgroundColor: 'transparent',
-          ...(Platform.OS === 'web' && {
-            cursor: props.disabled ? 'not-allowed' : ('pointer' as any),
-            outlineStyle: 'none' as any,
+          backgroundColor: "transparent",
+          ...(Platform.OS === "web" && {
+            cursor: props.disabled ? "not-allowed" : ("pointer" as any),
+            outlineStyle: "none" as any,
           }),
           ...(props.disabled && { opacity: 0.5 }),
-          ...(styleOverride && typeof styleOverride !== 'function'
+          ...(styleOverride && typeof styleOverride !== "function"
             ? StyleSheet.flatten(styleOverride)
             : {}),
         }}
       >
         <View
           style={{
-            position: 'absolute',
+            position: "absolute",
             left: spacing.sm,
             height: 14,
             width: 14,
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
           <DropdownMenuPrimitive.ItemIndicator>
@@ -327,7 +327,7 @@ function DropdownMenuRadioItem({
             />
           </DropdownMenuPrimitive.ItemIndicator>
         </View>
-        {typeof children === 'function' ? null : children}
+        {typeof children === "function" ? null : children}
       </DropdownMenuPrimitive.RadioItem>
     </TextClassContext.Provider>
   );
@@ -355,10 +355,10 @@ function DropdownMenuLabel({
         paddingHorizontal: spacing.sm,
         paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
         fontSize: 14,
-        fontWeight: '500' as TextStyle['fontWeight'],
+        fontWeight: "500" as TextStyle["fontWeight"],
         color: theme.colors.textPrimary,
         ...(inset && { paddingLeft: spacing.xl }),
-        ...(styleOverride && typeof styleOverride !== 'function'
+        ...(styleOverride && typeof styleOverride !== "function"
           ? StyleSheet.flatten(styleOverride)
           : {}),
       }}
@@ -386,7 +386,7 @@ function DropdownMenuSeparator({
         marginHorizontal: -spacing.xs,
         marginVertical: spacing.xs,
         height: 1,
-        ...(styleOverride && typeof styleOverride !== 'function'
+        ...(styleOverride && typeof styleOverride !== "function"
           ? StyleSheet.flatten(styleOverride)
           : {}),
       }}
@@ -411,7 +411,7 @@ function DropdownMenuShortcut({ style: styleOverride, ...props }: DropdownMenuSh
       {...props}
       style={[
         {
-          marginLeft: 'auto' as any,
+          marginLeft: "auto" as any,
           fontSize: 12,
           letterSpacing: 2,
           color: theme.colors.textPrimary,

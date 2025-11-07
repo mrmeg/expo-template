@@ -62,7 +62,7 @@ function ThemeToggle() {
       <Button onPress={toggleTheme} style={styles.themeToggleButton} preset="outline">
         <SansSerifBoldText style={styles.themeToggleButtonText}>
           {`Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"
-            }`}
+          }`}
         </SansSerifBoldText>
       </Button>
     </View>
@@ -178,14 +178,14 @@ export default function TestIndex() {
         </Section>
 
         <Section title="Checkbox">
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md }}>
             <Checkbox
               checked={checkbox1}
               onCheckedChange={setCheckbox1}
             />
             <SansSerifText>Checkbox Option 1</SansSerifText>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
             <Checkbox
               checked={checkbox2}
               onCheckedChange={setCheckbox2}
@@ -295,7 +295,7 @@ export default function TestIndex() {
 
         <Section title="Popover">
           <SubSection label="Positioning">
-            <View style={{ flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' }}>
+            <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
@@ -460,10 +460,10 @@ export default function TestIndex() {
           <SubSection label="Basic Collapsible">
             <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
               <CollapsibleTrigger>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
                   <SansSerifBoldText>Can I use this in my project?</SansSerifBoldText>
                   <SansSerifText style={{ fontSize: 18, opacity: 0.7 }}>
-                    {collapsibleOpen ? '−' : '+'}
+                    {collapsibleOpen ? "−" : "+"}
                   </SansSerifText>
                 </View>
               </CollapsibleTrigger>
@@ -480,7 +480,7 @@ export default function TestIndex() {
 
           <SubSection label="With Button Trigger (asChild)">
             <Collapsible>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm }}>
                 <SansSerifBoldText>@peduarte starred 3 repositories</SansSerifBoldText>
                 <CollapsibleTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>

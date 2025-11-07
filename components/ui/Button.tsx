@@ -117,7 +117,7 @@ export function Button(props: ButtonProps) {
 
   // Calculate background color for each preset
   let backgroundColor: string;
-  if (customBgColor && typeof customBgColor === 'string') {
+  if (customBgColor && typeof customBgColor === "string") {
     backgroundColor = customBgColor;
   } else if (preset === "default") {
     backgroundColor = theme.colors.primary;
@@ -150,7 +150,7 @@ export function Button(props: ButtonProps) {
               styles.button,
               preset === "default" && styles.buttonDefault,
               preset === "outline" && styles.buttonOutline,
-              withShadow && !disabled && (Platform.OS === 'web' ? styles.shadowWeb : styles.shadowNative),
+              withShadow && !disabled && (Platform.OS === "web" ? styles.shadowWeb : styles.shadowNative),
               state.pressed && styles.pressed,
               state.pressed && pressedStyleOverride,
               disabled && styles.disabled,
