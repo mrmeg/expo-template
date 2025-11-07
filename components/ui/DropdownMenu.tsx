@@ -110,12 +110,19 @@ function DropdownMenuSubContent({
 /**
  * DropdownMenuContent Component
  * Main dropdown content with portal, overlay, and animation
+ *
+ * Positioning props:
+ * - side: Which side of the trigger to position on ("top" | "bottom" | "left" | "right")
+ * - align: Alignment relative to the trigger ("start" | "center" | "end")
+ * - sideOffset: Distance from the trigger in pixels (default: 4)
  */
 type DropdownMenuContentProps = DropdownMenuPrimitive.ContentProps & {
   portalHost?: string;
 };
 
 function DropdownMenuContent({
+  align = "start",
+  sideOffset = 4,
   portalHost,
   style: styleOverride,
   ...props
@@ -135,6 +142,8 @@ function DropdownMenuContent({
           <NativeOnlyAnimatedView>
             <TextClassContext.Provider value="">
               <DropdownMenuPrimitive.Content
+                align={align}
+                sideOffset={sideOffset}
                 {...props}
                 style={{
                   backgroundColor: theme.colors.bgPrimary,
