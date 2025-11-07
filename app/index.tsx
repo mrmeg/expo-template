@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet } from "react-native";
 import { View } from "@/components/ui/Themed";
+import { Text } from "@/components/ui/StyledText";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/TextInput";
 import { Switch } from "@/components/ui/Switch";

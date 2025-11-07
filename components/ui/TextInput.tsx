@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { StyleSheet, TextInput as RNTextInput, ViewStyle, TextInputProps, StyleProp, Platform, View, Text } from "react-native";
+import { StyleSheet, TextInput as RNTextInput, ViewStyle, TextInputProps, StyleProp, Platform, View } from "react-native";
 import { Entypo } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import { fontFamilies } from "@/constants/fonts";
+import { Text } from "./StyledText";
 
 interface Props extends TextInputProps {
   focusedStyle?: object;
