@@ -12,6 +12,7 @@ import { MaxWidthContainer } from "@/components/ui/MaxWidthContainer";
 import { PortalHost } from "@rn-primitives/portal";
 import { StatusBar } from "@/components/ui/StatusBar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { KeyboardProvider } from "react-native-keyboard-controller"
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -36,12 +37,14 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <ThemeProvider value={colors[scheme ?? "light"]}>
-          <MaxWidthContainer>
-            <Stack>
-              <Stack.Screen name="index" />
-            </Stack>
-          </MaxWidthContainer>
-          <StatusBar />
+          <KeyboardProvider>
+            <MaxWidthContainer>
+              <Stack>
+                <Stack.Screen name="index" />
+              </Stack>
+            </MaxWidthContainer>
+            <StatusBar />
+          </KeyboardProvider>
         </ThemeProvider>
       </SafeAreaProvider>
       <Notification />
