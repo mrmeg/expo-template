@@ -36,7 +36,7 @@ export const TextInput = ({
   const [focused, setFocused] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [passwordVisible, setPasswordVisible] = useState(secureTextEntry || false);
-  const backgroundColor = forceLight ? theme.colors.white : (theme.dark ? "#F1F3F5" : theme.colors.white);
+  const backgroundColor = forceLight ? theme.colors.white : theme.colors.bgSecondary;
   const isWeb = Platform.OS === "web";
 
   const handleScrollBehavior = () => {
