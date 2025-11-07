@@ -121,6 +121,7 @@ type DropdownMenuContentProps = DropdownMenuPrimitive.ContentProps & {
 };
 
 function DropdownMenuContent({
+  side,
   align = "start",
   sideOffset = 4,
   portalHost,
@@ -142,6 +143,7 @@ function DropdownMenuContent({
           <NativeOnlyAnimatedView>
             <TextClassContext.Provider value="">
               <DropdownMenuPrimitive.Content
+                side={side}
                 align={align}
                 sideOffset={sideOffset}
                 {...props}
