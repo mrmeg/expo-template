@@ -17,7 +17,9 @@ import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Heart, Star, Settings, Home, User, Mail, Bell, Search, ShoppingCart, AlertCircle, CheckCircle, Info, AlertTriangle } from "lucide-react-native";
+import { Icon } from "@/components/ui/Icon";
 import { globalUIStore } from "@/stores/globalUIStore";
+import { Alert } from "@/components/ui/Alert";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { theme, getShadowStyle } = useTheme();
@@ -65,7 +67,7 @@ function ThemeToggle() {
       <Button onPress={toggleTheme} style={styles.themeToggleButton} preset="outline">
         <Text style={styles.themeToggleButtonText}>
           {`Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"
-          }`}
+            }`}
         </Text>
       </Button>
     </View>
@@ -116,7 +118,7 @@ export default function ComponentShowcase() {
             <Button preset="default" onPress={() => Alert.show({
               message: "This is a simple alert message"
             })}>
-              <SansSerifBoldText>Show Simple Alert</SansSerifBoldText>
+              <Text>Show Simple Alert</Text>
             </Button>
           </SubSection>
           <SubSection label="Alert with Title">
@@ -124,7 +126,7 @@ export default function ComponentShowcase() {
               title: "Important",
               message: "This alert has a title and a message"
             })}>
-              <SansSerifBoldText>Show Alert with Title</SansSerifBoldText>
+              <Text>Show Alert with Title</Text>
             </Button>
           </SubSection>
           <SubSection label="Confirmation Alert">
@@ -133,17 +135,19 @@ export default function ComponentShowcase() {
               message: "Are you sure you want to delete this item?",
               buttons: [
                 { text: "Cancel", style: "cancel" },
-                { text: "Delete", style: "destructive", onPress: () => {
-                  globalUIStore.getState().show({
-                    type: "success",
-                    title: "Deleted",
-                    messages: ["Item has been deleted"],
-                    duration: 2000
-                  });
-                }}
+                {
+                  text: "Delete", style: "destructive", onPress: () => {
+                    globalUIStore.getState().show({
+                      type: "success",
+                      title: "Deleted",
+                      messages: ["Item has been deleted"],
+                      duration: 2000
+                    });
+                  }
+                }
               ]
             })}>
-              <SansSerifBoldText>Show Confirmation</SansSerifBoldText>
+              <Text>Show Confirmation</Text>
             </Button>
           </SubSection>
         </Section>
@@ -180,10 +184,10 @@ export default function ComponentShowcase() {
           </SubSection>
           <SubSection label="Status Icons">
             <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
-              <Icon as={AlertCircle} size={28} color={theme.colors.error} />
-              <Icon as={CheckCircle} size={28} color={theme.colors.success} />
-              <Icon as={AlertTriangle} size={28} color={theme.colors.warning} />
-              <Icon as={Info} size={28} color={theme.colors.textPrimary} />
+              <AlertCircle size={28} color={theme.colors.error} />
+              <CheckCircle size={28} color={theme.colors.success} />
+              <AlertTriangle size={28} color={theme.colors.warning} />
+              <Info size={28} color={theme.colors.textPrimary} />
             </View>
           </SubSection>
         </Section>
@@ -196,7 +200,7 @@ export default function ComponentShowcase() {
               messages: ["Operation completed successfully"],
               duration: 3000
             })}>
-              <SansSerifBoldText>Show Success</SansSerifBoldText>
+              <Text>Show Success</Text>
             </Button>
           </SubSection>
           <SubSection label="Error Notification">
@@ -206,7 +210,7 @@ export default function ComponentShowcase() {
               messages: ["Something went wrong"],
               duration: 3000
             })}>
-              <SansSerifBoldText>Show Error</SansSerifBoldText>
+              <Text>Show Error</Text>
             </Button>
           </SubSection>
           <SubSection label="Warning Notification">
@@ -216,7 +220,7 @@ export default function ComponentShowcase() {
               messages: ["Please review your input"],
               duration: 3000
             })}>
-              <SansSerifBoldText>Show Warning</SansSerifBoldText>
+              <Text>Show Warning</Text>
             </Button>
           </SubSection>
           <SubSection label="Info Notification">
@@ -225,18 +229,19 @@ export default function ComponentShowcase() {
               messages: ["Here's some information for you"],
               duration: 3000
             })}>
-              <SansSerifBoldText>Show Info</SansSerifBoldText>
+              <Text>Show Info</Text>
             </Button>
           </SubSection>
           <SubSection label="Loading Notification">
             <Button preset="outline" onPress={() => {
               globalUIStore.getState().show({
+                type: 'info',
                 loading: true,
                 messages: ["Loading data..."],
                 duration: 2000
               });
             }}>
-              <SansSerifBoldText>Show Loading</SansSerifBoldText>
+              <Text>Show Loading</Text>
             </Button>
           </SubSection>
         </Section>

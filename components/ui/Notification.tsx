@@ -35,8 +35,7 @@ export const Notification = () => {
   const [animationState] = React.useState({
     fadeAnim: new Animated.Value(0),
     translateY: new Animated.Value(-20),
-    scale: new Animated.Value(0.95),
-    rotate: new Animated.Value(0)
+    scale: new Animated.Value(0.95)
   });
 
   useEffect(() => {
@@ -45,7 +44,6 @@ export const Notification = () => {
       animationState.fadeAnim.setValue(0);
       animationState.translateY.setValue(-20);
       animationState.scale.setValue(0.95);
-      animationState.rotate.setValue(0);
 
       Animated.parallel([
         Animated.timing(animationState.fadeAnim, {
@@ -64,24 +62,7 @@ export const Notification = () => {
           tension: 100,
           friction: 8,
           useNativeDriver: true,
-        }),
-        Animated.sequence([
-          Animated.timing(animationState.rotate, {
-            toValue: 0.05,
-            duration: 100,
-            useNativeDriver: true,
-          }),
-          Animated.timing(animationState.rotate, {
-            toValue: -0.05,
-            duration: 100,
-            useNativeDriver: true,
-          }),
-          Animated.timing(animationState.rotate, {
-            toValue: 0,
-            duration: 100,
-            useNativeDriver: true,
-          })
-        ])
+        })
       ]).start();
 
       if (alert.duration) {
@@ -115,10 +96,6 @@ export const Notification = () => {
   };
 
   const topPosition = insets?.top ? insets.top : 20;
-  const spin = animationState.rotate.interpolate({
-    inputRange: [-1, 1],
-    outputRange: ["-30deg", "30deg"]
-  });
 
   const getIconProps = () => {
     switch (alert?.type) {
@@ -152,6 +129,21 @@ export const Notification = () => {
     }
   };
 
+  const getSemanticColor = () => {
+    switch (alert?.type) {
+    case "error":
+      return theme.colors.error;
+    case "success":
+      return theme.colors.success;
+    case "warning":
+      return theme.colors.warning;
+    case "info":
+      return theme.colors.primary;
+    default:
+      return theme.colors.primary;
+    }
+  };
+
   return (
     <Animated.View
       style={[
@@ -161,8 +153,7 @@ export const Notification = () => {
           opacity: animationState.fadeAnim,
           transform: [
             { translateY: animationState.translateY },
-            { scale: animationState.scale },
-            { rotate: spin }
+            { scale: animationState.scale }
           ],
           display: alert?.show ? "flex" : "none"
         }
@@ -170,7 +161,8 @@ export const Notification = () => {
     >
       <View style={[
         styles.alert,
-        !theme.dark && { ...getShadowStyle("soft") }
+        getShadowStyle("soft"),
+        { borderLeftColor: getSemanticColor() }
       ]}>
         <View style={styles.iconContainer}>
           {alert?.loading ? (
@@ -178,7 +170,7 @@ export const Notification = () => {
           ) : (
             <Icon
               as={getIconProps().icon}
-              size={spacing.iconMd}
+              size={spacing.iconSm}
               color={getIconProps().color}
             />
           )}
@@ -198,7 +190,7 @@ export const Notification = () => {
           hitSlop={spacing.sm}
           onPress={animateOut}
         >
-          <Icon as={X} size={spacing.iconSm + 4} color={theme.colors.primary} />
+          <Icon as={X} size={spacing.iconSm + 4} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -216,31 +208,35 @@ const createStyles = (theme: any) => StyleSheet.create({
   alert: {
     margin: spacing.md,
     padding: spacing.md,
-    borderRadius: spacing.radiusSm,
+    paddingRight: spacing.lg,
+    borderRadius: spacing.radiusMd,
     borderWidth: 1,
+    borderLeftWidth: 4,
     borderColor: theme.colors.bgTertiary,
     backgroundColor: theme.colors.bgSecondary,
     flexDirection: "row",
     alignItems: "center",
   },
   iconContainer: {
-    width: spacing.iconMd,
-    height: spacing.iconMd,
+    width: spacing.iconSm,
+    height: spacing.iconSm,
     justifyContent: "center",
     alignItems: "center",
   },
   alertContent: {
     flex: 1,
-    marginLeft: spacing.sm,
+    marginLeft: spacing.md,
     justifyContent: "center",
   },
   alertTitle: {
     fontFamily: fontFamilies.sansSerif.bold,
     fontWeight: "bold",
+    fontSize: 13,
     marginBottom: spacing.xs,
   },
   alertDescription: {
     fontFamily: fontFamilies.sansSerif.regular,
+    fontSize: 12,
     opacity: 0.8,
   },
   closeButton: {

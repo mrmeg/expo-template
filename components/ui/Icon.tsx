@@ -32,20 +32,19 @@ export interface IconProps {
  * Usage:
  * ```tsx
  * import { Check } from 'lucide-react-native';
- * <Icon as={Check} size={16} className="text-primary" />
+ * <Icon as={Check} size={16} />
  * ```
  */
 export function Icon({
   as: LucideIconComponent,
   size = 24,
   strokeWidth = 2,
-  className,
   color,
 }: IconProps) {
   const { theme } = useTheme();
 
   // Use provided color or default to theme's textPrimary
-  const iconColor = color || theme.colors.textPrimary;
+  const iconColor = color || theme.colors.primary;
 
   return (
     <LucideIconComponent
