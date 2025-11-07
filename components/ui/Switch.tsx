@@ -1,9 +1,10 @@
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import * as SwitchPrimitives from "@rn-primitives/switch";
-import { Platform, Animated, Text } from "react-native";
+import { Platform, Animated } from "react-native";
 import { fontFamilies } from "@/constants/fonts";
 import { useEffect, useRef } from "react";
+import { Text } from "./StyledText";
 
 const DEFAULT_HIT_SLOP = 8;
 

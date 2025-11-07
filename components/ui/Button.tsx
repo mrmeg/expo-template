@@ -14,9 +14,8 @@ import {
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import { TextProps } from "./Themed";
-import { TextColorContext } from "./StyledText";
+import { Text, TextColorContext } from "./StyledText";
 import { fontFamilies } from "@/constants/fonts";
-import { Text } from "react-native";
 
 type Presets = "default" | "outline";
 
