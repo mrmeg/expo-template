@@ -71,6 +71,13 @@ function Switch({
     theme.colors.textDark
   );
 
+  // Calculate label color for OFF state (when unchecked, background is bgTertiary)
+  const labelOffColor = getContrastingColor(
+    theme.colors.bgTertiary,
+    theme.colors.textDark,
+    theme.colors.textLight
+  );
+
   // Calculate positions and sizes
   const thumbTranslateX = props.checked ? size.width - thumbSize - 2 : 2;
   const labelFontSize = size.height / 3;
@@ -147,7 +154,7 @@ function Switch({
           <SansSerifBoldText
             style={{
               fontSize: labelFontSize,
-              color: !props.checked ? theme.colors.textPrimary : 'transparent',
+              color: !props.checked ? labelOffColor : 'transparent',
               userSelect: 'none',
             }}
           >
