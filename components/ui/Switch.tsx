@@ -1,8 +1,9 @@
 import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '@/constants/spacing';
 import * as SwitchPrimitives from '@rn-primitives/switch';
-import { Platform, View } from 'react-native';
+import { Platform, View, Animated } from 'react-native';
 import { SansSerifBoldText } from './StyledText';
+import { useEffect, useRef } from 'react';
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -71,9 +72,43 @@ function Switch({
     theme.colors.textDark
   );
 
-  // Calculate positions and sizes
-  const thumbTranslateX = props.checked ? size.width - thumbSize - 2 : 2;
+  // Calculate sizes
   const labelFontSize = size.height / 3;
+
+  // Animation values
+  const thumbPosition = useRef(new Animated.Value(props.checked ? 1 : 0)).current;
+  const labelOnOpacity = useRef(new Animated.Value(props.checked ? 1 : 0)).current;
+  const labelOffOpacity = useRef(new Animated.Value(props.checked ? 0 : 1)).current;
+
+  // Animate on checked state change
+  useEffect(() => {
+    const useNativeDriver = Platform.OS !== 'web';
+
+    Animated.parallel([
+      Animated.spring(thumbPosition, {
+        toValue: props.checked ? 1 : 0,
+        tension: 180,
+        friction: 12,
+        useNativeDriver,
+      }),
+      Animated.timing(labelOnOpacity, {
+        toValue: props.checked ? 1 : 0,
+        duration: 150,
+        useNativeDriver,
+      }),
+      Animated.timing(labelOffOpacity, {
+        toValue: props.checked ? 0 : 1,
+        duration: 150,
+        useNativeDriver,
+      }),
+    ]).start();
+  }, [props.checked, thumbPosition, labelOnOpacity, labelOffOpacity]);
+
+  // Interpolate thumb position
+  const animatedThumbTranslateX = thumbPosition.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2, size.width - thumbSize - 2],
+  });
 
   return (
     <SwitchPrimitives.Root
@@ -94,66 +129,72 @@ function Switch({
     >
       {/* Label ON - shown when checked */}
       {labelOn && (
-        <View
+        <Animated.View
           style={{
             position: 'absolute',
             left: spacing.sm,
             justifyContent: 'center',
             alignItems: 'center',
+            opacity: labelOnOpacity,
           }}
           pointerEvents="none"
         >
           <SansSerifBoldText
             style={{
               fontSize: labelFontSize,
-              color: props.checked ? labelOnColor : 'transparent',
+              color: labelOnColor,
               userSelect: 'none',
             }}
           >
             {labelOn}
           </SansSerifBoldText>
-        </View>
+        </Animated.View>
       )}
 
       {/* Thumb (sliding circle) */}
       <SwitchPrimitives.Thumb
-        style={{
-          width: thumbSize,
-          height: thumbSize,
-          borderRadius: thumbSize / 2,
-          backgroundColor: theme.colors.white,
-          transform: [{ translateX: thumbTranslateX }],
-          ...(Platform.OS !== 'web' && {
-            shadowColor: theme.colors.overlay,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3,
-            elevation: 3,
-          }),
-        }}
-      />
+        asChild
+      >
+        <Animated.View
+          style={{
+            width: thumbSize,
+            height: thumbSize,
+            borderRadius: thumbSize / 2,
+            backgroundColor: theme.colors.white,
+            transform: [{ translateX: animatedThumbTranslateX }],
+            ...(Platform.OS !== 'web' && {
+              shadowColor: theme.colors.overlay,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3,
+              elevation: 3,
+            }),
+          }}
+        />
+      </SwitchPrimitives.Thumb>
 
       {/* Label OFF - shown when unchecked */}
       {labelOff && (
-        <View
+        <Animated.View
           style={{
             position: 'absolute',
             right: spacing.sm,
             justifyContent: 'center',
             alignItems: 'center',
+            opacity: labelOffOpacity,
           }}
           pointerEvents="none"
         >
           <SansSerifBoldText
             style={{
               fontSize: labelFontSize,
-              color: !props.checked ? theme.colors.textPrimary : 'transparent',
+              color: theme.colors.textPrimary,
               userSelect: 'none',
             }}
           >
             {labelOff}
           </SansSerifBoldText>
-        </View>
+        </Animated.View>
       )}
     </SwitchPrimitives.Root>
   );
