@@ -32,6 +32,7 @@ interface PopoverContentProps extends PopoverPrimitive.ContentProps {
  * Supports smart positioning, animations, and theme integration
  */
 function PopoverContent({
+  side,
   align = "center",
   sideOffset = 4,
   portalHost,
@@ -65,6 +66,7 @@ function PopoverContent({
             <TextColorContext.Provider value={textColor}>
               <TextClassContext.Provider value="">
                 <PopoverPrimitive.Content
+                  side={side}
                   align={align}
                   sideOffset={sideOffset}
                   style={contentStyle}
