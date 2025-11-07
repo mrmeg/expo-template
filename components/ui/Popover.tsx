@@ -6,6 +6,7 @@ import * as PopoverPrimitive from "@rn-primitives/popover";
 import * as React from "react";
 import { Platform, StyleSheet, View, ViewProps } from "react-native";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
  * Popover Trigger Component
@@ -39,6 +40,7 @@ function PopoverContent({
   ...props
 }: PopoverContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
+  const insets = useSafeAreaInsets();
 
   // Calculate text color for popover content based on background
   const textColor = getContrastingColor(
@@ -69,6 +71,8 @@ function PopoverContent({
                   side={side}
                   align={align}
                   sideOffset={sideOffset}
+                  insets={insets}
+                  avoidCollisions={true}
                   style={contentStyle}
                   {...props}
                 />

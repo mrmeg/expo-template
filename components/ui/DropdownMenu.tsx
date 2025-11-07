@@ -8,6 +8,7 @@ import { Check, ChevronDown, ChevronRight, ChevronUp } from "lucide-react-native
 import * as React from "react";
 import { Platform, StyleSheet, Text, type TextStyle, View } from "react-native";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Re-export primitives that don't need styling
 const DropdownMenu = DropdownMenuPrimitive.Root;
@@ -81,10 +82,13 @@ function DropdownMenuSubContent({
 }: DropdownMenuSubContentProps) {
   const { theme, getShadowStyle } = useTheme();
   const shadowStyle = StyleSheet.flatten(getShadowStyle("soft"));
+  const insets = useSafeAreaInsets();
 
   return (
     <NativeOnlyAnimatedView>
       <DropdownMenuPrimitive.SubContent
+        insets={insets}
+        avoidCollisions={true}
         {...props}
         style={{
           backgroundColor: theme.colors.bgPrimary,
@@ -130,6 +134,7 @@ function DropdownMenuContent({
 }: DropdownMenuContentProps) {
   const { theme, getShadowStyle } = useTheme();
   const shadowStyle = StyleSheet.flatten(getShadowStyle("soft"));
+  const insets = useSafeAreaInsets();
 
   return (
     <DropdownMenuPrimitive.Portal hostName={portalHost}>
@@ -146,6 +151,8 @@ function DropdownMenuContent({
                 side={side}
                 align={align}
                 sideOffset={sideOffset}
+                insets={insets}
+                avoidCollisions={true}
                 {...props}
                 style={{
                   backgroundColor: theme.colors.bgPrimary,
