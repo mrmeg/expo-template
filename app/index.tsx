@@ -341,6 +341,62 @@ export default function TestIndex() {
         </Section>
 
         <Section title="Dropdown Menu">
+          <SubSection label="Positioning">
+            <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Top</SansSerifBoldText>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="center">
+                  <DropdownMenuItem>
+                    <SansSerifText>Menu on top</SansSerifText>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Bottom</SansSerifBoldText>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="bottom" align="start">
+                  <DropdownMenuItem>
+                    <SansSerifText>Menu on bottom</SansSerifText>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Left</SansSerifBoldText>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="left" align="center">
+                  <DropdownMenuItem>
+                    <SansSerifText>Menu on left</SansSerifText>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Right</SansSerifBoldText>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="center">
+                  <DropdownMenuItem>
+                    <SansSerifText>Menu on right</SansSerifText>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </View>
+          </SubSection>
+
           <SubSection label="Basic Menu">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
