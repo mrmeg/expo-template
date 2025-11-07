@@ -294,7 +294,7 @@ export default function TestIndex() {
         </Section>
 
         <Section title="Popover">
-          <SubSection label="Positioning">
+          <SubSection label="Side Positioning">
             <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}>
               <Popover>
                 <PopoverTrigger asChild>
@@ -321,27 +321,146 @@ export default function TestIndex() {
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Left</SansSerifBoldText>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="left" align="center">
+                  <PopoverBody>
+                    <SansSerifText>Popover on left</SansSerifText>
+                  </PopoverBody>
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Right</SansSerifBoldText>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="right" align="center">
+                  <PopoverBody>
+                    <SansSerifText>Popover on right</SansSerifText>
+                  </PopoverBody>
+                </PopoverContent>
+              </Popover>
             </View>
           </SubSection>
 
-          <SubSection label="With Button (asChild)">
+          <SubSection label="Alignment Variations">
+            <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Start</SansSerifBoldText>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="start">
+                  <PopoverBody>
+                    <SansSerifText>Aligned to start</SansSerifText>
+                  </PopoverBody>
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Center</SansSerifBoldText>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="center">
+                  <PopoverBody>
+                    <SansSerifText>Aligned to center</SansSerifText>
+                  </PopoverBody>
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>End</SansSerifBoldText>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="end">
+                  <PopoverBody>
+                    <SansSerifText>Aligned to end</SansSerifText>
+                  </PopoverBody>
+                </PopoverContent>
+              </Popover>
+            </View>
+          </SubSection>
+
+          <SubSection label="Side Offset Examples">
+            <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Offset 0</SansSerifBoldText>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="start" sideOffset={0}>
+                  <PopoverBody>
+                    <SansSerifText>No offset from trigger</SansSerifText>
+                  </PopoverBody>
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Offset 16</SansSerifBoldText>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="start" sideOffset={16}>
+                  <PopoverBody>
+                    <SansSerifText>16px from trigger</SansSerifText>
+                  </PopoverBody>
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Offset 32</SansSerifBoldText>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="start" sideOffset={32}>
+                  <PopoverBody>
+                    <SansSerifText>32px from trigger</SansSerifText>
+                  </PopoverBody>
+                </PopoverContent>
+              </Popover>
+            </View>
+          </SubSection>
+
+          <SubSection label="Real-World Example: User Info Card">
             <Popover>
               <PopoverTrigger asChild>
                 <Button preset="outline">
-                  <SansSerifBoldText>Open Popover</SansSerifBoldText>
+                  <SansSerifBoldText>View Profile</SansSerifBoldText>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent side="bottom" align="start">
-                <PopoverBody>
-                  <SansSerifText>This popover uses asChild with a Button trigger</SansSerifText>
-                </PopoverBody>
+              <PopoverContent side="bottom" align="start" sideOffset={8}>
+                <View style={{ minWidth: 200 }}>
+                  <View style={{ paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.colors.bgTertiary }}>
+                    <SansSerifBoldText style={{ fontSize: 16 }}>John Doe</SansSerifBoldText>
+                    <SansSerifText style={{ fontSize: 12, opacity: 0.7 }}>john@example.com</SansSerifText>
+                  </View>
+                  <View style={{ paddingTop: spacing.sm }}>
+                    <SansSerifText style={{ fontSize: 14, marginBottom: spacing.xs }}>Member since 2024</SansSerifText>
+                    <SansSerifText style={{ fontSize: 14 }}>Premium Account</SansSerifText>
+                  </View>
+                </View>
               </PopoverContent>
             </Popover>
           </SubSection>
         </Section>
 
         <Section title="Dropdown Menu">
-          <SubSection label="Positioning">
+          <SubSection label="Side Positioning">
             <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -362,7 +481,7 @@ export default function TestIndex() {
                     <SansSerifBoldText style={{ fontSize: 12 }}>Bottom</SansSerifBoldText>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent side="bottom" align="start">
+                <DropdownMenuContent side="bottom" align="center">
                   <DropdownMenuItem>
                     <SansSerifText>Menu on bottom</SansSerifText>
                   </DropdownMenuItem>
@@ -391,6 +510,101 @@ export default function TestIndex() {
                 <DropdownMenuContent side="right" align="center">
                   <DropdownMenuItem>
                     <SansSerifText>Menu on right</SansSerifText>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </View>
+          </SubSection>
+
+          <SubSection label="Alignment Variations">
+            <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Start</SansSerifBoldText>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="bottom" align="start">
+                  <DropdownMenuItem>
+                    <SansSerifText>Aligned to start</SansSerifText>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <SansSerifText>Option 2</SansSerifText>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Center</SansSerifBoldText>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="bottom" align="center">
+                  <DropdownMenuItem>
+                    <SansSerifText>Aligned to center</SansSerifText>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <SansSerifText>Option 2</SansSerifText>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>End</SansSerifBoldText>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="bottom" align="end">
+                  <DropdownMenuItem>
+                    <SansSerifText>Aligned to end</SansSerifText>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <SansSerifText>Option 2</SansSerifText>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </View>
+          </SubSection>
+
+          <SubSection label="Side Offset Examples">
+            <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Offset 0</SansSerifBoldText>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="bottom" align="start" sideOffset={0}>
+                  <DropdownMenuItem>
+                    <SansSerifText>No offset</SansSerifText>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Offset 16</SansSerifBoldText>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="bottom" align="start" sideOffset={16}>
+                  <DropdownMenuItem>
+                    <SansSerifText>16px offset</SansSerifText>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <SansSerifBoldText style={{ fontSize: 12 }}>Offset 32</SansSerifBoldText>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="bottom" align="start" sideOffset={32}>
+                  <DropdownMenuItem>
+                    <SansSerifText>32px offset</SansSerifText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
