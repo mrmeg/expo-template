@@ -11,10 +11,14 @@ import { Popover, PopoverTrigger, PopoverContent, PopoverBody } from "@/componen
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/Accordion";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuCheckboxItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuShortcut } from "@/components/ui/DropdownMenu";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/Collapsible";
+import { Alert } from "@/components/ui/Alert";
+import { Icon } from "@/components/ui/Icon";
 import { SansSerifBoldText, SansSerifText, SerifText, SerifBoldText } from "@/components/ui/StyledText";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { Heart, Star, Settings, Home, User, Mail, Bell, Search, ShoppingCart, AlertCircle, CheckCircle, Info, AlertTriangle } from "lucide-react-native";
+import { globalUIStore } from "@/stores/globalUIStore";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { theme, getShadowStyle } = useTheme();
@@ -69,7 +73,7 @@ function ThemeToggle() {
   );
 }
 
-export default function TestIndex() {
+export default function ComponentShowcase() {
   const { theme } = useTheme();
   const [textValue, setTextValue] = useState("");
   const [passwordValue, setPasswordValue] = useState("");
@@ -89,10 +93,10 @@ export default function TestIndex() {
       <View style={styles.container}>
         <View style={styles.headerContainer}>
           <SansSerifBoldText style={[styles.appTitle, { color: theme.colors.textPrimary }]}>
-            Test Page
+            Component Showcase
           </SansSerifBoldText>
           <SansSerifText style={[styles.subtitle, { color: theme.colors.textPrimary }]}>
-            Minimal version to test
+            Explore all the UI components and their variations
           </SansSerifText>
           <ThemeToggle />
         </View>
@@ -106,6 +110,136 @@ export default function TestIndex() {
           </SansSerifBoldText>
           <SerifText style={{ marginBottom: spacing.sm }}>Serif Text - Elegant headings</SerifText>
           <SerifBoldText>Serif Bold - Strong emphasis</SerifBoldText>
+        </Section>
+
+        <Section title="Alert">
+          <SubSection label="Simple Alert">
+            <Button preset="default" onPress={() => Alert.show({
+              message: "This is a simple alert message"
+            })}>
+              <SansSerifBoldText>Show Simple Alert</SansSerifBoldText>
+            </Button>
+          </SubSection>
+          <SubSection label="Alert with Title">
+            <Button preset="outline" onPress={() => Alert.show({
+              title: "Important",
+              message: "This alert has a title and a message"
+            })}>
+              <SansSerifBoldText>Show Alert with Title</SansSerifBoldText>
+            </Button>
+          </SubSection>
+          <SubSection label="Confirmation Alert">
+            <Button preset="outline" onPress={() => Alert.show({
+              title: "Delete Item",
+              message: "Are you sure you want to delete this item?",
+              buttons: [
+                { text: "Cancel", style: "cancel" },
+                { text: "Delete", style: "destructive", onPress: () => {
+                  globalUIStore.getState().show({
+                    type: "success",
+                    title: "Deleted",
+                    messages: ["Item has been deleted"],
+                    duration: 2000
+                  });
+                }}
+              ]
+            })}>
+              <SansSerifBoldText>Show Confirmation</SansSerifBoldText>
+            </Button>
+          </SubSection>
+        </Section>
+
+        <Section title="Icon">
+          <SubSection label="Basic Icons">
+            <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap", alignItems: "center" }}>
+              <Icon as={Heart} size={24} />
+              <Icon as={Star} size={24} />
+              <Icon as={Settings} size={24} />
+              <Icon as={Home} size={24} />
+              <Icon as={User} size={24} />
+              <Icon as={Mail} size={24} />
+              <Icon as={Bell} size={24} />
+              <Icon as={Search} size={24} />
+              <Icon as={ShoppingCart} size={24} />
+            </View>
+          </SubSection>
+          <SubSection label="Icon Sizes">
+            <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
+              <Icon as={Heart} size={16} />
+              <Icon as={Heart} size={24} />
+              <Icon as={Heart} size={32} />
+              <Icon as={Heart} size={48} />
+            </View>
+          </SubSection>
+          <SubSection label="Icon Colors">
+            <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
+              <Icon as={Heart} size={32} color={theme.colors.error} />
+              <Icon as={Star} size={32} color={theme.colors.warning} />
+              <Icon as={CheckCircle} size={32} color={theme.colors.success} />
+              <Icon as={Info} size={32} color={theme.colors.primary} />
+            </View>
+          </SubSection>
+          <SubSection label="Status Icons">
+            <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
+              <Icon as={AlertCircle} size={28} color={theme.colors.error} />
+              <Icon as={CheckCircle} size={28} color={theme.colors.success} />
+              <Icon as={AlertTriangle} size={28} color={theme.colors.warning} />
+              <Icon as={Info} size={28} color={theme.colors.textPrimary} />
+            </View>
+          </SubSection>
+        </Section>
+
+        <Section title="Notification">
+          <SubSection label="Success Notification">
+            <Button preset="default" onPress={() => globalUIStore.getState().show({
+              type: "success",
+              title: "Success",
+              messages: ["Operation completed successfully"],
+              duration: 3000
+            })}>
+              <SansSerifBoldText>Show Success</SansSerifBoldText>
+            </Button>
+          </SubSection>
+          <SubSection label="Error Notification">
+            <Button preset="outline" onPress={() => globalUIStore.getState().show({
+              type: "error",
+              title: "Error",
+              messages: ["Something went wrong"],
+              duration: 3000
+            })}>
+              <SansSerifBoldText>Show Error</SansSerifBoldText>
+            </Button>
+          </SubSection>
+          <SubSection label="Warning Notification">
+            <Button preset="outline" onPress={() => globalUIStore.getState().show({
+              type: "warning",
+              title: "Warning",
+              messages: ["Please review your input"],
+              duration: 3000
+            })}>
+              <SansSerifBoldText>Show Warning</SansSerifBoldText>
+            </Button>
+          </SubSection>
+          <SubSection label="Info Notification">
+            <Button preset="outline" onPress={() => globalUIStore.getState().show({
+              type: "info",
+              messages: ["Here's some information for you"],
+              duration: 3000
+            })}>
+              <SansSerifBoldText>Show Info</SansSerifBoldText>
+            </Button>
+          </SubSection>
+          <SubSection label="Loading Notification">
+            <Button preset="outline" onPress={() => {
+              globalUIStore.getState().show({
+                loading: true,
+                messages: ["Loading data..."],
+                duration: 2000
+              });
+            }}>
+              <SansSerifBoldText>Show Loading</SansSerifBoldText>
+            </Button>
+          </SubSection>
         </Section>
 
         <Section title="Buttons">
