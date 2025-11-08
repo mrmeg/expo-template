@@ -38,11 +38,9 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider value={colors[scheme ?? "light"]}>
           <KeyboardProvider>
-            <MaxWidthContainer>
-              <Stack>
-                <Stack.Screen name="index" />
-              </Stack>
-            </MaxWidthContainer>
+            <Stack>
+              <Stack.Screen name="index" />
+            </Stack>
             <StatusBar />
           </KeyboardProvider>
         </ThemeProvider>

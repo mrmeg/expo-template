@@ -13,7 +13,7 @@ const DEFAULT_HIT_SLOP = 8;
  */
 export type SwitchVariant = "default" | "ios";
 
-interface SwitchProps extends Omit<SwitchPrimitives.RootProps, 'style'> {
+interface SwitchProps extends Omit<SwitchPrimitives.RootProps, "style"> {
   /**
    * Visual variant
    * @default "default"

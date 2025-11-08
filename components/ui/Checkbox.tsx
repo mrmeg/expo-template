@@ -20,7 +20,7 @@ const SIZE_CONFIGS: Record<CheckboxSize, { size: number; iconSize: number; strok
   lg: { size: 24, iconSize: 20, strokeWidth: 3.5 },
 };
 
-export interface CheckboxProps extends Omit<CheckboxPrimitive.RootProps, 'style'> {
+export interface CheckboxProps extends Omit<CheckboxPrimitive.RootProps, "style"> {
   /**
    * Size variant
    * @default "md"
@@ -119,8 +119,8 @@ function Checkbox({
   const borderColor = error
     ? theme.colors.error
     : checked || indeterminate
-    ? theme.colors.primary
-    : getContrastingColor(
+      ? theme.colors.primary
+      : getContrastingColor(
         theme.colors.bgPrimary,
         theme.colors.textPrimary,
         theme.colors.neutral

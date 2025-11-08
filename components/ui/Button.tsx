@@ -191,7 +191,7 @@ export function Button(props: ButtonProps) {
 
   const { theme, getContrastingColor, getShadowStyle } = useTheme();
   const styles = createStyles(theme, size);
-  const shadowStyle = getShadowStyle('base');
+  const shadowStyle = getShadowStyle("base");
   const sizeConfig = SIZE_CONFIGS[size];
 
   // Pre-compute background color for contrast calculation
@@ -220,12 +220,12 @@ export function Button(props: ButtonProps) {
     preset === "outline"
       ? theme.colors.primary
       : preset === "ghost"
-      ? theme.colors.textPrimary
-      : preset === "link"
-      ? theme.colors.primary
-      : preset === "destructive"
-      ? getContrastingColor(backgroundColor, theme.colors.textLight, theme.colors.textDark)
-      : getContrastingColor(backgroundColor, theme.colors.textLight, theme.colors.textDark);
+        ? theme.colors.textPrimary
+        : preset === "link"
+          ? theme.colors.primary
+          : preset === "destructive"
+            ? getContrastingColor(backgroundColor, theme.colors.textLight, theme.colors.textDark)
+            : getContrastingColor(backgroundColor, theme.colors.textLight, theme.colors.textDark);
 
   const isDisabled = disabled || loading;
 

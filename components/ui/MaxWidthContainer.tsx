@@ -69,8 +69,8 @@ interface MaxWidthContainerProps {
  */
 export function MaxWidthContainer({
   children,
-  maxWidth = 1280,
-  preset,
+  maxWidth,
+  preset = "2xl",
   style,
   centered = true,
 }: MaxWidthContainerProps) {

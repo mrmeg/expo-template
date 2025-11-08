@@ -176,14 +176,16 @@ export const Notification = () => {
           )}
         </View>
         <View style={styles.alertContent}>
-          {getTitle() && (
+          {!!getTitle() && (
             <Text style={styles.alertTitle}>
               {getTitle()}
             </Text>
           )}
-          <Text style={styles.alertDescription}>
-            {alert?.messages?.[0] || ""}
-          </Text>
+          {!!alert?.messages?.[0] && (
+            <Text style={styles.alertDescription}>
+              {alert.messages[0]}
+            </Text>
+          )}
         </View>
         <TouchableOpacity
           style={styles.closeButton}

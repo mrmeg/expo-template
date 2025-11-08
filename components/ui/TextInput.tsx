@@ -202,24 +202,8 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
     const backgroundColor = forceLight
       ? theme.colors.white
       : variant === "filled"
-      ? theme.colors.bgSecondary
-      : "transparent";
-
-    // Determine border color
-    const getBorderColor = () => {
-      if (hasError) return theme.colors.error;
-      if (focused) return theme.colors.primary;
-      if (forceLight) return "#d1d5db";
-      return theme.colors.bgTertiary;
-    };
-
-    // Handle scroll behavior for multiline
-    const handleScrollBehavior = () => {
-      if (multiline && rest.scrollEnabled !== false) {
-        return contentHeight > 100;
-      }
-      return false;
-    };
+        ? theme.colors.bgSecondary
+        : "transparent";
 
     // Handle numeric input validation
     const handleNumericChange = (input: string) => {
@@ -235,14 +219,32 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
 
     const sizeConfig = SIZE_CONFIGS[size];
 
-    // Calculate padding based on accessories
+    // Pre-calculate all values to avoid expensive recalculations on every keystroke
+    const borderColor = hasError
+      ? theme.colors.error
+      : focused
+        ? theme.colors.primary
+        : forceLight
+          ? "#d1d5db"
+          : theme.colors.bgTertiary;
+
     const inputPaddingLeft = leftElement
       ? sizeConfig.paddingHorizontal + spacing.xl
       : sizeConfig.paddingHorizontal;
-    const inputPaddingRight =
-      rightElement || (secureTextEntry && showSecureEntryToggle)
-        ? sizeConfig.paddingHorizontal + spacing.xl
-        : sizeConfig.paddingHorizontal;
+
+    const inputPaddingRight = rightElement || (secureTextEntry && showSecureEntryToggle)
+      ? sizeConfig.paddingHorizontal + spacing.xl
+      : sizeConfig.paddingHorizontal;
+
+    const textColor = forceLight
+      ? "#1f2937"
+      : getContrastingColor(
+          backgroundColor === "transparent" ? theme.colors.bgPrimary : backgroundColor,
+          theme.colors.textPrimary,
+          theme.colors.white
+        );
+
+    const shouldScroll = multiline && rest.scrollEnabled !== false && contentHeight > 100;
 
     return (
       <View style={wrapperStyle}>
@@ -284,20 +286,14 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
             onContentSizeChange={(e) =>
               setContentHeight(e.nativeEvent.contentSize.height)
             }
-            scrollEnabled={handleScrollBehavior()}
+            scrollEnabled={shouldScroll}
             placeholderTextColor={theme.colors.neutral}
             style={[
               styles.input,
               {
                 backgroundColor,
-                borderColor: getBorderColor(),
-                color: forceLight
-                  ? "#1f2937"
-                  : getContrastingColor(
-                      backgroundColor,
-                      theme.colors.textPrimary,
-                      theme.colors.white
-                    ),
+                borderColor,
+                color: textColor,
                 fontSize: sizeConfig.fontSize,
                 minHeight: multiline ? undefined : sizeConfig.height,
                 paddingVertical: sizeConfig.paddingVertical,
@@ -405,7 +401,7 @@ const createStyles = (theme: any, variant: TextInputVariant, size: TextInputSize
     helperText: {
       fontFamily: fontFamilies.sansSerif.regular,
       fontSize: 12,
-      color: theme.colors.textSecondary,
+      color: theme.colors.neutral,
       marginTop: spacing.xs,
     },
     errorText: {

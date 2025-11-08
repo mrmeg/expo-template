@@ -66,7 +66,7 @@ function ThemeToggle() {
       <Button onPress={toggleTheme} style={styles.themeToggleButton} preset="outline">
         <Text style={styles.themeToggleButtonText}>
           {`Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"
-            }`}
+          }`}
         </Text>
       </Button>
     </View>
@@ -234,7 +234,7 @@ export default function ComponentShowcase() {
           <SubSection label="Loading Notification">
             <Button preset="outline" onPress={() => {
               globalUIStore.getState().show({
-                type: 'info',
+                type: "info",
                 loading: true,
                 messages: ["Loading data..."],
                 duration: 2000
@@ -275,6 +275,7 @@ export default function ComponentShowcase() {
             label="Password Input"
             placeholder="Enter password..."
             secureTextEntry
+            showSecureEntryToggle
             value={passwordValue}
             onChangeText={setPasswordValue}
           />
