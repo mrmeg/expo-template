@@ -9,15 +9,44 @@ import {
   StyleSheet,
   View,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
-import { TextProps } from "./Themed";
-import { Text, TextColorContext } from "./StyledText";
+import { Text, TextColorContext, TextProps } from "./StyledText";
 import { fontFamilies } from "@/constants/fonts";
 
-type Presets = "default" | "outline";
+/**
+ * Button variants
+ */
+type Presets = "default" | "outline" | "ghost" | "link" | "destructive" | "secondary";
+
+/**
+ * Button size variants
+ */
+export type ButtonSize = "sm" | "md" | "lg";
+
+const SIZE_CONFIGS: Record<ButtonSize, { paddingVertical: number; paddingHorizontal: number; fontSize: number; height: number }> = {
+  sm: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    fontSize: 14,
+    height: 32,
+  },
+  md: {
+    paddingVertical: spacing.buttonPadding,
+    paddingHorizontal: spacing.md,
+    fontSize: 16,
+    height: 40,
+  },
+  lg: {
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.lg,
+    fontSize: 18,
+    height: 48,
+  },
+};
 
 export interface ButtonAccessoryProps {
   style: StyleProp<any>;
@@ -60,8 +89,14 @@ export interface ButtonProps extends PressableProps {
   disabledTextStyle?: StyleProp<TextStyle>;
   /**
    * One of the different types of button presets.
+   * @default "default"
    */
   preset?: Presets;
+  /**
+   * Size variant
+   * @default "md"
+   */
+  size?: ButtonSize;
   /**
    * An optional component to render on the right side of the text.
    */
@@ -86,8 +121,51 @@ export interface ButtonProps extends PressableProps {
    * Whether to show shadow
    */
   withShadow?: boolean;
+  /**
+   * Whether button is loading (shows spinner)
+   */
+  loading?: boolean;
+  /**
+   * Whether button should take full width of container
+   */
+  fullWidth?: boolean;
 }
 
+/**
+ * Enhanced Button Component
+ *
+ * Features:
+ * - 6 variants (default, outline, ghost, link, destructive, secondary)
+ * - 3 sizes (sm, md, lg)
+ * - Loading state with spinner
+ * - Full width option
+ * - Shadow support
+ * - Automatic text contrast calculation
+ * - Accessory components (left/right)
+ *
+ * Usage:
+ * ```tsx
+ * // Default button
+ * <Button onPress={handler}>
+ *   <SansSerifBoldText>Click Me</SansSerifBoldText>
+ * </Button>
+ *
+ * // Different variants
+ * <Button preset="outline" onPress={handler}>Outline</Button>
+ * <Button preset="ghost" onPress={handler}>Ghost</Button>
+ * <Button preset="destructive" onPress={handler}>Delete</Button>
+ *
+ * // Different sizes
+ * <Button size="sm" onPress={handler}>Small</Button>
+ * <Button size="lg" onPress={handler}>Large</Button>
+ *
+ * // Loading state
+ * <Button loading onPress={handler}>Processing...</Button>
+ *
+ * // Full width
+ * <Button fullWidth onPress={handler}>Submit</Button>
+ * ```
+ */
 export function Button(props: ButtonProps) {
   const {
     tx,
@@ -105,11 +183,16 @@ export function Button(props: ButtonProps) {
     disabledStyle: disabledStyleOverride,
     withShadow = false,
     preset = "default",
+    size = "md",
+    loading = false,
+    fullWidth = false,
     ...rest
   } = props;
 
-  const { theme, getContrastingColor } = useTheme();
-  const styles = createStyles(theme);
+  const { theme, getContrastingColor, getShadowStyle } = useTheme();
+  const styles = createStyles(theme, size);
+  const shadowStyle = getShadowStyle('base');
+  const sizeConfig = SIZE_CONFIGS[size];
 
   // Pre-compute background color for contrast calculation
   // Always flatten to handle both array styles (from Slot) and RegisteredStyle
@@ -122,28 +205,37 @@ export function Button(props: ButtonProps) {
     backgroundColor = customBgColor;
   } else if (preset === "default") {
     backgroundColor = theme.colors.primary;
-  } else if (preset === "outline") {
+  } else if (preset === "secondary") {
+    backgroundColor = theme.colors.secondary;
+  } else if (preset === "destructive") {
+    backgroundColor = theme.colors.error;
+  } else if (preset === "outline" || preset === "ghost" || preset === "link") {
     backgroundColor = "transparent";
   } else {
     backgroundColor = theme.colors.primary;
   }
 
   // Use contrast calculation for reliable, readable text color across platforms
-  const textColor = preset === "outline"
-    ? theme.colors.primary  // Outline uses primary color for text
-    : getContrastingColor(
-      backgroundColor,
-      theme.colors.textLight,
-      theme.colors.textDark
-    );
+  const textColor =
+    preset === "outline"
+      ? theme.colors.primary
+      : preset === "ghost"
+      ? theme.colors.textPrimary
+      : preset === "link"
+      ? theme.colors.primary
+      : preset === "destructive"
+      ? getContrastingColor(backgroundColor, theme.colors.textLight, theme.colors.textDark)
+      : getContrastingColor(backgroundColor, theme.colors.textLight, theme.colors.textDark);
+
+  const isDisabled = disabled || loading;
 
   return (
     <TextColorContext.Provider value={textColor}>
       <Pressable
         accessibilityRole="button"
-        accessibilityState={{ disabled: !!disabled }}
+        accessibilityState={{ disabled: !!isDisabled, busy: loading }}
         {...rest}
-        disabled={disabled}
+        disabled={isDisabled}
       >
         {(state) => (
           <View
@@ -151,20 +243,33 @@ export function Button(props: ButtonProps) {
               styles.button,
               preset === "default" && styles.buttonDefault,
               preset === "outline" && styles.buttonOutline,
-              withShadow && !disabled && (Platform.OS === "web" ? styles.shadowWeb : styles.shadowNative),
+              preset === "ghost" && styles.buttonGhost,
+              preset === "link" && styles.buttonLink,
+              preset === "destructive" && styles.buttonDestructive,
+              preset === "secondary" && styles.buttonSecondary,
+              fullWidth && styles.fullWidth,
+              withShadow && !isDisabled && shadowStyle,
               state.pressed && styles.pressed,
               state.pressed && pressedStyleOverride,
-              disabled && styles.disabled,
-              disabled && disabledStyleOverride,
+              isDisabled && styles.disabled,
+              isDisabled && disabledStyleOverride,
               // Spread array styles from Slot to prevent nested arrays on web
               ...(Array.isArray(styleOverride) ? styleOverride : [styleOverride]),
             ]}
           >
-            {!!LeftAccessory && (
+            {!!LeftAccessory && !loading && (
               <LeftAccessory
                 style={styles.leftAccessory}
                 pressableState={state}
-                disabled={disabled}
+                disabled={isDisabled}
+              />
+            )}
+
+            {loading && (
+              <ActivityIndicator
+                size="small"
+                color={textColor}
+                style={styles.loader}
               />
             )}
 
@@ -174,86 +279,93 @@ export function Button(props: ButtonProps) {
                   styles.text,
                   state.pressed && styles.pressedText,
                   state.pressed && pressedTextStyleOverride,
-                  disabled && disabledTextStyleOverride,
+                  isDisabled && disabledTextStyleOverride,
                   textStyleOverride,
                 ]}
               >
                 {tx || text}
               </Text>
             ) : (
-              children
+              !loading && children
             )}
 
-            {!!RightAccessory && (
+            {!!RightAccessory && !loading && (
               <RightAccessory
                 style={styles.rightAccessory}
                 pressableState={state}
-                disabled={disabled}
+                disabled={isDisabled}
               />
             )}
           </View>
-        )
-        }
+        )}
       </Pressable>
     </TextColorContext.Provider>
   );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: spacing.radiusMd,
-    paddingVertical: spacing.buttonPadding,
-    paddingHorizontal: spacing.md,
-  } as ViewStyle,
-  buttonDefault: {
-    backgroundColor: theme.colors.primary,
-  } as ViewStyle,
-  buttonOutline: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-  } as ViewStyle,
-  shadowWeb: Platform.select({
-    web: {
-      // Empty object on web - no shadow to avoid CSS errors
-    },
-    default: {},
-  }) as ViewStyle,
-  shadowNative: Platform.select({
-    web: {},
-    ios: {
-      shadowColor: theme.colors.overlay,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.15,
-      shadowRadius: 3,
-    },
-    // No shadow on Android - causes text background artifact
-    android: {},
-    default: {},
-  }) as ViewStyle,
-  text: {
-    fontFamily: fontFamilies.sansSerif.bold,
-    fontSize: 16,
-    fontWeight: "500",
-    textAlign: "center",
-    lineHeight: 20,
-  } as TextStyle,
-  pressed: {
-    opacity: 0.8,
-  } as ViewStyle,
-  pressedText: {
-    opacity: 0.9,
-  } as TextStyle,
-  disabled: {
-    opacity: 0.6,
-  } as ViewStyle,
-  leftAccessory: {
-    marginRight: spacing.sm,
-  } as ViewStyle,
-  rightAccessory: {
-    marginLeft: spacing.sm,
-  } as ViewStyle,
-});
+const createStyles = (theme: any, size: ButtonSize) => {
+  const sizeConfig = SIZE_CONFIGS[size];
+
+  return StyleSheet.create({
+    button: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: spacing.radiusMd,
+      paddingVertical: sizeConfig.paddingVertical,
+      paddingHorizontal: sizeConfig.paddingHorizontal,
+      minHeight: sizeConfig.height,
+      ...(Platform.OS === "web" && { cursor: "pointer" as any }),
+    } as ViewStyle,
+    buttonDefault: {
+      backgroundColor: theme.colors.primary,
+    } as ViewStyle,
+    buttonSecondary: {
+      backgroundColor: theme.colors.secondary,
+    } as ViewStyle,
+    buttonDestructive: {
+      backgroundColor: theme.colors.error,
+    } as ViewStyle,
+    buttonOutline: {
+      backgroundColor: "transparent",
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+    } as ViewStyle,
+    buttonGhost: {
+      backgroundColor: "transparent",
+    } as ViewStyle,
+    buttonLink: {
+      backgroundColor: "transparent",
+      paddingVertical: 0,
+      paddingHorizontal: 0,
+    } as ViewStyle,
+    fullWidth: {
+      width: "100%",
+    } as ViewStyle,
+    text: {
+      fontFamily: fontFamilies.sansSerif.bold,
+      fontSize: sizeConfig.fontSize,
+      fontWeight: "500",
+      textAlign: "center",
+      lineHeight: sizeConfig.fontSize * 1.25,
+    } as TextStyle,
+    pressed: {
+      opacity: 0.8,
+    } as ViewStyle,
+    pressedText: {
+      opacity: 0.9,
+    } as TextStyle,
+    disabled: {
+      opacity: 0.6,
+    } as ViewStyle,
+    leftAccessory: {
+      marginRight: spacing.sm,
+    } as ViewStyle,
+    rightAccessory: {
+      marginLeft: spacing.sm,
+    } as ViewStyle,
+    loader: {
+      marginRight: spacing.sm,
+    } as ViewStyle,
+  });
+};

@@ -1,5 +1,5 @@
 import { Icon } from "@/components/ui/Icon";
-import { NativeOnlyAnimatedView } from "@/components/ui/native-only-animated-view";
+import { AnimatedView } from "@/components/ui/AnimatedView";
 import { TextClassContext } from "@/components/ui/StyledText";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
@@ -84,7 +84,7 @@ function DropdownMenuSubContent({
   const shadowStyle = StyleSheet.flatten(getShadowStyle("soft"));
 
   return (
-    <NativeOnlyAnimatedView>
+    <AnimatedView type="fade">
       <DropdownMenuPrimitive.SubContent
         {...props}
         style={{
@@ -104,7 +104,7 @@ function DropdownMenuSubContent({
             : {}),
         }}
       />
-    </NativeOnlyAnimatedView>
+    </AnimatedView>
   );
 }
 
@@ -142,7 +142,7 @@ function DropdownMenuContent({
             default: undefined,
           })}
         >
-          <NativeOnlyAnimatedView>
+          <AnimatedView type="fade">
             <TextClassContext.Provider value="">
               <DropdownMenuPrimitive.Content
                 side={side}
@@ -170,7 +170,7 @@ function DropdownMenuContent({
                 }}
               />
             </TextClassContext.Provider>
-          </NativeOnlyAnimatedView>
+          </AnimatedView>
         </DropdownMenuPrimitive.Overlay>
       </FullWindowOverlay>
     </DropdownMenuPrimitive.Portal>

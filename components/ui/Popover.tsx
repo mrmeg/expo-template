@@ -1,4 +1,4 @@
-import { NativeOnlyAnimatedView } from "@/components/ui/native-only-animated-view";
+import { AnimatedView } from "@/components/ui/AnimatedView";
 import { TextClassContext, TextColorContext } from "@/components/ui/StyledText";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
@@ -62,7 +62,7 @@ function PopoverContent({
     <PopoverPrimitive.Portal hostName={portalHost}>
       <FullWindowOverlay>
         <PopoverPrimitive.Overlay style={Platform.select({ native: StyleSheet.absoluteFill })}>
-          <NativeOnlyAnimatedView enterDuration={200} exitDuration={150}>
+          <AnimatedView type="fade" enterDuration={200} exitDuration={150}>
             <TextColorContext.Provider value={textColor}>
               <TextClassContext.Provider value="">
                 <PopoverPrimitive.Content
@@ -74,7 +74,7 @@ function PopoverContent({
                 />
               </TextClassContext.Provider>
             </TextColorContext.Provider>
-          </NativeOnlyAnimatedView>
+          </AnimatedView>
         </PopoverPrimitive.Overlay>
       </FullWindowOverlay>
     </PopoverPrimitive.Portal>

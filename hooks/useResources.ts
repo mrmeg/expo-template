@@ -1,13 +1,5 @@
-import {
-  useFonts as useLatoFonts,
-  Lato_400Regular,
-  Lato_700Bold,
-} from "@expo-google-fonts/lato";
-import {
-  useFonts as useMerriweatherFonts,
-  Merriweather_400Regular,
-  Merriweather_700Bold,
-} from "@expo-google-fonts/merriweather";
+import { useEffect, useState } from "react";
+import * as Font from "expo-font";
 
 interface LoadResourcesResult {
   loaded: boolean;
@@ -15,74 +7,100 @@ interface LoadResourcesResult {
 }
 
 /**
- * Loads essential app resources on startup using Expo Google Fonts.
+ * Loads essential app resources on startup using local font files.
  *
- * GOOGLE FONTS (Current Implementation):
- * - Uses @expo-google-fonts packages for automatic font loading
- * - Fonts are downloaded from Google Fonts CDN on first launch and cached
- * - No local font files needed in /assets/fonts
- * - Simpler setup with less bundle size impact
+ * LOCAL FONTS (Current Implementation):
+ * - Fonts are loaded from /assets/fonts directory at startup
+ * - Fonts are bundled with the app (no network request needed)
+ * - Fonts available immediately after loading
+ * - Better performance and offline support
+ * - Font files: Lato (~145KB total), Merriweather (~285KB total)
  *
- * TO USE LOCAL FONTS INSTEAD:
- * 1. Remove @expo-google-fonts packages:
- *    npm uninstall @expo-google-fonts/lato @expo-google-fonts/merriweather
+ * ALTERNATIVE: GOOGLE FONTS CDN
+ * To use @expo-google-fonts packages instead (loads from CDN at runtime):
  *
- * 2. Add font files to /assets/fonts/Lato and /assets/fonts/Merriweather
+ * 1. Install packages:
+ *    npm install @expo-google-fonts/lato @expo-google-fonts/merriweather
  *
- * 3. Replace this hook's implementation with:
+ * 2. Replace this hook's implementation with:
  *    ```
- *    import { useEffect, useState } from "react";
- *    import * as Font from "expo-font";
+ *    import {
+ *      useFonts as useLatoFonts,
+ *      Lato_400Regular,
+ *      Lato_700Bold,
+ *    } from "@expo-google-fonts/lato";
+ *    import {
+ *      useFonts as useMerriweatherFonts,
+ *      Merriweather_400Regular,
+ *      Merriweather_700Bold,
+ *    } from "@expo-google-fonts/merriweather";
  *
  *    export const useResources = (): LoadResourcesResult => {
- *      const [loaded, setLoaded] = useState(false);
- *      const [error, setError] = useState(null);
+ *      const [latoLoaded, latoError] = useLatoFonts({
+ *        Lato_400Regular,
+ *        Lato_700Bold,
+ *      });
  *
- *      useEffect(() => {
- *        async function loadResourcesAndDataAsync() {
- *          try {
- *            await Font.loadAsync({
- *              "Lato_400Regular": require("@/assets/fonts/Lato/Lato-Regular.ttf"),
- *              "Lato_700Bold": require("@/assets/fonts/Lato/Lato-Bold.ttf"),
- *              "Merriweather_400Regular": require("@/assets/fonts/Merriweather/Merriweather-Regular.ttf"),
- *              "Merriweather_700Bold": require("@/assets/fonts/Merriweather/Merriweather-Bold.ttf"),
- *            });
- *          } catch (e: any) {
- *            console.warn(e);
- *            setError(e);
- *          } finally {
- *            setLoaded(true);
- *          }
- *        }
- *        loadResourcesAndDataAsync();
- *      }, []);
+ *      const [merriweatherLoaded, merriweatherError] = useMerriweatherFonts({
+ *        Merriweather_400Regular,
+ *        Merriweather_700Bold,
+ *      });
+ *
+ *      const loaded = latoLoaded && merriweatherLoaded;
+ *      const error = latoError || merriweatherError;
  *
  *      return { loaded, error };
  *    };
  *    ```
  *
+ * 3. Benefits of CDN approach:
+ *    - Fonts cached after first load
+ *    - Zero impact on initial app bundle size
+ *    - Automatic updates when Google updates fonts
+ *
  * Note: Font family names MUST match between Google Fonts and local fonts
  * (e.g., "Lato_400Regular" in both cases) for seamless switching.
+ *
+ * FONT SUBSETTING:
+ * To reduce font file sizes by 50-70%, subset the fonts to include only
+ * needed characters using pyftsubset (part of fonttools):
+ *
+ * pip install fonttools brotli
+ *
+ * pyftsubset Merriweather-Regular.ttf \
+ *   --output-file="Merriweather-Regular-subset.ttf" \
+ *   --flavor=ttf \
+ *   --layout-features="kern,liga,calt" \
+ *   --unicodes="U+0020-007F,U+00A0-00FF,U+2000-206F,U+20AC" \
+ *   --no-hinting \
+ *   --desubroutinize
  *
  * Returns:
  *   - loaded: true when all resources are ready
  *   - error: any error encountered during loading
  */
 export const useResources = (): LoadResourcesResult => {
-  // Load both font families using their respective hooks
-  const [latoLoaded, latoError] = useLatoFonts({
-    Lato_400Regular,
-    Lato_700Bold,
-  });
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  const [merriweatherLoaded, merriweatherError] = useMerriweatherFonts({
-    Merriweather_400Regular,
-    Merriweather_700Bold,
-  });
-
-  // Combine loading states
-  const loaded = latoLoaded && merriweatherLoaded;
-  const error = latoError || merriweatherError;
+  useEffect(() => {
+    async function loadResourcesAndDataAsync() {
+      try {
+        await Font.loadAsync({
+          "Lato_400Regular": require("@/assets/fonts/Lato/Lato-Regular.ttf"),
+          "Lato_700Bold": require("@/assets/fonts/Lato/Lato-Bold.ttf"),
+          "Merriweather_400Regular": require("@/assets/fonts/Merriweather/Merriweather-Regular.ttf"),
+          "Merriweather_700Bold": require("@/assets/fonts/Merriweather/Merriweather-Bold.ttf"),
+        });
+      } catch (e: any) {
+        console.warn(e);
+        setError(e);
+      } finally {
+        setLoaded(true);
+      }
+    }
+    loadResourcesAndDataAsync();
+  }, []);
 
   return { loaded, error };
 };

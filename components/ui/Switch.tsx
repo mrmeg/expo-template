@@ -1,14 +1,24 @@
+import React, { useEffect, useRef } from "react";
+import { Platform, Animated, StyleSheet, StyleProp, ViewStyle, ActivityIndicator } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import * as SwitchPrimitives from "@rn-primitives/switch";
-import { Platform, Animated } from "react-native";
 import { fontFamilies } from "@/constants/fonts";
-import { useEffect, useRef } from "react";
 import { Text } from "./StyledText";
 
 const DEFAULT_HIT_SLOP = 8;
 
-interface SwitchProps extends SwitchPrimitives.RootProps {
+/**
+ * Switch variant styles
+ */
+export type SwitchVariant = "default" | "ios";
+
+interface SwitchProps extends Omit<SwitchPrimitives.RootProps, 'style'> {
+  /**
+   * Visual variant
+   * @default "default"
+   */
+  variant?: SwitchVariant;
   /**
    * Optional label to display when switch is ON (checked)
    */
@@ -27,34 +37,86 @@ interface SwitchProps extends SwitchPrimitives.RootProps {
    * Default: 24
    */
   thumbSize?: number;
+  /**
+   * Whether to show a loading spinner inside the thumb
+   */
+  loading?: boolean;
+  /**
+   * Custom style override (uses StyleSheet.flatten for web compatibility)
+   */
+  style?: StyleProp<ViewStyle>;
+  /**
+   * Animation configuration - tension for spring animation
+   * @default 180
+   */
+  animationTension?: number;
+  /**
+   * Animation configuration - friction for spring animation
+   * @default 12
+   */
+  animationFriction?: number;
 }
 
 /**
- * Switch Component
- * A controlled switch/toggle component using @rn-primitives/switch
- * Integrates with DaisyUI theme system and supports React Native Reusables patterns
+ * Enhanced Switch Component
+ *
+ * Features:
+ * - Variants (default, ios)
+ * - Loading state with spinner
+ * - Style prop support
+ * - Configurable animations
+ * - Optional labels (ON/OFF)
+ * - Custom sizing
+ * - Full accessibility support
  *
  * Usage:
  * ```tsx
+ * // Basic
  * const [checked, setChecked] = useState(false);
  * <Switch checked={checked} onCheckedChange={setChecked} />
- * ```
  *
- * With labels:
- * ```tsx
+ * // With labels
  * <Switch
  *   checked={checked}
  *   onCheckedChange={setChecked}
  *   labelOn="ON"
  *   labelOff="OFF"
  * />
+ *
+ * // iOS variant
+ * <Switch
+ *   variant="ios"
+ *   checked={checked}
+ *   onCheckedChange={setChecked}
+ * />
+ *
+ * // With loading state
+ * <Switch
+ *   checked={checked}
+ *   loading
+ *   onCheckedChange={setChecked}
+ * />
+ *
+ * // Custom size and style
+ * <Switch
+ *   checked={checked}
+ *   onCheckedChange={setChecked}
+ *   size={{ width: 70, height: 36 }}
+ *   thumbSize={32}
+ *   style={{ marginVertical: 10 }}
+ * />
  * ```
  */
 function Switch({
+  variant = "default",
   labelOn,
   labelOff,
   size = { width: 52, height: 28 },
   thumbSize = 24,
+  loading = false,
+  style: styleOverride,
+  animationTension = 180,
+  animationFriction = 12,
   ...props
 }: SwitchProps) {
   const { theme, getContrastingColor } = useTheme();
@@ -88,8 +150,8 @@ function Switch({
     Animated.parallel([
       Animated.spring(thumbPosition, {
         toValue: props.checked ? 1 : 0,
-        tension: 180,
-        friction: 12,
+        tension: animationTension,
+        friction: animationFriction,
         useNativeDriver,
       }),
       Animated.timing(labelOnOpacity, {
@@ -103,13 +165,22 @@ function Switch({
         useNativeDriver,
       }),
     ]).start();
-  }, [props.checked, thumbPosition, labelOnOpacity, labelOffOpacity]);
+  }, [props.checked, thumbPosition, labelOnOpacity, labelOffOpacity, animationTension, animationFriction]);
 
   // Interpolate thumb position
   const animatedThumbTranslateX = thumbPosition.interpolate({
     inputRange: [0, 1],
     outputRange: [2, size.width - thumbSize - 2],
   });
+
+  // Flatten style override for web compatibility
+  const flattenedStyle = styleOverride ? StyleSheet.flatten(styleOverride) : undefined;
+
+  // iOS variant styling
+  const isIOS = variant === "ios";
+  const iosBackgroundColor = props.checked
+    ? "#34C759" // iOS green
+    : theme.colors.bgTertiary;
 
   return (
     <SwitchPrimitives.Root
@@ -119,17 +190,26 @@ function Switch({
         width: size.width,
         height: size.height,
         borderRadius: size.height / 2,
-        borderWidth: 0.75,
+        borderWidth: isIOS ? 0 : 0.75,
         borderColor: props.checked ? theme.colors.primary : borderColor,
-        backgroundColor: props.checked ? theme.colors.primary : theme.colors.bgTertiary,
+        backgroundColor: isIOS
+          ? iosBackgroundColor
+          : (props.checked ? theme.colors.primary : theme.colors.bgTertiary),
         justifyContent: "center",
         opacity: props.disabled ? 0.5 : 1,
         ...(Platform.OS === "web" && { cursor: "pointer" as any }),
+        ...(flattenedStyle || {}),
       }}
       hitSlop={DEFAULT_HIT_SLOP}
+      accessibilityRole="switch"
+      accessibilityState={{
+        checked: props.checked,
+        disabled: !!props.disabled,
+        busy: loading,
+      }}
     >
-      {/* Label ON - shown when checked */}
-      {labelOn && (
+      {/* Label ON - shown when checked (not shown in iOS variant) */}
+      {labelOn && !isIOS && (
         <Animated.View
           style={{
             position: "absolute",
@@ -154,9 +234,7 @@ function Switch({
       )}
 
       {/* Thumb (sliding circle) */}
-      <SwitchPrimitives.Thumb
-        asChild
-      >
+      <SwitchPrimitives.Thumb asChild>
         <Animated.View
           style={{
             width: thumbSize,
@@ -164,19 +242,29 @@ function Switch({
             borderRadius: thumbSize / 2,
             backgroundColor: theme.colors.white,
             transform: [{ translateX: animatedThumbTranslateX }],
+            justifyContent: "center",
+            alignItems: "center",
             ...(Platform.OS !== "web" && {
               shadowColor: theme.colors.overlay,
               shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3,
-              elevation: 3,
+              shadowOpacity: isIOS ? 0.15 : 0.25,
+              shadowRadius: isIOS ? 2 : 3,
+              elevation: isIOS ? 2 : 3,
             }),
           }}
-        />
+        >
+          {/* Loading spinner inside thumb */}
+          {loading && (
+            <ActivityIndicator
+              size="small"
+              color={theme.colors.primary}
+            />
+          )}
+        </Animated.View>
       </SwitchPrimitives.Thumb>
 
-      {/* Label OFF - shown when unchecked */}
-      {labelOff && (
+      {/* Label OFF - shown when unchecked (not shown in iOS variant) */}
+      {labelOff && !isIOS && (
         <Animated.View
           style={{
             position: "absolute",
