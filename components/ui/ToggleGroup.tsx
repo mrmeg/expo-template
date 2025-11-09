@@ -4,7 +4,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import * as ToggleGroupPrimitive from "@rn-primitives/toggle-group";
 import * as React from "react";
-import { Platform, StyleSheet } from "react-native";
+import { Platform } from "react-native";
 import type { LucideIcon } from "lucide-react-native";
 
 const DEFAULT_HIT_SLOP = 8;

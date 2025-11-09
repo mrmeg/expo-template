@@ -8,7 +8,6 @@ import { useTheme } from "@/hooks/useTheme";
 import { useResources } from "@/hooks/useResources";
 import { Notification } from "@/components/ui/Notification";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MaxWidthContainer } from "@/components/ui/MaxWidthContainer";
 import { PortalHost } from "@rn-primitives/portal";
 import { StatusBar } from "@/components/ui/StatusBar";
 import { SafeAreaProvider } from "react-native-safe-area-context";

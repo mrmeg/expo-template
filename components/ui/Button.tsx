@@ -11,7 +11,6 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import { Text, TextColorContext, TextProps } from "./StyledText";
