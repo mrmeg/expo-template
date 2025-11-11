@@ -6,6 +6,7 @@ import {
   StyleProp,
   TextStyle,
   ViewStyle,
+  ImageStyle,
   StyleSheet,
   View,
   Platform,
@@ -15,6 +16,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import { Text, TextColorContext, TextProps } from "./StyledText";
 import { fontFamilies } from "@/constants/fonts";
+import type { Theme } from "@/constants/colors";
 
 /**
  * Button variants
@@ -48,7 +50,7 @@ const SIZE_CONFIGS: Record<ButtonSize, { paddingVertical: number; paddingHorizon
 };
 
 export interface ButtonAccessoryProps {
-  style: StyleProp<any>;
+  style: StyleProp<ViewStyle | TextStyle | ImageStyle>;
   pressableState: PressableStateCallbackType;
   disabled?: boolean;
 }
@@ -302,7 +304,7 @@ export function Button(props: ButtonProps) {
   );
 }
 
-const createStyles = (theme: any, size: ButtonSize) => {
+const createStyles = (theme: Theme, size: ButtonSize) => {
   const sizeConfig = SIZE_CONFIGS[size];
 
   return StyleSheet.create({

@@ -117,7 +117,7 @@ function ToggleGroup({
       const isFirst = itemIndex === 0;
       const isLast = itemIndex === childCount - 1;
       itemIndex++;
-      return React.cloneElement(child as React.ReactElement<any>, {
+      return React.cloneElement(child as React.ReactElement<ToggleGroupItemProps>, {
         isFirst,
         isLast,
       });

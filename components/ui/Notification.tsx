@@ -8,6 +8,7 @@ import { Icon } from "./Icon";
 import { useTheme } from "@/hooks/useTheme";
 import { spacing } from "@/constants/spacing";
 import { Text } from "./StyledText";
+import type { Theme } from "@/constants/colors";
 
 /**
  * Notification
@@ -199,7 +200,7 @@ export const Notification = () => {
   );
 };
 
-const createStyles = (theme: any) => StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     position: "absolute",
     zIndex: 1000,

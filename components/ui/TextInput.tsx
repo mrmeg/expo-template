@@ -16,6 +16,7 @@ import { spacing } from "@/constants/spacing";
 import { fontFamilies } from "@/constants/fonts";
 import { Text } from "./StyledText";
 import { Icon } from "./Icon";
+import type { Theme } from "@/constants/colors";
 
 /**
  * Size variants for TextInput
@@ -356,7 +357,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
 
 TextInput.displayName = "TextInput";
 
-const createStyles = (theme: any, variant: TextInputVariant, size: TextInputSize) =>
+const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSize) =>
   StyleSheet.create({
     wrapper: {
       width: "100%",

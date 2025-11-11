@@ -92,9 +92,10 @@ export const useResources = (): LoadResourcesResult => {
           "Merriweather_400Regular": require("@/assets/fonts/Merriweather/Merriweather-Regular.ttf"),
           "Merriweather_700Bold": require("@/assets/fonts/Merriweather/Merriweather-Bold.ttf"),
         });
-      } catch (e: any) {
-        console.warn(e);
-        setError(e);
+      } catch (e: unknown) {
+        const error = e instanceof Error ? e : new Error(String(e));
+        console.warn(error);
+        setError(error);
       } finally {
         setLoaded(true);
       }
