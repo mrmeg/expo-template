@@ -53,7 +53,7 @@ function PopoverContent({
       borderColor: theme.colors.bgTertiary,
       borderWidth: 2,
       borderRadius: spacing.radiusMd,
-      padding: spacing.md,
+      padding: spacing.xs,
       ...getShadowStyle("soft"),
     },
   ]);
@@ -96,8 +96,8 @@ function PopoverHeader({ children, style, ...props }: PopoverHeaderProps) {
     <View
       style={[
         {
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.buttonPadding,
+          paddingHorizontal: spacing.xs,
+          paddingVertical: spacing.sm,
           borderBottomWidth: 1,
           borderBottomColor: theme.colors.bgTertiary,
         },
@@ -123,8 +123,8 @@ function PopoverBody({ children, style, ...props }: PopoverBodyProps) {
     <View
       style={[
         {
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.buttonPadding,
+          paddingHorizontal: spacing.xs,
+          paddingVertical: spacing.sm,
         },
         style,
       ]}
@@ -150,8 +150,8 @@ function PopoverFooter({ children, style, ...props }: PopoverFooterProps) {
     <View
       style={[
         {
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.buttonPadding,
+          paddingHorizontal: spacing.xs,
+          paddingVertical: spacing.sm,
           borderTopWidth: 1,
           borderTopColor: theme.colors.bgTertiary,
         },
