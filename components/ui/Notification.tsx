@@ -229,6 +229,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   alertContent: {
     flex: 1,
     marginLeft: spacing.md,
+    paddingRight: spacing.sm,
     justifyContent: "center",
   },
   alertTitle: {
