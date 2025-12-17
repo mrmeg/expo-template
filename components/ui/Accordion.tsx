@@ -113,7 +113,7 @@ function AccordionTrigger({
             style={[
               {
                 flexDirection: "row",
-                alignItems: "flex-start",
+                alignItems: "center",
                 justifyContent: "space-between",
                 gap: spacing.md,
                 borderRadius: spacing.radiusMd,
@@ -130,8 +130,8 @@ function AccordionTrigger({
             <Animated.View style={{ transform: [{ rotate }] }}>
               <Icon
                 as={ChevronDown}
-                size={16}
-                color={theme.colors.textPrimary}
+                size={20}
+                color={theme.colors.neutral}
               />
             </Animated.View>
           </Trigger>

@@ -240,10 +240,10 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
     const textColor = forceLight
       ? "#1f2937"
       : getContrastingColor(
-          backgroundColor === "transparent" ? theme.colors.bgPrimary : backgroundColor,
-          theme.colors.textPrimary,
-          theme.colors.white
-        );
+        backgroundColor === "transparent" ? theme.colors.bgPrimary : backgroundColor,
+        theme.colors.textPrimary,
+        theme.colors.white
+      );
 
     const shouldScroll = multiline && rest.scrollEnabled !== false && contentHeight > 100;
 
@@ -363,6 +363,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       width: "100%",
       position: "relative",
       backgroundColor: "transparent",
+      justifyContent: "center",
     },
     input: {
       fontFamily: fontFamilies.sansSerif.regular,
