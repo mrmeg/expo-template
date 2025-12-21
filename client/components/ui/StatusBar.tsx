@@ -1,4 +1,4 @@
-import { useTheme } from "@/hooks/useTheme";
+import { useTheme } from "@/client/hooks/useTheme";
 import { StatusBar as RNStatusBar, Platform } from "react-native";
 
 export const StatusBar = () => {

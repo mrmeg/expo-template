@@ -1,14 +1,14 @@
 import React, { useContext, useEffect } from "react";
 import { StyleSheet, View, ActivityIndicator, Animated, TouchableOpacity } from "react-native";
-import { globalUIStore } from "@/stores/globalUIStore";
+import { globalUIStore } from "@/client/stores/globalUIStore";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
-import { fontFamilies } from "@/constants/fonts";
+import { fontFamilies } from "@/client/constants/fonts";
 import { AlertCircle, CheckCircle, AlertTriangle, Info, X } from "lucide-react-native";
 import { Icon } from "./Icon";
-import { useTheme } from "@/hooks/useTheme";
-import { spacing } from "@/constants/spacing";
+import { useTheme } from "@/client/hooks/useTheme";
+import { spacing } from "@/client/constants/spacing";
 import { Text } from "./StyledText";
-import type { Theme } from "@/constants/colors";
+import type { Theme } from "@/client/constants/colors";
 
 /**
  * Notification

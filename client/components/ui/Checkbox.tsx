@@ -1,9 +1,9 @@
 import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Pressable } from "react-native";
-import { Icon } from "@/components/ui/Icon";
-import { Text } from "@/components/ui/StyledText";
-import { useTheme } from "@/hooks/useTheme";
-import { spacing } from "@/constants/spacing";
+import { Icon } from "@/client/components/ui/Icon";
+import { Text } from "@/client/components/ui/StyledText";
+import { useTheme } from "@/client/hooks/useTheme";
+import { spacing } from "@/client/constants/spacing";
 import * as CheckboxPrimitive from "@rn-primitives/checkbox";
 import { Check, Minus } from "lucide-react-native";
 

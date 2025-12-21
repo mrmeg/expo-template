@@ -1,7 +1,7 @@
 import React, { forwardRef } from "react";
 import { Text as RNText, TextProps as RNTextProps } from "react-native";
-import { useTheme } from "@/hooks/useTheme";
-import { fontFamilies } from "@/constants/fonts";
+import { useTheme } from "@/client/hooks/useTheme";
+import { fontFamilies } from "@/client/constants/fonts";
 
 /**
  * TextClassContext provides className context for nested text components

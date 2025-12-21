@@ -11,12 +11,12 @@ import {
   Pressable,
 } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
-import { useTheme } from "@/hooks/useTheme";
-import { spacing } from "@/constants/spacing";
-import { fontFamilies } from "@/constants/fonts";
+import { useTheme } from "@/client/hooks/useTheme";
+import { spacing } from "@/client/constants/spacing";
+import { fontFamilies } from "@/client/constants/fonts";
 import { Text } from "./StyledText";
 import { Icon } from "./Icon";
-import type { Theme } from "@/constants/colors";
+import type { Theme } from "@/client/constants/colors";
 
 /**
  * Size variants for TextInput

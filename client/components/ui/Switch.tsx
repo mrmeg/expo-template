@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { Platform, Animated, StyleSheet, StyleProp, ViewStyle, ActivityIndicator } from "react-native";
-import { useTheme } from "@/hooks/useTheme";
-import { spacing } from "@/constants/spacing";
+import { useTheme } from "@/client/hooks/useTheme";
+import { spacing } from "@/client/constants/spacing";
 import * as SwitchPrimitives from "@rn-primitives/switch";
-import { fontFamilies } from "@/constants/fonts";
+import { fontFamilies } from "@/client/constants/fonts";
 import { Text } from "./StyledText";
 
 const DEFAULT_HIT_SLOP = 8;

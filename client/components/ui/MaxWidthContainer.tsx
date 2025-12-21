@@ -1,6 +1,6 @@
 import React from "react";
 import { View, ViewStyle, StyleSheet, Platform } from "react-native";
-import { useDimensions } from "@/hooks/useDimensions";
+import { useDimensions } from "@/client/hooks/useDimensions";
 
 /**
  * Preset width options for common responsive breakpoints

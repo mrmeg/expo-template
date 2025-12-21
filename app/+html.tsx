@@ -1,4 +1,4 @@
-import { colors } from '@/constants/colors';
+import { colors } from '@/client/constants/colors';
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
 

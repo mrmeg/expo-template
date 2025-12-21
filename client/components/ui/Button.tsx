@@ -12,11 +12,11 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import { useTheme } from "@/hooks/useTheme";
-import { spacing } from "@/constants/spacing";
+import { useTheme } from "@/client/hooks/useTheme";
+import { spacing } from "@/client/constants/spacing";
 import { Text, TextColorContext, TextProps } from "./StyledText";
-import { fontFamilies } from "@/constants/fonts";
-import type { Theme } from "@/constants/colors";
+import { fontFamilies } from "@/client/constants/fonts";
+import type { Theme } from "@/client/constants/colors";
 
 /**
  * Button variants

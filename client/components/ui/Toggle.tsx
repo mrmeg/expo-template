@@ -1,8 +1,8 @@
 import React from "react";
-import { Icon } from "@/components/ui/Icon";
-import { TextClassContext, TextColorContext } from "@/components/ui/StyledText";
-import { useTheme } from "@/hooks/useTheme";
-import { spacing } from "@/constants/spacing";
+import { Icon } from "@/client/components/ui/Icon";
+import { TextClassContext, TextColorContext } from "@/client/components/ui/StyledText";
+import { useTheme } from "@/client/hooks/useTheme";
+import { spacing } from "@/client/constants/spacing";
 import * as TogglePrimitive from "@rn-primitives/toggle";
 import { Platform, StyleSheet, ViewStyle, ActivityIndicator, StyleProp } from "react-native";
 import type { LucideIcon } from "lucide-react-native";

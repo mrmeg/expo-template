@@ -1,6 +1,6 @@
 import * as React from "react";
 import { StyleProp, ViewStyle } from "react-native";
-import { useTheme } from "@/hooks/useTheme";
+import { useTheme } from "@/client/hooks/useTheme";
 import type { LucideIcon } from "lucide-react-native";
 
 /**

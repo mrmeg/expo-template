@@ -1,6 +1,6 @@
-import { Colors, colors } from "@/constants/colors";
+import { Colors, colors } from "@/client/constants/colors";
 import { useColorScheme as useColorSchemeDefault, ViewStyle, Platform } from "react-native";
-import { useThemeStore } from "@/stores/themeStore";
+import { useThemeStore } from "@/client/stores/themeStore";
 
 type ShadowType = "base" | "soft" | "sharp" | "subtle";
 

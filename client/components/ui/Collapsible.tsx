@@ -1,6 +1,6 @@
-import { TextClassContext } from "@/components/ui/StyledText";
-import { useTheme } from "@/hooks/useTheme";
-import { spacing } from "@/constants/spacing";
+import { TextClassContext } from "@/client/components/ui/StyledText";
+import { useTheme } from "@/client/hooks/useTheme";
+import { spacing } from "@/client/constants/spacing";
 import * as CollapsiblePrimitive from "@rn-primitives/collapsible";
 import * as React from "react";
 import { Animated, Platform, StyleSheet, View } from "react-native";

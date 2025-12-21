@@ -1,15 +1,15 @@
-import "@/lib/gesture-handler";
+import "@/client/lib/gesture-handler";
 import { useEffect } from "react";
 import { ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { colors } from "@/constants/colors";
-import { useTheme } from "@/hooks/useTheme";
-import { useResources } from "@/hooks/useResources";
-import { Notification } from "@/components/ui/Notification";
+import { colors } from "@/client/constants/colors";
+import { useTheme } from "@/client/hooks/useTheme";
+import { useResources } from "@/client/hooks/useResources";
+import { Notification } from "@/client/components/ui/Notification";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PortalHost } from "@rn-primitives/portal";
-import { StatusBar } from "@/components/ui/StatusBar";
+import { StatusBar } from "@/client/components/ui/StatusBar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 

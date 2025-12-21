@@ -1,8 +1,8 @@
-import { Icon } from "@/components/ui/Icon";
-import { AnimatedView } from "@/components/ui/AnimatedView";
-import { TextClassContext } from "@/components/ui/StyledText";
-import { useTheme } from "@/hooks/useTheme";
-import { spacing } from "@/constants/spacing";
+import { Icon } from "@/client/components/ui/Icon";
+import { AnimatedView } from "@/client/components/ui/AnimatedView";
+import { TextClassContext } from "@/client/components/ui/StyledText";
+import { useTheme } from "@/client/hooks/useTheme";
+import { spacing } from "@/client/constants/spacing";
 import * as DropdownMenuPrimitive from "@rn-primitives/dropdown-menu";
 import { Check, ChevronDown, ChevronRight, ChevronUp } from "lucide-react-native";
 import * as React from "react";

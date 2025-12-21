@@ -1,7 +1,7 @@
-import { AnimatedView } from "@/components/ui/AnimatedView";
-import { TextClassContext, TextColorContext } from "@/components/ui/StyledText";
-import { useTheme } from "@/hooks/useTheme";
-import { spacing } from "@/constants/spacing";
+import { AnimatedView } from "@/client/components/ui/AnimatedView";
+import { TextClassContext, TextColorContext } from "@/client/components/ui/StyledText";
+import { useTheme } from "@/client/hooks/useTheme";
+import { spacing } from "@/client/constants/spacing";
 import * as PopoverPrimitive from "@rn-primitives/popover";
 import * as React from "react";
 import { Platform, StyleSheet, View, ViewProps } from "react-native";
