@@ -1,27 +1,47 @@
 # Expo Template Project
 
-A feature-rich starter kit for React Native and Expo applications with pre-built UI components, theming, and modern development tools.
+A professional, feature-rich starter kit for React Native and Expo applications with pre-built UI components, internationalization, and modern development tools.
 
 ## Features
 
-- 🎨 **Complete UI Component Library** - Buttons, inputs, alerts, popovers, toggles, and more
+### Core
+- 🎨 **Complete UI Component Library** - Buttons, inputs, alerts, popovers, toggles, accordions, dropdown menus, and more
 - 🌓 **Comprehensive Theming** - Dark/light modes with system preference detection
 - 📱 **Cross-Platform** - Works on iOS, Android, and Web with consistent styling
 - 🧩 **File-based Routing** - Using Expo Router for simplified navigation
 - 🔄 **State Management** - Zustand for lightweight global state
 - 💪 **TypeScript** - Full type safety with strict mode
 - 📊 **Accessibility Focus** - WCAG-compliant contrast utilities
+
+### Infrastructure
+- 🌍 **Internationalization (i18n)** - Multi-language support with expo-localization and i18next
+- 🔌 **API Service Layer** - Typed fetch wrapper with error handling, works with React Query
+- 💾 **Storage Utilities** - Cross-platform AsyncStorage abstraction
+- ⚙️ **Environment Configuration** - Dev/prod config system with typed settings
+- 🛡️ **Error Boundary** - Global error catching with user-friendly fallback UI
+
+### Developer Experience
+- 🧪 **Testing Infrastructure** - Jest + React Native Testing Library with example tests
+- 🔍 **Reactotron Integration** - Advanced debugging for native platforms
+- 🏗️ **Generator CLI** - Scaffold components and screens consistently
 - 📝 **Custom Typography** - Font system with Lato and Merriweather
 
 ## UI Components
 
+Built on `@rn-primitives` with full theme integration:
+
 - **Typography** - Styled text components with custom fonts (SansSerif, Serif, Bold variants)
-- **Buttons** - Declarative children pattern with multiple variants (default, primary, outline)
-- **Text Inputs** - Regular, password, multiline with secure entry toggle
+- **Button** - 6 variants (default, outline, ghost, link, destructive, secondary), 3 sizes, loading state
+- **TextInput** - Regular, password, multiline with secure entry toggle
+- **Checkbox** - Controlled component with theme-aware styling
+- **Switch** - Toggle with optional labels
+- **Toggle & ToggleGroup** - Single/multiple selection toggle buttons
+- **Accordion** - Animated collapsible sections
+- **Collapsible** - Smooth expand/collapse animations
+- **Popover** - Smart positioning with portal rendering
+- **DropdownMenu** - Full menu system with items, checkboxes, radio groups, sub-menus
 - **Alerts & Notifications** - Centralized alert management with global state
-- **Popovers** - Context-based system with smart positioning and arrow support
-- **Toggle Switches** - With optional custom labels and theming
-- **Scroll Views** - Enhanced scrolling with keyboard handling
+- **Icon** - Lucide icons wrapper with theme color support
 
 ## Getting Started
 
@@ -50,34 +70,176 @@ A feature-rich starter kit for React Native and Expo applications with pre-built
 
 ### Available Scripts
 
-- `npm start` - Start the Expo development server
-- `npm run ios` - Start on iOS simulator
-- `npm run android` - Start on Android emulator
-- `npm run web` - Start for web development
-- `npm run build` - Build for web
-- `npm test` - Run tests in watch mode
-- `npm run lint` - Run ESLint
+| Script | Description |
+|--------|-------------|
+| `npm start` | Start the Expo development server |
+| `npm run ios` | Start on iOS simulator |
+| `npm run android` | Start on Android emulator |
+| `npm run web` | Start for web development |
+| `npm run build` | Build for web |
+| `npm test` | Run tests in watch mode |
+| `npm run lint` | Run ESLint |
+| `npm run generate component <Name>` | Generate a new component |
+| `npm run generate screen <Name>` | Generate a new screen |
+
+### Generator CLI
+
+Quickly scaffold new components or screens:
+
+```bash
+# Generate a component
+npm run generate component MyButton
+
+# Generate a screen
+npm run generate screen Settings
+```
+
+Generated files follow project patterns with proper theming and TypeScript.
+
+### Testing
+
+```bash
+# Run tests in watch mode
+npm test
+
+# Run tests once
+npm test -- --watchAll=false
+
+# Run with coverage
+npm test -- --coverage --watchAll=false
+```
+
+### Reactotron Debugging
+
+For native development:
+1. Install [Reactotron](https://github.com/infinitered/reactotron/releases)
+2. Run the app in development mode
+3. Reactotron auto-connects to show network requests, AsyncStorage, and logs
 
 ## Architecture
 
-- `/app` - Application screens using file-based routing
-  - `index.tsx` - Main showcase page for all UI components
-  - `popover-test.tsx` - Dedicated popover testing page
-- `/components/ui` - Reusable UI components with TypeScript
-- `/constants` - Design tokens and theme configuration
-- `/hooks` - Custom React hooks (theme, etc.)
-- `/stores` - Global state management with Zustand
-- `/assets` - Fonts and images
+```
+/app                          # File-based routing (Expo Router)
+  ├── _layout.tsx             # Root layout with providers
+  ├── index.tsx               # Entry redirect
+  └── (main)/                 # Main app routes
+      ├── (tabs)/             # Tab navigation (home, profile, settings)
+      └── showcase.tsx        # Component showcase
+
+/client
+  ├── components/ui/          # Reusable UI components
+  │   └── __tests__/          # Component tests
+  ├── config/                 # Environment configuration
+  ├── constants/              # Design tokens (colors, spacing, fonts)
+  ├── devtools/               # Reactotron configuration
+  ├── hooks/                  # Custom React hooks
+  ├── i18n/                   # Internationalization
+  ├── screens/                # Screen components (ErrorScreen)
+  ├── services/api/           # API client and types
+  ├── stores/                 # Zustand state stores
+  └── utils/storage/          # AsyncStorage utilities
+
+/scripts                      # CLI tools (generator)
+/test                         # Test setup and utilities
+```
+
+## Internationalization
+
+Multi-language support with type-safe translation keys:
+
+```tsx
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  const { t } = useTranslation();
+  return <Text>{t('common.ok')}</Text>;
+}
+
+// Or with the tx prop on Text components
+<Text tx="common.ok" />
+```
+
+Add new languages in `/client/i18n/`.
+
+## API Service
+
+Typed API client with error handling:
+
+```tsx
+import { api } from '@/client/services/api';
+
+// Make requests
+const result = await api.get<User>('/users/me');
+
+if (result.kind === 'ok') {
+  console.log(result.data);
+} else {
+  console.error(result.kind); // 'timeout', 'unauthorized', etc.
+}
+
+// Set auth token if needed
+api.setAuthToken(token);
+```
+
+Works seamlessly with React Query for caching and state management.
+
+## Configuration
+
+Environment-based configuration in `/client/config/`:
+
+```tsx
+import Config from '@/client/config';
+
+console.log(Config.apiUrl);        // API base URL
+console.log(Config.catchErrors);   // Error catching mode
+```
+
+## Theming
+
+Access theme anywhere with the `useTheme` hook:
+
+```tsx
+import { useTheme } from '@/client/hooks/useTheme';
+import { spacing } from '@/client/constants/spacing';
+
+function MyComponent() {
+  const { theme, scheme, getShadowStyle, getContrastingColor } = useTheme();
+
+  return (
+    <View style={[
+      { backgroundColor: theme.colors.bgPrimary },
+      getShadowStyle('base')
+    ]}>
+      <Text style={{ color: theme.colors.textPrimary }}>
+        Current theme: {scheme}
+      </Text>
+    </View>
+  );
+}
+```
 
 ## Special Features
 
 - **Cross-platform shadows** - Consistent shadows across all platforms
 - **Smart contrast detection** - Automatically choose appropriate text colors
 - **Responsive layouts** - Adapts to different screen sizes
-- **Centralized UI notifications** - Global alert and notification system
-- **Declarative component patterns** - Modern React component design
-- **Context-based popovers** - Flexible popover system with hooks
-- **Comprehensive theming** - Dark/light mode with system detection
+- **RTL support** - Right-to-left layout support for i18n
+- **Error boundaries** - Graceful error handling with recovery
+- **Keyboard handling** - Smart keyboard avoidance and management
+
+## Tech Stack
+
+- **Expo SDK 54** - Latest Expo features
+- **React Native 0.81** - Core framework
+- **React 19** - Latest React with compiler optimizations
+- **TypeScript** - Type safety
+- **Expo Router v6** - File-based navigation
+- **Zustand** - State management
+- **React Query** - Server state management
+- **i18next** - Internationalization
+- **Jest** - Testing framework
+- **@rn-primitives** - Accessible UI primitives
+- **Lucide Icons** - Icon library
 
 ## License
 

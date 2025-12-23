@@ -6,6 +6,7 @@ import * as ToggleGroupPrimitive from "@rn-primitives/toggle-group";
 import * as React from "react";
 import { Platform } from "react-native";
 import type { LucideIcon } from "lucide-react-native";
+import { palette } from "@/client/constants/colors";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -187,15 +188,15 @@ function ToggleGroupItem({
       if (context.variant === "outline") {
         return getContrastingColor(
           theme.colors.primary,
-          theme.colors.textLight,
-          theme.colors.textDark
+          palette.white,
+          palette.black
         );
       }
       return theme.colors.primary;
     }
     return context.variant === "outline"
       ? theme.colors.primary
-      : theme.colors.textPrimary;
+      : theme.colors.foreground;
   };
 
   const textColor = getTextColor();
@@ -218,7 +219,7 @@ function ToggleGroupItem({
             // Base variant styles
             ...(context.variant === "default" && !isSelected && {
               backgroundColor: "transparent",
-              borderColor: theme.colors.bgTertiary,
+              borderColor: theme.colors.border,
             }),
             ...(context.variant === "default" && isSelected && {
               backgroundColor: withAlpha(theme.colors.primary, 0.1),

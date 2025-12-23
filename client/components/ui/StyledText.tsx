@@ -131,7 +131,7 @@ export const Text = forwardRef<RNText, TextProps>((props, ref) => {
   const contextColor = React.useContext(TextColorContext);
 
   // Use context color if provided, otherwise use theme default
-  const color = contextColor ?? theme.colors.textPrimary;
+  const color = contextColor ?? theme.colors.foreground;
 
   // If semantic variant is provided, use its config
   const semanticConfig = semantic ? SEMANTIC_CONFIGS[semantic] : undefined;

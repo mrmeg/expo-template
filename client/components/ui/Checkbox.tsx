@@ -6,6 +6,7 @@ import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import * as CheckboxPrimitive from "@rn-primitives/checkbox";
 import { Check, Minus } from "lucide-react-native";
+import { palette } from "@/client/constants/colors";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -117,13 +118,13 @@ function Checkbox({
   // Dynamic border color with sufficient contrast against background
   // React 19 compiler automatically memoizes this calculation
   const borderColor = error
-    ? theme.colors.error
+    ? theme.colors.destructive
     : checked || indeterminate
       ? theme.colors.primary
       : getContrastingColor(
-        theme.colors.bgPrimary,
-        theme.colors.textPrimary,
-        theme.colors.neutral
+        theme.colors.background,
+        theme.colors.foreground,
+        theme.colors.mutedForeground
       );
 
   // Flatten style override for web compatibility
@@ -203,14 +204,14 @@ function Checkbox({
         <Text
           style={[
             styles.label,
-            { color: theme.colors.textPrimary },
+            { color: theme.colors.foreground },
             disabled && styles.disabledLabel,
-            error && { color: theme.colors.error },
+            error && { color: theme.colors.destructive },
           ]}
         >
           {label}
           {required && (
-            <Text style={[styles.required, { color: theme.colors.error }]}> *</Text>
+            <Text style={[styles.required, { color: theme.colors.destructive }]}> *</Text>
           )}
         </Text>
       </View>

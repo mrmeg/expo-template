@@ -7,9 +7,9 @@ import { type PropsWithChildren } from 'react';
 // The contents of this function only run in Node.js environments and
 // do not have access to the DOM or browser APIs.
 export default function Root({ children }: PropsWithChildren) {
-  const lightText = colors.light.colors.text;
+  const lightText = colors.light.colors.foreground;
   const lightBackground = colors.light.colors.card;
-  const darkText = colors.dark.colors.text;
+  const darkText = colors.dark.colors.foreground;
   const darkBackground = colors.dark.colors.card;
 
   /**

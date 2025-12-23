@@ -5,6 +5,7 @@ import { spacing } from "@/client/constants/spacing";
 import * as SwitchPrimitives from "@rn-primitives/switch";
 import { fontFamilies } from "@/client/constants/fonts";
 import { Text } from "./StyledText";
+import { palette } from "@/client/constants/colors";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -123,16 +124,16 @@ function Switch({
 
   // Dynamic border color with sufficient contrast against background
   const borderColor = getContrastingColor(
-    theme.colors.bgPrimary,
-    theme.colors.bgTertiary,
-    theme.colors.neutral
+    theme.colors.background,
+    theme.colors.muted,
+    theme.colors.mutedForeground
   );
 
   // Calculate label color for ON state (when checked, background is primary)
   const labelOnColor = getContrastingColor(
     theme.colors.primary,
-    theme.colors.textLight,
-    theme.colors.textDark
+    palette.white,
+    palette.black
   );
 
   // Calculate sizes
@@ -180,7 +181,7 @@ function Switch({
   const isIOS = variant === "ios";
   const iosBackgroundColor = props.checked
     ? "#34C759" // iOS green
-    : theme.colors.bgTertiary;
+    : theme.colors.muted;
 
   return (
     <SwitchPrimitives.Root
@@ -194,7 +195,7 @@ function Switch({
         borderColor: props.checked ? theme.colors.primary : borderColor,
         backgroundColor: isIOS
           ? iosBackgroundColor
-          : (props.checked ? theme.colors.primary : theme.colors.bgTertiary),
+          : (props.checked ? theme.colors.primary : theme.colors.muted),
         justifyContent: "center",
         opacity: props.disabled ? 0.5 : 1,
         ...(Platform.OS === "web" && { cursor: "pointer" as any }),
@@ -240,7 +241,7 @@ function Switch({
             width: thumbSize,
             height: thumbSize,
             borderRadius: thumbSize / 2,
-            backgroundColor: theme.colors.white,
+            backgroundColor: palette.white,
             transform: [{ translateX: animatedThumbTranslateX }],
             justifyContent: "center",
             alignItems: "center",
@@ -279,7 +280,7 @@ function Switch({
             style={{
               fontFamily: fontFamilies.sansSerif.bold,
               fontSize: labelFontSize,
-              color: theme.colors.textPrimary,
+              color: theme.colors.foreground,
               userSelect: "none",
             }}
           >

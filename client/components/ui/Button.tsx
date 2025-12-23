@@ -12,11 +12,12 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { Text, TextColorContext, TextProps } from "./StyledText";
 import { fontFamilies } from "@/client/constants/fonts";
 import type { Theme } from "@/client/constants/colors";
+import { palette } from "@/client/constants/colors";
+import { useTheme } from "@/client/hooks/useTheme";
 
 /**
  * Button variants
@@ -209,7 +210,7 @@ export function Button(props: ButtonProps) {
   } else if (preset === "secondary") {
     backgroundColor = theme.colors.secondary;
   } else if (preset === "destructive") {
-    backgroundColor = theme.colors.error;
+    backgroundColor = theme.colors.destructive;
   } else if (preset === "outline" || preset === "ghost" || preset === "link") {
     backgroundColor = "transparent";
   } else {
@@ -221,12 +222,12 @@ export function Button(props: ButtonProps) {
     preset === "outline"
       ? theme.colors.primary
       : preset === "ghost"
-        ? theme.colors.textPrimary
+        ? theme.colors.foreground
         : preset === "link"
           ? theme.colors.primary
           : preset === "destructive"
-            ? getContrastingColor(backgroundColor, theme.colors.textLight, theme.colors.textDark)
-            : getContrastingColor(backgroundColor, theme.colors.textLight, theme.colors.textDark);
+            ? getContrastingColor(backgroundColor, palette.white, palette.black)
+            : getContrastingColor(backgroundColor, palette.white, palette.black);
 
   const isDisabled = disabled || loading;
 
@@ -325,7 +326,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       backgroundColor: theme.colors.secondary,
     } as ViewStyle,
     buttonDestructive: {
-      backgroundColor: theme.colors.error,
+      backgroundColor: theme.colors.destructive,
     } as ViewStyle,
     buttonOutline: {
       backgroundColor: "transparent",

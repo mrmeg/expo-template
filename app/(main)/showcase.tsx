@@ -28,13 +28,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       style={[
         styles.section,
         {
-          backgroundColor: theme.colors.bgSecondary,
-          borderColor: theme.colors.bgTertiary,
+          backgroundColor: theme.colors.card,
+          borderColor: theme.colors.border,
         },
         shadowStyle,
       ]}
     >
-      <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.foreground }]}>
         {title}
       </Text>
       {children}
@@ -92,10 +92,10 @@ export default function ComponentShowcase() {
     <KeyboardAwareScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
         <View style={styles.headerContainer}>
-          <Text style={[styles.appTitle, { color: theme.colors.textPrimary }]}>
+          <Text style={[styles.appTitle, { color: theme.colors.foreground }]}>
             Test Page
           </Text>
-          <Text style={[styles.subtitle, { color: theme.colors.textPrimary }]}>
+          <Text style={[styles.subtitle, { color: theme.colors.foreground }]}>
             Minimal version to test
           </Text>
           <ThemeToggle />
@@ -175,7 +175,7 @@ export default function ComponentShowcase() {
           </SubSection>
           <SubSection label="Icon Colors">
             <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
-              <Icon as={Heart} size={32} color={theme.colors.error} />
+              <Icon as={Heart} size={32} color={theme.colors.destructive} />
               <Icon as={Star} size={32} color={theme.colors.warning} />
               <Icon as={CheckCircle} size={32} color={theme.colors.success} />
               <Icon as={Info} size={32} color={theme.colors.primary} />
@@ -183,10 +183,10 @@ export default function ComponentShowcase() {
           </SubSection>
           <SubSection label="Status Icons">
             <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
-              <AlertCircle size={28} color={theme.colors.error} />
-              <CheckCircle size={28} color={theme.colors.success} />
-              <AlertTriangle size={28} color={theme.colors.warning} />
-              <Info size={28} color={theme.colors.textPrimary} />
+              <Icon as={AlertCircle} size={28} color={theme.colors.destructive} />
+              <Icon as={CheckCircle} size={28} color={theme.colors.success} />
+              <Icon as={AlertTriangle} size={28} color={theme.colors.warning} />
+              <Icon as={Info} size={28} color={theme.colors.foreground} />
             </View>
           </SubSection>
         </Section>
@@ -583,7 +583,7 @@ export default function ComponentShowcase() {
               </PopoverTrigger>
               <PopoverContent side="bottom" align="start" sideOffset={8}>
                 <View style={{ minWidth: 200 }}>
-                  <View style={{ paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.colors.bgTertiary }}>
+                  <View style={{ paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
                     <Text style={[styles.buttonText, { fontSize: 16 }]}>John Doe</Text>
                     <Text style={[styles.labelText, { fontSize: 12, opacity: 0.7 }]}>john@example.com</Text>
                   </View>
@@ -898,7 +898,7 @@ export default function ComponentShowcase() {
               </View>
               <View style={{
                 borderWidth: 1,
-                borderColor: theme.colors.bgTertiary,
+                borderColor: theme.colors.border,
                 borderRadius: spacing.radiusMd,
                 padding: spacing.md,
                 marginBottom: spacing.sm
@@ -909,7 +909,7 @@ export default function ComponentShowcase() {
                 <View style={{ gap: spacing.sm }}>
                   <View style={{
                     borderWidth: 1,
-                    borderColor: theme.colors.bgTertiary,
+                    borderColor: theme.colors.border,
                     borderRadius: spacing.radiusMd,
                     padding: spacing.md
                   }}>
@@ -917,7 +917,7 @@ export default function ComponentShowcase() {
                   </View>
                   <View style={{
                     borderWidth: 1,
-                    borderColor: theme.colors.bgTertiary,
+                    borderColor: theme.colors.border,
                     borderRadius: spacing.radiusMd,
                     padding: spacing.md
                   }}>

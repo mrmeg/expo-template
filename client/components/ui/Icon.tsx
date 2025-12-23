@@ -10,11 +10,11 @@ import type { LucideIcon } from "lucide-react-native";
 export type ThemeColorName =
   | "primary"
   | "secondary"
-  | "neutral"
-  | "error"
+  | "muted"
+  | "destructive"
   | "success"
   | "warning"
-  | "textPrimary";
+  | "foreground";
 
 export interface IconProps {
   /**
@@ -76,18 +76,18 @@ export function Icon({
   // Determine if color is a theme color name or a custom color
   const getIconColor = (): string => {
     if (!color) {
-      return theme.colors.textPrimary;
+      return theme.colors.foreground;
     }
 
     // Check if it's a theme color name
     const themeColorNames: Record<ThemeColorName, string> = {
       primary: theme.colors.primary,
       secondary: theme.colors.secondary,
-      neutral: theme.colors.neutral,
-      error: theme.colors.error,
+      muted: theme.colors.muted,
+      destructive: theme.colors.destructive,
       success: theme.colors.success,
       warning: theme.colors.warning,
-      textPrimary: theme.colors.textPrimary,
+      foreground: theme.colors.foreground,
     };
 
     // If it's a known theme color, use it
@@ -101,8 +101,17 @@ export function Icon({
 
   const iconColor = getIconColor();
 
+  // Cast to any to work around lucide-react-native type issues
+  // The props are valid at runtime
+  const IconComponent = LucideIconComponent as React.ComponentType<{
+    size?: number;
+    strokeWidth?: number;
+    color?: string;
+    style?: StyleProp<ViewStyle>;
+  }>;
+
   return (
-    <LucideIconComponent
+    <IconComponent
       size={size}
       strokeWidth={strokeWidth}
       color={iconColor}

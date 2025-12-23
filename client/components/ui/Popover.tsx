@@ -6,6 +6,7 @@ import * as PopoverPrimitive from "@rn-primitives/popover";
 import * as React from "react";
 import { Platform, StyleSheet, View, ViewProps } from "react-native";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
+import { palette } from "@/client/constants/colors";
 
 /**
  * Popover Trigger Component
@@ -42,15 +43,15 @@ function PopoverContent({
 
   // Calculate text color for popover content based on background
   const textColor = getContrastingColor(
-    theme.colors.bgPrimary,
-    theme.colors.textLight,
-    theme.colors.textDark
+    theme.colors.background,
+    palette.white,
+    palette.black
   );
 
   const contentStyle = StyleSheet.flatten([
     {
-      backgroundColor: theme.colors.bgPrimary,
-      borderColor: theme.colors.bgTertiary,
+      backgroundColor: theme.colors.background,
+      borderColor: theme.colors.border,
       borderWidth: 2,
       borderRadius: spacing.radiusMd,
       padding: spacing.xs,
@@ -99,7 +100,7 @@ function PopoverHeader({ children, style, ...props }: PopoverHeaderProps) {
           paddingHorizontal: spacing.xs,
           paddingVertical: spacing.sm,
           borderBottomWidth: 1,
-          borderBottomColor: theme.colors.bgTertiary,
+          borderBottomColor: theme.colors.border,
         },
         style,
       ]}
@@ -153,7 +154,7 @@ function PopoverFooter({ children, style, ...props }: PopoverFooterProps) {
           paddingHorizontal: spacing.xs,
           paddingVertical: spacing.sm,
           borderTopWidth: 1,
-          borderTopColor: theme.colors.bgTertiary,
+          borderTopColor: theme.colors.border,
         },
         style,
       ]}

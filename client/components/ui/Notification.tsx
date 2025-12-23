@@ -101,15 +101,15 @@ export const Notification = () => {
   const getIconProps = () => {
     switch (alert?.type) {
       case "error":
-        return { icon: AlertCircle, color: theme.colors.error };
+        return { icon: AlertCircle, color: theme.colors.destructive };
       case "success":
         return { icon: CheckCircle, color: theme.colors.success };
       case "warning":
         return { icon: AlertTriangle, color: theme.colors.warning };
       case "info":
-        return { icon: Info, color: theme.colors.textPrimary };
+        return { icon: Info, color: theme.colors.foreground };
       default:
-        return { icon: Info, color: theme.colors.textPrimary };
+        return { icon: Info, color: theme.colors.foreground };
     }
   };
 
@@ -133,7 +133,7 @@ export const Notification = () => {
   const getSemanticColor = () => {
     switch (alert?.type) {
       case "error":
-        return theme.colors.error;
+        return theme.colors.destructive;
       case "success":
         return theme.colors.success;
       case "warning":
@@ -167,7 +167,7 @@ export const Notification = () => {
       ]}>
         <View style={styles.iconContainer}>
           {alert?.loading ? (
-            <ActivityIndicator size="small" color={theme.colors.textPrimary} />
+            <ActivityIndicator size="small" color={theme.colors.foreground} />
           ) : (
             <Icon
               as={getIconProps().icon}
@@ -193,7 +193,7 @@ export const Notification = () => {
           hitSlop={spacing.sm}
           onPress={animateOut}
         >
-          <Icon as={X} size={spacing.iconSm + 4} color={theme.colors.textPrimary} />
+          <Icon as={X} size={spacing.iconSm + 4} color={theme.colors.foreground} />
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -215,8 +215,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: spacing.radiusMd,
     borderWidth: 1,
     borderLeftWidth: 4,
-    borderColor: theme.colors.bgTertiary,
-    backgroundColor: theme.colors.bgSecondary,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.card,
     flexDirection: "row",
     alignItems: "center",
   },

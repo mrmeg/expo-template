@@ -8,7 +8,7 @@
     },
     "noImplicitAny": false,
     "jsx": "react-native",
-    "types": ["react-native", "node"],
+    "types": ["react-native", "node", "jest"],
     "skipLibCheck": true,
     "module": "esnext",
     "esModuleInterop": true,
@@ -22,6 +22,8 @@
     "nativewind-env.d.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "ignite",
+    "templates"
   ]
 }

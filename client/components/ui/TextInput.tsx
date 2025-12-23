@@ -17,6 +17,7 @@ import { fontFamilies } from "@/client/constants/fonts";
 import { Text } from "./StyledText";
 import { Icon } from "./Icon";
 import type { Theme } from "@/client/constants/colors";
+import { palette } from "@/client/constants/colors";
 
 /**
  * Size variants for TextInput
@@ -201,9 +202,9 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
 
     // Determine background color
     const backgroundColor = forceLight
-      ? theme.colors.white
+      ? palette.white
       : variant === "filled"
-        ? theme.colors.bgSecondary
+        ? theme.colors.card
         : "transparent";
 
     // Handle numeric input validation
@@ -222,12 +223,12 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
 
     // Pre-calculate all values to avoid expensive recalculations on every keystroke
     const borderColor = hasError
-      ? theme.colors.error
+      ? theme.colors.destructive
       : focused
         ? theme.colors.primary
         : forceLight
           ? "#d1d5db"
-          : theme.colors.bgTertiary;
+          : theme.colors.border;
 
     const inputPaddingLeft = leftElement
       ? sizeConfig.paddingHorizontal + spacing.xl
@@ -240,9 +241,9 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
     const textColor = forceLight
       ? "#1f2937"
       : getContrastingColor(
-        backgroundColor === "transparent" ? theme.colors.bgPrimary : backgroundColor,
-        theme.colors.textPrimary,
-        theme.colors.white
+        backgroundColor === "transparent" ? theme.colors.background : backgroundColor,
+        theme.colors.foreground,
+        palette.white
       );
 
     const shouldScroll = multiline && rest.scrollEnabled !== false && contentHeight > 100;
@@ -288,7 +289,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
               setContentHeight(e.nativeEvent.contentSize.height)
             }
             scrollEnabled={shouldScroll}
-            placeholderTextColor={theme.colors.neutral}
+            placeholderTextColor={theme.colors.mutedForeground}
             style={[
               styles.input,
               {
@@ -385,7 +386,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       ...(Platform.OS === "web" && { cursor: "not-allowed" as any }),
     },
     error: {
-      borderColor: theme.colors.error,
+      borderColor: theme.colors.destructive,
     },
     labelContainer: {
       flexDirection: "row",
@@ -394,20 +395,20 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
     label: {
       fontFamily: fontFamilies.sansSerif.regular,
       fontSize: 14,
-      color: theme.colors.textPrimary,
+      color: theme.colors.foreground,
     },
     required: {
-      color: theme.colors.error,
+      color: theme.colors.destructive,
       fontFamily: fontFamilies.sansSerif.bold,
     },
     helperText: {
       fontFamily: fontFamilies.sansSerif.regular,
       fontSize: 12,
-      color: theme.colors.neutral,
+      color: theme.colors.mutedForeground,
       marginTop: spacing.xs,
     },
     errorText: {
-      color: theme.colors.error,
+      color: theme.colors.destructive,
     },
     leftElement: {
       position: "absolute",

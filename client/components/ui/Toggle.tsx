@@ -6,6 +6,7 @@ import { spacing } from "@/client/constants/spacing";
 import * as TogglePrimitive from "@rn-primitives/toggle";
 import { Platform, StyleSheet, ViewStyle, ActivityIndicator, StyleProp } from "react-native";
 import type { LucideIcon } from "lucide-react-native";
+import { palette } from "@/client/constants/colors";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -138,15 +139,15 @@ function Toggle({
         // When pressed with outline variant, background is primary
         return getContrastingColor(
           theme.colors.primary,
-          theme.colors.textLight,
-          theme.colors.textDark
+          palette.white,
+          palette.black
         );
       }
       // When pressed with default variant, use primary color
       return theme.colors.primary;
     }
     // When not pressed, use base content or primary for outline
-    return variant === "outline" ? theme.colors.primary : theme.colors.textPrimary;
+    return variant === "outline" ? theme.colors.primary : theme.colors.foreground;
   };
 
   const textColor = getTextColor();
@@ -182,7 +183,7 @@ function Toggle({
             // Base variant styles
             ...(variant === "default" && !props.pressed && {
               backgroundColor: "transparent",
-              borderColor: theme.colors.bgTertiary,
+              borderColor: theme.colors.border,
             }),
             ...(variant === "default" && props.pressed && {
               backgroundColor: withAlpha(theme.colors.primary, 0.1),
