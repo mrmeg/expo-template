@@ -1,6 +1,7 @@
 import { Colors, colors } from "@/client/constants/colors";
-import { useColorScheme as useColorSchemeDefault, ViewStyle, Platform } from "react-native";
+import { useColorScheme as useColorSchemeDefault, ViewStyle, Platform, StyleSheet } from "react-native";
 import { useThemeStore } from "@/client/stores/themeStore";
+import { spacing as spacingConstants } from "@/client/constants/spacing";
 
 type ShadowType = "base" | "soft" | "sharp" | "subtle";
 
@@ -343,4 +344,82 @@ function withAlpha(color: string, alpha: number): string {
   }
 
   return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+}
+
+
+/**
+ * Style factory context passed to the createStyles callback
+ */
+interface StyleContext {
+  theme: Colors["light" | "dark"];
+  spacing: typeof spacingConstants;
+}
+
+/**
+ * Return type for useStyles hook
+ */
+type UseStylesReturn<T extends StyleSheet.NamedStyles<T>> = {
+  styles: T;
+  theme: Colors["light" | "dark"];
+  spacing: typeof spacingConstants;
+} & Omit<ReturnType<typeof useTheme>, "theme">;
+
+/**
+ * useStyles
+ *
+ * A hook that combines useTheme with StyleSheet.create for theme-aware styling.
+ * Provides access to theme colors and spacing constants within the style factory.
+ *
+ * @param factory - A function that receives { theme, spacing } and returns style definitions
+ * @returns { styles, theme, spacing, ...themeUtilities }
+ *
+ * @example
+ * ```tsx
+ * function MyComponent() {
+ *   const { styles, theme } = useStyles(({ theme, spacing }) => ({
+ *     container: {
+ *       backgroundColor: theme.colors.background,
+ *       padding: spacing.md,
+ *       borderRadius: spacing.radiusMd,
+ *     },
+ *     text: {
+ *       color: theme.colors.textPrimary,
+ *       fontSize: 16,
+ *     },
+ *   }));
+ *
+ *   return (
+ *     <View style={styles.container}>
+ *       <Text style={styles.text}>Hello</Text>
+ *     </View>
+ *   );
+ * }
+ * ```
+ */
+export function useStyles<T extends StyleSheet.NamedStyles<T>>(
+  factory: (context: StyleContext) => T
+): UseStylesReturn<T> {
+  const themeContext = useTheme();
+
+  const styles = StyleSheet.create(
+    factory({
+      theme: themeContext.theme,
+      spacing: spacingConstants,
+    })
+  );
+
+  return {
+    styles,
+    theme: themeContext.theme,
+    spacing: spacingConstants,
+    scheme: themeContext.scheme,
+    getShadowStyle: themeContext.getShadowStyle,
+    getContrastingColor: themeContext.getContrastingColor,
+    getTextColorForBackground: themeContext.getTextColorForBackground,
+    withAlpha: themeContext.withAlpha,
+    getContrastRatio: themeContext.getContrastRatio,
+    toggleTheme: themeContext.toggleTheme,
+    setTheme: themeContext.setTheme,
+    currentTheme: themeContext.currentTheme,
+  };
 }

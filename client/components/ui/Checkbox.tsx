@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Pressable } from "react-native";
 import { Icon } from "@/client/components/ui/Icon";
-import { Text } from "@/client/components/ui/StyledText";
+import { StyledText } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import * as CheckboxPrimitive from "@rn-primitives/checkbox";
@@ -201,7 +201,7 @@ function Checkbox({
     >
       {checkboxElement}
       <View style={styles.labelContainer}>
-        <Text
+        <StyledText
           style={[
             styles.label,
             { color: theme.colors.foreground },
@@ -211,9 +211,9 @@ function Checkbox({
         >
           {label}
           {required && (
-            <Text style={[styles.required, { color: theme.colors.destructive }]}> *</Text>
+            <StyledText style={[styles.required, { color: theme.colors.destructive }]}> *</StyledText>
           )}
-        </Text>
+        </StyledText>
       </View>
     </Pressable>
   );

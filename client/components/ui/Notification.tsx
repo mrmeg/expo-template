@@ -7,7 +7,7 @@ import { AlertCircle, CheckCircle, AlertTriangle, Info, X } from "lucide-react-n
 import { Icon } from "./Icon";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
-import { Text } from "./StyledText";
+import { StyledText } from "./StyledText";
 import type { Theme } from "@/client/constants/colors";
 
 /**
@@ -178,14 +178,14 @@ export const Notification = () => {
         </View>
         <View style={styles.alertContent}>
           {!!getTitle() && (
-            <Text style={styles.alertTitle}>
+            <StyledText style={styles.alertTitle}>
               {getTitle()}
-            </Text>
+            </StyledText>
           )}
           {!!alert?.messages?.[0] && (
-            <Text style={styles.alertDescription}>
+            <StyledText style={styles.alertDescription}>
               {alert.messages[0]}
-            </Text>
+            </StyledText>
           )}
         </View>
         <TouchableOpacity

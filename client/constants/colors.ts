@@ -22,7 +22,7 @@ const palette = {
   dark900: "#121212",
   dark800: "#1E1E1E",
   dark700: "#343A40",
-  dark400: "#495057",
+  dark400: "#9CA3AF",
   dark100: "#E5E5E5",
 
   // Status

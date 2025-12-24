@@ -14,7 +14,7 @@ import { Eye, EyeOff } from "lucide-react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { fontFamilies } from "@/client/constants/fonts";
-import { Text } from "./StyledText";
+import { StyledText } from "./StyledText";
 import { Icon } from "./Icon";
 import type { Theme } from "@/client/constants/colors";
 import { palette } from "@/client/constants/colors";
@@ -253,10 +253,10 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
         {/* Label */}
         {label && (
           <View style={styles.labelContainer}>
-            <Text style={styles.label}>
+            <StyledText style={styles.label}>
               {label}
-              {required && <Text style={styles.required}> *</Text>}
-            </Text>
+              {required && <StyledText style={styles.required}> *</StyledText>}
+            </StyledText>
           </View>
         )}
 
@@ -342,14 +342,14 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
 
         {/* Helper Text or Error Text */}
         {(helperText || errorText) && (
-          <Text
+          <StyledText
             style={[
               styles.helperText,
               hasError && styles.errorText,
             ]}
           >
             {errorText || helperText}
-          </Text>
+          </StyledText>
         )}
       </View>
     );

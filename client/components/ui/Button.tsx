@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { spacing } from "@/client/constants/spacing";
-import { Text, TextColorContext, TextProps } from "./StyledText";
+import { StyledText, TextColorContext, TextProps } from "./StyledText";
 import { fontFamilies } from "@/client/constants/fonts";
 import type { Theme } from "@/client/constants/colors";
 import { palette } from "@/client/constants/colors";
@@ -220,7 +220,7 @@ export function Button(props: ButtonProps) {
   // Use contrast calculation for reliable, readable text color across platforms
   const textColor =
     preset === "outline"
-      ? theme.colors.primary
+      ? theme.colors.primary // Use primary color for text on transparent background
       : preset === "ghost"
         ? theme.colors.foreground
         : preset === "link"
@@ -276,7 +276,7 @@ export function Button(props: ButtonProps) {
             )}
 
             {(tx || text) ? (
-              <Text
+              <StyledText
                 style={[
                   styles.text,
                   state.pressed && styles.pressedText,
@@ -286,10 +286,25 @@ export function Button(props: ButtonProps) {
                 ]}
               >
                 {tx || text}
-              </Text>
-            ) : (
-              !loading && children
-            )}
+              </StyledText>
+            ) : !loading && children ? (
+              // Wrap string children in StyledText to apply TextColorContext
+              typeof children === "string" ? (
+                <StyledText
+                  style={[
+                    styles.text,
+                    state.pressed && styles.pressedText,
+                    state.pressed && pressedTextStyleOverride,
+                    isDisabled && disabledTextStyleOverride,
+                    textStyleOverride,
+                  ]}
+                >
+                  {children}
+                </StyledText>
+              ) : (
+                children
+              )
+            ) : null}
 
             {!!RightAccessory && !loading && (
               <RightAccessory

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Text } from "@/client/components/ui/StyledText";
+import { StyledText } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
 import { TextInput } from "@/client/components/ui/TextInput";
 import { Switch } from "@/client/components/ui/Switch";
@@ -34,9 +34,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         shadowStyle,
       ]}
     >
-      <Text style={[styles.sectionTitle, { color: theme.colors.foreground }]}>
+      <StyledText style={[styles.sectionTitle, { color: theme.colors.foreground }]}>
         {title}
-      </Text>
+      </StyledText>
       {children}
     </View>
   );
@@ -46,9 +46,9 @@ function SubSection({ label, children }: { label?: string; children: React.React
   return (
     <View style={styles.subSection}>
       {label && (
-        <Text style={styles.subSectionLabel}>
+        <StyledText style={styles.subSectionLabel}>
           {label}
-        </Text>
+        </StyledText>
       )}
       {children}
     </View>
@@ -60,14 +60,14 @@ function ThemeToggle() {
 
   return (
     <View style={styles.themeToggleContainer}>
-      <Text style={styles.themeToggleLabel}>
+      <StyledText style={styles.themeToggleLabel}>
         Theme: {currentTheme === "system" ? "System" : scheme === "dark" ? "Dark" : "Light"}
-      </Text>
+      </StyledText>
       <Button onPress={toggleTheme} style={styles.themeToggleButton} preset="outline">
-        <Text style={styles.themeToggleButtonText}>
+        <StyledText style={styles.themeToggleButtonText}>
           {`Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"
           }`}
-        </Text>
+        </StyledText>
       </Button>
     </View>
   );
@@ -92,24 +92,24 @@ export default function ComponentShowcase() {
     <KeyboardAwareScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
         <View style={styles.headerContainer}>
-          <Text style={[styles.appTitle, { color: theme.colors.foreground }]}>
+          <StyledText style={[styles.appTitle, { color: theme.colors.foreground }]}>
             Test Page
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.colors.foreground }]}>
+          </StyledText>
+          <StyledText style={[styles.subtitle, { color: theme.colors.foreground }]}>
             Minimal version to test
-          </Text>
+          </StyledText>
           <ThemeToggle />
         </View>
 
         <Section title="Typography">
-          <Text style={styles.sansSerifText}>
+          <StyledText style={styles.sansSerifText}>
             Sans Serif Text - Default body text
-          </Text>
-          <Text style={styles.sansSerifBoldText}>
+          </StyledText>
+          <StyledText style={styles.sansSerifBoldText}>
             Sans Serif Bold - Emphasized text
-          </Text>
-          <Text style={styles.serifText}>Serif Text - Elegant headings</Text>
-          <Text style={styles.serifBoldText}>Serif Bold - Strong emphasis</Text>
+          </StyledText>
+          <StyledText style={styles.serifText}>Serif Text - Elegant headings</StyledText>
+          <StyledText style={styles.serifBoldText}>Serif Bold - Strong emphasis</StyledText>
         </Section>
 
         <Section title="Alert">
@@ -117,7 +117,7 @@ export default function ComponentShowcase() {
             <Button preset="default" onPress={() => Alert.show({
               message: "This is a simple alert message"
             })}>
-              <Text>Show Simple Alert</Text>
+              <StyledText>Show Simple Alert</StyledText>
             </Button>
           </SubSection>
           <SubSection label="Alert with Title">
@@ -125,7 +125,7 @@ export default function ComponentShowcase() {
               title: "Important",
               message: "This alert has a title and a message"
             })}>
-              <Text>Show Alert with Title</Text>
+              <StyledText>Show Alert with Title</StyledText>
             </Button>
           </SubSection>
           <SubSection label="Confirmation Alert">
@@ -146,7 +146,7 @@ export default function ComponentShowcase() {
                 }
               ]
             })}>
-              <Text>Show Confirmation</Text>
+              <StyledText>Show Confirmation</StyledText>
             </Button>
           </SubSection>
         </Section>
@@ -199,7 +199,7 @@ export default function ComponentShowcase() {
               messages: ["Operation completed successfully"],
               duration: 3000
             })}>
-              <Text>Show Success</Text>
+              <StyledText>Show Success</StyledText>
             </Button>
           </SubSection>
           <SubSection label="Error Notification">
@@ -209,7 +209,7 @@ export default function ComponentShowcase() {
               messages: ["Something went wrong"],
               duration: 3000
             })}>
-              <Text>Show Error</Text>
+              <StyledText>Show Error</StyledText>
             </Button>
           </SubSection>
           <SubSection label="Warning Notification">
@@ -219,7 +219,7 @@ export default function ComponentShowcase() {
               messages: ["Please review your input"],
               duration: 3000
             })}>
-              <Text>Show Warning</Text>
+              <StyledText>Show Warning</StyledText>
             </Button>
           </SubSection>
           <SubSection label="Info Notification">
@@ -228,7 +228,7 @@ export default function ComponentShowcase() {
               messages: ["Here's some information for you"],
               duration: 3000
             })}>
-              <Text>Show Info</Text>
+              <StyledText>Show Info</StyledText>
             </Button>
           </SubSection>
           <SubSection label="Loading Notification">
@@ -240,7 +240,7 @@ export default function ComponentShowcase() {
                 duration: 2000
               });
             }}>
-              <Text>Show Loading</Text>
+              <StyledText>Show Loading</StyledText>
             </Button>
           </SubSection>
         </Section>
@@ -248,17 +248,17 @@ export default function ComponentShowcase() {
         <Section title="Buttons">
           <SubSection label="Default">
             <Button preset="default" onPress={() => console.log("Default button pressed")}>
-              <Text style={styles.buttonText}>Default Button</Text>
+              <StyledText style={styles.buttonText}>Default Button</StyledText>
             </Button>
           </SubSection>
           <SubSection label="Outline">
             <Button preset="outline" onPress={() => console.log("Outline button pressed")}>
-              <Text style={styles.buttonText}>Outline Button</Text>
+              <StyledText style={styles.buttonText}>Outline Button</StyledText>
             </Button>
           </SubSection>
           <SubSection label="Disabled">
             <Button preset="default" disabled onPress={() => console.log("Won't be called")}>
-              <Text style={styles.buttonText}>Disabled Button</Text>
+              <StyledText style={styles.buttonText}>Disabled Button</StyledText>
             </Button>
           </SubSection>
         </Section>
@@ -284,13 +284,13 @@ export default function ComponentShowcase() {
         <Section title="Switch">
           <SubSection label="Basic">
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text style={styles.labelText}>Basic Switch</Text>
+              <StyledText style={styles.labelText}>Basic Switch</StyledText>
               <Switch checked={toggleValue} onCheckedChange={setToggleValue} />
             </View>
           </SubSection>
           <SubSection label="With Labels">
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text style={styles.labelText}>Switch with Labels</Text>
+              <StyledText style={styles.labelText}>Switch with Labels</StyledText>
               <Switch
                 size={{ width: 60, height: 32 }}
                 checked={toggleValue}
@@ -302,7 +302,7 @@ export default function ComponentShowcase() {
           </SubSection>
           <SubSection label="Large Size">
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text style={styles.labelText}>Large Switch</Text>
+              <StyledText style={styles.labelText}>Large Switch</StyledText>
               <Switch
                 checked={toggleValue}
                 onCheckedChange={setToggleValue}
@@ -321,34 +321,34 @@ export default function ComponentShowcase() {
               checked={checkbox1}
               onCheckedChange={setCheckbox1}
             />
-            <Text style={styles.labelText}>Checkbox Option 1</Text>
+            <StyledText style={styles.labelText}>Checkbox Option 1</StyledText>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
             <Checkbox
               checked={checkbox2}
               onCheckedChange={setCheckbox2}
             />
-            <Text style={styles.labelText}>Checkbox Option 2 (initially checked)</Text>
+            <StyledText style={styles.labelText}>Checkbox Option 2 (initially checked)</StyledText>
           </View>
         </Section>
 
         <Section title="Toggle & Toggle Group">
           <SubSection label="Single Toggle">
             <Toggle pressed={singleTogglePressed} onPressedChange={setSingleTogglePressed}>
-              <Text style={styles.labelText}>Toggle Me</Text>
+              <StyledText style={styles.labelText}>Toggle Me</StyledText>
             </Toggle>
           </SubSection>
 
           <SubSection label="Toggle Group - Single Selection">
             <ToggleGroup type="single" value={alignment} onValueChange={setAlignment}>
               <ToggleGroupItem value="left">
-                <Text style={styles.labelText}>Left</Text>
+                <StyledText style={styles.labelText}>Left</StyledText>
               </ToggleGroupItem>
               <ToggleGroupItem value="center">
-                <Text style={styles.labelText}>Center</Text>
+                <StyledText style={styles.labelText}>Center</StyledText>
               </ToggleGroupItem>
               <ToggleGroupItem value="right">
-                <Text style={styles.labelText}>Right</Text>
+                <StyledText style={styles.labelText}>Right</StyledText>
               </ToggleGroupItem>
             </ToggleGroup>
           </SubSection>
@@ -356,13 +356,13 @@ export default function ComponentShowcase() {
           <SubSection label="Toggle Group - Multiple Selection">
             <ToggleGroup type="multiple" value={formats} onValueChange={setFormats}>
               <ToggleGroupItem value="bold">
-                <Text style={styles.buttonText}>B</Text>
+                <StyledText style={styles.buttonText}>B</StyledText>
               </ToggleGroupItem>
               <ToggleGroupItem value="italic">
-                <Text style={[styles.labelText, { fontStyle: "italic" }]}>I</Text>
+                <StyledText style={[styles.labelText, { fontStyle: "italic" }]}>I</StyledText>
               </ToggleGroupItem>
               <ToggleGroupItem value="underline">
-                <Text style={[styles.labelText, { textDecorationLine: "underline" }]}>U</Text>
+                <StyledText style={[styles.labelText, { textDecorationLine: "underline" }]}>U</StyledText>
               </ToggleGroupItem>
             </ToggleGroup>
           </SubSection>
@@ -370,13 +370,13 @@ export default function ComponentShowcase() {
           <SubSection label="Outline Variant">
             <ToggleGroup type="single" variant="outline" value={alignment} onValueChange={setAlignment}>
               <ToggleGroupItem value="left">
-                <Text style={styles.labelText}>Left</Text>
+                <StyledText style={styles.labelText}>Left</StyledText>
               </ToggleGroupItem>
               <ToggleGroupItem value="center">
-                <Text style={styles.labelText}>Center</Text>
+                <StyledText style={styles.labelText}>Center</StyledText>
               </ToggleGroupItem>
               <ToggleGroupItem value="right">
-                <Text style={styles.labelText}>Right</Text>
+                <StyledText style={styles.labelText}>Right</StyledText>
               </ToggleGroupItem>
             </ToggleGroup>
           </SubSection>
@@ -384,13 +384,13 @@ export default function ComponentShowcase() {
           <SubSection label="Small Size">
             <ToggleGroup type="single" size="sm" value={alignment} onValueChange={setAlignment}>
               <ToggleGroupItem value="left">
-                <Text style={styles.labelText}>L</Text>
+                <StyledText style={styles.labelText}>L</StyledText>
               </ToggleGroupItem>
               <ToggleGroupItem value="center">
-                <Text style={styles.labelText}>C</Text>
+                <StyledText style={styles.labelText}>C</StyledText>
               </ToggleGroupItem>
               <ToggleGroupItem value="right">
-                <Text style={styles.labelText}>R</Text>
+                <StyledText style={styles.labelText}>R</StyledText>
               </ToggleGroupItem>
             </ToggleGroup>
           </SubSection>
@@ -400,32 +400,32 @@ export default function ComponentShowcase() {
           <Accordion type="single" collapsible defaultValue={undefined}>
             <AccordionItem value="item-1">
               <AccordionTrigger>
-                <Text style={styles.buttonText}>What is React Native?</Text>
+                <StyledText style={styles.buttonText}>What is React Native?</StyledText>
               </AccordionTrigger>
               <AccordionContent>
-                <Text style={styles.labelText}>
+                <StyledText style={styles.labelText}>
                   React Native is a framework for building native mobile applications using React and JavaScript.
-                </Text>
+                </StyledText>
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-2">
               <AccordionTrigger>
-                <Text style={styles.buttonText}>What is Expo?</Text>
+                <StyledText style={styles.buttonText}>What is Expo?</StyledText>
               </AccordionTrigger>
               <AccordionContent>
-                <Text style={styles.labelText}>
+                <StyledText style={styles.labelText}>
                   Expo is a platform that makes it easier to build and deploy React Native applications with a rich set of tools and services.
-                </Text>
+                </StyledText>
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-3">
               <AccordionTrigger>
-                <Text style={styles.buttonText}>What are primitives?</Text>
+                <StyledText style={styles.buttonText}>What are primitives?</StyledText>
               </AccordionTrigger>
               <AccordionContent>
-                <Text style={styles.labelText}>
+                <StyledText style={styles.labelText}>
                   Primitives are unstyled, accessible UI components that work across iOS, Android, and Web platforms.
-                </Text>
+                </StyledText>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
@@ -437,12 +437,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Top</Text>
+                    <StyledText style={styles.smallButtonText}>Top</StyledText>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="top" align="center">
                   <PopoverBody>
-                    <Text style={styles.labelText}>Popover on top</Text>
+                    <StyledText style={styles.labelText}>Popover on top</StyledText>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -450,12 +450,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Bottom</Text>
+                    <StyledText style={styles.smallButtonText}>Bottom</StyledText>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="center">
                   <PopoverBody>
-                    <Text style={styles.labelText}>Popover on bottom</Text>
+                    <StyledText style={styles.labelText}>Popover on bottom</StyledText>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -463,12 +463,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Top Start</Text>
+                    <StyledText style={styles.smallButtonText}>Top Start</StyledText>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="top" align="start">
                   <PopoverBody>
-                    <Text style={styles.labelText}>Aligned to start</Text>
+                    <StyledText style={styles.labelText}>Aligned to start</StyledText>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -476,12 +476,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Top End</Text>
+                    <StyledText style={styles.smallButtonText}>Top End</StyledText>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="top" align="end">
                   <PopoverBody>
-                    <Text style={styles.labelText}>Aligned to end</Text>
+                    <StyledText style={styles.labelText}>Aligned to end</StyledText>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -493,12 +493,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Start</Text>
+                    <StyledText style={styles.smallButtonText}>Start</StyledText>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="start">
                   <PopoverBody>
-                    <Text style={styles.labelText}>Aligned to start</Text>
+                    <StyledText style={styles.labelText}>Aligned to start</StyledText>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -506,12 +506,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Center</Text>
+                    <StyledText style={styles.smallButtonText}>Center</StyledText>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="center">
                   <PopoverBody>
-                    <Text style={styles.labelText}>Aligned to center</Text>
+                    <StyledText style={styles.labelText}>Aligned to center</StyledText>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -519,12 +519,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>End</Text>
+                    <StyledText style={styles.smallButtonText}>End</StyledText>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="end">
                   <PopoverBody>
-                    <Text style={styles.labelText}>Aligned to end</Text>
+                    <StyledText style={styles.labelText}>Aligned to end</StyledText>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -536,12 +536,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Offset 0</Text>
+                    <StyledText style={styles.smallButtonText}>Offset 0</StyledText>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="start" sideOffset={0}>
                   <PopoverBody>
-                    <Text style={styles.labelText}>No offset from trigger</Text>
+                    <StyledText style={styles.labelText}>No offset from trigger</StyledText>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -549,12 +549,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Offset 16</Text>
+                    <StyledText style={styles.smallButtonText}>Offset 16</StyledText>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="start" sideOffset={16}>
                   <PopoverBody>
-                    <Text style={styles.labelText}>16px from trigger</Text>
+                    <StyledText style={styles.labelText}>16px from trigger</StyledText>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -562,12 +562,12 @@ export default function ComponentShowcase() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Offset 32</Text>
+                    <StyledText style={styles.smallButtonText}>Offset 32</StyledText>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="start" sideOffset={32}>
                   <PopoverBody>
-                    <Text style={styles.labelText}>32px from trigger</Text>
+                    <StyledText style={styles.labelText}>32px from trigger</StyledText>
                   </PopoverBody>
                 </PopoverContent>
               </Popover>
@@ -578,18 +578,18 @@ export default function ComponentShowcase() {
             <Popover>
               <PopoverTrigger asChild>
                 <Button preset="outline">
-                  <Text style={styles.buttonText}>View Profile</Text>
+                  <StyledText style={styles.buttonText}>View Profile</StyledText>
                 </Button>
               </PopoverTrigger>
               <PopoverContent side="bottom" align="start" sideOffset={8}>
                 <View style={{ minWidth: 200 }}>
                   <View style={{ paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-                    <Text style={[styles.buttonText, { fontSize: 16 }]}>John Doe</Text>
-                    <Text style={[styles.labelText, { fontSize: 12, opacity: 0.7 }]}>john@example.com</Text>
+                    <StyledText style={[styles.buttonText, { fontSize: 16 }]}>John Doe</StyledText>
+                    <StyledText style={[styles.labelText, { fontSize: 12, opacity: 0.7 }]}>john@example.com</StyledText>
                   </View>
                   <View style={{ paddingTop: spacing.sm }}>
-                    <Text style={[styles.labelText, { fontSize: 14, marginBottom: spacing.xs }]}>Member since 2024</Text>
-                    <Text style={[styles.labelText, { fontSize: 14 }]}>Premium Account</Text>
+                    <StyledText style={[styles.labelText, { fontSize: 14, marginBottom: spacing.xs }]}>Member since 2024</StyledText>
+                    <StyledText style={[styles.labelText, { fontSize: 14 }]}>Premium Account</StyledText>
                   </View>
                 </View>
               </PopoverContent>
@@ -603,12 +603,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Top</Text>
+                    <StyledText style={styles.smallButtonText}>Top</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="center">
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>Menu on top</Text>
+                    <StyledText style={styles.labelText}>Menu on top</StyledText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -616,12 +616,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Bottom</Text>
+                    <StyledText style={styles.smallButtonText}>Bottom</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="center">
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>Menu on bottom</Text>
+                    <StyledText style={styles.labelText}>Menu on bottom</StyledText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -629,12 +629,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Bottom Start</Text>
+                    <StyledText style={styles.smallButtonText}>Bottom Start</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="start">
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>Aligned to start</Text>
+                    <StyledText style={styles.labelText}>Aligned to start</StyledText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -642,12 +642,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Bottom End</Text>
+                    <StyledText style={styles.smallButtonText}>Bottom End</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="end">
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>Aligned to end</Text>
+                    <StyledText style={styles.labelText}>Aligned to end</StyledText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -659,15 +659,15 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Start</Text>
+                    <StyledText style={styles.smallButtonText}>Start</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="start">
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>Aligned to start</Text>
+                    <StyledText style={styles.labelText}>Aligned to start</StyledText>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>Option 2</Text>
+                    <StyledText style={styles.labelText}>Option 2</StyledText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -675,15 +675,15 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Center</Text>
+                    <StyledText style={styles.smallButtonText}>Center</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="center">
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>Aligned to center</Text>
+                    <StyledText style={styles.labelText}>Aligned to center</StyledText>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>Option 2</Text>
+                    <StyledText style={styles.labelText}>Option 2</StyledText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -691,15 +691,15 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>End</Text>
+                    <StyledText style={styles.smallButtonText}>End</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="end">
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>Aligned to end</Text>
+                    <StyledText style={styles.labelText}>Aligned to end</StyledText>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>Option 2</Text>
+                    <StyledText style={styles.labelText}>Option 2</StyledText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -711,12 +711,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Offset 0</Text>
+                    <StyledText style={styles.smallButtonText}>Offset 0</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="start" sideOffset={0}>
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>No offset</Text>
+                    <StyledText style={styles.labelText}>No offset</StyledText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -724,12 +724,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Offset 16</Text>
+                    <StyledText style={styles.smallButtonText}>Offset 16</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="start" sideOffset={16}>
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>16px offset</Text>
+                    <StyledText style={styles.labelText}>16px offset</StyledText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -737,12 +737,12 @@ export default function ComponentShowcase() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={styles.smallButtonText}>Offset 32</Text>
+                    <StyledText style={styles.smallButtonText}>Offset 32</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="start" sideOffset={32}>
                   <DropdownMenuItem>
-                    <Text style={styles.labelText}>32px offset</Text>
+                    <StyledText style={styles.labelText}>32px offset</StyledText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -753,21 +753,21 @@ export default function ComponentShowcase() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button preset="outline">
-                  <Text style={styles.buttonText}>Open Menu</Text>
+                  <StyledText style={styles.buttonText}>Open Menu</StyledText>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem>
-                  <Text style={styles.labelText}>Profile</Text>
+                  <StyledText style={styles.labelText}>Profile</StyledText>
                   <DropdownMenuShortcut>⌘P</DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Text style={styles.labelText}>Settings</Text>
+                  <StyledText style={styles.labelText}>Settings</StyledText>
                   <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive">
-                  <Text style={styles.labelText}>Logout</Text>
+                  <StyledText style={styles.labelText}>Logout</StyledText>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -777,25 +777,25 @@ export default function ComponentShowcase() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button preset="outline">
-                  <Text style={styles.buttonText}>View Options</Text>
+                  <StyledText style={styles.buttonText}>View Options</StyledText>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuLabel>
-                  <Text style={styles.buttonText}>Appearance</Text>
+                  <StyledText style={styles.buttonText}>Appearance</StyledText>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuCheckboxItem
                   checked={showBookmarks}
                   onCheckedChange={setShowBookmarks}
                 >
-                  <Text style={styles.labelText}>Show Bookmarks</Text>
+                  <StyledText style={styles.labelText}>Show Bookmarks</StyledText>
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem
                   checked={showUrls}
                   onCheckedChange={setShowUrls}
                 >
-                  <Text style={styles.labelText}>Show Full URLs</Text>
+                  <StyledText style={styles.labelText}>Show Full URLs</StyledText>
                 </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -805,23 +805,23 @@ export default function ComponentShowcase() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button preset="outline">
-                  <Text style={styles.buttonText}>Panel Position</Text>
+                  <StyledText style={styles.buttonText}>Panel Position</StyledText>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuLabel>
-                  <Text style={styles.buttonText}>Position</Text>
+                  <StyledText style={styles.buttonText}>Position</StyledText>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup value={statusBarPosition} onValueChange={setStatusBarPosition}>
                   <DropdownMenuRadioItem value="top">
-                    <Text style={styles.labelText}>Top</Text>
+                    <StyledText style={styles.labelText}>Top</StyledText>
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="bottom">
-                    <Text style={styles.labelText}>Bottom</Text>
+                    <StyledText style={styles.labelText}>Bottom</StyledText>
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="right">
-                    <Text style={styles.labelText}>Right</Text>
+                    <StyledText style={styles.labelText}>Right</StyledText>
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
@@ -832,30 +832,30 @@ export default function ComponentShowcase() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button preset="outline">
-                  <Text style={styles.buttonText}>Advanced Menu</Text>
+                  <StyledText style={styles.buttonText}>Advanced Menu</StyledText>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem>
-                  <Text style={styles.labelText}>New File</Text>
+                  <StyledText style={styles.labelText}>New File</StyledText>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Text style={styles.labelText}>New Window</Text>
+                  <StyledText style={styles.labelText}>New Window</StyledText>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
-                    <Text style={styles.labelText}>More Tools</Text>
+                    <StyledText style={styles.labelText}>More Tools</StyledText>
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     <DropdownMenuItem>
-                      <Text style={styles.labelText}>Developer Tools</Text>
+                      <StyledText style={styles.labelText}>Developer Tools</StyledText>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
-                      <Text style={styles.labelText}>Task Manager</Text>
+                      <StyledText style={styles.labelText}>Task Manager</StyledText>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
-                      <Text style={styles.labelText}>Extensions</Text>
+                      <StyledText style={styles.labelText}>Extensions</StyledText>
                     </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
@@ -869,18 +869,18 @@ export default function ComponentShowcase() {
             <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
               <CollapsibleTrigger>
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
-                  <Text style={styles.buttonText}>Can I use this in my project?</Text>
-                  <Text style={[styles.labelText, { fontSize: 18, opacity: 0.7 }]}>
+                  <StyledText style={styles.buttonText}>Can I use this in my project?</StyledText>
+                  <StyledText style={[styles.labelText, { fontSize: 18, opacity: 0.7 }]}>
                     {collapsibleOpen ? "−" : "+"}
-                  </Text>
+                  </StyledText>
                 </View>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <View style={{ paddingTop: spacing.sm }}>
-                  <Text style={styles.labelText}>
+                  <StyledText style={styles.labelText}>
                     Yes! This is a reusable collapsible component built with @rn-primitives/collapsible.
                     It supports smooth animations and works across iOS, Android, and Web.
-                  </Text>
+                  </StyledText>
                 </View>
               </CollapsibleContent>
             </Collapsible>
@@ -889,10 +889,10 @@ export default function ComponentShowcase() {
           <SubSection label="With Button Trigger (asChild)">
             <Collapsible>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm }}>
-                <Text style={styles.buttonText}>@peduarte starred 3 repositories</Text>
+                <StyledText style={styles.buttonText}>@peduarte starred 3 repositories</StyledText>
                 <CollapsibleTrigger asChild>
                   <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
-                    <Text style={[styles.labelText, { fontSize: 12 }]}>Toggle</Text>
+                    <StyledText style={[styles.labelText, { fontSize: 12 }]}>Toggle</StyledText>
                   </Button>
                 </CollapsibleTrigger>
               </View>
@@ -903,7 +903,7 @@ export default function ComponentShowcase() {
                 padding: spacing.md,
                 marginBottom: spacing.sm
               }}>
-                <Text style={styles.labelText}>@radix-ui/primitives</Text>
+                <StyledText style={styles.labelText}>@radix-ui/primitives</StyledText>
               </View>
               <CollapsibleContent>
                 <View style={{ gap: spacing.sm }}>
@@ -913,7 +913,7 @@ export default function ComponentShowcase() {
                     borderRadius: spacing.radiusMd,
                     padding: spacing.md
                   }}>
-                    <Text style={styles.labelText}>@radix-ui/react</Text>
+                    <StyledText style={styles.labelText}>@radix-ui/react</StyledText>
                   </View>
                   <View style={{
                     borderWidth: 1,
@@ -921,7 +921,7 @@ export default function ComponentShowcase() {
                     borderRadius: spacing.radiusMd,
                     padding: spacing.md
                   }}>
-                    <Text style={styles.labelText}>@stitches/core</Text>
+                    <StyledText style={styles.labelText}>@stitches/core</StyledText>
                   </View>
                 </View>
               </CollapsibleContent>

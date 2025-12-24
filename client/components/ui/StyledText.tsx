@@ -110,7 +110,7 @@ export type TextProps = RNTextProps & {
  * - Text selection enabled by default (userSelect: "auto")
  * - numberOfLines and ellipsizeMode support from RN TextProps
  */
-export const Text = forwardRef<RNText, TextProps>((props, ref) => {
+export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
   const {
     tx,
     text,
@@ -169,14 +169,14 @@ export const Text = forwardRef<RNText, TextProps>((props, ref) => {
   );
 });
 
-Text.displayName = "Text";
+StyledText.displayName = "StyledText";
 
 /**
  * Serif Text Component
  * Uses serif font family (Merriweather)
  */
 export function SerifText(props: TextProps) {
-  return <Text {...props} variant="serif" />;
+  return <StyledText {...props} variant="serif" />;
 }
 
 /**
@@ -184,7 +184,7 @@ export function SerifText(props: TextProps) {
  * Uses sans-serif font family (Lato)
  */
 export function SansSerifText(props: TextProps) {
-  return <Text {...props} variant="sansSerif" />;
+  return <StyledText {...props} variant="sansSerif" />;
 }
 
 /**
@@ -192,7 +192,7 @@ export function SansSerifText(props: TextProps) {
  * Uses serif font family with bold weight
  */
 export function SerifBoldText(props: TextProps) {
-  return <Text {...props} variant="serif" fontWeight="bold" />;
+  return <StyledText {...props} variant="serif" fontWeight="bold" />;
 }
 
 /**
@@ -200,7 +200,7 @@ export function SerifBoldText(props: TextProps) {
  * Uses sans-serif font family with bold weight
  */
 export function SansSerifBoldText(props: TextProps) {
-  return <Text {...props} variant="sansSerif" fontWeight="bold" />;
+  return <StyledText {...props} variant="sansSerif" fontWeight="bold" />;
 }
 
 // Export convenience components for semantic variants
@@ -209,40 +209,40 @@ export function SansSerifBoldText(props: TextProps) {
  * Title Text - Extra large bold text for page titles
  */
 export function TitleText(props: TextProps) {
-  return <Text {...props} semantic="title" />;
+  return <StyledText {...props} semantic="title" />;
 }
 
 /**
  * Heading Text - Large bold text for section headings
  */
 export function HeadingText(props: TextProps) {
-  return <Text {...props} semantic="heading" />;
+  return <StyledText {...props} semantic="heading" />;
 }
 
 /**
  * Subheading Text - Medium-large bold text for subsections
  */
 export function SubheadingText(props: TextProps) {
-  return <Text {...props} semantic="subheading" />;
+  return <StyledText {...props} semantic="subheading" />;
 }
 
 /**
  * Body Text - Default text for paragraphs and content
  */
 export function BodyText(props: TextProps) {
-  return <Text {...props} semantic="body" />;
+  return <StyledText {...props} semantic="body" />;
 }
 
 /**
  * Caption Text - Small text for captions and secondary content
  */
 export function CaptionText(props: TextProps) {
-  return <Text {...props} semantic="caption" />;
+  return <StyledText {...props} semantic="caption" />;
 }
 
 /**
  * Label Text - Small bold text for form labels
  */
 export function LabelText(props: TextProps) {
-  return <Text {...props} semantic="label" />;
+  return <StyledText {...props} semantic="label" />;
 }

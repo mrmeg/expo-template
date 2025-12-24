@@ -4,7 +4,7 @@ import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import * as SwitchPrimitives from "@rn-primitives/switch";
 import { fontFamilies } from "@/client/constants/fonts";
-import { Text } from "./StyledText";
+import { StyledText } from "./StyledText";
 import { palette } from "@/client/constants/colors";
 
 const DEFAULT_HIT_SLOP = 8;
@@ -221,7 +221,7 @@ function Switch({
           }}
           pointerEvents="none"
         >
-          <Text
+          <StyledText
             style={{
               fontFamily: fontFamilies.sansSerif.bold,
               fontSize: labelFontSize,
@@ -230,7 +230,7 @@ function Switch({
             }}
           >
             {labelOn}
-          </Text>
+          </StyledText>
         </Animated.View>
       )}
 
@@ -276,7 +276,7 @@ function Switch({
           }}
           pointerEvents="none"
         >
-          <Text
+          <StyledText
             style={{
               fontFamily: fontFamilies.sansSerif.bold,
               fontSize: labelFontSize,
@@ -285,7 +285,7 @@ function Switch({
             }}
           >
             {labelOff}
-          </Text>
+          </StyledText>
         </Animated.View>
       )}
     </SwitchPrimitives.Root>
