@@ -280,7 +280,7 @@ function Switch({
             style={{
               fontFamily: fontFamilies.sansSerif.bold,
               fontSize: labelFontSize,
-              color: theme.colors.foreground,
+              color: theme.colors.text,
               userSelect: "none",
             }}
           >

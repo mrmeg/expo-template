@@ -147,7 +147,7 @@ function Toggle({
       return theme.colors.primary;
     }
     // When not pressed, use base content or primary for outline
-    return variant === "outline" ? theme.colors.primary : theme.colors.foreground;
+    return variant === "outline" ? theme.colors.primary : theme.colors.text;
   };
 
   const textColor = getTextColor();

@@ -100,7 +100,7 @@ export type TextProps = RNTextProps & {
 
 /**
  * Base Text component with theme and variant support
- * Uses theme colors automatically - textPrimary by default
+ * Uses theme colors automatically - text by default
  *
  * New features:
  * - Size variants (xs, sm, md, lg, xl, 2xl, 3xl, 4xl)
@@ -131,7 +131,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
   const contextColor = React.useContext(TextColorContext);
 
   // Use context color if provided, otherwise use theme default
-  const color = contextColor ?? theme.colors.foreground;
+  const color = contextColor ?? theme.colors.text;
 
   // If semantic variant is provided, use its config
   const semanticConfig = semantic ? SEMANTIC_CONFIGS[semantic] : undefined;

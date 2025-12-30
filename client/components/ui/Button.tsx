@@ -222,7 +222,7 @@ export function Button(props: ButtonProps) {
     preset === "outline"
       ? theme.colors.primary // Use primary color for text on transparent background
       : preset === "ghost"
-        ? theme.colors.foreground
+        ? theme.colors.text
         : preset === "link"
           ? theme.colors.primary
           : preset === "destructive"

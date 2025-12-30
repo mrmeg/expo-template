@@ -107,9 +107,9 @@ export const Notification = () => {
       case "warning":
         return { icon: AlertTriangle, color: theme.colors.warning };
       case "info":
-        return { icon: Info, color: theme.colors.foreground };
+        return { icon: Info, color: theme.colors.text };
       default:
-        return { icon: Info, color: theme.colors.foreground };
+        return { icon: Info, color: theme.colors.text };
     }
   };
 
@@ -167,7 +167,7 @@ export const Notification = () => {
       ]}>
         <View style={styles.iconContainer}>
           {alert?.loading ? (
-            <ActivityIndicator size="small" color={theme.colors.foreground} />
+            <ActivityIndicator size="small" color={theme.colors.text} />
           ) : (
             <Icon
               as={getIconProps().icon}
@@ -193,7 +193,7 @@ export const Notification = () => {
           hitSlop={spacing.sm}
           onPress={animateOut}
         >
-          <Icon as={X} size={spacing.iconSm + 4} color={theme.colors.foreground} />
+          <Icon as={X} size={spacing.iconSm + 4} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
     </Animated.View>

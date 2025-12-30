@@ -44,6 +44,10 @@ export interface ThemeColors {
   card: string;
   cardForeground: string;
 
+  // Text colors (semantic aliases for clarity)
+  text: string;
+  textDim: string;
+
   // Interactive elements
   primary: string;
   primaryForeground: string;
@@ -93,6 +97,9 @@ const lightTheme: Theme = {
     card: palette.gray100,
     cardForeground: palette.gray800,
 
+    text: palette.gray800,
+    textDim: palette.gray500,
+
     primary: palette.teal400,
     primaryForeground: palette.white,
     secondary: palette.teal500,
@@ -126,6 +133,9 @@ const darkTheme: Theme = {
     foreground: palette.dark100,
     card: palette.dark800,
     cardForeground: palette.dark100,
+
+    text: palette.dark100,
+    textDim: palette.dark400,
 
     primary: palette.teal400,
     primaryForeground: palette.black,

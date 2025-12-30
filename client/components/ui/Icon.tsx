@@ -1,5 +1,5 @@
 import * as React from "react";
-import { StyleProp, ViewStyle } from "react-native";
+import { StyleProp, ViewStyle, View } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import type { LucideIcon } from "lucide-react-native";
 
@@ -14,7 +14,8 @@ export type ThemeColorName =
   | "destructive"
   | "success"
   | "warning"
-  | "foreground";
+  | "text"
+  | "textDim";
 
 export interface IconProps {
   /**
@@ -31,7 +32,7 @@ export interface IconProps {
   strokeWidth?: number;
   /**
    * Icon color - can be a hex color or a theme color name
-   * Defaults to theme's textPrimary
+   * Defaults to theme's text color
    */
   color?: string | ThemeColorName;
   /**
@@ -52,16 +53,11 @@ export interface IconProps {
  *
  * Usage:
  * ```tsx
- * import { Check } from 'lucide-react-native';
+ * import { Check, Calendar } from 'lucide-react-native';
  *
- * // With theme color name
  * <Icon as={Check} color="primary" size={16} />
- *
- * // With custom color
- * <Icon as={Check} color="#FF0000" size={24} />
- *
- * // With style
- * <Icon as={Check} style={{ marginRight: 8 }} />
+ * <Icon as={Calendar} color="#FF0000" size={24} />
+ * <Icon as={Calendar} style={{ marginRight: 8 }} />
  * ```
  */
 export function Icon({
@@ -76,7 +72,7 @@ export function Icon({
   // Determine if color is a theme color name or a custom color
   const getIconColor = (): string => {
     if (!color) {
-      return theme.colors.foreground;
+      return theme.colors.text;
     }
 
     // Check if it's a theme color name
@@ -87,7 +83,8 @@ export function Icon({
       destructive: theme.colors.destructive,
       success: theme.colors.success,
       warning: theme.colors.warning,
-      foreground: theme.colors.foreground,
+      text: theme.colors.text,
+      textDim: theme.colors.textDim,
     };
 
     // If it's a known theme color, use it
@@ -101,21 +98,15 @@ export function Icon({
 
   const iconColor = getIconColor();
 
-  // Cast to any to work around lucide-react-native type issues
-  // The props are valid at runtime
-  const IconComponent = LucideIconComponent as React.ComponentType<{
-    size?: number;
-    strokeWidth?: number;
-    color?: string;
-    style?: StyleProp<ViewStyle>;
-  }>;
-
+  // Wrap in View with pointerEvents="none" to prevent icons from
+  // intercepting touches when used inside TouchableOpacity on iOS
   return (
-    <IconComponent
-      size={size}
-      strokeWidth={strokeWidth}
-      color={iconColor}
-      style={style}
-    />
+    <View pointerEvents="none" style={style}>
+      <LucideIconComponent
+        size={size}
+        strokeWidth={strokeWidth}
+        color={iconColor}
+      />
+    </View>
   );
 }

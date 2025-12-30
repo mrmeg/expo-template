@@ -6,7 +6,6 @@ import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import * as CheckboxPrimitive from "@rn-primitives/checkbox";
 import { Check, Minus } from "lucide-react-native";
-import { palette } from "@/client/constants/colors";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -123,8 +122,8 @@ function Checkbox({
       ? theme.colors.primary
       : getContrastingColor(
         theme.colors.background,
-        theme.colors.foreground,
-        theme.colors.mutedForeground
+        theme.colors.text,
+        theme.colors.textDim
       );
 
   // Flatten style override for web compatibility
@@ -204,7 +203,7 @@ function Checkbox({
         <StyledText
           style={[
             styles.label,
-            { color: theme.colors.foreground },
+            { color: theme.colors.text },
             disabled && styles.disabledLabel,
             error && { color: theme.colors.destructive },
           ]}

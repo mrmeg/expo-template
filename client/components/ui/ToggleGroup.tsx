@@ -196,7 +196,7 @@ function ToggleGroupItem({
     }
     return context.variant === "outline"
       ? theme.colors.primary
-      : theme.colors.foreground;
+      : theme.colors.text;
   };
 
   const textColor = getTextColor();

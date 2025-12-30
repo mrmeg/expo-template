@@ -242,7 +242,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
       ? "#1f2937"
       : getContrastingColor(
         backgroundColor === "transparent" ? theme.colors.background : backgroundColor,
-        theme.colors.foreground,
+        theme.colors.text,
         palette.white
       );
 
@@ -289,7 +289,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
               setContentHeight(e.nativeEvent.contentSize.height)
             }
             scrollEnabled={shouldScroll}
-            placeholderTextColor={theme.colors.mutedForeground}
+            placeholderTextColor={theme.colors.textDim}
             style={[
               styles.input,
               {
@@ -334,7 +334,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
               <Icon
                 as={passwordVisible ? EyeOff : Eye}
                 size={spacing.iconSm + 4}
-                color="neutral"
+                color="muted"
               />
             </Pressable>
           )}
@@ -395,7 +395,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
     label: {
       fontFamily: fontFamilies.sansSerif.regular,
       fontSize: 14,
-      color: theme.colors.foreground,
+      color: theme.colors.text,
     },
     required: {
       color: theme.colors.destructive,
@@ -404,7 +404,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
     helperText: {
       fontFamily: fontFamilies.sansSerif.regular,
       fontSize: 12,
-      color: theme.colors.mutedForeground,
+      color: theme.colors.textDim,
       marginTop: spacing.xs,
     },
     errorText: {

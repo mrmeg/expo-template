@@ -62,7 +62,7 @@ function DropdownMenuSubTrigger({
       >
         {typeof children === "function" ? null : children}
         <View style={{ marginLeft: "auto" as any }}>
-          <Icon as={icon} size={16} color={theme.colors.foreground} />
+          <Icon as={icon} size={16} color={theme.colors.text} />
         </View>
       </DropdownMenuPrimitive.SubTrigger>
     </TextClassContext.Provider>
@@ -272,7 +272,7 @@ function DropdownMenuCheckboxItem({
             <Icon
               as={Check}
               size={16}
-              color={theme.colors.foreground}
+              color={theme.colors.text}
               {...(Platform.OS === "web" && { style: { pointerEvents: "none" as any } })}
             />
           </DropdownMenuPrimitive.ItemIndicator>
@@ -333,7 +333,7 @@ function DropdownMenuRadioItem({
           <DropdownMenuPrimitive.ItemIndicator>
             <View
               style={{
-                backgroundColor: theme.colors.foreground,
+                backgroundColor: theme.colors.text,
                 height: 8,
                 width: 8,
                 borderRadius: 4,
@@ -370,7 +370,7 @@ function DropdownMenuLabel({
         paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
         fontSize: 14,
         fontWeight: "500" as TextStyle["fontWeight"],
-        color: theme.colors.foreground,
+        color: theme.colors.text,
         ...(inset && { paddingLeft: spacing.xl }),
         ...(styleOverride && typeof styleOverride !== "function"
           ? StyleSheet.flatten(styleOverride)
@@ -428,7 +428,7 @@ function DropdownMenuShortcut({ style: styleOverride, ...props }: DropdownMenuSh
           marginLeft: "auto" as any,
           fontSize: 12,
           letterSpacing: 2,
-          color: theme.colors.foreground,
+          color: theme.colors.text,
           opacity: 0.6,
         },
         styleOverride,

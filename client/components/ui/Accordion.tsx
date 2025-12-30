@@ -1,11 +1,11 @@
+import * as React from "react";
+import { Animated, Platform, Pressable, View, ViewStyle } from "react-native";
 import { Icon } from "@/client/components/ui/Icon";
 import { TextClassContext } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
 import { ChevronDown } from "lucide-react-native";
-import * as React from "react";
-import { Animated, Platform, Pressable, View, ViewStyle } from "react-native";
 
 /**
  * Accordion Root Component
@@ -131,7 +131,7 @@ function AccordionTrigger({
               <Icon
                 as={ChevronDown}
                 size={20}
-                color={theme.colors.mutedForeground}
+                color={theme.colors.textDim}
               />
             </Animated.View>
           </Trigger>
