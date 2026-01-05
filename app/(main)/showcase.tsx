@@ -21,6 +21,7 @@ import { Heart, Star, Settings, Home, User, Mail, Bell, Search, ShoppingCart, Al
 import { Icon } from "@/client/components/ui/Icon";
 import { globalUIStore } from "@/client/stores/globalUIStore";
 import { Alert } from "@/client/components/ui/Alert";
+import { SignInForm } from "@/client/components/auth/SignInForm";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { theme, getShadowStyle } = useTheme();
@@ -1086,6 +1087,42 @@ export default function ComponentShowcase() {
               </Tooltip>
             </View>
           </SubSection>
+        </Section>
+
+        <Section title="Sign In Form">
+          <SignInForm
+            onSignIn={async ({ email, password }) => {
+              console.log("Sign in:", email, password);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              globalUIStore.getState().show({
+                type: "success",
+                title: "Success",
+                messages: ["Signed in successfully!"],
+                duration: 2000
+              });
+            }}
+            onForgotPassword={() => {
+              globalUIStore.getState().show({
+                type: "info",
+                messages: ["Forgot password clicked"],
+                duration: 2000
+              });
+            }}
+            onSignUp={() => {
+              globalUIStore.getState().show({
+                type: "info",
+                messages: ["Sign up clicked"],
+                duration: 2000
+              });
+            }}
+            onSocialSignIn={(provider) => {
+              globalUIStore.getState().show({
+                type: "info",
+                messages: [`${provider} sign in clicked`],
+                duration: 2000
+              });
+            }}
+          />
         </Section>
       </View>
     </KeyboardAwareScrollView>
