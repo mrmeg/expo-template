@@ -39,21 +39,21 @@ const SIZE_CONFIGS: Record<
   }
 > = {
   sm: {
+    height: 28,
+    fontSize: 13,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  md: {
     height: 32,
     fontSize: 14,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
   },
-  md: {
-    height: 40,
-    fontSize: 16,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm + 2,
-  },
   lg: {
-    height: 48,
-    fontSize: 18,
-    paddingVertical: spacing.sm + 2,
+    height: 36,
+    fontSize: 15,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
   },
 };
@@ -368,7 +368,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
     },
     input: {
       fontFamily: fontFamilies.sansSerif.regular,
-      borderRadius: spacing.radiusMd,
+      borderRadius: spacing.radiusSm,
       borderWidth: 1,
       ...(Platform.OS === "web" && { outlineStyle: "none" as any }),
     },

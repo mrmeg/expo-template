@@ -1,6 +1,6 @@
-import { colors } from '@/client/constants/colors';
-import { ScrollViewStyleReset } from 'expo-router/html';
-import { type PropsWithChildren } from 'react';
+import { colors } from "@/client/constants/colors";
+import { ScrollViewStyleReset } from "expo-router/html";
+import { type PropsWithChildren } from "react";
 
 // This file is web-only and used to configure the root HTML for every
 // web page during static rendering.

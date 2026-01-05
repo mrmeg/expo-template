@@ -117,7 +117,7 @@ function AccordionTrigger({
                 justifyContent: "space-between",
                 gap: spacing.md,
                 borderRadius: spacing.radiusMd,
-                paddingVertical: spacing.md,
+                paddingVertical: spacing.sm,
                 ...(Platform.OS === "web" && { cursor: "pointer" as any }),
               },
               // Spread array styles from primitives to prevent nested arrays on web
@@ -156,7 +156,7 @@ function AccordionContent({
         <View
           style={[
             {
-              paddingBottom: spacing.md,
+              paddingBottom: spacing.sm,
               overflow: "hidden",
             },
             // Spread array styles from primitives to prevent nested arrays on web

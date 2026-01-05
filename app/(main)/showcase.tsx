@@ -68,7 +68,7 @@ function ThemeToggle() {
       <Button onPress={toggleTheme} style={styles.themeToggleButton} preset="outline">
         <StyledText style={styles.themeToggleButtonText}>
           {`Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"
-            }`}
+          }`}
         </StyledText>
       </Button>
     </View>

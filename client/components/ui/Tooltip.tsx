@@ -62,25 +62,25 @@ function TooltipContent({
   // Determine colors based on variant
   const getVariantColors = () => {
     switch (variant) {
-      case "dark":
-        return {
-          background: palette.gray800,
-          border: palette.gray800,
-          text: palette.white,
-        };
-      case "light":
-        return {
-          background: palette.white,
-          border: palette.gray200,
-          text: palette.gray800,
-        };
-      case "default":
-      default:
-        return {
-          background: theme.colors.card,
-          border: theme.colors.border,
-          text: getContrastingColor(theme.colors.card, palette.white, palette.black),
-        };
+    case "dark":
+      return {
+        background: palette.gray800,
+        border: palette.gray800,
+        text: palette.white,
+      };
+    case "light":
+      return {
+        background: palette.white,
+        border: palette.gray200,
+        text: palette.gray800,
+      };
+    case "default":
+    default:
+      return {
+        background: theme.colors.card,
+        border: theme.colors.border,
+        text: getContrastingColor(theme.colors.card, palette.white, palette.black),
+      };
     }
   };
 

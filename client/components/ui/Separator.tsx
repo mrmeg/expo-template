@@ -106,13 +106,13 @@ function Separator({
   // Determine color based on variant
   const getColor = () => {
     switch (variant) {
-      case "primary":
-        return theme.colors.primary;
-      case "muted":
-        return theme.colors.muted;
-      case "default":
-      default:
-        return theme.colors.border;
+    case "primary":
+      return theme.colors.primary;
+    case "muted":
+      return theme.colors.muted;
+    case "default":
+    default:
+      return theme.colors.border;
     }
   };
 

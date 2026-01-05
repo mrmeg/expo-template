@@ -33,20 +33,20 @@ const SIZE_CONFIGS: Record<ButtonSize, { paddingVertical: number; paddingHorizon
   sm: {
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
+    fontSize: 13,
+    height: 28,
+  },
+  md: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
     fontSize: 14,
     height: 32,
   },
-  md: {
-    paddingVertical: spacing.buttonPadding,
-    paddingHorizontal: spacing.md,
-    fontSize: 16,
-    height: 40,
-  },
   lg: {
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
-    fontSize: 18,
-    height: 48,
+    fontSize: 15,
+    height: 36,
   },
 };
 
@@ -328,7 +328,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: spacing.radiusMd,
+      borderRadius: spacing.radiusSm,
       paddingVertical: sizeConfig.paddingVertical,
       paddingHorizontal: sizeConfig.paddingHorizontal,
       minHeight: sizeConfig.height,

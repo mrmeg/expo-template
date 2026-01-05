@@ -53,7 +53,7 @@ function PopoverContent({
       backgroundColor: theme.colors.background,
       borderColor: theme.colors.border,
       borderWidth: 2,
-      borderRadius: spacing.radiusMd,
+      borderRadius: spacing.radiusSm,
       padding: spacing.xs,
       ...getShadowStyle("soft"),
     },

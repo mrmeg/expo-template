@@ -182,46 +182,46 @@ function main() {
   const projectRoot = path.resolve(__dirname, "..");
 
   switch (type.toLowerCase()) {
-    case "component": {
-      const destDir = path.join(projectRoot, "client", "components", "ui");
-      const destFile = path.join(destDir, `${pascalName}.tsx`);
+  case "component": {
+    const destDir = path.join(projectRoot, "client", "components", "ui");
+    const destFile = path.join(destDir, `${pascalName}.tsx`);
 
-      if (fs.existsSync(destFile)) {
-        log(`Error: Component ${pascalName}.tsx already exists.`, "red");
-        process.exit(1);
-      }
-
-      const content = getComponentTemplate(name);
-      fs.writeFileSync(destFile, content);
-      log(`\nCreated component: client/components/ui/${pascalName}.tsx`, "green");
-      log(`\nUsage:`, "gray");
-      log(`  import { ${pascalName} } from "@/client/components/ui/${pascalName}";`, "gray");
-      log(`  <${pascalName} />`, "gray");
-      break;
-    }
-
-    case "screen": {
-      const destDir = path.join(projectRoot, "app", "(main)");
-      const fileName = name.toLowerCase();
-      const destFile = path.join(destDir, `${fileName}.tsx`);
-
-      if (fs.existsSync(destFile)) {
-        log(`Error: Screen ${fileName}.tsx already exists.`, "red");
-        process.exit(1);
-      }
-
-      const content = getScreenTemplate(name);
-      fs.writeFileSync(destFile, content);
-      log(`\nCreated screen: app/(main)/${fileName}.tsx`, "green");
-      log(`\nAccess at: /(main)/${fileName}`, "gray");
-      log(`\nDon't forget to add the screen to the Stack in app/(main)/_layout.tsx if needed.`, "yellow");
-      break;
-    }
-
-    default:
-      log(`Error: Unknown type "${type}". Use "component" or "screen".`, "red");
-      showHelp();
+    if (fs.existsSync(destFile)) {
+      log(`Error: Component ${pascalName}.tsx already exists.`, "red");
       process.exit(1);
+    }
+
+    const content = getComponentTemplate(name);
+    fs.writeFileSync(destFile, content);
+    log(`\nCreated component: client/components/ui/${pascalName}.tsx`, "green");
+    log("\nUsage:", "gray");
+    log(`  import { ${pascalName} } from "@/client/components/ui/${pascalName}";`, "gray");
+    log(`  <${pascalName} />`, "gray");
+    break;
+  }
+
+  case "screen": {
+    const destDir = path.join(projectRoot, "app", "(main)");
+    const fileName = name.toLowerCase();
+    const destFile = path.join(destDir, `${fileName}.tsx`);
+
+    if (fs.existsSync(destFile)) {
+      log(`Error: Screen ${fileName}.tsx already exists.`, "red");
+      process.exit(1);
+    }
+
+    const content = getScreenTemplate(name);
+    fs.writeFileSync(destFile, content);
+    log(`\nCreated screen: app/(main)/${fileName}.tsx`, "green");
+    log(`\nAccess at: /(main)/${fileName}`, "gray");
+    log("\nDon't forget to add the screen to the Stack in app/(main)/_layout.tsx if needed.", "yellow");
+    break;
+  }
+
+  default:
+    log(`Error: Unknown type "${type}". Use "component" or "screen".`, "red");
+    showHelp();
+    process.exit(1);
   }
 
   log("");

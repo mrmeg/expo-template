@@ -13,24 +13,24 @@ const DEFAULT_HIT_SLOP = 8;
 // Size configurations (same as Toggle)
 const TOGGLE_GROUP_SIZES = {
   sm: {
-    height: 32,
-    minWidth: 32,
+    height: 28,
+    minWidth: 28,
     paddingHorizontal: spacing.sm,
     fontSize: 12,
     iconSize: spacing.iconSm,
   },
   default: {
-    height: 40,
-    minWidth: 40,
+    height: 32,
+    minWidth: 32,
     paddingHorizontal: spacing.md,
-    fontSize: 14,
+    fontSize: 13,
     iconSize: spacing.iconMd,
   },
   lg: {
-    height: 48,
-    minWidth: 48,
+    height: 36,
+    minWidth: 36,
     paddingHorizontal: spacing.lg,
-    fontSize: 16,
+    fontSize: 14,
     iconSize: spacing.iconMd,
   },
 };
@@ -132,7 +132,7 @@ function ToggleGroup({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        borderRadius: spacing.radiusMd,
+        borderRadius: spacing.radiusSm,
         // No shadow on Android - causes text background artifact
         ...(variant === "outline" && Platform.OS === "ios" && {
           shadowColor: theme.colors.overlay,
@@ -241,16 +241,16 @@ function ToggleGroupItem({
             // Border radius handling
             borderRadius: 0, // Remove all radius by default
             ...(isFirst && {
-              borderTopLeftRadius: spacing.radiusMd,
-              borderBottomLeftRadius: spacing.radiusMd,
+              borderTopLeftRadius: spacing.radiusSm,
+              borderBottomLeftRadius: spacing.radiusSm,
             }),
             ...(isLast && {
-              borderTopRightRadius: spacing.radiusMd,
-              borderBottomRightRadius: spacing.radiusMd,
+              borderTopRightRadius: spacing.radiusSm,
+              borderBottomRightRadius: spacing.radiusSm,
             }),
             // Single item (both first and last)
             ...(isFirst && isLast && {
-              borderRadius: spacing.radiusMd,
+              borderRadius: spacing.radiusSm,
             }),
             // Disabled state
             opacity: props.disabled ? 0.5 : 1,

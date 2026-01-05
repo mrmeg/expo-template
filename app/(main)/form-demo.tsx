@@ -93,46 +93,46 @@ export default function FormDemoScreen() {
     let error: string | undefined;
 
     switch (field) {
-      case "name":
-        if (!formData.name.trim()) {
-          error = "Name is required";
-        } else if (formData.name.trim().length < 2) {
-          error = "Name must be at least 2 characters";
-        }
-        break;
+    case "name":
+      if (!formData.name.trim()) {
+        error = "Name is required";
+      } else if (formData.name.trim().length < 2) {
+        error = "Name must be at least 2 characters";
+      }
+      break;
 
-      case "email":
-        if (!formData.email.trim()) {
-          error = "Email is required";
-        } else if (!validateEmail(formData.email)) {
-          error = "Please enter a valid email address";
-        }
-        break;
+    case "email":
+      if (!formData.email.trim()) {
+        error = "Email is required";
+      } else if (!validateEmail(formData.email)) {
+        error = "Please enter a valid email address";
+      }
+      break;
 
-      case "password":
-        if (!formData.password) {
-          error = "Password is required";
-        } else {
-          const passwordErrors = validatePassword(formData.password);
-          if (passwordErrors.length > 0) {
-            error = `Password needs: ${passwordErrors.join(", ")}`;
-          }
+    case "password":
+      if (!formData.password) {
+        error = "Password is required";
+      } else {
+        const passwordErrors = validatePassword(formData.password);
+        if (passwordErrors.length > 0) {
+          error = `Password needs: ${passwordErrors.join(", ")}`;
         }
-        break;
+      }
+      break;
 
-      case "confirmPassword":
-        if (!formData.confirmPassword) {
-          error = "Please confirm your password";
-        } else if (formData.password !== formData.confirmPassword) {
-          error = "Passwords do not match";
-        }
-        break;
+    case "confirmPassword":
+      if (!formData.confirmPassword) {
+        error = "Please confirm your password";
+      } else if (formData.password !== formData.confirmPassword) {
+        error = "Passwords do not match";
+      }
+      break;
 
-      case "agreeToTerms":
-        if (!formData.agreeToTerms) {
-          error = "You must agree to the terms";
-        }
-        break;
+    case "agreeToTerms":
+      if (!formData.agreeToTerms) {
+        error = "You must agree to the terms";
+      }
+      break;
     }
 
     setErrors((prev) => ({ ...prev, [field]: error }));

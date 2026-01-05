@@ -138,7 +138,7 @@ function Checkbox({
       style={{
         borderColor,
         backgroundColor: "transparent",
-        borderRadius: spacing.radiusXs,
+        borderRadius: spacing.radiusSm,
         borderWidth: 2,
         width: sizeConfig.size,
         height: sizeConfig.size,

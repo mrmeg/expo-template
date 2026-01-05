@@ -100,16 +100,16 @@ export const Notification = () => {
 
   const getIconProps = () => {
     switch (alert?.type) {
-      case "error":
-        return { icon: AlertCircle, color: theme.colors.destructive };
-      case "success":
-        return { icon: CheckCircle, color: theme.colors.success };
-      case "warning":
-        return { icon: AlertTriangle, color: theme.colors.warning };
-      case "info":
-        return { icon: Info, color: theme.colors.text };
-      default:
-        return { icon: Info, color: theme.colors.text };
+    case "error":
+      return { icon: AlertCircle, color: theme.colors.destructive };
+    case "success":
+      return { icon: CheckCircle, color: theme.colors.success };
+    case "warning":
+      return { icon: AlertTriangle, color: theme.colors.warning };
+    case "info":
+      return { icon: Info, color: theme.colors.text };
+    default:
+      return { icon: Info, color: theme.colors.text };
     }
   };
 
@@ -117,31 +117,31 @@ export const Notification = () => {
     if (alert?.title) return alert.title;
 
     switch (alert?.type) {
-      case "error":
-        return "Error";
-      case "success":
-        return "Success";
-      case "warning":
-        return "Warning";
-      case "info":
-        return "";
-      default:
-        return "";
+    case "error":
+      return "Error";
+    case "success":
+      return "Success";
+    case "warning":
+      return "Warning";
+    case "info":
+      return "";
+    default:
+      return "";
     }
   };
 
   const getSemanticColor = () => {
     switch (alert?.type) {
-      case "error":
-        return theme.colors.destructive;
-      case "success":
-        return theme.colors.success;
-      case "warning":
-        return theme.colors.warning;
-      case "info":
-        return theme.colors.primary;
-      default:
-        return theme.colors.primary;
+    case "error":
+      return theme.colors.destructive;
+    case "success":
+      return theme.colors.success;
+    case "warning":
+      return theme.colors.warning;
+    case "info":
+      return theme.colors.primary;
+    default:
+      return theme.colors.primary;
     }
   };
 
