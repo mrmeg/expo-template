@@ -11,11 +11,13 @@ import { Popover, PopoverTrigger, PopoverContent, PopoverBody } from "@/client/c
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/client/components/ui/Accordion";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuCheckboxItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuShortcut } from "@/client/components/ui/DropdownMenu";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/client/components/ui/Collapsible";
+import { Separator } from "@/client/components/ui/Separator";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/client/components/ui/Tooltip";
 import { fontFamilies } from "@/client/constants/fonts";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { Heart, Star, Settings, Home, User, Mail, Bell, Search, ShoppingCart, AlertCircle, CheckCircle, Info, AlertTriangle } from "lucide-react-native";
+import { Heart, Star, Settings, Home, User, Mail, Bell, Search, ShoppingCart, AlertCircle, CheckCircle, Info, AlertTriangle, HelpCircle } from "lucide-react-native";
 import { Icon } from "@/client/components/ui/Icon";
 import { globalUIStore } from "@/client/stores/globalUIStore";
 import { Alert } from "@/client/components/ui/Alert";
@@ -66,7 +68,7 @@ function ThemeToggle() {
       <Button onPress={toggleTheme} style={styles.themeToggleButton} preset="outline">
         <StyledText style={styles.themeToggleButtonText}>
           {`Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"
-          }`}
+            }`}
         </StyledText>
       </Button>
     </View>
@@ -926,6 +928,163 @@ export default function ComponentShowcase() {
                 </View>
               </CollapsibleContent>
             </Collapsible>
+          </SubSection>
+        </Section>
+
+        <Section title="Separator">
+          <SubSection label="Horizontal (Default)">
+            <View style={{ gap: spacing.sm }}>
+              <StyledText style={styles.labelText}>Content above separator</StyledText>
+              <Separator margin={spacing.sm} />
+              <StyledText style={styles.labelText}>Content below separator</StyledText>
+            </View>
+          </SubSection>
+
+          <SubSection label="Size Variants">
+            <View style={{ gap: spacing.xs }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                <StyledText style={[styles.labelText, { width: 40 }]}>sm</StyledText>
+                <View style={{ flex: 1 }}>
+                  <Separator size="sm" margin={0} />
+                </View>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                <StyledText style={[styles.labelText, { width: 40 }]}>md</StyledText>
+                <View style={{ flex: 1 }}>
+                  <Separator size="md" margin={0} />
+                </View>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                <StyledText style={[styles.labelText, { width: 40 }]}>lg</StyledText>
+                <View style={{ flex: 1 }}>
+                  <Separator size="lg" margin={0} />
+                </View>
+              </View>
+            </View>
+          </SubSection>
+
+          <SubSection label="Visual Variants">
+            <View style={{ gap: spacing.sm }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                <StyledText style={[styles.labelText, { width: 70 }]}>default</StyledText>
+                <View style={{ flex: 1 }}>
+                  <Separator variant="default" margin={0} />
+                </View>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                <StyledText style={[styles.labelText, { width: 70 }]}>muted</StyledText>
+                <View style={{ flex: 1 }}>
+                  <Separator variant="muted" margin={0} />
+                </View>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                <StyledText style={[styles.labelText, { width: 70 }]}>primary</StyledText>
+                <View style={{ flex: 1 }}>
+                  <Separator variant="primary" margin={0} />
+                </View>
+              </View>
+            </View>
+          </SubSection>
+
+          <SubSection label="Vertical Orientation">
+            <View style={{ flexDirection: "row", alignItems: "center", height: 60 }}>
+              <StyledText style={styles.labelText}>Left</StyledText>
+              <Separator orientation="vertical" margin={spacing.md} />
+              <StyledText style={styles.labelText}>Center</StyledText>
+              <Separator orientation="vertical" variant="primary" margin={spacing.md} />
+              <StyledText style={styles.labelText}>Right</StyledText>
+            </View>
+          </SubSection>
+        </Section>
+
+        <Section title="Tooltip">
+          <SubSection label="Basic Tooltip">
+            <View style={{ flexDirection: "row", gap: spacing.lg, flexWrap: "wrap", alignItems: "center" }}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <StyledText style={styles.smallButtonText}>Hover me</StyledText>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <StyledText style={styles.labelText}>This is a tooltip</StyledText>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <View style={{ padding: spacing.xs }}>
+                    <Icon as={HelpCircle} size={24} color={theme.colors.primary} />
+                  </View>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <StyledText style={styles.labelText}>Help information</StyledText>
+                </TooltipContent>
+              </Tooltip>
+            </View>
+          </SubSection>
+
+          <SubSection label="Side Positioning">
+            <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <StyledText style={styles.smallButtonText}>Top</StyledText>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <StyledText style={styles.labelText}>Tooltip on top</StyledText>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button preset="default" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <StyledText style={styles.smallButtonText}>Bottom</StyledText>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <StyledText style={styles.labelText}>Tooltip on bottom</StyledText>
+                </TooltipContent>
+              </Tooltip>
+            </View>
+          </SubSection>
+
+          <SubSection label="Visual Variants">
+            <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <StyledText style={styles.smallButtonText}>Default</StyledText>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent variant="default">
+                  <StyledText style={styles.labelText}>Default variant</StyledText>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <StyledText style={styles.smallButtonText}>Dark</StyledText>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent variant="dark">
+                  <StyledText style={[styles.labelText, { color: "#fff" }]}>Dark variant</StyledText>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button preset="outline" style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+                    <StyledText style={styles.smallButtonText}>Light</StyledText>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent variant="light">
+                  <StyledText style={[styles.labelText, { color: "#2C2C2C" }]}>Light variant</StyledText>
+                </TooltipContent>
+              </Tooltip>
+            </View>
           </SubSection>
         </Section>
       </View>

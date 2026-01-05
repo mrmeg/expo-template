@@ -5,6 +5,25 @@ import { spacing as spacingConstants } from "@/client/constants/spacing";
 
 type ShadowType = "base" | "soft" | "sharp" | "subtle";
 
+// Module-level cache for contrast calculations to avoid memory leak
+// and share across components
+const contrastCache = new Map<string, string>();
+const MAX_CACHE_SIZE = 500;
+
+function getCachedOrCompute(key: string, compute: () => string): string {
+  if (contrastCache.has(key)) {
+    return contrastCache.get(key)!;
+  }
+  // Prevent unbounded growth
+  if (contrastCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = contrastCache.keys().next().value;
+    if (firstKey) contrastCache.delete(firstKey);
+  }
+  const result = compute();
+  contrastCache.set(key, result);
+  return result;
+}
+
 interface ExtendedColorScheme {
   theme: Colors["light" | "dark"];
   scheme: "light" | "dark";
@@ -112,11 +131,6 @@ export function useTheme(): ExtendedColorScheme & {
     }) as ViewStyle;
   };
 
-  // Cache for contrast calculations to avoid redundant computation
-  // React 19 compiler handles component-level memoization, but this cache
-  // optimizes across components and re-renders
-  const contrastCache = new Map<string, string>();
-
   // Helper to calculate contrast ratio between two colors
   const getContrastRatio = (color1: string, color2: string): number => {
     const rgb1 = parseColor(color1);
@@ -134,20 +148,16 @@ export function useTheme(): ExtendedColorScheme & {
   };
 
   // Cached version of getContrastingColor for performance
+  // Uses module-level cache to prevent memory leak
   const getCachedContrastingColor = (
     backgroundColor: string,
     color1?: string,
     color2?: string
   ): string => {
     const cacheKey = `${backgroundColor}-${color1}-${color2}`;
-
-    if (contrastCache.has(cacheKey)) {
-      return contrastCache.get(cacheKey)!;
-    }
-
-    const result = getBetterContrast(backgroundColor, color1, color2);
-    contrastCache.set(cacheKey, result);
-    return result;
+    return getCachedOrCompute(cacheKey, () =>
+      getBetterContrast(backgroundColor, color1, color2)
+    );
   };
 
   const colorScheme: ExtendedColorScheme & {
