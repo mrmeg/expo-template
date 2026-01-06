@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import {
@@ -181,19 +180,26 @@ export function VerifyEmailForm({
   }
 
   return (
-    <KeyboardAwareScrollView
-      contentContainerStyle={styles.scrollContent}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-      bottomOffset={20}
+    <KeyboardAvoidingView
+      style={styles.keyboardAvoid}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {formContent}
-    </KeyboardAwareScrollView>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {formContent}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
+    keyboardAvoid: {
+      flex: 1,
+    },
     embeddedContainer: {
       width: "100%",
     },

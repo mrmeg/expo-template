@@ -10,7 +10,7 @@ import { Icon } from "@/client/components/ui/Icon";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { save, load, remove } from "@/client/utils/storage";
-import { Database, Trash2, Globe, Palette, Wrench, Cloud, RefreshCw, ClipboardList } from "lucide-react-native";
+import { Database, Trash2, Globe, Palette, Wrench, Cloud, RefreshCw, ClipboardList, Lock } from "lucide-react-native";
 import type { Theme } from "@/client/constants/colors";
 
 const STORAGE_TEST_KEY = "demo-storage-test";
@@ -276,6 +276,15 @@ export default function HomeScreen() {
               <Icon as={ClipboardList} color={theme.colors.primary} size={16} />
               <SansSerifText style={styles.actionButtonText}>
                 {" "}Form Validation Demo
+              </SansSerifText>
+            </Button>
+          </Link>
+
+          <Link href="/(main)/auth-demo" asChild>
+            <Button preset="outline" fullWidth style={styles.actionButton}>
+              <Icon as={Lock} color={theme.colors.primary} size={16} />
+              <SansSerifText style={styles.actionButtonText}>
+                {" "}Auth Demo
               </SansSerifText>
             </Button>
           </Link>

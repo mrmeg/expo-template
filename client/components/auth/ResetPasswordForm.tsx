@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import {
@@ -87,14 +86,18 @@ export function ResetPasswordForm({
       return <View style={styles.embeddedContainer}>{content}</View>;
     }
     return (
-      <KeyboardAwareScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        bottomOffset={20}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {content}
-      </KeyboardAwareScrollView>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {content}
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   };
 
@@ -212,6 +215,9 @@ export function ResetPasswordForm({
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
+    keyboardAvoid: {
+      flex: 1,
+    },
     embeddedContainer: {
       width: "100%",
     },

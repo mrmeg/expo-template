@@ -1,4 +1,5 @@
 import "@/client/lib/gesture-handler";
+import "@/amplify";
 
 // Initialize Reactotron in development mode
 if (__DEV__) {

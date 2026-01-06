@@ -7,6 +7,7 @@ import {
   Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import {
@@ -24,6 +25,7 @@ import {
   ChevronDown,
   ChevronRight,
   AlertTriangle,
+  Lock,
 } from "lucide-react-native";
 import Config from "@/client/config";
 import { getAllKeys, load, clear } from "@/client/utils/storage";
@@ -193,6 +195,31 @@ export default function DeveloperScreen() {
               ))}
             </View>
           )}
+        </View>
+
+        {/* Auth Demo */}
+        <View style={[styles.section, getShadowStyle("subtle")]}>
+          <View style={styles.sectionHeader}>
+            <Icon as={Lock} color={theme.colors.primary} size={20} />
+            <SansSerifBoldText style={styles.sectionTitle}>
+              Auth Demo
+            </SansSerifBoldText>
+          </View>
+
+          <SansSerifText style={styles.debugDescription}>
+            Test the authentication flow with Cognito integration.
+          </SansSerifText>
+
+          <Button
+            preset="default"
+            onPress={() => router.push("/auth-demo" as any)}
+            fullWidth
+          >
+            <Icon as={Lock} color={theme.colors.primaryForeground} size={16} />
+            <SansSerifBoldText style={{ color: theme.colors.primaryForeground }}>
+              {" "}Open Auth Demo
+            </SansSerifBoldText>
+          </Button>
         </View>
 
         {/* Debug Tools */}
