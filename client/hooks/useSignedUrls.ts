@@ -13,8 +13,8 @@ type MediaKeyType = string | (string | null | undefined)[] | null | undefined;
 interface UseSignedUrlsOptions {
   mediaKeys: MediaKeyType;
   endpoint?: string;
-  /** Path prefix in bucket (use MEDIA_PATHS constants or any string) */
-  path: MediaPath | string;
+  /** Path prefix in bucket (use MEDIA_PATHS constants or any string). Optional if keys are full paths. */
+  path?: MediaPath | string;
   enabled?: boolean;
 }
 

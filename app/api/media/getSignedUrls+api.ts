@@ -46,25 +46,15 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
-    if (!path || typeof path !== "string") {
-      return new Response(JSON.stringify({ message: "Missing or invalid path" }), {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization"
-        }
-      });
-    }
-
     const urls: GetMediaResponse["urls"] = {};
 
     // Generate signed URLs for each key
+    // If path is provided, prepend it to each key; otherwise use keys as full paths
     for (const key of keys) {
       if (!key) continue;
 
-      const mediaUrl = await generatePresignedUrl(`${path}/${key}`);
+      const fullKey = path ? `${path}/${key}` : key;
+      const mediaUrl = await generatePresignedUrl(fullKey);
       urls[key] = mediaUrl;
     }
 

@@ -8,6 +8,8 @@ interface UploadUrlRequest {
   extension: string;
   /** Media type key from MEDIA_PATHS */
   mediaType: MediaType;
+  /** Optional custom filename (without extension) - if not provided, a ULID is generated */
+  customFilename?: string;
 }
 
 interface UploadUrlResponse {
@@ -48,7 +50,7 @@ export async function OPTIONS(): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   try {
     const body: UploadUrlRequest = await request.json();
-    const { extension, mediaType } = body;
+    const { extension, mediaType, customFilename } = body;
 
     if (!extension || typeof extension !== "string") {
       return new Response(JSON.stringify({ message: "Missing or invalid extension" }), {
@@ -71,7 +73,8 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const path = MEDIA_PATHS[mediaType];
-    const filename = `${ulid()}.${extension.replace(/^\./, "")}`;
+    const ext = extension.replace(/^\./, "");
+    const filename = customFilename ? `${customFilename}.${ext}` : `${ulid()}.${ext}`;
     const key = `${path}/${filename}`;
     const expiresIn = 300; // 5 minutes
 

@@ -17,14 +17,29 @@ import {
 } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
 import { Icon } from "@/client/components/ui/Icon";
-import { FolderOpen, Image as ImageIcon, File, RefreshCw, Trash2, Upload } from "lucide-react-native";
+import { VideoPlayer } from "@/client/components/VideoPlayer";
+import {
+  FolderOpen,
+  File,
+  RefreshCw,
+  Trash2,
+  Upload,
+  Play,
+  Video,
+} from "lucide-react-native";
 import { useMediaList, formatBytes } from "@/client/hooks/useMediaList";
 import { useSignedUrls } from "@/client/hooks/useSignedUrls";
 import { useMediaDelete } from "@/client/hooks/useMediaDelete";
 import { useMediaUpload } from "@/client/hooks/useMediaUpload";
 import { useMediaLibrary } from "@/client/hooks/useMediaLibrary";
-import { MEDIA_PATHS } from "@/shared/media";
+import {
+  MEDIA_PATHS,
+  isVideoKey,
+  isImageKey,
+  getVideoThumbnailKey,
+} from "@/shared/media";
 import { globalUIStore } from "@/client/stores/globalUIStore";
+import { logDev } from "@/client/devtools";
 import type { Theme } from "@/client/constants/colors";
 
 type FilterType = "all" | keyof typeof MEDIA_PATHS;
@@ -33,6 +48,10 @@ export default function MediaScreen() {
   const { theme, getShadowStyle } = useTheme();
   const styles = createStyles(theme);
   const [filter, setFilter] = useState<FilterType>("all");
+  const [playingVideo, setPlayingVideo] = useState<{
+    url: string;
+    title: string;
+  } | null>(null);
 
   const prefix = filter === "all" ? "" : MEDIA_PATHS[filter];
   const { data, isLoading, refetch, isRefetching } = useMediaList({ prefix });
@@ -42,6 +61,17 @@ export default function MediaScreen() {
 
   const handleDelete = async (key: string) => {
     try {
+      // If deleting a video, also delete its thumbnail
+      if (isVideoKey(key)) {
+        const thumbnailKey = getVideoThumbnailKey(key);
+        try {
+          await deleteFile(thumbnailKey);
+          logDev(`Deleted video thumbnail: ${thumbnailKey}`);
+        } catch {
+          // Thumbnail may not exist, that's OK
+        }
+      }
+
       await deleteFile(key);
       globalUIStore.getState().show({
         type: "success",
@@ -53,29 +83,71 @@ export default function MediaScreen() {
       globalUIStore.getState().show({
         type: "error",
         title: "Delete Failed",
-        messages: [error instanceof Error ? error.message : "Failed to delete file"],
+        messages: [
+          error instanceof Error ? error.message : "Failed to delete file",
+        ],
         duration: 5000,
       });
     }
   };
 
   const handleUpload = async () => {
-    const assets = await pickMedia({ mediaTypes: ["images"] });
+    // Allow both images and videos
+    const assets = await pickMedia({ mediaTypes: ["images", "videos"] });
     if (!assets || assets.length === 0) return;
 
     const asset = assets[0];
-    const mediaType = filter === "all" ? "uploads" : filter;
+    const isVideo = asset.type === "video" || asset.mimeType?.startsWith("video/");
+
+    // Determine media type based on content and filter
+    let mediaType: keyof typeof MEDIA_PATHS;
+    if (filter !== "all" && filter !== "thumbnails") {
+      mediaType = filter;
+    } else if (isVideo) {
+      mediaType = "videos";
+    } else {
+      mediaType = "uploads";
+    }
+
+    // Pass blob on web, URI on native
+    const file = asset.blob || asset.uri;
 
     try {
-      await uploadFile({
-        file: asset.blob!,
-        contentType: asset.mimeType || "image/jpeg",
+      // Upload the main file
+      const result = await uploadFile({
+        file,
+        contentType: asset.mimeType || "application/octet-stream",
         mediaType,
       });
+
+      // If it's a video with a thumbnail, upload the thumbnail too
+      if (isVideo && (asset.thumbnailBlob || asset.thumbnailUri)) {
+        try {
+          // Derive thumbnail filename from video key (e.g., "01ABC123.mp4" -> "01ABC123")
+          const videoFilename = result.key.split("/").pop() || "";
+          const thumbnailBasename = videoFilename.replace(/\.[^.]+$/, "");
+
+          // Upload thumbnail - on web we have the blob, on native we need the URI
+          const thumbnailFile = asset.thumbnailBlob || asset.thumbnailUri;
+          if (thumbnailFile) {
+            await uploadFile({
+              file: thumbnailFile,
+              contentType: "image/jpeg",
+              mediaType: "thumbnails",
+              customFilename: thumbnailBasename, // Use video's ULID as thumbnail name
+            });
+            logDev(`Uploaded video thumbnail: ${thumbnailBasename}.jpg`);
+          }
+        } catch (thumbnailError) {
+          logDev(`Failed to upload thumbnail: ${thumbnailError}`);
+          // Don't fail the whole upload if thumbnail fails
+        }
+      }
+
       globalUIStore.getState().show({
         type: "success",
         title: "Uploaded",
-        messages: ["File uploaded successfully"],
+        messages: [isVideo ? "Video uploaded successfully" : "File uploaded successfully"],
         duration: 3000,
       });
       refetch();
@@ -83,31 +155,51 @@ export default function MediaScreen() {
       globalUIStore.getState().show({
         type: "error",
         title: "Upload Failed",
-        messages: [error instanceof Error ? error.message : "Failed to upload file"],
+        messages: [
+          error instanceof Error ? error.message : "Failed to upload file",
+        ],
         duration: 5000,
       });
     }
   };
 
-  // Get signed URLs for all items to display previews
-  const imageKeys = data?.items
-    .filter((item) => isImageFile(item.key))
-    .map((item) => item.key.split("/").pop()!)
-    .filter(Boolean) || [];
-
-  const imagePath = data?.items[0]?.key.split("/").slice(0, -1).join("/") || "";
+  // Get signed URLs for all media items (images and videos) using full keys
+  const mediaKeys =
+    data?.items
+      .filter((item) => isImageKey(item.key) || isVideoKey(item.key))
+      .map((item) => item.key)
+      .filter(Boolean) || [];
 
   const { data: signedUrlData } = useSignedUrls({
-    mediaKeys: imageKeys,
-    path: imagePath,
-    enabled: imageKeys.length > 0,
+    mediaKeys,
+    // No path - keys are full paths like "media/videos/abc.mp4"
+    enabled: mediaKeys.length > 0,
   });
+
+  // Get signed URLs for video thumbnails
+  const videoKeys =
+    data?.items
+      .filter((item) => isVideoKey(item.key))
+      .map((item) => {
+        const filename = item.key.split("/").pop() || "";
+        return filename.replace(/\.[^.]+$/, ".jpg");
+      })
+      .filter(Boolean) || [];
+
+  const { data: thumbnailUrlData } = useSignedUrls({
+    mediaKeys: videoKeys,
+    path: MEDIA_PATHS.thumbnails,
+    enabled: videoKeys.length > 0,
+  });
+
+  const handlePlayVideo = (filename: string, signedUrl: string) => {
+    setPlayingVideo({ url: signedUrl, title: filename });
+  };
 
   const filters: { key: FilterType; label: string }[] = [
     { key: "all", label: "All" },
     { key: "avatars", label: "Avatars" },
-    { key: "products", label: "Products" },
-    { key: "thumbnails", label: "Thumbnails" },
+    { key: "videos", label: "Videos" },
     { key: "uploads", label: "Uploads" },
   ];
 
@@ -170,7 +262,11 @@ export default function MediaScreen() {
         </View>
       ) : data?.items.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Icon as={FolderOpen} size={48} color={theme.colors.mutedForeground} />
+          <Icon
+            as={FolderOpen}
+            size={48}
+            color={theme.colors.mutedForeground}
+          />
           <SansSerifText style={styles.emptyText}>No files found</SansSerifText>
           <SansSerifText style={styles.emptySubtext}>
             Upload some media to see it here
@@ -190,37 +286,82 @@ export default function MediaScreen() {
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
             const filename = item.key.split("/").pop() || item.key;
-            const isImage = isImageFile(item.key);
-            const signedUrl = signedUrlData?.urls?.[filename];
+            const isImage = isImageKey(item.key);
+            const isVideo = isVideoKey(item.key);
+            // Look up by full key since we pass full paths to getSignedUrls
+            const signedUrl = signedUrlData?.urls?.[item.key];
+
+            // Get thumbnail URL for videos
+            const thumbnailFilename = isVideo
+              ? filename.replace(/\.[^.]+$/, ".jpg")
+              : null;
+            const thumbnailUrl = thumbnailFilename
+              ? thumbnailUrlData?.urls?.[thumbnailFilename]
+              : null;
 
             return (
-              <View style={[styles.fileItem, getShadowStyle("subtle")]}>
-                {isImage && signedUrl ? (
-                  <Image
-                    source={{ uri: signedUrl }}
-                    style={styles.thumbnail}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.iconContainer}>
-                    <Icon
-                      as={isImage ? ImageIcon : File}
-                      size={24}
-                      color={theme.colors.mutedForeground}
+              <Pressable
+                style={[styles.fileItem, getShadowStyle("subtle")]}
+                onPress={() => {
+                  if (isVideo && signedUrl) {
+                    handlePlayVideo(filename, signedUrl);
+                  }
+                }}
+                disabled={!isVideo || !signedUrl}
+              >
+                {/* Thumbnail */}
+                <View style={styles.thumbnailContainer}>
+                  {isImage && signedUrl ? (
+                    <Image
+                      source={{ uri: signedUrl }}
+                      style={styles.thumbnail}
+                      resizeMode="cover"
                     />
-                  </View>
-                )}
+                  ) : isVideo && thumbnailUrl ? (
+                    <Image
+                      source={{ uri: thumbnailUrl }}
+                      style={styles.thumbnail}
+                      resizeMode="cover"
+                    />
+                  ) : isVideo ? (
+                    <View style={styles.videoThumbnail}>
+                      <Icon as={Video} size={24} color={theme.colors.primary} />
+                    </View>
+                  ) : (
+                    <View style={styles.iconContainer}>
+                      <Icon
+                        as={File}
+                        size={24}
+                        color={theme.colors.mutedForeground}
+                      />
+                    </View>
+                  )}
+
+                  {/* Play overlay for videos */}
+                  {isVideo && signedUrl && (
+                    <View style={styles.playOverlay}>
+                      <View style={styles.playButton}>
+                        <Icon as={Play} size={16} color="white" />
+                      </View>
+                    </View>
+                  )}
+                </View>
+
+                {/* File info */}
                 <View style={styles.fileInfo}>
                   <SansSerifText style={styles.fileName} numberOfLines={1}>
                     {filename}
                   </SansSerifText>
                   <SansSerifText style={styles.fileMeta}>
                     {formatBytes(item.size)} • {formatDate(item.lastModified)}
+                    {isVideo && " • Video"}
                   </SansSerifText>
                   <SansSerifText style={styles.filePath} numberOfLines={1}>
                     {item.key}
                   </SansSerifText>
                 </View>
+
+                {/* Delete button */}
                 <Pressable
                   style={styles.deleteButton}
                   onPress={() => handleDelete(item.key)}
@@ -228,18 +369,23 @@ export default function MediaScreen() {
                 >
                   <Icon as={Trash2} size={18} color={theme.colors.destructive} />
                 </Pressable>
-              </View>
+              </Pressable>
             );
           }}
         />
       )}
+
+      {/* Video Player Modal */}
+      {playingVideo && (
+        <VideoPlayer
+          uri={playingVideo.url}
+          visible={!!playingVideo}
+          onClose={() => setPlayingVideo(null)}
+          title={playingVideo.title}
+        />
+      )}
     </SafeAreaView>
   );
-}
-
-function isImageFile(key: string): boolean {
-  const ext = key.split(".").pop()?.toLowerCase();
-  return ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext || "");
 }
 
 function formatDate(isoString: string): string {
@@ -338,11 +484,24 @@ const createStyles = (theme: Theme) =>
       borderColor: theme.colors.border,
       gap: spacing.sm,
     },
+    thumbnailContainer: {
+      position: "relative",
+      width: 56,
+      height: 56,
+    },
     thumbnail: {
       width: 56,
       height: 56,
       borderRadius: spacing.radiusSm,
       backgroundColor: theme.colors.muted,
+    },
+    videoThumbnail: {
+      width: 56,
+      height: 56,
+      borderRadius: spacing.radiusSm,
+      backgroundColor: theme.colors.muted,
+      justifyContent: "center",
+      alignItems: "center",
     },
     iconContainer: {
       width: 56,
@@ -351,6 +510,22 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.muted,
       justifyContent: "center",
       alignItems: "center",
+    },
+    playOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.3)",
+      borderRadius: spacing.radiusSm,
+    },
+    playButton: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: theme.colors.primary,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingLeft: 2, // Offset play icon slightly for visual center
     },
     fileInfo: {
       flex: 1,

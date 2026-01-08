@@ -20,7 +20,7 @@ import { StatusBar } from "@/client/components/ui/StatusBar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ErrorBoundary } from "@/client/components/ui/ErrorBoundary";
-import { ErrorScreen } from "@/client/screens/ErrorScreen";
+import { ErrorScreen } from "@/client/components/ErrorScreen";
 import { initI18n } from "@/client/i18n";
 import Config from "@/client/config";
 

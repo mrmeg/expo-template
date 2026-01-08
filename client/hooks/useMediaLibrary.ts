@@ -10,11 +10,9 @@ import { useCompressionStore } from "@/client/stores/compressionStore";
 import {
   compressImage,
   convertHeicToJpeg,
+  type CompressionConfig,
+  type ImagePreset,
 } from "@/client/lib/imageCompression";
-import type {
-  CompressionConfig,
-  ImagePreset,
-} from "@/shared/imageCompression";
 
 /**
  * Get image dimensions from a blob by loading it as an HTMLImageElement.
@@ -418,6 +416,7 @@ export function useMediaLibrary() {
       width: finalWidth,
       height: finalHeight,
       uri: finalUri,
+      // No blob on native - useMediaUpload handles URI-based uploads
       duration: videoData.duration,
       thumbnailUri: videoData.thumbnailUri,
       thumbnailBlob: videoData.thumbnailBlob,

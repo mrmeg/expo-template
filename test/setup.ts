@@ -126,6 +126,52 @@ jest.mock("lucide-react-native", () => {
   );
 });
 
+// Mock expo-image-manipulator
+jest.mock("expo-image-manipulator", () => ({
+  ImageManipulator: {
+    manipulate: jest.fn(() => ({
+      resize: jest.fn().mockReturnThis(),
+      rotate: jest.fn().mockReturnThis(),
+      flip: jest.fn().mockReturnThis(),
+      crop: jest.fn().mockReturnThis(),
+      renderAsync: jest.fn().mockResolvedValue({
+        saveAsync: jest.fn().mockResolvedValue({
+          uri: "file:///mock/compressed.jpg",
+          width: 1024,
+          height: 768,
+        }),
+        width: 1024,
+        height: 768,
+      }),
+    })),
+  },
+  SaveFormat: {
+    JPEG: "jpeg",
+    PNG: "png",
+    WEBP: "webp",
+  },
+}));
+
+// Mock expo-file-system
+jest.mock("expo-file-system", () => ({
+  File: jest.fn().mockImplementation((uri: string) => ({
+    uri,
+    exists: true,
+    size: 50000, // 50KB mock size
+    delete: jest.fn(),
+  })),
+  Directory: jest.fn().mockImplementation((uri: string) => ({
+    uri,
+    exists: true,
+    list: jest.fn().mockReturnValue([]),
+    delete: jest.fn(),
+  })),
+  Paths: {
+    cache: { uri: "file:///mock/cache" },
+    document: { uri: "file:///mock/document" },
+  },
+}));
+
 // Silence console warnings/errors in tests (optional)
 // Uncomment to reduce noise in test output
 // const originalConsoleError = console.error;
