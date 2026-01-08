@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { useTheme } from "@/client/hooks/useTheme";
 import { Icon } from "@/client/components/ui/Icon";
-import { Home, User, Settings } from "lucide-react-native";
+import { Home, User, Settings, Image } from "lucide-react-native";
 import { Platform } from "react-native";
 import { spacing } from "@/client/constants/spacing";
 
@@ -41,6 +41,15 @@ export default function TabLayout() {
           title: "Home",
           tabBarIcon: ({ color, size }) => (
             <Icon as={Home} color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="media"
+        options={{
+          title: "Media",
+          tabBarIcon: ({ color, size }) => (
+            <Icon as={Image} color={color} size={size} />
           ),
         }}
       />
