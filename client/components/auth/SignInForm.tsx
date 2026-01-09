@@ -100,117 +100,117 @@ export function SignInForm({
   const formContent = (
     <Card style={styles.card}>
       <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
 
-        <CardContent style={styles.content}>
-          {error && (
-            <View style={styles.errorContainer}>
-              <SansSerifText style={styles.errorText}>{error}</SansSerifText>
-            </View>
-          )}
-
-          <View style={styles.inputGroup}>
-            <TextInput
-              label="Email"
-              placeholder="name@example.com"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (emailError) validateEmail(text);
-              }}
-              onBlur={() => validateEmail(email)}
-              error={!!emailError}
-              errorText={emailError}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect={false}
-              editable={!loading}
-              required
-            />
+      <CardContent style={styles.content}>
+        {error && (
+          <View style={styles.errorContainer}>
+            <SansSerifText style={styles.errorText}>{error}</SansSerifText>
           </View>
+        )}
 
-          <View style={styles.inputGroup}>
-            <TextInput
-              label="Password"
-              placeholder="Enter your password"
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (passwordError) validatePassword(text);
-              }}
-              onBlur={() => validatePassword(password)}
-              error={!!passwordError}
-              errorText={passwordError}
-              secureTextEntry
-              showSecureEntryToggle
-              autoCapitalize="none"
-              autoComplete="password"
-              editable={!loading}
-              required
-            />
-          </View>
+        <View style={styles.inputGroup}>
+          <TextInput
+            label="Email"
+            placeholder="name@example.com"
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (emailError) validateEmail(text);
+            }}
+            onBlur={() => validateEmail(email)}
+            error={!!emailError}
+            errorText={emailError}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            autoCorrect={false}
+            editable={!loading}
+            required
+          />
+        </View>
 
-          {onForgotPassword && (
-            <Pressable
-              onPress={onForgotPassword}
-              disabled={loading}
-              style={styles.forgotPassword}
-            >
-              <SansSerifText style={styles.forgotPasswordText}>
-                Forgot password?
-              </SansSerifText>
-            </Pressable>
-          )}
+        <View style={styles.inputGroup}>
+          <TextInput
+            label="Password"
+            placeholder="Enter your password"
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (passwordError) validatePassword(text);
+            }}
+            onBlur={() => validatePassword(password)}
+            error={!!passwordError}
+            errorText={passwordError}
+            secureTextEntry
+            showSecureEntryToggle
+            autoCapitalize="none"
+            autoComplete="password"
+            editable={!loading}
+            required
+          />
+        </View>
 
-          <Button
-            preset="default"
-            onPress={handleSubmit}
-            loading={loading}
+        {onForgotPassword && (
+          <Pressable
+            onPress={onForgotPassword}
             disabled={loading}
-            fullWidth
+            style={styles.forgotPassword}
           >
-            <SansSerifBoldText>Sign In</SansSerifBoldText>
-          </Button>
-
-          {socialProviders.length > 0 && (
-            <>
-              <View style={styles.separatorContainer}>
-                <View style={styles.separatorLine} />
-                <SansSerifText style={styles.separatorText}>or</SansSerifText>
-                <View style={styles.separatorLine} />
-              </View>
-
-              <View style={styles.socialContainer}>
-                {socialProviders.map((provider) => (
-                  <Button
-                    key={provider}
-                    preset="outline"
-                    onPress={() => onSocialSignIn?.(provider)}
-                    disabled={loading}
-                    fullWidth
-                  >
-                    <SansSerifText>{getSocialLabel(provider)}</SansSerifText>
-                  </Button>
-                ))}
-              </View>
-            </>
-          )}
-        </CardContent>
-
-        {onSignUp && (
-          <CardFooter style={styles.footer}>
-            <SansSerifText style={styles.footerText}>
-              Don't have an account?{" "}
+            <SansSerifText style={styles.forgotPasswordText}>
+                Forgot password?
             </SansSerifText>
-            <Pressable onPress={onSignUp} disabled={loading}>
-              <SansSerifBoldText style={styles.signUpLink}>
+          </Pressable>
+        )}
+
+        <Button
+          preset="default"
+          onPress={handleSubmit}
+          loading={loading}
+          disabled={loading}
+          fullWidth
+        >
+          <SansSerifBoldText>Sign In</SansSerifBoldText>
+        </Button>
+
+        {socialProviders.length > 0 && (
+          <>
+            <View style={styles.separatorContainer}>
+              <View style={styles.separatorLine} />
+              <SansSerifText style={styles.separatorText}>or</SansSerifText>
+              <View style={styles.separatorLine} />
+            </View>
+
+            <View style={styles.socialContainer}>
+              {socialProviders.map((provider) => (
+                <Button
+                  key={provider}
+                  preset="outline"
+                  onPress={() => onSocialSignIn?.(provider)}
+                  disabled={loading}
+                  fullWidth
+                >
+                  <SansSerifText>{getSocialLabel(provider)}</SansSerifText>
+                </Button>
+              ))}
+            </View>
+          </>
+        )}
+      </CardContent>
+
+      {onSignUp && (
+        <CardFooter style={styles.footer}>
+          <SansSerifText style={styles.footerText}>
+              Don't have an account?{" "}
+          </SansSerifText>
+          <Pressable onPress={onSignUp} disabled={loading}>
+            <SansSerifBoldText style={styles.signUpLink}>
                 Sign up
-              </SansSerifBoldText>
-            </Pressable>
-          </CardFooter>
+            </SansSerifBoldText>
+          </Pressable>
+        </CardFooter>
       )}
     </Card>
   );

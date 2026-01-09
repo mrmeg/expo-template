@@ -46,13 +46,13 @@ export function calculateDimensions(
  */
 export function getMimeType(format: CompressionConfig["format"]): string {
   switch (format) {
-    case "png":
-      return "image/png";
-    case "webp":
-      return "image/webp";
-    case "jpeg":
-    default:
-      return "image/jpeg";
+  case "png":
+    return "image/png";
+  case "webp":
+    return "image/webp";
+  case "jpeg":
+  default:
+    return "image/jpeg";
   }
 }
 

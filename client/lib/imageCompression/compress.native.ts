@@ -21,13 +21,13 @@ import {
  */
 function getSaveFormat(format: CompressionConfig["format"]): SaveFormat {
   switch (format) {
-    case "png":
-      return SaveFormat.PNG;
-    case "webp":
-      return SaveFormat.WEBP;
-    case "jpeg":
-    default:
-      return SaveFormat.JPEG;
+  case "png":
+    return SaveFormat.PNG;
+  case "webp":
+    return SaveFormat.WEBP;
+  case "jpeg":
+  default:
+    return SaveFormat.JPEG;
   }
 }
 

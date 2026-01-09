@@ -139,41 +139,41 @@ self.onmessage = async ({ data: { id, type, data } }) => {
   try {
     if (type !== FFMessageType.LOAD && !ffmpeg) throw ERROR_NOT_LOADED;
     switch (type) {
-      case FFMessageType.LOAD:
-        _data = await load(data);
-        break;
-      case FFMessageType.EXEC:
-        _data = exec(data);
-        break;
-      case FFMessageType.WRITE_FILE:
-        _data = writeFile(data);
-        break;
-      case FFMessageType.READ_FILE:
-        _data = readFile(data);
-        break;
-      case FFMessageType.DELETE_FILE:
-        _data = deleteFile(data);
-        break;
-      case FFMessageType.RENAME:
-        _data = rename(data);
-        break;
-      case FFMessageType.CREATE_DIR:
-        _data = createDir(data);
-        break;
-      case FFMessageType.LIST_DIR:
-        _data = listDir(data);
-        break;
-      case FFMessageType.DELETE_DIR:
-        _data = deleteDir(data);
-        break;
-      case FFMessageType.MOUNT:
-        _data = mount(data);
-        break;
-      case FFMessageType.UNMOUNT:
-        _data = unmount(data);
-        break;
-      default:
-        throw ERROR_UNKNOWN_MESSAGE_TYPE;
+    case FFMessageType.LOAD:
+      _data = await load(data);
+      break;
+    case FFMessageType.EXEC:
+      _data = exec(data);
+      break;
+    case FFMessageType.WRITE_FILE:
+      _data = writeFile(data);
+      break;
+    case FFMessageType.READ_FILE:
+      _data = readFile(data);
+      break;
+    case FFMessageType.DELETE_FILE:
+      _data = deleteFile(data);
+      break;
+    case FFMessageType.RENAME:
+      _data = rename(data);
+      break;
+    case FFMessageType.CREATE_DIR:
+      _data = createDir(data);
+      break;
+    case FFMessageType.LIST_DIR:
+      _data = listDir(data);
+      break;
+    case FFMessageType.DELETE_DIR:
+      _data = deleteDir(data);
+      break;
+    case FFMessageType.MOUNT:
+      _data = mount(data);
+      break;
+    case FFMessageType.UNMOUNT:
+      _data = unmount(data);
+      break;
+    default:
+      throw ERROR_UNKNOWN_MESSAGE_TYPE;
     }
   } catch (e) {
     self.postMessage({ id, type: FFMessageType.ERROR, data: e.toString() });

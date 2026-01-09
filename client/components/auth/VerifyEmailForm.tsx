@@ -100,78 +100,78 @@ export function VerifyEmailForm({
 
   const formContent = (
     <Card style={styles.card}>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{defaultDescription}</CardDescription>
-        </CardHeader>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{defaultDescription}</CardDescription>
+      </CardHeader>
 
-        <CardContent style={styles.content}>
-          {error && (
-            <View style={styles.errorContainer}>
-              <SansSerifText style={styles.errorText}>{error}</SansSerifText>
-            </View>
-          )}
-
-          {/* Simple visible input */}
-          <TextInput
-            label="Verification Code"
-            placeholder="Enter 6-digit code"
-            value={code}
-            onChangeText={handleCodeChange}
-            keyboardType="number-pad"
-            maxLength={codeLength}
-            autoComplete="one-time-code"
-            textContentType="oneTimeCode"
-            editable={!loading}
-            error={!!codeError}
-            errorText={codeError}
-          />
-
-          <Button
-            preset="default"
-            onPress={handleSubmit}
-            loading={loading}
-            disabled={loading || code.length !== codeLength}
-            fullWidth
-          >
-            <SansSerifBoldText>Verify Email</SansSerifBoldText>
-          </Button>
-
-          <View style={styles.resendContainer}>
-            <SansSerifText style={styles.resendText}>
-              Didn't receive the code?{" "}
-            </SansSerifText>
-            {cooldown > 0 ? (
-              <SansSerifText style={styles.cooldownText}>
-                Resend in {cooldown}s
-              </SansSerifText>
-            ) : (
-              <Pressable onPress={handleResend} disabled={loading || resending}>
-                <SansSerifBoldText style={styles.resendLink}>
-                  {resending ? "Sending..." : "Resend code"}
-                </SansSerifBoldText>
-              </Pressable>
-            )}
+      <CardContent style={styles.content}>
+        {error && (
+          <View style={styles.errorContainer}>
+            <SansSerifText style={styles.errorText}>{error}</SansSerifText>
           </View>
+        )}
 
-          {onChangeEmail && (
-            <Pressable onPress={onChangeEmail} disabled={loading} style={styles.changeEmail}>
-              <SansSerifText style={styles.changeEmailText}>
-                Wrong email? <SansSerifBoldText style={styles.changeEmailLink}>Change it</SansSerifBoldText>
-              </SansSerifText>
+        {/* Simple visible input */}
+        <TextInput
+          label="Verification Code"
+          placeholder="Enter 6-digit code"
+          value={code}
+          onChangeText={handleCodeChange}
+          keyboardType="number-pad"
+          maxLength={codeLength}
+          autoComplete="one-time-code"
+          textContentType="oneTimeCode"
+          editable={!loading}
+          error={!!codeError}
+          errorText={codeError}
+        />
+
+        <Button
+          preset="default"
+          onPress={handleSubmit}
+          loading={loading}
+          disabled={loading || code.length !== codeLength}
+          fullWidth
+        >
+          <SansSerifBoldText>Verify Email</SansSerifBoldText>
+        </Button>
+
+        <View style={styles.resendContainer}>
+          <SansSerifText style={styles.resendText}>
+              Didn't receive the code?{" "}
+          </SansSerifText>
+          {cooldown > 0 ? (
+            <SansSerifText style={styles.cooldownText}>
+                Resend in {cooldown}s
+            </SansSerifText>
+          ) : (
+            <Pressable onPress={handleResend} disabled={loading || resending}>
+              <SansSerifBoldText style={styles.resendLink}>
+                {resending ? "Sending..." : "Resend code"}
+              </SansSerifBoldText>
             </Pressable>
           )}
-        </CardContent>
+        </View>
 
-        {onBack && (
-          <CardFooter style={styles.footer}>
-            <Pressable onPress={onBack} disabled={loading}>
-              <SansSerifText style={styles.backLink}>
-                ← Back to sign in
-              </SansSerifText>
-            </Pressable>
-          </CardFooter>
+        {onChangeEmail && (
+          <Pressable onPress={onChangeEmail} disabled={loading} style={styles.changeEmail}>
+            <SansSerifText style={styles.changeEmailText}>
+                Wrong email? <SansSerifBoldText style={styles.changeEmailLink}>Change it</SansSerifBoldText>
+            </SansSerifText>
+          </Pressable>
         )}
+      </CardContent>
+
+      {onBack && (
+        <CardFooter style={styles.footer}>
+          <Pressable onPress={onBack} disabled={loading}>
+            <SansSerifText style={styles.backLink}>
+                ← Back to sign in
+            </SansSerifText>
+          </Pressable>
+        </CardFooter>
+      )}
     </Card>
   );
 

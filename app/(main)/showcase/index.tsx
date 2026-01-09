@@ -5,16 +5,14 @@ import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { Icon } from "@/client/components/ui/Icon";
+import { ThemeToggle } from "@/client/components/showcase";
 import {
-  Layers,
   MousePointerClick,
   TextCursorInput,
   Navigation,
   Bell,
   Type,
   Lock,
-  ClipboardList,
-  Wrench,
   ChevronRight,
 } from "lucide-react-native";
 import type { Theme } from "@/client/constants/colors";
@@ -27,23 +25,16 @@ interface NavItem {
   description?: string;
 }
 
-const componentItems: NavItem[] = [
-  { href: "/(main)/showcase", icon: Layers, label: "All Components", description: "Overview" },
-  { href: "/(main)/showcase/buttons", icon: MousePointerClick, label: "Buttons" },
-  { href: "/(main)/showcase/forms", icon: TextCursorInput, label: "Form Controls" },
-  { href: "/(main)/showcase/navigation", icon: Navigation, label: "Navigation & Menus" },
-  { href: "/(main)/showcase/feedback", icon: Bell, label: "Feedback" },
-  { href: "/(main)/showcase/typography", icon: Type, label: "Typography & Icons" },
+const categoryItems: NavItem[] = [
+  { href: "/(main)/showcase/buttons", icon: MousePointerClick, label: "Buttons", description: "Presets, states, sizes" },
+  { href: "/(main)/showcase/forms", icon: TextCursorInput, label: "Form Controls", description: "Inputs, switches, toggles" },
+  { href: "/(main)/showcase/navigation", icon: Navigation, label: "Navigation & Menus", description: "Accordion, popover, dropdown" },
+  { href: "/(main)/showcase/feedback", icon: Bell, label: "Feedback", description: "Alerts, notifications, tooltips" },
+  { href: "/(main)/showcase/typography", icon: Type, label: "Typography & Icons", description: "Text styles, icons, separators" },
+  { href: "/(main)/showcase/auth-forms", icon: Lock, label: "Auth Forms", description: "Sign in, sign up, verify, reset" },
 ];
 
-const demoItems: NavItem[] = [
-  { href: "/(main)/showcase/auth-forms", icon: Lock, label: "Auth Forms" },
-  { href: "/(main)/form-demo", icon: ClipboardList, label: "Form Validation" },
-  { href: "/(main)/auth-demo", icon: Lock, label: "Auth Demo" },
-  { href: "/(main)/developer", icon: Wrench, label: "Developer Tools" },
-];
-
-export default function ExploreScreen() {
+export default function ShowcaseIndexScreen() {
   const { theme, getShadowStyle } = useTheme();
   const styles = createStyles(theme);
   const shadowStyle = getShadowStyle("subtle");
@@ -61,8 +52,8 @@ export default function ExploreScreen() {
             <View style={styles.iconContainer}>
               <Icon as={item.icon} color={theme.colors.primary} size={20} />
             </View>
-            <View>
-              <SansSerifText style={styles.rowLabel}>{item.label}</SansSerifText>
+            <View style={styles.rowText}>
+              <SansSerifBoldText style={styles.rowLabel}>{item.label}</SansSerifBoldText>
               {item.description && (
                 <SansSerifText style={styles.rowDescription}>{item.description}</SansSerifText>
               )}
@@ -78,26 +69,19 @@ export default function ExploreScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Components Section */}
-        <View style={styles.section}>
-          <SansSerifBoldText style={styles.sectionTitle}>
-            UI Components
-          </SansSerifBoldText>
-          <View style={[styles.card, shadowStyle]}>
-            {componentItems.map((item, index) =>
-              renderNavRow(item, index === componentItems.length - 1)
-            )}
-          </View>
+        {/* Theme Toggle */}
+        <View style={styles.themeSection}>
+          <ThemeToggle />
         </View>
 
-        {/* Demos Section */}
+        {/* Categories Section */}
         <View style={styles.section}>
           <SansSerifBoldText style={styles.sectionTitle}>
-            Demos & Tools
+            Categories
           </SansSerifBoldText>
           <View style={[styles.card, shadowStyle]}>
-            {demoItems.map((item, index) =>
-              renderNavRow(item, index === demoItems.length - 1)
+            {categoryItems.map((item, index) =>
+              renderNavRow(item, index === categoryItems.length - 1)
             )}
           </View>
         </View>
@@ -116,6 +100,10 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg,
+    },
+    themeSection: {
+      alignItems: "center",
+      marginBottom: spacing.xl,
     },
     section: {
       marginBottom: spacing.xl,
@@ -146,6 +134,9 @@ const createStyles = (theme: Theme) =>
     rowLeft: {
       flexDirection: "row",
       alignItems: "center",
+      flex: 1,
+    },
+    rowText: {
       flex: 1,
     },
     iconContainer: {

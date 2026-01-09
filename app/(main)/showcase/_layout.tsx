@@ -2,9 +2,9 @@ import { Stack } from "expo-router";
 import { useTheme } from "@/client/hooks/useTheme";
 
 /**
- * Main app layout.
+ * Showcase section layout - stack navigator for component category pages.
  */
-export default function MainLayout() {
+export default function ShowcaseLayout() {
   const { theme } = useTheme();
 
   return (
@@ -23,36 +23,45 @@ export default function MainLayout() {
       }}
     >
       <Stack.Screen
-        name="(tabs)"
+        name="index"
         options={{
-          headerShown: false,
+          title: "UI Components",
         }}
       />
       <Stack.Screen
-        name="showcase"
+        name="buttons"
         options={{
-          headerShown: false,
+          title: "Buttons",
         }}
       />
       <Stack.Screen
-        name="developer"
+        name="forms"
         options={{
-          title: "Developer Tools",
-          presentation: "modal",
+          title: "Form Controls",
         }}
       />
       <Stack.Screen
-        name="form-demo"
+        name="navigation"
         options={{
-          title: "Form Validation",
-          presentation: "modal",
+          title: "Navigation & Menus",
         }}
       />
       <Stack.Screen
-        name="auth-demo"
+        name="feedback"
         options={{
-          title: "Authentication",
-          presentation: "modal",
+          title: "Feedback",
+        }}
+      />
+      <Stack.Screen
+        name="typography"
+        options={{
+          title: "Typography & Icons",
+        }}
+      />
+      <Stack.Screen
+        name="auth-forms"
+        options={{
+          title: "Auth Forms",
         }}
       />
     </Stack>

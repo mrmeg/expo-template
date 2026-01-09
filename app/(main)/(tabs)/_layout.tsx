@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { useTheme } from "@/client/hooks/useTheme";
 import { Icon } from "@/client/components/ui/Icon";
-import { Home, User, Settings, Image } from "lucide-react-native";
+import { Compass, User, Settings, Image } from "lucide-react-native";
 import { Platform } from "react-native";
 import { spacing } from "@/client/constants/spacing";
 
@@ -38,9 +38,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: "Explore",
           tabBarIcon: ({ color, size }) => (
-            <Icon as={Home} color={color} size={size} />
+            <Icon as={Compass} color={color} size={size} />
           ),
         }}
       />
