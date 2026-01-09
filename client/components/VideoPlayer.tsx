@@ -25,13 +25,16 @@ import {
   StatusBar,
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { Icon } from "./ui/Icon";
 import { SansSerifText } from "./ui/StyledText";
 import type { Theme } from "@/client/constants/colors";
+import {
+  useSafeAreaInsets,
+  initialWindowMetrics,
+} from "react-native-safe-area-context";
 
 interface VideoPlayerProps {
   /** Video source URL (typically a signed URL) */
@@ -55,7 +58,9 @@ export function VideoPlayer({
 }: VideoPlayerProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = createStyles(theme, insets);
+  // Use initialWindowMetrics as fallback since Modal may not have SafeAreaProvider context
+  const topInset = insets.top || initialWindowMetrics?.insets.top || 0;
+  const styles = createStyles(theme, topInset);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -172,10 +177,7 @@ export function VideoPlayer({
   );
 }
 
-const createStyles = (
-  theme: Theme,
-  insets: { top: number; bottom: number }
-) =>
+const createStyles = (theme: Theme, topInset: number) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -185,8 +187,8 @@ const createStyles = (
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingTop: insets.top + spacing.sm,
       paddingHorizontal: spacing.md,
+      paddingTop: topInset,
       paddingBottom: spacing.sm,
       backgroundColor: "rgba(0, 0, 0, 0.8)",
       position: "absolute",

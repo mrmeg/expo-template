@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, ViewStyle, TextStyle, StyleProp, Platform } from "react-native";
+import { View, StyleSheet, ViewStyle, TextStyle, StyleProp } from "react-native";
 import { StyledText, TextProps } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";

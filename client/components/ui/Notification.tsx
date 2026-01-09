@@ -39,8 +39,15 @@ export const Notification = () => {
     scale: new Animated.Value(0.95)
   });
 
+  // Track previous visibility to only animate on first show
+  const wasVisibleRef = React.useRef(false);
+
   useEffect(() => {
-    if (alert?.show) {
+    const isNowVisible = alert?.show ?? false;
+    const wasVisible = wasVisibleRef.current;
+
+    // Only run entrance animation when transitioning from hidden to visible
+    if (isNowVisible && !wasVisible) {
       // Reset animations before starting
       animationState.fadeAnim.setValue(0);
       animationState.translateY.setValue(-20);
@@ -65,16 +72,20 @@ export const Notification = () => {
           useNativeDriver: true,
         })
       ]).start();
-
-      if (alert.duration) {
-        const timer = setTimeout(() => {
-          animateOut();
-        }, alert.duration || 3000);
-
-        return () => clearTimeout(timer);
-      }
     }
-  }, [alert, hide, animationState]);
+
+    // Update ref for next render
+    wasVisibleRef.current = isNowVisible;
+
+    // Auto-dismiss timer (only set when becoming visible with duration)
+    if (isNowVisible && !wasVisible && alert?.duration) {
+      const timer = setTimeout(() => {
+        animateOut();
+      }, alert.duration);
+
+      return () => clearTimeout(timer);
+    }
+  }, [alert, animationState]);
 
   const animateOut = () => {
     Animated.parallel([

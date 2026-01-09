@@ -13,6 +13,9 @@ import {
   type CompressionConfig,
   type ImagePreset,
 } from "@/client/lib/imageCompression";
+// Import utils/config directly to avoid loading FFmpeg via the index barrel export
+import { needsConversion } from "@/client/lib/videoConversion/utils";
+import { MAX_CLIENT_CONVERSION_SIZE } from "@/client/lib/videoConversion/config";
 
 /**
  * Get image dimensions from a blob by loading it as an HTMLImageElement.
@@ -225,6 +228,86 @@ export function useMediaLibrary() {
       // Convert HEIC to JPEG if needed (for browser compatibility) - only for images
       if (!isVideo) {
         blob = await convertHeicToJpeg(blob, asset.fileName || undefined);
+      }
+
+      // Convert incompatible video formats (WebM, AVI, MKV) to MP4 for cross-platform playback
+      let videoConverted = false;
+      logDev(
+        `Video conversion check: isVideo=${isVideo}, mimeType=${asset.mimeType}, needsConversion=${needsConversion(asset.mimeType)}`
+      );
+      if (isVideo && needsConversion(asset.mimeType)) {
+        // Only convert on client if under size limit
+        if (blob.size <= MAX_CLIENT_CONVERSION_SIZE) {
+          globalUIStore.getState().show({
+            type: "info",
+            title: "Converting Video",
+            messages: ["Loading video converter..."],
+            loading: true,
+          });
+
+          try {
+            // Dynamic import to avoid loading FFmpeg until needed
+            // (FFmpeg uses import.meta which crashes Metro on module load)
+            const { convertVideo } = await import(
+              "@/client/lib/videoConversion/convert"
+            );
+            const blobUri = URL.createObjectURL(blob);
+            const converted = await convertVideo(
+              blobUri,
+              asset.mimeType || "video/webm",
+              {
+                preset: "fast",
+                onProgress: (progress) => {
+                  globalUIStore.getState().show({
+                    type: "info",
+                    title: "Converting Video",
+                    messages: [`Converting to MP4... ${progress}%`],
+                    loading: true,
+                  });
+                },
+                onLoadingFFmpeg: () => {
+                  globalUIStore.getState().show({
+                    type: "info",
+                    title: "Converting Video",
+                    messages: ["Loading video converter (first time only)..."],
+                    loading: true,
+                  });
+                },
+              }
+            );
+
+            // Clean up source blob URL
+            URL.revokeObjectURL(blobUri);
+
+            // Use converted video
+            blob = converted.blob!;
+            videoConverted = true;
+
+            const reduction = (
+              ((originalSize - converted.size) / originalSize) *
+              100
+            ).toFixed(0);
+            logDev(
+              `Video converted: ${converted.originalFormat} → MP4, ${(originalSize / 1024 / 1024).toFixed(1)}MB → ${(converted.size / 1024 / 1024).toFixed(1)}MB (${reduction}% ${Number(reduction) > 0 ? "smaller" : "larger"})`
+            );
+
+            globalUIStore.getState().hide();
+          } catch (error) {
+            // Hide loading spinner before showing warning
+            globalUIStore.getState().hide();
+            globalUIStore.getState().show({
+              type: "warning",
+              title: "Conversion Skipped",
+              messages: ["Uploading original format"],
+              duration: 3000,
+            });
+            logDev(`Video conversion failed, using original: ${error}`);
+          }
+        } else {
+          logDev(
+            `Video too large for client conversion (${(blob.size / 1024 / 1024).toFixed(1)}MB > ${MAX_CLIENT_CONVERSION_SIZE / 1024 / 1024}MB limit)`
+          );
+        }
       }
 
       // Get actual dimensions - needed for HEIC where picker returns 0x0
