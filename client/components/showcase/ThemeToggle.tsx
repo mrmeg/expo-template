@@ -1,46 +1,45 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
-import { StyledText } from "@/client/components/ui/StyledText";
-import { Button } from "@/client/components/ui/Button";
+import { StyleSheet, View, Pressable, Text } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
-import { fontFamilies } from "@/client/constants/fonts";
 
 export function ThemeToggle() {
-  const { toggleTheme, currentTheme, scheme } = useTheme();
+  const { toggleTheme, currentTheme, scheme, theme } = useTheme();
+
+  const buttonText = `Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"}`;
 
   return (
-    <View style={styles.themeToggleContainer}>
-      <StyledText style={styles.themeToggleLabel}>
+    <View style={styles.container}>
+      <Text style={[styles.label, { color: theme.colors.text }]}>
         Theme: {currentTheme === "system" ? "System" : scheme === "dark" ? "Dark" : "Light"}
-      </StyledText>
-      <Button onPress={toggleTheme} style={styles.themeToggleButton} preset="outline">
-        <StyledText style={styles.themeToggleButtonText}>
-          {`Switch to ${currentTheme === "system" ? "Light" : currentTheme === "light" ? "Dark" : "System"}`}
-        </StyledText>
-      </Button>
+      </Text>
+      <Pressable
+        onPress={toggleTheme}
+        style={[styles.button, { borderColor: theme.colors.primary }]}
+      >
+        <Text style={[styles.buttonText, { color: theme.colors.primary }]}>
+          {buttonText}
+        </Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  themeToggleContainer: {
-    flexDirection: "row",
+  container: {
     alignItems: "center",
-    justifyContent: "center",
+    gap: spacing.sm,
   },
-  themeToggleLabel: {
-    fontFamily: fontFamilies.sansSerif.regular,
-    marginRight: spacing.buttonPadding,
+  label: {
     fontSize: 14,
   },
-  themeToggleButton: {
-    minWidth: 120,
-    paddingHorizontal: spacing.md,
+  button: {
+    borderWidth: 1,
+    borderRadius: spacing.radiusSm,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
-  themeToggleButtonText: {
-    fontFamily: fontFamilies.sansSerif.bold,
+  buttonText: {
     fontSize: 14,
     fontWeight: "500",
   },

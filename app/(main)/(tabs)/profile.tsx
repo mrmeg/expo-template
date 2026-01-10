@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { View, StyleSheet, ScrollView, Pressable } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
@@ -137,7 +136,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           {/* Profile Header */}
@@ -321,7 +320,7 @@ export default function ProfileScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

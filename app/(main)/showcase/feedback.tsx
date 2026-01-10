@@ -1,6 +1,5 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { StyledText } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
@@ -20,7 +19,7 @@ export default function FeedbackShowcaseScreen() {
   const styles = createStyles(theme);
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={styles.container}>
       <KeyboardAwareScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           <View style={styles.header}>
@@ -258,7 +257,7 @@ export default function FeedbackShowcaseScreen() {
           </Section>
         </View>
       </KeyboardAwareScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -282,7 +281,6 @@ const createStyles = (theme: Theme) =>
     header: {
       alignItems: "center",
       marginBottom: spacing.lg,
-      marginTop: spacing.md,
     },
     labelText: {
       fontFamily: fontFamilies.sansSerif.regular,

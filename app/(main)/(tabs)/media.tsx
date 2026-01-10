@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import {
@@ -204,7 +203,7 @@ export default function MediaScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={styles.container}>
       {/* Filter Tabs */}
       <View style={styles.filterRow}>
         {filters.map((f) => (
@@ -384,7 +383,7 @@ export default function MediaScreen() {
           title={playingVideo.title}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { StyledText } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
@@ -9,7 +8,7 @@ import { Section, SubSection, ThemeToggle } from "@/client/components/showcase";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { fontFamilies } from "@/client/constants/fonts";
-import { Heart, ArrowRight, Loader2 } from "lucide-react-native";
+import { Heart, ArrowRight } from "lucide-react-native";
 import type { Theme } from "@/client/constants/colors";
 
 export default function ButtonsShowcaseScreen() {
@@ -23,7 +22,7 @@ export default function ButtonsShowcaseScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={styles.container}>
       <KeyboardAwareScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           <View style={styles.header}>
@@ -149,7 +148,7 @@ export default function ButtonsShowcaseScreen() {
           </Section>
         </View>
       </KeyboardAwareScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

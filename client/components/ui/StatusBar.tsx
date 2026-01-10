@@ -12,15 +12,16 @@ export const StatusBar = () => {
   useEffect(() => {
     RNStatusBar.setBarStyle(barStyle, true);
     if (Platform.OS === "android") {
-      RNStatusBar.setBackgroundColor(theme.colors.card, true);
+      RNStatusBar.setBackgroundColor("transparent", true);
+      RNStatusBar.setTranslucent(true);
     }
-  }, [barStyle, theme.colors.card]);
+  }, [barStyle]);
 
   return (
     <RNStatusBar
       barStyle={barStyle}
-      backgroundColor={Platform.OS === "android" ? theme.colors.card : undefined}
-      translucent={false}
+      backgroundColor={Platform.OS === "android" ? "transparent" : undefined}
+      translucent={true}
     />
   );
 };

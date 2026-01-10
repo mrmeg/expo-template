@@ -1,5 +1,4 @@
 import { View, StyleSheet, Pressable, Platform, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { useThemeStore } from "@/client/stores/themeStore";
@@ -35,7 +34,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Appearance section */}
         <View style={styles.section}>
@@ -165,7 +164,7 @@ export default function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

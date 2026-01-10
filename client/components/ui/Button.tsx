@@ -332,6 +332,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       paddingVertical: sizeConfig.paddingVertical,
       paddingHorizontal: sizeConfig.paddingHorizontal,
       minHeight: sizeConfig.height,
+      flexShrink: 0,
       ...(Platform.OS === "web" && { cursor: "pointer" as any }),
     } as ViewStyle,
     buttonDefault: {
@@ -365,6 +366,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       fontWeight: "500",
       textAlign: "center",
       lineHeight: sizeConfig.fontSize * 1.25,
+      flexShrink: 0,
     } as TextStyle,
     pressed: {
       opacity: 0.8,

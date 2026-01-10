@@ -1,6 +1,5 @@
 import { View, StyleSheet, Pressable, Platform, ScrollView } from "react-native";
 import { Link } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
@@ -76,7 +75,7 @@ export default function ExploreScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Components Section */}
         <View style={styles.section}>
@@ -102,7 +101,7 @@ export default function ExploreScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

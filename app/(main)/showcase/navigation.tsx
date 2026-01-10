@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { StyledText } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
@@ -22,6 +21,8 @@ import {
   DropdownMenuShortcut,
 } from "@/client/components/ui/DropdownMenu";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/client/components/ui/Collapsible";
+import { Drawer } from "@/client/components/ui/Drawer";
+import { drawerStore } from "@/client/stores/drawerStore";
 import { Section, SubSection, ThemeToggle } from "@/client/components/showcase";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
@@ -39,7 +40,7 @@ export default function NavigationShowcaseScreen() {
   const [collapsibleOpen, setCollapsibleOpen] = useState(false);
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={styles.container}>
       <KeyboardAwareScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           <View style={styles.header}>
@@ -294,9 +295,74 @@ export default function NavigationShowcaseScreen() {
               </Collapsible>
             </SubSection>
           </Section>
+
+          <Section title="Drawer">
+            <SubSection label="Left Drawer">
+              <Drawer id="left-drawer" side="left" width={280}>
+                <Drawer.Trigger asChild>
+                  <Button preset="outline">
+                    <StyledText style={styles.outlineButtonText}>Open Left Drawer</StyledText>
+                  </Button>
+                </Drawer.Trigger>
+                <Drawer.Content>
+                  <Drawer.Header>
+                    <StyledText style={[styles.boldText, { fontSize: 18 }]}>Navigation</StyledText>
+                  </Drawer.Header>
+                  <Drawer.Body>
+                    <View style={{ gap: spacing.md }}>
+                      <StyledText style={styles.labelText}>Home</StyledText>
+                      <StyledText style={styles.labelText}>Profile</StyledText>
+                      <StyledText style={styles.labelText}>Settings</StyledText>
+                      <StyledText style={styles.labelText}>About</StyledText>
+                    </View>
+                  </Drawer.Body>
+                  <Drawer.Footer>
+                    <Button preset="outline" onPress={() => drawerStore.getState().close("left-drawer")}>
+                      <StyledText style={styles.outlineButtonText}>Close</StyledText>
+                    </Button>
+                  </Drawer.Footer>
+                </Drawer.Content>
+              </Drawer>
+            </SubSection>
+
+            <SubSection label="Right Drawer">
+              <Drawer id="right-drawer" side="right" width="75%">
+                <Drawer.Trigger asChild>
+                  <Button preset="outline">
+                    <StyledText style={styles.outlineButtonText}>Open Right Drawer</StyledText>
+                  </Button>
+                </Drawer.Trigger>
+                <Drawer.Content>
+                  <Drawer.Header>
+                    <StyledText style={[styles.boldText, { fontSize: 18 }]}>Filters</StyledText>
+                  </Drawer.Header>
+                  <Drawer.Body>
+                    <View style={{ gap: spacing.md }}>
+                      <StyledText style={styles.labelText}>Category: All</StyledText>
+                      <StyledText style={styles.labelText}>Price: $0 - $100</StyledText>
+                      <StyledText style={styles.labelText}>Rating: 4+ stars</StyledText>
+                      <StyledText style={[styles.labelText, { marginTop: spacing.lg, opacity: 0.6 }]}>
+                        Swipe right to close (on native)
+                      </StyledText>
+                    </View>
+                  </Drawer.Body>
+                  <Drawer.Footer>
+                    <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                      <Button preset="outline" onPress={() => drawerStore.getState().close("right-drawer")} style={{ flex: 1 }}>
+                        <StyledText style={styles.outlineButtonText}>Cancel</StyledText>
+                      </Button>
+                      <Button preset="default" onPress={() => drawerStore.getState().close("right-drawer")} style={{ flex: 1 }}>
+                        <StyledText style={styles.smallButtonText}>Apply</StyledText>
+                      </Button>
+                    </View>
+                  </Drawer.Footer>
+                </Drawer.Content>
+              </Drawer>
+            </SubSection>
+          </Section>
         </View>
       </KeyboardAwareScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -320,7 +386,6 @@ const createStyles = (theme: Theme) =>
     header: {
       alignItems: "center",
       marginBottom: spacing.lg,
-      marginTop: spacing.md,
     },
     labelText: {
       fontFamily: fontFamilies.sansSerif.regular,

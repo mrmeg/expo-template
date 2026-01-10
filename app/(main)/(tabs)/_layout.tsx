@@ -14,6 +14,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
+        headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.foreground,
         tabBarStyle: {
@@ -25,13 +26,6 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: "500",
-        },
-        headerStyle: {
-          backgroundColor: theme.colors.background,
-        },
-        headerTintColor: theme.colors.foreground,
-        headerTitleStyle: {
-          fontWeight: "600",
         },
       }}
     >
