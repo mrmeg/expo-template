@@ -22,7 +22,6 @@ import {
 } from "@/client/components/ui/DropdownMenu";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/client/components/ui/Collapsible";
 import { Drawer } from "@/client/components/ui/Drawer";
-import { drawerStore } from "@/client/stores/drawerStore";
 import { Section, SubSection, ThemeToggle } from "@/client/components/showcase";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
@@ -298,7 +297,7 @@ export default function NavigationShowcaseScreen() {
 
           <Section title="Drawer">
             <SubSection label="Left Drawer">
-              <Drawer id="left-drawer" side="left" width={280}>
+              <Drawer side="left" width={280}>
                 <Drawer.Trigger asChild>
                   <Button preset="outline">
                     <StyledText style={styles.outlineButtonText}>Open Left Drawer</StyledText>
@@ -317,16 +316,18 @@ export default function NavigationShowcaseScreen() {
                     </View>
                   </Drawer.Body>
                   <Drawer.Footer>
-                    <Button preset="outline" onPress={() => drawerStore.getState().close("left-drawer")}>
-                      <StyledText style={styles.outlineButtonText}>Close</StyledText>
-                    </Button>
+                    <Drawer.Close asChild>
+                      <Button preset="outline">
+                        <StyledText style={styles.outlineButtonText}>Close</StyledText>
+                      </Button>
+                    </Drawer.Close>
                   </Drawer.Footer>
                 </Drawer.Content>
               </Drawer>
             </SubSection>
 
             <SubSection label="Right Drawer">
-              <Drawer id="right-drawer" side="right" width="75%">
+              <Drawer side="right" width="75%">
                 <Drawer.Trigger asChild>
                   <Button preset="outline">
                     <StyledText style={styles.outlineButtonText}>Open Right Drawer</StyledText>
@@ -348,12 +349,16 @@ export default function NavigationShowcaseScreen() {
                   </Drawer.Body>
                   <Drawer.Footer>
                     <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                      <Button preset="outline" onPress={() => drawerStore.getState().close("right-drawer")} style={{ flex: 1 }}>
-                        <StyledText style={styles.outlineButtonText}>Cancel</StyledText>
-                      </Button>
-                      <Button preset="default" onPress={() => drawerStore.getState().close("right-drawer")} style={{ flex: 1 }}>
-                        <StyledText style={styles.smallButtonText}>Apply</StyledText>
-                      </Button>
+                      <Drawer.Close asChild>
+                        <Button preset="outline" style={{ flex: 1 }}>
+                          <StyledText style={styles.outlineButtonText}>Cancel</StyledText>
+                        </Button>
+                      </Drawer.Close>
+                      <Drawer.Close asChild>
+                        <Button preset="default" style={{ flex: 1 }}>
+                          <StyledText style={styles.smallButtonText}>Apply</StyledText>
+                        </Button>
+                      </Drawer.Close>
                     </View>
                   </Drawer.Footer>
                 </Drawer.Content>
