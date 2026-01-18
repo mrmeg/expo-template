@@ -9,6 +9,7 @@ import type { LucideIcon } from "lucide-react-native";
  */
 export type ThemeColorName =
   | "primary"
+  | "primaryForeground"
   | "secondary"
   | "muted"
   | "destructive"
@@ -78,6 +79,7 @@ export function Icon({
     // Check if it's a theme color name
     const themeColorNames: Record<ThemeColorName, string> = {
       primary: theme.colors.primary,
+      primaryForeground: theme.colors.primaryForeground,
       secondary: theme.colors.secondary,
       muted: theme.colors.muted,
       destructive: theme.colors.destructive,
