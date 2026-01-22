@@ -4,11 +4,17 @@
     "strict": true,
     "baseUrl": "./",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     },
     "noImplicitAny": false,
     "jsx": "react-native",
-    "types": ["react-native", "node", "jest"],
+    "types": [
+      "react-native",
+      "node",
+      "jest"
+    ],
     "skipLibCheck": true,
     "module": "esnext",
     "esModuleInterop": true,
@@ -23,7 +29,5 @@
   ],
   "exclude": [
     "node_modules",
-    "ignite",
-    "templates"
   ]
 }
