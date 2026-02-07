@@ -112,8 +112,8 @@ function Switch({
   variant = "default",
   labelOn,
   labelOff,
-  size = { width: 44, height: 22 },
-  thumbSize = 18,
+  size = { width: 40, height: 20 },
+  thumbSize = 16,
   loading = false,
   style: styleOverride,
   animationTension = 180,
@@ -191,7 +191,7 @@ function Switch({
         width: size.width,
         height: size.height,
         borderRadius: size.height / 2,
-        borderWidth: isIOS ? 0 : 0.75,
+        borderWidth: 0,
         borderColor: props.checked ? theme.colors.primary : borderColor,
         backgroundColor: isIOS
           ? iosBackgroundColor

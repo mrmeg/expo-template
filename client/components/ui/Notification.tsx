@@ -141,21 +141,6 @@ export const Notification = () => {
     }
   };
 
-  const getSemanticColor = () => {
-    switch (alert?.type) {
-    case "error":
-      return theme.colors.destructive;
-    case "success":
-      return theme.colors.success;
-    case "warning":
-      return theme.colors.warning;
-    case "info":
-      return theme.colors.primary;
-    default:
-      return theme.colors.primary;
-    }
-  };
-
   return (
     <Animated.View
       style={[
@@ -173,8 +158,7 @@ export const Notification = () => {
     >
       <View style={[
         styles.alert,
-        getShadowStyle("soft"),
-        { borderLeftColor: getSemanticColor() }
+        getShadowStyle("base"),
       ]}>
         <View style={styles.iconContainer}>
           {alert?.loading ? (
@@ -225,7 +209,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingRight: spacing.lg,
     borderRadius: spacing.radiusMd,
     borderWidth: 1,
-    borderLeftWidth: 4,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.card,
     flexDirection: "row",
@@ -244,8 +227,8 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     justifyContent: "center",
   },
   alertTitle: {
-    fontFamily: fontFamilies.sansSerif.bold,
-    fontWeight: "bold",
+    fontFamily: fontFamilies.sansSerif.regular,
+    fontWeight: "500",
     fontSize: 13,
     marginBottom: spacing.xs,
   },

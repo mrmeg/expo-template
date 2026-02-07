@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Colors, colors } from "@/client/constants/colors";
 import { useColorScheme as useColorSchemeDefault, ViewStyle, Platform, StyleSheet } from "react-native";
 import { useThemeStore } from "@/client/stores/themeStore";
@@ -74,6 +75,14 @@ export function useTheme(): ExtendedColorScheme & {
   const effectiveScheme = userTheme === "system" ? defaultScheme : userTheme;
   const theme = colors[effectiveScheme];
 
+  // Sync theme to DOM so CSS in +html.tsx follows the app's runtime theme
+  useEffect(() => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      document.documentElement.dataset.theme = effectiveScheme;
+      document.documentElement.style.colorScheme = effectiveScheme;
+    }
+  }, [effectiveScheme]);
+
   // Toggle between light, dark, and system themes
   const toggleTheme = () => {
     if (userTheme === "light") {
@@ -95,31 +104,31 @@ export function useTheme(): ExtendedColorScheme & {
     const shadowConfigs = {
       base: {
         shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 2, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 3,
       },
       soft: {
         shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 2, height: 10 },
-        shadowOpacity: 0.25,
-        shadowRadius: 15,
-        elevation: 12,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 4,
       },
       sharp: {
         shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 1, height: 1 },
-        shadowOpacity: 0.5,
-        shadowRadius: 2,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.15,
+        shadowRadius: 1,
+        elevation: 2,
       },
       subtle: {
         shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 2, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
       },
     };
 

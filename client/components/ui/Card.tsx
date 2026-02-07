@@ -38,9 +38,8 @@ export interface CardProps {
 }
 
 function Card({ children, style: styleOverride, variant = "default" }: CardProps) {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme } = useTheme();
   const styles = createCardStyles(theme);
-  const shadowStyle = variant === "default" ? getShadowStyle("soft") : undefined;
 
   return (
     <View
@@ -49,7 +48,6 @@ function Card({ children, style: styleOverride, variant = "default" }: CardProps
         variant === "default" && styles.cardDefault,
         variant === "outline" && styles.cardOutline,
         variant === "ghost" && styles.cardGhost,
-        shadowStyle,
         styleOverride,
       ]}
     >
@@ -145,7 +143,7 @@ function CardDescription({ children, style: styleOverride, ...props }: CardDescr
 const createCardStyles = (theme: Theme) =>
   StyleSheet.create({
     card: {
-      borderRadius: spacing.radiusMd,
+      borderRadius: spacing.radiusLg,
       overflow: "hidden",
     } as ViewStyle,
     cardDefault: {
@@ -162,26 +160,29 @@ const createCardStyles = (theme: Theme) =>
       backgroundColor: "transparent",
     } as ViewStyle,
     header: {
-      padding: spacing.md,
+      padding: spacing.lg,
+      paddingBottom: spacing.xs,
       gap: spacing.xs,
     } as ViewStyle,
     content: {
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.lg,
     } as ViewStyle,
     footer: {
       flexDirection: "row",
       alignItems: "center",
-      padding: spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.lg,
       paddingTop: 0,
     } as ViewStyle,
     title: {
-      fontSize: 16,
-      lineHeight: 20,
+      fontSize: 18,
+      lineHeight: 24,
+      letterSpacing: -0.3,
     } as TextStyle,
     description: {
-      fontSize: 13,
-      lineHeight: 18,
+      fontSize: 14,
+      lineHeight: 20,
     } as TextStyle,
   });
 

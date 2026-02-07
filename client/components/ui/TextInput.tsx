@@ -39,19 +39,19 @@ const SIZE_CONFIGS: Record<
   }
 > = {
   sm: {
-    height: 28,
+    height: 32,
     fontSize: 13,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
   },
   md: {
-    height: 32,
+    height: 36,
     fontSize: 14,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
   },
   lg: {
-    height: 36,
+    height: 40,
     fontSize: 15,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
@@ -306,6 +306,9 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
               variant === "filled" && styles.filled,
               style,
               focused && focusedStyle,
+              focused && Platform.OS === "web" && {
+                boxShadow: `0 0 0 2px ${theme.colors.background}, 0 0 0 4px ${theme.colors.primary}`,
+              } as any,
               isDisabled && styles.disabled,
               hasError && styles.error,
               Platform.OS === "web" && { fontSize: Math.max(sizeConfig.fontSize, 16) },
@@ -368,7 +371,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
     },
     input: {
       fontFamily: fontFamilies.sansSerif.regular,
-      borderRadius: spacing.radiusSm,
+      borderRadius: spacing.radiusMd,
       borderWidth: 1,
       ...(Platform.OS === "web" && { outlineStyle: "none" as any }),
     },
@@ -394,6 +397,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
     },
     label: {
       fontFamily: fontFamilies.sansSerif.regular,
+      fontWeight: "500" as const,
       fontSize: 14,
       color: theme.colors.text,
     },

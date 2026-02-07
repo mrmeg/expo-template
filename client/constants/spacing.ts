@@ -25,19 +25,20 @@ export const spacing = {
   screenPadding: 16, // Default screen edge padding
 
   // Component-specific
-  buttonPadding: 12,      // Default button padding
-  inputPadding: 12,       // Default input padding
+  buttonPadding: 10,      // Default button padding
+  inputPadding: 10,       // Default input padding
   cardPadding: 16,        // Default card padding
   sectionSpacing: 32,     // Space between major sections
-  listItemSpacing: 12,    // Space between list items
+  listItemSpacing: 8,     // Space between list items
 
-  // Border radius
+  // Border radius — shadcn-inspired scale (radiusMd = 6px default)
   radiusNone: 0,
   radiusXs: 2,
   radiusSm: 4,
-  radiusMd: 8,
-  radiusLg: 12,
-  radiusXl: 16,
+  radiusMd: 6,
+  radiusLg: 8,
+  radiusXl: 12,
+  radius2xl: 16,
   radiusFull: 9999,      // For circular elements
 
   // Icon sizes
@@ -73,6 +74,7 @@ export const {
   radiusMd,
   radiusLg,
   radiusXl,
+  radius2xl,
   radiusFull,
   iconXs,
   iconSm,

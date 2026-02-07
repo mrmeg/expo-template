@@ -44,6 +44,24 @@ export const fontFamilies = {
 };
 
 // Navigation theme fonts configuration
+/**
+ * Typography scale — Tailwind-matching sizes for consistent text hierarchy.
+ * Components can progressively adopt these tokens.
+ */
+export type TypographySize = "xs" | "sm" | "base" | "lg" | "xl" | "2xl" | "3xl" | "4xl";
+
+export const typography: Record<TypographySize, { fontSize: number; lineHeight: number }> = {
+  xs:   { fontSize: 12, lineHeight: 16 },
+  sm:   { fontSize: 14, lineHeight: 20 },
+  base: { fontSize: 16, lineHeight: 24 },
+  lg:   { fontSize: 18, lineHeight: 28 },
+  xl:   { fontSize: 20, lineHeight: 28 },
+  "2xl": { fontSize: 24, lineHeight: 32 },
+  "3xl": { fontSize: 30, lineHeight: 36 },
+  "4xl": { fontSize: 36, lineHeight: 40 },
+};
+
+// Navigation theme fonts configuration
 export const navigationFonts: NavigationFonts = Platform.select({
   web: {
     regular: {

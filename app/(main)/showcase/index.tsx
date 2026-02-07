@@ -34,7 +34,7 @@ const showcaseItems: NavItem[] = [
 ];
 
 export default function ShowcaseIndexScreen() {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme } = useTheme();
   const styles = createStyles(theme);
 
   return (
@@ -45,7 +45,7 @@ export default function ShowcaseIndexScreen() {
             <ThemeToggle />
           </View>
 
-          <View style={[styles.card, getShadowStyle("subtle")]}>
+          <View style={styles.card}>
             {showcaseItems.map((item, index) => {
               const isLast = index === showcaseItems.length - 1;
               return (
@@ -59,7 +59,7 @@ export default function ShowcaseIndexScreen() {
                     >
                       <View style={styles.rowLeft}>
                         <View style={styles.iconContainer}>
-                          <Icon as={item.icon} color={theme.colors.primary} size={20} />
+                          <Icon as={item.icon} color={theme.colors.foreground} size={20} />
                         </View>
                         <View style={styles.textContainer}>
                           <SansSerifBoldText style={styles.rowLabel}>{item.label}</SansSerifBoldText>
@@ -123,8 +123,8 @@ const createStyles = (theme: Theme) =>
     iconContainer: {
       width: 40,
       height: 40,
-      borderRadius: spacing.radiusSm,
-      backgroundColor: theme.colors.primary + "15",
+      borderRadius: spacing.radiusMd,
+      backgroundColor: theme.colors.muted,
       alignItems: "center",
       justifyContent: "center",
       marginRight: spacing.md,

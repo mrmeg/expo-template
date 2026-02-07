@@ -91,7 +91,7 @@ function TooltipContent({
       backgroundColor: colors.background,
       borderColor: colors.border,
       borderWidth: 1,
-      borderRadius: spacing.radiusSm,
+      borderRadius: spacing.radiusMd,
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs,
       maxWidth: 250,

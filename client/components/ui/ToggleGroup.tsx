@@ -13,22 +13,22 @@ const DEFAULT_HIT_SLOP = 8;
 // Size configurations (same as Toggle)
 const TOGGLE_GROUP_SIZES = {
   sm: {
-    height: 28,
-    minWidth: 28,
+    height: 32,
+    minWidth: 32,
     paddingHorizontal: spacing.sm,
     fontSize: 12,
     iconSize: spacing.iconSm,
   },
   default: {
-    height: 32,
-    minWidth: 32,
+    height: 36,
+    minWidth: 36,
     paddingHorizontal: spacing.md,
     fontSize: 13,
     iconSize: spacing.iconMd,
   },
   lg: {
-    height: 36,
-    minWidth: 36,
+    height: 40,
+    minWidth: 40,
     paddingHorizontal: spacing.lg,
     fontSize: 14,
     iconSize: spacing.iconMd,
@@ -132,7 +132,7 @@ function ToggleGroup({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        borderRadius: spacing.radiusSm,
+        borderRadius: spacing.radiusMd,
         // No shadow on Android - causes text background artifact
         ...(variant === "outline" && Platform.OS === "ios" && {
           shadowColor: theme.colors.overlay,
@@ -241,23 +241,23 @@ function ToggleGroupItem({
             // Border radius handling
             borderRadius: 0, // Remove all radius by default
             ...(isFirst && {
-              borderTopLeftRadius: spacing.radiusSm,
-              borderBottomLeftRadius: spacing.radiusSm,
+              borderTopLeftRadius: spacing.radiusMd,
+              borderBottomLeftRadius: spacing.radiusMd,
             }),
             ...(isLast && {
-              borderTopRightRadius: spacing.radiusSm,
-              borderBottomRightRadius: spacing.radiusSm,
+              borderTopRightRadius: spacing.radiusMd,
+              borderBottomRightRadius: spacing.radiusMd,
             }),
             // Single item (both first and last)
             ...(isFirst && isLast && {
-              borderRadius: spacing.radiusSm,
+              borderRadius: spacing.radiusMd,
             }),
             // Disabled state
             opacity: props.disabled ? 0.5 : 1,
             // Web-specific styles
             ...(Platform.OS === "web" && {
               cursor: props.disabled ? "not-allowed" : ("pointer" as any),
-              transition: "all 0.2s",
+              transition: "all 150ms",
               // Ensure proper z-index on focus
               ...(isSelected && {
                 zIndex: 10,

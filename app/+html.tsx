@@ -15,23 +15,15 @@ export default function Root({ children }: PropsWithChildren) {
   /**
    * Global CSS styles for the application
    *
-   * 1. Sets the default light mode background color for the body
-   * 2. Applies dark mode background color when user prefers dark color scheme
-   * 3. Fixes the browser autofill styling for input fields:
-   *    - Sets text color to match the theme
-   *    - Changes the default yellow background to match the card color
-   *    - Adds a long transition to prevent flashing
-   * 4. Applies the same autofill fixes for dark mode with appropriate colors
+   * Uses html[data-theme] attribute selectors so styles follow the app's
+   * runtime theme (set by _layout.tsx), not just the OS preference.
+   * Media query fallbacks handle the initial paint before JS hydrates.
    */
   const cssStyles = `
+      /* Light mode (default) */
       body {
         background-color: ${colors.light.colors.background};
-      }
-
-      @media (prefers-color-scheme: dark) {
-        body {
-          background-color: ${colors.dark.colors.background};
-        }
+        color-scheme: light;
       }
 
       input:-webkit-autofill,
@@ -43,15 +35,51 @@ export default function Root({ children }: PropsWithChildren) {
         transition: background-color 5000s ease-in-out 0s;
       }
 
+      /* OS dark mode fallback (before JS hydrates) */
       @media (prefers-color-scheme: dark) {
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus,
-        input:-webkit-autofill:active {
+        html:not([data-theme]) body {
+          background-color: ${colors.dark.colors.background};
+          color-scheme: dark;
+        }
+
+        html:not([data-theme]) input:-webkit-autofill,
+        html:not([data-theme]) input:-webkit-autofill:hover,
+        html:not([data-theme]) input:-webkit-autofill:focus,
+        html:not([data-theme]) input:-webkit-autofill:active {
           -webkit-text-fill-color: ${darkText};
           -webkit-box-shadow: 0 0 0px 1000px ${darkBackground} inset;
           transition: background-color 5000s ease-in-out 0s;
         }
+      }
+
+      /* Runtime dark mode (set by JS on <html data-theme="dark">) */
+      html[data-theme="dark"] body {
+        background-color: ${colors.dark.colors.background};
+        color-scheme: dark;
+      }
+
+      html[data-theme="dark"] input:-webkit-autofill,
+      html[data-theme="dark"] input:-webkit-autofill:hover,
+      html[data-theme="dark"] input:-webkit-autofill:focus,
+      html[data-theme="dark"] input:-webkit-autofill:active {
+        -webkit-text-fill-color: ${darkText};
+        -webkit-box-shadow: 0 0 0px 1000px ${darkBackground} inset;
+        transition: background-color 5000s ease-in-out 0s;
+      }
+
+      /* Runtime light mode (explicit override when OS is dark) */
+      html[data-theme="light"] body {
+        background-color: ${colors.light.colors.background};
+        color-scheme: light;
+      }
+
+      html[data-theme="light"] input:-webkit-autofill,
+      html[data-theme="light"] input:-webkit-autofill:hover,
+      html[data-theme="light"] input:-webkit-autofill:focus,
+      html[data-theme="light"] input:-webkit-autofill:active {
+        -webkit-text-fill-color: ${lightText};
+        -webkit-box-shadow: 0 0 0px 1000px ${lightBackground} inset;
+        transition: background-color 5000s ease-in-out 0s;
       }
     `;
 

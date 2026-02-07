@@ -13,22 +13,22 @@ const DEFAULT_HIT_SLOP = 8;
 // Size configurations
 const TOGGLE_SIZES = {
   sm: {
-    height: 28,
-    minWidth: 28,
+    height: 32,
+    minWidth: 32,
     paddingHorizontal: spacing.sm,
     fontSize: 12,
     iconSize: spacing.iconSm,
   },
   default: {
-    height: 32,
-    minWidth: 32,
+    height: 36,
+    minWidth: 36,
     paddingHorizontal: spacing.md,
     fontSize: 13,
     iconSize: spacing.iconMd,
   },
   lg: {
-    height: 36,
-    minWidth: 36,
+    height: 40,
+    minWidth: 40,
     paddingHorizontal: spacing.lg,
     fontSize: 14,
     iconSize: spacing.iconMd,
@@ -156,7 +156,7 @@ function Toggle({
   const getBorderRadius = () => {
     if (shape === "square") return 0;
     if (shape === "circle") return spacing.radiusFull;
-    return spacing.radiusSm;
+    return spacing.radiusMd;
   };
 
   // Flatten style override for web compatibility
@@ -203,7 +203,7 @@ function Toggle({
             // Web-specific styles
             ...(Platform.OS === "web" && {
               cursor: isDisabled ? "not-allowed" : ("pointer" as any),
-              transition: "all 0.2s",
+              transition: "all 150ms",
             }),
             // Apply custom style override
             ...(flattenedStyle || {}),

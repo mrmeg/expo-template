@@ -95,7 +95,7 @@ function AccordionTrigger({
   React.useEffect(() => {
     Animated.timing(rotateAnim, {
       toValue: isExpanded ? 1 : 0,
-      duration: isExpanded ? 250 : 200,
+      duration: isExpanded ? 200 : 150,
       useNativeDriver: true,
     }).start();
   }, [isExpanded, rotateAnim]);
@@ -117,7 +117,7 @@ function AccordionTrigger({
                 justifyContent: "space-between",
                 gap: spacing.md,
                 borderRadius: spacing.radiusMd,
-                paddingVertical: spacing.sm,
+                paddingVertical: spacing.md,
                 ...(Platform.OS === "web" && { cursor: "pointer" as any }),
               },
               // Spread array styles from primitives to prevent nested arrays on web
@@ -130,7 +130,7 @@ function AccordionTrigger({
             <Animated.View style={{ transform: [{ rotate }] }}>
               <Icon
                 as={ChevronDown}
-                size={20}
+                size={16}
                 color={theme.colors.textDim}
               />
             </Animated.View>

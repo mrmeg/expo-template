@@ -90,9 +90,9 @@ function DropdownMenuSubContent({
           backgroundColor: theme.colors.background,
           borderWidth: 1,
           borderColor: theme.colors.border,
-          borderRadius: spacing.radiusSm,
+          borderRadius: spacing.radiusMd,
           padding: spacing.xs,
-          minWidth: 128,
+          minWidth: 192,
           overflow: "hidden",
           ...shadowStyle,
           ...(Platform.OS === "web" && {

@@ -34,19 +34,19 @@ const SIZE_CONFIGS: Record<ButtonSize, { paddingVertical: number; paddingHorizon
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
     fontSize: 13,
-    height: 28,
+    height: 32,
   },
   md: {
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
     fontSize: 14,
-    height: 32,
+    height: 36,
   },
   lg: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     fontSize: 15,
-    height: 36,
+    height: 40,
   },
 };
 
@@ -220,7 +220,7 @@ export function Button(props: ButtonProps) {
   // Use contrast calculation for reliable, readable text color across platforms
   const textColor =
     preset === "outline"
-      ? theme.colors.primary // Use primary color for text on transparent background
+      ? theme.colors.foreground
       : preset === "ghost"
         ? theme.colors.text
         : preset === "link"
@@ -328,7 +328,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: spacing.radiusSm,
+      borderRadius: spacing.radiusMd,
       paddingVertical: sizeConfig.paddingVertical,
       paddingHorizontal: sizeConfig.paddingHorizontal,
       minHeight: sizeConfig.height,
@@ -347,7 +347,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
     buttonOutline: {
       backgroundColor: "transparent",
       borderWidth: 1,
-      borderColor: theme.colors.primary,
+      borderColor: theme.colors.border,
     } as ViewStyle,
     buttonGhost: {
       backgroundColor: "transparent",
@@ -361,15 +361,15 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       width: "100%",
     } as ViewStyle,
     text: {
-      fontFamily: fontFamilies.sansSerif.bold,
+      fontFamily: fontFamilies.sansSerif.regular,
       fontSize: sizeConfig.fontSize,
       fontWeight: "500",
       textAlign: "center",
-      lineHeight: sizeConfig.fontSize * 1.25,
+      lineHeight: sizeConfig.fontSize * 1.4,
       flexShrink: 0,
     } as TextStyle,
     pressed: {
-      opacity: 0.8,
+      opacity: 0.9,
     } as ViewStyle,
     pressedText: {
       opacity: 0.9,

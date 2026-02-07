@@ -118,6 +118,7 @@ const createStyles = (theme: Theme) =>
     },
     label: {
       fontFamily: fontFamilies.sansSerif.regular,
+      fontWeight: "500" as const,
       color: theme.colors.text,
     },
     required: {

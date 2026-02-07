@@ -46,13 +46,19 @@ const FONT_SIZES: Record<FontSize, number> = {
   "4xl": 36,
 };
 
-const SEMANTIC_CONFIGS: Record<SemanticVariant, { size: FontSize; weight: "regular" | "bold" }> = {
+const LETTER_SPACING: Partial<Record<FontSize, number>> = {
+  "2xl": -0.3,
+  "3xl": -0.5,
+  "4xl": -0.75,
+};
+
+const SEMANTIC_CONFIGS: Record<SemanticVariant, { size: FontSize; weight: FontWeight }> = {
   title: { size: "4xl", weight: "bold" },
-  heading: { size: "2xl", weight: "bold" },
-  subheading: { size: "xl", weight: "bold" },
+  heading: { size: "2xl", weight: "semibold" },
+  subheading: { size: "xl", weight: "semibold" },
   body: { size: "md", weight: "regular" },
   caption: { size: "sm", weight: "regular" },
-  label: { size: "sm", weight: "bold" },
+  label: { size: "sm", weight: "medium" },
 };
 
 // Map font weights to actual font family variants (we only have regular and bold)
@@ -144,6 +150,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
 
   // Get fontSize from size variant
   const fontSize = FONT_SIZES[finalSize];
+  const letterSpacing = LETTER_SPACING[finalSize];
 
   // Simple i18n placeholder - in a real app, this would use a proper i18n library
   const i18nText = tx ? tx : text;
@@ -158,6 +165,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
           fontFamily,
           fontSize,
           userSelect: "auto", // Changed from "none" to allow text selection
+          ...(letterSpacing !== undefined && { letterSpacing }),
           ...(align && { textAlign: align }),
         },
         style,

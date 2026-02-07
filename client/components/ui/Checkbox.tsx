@@ -137,9 +137,9 @@ function Checkbox({
       disabled={disabled}
       style={{
         borderColor,
-        backgroundColor: "transparent",
+        backgroundColor: checked || indeterminate ? theme.colors.primary : "transparent",
         borderRadius: spacing.radiusSm,
-        borderWidth: 2,
+        borderWidth: 1,
         width: sizeConfig.size,
         height: sizeConfig.size,
         justifyContent: "center",
@@ -166,14 +166,14 @@ function Checkbox({
             as={Minus}
             size={sizeConfig.iconSize}
             strokeWidth={sizeConfig.strokeWidth}
-            color="primary"
+            color={theme.colors.primaryForeground}
           />
         ) : (
           <Icon
             as={Check}
             size={sizeConfig.iconSize}
             strokeWidth={sizeConfig.strokeWidth}
-            color="primary"
+            color={theme.colors.primaryForeground}
           />
         )}
       </CheckboxPrimitive.Indicator>
