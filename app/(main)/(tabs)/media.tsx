@@ -17,15 +17,6 @@ import {
 import { Button } from "@/client/components/ui/Button";
 import { Icon } from "@/client/components/ui/Icon";
 import { VideoPlayer } from "@/client/components/VideoPlayer";
-import {
-  FolderOpen,
-  File,
-  RefreshCw,
-  Trash2,
-  Upload,
-  Play,
-  Video,
-} from "lucide-react-native";
 import { useMediaList, formatBytes } from "@/client/hooks/useMediaList";
 import { useSignedUrls } from "@/client/hooks/useSignedUrls";
 import { useMediaDelete } from "@/client/hooks/useMediaDelete";
@@ -242,7 +233,7 @@ export default function MediaScreen() {
           <SansSerifText style={styles.statLabel}>Total Size</SansSerifText>
         </View>
         <Button preset="ghost" size="sm" onPress={() => refetch()}>
-          <Icon as={RefreshCw} size={16} color={theme.colors.primary} />
+          <Icon name="refresh-cw" size={16} color={theme.colors.primary} />
         </Button>
         <Button
           preset="default"
@@ -250,7 +241,7 @@ export default function MediaScreen() {
           onPress={handleUpload}
           disabled={isPicking || isUploading}
         >
-          <Icon as={Upload} size={16} color={theme.colors.primaryForeground} />
+          <Icon name="upload" size={16} color={theme.colors.primaryForeground} />
         </Button>
       </View>
 
@@ -262,7 +253,7 @@ export default function MediaScreen() {
       ) : data?.items.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Icon
-            as={FolderOpen}
+            name="folder-open"
             size={48}
             color={theme.colors.mutedForeground}
           />
@@ -324,12 +315,12 @@ export default function MediaScreen() {
                     />
                   ) : isVideo ? (
                     <View style={styles.videoThumbnail}>
-                      <Icon as={Video} size={24} color={theme.colors.primary} />
+                      <Icon name="video" size={24} color={theme.colors.primary} />
                     </View>
                   ) : (
                     <View style={styles.iconContainer}>
                       <Icon
-                        as={File}
+                        name="file"
                         size={24}
                         color={theme.colors.mutedForeground}
                       />
@@ -340,7 +331,7 @@ export default function MediaScreen() {
                   {isVideo && signedUrl && (
                     <View style={styles.playOverlay}>
                       <View style={styles.playButton}>
-                        <Icon as={Play} size={16} color="white" />
+                        <Icon name="play" size={16} color="white" />
                       </View>
                     </View>
                   )}
@@ -366,7 +357,7 @@ export default function MediaScreen() {
                   onPress={() => handleDelete(item.key)}
                   disabled={isDeleting}
                 >
-                  <Icon as={Trash2} size={18} color={theme.colors.destructive} />
+                  <Icon name="trash-2" size={18} color={theme.colors.destructive} />
                 </Pressable>
               </Pressable>
             );

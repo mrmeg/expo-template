@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { KeyboardAwareScrollView } from "@/client/lib/keyboard-controller";
 import { StyledText } from "@/client/components/ui/StyledText";
 import { TextInput } from "@/client/components/ui/TextInput";
 import { Switch } from "@/client/components/ui/Switch";

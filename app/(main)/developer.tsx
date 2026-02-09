@@ -16,17 +16,6 @@ import {
 } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
 import { Icon } from "@/client/components/ui/Icon";
-import {
-  Settings,
-  Database,
-  Bug,
-  Trash2,
-  RefreshCw,
-  ChevronDown,
-  ChevronRight,
-  AlertTriangle,
-  Lock,
-} from "lucide-react-native";
 import Config from "@/client/config";
 import { getAllKeys, load, clear } from "@/client/utils/storage";
 import type { Theme } from "@/client/constants/colors";
@@ -88,7 +77,7 @@ export default function DeveloperScreen() {
         {/* Environment Info */}
         <View style={[styles.section, getShadowStyle("subtle")]}>
           <View style={styles.sectionHeader}>
-            <Icon as={Settings} color={theme.colors.primary} size={20} />
+            <Icon name="settings" color={theme.colors.primary} size={20} />
             <SansSerifBoldText style={styles.sectionTitle}>
               Environment
             </SansSerifBoldText>
@@ -113,7 +102,7 @@ export default function DeveloperScreen() {
         {/* Configuration */}
         <View style={[styles.section, getShadowStyle("subtle")]}>
           <View style={styles.sectionHeader}>
-            <Icon as={Settings} color={theme.colors.primary} size={20} />
+            <Icon name="settings" color={theme.colors.primary} size={20} />
             <SansSerifBoldText style={styles.sectionTitle}>
               Configuration
             </SansSerifBoldText>
@@ -131,7 +120,7 @@ export default function DeveloperScreen() {
         {/* Storage Inspector */}
         <View style={[styles.section, getShadowStyle("subtle")]}>
           <View style={styles.sectionHeader}>
-            <Icon as={Database} color={theme.colors.primary} size={20} />
+            <Icon name="database" color={theme.colors.primary} size={20} />
             <SansSerifBoldText style={styles.sectionTitle}>
               Storage Inspector
             </SansSerifBoldText>
@@ -145,7 +134,7 @@ export default function DeveloperScreen() {
               disabled={storageLoading}
               style={styles.flex1}
             >
-              <Icon as={RefreshCw} color={theme.colors.primary} size={14} />
+              <Icon name="refresh-cw" color={theme.colors.primary} size={14} />
               <SansSerifText style={styles.buttonText}> Refresh</SansSerifText>
             </Button>
             <Button
@@ -155,7 +144,7 @@ export default function DeveloperScreen() {
               disabled={storageLoading || storageKeys.length === 0}
               style={styles.flex1}
             >
-              <Icon as={Trash2} color={theme.colors.destructiveForeground} size={14} />
+              <Icon name="trash-2" color={theme.colors.destructiveForeground} size={14} />
               <SansSerifText style={styles.buttonTextLight}> Clear All</SansSerifText>
             </Button>
           </View>
@@ -176,7 +165,7 @@ export default function DeveloperScreen() {
                 >
                   <View style={styles.storageItemHeader}>
                     <Icon
-                      as={expandedKey === key ? ChevronDown : ChevronRight}
+                      name={expandedKey === key ? "chevron-down" : "chevron-right"}
                       color={theme.colors.mutedForeground}
                       size={16}
                     />
@@ -200,7 +189,7 @@ export default function DeveloperScreen() {
         {/* Auth Demo */}
         <View style={[styles.section, getShadowStyle("subtle")]}>
           <View style={styles.sectionHeader}>
-            <Icon as={Lock} color={theme.colors.primary} size={20} />
+            <Icon name="lock" color={theme.colors.primary} size={20} />
             <SansSerifBoldText style={styles.sectionTitle}>
               Auth Demo
             </SansSerifBoldText>
@@ -215,7 +204,7 @@ export default function DeveloperScreen() {
             onPress={() => router.push("/auth-demo" as any)}
             fullWidth
           >
-            <Icon as={Lock} color={theme.colors.primaryForeground} size={16} />
+            <Icon name="lock" color={theme.colors.primaryForeground} size={16} />
             <SansSerifBoldText style={{ color: theme.colors.primaryForeground }}>
               {" "}Open Auth Demo
             </SansSerifBoldText>
@@ -225,7 +214,7 @@ export default function DeveloperScreen() {
         {/* Debug Tools */}
         <View style={[styles.section, getShadowStyle("subtle")]}>
           <View style={styles.sectionHeader}>
-            <Icon as={Bug} color={theme.colors.primary} size={20} />
+            <Icon name="bug" color={theme.colors.primary} size={20} />
             <SansSerifBoldText style={styles.sectionTitle}>
               Debug Tools
             </SansSerifBoldText>
@@ -240,7 +229,7 @@ export default function DeveloperScreen() {
             onPress={() => setShouldError(true)}
             fullWidth
           >
-            <Icon as={AlertTriangle} color={theme.colors.destructiveForeground} size={16} />
+            <Icon name="alert-triangle" color={theme.colors.destructiveForeground} size={16} />
             <SansSerifBoldText style={styles.buttonTextLight}>
               {" "}Trigger Test Error
             </SansSerifBoldText>

@@ -10,21 +10,6 @@ import { Alert } from "@/client/components/ui/Alert";
 import { globalUIStore } from "@/client/stores/globalUIStore";
 import { useAuthStore } from "@/client/stores/authStore";
 import { useAuth } from "@/client/hooks/useAuth";
-import {
-  User,
-  Edit3,
-  Key,
-  Mail,
-  Bell,
-  Shield,
-  Link2,
-  Unlink,
-  LogOut,
-  Trash2,
-  Crown,
-  Calendar,
-  ChevronRight,
-} from "lucide-react-native";
 import type { Theme } from "@/client/constants/colors";
 import { palette } from "@/client/constants/colors";
 
@@ -143,7 +128,7 @@ export default function ProfileScreen() {
           <View style={styles.headerSection}>
             <Pressable onPress={handleEditProfile}>
               <View style={[styles.avatar, getShadowStyle("soft")]}>
-                <Icon as={User} color={palette.white} size={48} />
+                <Icon name="user" color={palette.white} size={48} />
               </View>
             </Pressable>
             <SansSerifBoldText style={styles.name}>
@@ -158,7 +143,7 @@ export default function ProfileScreen() {
               onPress={handleEditProfile}
               style={styles.editButton}
             >
-              <Icon as={Edit3} size={14} color={theme.colors.primary} />
+              <Icon name="edit-3" size={14} color={theme.colors.primary} />
               <SansSerifText style={styles.editButtonText}> Edit Profile</SansSerifText>
             </Button>
           </View>
@@ -169,7 +154,7 @@ export default function ProfileScreen() {
             <View style={[styles.card, getShadowStyle("subtle")]}>
               <View style={styles.infoRow}>
                 <View style={styles.infoRowLeft}>
-                  <Icon as={User} size={18} color={theme.colors.mutedForeground} />
+                  <Icon name="user" size={18} color={theme.colors.mutedForeground} />
                   <SansSerifText style={styles.infoLabel}>User ID</SansSerifText>
                 </View>
                 <SansSerifText style={styles.infoValue}>
@@ -179,7 +164,7 @@ export default function ProfileScreen() {
               <View style={styles.divider} />
               <View style={styles.infoRow}>
                 <View style={styles.infoRowLeft}>
-                  <Icon as={Crown} size={18} color={theme.colors.warning} />
+                  <Icon name="crown" size={18} color={theme.colors.warning} />
                   <SansSerifText style={styles.infoLabel}>Plan</SansSerifText>
                 </View>
                 <SansSerifText style={[styles.infoValue, { color: theme.colors.warning }]}>
@@ -189,7 +174,7 @@ export default function ProfileScreen() {
               <View style={styles.divider} />
               <View style={styles.infoRow}>
                 <View style={styles.infoRowLeft}>
-                  <Icon as={Calendar} size={18} color={theme.colors.mutedForeground} />
+                  <Icon name="calendar" size={18} color={theme.colors.mutedForeground} />
                   <SansSerifText style={styles.infoLabel}>Member Since</SansSerifText>
                 </View>
                 <SansSerifText style={styles.infoValue}>Jan 2024</SansSerifText>
@@ -197,7 +182,7 @@ export default function ProfileScreen() {
               <View style={styles.divider} />
               <View style={styles.infoRow}>
                 <View style={styles.infoRowLeft}>
-                  <Icon as={Shield} size={18} color={theme.colors.success} />
+                  <Icon name="shield" size={18} color={theme.colors.success} />
                   <SansSerifText style={styles.infoLabel}>Status</SansSerifText>
                 </View>
                 <SansSerifText style={[styles.infoValue, { color: theme.colors.success }]}>
@@ -213,18 +198,18 @@ export default function ProfileScreen() {
             <View style={[styles.card, getShadowStyle("subtle")]}>
               <Pressable style={styles.settingsRow} onPress={handleChangePassword}>
                 <View style={styles.settingsRowLeft}>
-                  <Icon as={Key} size={18} color={theme.colors.mutedForeground} />
+                  <Icon name="key" size={18} color={theme.colors.mutedForeground} />
                   <SansSerifText style={styles.settingsLabel}>Change Password</SansSerifText>
                 </View>
-                <Icon as={ChevronRight} size={18} color={theme.colors.mutedForeground} />
+                <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
               </Pressable>
               <View style={styles.divider} />
               <Pressable style={styles.settingsRow} onPress={handlePrivacySettings}>
                 <View style={styles.settingsRowLeft}>
-                  <Icon as={Shield} size={18} color={theme.colors.mutedForeground} />
+                  <Icon name="shield" size={18} color={theme.colors.mutedForeground} />
                   <SansSerifText style={styles.settingsLabel}>Privacy Settings</SansSerifText>
                 </View>
-                <Icon as={ChevronRight} size={18} color={theme.colors.mutedForeground} />
+                <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
               </Pressable>
             </View>
           </View>
@@ -235,7 +220,7 @@ export default function ProfileScreen() {
             <View style={[styles.card, getShadowStyle("subtle")]}>
               <View style={styles.switchRow}>
                 <View style={styles.switchRowLeft}>
-                  <Icon as={Mail} size={18} color={theme.colors.mutedForeground} />
+                  <Icon name="mail" size={18} color={theme.colors.mutedForeground} />
                   <SansSerifText style={styles.settingsLabel}>Email Notifications</SansSerifText>
                 </View>
                 <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
@@ -243,7 +228,7 @@ export default function ProfileScreen() {
               <View style={styles.divider} />
               <View style={styles.switchRow}>
                 <View style={styles.switchRowLeft}>
-                  <Icon as={Bell} size={18} color={theme.colors.mutedForeground} />
+                  <Icon name="bell" size={18} color={theme.colors.mutedForeground} />
                   <SansSerifText style={styles.settingsLabel}>Push Notifications</SansSerifText>
                 </View>
                 <Switch checked={pushNotifications} onCheckedChange={setPushNotifications} />
@@ -251,7 +236,7 @@ export default function ProfileScreen() {
               <View style={styles.divider} />
               <View style={styles.switchRow}>
                 <View style={styles.switchRowLeft}>
-                  <Icon as={Mail} size={18} color={theme.colors.mutedForeground} />
+                  <Icon name="mail" size={18} color={theme.colors.mutedForeground} />
                   <SansSerifText style={styles.settingsLabel}>Marketing Emails</SansSerifText>
                 </View>
                 <Switch checked={marketingEmails} onCheckedChange={setMarketingEmails} />
@@ -273,7 +258,7 @@ export default function ProfileScreen() {
                     <SansSerifText style={styles.connectedStatus}>Not connected</SansSerifText>
                   </View>
                 </View>
-                <Icon as={Link2} size={18} color={theme.colors.primary} />
+                <Icon name="link-2" size={18} color={theme.colors.primary} />
               </Pressable>
               <View style={styles.divider} />
               <Pressable style={styles.connectedRow} onPress={handleConnectApple}>
@@ -288,7 +273,7 @@ export default function ProfileScreen() {
                     <SansSerifText style={styles.connectedStatus}>Not connected</SansSerifText>
                   </View>
                 </View>
-                <Icon as={Link2} size={18} color={theme.colors.primary} />
+                <Icon name="link-2" size={18} color={theme.colors.primary} />
               </Pressable>
             </View>
           </View>
@@ -303,7 +288,7 @@ export default function ProfileScreen() {
                 <>
                   <Pressable style={styles.dangerRow} onPress={handleSignOut}>
                     <View style={styles.dangerRowLeft}>
-                      <Icon as={LogOut} size={18} color={theme.colors.destructive} />
+                      <Icon name="log-out" size={18} color={theme.colors.destructive} />
                       <SansSerifText style={styles.dangerLabel}>Sign Out</SansSerifText>
                     </View>
                   </Pressable>
@@ -312,7 +297,7 @@ export default function ProfileScreen() {
               )}
               <Pressable style={styles.dangerRow} onPress={handleDeleteAccount}>
                 <View style={styles.dangerRowLeft}>
-                  <Icon as={Trash2} size={18} color={theme.colors.destructive} />
+                  <Icon name="trash-2" size={18} color={theme.colors.destructive} />
                   <SansSerifText style={styles.dangerLabel}>Delete Account</SansSerifText>
                 </View>
               </Pressable>

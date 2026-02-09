@@ -1,5 +1,4 @@
 import "@/client/lib/gesture-handler";
-import "@/amplify";
 
 // Initialize Reactotron in development mode
 if (__DEV__) {
@@ -18,7 +17,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PortalHost } from "@rn-primitives/portal";
 import { StatusBar } from "@/client/components/ui/StatusBar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { KeyboardProvider } from "react-native-keyboard-controller";
+import { KeyboardProvider } from "@/client/lib/keyboard-controller";
 import { ErrorBoundary } from "@/client/components/ui/ErrorBoundary";
 import { ErrorScreen } from "@/client/components/ErrorScreen";
 import { initI18n } from "@/client/i18n";

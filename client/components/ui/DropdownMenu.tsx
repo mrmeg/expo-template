@@ -4,7 +4,7 @@ import { TextClassContext } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import * as DropdownMenuPrimitive from "@rn-primitives/dropdown-menu";
-import { Check, ChevronDown, ChevronRight, ChevronUp } from "lucide-react-native";
+import type { IconName } from "@/client/components/ui/Icon";
 import * as React from "react";
 import { Platform, StyleSheet, Text, type TextStyle, View } from "react-native";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
@@ -37,7 +37,7 @@ function DropdownMenuSubTrigger({
 }: DropdownMenuSubTriggerProps) {
   const { theme } = useTheme();
   const { open } = DropdownMenuPrimitive.useSubContext();
-  const icon = Platform.OS === "web" ? ChevronRight : open ? ChevronUp : ChevronDown;
+  const iconName: IconName = Platform.OS === "web" ? "chevron-right" : open ? "chevron-up" : "chevron-down";
 
   return (
     <TextClassContext.Provider value="">
@@ -62,7 +62,7 @@ function DropdownMenuSubTrigger({
       >
         {typeof children === "function" ? null : children}
         <View style={{ marginLeft: "auto" as any }}>
-          <Icon as={icon} size={16} color={theme.colors.text} />
+          <Icon name={iconName} size={16} color={theme.colors.text} />
         </View>
       </DropdownMenuPrimitive.SubTrigger>
     </TextClassContext.Provider>
@@ -270,7 +270,7 @@ function DropdownMenuCheckboxItem({
         >
           <DropdownMenuPrimitive.ItemIndicator>
             <Icon
-              as={Check}
+              name="check"
               size={16}
               color={theme.colors.text}
               {...(Platform.OS === "web" && { style: { pointerEvents: "none" as any } })}

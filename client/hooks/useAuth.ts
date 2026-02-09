@@ -1,14 +1,5 @@
 import { useCallback } from "react";
-import {
-  signIn,
-  signUp,
-  confirmSignUp,
-  resendSignUpCode,
-  resetPassword,
-  confirmResetPassword,
-  autoSignIn,
-} from "aws-amplify/auth";
-import { useAuthStore } from "@/client/stores/authStore";
+import { useAuthStore, initAuth } from "@/client/stores/authStore";
 
 export function useAuth() {
   const { initialize, setPendingVerificationEmail, setError } = useAuthStore();
@@ -17,6 +8,7 @@ export function useAuth() {
    * Check if user is currently authenticated
    */
   const checkAuthState = useCallback(async () => {
+    await initAuth();
     await initialize();
   }, [initialize]);
 
@@ -24,6 +16,8 @@ export function useAuth() {
    * Sign in with email and password
    */
   const handleSignIn = useCallback(async ({ email, password }: { email: string; password: string }) => {
+    await initAuth();
+    const { signIn } = await import("aws-amplify/auth");
     const result = await signIn({ username: email, password });
 
     if (result.isSignedIn) {
@@ -43,6 +37,8 @@ export function useAuth() {
     email: string;
     password: string;
   }) => {
+    await initAuth();
+    const { signUp } = await import("aws-amplify/auth");
     const result = await signUp({
       username: email,
       password,
@@ -75,6 +71,8 @@ export function useAuth() {
     email: string;
     code: string;
   }) => {
+    await initAuth();
+    const { confirmSignUp, autoSignIn } = await import("aws-amplify/auth");
     const result = await confirmSignUp({
       username: email,
       confirmationCode: code,
@@ -109,6 +107,8 @@ export function useAuth() {
    * Resend verification code
    */
   const handleResendCode = useCallback(async (email: string) => {
+    await initAuth();
+    const { resendSignUpCode } = await import("aws-amplify/auth");
     return await resendSignUpCode({ username: email });
   }, []);
 
@@ -116,6 +116,8 @@ export function useAuth() {
    * Request password reset
    */
   const handleForgotPassword = useCallback(async (email: string) => {
+    await initAuth();
+    const { resetPassword } = await import("aws-amplify/auth");
     return await resetPassword({ username: email });
   }, []);
 
@@ -131,6 +133,8 @@ export function useAuth() {
     code: string;
     newPassword: string;
   }) => {
+    await initAuth();
+    const { confirmResetPassword } = await import("aws-amplify/auth");
     return await confirmResetPassword({
       username: email,
       confirmationCode: code,

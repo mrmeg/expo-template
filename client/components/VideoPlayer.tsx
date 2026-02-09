@@ -25,7 +25,6 @@ import {
   StatusBar,
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { X } from "lucide-react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { Icon } from "./ui/Icon";
@@ -135,7 +134,7 @@ export function VideoPlayer({
             style={styles.closeButton}
             hitSlop={20}
           >
-            <Icon as={X} size={24} color="white" />
+            <Icon name="x" size={24} color="white" />
           </Pressable>
         </View>
 

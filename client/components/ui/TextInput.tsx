@@ -10,7 +10,6 @@ import {
   View,
   Pressable,
 } from "react-native";
-import { Eye, EyeOff } from "lucide-react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { fontFamilies } from "@/client/constants/fonts";
@@ -335,7 +334,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
               accessibilityRole="button"
             >
               <Icon
-                as={passwordVisible ? EyeOff : Eye}
+                name={passwordVisible ? "eye-off" : "eye"}
                 size={spacing.iconSm + 4}
                 color="muted"
               />

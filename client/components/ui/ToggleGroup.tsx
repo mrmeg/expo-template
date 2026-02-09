@@ -5,7 +5,7 @@ import { spacing } from "@/client/constants/spacing";
 import * as ToggleGroupPrimitive from "@rn-primitives/toggle-group";
 import * as React from "react";
 import { Platform } from "react-native";
-import type { LucideIcon } from "lucide-react-native";
+import type { IconName } from "@/client/components/ui/Icon";
 import { palette } from "@/client/constants/colors";
 
 const DEFAULT_HIT_SLOP = 8;
@@ -280,20 +280,19 @@ function ToggleGroupItem({
  *
  * Usage:
  * ```tsx
- * import { Bold } from 'lucide-react-native';
  * <ToggleGroupItem value="bold">
- *   <ToggleGroupIcon as={Bold} />
+ *   <ToggleGroupIcon name="bold" />
  * </ToggleGroupItem>
  * ```
  */
 interface ToggleGroupIconProps {
-  as: LucideIcon;
+  name: IconName;
   size?: number;
   color?: string;
 }
 
-function ToggleGroupIcon({ as: IconComponent, size, color }: ToggleGroupIconProps) {
-  return <Icon as={IconComponent} size={size || spacing.iconMd} color={color} />;
+function ToggleGroupIcon({ name, size, color }: ToggleGroupIconProps) {
+  return <Icon name={name} size={size || spacing.iconMd} color={color} />;
 }
 
 export { ToggleGroup, ToggleGroupItem, ToggleGroupIcon };

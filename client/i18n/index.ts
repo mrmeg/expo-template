@@ -6,6 +6,7 @@
  * - Falls back to English if locale not supported
  * - RTL support for languages like Arabic
  * - Type-safe translation keys
+ * - Non-default locales loaded lazily to reduce initial bundle
  */
 
 import { I18nManager } from "react-native";
@@ -15,19 +16,12 @@ import { initReactI18next } from "react-i18next";
 import "intl-pluralrules";
 
 import en, { type Translations } from "./en";
-import es from "./es";
 
 // Default/fallback locale
 const fallbackLocale = "en";
 
-// Available translations
-const resources = {
-  en: { translation: en },
-  es: { translation: es },
-};
-
-// Get supported language tags
-const supportedTags = Object.keys(resources);
+// Supported language tags (add new locales here)
+const supportedTags = ["en", "es"];
 
 // Get device locales
 const systemLocales = Localization.getLocales();
@@ -67,12 +61,39 @@ if (locale?.textDirection === "rtl") {
 }
 
 /**
+ * Dynamically load a locale's translations
+ */
+async function loadLocale(lang: string): Promise<Record<string, any> | null> {
+  switch (lang) {
+  case "es":
+    return (await import("./es")).default;
+  default:
+    return null;
+  }
+}
+
+/**
  * Initialize i18n - call this before rendering the app
  */
 export async function initI18n(): Promise<typeof i18n> {
+  const detectedLang = locale?.languageTag.split("-")[0] ?? fallbackLocale;
+
+  // Start with English (always bundled)
+  const resources: Record<string, { translation: any }> = {
+    en: { translation: en },
+  };
+
+  // Lazy-load non-default locale if needed
+  if (detectedLang !== "en") {
+    const translations = await loadLocale(detectedLang);
+    if (translations) {
+      resources[detectedLang] = { translation: translations };
+    }
+  }
+
   await i18n.use(initReactI18next).init({
     resources,
-    lng: locale?.languageTag.split("-")[0] ?? fallbackLocale,
+    lng: detectedLang,
     fallbackLng: fallbackLocale,
     interpolation: {
       escapeValue: false, // React already escapes
@@ -96,6 +117,13 @@ export function getCurrentLanguage(): string {
  * Change the app language
  */
 export async function setLanguage(languageCode: string): Promise<void> {
+  // Load locale bundle if not already loaded
+  if (!i18n.hasResourceBundle(languageCode, "translation")) {
+    const translations = await loadLocale(languageCode);
+    if (translations) {
+      i18n.addResourceBundle(languageCode, "translation", translations);
+    }
+  }
   await i18n.changeLanguage(languageCode);
 }
 

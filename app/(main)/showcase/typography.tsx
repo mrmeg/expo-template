@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { KeyboardAwareScrollView } from "@/client/lib/keyboard-controller";
 import { StyledText } from "@/client/components/ui/StyledText";
 import { Icon } from "@/client/components/ui/Icon";
 import { Separator } from "@/client/components/ui/Separator";
@@ -8,21 +8,7 @@ import { Section, SubSection, ThemeToggle } from "@/client/components/showcase";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { fontFamilies } from "@/client/constants/fonts";
-import {
-  Heart,
-  Star,
-  Settings,
-  Home,
-  User,
-  Mail,
-  Bell,
-  Search,
-  ShoppingCart,
-  AlertCircle,
-  CheckCircle,
-  Info,
-  AlertTriangle,
-} from "lucide-react-native";
+
 import type { Theme } from "@/client/constants/colors";
 
 export default function TypographyShowcaseScreen() {
@@ -52,42 +38,42 @@ export default function TypographyShowcaseScreen() {
           <Section title="Icons">
             <SubSection label="Basic Icons">
               <View style={styles.iconRow}>
-                <Icon as={Heart} size={24} />
-                <Icon as={Star} size={24} />
-                <Icon as={Settings} size={24} />
-                <Icon as={Home} size={24} />
-                <Icon as={User} size={24} />
-                <Icon as={Mail} size={24} />
-                <Icon as={Bell} size={24} />
-                <Icon as={Search} size={24} />
-                <Icon as={ShoppingCart} size={24} />
+                <Icon name="heart" size={24} />
+                <Icon name="star" size={24} />
+                <Icon name="settings" size={24} />
+                <Icon name="home" size={24} />
+                <Icon name="user" size={24} />
+                <Icon name="mail" size={24} />
+                <Icon name="bell" size={24} />
+                <Icon name="search" size={24} />
+                <Icon name="shopping-cart" size={24} />
               </View>
             </SubSection>
 
             <SubSection label="Icon Sizes">
               <View style={styles.iconRow}>
-                <Icon as={Heart} size={16} />
-                <Icon as={Heart} size={24} />
-                <Icon as={Heart} size={32} />
-                <Icon as={Heart} size={48} />
+                <Icon name="heart" size={16} />
+                <Icon name="heart" size={24} />
+                <Icon name="heart" size={32} />
+                <Icon name="heart" size={48} />
               </View>
             </SubSection>
 
             <SubSection label="Icon Colors">
               <View style={styles.iconRow}>
-                <Icon as={Heart} size={32} color={theme.colors.destructive} />
-                <Icon as={Star} size={32} color={theme.colors.warning} />
-                <Icon as={CheckCircle} size={32} color={theme.colors.success} />
-                <Icon as={Info} size={32} color={theme.colors.primary} />
+                <Icon name="heart" size={32} color={theme.colors.destructive} />
+                <Icon name="star" size={32} color={theme.colors.warning} />
+                <Icon name="check-circle" size={32} color={theme.colors.success} />
+                <Icon name="info" size={32} color={theme.colors.primary} />
               </View>
             </SubSection>
 
             <SubSection label="Status Icons">
               <View style={styles.iconRow}>
-                <Icon as={AlertCircle} size={28} color={theme.colors.destructive} />
-                <Icon as={CheckCircle} size={28} color={theme.colors.success} />
-                <Icon as={AlertTriangle} size={28} color={theme.colors.warning} />
-                <Icon as={Info} size={28} color={theme.colors.foreground} />
+                <Icon name="alert-circle" size={28} color={theme.colors.destructive} />
+                <Icon name="check-circle" size={28} color={theme.colors.success} />
+                <Icon name="alert-triangle" size={28} color={theme.colors.warning} />
+                <Icon name="info" size={28} color={theme.colors.foreground} />
               </View>
             </SubSection>
           </Section>

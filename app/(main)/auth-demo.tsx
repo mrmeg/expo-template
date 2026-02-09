@@ -11,42 +11,27 @@ import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledT
 import { Icon } from "@/client/components/ui/Icon";
 import { spacing } from "@/client/constants/spacing";
 import type { Theme } from "@/client/constants/colors";
-import {
-  Shield,
-  ShieldCheck,
-  ShieldX,
-  Loader2,
-  User,
-  Mail,
-  Key,
-  LogOut,
-  RefreshCw,
-  Lock,
-  Unlock,
-  CheckCircle,
-  XCircle,
-  Clock,
-} from "lucide-react-native";
+import type { IconName } from "@/client/components/ui/Icon";
 
 // Auth state badge component
 function AuthStateBadge({ state }: { state: AuthState }) {
   const { theme } = useTheme();
 
-  const config = {
+  const config: Record<AuthState, { icon: IconName; color: string; label: string; bgColor: string }> = {
     loading: {
-      icon: Loader2,
+      icon: "loader",
       color: theme.colors.warning,
       label: "Loading",
       bgColor: theme.colors.warning + "20",
     },
     authenticated: {
-      icon: ShieldCheck,
+      icon: "shield-check",
       color: theme.colors.success,
       label: "Authenticated",
       bgColor: theme.colors.success + "20",
     },
     unauthenticated: {
-      icon: ShieldX,
+      icon: "shield-alert",
       color: theme.colors.destructive,
       label: "Unauthenticated",
       bgColor: theme.colors.destructive + "20",
@@ -57,7 +42,7 @@ function AuthStateBadge({ state }: { state: AuthState }) {
 
   return (
     <View style={[styles.badge, { backgroundColor: bgColor }]}>
-      <Icon as={icon} size={16} color={color} />
+      <Icon name={icon} size={16} color={color} />
       <SansSerifBoldText style={[styles.badgeText, { color }]}>
         {label}
       </SansSerifBoldText>
@@ -74,7 +59,7 @@ function ProtectedSection() {
     <Card style={dynamicStyles.card}>
       <CardHeader>
         <View style={dynamicStyles.cardHeaderRow}>
-          <Icon as={Lock} size={20} color={theme.colors.success} />
+          <Icon name="lock" size={20} color={theme.colors.success} />
           <CardTitle style={{ marginLeft: spacing.sm }}>Protected Content</CardTitle>
         </View>
         <CardDescription>
@@ -83,7 +68,7 @@ function ProtectedSection() {
       </CardHeader>
       <CardContent>
         <View style={dynamicStyles.successBox}>
-          <Icon as={CheckCircle} size={24} color={theme.colors.success} />
+          <Icon name="check-circle" size={24} color={theme.colors.success} />
           <View style={dynamicStyles.successTextContainer}>
             <SansSerifBoldText style={[dynamicStyles.successTitle, { color: theme.colors.success }]}>
               Access Granted
@@ -122,7 +107,7 @@ function UserInfoSection() {
     <Card style={dynamicStyles.card}>
       <CardHeader>
         <View style={dynamicStyles.cardHeaderRow}>
-          <Icon as={User} size={20} color={theme.colors.primary} />
+          <Icon name="user" size={20} color={theme.colors.primary} />
           <CardTitle style={{ marginLeft: spacing.sm }}>User Details</CardTitle>
         </View>
         <CardDescription>
@@ -132,7 +117,7 @@ function UserInfoSection() {
       <CardContent style={dynamicStyles.cardContent}>
         <View style={dynamicStyles.infoRow}>
           <View style={dynamicStyles.infoLabel}>
-            <Icon as={Key} size={14} color={theme.colors.mutedForeground} />
+            <Icon name="key" size={14} color={theme.colors.mutedForeground} />
             <SansSerifText style={dynamicStyles.labelText}>User ID</SansSerifText>
           </View>
           <SansSerifText style={dynamicStyles.infoValue} numberOfLines={1}>
@@ -142,7 +127,7 @@ function UserInfoSection() {
 
         <View style={dynamicStyles.infoRow}>
           <View style={dynamicStyles.infoLabel}>
-            <Icon as={User} size={14} color={theme.colors.mutedForeground} />
+            <Icon name="user" size={14} color={theme.colors.mutedForeground} />
             <SansSerifText style={dynamicStyles.labelText}>Username</SansSerifText>
           </View>
           <SansSerifText style={dynamicStyles.infoValue} numberOfLines={1}>
@@ -153,7 +138,7 @@ function UserInfoSection() {
         {user.email && (
           <View style={dynamicStyles.infoRow}>
             <View style={dynamicStyles.infoLabel}>
-              <Icon as={Mail} size={14} color={theme.colors.mutedForeground} />
+              <Icon name="mail" size={14} color={theme.colors.mutedForeground} />
               <SansSerifText style={dynamicStyles.labelText}>Email</SansSerifText>
             </View>
             <SansSerifText style={dynamicStyles.infoValue} numberOfLines={1}>
@@ -169,7 +154,7 @@ function UserInfoSection() {
             disabled={signingOut}
             fullWidth
           >
-            <Icon as={LogOut} size={16} color={theme.colors.destructiveForeground} />
+            <Icon name="log-out" size={16} color={theme.colors.destructiveForeground} />
             <SansSerifBoldText style={{ color: theme.colors.destructiveForeground, marginLeft: spacing.xs }}>
               {signingOut ? "Signing Out..." : "Sign Out"}
             </SansSerifBoldText>
@@ -207,7 +192,7 @@ function AuthStateMonitor() {
     <Card style={dynamicStyles.card}>
       <CardHeader>
         <View style={dynamicStyles.cardHeaderRow}>
-          <Icon as={Shield} size={20} color={theme.colors.primary} />
+          <Icon name="shield" size={20} color={theme.colors.primary} />
           <CardTitle style={{ marginLeft: spacing.sm }}>Auth State Monitor</CardTitle>
         </View>
         <CardDescription>
@@ -224,7 +209,7 @@ function AuthStateMonitor() {
         {/* Pending Verification */}
         {pendingVerificationEmail && (
           <View style={dynamicStyles.warningBox}>
-            <Icon as={Clock} size={16} color={theme.colors.warning} />
+            <Icon name="clock" size={16} color={theme.colors.warning} />
             <View style={{ marginLeft: spacing.sm, flex: 1 }}>
               <SansSerifBoldText style={{ color: theme.colors.warning, fontSize: 13 }}>
                 Pending Verification
@@ -239,7 +224,7 @@ function AuthStateMonitor() {
         {/* Error */}
         {error && (
           <View style={dynamicStyles.errorBox}>
-            <Icon as={XCircle} size={16} color={theme.colors.destructive} />
+            <Icon name="x-circle" size={16} color={theme.colors.destructive} />
             <View style={{ marginLeft: spacing.sm, flex: 1 }}>
               <SansSerifBoldText style={{ color: theme.colors.destructive, fontSize: 13 }}>
                 Error
@@ -277,7 +262,7 @@ function AuthStateMonitor() {
           disabled={refreshing}
           fullWidth
         >
-          <Icon as={RefreshCw} size={16} color={theme.colors.primary} />
+          <Icon name="refresh-cw" size={16} color={theme.colors.primary} />
           <SansSerifText style={{ color: theme.colors.primary, marginLeft: spacing.xs }}>
             {refreshing ? "Refreshing..." : "Refresh Auth State"}
           </SansSerifText>
@@ -296,7 +281,7 @@ function HowItWorksSection() {
     <Card style={dynamicStyles.card}>
       <CardHeader>
         <View style={dynamicStyles.cardHeaderRow}>
-          <Icon as={Unlock} size={20} color={theme.colors.primary} />
+          <Icon name="unlock" size={20} color={theme.colors.primary} />
           <CardTitle style={{ marginLeft: spacing.sm }}>How It Works</CardTitle>
         </View>
       </CardHeader>

@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { KeyboardAwareScrollView } from "@/client/lib/keyboard-controller";
 import { StyledText } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
 import { Icon } from "@/client/components/ui/Icon";
@@ -11,7 +11,6 @@ import { globalUIStore } from "@/client/stores/globalUIStore";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { fontFamilies } from "@/client/constants/fonts";
-import { HelpCircle } from "lucide-react-native";
 import type { Theme } from "@/client/constants/colors";
 
 export default function FeedbackShowcaseScreen() {
@@ -182,7 +181,7 @@ export default function FeedbackShowcaseScreen() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <View style={{ padding: spacing.xs }}>
-                      <Icon as={HelpCircle} size={24} color={theme.colors.primary} />
+                      <Icon name="help-circle" size={24} color={theme.colors.primary} />
                     </View>
                   </TooltipTrigger>
                   <TooltipContent>

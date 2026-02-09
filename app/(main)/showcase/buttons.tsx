@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { KeyboardAwareScrollView } from "@/client/lib/keyboard-controller";
 import { StyledText } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
 import { Icon } from "@/client/components/ui/Icon";
@@ -8,7 +8,6 @@ import { Section, SubSection, ThemeToggle } from "@/client/components/showcase";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { fontFamilies } from "@/client/constants/fonts";
-import { Heart, ArrowRight } from "lucide-react-native";
 import type { Theme } from "@/client/constants/colors";
 
 export default function ButtonsShowcaseScreen() {
@@ -116,7 +115,7 @@ export default function ButtonsShowcaseScreen() {
           <Section title="With Icons">
             <SubSection label="Left Icon">
               <Button preset="default" onPress={() => {}}>
-                <Icon as={Heart} size={16} color={theme.colors.primaryForeground} />
+                <Icon name="heart" size={16} color={theme.colors.primaryForeground} />
                 <StyledText style={[styles.buttonText, { marginLeft: spacing.xs }]}>
                   With Left Icon
                 </StyledText>
@@ -128,20 +127,20 @@ export default function ButtonsShowcaseScreen() {
                 <StyledText style={[styles.outlineButtonText, { marginRight: spacing.xs }]}>
                   Continue
                 </StyledText>
-                <Icon as={ArrowRight} size={16} color={theme.colors.primary} />
+                <Icon name="arrow-right" size={16} color={theme.colors.primary} />
               </Button>
             </SubSection>
 
             <SubSection label="Icon Only">
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
                 <Button preset="default" onPress={() => {}}>
-                  <Icon as={Heart} size={18} color={theme.colors.primaryForeground} />
+                  <Icon name="heart" size={18} color={theme.colors.primaryForeground} />
                 </Button>
                 <Button preset="outline" onPress={() => {}}>
-                  <Icon as={Heart} size={18} color={theme.colors.primary} />
+                  <Icon name="heart" size={18} color={theme.colors.primary} />
                 </Button>
                 <Button preset="ghost" onPress={() => {}}>
-                  <Icon as={Heart} size={18} color={theme.colors.foreground} />
+                  <Icon name="heart" size={18} color={theme.colors.foreground} />
                 </Button>
               </View>
             </SubSection>

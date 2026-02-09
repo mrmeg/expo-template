@@ -4,7 +4,7 @@ import { spacing } from "@/client/constants/spacing";
 import { useThemeStore } from "@/client/stores/themeStore";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { Icon } from "@/client/components/ui/Icon";
-import { Sun, Moon, Smartphone, Globe, ChevronRight, Check } from "lucide-react-native";
+import type { IconName } from "@/client/components/ui/Icon";
 import { useTranslation } from "react-i18next";
 import Config from "@/client/config";
 import type { Theme } from "@/client/constants/colors";
@@ -23,11 +23,11 @@ export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const styles = createStyles(theme);
 
-  const themeOptions = [
-    { value: "system", label: t("settings.theme.system"), icon: Smartphone },
-    { value: "light", label: t("settings.theme.light"), icon: Sun },
-    { value: "dark", label: t("settings.theme.dark"), icon: Moon },
-  ] as const;
+  const themeOptions: { value: "system" | "light" | "dark"; label: string; icon: IconName }[] = [
+    { value: "system", label: t("settings.theme.system"), icon: "smartphone" },
+    { value: "light", label: t("settings.theme.light"), icon: "sun" },
+    { value: "dark", label: t("settings.theme.dark"), icon: "moon" },
+  ];
 
   const handleLanguageChange = (langCode: string) => {
     i18n.changeLanguage(langCode);
@@ -59,7 +59,7 @@ export default function SettingsScreen() {
                     <View style={styles.settingLeft}>
                       <View style={[styles.iconContainer, isSelected && styles.iconContainerActive]}>
                         <Icon
-                          as={option.icon}
+                          name={option.icon}
                           color={isSelected ? theme.colors.primary : theme.colors.foreground}
                           size={20}
                         />
@@ -107,7 +107,7 @@ export default function SettingsScreen() {
                     <View style={styles.settingLeft}>
                       <View style={[styles.iconContainer, isSelected && styles.iconContainerActive]}>
                         <Icon
-                          as={Globe}
+                          name="globe"
                           color={isSelected ? theme.colors.primary : theme.colors.foreground}
                           size={20}
                         />
@@ -122,7 +122,7 @@ export default function SettingsScreen() {
                       </View>
                     </View>
                     {isSelected && (
-                      <Icon as={Check} color={theme.colors.primary} size={20} />
+                      <Icon name="check" color={theme.colors.primary} size={20} />
                     )}
                   </Pressable>
                   {!isLast && <View style={styles.dividerFull} />}

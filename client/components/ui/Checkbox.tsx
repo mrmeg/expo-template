@@ -5,7 +5,6 @@ import { StyledText } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import * as CheckboxPrimitive from "@rn-primitives/checkbox";
-import { Check, Minus } from "lucide-react-native";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -163,16 +162,14 @@ function Checkbox({
       >
         {indeterminate ? (
           <Icon
-            as={Minus}
+            name="minus"
             size={sizeConfig.iconSize}
-            strokeWidth={sizeConfig.strokeWidth}
             color={theme.colors.primaryForeground}
           />
         ) : (
           <Icon
-            as={Check}
+            name="check"
             size={sizeConfig.iconSize}
-            strokeWidth={sizeConfig.strokeWidth}
             color={theme.colors.primaryForeground}
           />
         )}

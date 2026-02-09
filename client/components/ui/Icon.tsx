@@ -1,7 +1,7 @@
 import * as React from "react";
 import { StyleProp, ViewStyle, View } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
-import type { LucideIcon } from "lucide-react-native";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 
 /**
  * Theme color names that can be used as shortcuts
@@ -18,19 +18,43 @@ export type ThemeColorName =
   | "text"
   | "textDim";
 
+/** Icons that use MaterialCommunityIcons (not available in Feather) */
+const mciIconSet = new Set<string>([
+  "cursor-default-click",
+  "cursor-text",
+  "clipboard-list",
+  "bug",
+  "crown",
+  "shield-check",
+  "shield-alert",
+  "folder-open",
+  "link-off",
+]);
+
+type MCIIconName =
+  | "cursor-default-click"
+  | "cursor-text"
+  | "clipboard-list"
+  | "bug"
+  | "crown"
+  | "shield-check"
+  | "shield-alert"
+  | "folder-open"
+  | "link-off";
+
+type FeatherIconName = React.ComponentProps<typeof Feather>["name"];
+
+export type IconName = FeatherIconName | MCIIconName;
+
 export interface IconProps {
   /**
-   * The Lucide icon component to render
+   * The icon name to render (Feather or MaterialCommunityIcons)
    */
-  as: LucideIcon;
+  name: IconName;
   /**
    * Size of the icon in pixels
    */
   size?: number;
-  /**
-   * Stroke width of the icon
-   */
-  strokeWidth?: number;
   /**
    * Icon color - can be a hex color or a theme color name
    * Defaults to theme's text color
@@ -44,27 +68,21 @@ export interface IconProps {
 
 /**
  * Universal Icon Component
- * Wraps Lucide React Native icons with theme integration and style support
+ * Wraps @expo/vector-icons with theme integration and style support
  *
- * Features:
- * - Theme color shortcuts: color="primary", color="error", etc.
- * - Custom hex colors: color="#FF0000"
- * - Style prop for positioning and transforms
- * - Automatic theme integration
+ * Uses Feather icons by default, falls back to MaterialCommunityIcons
+ * for icons not available in Feather.
  *
  * Usage:
  * ```tsx
- * import { Check, Calendar } from 'lucide-react-native';
- *
- * <Icon as={Check} color="primary" size={16} />
- * <Icon as={Calendar} color="#FF0000" size={24} />
- * <Icon as={Calendar} style={{ marginRight: 8 }} />
+ * <Icon name="check" color="primary" size={16} />
+ * <Icon name="calendar" color="#FF0000" size={24} />
+ * <Icon name="bug" style={{ marginRight: 8 }} />
  * ```
  */
 export function Icon({
-  as: LucideIconComponent,
+  name,
   size = 24,
-  strokeWidth = 2,
   color,
   style,
 }: IconProps) {
@@ -104,11 +122,19 @@ export function Icon({
   // intercepting touches when used inside TouchableOpacity on iOS
   return (
     <View pointerEvents="none" style={style}>
-      <LucideIconComponent
-        size={size}
-        strokeWidth={strokeWidth}
-        color={iconColor}
-      />
+      {mciIconSet.has(name) ? (
+        <MaterialCommunityIcons
+          name={name as any}
+          size={size}
+          color={iconColor}
+        />
+      ) : (
+        <Feather
+          name={name as FeatherIconName}
+          size={size}
+          color={iconColor}
+        />
+      )}
     </View>
   );
 }

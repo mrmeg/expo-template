@@ -5,32 +5,23 @@ import { spacing } from "@/client/constants/spacing";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { Icon } from "@/client/components/ui/Icon";
 import { ThemeToggle } from "@/client/components/showcase";
-import {
-  MousePointerClick,
-  TextCursorInput,
-  Navigation,
-  Bell,
-  Type,
-  Lock,
-  ChevronRight,
-} from "lucide-react-native";
 import type { Theme } from "@/client/constants/colors";
-import type { LucideIcon } from "lucide-react-native";
+import type { IconName } from "@/client/components/ui/Icon";
 
 interface NavItem {
   href: string;
-  icon: LucideIcon;
+  icon: IconName;
   label: string;
   description: string;
 }
 
 const showcaseItems: NavItem[] = [
-  { href: "/(main)/showcase/buttons", icon: MousePointerClick, label: "Buttons", description: "Button presets, states, and sizes" },
-  { href: "/(main)/showcase/forms", icon: TextCursorInput, label: "Form Controls", description: "Inputs, switches, checkboxes, toggles" },
-  { href: "/(main)/showcase/navigation", icon: Navigation, label: "Navigation & Menus", description: "Accordion, popover, dropdown, drawer" },
-  { href: "/(main)/showcase/feedback", icon: Bell, label: "Feedback", description: "Alerts, notifications, tooltips" },
-  { href: "/(main)/showcase/typography", icon: Type, label: "Typography & Icons", description: "Text styles, icons, separators" },
-  { href: "/(main)/showcase/auth-forms", icon: Lock, label: "Auth Forms", description: "Sign in, sign up, verification forms" },
+  { href: "/(main)/showcase/buttons", icon: "cursor-default-click", label: "Buttons", description: "Button presets, states, and sizes" },
+  { href: "/(main)/showcase/forms", icon: "cursor-text", label: "Form Controls", description: "Inputs, switches, checkboxes, toggles" },
+  { href: "/(main)/showcase/navigation", icon: "navigation", label: "Navigation & Menus", description: "Accordion, popover, dropdown, drawer" },
+  { href: "/(main)/showcase/feedback", icon: "bell", label: "Feedback", description: "Alerts, notifications, tooltips" },
+  { href: "/(main)/showcase/typography", icon: "type", label: "Typography & Icons", description: "Text styles, icons, separators" },
+  { href: "/(main)/showcase/auth-forms", icon: "lock", label: "Auth Forms", description: "Sign in, sign up, verification forms" },
 ];
 
 export default function ShowcaseIndexScreen() {
@@ -59,14 +50,14 @@ export default function ShowcaseIndexScreen() {
                     >
                       <View style={styles.rowLeft}>
                         <View style={styles.iconContainer}>
-                          <Icon as={item.icon} color={theme.colors.foreground} size={20} />
+                          <Icon name={item.icon} color={theme.colors.foreground} size={20} />
                         </View>
                         <View style={styles.textContainer}>
                           <SansSerifBoldText style={styles.rowLabel}>{item.label}</SansSerifBoldText>
                           <SansSerifText style={styles.rowDescription}>{item.description}</SansSerifText>
                         </View>
                       </View>
-                      <Icon as={ChevronRight} color={theme.colors.mutedForeground} size={20} />
+                      <Icon name="chevron-right" color={theme.colors.mutedForeground} size={20} />
                     </Pressable>
                   </Link>
                   {!isLast && <View style={styles.divider} />}

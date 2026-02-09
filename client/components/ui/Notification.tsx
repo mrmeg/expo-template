@@ -3,8 +3,8 @@ import { StyleSheet, View, ActivityIndicator, Animated, TouchableOpacity } from 
 import { globalUIStore } from "@/client/stores/globalUIStore";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { fontFamilies } from "@/client/constants/fonts";
-import { AlertCircle, CheckCircle, AlertTriangle, Info, X } from "lucide-react-native";
 import { Icon } from "./Icon";
+import type { IconName } from "./Icon";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { StyledText } from "./StyledText";
@@ -109,18 +109,18 @@ export const Notification = () => {
 
   const topPosition = insets?.top ? insets.top : 20;
 
-  const getIconProps = () => {
+  const getIconProps = (): { icon: IconName; color: string } => {
     switch (alert?.type) {
     case "error":
-      return { icon: AlertCircle, color: theme.colors.destructive };
+      return { icon: "alert-circle", color: theme.colors.destructive };
     case "success":
-      return { icon: CheckCircle, color: theme.colors.success };
+      return { icon: "check-circle", color: theme.colors.success };
     case "warning":
-      return { icon: AlertTriangle, color: theme.colors.warning };
+      return { icon: "alert-triangle", color: theme.colors.warning };
     case "info":
-      return { icon: Info, color: theme.colors.text };
+      return { icon: "info", color: theme.colors.text };
     default:
-      return { icon: Info, color: theme.colors.text };
+      return { icon: "info", color: theme.colors.text };
     }
   };
 
@@ -165,7 +165,7 @@ export const Notification = () => {
             <ActivityIndicator size="small" color={theme.colors.text} />
           ) : (
             <Icon
-              as={getIconProps().icon}
+              name={getIconProps().icon}
               size={spacing.iconSm}
               color={getIconProps().color}
             />
@@ -188,7 +188,7 @@ export const Notification = () => {
           hitSlop={spacing.sm}
           onPress={animateOut}
         >
-          <Icon as={X} size={spacing.iconSm + 4} color={theme.colors.text} />
+          <Icon name="x" size={spacing.iconSm + 4} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
     </Animated.View>

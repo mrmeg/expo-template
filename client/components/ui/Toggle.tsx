@@ -5,7 +5,7 @@ import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import * as TogglePrimitive from "@rn-primitives/toggle";
 import { Platform, StyleSheet, ViewStyle, ActivityIndicator, StyleProp } from "react-native";
-import type { LucideIcon } from "lucide-react-native";
+import type { IconName } from "@/client/components/ui/Icon";
 import { palette } from "@/client/constants/colors";
 
 const DEFAULT_HIT_SLOP = 8;
@@ -100,9 +100,8 @@ interface ToggleProps extends Omit<TogglePrimitive.RootProps, "style"> {
  * </Toggle>
  *
  * // With icon
- * import { Bold } from 'lucide-react-native';
  * <Toggle pressed={pressed} onPressedChange={setPressed} iconOnly>
- *   <ToggleIcon as={Bold} />
+ *   <ToggleIcon name="bold" />
  * </Toggle>
  *
  * // Different shapes
@@ -111,7 +110,7 @@ interface ToggleProps extends Omit<TogglePrimitive.RootProps, "style"> {
  * </Toggle>
  *
  * <Toggle shape="circle" iconOnly pressed={pressed} onPressedChange={setPressed}>
- *   <ToggleIcon as={Bold} />
+ *   <ToggleIcon name="bold" />
  * </Toggle>
  *
  * // Loading state
@@ -234,20 +233,19 @@ function Toggle({
  *
  * Usage:
  * ```tsx
- * import { Bold } from 'lucide-react-native';
  * <Toggle pressed={pressed} onPressedChange={setPressed}>
- *   <ToggleIcon as={Bold} />
+ *   <ToggleIcon name="bold" />
  * </Toggle>
  * ```
  */
 interface ToggleIconProps {
-  as: LucideIcon;
+  name: IconName;
   size?: number;
   color?: string;
 }
 
-function ToggleIcon({ as: IconComponent, size, color }: ToggleIconProps) {
-  return <Icon as={IconComponent} size={size || spacing.iconMd} color={color} />;
+function ToggleIcon({ name, size, color }: ToggleIconProps) {
+  return <Icon name={name} size={size || spacing.iconMd} color={color} />;
 }
 
 export { Toggle, ToggleIcon };

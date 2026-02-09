@@ -1,7 +1,6 @@
 import { Tabs } from "expo-router";
 import { useTheme } from "@/client/hooks/useTheme";
 import { Icon } from "@/client/components/ui/Icon";
-import { Compass, User, Settings, Image } from "lucide-react-native";
 import { Platform } from "react-native";
 import { spacing } from "@/client/constants/spacing";
 
@@ -34,7 +33,7 @@ export default function TabLayout() {
         options={{
           title: "Explore",
           tabBarIcon: ({ color, size }) => (
-            <Icon as={Compass} color={color} size={size} />
+            <Icon name="compass" color={color} size={size} />
           ),
         }}
       />
@@ -43,7 +42,7 @@ export default function TabLayout() {
         options={{
           title: "Media",
           tabBarIcon: ({ color, size }) => (
-            <Icon as={Image} color={color} size={size} />
+            <Icon name="image" color={color} size={size} />
           ),
         }}
       />
@@ -52,7 +51,7 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, size }) => (
-            <Icon as={User} color={color} size={size} />
+            <Icon name="user" color={color} size={size} />
           ),
         }}
       />
@@ -61,7 +60,7 @@ export default function TabLayout() {
         options={{
           title: "Settings",
           tabBarIcon: ({ color, size }) => (
-            <Icon as={Settings} color={color} size={size} />
+            <Icon name="settings" color={color} size={size} />
           ),
         }}
       />

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { KeyboardAwareScrollView } from "@/client/lib/keyboard-controller";
 import { StyledText } from "@/client/components/ui/StyledText";
 import { ToggleGroup, ToggleGroupItem } from "@/client/components/ui/ToggleGroup";
 import { SignInForm } from "@/client/components/auth/SignInForm";
