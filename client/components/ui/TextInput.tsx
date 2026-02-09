@@ -129,7 +129,7 @@ interface TextInputCustomProps extends TextInputProps {
  * - Helper text
  * - Required indicator (asterisk)
  * - Left/right custom elements
- * - Password visibility toggle with Lucide icons
+ * - Password visibility toggle with eye/eye-off icons
  * - Full accessibility support
  * - Disabled state styling
  *

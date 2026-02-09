@@ -114,18 +114,6 @@ jest.mock("react-i18next", () => ({
   },
 }));
 
-// Mock Lucide icons
-jest.mock("lucide-react-native", () => {
-  const { View } = require("react-native");
-  const createMockIcon = () => View;
-  return new Proxy(
-    {},
-    {
-      get: () => createMockIcon(),
-    }
-  );
-});
-
 // Mock expo-image-manipulator
 jest.mock("expo-image-manipulator", () => ({
   ImageManipulator: {

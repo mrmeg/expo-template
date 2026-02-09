@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import * as Font from "expo-font";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface LoadResourcesResult {
   loaded: boolean;
@@ -87,6 +88,8 @@ export const useResources = (): LoadResourcesResult => {
     async function loadResourcesAndDataAsync() {
       try {
         await Font.loadAsync({
+          ...Feather.font,
+          ...MaterialCommunityIcons.font,
           "Lato_400Regular": require("@/assets/fonts/Lato/Lato-Regular.ttf"),
           "Lato_700Bold": require("@/assets/fonts/Lato/Lato-Bold.ttf"),
           "Merriweather_400Regular": require("@/assets/fonts/Merriweather/Merriweather-Regular.ttf"),
