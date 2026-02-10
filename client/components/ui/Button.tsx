@@ -206,28 +206,30 @@ export function Button(props: ButtonProps) {
   if (customBgColor && typeof customBgColor === "string") {
     backgroundColor = customBgColor;
   } else if (preset === "default") {
-    backgroundColor = theme.colors.primary;
+    backgroundColor = theme.colors.accent;
   } else if (preset === "secondary") {
-    backgroundColor = theme.colors.secondary;
+    backgroundColor = theme.colors.primary;
   } else if (preset === "destructive") {
     backgroundColor = theme.colors.destructive;
   } else if (preset === "outline" || preset === "ghost" || preset === "link") {
     backgroundColor = "transparent";
   } else {
-    backgroundColor = theme.colors.primary;
+    backgroundColor = theme.colors.accent;
   }
 
-  // Use contrast calculation for reliable, readable text color across platforms
+  // Determine text color per preset for readable contrast
   const textColor =
     preset === "outline"
       ? theme.colors.foreground
       : preset === "ghost"
         ? theme.colors.text
         : preset === "link"
-          ? theme.colors.primary
-          : preset === "destructive"
-            ? getContrastingColor(backgroundColor, palette.white, palette.black)
-            : getContrastingColor(backgroundColor, palette.white, palette.black);
+          ? theme.colors.accent
+          : preset === "default"
+            ? theme.colors.accentForeground
+            : preset === "secondary"
+              ? theme.colors.primaryForeground
+              : getContrastingColor(backgroundColor, palette.white, palette.black);
 
   const isDisabled = disabled || loading;
 
@@ -336,10 +338,10 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       ...(Platform.OS === "web" && { cursor: "pointer" as any }),
     } as ViewStyle,
     buttonDefault: {
-      backgroundColor: theme.colors.primary,
+      backgroundColor: theme.colors.accent,
     } as ViewStyle,
     buttonSecondary: {
-      backgroundColor: theme.colors.secondary,
+      backgroundColor: theme.colors.primary,
     } as ViewStyle,
     buttonDestructive: {
       backgroundColor: theme.colors.destructive,
