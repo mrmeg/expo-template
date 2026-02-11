@@ -336,7 +336,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
               <Icon
                 name={passwordVisible ? "eye-off" : "eye"}
                 size={spacing.iconSm + 4}
-                color="muted"
+                color="textDim"
               />
             </Pressable>
           )}

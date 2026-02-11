@@ -32,21 +32,21 @@ export type ButtonSize = "sm" | "md" | "lg";
 const SIZE_CONFIGS: Record<ButtonSize, { paddingVertical: number; paddingHorizontal: number; fontSize: number; height: number }> = {
   sm: {
     paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    fontSize: 13,
+    paddingHorizontal: 12,
+    fontSize: 12,
     height: 32,
   },
   md: {
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     fontSize: 14,
     height: 36,
   },
   lg: {
-    paddingVertical: spacing.sm,
+    paddingVertical: 10,
     paddingHorizontal: spacing.lg,
-    fontSize: 15,
-    height: 40,
+    fontSize: 16,
+    height: 44,
   },
 };
 
@@ -239,6 +239,7 @@ export function Button(props: ButtonProps) {
         accessibilityRole="button"
         accessibilityState={{ disabled: !!isDisabled, busy: loading }}
         {...rest}
+        style={{ alignSelf: fullWidth ? "stretch" : "flex-start" }}
         disabled={isDisabled}
       >
         {(state) => (
