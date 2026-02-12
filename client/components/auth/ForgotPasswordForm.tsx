@@ -23,6 +23,8 @@ export interface ForgotPasswordFormProps {
   success?: boolean;
   title?: string;
   description?: string;
+  /** Logo element rendered centered above the card */
+  logo?: React.ReactNode;
   /** Set to true when form is embedded in a parent scroll view */
   embedded?: boolean;
 }
@@ -35,6 +37,7 @@ export function ForgotPasswordForm({
   success = false,
   title = "Forgot password?",
   description = "Enter your email address and we'll send you a link to reset your password.",
+  logo,
   embedded = false,
 }: ForgotPasswordFormProps) {
   const { theme } = useTheme();
@@ -85,7 +88,9 @@ export function ForgotPasswordForm({
 
   if (success) {
     return wrapContent(
-      <Card style={styles.card}>
+      <View style={styles.formWrapper}>
+        {logo && <View style={styles.logoContainer}>{logo}</View>}
+        <Card style={styles.card}>
         <CardHeader>
           <CardTitle>Check your email</CardTitle>
           <CardDescription>
@@ -112,18 +117,21 @@ export function ForgotPasswordForm({
           </Button>
         </CardContent>
       </Card>
+      </View>
     );
   }
 
   return wrapContent(
-    <Card style={styles.card}>
+    <View style={styles.formWrapper}>
+      {logo && <View style={styles.logoContainer}>{logo}</View>}
+      <Card style={styles.card}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
 
       <CardContent style={styles.content}>
-        {error && (
+        {!!error && (
           <View style={styles.errorContainer}>
             <SansSerifText style={styles.errorText}>{error}</SansSerifText>
           </View>
@@ -171,6 +179,7 @@ export function ForgotPasswordForm({
         </CardFooter>
       )}
     </Card>
+    </View>
   );
 }
 
@@ -189,8 +198,15 @@ const createStyles = (theme: Theme) =>
     },
     card: {
       width: "100%",
+    },
+    formWrapper: {
+      width: "100%",
       maxWidth: 400,
       alignSelf: "center",
+    },
+    logoContainer: {
+      alignItems: "center",
+      marginBottom: spacing.lg,
     },
     content: {
       gap: spacing.md,

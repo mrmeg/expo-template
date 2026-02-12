@@ -18,11 +18,14 @@ interface AuthScreenProps {
   initialView?: AuthView;
   /** Callback when authentication succeeds */
   onAuthenticated?: () => void;
+  /** Logo element rendered centered above the card on all auth forms */
+  logo?: React.ReactNode;
 }
 
 export function AuthScreen({
   initialView = "sign-in",
   onAuthenticated,
+  logo,
 }: AuthScreenProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
@@ -292,6 +295,7 @@ export function AuthScreen({
             loading={loading}
             error={error}
             socialProviders={[]}
+            logo={logo}
             embedded
           />
         )}
@@ -304,6 +308,7 @@ export function AuthScreen({
             error={error}
             socialProviders={[]}
             requireName={false}
+            logo={logo}
             embedded
           />
         )}
@@ -318,6 +323,7 @@ export function AuthScreen({
             loading={loading}
             resending={resending}
             error={error}
+            logo={logo}
             embedded
           />
         )}
@@ -329,6 +335,7 @@ export function AuthScreen({
             loading={loading}
             error={error}
             success={forgotPasswordSuccess}
+            logo={logo}
             embedded
           />
         )}
@@ -341,6 +348,7 @@ export function AuthScreen({
             error={error}
             success={resetPasswordSuccess}
             description={`Enter the code sent to ${pendingEmail} and choose a new password.`}
+            logo={logo}
             embedded
           />
         )}

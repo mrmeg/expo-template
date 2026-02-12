@@ -25,6 +25,8 @@ export interface SignUpFormProps {
   title?: string;
   description?: string;
   requireName?: boolean;
+  /** Logo element rendered centered above the card */
+  logo?: React.ReactNode;
   /** Set to true when form is embedded in a parent scroll view */
   embedded?: boolean;
 }
@@ -39,6 +41,7 @@ export function SignUpForm({
   title = "Create an account",
   description = "Enter your details to get started",
   requireName = true,
+  logo,
   embedded = false,
 }: SignUpFormProps) {
   const { theme } = useTheme();
@@ -134,14 +137,16 @@ export function SignUpForm({
   };
 
   const formContent = (
-    <Card style={styles.card}>
+    <View style={styles.formWrapper}>
+      {logo && <View style={styles.logoContainer}>{logo}</View>}
+      <Card style={styles.card}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
 
       <CardContent style={styles.content}>
-        {error && (
+        {!!error && (
           <View style={styles.errorContainer}>
             <SansSerifText style={styles.errorText}>{error}</SansSerifText>
           </View>
@@ -283,6 +288,7 @@ export function SignUpForm({
         </CardFooter>
       )}
     </Card>
+    </View>
   );
 
   if (embedded) {
@@ -320,8 +326,15 @@ const createStyles = (theme: Theme) =>
     },
     card: {
       width: "100%",
+    },
+    formWrapper: {
+      width: "100%",
       maxWidth: 400,
       alignSelf: "center",
+    },
+    logoContainer: {
+      alignItems: "center",
+      marginBottom: spacing.lg,
     },
     content: {
       gap: spacing.md,

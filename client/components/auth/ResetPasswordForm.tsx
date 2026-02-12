@@ -24,6 +24,8 @@ export interface ResetPasswordFormProps {
   title?: string;
   description?: string;
   minPasswordLength?: number;
+  /** Logo element rendered centered above the card */
+  logo?: React.ReactNode;
   /** Set to true when form is embedded in a parent scroll view */
   embedded?: boolean;
 }
@@ -37,6 +39,7 @@ export function ResetPasswordForm({
   title = "Reset your password",
   description = "Enter your new password below.",
   minPasswordLength = 8,
+  logo,
   embedded = false,
 }: ResetPasswordFormProps) {
   const { theme } = useTheme();
@@ -103,36 +106,41 @@ export function ResetPasswordForm({
 
   if (success) {
     return wrapContent(
-      <Card style={styles.card}>
-        <CardHeader>
-          <CardTitle>Password reset successful</CardTitle>
-          <CardDescription>
-            Your password has been successfully updated. You can now sign in with your new password.
-          </CardDescription>
-        </CardHeader>
+      <View style={styles.formWrapper}>
+        {logo && <View style={styles.logoContainer}>{logo}</View>}
+        <Card style={styles.card}>
+          <CardHeader>
+            <CardTitle>Password reset successful</CardTitle>
+            <CardDescription>
+              Your password has been successfully updated. You can now sign in with your new password.
+            </CardDescription>
+          </CardHeader>
 
-        <CardContent style={styles.content}>
-          <Button
-            preset="default"
-            onPress={onBack}
-            fullWidth
-          >
-            <SansSerifBoldText>Sign in</SansSerifBoldText>
-          </Button>
-        </CardContent>
-      </Card>
+          <CardContent style={styles.content}>
+            <Button
+              preset="default"
+              onPress={onBack}
+              fullWidth
+            >
+              <SansSerifBoldText>Sign in</SansSerifBoldText>
+            </Button>
+          </CardContent>
+        </Card>
+      </View>
     );
   }
 
   return wrapContent(
-    <Card style={styles.card}>
+    <View style={styles.formWrapper}>
+      {logo && <View style={styles.logoContainer}>{logo}</View>}
+      <Card style={styles.card}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
 
       <CardContent style={styles.content}>
-        {error && (
+        {!!error && (
           <View style={styles.errorContainer}>
             <SansSerifText style={styles.errorText}>{error}</SansSerifText>
           </View>
@@ -210,6 +218,7 @@ export function ResetPasswordForm({
         </CardFooter>
       )}
     </Card>
+    </View>
   );
 }
 
@@ -228,8 +237,15 @@ const createStyles = (theme: Theme) =>
     },
     card: {
       width: "100%",
+    },
+    formWrapper: {
+      width: "100%",
       maxWidth: 400,
       alignSelf: "center",
+    },
+    logoContainer: {
+      alignItems: "center",
+      marginBottom: spacing.lg,
     },
     content: {
       gap: spacing.md,

@@ -28,6 +28,8 @@ export interface VerifyEmailFormProps {
   title?: string;
   description?: string;
   resendCooldown?: number;
+  /** Logo element rendered centered above the card */
+  logo?: React.ReactNode;
   /** Set to true when form is embedded in a parent scroll view */
   embedded?: boolean;
 }
@@ -45,6 +47,7 @@ export function VerifyEmailForm({
   title = "Verify your email",
   description,
   resendCooldown = 60,
+  logo,
   embedded = false,
 }: VerifyEmailFormProps) {
   const { theme } = useTheme();
@@ -99,14 +102,16 @@ export function VerifyEmailForm({
   };
 
   const formContent = (
-    <Card style={styles.card}>
+    <View style={styles.formWrapper}>
+      {logo && <View style={styles.logoContainer}>{logo}</View>}
+      <Card style={styles.card}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{defaultDescription}</CardDescription>
       </CardHeader>
 
       <CardContent style={styles.content}>
-        {error && (
+        {!!error && (
           <View style={styles.errorContainer}>
             <SansSerifText style={styles.errorText}>{error}</SansSerifText>
           </View>
@@ -173,6 +178,7 @@ export function VerifyEmailForm({
         </CardFooter>
       )}
     </Card>
+    </View>
   );
 
   if (embedded) {
@@ -210,8 +216,15 @@ const createStyles = (theme: Theme) =>
     },
     card: {
       width: "100%",
+    },
+    formWrapper: {
+      width: "100%",
       maxWidth: 400,
       alignSelf: "center",
+    },
+    logoContainer: {
+      alignItems: "center",
+      marginBottom: spacing.lg,
     },
     content: {
       gap: spacing.md,
