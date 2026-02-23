@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import React, { useState, useRef } from "react";
+import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform, TextInput as RNTextInput } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import {
@@ -51,6 +51,8 @@ export function SignInForm({
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+
+  const passwordRef = useRef<RNTextInput>(null);
 
   const validateEmail = (value: string): boolean => {
     if (!value.trim()) {
@@ -134,11 +136,15 @@ export function SignInForm({
             autoCorrect={false}
             editable={!loading}
             required
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordRef.current?.focus()}
           />
         </View>
 
         <View style={styles.inputGroup}>
           <TextInput
+            ref={passwordRef}
             label="Password"
             placeholder="Enter your password"
             value={password}
@@ -155,6 +161,8 @@ export function SignInForm({
             autoComplete="password"
             editable={!loading}
             required
+            returnKeyType="go"
+            onSubmitEditing={handleSubmit}
           />
         </View>
 

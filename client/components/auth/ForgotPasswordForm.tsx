@@ -155,6 +155,8 @@ export function ForgotPasswordForm({
             autoCorrect={false}
             editable={!loading}
             required
+            returnKeyType="go"
+            onSubmitEditing={handleSubmit}
           />
         </View>
 

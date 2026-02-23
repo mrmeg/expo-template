@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import React, { useState, useRef } from "react";
+import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform, TextInput as RNTextInput } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import {
@@ -49,6 +49,8 @@ export function ResetPasswordForm({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
+
+  const confirmPasswordRef = useRef<RNTextInput>(null);
 
   const validatePassword = (value: string): boolean => {
     if (!value) {
@@ -167,11 +169,15 @@ export function ResetPasswordForm({
             autoComplete="new-password"
             editable={!loading}
             required
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
           />
         </View>
 
         <View style={styles.inputGroup}>
           <TextInput
+            ref={confirmPasswordRef}
             label="Confirm New Password"
             placeholder="Confirm your new password"
             value={confirmPassword}
@@ -188,6 +194,8 @@ export function ResetPasswordForm({
             autoComplete="new-password"
             editable={!loading}
             required
+            returnKeyType="go"
+            onSubmitEditing={handleSubmit}
           />
         </View>
 

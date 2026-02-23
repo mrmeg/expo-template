@@ -1,5 +1,5 @@
 import React, { forwardRef } from "react";
-import { Text as RNText, TextProps as RNTextProps } from "react-native";
+import { Text as RNText, TextProps as RNTextProps, StyleSheet } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { fontFamilies } from "@/client/constants/fonts";
 
@@ -16,9 +16,9 @@ export const TextClassContext = React.createContext<string | undefined>(undefine
 export const TextColorContext = React.createContext<string | undefined>(undefined);
 
 /**
- * Font size variants following a consistent scale
+ * Font size variants following the DM Sans / DM Serif Display scale
  */
-export type FontSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl";
+export type FontSize = "xs" | "sm" | "base" | "body" | "lg" | "xl" | "xxl" | "display";
 
 /**
  * Semantic text variants for different use cases
@@ -36,44 +36,60 @@ export type FontWeight = "light" | "regular" | "medium" | "semibold" | "bold";
 export type TextAlign = "left" | "center" | "right" | "justify" | "auto";
 
 const FONT_SIZES: Record<FontSize, number> = {
-  xs: 12,
-  sm: 14,
-  md: 16,
+  xs: 11,
+  sm: 12,
+  base: 14,
+  body: 15,
   lg: 18,
-  xl: 20,
-  "2xl": 24,
-  "3xl": 30,
-  "4xl": 36,
+  xl: 22,
+  xxl: 28,
+  display: 34,
+};
+
+const LINE_HEIGHTS: Record<FontSize, number> = {
+  xs: 16.5,
+  sm: 18,
+  base: 21,
+  body: 24.75,
+  lg: 27,
+  xl: 26.4,
+  xxl: 33.6,
+  display: 40.8,
 };
 
 const LETTER_SPACING: Partial<Record<FontSize, number>> = {
-  "2xl": -0.3,
-  "3xl": -0.5,
-  "4xl": -0.75,
+  sm: 0.5,
+  xxl: -0.3,
+  display: -0.5,
 };
 
 const SEMANTIC_CONFIGS: Record<SemanticVariant, { size: FontSize; weight: FontWeight }> = {
-  title: { size: "4xl", weight: "bold" },
-  heading: { size: "2xl", weight: "semibold" },
-  subheading: { size: "xl", weight: "semibold" },
-  body: { size: "md", weight: "regular" },
+  title: { size: "xxl", weight: "semibold" },
+  heading: { size: "xl", weight: "semibold" },
+  subheading: { size: "lg", weight: "medium" },
+  body: { size: "body", weight: "regular" },
   caption: { size: "sm", weight: "regular" },
-  label: { size: "sm", weight: "medium" },
+  label: { size: "base", weight: "medium" },
 };
 
-// Map font weights to actual font family variants (we only have regular and bold)
-const getFontFamilyWeight = (weight?: FontWeight): "regular" | "bold" => {
-  if (!weight || weight === "light" || weight === "regular") return "regular";
-  return "bold"; // medium, semibold, bold all map to bold
+// Map font weights to actual font family weight keys
+// DM Sans has: light, regular, medium, semibold
+// DM Serif Display has: regular only
+const getFontFamilyWeight = (weight?: FontWeight): "light" | "regular" | "medium" | "semibold" => {
+  if (!weight || weight === "regular") return "regular";
+  if (weight === "light") return "light";
+  if (weight === "medium") return "medium";
+  // semibold and bold both map to semibold (DM Sans's heaviest weight)
+  return "semibold";
 };
 
 export type TextProps = RNTextProps & {
   /**
-   * Font variant - serif or sans-serif
+   * Font variant - serif (DM Serif Display) or sans-serif (DM Sans)
    */
   variant?: "serif" | "sansSerif";
   /**
-   * Font weight - regular or bold (light, medium, semibold map to closest available)
+   * Font weight - light, regular, medium, semibold, bold
    */
   fontWeight?: FontWeight;
   /**
@@ -108,11 +124,11 @@ export type TextProps = RNTextProps & {
  * Base Text component with theme and variant support
  * Uses theme colors automatically - text by default
  *
- * New features:
- * - Size variants (xs, sm, md, lg, xl, 2xl, 3xl, 4xl)
+ * Features:
+ * - Size variants (xs, sm, base, body, lg, xl, xxl, display)
  * - Semantic variants (title, heading, subheading, body, caption, label)
  * - Text alignment prop
- * - Font weight options
+ * - Font weight options (light, regular, medium, semibold, bold)
  * - Text selection enabled by default (userSelect: "auto")
  * - numberOfLines and ellipsizeMode support from RN TextProps
  */
@@ -141,16 +157,27 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
 
   // If semantic variant is provided, use its config
   const semanticConfig = semantic ? SEMANTIC_CONFIGS[semantic] : undefined;
-  const finalSize = semanticConfig?.size ?? size ?? "md";
+  const finalSize = semanticConfig?.size ?? size ?? "body";
   const finalFontWeight = semanticConfig?.weight ?? fontWeight ?? "regular";
 
   // Get font family based on variant and weight
   const fontFamilyWeight = getFontFamilyWeight(finalFontWeight);
-  const fontFamily = fontFamilies[variant][fontFamilyWeight];
+  // DM Serif Display only has regular — use it regardless of requested weight
+  const fontFamily = variant === "serif"
+    ? fontFamilies.serif.regular
+    : fontFamilies.sansSerif[fontFamilyWeight] ?? fontFamilies.sansSerif.regular;
 
-  // Get fontSize from size variant
+  // Get fontSize and lineHeight from size variant
   const fontSize = FONT_SIZES[finalSize];
+  const lineHeight = LINE_HEIGHTS[finalSize];
   const letterSpacing = LETTER_SPACING[finalSize];
+
+  // If style overrides fontSize without lineHeight, drop the preset lineHeight
+  // so RN uses its default (avoids clipping text with a mismatched lineHeight)
+  const flatStyle = style ? StyleSheet.flatten(style as any) : undefined;
+  const styleHasFontSize = flatStyle && "fontSize" in flatStyle;
+  const styleHasLineHeight = flatStyle && "lineHeight" in flatStyle;
+  const resolvedLineHeight = styleHasFontSize && !styleHasLineHeight ? undefined : lineHeight;
 
   // Simple i18n placeholder - in a real app, this would use a proper i18n library
   const i18nText = tx ? tx : text;
@@ -164,6 +191,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
           color,
           fontFamily,
           fontSize,
+          ...(resolvedLineHeight !== undefined && { lineHeight: resolvedLineHeight }),
           userSelect: "auto", // Changed from "none" to allow text selection
           ...(letterSpacing !== undefined && { letterSpacing }),
           ...(align && { textAlign: align }),
@@ -181,7 +209,7 @@ StyledText.displayName = "StyledText";
 
 /**
  * Serif Text Component
- * Uses serif font family (Merriweather)
+ * Uses serif font family (DM Serif Display)
  */
 export function SerifText(props: TextProps) {
   return <StyledText {...props} variant="serif" />;
@@ -189,7 +217,7 @@ export function SerifText(props: TextProps) {
 
 /**
  * Sans-Serif Text Component
- * Uses sans-serif font family (Lato)
+ * Uses sans-serif font family (DM Sans)
  */
 export function SansSerifText(props: TextProps) {
   return <StyledText {...props} variant="sansSerif" />;
@@ -197,38 +225,46 @@ export function SansSerifText(props: TextProps) {
 
 /**
  * Serif Bold Text Component
- * Uses serif font family with bold weight
+ * Uses serif font family — DM Serif Display only has regular weight
  */
 export function SerifBoldText(props: TextProps) {
-  return <StyledText {...props} variant="serif" fontWeight="bold" />;
+  return <StyledText {...props} variant="serif" fontWeight="regular" />;
 }
 
 /**
  * Sans-Serif Bold Text Component
- * Uses sans-serif font family with bold weight
+ * Uses sans-serif font family with semibold weight (DM Sans 600)
  */
 export function SansSerifBoldText(props: TextProps) {
-  return <StyledText {...props} variant="sansSerif" fontWeight="bold" />;
+  return <StyledText {...props} variant="sansSerif" fontWeight="semibold" />;
+}
+
+/**
+ * Display Text Component
+ * Uses DM Serif Display at display size — for hero text and splash screens
+ */
+export function DisplayText(props: TextProps) {
+  return <StyledText {...props} variant="serif" size="display" />;
 }
 
 // Export convenience components for semantic variants
 
 /**
- * Title Text - Extra large bold text for page titles
+ * Title Text - Large semibold text for page titles
  */
 export function TitleText(props: TextProps) {
   return <StyledText {...props} semantic="title" />;
 }
 
 /**
- * Heading Text - Large bold text for section headings
+ * Heading Text - Section heading text
  */
 export function HeadingText(props: TextProps) {
   return <StyledText {...props} semantic="heading" />;
 }
 
 /**
- * Subheading Text - Medium-large bold text for subsections
+ * Subheading Text - Subsection heading text
  */
 export function SubheadingText(props: TextProps) {
   return <StyledText {...props} semantic="subheading" />;
@@ -249,7 +285,7 @@ export function CaptionText(props: TextProps) {
 }
 
 /**
- * Label Text - Small bold text for form labels
+ * Label Text - Medium weight text for form labels
  */
 export function LabelText(props: TextProps) {
   return <StyledText {...props} semantic="label" />;

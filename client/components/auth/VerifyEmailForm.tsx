@@ -130,6 +130,8 @@ export function VerifyEmailForm({
           editable={!loading}
           error={!!codeError}
           errorText={codeError}
+          returnKeyType="go"
+          onSubmitEditing={handleSubmit}
         />
 
         <Button

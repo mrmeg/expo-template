@@ -1,5 +1,5 @@
 import React from "react";
-import { TouchableWithoutFeedback, Keyboard, StyleProp, ViewStyle, Platform, KeyboardAvoidingView, ScrollView } from "react-native";
+import { Pressable, Keyboard, StyleProp, ViewStyle, Platform, KeyboardAvoidingView, ScrollView } from "react-native";
 
 type Props = {
   children: React.ReactNode;
@@ -18,6 +18,7 @@ export const DismissKeyboard = ({ children, style, avoidKeyboard = true, scrolla
 
   const content = scrollable ? (
     <ScrollView
+      style={{ flex: 1 }}
       contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -30,9 +31,9 @@ export const DismissKeyboard = ({ children, style, avoidKeyboard = true, scrolla
 
   if (!avoidKeyboard) {
     return (
-      <TouchableWithoutFeedback onPress={handlePress} accessible={false}>
+      <Pressable onPress={handlePress} accessible={false} style={{ flex: 1 }}>
         {content}
-      </TouchableWithoutFeedback>
+      </Pressable>
     );
   }
 
@@ -42,9 +43,9 @@ export const DismissKeyboard = ({ children, style, avoidKeyboard = true, scrolla
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
-      <TouchableWithoutFeedback onPress={handlePress} accessible={false}>
+      <Pressable onPress={handlePress} accessible={false} style={{ flex: 1 }}>
         {content}
-      </TouchableWithoutFeedback>
+      </Pressable>
     </KeyboardAvoidingView>
   );
 };

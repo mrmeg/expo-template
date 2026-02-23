@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import React, { useState, useRef } from "react";
+import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform, TextInput as RNTextInput } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import {
@@ -55,6 +55,10 @@ export function SignUpForm({
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
+
+  const emailRef = useRef<RNTextInput>(null);
+  const passwordRef = useRef<RNTextInput>(null);
+  const confirmPasswordRef = useRef<RNTextInput>(null);
 
   const validateName = (value: string): boolean => {
     if (!requireName) {
@@ -170,12 +174,16 @@ export function SignUpForm({
               autoCorrect={false}
               editable={!loading}
               required
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => emailRef.current?.focus()}
             />
           </View>
         )}
 
         <View style={styles.inputGroup}>
           <TextInput
+            ref={emailRef}
             label="Email"
             placeholder="name@example.com"
             value={email}
@@ -192,11 +200,15 @@ export function SignUpForm({
             autoCorrect={false}
             editable={!loading}
             required
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordRef.current?.focus()}
           />
         </View>
 
         <View style={styles.inputGroup}>
           <TextInput
+            ref={passwordRef}
             label="Password"
             placeholder="Create a password"
             value={password}
@@ -216,11 +228,15 @@ export function SignUpForm({
             autoComplete="new-password"
             editable={!loading}
             required
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
           />
         </View>
 
         <View style={styles.inputGroup}>
           <TextInput
+            ref={confirmPasswordRef}
             label="Confirm Password"
             placeholder="Confirm your password"
             value={confirmPassword}
@@ -237,6 +253,8 @@ export function SignUpForm({
             autoComplete="new-password"
             editable={!loading}
             required
+            returnKeyType="go"
+            onSubmitEditing={handleSubmit}
           />
         </View>
 
