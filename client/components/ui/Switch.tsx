@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Platform, Animated, StyleSheet, StyleProp, ViewStyle, ActivityIndicator } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
+import { useReducedMotion } from "react-native-reanimated";
 import { spacing } from "@/client/constants/spacing";
 import * as SwitchPrimitives from "@rn-primitives/switch";
 import { fontFamilies } from "@/client/constants/fonts";
@@ -30,12 +31,12 @@ interface SwitchProps extends Omit<SwitchPrimitives.RootProps, "style"> {
   labelOff?: string;
   /**
    * Custom size for the switch container
-   * Default: { width: 52, height: 28 }
+   * Default: { width: 44, height: 24 }
    */
   size?: { width: number; height: number };
   /**
-   * Custom size for the thumb (sliding circle)
-   * Default: 24
+   * Custom size for the thumb (sliding circle).
+   * Defaults to height - 4 (2px padding on each side).
    */
   thumbSize?: number;
   /**
@@ -112,26 +113,29 @@ function Switch({
   variant = "default",
   labelOn,
   labelOff,
-  size = { width: 40, height: 20 },
-  thumbSize = 16,
+  size = { width: 44, height: 24 },
+  thumbSize: thumbSizeProp,
   loading = false,
   style: styleOverride,
   animationTension = 180,
   animationFriction = 12,
   ...props
 }: SwitchProps) {
-  const { theme, getContrastingColor } = useTheme();
+  const { theme, getContrastingColor, withAlpha } = useTheme();
+  const reduceMotion = useReducedMotion();
 
-  // Dynamic border color with sufficient contrast against background
-  const borderColor = getContrastingColor(
-    theme.colors.background,
-    theme.colors.muted,
-    theme.colors.mutedForeground
-  );
+  // Thumb is inset within the track with consistent padding
+  const trackPadding = 2;
+  const thumbSize = thumbSizeProp ?? size.height - trackPadding * 2;
 
-  // Calculate label color for ON state (when checked, background is primary)
+  // Track colors
+  const isIOS = variant === "ios";
+  const trackColorOn = isIOS ? "#34C759" : theme.colors.accent;
+  const trackColorOff = theme.colors.muted;
+
+  // Calculate label color for ON state
   const labelOnColor = getContrastingColor(
-    theme.colors.primary,
+    trackColorOn,
     palette.white,
     palette.black
   );
@@ -146,17 +150,26 @@ function Switch({
 
   // Animate on checked state change
   useEffect(() => {
+    const target = props.checked ? 1 : 0;
+
+    if (reduceMotion) {
+      thumbPosition.setValue(target);
+      labelOnOpacity.setValue(target);
+      labelOffOpacity.setValue(props.checked ? 0 : 1);
+      return;
+    }
+
     const useNativeDriver = Platform.OS !== "web";
 
     Animated.parallel([
       Animated.spring(thumbPosition, {
-        toValue: props.checked ? 1 : 0,
+        toValue: target,
         tension: animationTension,
         friction: animationFriction,
         useNativeDriver,
       }),
       Animated.timing(labelOnOpacity, {
-        toValue: props.checked ? 1 : 0,
+        toValue: target,
         duration: 150,
         useNativeDriver,
       }),
@@ -166,22 +179,16 @@ function Switch({
         useNativeDriver,
       }),
     ]).start();
-  }, [props.checked, thumbPosition, labelOnOpacity, labelOffOpacity, animationTension, animationFriction]);
+  }, [props.checked, thumbPosition, labelOnOpacity, labelOffOpacity, animationTension, animationFriction, reduceMotion]);
 
-  // Interpolate thumb position
+  // Interpolate thumb position — stays within track padding
   const animatedThumbTranslateX = thumbPosition.interpolate({
     inputRange: [0, 1],
-    outputRange: [2, size.width - thumbSize - 2],
+    outputRange: [trackPadding, size.width - thumbSize - trackPadding],
   });
 
   // Flatten style override for web compatibility
   const flattenedStyle = styleOverride ? StyleSheet.flatten(styleOverride) : undefined;
-
-  // iOS variant styling
-  const isIOS = variant === "ios";
-  const iosBackgroundColor = props.checked
-    ? "#34C759" // iOS green
-    : theme.colors.muted;
 
   return (
     <SwitchPrimitives.Root
@@ -191,12 +198,9 @@ function Switch({
         width: size.width,
         height: size.height,
         borderRadius: size.height / 2,
-        borderWidth: 0,
-        borderColor: props.checked ? theme.colors.primary : borderColor,
-        backgroundColor: isIOS
-          ? iosBackgroundColor
-          : (props.checked ? theme.colors.primary : theme.colors.muted),
+        backgroundColor: props.checked ? trackColorOn : trackColorOff,
         justifyContent: "center",
+        overflow: "hidden",
         opacity: props.disabled ? 0.5 : 1,
         ...(Platform.OS === "web" && { cursor: "pointer" as any }),
         ...(flattenedStyle || {}),
@@ -245,20 +249,25 @@ function Switch({
             transform: [{ translateX: animatedThumbTranslateX }],
             justifyContent: "center",
             alignItems: "center",
-            ...(Platform.OS !== "web" && {
-              shadowColor: theme.colors.overlay,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: isIOS ? 0.15 : 0.25,
-              shadowRadius: isIOS ? 2 : 3,
-              elevation: isIOS ? 2 : 3,
-            }),
+            // Cross-platform shadow for depth
+            ...(Platform.OS === "web"
+              ? {
+                  boxShadow: `0 1px 3px ${withAlpha(palette.black, 0.2)}`,
+                } as any
+              : {
+                  shadowColor: palette.black,
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 2,
+                  elevation: 2,
+                }),
           }}
         >
           {/* Loading spinner inside thumb */}
           {loading && (
             <ActivityIndicator
               size="small"
-              color={theme.colors.primary}
+              color={theme.colors.accent}
             />
           )}
         </Animated.View>

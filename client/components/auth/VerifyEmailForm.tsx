@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import {
@@ -50,6 +51,7 @@ export function VerifyEmailForm({
   logo,
   embedded = false,
 }: VerifyEmailFormProps) {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const styles = createStyles(theme);
 
@@ -57,7 +59,8 @@ export function VerifyEmailForm({
   const [codeError, setCodeError] = useState("");
   const [cooldown, setCooldown] = useState(0);
 
-  const defaultDescription = description || `We sent a verification code to ${email}. Enter the code below to verify your email address.`;
+  const resolvedTitle = title ?? t("auth.verifyEmailTitle");
+  const defaultDescription = description || t("auth.verifyEmailDescription", { email });
 
   useEffect(() => {
     if (cooldown > 0) {
@@ -68,11 +71,11 @@ export function VerifyEmailForm({
 
   const validateCode = (): boolean => {
     if (code.length !== codeLength) {
-      setCodeError(`Please enter all ${codeLength} digits`);
+      setCodeError(t("auth.enterAllDigits", { count: codeLength }));
       return false;
     }
     if (!/^\d+$/.test(code)) {
-      setCodeError("Code must contain only numbers");
+      setCodeError(t("auth.codeDigitsOnly"));
       return false;
     }
     setCodeError("");
@@ -105,81 +108,81 @@ export function VerifyEmailForm({
     <View style={styles.formWrapper}>
       {logo && <View style={styles.logoContainer}>{logo}</View>}
       <Card style={styles.card}>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{defaultDescription}</CardDescription>
-      </CardHeader>
+        <CardHeader>
+          <CardTitle>{resolvedTitle}</CardTitle>
+          <CardDescription>{defaultDescription}</CardDescription>
+        </CardHeader>
 
-      <CardContent style={styles.content}>
-        {!!error && (
-          <View style={styles.errorContainer}>
-            <SansSerifText style={styles.errorText}>{error}</SansSerifText>
-          </View>
-        )}
+        <CardContent style={styles.content}>
+          {!!error && (
+            <View style={styles.errorContainer}>
+              <SansSerifText style={styles.errorText}>{error}</SansSerifText>
+            </View>
+          )}
 
-        {/* Simple visible input */}
-        <TextInput
-          label="Verification Code"
-          placeholder="Enter 6-digit code"
-          value={code}
-          onChangeText={handleCodeChange}
-          keyboardType="number-pad"
-          maxLength={codeLength}
-          autoComplete="one-time-code"
-          textContentType="oneTimeCode"
-          editable={!loading}
-          error={!!codeError}
-          errorText={codeError}
-          returnKeyType="go"
-          onSubmitEditing={handleSubmit}
-        />
+          {/* Simple visible input */}
+          <TextInput
+            label={t("auth.verificationCode")}
+            placeholder={t("auth.enterDigitCode", { count: codeLength })}
+            value={code}
+            onChangeText={handleCodeChange}
+            keyboardType="number-pad"
+            maxLength={codeLength}
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
+            editable={!loading}
+            error={!!codeError}
+            errorText={codeError}
+            returnKeyType="go"
+            onSubmitEditing={handleSubmit}
+          />
 
-        <Button
-          preset="default"
-          onPress={handleSubmit}
-          loading={loading}
-          disabled={loading || code.length !== codeLength}
-          fullWidth
-        >
-          <SansSerifBoldText>Verify Email</SansSerifBoldText>
-        </Button>
+          <Button
+            preset="default"
+            onPress={handleSubmit}
+            loading={loading}
+            disabled={loading || code.length !== codeLength}
+            fullWidth
+          >
+            <SansSerifBoldText>{t("auth.verifyEmailButton")}</SansSerifBoldText>
+          </Button>
 
-        <View style={styles.resendContainer}>
-          <SansSerifText style={styles.resendText}>
-              Didn't receive the code?{" "}
-          </SansSerifText>
-          {cooldown > 0 ? (
-            <SansSerifText style={styles.cooldownText}>
-                Resend in {cooldown}s
+          <View style={styles.resendContainer}>
+            <SansSerifText style={styles.resendText}>
+              {t("auth.didntReceiveCode")}{" "}
             </SansSerifText>
-          ) : (
-            <Pressable onPress={handleResend} disabled={loading || resending}>
-              <SansSerifBoldText style={styles.resendLink}>
-                {resending ? "Sending..." : "Resend code"}
-              </SansSerifBoldText>
+            {cooldown > 0 ? (
+              <SansSerifText style={styles.cooldownText}>
+                {t("auth.resendIn", { count: cooldown })}
+              </SansSerifText>
+            ) : (
+              <Pressable onPress={handleResend} disabled={loading || resending}>
+                <SansSerifBoldText style={styles.resendLink}>
+                  {resending ? t("auth.sending") : t("auth.resendCodeLink")}
+                </SansSerifBoldText>
+              </Pressable>
+            )}
+          </View>
+
+          {onChangeEmail && (
+            <Pressable onPress={onChangeEmail} disabled={loading} style={styles.changeEmail}>
+              <SansSerifText style={styles.changeEmailText}>
+                {t("auth.wrongEmail")} <SansSerifBoldText style={styles.changeEmailLink}>{t("auth.changeIt")}</SansSerifBoldText>
+              </SansSerifText>
             </Pressable>
           )}
-        </View>
+        </CardContent>
 
-        {onChangeEmail && (
-          <Pressable onPress={onChangeEmail} disabled={loading} style={styles.changeEmail}>
-            <SansSerifText style={styles.changeEmailText}>
-                Wrong email? <SansSerifBoldText style={styles.changeEmailLink}>Change it</SansSerifBoldText>
-            </SansSerifText>
-          </Pressable>
+        {onBack && (
+          <CardFooter style={styles.footer}>
+            <Pressable onPress={onBack} disabled={loading}>
+              <SansSerifText style={styles.backLink}>
+                {t("auth.backToSignIn")}
+              </SansSerifText>
+            </Pressable>
+          </CardFooter>
         )}
-      </CardContent>
-
-      {onBack && (
-        <CardFooter style={styles.footer}>
-          <Pressable onPress={onBack} disabled={loading}>
-            <SansSerifText style={styles.backLink}>
-                ← Back to sign in
-            </SansSerifText>
-          </Pressable>
-        </CardFooter>
-      )}
-    </Card>
+      </Card>
     </View>
   );
 

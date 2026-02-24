@@ -1,5 +1,6 @@
-import * as React from "react";
+import { useEffect, useRef } from "react";
 import { Animated, Platform, Pressable, View, ViewStyle } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { Icon } from "@/client/components/ui/Icon";
 import { TextClassContext } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
@@ -88,16 +89,22 @@ function AccordionTrigger({
   children?: React.ReactNode;
 } & React.RefAttributes<AccordionPrimitive.TriggerRef>) {
   const { theme } = useTheme();
+  const reduceMotion = useReducedMotion();
   const { isExpanded } = AccordionPrimitive.useItemContext();
-  const rotateAnim = React.useRef(new Animated.Value(0)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
 
-  React.useEffect(() => {
+  useEffect(() => {
+    const target = isExpanded ? 1 : 0;
+    if (reduceMotion) {
+      rotateAnim.setValue(target);
+      return;
+    }
     Animated.timing(rotateAnim, {
-      toValue: isExpanded ? 1 : 0,
+      toValue: target,
       duration: isExpanded ? 200 : 150,
       useNativeDriver: true,
     }).start();
-  }, [isExpanded, rotateAnim]);
+  }, [isExpanded, rotateAnim, reduceMotion]);
 
   const rotate = rotateAnim.interpolate({
     inputRange: [0, 1],

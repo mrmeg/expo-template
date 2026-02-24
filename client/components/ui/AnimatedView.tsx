@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Animated, ViewProps, Easing } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 
 /**
  * Animation type options
@@ -68,6 +69,8 @@ export function AnimatedView({
   style,
   ...props
 }: AnimatedViewProps) {
+  const reduceMotion = useReducedMotion();
+
   // Create animation state
   const [animationState] = useState({
     fadeAnim: new Animated.Value(0),
@@ -77,6 +80,13 @@ export function AnimatedView({
 
   // Trigger animation on mount
   useEffect(() => {
+    // If reduced motion, skip to final state immediately
+    if (reduceMotion) {
+      animationState.fadeAnim.setValue(1);
+      animationState.translateAnim.setValue(0);
+      animationState.scaleAnim.setValue(1);
+      return;
+    }
     // Reset animations based on type
     if (type === "fade") {
       animationState.fadeAnim.setValue(0);
@@ -142,7 +152,7 @@ export function AnimatedView({
         useNativeDriver: true,
       }).start();
     };
-  }, [animationState, enterDuration, exitDuration, delay, type]);
+  }, [animationState, enterDuration, exitDuration, delay, type, reduceMotion]);
 
   // Build animated style based on type
   const getAnimatedStyle = () => {

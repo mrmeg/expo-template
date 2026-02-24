@@ -1,12 +1,11 @@
 /**
- * KeyboardStickyFooter
+ * KeyboardStickyFooter (Native)
  *
- * A footer wrapper that sticks above the keyboard on mobile devices.
- * Uses react-native-keyboard-controller's KeyboardStickyView for reliable
- * keyboard-aware behavior on both iOS and Android.
+ * Uses KeyboardStickyView from react-native-keyboard-controller to animate
+ * the footer above the keyboard on iOS and Android.
  */
 
-import { Platform, View, ViewProps, StyleSheet } from "react-native";
+import { View, ViewProps, StyleSheet } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/client/hooks/useTheme";
@@ -20,28 +19,20 @@ export function KeyboardStickyFooter({ children, style, ...props }: KeyboardStic
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
 
-  const footerStyle = [
-    styles.footer,
-    {
-      paddingBottom: insets.bottom || spacing.lg,
-      borderTopColor: theme.colors.border,
-      backgroundColor: theme.colors.card,
-    },
-    style,
-  ];
-
-  // Web doesn't support KeyboardStickyView
-  if (Platform.OS === "web") {
-    return (
-      <View style={footerStyle} {...props}>
-        {children}
-      </View>
-    );
-  }
-
   return (
     <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
-      <View style={footerStyle} {...props}>
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom: insets.bottom || spacing.lg,
+            borderTopColor: theme.colors.border,
+            backgroundColor: theme.colors.card,
+          },
+          style,
+        ]}
+        {...props}
+      >
         {children}
       </View>
     </KeyboardStickyView>

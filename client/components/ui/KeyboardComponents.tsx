@@ -36,13 +36,15 @@ const WebKeyboardAwareScrollView: React.FC<KeyboardAwareScrollViewProps> = ({
   children,
   style,
   contentContainerStyle,
-  showsVerticalScrollIndicator
+  showsVerticalScrollIndicator,
+  keyboardShouldPersistTaps,
 }) => {
   return (
     <ScrollView
       style={style}
       contentContainerStyle={contentContainerStyle}
       showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+      keyboardShouldPersistTaps={keyboardShouldPersistTaps}
     >
       {children}
     </ScrollView>

@@ -1,5 +1,6 @@
 import React, { forwardRef } from "react";
 import { Text as RNText, TextProps as RNTextProps, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/client/hooks/useTheme";
 import { fontFamilies } from "@/client/constants/fonts";
 
@@ -148,6 +149,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
   } = props;
 
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   // Check if there's a color override from parent context (e.g., Button)
   const contextColor = React.useContext(TextColorContext);
@@ -179,8 +181,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
   const styleHasLineHeight = flatStyle && "lineHeight" in flatStyle;
   const resolvedLineHeight = styleHasFontSize && !styleHasLineHeight ? undefined : lineHeight;
 
-  // Simple i18n placeholder - in a real app, this would use a proper i18n library
-  const i18nText = tx ? tx : text;
+  const i18nText = tx ? String(t(tx, txOptions as any)) : text;
   const content = i18nText || children;
 
   return (

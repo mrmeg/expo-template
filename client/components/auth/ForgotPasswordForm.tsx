@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import {
@@ -35,25 +36,29 @@ export function ForgotPasswordForm({
   loading = false,
   error,
   success = false,
-  title = "Forgot password?",
-  description = "Enter your email address and we'll send you a link to reset your password.",
+  title,
+  description,
   logo,
   embedded = false,
 }: ForgotPasswordFormProps) {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const styles = createStyles(theme);
+
+  const resolvedTitle = title ?? t("auth.forgotPasswordTitle");
+  const resolvedDescription = description ?? t("auth.forgotPasswordDescription");
 
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
 
   const validateEmail = (value: string): boolean => {
     if (!value.trim()) {
-      setEmailError("Email is required");
+      setEmailError(t("errors.emailRequired"));
       return false;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
-      setEmailError("Please enter a valid email");
+      setEmailError(t("errors.invalidEmail"));
       return false;
     }
     setEmailError("");
@@ -91,32 +96,32 @@ export function ForgotPasswordForm({
       <View style={styles.formWrapper}>
         {logo && <View style={styles.logoContainer}>{logo}</View>}
         <Card style={styles.card}>
-        <CardHeader>
-          <CardTitle>Check your email</CardTitle>
-          <CardDescription>
-            We've sent a password reset link to {email}. Please check your inbox and follow the instructions.
-          </CardDescription>
-        </CardHeader>
+          <CardHeader>
+            <CardTitle>{t("auth.checkYourEmail")}</CardTitle>
+            <CardDescription>
+              {t("auth.resetLinkSentDescription", { email })}
+            </CardDescription>
+          </CardHeader>
 
-        <CardContent style={styles.content}>
-          <View style={styles.successContainer}>
-            <SansSerifText style={styles.successText}>
-              Didn't receive the email? Check your spam folder or try again.
-            </SansSerifText>
-          </View>
+          <CardContent style={styles.content}>
+            <View style={styles.successContainer}>
+              <SansSerifText style={styles.successText}>
+                {t("auth.didntReceiveEmail")}
+              </SansSerifText>
+            </View>
 
-          <Button
-            preset="outline"
-            onPress={() => {
-              setEmail("");
-              onBack?.();
-            }}
-            fullWidth
-          >
-            <SansSerifBoldText>Back to sign in</SansSerifBoldText>
-          </Button>
-        </CardContent>
-      </Card>
+            <Button
+              preset="outline"
+              onPress={() => {
+                setEmail("");
+                onBack?.();
+              }}
+              fullWidth
+            >
+              <SansSerifBoldText>{t("auth.backToSignIn")}</SansSerifBoldText>
+            </Button>
+          </CardContent>
+        </Card>
       </View>
     );
   }
@@ -125,62 +130,62 @@ export function ForgotPasswordForm({
     <View style={styles.formWrapper}>
       {logo && <View style={styles.logoContainer}>{logo}</View>}
       <Card style={styles.card}>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
+        <CardHeader>
+          <CardTitle>{resolvedTitle}</CardTitle>
+          <CardDescription>{resolvedDescription}</CardDescription>
+        </CardHeader>
 
-      <CardContent style={styles.content}>
-        {!!error && (
-          <View style={styles.errorContainer}>
-            <SansSerifText style={styles.errorText}>{error}</SansSerifText>
+        <CardContent style={styles.content}>
+          {!!error && (
+            <View style={styles.errorContainer}>
+              <SansSerifText style={styles.errorText}>{error}</SansSerifText>
+            </View>
+          )}
+
+          <View style={styles.inputGroup}>
+            <TextInput
+              label={t("auth.email")}
+              placeholder={t("auth.emailPlaceholder")}
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (emailError) validateEmail(text);
+              }}
+              onBlur={() => validateEmail(email)}
+              error={!!emailError}
+              errorText={emailError}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              editable={!loading}
+              required
+              returnKeyType="go"
+              onSubmitEditing={handleSubmit}
+            />
           </View>
+
+          <Button
+            preset="default"
+            onPress={handleSubmit}
+            loading={loading}
+            disabled={loading}
+            fullWidth
+          >
+            <SansSerifBoldText>{t("auth.sendResetLink")}</SansSerifBoldText>
+          </Button>
+        </CardContent>
+
+        {onBack && (
+          <CardFooter style={styles.footer}>
+            <Pressable onPress={onBack} disabled={loading}>
+              <SansSerifText style={styles.backLink}>
+                {t("auth.backToSignIn")}
+              </SansSerifText>
+            </Pressable>
+          </CardFooter>
         )}
-
-        <View style={styles.inputGroup}>
-          <TextInput
-            label="Email"
-            placeholder="name@example.com"
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              if (emailError) validateEmail(text);
-            }}
-            onBlur={() => validateEmail(email)}
-            error={!!emailError}
-            errorText={emailError}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            autoCorrect={false}
-            editable={!loading}
-            required
-            returnKeyType="go"
-            onSubmitEditing={handleSubmit}
-          />
-        </View>
-
-        <Button
-          preset="default"
-          onPress={handleSubmit}
-          loading={loading}
-          disabled={loading}
-          fullWidth
-        >
-          <SansSerifBoldText>Send Reset Link</SansSerifBoldText>
-        </Button>
-      </CardContent>
-
-      {onBack && (
-        <CardFooter style={styles.footer}>
-          <Pressable onPress={onBack} disabled={loading}>
-            <SansSerifText style={styles.backLink}>
-              ← Back to sign in
-            </SansSerifText>
-          </Pressable>
-        </CardFooter>
-      )}
-    </Card>
+      </Card>
     </View>
   );
 }

@@ -1,5 +1,7 @@
 import React, { useContext, useEffect } from "react";
 import { StyleSheet, View, ActivityIndicator, Animated, TouchableOpacity } from "react-native";
+import { useTranslation } from "react-i18next";
+import { useReducedMotion } from "react-native-reanimated";
 import { globalUIStore } from "@/client/stores/globalUIStore";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { fontFamilies } from "@/client/constants/fonts";
@@ -27,7 +29,9 @@ import type { Theme } from "@/client/constants/colors";
  * });
  */
 export const Notification = () => {
+  const { t } = useTranslation();
   const { theme, getShadowStyle } = useTheme();
+  const reduceMotion = useReducedMotion();
   const insets = useContext(SafeAreaInsetsContext);
   const { alert, hide } = globalUIStore();
   const styles = createStyles(theme);
@@ -48,30 +52,36 @@ export const Notification = () => {
 
     // Only run entrance animation when transitioning from hidden to visible
     if (isNowVisible && !wasVisible) {
-      // Reset animations before starting
-      animationState.fadeAnim.setValue(0);
-      animationState.translateY.setValue(-20);
-      animationState.scale.setValue(0.95);
+      if (reduceMotion) {
+        animationState.fadeAnim.setValue(1);
+        animationState.translateY.setValue(0);
+        animationState.scale.setValue(1);
+      } else {
+        // Reset animations before starting
+        animationState.fadeAnim.setValue(0);
+        animationState.translateY.setValue(-20);
+        animationState.scale.setValue(0.95);
 
-      Animated.parallel([
-        Animated.timing(animationState.fadeAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.spring(animationState.translateY, {
-          toValue: 0,
-          tension: 80,
-          friction: 9,
-          useNativeDriver: true,
-        }),
-        Animated.spring(animationState.scale, {
-          toValue: 1,
-          tension: 100,
-          friction: 8,
-          useNativeDriver: true,
-        })
-      ]).start();
+        Animated.parallel([
+          Animated.timing(animationState.fadeAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.spring(animationState.translateY, {
+            toValue: 0,
+            tension: 80,
+            friction: 9,
+            useNativeDriver: true,
+          }),
+          Animated.spring(animationState.scale, {
+            toValue: 1,
+            tension: 100,
+            friction: 8,
+            useNativeDriver: true,
+          })
+        ]).start();
+      }
     }
 
     // Update ref for next render
@@ -88,6 +98,14 @@ export const Notification = () => {
   }, [alert, animationState]);
 
   const animateOut = () => {
+    if (reduceMotion) {
+      animationState.fadeAnim.setValue(0);
+      animationState.translateY.setValue(-20);
+      animationState.scale.setValue(0.95);
+      hide();
+      return;
+    }
+
     Animated.parallel([
       Animated.timing(animationState.fadeAnim, {
         toValue: 0,
@@ -111,16 +129,16 @@ export const Notification = () => {
 
   const getIconProps = (): { icon: IconName; color: string } => {
     switch (alert?.type) {
-    case "error":
-      return { icon: "alert-circle", color: theme.colors.destructive };
-    case "success":
-      return { icon: "check-circle", color: theme.colors.success };
-    case "warning":
-      return { icon: "alert-triangle", color: theme.colors.warning };
-    case "info":
-      return { icon: "info", color: theme.colors.text };
-    default:
-      return { icon: "info", color: theme.colors.text };
+      case "error":
+        return { icon: "alert-circle", color: theme.colors.destructive };
+      case "success":
+        return { icon: "check-circle", color: theme.colors.success };
+      case "warning":
+        return { icon: "alert-triangle", color: theme.colors.warning };
+      case "info":
+        return { icon: "info", color: theme.colors.text };
+      default:
+        return { icon: "info", color: theme.colors.text };
     }
   };
 
@@ -128,21 +146,23 @@ export const Notification = () => {
     if (alert?.title) return alert.title;
 
     switch (alert?.type) {
-    case "error":
-      return "Error";
-    case "success":
-      return "Success";
-    case "warning":
-      return "Warning";
-    case "info":
-      return "";
-    default:
-      return "";
+      case "error":
+        return t("notification.error");
+      case "success":
+        return t("notification.success");
+      case "warning":
+        return t("notification.warning");
+      case "info":
+        return "";
+      default:
+        return "";
     }
   };
 
   return (
     <Animated.View
+      accessibilityLiveRegion="polite"
+      accessibilityRole="alert"
       style={[
         styles.container,
         {
