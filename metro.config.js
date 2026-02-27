@@ -3,8 +3,28 @@ const { getDefaultConfig } = require("expo/metro-config");
 const {
   wrapWithReanimatedMetroConfig,
 } = require("react-native-reanimated/metro-config");
+const path = require("path");
 
 const config = getDefaultConfig(__dirname);
+
+// Deduplicate @react-navigation packages to prevent context mismatch
+// between expo-router's nested copy and the hoisted copy (bun hoisting issue)
+const dedupePackages = {
+  "@react-navigation/native": path.resolve(__dirname, "node_modules/@react-navigation/native"),
+  "@react-navigation/core": path.resolve(__dirname, "node_modules/@react-navigation/core"),
+};
+const originalResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  for (const [pkg, pkgPath] of Object.entries(dedupePackages)) {
+    if (moduleName === pkg || moduleName.startsWith(pkg + "/")) {
+      const newName = moduleName.replace(pkg, pkgPath);
+      const resolve = originalResolveRequest || context.resolveRequest;
+      return resolve(context, newName, platform);
+    }
+  }
+  const resolve = originalResolveRequest || context.resolveRequest;
+  return resolve(context, moduleName, platform);
+};
 
 config.transformer.getTransformOptions = async () => ({
   transform: {
@@ -17,7 +37,6 @@ config.transformer.getTransformOptions = async () => ({
 // FFmpeg Video Conversion (OPTIONAL)
 // To remove: Delete from here to "END FFmpeg" and delete client/lib/videoConversion/
 // ============================================================================
-const path = require("path");
 const fs = require("fs");
 
 const ffmpegWorkerPath = path.join(__dirname, "/client/lib/videoConversion/ffmpeg-worker.js");
