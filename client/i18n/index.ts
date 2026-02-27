@@ -16,6 +16,7 @@ import { initReactI18next } from "react-i18next";
 import "intl-pluralrules";
 
 import en, { type Translations } from "./en";
+import { useLanguageStore } from "@/client/stores/languageStore";
 
 // Default/fallback locale
 const fallbackLocale = "en";
@@ -73,10 +74,14 @@ async function loadLocale(lang: string): Promise<Record<string, any> | null> {
 }
 
 /**
- * Initialize i18n - call this before rendering the app
+ * Initialize i18n - call this before rendering the app.
+ * Restores a saved language preference, or falls back to device locale.
  */
 export async function initI18n(): Promise<typeof i18n> {
+  // Check for a persisted language preference
+  const savedLang = await useLanguageStore.getState().loadLanguage();
   const detectedLang = locale?.languageTag.split("-")[0] ?? fallbackLocale;
+  const initialLang = savedLang && supportedTags.includes(savedLang) ? savedLang : detectedLang;
 
   // Start with English (always bundled)
   const resources: Record<string, { translation: any }> = {
@@ -84,16 +89,16 @@ export async function initI18n(): Promise<typeof i18n> {
   };
 
   // Lazy-load non-default locale if needed
-  if (detectedLang !== "en") {
-    const translations = await loadLocale(detectedLang);
+  if (initialLang !== "en") {
+    const translations = await loadLocale(initialLang);
     if (translations) {
-      resources[detectedLang] = { translation: translations };
+      resources[initialLang] = { translation: translations };
     }
   }
 
   await i18n.use(initReactI18next).init({
     resources,
-    lng: detectedLang,
+    lng: initialLang,
     fallbackLng: fallbackLocale,
     interpolation: {
       escapeValue: false, // React already escapes
@@ -114,7 +119,7 @@ export function getCurrentLanguage(): string {
 }
 
 /**
- * Change the app language
+ * Change the app language and persist the preference
  */
 export async function setLanguage(languageCode: string): Promise<void> {
   // Load locale bundle if not already loaded
@@ -125,6 +130,7 @@ export async function setLanguage(languageCode: string): Promise<void> {
     }
   }
   await i18n.changeLanguage(languageCode);
+  useLanguageStore.getState().setUserLanguage(languageCode);
 }
 
 // Re-export i18n instance

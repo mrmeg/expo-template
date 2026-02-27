@@ -6,6 +6,7 @@ import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledT
 import { Icon } from "@/client/components/ui/Icon";
 import type { IconName } from "@/client/components/ui/Icon";
 import { useTranslation } from "react-i18next";
+import { setLanguage } from "@/client/i18n";
 import Config from "@/client/config";
 import type { Theme } from "@/client/constants/colors";
 
@@ -30,7 +31,7 @@ export default function SettingsScreen() {
   ];
 
   const handleLanguageChange = (langCode: string) => {
-    i18n.changeLanguage(langCode);
+    setLanguage(langCode);
   };
 
   return (
