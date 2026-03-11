@@ -16,15 +16,11 @@ export default function MainLayout() {
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: true, title: "Explore", headerBackTitle: " " }} />
       <Stack.Screen name="showcase/index" options={{ title: "UI Components" }} />
-      <Stack.Screen name="showcase/buttons" options={{ title: "Buttons" }} />
-      <Stack.Screen name="showcase/forms" options={{ title: "Form Controls" }} />
-      <Stack.Screen name="showcase/navigation" options={{ title: "Navigation & Menus" }} />
-      <Stack.Screen name="showcase/feedback" options={{ title: "Feedback" }} />
-      <Stack.Screen name="showcase/typography" options={{ title: "Typography & Icons" }} />
-      <Stack.Screen name="showcase/auth-forms" options={{ title: "Auth Forms" }} />
       <Stack.Screen name="developer" options={{ title: "Developer Tools" }} />
       <Stack.Screen name="form-demo" options={{ title: "Form Validation" }} />
       <Stack.Screen name="auth-demo" options={{ title: "Auth Demo" }} />
+      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+      <Stack.Screen name="detail-hero" options={{ headerShown: false }} />
     </Stack>
   );
 }

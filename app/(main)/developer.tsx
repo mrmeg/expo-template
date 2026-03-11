@@ -214,7 +214,7 @@ export default function DeveloperScreen() {
         {/* Debug Tools */}
         <View style={[styles.section, getShadowStyle("subtle")]}>
           <View style={styles.sectionHeader}>
-            <Icon name="bug" color={theme.colors.primary} size={20} />
+            <Icon name="terminal" color={theme.colors.primary} size={20} />
             <SansSerifBoldText style={styles.sectionTitle}>
               Debug Tools
             </SansSerifBoldText>

@@ -167,7 +167,6 @@ export function VideoPlayer({
             style={styles.video}
             contentFit="contain"
             nativeControls
-            allowsFullscreen
             allowsPictureInPicture={Platform.OS !== "web"}
           />
         </View>

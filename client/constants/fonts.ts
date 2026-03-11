@@ -33,10 +33,11 @@ const WEB_FONT_STACK =
   "system-ui, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\"";
 
 export const fontFamilies = {
-  serif: {
-    regular: "Merriweather_400Regular",
-    bold: "Merriweather_700Bold",
-  },
+  serif: Platform.select({
+    ios: { regular: "Georgia", bold: "Georgia" },
+    web: { regular: "Georgia, 'Times New Roman', serif", bold: "Georgia, 'Times New Roman', serif" },
+    default: { regular: "serif", bold: "serif" },
+  })!,
   sansSerif: {
     regular: "Lato_400Regular",
     bold: "Lato_700Bold",

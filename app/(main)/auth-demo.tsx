@@ -25,13 +25,13 @@ function AuthStateBadge({ state }: { state: AuthState }) {
       bgColor: theme.colors.warning + "20",
     },
     authenticated: {
-      icon: "shield-check",
+      icon: "shield",
       color: theme.colors.success,
       label: "Authenticated",
       bgColor: theme.colors.success + "20",
     },
     unauthenticated: {
-      icon: "shield-alert",
+      icon: "shield-off",
       color: theme.colors.destructive,
       label: "Unauthenticated",
       bgColor: theme.colors.destructive + "20",

@@ -6,7 +6,6 @@ import * as ToggleGroupPrimitive from "@rn-primitives/toggle-group";
 import * as React from "react";
 import { Platform } from "react-native";
 import type { IconName } from "@/client/components/ui/Icon";
-import { palette } from "@/client/constants/colors";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -174,7 +173,7 @@ function ToggleGroupItem({
   children,
   ...props
 }: ToggleGroupItemProps) {
-  const { theme, getContrastingColor, withAlpha } = useTheme();
+  const { theme, withAlpha } = useTheme();
   const context = useToggleGroupContext();
   const { value: groupValue } = ToggleGroupPrimitive.useRootContext();
   const sizeConfig = TOGGLE_GROUP_SIZES[context.size];
@@ -186,17 +185,11 @@ function ToggleGroupItem({
   const getTextColor = () => {
     if (isSelected) {
       if (context.variant === "outline") {
-        return getContrastingColor(
-          theme.colors.primary,
-          palette.white,
-          palette.black
-        );
+        return theme.colors.primaryForeground;
       }
       return theme.colors.primary;
     }
-    return context.variant === "outline"
-      ? theme.colors.primary
-      : theme.colors.text;
+    return theme.colors.foreground;
   };
 
   const textColor = getTextColor();
@@ -228,7 +221,7 @@ function ToggleGroupItem({
             // Outline variant styles
             ...(context.variant === "outline" && !isSelected && {
               backgroundColor: "transparent",
-              borderColor: theme.colors.primary,
+              borderColor: theme.colors.border,
             }),
             ...(context.variant === "outline" && isSelected && {
               backgroundColor: theme.colors.primary,

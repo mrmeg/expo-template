@@ -164,7 +164,7 @@ export default function ProfileScreen() {
               <View style={styles.divider} />
               <View style={styles.infoRow}>
                 <View style={styles.infoRowLeft}>
-                  <Icon name="crown" size={18} color={theme.colors.warning} />
+                  <Icon name="award" size={18} color={theme.colors.warning} />
                   <SansSerifText style={styles.infoLabel}>Plan</SansSerifText>
                 </View>
                 <SansSerifText style={[styles.infoValue, { color: theme.colors.warning }]}>

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { StyleProp, ViewStyle, View } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 
 /**
  * Theme color names that can be used as shortcuts
@@ -18,37 +18,11 @@ export type ThemeColorName =
   | "text"
   | "textDim";
 
-/** Icons that use MaterialCommunityIcons (not available in Feather) */
-const mciIconSet = new Set<string>([
-  "cursor-default-click",
-  "cursor-text",
-  "clipboard-list",
-  "bug",
-  "crown",
-  "shield-check",
-  "shield-alert",
-  "folder-open",
-  "link-off",
-]);
-
-type MCIIconName =
-  | "cursor-default-click"
-  | "cursor-text"
-  | "clipboard-list"
-  | "bug"
-  | "crown"
-  | "shield-check"
-  | "shield-alert"
-  | "folder-open"
-  | "link-off";
-
-type FeatherIconName = React.ComponentProps<typeof Feather>["name"];
-
-export type IconName = FeatherIconName | MCIIconName;
+export type IconName = React.ComponentProps<typeof Feather>["name"];
 
 export interface IconProps {
   /**
-   * The icon name to render (Feather or MaterialCommunityIcons)
+   * The icon name to render (Feather icons)
    */
   name: IconName;
   /**
@@ -68,16 +42,13 @@ export interface IconProps {
 
 /**
  * Universal Icon Component
- * Wraps @expo/vector-icons with theme integration and style support
- *
- * Uses Feather icons by default, falls back to MaterialCommunityIcons
- * for icons not available in Feather.
+ * Wraps @expo/vector-icons Feather with theme integration and style support
  *
  * Usage:
  * ```tsx
  * <Icon name="check" color="primary" size={16} />
  * <Icon name="calendar" color="#FF0000" size={24} />
- * <Icon name="bug" style={{ marginRight: 8 }} />
+ * <Icon name="terminal" style={{ marginRight: 8 }} />
  * ```
  */
 export function Icon({
@@ -122,19 +93,11 @@ export function Icon({
   // intercepting touches when used inside TouchableOpacity on iOS
   return (
     <View pointerEvents="none" style={style}>
-      {mciIconSet.has(name) ? (
-        <MaterialCommunityIcons
-          name={name as any}
-          size={size}
-          color={iconColor}
-        />
-      ) : (
-        <Feather
-          name={name as FeatherIconName}
-          size={size}
-          color={iconColor}
-        />
-      )}
+      <Feather
+        name={name}
+        size={size}
+        color={iconColor}
+      />
     </View>
   );
 }

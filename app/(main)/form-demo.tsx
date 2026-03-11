@@ -290,7 +290,7 @@ export default function FormDemoScreen() {
                 secureTextEntry
                 autoComplete="new-password"
               />
-              {formData.password && (
+              {!!formData.password && (
                 <View style={styles.strengthContainer}>
                   <View style={styles.strengthBar}>
                     <View

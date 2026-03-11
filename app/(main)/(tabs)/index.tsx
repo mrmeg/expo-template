@@ -15,19 +15,15 @@ interface NavItem {
 }
 
 const componentItems: NavItem[] = [
-  { href: "/(main)/showcase", icon: "layers", label: "All Components", description: "Overview" },
-  { href: "/(main)/showcase/buttons", icon: "cursor-default-click", label: "Buttons" },
-  { href: "/(main)/showcase/forms", icon: "cursor-text", label: "Form Controls" },
-  { href: "/(main)/showcase/navigation", icon: "navigation", label: "Navigation & Menus" },
-  { href: "/(main)/showcase/feedback", icon: "bell", label: "Feedback" },
-  { href: "/(main)/showcase/typography", icon: "type", label: "Typography & Icons" },
+  { href: "/(main)/showcase", icon: "layers", label: "UI Components", description: "Buttons, forms, navigation, and more" },
 ];
 
 const demoItems: NavItem[] = [
-  { href: "/(main)/showcase/auth-forms", icon: "lock", label: "Auth Forms" },
-  { href: "/(main)/form-demo", icon: "clipboard-list", label: "Form Validation" },
+  { href: "/(main)/form-demo", icon: "clipboard", label: "Form Validation" },
   { href: "/(main)/auth-demo", icon: "lock", label: "Auth Demo" },
   { href: "/(main)/developer", icon: "tool", label: "Developer Tools" },
+  { href: "/(main)/onboarding", icon: "compass", label: "Onboarding Flow" },
+  { href: "/(main)/detail-hero", icon: "box", label: "Detail / Hero Screen" },
 ];
 
 export default function ExploreScreen() {

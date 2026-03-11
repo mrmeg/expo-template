@@ -250,7 +250,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
     return (
       <View style={wrapperStyle}>
         {/* Label */}
-        {label && (
+        {!!label && (
           <View style={styles.labelContainer}>
             <StyledText style={styles.label}>
               {label}
@@ -343,7 +343,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
         </View>
 
         {/* Helper Text or Error Text */}
-        {(helperText || errorText) && (
+        {!!(helperText || errorText) && (
           <StyledText
             style={[
               styles.helperText,

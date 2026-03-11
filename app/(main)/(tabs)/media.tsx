@@ -253,7 +253,7 @@ export default function MediaScreen() {
       ) : data?.items.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Icon
-            name="folder-open"
+            name="folder"
             size={48}
             color={theme.colors.mutedForeground}
           />
