@@ -198,6 +198,9 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
           ...(align && { textAlign: align }),
         },
         style,
+        // When a parent (Button, ToggleGroupItem) sets TextColorContext,
+        // that color must win over any color in the style prop
+        contextColor != null && { color: contextColor },
       ]}
       {...otherProps}
     >

@@ -1,11 +1,11 @@
+import type { IconName } from "@/client/components/ui/Icon";
 import { Icon } from "@/client/components/ui/Icon";
 import { TextClassContext, TextColorContext } from "@/client/components/ui/StyledText";
-import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
+import { useTheme } from "@/client/hooks/useTheme";
 import * as ToggleGroupPrimitive from "@rn-primitives/toggle-group";
 import * as React from "react";
 import { Platform } from "react-native";
-import type { IconName } from "@/client/components/ui/Icon";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -173,7 +173,7 @@ function ToggleGroupItem({
   children,
   ...props
 }: ToggleGroupItemProps) {
-  const { theme, withAlpha } = useTheme();
+  const { theme, withAlpha, getContrastingColor } = useTheme();
   const context = useToggleGroupContext();
   const { value: groupValue } = ToggleGroupPrimitive.useRootContext();
   const sizeConfig = TOGGLE_GROUP_SIZES[context.size];
@@ -181,18 +181,17 @@ function ToggleGroupItem({
   // Check if this item is selected
   const isSelected = ToggleGroupPrimitive.utils.getIsSelected(groupValue, props.value);
 
-  // Calculate text color based on state and variant
-  const getTextColor = () => {
-    if (isSelected) {
-      if (context.variant === "outline") {
-        return theme.colors.primaryForeground;
-      }
-      return theme.colors.primary;
-    }
-    return theme.colors.foreground;
-  };
+  // Determine the actual background color for this item
+  const itemBgColor = (() => {
+    if (context.variant === "outline" && isSelected) return theme.colors.primary;
+    if (context.variant === "default" && isSelected) return theme.colors.background;
+    return theme.colors.background;
+  })();
 
-  const textColor = getTextColor();
+  // Calculate text color with contrast against the actual background
+  const textColor = isSelected
+    ? getContrastingColor(itemBgColor, theme.colors.foreground, theme.colors.background)
+    : theme.colors.foreground;
 
   return (
     <TextColorContext.Provider value={textColor}>
@@ -288,5 +287,6 @@ function ToggleGroupIcon({ name, size, color }: ToggleGroupIconProps) {
   return <Icon name={name} size={size || spacing.iconMd} color={color} />;
 }
 
-export { ToggleGroup, ToggleGroupItem, ToggleGroupIcon };
-export type { ToggleGroupProps, ToggleGroupVariant, ToggleGroupSize };
+export { ToggleGroup, ToggleGroupIcon, ToggleGroupItem };
+export type { ToggleGroupProps, ToggleGroupSize, ToggleGroupVariant };
+
