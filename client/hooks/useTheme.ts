@@ -63,7 +63,8 @@ export function useTheme(): ExtendedColorScheme & {
   setTheme: (theme: "system" | "light" | "dark") => void;
   currentTheme: "system" | "light" | "dark";
   } {
-  const { userTheme, setTheme } = useThemeStore();
+  const userTheme = useThemeStore((s) => s.userTheme);
+  const setTheme = useThemeStore((s) => s.setTheme);
   let defaultScheme = useColorSchemeDefault();
 
   // Ensure a scheme is selected, even if we fail to get one
@@ -169,30 +170,18 @@ export function useTheme(): ExtendedColorScheme & {
     );
   };
 
-  const colorScheme: ExtendedColorScheme & {
-    toggleTheme: () => void;
-    setTheme: (theme: "system" | "light" | "dark") => void;
-    currentTheme: "system" | "light" | "dark";
-  } = {
-    theme: theme,
+  return {
+    theme,
     scheme: theme.dark ? "dark" : "light",
-    // Shadow helper function
     getShadowStyle,
-    // Theme switching methods
     toggleTheme,
     setTheme,
     currentTheme: userTheme,
-    // Color utility methods (using cached version for performance)
     getContrastingColor: getCachedContrastingColor,
-    getTextColorForBackground: (backgroundColor: string) =>
-      getTextColorForBackground(backgroundColor),
-    withAlpha: (color: string, alpha: number) =>
-      withAlpha(color, alpha),
-    getContrastRatio: (color1: string, color2: string) =>
-      getContrastRatio(color1, color2)
+    getTextColorForBackground,
+    withAlpha,
+    getContrastRatio,
   };
-
-  return colorScheme;
 }
 
 

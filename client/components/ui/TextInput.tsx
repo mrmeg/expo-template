@@ -28,6 +28,8 @@ export type TextInputSize = "sm" | "md" | "lg";
  */
 export type TextInputVariant = "outline" | "filled" | "underlined";
 
+const NUMERIC_REGEX = /^[0-9]*$/;
+
 const SIZE_CONFIGS: Record<
   TextInputSize,
   {
@@ -208,8 +210,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
 
     // Handle numeric input validation
     const handleNumericChange = (input: string) => {
-      const numericRegex = /^[0-9]*$/;
-      if (numericRegex.test(input)) {
+      if (NUMERIC_REGEX.test(input)) {
         onChangeText?.(input);
       }
     };
@@ -247,6 +248,20 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
 
     const shouldScroll = multiline && rest.scrollEnabled !== false && contentHeight > 100;
 
+    const handleFocus = (e: any) => {
+      setFocused(true);
+      onFocus?.(e);
+    };
+
+    const handleBlur = (e: any) => {
+      setFocused(false);
+      onBlur?.(e);
+    };
+
+    const togglePasswordVisible = () => {
+      setPasswordVisible(v => !v);
+    };
+
     return (
       <View style={wrapperStyle}>
         {/* Label */}
@@ -276,14 +291,8 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
             onChangeText={
               inputMode === "numeric" ? handleNumericChange : handleTextChange
             }
-            onFocus={(e) => {
-              setFocused(true);
-              onFocus?.(e);
-            }}
-            onBlur={(e) => {
-              setFocused(false);
-              onBlur?.(e);
-            }}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             onContentSizeChange={(e) =>
               setContentHeight(e.nativeEvent.contentSize.height)
             }
@@ -329,7 +338,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
           {secureTextEntry && showSecureEntryToggle && (
             <Pressable
               style={styles.passwordToggle}
-              onPress={() => setPasswordVisible(!passwordVisible)}
+              onPress={togglePasswordVisible}
               accessibilityLabel={passwordVisible ? "Hide password" : "Show password"}
               accessibilityRole="button"
             >

@@ -101,6 +101,22 @@ export default function Root({ children }: PropsWithChildren) {
         {/* Global CSS Styles */}
         <style dangerouslySetInnerHTML={{ __html: cssStyles }} />
 
+        {/* React Scan - render highlighting
+            To enable: set EXPO_PUBLIC_REACT_SCAN=true (npm run web:scan / build:scan)
+            Injected unconditionally since +html.tsx runs in Node during static export
+            where EXPO_PUBLIC_ vars aren't reliably available. The script is tiny and
+            only activates its overlay in dev or when explicitly enabled. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (new URLSearchParams(window.location.search).has('scan')) {
+                var s = document.createElement('script');
+                s.src = 'https://unpkg.com/react-scan/dist/auto.global.js';
+                document.head.appendChild(s);
+              }
+            `,
+          }}
+        />
       </head>
       <body>{children}</body>
     </html>

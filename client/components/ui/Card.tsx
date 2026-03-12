@@ -1,4 +1,4 @@
-import React from "react";
+import React, { createContext, useContext } from "react";
 import { View, StyleSheet, ViewStyle, TextStyle, StyleProp } from "react-native";
 import { StyledText, TextProps } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
@@ -28,6 +28,18 @@ import type { Theme } from "@/client/constants/colors";
  * ```
  */
 
+const CardContext = createContext<{ theme: Theme; styles: ReturnType<typeof createCardStyles> } | null>(null);
+
+function useCardContext() {
+  const ctx = useContext(CardContext);
+  if (!ctx) {
+    // Fallback for standalone usage without Card parent
+    const { theme } = useTheme();
+    return { theme, styles: createCardStyles(theme) };
+  }
+  return ctx;
+}
+
 export interface CardProps {
   /** Card contents */
   children?: React.ReactNode;
@@ -40,19 +52,22 @@ export interface CardProps {
 function Card({ children, style: styleOverride, variant = "default" }: CardProps) {
   const { theme } = useTheme();
   const styles = createCardStyles(theme);
+  const ctx = { theme, styles };
 
   return (
-    <View
-      style={[
-        styles.card,
-        variant === "default" && styles.cardDefault,
-        variant === "outline" && styles.cardOutline,
-        variant === "ghost" && styles.cardGhost,
-        styleOverride,
-      ]}
-    >
-      {children}
-    </View>
+    <CardContext.Provider value={ctx}>
+      <View
+        style={[
+          styles.card,
+          variant === "default" && styles.cardDefault,
+          variant === "outline" && styles.cardOutline,
+          variant === "ghost" && styles.cardGhost,
+          styleOverride,
+        ]}
+      >
+        {children}
+      </View>
+    </CardContext.Provider>
   );
 }
 
@@ -62,7 +77,7 @@ export interface CardHeaderProps {
 }
 
 function CardHeader({ children, style: styleOverride }: CardHeaderProps) {
-  const styles = createCardStyles(useTheme().theme);
+  const { styles } = useCardContext();
 
   return (
     <View style={[styles.header, styleOverride]}>
@@ -77,7 +92,7 @@ export interface CardContentProps {
 }
 
 function CardContent({ children, style: styleOverride }: CardContentProps) {
-  const styles = createCardStyles(useTheme().theme);
+  const { styles } = useCardContext();
 
   return (
     <View style={[styles.content, styleOverride]}>
@@ -92,7 +107,7 @@ export interface CardFooterProps {
 }
 
 function CardFooter({ children, style: styleOverride }: CardFooterProps) {
-  const styles = createCardStyles(useTheme().theme);
+  const { styles } = useCardContext();
 
   return (
     <View style={[styles.footer, styleOverride]}>
@@ -107,8 +122,7 @@ export interface CardTitleProps extends Omit<TextProps, "style"> {
 }
 
 function CardTitle({ children, style: styleOverride, ...props }: CardTitleProps) {
-  const { theme } = useTheme();
-  const styles = createCardStyles(theme);
+  const { theme, styles } = useCardContext();
 
   return (
     <StyledText
@@ -127,8 +141,7 @@ export interface CardDescriptionProps extends Omit<TextProps, "style"> {
 }
 
 function CardDescription({ children, style: styleOverride, ...props }: CardDescriptionProps) {
-  const { theme } = useTheme();
-  const styles = createCardStyles(theme);
+  const { theme, styles } = useCardContext();
 
   return (
     <StyledText

@@ -2,6 +2,7 @@ import * as React from "react";
 import { StyleProp, ViewStyle, View } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { Feather } from "@expo/vector-icons";
+import type { Theme } from "@/client/constants/colors";
 
 /**
  * Theme color names that can be used as shortcuts
@@ -17,6 +18,19 @@ export type ThemeColorName =
   | "warning"
   | "text"
   | "textDim";
+
+const THEME_COLOR_KEYS: readonly ThemeColorName[] = [
+  "primary", "primaryForeground", "secondary", "muted",
+  "destructive", "success", "warning", "text", "textDim",
+] as const;
+
+function resolveIconColor(color: string | ThemeColorName | undefined, themeColors: Theme["colors"]): string {
+  if (!color) return themeColors.text;
+  if (THEME_COLOR_KEYS.includes(color as ThemeColorName)) {
+    return themeColors[color as ThemeColorName];
+  }
+  return color;
+}
 
 export type IconName = React.ComponentProps<typeof Feather>["name"];
 
@@ -58,36 +72,7 @@ export function Icon({
   style,
 }: IconProps) {
   const { theme } = useTheme();
-
-  // Determine if color is a theme color name or a custom color
-  const getIconColor = (): string => {
-    if (!color) {
-      return theme.colors.text;
-    }
-
-    // Check if it's a theme color name
-    const themeColorNames: Record<ThemeColorName, string> = {
-      primary: theme.colors.primary,
-      primaryForeground: theme.colors.primaryForeground,
-      secondary: theme.colors.secondary,
-      muted: theme.colors.muted,
-      destructive: theme.colors.destructive,
-      success: theme.colors.success,
-      warning: theme.colors.warning,
-      text: theme.colors.text,
-      textDim: theme.colors.textDim,
-    };
-
-    // If it's a known theme color, use it
-    if (color in themeColorNames) {
-      return themeColorNames[color as ThemeColorName];
-    }
-
-    // Otherwise, treat it as a custom color string
-    return color;
-  };
-
-  const iconColor = getIconColor();
+  const iconColor = resolveIconColor(color, theme.colors);
 
   // Wrap in View with pointerEvents="none" to prevent icons from
   // intercepting touches when used inside TouchableOpacity on iOS

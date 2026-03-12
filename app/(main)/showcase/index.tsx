@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { Link } from "expo-router";
 import { KeyboardAwareScrollView } from "@/client/lib/keyboard-controller";
 import { StyledText } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
@@ -85,6 +86,20 @@ export default function ShowcaseScreen() {
         <View style={styles.content}>
           <View style={styles.header}>
             <ThemeToggle />
+          </View>
+
+          {/* Deep navigation test */}
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: spacing.lg }}>
+            <Link href="/(main)/form-demo" asChild>
+              <Button preset="outline">
+                <StyledText style={styles.outlineButtonText}>Go to Form Demo</StyledText>
+              </Button>
+            </Link>
+            <Link href="/(main)/developer" asChild>
+              <Button preset="outline">
+                <StyledText style={styles.outlineButtonText}>Go to Developer</StyledText>
+              </Button>
+            </Link>
           </View>
 
           {/* ============================================ */}
