@@ -15,8 +15,8 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import "intl-pluralrules";
 
-import en, { type Translations } from "./en";
-import { useLanguageStore } from "@/client/stores/languageStore";
+import en, { type Translations } from "./translations/en";
+import { useLanguageStore } from "./stores/languageStore";
 
 // Default/fallback locale
 const fallbackLocale = "en";
@@ -67,7 +67,7 @@ if (locale?.textDirection === "rtl") {
 async function loadLocale(lang: string): Promise<Record<string, any> | null> {
   switch (lang) {
   case "es":
-    return (await import("./es")).default;
+    return (await import("./translations/es")).default;
   default:
     return null;
   }

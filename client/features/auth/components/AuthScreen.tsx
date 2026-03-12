@@ -8,7 +8,7 @@ import { VerifyEmailForm } from "./VerifyEmailForm";
 import { ResetPasswordForm } from "./ResetPasswordForm";
 import { DismissKeyboard } from "@/client/components/ui/DismissKeyboard";
 import { SerifText } from "@/client/components/ui/StyledText";
-import { useAuth } from "@/client/hooks/useAuth";
+import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import type { Theme } from "@/client/constants/colors";

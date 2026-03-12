@@ -4,18 +4,18 @@ import * as ImagePicker from "expo-image-picker";
 import * as Crypto from "expo-crypto";
 import { Alert } from "@/client/components/ui/Alert";
 import { logDev } from "@/client/devtools";
-import { extractVideoThumbnail } from "@/client/hooks/useVideoThumbnails";
-import { globalUIStore } from "@/client/stores/globalUIStore";
-import { useCompressionStore } from "@/client/stores/compressionStore";
+import { extractVideoThumbnail } from "./useVideoThumbnails";
+import { globalUIStore } from "@/client/features/notifications/globalUIStore";
+import { useCompressionStore } from "../stores/compressionStore";
 import {
   compressImage,
   convertHeicToJpeg,
   type CompressionConfig,
   type ImagePreset,
-} from "@/client/lib/imageCompression";
+} from "../lib/imageCompression";
 // Import utils/config directly to avoid loading FFmpeg via the index barrel export
-import { needsConversion } from "@/client/lib/videoConversion/utils";
-import { MAX_CLIENT_CONVERSION_SIZE } from "@/client/lib/videoConversion/config";
+import { needsConversion } from "../lib/videoConversion/utils";
+import { MAX_CLIENT_CONVERSION_SIZE } from "../lib/videoConversion/config";
 
 /**
  * Get image dimensions from a blob by loading it as an HTMLImageElement.
@@ -249,7 +249,7 @@ export function useMediaLibrary() {
             // Dynamic import to avoid loading FFmpeg until needed
             // (FFmpeg uses import.meta which crashes Metro on module load)
             const { convertVideo } = await import(
-              "@/client/lib/videoConversion/convert"
+              "../lib/videoConversion/convert"
             );
             const blobUri = URL.createObjectURL(blob);
             const converted = await convertVideo(

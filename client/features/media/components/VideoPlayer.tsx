@@ -27,8 +27,8 @@ import {
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
-import { Icon } from "./ui/Icon";
-import { SansSerifText } from "./ui/StyledText";
+import { Icon } from "@/client/components/ui/Icon";
+import { SansSerifText } from "@/client/components/ui/StyledText";
 import type { Theme } from "@/client/constants/colors";
 import {
   useSafeAreaInsets,

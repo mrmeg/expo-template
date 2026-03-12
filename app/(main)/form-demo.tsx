@@ -16,7 +16,7 @@ import {
 import { Button } from "@/client/components/ui/Button";
 import { TextInput } from "@/client/components/ui/TextInput";
 import { Checkbox } from "@/client/components/ui/Checkbox";
-import { globalUIStore } from "@/client/stores/globalUIStore";
+import { globalUIStore } from "@/client/features/notifications/globalUIStore";
 import type { Theme } from "@/client/constants/colors";
 
 // Form field types

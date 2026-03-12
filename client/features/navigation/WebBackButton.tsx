@@ -2,7 +2,7 @@ import { Platform, Pressable } from "react-native";
 import { router } from "expo-router";
 import { Icon } from "@/client/components/ui/Icon";
 import { useTheme } from "@/client/hooks/useTheme";
-import { canGoBack } from "@/client/utils/backBehavior";
+import { canGoBack } from "./backBehavior";
 
 /**
  * Back button for web that handles the case where browser refresh

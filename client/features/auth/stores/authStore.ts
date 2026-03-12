@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ensureAmplifyConfigured } from "@/amplify";
+import { ensureAmplifyConfigured } from "../config";
 
 export interface User {
   userId: string;

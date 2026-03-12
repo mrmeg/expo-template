@@ -7,9 +7,9 @@ import { Button } from "@/client/components/ui/Button";
 import { Switch } from "@/client/components/ui/Switch";
 import { Icon } from "@/client/components/ui/Icon";
 import { Alert } from "@/client/components/ui/Alert";
-import { globalUIStore } from "@/client/stores/globalUIStore";
-import { useAuthStore } from "@/client/stores/authStore";
-import { useAuth } from "@/client/hooks/useAuth";
+import { globalUIStore } from "@/client/features/notifications/globalUIStore";
+import { useAuthStore } from "@/client/features/auth/stores/authStore";
+import { useAuth } from "@/client/features/auth/hooks/useAuth";
 import type { Theme } from "@/client/constants/colors";
 import { palette } from "@/client/constants/colors";
 

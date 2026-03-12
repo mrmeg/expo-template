@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useAuthStore, initAuth } from "@/client/stores/authStore";
+import { useAuthStore, initAuth } from "../stores/authStore";
 
 export function useAuth() {
   const { initialize, setPendingVerificationEmail, setError } = useAuthStore();

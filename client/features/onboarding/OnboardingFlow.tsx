@@ -8,9 +8,9 @@ import {
   Platform,
   ViewToken,
 } from "react-native";
-import { SansSerifBoldText, SansSerifText } from "./StyledText";
-import { Button } from "./Button";
-import { Icon, type IconName } from "./Icon";
+import { SansSerifBoldText, SansSerifText } from "@/client/components/ui/StyledText";
+import { Button } from "@/client/components/ui/Button";
+import { Icon, type IconName } from "@/client/components/ui/Icon";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import type { Theme } from "@/client/constants/colors";

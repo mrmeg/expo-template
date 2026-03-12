@@ -2,14 +2,14 @@ import React, { useContext, useEffect } from "react";
 import { StyleSheet, View, ActivityIndicator, Animated, TouchableOpacity } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useReducedMotion } from "react-native-reanimated";
-import { globalUIStore } from "@/client/stores/globalUIStore";
+import { globalUIStore } from "./globalUIStore";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { fontFamilies } from "@/client/constants/fonts";
-import { Icon } from "./Icon";
-import type { IconName } from "./Icon";
+import { Icon } from "@/client/components/ui/Icon";
+import type { IconName } from "@/client/components/ui/Icon";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
-import { StyledText } from "./StyledText";
+import { StyledText } from "@/client/components/ui/StyledText";
 import type { Theme } from "@/client/constants/colors";
 
 /**

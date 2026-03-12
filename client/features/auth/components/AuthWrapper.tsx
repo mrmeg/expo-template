@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { useAuthStore } from "@/client/stores/authStore";
-import { useAuth } from "@/client/hooks/useAuth";
+import { useAuthStore } from "../stores/authStore";
+import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "@/client/hooks/useTheme";
 import { AuthScreen } from "./AuthScreen";
 import type { Theme } from "@/client/constants/colors";

@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import { useTheme } from "@/client/hooks/useTheme";
-import { WebBackButton } from "@/client/components/ui/WebBackButton";
+import { WebBackButton } from "@/client/features/navigation/WebBackButton";
 
 const isWeb = Platform.OS === "web";
 const webHeaderLeft = isWeb

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AuthWrapper } from "@/client/components/auth/AuthWrapper";
-import { useAuth } from "@/client/hooks/useAuth";
-import { useAuthStore, AuthState } from "@/client/stores/authStore";
+import { AuthWrapper } from "@/client/features/auth/components/AuthWrapper";
+import { useAuth } from "@/client/features/auth/hooks/useAuth";
+import { useAuthStore, AuthState } from "@/client/features/auth/stores/authStore";
 import { useTheme } from "@/client/hooks/useTheme";
 import { Button } from "@/client/components/ui/Button";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/client/components/ui/Card";

@@ -2,8 +2,8 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { OnboardingFlow, type OnboardingPage } from "@/client/components/ui/OnboardingFlow";
-import { useOnboardingStore } from "@/client/stores/onboardingStore";
+import { OnboardingFlow, type OnboardingPage } from "@/client/features/onboarding/OnboardingFlow";
+import { useOnboardingStore } from "@/client/features/onboarding/onboardingStore";
 import { useTheme } from "@/client/hooks/useTheme";
 import type { Theme } from "@/client/constants/colors";
 

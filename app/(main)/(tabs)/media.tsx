@@ -16,19 +16,19 @@ import {
 } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
 import { Icon } from "@/client/components/ui/Icon";
-import { VideoPlayer } from "@/client/components/VideoPlayer";
-import { useMediaList, formatBytes } from "@/client/hooks/useMediaList";
-import { useSignedUrls } from "@/client/hooks/useSignedUrls";
-import { useMediaDelete } from "@/client/hooks/useMediaDelete";
-import { useMediaUpload } from "@/client/hooks/useMediaUpload";
-import { useMediaLibrary } from "@/client/hooks/useMediaLibrary";
+import { VideoPlayer } from "@/client/features/media/components/VideoPlayer";
+import { useMediaList, formatBytes } from "@/client/features/media/hooks/useMediaList";
+import { useSignedUrls } from "@/client/features/media/hooks/useSignedUrls";
+import { useMediaDelete } from "@/client/features/media/hooks/useMediaDelete";
+import { useMediaUpload } from "@/client/features/media/hooks/useMediaUpload";
+import { useMediaLibrary } from "@/client/features/media/hooks/useMediaLibrary";
 import {
   MEDIA_PATHS,
   isVideoKey,
   isImageKey,
   getVideoThumbnailKey,
 } from "@/shared/media";
-import { globalUIStore } from "@/client/stores/globalUIStore";
+import { globalUIStore } from "@/client/features/notifications/globalUIStore";
 import { logDev } from "@/client/devtools";
 import type { Theme } from "@/client/constants/colors";
 

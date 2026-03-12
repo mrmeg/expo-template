@@ -10,7 +10,7 @@ import {
   IMAGE_PRESETS,
   DEFAULT_PRESET,
   resolveCompressionConfig,
-} from "@/client/lib/imageCompression";
+} from "../lib/imageCompression";
 
 interface CompressionState {
   /** Default preset used when no compression option is specified */
