@@ -201,7 +201,7 @@ export default function DeveloperScreen() {
 
           <Button
             preset="default"
-            onPress={() => router.push("/auth-demo" as any)}
+            onPress={() => router.push("/(main)/(demos)/auth-demo" as any)}
             fullWidth
           >
             <Icon name="lock" color={theme.colors.primaryForeground} size={16} />

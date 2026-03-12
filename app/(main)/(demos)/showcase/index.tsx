@@ -90,12 +90,12 @@ export default function ShowcaseScreen() {
 
           {/* Deep navigation test */}
           <View style={{ flexDirection: "row", gap: 8, marginBottom: spacing.lg }}>
-            <Link href="/(main)/form-demo" asChild>
+            <Link href="/(main)/(demos)/form-demo" asChild>
               <Button preset="outline">
                 <StyledText style={styles.outlineButtonText}>Go to Form Demo</StyledText>
               </Button>
             </Link>
-            <Link href="/(main)/developer" asChild>
+            <Link href="/(main)/(demos)/developer" asChild>
               <Button preset="outline">
                 <StyledText style={styles.outlineButtonText}>Go to Developer</StyledText>
               </Button>

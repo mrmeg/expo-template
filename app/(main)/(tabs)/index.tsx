@@ -15,15 +15,15 @@ interface NavItem {
 }
 
 const componentItems: NavItem[] = [
-  { href: "/(main)/showcase", icon: "layers", label: "UI Components", description: "Buttons, forms, navigation, and more" },
+  { href: "/(main)/(demos)/showcase", icon: "layers", label: "UI Components", description: "Buttons, forms, navigation, and more" },
 ];
 
 const demoItems: NavItem[] = [
-  { href: "/(main)/form-demo", icon: "clipboard", label: "Form Validation" },
-  { href: "/(main)/auth-demo", icon: "lock", label: "Auth Demo" },
-  { href: "/(main)/developer", icon: "tool", label: "Developer Tools" },
-  { href: "/(main)/onboarding", icon: "compass", label: "Onboarding Flow" },
-  { href: "/(main)/detail-hero", icon: "box", label: "Detail / Hero Screen" },
+  { href: "/(main)/(demos)/form-demo", icon: "clipboard", label: "Form Validation" },
+  { href: "/(main)/(demos)/auth-demo", icon: "lock", label: "Auth Demo" },
+  { href: "/(main)/(demos)/developer", icon: "tool", label: "Developer Tools" },
+  { href: "/(main)/(demos)/onboarding", icon: "compass", label: "Onboarding Flow" },
+  { href: "/(main)/(demos)/detail-hero", icon: "box", label: "Detail / Hero Screen" },
 ];
 
 export default function ExploreScreen() {
