@@ -103,7 +103,7 @@ function TooltipContent({
     <TooltipPrimitive.Portal hostName={portalHost}>
       <FullWindowOverlay>
         <TooltipPrimitive.Overlay style={Platform.select({ native: StyleSheet.absoluteFill })}>
-          <AnimatedView type="fade" enterDuration={150} exitDuration={100}>
+          <AnimatedView type="fade" enterDuration={150}>
             <TextColorContext.Provider value={colors.text}>
               <TextClassContext.Provider value="">
                 <TooltipPrimitive.Content

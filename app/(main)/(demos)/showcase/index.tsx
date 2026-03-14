@@ -830,6 +830,51 @@ export default function ShowcaseScreen() {
                 <StyledText style={styles.outlineButtonText}>Show Loading</StyledText>
               </Button>
             </SubSection>
+            <SubSection label="Bottom Toast">
+              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                <Button
+                  preset="outline"
+                  onPress={() => {
+                    globalUIStore.getState().show({
+                      type: "success",
+                      title: "Copied to clipboard",
+                      duration: 2000,
+                      position: "bottom",
+                    });
+                  }}
+                >
+                  <StyledText style={styles.outlineButtonText}>Success Toast</StyledText>
+                </Button>
+                <Button
+                  preset="outline"
+                  onPress={() => {
+                    globalUIStore.getState().show({
+                      type: "info",
+                      title: "Item saved",
+                      messages: ["Your changes have been saved."],
+                      duration: 2500,
+                      position: "bottom",
+                    });
+                  }}
+                >
+                  <StyledText style={styles.outlineButtonText}>Info Toast</StyledText>
+                </Button>
+                <Button
+                  preset="outline"
+                  onPress={() => {
+                    globalUIStore.getState().show({
+                      type: "error",
+                      title: "Failed to upload",
+                      messages: ["Check your connection and try again."],
+                      duration: 3000,
+                      position: "bottom",
+                    });
+                  }}
+                >
+                  <StyledText style={styles.outlineButtonText}>Error Toast</StyledText>
+                </Button>
+              </View>
+            </SubSection>
           </Section>
 
           <Section title="Tooltip">

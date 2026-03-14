@@ -6,7 +6,9 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
+import { AnimatedView } from "@/client/components/ui/AnimatedView";
 import { useTheme } from "@/client/hooks/useTheme";
+import { STAGGER_DELAY } from "@/client/hooks/useStaggeredEntrance";
 import { spacing } from "@/client/constants/spacing";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
@@ -72,12 +74,14 @@ export function PricingScreen({
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <SansSerifBoldText style={styles.title}>{title}</SansSerifBoldText>
-          {subtitle && (
-            <SansSerifText style={styles.subtitle}>{subtitle}</SansSerifText>
-          )}
-        </View>
+        <AnimatedView type="fadeSlideUp" delay={0}>
+          <View style={styles.header}>
+            <SansSerifBoldText style={styles.title}>{title}</SansSerifBoldText>
+            {subtitle && (
+              <SansSerifText style={styles.subtitle}>{subtitle}</SansSerifText>
+            )}
+          </View>
+        </AnimatedView>
 
         {/* Period Toggle */}
         {periodToggle && (
@@ -103,9 +107,13 @@ export function PricingScreen({
 
         {/* Plans */}
         <View style={styles.plansContainer}>
-          {plans.map((plan) => (
-            <View
+          {plans.map((plan, index) => (
+            <AnimatedView
               key={plan.name}
+              type="fadeSlideUp"
+              delay={STAGGER_DELAY * (3 + index)}
+            >
+            <View
               style={[
                 styles.planCard,
                 getShadowStyle("subtle"),
@@ -164,6 +172,7 @@ export function PricingScreen({
                 {plan.highlighted ? "Get Started" : "Select"}
               </Button>
             </View>
+            </AnimatedView>
           ))}
         </View>
 

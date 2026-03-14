@@ -18,10 +18,12 @@ type State = {
   alert: {
     show: boolean
     type: "error" | "success" | "info" | "warning"
-    messages: string[]
+    messages?: string[]
     title?: string
     duration?: number
     loading?: boolean
+    /** Where to display the notification */
+    position?: "top" | "bottom"
   } | null
 }
 

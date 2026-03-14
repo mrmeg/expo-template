@@ -1,9 +1,16 @@
 import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Pressable } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  useReducedMotion,
+} from "react-native-reanimated";
 import { Icon } from "@/client/components/ui/Icon";
 import { StyledText } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
+import { hapticLight } from "@/client/utils/haptics";
 import * as CheckboxPrimitive from "@rn-primitives/checkbox";
 
 const DEFAULT_HIT_SLOP = 8;
@@ -51,52 +58,6 @@ export interface CheckboxProps extends Omit<CheckboxPrimitive.RootProps, "style"
   required?: boolean;
 }
 
-/**
- * Enhanced Checkbox Component
- *
- * Features:
- * - Size variants (sm, md, lg)
- * - Optional label with required indicator
- * - Indeterminate state (dash icon)
- * - Error state styling
- * - Style prop support with web compatibility
- * - Full accessibility support
- * - Disabled state
- *
- * Usage:
- * ```tsx
- * // Basic
- * const [checked, setChecked] = useState(false);
- * <Checkbox checked={checked} onCheckedChange={setChecked} />
- *
- * // With label
- * <Checkbox
- *   checked={checked}
- *   onCheckedChange={setChecked}
- *   label="Accept terms"
- *   required
- * />
- *
- * // Indeterminate state
- * <Checkbox
- *   checked={false}
- *   indeterminate
- *   label="Select all"
- * />
- *
- * // With error
- * <Checkbox
- *   checked={checked}
- *   onCheckedChange={setChecked}
- *   label="Required field"
- *   error
- * />
- *
- * // Different sizes
- * <Checkbox size="sm" checked={checked} onCheckedChange={setChecked} />
- * <Checkbox size="lg" checked={checked} onCheckedChange={setChecked} />
- * ```
- */
 function Checkbox({
   size = "md",
   label,
@@ -111,10 +72,28 @@ function Checkbox({
   ...props
 }: CheckboxProps) {
   const { theme, getContrastingColor } = useTheme();
+  const reduceMotion = useReducedMotion();
   const sizeConfig = SIZE_CONFIGS[size];
 
+  // Simple fast opacity for the checkmark icon
+  const checkOpacity = useSharedValue(checked || indeterminate ? 1 : 0);
+
+  const wrappedOnCheckedChange = (next: boolean) => {
+    if (next) hapticLight();
+
+    if (reduceMotion) {
+      checkOpacity.value = withTiming(next ? 1 : 0, { duration: 0 });
+    } else {
+      checkOpacity.value = withTiming(next ? 1 : 0, { duration: 60 });
+    }
+    onCheckedChange?.(next);
+  };
+
+  const checkAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: checkOpacity.value,
+  }));
+
   // Dynamic border color with sufficient contrast against background
-  // React 19 compiler automatically memoizes this calculation
   const borderColor = error
     ? theme.colors.destructive
     : checked || indeterminate
@@ -132,7 +111,7 @@ function Checkbox({
     <CheckboxPrimitive.Root
       {...props}
       checked={checked}
-      onCheckedChange={onCheckedChange}
+      onCheckedChange={wrappedOnCheckedChange}
       disabled={disabled}
       style={{
         borderColor,
@@ -160,6 +139,7 @@ function Checkbox({
           alignItems: "center",
         }}
       >
+        <Animated.View style={checkAnimatedStyle}>
         {indeterminate ? (
           <Icon
             name="minus"
@@ -173,6 +153,7 @@ function Checkbox({
             color={theme.colors.primaryForeground}
           />
         )}
+        </Animated.View>
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );
@@ -185,7 +166,7 @@ function Checkbox({
   // With label, wrap in a container
   return (
     <Pressable
-      onPress={() => !disabled && onCheckedChange?.(!checked)}
+      onPress={() => !disabled && wrappedOnCheckedChange(!checked)}
       style={[styles.container, labelStyle]}
       disabled={disabled}
       accessibilityRole="checkbox"

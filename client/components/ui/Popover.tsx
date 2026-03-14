@@ -63,7 +63,7 @@ function PopoverContent({
     <PopoverPrimitive.Portal hostName={portalHost}>
       <FullWindowOverlay>
         <PopoverPrimitive.Overlay style={Platform.select({ native: StyleSheet.absoluteFill })}>
-          <AnimatedView type="fade" enterDuration={200} exitDuration={150}>
+          <AnimatedView type="fade" enterDuration={200}>
             <TextColorContext.Provider value={textColor}>
               <TextClassContext.Provider value="">
                 <PopoverPrimitive.Content

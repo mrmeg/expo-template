@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { Animated, ViewProps, Easing } from "react-native";
-import { useReducedMotion } from "react-native-reanimated";
+import React from "react";
+import { ViewProps } from "react-native";
+import Animated from "react-native-reanimated";
+import { useStaggeredEntrance } from "@/client/hooks/useStaggeredEntrance";
 
 /**
  * Animation type options
@@ -20,11 +21,6 @@ interface AnimatedViewProps extends ViewProps {
    */
   enterDuration?: number;
   /**
-   * Animation duration in milliseconds for exit animation
-   * @default 150
-   */
-  exitDuration?: number;
-  /**
    * Delay before starting the enter animation (in milliseconds)
    * Useful for staggered animations
    * @default 0
@@ -34,13 +30,13 @@ interface AnimatedViewProps extends ViewProps {
 
 /**
  * Cross-Platform Animated View Component
- * Uses React Native's Animated API for consistent behavior across iOS, Android, and Web
+ * Uses Reanimated for smooth 60fps animations on all platforms
  *
  * Features:
  * - Multiple animation types (fade, fadeSlideUp, fadeSlideDown, scale)
- * - Configurable enter/exit durations
+ * - Configurable enter duration
  * - Optional delay for staggered animations
- * - Automatic cleanup on unmount
+ * - Respects reduced motion accessibility preference
  *
  * Usage:
  * ```tsx
@@ -55,7 +51,7 @@ interface AnimatedViewProps extends ViewProps {
  * </AnimatedView>
  *
  * // With delay (for staggered lists)
- * <AnimatedView type="fade" delay={100}>
+ * <AnimatedView type="fadeSlideUp" delay={100}>
  *   {children}
  * </AnimatedView>
  * ```
@@ -64,118 +60,18 @@ export function AnimatedView({
   children,
   type = "fade",
   enterDuration = 200,
-  exitDuration = 150,
   delay = 0,
   style,
   ...props
 }: AnimatedViewProps) {
-  const reduceMotion = useReducedMotion();
-
-  // Create animation state
-  const [animationState] = useState({
-    fadeAnim: new Animated.Value(0),
-    translateAnim: new Animated.Value(0),
-    scaleAnim: new Animated.Value(0),
+  const entranceStyle = useStaggeredEntrance({
+    type,
+    delay,
+    duration: enterDuration,
   });
 
-  // Trigger animation on mount
-  useEffect(() => {
-    // If reduced motion, skip to final state immediately
-    if (reduceMotion) {
-      animationState.fadeAnim.setValue(1);
-      animationState.translateAnim.setValue(0);
-      animationState.scaleAnim.setValue(1);
-      return;
-    }
-    // Reset animations based on type
-    if (type === "fade") {
-      animationState.fadeAnim.setValue(0);
-    } else if (type === "fadeSlideUp") {
-      animationState.fadeAnim.setValue(0);
-      animationState.translateAnim.setValue(20); // Start 20px below
-    } else if (type === "fadeSlideDown") {
-      animationState.fadeAnim.setValue(0);
-      animationState.translateAnim.setValue(-20); // Start 20px above
-    } else if (type === "scale") {
-      animationState.fadeAnim.setValue(0);
-      animationState.scaleAnim.setValue(0.8); // Start at 80% scale
-    }
-
-    // Start enter animation after delay
-    const timer = setTimeout(() => {
-      if (type === "fade") {
-        Animated.timing(animationState.fadeAnim, {
-          toValue: 1,
-          duration: enterDuration,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }).start();
-      } else if (type === "fadeSlideUp" || type === "fadeSlideDown") {
-        Animated.parallel([
-          Animated.timing(animationState.fadeAnim, {
-            toValue: 1,
-            duration: enterDuration,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(animationState.translateAnim, {
-            toValue: 0,
-            duration: enterDuration,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]).start();
-      } else if (type === "scale") {
-        Animated.parallel([
-          Animated.timing(animationState.fadeAnim, {
-            toValue: 1,
-            duration: enterDuration,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.spring(animationState.scaleAnim, {
-            toValue: 1,
-            friction: 8,
-            tension: 40,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      }
-    }, delay);
-
-    // Cleanup: fade out on unmount
-    return () => {
-      clearTimeout(timer);
-      Animated.timing(animationState.fadeAnim, {
-        toValue: 0,
-        duration: exitDuration,
-        useNativeDriver: true,
-      }).start();
-    };
-  }, [animationState, enterDuration, exitDuration, delay, type, reduceMotion]);
-
-  // Build animated style based on type
-  const getAnimatedStyle = () => {
-    if (type === "fade") {
-      return {
-        opacity: animationState.fadeAnim,
-      };
-    } else if (type === "fadeSlideUp" || type === "fadeSlideDown") {
-      return {
-        opacity: animationState.fadeAnim,
-        transform: [{ translateY: animationState.translateAnim }],
-      };
-    } else if (type === "scale") {
-      return {
-        opacity: animationState.fadeAnim,
-        transform: [{ scale: animationState.scaleAnim }],
-      };
-    }
-    return {};
-  };
-
   return (
-    <Animated.View style={[style, getAnimatedStyle()]} {...props}>
+    <Animated.View style={[style, entranceStyle]} {...props}>
       {children}
     </Animated.View>
   );

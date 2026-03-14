@@ -1,7 +1,9 @@
 import React, { createContext, useContext } from "react";
-import { View, StyleSheet, ViewStyle, TextStyle, StyleProp } from "react-native";
+import { View, Pressable, StyleSheet, ViewStyle, TextStyle, StyleProp, Platform } from "react-native";
+import Animated from "react-native-reanimated";
 import { StyledText, TextProps } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
+import { useScalePress } from "@/client/hooks/useScalePress";
 import { spacing } from "@/client/constants/spacing";
 import type { Theme } from "@/client/constants/colors";
 
@@ -47,26 +49,56 @@ export interface CardProps {
   style?: StyleProp<ViewStyle>;
   /** Visual variant */
   variant?: "default" | "outline" | "ghost";
+  /** Make card pressable with scale animation */
+  onPress?: () => void;
+  /** Whether the card is disabled (only relevant when onPress is set) */
+  disabled?: boolean;
 }
 
-function Card({ children, style: styleOverride, variant = "default" }: CardProps) {
+function Card({ children, style: styleOverride, variant = "default", onPress, disabled }: CardProps) {
   const { theme } = useTheme();
   const styles = createCardStyles(theme);
   const ctx = { theme, styles };
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !onPress || !!disabled,
+    scaleTo: 0.98,
+    haptic: false,
+  });
+
+  const cardContent = (
+    <View
+      style={[
+        styles.card,
+        variant === "default" && styles.cardDefault,
+        variant === "outline" && styles.cardOutline,
+        variant === "ghost" && styles.cardGhost,
+        styleOverride,
+      ]}
+    >
+      {children}
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <CardContext.Provider value={ctx}>
+        <Pressable
+          onPress={onPress}
+          disabled={disabled}
+          {...pressHandlers}
+          style={Platform.OS === "web" ? { cursor: "pointer" as any } : undefined}
+        >
+          <Animated.View style={scaleStyle}>
+            {cardContent}
+          </Animated.View>
+        </Pressable>
+      </CardContext.Provider>
+    );
+  }
 
   return (
     <CardContext.Provider value={ctx}>
-      <View
-        style={[
-          styles.card,
-          variant === "default" && styles.cardDefault,
-          variant === "outline" && styles.cardOutline,
-          variant === "ghost" && styles.cardGhost,
-          styleOverride,
-        ]}
-      >
-        {children}
-      </View>
+      {cardContent}
     </CardContext.Provider>
   );
 }

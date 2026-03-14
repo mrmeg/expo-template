@@ -7,7 +7,9 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
+import { AnimatedView } from "@/client/components/ui/AnimatedView";
 import { useTheme } from "@/client/hooks/useTheme";
+import { STAGGER_DELAY } from "@/client/hooks/useStaggeredEntrance";
 import { spacing } from "@/client/constants/spacing";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { TextInput } from "@/client/components/ui/TextInput";
@@ -132,7 +134,12 @@ export function ListScreen<T>({
         data={data}
         keyExtractor={keyExtractor}
         renderItem={({ item, index }) => (
-          <View>{renderItem(item, index)}</View>
+          <AnimatedView
+            type="fadeSlideUp"
+            delay={Math.min(index, 10) * STAGGER_DELAY}
+          >
+            {renderItem(item, index)}
+          </AnimatedView>
         )}
         ListHeaderComponent={
           <>

@@ -8,7 +8,9 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import { useTheme } from "@/client/hooks/useTheme";
+import { useStaggeredEntrance, STAGGER_DELAY } from "@/client/hooks/useStaggeredEntrance";
 import { spacing } from "@/client/constants/spacing";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { Icon, type IconName } from "@/client/components/ui/Icon";
@@ -73,35 +75,45 @@ export function ProfileScreen({
   const { theme, getShadowStyle } = useTheme();
   const styles = createStyles(theme);
 
+  // Staggered entrance animations
+  const avatarEntrance = useStaggeredEntrance({ type: "scale", delay: 0 });
+  const nameEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY });
+  const statsEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY * 2 });
+  const actionsEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY * 3 });
+
   return (
     <View style={[styles.container, styleOverride]}>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Avatar + Name */}
         <View style={styles.hero}>
-          <View style={styles.avatar}>
-            {avatarContent || (
-              <SansSerifBoldText style={styles.avatarFallback}>
-                {name.charAt(0).toUpperCase()}
-              </SansSerifBoldText>
+          <Animated.View style={avatarEntrance}>
+            <View style={styles.avatar}>
+              {avatarContent || (
+                <SansSerifBoldText style={styles.avatarFallback}>
+                  {name.charAt(0).toUpperCase()}
+                </SansSerifBoldText>
+              )}
+            </View>
+          </Animated.View>
+
+          <Animated.View style={nameEntrance}>
+            <SansSerifBoldText style={styles.name}>{name}</SansSerifBoldText>
+
+            {subtitle && (
+              <SansSerifText style={[styles.subtitle, { textAlign: "center" }]}>{subtitle}</SansSerifText>
             )}
-          </View>
 
-          <SansSerifBoldText style={styles.name}>{name}</SansSerifBoldText>
-
-          {subtitle && (
-            <SansSerifText style={styles.subtitle}>{subtitle}</SansSerifText>
-          )}
-
-          {badge && (
-            <Badge variant="outline" style={styles.badge}>
-              {badge}
-            </Badge>
-          )}
+            {badge && (
+              <Badge variant="outline" style={styles.badge}>
+                {badge}
+              </Badge>
+            )}
+          </Animated.View>
         </View>
 
         {/* Stats Row */}
         {stats && stats.length > 0 && (
-          <View style={[styles.statsCard, getShadowStyle("subtle")]}>
+          <Animated.View style={[statsEntrance, styles.statsCard, getShadowStyle("subtle")]}>
             {stats.map((stat) => (
               <View key={stat.label} style={styles.statItem}>
                 <Icon name={stat.icon} size={20} color={theme.colors.accent} />
@@ -109,12 +121,12 @@ export function ProfileScreen({
                 <SansSerifText style={styles.statLabel}>{stat.label}</SansSerifText>
               </View>
             ))}
-          </View>
+          </Animated.View>
         )}
 
         {/* Action Buttons */}
         {actions && actions.length > 0 && (
-          <View style={styles.actions}>
+          <Animated.View style={[styles.actions, actionsEntrance]}>
             {actions.map((action) => (
               <Button
                 key={action.label}
@@ -148,7 +160,7 @@ export function ProfileScreen({
                 </SansSerifText>
               </Button>
             ))}
-          </View>
+          </Animated.View>
         )}
 
         {/* Info Sections */}

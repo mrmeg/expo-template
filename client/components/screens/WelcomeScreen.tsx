@@ -6,8 +6,10 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/client/hooks/useTheme";
+import { useStaggeredEntrance, STAGGER_DELAY } from "@/client/hooks/useStaggeredEntrance";
 import { spacing } from "@/client/constants/spacing";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
@@ -61,6 +63,12 @@ export function WelcomeScreen({
   const { theme } = useTheme();
   const styles = createStyles(theme);
 
+  // Staggered entrance animations
+  const logoEntrance = useStaggeredEntrance({ type: "scale", delay: 0 });
+  const titleEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY });
+  const subtitleEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY * 2 });
+  const actionsEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY * 3 });
+
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }, styleOverride]}>
       {/* Top spacer */}
@@ -68,22 +76,30 @@ export function WelcomeScreen({
 
       {/* Logo + Title */}
       <View style={styles.hero}>
-        {logo || (
+        {logo ? (
+          <Animated.View style={logoEntrance}>{logo}</Animated.View>
+        ) : (
           logoIcon && (
-            <View style={styles.logoContainer}>
-              <Icon name={logoIcon} size={48} color={theme.colors.accentForeground} />
-            </View>
+            <Animated.View style={logoEntrance}>
+              <View style={styles.logoContainer}>
+                <Icon name={logoIcon} size={48} color={theme.colors.accentForeground} />
+              </View>
+            </Animated.View>
           )
         )}
 
-        <SansSerifBoldText style={styles.title}>{title}</SansSerifBoldText>
+        <Animated.View style={titleEntrance}>
+          <SansSerifBoldText style={styles.title}>{title}</SansSerifBoldText>
+        </Animated.View>
         {subtitle && (
-          <SansSerifText style={styles.subtitle}>{subtitle}</SansSerifText>
+          <Animated.View style={subtitleEntrance}>
+            <SansSerifText style={styles.subtitle}>{subtitle}</SansSerifText>
+          </Animated.View>
         )}
       </View>
 
       {/* Bottom actions */}
-      <View style={styles.actions}>
+      <Animated.View style={[styles.actions, actionsEntrance]}>
         {/* Social providers */}
         {socialProviders && socialProviders.length > 0 && (
           <>
@@ -143,7 +159,7 @@ export function WelcomeScreen({
         {footerText && (
           <SansSerifText style={styles.footerText}>{footerText}</SansSerifText>
         )}
-      </View>
+      </Animated.View>
     </View>
   );
 }

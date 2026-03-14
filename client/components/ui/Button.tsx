@@ -12,12 +12,14 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import { spacing } from "@/client/constants/spacing";
 import { StyledText, TextColorContext, TextProps } from "./StyledText";
 import { fontFamilies } from "@/client/constants/fonts";
 import type { Theme } from "@/client/constants/colors";
 import { palette } from "@/client/constants/colors";
 import { useTheme } from "@/client/hooks/useTheme";
+import { useScalePress } from "@/client/hooks/useScalePress";
 
 /**
  * Button variants
@@ -232,6 +234,11 @@ export function Button(props: ButtonProps) {
               : getContrastingColor(backgroundColor, palette.white, palette.black);
 
   const isDisabled = disabled || loading;
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!isDisabled,
+    haptic: false,
+    scaleTo: preset === "link" ? 1 : 0.97,
+  });
 
   return (
     <TextColorContext.Provider value={textColor}>
@@ -239,10 +246,12 @@ export function Button(props: ButtonProps) {
         accessibilityRole="button"
         accessibilityState={{ disabled: !!isDisabled, busy: loading }}
         {...rest}
+        {...pressHandlers}
         style={{ alignSelf: fullWidth ? "stretch" : "flex-start" }}
         disabled={isDisabled}
       >
         {(state) => (
+          <Animated.View style={scaleStyle}>
           <View
             style={[
               styles.button,
@@ -317,6 +326,7 @@ export function Button(props: ButtonProps) {
               />
             )}
           </View>
+          </Animated.View>
         )}
       </Pressable>
     </TextColorContext.Provider>

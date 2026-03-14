@@ -8,7 +8,9 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
+import { AnimatedView } from "@/client/components/ui/AnimatedView";
 import { useTheme } from "@/client/hooks/useTheme";
+import { STAGGER_DELAY } from "@/client/hooks/useStaggeredEntrance";
 import { spacing } from "@/client/constants/spacing";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { Icon, type IconName } from "@/client/components/ui/Icon";
@@ -205,8 +207,9 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {header}
 
-        {sections.map((section) => (
-          <View key={section.title} style={styles.section}>
+        {sections.map((section, sectionIndex) => (
+          <AnimatedView key={section.title} type="fadeSlideUp" delay={STAGGER_DELAY * (sectionIndex + 1)}>
+          <View style={styles.section}>
             <SansSerifBoldText style={styles.sectionTitle}>
               {section.title}
             </SansSerifBoldText>
@@ -221,6 +224,7 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
               <SansSerifText style={styles.footer}>{section.footer}</SansSerifText>
             )}
           </View>
+          </AnimatedView>
         ))}
       </ScrollView>
     </View>
