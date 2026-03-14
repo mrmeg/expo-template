@@ -28,6 +28,11 @@ export default function MainLayout() {
       <Stack.Screen name="(demos)/auth-demo" options={{ title: "Auth Demo", ...webHeaderLeft }} />
       <Stack.Screen name="(demos)/onboarding" options={{ headerShown: false }} />
       <Stack.Screen name="(demos)/detail-hero" options={{ headerShown: false }} />
+      <Stack.Screen name="(demos)/screen-settings" options={{ title: "Settings Screen", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/screen-profile" options={{ title: "Profile Screen", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/screen-list" options={{ title: "List Screen", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/screen-pricing" options={{ title: "Pricing Screen", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/screen-welcome" options={{ headerShown: false }} />
     </Stack>
   );
 }

@@ -26,6 +26,14 @@ const demoItems: NavItem[] = [
   { href: "/(main)/(demos)/detail-hero", icon: "box", label: "Detail / Hero Screen" },
 ];
 
+const screenTemplateItems: NavItem[] = [
+  { href: "/(main)/(demos)/screen-settings", icon: "settings", label: "Settings", description: "Grouped-list settings with toggles, radios, navigation" },
+  { href: "/(main)/(demos)/screen-profile", icon: "user", label: "Profile", description: "Avatar hero, stats grid, info sections" },
+  { href: "/(main)/(demos)/screen-list", icon: "list", label: "List", description: "Searchable, refreshable list with empty state" },
+  { href: "/(main)/(demos)/screen-pricing", icon: "credit-card", label: "Pricing", description: "Plan selection with feature comparison" },
+  { href: "/(main)/(demos)/screen-welcome", icon: "log-in", label: "Welcome", description: "Branded landing page with social login" },
+];
+
 export default function ExploreScreen() {
   const { theme, getShadowStyle } = useTheme();
   const styles = createStyles(theme);
@@ -69,6 +77,18 @@ export default function ExploreScreen() {
           <View style={[styles.card, shadowStyle]}>
             {componentItems.map((item, index) =>
               renderNavRow(item, index === componentItems.length - 1)
+            )}
+          </View>
+        </View>
+
+        {/* Screen Templates Section */}
+        <View style={styles.section}>
+          <SansSerifBoldText style={styles.sectionTitle}>
+            Screen Templates
+          </SansSerifBoldText>
+          <View style={[styles.card, shadowStyle]}>
+            {screenTemplateItems.map((item, index) =>
+              renderNavRow(item, index === screenTemplateItems.length - 1)
             )}
           </View>
         </View>

@@ -1,6 +1,6 @@
 import { TextClassContext } from "@/client/components/ui/StyledText";
-import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
+import { useTheme } from "@/client/hooks/useTheme";
 import * as CollapsiblePrimitive from "@rn-primitives/collapsible";
 import * as React from "react";
 import { Animated, Platform, StyleSheet, View } from "react-native";
@@ -133,5 +133,6 @@ function CollapsibleContent({
   );
 }
 
-export { Collapsible, CollapsibleTrigger, CollapsibleContent };
-export type { CollapsibleProps, CollapsibleTriggerProps, CollapsibleContentProps };
+export { Collapsible, CollapsibleContent, CollapsibleTrigger };
+export type { CollapsibleContentProps, CollapsibleProps, CollapsibleTriggerProps };
+
