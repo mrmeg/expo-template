@@ -1,9 +1,9 @@
+import * as React from "react";
+import { Animated, Platform, StyleSheet, View } from "react-native";
 import { TextClassContext } from "@/client/components/ui/StyledText";
 import { spacing } from "@/client/constants/spacing";
 import { useTheme } from "@/client/hooks/useTheme";
 import * as CollapsiblePrimitive from "@rn-primitives/collapsible";
-import * as React from "react";
-import { Animated, Platform, StyleSheet, View } from "react-native";
 
 /**
  * Collapsible Component (Root)
@@ -135,4 +135,3 @@ function CollapsibleContent({
 
 export { Collapsible, CollapsibleContent, CollapsibleTrigger };
 export type { CollapsibleContentProps, CollapsibleProps, CollapsibleTriggerProps };
-

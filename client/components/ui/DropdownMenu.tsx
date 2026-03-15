@@ -1,3 +1,5 @@
+import * as React from "react";
+import { Platform, StyleSheet, Text, type TextStyle, View } from "react-native";
 import { Icon } from "@/client/components/ui/Icon";
 import { AnimatedView } from "@/client/components/ui/AnimatedView";
 import { TextClassContext } from "@/client/components/ui/StyledText";
@@ -5,8 +7,6 @@ import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import * as DropdownMenuPrimitive from "@rn-primitives/dropdown-menu";
 import type { IconName } from "@/client/components/ui/Icon";
-import * as React from "react";
-import { Platform, StyleSheet, Text, type TextStyle, View } from "react-native";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Re-export primitives that don't need styling

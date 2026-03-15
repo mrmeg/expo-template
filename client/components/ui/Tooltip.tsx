@@ -1,10 +1,10 @@
+import * as React from "react";
+import { Platform, StyleSheet, View, ViewProps } from "react-native";
 import { AnimatedView } from "@/client/components/ui/AnimatedView";
 import { TextClassContext, TextColorContext } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import * as TooltipPrimitive from "@rn-primitives/tooltip";
-import * as React from "react";
-import { Platform, StyleSheet, View, ViewProps } from "react-native";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { palette } from "@/client/constants/colors";
 
@@ -62,25 +62,25 @@ function TooltipContent({
   // Determine colors based on variant
   const getVariantColors = () => {
     switch (variant) {
-    case "dark":
-      return {
-        background: palette.gray800,
-        border: palette.gray800,
-        text: palette.white,
-      };
-    case "light":
-      return {
-        background: palette.white,
-        border: palette.gray200,
-        text: palette.gray800,
-      };
-    case "default":
-    default:
-      return {
-        background: theme.colors.card,
-        border: theme.colors.border,
-        text: getContrastingColor(theme.colors.card, palette.white, palette.black),
-      };
+      case "dark":
+        return {
+          background: palette.gray800,
+          border: palette.gray800,
+          text: palette.white,
+        };
+      case "light":
+        return {
+          background: palette.white,
+          border: palette.gray200,
+          text: palette.gray800,
+        };
+      case "default":
+      default:
+        return {
+          background: theme.colors.card,
+          border: theme.colors.border,
+          text: getContrastingColor(theme.colors.card, palette.white, palette.black),
+        };
     }
   };
 

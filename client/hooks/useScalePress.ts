@@ -5,7 +5,6 @@ import {
   withSpring,
   withTiming,
   useReducedMotion,
-  type SharedValue,
 } from "react-native-reanimated";
 import { hapticLight } from "@/client/utils/haptics";
 
