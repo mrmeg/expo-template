@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Alert, Platform } from "react-native";
 import { SansSerifText } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
-import { PricingScreen, type PricingPlan } from "@/client/screens";
+import { PricingScreen, type PricingPlan } from "@/client/screens/PricingScreen";
 
 const MONTHLY_PLANS: PricingPlan[] = [
   {

@@ -5,7 +5,7 @@ import { spacing } from "@/client/constants/spacing";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { Icon, type IconName } from "@/client/components/ui/Icon";
 import { Badge } from "@/client/components/ui/Badge";
-import { ListScreen } from "@/client/screens";
+import { ListScreen } from "@/client/screens/ListScreen";
 import type { Theme } from "@/client/constants/colors";
 
 interface Contact {

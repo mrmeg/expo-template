@@ -1,6 +1,6 @@
 import React from "react";
 import { Alert, Platform } from "react-native";
-import { ProfileScreen, type ProfileStat, type ProfileAction, type ProfileSection } from "@/client/screens";
+import { ProfileScreen, type ProfileStat, type ProfileAction, type ProfileSection } from "@/client/screens/ProfileScreen";
 
 export default function ScreenProfileDemo() {
   const showAlert = (msg: string) => {
