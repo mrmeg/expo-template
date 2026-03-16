@@ -247,61 +247,47 @@ export function Button(props: ButtonProps) {
         accessibilityState={{ disabled: !!isDisabled, busy: loading }}
         {...rest}
         {...pressHandlers}
-        style={{ alignSelf: fullWidth ? "stretch" : "flex-start" }}
+        style={{ alignSelf: fullWidth ? "stretch" : (flattenedStyle?.alignSelf as ViewStyle["alignSelf"]) ?? "flex-start" }}
         disabled={isDisabled}
       >
         {(state) => (
           <Animated.View style={scaleStyle}>
-          <View
-            style={[
-              styles.button,
-              preset === "default" && styles.buttonDefault,
-              preset === "outline" && styles.buttonOutline,
-              preset === "ghost" && styles.buttonGhost,
-              preset === "link" && styles.buttonLink,
-              preset === "destructive" && styles.buttonDestructive,
-              preset === "secondary" && styles.buttonSecondary,
-              fullWidth && styles.fullWidth,
-              withShadow && !isDisabled && shadowStyle,
-              state.pressed && styles.pressed,
-              state.pressed && pressedStyleOverride,
-              isDisabled && styles.disabled,
-              isDisabled && disabledStyleOverride,
-              // Spread array styles from Slot to prevent nested arrays on web
-              ...(Array.isArray(styleOverride) ? styleOverride : [styleOverride]),
-            ]}
-          >
-            {!!LeftAccessory && !loading && (
-              <LeftAccessory
-                style={styles.leftAccessory}
-                pressableState={state}
-                disabled={isDisabled}
-              />
-            )}
+            <View
+              style={[
+                styles.button,
+                preset === "default" && styles.buttonDefault,
+                preset === "outline" && styles.buttonOutline,
+                preset === "ghost" && styles.buttonGhost,
+                preset === "link" && styles.buttonLink,
+                preset === "destructive" && styles.buttonDestructive,
+                preset === "secondary" && styles.buttonSecondary,
+                fullWidth && styles.fullWidth,
+                withShadow && !isDisabled && shadowStyle,
+                state.pressed && styles.pressed,
+                state.pressed && pressedStyleOverride,
+                isDisabled && styles.disabled,
+                isDisabled && disabledStyleOverride,
+                // Spread array styles from Slot to prevent nested arrays on web
+                ...(Array.isArray(styleOverride) ? styleOverride : [styleOverride]),
+              ]}
+            >
+              {!!LeftAccessory && !loading && (
+                <LeftAccessory
+                  style={styles.leftAccessory}
+                  pressableState={state}
+                  disabled={isDisabled}
+                />
+              )}
 
-            {loading && (
-              <ActivityIndicator
-                size="small"
-                color={textColor}
-                style={styles.loader}
-              />
-            )}
+              {loading && (
+                <ActivityIndicator
+                  size="small"
+                  color={textColor}
+                  style={styles.loader}
+                />
+              )}
 
-            {(tx || text) ? (
-              <StyledText
-                style={[
-                  styles.text,
-                  state.pressed && styles.pressedText,
-                  state.pressed && pressedTextStyleOverride,
-                  isDisabled && disabledTextStyleOverride,
-                  textStyleOverride,
-                ]}
-              >
-                {tx || text}
-              </StyledText>
-            ) : !loading && children ? (
-              // Wrap string children in StyledText to apply TextColorContext
-              typeof children === "string" ? (
+              {(tx || text) ? (
                 <StyledText
                   style={[
                     styles.text,
@@ -311,21 +297,35 @@ export function Button(props: ButtonProps) {
                     textStyleOverride,
                   ]}
                 >
-                  {children}
+                  {tx || text}
                 </StyledText>
-              ) : (
-                children
-              )
-            ) : null}
+              ) : !loading && children ? (
+                // Wrap string children in StyledText to apply TextColorContext
+                typeof children === "string" ? (
+                  <StyledText
+                    style={[
+                      styles.text,
+                      state.pressed && styles.pressedText,
+                      state.pressed && pressedTextStyleOverride,
+                      isDisabled && disabledTextStyleOverride,
+                      textStyleOverride,
+                    ]}
+                  >
+                    {children}
+                  </StyledText>
+                ) : (
+                  children
+                )
+              ) : null}
 
-            {!!RightAccessory && !loading && (
-              <RightAccessory
-                style={styles.rightAccessory}
-                pressableState={state}
-                disabled={isDisabled}
-              />
-            )}
-          </View>
+              {!!RightAccessory && !loading && (
+                <RightAccessory
+                  style={styles.rightAccessory}
+                  pressableState={state}
+                  disabled={isDisabled}
+                />
+              )}
+            </View>
           </Animated.View>
         )}
       </Pressable>
