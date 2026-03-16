@@ -245,7 +245,8 @@ interface ToggleIconProps {
 }
 
 function ToggleIcon({ name, size, color }: ToggleIconProps) {
-  return <Icon name={name} size={size || spacing.iconMd} color={color} />;
+  const contextColor = React.useContext(TextColorContext);
+  return <Icon name={name} size={size || spacing.iconMd} color={color || contextColor} />;
 }
 
 export { Toggle, ToggleIcon };

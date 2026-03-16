@@ -284,9 +284,9 @@ interface ToggleGroupIconProps {
 }
 
 function ToggleGroupIcon({ name, size, color }: ToggleGroupIconProps) {
-  return <Icon name={name} size={size || spacing.iconMd} color={color} />;
+  const contextColor = React.useContext(TextColorContext);
+  return <Icon name={name} size={size || spacing.iconMd} color={color || contextColor} />;
 }
 
 export { ToggleGroup, ToggleGroupIcon, ToggleGroupItem };
 export type { ToggleGroupProps, ToggleGroupSize, ToggleGroupVariant };
-
