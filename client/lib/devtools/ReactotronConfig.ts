@@ -5,7 +5,7 @@
  * Usage in _layout.tsx:
  * ```tsx
  * if (__DEV__) {
- *   import('@/client/devtools/ReactotronConfig');
+ *   import('@/client/lib/devtools/ReactotronConfig');
  * }
  * ```
  */

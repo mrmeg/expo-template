@@ -166,7 +166,7 @@ Add new languages in `/client/i18n/`.
 Typed API client with error handling:
 
 ```tsx
-import { api } from '@/client/services/api';
+import { api } from '@/client/lib/api/apiClient';
 
 // Make requests
 const result = await api.get<User>('/users/me');

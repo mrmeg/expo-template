@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Colors, colors } from "@/client/constants/colors";
 import { useColorScheme as useColorSchemeDefault, ViewStyle, Platform, StyleSheet } from "react-native";
-import { useThemeStore } from "@/client/stores/themeStore";
+import { useThemeStore } from "@/client/state/themeStore";
 import { spacing as spacingConstants } from "@/client/constants/spacing";
 
 type ShadowType = "base" | "soft" | "sharp" | "subtle";

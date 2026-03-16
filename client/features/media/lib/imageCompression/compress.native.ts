@@ -5,7 +5,7 @@
 
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { File } from "expo-file-system";
-import { logDev } from "@/client/devtools";
+import { logDev } from "@/client/lib/devtools";
 import type { CompressionConfig } from "./config";
 import type { CompressedImage, CompressImageOptions } from "./types";
 import {

@@ -9,7 +9,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { Platform } from "react-native";
-import { api } from "@/client/api";
+import { api } from "@/client/lib/api/authenticatedFetch";
 import type { MediaType } from "@/shared/media";
 
 interface UploadUrlResponse {

@@ -10,7 +10,7 @@
  * because @ffmpeg/ffmpeg uses import.meta.url which Metro doesn't support.
  */
 
-import { logDev } from "@/client/devtools";
+import { logDev } from "@/client/lib/devtools";
 import {
   CONVERSION_PRESETS,
   DEFAULT_PRESET,

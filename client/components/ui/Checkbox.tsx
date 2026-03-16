@@ -10,7 +10,7 @@ import { Icon } from "@/client/components/ui/Icon";
 import { StyledText } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
-import { hapticLight } from "@/client/utils/haptics";
+import { hapticLight } from "@/client/lib/haptics";
 import * as CheckboxPrimitive from "@rn-primitives/checkbox";
 
 const DEFAULT_HIT_SLOP = 8;

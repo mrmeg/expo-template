@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/client/api";
+import { api } from "@/client/lib/api/authenticatedFetch";
 import type { MediaPath } from "@/shared/media";
 
 interface MediaResponse {

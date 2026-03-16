@@ -6,7 +6,7 @@ import {
   withTiming,
   useReducedMotion,
 } from "react-native-reanimated";
-import { hapticLight } from "@/client/utils/haptics";
+import { hapticLight } from "@/client/lib/haptics";
 
 interface ScalePressOptions {
   /**

@@ -4,7 +4,7 @@
  */
 
 import { Platform } from "react-native";
-import { logDev } from "@/client/devtools";
+import { logDev } from "@/client/lib/devtools";
 
 /**
  * Convert HEIC/HEIF images to JPEG (Web only).

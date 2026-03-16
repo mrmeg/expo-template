@@ -17,7 +17,7 @@ import {
 import { Button } from "@/client/components/ui/Button";
 import { Icon } from "@/client/components/ui/Icon";
 import Config from "@/client/config";
-import { getAllKeys, load, clear } from "@/client/utils/storage";
+import { getAllKeys, load, clear } from "@/client/lib/storage";
 import type { Theme } from "@/client/constants/colors";
 import Constants from "expo-constants";
 

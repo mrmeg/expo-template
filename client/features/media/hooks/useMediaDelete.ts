@@ -3,7 +3,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/client/api";
+import { api } from "@/client/lib/api/authenticatedFetch";
 
 interface DeleteResult {
   success: boolean;

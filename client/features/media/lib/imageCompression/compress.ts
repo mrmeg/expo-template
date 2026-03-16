@@ -3,7 +3,7 @@
  * This file is used on web platform only.
  */
 
-import { logDev } from "@/client/devtools";
+import { logDev } from "@/client/lib/devtools";
 import type { CompressionConfig } from "./config";
 import type { CompressedImage, CompressImageOptions } from "./types";
 import {

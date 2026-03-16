@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Alert, Platform } from "react-native";
-import { SettingsScreen, type SettingsSection } from "@/client/components/screens";
+import { SettingsScreen, type SettingsSection } from "@/client/screens";
 
 export default function ScreenSettingsDemo() {
   const [notifications, setNotifications] = useState(true);

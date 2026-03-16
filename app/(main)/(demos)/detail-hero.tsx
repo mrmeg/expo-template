@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { SansSerifText } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
-import { DetailHeroScreen } from "@/client/components/screens";
+import { DetailHeroScreen } from "@/client/screens";
 
 export default function DetailHeroDemo() {
   const router = useRouter();

@@ -29,7 +29,7 @@ import {
   getVideoThumbnailKey,
 } from "@/shared/media";
 import { globalUIStore } from "@/client/features/notifications/globalUIStore";
-import { logDev } from "@/client/devtools";
+import { logDev } from "@/client/lib/devtools";
 import type { Theme } from "@/client/constants/colors";
 
 type FilterType = "all" | keyof typeof MEDIA_PATHS;

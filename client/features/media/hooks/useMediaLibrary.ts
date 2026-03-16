@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Crypto from "expo-crypto";
 import { Alert } from "@/client/components/ui/Alert";
-import { logDev } from "@/client/devtools";
+import { logDev } from "@/client/lib/devtools";
 import { extractVideoThumbnail } from "./useVideoThumbnails";
 import { globalUIStore } from "@/client/features/notifications/globalUIStore";
 import { useCompressionStore } from "../stores/compressionStore";

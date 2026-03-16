@@ -2,7 +2,7 @@ import { palette } from "@/client/constants/colors";
 import { fontFamilies } from "@/client/constants/fonts";
 import { spacing } from "@/client/constants/spacing";
 import { useTheme } from "@/client/hooks/useTheme";
-import { hapticLight } from "@/client/utils/haptics";
+import { hapticLight } from "@/client/lib/haptics";
 import * as SwitchPrimitives from "@rn-primitives/switch";
 import React, { useCallback, useEffect, useRef } from "react";
 import { ActivityIndicator, Platform, StyleProp, StyleSheet, View, ViewStyle } from "react-native";

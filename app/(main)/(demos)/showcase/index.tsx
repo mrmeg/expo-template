@@ -32,7 +32,7 @@ import { EmptyState } from "@/client/components/ui/EmptyState";
 import { Skeleton, SkeletonText, SkeletonAvatar, SkeletonCard } from "@/client/components/ui/Skeleton";
 import { BottomSheet } from "@/client/components/ui/BottomSheet";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
-import { Section, SubSection, ThemeToggle } from "@/client/components/showcase";
+import { Section, SubSection, ThemeToggle } from "@/client/showcase";
 import { globalUIStore } from "@/client/features/notifications/globalUIStore";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";

@@ -2,7 +2,7 @@ import "@/client/lib/gesture-handler";
 
 // Initialize Reactotron in development mode
 if (__DEV__) {
-  require("@/client/devtools/ReactotronConfig");
+  require("@/client/lib/devtools/ReactotronConfig");
 }
 
 import { useEffect, useState } from "react";

@@ -56,7 +56,7 @@ export function setupReactotron() {
  * Use for custom logging and debugging.
  *
  * @example
- * import { reactotron } from '@/client/devtools/ReactotronClient';
+ * import { reactotron } from '@/client/lib/devtools/ReactotronClient';
  * reactotron.log?.('Custom message');
  * reactotron.warn?.('Warning message');
  * reactotron.display({ name: 'API_CALL', value: response });

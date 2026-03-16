@@ -3,7 +3,7 @@
  * Revokes blob URLs to free memory.
  */
 
-import { logDev } from "@/client/devtools";
+import { logDev } from "@/client/lib/devtools";
 import type { CompressedImage } from "./types";
 
 /**

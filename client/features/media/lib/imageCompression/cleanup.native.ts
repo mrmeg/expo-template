@@ -4,7 +4,7 @@
  */
 
 import { File } from "expo-file-system";
-import { logDev } from "@/client/devtools";
+import { logDev } from "@/client/lib/devtools";
 import type { CompressedImage } from "./types";
 
 /**

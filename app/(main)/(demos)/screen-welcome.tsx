@@ -1,7 +1,7 @@
 import React from "react";
 import { Alert, Platform } from "react-native";
 import { useRouter } from "expo-router";
-import { WelcomeScreen } from "@/client/components/screens";
+import { WelcomeScreen } from "@/client/screens";
 
 export default function ScreenWelcomeDemo() {
   const router = useRouter();

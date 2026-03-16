@@ -1,7 +1,7 @@
 import { View, StyleSheet, Pressable, Platform, ScrollView } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
-import { useThemeStore } from "@/client/stores/themeStore";
+import { useThemeStore } from "@/client/state/themeStore";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { Icon } from "@/client/components/ui/Icon";
 import type { IconName } from "@/client/components/ui/Icon";
