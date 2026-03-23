@@ -166,9 +166,9 @@ export function ProfileScreen({
         {/* Info Sections */}
         {sections?.map((section) => (
           <View key={section.title} style={styles.section}>
-            <SansSerifBoldText style={styles.sectionTitle}>
+            <SansSerifText style={styles.sectionTitle}>
               {section.title}
-            </SansSerifBoldText>
+            </SansSerifText>
 
             <View style={[styles.card, getShadowStyle("subtle")]}>
               {section.items.map((item, index) => {
@@ -238,16 +238,16 @@ const createStyles = (theme: Theme) =>
       paddingBottom: spacing.lg,
     },
     avatar: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
+      width: 88,
+      height: 88,
+      borderRadius: 44,
       backgroundColor: theme.colors.accent,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.md,
     },
     avatarFallback: {
-      fontSize: 32,
+      fontSize: 34,
       color: theme.colors.accentForeground,
     },
     name: {
@@ -303,13 +303,12 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing.lg,
     },
     sectionTitle: {
-      fontSize: 14,
-      color: theme.colors.foreground,
-      opacity: 0.6,
+      fontSize: 13,
+      color: theme.colors.mutedForeground,
       textTransform: "uppercase",
-      letterSpacing: 0.5,
-      marginBottom: spacing.sm,
-      marginLeft: spacing.xs,
+      letterSpacing: 0.8,
+      marginBottom: spacing.sm + 2,
+      marginLeft: spacing.xxs,
     },
     card: {
       backgroundColor: theme.colors.card,
@@ -336,10 +335,10 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
     },
     iconContainer: {
-      width: 36,
-      height: 36,
-      borderRadius: spacing.radiusSm,
-      backgroundColor: theme.colors.primary + "15",
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: theme.colors.muted,
       alignItems: "center",
       justifyContent: "center",
       marginRight: spacing.md,
@@ -353,12 +352,12 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.mutedForeground,
     },
     divider: {
-      height: 1,
+      height: StyleSheet.hairlineWidth,
       backgroundColor: theme.colors.border,
     },
     dividerInset: {
-      height: 1,
+      height: StyleSheet.hairlineWidth,
       backgroundColor: theme.colors.border,
-      marginLeft: spacing.md + 36 + spacing.md,
+      marginLeft: spacing.md + 34 + spacing.md,
     },
   });

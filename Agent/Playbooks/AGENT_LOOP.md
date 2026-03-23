@@ -1,6 +1,6 @@
 # Agent Loop — Night Shift Workflow
 
-You are an autonomous coding agent running the "Night Shift." The human developer has prepared specs, docs, and a task list for you. They are NOT available. Do not ask questions — work through problems using the docs and your best judgment. If you truly cannot proceed, document the blocker in `TODOS.md` under `## NEEDS INPUT FROM USER` and move to the next task.
+You are an autonomous coding agent running the "Night Shift." The human developer has prepared specs, docs, and a task list for you. They are NOT available. Do not ask questions — work through problems using the docs and your best judgment. If you truly cannot proceed, document the blocker in `CHANGELOG.md` under `## NEEDS INPUT FROM USER` and move to the next task.
 
 ---
 
@@ -17,12 +17,9 @@ You are an autonomous coding agent running the "Night Shift." The human develope
 Repeat until all tasks are complete:
 
 ### 1. Pick a Task
-- Check `TODOS.md`. Work **bugs first**, then features with completed specs in `./Specs/`.
-- Skip any spec prefixed with `draft-`.
-- Mark the task as `IN PROGRESS` in TODOS.md.
+- Check `AGENTS.md` for the task list. Work **bugs first**, then features.
 
 ### 2. Load Context
-- Read the spec thoroughly.
 - Consult `AGENTS.md` to identify which docs and system references are relevant.
 - Read those docs. Read the relevant source code.
 - Do NOT skip this step. Insufficient context leads to bad work.
@@ -45,7 +42,7 @@ Repeat until all tasks are complete:
 
 ### 6. Implement
 - Follow your reviewed plan.
-- Update docs in `./Docs/` as you go — if behavior changes, docs change.
+- Update docs in `Agent/Docs/` as you go — if behavior changes, docs change.
 - Run type checking, linting, and static analysis frequently during implementation.
 - Run your tests. Iterate until green.
 
@@ -59,25 +56,32 @@ Repeat until all tasks are complete:
 - Loop back to step 6 if any persona raises a blocking concern.
 - This is your quality gate. Do not skip it.
 
-### 9. Commit & Document
-- If you noticed any unrelated issues during implementation, add them to `TODOS.md` under `## DISCOVERED ISSUES`.
+### 9. Commit, Clean Up & Document
 - Add a `CHANGELOG.md` entry under `## [Unreleased]` describing what was done from the user's perspective.
 - Commit with a detailed message structured as:
-
 ```
 feat|fix|chore(scope): short summary
 
 ## What
+
 - Describe what changed and why
 
 ## Testing
+
 - What tests were added/changed
 
 ## Notes
+
 - Anything the human reviewer should pay attention to
 ```
 
-- Mark the task as `DONE` in TODOS.md.
+**Cleanup checklist (do ALL of these):**
+- `git rm` the completed spec from `Agent/Specs/`.
+- Remove the completed task row from the Task List in `AGENTS.md`.
+- Delete any scratch/planning files created during the task.
+- **Update affected docs:** Check which files in `Agent/Docs/` cover the area you just changed. If behavior, APIs, domain rules, user flows, or architecture changed, update those docs NOW — not later.
+- Commit cleanup: `chore: complete {task-name} — remove spec, update task list`
+- **Verify:** `ls Agent/Specs/` should not contain the completed spec. The task row should be gone from `AGENTS.md`. No scratch files should exist.
 
 ### 10. Next Task
 - Loop back to step 1.
@@ -89,13 +93,47 @@ feat|fix|chore(scope): short summary
 
 When all tasks are complete (or you've hit blockers on everything remaining):
 
-1. Write a concise summary at the top of `TODOS.md` under `## Night Shift Report — [DATE]`.
-   - Tasks completed (one line each)
-   - Tasks blocked (one line each, with reason)
-   - Issues discovered
-   - Doc improvements made
-2. Keep it SHORT. Details belong in commit messages, not the report.
-3. Stop. Go silent. Wait for the human.
+1. Produce `Agent/NIGHT_SHIFT_REPORT.md` using the template below.
+2. Update `CHANGELOG.md` with brief one-liners for each completed task.
+3. **Docs audit:** Read each doc in `Agent/Docs/` and verify it still reflects the current code. Fix any stale references, outdated descriptions, or missing coverage from tonight's work.
+4. **Final cleanup check:**
+   - `ls Agent/Specs/` — only `draft-*` specs and unstarted specs should remain
+   - No scratch files, planning files, or untracked debris anywhere
+   - Working tree is clean (`git status` shows nothing)
+   - `Agent/` folder should look the same as before the shift, minus completed specs
+5. Stop. Go silent. Wait for the human.
+
+### Report Template
+
+Write `Agent/NIGHT_SHIFT_REPORT.md` with this structure:
+
+```markdown
+# Night Shift Report — {YYYY-MM-DD}
+
+## Completed
+
+### {Task Name}
+**Commits:** {hash list with one-line summaries}
+**What changed:** {2-3 sentence summary}
+
+**How to verify:**
+1. {Specific step-by-step manual testing instructions}
+2. {Pages to visit, actions to take, expected results}
+3. {Platforms to check: web / iOS / Android}
+
+---
+
+## Blocked
+### {Task Name} (if any)
+**Reason:** {why}
+**What's needed:** {specific input needed}
+
+## Issues Discovered
+- {one line each}
+
+## Docs Updated
+- {one line each}
+```
 
 ---
 
@@ -107,4 +145,5 @@ When all tasks are complete (or you've hit blockers on everything remaining):
 - **Always update docs** when behavior changes.
 - **Prefer small, focused commits** over one giant commit per feature.
 - **If something feels wrong, stop and document it** rather than shipping garbage.
+- **Clean up after yourself.** Completed specs get `git rm`'d. Planning files get deleted. The working tree should be clean when you're done.
 - **Burn tokens freely** on reviews, retries, and quality. Human time is expensive. Yours is not.

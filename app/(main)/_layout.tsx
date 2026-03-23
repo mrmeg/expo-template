@@ -13,6 +13,7 @@ export default function MainLayout() {
 
   return (
     <Stack
+      initialRouteName="(tabs)"
       screenOptions={{
         headerStyle: { backgroundColor: theme.colors.background },
         headerTintColor: theme.colors.foreground,

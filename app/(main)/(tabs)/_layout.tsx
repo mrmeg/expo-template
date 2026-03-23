@@ -20,7 +20,9 @@ export default function TabLayout() {
           backgroundColor: theme.colors.card,
           borderTopColor: theme.colors.border,
           paddingTop: spacing.xs,
-          ...(Platform.OS === "ios" && { height: 85 }),
+          ...(Platform.OS === "ios"
+            ? { height: 85 }
+            : { paddingBottom: spacing.sm }),
         },
         tabBarLabelStyle: {
           fontSize: 12,

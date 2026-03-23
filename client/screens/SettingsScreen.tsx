@@ -12,7 +12,7 @@ import { AnimatedView } from "@/client/components/ui/AnimatedView";
 import { useTheme } from "@/client/hooks/useTheme";
 import { STAGGER_DELAY } from "@/client/hooks/useStaggeredEntrance";
 import { spacing } from "@/client/constants/spacing";
-import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
+import { SansSerifText } from "@/client/components/ui/StyledText";
 import { Icon, type IconName } from "@/client/components/ui/Icon";
 import { Switch } from "@/client/components/ui/Switch";
 import type { Theme } from "@/client/constants/colors";
@@ -210,9 +210,9 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
         {sections.map((section, sectionIndex) => (
           <AnimatedView key={section.title} type="fadeSlideUp" delay={STAGGER_DELAY * (sectionIndex + 1)}>
           <View style={styles.section}>
-            <SansSerifBoldText style={styles.sectionTitle}>
+            <SansSerifText style={styles.sectionTitle}>
               {section.title}
-            </SansSerifBoldText>
+            </SansSerifText>
 
             <View style={[styles.card, getShadowStyle("subtle")]}>
               {section.items.map((item, index) =>
@@ -250,13 +250,12 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.xl,
     },
     sectionTitle: {
-      fontSize: 14,
-      color: theme.colors.foreground,
-      opacity: 0.6,
+      fontSize: 13,
+      color: theme.colors.mutedForeground,
       textTransform: "uppercase",
-      letterSpacing: 0.5,
-      marginBottom: spacing.sm,
-      marginLeft: spacing.xs,
+      letterSpacing: 0.8,
+      marginBottom: spacing.sm + 2,
+      marginLeft: spacing.xxs,
     },
     card: {
       backgroundColor: theme.colors.card,
@@ -283,16 +282,16 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
     },
     iconContainer: {
-      width: 36,
-      height: 36,
-      borderRadius: spacing.radiusSm,
-      backgroundColor: theme.colors.primary + "15",
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: theme.colors.muted,
       alignItems: "center",
       justifyContent: "center",
       marginRight: spacing.md,
     },
     iconSpacer: {
-      width: 36,
+      width: 34,
       marginRight: spacing.md,
     },
     label: {
@@ -304,13 +303,13 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.mutedForeground,
     },
     divider: {
-      height: 1,
+      height: StyleSheet.hairlineWidth,
       backgroundColor: theme.colors.border,
     },
     dividerInset: {
-      height: 1,
+      height: StyleSheet.hairlineWidth,
       backgroundColor: theme.colors.border,
-      marginLeft: spacing.md + 36 + spacing.md,
+      marginLeft: spacing.md + 34 + spacing.md,
     },
     radio: {
       width: 22,
@@ -332,9 +331,9 @@ const createStyles = (theme: Theme) =>
     },
     footer: {
       fontSize: 12,
-      color: theme.colors.foreground,
-      opacity: 0.5,
+      color: theme.colors.mutedForeground,
       marginTop: spacing.sm,
-      marginLeft: spacing.xs,
+      marginLeft: spacing.xxs,
+      lineHeight: 18,
     },
   });

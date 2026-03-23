@@ -106,9 +106,9 @@ For each persona:
 2. Load and re-read the doc they own.
 3. Evaluate the plan OR diff against the review questions above.
 4. Output one of:
-   - ✅ **GREEN** — No blocking concerns. (Optional: minor suggestions.)
-   - ⚠️ **YELLOW** — Non-blocking concerns that should be addressed.
-   - 🔴 **RED** — Blocking concern. Must be resolved before proceeding.
+   - GREEN — No blocking concerns. (Optional: minor suggestions.)
+   - YELLOW — Non-blocking concerns that should be addressed.
+   - RED — Blocking concern. Must be resolved before proceeding.
 5. If the persona's owned doc needs updates, note specifically what should change.
 
 **All 6 personas must be GREEN or YELLOW to proceed.** Any RED requires a fix and re-review.
