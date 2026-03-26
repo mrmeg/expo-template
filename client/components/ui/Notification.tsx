@@ -9,7 +9,6 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
-import { globalUIStore } from "./globalUIStore";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { fontFamilies } from "@/client/constants/fonts";
 import { Icon } from "@/client/components/ui/Icon";
@@ -18,6 +17,7 @@ import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { StyledText } from "@/client/components/ui/StyledText";
 import type { Theme } from "@/client/constants/colors";
+import { globalUIStore } from "@/client/state/globalUIStore";
 
 /**
  * Notification

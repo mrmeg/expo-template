@@ -28,7 +28,7 @@ import {
   isImageKey,
   getVideoThumbnailKey,
 } from "@/shared/media";
-import { globalUIStore } from "@/client/features/notifications/globalUIStore";
+import { globalUIStore } from "@/client/state/globalUIStore";
 import { logDev } from "@/client/lib/devtools";
 import type { Theme } from "@/client/constants/colors";
 

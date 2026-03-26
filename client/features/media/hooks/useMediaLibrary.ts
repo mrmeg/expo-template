@@ -5,7 +5,7 @@ import * as Crypto from "expo-crypto";
 import { Alert } from "@/client/components/ui/Alert";
 import { logDev } from "@/client/lib/devtools";
 import { extractVideoThumbnail } from "./useVideoThumbnails";
-import { globalUIStore } from "@/client/features/notifications/globalUIStore";
+import { globalUIStore } from "@/client/state/globalUIStore";
 import { useCompressionStore } from "../stores/compressionStore";
 import {
   compressImage,

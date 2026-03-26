@@ -33,7 +33,7 @@ import { Skeleton, SkeletonText, SkeletonAvatar, SkeletonCard } from "@/client/c
 import { BottomSheet } from "@/client/components/ui/BottomSheet";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { Section, SubSection, ThemeToggle } from "@/client/showcase";
-import { globalUIStore } from "@/client/features/notifications/globalUIStore";
+import { globalUIStore } from "@/client/state/globalUIStore";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { fontFamilies } from "@/client/constants/fonts";
@@ -146,7 +146,7 @@ export default function ShowcaseScreen() {
 
           <Section title="Button States">
             <SubSection label="Disabled">
-              <Button preset="default" disabled onPress={() => {}}>
+              <Button preset="default" disabled onPress={() => { }}>
                 <StyledText style={styles.buttonText}>Disabled Button</StyledText>
               </Button>
             </SubSection>
@@ -164,7 +164,7 @@ export default function ShowcaseScreen() {
             </SubSection>
 
             <SubSection label="Full Width">
-              <Button preset="default" fullWidth onPress={() => {}}>
+              <Button preset="default" fullWidth onPress={() => { }}>
                 <StyledText style={styles.buttonText}>Full Width Button</StyledText>
               </Button>
             </SubSection>
@@ -172,19 +172,19 @@ export default function ShowcaseScreen() {
 
           <Section title="Button Sizes">
             <SubSection label="Small">
-              <Button preset="default" size="sm" onPress={() => {}}>
+              <Button preset="default" size="sm" onPress={() => { }}>
                 <StyledText style={styles.buttonText}>Small</StyledText>
               </Button>
             </SubSection>
 
             <SubSection label="Default">
-              <Button preset="default" onPress={() => {}}>
+              <Button preset="default" onPress={() => { }}>
                 <StyledText style={styles.buttonText}>Default</StyledText>
               </Button>
             </SubSection>
 
             <SubSection label="Large">
-              <Button preset="default" size="lg" onPress={() => {}}>
+              <Button preset="default" size="lg" onPress={() => { }}>
                 <StyledText style={styles.buttonText}>Large</StyledText>
               </Button>
             </SubSection>
@@ -192,7 +192,7 @@ export default function ShowcaseScreen() {
 
           <Section title="With Icons">
             <SubSection label="Left Icon">
-              <Button preset="default" onPress={() => {}}>
+              <Button preset="default" onPress={() => { }}>
                 <Icon name="heart" size={16} color={theme.colors.primaryForeground} />
                 <StyledText style={[styles.buttonText, { marginLeft: spacing.xs }]}>
                   With Left Icon
@@ -201,7 +201,7 @@ export default function ShowcaseScreen() {
             </SubSection>
 
             <SubSection label="Right Icon">
-              <Button preset="outline" onPress={() => {}}>
+              <Button preset="outline" onPress={() => { }}>
                 <StyledText style={[styles.outlineButtonText, { marginRight: spacing.xs }]}>
                   Continue
                 </StyledText>
@@ -211,13 +211,13 @@ export default function ShowcaseScreen() {
 
             <SubSection label="Icon Only">
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Button preset="default" onPress={() => {}}>
+                <Button preset="default" onPress={() => { }}>
                   <Icon name="heart" size={18} color={theme.colors.primaryForeground} />
                 </Button>
-                <Button preset="outline" onPress={() => {}}>
+                <Button preset="outline" onPress={() => { }}>
                   <Icon name="heart" size={18} color={theme.colors.primary} />
                 </Button>
-                <Button preset="ghost" onPress={() => {}}>
+                <Button preset="ghost" onPress={() => { }}>
                   <Icon name="heart" size={18} color={theme.colors.foreground} />
                 </Button>
               </View>
@@ -1250,7 +1250,7 @@ export default function ShowcaseScreen() {
                   title="No messages"
                   description="You don't have any messages yet. Start a conversation to get going."
                   actionLabel="Compose"
-                  onAction={() => {}}
+                  onAction={() => { }}
                 />
               </View>
             </SubSection>
@@ -1278,7 +1278,7 @@ export default function ShowcaseScreen() {
                   title="No files"
                   description="Upload your first file to get started."
                   actionLabel="Upload"
-                  onAction={() => {}}
+                  onAction={() => { }}
                 />
               </View>
             </SubSection>

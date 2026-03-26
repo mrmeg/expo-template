@@ -16,7 +16,7 @@ import {
 import { Button } from "@/client/components/ui/Button";
 import { TextInput } from "@/client/components/ui/TextInput";
 import { Checkbox } from "@/client/components/ui/Checkbox";
-import { globalUIStore } from "@/client/features/notifications/globalUIStore";
+import { globalUIStore } from "@/client/state/globalUIStore";
 import type { Theme } from "@/client/constants/colors";
 
 // Form field types
@@ -93,46 +93,46 @@ export default function FormDemoScreen() {
     let error: string | undefined;
 
     switch (field) {
-    case "name":
-      if (!formData.name.trim()) {
-        error = "Name is required";
-      } else if (formData.name.trim().length < 2) {
-        error = "Name must be at least 2 characters";
-      }
-      break;
-
-    case "email":
-      if (!formData.email.trim()) {
-        error = "Email is required";
-      } else if (!validateEmail(formData.email)) {
-        error = "Please enter a valid email address";
-      }
-      break;
-
-    case "password":
-      if (!formData.password) {
-        error = "Password is required";
-      } else {
-        const passwordErrors = validatePassword(formData.password);
-        if (passwordErrors.length > 0) {
-          error = `Password needs: ${passwordErrors.join(", ")}`;
+      case "name":
+        if (!formData.name.trim()) {
+          error = "Name is required";
+        } else if (formData.name.trim().length < 2) {
+          error = "Name must be at least 2 characters";
         }
-      }
-      break;
+        break;
 
-    case "confirmPassword":
-      if (!formData.confirmPassword) {
-        error = "Please confirm your password";
-      } else if (formData.password !== formData.confirmPassword) {
-        error = "Passwords do not match";
-      }
-      break;
+      case "email":
+        if (!formData.email.trim()) {
+          error = "Email is required";
+        } else if (!validateEmail(formData.email)) {
+          error = "Please enter a valid email address";
+        }
+        break;
 
-    case "agreeToTerms":
-      if (!formData.agreeToTerms) {
-        error = "You must agree to the terms";
-      }
-      break;
+      case "password":
+        if (!formData.password) {
+          error = "Password is required";
+        } else {
+          const passwordErrors = validatePassword(formData.password);
+          if (passwordErrors.length > 0) {
+            error = `Password needs: ${passwordErrors.join(", ")}`;
+          }
+        }
+        break;
+
+      case "confirmPassword":
+        if (!formData.confirmPassword) {
+          error = "Please confirm your password";
+        } else if (formData.password !== formData.confirmPassword) {
+          error = "Passwords do not match";
+        }
+        break;
+
+      case "agreeToTerms":
+        if (!formData.agreeToTerms) {
+          error = "You must agree to the terms";
+        }
+        break;
     }
 
     setErrors((prev) => ({ ...prev, [field]: error }));
