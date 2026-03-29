@@ -29,11 +29,49 @@ jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
 
-// Mock react-native-reanimated
+// Mock react-native-reanimated (v4 no longer ships a mock entry point)
 jest.mock("react-native-reanimated", () => {
-  const Reanimated = require("react-native-reanimated/mock");
-  Reanimated.default.call = () => {};
-  return Reanimated;
+  const { View } = require("react-native");
+  return {
+    __esModule: true,
+    default: {
+      call: jest.fn(),
+      View: require("react-native").View,
+      Text: require("react-native").Text,
+      ScrollView: require("react-native").ScrollView,
+      Image: require("react-native").Image,
+      createAnimatedComponent: (component: unknown) => component,
+    },
+    useSharedValue: (init: unknown) => ({ value: init }),
+    useAnimatedStyle: (fn: () => unknown) => fn(),
+    useDerivedValue: (fn: () => unknown) => ({ value: fn() }),
+    useReducedMotion: () => false,
+    withTiming: (val: unknown) => val,
+    withSpring: (val: unknown) => val,
+    withDelay: (_: number, val: unknown) => val,
+    withSequence: (...vals: unknown[]) => vals[vals.length - 1],
+    withRepeat: (val: unknown) => val,
+    Easing: {
+      linear: jest.fn(),
+      ease: jest.fn(),
+      bezier: () => jest.fn(),
+      inOut: jest.fn(),
+      in: jest.fn(),
+      out: jest.fn(),
+    },
+    FadeIn: { duration: () => ({ delay: () => ({ build: () => ({}) }) }), delay: () => ({ build: () => ({}) }), build: () => ({}) },
+    FadeOut: { duration: () => ({ build: () => ({}) }), build: () => ({}) },
+    SlideInDown: { duration: () => ({ build: () => ({}) }), build: () => ({}) },
+    SlideOutDown: { duration: () => ({ build: () => ({}) }), build: () => ({}) },
+    SlideInUp: { duration: () => ({ build: () => ({}) }), build: () => ({}) },
+    SlideOutUp: { duration: () => ({ build: () => ({}) }), build: () => ({}) },
+    runOnJS: (fn: (...args: unknown[]) => void) => fn,
+    interpolate: jest.fn((val: number) => val),
+    Extrapolation: { CLAMP: "clamp", EXTEND: "extend" },
+    ReduceMotion: { System: "system", Always: "always", Never: "never" },
+    createAnimatedComponent: (component: unknown) => component,
+    Animated: { View, Text: require("react-native").Text, ScrollView: require("react-native").ScrollView },
+  };
 });
 
 // Mock react-native-gesture-handler
