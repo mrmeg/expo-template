@@ -15,7 +15,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 | [Select & Radio Group Components](./Specs/select-radio-components.md) | Ready | High |
 | [Form System & Form Screen Template](./Specs/form-system.md) | Ready | High |
 | [Progress, Slider & OTP Components](./Specs/progress-slider-otp-components.md) | Ready | Medium |
-| [Component Enhancements](./Specs/component-enhancements.md) | Ready | Medium |
 | [Error & Status Screen Templates](./Specs/error-status-screens.md) | Ready | Medium |
 | [Search Results & Card Grid Screens](./Specs/discovery-screens.md) | Ready | Medium |
 | [Notifications, Chat & Analytics Screens](./Specs/social-screens.md) | Ready | Low |
