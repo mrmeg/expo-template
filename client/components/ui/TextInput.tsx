@@ -234,7 +234,10 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
       ? sizeConfig.paddingHorizontal + spacing.xl
       : sizeConfig.paddingHorizontal;
 
-    const inputPaddingRight = rightElement || (secureTextEntry && showSecureEntryToggle)
+    const hasRightSlot = !!rightElement || (secureTextEntry && showSecureEntryToggle);
+    const showErrorIcon = hasError && !hasRightSlot && !multiline;
+
+    const inputPaddingRight = hasRightSlot || showErrorIcon
       ? sizeConfig.paddingHorizontal + spacing.xl
       : sizeConfig.paddingHorizontal;
 
@@ -349,6 +352,21 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
               />
             </Pressable>
           )}
+
+          {showErrorIcon && (
+            <View
+              style={styles.errorIcon}
+              accessibilityLabel="Error"
+              pointerEvents="none"
+            >
+              <Icon
+                name="alert-circle"
+                size={spacing.iconSm}
+                color="destructive"
+                decorative
+              />
+            </View>
+          )}
         </View>
 
         {/* Helper Text or Error Text */}
@@ -443,5 +461,12 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       transform: [{ translateY: Platform.OS === "web" ? -10 : -12 }],
       zIndex: 1,
       ...(Platform.OS === "web" && { cursor: "pointer" as any }),
+    },
+    errorIcon: {
+      position: "absolute",
+      right: spacing.sm,
+      top: "50%",
+      transform: [{ translateY: -10 }],
+      zIndex: 1,
     },
   });

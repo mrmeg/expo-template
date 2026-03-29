@@ -1,4 +1,4 @@
-import React, { ComponentType } from "react";
+import React, { ComponentType, useState } from "react";
 import {
   Pressable,
   PressableProps,
@@ -233,6 +233,7 @@ export function Button(props: ButtonProps) {
               ? theme.colors.primaryForeground
               : getContrastingColor(backgroundColor, palette.white, palette.black);
 
+  const [focused, setFocused] = useState(false);
   const isDisabled = disabled || loading;
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!isDisabled,
@@ -247,6 +248,8 @@ export function Button(props: ButtonProps) {
         accessibilityState={{ disabled: !!isDisabled, busy: loading }}
         {...rest}
         {...pressHandlers}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         style={{ alignSelf: fullWidth ? "stretch" : (flattenedStyle?.alignSelf as ViewStyle["alignSelf"]) ?? "flex-start" }}
         disabled={isDisabled}
       >
@@ -267,6 +270,9 @@ export function Button(props: ButtonProps) {
                 state.pressed && pressedStyleOverride,
                 isDisabled && styles.disabled,
                 isDisabled && disabledStyleOverride,
+                Platform.OS === "web" && focused && !isDisabled && {
+                  boxShadow: `0 0 0 2px ${theme.colors.background}, 0 0 0 4px ${theme.colors.accent}`,
+                } as any,
                 // Spread array styles from Slot to prevent nested arrays on web
                 ...(Array.isArray(styleOverride) ? styleOverride : [styleOverride]),
               ]}

@@ -32,6 +32,7 @@ function Badge({ children, variant = "default", style: styleOverride }: BadgePro
 
   return (
     <View
+      accessibilityRole="text"
       style={[
         styles.badge,
         variant === "default" && styles.default,

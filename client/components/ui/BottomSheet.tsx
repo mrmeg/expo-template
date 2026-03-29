@@ -559,6 +559,11 @@ function BottomSheetContent({
                   ? StyleSheet.flatten(styleOverride)
                   : undefined,
               ]}
+              accessibilityViewIsModal={true}
+              {...(Platform.OS === "web" && {
+                role: "dialog",
+                "aria-modal": true,
+              } as any)}
               {...(panResponder ? panResponder.panHandlers : {})}
               {...props}
             >

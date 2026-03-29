@@ -52,6 +52,12 @@ export interface IconProps {
    * Additional styles for positioning, transforms, etc.
    */
   style?: StyleProp<ViewStyle>;
+  /**
+   * When true, hides the icon from the accessibility tree.
+   * Use for purely decorative icons that add no information.
+   * @default false
+   */
+  decorative?: boolean;
 }
 
 /**
@@ -70,6 +76,7 @@ export function Icon({
   size = 24,
   color,
   style,
+  decorative = false,
 }: IconProps) {
   const { theme } = useTheme();
   const iconColor = resolveIconColor(color, theme.colors);
@@ -77,7 +84,16 @@ export function Icon({
   // Wrap in View with pointerEvents="none" to prevent icons from
   // intercepting touches when used inside TouchableOpacity on iOS
   return (
-    <View pointerEvents="none" style={style}>
+    <View
+      pointerEvents="none"
+      style={style}
+      accessible={!decorative}
+      {...(decorative && {
+        importantForAccessibility: "no" as const,
+        accessibilityElementsHidden: true,
+        "aria-hidden": true,
+      })}
+    >
       <Feather
         name={name}
         size={size}

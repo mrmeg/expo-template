@@ -85,6 +85,8 @@ function Card({ children, style: styleOverride, variant = "default", onPress, di
         <Pressable
           onPress={onPress}
           disabled={disabled}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !!disabled }}
           {...pressHandlers}
           style={Platform.OS === "web" ? { cursor: "pointer" as any } : undefined}
         >
