@@ -59,7 +59,7 @@ Each feature is portable and self-contained. Features never import from other fe
 
 ### `client/` — Shared Layer
 - `components/ui/` — 27 design system primitives
-- `hooks/` — Shared hooks (useTheme, useStyles, useScalePress, useStaggeredEntrance, useDimensions, useReduceMotion, useResources)
+- `hooks/` — Shared hooks (useTheme, useStyles, useScalePress, useStaggeredEntrance, useDimensions, useReduceMotion, useResources, useDebounce, useClipboard, useToggle)
 - `lib/` — Utilities (api/, storage/, haptics, gesture-handler, devtools)
 - `constants/` — Design tokens (colors, fonts, spacing)
 - `state/` — Shared stores (themeStore, drawerStore)
