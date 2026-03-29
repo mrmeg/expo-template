@@ -12,7 +12,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 |------|--------|----------|
 | [Form System & Form Screen Template](./Specs/form-system.md) | Ready | High |
 | [Progress, Slider & OTP Components](./Specs/progress-slider-otp-components.md) | Ready | Medium |
-| [Error & Status Screen Templates](./Specs/error-status-screens.md) | Ready | Medium |
 | [Search Results & Card Grid Screens](./Specs/discovery-screens.md) | Ready | Medium |
 | [Notifications, Chat & Analytics Screens](./Specs/social-screens.md) | Ready | Low |
 | [Generator Script Improvements](./Specs/generator-improvements.md) | Ready | Low |
