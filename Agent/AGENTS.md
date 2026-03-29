@@ -12,6 +12,18 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 |------|--------|----------|
 | [Server Date Service](./Specs/server-date-service.md) | Ready | High |
 | [Hybrid Search](./Specs/hybrid-search.md) | Ready | High |
+| [Component Accessibility & Web Polish](./Specs/component-accessibility-pass.md) | Ready | High |
+| [Dialog / Modal Component](./Specs/dialog-component.md) | Ready | High |
+| [Tabs Component](./Specs/tabs-component.md) | Ready | High |
+| [Select & Radio Group Components](./Specs/select-radio-components.md) | Ready | High |
+| [Utility Hooks Bundle](./Specs/utility-hooks.md) | Ready | High |
+| [Form System & Form Screen Template](./Specs/form-system.md) | Ready | High |
+| [Progress, Slider & OTP Components](./Specs/progress-slider-otp-components.md) | Ready | Medium |
+| [Component Enhancements](./Specs/component-enhancements.md) | Ready | Medium |
+| [Error & Status Screen Templates](./Specs/error-status-screens.md) | Ready | Medium |
+| [Search Results & Card Grid Screens](./Specs/discovery-screens.md) | Ready | Medium |
+| [Notifications, Chat & Analytics Screens](./Specs/social-screens.md) | Ready | Low |
+| [Generator Script Improvements](./Specs/generator-improvements.md) | Ready | Low |
 
 ## Workflow
 
