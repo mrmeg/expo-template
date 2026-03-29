@@ -150,15 +150,162 @@ const createStyles = (theme: Theme) =>
 `;
 }
 
+// Hook template
+function getHookTemplate(name: string): string {
+  const rawName = name.replace(/^use/i, "");
+  const pascalName = toPascalCase(rawName);
+  const hookName = `use${pascalName}`;
+
+  return `import { useState, useEffect, useCallback } from "react";
+
+interface ${hookName.charAt(0).toUpperCase() + hookName.slice(1)}Options {
+  // TODO: Define hook options
+}
+
+/**
+ * ${hookName}
+ *
+ * TODO: Describe what this hook does.
+ *
+ * @param options - Configuration options
+ * @returns TODO: Describe return value
+ *
+ * @example
+ * \`\`\`tsx
+ * const result = ${hookName}();
+ * \`\`\`
+ */
+export function ${hookName}(options: ${hookName.charAt(0).toUpperCase() + hookName.slice(1)}Options = {}) {
+  // TODO: Implement hook logic
+
+  return {};
+}
+`;
+}
+
+// Form template
+function getFormTemplate(name: string): string {
+  const pascalName = toPascalCase(name);
+  const camelName = toCamelCase(name);
+
+  return `import { View, StyleSheet } from "react-native";
+import { useForm, Controller } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useTheme } from "@/client/hooks/useTheme";
+import { spacing } from "@/client/constants/spacing";
+import { SansSerifText } from "@/client/components/ui/StyledText";
+import { TextInput } from "@/client/components/ui/TextInput";
+import { Button } from "@/client/components/ui/Button";
+import type { Theme } from "@/client/constants/colors";
+
+const ${camelName}Schema = z.object({
+  // TODO: Define your form fields
+  // example: z.string().min(1, "Required"),
+});
+
+type ${pascalName}FormData = z.infer<typeof ${camelName}Schema>;
+
+export interface ${pascalName}FormProps {
+  /** Called when the form is submitted with valid data */
+  onSubmit: (data: ${pascalName}FormData) => void;
+  /** Whether the form is currently submitting */
+  loading?: boolean;
+}
+
+/**
+ * ${pascalName}Form
+ *
+ * Usage:
+ * \`\`\`tsx
+ * <${pascalName}Form onSubmit={(data) => console.log(data)} />
+ * \`\`\`
+ */
+export function ${pascalName}Form({ onSubmit, loading = false }: ${pascalName}FormProps) {
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
+
+  const { control, handleSubmit, formState: { errors } } = useForm<${pascalName}FormData>({
+    resolver: zodResolver(${camelName}Schema),
+    defaultValues: {
+      // TODO: Set default values
+    },
+  });
+
+  return (
+    <View style={styles.container}>
+      {/* TODO: Add form fields using Controller */}
+      {/*
+      <Controller
+        control={control}
+        name="example"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            label="Example"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            error={!!errors.example}
+            errorText={errors.example?.message}
+          />
+        )}
+      />
+      */}
+
+      <Button
+        onPress={handleSubmit(onSubmit)}
+        loading={loading}
+        fullWidth
+      >
+        Submit
+      </Button>
+    </View>
+  );
+}
+
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      gap: spacing.md,
+    },
+  });
+`;
+}
+
+function validateName(name: string): { valid: boolean; warnings: string[] } {
+  const warnings: string[] = [];
+
+  if (!name || name.trim().length === 0) {
+    return { valid: false, warnings: ["Name cannot be empty."] };
+  }
+  if (/\s/.test(name)) {
+    return { valid: false, warnings: ["Name cannot contain spaces."] };
+  }
+  if (/^\d/.test(name)) {
+    return { valid: false, warnings: ["Name cannot start with a number."] };
+  }
+  if (/[^a-zA-Z0-9\-_]/.test(name)) {
+    return { valid: false, warnings: ["Name can only contain letters, numbers, hyphens, and underscores."] };
+  }
+  if (name !== toPascalCase(name) && !name.includes("-") && !name.includes("_")) {
+    warnings.push(`Name "${name}" is not PascalCase. It will be converted to "${toPascalCase(name)}".`);
+  }
+
+  return { valid: true, warnings };
+}
+
 function showHelp() {
   log("\nUsage: npm run generate <type> <name>\n", "blue");
   log("Types:", "yellow");
   log("  component  - Create a new UI component in client/components/ui/");
   log("  screen     - Create a new screen in app/(main)/");
+  log("  hook       - Create a new hook in client/hooks/");
+  log("  form       - Create a new form component in client/components/forms/");
   log("\nExamples:", "yellow");
   log("  npm run generate component MyButton");
   log("  npm run generate screen Settings");
-  log("  npm run generate component user-avatar");
+  log("  npm run generate hook Debounce");
+  log("  npm run generate form ContactInfo");
   log("");
 }
 
@@ -178,6 +325,14 @@ function main() {
     process.exit(1);
   }
 
+  const { valid, warnings } = validateName(name);
+  for (const w of warnings) {
+    log(`Warning: ${w}`, "yellow");
+  }
+  if (!valid) {
+    process.exit(1);
+  }
+
   const pascalName = toPascalCase(name);
   const projectRoot = path.resolve(__dirname, "..");
 
@@ -187,16 +342,16 @@ function main() {
     const destFile = path.join(destDir, `${pascalName}.tsx`);
 
     if (fs.existsSync(destFile)) {
-      log(`Error: Component ${pascalName}.tsx already exists.`, "red");
+      log(`Error: Component ${pascalName}.tsx already exists at client/components/ui/${pascalName}.tsx`, "red");
+      log("  To overwrite, delete the existing file first.", "gray");
       process.exit(1);
     }
 
     const content = getComponentTemplate(name);
     fs.writeFileSync(destFile, content);
     log(`\nCreated component: client/components/ui/${pascalName}.tsx`, "green");
-    log("\nUsage:", "gray");
+    log("\nImport:", "gray");
     log(`  import { ${pascalName} } from "@/client/components/ui/${pascalName}";`, "gray");
-    log(`  <${pascalName} />`, "gray");
     break;
   }
 
@@ -206,7 +361,8 @@ function main() {
     const destFile = path.join(destDir, `${fileName}.tsx`);
 
     if (fs.existsSync(destFile)) {
-      log(`Error: Screen ${fileName}.tsx already exists.`, "red");
+      log(`Error: Screen ${fileName}.tsx already exists at app/(main)/${fileName}.tsx`, "red");
+      log("  To overwrite, delete the existing file first.", "gray");
       process.exit(1);
     }
 
@@ -218,8 +374,52 @@ function main() {
     break;
   }
 
+  case "hook": {
+    const rawName = name.replace(/^use/i, "");
+    const hookPascal = toPascalCase(rawName);
+    const hookName = `use${hookPascal}`;
+    const destDir = path.join(projectRoot, "client", "hooks");
+    const destFile = path.join(destDir, `${hookName}.ts`);
+
+    if (fs.existsSync(destFile)) {
+      log(`Error: Hook ${hookName}.ts already exists at client/hooks/${hookName}.ts`, "red");
+      log("  To overwrite, delete the existing file first.", "gray");
+      process.exit(1);
+    }
+
+    const content = getHookTemplate(name);
+    fs.writeFileSync(destFile, content);
+    log(`\nCreated hook: client/hooks/${hookName}.ts`, "green");
+    log("\nImport:", "gray");
+    log(`  import { ${hookName} } from "@/client/hooks/${hookName}";`, "gray");
+    break;
+  }
+
+  case "form": {
+    const destDir = path.join(projectRoot, "client", "components", "forms");
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+    const destFile = path.join(destDir, `${pascalName}Form.tsx`);
+
+    if (fs.existsSync(destFile)) {
+      log(`Error: Form ${pascalName}Form.tsx already exists at client/components/forms/${pascalName}Form.tsx`, "red");
+      log("  To overwrite, delete the existing file first.", "gray");
+      process.exit(1);
+    }
+
+    const content = getFormTemplate(name);
+    fs.writeFileSync(destFile, content);
+    log(`\nCreated form: client/components/forms/${pascalName}Form.tsx`, "green");
+    log("\nImport:", "gray");
+    log(`  import { ${pascalName}Form } from "@/client/components/forms/${pascalName}Form";`, "gray");
+    log("\nNote: This template requires additional dependencies.", "yellow");
+    log("  Run: bun add react-hook-form zod @hookform/resolvers", "yellow");
+    break;
+  }
+
   default:
-    log(`Error: Unknown type "${type}". Use "component" or "screen".`, "red");
+    log(`Error: Unknown type "${type}". Use "component", "screen", "hook", or "form".`, "red");
     showHelp();
     process.exit(1);
   }
