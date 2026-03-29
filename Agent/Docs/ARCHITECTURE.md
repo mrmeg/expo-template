@@ -58,12 +58,13 @@ Each feature is portable and self-contained. Features never import from other fe
 | `navigation/` | Web back button + history handling | WebBackButton, backBehavior |
 
 ### `client/` — Shared Layer
-- `components/ui/` — 27 design system primitives
+- `components/ui/` — 35+ design system primitives (including Dialog, AlertDialog, Tabs, Select, RadioGroup, Progress, Slider, InputOTP)
 - `hooks/` — Shared hooks (useTheme, useStyles, useScalePress, useStaggeredEntrance, useDimensions, useReduceMotion, useResources, useDebounce, useClipboard, useToggle)
 - `lib/` — Utilities (api/, storage/, haptics, gesture-handler, devtools)
 - `constants/` — Design tokens (colors, fonts, spacing)
 - `state/` — Shared stores (themeStore, drawerStore)
-- `screens/` — 6 pre-built screen templates
+- `screens/` — 12 pre-built screen templates (Detail, Welcome, Pricing, Profile, Settings, List, Error, Form, SearchResults, CardGrid, NotificationList, Chat, Dashboard)
+- `lib/form/` — Form system (react-hook-form + zod adapters: FormTextInput, FormCheckbox, FormSwitch, FormSelect)
 - `showcase/` — Demo/showcase helpers
 - `config/` — App config (base, dev, prod — merges via `__DEV__`)
 

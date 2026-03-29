@@ -184,6 +184,44 @@ Subtle, not dramatic. **Cards have no shadow by default** — use border-only ap
 - Centered layout with icon, title, description, action button
 - Ideal for FlatList ListEmptyComponent
 
+### Dialog / AlertDialog
+- Centered modal overlay with backdrop fade + content scale-in
+- Compound: `.Trigger`, `.Content`, `.Header`, `.Footer`, `.Title`, `.Description`, `.Close`
+- AlertDialog: non-dismissible, requires `.Action` or `.Cancel`
+- Max width 450, 85% max height, FullWindowOverlay on iOS
+
+### Tabs
+- **Variants:** underline (bottom border indicator), pill (filled background)
+- **Sizes:** sm (32px), md (36px)
+- Compound: `Tabs`, `Tabs.List`, `Tabs.Trigger`, `Tabs.Content`
+- Animated active indicator, keyboard navigation on web
+
+### Select
+- Form-style dropdown (distinct from DropdownMenu)
+- **Sizes:** sm (32px), md (36px), lg (40px)
+- Compound: `.Trigger`, `.Value`, `.Content`, `.Item`, `.Group`, `.Label`, `.Separator`
+- Error/disabled states, check indicator on selected item
+
+### RadioGroup
+- **Sizes:** sm (16px), md (20px), lg (24px) — matches Checkbox
+- Animated inner dot (60ms withTiming), haptic feedback
+- Label tap activates radio, error/disabled states
+
+### Progress
+- **Sizes:** sm (4px), md (8px), lg (12px)
+- **Variants:** default (primary), accent (teal), destructive
+- Determinate (animated fill) and indeterminate (opacity pulse)
+
+### Slider
+- **Sizes:** sm (4px track/16px thumb), md (6px track/20px thumb)
+- Gesture handler Pan, step snapping, haptic feedback
+- Optional value label above thumb
+
+### InputOTP
+- Individual character boxes (36x40px), hidden TextInput capture
+- Auto-advance, backspace navigation, paste support
+- Error state, secure entry (bullet mask), auto-focus
+
 ## Animations
 
 ### useScalePress
