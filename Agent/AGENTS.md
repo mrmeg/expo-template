@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| [Tabs Component](./Specs/tabs-component.md) | Ready | High |
 | [Select & Radio Group Components](./Specs/select-radio-components.md) | Ready | High |
 | [Form System & Form Screen Template](./Specs/form-system.md) | Ready | High |
 | [Progress, Slider & OTP Components](./Specs/progress-slider-otp-components.md) | Ready | Medium |
