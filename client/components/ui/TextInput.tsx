@@ -15,6 +15,7 @@ import { spacing } from "@/client/constants/spacing";
 import { fontFamilies } from "@/client/constants/fonts";
 import { StyledText } from "./StyledText";
 import { Icon } from "./Icon";
+import { hapticLight } from "@/client/lib/haptics";
 import type { Theme } from "@/client/constants/colors";
 import { palette } from "@/client/constants/colors";
 
@@ -108,6 +109,12 @@ interface TextInputCustomProps extends TextInputProps {
    */
   rightElement?: ReactNode;
   /**
+   * Shows an X button to clear the input when it has a value.
+   * Not shown alongside showSecureEntryToggle or on multiline inputs.
+   * @default false
+   */
+  clearable?: boolean;
+  /**
    * Wrapper view style
    */
   wrapperStyle?: StyleProp<ViewStyle>;
@@ -176,6 +183,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
       showSecureEntryToggle,
       leftElement,
       rightElement,
+      clearable = false,
       wrapperStyle,
       focusedStyle,
       forceLight,
@@ -234,7 +242,9 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
       ? sizeConfig.paddingHorizontal + spacing.xl
       : sizeConfig.paddingHorizontal;
 
-    const hasRightSlot = !!rightElement || (secureTextEntry && showSecureEntryToggle);
+    const hasSecureToggle = !!(secureTextEntry && showSecureEntryToggle);
+    const showClearButton = clearable && !hasSecureToggle && !multiline && !isDisabled && !!value;
+    const hasRightSlot = !!rightElement || hasSecureToggle || showClearButton;
     const showErrorIcon = hasError && !hasRightSlot && !multiline;
 
     const inputPaddingRight = hasRightSlot || showErrorIcon
@@ -333,8 +343,38 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
             aria-required={required}
           />
 
-          {/* Right Element or Password Toggle */}
-          {rightElement && !secureTextEntry && (
+          {/* Right Element, Clear Button, or Password Toggle */}
+          {showClearButton && !rightElement && (
+            <Pressable
+              style={styles.clearButton}
+              onPress={() => {
+                hapticLight();
+                onChangeText?.("");
+              }}
+              accessibilityLabel="Clear input"
+              accessibilityRole="button"
+            >
+              <Icon name="x" size={spacing.iconSm} color="textDim" decorative />
+            </Pressable>
+          )}
+
+          {showClearButton && rightElement && !hasSecureToggle && (
+            <View style={styles.rightElements}>
+              <Pressable
+                onPress={() => {
+                  hapticLight();
+                  onChangeText?.("");
+                }}
+                accessibilityLabel="Clear input"
+                accessibilityRole="button"
+              >
+                <Icon name="x" size={spacing.iconSm} color="textDim" decorative />
+              </Pressable>
+              {rightElement}
+            </View>
+          )}
+
+          {!showClearButton && rightElement && !hasSecureToggle && (
             <View style={styles.rightElement}>{rightElement}</View>
           )}
 
@@ -467,6 +507,24 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       right: spacing.sm,
       top: "50%",
       transform: [{ translateY: -10 }],
+      zIndex: 1,
+    },
+    clearButton: {
+      position: "absolute",
+      right: spacing.sm,
+      top: "50%",
+      transform: [{ translateY: Platform.OS === "web" ? -10 : -12 }],
+      zIndex: 1,
+      ...(Platform.OS === "web" && { cursor: "pointer" as any }),
+    },
+    rightElements: {
+      position: "absolute",
+      right: spacing.sm,
+      top: 0,
+      bottom: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
       zIndex: 1,
     },
   });

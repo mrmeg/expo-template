@@ -454,3 +454,15 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 };
+
+export type {
+  DropdownMenuSubTriggerProps,
+  DropdownMenuSubContentProps,
+  DropdownMenuContentProps,
+  DropdownMenuItemProps,
+  DropdownMenuCheckboxItemProps,
+  DropdownMenuRadioItemProps,
+  DropdownMenuLabelProps,
+  DropdownMenuSeparatorProps,
+  DropdownMenuShortcutProps,
+};

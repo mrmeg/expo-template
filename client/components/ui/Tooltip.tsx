@@ -227,3 +227,9 @@ export {
   TooltipContent,
   TooltipBody,
 };
+
+export type {
+  TooltipContentProps,
+  TooltipBodyProps,
+  TooltipProps,
+};

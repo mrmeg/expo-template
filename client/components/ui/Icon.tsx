@@ -34,31 +34,30 @@ function resolveIconColor(color: string | ThemeColorName | undefined, themeColor
 
 export type IconName = React.ComponentProps<typeof Feather>["name"];
 
-export interface IconProps {
-  /**
-   * The icon name to render (Feather icons)
-   */
-  name: IconName;
-  /**
-   * Size of the icon in pixels
-   */
+type IconBaseProps = {
+  /** Size of the icon in pixels */
   size?: number;
-  /**
-   * Icon color - can be a hex color or a theme color name
-   * Defaults to theme's text color
-   */
+  /** Icon color - can be a hex color or a theme color name. Defaults to theme's text color */
   color?: string | ThemeColorName;
-  /**
-   * Additional styles for positioning, transforms, etc.
-   */
+  /** Additional styles for positioning, transforms, etc. */
   style?: StyleProp<ViewStyle>;
-  /**
-   * When true, hides the icon from the accessibility tree.
-   * Use for purely decorative icons that add no information.
-   * @default false
-   */
+  /** When true, hides the icon from the accessibility tree. @default false */
   decorative?: boolean;
-}
+};
+
+type FeatherIconProps = IconBaseProps & {
+  /** The icon name to render (Feather icons) */
+  name: IconName;
+  component?: never;
+};
+
+type CustomIconProps = IconBaseProps & {
+  name?: never;
+  /** Custom component to render instead of Feather. Receives size and color as props. */
+  component: React.ComponentType<{ size: number; color: string }>;
+};
+
+export type IconProps = FeatherIconProps | CustomIconProps;
 
 /**
  * Universal Icon Component
@@ -71,15 +70,12 @@ export interface IconProps {
  * <Icon name="terminal" style={{ marginRight: 8 }} />
  * ```
  */
-export function Icon({
-  name,
-  size = 24,
-  color,
-  style,
-  decorative = false,
-}: IconProps) {
+export function Icon(props: IconProps) {
+  const { size = 24, color, style, decorative = false } = props;
   const { theme } = useTheme();
   const iconColor = resolveIconColor(color, theme.colors);
+
+  const CustomComponent = "component" in props ? props.component : undefined;
 
   // Wrap in View with pointerEvents="none" to prevent icons from
   // intercepting touches when used inside TouchableOpacity on iOS
@@ -94,11 +90,15 @@ export function Icon({
         "aria-hidden": true,
       })}
     >
-      <Feather
-        name={name}
-        size={size}
-        color={iconColor}
-      />
+      {CustomComponent ? (
+        <CustomComponent size={size} color={iconColor} />
+      ) : (
+        <Feather
+          name={(props as FeatherIconProps).name}
+          size={size}
+          color={iconColor}
+        />
+      )}
     </View>
   );
 }
