@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| [Form System & Form Screen Template](./Specs/form-system.md) | Ready | High |
 | [Search Results & Card Grid Screens](./Specs/discovery-screens.md) | Ready | Medium |
 | [Notifications, Chat & Analytics Screens](./Specs/social-screens.md) | Ready | Low |
 | [Generator Script Improvements](./Specs/generator-improvements.md) | Ready | Low |
