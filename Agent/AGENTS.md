@@ -10,6 +10,19 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
+| [Env Validation & Config Fixes](./Specs/draft-env-validation-and-config.md) | Draft | High |
+| [Server Security Hardening](./Specs/draft-server-security-hardening.md) | Draft | High |
+| [API Client Improvements](./Specs/draft-api-client-improvements.md) | Draft | High |
+| [Core Test Coverage](./Specs/draft-core-test-coverage.md) | Draft | High |
+| [New Component Showcases](./Specs/draft-new-component-showcases.md) | Draft | High |
+| [New Screen Demos](./Specs/draft-new-screen-demos.md) | Draft | High |
+| [Error Tracking Integration](./Specs/draft-error-tracking-integration.md) | Draft | Medium |
+| [CI/CD Pipeline](./Specs/draft-ci-cd-pipeline.md) | Draft | Medium |
+| [Screen Template Tests](./Specs/draft-screen-template-tests.md) | Draft | Medium |
+| [DX Documentation](./Specs/draft-dx-documentation.md) | Draft | Medium |
+| [Web SEO Meta Tags](./Specs/draft-web-seo-meta-tags.md) | Draft | Low |
+| [Font Loading Resilience](./Specs/draft-font-loading-resilience.md) | Draft | Low |
+| [Bundle Size Analysis](./Specs/draft-bundle-size-analysis.md) | Draft | Low |
 
 ## Workflow
 
