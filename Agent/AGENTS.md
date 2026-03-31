@@ -11,7 +11,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 | Spec | Status | Priority |
 |------|--------|----------|
 | [Core Test Coverage](./Specs/core-test-coverage.md) | Ready | High |
-| [New Component Showcases](./Specs/new-component-showcases.md) | Ready | High |
 | [New Screen Demos](./Specs/new-screen-demos.md) | Ready | High |
 | [Error Tracking Integration](./Specs/error-tracking-integration.md) | Ready | Medium |
 | [Screen Template Tests](./Specs/screen-template-tests.md) | Ready | Medium |
