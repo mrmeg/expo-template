@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| [Env Validation & Config Fixes](./Specs/env-validation-and-config.md) | Ready | High |
 | [Server Security Hardening](./Specs/server-security-hardening.md) | Ready | High |
 | [API Client Improvements](./Specs/api-client-improvements.md) | Ready | High |
 | [Core Test Coverage](./Specs/core-test-coverage.md) | Ready | High |
