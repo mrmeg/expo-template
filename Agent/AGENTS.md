@@ -18,7 +18,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 | [Screen Template Tests](./Specs/screen-template-tests.md) | Ready | Medium |
 | [DX Documentation](./Specs/dx-documentation.md) | Ready | Medium |
 | [Web SEO Meta Tags](./Specs/web-seo-meta-tags.md) | Ready | Low |
-| [Font Loading Resilience](./Specs/font-loading-resilience.md) | Ready | Low |
 | [Bundle Size Analysis](./Specs/bundle-size-analysis.md) | Ready | Low |
 
 ## Workflow
