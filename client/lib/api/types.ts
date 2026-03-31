@@ -27,6 +27,10 @@ export interface RequestOptions {
   timeout?: number;
   /** Whether to include credentials (cookies) */
   credentials?: RequestCredentials;
+  /** Number of retries for temporary failures (default: 2 for GET, 0 for mutations) */
+  retry?: number;
+  /** Base delay in ms for exponential backoff (default: 1000) */
+  retryDelay?: number;
 }
 
 /**

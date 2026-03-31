@@ -6,7 +6,7 @@
 export type ApiProblem =
   | { kind: "timeout"; temporary: true }
   | { kind: "cannot-connect"; temporary: true }
-  | { kind: "server"; status: number }
+  | { kind: "server"; status: number; temporary?: true }
   | { kind: "unauthorized" }
   | { kind: "forbidden" }
   | { kind: "not-found" }
@@ -33,10 +33,11 @@ export function getApiProblem(status: number): ApiProblem | null {
   case 408:
     return { kind: "timeout", temporary: true };
   case 500:
+    return { kind: "server", status };
   case 502:
   case 503:
   case 504:
-    return { kind: "server", status };
+    return { kind: "server", status, temporary: true };
   default:
     if (status >= 400 && status < 500) {
       return { kind: "rejected", status };

@@ -6,6 +6,7 @@
 import Config from "@/client/config";
 import { getApiProblem, type ApiProblem } from "./apiProblem";
 import type { ApiResult, HttpMethod, RequestOptions } from "./types";
+import { calculateBackoff, sleep } from "./retry";
 
 class Api {
   private baseUrl: string;
@@ -69,15 +70,14 @@ class Api {
   }
 
   /**
-   * Core request method with error handling
+   * Execute a single request attempt (no retry).
    */
-  async request<T>(
+  private async attemptRequest<T>(
     method: HttpMethod,
-    path: string,
-    data?: unknown,
-    options: RequestOptions = {}
+    url: string,
+    data: unknown | undefined,
+    options: RequestOptions
   ): Promise<ApiResult<T>> {
-    const url = `${this.baseUrl}${path}`;
     const timeout = options.timeout ?? this.defaultTimeout;
     const { controller, timeoutId } = this.createAbortController(timeout);
 
@@ -113,12 +113,10 @@ class Api {
     } catch (error) {
       clearTimeout(timeoutId);
 
-      // Handle abort/timeout
       if (error instanceof Error && error.name === "AbortError") {
         return { kind: "timeout", temporary: true };
       }
 
-      // Handle network errors
       if (error instanceof TypeError) {
         return { kind: "network-error", temporary: true };
       }
@@ -127,10 +125,38 @@ class Api {
     }
   }
 
+  /**
+   * Core request method with error handling and optional retry.
+   */
+  async request<T>(
+    method: HttpMethod,
+    path: string,
+    data?: unknown,
+    options: RequestOptions = {}
+  ): Promise<ApiResult<T>> {
+    const url = `${this.baseUrl}${path}`;
+    const maxRetries = options.retry ?? 0;
+    const baseDelay = options.retryDelay ?? 1000;
+
+    let result = await this.attemptRequest<T>(method, url, data, options);
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      // Only retry temporary failures
+      if (result.kind === "ok" || !("temporary" in result) || !result.temporary) {
+        break;
+      }
+
+      await sleep(calculateBackoff(attempt, baseDelay));
+      result = await this.attemptRequest<T>(method, url, data, options);
+    }
+
+    return result;
+  }
+
   // Convenience methods for common HTTP verbs
 
   async get<T>(path: string, options?: RequestOptions): Promise<ApiResult<T>> {
-    return this.request<T>("GET", path, undefined, options);
+    return this.request<T>("GET", path, undefined, { retry: 2, ...options });
   }
 
   async post<T>(
