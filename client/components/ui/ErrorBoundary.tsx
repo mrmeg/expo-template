@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
+import { Sentry } from "@/client/lib/sentry";
 
 interface ErrorBoundaryProps {
   /**
@@ -80,8 +81,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       console.error("Error info:", errorInfo);
     }
 
-    // Here you could send to an error tracking service like Sentry
-    // crashReporting.reportError(error, errorInfo);
+    // Report to Sentry (no-op if DSN not configured)
+    Sentry.captureException(error, {
+      contexts: {
+        react: {
+          componentStack: errorInfo?.componentStack ?? undefined,
+        },
+      },
+    });
   }
 
   render() {

@@ -23,9 +23,13 @@ import { ErrorScreen } from "@/client/components/ErrorScreen";
 import { initI18n } from "@/client/features/i18n";
 import Config from "@/client/config";
 import { validateClientEnv } from "@/client/lib/validateEnv";
+import { setupSentry } from "@/client/lib/sentry";
 
 // Validate env vars early — warns in dev, throws in prod
 validateClientEnv();
+
+// Initialize Sentry — no-op if EXPO_PUBLIC_SENTRY_DSN is not set
+setupSentry();
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

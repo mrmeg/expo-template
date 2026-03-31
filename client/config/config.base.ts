@@ -36,6 +36,11 @@ export interface ConfigBaseProps {
    * Request timeout in milliseconds
    */
   apiTimeout: number;
+
+  /**
+   * Sentry DSN for error tracking. Empty string disables Sentry.
+   */
+  sentryDsn: string;
 }
 
 /**
@@ -48,6 +53,7 @@ const BaseConfig: ConfigBaseProps = {
   exitRoutes: ["index", "(main)"],
   apiUrl: "",
   apiTimeout: 10000,
+  sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? "",
 };
 
 export default BaseConfig;
