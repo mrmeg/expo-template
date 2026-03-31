@@ -62,7 +62,7 @@ export default function ExploreScreen() {
                     <View style={styles.featuredIcon}>
                       <Icon name="layers" color={theme.colors.accentForeground} size={22} />
                     </View>
-                    <Badge variant="outline">27 components</Badge>
+                    <Badge variant="outline">35 components</Badge>
                   </View>
                   <SansSerifBoldText style={styles.featuredTitle}>
                     Component Library

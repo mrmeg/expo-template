@@ -33,6 +33,13 @@ import { Skeleton, SkeletonText, SkeletonAvatar, SkeletonCard } from "@/client/c
 import { BottomSheet } from "@/client/components/ui/BottomSheet";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { Section, SubSection, ThemeToggle } from "@/client/showcase";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from "@/client/components/ui/Dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/client/components/ui/Tabs";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectLabel } from "@/client/components/ui/Select";
+import { RadioGroup, RadioGroupItem } from "@/client/components/ui/RadioGroup";
+import { Progress } from "@/client/components/ui/Progress";
+import { Slider } from "@/client/components/ui/Slider";
+import { InputOTP } from "@/client/components/ui/InputOTP";
 import { globalUIStore } from "@/client/state/globalUIStore";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
@@ -79,6 +86,27 @@ export default function ShowcaseScreen() {
   const [snapOpen, setSnapOpen] = useState(false);
   const [fullOpen, setFullOpen] = useState(false);
   const [scrollOpen, setScrollOpen] = useState(false);
+
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [alertDialogOpen, setAlertDialogOpen] = useState(false);
+
+  // Select state
+  const [selectedFruit, setSelectedFruit] = useState<{ value: string; label: string } | undefined>();
+
+  // RadioGroup state
+  const [radioValue, setRadioValue] = useState("default");
+
+  // Progress state
+  const [progressValue, setProgressValue] = useState(33);
+
+  // Slider state
+  const [sliderValue, setSliderValue] = useState(50);
+  const [rangeValue, setRangeValue] = useState(5);
+
+  // InputOTP state
+  const [otpValue, setOtpValue] = useState("");
+  const [otpValue4, setOtpValue4] = useState("");
 
   return (
     <View style={styles.container}>
@@ -1524,6 +1552,223 @@ export default function ShowcaseScreen() {
                   </BottomSheet.Footer>
                 </BottomSheet.Content>
               </BottomSheet>
+            </SubSection>
+          </Section>
+
+          {/* Dialog */}
+          <Section title="Dialog">
+            <SubSection label="Basic Dialog">
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button preset="outline">
+                    <SansSerifText style={styles.outlineButtonText}>Edit Profile</SansSerifText>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Profile</DialogTitle>
+                    <DialogDescription>
+                      Make changes to your profile here. Click save when you are done.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button preset="default">
+                        <SansSerifText style={styles.buttonText}>Save Changes</SansSerifText>
+                      </Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </SubSection>
+            <SubSection label="Alert Dialog">
+              <AlertDialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button preset="destructive">
+                    <SansSerifText style={{ color: theme.colors.destructiveForeground }}>Delete Account</SansSerifText>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogTitle>Delete Account?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete your account and remove your data from our servers.
+                  </AlertDialogDescription>
+                  <AlertDialogCancel asChild>
+                    <Button preset="outline">
+                      <SansSerifText style={styles.outlineButtonText}>Cancel</SansSerifText>
+                    </Button>
+                  </AlertDialogCancel>
+                  <AlertDialogAction asChild>
+                    <Button preset="destructive">
+                      <SansSerifText style={{ color: theme.colors.destructiveForeground }}>Delete</SansSerifText>
+                    </Button>
+                  </AlertDialogAction>
+                </AlertDialogContent>
+              </AlertDialog>
+            </SubSection>
+          </Section>
+
+          {/* Tabs */}
+          <Section title="Tabs">
+            <SubSection label="Underline (Default)">
+              <Tabs value="account" onValueChange={() => {}}>
+                <TabsList>
+                  <TabsTrigger value="account">Account</TabsTrigger>
+                  <TabsTrigger value="password">Password</TabsTrigger>
+                  <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                </TabsList>
+                <TabsContent value="account">
+                  <SansSerifText style={styles.labelText}>Manage your account settings and preferences.</SansSerifText>
+                </TabsContent>
+                <TabsContent value="password">
+                  <SansSerifText style={styles.labelText}>Update your password and security settings.</SansSerifText>
+                </TabsContent>
+                <TabsContent value="notifications">
+                  <SansSerifText style={styles.labelText}>Configure how you receive notifications.</SansSerifText>
+                </TabsContent>
+              </Tabs>
+            </SubSection>
+            <SubSection label="Pill Variant">
+              <Tabs value="overview" onValueChange={() => {}} variant="pill">
+                <TabsList>
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview">
+                  <SansSerifText style={styles.labelText}>A high-level summary of your project.</SansSerifText>
+                </TabsContent>
+                <TabsContent value="analytics">
+                  <SansSerifText style={styles.labelText}>Detailed analytics and usage metrics.</SansSerifText>
+                </TabsContent>
+              </Tabs>
+            </SubSection>
+          </Section>
+
+          {/* Select */}
+          <Section title="Select">
+            <SubSection label="Basic">
+              <Select value={selectedFruit} onValueChange={setSelectedFruit}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pick a fruit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Fruits</SelectLabel>
+                    <SelectItem value="apple" label="Apple">Apple</SelectItem>
+                    <SelectItem value="banana" label="Banana">Banana</SelectItem>
+                    <SelectItem value="cherry" label="Cherry">Cherry</SelectItem>
+                    <SelectItem value="date" label="Date">Date</SelectItem>
+                    <SelectItem value="elderberry" label="Elderberry">Elderberry</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </SubSection>
+            <SubSection label="Sizes">
+              <View style={{ gap: spacing.sm }}>
+                <Select>
+                  <SelectTrigger size="sm">
+                    <SelectValue placeholder="Small" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="a" label="Option A">Option A</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select>
+                  <SelectTrigger size="md">
+                    <SelectValue placeholder="Medium" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="a" label="Option A">Option A</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select>
+                  <SelectTrigger size="lg">
+                    <SelectValue placeholder="Large" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="a" label="Option A">Option A</SelectItem>
+                  </SelectContent>
+                </Select>
+              </View>
+            </SubSection>
+          </Section>
+
+          {/* RadioGroup */}
+          <Section title="RadioGroup">
+            <SubSection label="Basic">
+              <RadioGroup value={radioValue} onValueChange={setRadioValue}>
+                <RadioGroupItem value="default" label="Default" />
+                <RadioGroupItem value="comfortable" label="Comfortable" />
+                <RadioGroupItem value="compact" label="Compact" />
+              </RadioGroup>
+            </SubSection>
+            <SubSection label="Sizes">
+              <View style={{ gap: spacing.md }}>
+                <RadioGroup value="a" onValueChange={() => {}} size="sm">
+                  <RadioGroupItem value="a" label="Small" />
+                </RadioGroup>
+                <RadioGroup value="a" onValueChange={() => {}} size="md">
+                  <RadioGroupItem value="a" label="Medium" />
+                </RadioGroup>
+                <RadioGroup value="a" onValueChange={() => {}} size="lg">
+                  <RadioGroupItem value="a" label="Large" />
+                </RadioGroup>
+              </View>
+            </SubSection>
+          </Section>
+
+          {/* Progress */}
+          <Section title="Progress">
+            <SubSection label="Determinate">
+              <View style={{ gap: spacing.sm }}>
+                <Progress value={33} />
+                <Progress value={66} />
+                <Progress value={100} />
+              </View>
+            </SubSection>
+            <SubSection label="Variants">
+              <View style={{ gap: spacing.sm }}>
+                <Progress value={50} variant="default" />
+                <Progress value={50} variant="accent" />
+                <Progress value={50} variant="destructive" />
+              </View>
+            </SubSection>
+            <SubSection label="Indeterminate">
+              <Progress />
+            </SubSection>
+          </Section>
+
+          {/* Slider */}
+          <Section title="Slider">
+            <SubSection label="Basic">
+              <SansSerifText style={styles.labelText}>Value: {sliderValue}</SansSerifText>
+              <Slider value={sliderValue} onValueChange={setSliderValue} />
+            </SubSection>
+            <SubSection label="Custom Range">
+              <Slider
+                value={rangeValue}
+                onValueChange={setRangeValue}
+                min={0}
+                max={10}
+                step={1}
+                showValue
+              />
+            </SubSection>
+            <SubSection label="Disabled">
+              <Slider value={40} disabled />
+            </SubSection>
+          </Section>
+
+          {/* InputOTP */}
+          <Section title="InputOTP">
+            <SubSection label="6-Digit">
+              <InputOTP value={otpValue} onChangeText={setOtpValue} length={6} />
+            </SubSection>
+            <SubSection label="4-Digit">
+              <InputOTP value={otpValue4} onChangeText={setOtpValue4} length={4} />
+            </SubSection>
+            <SubSection label="Error State">
+              <InputOTP value="" onChangeText={() => {}} length={6} error />
             </SubSection>
           </Section>
         </View>
