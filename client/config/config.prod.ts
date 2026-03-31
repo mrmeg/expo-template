@@ -6,8 +6,8 @@
 import type { ConfigBaseProps } from "./config.base";
 
 const ProdConfig: Partial<ConfigBaseProps> = {
-  // Production API URL - update this for your production environment
-  apiUrl: "https://api.example.com",
+  // Production API URL — reads from env, falls back to placeholder
+  apiUrl: process.env.EXPO_PUBLIC_API_URL || "https://api.example.com",
 
   // Don't persist navigation in prod (start fresh)
   persistNavigation: "never",

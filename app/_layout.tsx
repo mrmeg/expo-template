@@ -22,6 +22,10 @@ import { ErrorBoundary } from "@/client/components/ui/ErrorBoundary";
 import { ErrorScreen } from "@/client/components/ErrorScreen";
 import { initI18n } from "@/client/features/i18n";
 import Config from "@/client/config";
+import { validateClientEnv } from "@/client/lib/validateEnv";
+
+// Validate env vars early — warns in dev, throws in prod
+validateClientEnv();
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

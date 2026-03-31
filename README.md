@@ -229,8 +229,8 @@ function MyComponent() {
 
 ## Tech Stack
 
-- **Expo SDK 54** - Latest Expo features
-- **React Native 0.81** - Core framework
+- **Expo SDK 55** - Latest Expo features
+- **React Native 0.83** - Core framework
 - **React 19** - Latest React with compiler optimizations
 - **TypeScript** - Type safety
 - **Expo Router v6** - File-based navigation
