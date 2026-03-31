@@ -23,6 +23,14 @@ const screenTemplates: NavItem[] = [
   { href: "/(main)/(demos)/screen-list", icon: "list", label: "List", description: "Search & pull to refresh" },
   { href: "/(main)/(demos)/screen-pricing", icon: "credit-card", label: "Pricing", description: "Plans & comparison" },
   { href: "/(main)/(demos)/screen-welcome", icon: "log-in", label: "Welcome", description: "Landing & social login" },
+  { href: "/(main)/(demos)/screen-card-grid", icon: "grid", label: "Card Grid", description: "Filterable card layout" },
+  { href: "/(main)/(demos)/screen-chat", icon: "message-circle", label: "Chat", description: "Messaging conversation" },
+  { href: "/(main)/(demos)/screen-dashboard", icon: "bar-chart-2", label: "Dashboard", description: "Metrics & activity feed" },
+  { href: "/(main)/(demos)/screen-form", icon: "edit-3", label: "Form", description: "Multi-step wizard" },
+  { href: "/(main)/(demos)/screen-notifications", icon: "bell", label: "Notifications", description: "Grouped notification list" },
+  { href: "/(main)/(demos)/screen-search", icon: "search", label: "Search", description: "Filtered search results" },
+  { href: "/(main)/(demos)/screen-error", icon: "alert-triangle", label: "Error", description: "Error state variants" },
+  { href: "/(main)/(demos)/detail-hero", icon: "layout", label: "Detail / Hero", description: "Hero image detail view" },
 ];
 
 const demos: NavItem[] = [
@@ -30,7 +38,6 @@ const demos: NavItem[] = [
   { href: "/(main)/(demos)/auth-demo", icon: "shield", label: "Auth Demo" },
   { href: "/(main)/(demos)/developer", icon: "terminal", label: "Developer Tools" },
   { href: "/(main)/(demos)/onboarding", icon: "navigation", label: "Onboarding" },
-  { href: "/(main)/(demos)/detail-hero", icon: "layout", label: "Detail / Hero" },
 ];
 
 export default function ExploreScreen() {

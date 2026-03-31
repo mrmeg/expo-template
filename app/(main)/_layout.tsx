@@ -34,6 +34,13 @@ export default function MainLayout() {
       <Stack.Screen name="(demos)/screen-list" options={{ title: "List Screen", ...webHeaderLeft }} />
       <Stack.Screen name="(demos)/screen-pricing" options={{ title: "Pricing Screen", ...webHeaderLeft }} />
       <Stack.Screen name="(demos)/screen-welcome" options={{ headerShown: false }} />
+      <Stack.Screen name="(demos)/screen-card-grid" options={{ title: "Card Grid Screen", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/screen-chat" options={{ title: "Chat Screen", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/screen-dashboard" options={{ title: "Dashboard Screen", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/screen-form" options={{ title: "Form Screen", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/screen-notifications" options={{ title: "Notifications Screen", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/screen-search" options={{ title: "Search Results Screen", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/screen-error" options={{ title: "Error Screen", ...webHeaderLeft }} />
     </Stack>
   );
 }
