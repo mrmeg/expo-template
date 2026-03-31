@@ -14,6 +14,8 @@
     "build-sourcemap": "npx expo export --dump-sourcemap",
     "view-sourcemap": "npx source-map-explorer dist/**/*.js --no-border-checks",
     "test": "jest --watchAll",
+    "test:ci": "jest --ci --coverage --forceExit",
+    "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "generate": "npx tsx scripts/generate.ts"
   },
