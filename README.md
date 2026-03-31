@@ -241,6 +241,14 @@ function MyComponent() {
 - **@rn-primitives** - Accessible UI primitives
 - **Lucide Icons** - Icon library
 
+## IDE Setup
+
+This project includes VSCode workspace settings in `.vscode/`. Open the project in VSCode and accept the recommended extensions prompt for the best experience.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, code style, and PR guidelines.
+
 ## License
 
 MIT
