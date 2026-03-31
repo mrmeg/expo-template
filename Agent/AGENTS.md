@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| [API Client Improvements](./Specs/api-client-improvements.md) | Ready | High |
 | [Core Test Coverage](./Specs/core-test-coverage.md) | Ready | High |
 | [New Component Showcases](./Specs/new-component-showcases.md) | Ready | High |
 | [New Screen Demos](./Specs/new-screen-demos.md) | Ready | High |
