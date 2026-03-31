@@ -24,14 +24,21 @@ export const useResources = (): LoadResourcesResult => {
   useEffect(() => {
     async function loadResourcesAndDataAsync() {
       try {
-        await Font.loadAsync({
+        const fontPromise = Font.loadAsync({
           ...Feather.font,
           "Lato_400Regular": require("@/assets/fonts/Lato/Lato-Regular.ttf"),
           "Lato_700Bold": require("@/assets/fonts/Lato/Lato-Bold.ttf"),
         });
+
+        // Timeout after 5 seconds — proceed with system fallback fonts
+        const timeoutPromise = new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error("Font loading timed out after 5s")), 5000)
+        );
+
+        await Promise.race([fontPromise, timeoutPromise]);
       } catch (e: unknown) {
         const error = e instanceof Error ? e : new Error(String(e));
-        console.warn(error);
+        console.warn("Font loading issue (proceeding with fallback):", error.message);
         setError(error);
       } finally {
         setLoaded(true);
