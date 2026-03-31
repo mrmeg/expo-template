@@ -1,6 +1,6 @@
 # Spec: Server Security Hardening
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** High
 **Scope:** Server
 

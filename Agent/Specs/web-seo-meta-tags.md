@@ -1,6 +1,6 @@
 # Spec: Web SEO Meta Tags
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** Low
 **Scope:** Client
 

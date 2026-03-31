@@ -10,19 +10,19 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| [Env Validation & Config Fixes](./Specs/draft-env-validation-and-config.md) | Draft | High |
-| [Server Security Hardening](./Specs/draft-server-security-hardening.md) | Draft | High |
-| [API Client Improvements](./Specs/draft-api-client-improvements.md) | Draft | High |
-| [Core Test Coverage](./Specs/draft-core-test-coverage.md) | Draft | High |
-| [New Component Showcases](./Specs/draft-new-component-showcases.md) | Draft | High |
-| [New Screen Demos](./Specs/draft-new-screen-demos.md) | Draft | High |
-| [Error Tracking Integration](./Specs/draft-error-tracking-integration.md) | Draft | Medium |
-| [CI/CD Pipeline](./Specs/draft-ci-cd-pipeline.md) | Draft | Medium |
-| [Screen Template Tests](./Specs/draft-screen-template-tests.md) | Draft | Medium |
-| [DX Documentation](./Specs/draft-dx-documentation.md) | Draft | Medium |
-| [Web SEO Meta Tags](./Specs/draft-web-seo-meta-tags.md) | Draft | Low |
-| [Font Loading Resilience](./Specs/draft-font-loading-resilience.md) | Draft | Low |
-| [Bundle Size Analysis](./Specs/draft-bundle-size-analysis.md) | Draft | Low |
+| [Env Validation & Config Fixes](./Specs/env-validation-and-config.md) | Ready | High |
+| [Server Security Hardening](./Specs/server-security-hardening.md) | Ready | High |
+| [API Client Improvements](./Specs/api-client-improvements.md) | Ready | High |
+| [Core Test Coverage](./Specs/core-test-coverage.md) | Ready | High |
+| [New Component Showcases](./Specs/new-component-showcases.md) | Ready | High |
+| [New Screen Demos](./Specs/new-screen-demos.md) | Ready | High |
+| [Error Tracking Integration](./Specs/error-tracking-integration.md) | Ready | Medium |
+| [CI/CD Pipeline](./Specs/ci-cd-pipeline.md) | Ready | Medium |
+| [Screen Template Tests](./Specs/screen-template-tests.md) | Ready | Medium |
+| [DX Documentation](./Specs/dx-documentation.md) | Ready | Medium |
+| [Web SEO Meta Tags](./Specs/web-seo-meta-tags.md) | Ready | Low |
+| [Font Loading Resilience](./Specs/font-loading-resilience.md) | Ready | Low |
+| [Bundle Size Analysis](./Specs/bundle-size-analysis.md) | Ready | Low |
 
 ## Workflow
 

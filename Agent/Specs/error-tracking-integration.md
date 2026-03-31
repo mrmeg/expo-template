@@ -1,6 +1,6 @@
 # Spec: Error Tracking Integration
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** Medium
 **Scope:** Client
 

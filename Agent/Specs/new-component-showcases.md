@@ -1,6 +1,6 @@
 # Spec: New Component Showcases
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** High
 **Scope:** Client
 

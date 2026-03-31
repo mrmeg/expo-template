@@ -1,6 +1,6 @@
 # Spec: API Client Improvements
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** High
 **Scope:** Client
 

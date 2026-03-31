@@ -1,6 +1,6 @@
 # Spec: Screen Template Tests
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** Medium
 **Scope:** Client
 

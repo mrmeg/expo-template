@@ -1,6 +1,6 @@
 # Spec: Core Test Coverage
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** High
 **Scope:** Client
 

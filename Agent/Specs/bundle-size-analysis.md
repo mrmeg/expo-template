@@ -1,6 +1,6 @@
 # Spec: Bundle Size Analysis
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** Low
 **Scope:** Client
 

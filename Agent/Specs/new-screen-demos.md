@@ -1,6 +1,6 @@
 # Spec: New Screen Template Demos
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** High
 **Scope:** Client
 

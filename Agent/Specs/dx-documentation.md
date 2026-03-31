@@ -1,6 +1,6 @@
 # Spec: Developer Experience Documentation
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** Medium
 **Scope:** Client
 

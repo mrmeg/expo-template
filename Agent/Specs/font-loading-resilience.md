@@ -1,6 +1,6 @@
 # Spec: Font Loading Resilience
 
-**Status:** Draft
+**Status:** Ready
 **Priority:** Low
 **Scope:** Client
 
