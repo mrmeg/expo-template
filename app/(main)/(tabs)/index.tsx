@@ -8,6 +8,7 @@ import type { IconName } from "@/client/components/ui/Icon";
 import { Badge } from "@/client/components/ui/Badge";
 import { AnimatedView } from "@/client/components/ui/AnimatedView";
 import { STAGGER_DELAY } from "@/client/hooks/useStaggeredEntrance";
+import { SEO } from "@/client/components/SEO";
 import type { Theme } from "@/client/constants/colors";
 
 interface NavItem {
@@ -52,6 +53,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
+      <SEO title="Explore - Expo Template" description="Browse UI components, screen templates, and interactive demos built with Expo and React Native." />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}

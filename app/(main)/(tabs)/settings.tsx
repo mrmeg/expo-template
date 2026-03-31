@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { setLanguage } from "@/client/features/i18n";
 import Config from "@/client/config";
 import type { Theme } from "@/client/constants/colors";
+import { SEO } from "@/client/components/SEO";
 
 const LANGUAGES = [
   { code: "en", label: "English", nativeLabel: "English" },
@@ -36,6 +37,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
+      <SEO title="Settings - Expo Template" description="Settings screen with theme, language, and preferences." />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Appearance section */}
         <View style={styles.section}>

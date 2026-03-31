@@ -31,6 +31,7 @@ import {
 import { globalUIStore } from "@/client/state/globalUIStore";
 import { logDev } from "@/client/lib/devtools";
 import type { Theme } from "@/client/constants/colors";
+import { SEO } from "@/client/components/SEO";
 
 type FilterType = "all" | keyof typeof MEDIA_PATHS;
 
@@ -195,6 +196,7 @@ export default function MediaScreen() {
 
   return (
     <View style={styles.container}>
+      <SEO title="Media - Expo Template" description="Upload, compress, and manage photos and videos with cloud storage." />
       {/* Filter Tabs */}
       <View style={styles.filterRow}>
         {filters.map((f) => (

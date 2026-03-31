@@ -12,6 +12,7 @@ import { useAuthStore } from "@/client/features/auth/stores/authStore";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
 import type { Theme } from "@/client/constants/colors";
 import { palette } from "@/client/constants/colors";
+import { SEO } from "@/client/components/SEO";
 
 /**
  * Profile screen - displays user information and account settings.
@@ -122,6 +123,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
+      <SEO title="Profile - Expo Template" description="User profile screen with avatar, stats, and editable sections." />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           {/* Profile Header */}

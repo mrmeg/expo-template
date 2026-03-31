@@ -96,6 +96,10 @@ export default function Root({ children }: PropsWithChildren) {
         */}
         <ScrollViewStyleReset />
 
+        {/* Default SEO — page-level <Head> overrides these */}
+        <title>Expo Template</title>
+        <meta name="description" content="A production-ready Expo and React Native template with UI components, screen templates, and best practices." />
+
         {/* Add any additional <head> elements that you want globally available on web... */}
 
         {/* Global CSS Styles */}
