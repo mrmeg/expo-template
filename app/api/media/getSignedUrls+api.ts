@@ -1,5 +1,6 @@
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { getCorsHeaders, getPreflightHeaders, sanitizeErrorDetails } from "@/app/api/_shared/cors";
 
 interface GetMediaResponse {
   urls: {
@@ -20,12 +21,7 @@ const s3Client = new S3Client({
 export async function OPTIONS(request: Request): Promise<Response> {
   return new Response(null, {
     status: 200,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      "Access-Control-Max-Age": "86400"
-    }
+    headers: getPreflightHeaders(request),
   });
 }
 
@@ -37,12 +33,7 @@ export async function POST(request: Request): Promise<Response> {
     if (!keys || !Array.isArray(keys) || keys.length === 0) {
       return new Response(JSON.stringify({ message: "Missing or invalid keys" }), {
         status: 400,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization"
-        }
+        headers: { "Content-Type": "application/json", ...getCorsHeaders(request) },
       });
     }
 
@@ -60,26 +51,16 @@ export async function POST(request: Request): Promise<Response> {
 
     return new Response(JSON.stringify({ urls }), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
-      }
+      headers: { "Content-Type": "application/json", ...getCorsHeaders(request) },
     });
   } catch (error) {
     console.error("Error generating media URLs:", error);
     return new Response(JSON.stringify({
       message: "Internal server error",
-      details: error instanceof Error ? error.message : String(error)
+      ...sanitizeErrorDetails(error),
     }), {
       status: 500,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
-      }
+      headers: { "Content-Type": "application/json", ...getCorsHeaders(request) },
     });
   }
 }

@@ -1,4 +1,5 @@
 import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { getCorsHeaders, getPreflightHeaders, sanitizeErrorDetails } from "@/app/api/_shared/cors";
 
 interface MediaItem {
   key: string;
@@ -22,16 +23,10 @@ const s3Client = new S3Client({
   forcePathStyle: true,
 });
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
-
-export async function OPTIONS(): Promise<Response> {
+export async function OPTIONS(request: Request): Promise<Response> {
   return new Response(null, {
     status: 200,
-    headers: { ...CORS_HEADERS, "Access-Control-Max-Age": "86400" },
+    headers: getPreflightHeaders(request),
   });
 }
 
@@ -65,18 +60,18 @@ export async function GET(request: Request): Promise<Response> {
 
     return new Response(JSON.stringify(response), {
       status: 200,
-      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      headers: { "Content-Type": "application/json", ...getCorsHeaders(request) },
     });
   } catch (error) {
     console.error("Error listing media:", error);
     return new Response(
       JSON.stringify({
         message: "Failed to list media",
-        details: error instanceof Error ? error.message : String(error),
+        ...sanitizeErrorDetails(error),
       }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+        headers: { "Content-Type": "application/json", ...getCorsHeaders(request) },
       }
     );
   }

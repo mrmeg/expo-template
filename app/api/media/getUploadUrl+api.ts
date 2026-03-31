@@ -2,6 +2,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ulid } from "ulid";
 import { MEDIA_PATHS, type MediaType } from "@/shared/media";
+import { getCorsHeaders, getPreflightHeaders, sanitizeErrorDetails } from "@/app/api/_shared/cors";
 
 interface UploadUrlRequest {
   /** File extension (e.g., "png", "jpg") */
@@ -31,19 +32,10 @@ const s3Client = new S3Client({
   forcePathStyle: true,
 });
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
-
-export async function OPTIONS(): Promise<Response> {
+export async function OPTIONS(request: Request): Promise<Response> {
   return new Response(null, {
     status: 200,
-    headers: {
-      ...CORS_HEADERS,
-      "Access-Control-Max-Age": "86400",
-    },
+    headers: getPreflightHeaders(request),
   });
 }
 
@@ -55,7 +47,7 @@ export async function POST(request: Request): Promise<Response> {
     if (!extension || typeof extension !== "string") {
       return new Response(JSON.stringify({ message: "Missing or invalid extension" }), {
         status: 400,
-        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+        headers: { "Content-Type": "application/json", ...getCorsHeaders(request) },
       });
     }
 
@@ -67,7 +59,7 @@ export async function POST(request: Request): Promise<Response> {
         }),
         {
           status: 400,
-          headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+          headers: { "Content-Type": "application/json", ...getCorsHeaders(request) },
         }
       );
     }
@@ -94,18 +86,18 @@ export async function POST(request: Request): Promise<Response> {
 
     return new Response(JSON.stringify(response), {
       status: 200,
-      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      headers: { "Content-Type": "application/json", ...getCorsHeaders(request) },
     });
   } catch (error) {
     console.error("Error generating upload URL:", error);
     return new Response(
       JSON.stringify({
         message: "Internal server error",
-        details: error instanceof Error ? error.message : String(error),
+        ...sanitizeErrorDetails(error),
       }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+        headers: { "Content-Type": "application/json", ...getCorsHeaders(request) },
       }
     );
   }
