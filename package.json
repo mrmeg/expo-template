@@ -13,6 +13,8 @@
     "build-web": "npx expo export -p web",
     "build-sourcemap": "npx expo export --dump-sourcemap",
     "view-sourcemap": "npx source-map-explorer dist/**/*.js --no-border-checks",
+    "analyze": "expo export -p web --output-dir dist --dump-sourcemap && npx source-map-explorer dist/**/*.js --no-border-checks",
+    "bundle-size": "node scripts/check-bundle-size.js",
     "test": "jest --watchAll",
     "test:ci": "jest --ci --coverage --forceExit",
     "typecheck": "tsc --noEmit",
