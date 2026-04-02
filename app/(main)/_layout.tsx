@@ -3,6 +3,10 @@ import { Stack } from "expo-router";
 import { useTheme } from "@/client/hooks/useTheme";
 import { WebBackButton } from "@/client/features/navigation/WebBackButton";
 
+export const unstable_settings = {
+  initialRouteName: "(tabs)",
+};
+
 const isWeb = Platform.OS === "web";
 const webHeaderLeft = isWeb
   ? { headerLeft: () => <WebBackButton /> }

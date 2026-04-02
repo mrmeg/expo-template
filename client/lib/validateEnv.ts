@@ -37,11 +37,11 @@ function validate(rules: EnvRule[], label: string): void {
 
   const message = `Missing required ${label} environment variables:\n${missing.join("\n")}`;
 
-  if (__DEV__) {
-    console.warn(`⚠️ ${message}`);
-  } else {
-    throw new Error(message);
-  }
+  // Always warn, never throw. Throwing at module scope prevents the root
+  // layout from loading, which breaks Expo Router's route initialization
+  // (the router falls back to the first alphabetical route).
+  // Features that need these vars should fail gracefully at point of use.
+  console.warn(`⚠️ ${message}`);
 }
 
 /**

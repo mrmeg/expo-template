@@ -30,7 +30,7 @@
         {
           "origin": "",
           "asyncRoutes": {
-            "web": true
+            "web": false
           }
         }
       ],

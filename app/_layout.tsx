@@ -31,6 +31,10 @@ validateClientEnv();
 // Initialize Sentry — no-op if EXPO_PUBLIC_SENTRY_DSN is not set
 setupSentry();
 
+export const unstable_settings = {
+  initialRouteName: "(main)",
+};
+
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -88,6 +92,7 @@ export default function RootLayout() {
             <ErrorBoundary catchErrors={Config.catchErrors} FallbackComponent={ErrorScreen}>
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="(main)" />
+                <Stack.Screen name="+not-found" />
               </Stack>
             </ErrorBoundary>
             <StatusBar />
