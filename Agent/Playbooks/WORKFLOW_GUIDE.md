@@ -45,10 +45,7 @@ Use `/ask` for quick research while refining:
 
 ### 3. Promote
 
-When a spec is ready for execution:
-1. Remove the `draft-` prefix from the filename
-2. Change `Status: Draft` to `Status: Ready` inside the spec
-3. The spec is now eligible for night/day shift to pick up
+Promotion happens automatically at the end of `/review-spec`. The command reviews the spec, then renames the file (drops the `draft-` prefix), sets `Status: Ready`, and updates the task list in `AGENTS.md`. No manual steps needed.
 
 ### 4. Execute
 
@@ -188,9 +185,8 @@ Run `/morning-review` to walk through the report:
 ### Typical flow
 
 1. `/investigate` or `/write-spec` — create draft specs
-2. `/review-spec draft-{name}.md` — poke holes, iterate
-3. Remove `draft-` prefix, set Status to Ready
-4. `/nightshift` or `/dayshift` — execute the work
+2. `/review-spec draft-{name}.md` — review, then auto-promote to Ready
+3. `/nightshift` or `/dayshift` — execute the work
 5. `/morning-review` — review night shift results (if applicable)
 6. `/update-docs` — ensure docs reflect changes (shifts do this automatically, but useful for manual work)
 

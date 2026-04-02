@@ -68,6 +68,4 @@ For each approved finding, create a spec in Agent/Specs/ following the establish
 
 ### 6. Summary
 
-When done, list the specs created and remind me:
-- `/review-spec draft-{name}.md` to poke holes before promoting
-- Change Status from Draft to Ready and remove the `draft-` prefix when approved
+When done, list the specs created and remind me to run `/review-spec draft-{name}.md` to review and promote to Ready.

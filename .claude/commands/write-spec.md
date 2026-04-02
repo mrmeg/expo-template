@@ -50,6 +50,4 @@ I need a spec written for: $ARGUMENTS
 5. Save as `draft-{kebab-case-name}.md` in Agent/Specs/
 6. Add a row to the Task List in Agent/AGENTS.md with Status: Draft
 
-After writing, tell me:
-- Run `/review-spec draft-{name}.md` to poke holes
-- Change Status to Ready and remove the `draft-` prefix when approved
+After writing, tell me to run `/review-spec draft-{name}.md` to review and promote to Ready.
