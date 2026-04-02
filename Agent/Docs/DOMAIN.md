@@ -1,136 +1,322 @@
 # Domain Model
 
-> Business entities, rules, and invariants.
+<!-- Owned by: Domain Expert persona -->
 
----
+## Overview
 
-## Core Entities
+This is a **template project** -- not a specific application. The domain entities defined here are demonstrative and exist to showcase the template's capabilities (authentication, media management, notifications, onboarding, i18n, configuration, and forms). Teams adopting this template will replace or extend these entities with their own business-specific models.
 
-### User (Auth)
+## Auth Entities
 
-Managed by AWS Cognito. The app does not store user data locally beyond auth tokens.
+Source: `client/features/auth/stores/authStore.ts`, `client/features/auth/hooks/useAuth.ts`
 
-**States:**
+### User
+
+Represents an authenticated user from AWS Cognito.
+
+```typescript
+interface User {
+  userId: string;      // Cognito user ID
+  username: string;    // Cognito username
+  email?: string;      // Optional email address
+}
 ```
-loading → authenticated | unauthenticated
+
+### AuthState
+
+Tri-state authentication status, stored in `authStore` (Zustand, non-persisted).
+
+```typescript
+type AuthState = "loading" | "authenticated" | "unauthenticated";
 ```
 
-**Attributes (from Cognito):**
-- `userId` — Cognito sub
-- `username` — Display name
-- `email` — Email address
-- `emailVerified` — Boolean
-- `plan` — User plan (display only)
-- `memberSince` — Account creation date
+### AuthStore
 
-**Auth Operations:**
-| Operation | Flow |
-|-----------|------|
-| Sign Up | email + password + name → verification code sent |
-| Verify Email | code → auto sign-in on success |
-| Sign In | email + password → tokens stored |
-| Forgot Password | email → reset code sent |
-| Reset Password | code + new password → auto sign-in |
-| Sign Out | Clear tokens, reset store |
+Full store interface with internal loop-prevention state:
 
-**Invariants:**
-- 2-second throttle on auth initialization prevents Hub listener loops
-- Singleton init pattern — `initialize()` called once, no-op on subsequent calls
-- Token refresh handled automatically by Amplify Hub listener
+| Field | Type | Description |
+|-------|------|-------------|
+| `state` | `AuthState` | Current auth status |
+| `user` | `User \| null` | Authenticated user or null |
+| `pendingVerificationEmail` | `string \| null` | Email awaiting signup confirmation |
+| `error` | `string \| null` | Last auth error message |
+| `isInitializing` | `boolean` | Prevents concurrent initialization |
+| `lastInitializeTime` | `number` | Timestamp for 2-second throttle |
 
-### Media Object
+### Auth Actions (useAuth hook)
 
-Files stored in Cloudflare R2 (S3-compatible).
+`signIn`, `signUp`, `confirmSignUp`, `forgotPassword`, `resetPassword`, `signOut` -- all backed by AWS Amplify and the Cognito user pool.
 
-**Attributes:**
-- `key` — Full S3 path (e.g., `uploads/01HQXYZ.jpg`)
-- `lastModified` — ISO timestamp
-- `size` — Bytes
-- `etag` — Content hash
+Auth tokens are auto-injected into API requests via `authenticatedFetch.ts` using `fetchAuthSession()`.
 
-**Media Types (paths):**
-| Type | Path | Description |
-|------|------|-------------|
-| Avatars | `users/avatars/` | User profile images |
-| Videos | `videos/` | Uploaded videos |
-| Thumbnails | `thumbnails/` | Video thumbnail images |
-| Uploads | `uploads/` | General file uploads |
+### Environment Variables
 
-**Upload Flow Invariants:**
-- Filenames are ULID-based unless custom filename is provided
-- Presigned upload URLs expire in 5 minutes
-- Presigned download URLs expire in 24 hours
-- HEIC images auto-convert to JPEG before upload
-- Compression applied based on `compressionStore` presets
-- Video uploads can generate thumbnails stored in `thumbnails/`
+- `EXPO_PUBLIC_USER_POOL_ID` -- Cognito User Pool ID
+- `EXPO_PUBLIC_USER_POOL_CLIENT_ID` -- Cognito App Client ID
 
-**Compression Presets:**
-| Preset | Quality | Max Width | Max Height | Use Case |
-|--------|---------|-----------|------------|----------|
-| avatar | 0.7 | 400 | 400 | Profile photos |
-| thumbnail | 0.6 | 300 | 300 | List thumbnails |
-| product | 0.8 | 1200 | 1200 | Product images |
-| gallery | 0.85 | 2048 | 2048 | Gallery display |
-| highQuality | 0.95 | 4096 | 4096 | Full resolution |
-| none | 1.0 | — | — | No compression |
+## Media Entities
 
-### Notification
+Source: `client/features/media/hooks/useMediaList.ts`, `client/features/media/hooks/useMediaLibrary.ts`, `shared/media.ts`
 
-Ephemeral UI state — not persisted.
+### MediaItem
 
-**Attributes:**
-- `type` — info | success | warning | error
-- `title` — Header text
-- `messages` — Array of message strings
-- `duration` — Auto-dismiss time (ms)
-- `loading` — Show spinner
-- `position` — top | bottom
+An object stored in R2/S3 bucket, returned by the list API.
 
-**Invariant:** Only one notification visible at a time. New `show()` replaces existing.
+```typescript
+interface MediaItem {
+  key: string;           // Storage key (path in bucket)
+  size: number;          // File size in bytes
+  lastModified: string;  // ISO timestamp
+}
+```
 
-### Onboarding State
+### ListResponse
 
-**Attributes:**
-- `hasSeenOnboarding` — Boolean, persisted
+Paginated response from the media list endpoint.
 
-**Invariant:** Once set to `true`, never resets (unless store is cleared manually).
+```typescript
+interface ListResponse {
+  items: MediaItem[];
+  totalCount: number;
+  nextCursor?: string;   // Cursor for next page
+}
+```
 
-### Theme Preference
+### MediaType
 
-**Attributes:**
-- `userTheme` — "system" | "light" | "dark"
+Derived from the shared `MEDIA_PATHS` constant, defining the folder structure in R2/S3:
 
-**Invariant:** Persisted across sessions. "system" follows device setting.
+```typescript
+const MEDIA_PATHS = {
+  avatars: "users/avatars",    // User profile avatars
+  videos: "videos",           // Video files
+  thumbnails: "thumbnails",   // Auto-generated video thumbnails
+  uploads: "uploads",         // General uploads (images, documents)
+} as const;
 
-### Language Preference
+type MediaType = "avatars" | "videos" | "thumbnails" | "uploads";
+```
 
-**Attributes:**
-- `language` — ISO code ("en", "es")
+### ProcessedAsset
 
-**Invariants:**
-- English always available (bundled)
-- Other locales lazy-loaded on first use
-- RTL configured via `I18nManager.forceRTL()` based on language
+Extends `ImagePicker.ImagePickerAsset` (minus `base64`, `exif`, `cancelled`) with additional fields for upload processing:
 
-### Drawer State
+```typescript
+interface ProcessedAsset {
+  id: string;                   // Crypto-generated unique ID
+  uri: string;                  // Local file URI
+  width: number;
+  height: number;
+  type?: "image" | "video";
+  fileName?: string;
+  fileSize?: number;
+  blob?: Blob;                  // For web upload
+  duration?: number;            // Video duration in seconds
+  thumbnailUri?: string;        // Local thumbnail URI
+  thumbnailBlob?: Blob;         // Thumbnail blob for web upload
+}
+```
 
-**Attributes:**
-- `openDrawers` — `Set<string>` of drawer IDs
+### Media Utilities
 
-**Invariant:** Supports multiple simultaneous drawers via unique IDs.
+- `isVideoKey(key)` -- checks extension against `[mp4, mov, webm, avi, mkv, m4v]`
+- `isImageKey(key)` -- checks extension against `[jpg, jpeg, png, gif, webp, svg, heic]`
+- `getVideoThumbnailKey(videoKey)` -- converts video path to thumbnail path
+- `formatBytes(bytes)` -- human-readable file size string
 
----
+## Notification Entities
 
-## Cross-Cutting Rules
+Source: `client/state/globalUIStore.ts`, `client/components/ui/Notification.tsx`
 
-1. **Feature isolation** — Features never import from other features. Only exception: media imports `globalUIStore` from notifications.
+### Alert
 
-2. **Platform storage abstraction** — All persisted state uses AsyncStorage on native, localStorage on web. Check `Platform.OS` at runtime.
+The transient notification state managed by `globalUIStore`. Displayed by the `Notification` component mounted at the root layout level.
 
-3. **No local user data** — User profile data comes from Cognito attributes. The app has no local user database.
+```typescript
+type Alert = {
+  show: boolean;
+  type: "error" | "success" | "info" | "warning";
+  messages?: string[];         // Array of message lines
+  title?: string;              // Optional notification title
+  duration?: number;           // Auto-dismiss duration in ms
+  loading?: boolean;           // Show loading spinner
+  position?: "top" | "bottom"; // Display position
+}
+```
 
-4. **Presigned URL security** — Files are never publicly accessible. All access goes through time-limited presigned URLs.
+### globalUIStore Actions
 
-5. **Offline consideration** — The app does not currently have offline support. Media operations require network connectivity.
+| Action | Signature | Description |
+|--------|-----------|-------------|
+| `show` | `(alert: Omit<Alert, "show">) => void` | Display a notification |
+| `hide` | `() => void` | Dismiss the current notification |
 
-<!-- NEEDS HUMAN REVIEW: Is there a user database or profile service beyond Cognito attributes? The current codebase only reads from Cognito, but the profile screen shows fields like "plan" and "status" that may come from an external service. -->
+## Onboarding Entities
+
+Source: `client/features/onboarding/OnboardingFlow.tsx`, `client/features/onboarding/onboardingStore.ts`
+
+### OnboardingPage
+
+Defines a single page in the onboarding flow:
+
+```typescript
+interface OnboardingPage {
+  icon: IconName;        // Feather icon name
+  title: string;         // Page heading
+  description: string;   // Page body text
+}
+```
+
+### OnboardingFlowProps
+
+```typescript
+interface OnboardingFlowProps {
+  pages: OnboardingPage[];
+  onComplete: () => void;       // Called when user finishes
+  onSkip?: () => void;          // Called when user skips
+  doneLabel?: string;           // Custom "Done" button text
+  nextLabel?: string;           // Custom "Next" button text
+  skipLabel?: string;           // Custom "Skip" button text
+}
+```
+
+### OnboardingStore
+
+Tracks completion state. Persisted to AsyncStorage/localStorage.
+
+```typescript
+interface OnboardingStore {
+  hasCompletedOnboarding: boolean;
+  // Actions
+  completeOnboarding: () => void;
+  resetOnboarding: () => void;
+}
+```
+
+## i18n Entities
+
+Source: `client/features/i18n/index.ts`, `client/features/i18n/translations/`, `client/features/i18n/stores/languageStore.ts`
+
+### TxKeyPath
+
+Type-safe translation key paths generated recursively from the English translations object. Ensures compile-time safety for all translation references.
+
+```typescript
+type TxKeyPath = RecursiveKeyOf<Translations>;
+// Examples: "common.ok", "auth.signIn", "errors.network"
+```
+
+### Supported Languages
+
+| Code | Language | Bundle Strategy |
+|------|----------|-----------------|
+| `en` | English | Always bundled (fallback) |
+| `es` | Spanish | Lazy-loaded on demand |
+
+### languageStore
+
+Persists user language preference. The store's `loadLanguage()` method restores saved preference on startup; `setUserLanguage(code)` persists new selections.
+
+### RTL Support
+
+`I18nManager.forceRTL(true)` is called early (before React renders) when the detected locale has `textDirection === "rtl"`.
+
+## Config Entities
+
+Source: `client/config/config.base.ts`, `client/config/config.dev.ts`, `client/config/config.prod.ts`, `client/config/index.ts`
+
+### ConfigBaseProps
+
+Environment-aware configuration interface. Base config is merged with dev or prod overrides at runtime based on `__DEV__`.
+
+```typescript
+interface ConfigBaseProps {
+  persistNavigation: "always" | "dev" | "prod" | "never";
+  catchErrors: "always" | "dev" | "prod" | "never";
+  exitRoutes: string[];     // Routes where back exits the app (Android)
+  apiUrl: string;           // Base URL for API requests
+  apiTimeout: number;       // Request timeout in ms (default: 10000)
+  sentryDsn: string;        // Sentry DSN (empty string disables)
+}
+```
+
+### Default Values
+
+| Field | Default |
+|-------|---------|
+| `persistNavigation` | `"dev"` |
+| `catchErrors` | `"always"` |
+| `exitRoutes` | `["index", "(main)"]` |
+| `apiUrl` | `""` (empty) |
+| `apiTimeout` | `10000` |
+| `sentryDsn` | `process.env.EXPO_PUBLIC_SENTRY_DSN ?? ""` |
+
+## Form System
+
+Source: `client/screens/FormScreen.tsx`
+
+### FormStep
+
+Defines a single step in a multi-step form flow. Used by the `FormScreen` screen template.
+
+```typescript
+interface FormStep {
+  title: string;                                    // Step heading
+  description?: string;                             // Optional step description
+  fields: string[];                                 // Field names for per-step validation with trigger()
+  content: (form: UseFormReturn<any>) => ReactNode; // Render function receiving react-hook-form instance
+}
+```
+
+### FormScreenProps
+
+```typescript
+interface FormScreenProps {
+  steps: FormStep[];                                    // Array of form steps
+  form: UseFormReturn<any>;                             // react-hook-form instance
+  onSubmit: (data: any) => void | Promise<void>;        // Submit handler
+  showReview?: boolean;                                 // Show review step before submit
+  renderReview?: (data: any) => ReactNode;              // Custom review renderer
+  submitLabel?: string;                                 // Custom submit button text
+  header?: ReactNode;                                   // Optional header above form
+  style?: StyleProp<ViewStyle>;                         // Container style override
+}
+```
+
+### Validation
+
+Form validation uses **zod** schemas integrated with `react-hook-form` via `@hookform/resolvers/zod`. The `FormStep.fields` array enables per-step validation by calling `form.trigger(step.fields)` before advancing to the next step.
+
+## API Layer Entities
+
+Source: `client/lib/api/apiClient.ts`, `client/lib/api/authenticatedFetch.ts`
+
+### ApiResponse (Discriminated Union)
+
+The `apiClient` returns typed discriminated unions for all requests:
+
+```typescript
+type ApiResponse<T> =
+  | { kind: "ok"; data: T }
+  | { kind: "timeout" }
+  | { kind: "unauthorized" }
+  | { kind: "forbidden" }
+  | { kind: "not-found" }
+  | { kind: "server" }
+  | { kind: "bad-request" }
+  | { kind: "rejected" }
+  | { kind: "unknown" };
+```
+
+### API Methods
+
+`api.get<T>(path)`, `api.post<T>(path, body)`, `api.put<T>(path, body)`, `api.patch<T>(path, body)`, `api.delete<T>(path)` -- all return `Promise<ApiResponse<T>>`.
+
+## State Management Patterns
+
+All Zustand stores follow these conventions:
+
+- **Feature stores** live in `client/features/<name>/stores/` and are only accessed by their owning feature or via barrel export
+- **Shared stores** live in `client/state/` (themeStore, drawerStore, globalUIStore)
+- **Persistence** uses `Platform.OS` checks: AsyncStorage for native, localStorage for web
+- **No cross-feature imports** -- features only import from the shared layer (`client/lib/`, `client/components/`, `client/hooks/`, `client/state/`)

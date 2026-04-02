@@ -10,8 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| [Core Test Coverage](./Specs/core-test-coverage.md) | Ready | High |
-| [Screen Template Tests](./Specs/screen-template-tests.md) | Ready | Medium |
 
 ## Workflow
 
@@ -42,24 +40,26 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Layer | Tech | Notes |
 |-------|------|-------|
-| Framework | Expo SDK 55 / React Native 0.83 | New architecture enabled |
-| UI | React 19 / TypeScript (strict) | Typed routes, strict mode |
-| Routing | Expo Router | File-based, async routes on web |
-| State (client) | Zustand 5 | Persisted stores (AsyncStorage / localStorage) |
-| State (server) | React Query 5 | Mutations, query cache invalidation |
-| Auth | AWS Amplify 6 + Cognito | Hub listeners, auto token refresh |
+| Framework | Expo SDK 55 / React Native 0.83.2 | New architecture enabled |
+| UI | React 19.2.0 / TypeScript 5.9 (strict) | Typed routes, strict mode |
+| Routing | Expo Router v55 | File-based, async routes on web |
+| State (client) | Zustand 5.0 | 7 stores, persisted (AsyncStorage / localStorage) |
+| State (server) | TanStack React Query 5.90 | 5min staleTime, smart retry |
+| Auth | AWS Amplify 6.16 + Cognito | Hub listeners, auto token refresh |
 | Storage | Cloudflare R2 (S3-compatible) | Presigned URLs for upload/download |
 | i18n | i18next + expo-localization | en/es, type-safe keys, RTL support |
-| UI Primitives | @rn-primitives | Dropdown, portal, switch, toggle, etc. |
-| Animations | react-native-reanimated 4 | Spring/timing, reduced motion support |
-| Gestures | react-native-gesture-handler | Platform-specific setup |
+| UI Primitives | @rn-primitives (18 packages) | Dialog, tabs, select, radio, dropdown, etc. |
+| Forms | react-hook-form 7.72 + zod 4.3 | Schema validation, 6 form adapters |
+| Animations | react-native-reanimated 4.2 | Spring/timing, reduced motion support |
+| Gestures | react-native-gesture-handler 2.30 | Platform-specific setup |
 | Media | expo-image-picker, expo-image-manipulator | Compression presets, HEIC conversion |
-| Video | expo-video, FFmpeg.wasm (web) | Client-side conversion, thumbnails |
-| Fonts | Lato (400/700) via expo-font | Georgia serif fallback |
-| Server | Express 5 | Compression, CORS, rate limiting |
-| Testing | Jest + jest-expo | @testing-library/react-native |
-| Linting | ESLint (flat config) | Double quotes, always semicolons |
-| Package Manager | bun | bun.lock, dedup workarounds in metro |
+| Error Tracking | @sentry/react-native 8.6 | Zero-impact without DSN |
+| Fonts | Lato (400/700) via expo-font | 5s timeout, system fallback |
+| Server | Express 5.2 | Compression, CORS, rate limiting, security headers |
+| Testing | Jest 29 + jest-expo | @testing-library/react-native, 98 tests |
+| CI/CD | GitHub Actions | typecheck, lint, test on PRs |
+| Linting | ESLint 10 (flat config) | Double quotes, always semicolons |
+| Package Manager | bun | bun.lock, frozen-lockfile in CI |
 | Dev Tools | Reactotron | Dev-only, zero prod overhead |
 
 ## Conventions

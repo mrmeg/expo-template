@@ -1,255 +1,320 @@
-# UI/UX Guide
+# Design System
 
-> Design system, component conventions, patterns, and tokens.
+<!-- Owned by: Designer persona -->
 
----
+Source files: `client/constants/colors.ts`, `client/constants/fonts.ts`, `client/constants/spacing.ts`, `client/hooks/useTheme.ts`, `client/components/ui/`
 
 ## Design Philosophy
 
-Shadcn-inspired, zinc-based palette. Minimal, border-driven aesthetic — cards use borders, not shadows. Subtle interactions (scale press, haptics). WCAG contrast compliance via computed text colors.
+This design system follows a **shadcn/ui-inspired** aesthetic adapted for React Native. The guiding principles are:
+
+- **Zinc palette neutrals** -- a cool gray scale (not warm stone/slate) for all neutral surfaces and text
+- **Border-driven aesthetic** -- cards and containers use borders instead of shadows by default
+- **WCAG contrast compliance** -- the `useTheme()` hook provides `getContrastingColor()`, `getContrastRatio()`, and `getTextColorForBackground()` utilities with a 500-entry LRU contrast cache
+- **Minimal, confident UI** -- no gratuitous gradients, glows, or decorative flourishes on primary surfaces
+- **Cross-platform consistency** -- identical tokens on iOS, Android, and web
 
 ## Color System
 
-### Palette
+### Critical Rule
 
-**Brand/Accent — Teal:**
-- Light mode: `#14b8a6` (teal-500)
-- Dark mode: `#2dd4bf` (teal-400)
+**Primary = neutral (NOT teal).** In light mode, `primary` is dark gray (`#18181B`). In dark mode, `primary` is near-white (`#FAFAFA`). This follows shadcn convention where primary buttons are dark/light neutral.
 
-**Neutrals — Zinc scale:**
-- White `#FFFFFF` through gray-950 `#09090B` (light mode surfaces)
-- Dark-900 `#18181B` through dark-100 `#F4F4F5` (dark mode surfaces)
+**Accent = teal.** Use `theme.colors.accent` for highlights, active tab indicators, badges, links, and brand emphasis. Light mode: `#14b8a6` (teal-500). Dark mode: `#2dd4bf` (teal-400, brighter for contrast).
 
-**Status Colors:**
-- Success: `#22C55E` (green-500)
-- Warning: `#F59E0B` (amber-500)
-- Destructive: `#EF4444` (red-500)
+### Raw Palette
 
-### Semantic Tokens
+```
+Brand (teal):    #2dd4bf (400)  #14b8a6 (500)  #0d9488 (600)
+Zinc neutrals:   #FAFAFA (50)   #F4F4F5 (100)  #E4E4E7 (200)  #D4D4D8 (300)
+                 #A1A1AA (400)  #71717A (500)   #52525B (600)  #3F3F46 (700)
+                 #27272A (800)  #18181B (900)   #09090B (950)
+Status:          #22C55E / #4ADE80 (green)  #F59E0B / #FBBF24 (amber)  #EF4444 / #F87171 (red)
+```
+
+### Semantic Token Table
 
 | Token | Light | Dark | Usage |
 |-------|-------|------|-------|
-| `background` | white | dark-900 | Page background |
-| `foreground` | gray-950 | dark-100 | Primary text |
-| `primary` | gray-900 | gray-50 | Buttons, interactive fills |
-| `primaryForeground` | white | gray-900 | Text on primary |
-| `accent` | teal-500 | teal-400 | Highlights, active tabs, badges |
-| `accentForeground` | white | dark-900 | Text on accent |
-| `card` | gray-50 | dark-800 | Card backgrounds |
-| `border` | gray-200 | dark-700 | Borders, dividers |
-| `muted` | gray-100 | dark-700 | Muted backgrounds |
-| `mutedForeground` | gray-500 | dark-400 | Secondary text |
-| `destructive` | red-500 | red-500 | Error states |
-| `secondary` | gray-100 | dark-800 | Secondary surfaces |
+| `background` | `#FFFFFF` | `#09090B` | Page background |
+| `foreground` | `#09090B` (gray-950) | `#F4F4F5` (dark-100) | Primary text |
+| `card` | `#FAFAFA` (gray-50) | `#18181B` (dark-800) | Card surfaces |
+| `cardForeground` | `#09090B` (gray-950) | `#F4F4F5` (dark-100) | Text on cards |
+| `text` | `#09090B` (gray-950) | `#F4F4F5` (dark-100) | Body text (alias of foreground) |
+| `textDim` | `#71717A` (gray-500) | `#A1A1AA` (dark-400) | Secondary/caption text |
+| `primary` | `#18181B` (gray-900) | `#FAFAFA` (gray-50) | Buttons, emphasis |
+| `primaryForeground` | `#FAFAFA` (gray-50) | `#18181B` (gray-900) | Text on primary |
+| `secondary` | `#14b8a6` (teal-500) | `#2dd4bf` (teal-400) | Secondary interactive |
+| `secondaryForeground` | `#FFFFFF` | `#000000` | Text on secondary |
+| `accent` | `#14b8a6` (teal-500) | `#2dd4bf` (teal-400) | Brand highlight color |
+| `accentForeground` | `#FFFFFF` | `#18181B` (gray-900) | Text on accent |
+| `muted` | `#F4F4F5` (gray-100) | `#27272A` (dark-700) | Muted backgrounds |
+| `mutedForeground` | `#71717A` (gray-500) | `#A1A1AA` (dark-400) | Text on muted |
+| `destructive` | `#EF4444` (red-500) | `#F87171` (red-400) | Error/danger |
+| `destructiveForeground` | `#FFFFFF` | `#FFFFFF` | Text on destructive |
+| `success` | `#22C55E` (green-500) | `#4ADE80` (green-400) | Success state |
+| `warning` | `#F59E0B` (amber-500) | `#FBBF24` (amber-400) | Warning state |
+| `border` | `#E4E4E7` (gray-200) | `#27272A` (dark-700) | Borders, dividers |
+| `overlay` | `rgba(0,0,0,0.5)` | `rgba(0,0,0,0.7)` | Modal overlay |
 
-**Key Rule:** Primary = neutral (NOT teal). Accent = teal.
+### Dark Mode
+
+Theme preference is stored in `themeStore` (Zustand) and persisted to AsyncStorage (native) / localStorage (web). Options: `system | light | dark`. Access via `useTheme()` which returns `theme`, `scheme`, `toggleTheme()`, `setTheme()`.
 
 ## Typography
 
-### Scale
-
-| Name | Size | Line Height | Letter Spacing | Use For |
-|------|------|-------------|----------------|---------|
-| xs | 12px | 16px | — | Fine print, badges |
-| sm | 14px | 20px | 0.5 | Labels, captions |
-| base | 16px | 24px | — | Body text |
-| lg | 18px | 28px | — | Subheadings |
-| xl | 20px | 28px | — | Headings |
-| 2xl | 24px | 32px | -0.3 | Section titles |
-| 3xl | 30px | 36px | — | Page titles |
-| 4xl | 36px | 40px | -0.5 | Display text |
+Source: `client/constants/fonts.ts`
 
 ### Font Families
-- **Sans-serif:** Lato_400Regular, Lato_700Bold
-- **Serif:** Georgia (fallback)
-- **Font weight convention:** Use weight "500" for medium emphasis (buttons, labels) — not the bold font family
 
-### Semantic Text Components
-- `<TitleText>` — xxl (28px), semibold
-- `<HeadingText>` — xl (22px), semibold
-- `<SubheadingText>` — lg (18px), medium
-- `<BodyText>` — body (15px), regular
-- `<CaptionText>` — sm (12px), regular
-- `<LabelText>` — base (14px), medium
-- `<DisplayText>` — display (34px), serif
+- **Sans-serif:** `Lato_400Regular` (weight 400) and `Lato_700Bold` (weight 700)
+- **Serif:** `Georgia` (iOS/web), `serif` (Android)
+- **Text components:** `SansSerifText` (regular), `SansSerifBoldText` (bold) from `StyledText.tsx`
+
+### Type Scale
+
+| Size | fontSize | lineHeight | Letter Spacing |
+|------|----------|------------|----------------|
+| `xs` | 12 | 16 | -- |
+| `sm` | 14 | 20 | -- |
+| `base` | 16 | 24 | -- |
+| `lg` | 18 | 28 | -- |
+| `xl` | 20 | 28 | -- |
+| `2xl` | 24 | 32 | -0.3 |
+| `3xl` | 30 | 36 | -0.5 |
+| `4xl` | 36 | 40 | -0.75 |
+
+Sizes `2xl` and above use **negative letter spacing** for tighter display headings.
+
+### Navigation Font Weights
+
+| Style | Font | Weight |
+|-------|------|--------|
+| `regular` | Lato_400Regular | 400 |
+| `medium` | Lato_400Regular | 500 |
+| `bold` | Lato_700Bold | 600 |
+| `heavy` | Lato_700Bold | 700 |
 
 ## Spacing
 
-### Scale
-| Token | Value | Common Use |
-|-------|-------|------------|
-| xxs | 2px | Hairline gaps |
-| xs | 4px | Tight padding |
-| sm | 8px | Item spacing, small gaps |
-| md | 16px | Standard padding, gutter |
-| lg | 24px | Section gaps, card padding |
-| xl | 32px | Section spacing |
-| xxl | 48px | Large gaps |
-| xxxl | 64px | Page-level spacing |
+Source: `client/constants/spacing.ts` -- 8px base unit system.
+
+### Spacing Scale
+
+| Token | Value |
+|-------|-------|
+| `xxs` | 2px |
+| `xs` | 4px |
+| `sm` | 8px |
+| `md` | 16px |
+| `lg` | 24px |
+| `xl` | 32px |
+| `xxl` | 48px |
+| `xxxl` | 64px |
 
 ### Semantic Spacing
-- `buttonPadding`: 10px
-- `inputPadding`: 10px
-- `cardPadding`: 16px
-- `screenPadding`: 16px
-- `sectionSpacing`: 32px
-- `listItemSpacing`: 8px
 
-### Border Radius
 | Token | Value | Usage |
 |-------|-------|-------|
-| radiusXs | 2px | Tiny elements |
-| radiusSm | 4px | Badges, chips |
-| radiusMd | 6px | **Default** (buttons, inputs) |
-| radiusLg | 8px | Cards |
-| radiusXl | 12px | Large cards |
-| radius2xl | 16px | Modals |
-| radiusFull | 9999px | Pills, avatars |
+| `buttonPadding` | 10px | Default button internal padding |
+| `inputPadding` | 10px | Default input internal padding |
+| `cardPadding` | 16px | Default card content padding |
+| `screenPadding` | 16px | Screen edge padding |
+| `gutter` | 16px | Horizontal gutter between columns |
+| `gutterVertical` | 24px | Vertical gutter between sections |
+| `sectionSpacing` | 32px | Space between major page sections |
+| `listItemSpacing` | 8px | Space between list items |
+
+### `space()` helper
+
+`space(n)` returns `n * 8` for quick multiples of the base unit.
+
+## Border Radius
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `radiusNone` | 0 | No rounding |
+| `radiusXs` | 2px | Minimal rounding |
+| `radiusSm` | 4px | Small elements |
+| `radiusMd` | 6px | **Default** (shadcn convention) |
+| `radiusLg` | 8px | Cards, modals |
+| `radiusXl` | 12px | Large containers |
+| `radius2xl` | 16px | Extra large panels |
+| `radiusFull` | 9999px | Circular/pill shapes |
+
+### Icon Sizes
+
+| Token | Value |
+|-------|-------|
+| `iconXs` | 12px |
+| `iconSm` | 16px |
+| `iconMd` | 24px |
+| `iconLg` | 32px |
+| `iconXl` | 48px |
 
 ## Component Sizes
 
-Consistent height system across interactive components:
+Standard height presets shared across Button, TextInput, Toggle, and similar interactive components:
 
-| Size | Height | Usage |
-|------|--------|-------|
-| sm | 32px | Compact buttons, inputs |
-| md | 36px | **Default** |
-| lg | 40px | Prominent actions |
-
-Buttons additionally have a `lg` at 44px with larger padding.
+| Size | Height |
+|------|--------|
+| `sm` | 32px |
+| `md` | 36px |
+| `lg` | 40px (TextInput) / 44px (Button) |
 
 ## Shadows
 
-Subtle, not dramatic. **Cards have no shadow by default** — use border-only approach.
+Source: `useTheme().getShadowStyle(type)` -- returns native shadow styles.
 
-| Type | Offset | Opacity | Radius | Elevation |
-|------|--------|---------|--------|-----------|
-| subtle | (0,1) | 0.05 | 2 | 1 |
-| base | (0,1) | 0.10 | 3 | 3 |
-| soft | (0,4) | 0.10 | 6 | 4 |
-| sharp | (0,1) | 0.15 | 1 | 2 |
+| Type | Offset | Opacity | Radius | Elevation | Usage |
+|------|--------|---------|--------|-----------|-------|
+| `subtle` | 0, 1 | 0.05 | 2 | 1 | Light lift, default cards |
+| `base` | 0, 1 | 0.1 | 3 | 3 | Standard elevated elements |
+| `soft` | 0, 4 | 0.1 | 6 | 4 | Floating panels, popovers |
+| `sharp` | 0, 1 | 0.15 | 1 | 2 | Crisp shadow, toolbars |
 
-**Web:** `getShadowStyle()` returns empty object. boxShadow causes RN Web crashes.
+**Web: `getShadowStyle()` returns an empty object.** React Native Web's `boxShadow` handling causes crashes, so shadows are disabled on web entirely.
+
+**Default card style: border-only, no shadow.** Only add shadow when explicit elevation is needed.
 
 ## Component Reference
 
-### Button
-- **Presets:** default (accent), outline, ghost, link, destructive, secondary
-- **Sizes:** sm (32px), md (36px), lg (44px)
-- **Features:** Scale press (0.97), loading spinner, left/right accessories, i18n support
-- **Outline:** Uses `border` color (not primary) with `foreground` text
-- **Link:** No press animation (scale 1)
-- Automatic contrast text via `getContrastingColor()`
+All 35 components live in `client/components/ui/`.
 
-### TextInput
-- **Variants:** outline, filled, underlined
-- **Sizes:** sm (32px), md (36px), lg (40px)
-- **Features:** Label, helper text, error state, password toggle, left/right elements, web focus ring
-- Numeric validation, multiline via `rows` prop
+### Interactive
 
-### Card
-- **Variants:** default (bg + border), outline (transparent + border), ghost (no border)
-- **Radius:** radiusLg (8px)
-- **Padding:** lg (24px)
-- Pressable with scale animation (0.98) when `onPress` provided
-- Compound: `<Card>`, `<CardHeader>`, `<CardContent>`, `<CardFooter>`, `<CardTitle>`, `<CardDescription>`
+| Component | Description |
+|-----------|-------------|
+| **Button** | Pressable with 6 presets (`default`, `outline`, `ghost`, `link`, `destructive`, `secondary`), 3 sizes (`sm`/`md`/`lg`), loading spinner, `useScalePress` animation, focus ring via `palette.teal500`. Font weight is `"500"` (not bold). Uses `TextColorContext` to propagate text color to children. |
+| **TextInput** | Input with 3 variants (`outline`, `filled`, `underlined`), 3 sizes, clearable button, error state with icon, label support, numeric filtering. |
+| **Switch** | Toggle switch with `default` and `ios` variants. Width 44, height 24, thumb 20. 1px border on track and thumb for contrast. Reanimated spring animation with haptic feedback. Respects `useReducedMotion()`. |
+| **Toggle** | Button-like toggle using `@rn-primitives/toggle`. Reads text color from `TextColorContext`. |
+| **ToggleGroup** | Multi-select toggle group. Reads text color from `TextColorContext`. |
+| **Checkbox** | Themed checkbox. Fills with `primary` background when checked, icon uses `primaryForeground`. |
+| **RadioGroup** | Grouped radio buttons with single selection. |
+| **Slider** | Gesture-driven slider using `react-native-gesture-handler`. Sizes `sm` (track 4, thumb 16) and `md` (track 6, thumb 20). Haptic feedback on value changes. Optional value label display. |
+| **InputOTP** | One-time password input with individual digit cells. |
+| **Select** | Dropdown select using `@rn-primitives/select`. |
 
-### Switch
-- **Dimensions:** width 44, height 24, thumb 20
-- **Track:** 1px border for contrast, animates color on toggle
-- **Variants:** default (primary when checked), ios (#34C759 green)
-- Light haptic on user toggle
+### Display
 
-### Toggle / ToggleGroup
-- **Variants:** default (transparent → 10% primary alpha), outline (border → primary fill)
-- Supports single/multiple selection
-- Icon color inherits from TextColorContext
+| Component | Description |
+|-----------|-------------|
+| **Card** | Context-based composition: `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`. Border-only by default, no shadow. |
+| **Badge** | Inline label with variants: `default`, `secondary`, `outline`, `destructive`. |
+| **Tabs** | Tab navigation with two variants: `underline` (line indicator) and `pill` (filled background). Sizes `sm`/`md`. Uses `TextColorContext`. |
+| **Progress** | Progress bar with 3 variants (`default`, `accent`, `destructive`) and 3 sizes (`sm`=4px, `md`=8px, `lg`=12px). Supports indeterminate mode when `value` is omitted. |
+| **Skeleton** | Loading placeholder with animated shimmer effect. |
+| **EmptyState** | Centered layout with icon, title, description, and optional call-to-action button. |
+| **Icon** | Wraps Feather icons (`@expo/vector-icons`) with theme integration. Accepts theme color names (`"primary"`, `"destructive"`, etc.) or hex strings. Supports custom `component` prop for non-Feather icons. `decorative` prop hides from accessibility tree. |
+| **StyledText** | `SansSerifText` and `SansSerifBoldText` with i18n (`tx` prop), `TextColorContext` for inherited text color, and `TextClassContext` for style class propagation. |
+| **Label** | Accessible form label component. |
+| **Separator** | Horizontal or vertical divider line. |
 
-### Checkbox
-- **Sizes:** sm (16px), md (20px), lg (24px)
-- Fills with `primary` bg when checked, icon uses `primaryForeground`
-- Animated checkmark fade (60ms)
-- Error state: red border + text
+### Overlays
 
-### Badge
-- **Variants:** default, secondary, outline, destructive
-- Pill shape (radiusFull), fontSize 12, fontWeight 500
+| Component | Description |
+|-----------|-------------|
+| **Dialog** | Modal dialog with `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogFooter`. Uses `@rn-primitives/dialog`. |
+| **Alert (AlertDialog)** | Native cross-platform alert. Wraps `Alert.alert` on native and provides web fallback. |
+| **BottomSheet** | Native-style bottom sheet overlay. |
+| **Drawer** | Side drawer with gesture support. Shared state via `drawerStore`. |
+| **DropdownMenu** | Dropdown menu with items. Uses `@rn-primitives/dropdown-menu`. **Must use `StyleSheet.flatten()` on style arrays.** |
+| **Popover** | Floating popover anchored to a trigger element. |
+| **Tooltip** | Hover/press tooltip for supplementary information. |
 
-### Skeleton
-- Pulsing shimmer animation
-- Variants: `<Skeleton>`, `<SkeletonText>`, `<SkeletonAvatar>`, `<SkeletonCard>`
-- Respects reduced motion
+### Layout and Navigation
 
-### EmptyState
-- Centered layout with icon, title, description, action button
-- Ideal for FlatList ListEmptyComponent
+| Component | Description |
+|-----------|-------------|
+| **Accordion** | Expandable/collapsible content sections with animated open/close. |
+| **Collapsible** | Simple show/hide toggle wrapper. |
+| **MaxWidthContainer** | Responsive width constraint for web. Breakpoints: sm (640), md (768), lg (1024), xl (1280), 2xl (1536). No-op on native. |
+| **AnimatedView** | Convenience wrapper around `Animated.View` from Reanimated. |
+| **DismissKeyboard** | Touchable wrapper that dismisses keyboard on tap outside inputs. |
 
-### Dialog / AlertDialog
-- Centered modal overlay with backdrop fade + content scale-in
-- Compound: `.Trigger`, `.Content`, `.Header`, `.Footer`, `.Title`, `.Description`, `.Close`
-- AlertDialog: non-dismissible, requires `.Action` or `.Cancel`
-- Max width 450, 85% max height, FullWindowOverlay on iOS
+### Feedback
 
-### Tabs
-- **Variants:** underline (bottom border indicator), pill (filled background)
-- **Sizes:** sm (32px), md (36px)
-- Compound: `Tabs`, `Tabs.List`, `Tabs.Trigger`, `Tabs.Content`
-- Animated active indicator, keyboard navigation on web
-
-### Select
-- Form-style dropdown (distinct from DropdownMenu)
-- **Sizes:** sm (32px), md (36px), lg (40px)
-- Compound: `.Trigger`, `.Value`, `.Content`, `.Item`, `.Group`, `.Label`, `.Separator`
-- Error/disabled states, check indicator on selected item
-
-### RadioGroup
-- **Sizes:** sm (16px), md (20px), lg (24px) — matches Checkbox
-- Animated inner dot (60ms withTiming), haptic feedback
-- Label tap activates radio, error/disabled states
-
-### Progress
-- **Sizes:** sm (4px), md (8px), lg (12px)
-- **Variants:** default (primary), accent (teal), destructive
-- Determinate (animated fill) and indeterminate (opacity pulse)
-
-### Slider
-- **Sizes:** sm (4px track/16px thumb), md (6px track/20px thumb)
-- Gesture handler Pan, step snapping, haptic feedback
-- Optional value label above thumb
-
-### InputOTP
-- Individual character boxes (36x40px), hidden TextInput capture
-- Auto-advance, backspace navigation, paste support
-- Error state, secure entry (bullet mask), auto-focus
+| Component | Description |
+|-----------|-------------|
+| **Notification** | Toast-like notification triggered by `globalUIStore`. Types: `error`, `success`, `info`, `warning`. Supports position (`top`/`bottom`), duration, loading state. |
+| **ErrorBoundary** | Catches render errors with retry button. Clear user-facing message, no technical jargon. |
+| **StatusBar** | Cross-platform status bar configuration component. |
 
 ## Animations
 
+Source: `client/hooks/useScalePress.ts`, `client/hooks/useStaggeredEntrance.ts`
+
 ### useScalePress
-- Default scale: 0.97 (cards use 0.98)
-- Spring config: damping 20, stiffness 300
-- Optional haptic feedback (light)
-- Respects reduced motion
+
+Press-feedback scale animation using Reanimated shared values.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `scaleTo` | 0.97 | Scale value when pressed |
+| `haptic` | true | Fire haptic feedback on press |
+| `damping` | 20 | Spring damping for bounce-back |
+| `stiffness` | 300 | Spring stiffness |
+| `disabled` | false | Skip animation when true |
+
+Returns `{ animatedStyle, pressHandlers: { onPressIn, onPressOut }, scale }`.
+
+Respects `useReducedMotion()` -- instantly applies transform when reduced motion is enabled.
 
 ### useStaggeredEntrance
-- Types: fade, fadeSlideUp, fadeSlideDown, scale
-- STAGGER_DELAY: 30ms between items
-- Duration: 200ms default
-- Respects reduced motion
+
+Entrance animation with stagger support for lists and sequential reveals.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `type` | `"fadeSlideUp"` | Animation type: `fade`, `fadeSlideUp`, `fadeSlideDown`, `scale` |
+| `delay` | 0 | Delay in ms (use `index * STAGGER_DELAY` for lists) |
+| `duration` | 200 | Animation duration in ms |
+| `slideDistance` | 8 | Slide distance in px (for slide types) |
+| `initialScale` | 0.95 | Starting scale (for scale type) |
+
+`STAGGER_DELAY` constant is exported as 30ms.
+
+Respects `useReducedMotion()` -- content appears immediately when enabled.
+
+### Haptics
+
+`client/lib/haptics.ts` provides platform-aware haptic feedback: `hapticLight()`, `hapticMedium()`, `hapticSuccess()`. No-ops on web.
 
 ## Critical Rules
 
-1. **Never use style arrays on @rn-primitives** — always `StyleSheet.flatten()`
-2. **Cards: border-only** — no shadow by default
-3. **Primary = neutral** — teal is `accent`, not primary
-4. **Button weight: "500"** — not the bold font family
-5. **Web shadows: empty object** — getShadowStyle returns `{}` on web
-6. **TextColorContext** — Button and Toggle set text color for children via context
-7. **Contrast compliance** — use `getContrastingColor()` for text on dynamic backgrounds (LRU cache, 500 entries)
+### StyleSheet.flatten for @rn-primitives
 
-## Tab Bar
+DropdownMenu items and similar `@rn-primitives` components **MUST** use `StyleSheet.flatten()` on style arrays. Nested style arrays crash React Native Web.
 
-- Active tint: `accent` (teal)
-- Inactive tint: `mutedForeground`
-- Background: `card`
-- Label: 12px, fontWeight 500
-- iOS: 85px height for safe area
+```tsx
+// BAD -- crashes on web
+<DropdownMenuItem style={[styles.item, { color: theme.primary }]} />
+
+// GOOD
+<DropdownMenuItem style={StyleSheet.flatten([styles.item, { color: theme.primary }])} />
+```
+
+### Border-only cards
+
+Cards use border + background, **not shadow**, by default. Only add shadow via `getShadowStyle()` when explicit elevation is needed.
+
+### Primary = neutral
+
+Never use `primary` for teal/accent purposes. `primary` is always the neutral dark/light button color. Use `accent` or `secondary` for teal highlights.
+
+### Button font weight
+
+Button text uses `fontWeight: "500"` (medium), not bold. The font family is `Lato_400Regular` with weight override.
+
+### Web shadows
+
+`getShadowStyle()` returns `{}` on web. Do not attempt to use `boxShadow` in React Native Web styles.
+
+### TextColorContext
+
+`StyledText` components read inherited text color from `TextColorContext`. Button and other interactive components set this context so child text automatically receives the correct color. Always wrap text children in the appropriate context when building custom interactive components.
+
+### useStyles hook
+
+`useStyles(factory)` combines `useTheme()` with `StyleSheet.create()`. The factory receives `{ theme, spacing }` and returns style definitions. Returns `{ styles, theme, spacing, ...themeUtilities }`.

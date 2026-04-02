@@ -1,90 +1,43 @@
 # App Overview
 
-> High-level overview of the Expo template application.
+A **production-ready Expo template** for building cross-platform mobile and web applications. Not a specific product — a starting point with best practices baked in.
 
----
+## What This Template Provides
 
-## What This Is
+### UI Component Library (35 components)
+Shadcn/ui-inspired design system with zinc palette, border-driven aesthetic, and WCAG contrast compliance. Includes: Button, TextInput, Dialog, Tabs, Select, RadioGroup, Progress, Slider, InputOTP, Card, Checkbox, Switch, Toggle, Accordion, BottomSheet, Drawer, DropdownMenu, Popover, Tooltip, Badge, Skeleton, EmptyState, and more.
 
-A production-ready Expo template providing a complete starting point for cross-platform (iOS, Android, Web) applications. It includes authentication, media management, internationalization, theming, and a full design system — all wired together with proper state management and API patterns.
+### Screen Templates (13 templates)
+Pre-built, configurable screen layouts: Settings, Profile, List, Pricing, Welcome, CardGrid, Chat, Dashboard, Form (multi-step wizard), NotificationList, SearchResults, Error (5 variants), DetailHero.
 
-## Target Platforms
+### Feature Modules (7 features)
+Self-contained, copy-portable features: Auth (Cognito), Media (R2/S3 upload/compress), i18n (en/es with RTL), Notifications (global toast), Onboarding (carousel), Keyboard handling, Web navigation.
 
-| Platform | Runtime | Notes |
-|----------|---------|-------|
-| iOS | React Native 0.83 (New Architecture) | Native build via `expo run:ios` |
-| Android | React Native 0.83 (New Architecture) | Native build via `expo run:android` |
-| Web | React Native Web 0.21 | Async routes, served by Express in production |
+### Form System
+react-hook-form + zod adapters wrapping existing UI components: FormTextInput, FormCheckbox, FormSwitch, FormSelect. Multi-step FormScreen template with per-step validation.
 
-## What's Included
+### Developer Experience
+- Generator CLI: `npx tsx scripts/generate.ts component|screen|hook|form <Name>`
+- VSCode workspace settings + recommended extensions
+- CONTRIBUTING.md with code style, git workflow, PR checklist
+- GitHub Actions CI (typecheck, lint, test)
+- Bundle size analysis with 10% budget threshold
+- Sentry error tracking (zero-impact without DSN)
+- Reactotron for dev debugging
 
-### Authentication (AWS Cognito)
-Complete auth flow: sign up, email verification, sign in, forgot/reset password, sign out. Managed by Amplify with Hub listeners for event-driven state updates. Tokens auto-injected into API requests.
+## Platform Support
 
-### Media Management (Cloudflare R2 / S3)
-Full file lifecycle: upload (with compression + EXIF extraction), list (with pagination + filtering), download (via presigned URLs), delete (single + batch). Supports images and video with thumbnail generation.
+| Platform | Status |
+|----------|--------|
+| iOS | Full support (new architecture) |
+| Android | Full support (new architecture) |
+| Web | Full support (async routes, SEO meta tags) |
 
-### Design System (27 Components)
-Shadcn-inspired, zinc-based palette with teal accent. Includes Button, TextInput, Card, Switch, Toggle, Checkbox, Badge, DropdownMenu, Accordion, Collapsible, Popover, Tooltip, BottomSheet, Skeleton, EmptyState, and more. All theme-aware with light/dark mode support.
+## Key Architectural Decisions
 
-### Internationalization (i18n)
-English + Spanish out of the box. Type-safe translation keys. Lazy loading for non-English locales. RTL support. Device locale auto-detection.
-
-### State Management
-Zustand stores with cross-platform persistence (AsyncStorage on native, localStorage on web). React Query for server state with mutation/query cache integration.
-
-### Screen Templates (6)
-Pre-built screens ready to customize: Welcome, Profile, Settings, List, Pricing, Detail/Hero.
-
-### Developer Tools
-Component showcase, form validation demo, auth flow demo, onboarding demo, developer tools screen. Reactotron integration for dev builds.
-
-## Architecture at a Glance
-
-```
-Expo Router (file-based routing)
-  ↓
-Feature folders (self-contained, portable)
-  ↓
-Shared layer (components, hooks, lib, constants)
-  ↓
-Zustand (client state) + React Query (server state)
-  ↓
-API routes (serverless) + Express (production web)
-  ↓
-Cloudflare R2 / AWS Cognito (external services)
-```
-
-## Quick Start
-
-```bash
-bun install                     # Install dependencies
-npx expo start                  # Start dev server
-# Press i (iOS), a (Android), w (Web)
-```
-
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `EXPO_PUBLIC_USER_POOL_ID` | For auth | Cognito User Pool ID |
-| `EXPO_PUBLIC_USER_POOL_CLIENT_ID` | For auth | Cognito App Client ID |
-| `R2_ACCOUNT_ID` | For media | Cloudflare account ID |
-| `R2_ACCESS_KEY_ID` | For media | S3-compatible access key |
-| `R2_SECRET_ACCESS_KEY` | For media | S3-compatible secret key |
-| `R2_BUCKET_NAME` | For media | R2 bucket name |
-
-## Key Files to Know
-
-| File | Purpose |
-|------|---------|
-| `app/_layout.tsx` | Root layout, provider nesting |
-| `app/(main)/(tabs)/_layout.tsx` | Tab navigator config |
-| `client/constants/colors.ts` | Color palette + themes |
-| `client/hooks/useTheme.ts` | Theme hook (colors, shadows, contrast) |
-| `client/lib/api/apiClient.ts` | Typed API client |
-| `client/features/auth/` | Complete auth system |
-| `client/features/media/` | Media management system |
-| `client/components/ui/` | 27 design system components |
-| `shared/media.ts` | Client/server shared constants |
-| `scripts/generate.ts` | Component/screen scaffolding |
+1. **Feature folder isolation** — features never import from other features
+2. **Two API clients** — typed discriminated unions (apiClient) + Amplify-aware (authenticatedFetch)
+3. **Platform-aware storage** — AsyncStorage (native) / localStorage (web) via Platform.OS checks
+4. **Reanimated for all animations** — consistent reduced motion support
+5. **@rn-primitives** — accessible, unstyled primitives styled in-house
+6. **Environment validation** — fails fast with clear errors on missing env vars
