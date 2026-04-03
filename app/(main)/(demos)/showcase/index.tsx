@@ -1762,13 +1762,13 @@ export default function ShowcaseScreen() {
           {/* InputOTP */}
           <Section title="InputOTP">
             <SubSection label="6-Digit">
-              <InputOTP value={otpValue} onChangeText={setOtpValue} length={6} />
+              <InputOTP value={otpValue} onChangeText={setOtpValue} length={6} autoFocus={false} />
             </SubSection>
             <SubSection label="4-Digit">
-              <InputOTP value={otpValue4} onChangeText={setOtpValue4} length={4} />
+              <InputOTP value={otpValue4} onChangeText={setOtpValue4} length={4} autoFocus={false} />
             </SubSection>
             <SubSection label="Error State">
-              <InputOTP value="" onChangeText={() => {}} length={6} error />
+              <InputOTP value="" onChangeText={() => {}} length={6} error autoFocus={false} />
             </SubSection>
           </Section>
         </View>

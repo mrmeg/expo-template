@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
   useReducedMotion,
 } from "react-native-reanimated";
-import { TextClassContext, TextColorContext } from "@/client/components/ui/StyledText";
+import { StyledText, TextClassContext, TextColorContext } from "@/client/components/ui/StyledText";
 import { Icon, type IconName } from "@/client/components/ui/Icon";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
@@ -183,7 +183,11 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
                 decorative
               />
             )}
-            {children as React.ReactNode}
+            {typeof children === "string" ? (
+              <StyledText style={{ fontSize: sizeConfig.fontSize }}>{children}</StyledText>
+            ) : (
+              children
+            )}
           </View>
           {variant === "underline" && (
             <Animated.View

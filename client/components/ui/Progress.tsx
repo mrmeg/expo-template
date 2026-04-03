@@ -154,14 +154,14 @@ function DeterminateFill({
       onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
     >
       <Reanimated.View
-        style={StyleSheet.flatten([
+        style={[
           {
             height,
             borderRadius,
             backgroundColor: fillColor,
           },
           animatedStyle,
-        ])}
+        ]}
       />
     </View>
   );
