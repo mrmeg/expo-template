@@ -3,6 +3,16 @@
 ## [Unreleased]
 
 ### Added
+- **Showcase Component Demos** — Added Badge, Card, Label, and AnimatedView sections to the component showcase.
+- **Test Coverage Expansion** — Added 10 new test files: useTheme, useStaggeredEntrance hooks; Progress, Tabs, InputOTP, Switch, Checkbox, Select components; themeStore, globalUIStore stores.
+
+### Fixed
+- **InputOTP autoFocus** — Changed default from `true` to `false` to prevent scroll-to-bottom on mount.
+- **Progress Web Crash** — Removed `StyleSheet.flatten()` from Reanimated animated styles.
+- **Tabs Text-in-View Error** — Wrapped string children in `StyledText` inside `TabsTrigger`.
+- **Accessibility** — Added `accessibilityRole` to Drawer trigger/backdrop/close, InputOTP cells. Marked Accordion chevron icon as decorative.
+
+### Added
 - **Stripe Webhook Overhaul** — Expanded webhook coverage from 2 to 12 event types: refunds (including external Dashboard refunds), disputes/chargebacks, session expiry (releases seat holds), failed payments (analytics), and full subscription lifecycle (real-time updates). Added deduplication via `stripe_webhook_events` table.
 - **Dispute Tracking** — New `stripe_disputes` table tracks chargebacks with organizer notifications.
 
