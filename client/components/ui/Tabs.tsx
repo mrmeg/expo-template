@@ -186,7 +186,7 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
             {typeof children === "string" ? (
               <StyledText style={{ fontSize: sizeConfig.fontSize }}>{children}</StyledText>
             ) : (
-              children
+              children as React.ReactNode
             )}
           </View>
           {variant === "underline" && (

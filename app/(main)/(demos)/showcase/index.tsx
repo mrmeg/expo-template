@@ -40,6 +40,10 @@ import { RadioGroup, RadioGroupItem } from "@/client/components/ui/RadioGroup";
 import { Progress } from "@/client/components/ui/Progress";
 import { Slider } from "@/client/components/ui/Slider";
 import { InputOTP } from "@/client/components/ui/InputOTP";
+import { Badge } from "@/client/components/ui/Badge";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/client/components/ui/Card";
+import { Label } from "@/client/components/ui/Label";
+import { AnimatedView } from "@/client/components/ui/AnimatedView";
 import { globalUIStore } from "@/client/state/globalUIStore";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
@@ -103,6 +107,9 @@ export default function ShowcaseScreen() {
   // Slider state
   const [sliderValue, setSliderValue] = useState(50);
   const [rangeValue, setRangeValue] = useState(5);
+
+  // AnimatedView state
+  const [animKey, setAnimKey] = useState(0);
 
   // InputOTP state
   const [otpValue, setOtpValue] = useState("");
@@ -1398,6 +1405,124 @@ export default function ShowcaseScreen() {
                   </View>
                 </View>
               )}
+            </SubSection>
+          </Section>
+
+          {/* Badge */}
+          <Section title="Badge">
+            <SubSection label="Variants">
+              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                <Badge>Default</Badge>
+                <Badge variant="secondary">Secondary</Badge>
+                <Badge variant="outline">Outline</Badge>
+                <Badge variant="destructive">Destructive</Badge>
+              </View>
+            </SubSection>
+          </Section>
+
+          {/* Card */}
+          <Section title="Card">
+            <SubSection label="Default">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Card Title</CardTitle>
+                  <CardDescription>A short description of the card content.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SansSerifText style={{ color: theme.colors.text }}>
+                    This is the main content area of the card.
+                  </SansSerifText>
+                </CardContent>
+                <CardFooter>
+                  <Button preset="outline" size="sm">
+                    <SansSerifText style={{ color: theme.colors.foreground }}>Action</SansSerifText>
+                  </Button>
+                </CardFooter>
+              </Card>
+            </SubSection>
+            <SubSection label="Outline Variant">
+              <Card variant="outline">
+                <CardHeader>
+                  <CardTitle>Outline Card</CardTitle>
+                  <CardDescription>Uses the outline variant with transparent background.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SansSerifText style={{ color: theme.colors.text }}>
+                    Outline cards are useful for secondary content.
+                  </SansSerifText>
+                </CardContent>
+              </Card>
+            </SubSection>
+            <SubSection label="Pressable">
+              <Card onPress={() => globalUIStore.getState().show({ type: "info", title: "Card Pressed", messages: ["You tapped the pressable card."] })}>
+                <CardHeader>
+                  <CardTitle>Pressable Card</CardTitle>
+                  <CardDescription>Tap me for a scale animation.</CardDescription>
+                </CardHeader>
+              </Card>
+            </SubSection>
+          </Section>
+
+          {/* Label */}
+          <Section title="Label">
+            <SubSection label="Basic">
+              <Label nativeID="demo-label">Email address</Label>
+            </SubSection>
+            <SubSection label="Required">
+              <Label nativeID="demo-required" required>Password</Label>
+            </SubSection>
+            <SubSection label="Error State">
+              <Label nativeID="demo-error" error>Username</Label>
+            </SubSection>
+            <SubSection label="Sizes">
+              <View style={{ gap: spacing.xs }}>
+                <Label nativeID="demo-sm" size="sm">Small label</Label>
+                <Label nativeID="demo-md" size="md">Medium label</Label>
+                <Label nativeID="demo-lg" size="lg">Large label</Label>
+              </View>
+            </SubSection>
+            <SubSection label="With Input">
+              <View style={{ gap: spacing.xs }}>
+                <Label nativeID="demo-input" required>Display name</Label>
+                <TextInput placeholder="Enter your name" />
+              </View>
+            </SubSection>
+          </Section>
+
+          {/* AnimatedView */}
+          <Section title="AnimatedView">
+            <SubSection label="Animation Types">
+              <Button
+                preset="outline"
+                onPress={() => setAnimKey((k) => k + 1)}
+                style={{ marginBottom: spacing.md }}
+              >
+                <SansSerifText style={{ color: theme.colors.foreground }}>
+                  Replay animations
+                </SansSerifText>
+              </Button>
+              <View key={animKey} style={{ gap: spacing.sm }}>
+                <AnimatedView type="fade">
+                  <View style={{ padding: spacing.sm, backgroundColor: theme.colors.muted, borderRadius: spacing.radiusMd }}>
+                    <SansSerifText style={{ color: theme.colors.text }}>fade</SansSerifText>
+                  </View>
+                </AnimatedView>
+                <AnimatedView type="fadeSlideUp" delay={100}>
+                  <View style={{ padding: spacing.sm, backgroundColor: theme.colors.muted, borderRadius: spacing.radiusMd }}>
+                    <SansSerifText style={{ color: theme.colors.text }}>fadeSlideUp (delay 100ms)</SansSerifText>
+                  </View>
+                </AnimatedView>
+                <AnimatedView type="fadeSlideDown" delay={200}>
+                  <View style={{ padding: spacing.sm, backgroundColor: theme.colors.muted, borderRadius: spacing.radiusMd }}>
+                    <SansSerifText style={{ color: theme.colors.text }}>fadeSlideDown (delay 200ms)</SansSerifText>
+                  </View>
+                </AnimatedView>
+                <AnimatedView type="scale" delay={300}>
+                  <View style={{ padding: spacing.sm, backgroundColor: theme.colors.muted, borderRadius: spacing.radiusMd }}>
+                    <SansSerifText style={{ color: theme.colors.text }}>scale (delay 300ms)</SansSerifText>
+                  </View>
+                </AnimatedView>
+              </View>
             </SubSection>
           </Section>
 
