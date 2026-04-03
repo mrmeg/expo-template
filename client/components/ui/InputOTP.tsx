@@ -55,7 +55,7 @@ export interface InputOTPProps {
   disabled?: boolean;
   /**
    * Whether to auto-focus the input on mount
-   * @default true
+   * @default false
    */
   autoFocus?: boolean;
   /**
@@ -105,7 +105,7 @@ function InputOTP({
   error = false,
   errorText,
   disabled = false,
-  autoFocus = true,
+  autoFocus = false,
   secureTextEntry = false,
   inputMode = "numeric",
   style: styleOverride,
