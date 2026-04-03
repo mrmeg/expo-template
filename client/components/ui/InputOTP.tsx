@@ -200,6 +200,8 @@ function InputOTP({
           return (
             <OTPCell
               key={index}
+              index={index}
+              total={length}
               char={displayChar}
               isActive={isActive}
               hasError={hasError}
@@ -226,6 +228,8 @@ function InputOTP({
  * Individual OTP cell with animated border.
  */
 interface OTPCellProps {
+  index: number;
+  total: number;
   char: string;
   isActive: boolean;
   hasError: boolean;
@@ -236,6 +240,8 @@ interface OTPCellProps {
 }
 
 function OTPCell({
+  index,
+  total,
   char,
   isActive,
   hasError,
@@ -282,7 +288,13 @@ function OTPCell({
   }));
 
   return (
-    <Pressable onPress={onPress} disabled={disabled}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={`Digit ${index + 1} of ${total}`}
+      accessibilityState={{ disabled }}
+    >
       <Animated.View
         style={[
           {

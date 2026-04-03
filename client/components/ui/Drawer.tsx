@@ -242,6 +242,7 @@ function DrawerTrigger({ asChild, children, style: styleOverride }: DrawerTrigge
     // Clone child and inject onPress directly instead of using SlotPressable
     return React.cloneElement(children as React.ReactElement<any>, {
       onPress: handlePress,
+      accessibilityRole: "button",
       style: [
         (children as React.ReactElement<any>).props.style,
         Platform.OS === "web" && { cursor: "pointer" as any },
@@ -253,6 +254,7 @@ function DrawerTrigger({ asChild, children, style: styleOverride }: DrawerTrigge
   return (
     <Pressable
       onPress={handlePress}
+      accessibilityRole="button"
       style={[
         Platform.OS === "web" && { cursor: "pointer" as any },
         styleOverride,
@@ -510,6 +512,8 @@ function DrawerContent({
               <Pressable
                 style={StyleSheet.absoluteFill}
                 onPress={handleBackdropPress}
+                accessibilityRole="button"
+                accessibilityLabel="Close drawer"
               />
             </Animated.View>
 
@@ -652,6 +656,8 @@ function DrawerClose({ asChild, children, style: styleOverride }: DrawerClosePro
     return (
       <SlotPressable
         onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel="Close"
         style={[
           Platform.OS === "web" && { cursor: "pointer" as any },
           styleOverride,
@@ -665,6 +671,8 @@ function DrawerClose({ asChild, children, style: styleOverride }: DrawerClosePro
   return (
     <Pressable
       onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel="Close"
       style={[
         Platform.OS === "web" && { cursor: "pointer" as any },
         styleOverride,

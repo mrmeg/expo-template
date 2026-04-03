@@ -140,6 +140,7 @@ function AccordionTrigger({
                 name="chevron-down"
                 size={16}
                 color={theme.colors.textDim}
+                decorative
               />
             </Animated.View>
           </Trigger>
