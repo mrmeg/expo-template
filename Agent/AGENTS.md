@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `inputotp-autofocus-default.md` | Ready | High |
 | `showcase-missing-components.md` | Ready | Medium |
 | `accessibility-improvements.md` | Ready | Medium |
 | `expand-test-coverage.md` | Ready | Low |
