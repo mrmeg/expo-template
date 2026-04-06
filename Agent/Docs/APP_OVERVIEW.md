@@ -1,43 +1,52 @@
 # App Overview
 
-A **production-ready Expo template** for building cross-platform mobile and web applications. Not a specific product — a starting point with best practices baked in.
+> High-level overview of the Expo Template application.
 
-## What This Template Provides
+## What Is This?
 
-### UI Component Library (35 components)
-Shadcn/ui-inspired design system with zinc palette, border-driven aesthetic, and WCAG contrast compliance. Includes: Button, TextInput, Dialog, Tabs, Select, RadioGroup, Progress, Slider, InputOTP, Card, Checkbox, Switch, Toggle, Accordion, BottomSheet, Drawer, DropdownMenu, Popover, Tooltip, Badge, Skeleton, EmptyState, and more.
-
-### Screen Templates (13 templates)
-Pre-built, configurable screen layouts: Settings, Profile, List, Pricing, Welcome, CardGrid, Chat, Dashboard, Form (multi-step wizard), NotificationList, SearchResults, Error (5 variants), DetailHero.
-
-### Feature Modules (7 features)
-Self-contained, copy-portable features: Auth (Cognito), Media (R2/S3 upload/compress), i18n (en/es with RTL), Notifications (global toast), Onboarding (carousel), Keyboard handling, Web navigation.
-
-### Form System
-react-hook-form + zod adapters wrapping existing UI components: FormTextInput, FormCheckbox, FormSwitch, FormSelect. Multi-step FormScreen template with per-step validation.
-
-### Developer Experience
-- Generator CLI: `npx tsx scripts/generate.ts component|screen|hook|form <Name>`
-- VSCode workspace settings + recommended extensions
-- CONTRIBUTING.md with code style, git workflow, PR checklist
-- GitHub Actions CI (typecheck, lint, test)
-- Bundle size analysis with 10% budget threshold
-- Sentry error tracking (zero-impact without DSN)
-- Reactotron for dev debugging
+A production-ready **Expo app template** for building cross-platform applications (iOS, Android, Web). It provides foundational infrastructure — authentication, media handling, theming, i18n, a design system, and screen templates — so concrete apps can be built on top without boilerplate setup.
 
 ## Platform Support
 
-| Platform | Status |
-|----------|--------|
-| iOS | Full support (new architecture) |
-| Android | Full support (new architecture) |
-| Web | Full support (async routes, SEO meta tags) |
+| Platform | Status | Notes |
+|----------|--------|-------|
+| iOS | Full support | New Architecture enabled, tablet support |
+| Android | Full support | New Architecture enabled |
+| Web | Full support | Express server for production, async routes |
 
-## Key Architectural Decisions
+## Core Capabilities
 
-1. **Feature folder isolation** — features never import from other features
-2. **Two API clients** — typed discriminated unions (apiClient) + Amplify-aware (authenticatedFetch)
-3. **Platform-aware storage** — AsyncStorage (native) / localStorage (web) via Platform.OS checks
-4. **Reanimated for all animations** — consistent reduced motion support
-5. **@rn-primitives** — accessible, unstyled primitives styled in-house
-6. **Environment validation** — fails fast with clear errors on missing env vars
+### Authentication
+AWS Cognito via Amplify. Sign up, sign in, email verification, password reset. Token management is automatic.
+
+### Media Management
+Upload, browse, and delete images/videos stored in S3/R2. Client-side compression, HEIC conversion, video thumbnails. Presigned URLs for secure access.
+
+### Design System
+35 shadcn-inspired UI components built on @rn-primitives. Zinc-based color palette with teal accent. Full dark mode support. Consistent sizing and spacing tokens.
+
+### Internationalization
+English and Spanish with lazy-loaded translation bundles. RTL support. Device locale auto-detection.
+
+### Screen Templates
+17 pre-built screen templates: Settings, Profile, List, Pricing, Welcome, Card Grid, Chat, Dashboard, Multi-step Form, Notifications, Search Results, Error States, Detail Hero.
+
+### Developer Tools
+Component showcase, form validation demos, auth demos, Reactotron integration, developer settings screen.
+
+## How to Use This Template
+
+1. **Clone and install**: `bun install`
+2. **Configure auth**: Set `EXPO_PUBLIC_USER_POOL_ID` and `EXPO_PUBLIC_USER_POOL_CLIENT_ID`
+3. **Configure storage**: Set S3/R2 credentials for media features
+4. **Start building**: Add screens in `app/`, features in `client/features/`, components in `client/components/ui/`
+5. **Generate scaffolding**: `npm run generate component|screen|hook|form <Name>`
+
+## Key Conventions
+
+- **Feature folders** are self-contained and portable — never cross-import between features
+- **Zustand** for client state, **TanStack React Query** for server state
+- **Discriminated unions** for API responses (no thrown exceptions)
+- **Platform-specific files** (`.native.ts` / `.ts`) for clean platform splits
+- **Conventional Commits** for git messages
+- **Bun** as package manager
