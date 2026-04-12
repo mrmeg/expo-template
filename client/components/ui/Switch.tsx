@@ -109,7 +109,6 @@ function Switch({
   const checkedColor = isIOS ? "#34C759" : theme.colors.primary;
   const uncheckedColor = theme.colors.muted;
   const trackBg = props.checked ? checkedColor : uncheckedColor;
-  const trackBorder = props.checked ? checkedColor : theme.colors.border;
 
   // Calculate label color for ON state
   const labelOnColor = getContrastingColor(
@@ -150,9 +149,7 @@ function Switch({
         style={{
           ...StyleSheet.absoluteFillObject,
           borderRadius: size.height / 2,
-          borderWidth: 1,
           backgroundColor: trackBg,
-          borderColor: trackBorder,
         }}
         pointerEvents="none"
       />
@@ -191,8 +188,6 @@ function Switch({
               height: thumbSize,
               borderRadius: thumbSize / 2,
               backgroundColor: palette.white,
-              borderWidth: 1,
-              borderColor: theme.colors.border,
               justifyContent: "center",
               alignItems: "center",
               ...(Platform.OS !== "web" && {

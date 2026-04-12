@@ -85,6 +85,13 @@ export function Label({
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const sizeConfig = SIZE_CONFIGS[size];
+  const textStyle = StyleSheet.flatten([
+    styles.label,
+    { fontSize: sizeConfig.fontSize },
+    error && styles.errorLabel,
+    disabled && styles.disabledLabel,
+    style,
+  ]);
 
   return (
     <LabelPrimitive.Root
@@ -96,13 +103,7 @@ export function Label({
       }}
     >
       <LabelPrimitive.Text
-        style={[
-          styles.label,
-          { fontSize: sizeConfig.fontSize },
-          error && styles.errorLabel,
-          disabled && styles.disabledLabel,
-          style,
-        ]}
+        style={textStyle}
       >
         {children}
         {required && <StyledText style={styles.required}> *</StyledText>}
