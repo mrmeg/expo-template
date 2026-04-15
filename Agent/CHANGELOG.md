@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Fixed pre-existing Jest failures (react-test-renderer pin, expo-font / vector-icons / safe-area-context mocks, Progress accessibility role, Switch thumb tree assertion, InputOTP onComplete via simulated changeText).
+- Fixed upload rate-limit alignment: the strict 10-requests-per-minute limiter now covers `/api/media/getUploadUrl` (the real presigned-upload route). Configuration moved to `server/rateLimits.js` with regression coverage so the path cannot drift back to the stale `/api/media/upload-url`.
 - Fixed web media delete: shared CORS helper now advertises `DELETE` so browser preflights to `DELETE /api/media/delete?key=...` succeed from allowed origins. Added regression coverage in `app/api/_shared/__tests__/cors.test.ts`.
 - Fixed false-positive client env warnings on web by validating `EXPO_PUBLIC_*` values with Expo-compatible direct property access.
 - Disabled RN core `useNativeDriver` on web to remove repeated dev warnings from showcase and demo animations.

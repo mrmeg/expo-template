@@ -15,7 +15,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 | `add-authenticated-billing-api-foundation.md` | Ready | High |
 | `add-stripe-subscriptions-bootstrap-and-config.md` | Ready | High |
 | `wire-pricing-and-account-ui-to-billing.md` | Ready | Medium |
-| `align-media-upload-rate-limiting.md` | Ready | High |
 | `restore-web-ffmpeg-worker-serving.md` | Ready | Medium |
 | `wire-app-shell-to-auth-and-onboarding-flows.md` | Ready | High |
 | `expand-coverage-for-auth-onboarding-and-media-server.md` | Ready | Medium |

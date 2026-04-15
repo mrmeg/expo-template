@@ -54,8 +54,12 @@
 
 | Scope | Limit | Window |
 |-------|-------|--------|
-| General API | 500 req | 15 min |
-| Upload/sensitive | 10 req | 1 min |
+| General API (all `/api`) | 500 req | 15 min |
+| Strict (`/api/media/getUploadUrl`, `/api/reports`, `/api/corrections`) | 10 req | 1 min |
+
+Strict paths are configured in `server/rateLimits.js` and enforced by
+`server/index.ts`. Both limiters stack; the strict window dominates for
+covered routes.
 
 ## Color Contrast Caching
 

@@ -8,6 +8,7 @@ const compression = require("compression");
 const morgan = require("morgan");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+const { GENERAL_LIMIT, STRICT_LIMIT, STRICT_LIMIT_PATHS } = require("./rateLimits");
 
 const CLIENT_BUILD_DIR = path.join(process.cwd(), "dist/client");
 const SERVER_BUILD_DIR = path.join(process.cwd(), "dist/server");
@@ -50,17 +51,15 @@ app.use(
 
 // Rate limiting - general API limit
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // limit each IP to 500 requests per 15 min window
+  ...GENERAL_LIMIT,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later" },
 });
 
-// Stricter rate limiting for sensitive endpoints
+// Stricter rate limiting for sensitive endpoints (see server/rateLimits.js)
 const strictLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 10, // 10 requests per minute
+  ...STRICT_LIMIT,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later" },
@@ -69,10 +68,11 @@ const strictLimiter = rateLimit({
 // Apply general rate limiting to all API routes
 app.use("/api", generalLimiter);
 
-// Apply strict rate limiting to upload and auth-related endpoints
-app.use("/api/media/upload-url", strictLimiter);
-app.use("/api/reports", strictLimiter);
-app.use("/api/corrections", strictLimiter);
+// Apply strict rate limiting to upload-url and other sensitive endpoints.
+// Paths are defined in ./rateLimits.js so tests can assert coverage.
+for (const path of STRICT_LIMIT_PATHS) {
+  app.use(path, strictLimiter);
+}
 
 app.use(
   express.static(CLIENT_BUILD_DIR, {

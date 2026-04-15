@@ -182,7 +182,7 @@ The Express server (`server/index.ts`) provides:
 | Scope | Limit | Window | Routes |
 |-------|-------|--------|--------|
 | General | 500 requests | 15 minutes | All `/api/*` |
-| Strict | 10 requests | 1 minute | `/api/media/upload-url`, `/api/reports`, `/api/corrections` |
+| Strict | 10 requests | 1 minute | `/api/media/getUploadUrl`, `/api/reports`, `/api/corrections` |
 
 ### Security Headers
 
