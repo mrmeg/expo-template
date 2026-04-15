@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `add-billing-identity-and-subscription-state.md` | Ready | High |
 | `add-authenticated-billing-api-foundation.md` | Ready | High |
 | `add-stripe-subscriptions-bootstrap-and-config.md` | Ready | High |
 | `wire-pricing-and-account-ui-to-billing.md` | Ready | Medium |
