@@ -127,7 +127,15 @@ See [`BILLING.md`](./BILLING.md) for the full architecture.
 - The subscription row is keyed to the **Cognito `sub`**, not email.
   A user who changes their email never loses their subscription.
 - The client consumes a **normalized `BillingSummary`** only; raw Stripe
-  IDs stay server-side.
+  IDs stay server-side (`shared/billing.ts` defines the shape — see
+  `BillingSummary`, `freeBillingSummary`, `normalizeStripeSubscription`).
+- **Customer linking is deterministic.** The default
+  `BillingAccountResolver` (`app/api/billing/_shared/account.ts`) first
+  looks up Stripe customers by `metadata.appUserId`; if none, it
+  backfills metadata onto exactly one unclaimed email match; multiple
+  email matches throw `CustomerConflictError` rather than auto-linking;
+  otherwise it creates a fresh customer with
+  `metadata.appUserId = userId`. No fuzzy matching.
 - **Entitlement** = `state ∈ { trialing, active, past_due }`. Every
   feature gate calls a shared entitlement helper, not `state` directly.
 - **Mode**: the template defaults to `hosted-external`. Adopters needing

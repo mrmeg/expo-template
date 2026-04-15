@@ -146,17 +146,43 @@ The client consumes a normalized summary, not raw Stripe objects.
 | `canceled` | Subscription ended. Not entitled. |
 | `incomplete` | Initial payment pending or 3DS in progress. Not entitled until resolved. |
 
-### Normalized summary shape (conceptual)
+### Normalized summary shape
+
+The canonical definition lives in `shared/billing.ts`:
 
 ```ts
-type BillingSummary = {
-  state: "free" | "trialing" | "active" | "past_due" | "canceled" | "incomplete";
-  plan: string | null;           // e.g. "pro", "team" — nullable when state === "free"
+export interface BillingSummary {
+  customerId: string | null;
+  planId: string;        // e.g. "free", "pro" — from the plan catalog
+  planLabel: string;     // human-readable, safe to render
+  status: BillingStatus;
+  interval: "month" | "year" | null;
   currentPeriodEnd: string | null; // ISO 8601
   cancelAtPeriodEnd: boolean;
-  // No raw Stripe IDs here — those stay server-side.
-};
+  features: string[];
+  sourceUpdatedAt: string;
+}
 ```
+
+- Raw Stripe SDK types never cross this boundary.
+- `freeBillingSummary()` returns the canonical shape for users with no
+  Stripe customer record.
+- `normalizeStripeSubscription(sub, catalog)` is the single server-side
+  function that folds a Stripe `Subscription` into `BillingSummary`.
+
+### Identity contract (server)
+
+`app/api/billing/_shared/account.ts` defines the
+`BillingAccountResolver` interface and the default
+`createStripeBillingAccountResolver` factory:
+
+- `resolveOrCreateCustomer(user)` — metadata lookup → email backfill →
+  conflict error → create. No fuzzy matching.
+- `getBillingSummary(user)` — never auto-creates a customer.
+
+The resolver depends on a small `StripeCustomersPort` interface so it
+is unit-testable without a real Stripe client. A later spec wires a
+real Stripe SDK implementation of that port.
 
 ### Entitlement rule
 

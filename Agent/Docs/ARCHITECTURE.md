@@ -58,7 +58,7 @@ File-based routing via Expo Router with nested layouts:
 Organized by concern:
 
 - **`features/`** — Self-contained domain modules (auth, media, i18n, keyboard, navigation, onboarding, app, billing)
-  - `features/billing/` (baseline, hosted-external) owns the client side of Stripe Checkout / Billing Portal: `useBillingSummary` (React Query over `/api/billing/summary`), `useCheckout` / `usePortal` (server session + browser handoff via `expo-web-browser` on native, `window.location` on web), and `lib/entitlement.ts`. See `Agent/Docs/BILLING.md`.
+  - `features/billing/` (baseline, hosted-external) owns the client side of Stripe Checkout / Billing Portal: `useBillingSummary` (React Query over `/api/billing/summary`, scoped to the authenticated user with `placeholderData = freeBillingSummary()`), plus the planned `useCheckout` / `usePortal` hooks and entitlement helper. UI code consumes the normalized `BillingSummary` from `shared/billing.ts` — never raw Stripe. Server-side identity mapping lives in `app/api/billing/_shared/account.ts` (`BillingAccountResolver`). See `Agent/Docs/BILLING.md`.
   - `features/app/` owns the shell contract: `useAppStartup` (single startup gate), `AuthGate` (per-surface auth policy), `OnboardingGate` (first-run flow), `isAuthEnabled` (env predicate)
 - **`components/ui/`** — 35 design system primitives (shadcn-inspired)
 - **`hooks/`** — 8 shared hooks (useTheme, useDimensions, useScalePress, etc.)

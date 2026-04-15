@@ -11,6 +11,7 @@ import { globalUIStore } from "@/client/state/globalUIStore";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
 import { AuthGate } from "@/client/features/app";
+import { useBillingSummary, isEntitled, type BillingSummary } from "@/client/features/billing";
 import type { Theme } from "@/client/constants/colors";
 import { palette } from "@/client/constants/colors";
 import { SEO } from "@/client/components/SEO";
@@ -31,6 +32,15 @@ function ProfileScreen() {
   const styles = createStyles(theme);
   const { signOut } = useAuth();
   const { user, state: authState } = useAuthStore();
+  const billingQuery = useBillingSummary();
+  const billing = billingQuery.data;
+  const entitled = billing ? isEntitled(billing) : false;
+  const statusLabel = statusToLabel(billing?.status);
+  const statusColor = entitled
+    ? theme.colors.success
+    : billing?.status === "past_due"
+    ? theme.colors.warning
+    : theme.colors.mutedForeground;
 
   // Mock preference states
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -175,29 +185,35 @@ function ProfileScreen() {
               <View style={styles.divider} />
               <View style={styles.infoRow}>
                 <View style={styles.infoRowLeft}>
-                  <Icon name="award" size={18} color={theme.colors.warning} />
+                  <Icon
+                    name="award"
+                    size={18}
+                    color={entitled ? theme.colors.success : theme.colors.mutedForeground}
+                  />
                   <SansSerifText style={styles.infoLabel}>Plan</SansSerifText>
                 </View>
-                <SansSerifText style={[styles.infoValue, { color: theme.colors.warning }]}>
-                  Free
+                <SansSerifText style={styles.infoValue}>
+                  {billing?.planLabel ?? "Free"}
                 </SansSerifText>
               </View>
               <View style={styles.divider} />
               <View style={styles.infoRow}>
                 <View style={styles.infoRowLeft}>
                   <Icon name="calendar" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText style={styles.infoLabel}>Member Since</SansSerifText>
+                  <SansSerifText style={styles.infoLabel}>Renews</SansSerifText>
                 </View>
-                <SansSerifText style={styles.infoValue}>Jan 2024</SansSerifText>
+                <SansSerifText style={styles.infoValue}>
+                  {formatPeriodEnd(billing?.currentPeriodEnd, billing?.cancelAtPeriodEnd)}
+                </SansSerifText>
               </View>
               <View style={styles.divider} />
               <View style={styles.infoRow}>
                 <View style={styles.infoRowLeft}>
-                  <Icon name="shield" size={18} color={theme.colors.success} />
+                  <Icon name="shield" size={18} color={statusColor} />
                   <SansSerifText style={styles.infoLabel}>Status</SansSerifText>
                 </View>
-                <SansSerifText style={[styles.infoValue, { color: theme.colors.success }]}>
-                  Active
+                <SansSerifText style={[styles.infoValue, { color: statusColor }]}>
+                  {statusLabel}
                 </SansSerifText>
               </View>
             </View>
@@ -318,6 +334,40 @@ function ProfileScreen() {
       </ScrollView>
     </View>
   );
+}
+
+function statusToLabel(status: BillingSummary["status"] | undefined): string {
+  switch (status) {
+    case "trialing":
+      return "Trial";
+    case "active":
+      return "Active";
+    case "past_due":
+      return "Past due";
+    case "canceled":
+      return "Canceled";
+    case "incomplete":
+      return "Incomplete";
+    case "free":
+    case undefined:
+    default:
+      return "Free";
+  }
+}
+
+function formatPeriodEnd(
+  iso: string | null | undefined,
+  cancelAtPeriodEnd: boolean | undefined,
+): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  const formatted = date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  return cancelAtPeriodEnd ? `Ends ${formatted}` : formatted;
 }
 
 const createStyles = (theme: Theme) =>

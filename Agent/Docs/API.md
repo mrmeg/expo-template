@@ -121,19 +121,28 @@ architecture; implementation lands in later specs.
 | `/api/billing/portal` | POST | Cognito | Create a Stripe Billing Portal session; returns `{ url }` |
 | `/api/billing/webhook` | POST | Stripe signature (no Cognito) | Receive Stripe events; server-authoritative state writes |
 
-**Normalized summary shape:**
+**Normalized summary shape** (canonical definition in
+`shared/billing.ts`):
 
 ```ts
-type BillingSummary = {
-  state: "free" | "trialing" | "active" | "past_due" | "canceled" | "incomplete";
-  plan: string | null;
+interface BillingSummary {
+  customerId: string | null;
+  planId: string;
+  planLabel: string;
+  status: "free" | "trialing" | "active" | "past_due" | "canceled" | "incomplete";
+  interval: "month" | "year" | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
-};
+  features: string[];
+  sourceUpdatedAt: string;
+}
 ```
 
 The summary is keyed to the Cognito `sub`, not email. Raw Stripe IDs
-stay server-side; clients never read them.
+stay server-side; clients never read them. The server-side resolver
+(`app/api/billing/_shared/account.ts`) owns deterministic Stripe
+customer linking (metadata lookup → single-match email backfill →
+`CustomerConflictError` → create).
 
 **Rate limits:** `/api/billing/checkout` and `/api/billing/portal` should
 be registered in `STRICT_LIMIT_PATHS` (see Rate Limiting table below)
