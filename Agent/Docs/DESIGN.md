@@ -112,6 +112,7 @@ Applies to: Button, TextInput, Toggle, Select.
 ### Switch
 - Width 44, height 24, thumb 20
 - 1px border on track + thumb for contrast
+- Default checked state uses a stable dark-neutral track so the white thumb stays visible in both themes
 
 ### Tab Bar
 - `accent` for active tint

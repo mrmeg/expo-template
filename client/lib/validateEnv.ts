@@ -2,7 +2,8 @@
  * Environment variable validation utility.
  *
  * Call validateClientEnv() at app startup to catch missing vars early.
- * In development, logs warnings. In production, throws with a clear list.
+ * Missing values always warn instead of throwing so route initialization
+ * can still complete and features can fail gracefully at point of use.
  */
 
 interface EnvRule {
@@ -11,11 +12,18 @@ interface EnvRule {
   context: string;
 }
 
-const CLIENT_ENV_RULES: EnvRule[] = [
+const CLIENT_ENV_RULES = [
   { key: "EXPO_PUBLIC_USER_POOL_ID", required: true, context: "Auth (Cognito)" },
   { key: "EXPO_PUBLIC_USER_POOL_CLIENT_ID", required: true, context: "Auth (Cognito)" },
   { key: "EXPO_PUBLIC_API_URL", required: true, context: "API" },
-];
+] as const;
+
+// Expo only inlines EXPO_PUBLIC_* variables for direct property access.
+const CLIENT_ENV_VALUES = {
+  EXPO_PUBLIC_USER_POOL_ID: process.env.EXPO_PUBLIC_USER_POOL_ID,
+  EXPO_PUBLIC_USER_POOL_CLIENT_ID: process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID,
+  EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
+} as const;
 
 const SERVER_ENV_RULES: EnvRule[] = [
   { key: "R2_JURISDICTION_SPECIFIC_URL", required: true, context: "Media (R2)" },
@@ -49,7 +57,14 @@ function validate(rules: EnvRule[], label: string): void {
  * Call early in app startup before any service initialization.
  */
 export function validateClientEnv(): void {
-  validate(CLIENT_ENV_RULES, "client");
+  const missing = CLIENT_ENV_RULES
+    .filter((rule) => rule.required && isMissing(CLIENT_ENV_VALUES[rule.key]))
+    .map((rule) => `  - ${rule.key} (${rule.context})`);
+
+  if (missing.length === 0) return;
+
+  const message = `Missing required client environment variables:\n${missing.join("\n")}`;
+  console.warn(`⚠️ ${message}`);
 }
 
 /**

@@ -48,6 +48,7 @@ import { globalUIStore } from "@/client/state/globalUIStore";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { fontFamilies } from "@/client/constants/fonts";
+import { blurActiveElementOnWeb } from "@/client/features/navigation/blurActiveElementOnWeb";
 import type { Theme } from "@/client/constants/colors";
 
 export default function ShowcaseScreen() {
@@ -126,12 +127,12 @@ export default function ShowcaseScreen() {
           {/* Deep navigation test */}
           <View style={{ flexDirection: "row", gap: 8, marginBottom: spacing.lg }}>
             <Link href="/(main)/(demos)/form-demo" asChild>
-              <Button preset="outline">
+              <Button preset="outline" onPressIn={blurActiveElementOnWeb}>
                 <StyledText style={styles.outlineButtonText}>Go to Form Demo</StyledText>
               </Button>
             </Link>
             <Link href="/(main)/(demos)/developer" asChild>
-              <Button preset="outline">
+              <Button preset="outline" onPressIn={blurActiveElementOnWeb}>
                 <StyledText style={styles.outlineButtonText}>Go to Developer</StyledText>
               </Button>
             </Link>
@@ -405,7 +406,7 @@ export default function ShowcaseScreen() {
           {/* ============================================ */}
 
           <Section title="Accordion">
-            <Accordion type="single" collapsible defaultValue={undefined}>
+            <Accordion type="single" collapsible>
               <AccordionItem value="item-1">
                 <AccordionTrigger>
                   <StyledText style={styles.boldText}>What is React Native?</StyledText>

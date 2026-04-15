@@ -20,6 +20,7 @@ import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { Pressable as SlotPressable } from "@rn-primitives/slot";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
+import { shouldUseNativeDriver } from "@/client/lib/animations";
 import { TextColorContext, TextClassContext } from "./StyledText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -309,12 +310,12 @@ function BottomSheetContent({
               toValue: targetY,
               tension: 65,
               friction: 11,
-              useNativeDriver: true,
+              useNativeDriver: shouldUseNativeDriver,
             }),
             Animated.timing(backdropOpacity, {
               toValue: 1,
               duration: 150,
-              useNativeDriver: true,
+              useNativeDriver: shouldUseNativeDriver,
             }),
           ]).start();
         } else {
@@ -322,12 +323,12 @@ function BottomSheetContent({
             Animated.timing(translateY, {
               toValue: closedPosition,
               duration: 200,
-              useNativeDriver: true,
+              useNativeDriver: shouldUseNativeDriver,
             }),
             Animated.timing(backdropOpacity, {
               toValue: 0,
               duration: 200,
-              useNativeDriver: true,
+              useNativeDriver: shouldUseNativeDriver,
             }),
           ]).start(() => {
             onOpenChange(false);
@@ -353,12 +354,12 @@ function BottomSheetContent({
             toValue: targetY,
             tension: 65,
             friction: 11,
-            useNativeDriver: true,
+            useNativeDriver: shouldUseNativeDriver,
           }),
           Animated.timing(backdropOpacity, {
             toValue: 1,
             duration: 150,
-            useNativeDriver: true,
+            useNativeDriver: shouldUseNativeDriver,
           }),
         ]).start();
       }
@@ -412,12 +413,12 @@ function BottomSheetContent({
           toValue: 0,
           tension: 65,
           friction: 11,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
         Animated.timing(backdropOpacity, {
           toValue: 1,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
       ]);
 
@@ -430,12 +431,12 @@ function BottomSheetContent({
         Animated.timing(translateY, {
           toValue: closedPosition,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
         Animated.timing(backdropOpacity, {
           toValue: 0,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
       ]);
 

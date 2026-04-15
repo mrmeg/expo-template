@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Platform, Pressable, View, ViewStyle } from "react-native";
 import Animated, {
   useSharedValue,
@@ -11,6 +11,137 @@ import { TextClassContext } from "@/client/components/ui/StyledText";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
+
+type BaseAccordionRootProps = Omit<React.ComponentProps<typeof View>, "style"> &
+  React.RefAttributes<AccordionPrimitive.RootRef> & {
+    disabled?: boolean;
+    collapsible?: boolean;
+    dir?: "ltr" | "rtl";
+    orientation?: "vertical" | "horizontal";
+    style?: ViewStyle;
+  };
+
+type WebSingleAccordionRootProps = BaseAccordionRootProps & {
+  type: "single";
+  defaultValue?: string;
+  value?: string;
+  onValueChange?: (value: string | undefined) => void;
+};
+
+type WebMultipleAccordionRootProps = BaseAccordionRootProps & {
+  type: "multiple";
+  defaultValue?: string[];
+  value?: string[];
+  onValueChange?: (value: string[]) => void;
+};
+
+type AccordionRootProps = WebSingleAccordionRootProps | WebMultipleAccordionRootProps;
+
+function normalizeSingleValue(value: string | undefined): string {
+  return value ?? "";
+}
+
+function denormalizeSingleValue(value: string): string | undefined {
+  return value === "" ? undefined : value;
+}
+
+function normalizeMultipleValue(value: string[] | undefined): string[] {
+  return value ?? [];
+}
+
+function WebSingleAccordionRoot(props: WebSingleAccordionRootProps) {
+  const isControlled = Object.prototype.hasOwnProperty.call(props, "value");
+  const [uncontrolledValue, setUncontrolledValue] = useState(() =>
+    normalizeSingleValue(props.defaultValue)
+  );
+  const normalizedValue = isControlled
+    ? normalizeSingleValue(props.value)
+    : uncontrolledValue;
+
+  const handleValueChange = (nextValue: string | undefined) => {
+    const normalizedNextValue = normalizeSingleValue(nextValue);
+
+    if (!isControlled) {
+      setUncontrolledValue(normalizedNextValue);
+    }
+
+    props.onValueChange?.(denormalizeSingleValue(normalizedNextValue));
+  };
+
+  const {
+    children,
+    style,
+    type: _type,
+    defaultValue: _defaultValue,
+    onValueChange: _onValueChange,
+    value: _value,
+    ...rootProps
+  } = props;
+
+  return (
+    <AccordionPrimitive.Root
+      {...(rootProps as any)}
+      type="single"
+      value={normalizedValue}
+      onValueChange={handleValueChange}
+      asChild={false}>
+      <View style={style}>
+        {children}
+      </View>
+    </AccordionPrimitive.Root>
+  );
+}
+
+function WebMultipleAccordionRoot(props: WebMultipleAccordionRootProps) {
+  const isControlled = Object.prototype.hasOwnProperty.call(props, "value");
+  const [uncontrolledValue, setUncontrolledValue] = useState(() =>
+    normalizeMultipleValue(props.defaultValue)
+  );
+  const normalizedValue = isControlled
+    ? normalizeMultipleValue(props.value)
+    : uncontrolledValue;
+
+  const handleValueChange = (nextValue: string[]) => {
+    const normalizedNextValue = normalizeMultipleValue(nextValue);
+
+    if (!isControlled) {
+      setUncontrolledValue(normalizedNextValue);
+    }
+
+    props.onValueChange?.(normalizedNextValue);
+  };
+
+  const {
+    children,
+    style,
+    type: _type,
+    defaultValue: _defaultValue,
+    onValueChange: _onValueChange,
+    value: _value,
+    ...rootProps
+  } = props;
+
+  return (
+    <AccordionPrimitive.Root
+      {...(rootProps as any)}
+      type="multiple"
+      value={normalizedValue}
+      onValueChange={handleValueChange}
+      asChild={false}>
+      <View style={style}>
+        {children}
+      </View>
+    </AccordionPrimitive.Root>
+  );
+}
+
+function WebAccordionRoot(props: AccordionRootProps) {
+  if (props.type === "multiple") {
+    return <WebMultipleAccordionRoot {...props} />;
+  }
+
+  return <WebSingleAccordionRoot {...props} />;
+}
 
 /**
  * Accordion Root Component
@@ -28,14 +159,19 @@ function Accordion({
   children,
   style,
   ...props
-}: Omit<AccordionPrimitive.RootProps, "asChild"> &
-  React.RefAttributes<AccordionPrimitive.RootRef> & {
-    style?: ViewStyle;
-  }) {
+}: AccordionRootProps) {
+  if (Platform.OS === "web" as any) {
+    return (
+      <WebAccordionRoot {...props} style={style}>
+        {children}
+      </WebAccordionRoot>
+    );
+  }
+
   return (
     <AccordionPrimitive.Root
       {...(props as AccordionPrimitive.RootProps)}
-      asChild={Platform.OS !== "web"}>
+      asChild>
       <View style={style}>
         {children}
       </View>

@@ -14,6 +14,7 @@ import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledT
 import { Button } from "@/client/components/ui/Button";
 import { Icon, type IconName } from "@/client/components/ui/Icon";
 import { useTheme } from "@/client/hooks/useTheme";
+import { shouldUseNativeDriver } from "@/client/lib/animations";
 import { spacing } from "@/client/constants/spacing";
 import type { Theme } from "@/client/constants/colors";
 
@@ -141,7 +142,7 @@ export function DetailHeroScreen({
         scrollEventThrottle={16}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
+          { useNativeDriver: shouldUseNativeDriver }
         )}
       >
         <View style={{ height: heroHeight - OVERLAP }} />

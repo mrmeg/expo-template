@@ -66,7 +66,7 @@ function Switch({
   style: styleOverride,
   ...props
 }: SwitchProps) {
-  const { theme, getContrastingColor } = useTheme();
+  const { theme, getContrastingColor, withAlpha } = useTheme();
   const reduceMotion = useReducedMotion();
   const hasMounted = useRef(false);
 
@@ -106,13 +106,26 @@ function Switch({
   }));
 
   const isIOS = variant === "ios";
-  const checkedColor = isIOS ? "#34C759" : theme.colors.primary;
-  const uncheckedColor = theme.colors.muted;
+  // Keep the default checked state on a stable dark neutral so the white thumb
+  // stays distinct in both light and dark themes.
+  const checkedColor = isIOS ? "#34C759" : palette.gray900;
+  const uncheckedColor = theme.dark ? withAlpha(palette.white, 0.18) : palette.gray200;
   const trackBg = props.checked ? checkedColor : uncheckedColor;
+  const trackBorderColor = props.checked
+    ? theme.dark
+      ? withAlpha(palette.white, 0.18)
+      : withAlpha(palette.black, 0.08)
+    : theme.dark
+      ? withAlpha(palette.white, 0.14)
+      : palette.gray300;
+  const thumbBorderColor = theme.dark
+    ? withAlpha(palette.black, 0.24)
+    : withAlpha(palette.black, 0.12);
+  const thumbIndicatorColor = props.checked ? checkedColor : theme.colors.textDim;
 
   // Calculate label color for ON state
   const labelOnColor = getContrastingColor(
-    theme.colors.primary,
+    checkedColor,
     palette.white,
     palette.black
   );
@@ -150,6 +163,8 @@ function Switch({
           ...StyleSheet.absoluteFillObject,
           borderRadius: size.height / 2,
           backgroundColor: trackBg,
+          borderWidth: 1,
+          borderColor: trackBorderColor,
         }}
         pointerEvents="none"
       />
@@ -188,6 +203,8 @@ function Switch({
               height: thumbSize,
               borderRadius: thumbSize / 2,
               backgroundColor: palette.white,
+              borderWidth: 1,
+              borderColor: thumbBorderColor,
               justifyContent: "center",
               alignItems: "center",
               ...(Platform.OS !== "web" && {
@@ -204,7 +221,7 @@ function Switch({
           {loading && (
             <ActivityIndicator
               size="small"
-              color={theme.colors.primary}
+              color={thumbIndicatorColor}
             />
           )}
         </Animated.View>

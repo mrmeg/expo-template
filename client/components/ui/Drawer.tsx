@@ -17,6 +17,7 @@ import { Portal } from "@rn-primitives/portal";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { Pressable as SlotPressable } from "@rn-primitives/slot";
 import { useTheme } from "@/client/hooks/useTheme";
+import { shouldUseNativeDriver } from "@/client/lib/animations";
 import { spacing } from "@/client/constants/spacing";
 import { TextColorContext, TextClassContext } from "./StyledText";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -328,12 +329,12 @@ function DrawerContent({
         Animated.timing(translateX, {
           toValue: 0,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
         Animated.timing(backdropOpacity, {
           toValue: 1,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
       ]);
 
@@ -349,12 +350,12 @@ function DrawerContent({
         Animated.timing(translateX, {
           toValue: closedPosition,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
         Animated.timing(backdropOpacity, {
           toValue: 0,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
       ]);
 
@@ -429,12 +430,12 @@ function DrawerContent({
                 toValue: targetX,
                 tension: 65,
                 friction: 11,
-                useNativeDriver: true,
+                useNativeDriver: shouldUseNativeDriver,
               }),
               Animated.timing(backdropOpacity, {
                 toValue: 0,
                 duration: 200,
-                useNativeDriver: true,
+                useNativeDriver: shouldUseNativeDriver,
               }),
             ]).start(() => {
               onOpenChange(false);
@@ -447,12 +448,12 @@ function DrawerContent({
                 toValue: 0,
                 tension: 65,
                 friction: 11,
-                useNativeDriver: true,
+                useNativeDriver: shouldUseNativeDriver,
               }),
               Animated.timing(backdropOpacity, {
                 toValue: 1,
                 duration: 150,
-                useNativeDriver: true,
+                useNativeDriver: shouldUseNativeDriver,
               }),
             ]).start();
           }

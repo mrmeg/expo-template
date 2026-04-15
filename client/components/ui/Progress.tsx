@@ -8,6 +8,7 @@ import Reanimated, {
 } from "react-native-reanimated";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
+import { shouldUseNativeDriver } from "@/client/lib/animations";
 
 // ============================================================================
 // Types
@@ -197,12 +198,12 @@ function IndeterminateFill({
         Animated.timing(opacity, {
           toValue: 1.0,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
         Animated.timing(opacity, {
           toValue: 0.4,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
       ])
     );

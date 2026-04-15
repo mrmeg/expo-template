@@ -18,6 +18,7 @@ import { SansSerifText } from "@/client/components/ui/StyledText";
 import { TextInput } from "@/client/components/ui/TextInput";
 import { Icon } from "@/client/components/ui/Icon";
 import { Skeleton } from "@/client/components/ui/Skeleton";
+import { shouldUseNativeDriver } from "@/client/lib/animations";
 import type { Theme } from "@/client/constants/colors";
 
 // ---------------------------------------------------------------------------
@@ -136,12 +137,12 @@ function TypingDot({ delay, theme }: { delay: number; theme: Theme }) {
           toValue: 1.0,
           duration: 400,
           delay,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
         Animated.timing(opacity, {
           toValue: 0.3,
           duration: 400,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
       ])
     );

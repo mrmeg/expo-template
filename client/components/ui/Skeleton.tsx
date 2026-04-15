@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { View, Animated, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { useTheme } from "@/client/hooks/useTheme";
+import { shouldUseNativeDriver } from "@/client/lib/animations";
 import { spacing } from "@/client/constants/spacing";
 import type { Theme } from "@/client/constants/colors";
 
@@ -56,12 +57,12 @@ export function Skeleton({
         Animated.timing(opacity, {
           toValue: 1,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
         Animated.timing(opacity, {
           toValue: 0.3,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
       ])
     );

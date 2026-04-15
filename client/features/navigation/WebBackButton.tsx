@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { Icon } from "@/client/components/ui/Icon";
 import { useTheme } from "@/client/hooks/useTheme";
 import { canGoBack } from "./backBehavior";
+import { blurActiveElementOnWeb } from "./blurActiveElementOnWeb";
 
 /**
  * Back button for web that handles the case where browser refresh
@@ -16,6 +17,8 @@ export function WebBackButton({ tintColor }: { tintColor?: string }) {
   const color = tintColor || theme.colors.foreground;
 
   const handlePress = () => {
+    blurActiveElementOnWeb();
+
     if (canGoBack(router)) {
       router.back();
     } else {

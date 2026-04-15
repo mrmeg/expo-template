@@ -12,9 +12,12 @@ import { Switch } from "../Switch";
 jest.mock("@/client/hooks/useTheme", () => ({
   useTheme: () => ({
     theme: {
+      dark: false,
       colors: {
         primary: "#18181B",
         primaryForeground: "#FFFFFF",
+        text: "#0F172A",
+        textDim: "#64748B",
         muted: "#F1F5F9",
         mutedForeground: "#64748B",
         border: "#E2E8F0",
@@ -23,6 +26,17 @@ jest.mock("@/client/hooks/useTheme", () => ({
       },
     },
     getShadowStyle: () => ({}),
+    getContrastingColor: () => "#FFFFFF",
+    withAlpha: (color: string, alpha: number) => {
+      if (color.startsWith("#") && color.length === 7) {
+        const red = Number.parseInt(color.slice(1, 3), 16);
+        const green = Number.parseInt(color.slice(3, 5), 16);
+        const blue = Number.parseInt(color.slice(5, 7), 16);
+        return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+      }
+
+      return color;
+    },
   }),
 }));
 
@@ -96,5 +110,33 @@ describe("Switch", () => {
 
     const switchEl = screen.getByRole("switch");
     expect(switchEl.props.accessibilityState.disabled).toBe(true);
+  });
+
+  it("adds contrast styling to the track and thumb", () => {
+    const tree = render(<Switch checked={false} onCheckedChange={() => {}} />).toJSON();
+
+    expect(tree).toBeTruthy();
+    expect(Array.isArray(tree)).toBe(false);
+
+    if (!tree || Array.isArray(tree)) {
+      throw new Error("Expected a single switch tree");
+    }
+
+    const track = tree.children?.[0];
+    const thumb = tree.children?.[1];
+
+    expect(track?.props.style.backgroundColor).toBe("#E4E4E7");
+    expect(track?.props.style.borderWidth).toBe(1);
+    expect(track?.props.style.borderColor).toBe("#D4D4D8");
+
+    expect(thumb?.props.style).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          backgroundColor: "#FFFFFF",
+          borderWidth: 1,
+          borderColor: "rgba(0, 0, 0, 0.12)",
+        }),
+      ])
+    );
   });
 });

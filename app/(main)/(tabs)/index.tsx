@@ -9,6 +9,7 @@ import { Badge } from "@/client/components/ui/Badge";
 import { AnimatedView } from "@/client/components/ui/AnimatedView";
 import { STAGGER_DELAY } from "@/client/hooks/useStaggeredEntrance";
 import { SEO } from "@/client/components/SEO";
+import { blurActiveElementOnWeb } from "@/client/features/navigation/blurActiveElementOnWeb";
 import type { Theme } from "@/client/constants/colors";
 
 interface NavItem {
@@ -63,6 +64,7 @@ export default function ExploreScreen() {
         <AnimatedView type="fadeSlideUp" delay={0}>
           <Link href={"/(main)/(demos)/showcase" as any} asChild>
             <Pressable
+              onPressIn={blurActiveElementOnWeb}
               style={Platform.OS === "web" ? { cursor: "pointer" as any } : undefined}
             >
               <View style={styles.featured}>
@@ -100,6 +102,7 @@ export default function ExploreScreen() {
                 {row.map((item) => (
                   <Link key={item.href} href={item.href as any} asChild>
                     <Pressable
+                      onPressIn={blurActiveElementOnWeb}
                       style={Platform.OS === "web"
                         ? { ...styles.gridCard, cursor: "pointer" as any }
                         : styles.gridCard
@@ -133,6 +136,7 @@ export default function ExploreScreen() {
               <View key={item.href}>
                 <Link href={item.href as any} asChild>
                   <Pressable
+                    onPressIn={blurActiveElementOnWeb}
                     style={Platform.OS === "web"
                       ? { ...styles.demoRow, cursor: "pointer" as any }
                       : styles.demoRow
