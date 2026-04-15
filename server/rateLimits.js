@@ -31,6 +31,12 @@ const STRICT_LIMIT_PATHS = [
   "/api/media/getUploadUrl",
   "/api/reports",
   "/api/corrections",
+  // Hosted-external billing session routes — session creation is abuse-prone
+  // and has real-money side effects on Stripe. The webhook path is NOT
+  // included here because Stripe bursts retries faster than 10/min and the
+  // signature requirement already gates abuse.
+  "/api/billing/checkout-session",
+  "/api/billing/portal-session",
 ];
 
 module.exports = {

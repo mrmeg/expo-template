@@ -50,7 +50,10 @@ File-based routing via Expo Router with nested layouts:
 - **Main group** (`(main)/`) — Stack navigator, header config
   - **Tabs** (`(tabs)/`) — 4 bottom tabs: Explore, Media, Profile, Settings
   - **Demos** (`(demos)/`) — 17 screen templates and demos
-- **API routes** (`api/`) — Server-side media endpoints (S3 presigned URLs, list, delete)
+- **API routes** (`api/`) — Server-side endpoints:
+  - `api/media/` — S3 presigned URLs (upload, read, list, delete)
+  - `api/billing/` — Stripe Checkout / Portal / Webhook / Summary routes driven by the process-wide `BillingRegistry` (`app/api/billing/_shared/registry.ts`). Unconfigured registries return `503 billing-disabled`.
+  - `api/_shared/` — Cross-route helpers: `auth.ts` (`requireAuthenticatedUser` fronted by a `TokenVerifier` port — returns structured 401s and fails closed when no verifier is registered), `errors.ts` (typed JSON error responses), `cors.ts`
 - **Web HTML** (`+html.tsx`) — Global CSS, theme-aware styles, font loading
 
 ### Client Layer (`client/`)

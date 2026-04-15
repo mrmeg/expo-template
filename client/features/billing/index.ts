@@ -11,6 +11,18 @@ export {
 } from "./hooks/useBillingSummary";
 
 export {
+  fetchBillingSummary,
+  createCheckoutSession,
+  createPortalSession,
+  type BillingProblem,
+  type BillingResult,
+  type CheckoutSessionInput,
+  type CheckoutSessionResponse,
+  type PortalSessionInput,
+  type PortalSessionResponse,
+} from "./api";
+
+export {
   FREE_PLAN_ID,
   isEntitled,
   type BillingInterval,

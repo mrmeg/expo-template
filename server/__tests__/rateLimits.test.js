@@ -34,4 +34,13 @@ describe("server/rateLimits", () => {
   it("does not reintroduce the stale /api/media/upload-url path", () => {
     expect(STRICT_LIMIT_PATHS).not.toContain("/api/media/upload-url");
   });
+
+  it("covers billing session routes under the strict limiter", () => {
+    expect(STRICT_LIMIT_PATHS).toContain("/api/billing/checkout-session");
+    expect(STRICT_LIMIT_PATHS).toContain("/api/billing/portal-session");
+  });
+
+  it("does NOT strict-limit the Stripe webhook (Stripe retries burst past 10/min)", () => {
+    expect(STRICT_LIMIT_PATHS).not.toContain("/api/billing/webhook");
+  });
 });

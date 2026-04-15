@@ -112,14 +112,91 @@ List S3 objects with pagination.
 
 Base path: `/api/billing/`. These routes are the default Stripe
 subscription surface. See [`BILLING.md`](./BILLING.md) for the full
-architecture; implementation lands in later specs.
+architecture. The route files live in `app/api/billing/` and depend
+on the process-wide registry in `app/api/billing/_shared/registry.ts`;
+when the registry is unconfigured every route returns `503`
+`billing-disabled`.
 
 | Route | Method | Auth | Purpose |
 |-------|--------|------|---------|
-| `/api/billing/summary` | GET | Cognito (authenticatedFetch) | Return normalized `BillingSummary` for the signed-in user |
-| `/api/billing/checkout` | POST | Cognito | Create a Stripe Checkout Session; returns `{ url }` for browser handoff |
-| `/api/billing/portal` | POST | Cognito | Create a Stripe Billing Portal session; returns `{ url }` |
+| `/api/billing/summary` | GET | Cognito bearer | Return normalized `BillingSummary` for the signed-in user |
+| `/api/billing/checkout-session` | POST | Cognito bearer | Create a Stripe Checkout Session in `subscription` mode; returns `{ url, expiresAt }` |
+| `/api/billing/portal-session` | POST | Cognito bearer | Create a Stripe Billing Portal session; returns `{ url }` |
 | `/api/billing/webhook` | POST | Stripe signature (no Cognito) | Receive Stripe events; server-authoritative state writes |
+
+**Authentication**: protected routes call `requireAuthenticatedUser`
+from `app/api/_shared/auth.ts`. That helper extracts the bearer token,
+passes it to the process-wide `TokenVerifier`, and returns a
+`{ userId, email }` shape — or a structured 401 response when the
+header is missing, the scheme is not Bearer, the token is empty, no
+verifier is registered (fail closed), or verification throws.
+
+**Checkout body**:
+
+```ts
+type CheckoutBody = {
+  planId: string;              // from the plan catalog
+  interval: "month" | "year";
+  returnPath?: string;         // defaults to "/billing/return"
+};
+
+type CheckoutResponse = {
+  url: string;                 // Stripe Checkout Session URL
+  expiresAt: string | null;
+};
+```
+
+The server maps `{ planId, interval }` onto a server-owned Stripe
+price id. Clients MUST NOT send raw price ids — unknown plans return
+`400 unknown-plan` with the catalog's ids; plans missing a price for
+the requested interval return `422 configuration-missing`.
+
+**Portal body**:
+
+```ts
+type PortalBody = { returnPath?: string };
+type PortalResponse = { url: string };
+```
+
+Users with no Stripe customer return `409 no-customer`.
+
+**Typed error codes** (client `BillingProblem` union in
+`client/features/billing/lib/problem.ts`):
+
+| HTTP | `code` | Meaning |
+|------|--------|---------|
+| 401 | `unauthorized` | Missing/invalid bearer token |
+| 400 | `bad-request` | Malformed body |
+| 400 | `unknown-plan` | `planId` not in catalog (body includes `availablePlans`) |
+| 400 | `missing-signature` | Webhook without `Stripe-Signature` |
+| 400 | `invalid-signature` | Webhook signature rejected |
+| 409 | `billing-conflict` | Multiple Stripe customers match this user (body includes `candidateCustomerIds`) |
+| 409 | `no-customer` | Portal opened for a user with no Stripe customer |
+| 422 | `configuration-missing` | Plan has no price configured for the requested interval |
+| 503 | `billing-disabled` | Billing registry not configured on this server |
+| 500 | `server-error` | Unhandled server-side failure |
+| 500 | `webhook-handler-failed` | Webhook handler threw — Stripe will retry (event NOT marked processed) |
+
+**Webhook raw-body contract**: `webhook+api.ts` calls
+`request.text()` BEFORE any JSON parsing, so the bytes handed to the
+signature verifier match exactly what Stripe signed. Do not call
+`request.json()` on this route. If the Expo Server adapter ever
+inserts body-parsing middleware upstream, mount a dedicated Express
+raw-body route for `/api/billing/webhook` ahead of
+`createRequestHandler()`.
+
+**Idempotency**: the webhook route short-circuits duplicate
+deliveries via an in-memory `IdempotencyStore`
+(`app/api/billing/_shared/idempotency.ts`). Multi-instance
+deployments MUST swap this for a shared store (Redis, Postgres
+unique index) using `setWebhookIdempotencyStore(...)`. The handler
+is only marked processed on success — failures leave the event
+unmarked so Stripe's retries re-run it.
+
+**Rate limits**: `/api/billing/checkout-session` and
+`/api/billing/portal-session` are registered in `STRICT_LIMIT_PATHS`
+(10/min). The webhook is NOT strict-limited — Stripe retries burst
+faster than 10/min and its signature requirement already gates abuse.
 
 **Normalized summary shape** (canonical definition in
 `shared/billing.ts`):
