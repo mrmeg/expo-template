@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `restore-web-ffmpeg-worker-serving.md` | Ready | Medium |
 | `expand-coverage-for-auth-onboarding-and-media-server.md` | Ready | Medium |
 
 ## Workflow
