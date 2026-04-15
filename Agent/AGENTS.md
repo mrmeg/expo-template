@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `add-stripe-subscriptions-bootstrap-and-config.md` | Ready | High |
 | `wire-pricing-and-account-ui-to-billing.md` | Ready | Medium |
 | `restore-web-ffmpeg-worker-serving.md` | Ready | Medium |
 | `expand-coverage-for-auth-onboarding-and-media-server.md` | Ready | Medium |
