@@ -23,6 +23,8 @@ const CLIENT_ENV_VALUES = {
   EXPO_PUBLIC_USER_POOL_ID: process.env.EXPO_PUBLIC_USER_POOL_ID,
   EXPO_PUBLIC_USER_POOL_CLIENT_ID: process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID,
   EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
+  EXPO_PUBLIC_BILLING_ENABLED: process.env.EXPO_PUBLIC_BILLING_ENABLED,
+  EXPO_PUBLIC_APP_URL: process.env.EXPO_PUBLIC_APP_URL,
 } as const;
 
 const SERVER_ENV_RULES: EnvRule[] = [
@@ -31,6 +33,16 @@ const SERVER_ENV_RULES: EnvRule[] = [
   { key: "R2_SECRET_ACCESS_KEY", required: true, context: "Media (R2)" },
   { key: "R2_BUCKET", required: true, context: "Media (R2)" },
 ];
+
+/**
+ * Server-side billing env vars. The whole group is optional — the
+ * template stays runnable without Stripe — but a partial config is a
+ * footgun, so we warn when some but not all keys are set.
+ */
+const SERVER_BILLING_ENV_KEYS = [
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+] as const;
 
 function isMissing(value: string | undefined): boolean {
   return value === undefined || value === "";
@@ -61,10 +73,22 @@ export function validateClientEnv(): void {
     .filter((rule) => rule.required && isMissing(CLIENT_ENV_VALUES[rule.key]))
     .map((rule) => `  - ${rule.key} (${rule.context})`);
 
-  if (missing.length === 0) return;
+  if (missing.length > 0) {
+    const message = `Missing required client environment variables:\n${missing.join("\n")}`;
+    console.warn(`⚠️ ${message}`);
+  }
 
-  const message = `Missing required client environment variables:\n${missing.join("\n")}`;
-  console.warn(`⚠️ ${message}`);
+  // Billing flag + app URL sanity check: if billing is enabled on the
+  // client, the app URL should be set so native return URLs resolve
+  // back to the right origin when the request doesn't carry one.
+  const billingEnabled = CLIENT_ENV_VALUES.EXPO_PUBLIC_BILLING_ENABLED;
+  if (billingEnabled && (billingEnabled.toLowerCase() === "true" || billingEnabled === "1")) {
+    if (isMissing(CLIENT_ENV_VALUES.EXPO_PUBLIC_APP_URL)) {
+      console.warn(
+        "⚠️ EXPO_PUBLIC_BILLING_ENABLED=true but EXPO_PUBLIC_APP_URL is empty. Hosted-billing return URLs will fall back to the request origin.",
+      );
+    }
+  }
 }
 
 /**
@@ -73,4 +97,14 @@ export function validateClientEnv(): void {
  */
 export function validateServerEnv(): void {
   validate(SERVER_ENV_RULES, "server");
+
+  // Billing is opt-in. Warn if *some* but not *all* of the critical
+  // secrets are set — that usually means a broken webhook config.
+  const present = SERVER_BILLING_ENV_KEYS.filter((key) => !isMissing(process.env[key]));
+  if (present.length > 0 && present.length < SERVER_BILLING_ENV_KEYS.length) {
+    const missing = SERVER_BILLING_ENV_KEYS.filter((key) => isMissing(process.env[key]));
+    console.warn(
+      `⚠️ Partial Stripe billing config: missing ${missing.join(", ")}. Billing routes will return 503 until all required keys are set.`,
+    );
+  }
 }

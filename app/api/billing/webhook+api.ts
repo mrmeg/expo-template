@@ -22,11 +22,11 @@ import {
   sanitizeErrorDetails,
 } from "@/app/api/_shared/cors";
 import { jsonErrorResponse } from "@/app/api/_shared/errors";
+import { ensureBillingBootstrapped } from "./_shared/bootstrap";
 import {
   createMemoryIdempotencyStore,
   type IdempotencyStore,
 } from "./_shared/idempotency";
-import { getBillingRegistry } from "./_shared/registry";
 
 const defaultIdempotency: IdempotencyStore = createMemoryIdempotencyStore();
 let idempotencyOverride: IdempotencyStore | null = null;
@@ -44,7 +44,7 @@ export async function OPTIONS(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const registry = getBillingRegistry();
+  const registry = ensureBillingBootstrapped();
   if (!registry) {
     return jsonErrorResponse(request, 503, {
       code: "billing-disabled",

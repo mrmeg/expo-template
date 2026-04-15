@@ -8,6 +8,7 @@
  */
 
 import { requireAuthenticatedUser } from "@/app/api/_shared/auth";
+import { ensureAuthBootstrapped } from "@/app/api/_shared/authBootstrap";
 import {
   getCorsHeaders,
   getPreflightHeaders,
@@ -17,7 +18,7 @@ import {
   badRequestResponse,
   jsonErrorResponse,
 } from "@/app/api/_shared/errors";
-import { getBillingRegistry } from "./_shared/registry";
+import { ensureBillingBootstrapped } from "./_shared/bootstrap";
 
 interface PortalBody {
   returnPath?: unknown;
@@ -28,10 +29,11 @@ export async function OPTIONS(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  ensureAuthBootstrapped();
   const auth = await requireAuthenticatedUser(request);
   if (!auth.ok) return auth.response;
 
-  const registry = getBillingRegistry();
+  const registry = ensureBillingBootstrapped();
   if (!registry) {
     return jsonErrorResponse(request, 503, {
       code: "billing-disabled",

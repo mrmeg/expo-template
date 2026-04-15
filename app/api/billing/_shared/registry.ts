@@ -20,6 +20,13 @@ export interface CheckoutSessionRequest {
   customerId: string;
   planId: string;
   interval: "month" | "year";
+  /**
+   * The server-resolved Stripe price id for the requested plan/interval.
+   * The route maps {planId, interval} onto a price id via the catalog
+   * before calling the factory, so adapters never need to know about
+   * the plan catalog.
+   */
+  priceId: string;
   successUrl: string;
   cancelUrl: string;
 }

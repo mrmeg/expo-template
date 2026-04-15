@@ -8,6 +8,7 @@
  */
 
 import { setTokenVerifier, type TokenVerifier } from "@/app/api/_shared/auth";
+import { resetAuthBootstrap } from "@/app/api/_shared/authBootstrap";
 import { freeBillingSummary, type BillingSummary } from "@/shared/billing";
 import type { BillingAccountResolver } from "../_shared/types";
 import { CustomerConflictError } from "../_shared/types";
@@ -15,6 +16,7 @@ import {
   setBillingRegistry,
   type BillingRegistry,
 } from "../_shared/registry";
+import { resetBillingBootstrap } from "../_shared/bootstrap";
 import { createMemoryIdempotencyStore } from "../_shared/idempotency";
 
 import { GET as getSummary } from "../summary+api";
@@ -92,6 +94,8 @@ function buildRegistry(overrides: Partial<BillingRegistry> = {}): BillingRegistr
 }
 
 beforeEach(() => {
+  resetAuthBootstrap();
+  resetBillingBootstrap();
   setTokenVerifier(verifier);
   setBillingRegistry(buildRegistry());
 });
@@ -100,6 +104,8 @@ afterEach(() => {
   setTokenVerifier(null);
   setBillingRegistry(null);
   setWebhookIdempotencyStore(null);
+  resetAuthBootstrap();
+  resetBillingBootstrap();
 });
 
 describe("GET /api/billing/summary", () => {

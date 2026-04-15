@@ -237,6 +237,108 @@ entitlement helper — they must not read Stripe fields directly.
 | Adopter later adds native digital-goods billing | They add a new mode (`native-iap`), they do **not** repurpose the hosted flow on the offending platform. |
 | Return fires before webhook processed | Client shows a neutral "processing" state until `useBillingSummary` reports the new state (short poll window acceptable; do not block UI indefinitely). |
 
+## Local setup (fresh Stripe account)
+
+The template ships with the routes, adapter, and bootstrap already
+wired. Turning billing on is an env-var + dashboard-setup exercise, not
+a code change.
+
+### 1. Install the Stripe CLI
+
+The CLI forwards live webhook events to your local server and prints a
+signing secret the server uses to verify signatures.
+
+```bash
+brew install stripe/stripe-cli/stripe   # macOS
+stripe login
+```
+
+### 2. Create test products and prices
+
+In the Stripe Dashboard (Test mode), create a product for each paid
+plan in the catalog (the default catalog in `shared/billing.ts` ships
+with just `free`; add one entry — e.g. `pro` — and replace
+`DEFAULT_PLAN_CATALOG` with your catalog). For each paid plan, create
+two recurring prices: one monthly, one yearly. Copy the price IDs.
+
+### 3. Populate `.env`
+
+Copy `.env.example` to `.env` and fill in the billing section:
+
+```bash
+# Client — safe to ship
+EXPO_PUBLIC_BILLING_ENABLED=true
+EXPO_PUBLIC_APP_URL=http://localhost:8081
+
+# Server — NEVER ship to the client
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...   # filled in by step 4 below
+STRIPE_PRICE_ID_PRO_MONTH=price_...
+STRIPE_PRICE_ID_PRO_YEAR=price_...
+```
+
+Only some price IDs configured? The server returns `422
+configuration-missing` when a client requests an unconfigured
+plan/interval — the rest of the catalog still works.
+
+### 4. Forward webhooks to localhost
+
+In a separate terminal:
+
+```bash
+stripe listen --forward-to localhost:3000/api/billing/webhook
+```
+
+The CLI prints `Ready! Your webhook signing secret is whsec_...`. Copy
+that into `STRIPE_WEBHOOK_SECRET` in `.env` and restart the server.
+
+### 5. Start the app with env
+
+```bash
+npm run start-local   # dev server with dotenv
+```
+
+The first billing request triggers `ensureBillingBootstrapped()`, which
+constructs the Stripe adapter and installs the real registry. Without
+Stripe env vars the registry stays unset and every `/api/billing/*`
+route returns a typed `503 billing-disabled` — safe for projects that
+haven't enabled billing yet.
+
+### 6. Exercise the flow
+
+- `GET /api/billing/summary` with a Cognito bearer — returns the
+  normalized `BillingSummary`.
+- `POST /api/billing/checkout-session` — returns a Stripe Checkout URL
+  opened via `window.location` (web) or
+  `WebBrowser.openAuthSessionAsync` (native).
+- Complete payment with a [Stripe test
+  card](https://docs.stripe.com/testing#cards).
+- `POST /api/billing/portal-session` — returns a Billing Portal URL for
+  plan changes / cancellation / invoice history.
+
+### Disabling billing cleanly
+
+Projects that do not need billing should leave the env vars empty and
+set `EXPO_PUBLIC_BILLING_ENABLED=false`. The UI hides purchase CTAs,
+the server returns `503 billing-disabled` on every billing route, and
+no Stripe traffic is ever generated. The template is meant to be
+usable out of the box without a Stripe account.
+
+## Environment variables
+
+| Variable | Surface | Purpose |
+|----------|---------|---------|
+| `EXPO_PUBLIC_BILLING_ENABLED` | Client | Boolean feature flag. `false` (default) hides billing UI and skips bootstrap wiring. |
+| `EXPO_PUBLIC_APP_URL` | Client | Absolute web origin used to build return URLs when the request doesn't carry one. Empty falls back to the request origin. |
+| `STRIPE_SECRET_KEY` | Server only | Stripe server SDK key. Required to bootstrap the real registry. |
+| `STRIPE_WEBHOOK_SECRET` | Server only | Stripe signature verification secret. Required — webhook rejects requests when absent. |
+| `STRIPE_PRICE_ID_<PLAN>_MONTH` | Server only | Monthly price for the plan whose id matches `<plan>` in the catalog. |
+| `STRIPE_PRICE_ID_<PLAN>_YEAR` | Server only | Yearly price for the plan whose id matches `<plan>` in the catalog. |
+
+Plan metadata (label, features) lives in code (`DEFAULT_PLAN_CATALOG`
+in `shared/billing.ts`), not env vars — human-readable names are
+reviewed in PRs, not by eyeballing `.env`.
+
 ## Risks and non-goals
 
 - This architecture is the template **baseline**. It is not legal advice

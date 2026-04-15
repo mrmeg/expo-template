@@ -323,9 +323,20 @@ The Express server (`server/index.ts`) provides:
 | `EXPO_PUBLIC_USER_POOL_ID` | Cognito User Pool ID | For auth |
 | `EXPO_PUBLIC_USER_POOL_CLIENT_ID` | Cognito App Client ID | For auth |
 | `EXPO_PUBLIC_SENTRY_DSN` | Sentry DSN | Optional |
+| `EXPO_PUBLIC_BILLING_ENABLED` | Billing feature flag (`"true"` to enable) | Optional (default `false`) |
+| `EXPO_PUBLIC_APP_URL` | Absolute web origin for hosted-billing return URLs | Required when billing is enabled and the request origin is not the public origin |
+| `STRIPE_SECRET_KEY` | Stripe server SDK key | For billing |
+| `STRIPE_WEBHOOK_SECRET` | Stripe signature verification secret | For billing |
+| `STRIPE_PRICE_ID_<PLAN>_MONTH` | Monthly price id for `<plan>` in the catalog | For that plan's monthly option |
+| `STRIPE_PRICE_ID_<PLAN>_YEAR` | Yearly price id for `<plan>` in the catalog | For that plan's yearly option |
 | `ALLOWED_ORIGINS` | CORS origins (comma-separated) | Optional |
 | `PORT` | Server port (default 3000) | Optional |
 | AWS S3/R2 credentials | S3 bucket access | For media API |
+
+Billing is opt-in: with neither Stripe key set, every `/api/billing/*`
+route returns `503 billing-disabled` and no Stripe traffic is ever
+generated. Full setup walkthrough (products, prices, `stripe listen`
+webhook forwarding) lives in [`BILLING.md`](./BILLING.md#local-setup-fresh-stripe-account).
 
 ## Shared Types (`shared/media.ts`)
 

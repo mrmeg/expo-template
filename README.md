@@ -218,6 +218,32 @@ function MyComponent() {
 }
 ```
 
+## Billing (Stripe, hosted-external)
+
+The template ships with a hosted Stripe subscription integration off by
+default. To turn it on:
+
+```bash
+# .env
+EXPO_PUBLIC_BILLING_ENABLED=true
+EXPO_PUBLIC_APP_URL=http://localhost:8081
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...             # from `stripe listen`
+STRIPE_PRICE_ID_PRO_MONTH=price_...
+STRIPE_PRICE_ID_PRO_YEAR=price_...
+```
+
+Then forward webhooks to localhost:
+
+```bash
+stripe listen --forward-to localhost:3000/api/billing/webhook
+```
+
+Full walkthrough (products, prices, disabling cleanly) lives in
+[`Agent/Docs/BILLING.md`](./Agent/Docs/BILLING.md). Without Stripe env
+vars the `/api/billing/*` routes return a typed `503 billing-disabled`
+and the UI hides purchase CTAs — no Stripe traffic is ever generated.
+
 ## Special Features
 
 - **Cross-platform shadows** - Consistent shadows across all platforms

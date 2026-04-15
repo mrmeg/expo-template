@@ -41,12 +41,34 @@ export interface ConfigBaseProps {
    * Sentry DSN for error tracking. Empty string disables Sentry.
    */
   sentryDsn: string;
+
+  /**
+   * Feature flag for the hosted-external Stripe billing surface.
+   * When false, billing UI is hidden and `/api/billing/*` routes
+   * return a typed 503 `billing-disabled`. Reads
+   * `EXPO_PUBLIC_BILLING_ENABLED`; defaults to false so projects
+   * without Stripe credentials still run cleanly.
+   */
+  billingEnabled: boolean;
+
+  /**
+   * Absolute web origin (e.g. `https://app.example.com`) used to
+   * build Stripe Checkout / Portal return URLs when the request
+   * doesn't already carry one. Empty string falls back to the
+   * request origin at route time.
+   */
+  appUrl: string;
 }
 
 /**
  * Default configuration values.
  * Override in config.dev.ts or config.prod.ts
  */
+function parseBooleanEnv(value: string | undefined): boolean {
+  if (!value) return false;
+  return value.toLowerCase() === "true" || value === "1";
+}
+
 const BaseConfig: ConfigBaseProps = {
   persistNavigation: "dev",
   catchErrors: "always",
@@ -54,6 +76,8 @@ const BaseConfig: ConfigBaseProps = {
   apiUrl: "",
   apiTimeout: 10000,
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? "",
+  billingEnabled: parseBooleanEnv(process.env.EXPO_PUBLIC_BILLING_ENABLED),
+  appUrl: process.env.EXPO_PUBLIC_APP_URL ?? "",
 };
 
 export default BaseConfig;
