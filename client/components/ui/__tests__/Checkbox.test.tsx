@@ -19,9 +19,11 @@ jest.mock("@/client/hooks/useTheme", () => ({
         destructive: "#EF4444",
         text: "#0F172A",
         textDim: "#64748B",
+        background: "#FFFFFF",
       },
     },
     getShadowStyle: () => ({}),
+    getContrastingColor: (_bg: string, fg: string) => fg,
   }),
 }));
 

@@ -79,6 +79,7 @@ export function Progress({
 
   return (
     <View
+      accessible
       accessibilityRole="progressbar"
       aria-valuemin={0}
       aria-valuemax={100}

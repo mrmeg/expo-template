@@ -6,11 +6,45 @@
 // Extended matchers are auto-imported in newer versions
 // If using older version, uncomment: import "@testing-library/react-native/extend-expect";
 
-// Mock expo-font
+// Mock expo-font (provide Font.isLoaded used by @expo/vector-icons)
 jest.mock("expo-font", () => ({
   useFonts: () => [true, null],
   loadAsync: jest.fn().mockResolvedValue(true),
+  isLoaded: jest.fn(() => true),
+  isLoading: jest.fn(() => false),
+  Font: {
+    isLoaded: jest.fn(() => true),
+    isLoading: jest.fn(() => false),
+    loadAsync: jest.fn().mockResolvedValue(true),
+  },
 }));
+
+// Mock @expo/vector-icons — render icons as plain Views so tests don't depend on font loading
+jest.mock("@expo/vector-icons", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+  const makeIcon = (name: string) =>
+    function MockIcon(props: any) {
+      return React.createElement(View, { ...props, testID: props.testID || `icon-${name}` });
+    };
+  return {
+    Ionicons: makeIcon("Ionicons"),
+    MaterialIcons: makeIcon("MaterialIcons"),
+    MaterialCommunityIcons: makeIcon("MaterialCommunityIcons"),
+    FontAwesome: makeIcon("FontAwesome"),
+    FontAwesome5: makeIcon("FontAwesome5"),
+    FontAwesome6: makeIcon("FontAwesome6"),
+    Feather: makeIcon("Feather"),
+    AntDesign: makeIcon("AntDesign"),
+    Entypo: makeIcon("Entypo"),
+    EvilIcons: makeIcon("EvilIcons"),
+    Foundation: makeIcon("Foundation"),
+    Octicons: makeIcon("Octicons"),
+    SimpleLineIcons: makeIcon("SimpleLineIcons"),
+    Zocial: makeIcon("Zocial"),
+    Fontisto: makeIcon("Fontisto"),
+  };
+});
 
 // Mock expo-splash-screen
 jest.mock("expo-splash-screen", () => ({
@@ -71,6 +105,22 @@ jest.mock("react-native-reanimated", () => {
     ReduceMotion: { System: "system", Always: "always", Never: "never" },
     createAnimatedComponent: (component: unknown) => component,
     Animated: { View, Text: require("react-native").Text, ScrollView: require("react-native").ScrollView },
+  };
+});
+
+// Mock react-native-safe-area-context so tests don't require a provider tree
+jest.mock("react-native-safe-area-context", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+  const insets = { top: 0, right: 0, bottom: 0, left: 0 };
+  const frame = { x: 0, y: 0, width: 0, height: 0 };
+  return {
+    SafeAreaProvider: ({ children }: any) => React.createElement(View, null, children),
+    SafeAreaView: ({ children, ...props }: any) => React.createElement(View, props, children),
+    SafeAreaInsetsContext: { Consumer: ({ children }: any) => children(insets) },
+    useSafeAreaInsets: () => insets,
+    useSafeAreaFrame: () => frame,
+    initialWindowMetrics: { insets, frame },
   };
 });
 

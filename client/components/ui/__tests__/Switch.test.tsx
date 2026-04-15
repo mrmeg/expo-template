@@ -122,14 +122,15 @@ describe("Switch", () => {
       throw new Error("Expected a single switch tree");
     }
 
-    const track = tree.children?.[0];
-    const thumb = tree.children?.[1];
+    const track = tree.children?.[0] as any;
+    const thumbWrapper = tree.children?.[1] as any;
+    const thumbInner = thumbWrapper?.children?.[0] as any;
 
     expect(track?.props.style.backgroundColor).toBe("#E4E4E7");
     expect(track?.props.style.borderWidth).toBe(1);
     expect(track?.props.style.borderColor).toBe("#D4D4D8");
 
-    expect(thumb?.props.style).toEqual(
+    expect(thumbInner?.props.style).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           backgroundColor: "#FFFFFF",

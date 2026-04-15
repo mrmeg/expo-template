@@ -23,6 +23,7 @@ jest.mock("@/client/hooks/useTheme", () => ({
       },
     },
     getShadowStyle: () => ({}),
+    getContrastingColor: (_bg: string, fg: string) => fg,
   }),
 }));
 
@@ -93,7 +94,7 @@ describe("Select", () => {
       </Select>
     );
 
-    expect(screen.getByText("Apple")).toBeTruthy();
+    expect(screen.getAllByText("Apple").length).toBeGreaterThan(0);
   });
 
   it("renders select items", () => {

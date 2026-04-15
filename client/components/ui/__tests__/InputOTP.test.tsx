@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { render, screen } from "@testing-library/react-native";
+import { render, screen, fireEvent } from "@testing-library/react-native";
 import { InputOTP } from "../InputOTP";
 
 // Mock useTheme hook
@@ -88,10 +88,13 @@ describe("InputOTP", () => {
   it("calls onComplete when all cells are filled", () => {
     const onComplete = jest.fn();
 
-    // onComplete is called internally when value length matches length prop
     render(
-      <InputOTP value="123456" onChangeText={() => {}} onComplete={onComplete} length={6} />
+      <InputOTP value="" onChangeText={() => {}} onComplete={onComplete} length={6} />
     );
+
+    // Simulate typing the full code via the hidden input
+    const input = screen.getByLabelText("Verification code input");
+    fireEvent.changeText(input, "123456");
 
     expect(onComplete).toHaveBeenCalledWith("123456");
   });
