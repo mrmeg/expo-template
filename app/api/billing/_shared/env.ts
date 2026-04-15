@@ -49,7 +49,7 @@ function nonEmpty(value: string | undefined): string | null {
  * than relying on this helper.
  */
 function buildPlanCatalogFromEnv(
-  env: NodeJS.ProcessEnv,
+  env: Record<string, string | undefined>,
 ): { catalog: readonly PlanDefinition[]; missing: readonly string[] } {
   const missing: string[] = [];
   const catalog = DEFAULT_PLAN_CATALOG.map((plan): PlanDefinition => {
@@ -73,7 +73,7 @@ function buildPlanCatalogFromEnv(
 }
 
 export function readBillingEnv(
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
 ): BillingServerEnv {
   const stripeSecretKey = nonEmpty(env.STRIPE_SECRET_KEY);
   const stripeWebhookSecret = nonEmpty(env.STRIPE_WEBHOOK_SECRET);

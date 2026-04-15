@@ -22,7 +22,7 @@ export function resetAuthBootstrap(): void {
 }
 
 export function ensureAuthBootstrapped(
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
 ): TokenVerifier | null {
   if (bootstrapped) return getTokenVerifier();
 

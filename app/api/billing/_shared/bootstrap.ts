@@ -28,7 +28,7 @@ import {
 import { createStripeAdapter } from "./stripeAdapter";
 
 export interface BootstrapOptions {
-  env?: NodeJS.ProcessEnv;
+  env?: Record<string, string | undefined>;
   /**
    * Optional handler override. Defaults to a no-op handler that logs the
    * event type — adopters wire their own persistence / side effects here.

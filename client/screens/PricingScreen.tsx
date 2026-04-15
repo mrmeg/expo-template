@@ -26,6 +26,18 @@ export interface PricingFeature {
   included: boolean;
 }
 
+/**
+ * The action a plan's CTA represents. Billing-aware callers derive this
+ * from the user's live subscription state; purely decorative callers can
+ * omit it and fall back to the highlight-based default ("Get Started" /
+ * "Select").
+ */
+export type PricingPlanActionState =
+  | "upgrade"
+  | "manage"
+  | "current"
+  | "downgrade-disabled";
+
 export interface PricingPlan {
   name: string;
   price: string;
@@ -34,6 +46,18 @@ export interface PricingPlan {
   highlighted?: boolean;
   badge?: string;
   onSelect: () => void;
+  /** Stable catalog id. Optional so decorative demos still work. */
+  planId?: string;
+  /** True when this plan matches the user's current billing summary. */
+  isCurrent?: boolean;
+  /** Overrides the default CTA label when supplied. */
+  actionLabel?: string;
+  /** Semantic role of the CTA — lets billing-aware screens pick copy. */
+  actionState?: PricingPlanActionState;
+  /** When set, the CTA renders as disabled with this reason shown below it. */
+  disabledReason?: string;
+  /** Shows a spinner on the CTA and blocks taps while true. */
+  loading?: boolean;
 }
 
 export interface PricingPeriodToggle {
@@ -165,12 +189,24 @@ export function PricingScreen({
 
               {/* CTA */}
               <Button
-                preset={plan.highlighted ? "default" : "outline"}
+                preset={plan.isCurrent ? "outline" : plan.highlighted ? "default" : "outline"}
                 fullWidth
+                disabled={plan.isCurrent || Boolean(plan.disabledReason) || plan.loading}
+                loading={plan.loading}
                 onPress={plan.onSelect}
               >
-                {plan.highlighted ? "Get Started" : "Select"}
+                {plan.actionLabel ??
+                  (plan.isCurrent
+                    ? "Current plan"
+                    : plan.highlighted
+                    ? "Get Started"
+                    : "Select")}
               </Button>
+              {plan.disabledReason && !plan.isCurrent && (
+                <SansSerifText style={styles.disabledReason}>
+                  {plan.disabledReason}
+                </SansSerifText>
+              )}
             </View>
             </AnimatedView>
           ))}
@@ -287,6 +323,12 @@ const createStyles = (theme: Theme) =>
     },
     featureDisabled: {
       color: theme.colors.mutedForeground,
+    },
+    disabledReason: {
+      fontSize: 12,
+      color: theme.colors.mutedForeground,
+      textAlign: "center",
+      marginTop: spacing.sm,
     },
     footerContainer: {
       paddingHorizontal: spacing.lg,

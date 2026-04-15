@@ -164,3 +164,23 @@ Contrast calculations are cached (max 500 entries).
 Settings, Profile, List, Pricing, Welcome, Card Grid, Chat, Dashboard, Form (multi-step), Notifications, Search, Error states, Detail Hero.
 
 Use these as starting points for new screens.
+
+### Pricing / account billing surfaces
+
+`client/screens/PricingScreen.tsx` is the shared visual component. When a
+screen is billing-aware, it derives each card's `isCurrent`,
+`actionLabel`, `actionState`, `disabledReason`, and `loading` fields via
+`derivePricingPlan()` from `@/client/features/billing` — the screen
+itself never reads Stripe fields directly. See `app/(main)/(demos)/screen-pricing.tsx`
+for the reference wiring (plan catalog → `derivePricingPlan` → CTA handler
+that calls `useBillingActions`). Unauthenticated users always see
+"Sign in to continue"; entitled users see "Manage subscription"; a `free`
+card for a paid user renders as `downgrade-disabled` with a "Cancel through
+Manage subscription" hint.
+
+`app/(main)/(tabs)/profile.tsx` displays the normalized billing summary
+and exposes a single billing CTA: **Manage Subscription** for anyone with
+a Stripe customer, otherwise **Upgrade** (routes to pricing). Warning rows
+render for `cancelAtPeriodEnd` and `past_due` states — keep those in any
+adopter account screen so the UI doesn't stay mute when Stripe needs
+attention from the user.

@@ -217,14 +217,17 @@ cross-feature imports except the documented shared-layer exceptions).
 | Piece | Purpose |
 |-------|---------|
 | `features/billing/hooks/useBillingSummary` | React Query hook over `GET /api/billing/summary` |
-| `features/billing/hooks/useCheckout` | Calls `POST /api/billing/checkout`, performs browser handoff |
-| `features/billing/hooks/usePortal` | Calls `POST /api/billing/portal`, performs browser handoff |
-| `features/billing/lib/entitlement.ts` | `isEntitled(summary)` helper |
-| `app/billing/return.tsx` | Shared return screen — refetches summary, routes back |
+| `features/billing/hooks/useBillingActions` | `startCheckout` / `startPortal` — calls the session endpoints and performs the browser handoff via an injectable `BrowserHandoff` (web → `window.location`, native → `expo-web-browser`) |
+| `features/billing/lib/pricing.ts` | `derivePricingPlan()` + `derivePlanActionState()` — folds a `BillingSummary` + catalog into the shared `PricingScreen` view model (no raw Stripe fields) |
+| `features/billing/api.ts` / `lib/problem.ts` | Thin fetch wrappers + the `BillingProblem` discriminated union |
+| `app/billing/return.tsx` | Shared return screen — invalidates the billing summary query, routes the user back |
 
 The pricing demo (`app/(main)/(demos)/screen-pricing.tsx`) and the
-profile/account UI should consume `useBillingSummary` and the
-entitlement helper — they must not read Stripe fields directly.
+profile/account UI consume `useBillingSummary` + `useBillingActions` and
+derive their view model through `derivePricingPlan`. They must not read
+Stripe fields directly; pricing copy decisions live in
+`derivePlanActionState` so future rules (e.g. promo-only plans) change
+in one place.
 
 ## Edge cases
 

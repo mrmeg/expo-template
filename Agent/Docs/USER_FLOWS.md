@@ -140,39 +140,61 @@ full architecture.
 ### Purchase — Web
 
 ```
-Pricing screen → tap "Subscribe"
-  → POST /api/billing/checkout { priceId, returnPath: "/billing/return" }
+Pricing screen → tap "Choose plan" (unauthenticated users see "Sign in to continue")
+  → useBillingActions.startCheckout({ planId, interval })
+  → POST /api/billing/checkout-session { planId, interval, returnPath: "/billing/return" }
   → server returns { url } pointing at Stripe Checkout
   → window.location = url
   → user pays on Stripe
   → Stripe redirects to https://app.example.com/billing/return?status=success
-  → /billing/return screen refetches BillingSummary
+  → /billing/return screen invalidates the billing summary query
+  → useBillingSummary refetches → UI reflects the new plan
   → Stripe webhook (authoritative) flips server state to active/trialing
 ```
 
 ### Purchase — Native (iOS / Android)
 
 ```
-Pricing screen → tap "Subscribe"
-  → POST /api/billing/checkout { priceId, returnPath: "/billing/return" }
+Pricing screen → tap "Choose plan"
+  → useBillingActions.startCheckout({ planId, interval })
+  → POST /api/billing/checkout-session
   → server returns { url }
   → WebBrowser.openAuthSessionAsync(url, "myapp://billing/return")
   → user pays on Stripe in the system browser
   → redirect to myapp://billing/return?status=success
-  → /billing/return refetches BillingSummary
+  → hook resolves, invalidates the billing summary query
+  → /billing/return screen renders while summary refetches
   → webhook updates server-side state
 ```
 
 ### Manage (all platforms)
 
 ```
-Account / Settings → "Manage subscription"
-  → POST /api/billing/portal { returnPath: "/billing/return" }
+Profile tab → "Manage Subscription" (shown when customerId is set)
+  → useBillingActions.startPortal()
+  → POST /api/billing/portal-session { returnPath: "/billing/return" }
   → server returns Billing Portal { url }
   → Web: window.location = url
   → Native: WebBrowser.openAuthSessionAsync(url, "myapp://billing/return")
-  → on return, refetch BillingSummary
+  → on return, the hook invalidates the billing summary query
 ```
+
+### Pricing-screen CTA state machine
+
+`derivePlanActionState` inside `@/client/features/billing` derives the
+CTA for each card from the `BillingSummary`. Pricing screens must not
+read summary fields directly.
+
+| Summary state | Plan card | Derived state | CTA label (authenticated) |
+|---------------|-----------|---------------|---------------------------|
+| no summary / `free` | free | `upgrade` | `Choose plan` (free shortcut → "already on free plan") |
+| no summary / `free` | paid | `upgrade` | `Choose plan` |
+| `active` / `trialing` / `past_due` | same paid plan | `current` | `Current plan` (disabled) |
+| `active` / `trialing` / `past_due` | other paid plan | `manage` | `Manage subscription` |
+| `active` / `trialing` / `past_due` | free | `downgrade-disabled` | `Manage subscription` + "Cancel through Manage subscription" hint |
+
+Environment-level overrides (billing disabled, plan missing prices)
+flow through `disabledReason` and take precedence over the downgrade hint.
 
 **Return URL contract:** `/billing/return` with `status=success|cancel|portal`.
 The return page refetches `useBillingSummary` and routes the user back —

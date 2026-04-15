@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, StyleSheet, ScrollView, Pressable } from "react-native";
+import { router } from "expo-router";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
@@ -11,7 +12,14 @@ import { globalUIStore } from "@/client/state/globalUIStore";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
 import { AuthGate } from "@/client/features/app";
-import { useBillingSummary, isEntitled, type BillingSummary } from "@/client/features/billing";
+import Config from "@/client/config";
+import {
+  useBillingActions,
+  useBillingSummary,
+  isEntitled,
+  type BillingProblem,
+  type BillingSummary,
+} from "@/client/features/billing";
 import type { Theme } from "@/client/constants/colors";
 import { palette } from "@/client/constants/colors";
 import { SEO } from "@/client/components/SEO";
@@ -41,6 +49,15 @@ function ProfileScreen() {
     : billing?.status === "past_due"
     ? theme.colors.warning
     : theme.colors.mutedForeground;
+
+  const billingActions = useBillingActions();
+  const billingEnabled = Config.billingEnabled;
+  const canManage = entitled || Boolean(billing?.customerId);
+  const billingAction = !billingEnabled
+    ? null
+    : canManage
+    ? ("manage" as const)
+    : ("upgrade" as const);
 
   // Mock preference states
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -87,6 +104,21 @@ function ProfileScreen() {
       messages: ["Apple account linking coming soon"],
       duration: 2000,
     });
+  };
+
+  const handleManageBilling = async () => {
+    const result = await billingActions.startPortal();
+    if (result.status === "failed" && result.problem) {
+      globalUIStore.getState().show({
+        type: "error",
+        messages: messagesForProblem(result.problem),
+        duration: 4000,
+      });
+    }
+  };
+
+  const handleUpgrade = () => {
+    router.push("/(main)/(demos)/screen-pricing");
   };
 
   const handleSignOut = async () => {
@@ -216,6 +248,66 @@ function ProfileScreen() {
                   {statusLabel}
                 </SansSerifText>
               </View>
+              {billing?.cancelAtPeriodEnd && (
+                <>
+                  <View style={styles.divider} />
+                  <View style={styles.notice}>
+                    <Icon
+                      name="alert-triangle"
+                      size={16}
+                      color={theme.colors.warning}
+                    />
+                    <SansSerifText style={styles.noticeText}>
+                      Your plan is scheduled to end. Re-enable from Manage
+                      subscription to keep access.
+                    </SansSerifText>
+                  </View>
+                </>
+              )}
+              {billing?.status === "past_due" && (
+                <>
+                  <View style={styles.divider} />
+                  <View style={styles.notice}>
+                    <Icon
+                      name="alert-triangle"
+                      size={16}
+                      color={theme.colors.warning}
+                    />
+                    <SansSerifText style={styles.noticeText}>
+                      Your last payment failed. Update your payment method in
+                      Manage subscription.
+                    </SansSerifText>
+                  </View>
+                </>
+              )}
+              {billingAction && (
+                <>
+                  <View style={styles.divider} />
+                  <Pressable
+                    style={styles.settingsRow}
+                    onPress={
+                      billingAction === "manage" ? handleManageBilling : handleUpgrade
+                    }
+                    disabled={billingActions.isCreatingPortal}
+                  >
+                    <View style={styles.settingsRowLeft}>
+                      <Icon
+                        name={billingAction === "manage" ? "credit-card" : "zap"}
+                        size={18}
+                        color={theme.colors.accent}
+                      />
+                      <SansSerifText style={[styles.settingsLabel, { color: theme.colors.accent }]}>
+                        {billingAction === "manage"
+                          ? billingActions.isCreatingPortal
+                            ? "Opening…"
+                            : "Manage Subscription"
+                          : "Upgrade"}
+                      </SansSerifText>
+                    </View>
+                    <Icon name="chevron-right" size={18} color={theme.colors.accent} />
+                  </Pressable>
+                </>
+              )}
             </View>
           </View>
 
@@ -525,4 +617,41 @@ const createStyles = (theme: Theme) =>
       fontSize: 14,
       color: theme.colors.destructive,
     },
+    notice: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    noticeText: {
+      flex: 1,
+      fontSize: 13,
+      color: theme.colors.foreground,
+      lineHeight: 18,
+    },
   });
+
+function messagesForProblem(problem: BillingProblem): string[] {
+  switch (problem.kind) {
+    case "unauthorized":
+      return ["Sign in to manage billing."];
+    case "billing-disabled":
+      return ["Billing isn't enabled in this environment."];
+    case "no-customer":
+      return ["You don't have a Stripe customer yet — subscribe first."];
+    case "billing-conflict":
+      return ["Your account is linked to multiple Stripe customers — contact support."];
+    case "configuration-missing":
+      return [problem.message || "Billing configuration is incomplete."];
+    case "unknown-plan":
+      return ["That plan isn't available right now."];
+    case "bad-request":
+      return [problem.message || "We couldn't process that request."];
+    case "network-error":
+      return ["Connection interrupted — please try again."];
+    case "server-error":
+    default:
+      return [problem.message || "Something went wrong. Please try again."];
+  }
+}
