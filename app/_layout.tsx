@@ -24,6 +24,8 @@ import { initI18n } from "@/client/features/i18n";
 import Config from "@/client/config";
 import { validateClientEnv } from "@/client/lib/validateEnv";
 import { setupSentry } from "@/client/lib/sentry";
+import { useAppStartup, OnboardingGate } from "@/client/features/app";
+import { useOnboardingStore } from "@/client/features/onboarding/onboardingStore";
 
 // Validate env vars early — warns in dev, throws in prod
 validateClientEnv();
@@ -63,20 +65,23 @@ export default function RootLayout() {
   const { scheme } = useTheme();
   const { loaded: fontsLoaded } = useResources();
   const [i18nReady, setI18nReady] = useState(false);
+  const hasSeenOnboarding = useOnboardingStore((s) => s.hasSeenOnboarding);
+  const { ready } = useAppStartup({ fontsLoaded, i18nReady });
 
   // Initialize i18n
   useEffect(() => {
     initI18n().then(() => setI18nReady(true));
   }, []);
 
-  // Hide splash screen when everything is ready
+  // Hide splash screen once the full startup gate has resolved — fonts, i18n,
+  // onboarding persistence, and (when configured) auth bootstrap.
   useEffect(() => {
-    if (fontsLoaded && i18nReady) {
+    if (ready) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, i18nReady]);
+  }, [ready]);
 
-  if (!fontsLoaded || !i18nReady) {
+  if (!ready) {
     return null;
   }
 
@@ -90,10 +95,14 @@ export default function RootLayout() {
         }}>
           <KeyboardProvider>
             <ErrorBoundary catchErrors={Config.catchErrors} FallbackComponent={ErrorScreen}>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(main)" />
-                <Stack.Screen name="+not-found" />
-              </Stack>
+              {hasSeenOnboarding ? (
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(main)" />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+              ) : (
+                <OnboardingGate />
+              )}
             </ErrorBoundary>
             <StatusBar />
           </KeyboardProvider>

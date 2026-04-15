@@ -4,17 +4,62 @@
 
 ## App Entry
 
+The root layout (`app/_layout.tsx`) delegates readiness to
+`useAppStartup` (`client/features/app/useAppStartup.ts`). The splash stays
+visible until **all** of the following resolve:
+
+1. Fonts and resources (`useResources`)
+2. i18n initialization (device locale detection)
+3. Onboarding state has been loaded from persistence
+4. If auth is configured (see below): the Amplify Hub listener is registered
+   and the initial auth state has resolved out of `loading`
+
 ```
 Launch App
   → Splash screen (expo-splash-screen)
-  → Load fonts & resources (useResources)
-  → Initialize i18n (device locale detection)
-  → Initialize auth (Amplify Hub listener)
+  → useAppStartup resolves (fonts, i18n, onboarding, auth bootstrap)
   → Hide splash screen
   → Root layout renders
-    → If onboarding not completed → Onboarding flow
-    → Else → Main tabs (Explore)
+    → If hasSeenOnboarding === false → <OnboardingGate /> (first-run)
+        → On complete → setHasSeenOnboarding(true) → main Stack
+    → Else → main Stack → (main) → (tabs)
 ```
+
+### Auth Configuration (authEnabled)
+
+`authEnabled` is determined by `isAuthEnabled()` in
+`client/features/app/isAuthEnabled.ts`: true when both
+`EXPO_PUBLIC_USER_POOL_ID` and `EXPO_PUBLIC_USER_POOL_CLIENT_ID` are set at
+runtime. When false, the template is fully explorable without a Cognito
+environment — `AuthGate` becomes a no-op and protected surfaces render
+their children.
+
+### Protected vs Public Surfaces
+
+| Surface | Auth gate |
+|---|---|
+| `(main)/(tabs)/index.tsx` (Explore) | Public |
+| `(main)/(tabs)/media.tsx` | Public |
+| `(main)/(tabs)/profile.tsx` | **Protected** (`AuthGate`) |
+| `(main)/(tabs)/settings.tsx` | **Protected** (`AuthGate`) |
+| `(main)/showcase/**` | Public |
+| `(main)/(demos)/**` (including `auth-demo`, `onboarding`) | Public |
+
+Protected screens wrap their exported default in `<AuthGate>` from
+`client/features/app/AuthGate.tsx`. When auth is disabled the gate renders
+its children. When auth is enabled and the user is not authenticated, the
+gate renders the shared `AuthScreen` inline (no forced navigation), so
+signing out from a protected tab simply replaces the tab's content with the
+auth screen and leaves unprotected surfaces browsable.
+
+### Post-Sign-In / Post-Sign-Out
+
+- After sign-in completes inside a protected tab, the user lands back on
+  that same tab (the `AuthGate` flips to rendering `children`).
+- After sign-out, the user remains wherever they were; unprotected surfaces
+  are still available, protected surfaces show `AuthScreen` again.
+- Deep-link redirect preservation across a native cold-start is **not**
+  implemented by this shell contract.
 
 ## Authentication
 
@@ -110,14 +155,21 @@ Settings tab → Language selector
 
 ## Onboarding
 
+Owned by the shell, not the demo route. `app/_layout.tsx` renders
+`<OnboardingGate />` (from `client/features/app/OnboardingGate.tsx`)
+inline when `hasSeenOnboarding === false` — the main Stack never mounts
+during first-run onboarding, so there is no flash into tabs.
+
 ```
-First launch (onboardingStore.completed === false)
-  → OnboardingFlow component
-  → 3-page swipeable flow
-  → Complete → onboardingStore.setCompleted(true)
-  → Persisted — never shown again
-  → Navigate to main tabs
+First launch (onboardingStore.hasSeenOnboarding === false)
+  → <OnboardingGate /> rendered by root layout
+  → 3-page swipeable OnboardingFlow
+  → Complete → setHasSeenOnboarding(true) (persisted)
+  → Root layout re-renders the main Stack
 ```
+
+The demo at `app/(main)/(demos)/onboarding.tsx` remains available for
+showcase purposes and continues to use the same `OnboardingFlow` primitive.
 
 ## Tab Navigation
 

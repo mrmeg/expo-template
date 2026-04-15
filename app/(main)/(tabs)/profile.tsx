@@ -10,6 +10,7 @@ import { Alert } from "@/client/components/ui/Alert";
 import { globalUIStore } from "@/client/state/globalUIStore";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
+import { AuthGate } from "@/client/features/app";
 import type { Theme } from "@/client/constants/colors";
 import { palette } from "@/client/constants/colors";
 import { SEO } from "@/client/components/SEO";
@@ -17,7 +18,15 @@ import { SEO } from "@/client/components/SEO";
 /**
  * Profile screen - displays user information and account settings.
  */
-export default function ProfileScreen() {
+export default function ProfileRoute() {
+  return (
+    <AuthGate>
+      <ProfileScreen />
+    </AuthGate>
+  );
+}
+
+function ProfileScreen() {
   const { theme, getShadowStyle } = useTheme();
   const styles = createStyles(theme);
   const { signOut } = useAuth();

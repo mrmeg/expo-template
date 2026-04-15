@@ -84,6 +84,29 @@ Files stored in S3/R2 with presigned URL access.
 **Invariants:**
 - Once completed, never shown again (unless store is reset)
 - Persisted to AsyncStorage/localStorage
+- Onboarding is owned by the shell (`OnboardingGate`) and rendered inline by
+  `app/_layout.tsx` when `hasSeenOnboarding === false`. The main Stack never
+  mounts during first-run onboarding.
+
+### App Shell Contract
+
+Owned by `client/features/app/`. Governs startup sequencing and per-surface
+auth policy without coupling screens to auth internals.
+
+| Piece | Purpose |
+|-------|---------|
+| `isAuthEnabled()` | Env predicate — true iff both `EXPO_PUBLIC_USER_POOL_ID` and `EXPO_PUBLIC_USER_POOL_CLIENT_ID` are set |
+| `useAppStartup({fontsLoaded, i18nReady})` | Single readiness gate. Resolves only after fonts, i18n, onboarding-load, and (if auth is enabled) Amplify bootstrap have all completed |
+| `AuthGate` | Per-surface policy. No-op when auth is disabled; spinner while loading; inline `AuthScreen` when unauthenticated; children when authenticated |
+| `OnboardingGate` | First-run host for `OnboardingFlow`; flips `hasSeenOnboarding` on complete |
+
+**Invariants:**
+- Splash stays visible until `useAppStartup` reports `ready`
+- Protected surfaces (profile, settings) wrap their exported default in
+  `<AuthGate>`; unprotected surfaces never do
+- Signing out from a protected tab replaces that tab's content with
+  `AuthScreen` inline — no forced navigation; unprotected tabs remain browsable
+- The template is fully explorable when auth env vars are absent
 
 ### Compression Settings
 

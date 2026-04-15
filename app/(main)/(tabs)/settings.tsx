@@ -10,6 +10,7 @@ import { setLanguage } from "@/client/features/i18n";
 import Config from "@/client/config";
 import type { Theme } from "@/client/constants/colors";
 import { SEO } from "@/client/components/SEO";
+import { AuthGate } from "@/client/features/app";
 
 const LANGUAGES = [
   { code: "en", label: "English", nativeLabel: "English" },
@@ -19,7 +20,15 @@ const LANGUAGES = [
 /**
  * Settings screen - app preferences and configuration.
  */
-export default function SettingsScreen() {
+export default function SettingsRoute() {
+  return (
+    <AuthGate>
+      <SettingsScreen />
+    </AuthGate>
+  );
+}
+
+function SettingsScreen() {
   const { theme, scheme, getShadowStyle } = useTheme();
   const { userTheme, setTheme } = useThemeStore();
   const { t, i18n } = useTranslation();

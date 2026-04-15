@@ -17,7 +17,10 @@ A production-ready **Expo app template** for building cross-platform application
 ## Core Capabilities
 
 ### Authentication
-AWS Cognito via Amplify. Sign up, sign in, email verification, password reset. Token management is automatic.
+AWS Cognito via Amplify. Sign up, sign in, email verification, password reset. Token management is automatic. Auth is **optional** — without `EXPO_PUBLIC_USER_POOL_ID` / `EXPO_PUBLIC_USER_POOL_CLIENT_ID` the template is fully explorable; protected tabs (profile, settings) simply render the sign-in screen inline when a Cognito environment is present but the user is signed out.
+
+### App Shell
+`client/features/app/` owns startup sequencing and per-surface auth policy. `useAppStartup` holds the splash until fonts, i18n, onboarding, and (optionally) Amplify bootstrap all resolve. `OnboardingGate` runs the first-run flow inline before the main Stack mounts. `AuthGate` wraps protected screens with a no-op / spinner / `AuthScreen` / children branch based on auth state.
 
 ### Media Management
 Upload, browse, and delete images/videos stored in S3/R2. Client-side compression, HEIC conversion, video thumbnails. Presigned URLs for secure access.

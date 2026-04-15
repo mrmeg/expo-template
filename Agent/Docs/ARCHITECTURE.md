@@ -57,7 +57,8 @@ File-based routing via Expo Router with nested layouts:
 
 Organized by concern:
 
-- **`features/`** — Self-contained domain modules (auth, media, i18n, keyboard, navigation, onboarding)
+- **`features/`** — Self-contained domain modules (auth, media, i18n, keyboard, navigation, onboarding, app)
+  - `features/app/` owns the shell contract: `useAppStartup` (single startup gate), `AuthGate` (per-surface auth policy), `OnboardingGate` (first-run flow), `isAuthEnabled` (env predicate)
 - **`components/ui/`** — 35 design system primitives (shadcn-inspired)
 - **`hooks/`** — 8 shared hooks (useTheme, useDimensions, useScalePress, etc.)
 - **`lib/`** — Utilities (API client, haptics, storage, gesture handler, devtools)
