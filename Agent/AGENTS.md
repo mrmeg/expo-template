@@ -10,7 +10,7 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `expand-coverage-for-auth-onboarding-and-media-server.md` | Ready | Medium |
+| _No Ready specs — queue empty._ | — | — |
 
 ## Workflow
 
