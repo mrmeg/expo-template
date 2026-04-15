@@ -29,12 +29,27 @@ module.exports = {
   ],
 
   // Coverage configuration
+  //
+  // Covers both client-side code (the existing UI, features, hooks, and
+  // stores) and the server-contract seams the night-shift specs kept
+  // uncovering. API routes under `app/api/**` and the Express wiring under
+  // `server/**` are included so CI flags drift in CORS, rate limiting,
+  // auth bootstrap, or the FFmpeg worker path — the recurring failure
+  // modes, not just happy-path UI.
   collectCoverageFrom: [
     "client/**/*.{ts,tsx}",
+    "app/api/**/*.{ts,tsx}",
+    "server/**/*.{js,ts}",
+    "shared/**/*.{ts,tsx}",
     "!client/**/*.d.ts",
     "!client/**/index.ts",
     "!client/devtools/**",
+    "!app/api/**/index.ts",
+    "!server/**/*.test.{js,ts}",
+    "!shared/**/*.d.ts",
+    "!**/__tests__/**",
     "!**/node_modules/**",
+    "!**/dist/**",
   ],
 
   // Coverage thresholds (optional - uncomment to enforce)
