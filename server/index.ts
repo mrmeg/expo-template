@@ -83,15 +83,15 @@ app.use(
 
 // ============================================================================
 // FFmpeg Video Conversion (OPTIONAL)
-// To remove: Delete from here to "END FFmpeg" and delete client/lib/videoConversion/
+// To remove: Delete from here to "END FFmpeg" and delete
+// client/features/media/lib/videoConversion/
 // ============================================================================
-const fs = require("fs");
-const ffmpegWorkerPath = path.join(process.cwd(), "/client/lib/videoConversion/ffmpeg-worker.js");
-if (fs.existsSync(ffmpegWorkerPath)) {
-  const ffmpegWorker = fs.readFileSync(ffmpegWorkerPath, "utf8");
-  app.get("/_expo/static/js/web/ffmpeg-worker.js", (req, res) => {
+const { FFMPEG_WORKER_URL, loadFfmpegWorker } = require("./ffmpegWorker");
+const ffmpegWorkerAsset = loadFfmpegWorker(process.cwd());
+if (ffmpegWorkerAsset) {
+  app.get(FFMPEG_WORKER_URL, (req, res) => {
     res.setHeader("Content-Type", "application/javascript");
-    res.send(ffmpegWorker);
+    res.send(ffmpegWorkerAsset.contents);
   });
 }
 // ============================================================================

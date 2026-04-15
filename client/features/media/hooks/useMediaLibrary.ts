@@ -245,12 +245,16 @@ export function useMediaLibrary() {
             loading: true,
           });
 
+          // Dynamic import to avoid loading FFmpeg until needed
+          // (FFmpeg uses import.meta which crashes Metro on module load).
+          // Hoisted out of the try so the catch block can reference the
+          // typed error class for a more specific toast.
+          const videoConversion = await import(
+            "../lib/videoConversion/convert"
+          );
+          const { convertVideo, FFmpegWorkerUnavailableError } = videoConversion;
+
           try {
-            // Dynamic import to avoid loading FFmpeg until needed
-            // (FFmpeg uses import.meta which crashes Metro on module load)
-            const { convertVideo } = await import(
-              "../lib/videoConversion/convert"
-            );
             const blobUri = URL.createObjectURL(blob);
             const converted = await convertVideo(
               blobUri,
@@ -295,10 +299,18 @@ export function useMediaLibrary() {
           } catch (error) {
             // Hide loading spinner before showing warning
             globalUIStore.getState().hide();
+            const isWorkerUnavailable =
+              error instanceof FFmpegWorkerUnavailableError;
             globalUIStore.getState().show({
               type: "warning",
-              title: "Conversion Skipped",
-              messages: ["Uploading original format"],
+              title: isWorkerUnavailable
+                ? "Video Converter Unavailable"
+                : "Conversion Skipped",
+              messages: [
+                isWorkerUnavailable
+                  ? "Uploading original format instead"
+                  : "Uploading original format",
+              ],
               duration: 3000,
             });
             logDev(`Video conversion failed, using original: ${error}`);

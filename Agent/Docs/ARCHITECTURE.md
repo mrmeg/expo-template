@@ -120,10 +120,16 @@ Two API layers:
 ```
 Client (pick/capture)
   → Image compression (HEIC → JPEG, resize)
+  → Optional web video conversion (WebM/AVI/MKV → MP4 via FFmpeg.wasm worker)
   → POST /api/media/getUploadUrl (get presigned S3 URL)
   → PUT to S3 presigned URL (direct upload)
   → POST /api/media/getSignedUrls (read-back URLs, 24hr expiry)
 ```
+
+Web video conversion is optional and governed by a single worker-path
+contract (`server/ffmpegWorker.js`) consumed by both `metro.config.js`
+(dev) and `server/index.ts` (prod). See `PERFORMANCE.md` for the URL,
+file path, and graceful failure behavior.
 
 ## Key Decisions
 

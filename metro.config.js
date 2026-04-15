@@ -35,13 +35,13 @@ config.transformer.getTransformOptions = async () => ({
 
 // ============================================================================
 // FFmpeg Video Conversion (OPTIONAL)
-// To remove: Delete from here to "END FFmpeg" and delete client/lib/videoConversion/
+// To remove: Delete from here to "END FFmpeg" and delete
+// client/features/media/lib/videoConversion/
 // ============================================================================
-const fs = require("fs");
+const { loadFfmpegWorker } = require("./server/ffmpegWorker");
 
-const ffmpegWorkerPath = path.join(__dirname, "/client/lib/videoConversion/ffmpeg-worker.js");
-if (fs.existsSync(ffmpegWorkerPath)) {
-  const ffmpegWorker = fs.readFileSync(ffmpegWorkerPath, "utf8");
+const ffmpegWorkerAsset = loadFfmpegWorker(__dirname);
+if (ffmpegWorkerAsset) {
   const existingMiddleware = config.server?.enhanceMiddleware;
   config.server = {
     ...config.server,
@@ -52,7 +52,7 @@ if (fs.existsSync(ffmpegWorkerPath)) {
       return (req, res, next) => {
         if (req.url?.endsWith("ffmpeg-worker.js")) {
           res.setHeader("Content-Type", "application/javascript");
-          res.end(ffmpegWorker);
+          res.end(ffmpegWorkerAsset.contents);
           return;
         }
         return enhanced(req, res, next);

@@ -67,11 +67,49 @@ covered routes.
 - LRU cache with 500-entry max
 - Avoids redundant WCAG ratio computation on re-renders
 
+## FFmpeg Worker Contract (web video conversion)
+
+Web client-side video conversion lazy-loads FFmpeg.wasm (~30MB core) on the
+first unsupported upload. The worker file is served through a same-origin
+URL to satisfy the cross-origin worker-blob workaround from
+[ffmpeg.wasm issue #694](https://github.com/ffmpegwasm/ffmpeg.wasm/issues/694).
+
+| Piece | Value |
+|-------|-------|
+| URL the client fetches | `/_expo/static/js/web/ffmpeg-worker.js` |
+| File in the repo | `client/features/media/lib/videoConversion/ffmpeg-worker.js` |
+| Single source of truth | `server/ffmpegWorker.js` (CommonJS, consumed by both Metro and Express) |
+
+Both runtimes that serve web assets read through `server/ffmpegWorker.js`
+so the URL and the file path cannot drift apart:
+
+- `metro.config.js` — dev server (`expo start`). Serves the worker via a
+  middleware shim.
+- `server/index.ts` — production Express server. Serves the worker from
+  the static build via `app.get(FFMPEG_WORKER_URL, …)`.
+
+If the worker file moves, update `FFMPEG_WORKER_RELATIVE_PATH` in
+`server/ffmpegWorker.js`. The regression suite in
+`server/__tests__/ffmpegWorker.test.js` asserts the file exists at that
+path and that `client/features/media/lib/videoConversion/config.ts` still
+exports the matching `FFMPEG_WORKER_URL`.
+
+Failure handling: `convertVideo` throws `FFmpegWorkerUnavailableError`
+when the worker URL returns a non-OK status or HTML (the Expo SSR
+fallback), so the caller surfaces a "Video Converter Unavailable" toast
+and uploads the original format instead of hanging inside
+`FFmpeg.load()`.
+
+To disable web video conversion entirely, delete the `FFmpeg` block in
+both `metro.config.js` and `server/index.ts`, delete
+`client/features/media/lib/videoConversion/`, and remove the call sites
+in `useMediaLibrary`.
+
 ## Known Considerations
 
 - **Style arrays on @rn-primitives**: Must use `StyleSheet.flatten()` — nested arrays crash React Native Web. This is a correctness issue that also prevents crash-loop performance degradation.
 - **Auth store throttle**: 2-second minimum between state transitions prevents Amplify Hub listener loops that could cause excessive re-renders.
-- **FFmpeg worker**: Optional video conversion on web — can be removed to reduce bundle if video features aren't needed (see comments in `metro.config.js` and `server/index.ts`).
+- **FFmpeg worker**: Optional web-only video conversion — see the contract section above. Safe to remove if video uploads never need cross-format normalization.
 
 ## Testing
 

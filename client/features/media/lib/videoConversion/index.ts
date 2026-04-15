@@ -26,7 +26,12 @@
  */
 
 // Main conversion function (platform-specific)
-export { convertVideo, isFFmpegLoaded, preloadFFmpeg } from "./convert";
+export {
+  convertVideo,
+  isFFmpegLoaded,
+  preloadFFmpeg,
+  FFmpegWorkerUnavailableError,
+} from "./convert";
 
 // Utilities
 export {

@@ -13,6 +13,23 @@
 import type { VideoConversionOptions, VideoConversionResult } from "./types";
 
 /**
+ * Shape-compatible stub of the web-only typed error. Native never loads a
+ * worker, but exporting the class keeps `instanceof` checks in shared
+ * consumer code (useMediaLibrary) platform-safe.
+ */
+export class FFmpegWorkerUnavailableError extends Error {
+  readonly url: string;
+  readonly status?: number;
+
+  constructor(url: string, status?: number, message?: string) {
+    super(message ?? `FFmpeg worker not available at ${url}`);
+    this.name = "FFmpegWorkerUnavailableError";
+    this.url = url;
+    this.status = status;
+  }
+}
+
+/**
  * Convert video - NOT SUPPORTED on native
  * @throws Error always - native conversion not available
  */

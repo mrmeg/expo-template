@@ -74,10 +74,54 @@ function loadScript(url: string): Promise<void> {
 }
 
 /**
- * Fetch a URL and create a blob URL from it
+ * Typed error raised when the FFmpeg worker URL does not resolve to the
+ * expected worker script. Distinct from generic network failures so the
+ * caller can surface a specific "worker unavailable" message instead of a
+ * hang.
+ */
+export class FFmpegWorkerUnavailableError extends Error {
+  readonly url: string;
+  readonly status?: number;
+
+  constructor(url: string, status?: number, message?: string) {
+    super(message ?? `FFmpeg worker not available at ${url}`);
+    this.name = "FFmpegWorkerUnavailableError";
+    this.url = url;
+    this.status = status;
+  }
+}
+
+/**
+ * Fetch a URL and create a blob URL from it. When fetching the FFmpeg
+ * worker, a misconfigured server can return 200 HTML (the Expo SSR
+ * fallback) instead of the worker script — that would silently hang
+ * FFmpeg's load step. Validate the response before wrapping it.
  */
 async function toBlobURL(url: string, mimeType: string): Promise<string> {
-  const response = await fetch(url);
+  let response: Response;
+  try {
+    response = await fetch(url);
+  } catch (error) {
+    throw new FFmpegWorkerUnavailableError(
+      url,
+      undefined,
+      error instanceof Error ? error.message : undefined
+    );
+  }
+
+  if (!response.ok) {
+    throw new FFmpegWorkerUnavailableError(url, response.status);
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (mimeType === "text/javascript" && contentType.includes("text/html")) {
+    throw new FFmpegWorkerUnavailableError(
+      url,
+      response.status,
+      `Expected JavaScript worker at ${url}, got ${contentType}`
+    );
+  }
+
   const blob = await response.blob();
   const typedBlob = new Blob([blob], { type: mimeType });
   return URL.createObjectURL(typedBlob);
