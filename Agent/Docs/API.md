@@ -108,6 +108,43 @@ List S3 objects with pagination.
 }
 ```
 
+### Billing Endpoints (baseline, hosted-external)
+
+Base path: `/api/billing/`. These routes are the default Stripe
+subscription surface. See [`BILLING.md`](./BILLING.md) for the full
+architecture; implementation lands in later specs.
+
+| Route | Method | Auth | Purpose |
+|-------|--------|------|---------|
+| `/api/billing/summary` | GET | Cognito (authenticatedFetch) | Return normalized `BillingSummary` for the signed-in user |
+| `/api/billing/checkout` | POST | Cognito | Create a Stripe Checkout Session; returns `{ url }` for browser handoff |
+| `/api/billing/portal` | POST | Cognito | Create a Stripe Billing Portal session; returns `{ url }` |
+| `/api/billing/webhook` | POST | Stripe signature (no Cognito) | Receive Stripe events; server-authoritative state writes |
+
+**Normalized summary shape:**
+
+```ts
+type BillingSummary = {
+  state: "free" | "trialing" | "active" | "past_due" | "canceled" | "incomplete";
+  plan: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+};
+```
+
+The summary is keyed to the Cognito `sub`, not email. Raw Stripe IDs
+stay server-side; clients never read them.
+
+**Rate limits:** `/api/billing/checkout` and `/api/billing/portal` should
+be registered in `STRICT_LIMIT_PATHS` (see Rate Limiting table below)
+when the routes land, alongside `/api/media/getUploadUrl`.
+
+**Return URL contract:** hosted sessions redirect to a single return
+path (`/billing/return`) with `status=success|cancel|portal`. Web uses
+`https://…/billing/return`; native uses `myapp://billing/return` via
+`expo-web-browser`'s `openAuthSessionAsync`. Client refetches the
+summary on return — the redirect is a UX hint, not proof of payment.
+
 ### CORS
 
 All API routes handle OPTIONS preflight. CORS is configured in `app/api/_shared/cors.ts`:

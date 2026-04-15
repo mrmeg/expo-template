@@ -131,6 +131,64 @@ Media tab → Load media list
     → Refresh list
 ```
 
+## Subscription Purchase (baseline, hosted-external)
+
+The template's default billing flow is Stripe Checkout + Billing Portal
+via `hosted-external` mode — see [`BILLING.md`](./BILLING.md) for the
+full architecture.
+
+### Purchase — Web
+
+```
+Pricing screen → tap "Subscribe"
+  → POST /api/billing/checkout { priceId, returnPath: "/billing/return" }
+  → server returns { url } pointing at Stripe Checkout
+  → window.location = url
+  → user pays on Stripe
+  → Stripe redirects to https://app.example.com/billing/return?status=success
+  → /billing/return screen refetches BillingSummary
+  → Stripe webhook (authoritative) flips server state to active/trialing
+```
+
+### Purchase — Native (iOS / Android)
+
+```
+Pricing screen → tap "Subscribe"
+  → POST /api/billing/checkout { priceId, returnPath: "/billing/return" }
+  → server returns { url }
+  → WebBrowser.openAuthSessionAsync(url, "myapp://billing/return")
+  → user pays on Stripe in the system browser
+  → redirect to myapp://billing/return?status=success
+  → /billing/return refetches BillingSummary
+  → webhook updates server-side state
+```
+
+### Manage (all platforms)
+
+```
+Account / Settings → "Manage subscription"
+  → POST /api/billing/portal { returnPath: "/billing/return" }
+  → server returns Billing Portal { url }
+  → Web: window.location = url
+  → Native: WebBrowser.openAuthSessionAsync(url, "myapp://billing/return")
+  → on return, refetch BillingSummary
+```
+
+**Return URL contract:** `/billing/return` with `status=success|cancel|portal`.
+The return page refetches `useBillingSummary` and routes the user back —
+it does NOT treat the redirect as proof of payment. Webhooks own state.
+
+**Entitlement:** a user is entitled when
+`BillingSummary.state ∈ { trialing, active, past_due }`. Pricing and
+account UIs must use the shared entitlement helper, not raw state
+comparisons.
+
+**Scope note:** native `PaymentSheet`, Apple / Google in-app purchase,
+usage-based billing, tax, and team seats are **out of scope for the
+baseline template**. Adopters shipping native apps that sell digital
+goods consumed inside the app must confirm store policy before enabling
+the hosted default on native builds.
+
 ## Theme Switching
 
 ```

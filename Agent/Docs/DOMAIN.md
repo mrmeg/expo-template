@@ -108,6 +108,34 @@ auth policy without coupling screens to auth internals.
   `AuthScreen` inline — no forced navigation; unprotected tabs remain browsable
 - The template is fully explorable when auth env vars are absent
 
+### Subscription (Billing)
+
+Managed by Stripe under the template's `hosted-external` billing mode.
+See [`BILLING.md`](./BILLING.md) for the full architecture.
+
+| Property | Type | Source |
+|----------|------|--------|
+| state | `free \| trialing \| active \| past_due \| canceled \| incomplete` | Server webhook → normalized summary |
+| plan | string \| null | Server (Stripe price → plan name) |
+| currentPeriodEnd | ISO string \| null | Stripe |
+| cancelAtPeriodEnd | boolean | Stripe |
+
+**Invariants:**
+- **Stripe webhooks are the authoritative trigger** for any state
+  transition. Client-side "I came back from Checkout" signals are UX
+  hints, not state writes.
+- The subscription row is keyed to the **Cognito `sub`**, not email.
+  A user who changes their email never loses their subscription.
+- The client consumes a **normalized `BillingSummary`** only; raw Stripe
+  IDs stay server-side.
+- **Entitlement** = `state ∈ { trialing, active, past_due }`. Every
+  feature gate calls a shared entitlement helper, not `state` directly.
+- **Mode**: the template defaults to `hosted-external`. Adopters needing
+  `native-iap` or `native-paymentsheet` add a new mode — they do **not**
+  stretch the hosted flow onto platform-policy-sensitive surfaces.
+- Native purchase and portal handoffs use `expo-web-browser`'s
+  `openAuthSessionAsync` with the `myapp://billing/return` scheme.
+
 ### Compression Settings
 
 | Property | Type | Notes |

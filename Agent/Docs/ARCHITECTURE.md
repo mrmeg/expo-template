@@ -57,7 +57,8 @@ File-based routing via Expo Router with nested layouts:
 
 Organized by concern:
 
-- **`features/`** — Self-contained domain modules (auth, media, i18n, keyboard, navigation, onboarding, app)
+- **`features/`** — Self-contained domain modules (auth, media, i18n, keyboard, navigation, onboarding, app, billing)
+  - `features/billing/` (baseline, hosted-external) owns the client side of Stripe Checkout / Billing Portal: `useBillingSummary` (React Query over `/api/billing/summary`), `useCheckout` / `usePortal` (server session + browser handoff via `expo-web-browser` on native, `window.location` on web), and `lib/entitlement.ts`. See `Agent/Docs/BILLING.md`.
   - `features/app/` owns the shell contract: `useAppStartup` (single startup gate), `AuthGate` (per-surface auth policy), `OnboardingGate` (first-run flow), `isAuthEnabled` (env predicate)
 - **`components/ui/`** — 35 design system primitives (shadcn-inspired)
 - **`hooks/`** — 8 shared hooks (useTheme, useDimensions, useScalePress, etc.)
@@ -133,6 +134,7 @@ Client (pick/capture)
 | Express for prod web | Rate limiting, security headers, compression — missing from static hosts |
 | Discriminated union API responses | Type-safe error handling without exceptions |
 | Platform-specific files (.native.ts) | Clean platform splits without runtime checks |
+| Stripe Checkout + Billing Portal (hosted-external) as the billing baseline | One flow works web/iOS/Android without store-specific IAP integrations; webhooks own server state. Adopters needing native IAP introduce a new billing mode rather than mutating the default. See `BILLING.md`. |
 
 ## Build & Deploy
 
