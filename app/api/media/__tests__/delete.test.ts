@@ -54,7 +54,6 @@ describe("media delete route", () => {
   const originalEnv = {
     bucket: process.env.R2_BUCKET,
     origins: process.env.ALLOWED_ORIGINS,
-    nodeEnv: process.env.NODE_ENV,
   };
 
   beforeEach(() => {
@@ -70,8 +69,6 @@ describe("media delete route", () => {
     else process.env.R2_BUCKET = originalEnv.bucket;
     if (originalEnv.origins === undefined) delete process.env.ALLOWED_ORIGINS;
     else process.env.ALLOWED_ORIGINS = originalEnv.origins;
-    if (originalEnv.nodeEnv === undefined) delete process.env.NODE_ENV;
-    else process.env.NODE_ENV = originalEnv.nodeEnv;
   });
 
   it("OPTIONS preflight echoes the allowed origin and advertises DELETE", async () => {
