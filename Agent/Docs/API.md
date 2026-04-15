@@ -115,7 +115,7 @@ All API routes handle OPTIONS preflight. CORS is configured in `app/api/_shared/
 - Allowed origins: configurable via `ALLOWED_ORIGINS` env var
 - Defaults: `http://localhost:8081`, `http://localhost:3000`
 - Headers: `Content-Type`, `Authorization`
-- Methods: `GET`, `POST`, `OPTIONS`
+- Methods: `GET`, `POST`, `DELETE`, `OPTIONS` (DELETE is advertised globally so single-file media deletion works cross-origin; individual routes still choose which verbs to implement)
 - Preflight cache: 86400 seconds (24 hours)
 
 ## Client API Layer
