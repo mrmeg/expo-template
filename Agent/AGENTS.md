@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `define-default-stripe-subscriptions-architecture.md` | Ready | High |
 | `add-billing-identity-and-subscription-state.md` | Ready | High |
 | `add-authenticated-billing-api-foundation.md` | Ready | High |
 | `add-stripe-subscriptions-bootstrap-and-config.md` | Ready | High |
@@ -41,6 +40,7 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 | Domain Model | `./Docs/DOMAIN.md` | Domain Expert | Business rules, entities, invariants |
 | Performance | `./Docs/PERFORMANCE.md` | Performance Expert | Budgets, benchmarks, known bottlenecks |
 | User Flows | `./Docs/USER_FLOWS.md` | Human Advocate | Key user journeys, accessibility notes |
+| Billing | `./Docs/BILLING.md` | Architect | Stripe subscriptions baseline (hosted-external), return contract, entitlement |
 | App Overview | `./Docs/APP_OVERVIEW.md` | — | High-level app overview |
 
 ## Tech Stack Reference
