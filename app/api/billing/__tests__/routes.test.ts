@@ -7,17 +7,17 @@
  * registry, so no real Stripe or Cognito SDK is required.
  */
 
-import { setTokenVerifier, type TokenVerifier } from "@/app/api/_shared/auth";
-import { resetAuthBootstrap } from "@/app/api/_shared/authBootstrap";
+import { setTokenVerifier, type TokenVerifier } from "@/server/api/shared/auth";
+import { resetAuthBootstrap } from "@/server/api/shared/authBootstrap";
 import { freeBillingSummary, type BillingSummary } from "@/shared/billing";
-import type { BillingAccountResolver } from "../_shared/types";
-import { CustomerConflictError } from "../_shared/types";
+import type { BillingAccountResolver } from "@/server/api/billing/types";
+import { CustomerConflictError } from "@/server/api/billing/types";
 import {
   setBillingRegistry,
   type BillingRegistry,
-} from "../_shared/registry";
-import { resetBillingBootstrap } from "../_shared/bootstrap";
-import { createMemoryIdempotencyStore } from "../_shared/idempotency";
+} from "@/server/api/billing/registry";
+import { resetBillingBootstrap } from "@/server/api/billing/bootstrap";
+import { createMemoryIdempotencyStore } from "@/server/api/billing/idempotency";
 
 import { GET as getSummary } from "../summary+api";
 import { POST as postCheckout } from "../checkout-session+api";

@@ -11,7 +11,7 @@
     "web:scan": "expo start --web",
     "build": "expo export -p web --output-dir dist",
     "build-web": "npx expo export -p web",
-    "build-sourcemap": "npx expo export --dump-sourcemap",
+    "build-sourcemap": "expo export -p web --output-dir dist --dump-sourcemap",
     "view-sourcemap": "npx source-map-explorer dist/**/*.js --no-border-checks",
     "analyze": "expo export -p web --output-dir dist --dump-sourcemap && npx source-map-explorer dist/**/*.js --no-border-checks",
     "bundle-size": "node scripts/check-bundle-size.js",

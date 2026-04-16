@@ -2,7 +2,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ulid } from "ulid";
 import { MEDIA_PATHS, type MediaType } from "@/shared/media";
-import { getCorsHeaders, getPreflightHeaders, sanitizeErrorDetails } from "@/app/api/_shared/cors";
+import { getCorsHeaders, getPreflightHeaders, sanitizeErrorDetails } from "@/server/api/shared/cors";
 
 interface UploadUrlRequest {
   /** File extension (e.g., "png", "jpg") */

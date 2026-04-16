@@ -52,7 +52,7 @@ File-based routing via Expo Router with nested layouts:
   - **Demos** (`(demos)/`) — 17 screen templates and demos
 - **API routes** (`api/`) — Server-side endpoints:
   - `api/media/` — S3 presigned URLs (upload, read, list, delete)
-  - `api/billing/` — Stripe Checkout / Portal / Webhook / Summary routes driven by the process-wide `BillingRegistry` (`app/api/billing/_shared/registry.ts`). Unconfigured registries return `503 billing-disabled`.
+  - `api/billing/` — Stripe Checkout / Portal / Webhook / Summary routes driven by the process-wide `BillingRegistry` (`server/api/billing/registry.ts`). Unconfigured registries return `503 billing-disabled`.
   - `api/_shared/` — Cross-route helpers: `auth.ts` (`requireAuthenticatedUser` fronted by a `TokenVerifier` port — returns structured 401s and fails closed when no verifier is registered), `errors.ts` (typed JSON error responses), `cors.ts`
 - **Web HTML** (`+html.tsx`) — Global CSS, theme-aware styles, font loading
 
@@ -61,7 +61,7 @@ File-based routing via Expo Router with nested layouts:
 Organized by concern:
 
 - **`features/`** — Self-contained domain modules (auth, media, i18n, keyboard, navigation, onboarding, app, billing)
-  - `features/billing/` (baseline, hosted-external) owns the client side of Stripe Checkout / Billing Portal: `useBillingSummary` (React Query over `/api/billing/summary`, scoped to the authenticated user with `placeholderData = freeBillingSummary()`), plus the planned `useCheckout` / `usePortal` hooks and entitlement helper. UI code consumes the normalized `BillingSummary` from `shared/billing.ts` — never raw Stripe. Server-side identity mapping lives in `app/api/billing/_shared/account.ts` (`BillingAccountResolver`). See `Agent/Docs/BILLING.md`.
+  - `features/billing/` (baseline, hosted-external) owns the client side of Stripe Checkout / Billing Portal: `useBillingSummary` (React Query over `/api/billing/summary`, scoped to the authenticated user with `placeholderData = freeBillingSummary()`), plus the planned `useCheckout` / `usePortal` hooks and entitlement helper. UI code consumes the normalized `BillingSummary` from `shared/billing.ts` — never raw Stripe. Server-side identity mapping lives in `server/api/billing/account.ts` (`BillingAccountResolver`). See `Agent/Docs/BILLING.md`.
   - `features/app/` owns the shell contract: `useAppStartup` (single startup gate), `AuthGate` (per-surface auth policy), `OnboardingGate` (first-run flow), `isAuthEnabled` (env predicate)
 - **`components/ui/`** — 35 design system primitives (shadcn-inspired)
 - **`hooks/`** — 8 shared hooks (useTheme, useDimensions, useScalePress, etc.)

@@ -172,7 +172,7 @@ export interface BillingSummary {
 
 ### Identity contract (server)
 
-`app/api/billing/_shared/account.ts` defines the
+`server/api/billing/account.ts` defines the
 `BillingAccountResolver` interface and the default
 `createStripeBillingAccountResolver` factory:
 

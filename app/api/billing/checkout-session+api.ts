@@ -7,19 +7,19 @@
  * plan catalog so the client cannot spoof billing configuration.
  */
 
-import { requireAuthenticatedUser } from "@/app/api/_shared/auth";
-import { ensureAuthBootstrapped } from "@/app/api/_shared/authBootstrap";
+import { requireAuthenticatedUser } from "@/server/api/shared/auth";
+import { ensureAuthBootstrapped } from "@/server/api/shared/authBootstrap";
 import {
   getCorsHeaders,
   getPreflightHeaders,
   sanitizeErrorDetails,
-} from "@/app/api/_shared/cors";
+} from "@/server/api/shared/cors";
 import {
   badRequestResponse,
   jsonErrorResponse,
-} from "@/app/api/_shared/errors";
-import { ensureBillingBootstrapped } from "./_shared/bootstrap";
-import { CustomerConflictError } from "./_shared/types";
+} from "@/server/api/shared/errors";
+import { ensureBillingBootstrapped } from "@/server/api/billing/bootstrap";
+import { CustomerConflictError } from "@/server/api/billing/types";
 
 interface CheckoutBody {
   planId?: unknown;

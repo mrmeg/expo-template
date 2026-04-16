@@ -7,18 +7,18 @@
  * silently creating one.
  */
 
-import { requireAuthenticatedUser } from "@/app/api/_shared/auth";
-import { ensureAuthBootstrapped } from "@/app/api/_shared/authBootstrap";
+import { requireAuthenticatedUser } from "@/server/api/shared/auth";
+import { ensureAuthBootstrapped } from "@/server/api/shared/authBootstrap";
 import {
   getCorsHeaders,
   getPreflightHeaders,
   sanitizeErrorDetails,
-} from "@/app/api/_shared/cors";
+} from "@/server/api/shared/cors";
 import {
   badRequestResponse,
   jsonErrorResponse,
-} from "@/app/api/_shared/errors";
-import { ensureBillingBootstrapped } from "./_shared/bootstrap";
+} from "@/server/api/shared/errors";
+import { ensureBillingBootstrapped } from "@/server/api/billing/bootstrap";
 
 interface PortalBody {
   returnPath?: unknown;

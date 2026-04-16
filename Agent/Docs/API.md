@@ -113,7 +113,7 @@ List S3 objects with pagination.
 Base path: `/api/billing/`. These routes are the default Stripe
 subscription surface. See [`BILLING.md`](./BILLING.md) for the full
 architecture. The route files live in `app/api/billing/` and depend
-on the process-wide registry in `app/api/billing/_shared/registry.ts`;
+on the process-wide registry in `server/api/billing/registry.ts`;
 when the registry is unconfigured every route returns `503`
 `billing-disabled`.
 
@@ -125,7 +125,7 @@ when the registry is unconfigured every route returns `503`
 | `/api/billing/webhook` | POST | Stripe signature (no Cognito) | Receive Stripe events; server-authoritative state writes |
 
 **Authentication**: protected routes call `requireAuthenticatedUser`
-from `app/api/_shared/auth.ts`. That helper extracts the bearer token,
+from `server/api/shared/auth.ts`. That helper extracts the bearer token,
 passes it to the process-wide `TokenVerifier`, and returns a
 `{ userId, email }` shape — or a structured 401 response when the
 header is missing, the scheme is not Bearer, the token is empty, no
@@ -187,7 +187,7 @@ raw-body route for `/api/billing/webhook` ahead of
 
 **Idempotency**: the webhook route short-circuits duplicate
 deliveries via an in-memory `IdempotencyStore`
-(`app/api/billing/_shared/idempotency.ts`). Multi-instance
+(`server/api/billing/idempotency.ts`). Multi-instance
 deployments MUST swap this for a shared store (Redis, Postgres
 unique index) using `setWebhookIdempotencyStore(...)`. The handler
 is only marked processed on success — failures leave the event
@@ -217,7 +217,7 @@ interface BillingSummary {
 
 The summary is keyed to the Cognito `sub`, not email. Raw Stripe IDs
 stay server-side; clients never read them. The server-side resolver
-(`app/api/billing/_shared/account.ts`) owns deterministic Stripe
+(`server/api/billing/account.ts`) owns deterministic Stripe
 customer linking (metadata lookup → single-match email backfill →
 `CustomerConflictError` → create).
 
@@ -233,7 +233,7 @@ summary on return — the redirect is a UX hint, not proof of payment.
 
 ### CORS
 
-All API routes handle OPTIONS preflight. CORS is configured in `app/api/_shared/cors.ts`:
+All API routes handle OPTIONS preflight. CORS is configured in `server/api/shared/cors.ts`:
 
 - Allowed origins: configurable via `ALLOWED_ORIGINS` env var
 - Defaults: `http://localhost:8081`, `http://localhost:3000`

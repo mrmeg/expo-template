@@ -6,15 +6,15 @@
  * summary — the route never auto-creates a customer.
  */
 
-import { requireAuthenticatedUser } from "@/app/api/_shared/auth";
-import { ensureAuthBootstrapped } from "@/app/api/_shared/authBootstrap";
+import { requireAuthenticatedUser } from "@/server/api/shared/auth";
+import { ensureAuthBootstrapped } from "@/server/api/shared/authBootstrap";
 import {
   getCorsHeaders,
   getPreflightHeaders,
   sanitizeErrorDetails,
-} from "@/app/api/_shared/cors";
-import { jsonErrorResponse } from "@/app/api/_shared/errors";
-import { ensureBillingBootstrapped } from "./_shared/bootstrap";
+} from "@/server/api/shared/cors";
+import { jsonErrorResponse } from "@/server/api/shared/errors";
+import { ensureBillingBootstrapped } from "@/server/api/billing/bootstrap";
 
 export async function OPTIONS(request: Request): Promise<Response> {
   return new Response(null, { status: 200, headers: getPreflightHeaders(request) });

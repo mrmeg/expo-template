@@ -1,5 +1,5 @@
 import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
-import { getCorsHeaders, getPreflightHeaders, sanitizeErrorDetails } from "@/app/api/_shared/cors";
+import { getCorsHeaders, getPreflightHeaders, sanitizeErrorDetails } from "@/server/api/shared/cors";
 
 interface MediaItem {
   key: string;

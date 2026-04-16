@@ -130,7 +130,7 @@ See [`BILLING.md`](./BILLING.md) for the full architecture.
   IDs stay server-side (`shared/billing.ts` defines the shape — see
   `BillingSummary`, `freeBillingSummary`, `normalizeStripeSubscription`).
 - **Customer linking is deterministic.** The default
-  `BillingAccountResolver` (`app/api/billing/_shared/account.ts`) first
+  `BillingAccountResolver` (`server/api/billing/account.ts`) first
   looks up Stripe customers by `metadata.appUserId`; if none, it
   backfills metadata onto exactly one unclaimed email match; multiple
   email matches throw `CustomerConflictError` rather than auto-linking;

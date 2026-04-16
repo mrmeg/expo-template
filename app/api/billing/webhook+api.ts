@@ -20,13 +20,13 @@ import {
   getCorsHeaders,
   getPreflightHeaders,
   sanitizeErrorDetails,
-} from "@/app/api/_shared/cors";
-import { jsonErrorResponse } from "@/app/api/_shared/errors";
-import { ensureBillingBootstrapped } from "./_shared/bootstrap";
+} from "@/server/api/shared/cors";
+import { jsonErrorResponse } from "@/server/api/shared/errors";
+import { ensureBillingBootstrapped } from "@/server/api/billing/bootstrap";
 import {
   createMemoryIdempotencyStore,
   type IdempotencyStore,
-} from "./_shared/idempotency";
+} from "@/server/api/billing/idempotency";
 
 const defaultIdempotency: IdempotencyStore = createMemoryIdempotencyStore();
 let idempotencyOverride: IdempotencyStore | null = null;
