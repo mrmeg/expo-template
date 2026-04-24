@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mrmeg.template"
@@ -52,8 +51,7 @@
       ],
       "expo-font",
       "expo-web-browser",
-      "expo-localization",
-      "@sentry/react-native"
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true
