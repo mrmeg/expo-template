@@ -34,18 +34,17 @@ bun run bundle-size --update
 
 This writes the current total to `scripts/bundle-baseline.json`. Commit the updated baseline.
 
-## CI Integration
+## Local Bundle Guard
 
-Add after the build step in `.github/workflows/ci.yml`:
+Run the bundle-size check before merging changes that affect dependencies,
+asset loading, routing, or build output:
 
-```yaml
-- name: Check bundle size
-  run: |
-    bun run build
-    bun run bundle-size
+```bash
+bun run build
+bun run bundle-size
 ```
 
-This will fail the build if the bundle grows more than 10%.
+The command exits with code 1 if the bundle grows more than 10%.
 
 ## Adjusting the Threshold
 

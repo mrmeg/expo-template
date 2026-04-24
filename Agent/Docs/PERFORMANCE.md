@@ -115,4 +115,4 @@ in `useMediaLibrary`.
 
 - Jest timeout: 10 seconds (avoids hanging tests)
 - Coverage targets: `client/**` (excludes devtools, test files, index re-exports)
-- CI: `--forceExit` flag to prevent Jest hanging on async cleanup
+- Coverage script: `test:ci` includes `--forceExit` to prevent Jest hanging on async cleanup

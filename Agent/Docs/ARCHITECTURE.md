@@ -150,4 +150,4 @@ file path, and graceful failure behavior.
 - **Dev**: `npx expo start` (Metro dev server)
 - **Web prod**: `expo export -p web` → Express serves `dist/`
 - **Native**: EAS Build (configured in app.json)
-- **CI**: GitHub Actions — typecheck → lint → test (Bun)
+- **Local verification**: `bun run typecheck`, `bun run lint`, `bun run test:ci`
