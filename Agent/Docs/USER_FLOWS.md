@@ -122,13 +122,20 @@ Media tab → Pick image/video
 ```
 Media tab → Load media list
   → GET /api/media/list (paginated)
-  → POST /api/media/getSignedUrls (batch signed URLs)
-  → Display grid/list of media items
-  → Tap item → Detail view
-    → If video → VideoPlayer component
-  → Long press → Delete option
-    → DELETE /api/media/delete
-    → Refresh list
+  → 503 media-disabled (no R2/S3 env vars):
+      → Render setup-state in the Media tab (cloud-off icon, missing-vars list)
+      → Disable the upload button
+      → React Query does NOT retry — caller must reconfigure
+  → 200 OK:
+      → POST /api/media/getSignedUrls (batch signed URLs)
+      → Display grid/list of media items
+      → Tap item → Detail view
+        → If video → VideoPlayer component
+      → Long press → Delete option
+        → DELETE /api/media/delete
+        → Refresh list
+  → Other error (network, 5xx):
+      → Render retryable error state with the original message + Retry button
 ```
 
 ## Subscription Purchase (baseline, hosted-external)

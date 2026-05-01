@@ -50,25 +50,36 @@ function makeRequest(
   return new Request(url, { ...init, headers });
 }
 
+const STORAGE_KEYS = [
+  "R2_BUCKET",
+  "R2_JURISDICTION_SPECIFIC_URL",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "ALLOWED_ORIGINS",
+] as const;
+
 describe("media delete route", () => {
-  const originalEnv = {
-    bucket: process.env.R2_BUCKET,
-    origins: process.env.ALLOWED_ORIGINS,
-  };
+  const originalEnv: Partial<Record<(typeof STORAGE_KEYS)[number], string | undefined>> = {};
 
   beforeEach(() => {
+    for (const key of STORAGE_KEYS) originalEnv[key] = process.env[key];
     mockSend.mockReset();
     process.env.R2_BUCKET = "test-bucket";
+    process.env.R2_JURISDICTION_SPECIFIC_URL = "https://r2.example/test";
+    process.env.R2_ACCESS_KEY_ID = "test-access-key";
+    process.env.R2_SECRET_ACCESS_KEY = "test-secret-key";
     process.env.ALLOWED_ORIGINS = ORIGIN;
+    const { _resetMediaStorageForTests } = require("@/server/api/media/storage");
+    _resetMediaStorageForTests();
     // NODE_ENV stays at its Jest default ("test") so sanitizeErrorDetails
     // still returns a `details` field — that keeps the 500 test expressive.
   });
 
   afterEach(() => {
-    if (originalEnv.bucket === undefined) delete process.env.R2_BUCKET;
-    else process.env.R2_BUCKET = originalEnv.bucket;
-    if (originalEnv.origins === undefined) delete process.env.ALLOWED_ORIGINS;
-    else process.env.ALLOWED_ORIGINS = originalEnv.origins;
+    for (const key of STORAGE_KEYS) {
+      if (originalEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = originalEnv[key]!;
+    }
   });
 
   it("OPTIONS preflight echoes the allowed origin and advertises DELETE", async () => {

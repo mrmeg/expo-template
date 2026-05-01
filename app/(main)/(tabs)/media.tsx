@@ -22,6 +22,7 @@ import { useSignedUrls } from "@/client/features/media/hooks/useSignedUrls";
 import { useMediaDelete } from "@/client/features/media/hooks/useMediaDelete";
 import { useMediaUpload } from "@/client/features/media/hooks/useMediaUpload";
 import { useMediaLibrary } from "@/client/features/media/hooks/useMediaLibrary";
+import { isMediaError } from "@/client/features/media/lib/problem";
 import {
   MEDIA_PATHS,
   isVideoKey,
@@ -45,7 +46,10 @@ export default function MediaScreen() {
   } | null>(null);
 
   const prefix = filter === "all" ? "" : MEDIA_PATHS[filter];
-  const { data, isLoading, refetch, isRefetching } = useMediaList({ prefix });
+  const { data, isLoading, error, refetch, isRefetching } = useMediaList({ prefix });
+  const mediaDisabled = isMediaError(error) && error.problem.kind === "disabled";
+  const missingEnvVars = mediaDisabled && error.problem.kind === "disabled" ? error.problem.missing : undefined;
+  const fetchError = !mediaDisabled && error ? error : null;
   const { mutateAsync: deleteFile, isPending: isDeleting } = useMediaDelete();
   const { mutateAsync: uploadFile, isPending: isUploading } = useMediaUpload();
   const { pickMedia, processing: isPicking } = useMediaLibrary();
@@ -241,14 +245,38 @@ export default function MediaScreen() {
           preset="default"
           size="sm"
           onPress={handleUpload}
-          disabled={isPicking || isUploading}
+          disabled={mediaDisabled || isPicking || isUploading}
         >
           <Icon name="upload" size={16} color={theme.colors.primaryForeground} />
         </Button>
       </View>
 
       {/* File List */}
-      {isLoading ? (
+      {mediaDisabled ? (
+        <View style={styles.emptyContainer} testID="media-disabled">
+          <Icon name="cloud-off" size={48} color={theme.colors.mutedForeground} />
+          <SansSerifText style={styles.emptyText}>Media storage not configured</SansSerifText>
+          <SansSerifText style={styles.emptySubtext}>
+            Set the R2/S3 env vars in .env to enable uploads, listing, and signed URLs.
+          </SansSerifText>
+          {missingEnvVars && missingEnvVars.length > 0 && (
+            <SansSerifText style={styles.disabledMissing}>
+              Missing: {missingEnvVars.join(", ")}
+            </SansSerifText>
+          )}
+        </View>
+      ) : fetchError ? (
+        <View style={styles.emptyContainer} testID="media-error">
+          <Icon name="alert-triangle" size={48} color={theme.colors.destructive} />
+          <SansSerifText style={styles.emptyText}>Couldn&apos;t load media</SansSerifText>
+          <SansSerifText style={styles.emptySubtext}>
+            {fetchError instanceof Error ? fetchError.message : "Try again in a moment."}
+          </SansSerifText>
+          <Button preset="default" size="sm" onPress={() => refetch()}>
+            Retry
+          </Button>
+        </View>
+      ) : isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
@@ -461,6 +489,14 @@ const createStyles = (theme: Theme) =>
       fontSize: 14,
       color: theme.colors.mutedForeground,
       marginTop: spacing.xs,
+      textAlign: "center",
+    },
+    disabledMissing: {
+      fontSize: 12,
+      color: theme.colors.mutedForeground,
+      fontFamily: "monospace",
+      marginTop: spacing.sm,
+      textAlign: "center",
     },
     listContent: {
       padding: spacing.md,

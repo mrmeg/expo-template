@@ -1,15 +1,10 @@
-import { S3Client, DeleteObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import { getCorsHeaders, getPreflightHeaders, sanitizeErrorDetails } from "@/server/api/shared/cors";
-
-const s3Client = new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_JURISDICTION_SPECIFIC_URL,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-  forcePathStyle: true,
-});
+import {
+  getMediaS3Client,
+  getMediaStorageEnv,
+  mediaDisabledResponse,
+} from "@/server/api/media/storage";
 
 export async function OPTIONS(request: Request): Promise<Response> {
   return new Response(null, {
@@ -20,6 +15,11 @@ export async function OPTIONS(request: Request): Promise<Response> {
 
 // DELETE single file
 export async function DELETE(request: Request): Promise<Response> {
+  const env = getMediaStorageEnv();
+  if (env.kind === "unconfigured") {
+    return mediaDisabledResponse(request, env.missing);
+  }
+
   try {
     const url = new URL(request.url);
     const key = url.searchParams.get("key");
@@ -31,9 +31,9 @@ export async function DELETE(request: Request): Promise<Response> {
       });
     }
 
-    await s3Client.send(
+    await getMediaS3Client(env).send(
       new DeleteObjectCommand({
-        Bucket: process.env.R2_BUCKET,
+        Bucket: env.bucket,
         Key: key,
       })
     );
@@ -59,6 +59,11 @@ export async function DELETE(request: Request): Promise<Response> {
 
 // POST to delete multiple files
 export async function POST(request: Request): Promise<Response> {
+  const env = getMediaStorageEnv();
+  if (env.kind === "unconfigured") {
+    return mediaDisabledResponse(request, env.missing);
+  }
+
   try {
     const body = await request.json();
     const { keys } = body;
@@ -77,9 +82,9 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
-    const result = await s3Client.send(
+    const result = await getMediaS3Client(env).send(
       new DeleteObjectsCommand({
-        Bucket: process.env.R2_BUCKET,
+        Bucket: env.bucket,
         Delete: {
           Objects: keys.map((key: string) => ({ Key: key })),
           Quiet: false,

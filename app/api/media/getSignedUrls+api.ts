@@ -1,22 +1,18 @@
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getCorsHeaders, getPreflightHeaders, sanitizeErrorDetails } from "@/server/api/shared/cors";
+import {
+  getMediaS3Client,
+  getMediaStorageEnv,
+  mediaDisabledResponse,
+  type MediaStorageEnv,
+} from "@/server/api/media/storage";
 
 interface GetMediaResponse {
   urls: {
     [key: string]: string;
   };
 }
-
-const s3Client = new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_JURISDICTION_SPECIFIC_URL,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-  forcePathStyle: true,
-});
 
 export async function OPTIONS(request: Request): Promise<Response> {
   return new Response(null, {
@@ -26,6 +22,11 @@ export async function OPTIONS(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const env = getMediaStorageEnv();
+  if (env.kind === "unconfigured") {
+    return mediaDisabledResponse(request, env.missing);
+  }
+
   try {
     const body = await request.json();
     const { keys, path } = body;
@@ -45,7 +46,7 @@ export async function POST(request: Request): Promise<Response> {
       if (!key) continue;
 
       const fullKey = path ? `${path}/${key}` : key;
-      const mediaUrl = await generatePresignedUrl(fullKey);
+      const mediaUrl = await generatePresignedUrl(env, fullKey);
       urls[key] = mediaUrl;
     }
 
@@ -65,14 +66,18 @@ export async function POST(request: Request): Promise<Response> {
   }
 }
 
-async function generatePresignedUrl(key: string, expiresIn = 86400): Promise<string> {
+async function generatePresignedUrl(
+  env: Extract<MediaStorageEnv, { kind: "configured" }>,
+  key: string,
+  expiresIn = 86400,
+): Promise<string> {
   const command = new GetObjectCommand({
-    Bucket: process.env.R2_BUCKET,
+    Bucket: env.bucket,
     Key: key,
   });
 
   try {
-    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn });
+    const signedUrl = await getSignedUrl(getMediaS3Client(env), command, { expiresIn });
     return signedUrl;
   } catch (error) {
     console.error(`Error generating presigned URL for ${key}:`, error);

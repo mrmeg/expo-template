@@ -4,6 +4,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/client/lib/api/authenticatedFetch";
+import { toMediaError } from "@/client/features/media/lib/problem";
 
 interface DeleteResult {
   success: boolean;
@@ -30,8 +31,7 @@ export function useMediaDelete() {
       const response = await api.delete(`/api/media/delete?key=${encodeURIComponent(key)}`);
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || "Failed to delete file");
+        throw await toMediaError(response);
       }
 
       return response.json();
@@ -63,8 +63,7 @@ export function useMediaDeleteBatch() {
       const response = await api.post("/api/media/delete", { keys });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || "Failed to delete files");
+        throw await toMediaError(response);
       }
 
       return response.json();

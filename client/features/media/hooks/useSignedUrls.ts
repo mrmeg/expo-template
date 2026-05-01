@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/client/lib/api/authenticatedFetch";
+import { shouldRetryMediaError, toMediaError } from "@/client/features/media/lib/problem";
 import type { MediaPath } from "@/shared/media";
 
 interface MediaResponse {
@@ -35,12 +36,12 @@ export function useSignedUrls({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch media");
+        throw await toMediaError(response);
       }
 
       return response.json();
     },
     enabled: enabled && (Array.isArray(mediaKeys) ? mediaKeys.length > 0 : !!mediaKeys),
+    retry: shouldRetryMediaError,
   });
 }

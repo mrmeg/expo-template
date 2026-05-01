@@ -10,6 +10,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { Platform } from "react-native";
 import { api } from "@/client/lib/api/authenticatedFetch";
+import { toMediaError } from "@/client/features/media/lib/problem";
 import type { MediaType } from "@/shared/media";
 
 interface UploadUrlResponse {
@@ -114,8 +115,7 @@ export function useMediaUpload() {
       });
 
       if (!urlResponse.ok) {
-        const error = await urlResponse.json().catch(() => ({}));
-        throw new Error(error.message || "Failed to get upload URL");
+        throw await toMediaError(urlResponse);
       }
 
       const { uploadUrl, key }: UploadUrlResponse = await urlResponse.json();

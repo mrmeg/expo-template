@@ -4,6 +4,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/client/lib/api/authenticatedFetch";
+import { shouldRetryMediaError, toMediaError } from "@/client/features/media/lib/problem";
 
 interface MediaItem {
   key: string;
@@ -61,13 +62,13 @@ export function useMediaList({
       const response = await api.get(url);
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || "Failed to list media");
+        throw await toMediaError(response);
       }
 
       return response.json();
     },
     enabled,
+    retry: shouldRetryMediaError,
   });
 }
 

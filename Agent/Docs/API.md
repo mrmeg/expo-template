@@ -8,7 +8,15 @@ All routes live under `app/api/` and use the Expo Router `+api.ts` convention.
 
 ### Media Endpoints
 
-Base path: `/api/media/`
+Base path: `/api/media/`. Routes call `getMediaStorageEnv()` first; when
+any of `R2_JURISDICTION_SPECIFIC_URL`, `R2_ACCESS_KEY_ID`,
+`R2_SECRET_ACCESS_KEY`, `R2_BUCKET` is missing or whitespace-only the
+handler returns `503 media-disabled` with a typed body
+(`{ code: "media-disabled", message, missing: string[] }`) and never
+constructs an S3 client. The Media tab renders a setup-state when the
+client receives that response. OPTIONS preflight succeeds even when
+storage is unconfigured, and the body never echoes credential values —
+only env-var names.
 
 #### POST `/api/media/getUploadUrl`
 
