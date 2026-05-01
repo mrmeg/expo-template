@@ -50,7 +50,10 @@ export default [
 
     settings: {
       react: {
-        version: "detect",
+        // Pinned instead of "detect" because eslint-plugin-react 7.37.x
+        // calls context.getFilename() during version detection, which was
+        // removed in ESLint 10 and crashes rule loading.
+        version: "19.2",
       },
     },
 
