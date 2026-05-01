@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import * as Font from "expo-font";
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 
 interface LoadResourcesResult {
   loaded: boolean;

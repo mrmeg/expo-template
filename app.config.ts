@@ -53,7 +53,7 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
         origin: "",
         unstable_useServerRendering: true,
         asyncRoutes: {
-          web: false,
+          web: true,
         },
       },
     ],

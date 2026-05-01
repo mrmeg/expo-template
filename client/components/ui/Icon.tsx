@@ -1,7 +1,7 @@
 import * as React from "react";
 import { StyleProp, ViewStyle, View } from "react-native";
 import { useTheme } from "@/client/hooks/useTheme";
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 import type { Theme } from "@/client/constants/colors";
 
 /**
