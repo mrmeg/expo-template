@@ -6,8 +6,11 @@
  *   - `app.config.ts` (Expo dynamic config — Node at build time)
  *   - `client/lib/identity.ts` (runtime accessor for client code)
  *
- * Stays plain TS with no client/Node imports so both contexts can require
- * it. Reads `EXPO_PUBLIC_APP_*` env vars so changes flow into both the
+ * Plain JS so Node's CJS resolver can load it from the transpiled
+ * `app.config.js` Expo produces when reading dynamic config. Types live
+ * in the sibling `app.identity.d.ts` so TypeScript consumers stay typed.
+ *
+ * Reads `EXPO_PUBLIC_APP_*` env vars so changes flow into both the
  * native build (via Expo prebuild) and the client bundle (via Metro
  * inlining of `process.env.EXPO_PUBLIC_*` direct property access).
  *
@@ -15,23 +18,9 @@
  * clone keeps booting unchanged.
  */
 
-export interface AppIdentity {
-  /** Human-readable app name shown in app stores and home screens. */
-  name: string;
-  /** Expo project slug (URL-safe, lowercase). */
-  slug: string;
-  /** Native deep-link scheme (no `://`). */
-  scheme: string;
-  /** iOS bundle identifier (reverse-DNS). */
-  iosBundleIdentifier: string;
-  /** Android package name (reverse-DNS). */
-  androidPackage: string;
-}
+"use strict";
 
-/**
- * Default values that ship with the template. Adopters override via env.
- */
-const DEFAULT_IDENTITY: AppIdentity = {
+const DEFAULT_IDENTITY = {
   name: "template",
   slug: "template",
   scheme: "myapp",
@@ -42,18 +31,13 @@ const DEFAULT_IDENTITY: AppIdentity = {
 const SCHEME_RE = /^[a-z][a-z0-9+\-.]*$/;
 const REVERSE_DNS_RE = /^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)+$/;
 
-function trim(value: string | undefined): string | undefined {
+function trim(value) {
   if (value === undefined) return undefined;
   const trimmed = value.trim();
   return trimmed === "" ? undefined : trimmed;
 }
 
-/**
- * Validate a single identity field. Returns the validated value or
- * throws an Error naming the field; throws *only* when the env override
- * is malformed — falling back to the default is silent.
- */
-function validate(field: keyof AppIdentity, value: string): string {
+function validate(field, value) {
   switch (field) {
   case "scheme":
     if (!SCHEME_RE.test(value)) {
@@ -79,17 +63,13 @@ function validate(field: keyof AppIdentity, value: string): string {
     return value;
   case "name":
     return value;
+  default:
+    return value;
   }
 }
 
-/**
- * Resolve the active identity from env, falling back to defaults when
- * a value is empty or unset. Throws if any provided override is malformed
- * — broken native build IDs and deep-link schemes are easier to fix at
- * config-load time than after a build.
- */
-export function getAppIdentity(env: Record<string, string | undefined> = process.env): AppIdentity {
-  const overrides: Partial<AppIdentity> = {
+function getAppIdentity(env = process.env) {
+  const overrides = {
     name: trim(env.EXPO_PUBLIC_APP_NAME),
     slug: trim(env.EXPO_PUBLIC_APP_SLUG),
     scheme: trim(env.EXPO_PUBLIC_APP_SCHEME),
@@ -97,8 +77,8 @@ export function getAppIdentity(env: Record<string, string | undefined> = process
     androidPackage: trim(env.EXPO_PUBLIC_APP_ANDROID_PACKAGE),
   };
 
-  const merged: AppIdentity = { ...DEFAULT_IDENTITY };
-  (Object.keys(overrides) as (keyof AppIdentity)[]).forEach((key) => {
+  const merged = { ...DEFAULT_IDENTITY };
+  Object.keys(overrides).forEach((key) => {
     const value = overrides[key];
     if (value !== undefined) {
       merged[key] = validate(key, value);
@@ -108,15 +88,15 @@ export function getAppIdentity(env: Record<string, string | undefined> = process
   return merged;
 }
 
-/** Expose the defaults so tests + docs can reference them without a copy. */
-export const APP_IDENTITY_DEFAULTS: AppIdentity = { ...DEFAULT_IDENTITY };
+const APP_IDENTITY_DEFAULTS = { ...DEFAULT_IDENTITY };
 
-/**
- * Build a deep-link URL for the active app scheme.
- *
- * `scheme://path` — leading slash on `path` is normalized away.
- */
-export function buildDeepLink(scheme: string, path: string): string {
+function buildDeepLink(scheme, path) {
   const cleanPath = path.startsWith("/") ? path.slice(1) : path;
   return `${scheme}://${cleanPath}`;
 }
+
+module.exports = {
+  APP_IDENTITY_DEFAULTS,
+  buildDeepLink,
+  getAppIdentity,
+};
