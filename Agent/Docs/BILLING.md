@@ -50,11 +50,13 @@ back.
 
 ```
 Pricing UI → tap "Subscribe"
-  → POST /api/billing/checkout  (authenticatedFetch)
-      body: { priceId, returnPath: "/billing/return" }
+  → POST /api/billing/checkout-session  (authenticatedFetch)
+      body: { planId, interval, returnPath: "/billing/return" }
+  → server maps { planId, interval } onto the server-owned Stripe price id
+      (catalog lives in app/api/billing/_shared/env.ts; clients never send raw priceIds)
   → server resolves/creates Stripe customer keyed to Cognito sub
   → server creates Checkout Session (success_url + cancel_url below)
-  → returns { url } to client
+  → returns { url, expiresAt } to client
   → window.location = url
   → user completes payment on Stripe
   → Stripe redirects to https://app.example.com/billing/return?status=…
@@ -66,10 +68,10 @@ Pricing UI → tap "Subscribe"
 
 ```
 Pricing UI → tap "Subscribe"
-  → POST /api/billing/checkout  (authenticatedFetch)
-      body: { priceId, returnPath: "/billing/return" }
+  → POST /api/billing/checkout-session  (authenticatedFetch)
+      body: { planId, interval, returnPath: "/billing/return" }
   → server builds Checkout Session with native return URL
-  → returns { url } to client
+  → returns { url, expiresAt } to client
   → WebBrowser.openAuthSessionAsync(url, "myapp://billing/return")
   → user completes payment on Stripe in the system browser
   → Stripe redirects to myapp://billing/return?status=…
@@ -82,7 +84,7 @@ Pricing UI → tap "Subscribe"
 
 ```
 Account UI → "Manage subscription"
-  → POST /api/billing/portal
+  → POST /api/billing/portal-session
       body: { returnPath: "/billing/return" }
   → server creates Billing Portal session
   → returns { url } to client
@@ -200,13 +202,15 @@ unauthenticated and verified by Stripe signature.
 | Route | Method | Auth | Purpose |
 |-------|--------|------|---------|
 | `/api/billing/summary` | GET | Cognito | Return `BillingSummary` for the signed-in user |
-| `/api/billing/checkout` | POST | Cognito | Create a Checkout Session, return `{ url }` |
-| `/api/billing/portal` | POST | Cognito | Create a Billing Portal session, return `{ url }` |
+| `/api/billing/checkout-session` | POST | Cognito | Body `{ planId, interval, returnPath }`. Resolves the server-owned price id, creates a Checkout Session, returns `{ url, expiresAt }`. Returns `400 unknown-plan` for ids not in the catalog and `422 configuration-missing` when the requested interval has no price id set. |
+| `/api/billing/portal-session` | POST | Cognito | Body `{ returnPath }`. Creates a Billing Portal session, returns `{ url }`. |
 | `/api/billing/webhook` | POST | Stripe signature | Receive Stripe events, update server state |
 
-Rate-limit posture: `/api/billing/checkout` and `/api/billing/portal`
-should be registered as strict-limited paths alongside the existing
-`STRICT_LIMIT_PATHS` in `server/rateLimits.js` when the routes land.
+Rate-limit posture: `/api/billing/checkout-session` and
+`/api/billing/portal-session` are registered in `STRICT_LIMIT_PATHS`
+(10/min) in `server/rateLimits.js`. The webhook is intentionally not
+rate-limited — Stripe retries can burst faster, and signature
+verification already gates abuse.
 
 ## Client surface (shape, not implementation)
 
@@ -233,7 +237,7 @@ in one place.
 
 | Case | Handling |
 |------|----------|
-| Unauthenticated user taps "Subscribe" | Pricing CTAs live behind `AuthGate` (or route the user through sign-in before calling `/api/billing/checkout`). The server **must** reject `/api/billing/checkout` without a Cognito session. |
+| Unauthenticated user taps "Subscribe" | Pricing CTAs live behind `AuthGate` (or route the user through sign-in before calling `/api/billing/checkout-session`). The server **must** reject `/api/billing/checkout-session` without a Cognito session. |
 | Native process recreated during Checkout | `openAuthSessionAsync` may not resolve. On next app focus, the billing screen refetches the summary; webhook-driven state still converges. |
 | Second device already has an active subscription | `useBillingSummary` reflects `active` on both devices — pricing UI must show "current plan" state, not a duplicate purchase CTA. |
 | Browser closes before success/cancel redirect | No client state change. Next summary fetch (pull-to-refresh, app focus) picks up the webhook-driven state. |

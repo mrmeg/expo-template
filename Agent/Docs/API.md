@@ -229,9 +229,12 @@ stay server-side; clients never read them. The server-side resolver
 customer linking (metadata lookup → single-match email backfill →
 `CustomerConflictError` → create).
 
-**Rate limits:** `/api/billing/checkout` and `/api/billing/portal` should
-be registered in `STRICT_LIMIT_PATHS` (see Rate Limiting table below)
-when the routes land, alongside `/api/media/getUploadUrl`.
+**Rate limits:** `/api/billing/checkout-session` and
+`/api/billing/portal-session` are registered in `STRICT_LIMIT_PATHS`
+(10/min — see Rate Limiting table below) alongside
+`/api/media/getUploadUrl`. The webhook is intentionally not rate-limited
+since Stripe retries can burst faster and signature verification already
+gates abuse.
 
 **Return URL contract:** hosted sessions redirect to a single return
 path (`/billing/return`) with `status=success|cancel|portal`. Web uses
