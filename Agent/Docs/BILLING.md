@@ -307,7 +307,7 @@ that into `STRIPE_WEBHOOK_SECRET` in `.env` and restart the server.
 ### 5. Start the app with env
 
 ```bash
-npm run start-local   # dev server with dotenv
+bun run start-local   # Express server with .env autoloaded by Bun
 ```
 
 The first billing request triggers `ensureBillingBootstrapped()`, which

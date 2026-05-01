@@ -49,22 +49,21 @@ File-based routing via Expo Router with nested layouts:
 - **Root layout** (`_layout.tsx`) — Provider stack, splash screen, error boundary
 - **Main group** (`(main)/`) — Stack navigator, header config
   - **Tabs** (`(tabs)/`) — 4 bottom tabs: Explore, Media, Profile, Settings
-  - **Demos** (`(demos)/`) — 17 screen templates and demos
-- **API routes** (`api/`) — Server-side endpoints:
-  - `api/media/` — S3 presigned URLs (upload, read, list, delete)
+  - **Demos** (`(demos)/`) — 13 screen templates plus standalone demos (form, auth, developer, onboarding) and the component showcase
+- **API routes** (`app/api/`) — Server-side endpoints. Cross-route helpers live in `server/api/shared/` (`auth.ts` with `requireAuthenticatedUser` fronted by a pluggable `TokenVerifier` — returns structured 401s and fails closed when no verifier is registered, `errors.ts` typed JSON error responses, `cors.ts`):
+  - `api/media/` — R2/S3 presigned URLs (upload, read, list, delete). Bootstrap and `S3Client` lazy-construction live in `server/api/media/storage.ts`; missing `R2_*` env vars return `503 media-disabled` from every route.
   - `api/billing/` — Stripe Checkout / Portal / Webhook / Summary routes driven by the process-wide `BillingRegistry` (`server/api/billing/registry.ts`). Unconfigured registries return `503 billing-disabled`.
-  - `api/_shared/` — Cross-route helpers: `auth.ts` (`requireAuthenticatedUser` fronted by a `TokenVerifier` port — returns structured 401s and fails closed when no verifier is registered), `errors.ts` (typed JSON error responses), `cors.ts`
 - **Web HTML** (`+html.tsx`) — Server-only root document, global CSS, theme-aware styles, font loading
 
 ### Client Layer (`client/`)
 
 Organized by concern:
 
-- **`features/`** — Self-contained domain modules (auth, media, i18n, keyboard, navigation, onboarding, app, billing)
+- **`features/`** — Self-contained domain modules (auth, media, i18n, keyboard, navigation, onboarding, app, billing). Toast notifications are not a feature — `Notification` is a UI primitive (`components/ui/Notification.tsx`) and the global toast queue is a shared store (`state/globalUIStore`).
   - `features/billing/` (baseline, hosted-external) owns the client side of Stripe Checkout / Billing Portal: `useBillingSummary` (React Query over `/api/billing/summary`, scoped to the authenticated user with `placeholderData = freeBillingSummary()`), plus the planned `useCheckout` / `usePortal` hooks and entitlement helper. UI code consumes the normalized `BillingSummary` from `shared/billing.ts` — never raw Stripe. Server-side identity mapping lives in `server/api/billing/account.ts` (`BillingAccountResolver`). See `Agent/Docs/BILLING.md`.
   - `features/app/` owns the shell contract: `useAppStartup` (single startup gate), `AuthGate` (per-surface auth policy), `OnboardingGate` (first-run flow), `isAuthEnabled` (env predicate)
 - **`components/ui/`** — 35 design system primitives (shadcn-inspired)
-- **`hooks/`** — 8 shared hooks (useTheme, useDimensions, useScalePress, etc.)
+- **`hooks/`** — 9 shared hooks (useClipboard, useDebounce, useDimensions, useReduceMotion, useResources, useScalePress, useStaggeredEntrance, useTheme, useToggle)
 - **`lib/`** — Utilities (API client, haptics, storage, gesture handler, devtools)
 - **`state/`** — Global stores (theme, drawer, globalUI)
 - **`config/`** — Environment-aware config (base + dev/prod overrides)
@@ -87,7 +86,7 @@ named exceptions that the script + test in
 |---------|-----------------|-----|
 | `app/` | `auth/`, `onboarding/` | Shell composition — `useAppStartup`, `OnboardingGate`, and `AuthGate` orchestrate auth + onboarding at startup. |
 | `billing/` | `auth/` | Identity-only — `useBillingSummary` / `useBillingActions` read `useAuthStore` to learn whether the viewer is signed in. They never touch auth UI components. |
-| All others (`auth`, `onboarding`, `media`, `i18n`, `notifications`, `navigation`, `keyboard`) | — | Self-contained. No cross-feature imports allowed. |
+| All others (`auth`, `onboarding`, `media`, `i18n`, `navigation`, `keyboard`) | — | Self-contained. No cross-feature imports allowed. |
 
 **Conventions:**
 - Internal imports inside a feature use relative paths so the folder stays copy-portable.
@@ -100,7 +99,7 @@ named exceptions that the script + test in
 - `media/` → standalone. Needs `app/api/media/*` + `server/api/media/storage.ts` + `shared/media.ts` + R2/S3 env vars. Toast feedback uses `client/state/globalUIStore` from the shared layer.
 - `billing/` → copy with `auth/` (identity dependency) and the `app/api/billing/*` server routes + `server/api/billing/*` registry + `shared/billing.ts`.
 - `app/` → copy with `auth/` and `onboarding/` (composition dependency); this folder is the shell, not portable on its own.
-- `i18n/`, `notifications/`, `navigation/`, `keyboard/` → standalone with shared-layer dependencies only.
+- `i18n/`, `navigation/`, `keyboard/` → standalone with shared-layer dependencies only.
 
 Run `bun run check:features` locally to validate; `bun run test:ci` runs the same scan as part of the suite.
 
@@ -180,6 +179,6 @@ file path, and graceful failure behavior.
 - **Local SSR verification**: `bun run build` then `bun run serve:ssr` for the
   Expo production server, or `bun run start-local` to exercise the custom
   Express adapter.
-- **Native**: EAS Build (configured in app.json)
+- **Native**: EAS Build. Identity (name, slug, scheme, bundle id, package) lives in `app.identity.ts` and is consumed by `app.config.ts`; override via `EXPO_PUBLIC_APP_*` env vars without editing tracked files. Re-run `expo prebuild` after identity changes.
 - **Local verification**: `bun run typecheck`, `bun run lint`, `bun run check:features`, `bun run test:ci`
 - **CI**: `.github/workflows/ci.yml` runs the same gates plus `bun run build` + `bun run bundle-size` on every push/PR to `main`/`dev` (Bun-based, frozen lockfile, no app credentials required)

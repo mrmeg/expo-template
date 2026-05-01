@@ -49,8 +49,8 @@ Defined in `client/constants/fonts.ts`.
 | 3xl | 30 | 36 | -0.5 |
 | 4xl | 36 | 40 | -0.75 |
 
-- Font family: Inter (via @expo-google-fonts/lato, system fallback)
-- Weights: 400 (normal), 500 (medium), 600 (semibold), 700 (bold)
+- Font family: Lato (`Lato_400Regular`, `Lato_700Bold` via `@expo-google-fonts/lato`, system fallback)
+- Weights: 400 (normal), 500 (medium), 700 (bold) — only the two ttf weights are loaded; "500" is rendered with synthetic font-weight CSS
 - **2xl+ sizes get negative letter spacing** for tighter headings
 
 ## Spacing & Layout
@@ -159,7 +159,7 @@ Contrast calculations are cached (max 500 entries).
 
 ## Screen Templates
 
-17 pre-built templates in `app/(main)/(demos)/`:
+13 pre-built templates exposed via the `client/showcase/registry.ts` `SCREEN_TEMPLATES` array (Explore tab reads from there) with demo routes under `app/(main)/(demos)/`:
 
 Settings, Profile, List, Pricing, Welcome, Card Grid, Chat, Dashboard, Form (multi-step), Notifications, Search, Error states, Detail Hero.
 

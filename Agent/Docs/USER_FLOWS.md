@@ -42,8 +42,8 @@ their children.
 | `(main)/(tabs)/media.tsx` | Public |
 | `(main)/(tabs)/profile.tsx` | **Protected** (`AuthGate`) |
 | `(main)/(tabs)/settings.tsx` | **Protected** (`AuthGate`) |
-| `(main)/showcase/**` | Public |
-| `(main)/(demos)/**` (including `auth-demo`, `onboarding`) | Public |
+| `(main)/(demos)/showcase/**` | Public |
+| `(main)/(demos)/**` (including `auth-demo`, `onboarding`, all `screen-*` templates) | Public |
 
 Protected screens wrap their exported default in `<AuthGate>` from
 `client/features/app/AuthGate.tsx`. When auth is disabled the gate renders
@@ -274,12 +274,12 @@ Inactive tab: mutedForeground
 ## Demo/Showcase Access
 
 ```
-Explore tab → "UI Components" card
-  → Navigate to showcase/index
-  → Browse 35 components with live demos
+Explore tab → "Component Library" card
+  → Navigate to (main)/(demos)/showcase/index
+  → Browse the components listed in client/showcase/registry.ts (count derived via getComponentCount())
 
-Explore tab → Screen template cards
-  → Navigate to any of 17 screen templates
+Explore tab → Screen template cards (driven by SCREEN_TEMPLATES in client/showcase/registry.ts)
+  → Navigate to any of the 13 screen templates
   → (Settings, Profile, List, Pricing, Welcome, etc.)
 ```
 

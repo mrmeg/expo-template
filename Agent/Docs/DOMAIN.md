@@ -159,9 +159,12 @@ See [`BILLING.md`](./BILLING.md) for the full architecture.
 ## Business Rules
 
 ### Feature Isolation
-- Features never import from other features — only from the shared layer
-- Exception: media → notifications (globalUIStore) for upload toast feedback
-- This rule enables features to be added/removed independently
+- Features default to *self-contained* — only the shared layer (`client/lib/*`, `client/hooks/*`, `client/components/ui/*`, `client/constants/*`, `client/state/*`, `shared/*`, `@rn-primitives`) is unconditionally importable.
+- Two named cross-feature edges are allowed and enforced by `scripts/check-feature-isolation.js` + the `featureIsolation.test.ts` suite:
+  - `app/` may import `auth/` and `onboarding/` (shell composition: `useAppStartup`, `OnboardingGate`, `AuthGate`).
+  - `billing/` may import `auth/` (identity-only — `useAuthStore` for the signed-in viewer; never auth UI).
+- All other features (`media`, `i18n`, `keyboard`, `navigation`, `onboarding`, `auth`) must not cross-import. Toast feedback uses `client/state/globalUIStore` from the shared layer rather than a `notifications` feature.
+- This rule enables features to be added/removed independently. See `Agent/Docs/ARCHITECTURE.md#feature-isolation` for the full matrix.
 
 ### API Error Handling
 - All API calls return discriminated unions (never throw)

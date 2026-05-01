@@ -41,7 +41,6 @@ const ALLOWED_DEPENDENCIES = {
   onboarding: { allowed: [], reason: "Self-contained." },
   media: { allowed: [], reason: "Self-contained." },
   i18n: { allowed: [], reason: "Self-contained." },
-  notifications: { allowed: [], reason: "Self-contained." },
   navigation: { allowed: [], reason: "Self-contained." },
   keyboard: { allowed: [], reason: "Self-contained." },
 };
