@@ -1,230 +1,217 @@
-# Expo Template Project
+# Expo Template
 
-A professional, feature-rich starter kit for React Native and Expo applications with pre-built UI components, internationalization, and modern development tools.
+A production-ready starter for cross-platform Expo apps. Ships with a
+shadcn-inspired design system, optional auth/billing/media features that
+each fail closed when unconfigured, an Express production server, and a
+spec-driven agent workflow under `Agent/`.
 
 ## Features
 
 ### Core
-- 🎨 **Complete UI Component Library** - Buttons, inputs, alerts, popovers, toggles, accordions, dropdown menus, and more
-- 🌓 **Comprehensive Theming** - Dark/light modes with system preference detection
-- 📱 **Cross-Platform** - Works on iOS, Android, and Web with consistent styling
-- 🧩 **File-based Routing** - Using Expo Router for simplified navigation
-- 🔄 **State Management** - Zustand for lightweight global state
-- 💪 **TypeScript** - Full type safety with strict mode
-- 📊 **Accessibility Focus** - WCAG-compliant contrast utilities
+- **Universal app** — iOS, Android, Web (React Native Web 0.21) on Expo SDK 55 / React 19 / RN 0.83 / TypeScript strict.
+- **Design system** — 35+ shadcn-inspired components on `@rn-primitives` with a zinc palette, teal accent, dark/light themes, and WCAG contrast helpers.
+- **File-based routing** — Expo Router with typed routes, async web routes, and a server-rendered web build.
+- **State** — Zustand for client state, TanStack React Query for server state, persisted via `AsyncStorage` (native) or `localStorage` (web).
+- **i18n** — `i18next` + `expo-localization`, English/Spanish bundles, RTL support, type-safe translation keys.
 
-### Infrastructure
-- 🌍 **Internationalization (i18n)** - Multi-language support with expo-localization and i18next
-- 🔌 **API Service Layer** - Typed fetch wrapper with error handling, works with React Query
-- 💾 **Storage Utilities** - Cross-platform AsyncStorage abstraction
-- ⚙️ **Environment Configuration** - Dev/prod config system with typed settings
-- 🛡️ **Error Boundary** - Global error catching with user-friendly fallback UI
+### Optional features (all default off, enabled by env)
+- **Auth** — AWS Amplify / Cognito; without `EXPO_PUBLIC_USER_POOL_ID` and `EXPO_PUBLIC_USER_POOL_CLIENT_ID` the auth shell stays disabled and the template remains explorable.
+- **Billing** — Stripe Checkout + Billing Portal (`hosted-external`). Without `STRIPE_*` env vars every `/api/billing/*` route returns a typed `503 billing-disabled` and the UI hides purchase CTAs.
+- **Media** — R2/S3 uploads, signed URLs, browse, delete, client-side compression, video thumbnails. Without the four `R2_*` env vars every `/api/media/*` route returns a typed `503 media-disabled` and the Media tab renders a setup state.
+- **Sentry** — `@sentry/react-native`, no-op when `EXPO_PUBLIC_SENTRY_DSN` is unset.
 
-### Developer Experience
-- 🧪 **Testing Infrastructure** - Jest + React Native Testing Library with example tests
-- 🔍 **Reactotron Integration** - Advanced debugging for native platforms
-- 🏗️ **Generator CLI** - Scaffold components and screens consistently
-- 📝 **Custom Typography** - Font system with Lato and Merriweather
-
-## UI Components
-
-Built on `@rn-primitives` with full theme integration:
-
-- **Typography** - Styled text components with custom fonts (SansSerif, Serif, Bold variants)
-- **Button** - 6 variants (default, outline, ghost, link, destructive, secondary), 3 sizes, loading state
-- **TextInput** - Regular, password, multiline with secure entry toggle
-- **Checkbox** - Controlled component with theme-aware styling
-- **Switch** - Toggle with optional labels
-- **Toggle & ToggleGroup** - Single/multiple selection toggle buttons
-- **Accordion** - Animated collapsible sections
-- **Collapsible** - Smooth expand/collapse animations
-- **Popover** - Smart positioning with portal rendering
-- **DropdownMenu** - Full menu system with items, checkboxes, radio groups, sub-menus
-- **Alerts & Notifications** - Centralized alert management with global state
-- **Icon** - Lucide icons wrapper with theme color support
+### Developer experience
+- **Express production server** — gzip compression, CORS, rate limiting (a strict 10/min bucket on `/api/media/getUploadUrl` and the billing checkout/portal routes), security headers, Morgan logging.
+- **Generator CLI** — `bun run generate component|screen|hook|form <Name>` — paths and imports match the rest of the template.
+- **Reactotron** — auto-connects in dev mode for native runs.
+- **Spec-driven Night/Day Shift workflow** — see `Agent/AGENTS.md`.
 
 ## Getting Started
 
-1. Clone this repository
-   ```bash
-   git clone https://github.com/yourusername/template.git my-app
-   cd my-app
-   ```
+This project uses **bun** as the package manager. The lockfile is `bun.lock`.
 
-2. Install dependencies
-   ```bash
-   npm install
-   ```
+```bash
+git clone <repo-url> my-app
+cd my-app
+bun install
+npx expo start          # Press i / a / w for iOS / Android / Web
+```
 
-3. Start the development server
-   ```bash
-   npm start
-   ```
+The `.env.example` file enumerates every optional feature flag — copy it to
+`.env` and fill in only the credentials you need. A blank `.env` boots the
+app with auth, billing, and media all disabled.
 
-4. Choose your platform
-   - Press `i` for iOS simulator
-   - Press `a` for Android emulator
-   - Press `w` for web browser
-
-## Development
-
-### Available Scripts
+## Scripts
 
 | Script | Description |
 |--------|-------------|
-| `npm start` | Start the Expo development server |
-| `npm run ios` | Start on iOS simulator |
-| `npm run android` | Start on Android emulator |
-| `npm run web` | Start for web development |
-| `npm run build` | Build for web |
-| `npm test` | Run tests in watch mode |
-| `npm run lint` | Run ESLint |
-| `bun run generate component <Name>` | Generate a UI component in `client/components/ui/` |
-| `bun run generate screen <Name>` | Generate a reusable screen + demo route under `app/(main)/(demos)` |
-| `bun run generate hook <Name>` | Generate a hook in `client/hooks/` |
-| `bun run generate form <Name>` | Generate a form built on `@/client/lib/form` primitives |
+| `npx expo start` | Expo dev server (interactive) |
+| `bun run web` | Start the Expo web dev server |
+| `bun run ios` / `bun run android` | Build + run on simulator / emulator |
+| `bun run build` | Production web export → `dist/` (client + SSR server) |
+| `bun run start` | Run the Express production server (`server/index.ts`) |
+| `bun run start-local` | Same, with `.env` autoloaded by Bun |
+| `bun run typecheck` | `tsc --noEmit` |
+| `bun run lint` | `expo lint` (ESLint flat config) |
+| `bun run test:ci` | `jest --ci --coverage --forceExit` |
+| `bun run bundle-size` | Compare client JS against `scripts/bundle-baseline.json` |
+| `bun run analyze` | `source-map-explorer` treemap of the client bundle |
+| `bun run generate component\|screen\|hook\|form <Name>` | Scaffold a new module — see [Generator CLI](#generator-cli) |
 
-### Generator CLI
-
-Quickly scaffold components, screens, hooks, and forms with paths and
-imports that match the rest of the template:
+## Generator CLI
 
 ```bash
 bun run generate component MyButton    # client/components/ui/MyButton.tsx
-bun run generate screen Settings       # client/screens/SettingsScreen.tsx + demo route
+bun run generate screen Settings       # client/screens/SettingsScreen.tsx + app/(main)/(demos)/screen-settings.tsx
 bun run generate hook Debounce         # client/hooks/useDebounce.ts
 bun run generate form ContactInfo      # client/components/forms/ContactInfoForm.tsx
 ```
 
-The generator never overwrites existing files. Names in PascalCase,
-kebab-case, or snake_case are all accepted and normalized.
+The generator never overwrites existing files. PascalCase, kebab-case, and
+snake_case names are all accepted and normalized to PascalCase exports.
 
-### Testing
+## Testing
 
 ```bash
-# Run tests in watch mode
-npm test
-
-# Run tests once
-npm test -- --watchAll=false
-
-# Run with coverage
-npm test -- --coverage --watchAll=false
+bun jest --watchAll                    # interactive
+bun jest --testPathPattern=<path>      # single suite
+bun run test:ci                        # CI-style with coverage
 ```
 
-### Reactotron Debugging
-
-For native development:
-1. Install [Reactotron](https://github.com/infinitered/reactotron/releases)
-2. Run the app in development mode
-3. Reactotron auto-connects to show network requests, AsyncStorage, and logs
+Coverage is collected from `client/**`, `app/api/**`, `server/**`, and
+`shared/**` so CI flags drift in the route-level seams (CORS, rate
+limiting, auth bootstrap, media storage, billing) — not just UI.
 
 ## Architecture
 
 ```
-/app                          # File-based routing (Expo Router)
-  ├── _layout.tsx             # Root layout with providers
-  ├── index.tsx               # Entry redirect
-  └── (main)/                 # Main app routes
-      ├── (tabs)/             # Tab navigation (home, profile, settings)
-      └── showcase.tsx        # Component showcase
+/app                          # Expo Router routes (file-based)
+  ├── _layout.tsx             # Root layout: providers, splash, error boundary
+  ├── (main)/(tabs)/          # Tab nav: home, profile, settings, media
+  ├── (main)/(demos)/         # Showcase + screen-template demo routes
+  └── api/                    # Expo Server routes (media, billing, etc.)
 
 /client
-  ├── components/ui/          # Reusable UI components
-  │   └── __tests__/          # Component tests
-  ├── config/                 # Environment configuration
-  ├── constants/              # Design tokens (colors, spacing, fonts)
-  ├── devtools/               # Reactotron configuration
-  ├── hooks/                  # Custom React hooks
-  ├── i18n/                   # Internationalization
-  ├── screens/                # Screen components (ErrorScreen)
-  ├── services/api/           # API client and types
-  ├── stores/                 # Zustand state stores
-  └── utils/storage/          # AsyncStorage utilities
+  ├── components/ui/          # 35+ design system components on @rn-primitives
+  ├── config/                 # Base / dev / prod app config (merged at runtime)
+  ├── constants/              # Design tokens (colors, fonts, spacing)
+  ├── features/               # Self-contained feature folders
+  │   ├── auth/               #   Cognito (optional)
+  │   ├── billing/            #   Stripe hosted-external (optional)
+  │   ├── media/              #   R2/S3 uploads (optional)
+  │   ├── i18n/               #   i18next + translations
+  │   ├── notifications/      #   Global toast/alert
+  │   ├── onboarding/         #   First-run flow
+  │   ├── keyboard/           #   Cross-platform keyboard handling
+  │   ├── navigation/         #   Web back-button + back behavior
+  │   └── app/                #   Startup sequencing + auth gates
+  ├── hooks/                  # Shared hooks (useTheme, useResources, …)
+  ├── lib/                    # Shared utilities
+  │   ├── api/                #   apiClient + authenticatedFetch
+  │   ├── form/               #   FormProvider, FormTextInput, FormCheckbox, …
+  │   ├── storage/            #   Cross-platform AsyncStorage wrapper
+  │   └── devtools/           #   Reactotron config
+  ├── screens/                # 13+ pre-built screen templates
+  └── state/                  # Shared Zustand stores (theme, drawer)
 
-/scripts                      # CLI tools (generator)
-/test                         # Test setup and utilities
+/server                       # Express production server (compression, CORS, rate limits)
+/shared                       # Code shared between client & server (e.g. media path constants)
+/scripts                      # Generator CLI + bundle-size check
+/test                         # Jest setup
+/Agent                        # Spec-driven workflow (specs, playbooks, docs)
 ```
+
+For deeper architecture, see `Agent/Docs/ARCHITECTURE.md`. For the current
+docs index, start at `Agent/AGENTS.md`.
 
 ## Internationalization
 
-Multi-language support with type-safe translation keys:
-
 ```tsx
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 
-function MyComponent() {
+function Greeting() {
   const { t } = useTranslation();
-  return <Text>{t('common.ok')}</Text>;
+  return <Text>{t("common.ok")}</Text>;
 }
 
-// Or with the tx prop on Text components
-<Text tx="common.ok" />
+// Or use the tx prop on the styled text components:
+import { SansSerifText } from "@/client/components/ui/StyledText";
+<SansSerifText tx="common.ok" />;
 ```
 
-Add new languages in `/client/i18n/`.
+Translation bundles live in `client/features/i18n/translations/` (`en`,
+`es`). Add a language by dropping a new bundle in that folder and wiring
+it into `client/features/i18n/index.ts`.
 
-## API Service
+## API Layer
 
-Typed API client with error handling:
+Two complementary clients live under `client/lib/api/`:
 
 ```tsx
-import { api } from '@/client/lib/api/apiClient';
+// 1. apiClient — typed fetch wrapper with discriminated-union responses.
+import { api } from "@/client/lib/api/apiClient";
 
-// Make requests
-const result = await api.get<User>('/users/me');
-
-if (result.kind === 'ok') {
+const result = await api.get<User>("/users/me");
+if (result.kind === "ok") {
   console.log(result.data);
 } else {
-  console.error(result.kind); // 'timeout', 'unauthorized', etc.
+  console.error(result.kind); // "timeout" | "unauthorized" | "bad-data" | …
 }
+api.setAuthToken(token); // optional manual token
 
-// Set auth token if needed
-api.setAuthToken(token);
+// 2. authenticatedFetch — pulls the Cognito access token from Amplify
+//    and is the default for code that uses the bundled auth shell.
+import { api as authedApi } from "@/client/lib/api/authenticatedFetch";
+
+await authedApi.post("/api/media/getUploadUrl", { extension: "jpg", mediaType: "uploads" });
 ```
-
-Works seamlessly with React Query for caching and state management.
 
 ## Configuration
 
-Environment-based configuration in `/client/config/`:
-
 ```tsx
-import Config from '@/client/config';
+import Config from "@/client/config";
 
-console.log(Config.apiUrl);        // API base URL
-console.log(Config.catchErrors);   // Error catching mode
+Config.apiUrl;          // External API base URL (or "" for local /api/* routes)
+Config.catchErrors;     // ErrorBoundary policy
+Config.billingEnabled;  // Stripe billing UI flag (mirrors EXPO_PUBLIC_BILLING_ENABLED)
+Config.appUrl;          // Absolute web origin used by hosted-billing return URLs
 ```
+
+Runtime merges `client/config/config.base.ts` with either `config.dev.ts`
+or `config.prod.ts` based on `__DEV__`.
 
 ## Theming
 
-Access theme anywhere with the `useTheme` hook:
-
 ```tsx
-import { useTheme } from '@/client/hooks/useTheme';
-import { spacing } from '@/client/constants/spacing';
+import { useTheme } from "@/client/hooks/useTheme";
+import { spacing } from "@/client/constants/spacing";
 
-function MyComponent() {
-  const { theme, scheme, getShadowStyle, getContrastingColor } = useTheme();
-
+function Card({ children }) {
+  const { theme, getShadowStyle, getContrastingColor } = useTheme();
   return (
     <View style={[
-      { backgroundColor: theme.colors.bgPrimary },
-      getShadowStyle('base')
+      {
+        backgroundColor: theme.colors.card,
+        borderColor: theme.colors.border,
+        borderRadius: spacing.radiusMd,
+        padding: spacing.md,
+      },
+      getShadowStyle("subtle"),
     ]}>
-      <Text style={{ color: theme.colors.textPrimary }}>
-        Current theme: {scheme}
-      </Text>
+      <Text style={{ color: theme.colors.foreground }}>{children}</Text>
     </View>
   );
 }
 ```
 
+Color tokens live in `client/constants/colors.ts` (`background`,
+`foreground`, `card`, `cardForeground`, `primary`, `primaryForeground`,
+`accent`, `border`, `muted`, `mutedForeground`, `destructive`, …). For
+the full design system see `Agent/Docs/DESIGN.md`.
+
 ## Billing (Stripe, hosted-external)
 
-The template ships with a hosted Stripe subscription integration off by
-default. To turn it on:
+Off by default. To turn on:
 
 ```bash
 # .env
@@ -236,47 +223,42 @@ STRIPE_PRICE_ID_PRO_MONTH=price_...
 STRIPE_PRICE_ID_PRO_YEAR=price_...
 ```
 
-Then forward webhooks to localhost:
-
 ```bash
 stripe listen --forward-to localhost:3000/api/billing/webhook
 ```
 
-Full walkthrough (products, prices, disabling cleanly) lives in
+Full walkthrough (products, prices, disabling cleanly) is in
 [`Agent/Docs/BILLING.md`](./Agent/Docs/BILLING.md). Without Stripe env
-vars the `/api/billing/*` routes return a typed `503 billing-disabled`
-and the UI hides purchase CTAs — no Stripe traffic is ever generated.
-
-## Special Features
-
-- **Cross-platform shadows** - Consistent shadows across all platforms
-- **Smart contrast detection** - Automatically choose appropriate text colors
-- **Responsive layouts** - Adapts to different screen sizes
-- **RTL support** - Right-to-left layout support for i18n
-- **Error boundaries** - Graceful error handling with recovery
-- **Keyboard handling** - Smart keyboard avoidance and management
+vars `/api/billing/*` returns `503 billing-disabled` and the UI hides
+purchase CTAs — no Stripe traffic is ever generated.
 
 ## Tech Stack
 
-- **Expo SDK 55** - Latest Expo features
-- **React Native 0.83** - Core framework
-- **React 19** - Latest React with compiler optimizations
-- **TypeScript** - Type safety
-- **Expo Router v6** - File-based navigation
-- **Zustand** - State management
-- **React Query** - Server state management
-- **i18next** - Internationalization
-- **Jest** - Testing framework
-- **@rn-primitives** - Accessible UI primitives
-- **Lucide Icons** - Icon library
+- Expo SDK 55, React 19, React Native 0.83, React Native Web 0.21
+- TypeScript 5.9 (strict), path alias `@/*` → repo root
+- Expo Router ~55 (typed, async web routes, server-rendered web build)
+- Zustand 5, TanStack React Query 5
+- AWS Amplify 6 + Cognito (optional)
+- Stripe 22 (server, hosted-external Checkout + Billing Portal)
+- AWS S3 client + presigner (R2-compatible)
+- react-hook-form 7 + Zod 4 + `@hookform/resolvers`
+- `react-native-reanimated` 4.2, `react-native-keyboard-controller` 1.20
+- `@expo/vector-icons` (Feather icon set in `Icon`)
+- `@expo-google-fonts/lato` for the typography scale
+- Jest 29 + jest-expo + RNTL 13
+- ESLint 10 (flat config) + `@tanstack/eslint-plugin-query`
+- Express 5 (production web server)
+- Bun (package manager + script runner)
 
-## IDE Setup
+## Agent Workflow
 
-This project includes VSCode workspace settings in `.vscode/`. Open the project in VSCode and accept the recommended extensions prompt for the best experience.
+The `Agent/` directory ships a spec-driven workflow:
 
-## Contributing
+- `/nightshift` — autonomous overnight loop that picks specs from `Agent/Specs/` and ships them
+- `/dayshift` — interactive mode for writing specs, investigating issues, reviewing
+- Slash commands: `/investigate`, `/write-spec`, `/review-spec`, `/morning-review`, `/status`, `/update-docs`, `/bootstrap-docs`
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, code style, and PR guidelines.
+Start at `Agent/AGENTS.md` for the router and the docs index.
 
 ## License
 

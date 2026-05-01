@@ -14,7 +14,7 @@ This project uses **bun**. Always use `bun install` and `bun add <package>` — 
 
 - **Double quotes**, **always semicolons** (enforced by ESLint)
 - 2-space indentation
-- Run `npx expo lint` before committing
+- Run `bun run lint` before committing
 
 ## Git Workflow
 
@@ -25,43 +25,49 @@ This project uses **bun**. Always use `bun install` and `bun add <package>` — 
 
 ## PR Checklist
 
-- [ ] `npx expo lint` passes
-- [ ] `jest --watchAll` — all tests pass
-- [ ] Web tested (`npx expo start --web`)
+- [ ] `bun run lint` passes
+- [ ] `bun run typecheck` passes
+- [ ] `bun run test:ci` — all tests pass
+- [ ] Web tested (`bun run web`)
 - [ ] iOS/Android tested if touching native code
 - [ ] New components include showcase demos
 - [ ] No secrets or credentials committed
 
 ## Testing
 
-- Tests live next to source files as `*.test.ts` or `*.test.tsx`
-- Run all tests: `jest --watchAll`
-- Run a single file: `jest --testPathPattern=path/to/test`
-- Coverage targets `client/**`
+- Tests live next to source files in `__tests__/` directories or as `*.test.ts(x)` siblings
+- Run interactively: `bun jest --watchAll`
+- Run a single file: `bun jest --testPathPattern=path/to/test`
+- CI-style with coverage: `bun run test:ci`
+- Coverage is collected from `client/**`, `app/api/**`, `server/**`, and `shared/**` so route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing) stay observable — not just UI code
 
 ## Project Structure
 
-See `CLAUDE.md` for detailed architecture documentation. Key directories:
+See `Agent/Docs/ARCHITECTURE.md` for the canonical architecture reference and `Agent/AGENTS.md` for the docs index. Key directories:
 
-- `app/` — Expo Router file-based routing
-- `client/features/` — Self-contained feature modules
+- `app/` — Expo Router file-based routing (UI routes + `app/api/*` server routes)
+- `client/features/` — Self-contained feature modules (auth, billing, media, i18n, notifications, onboarding, keyboard, navigation, app)
 - `client/components/ui/` — Design system primitives
 - `client/screens/` — Pre-built screen templates
-- `client/lib/form/` — Form system (react-hook-form + zod)
-- `server/` — Express production server
+- `client/lib/api/` — `apiClient` (typed fetch) + `authenticatedFetch` (Amplify-aware)
+- `client/lib/form/` — Form primitives (`FormProvider`, `FormTextInput`, `FormCheckbox`, …) on top of react-hook-form + Zod
+- `client/lib/storage/` — Cross-platform AsyncStorage wrapper
+- `client/state/` — Shared Zustand stores (theme, drawer); per-feature stores live under `client/features/<name>/stores/`
+- `server/` — Express production server (compression, CORS, rate limiting, security headers)
+- `shared/` — Code shared between client and server (e.g. `shared/media.ts` path constants)
 
 ## Design System
 
-- Shadcn-inspired, zinc-based palette
-- See `client/constants/` for tokens (colors, fonts, spacing)
+- Shadcn-inspired, zinc palette + teal accent
+- See `client/constants/` for tokens (colors, fonts, spacing) and `Agent/Docs/DESIGN.md` for the full reference
 - Component sizes: sm=32, md=36, lg=40
-- Always use `StyleSheet.flatten()` for @rn-primitives style props (see CLAUDE.md)
+- Use `StyleSheet.flatten([...])` (not raw arrays) for `@rn-primitives` style props — nested style arrays crash React Native Web
 
 ## Adding a New Component
 
-1. Scaffold: `npx tsx scripts/generate.ts component <Name>`
+1. Scaffold: `bun run generate component <Name>`
 2. Implement in `client/components/ui/<Name>.tsx`
-3. Add a showcase demo in the showcase screen
+3. Add a showcase demo under `app/(main)/(demos)/showcase/`
 4. Update the component count in the Explore tab
 
 ## Adding a New Screen Template
