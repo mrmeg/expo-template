@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `align-billing-docs-with-session-routes.md` | Ready | Medium |
 | `define-feature-dependency-contracts.md` | Ready | Medium |
 | `parameterize-app-identity.md` | Ready | Medium |
 | `restore-template-ci-workflow.md` | Ready | Medium |
