@@ -4,9 +4,9 @@ import {
   FlatList,
   Animated,
   StyleSheet,
-  Dimensions,
   Platform,
   ViewToken,
+  useWindowDimensions,
 } from "react-native";
 import { SansSerifBoldText, SansSerifText } from "@/client/components/ui/StyledText";
 import { Button } from "@/client/components/ui/Button";
@@ -14,6 +14,8 @@ import { Icon, type IconName } from "@/client/components/ui/Icon";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import type { Theme } from "@/client/constants/colors";
+
+const CONTROL_ZONE_SPACE = 128;
 
 // ============================================================================
 // Types
@@ -76,7 +78,7 @@ export function OnboardingFlow({
 }: OnboardingFlowProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
-  const { width: screenWidth } = Dimensions.get("window");
+  const { width: screenWidth } = useWindowDimensions();
 
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -150,6 +152,8 @@ export function OnboardingFlow({
       {/* Pages */}
       <FlatList
         ref={flatListRef}
+        style={styles.pages}
+        contentContainerStyle={styles.pagesContent}
         data={pages}
         renderItem={renderPage}
         keyExtractor={(_, index) => index.toString()}
@@ -215,7 +219,18 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.colors.background,
     },
+    pages: {
+      flex: 1,
+    },
+    pagesContent: {
+      flexGrow: 1,
+    },
     skipContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1,
       alignItems: "flex-end",
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
@@ -230,6 +245,7 @@ const createStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       paddingHorizontal: spacing.xl,
+      paddingVertical: CONTROL_ZONE_SPACE,
     },
     iconContainer: {
       marginBottom: spacing.xl,
@@ -250,6 +266,10 @@ const createStyles = (theme: Theme) =>
       maxWidth: 300,
     },
     bottomControls: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.xxl,
       gap: spacing.lg,

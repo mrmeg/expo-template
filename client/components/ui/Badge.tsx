@@ -29,6 +29,28 @@ export interface BadgeProps {
 function Badge({ children, variant = "default", style: styleOverride }: BadgeProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
+  const textStyle = [
+    styles.text,
+    variant === "default" && { color: theme.colors.primaryForeground },
+    variant === "secondary" && { color: theme.colors.secondaryForeground },
+    variant === "outline" && { color: theme.colors.foreground },
+    variant === "destructive" && { color: theme.colors.destructiveForeground },
+  ];
+  const normalizedChildren = React.Children.toArray(children);
+  const hasOnlyTextChildren = normalizedChildren.every(
+    (child) => typeof child === "string" || typeof child === "number",
+  );
+  const content = hasOnlyTextChildren ? (
+    <StyledText style={textStyle}>{normalizedChildren.join("")}</StyledText>
+  ) : (
+    React.Children.map(children, (child) => {
+      if (typeof child === "string" || typeof child === "number") {
+        return <StyledText style={textStyle}>{child}</StyledText>;
+      }
+
+      return child;
+    })
+  );
 
   return (
     <View
@@ -42,21 +64,7 @@ function Badge({ children, variant = "default", style: styleOverride }: BadgePro
         styleOverride,
       ]}
     >
-      {typeof children === "string" ? (
-        <StyledText
-          style={[
-            styles.text,
-            variant === "default" && { color: theme.colors.primaryForeground },
-            variant === "secondary" && { color: theme.colors.secondaryForeground },
-            variant === "outline" && { color: theme.colors.foreground },
-            variant === "destructive" && { color: theme.colors.destructiveForeground },
-          ]}
-        >
-          {children}
-        </StyledText>
-      ) : (
-        children
-      )}
+      {content}
     </View>
   );
 }

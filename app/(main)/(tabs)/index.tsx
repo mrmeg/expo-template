@@ -37,7 +37,7 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Featured: Component Library */}
-        <AnimatedView type="fadeSlideUp" delay={0}>
+        <AnimatedView type="fadeSlideUp" delay={0} style={styles.featuredWrapper}>
           <Link href={"/(main)/(demos)/showcase" as any} asChild>
             <Pressable
               onPressIn={blurActiveElementOnWeb}
@@ -153,12 +153,14 @@ const createStyles = (theme: Theme) =>
     },
 
     // ── Featured card ──────────────────────────────────────
+    featuredWrapper: {
+      marginBottom: spacing.xl,
+    },
     featured: {
       backgroundColor: theme.colors.card,
       borderRadius: spacing.radiusLg,
       borderWidth: 1,
       borderColor: theme.colors.accent + "40",
-      marginBottom: spacing.xl,
     },
     featuredBody: {
       padding: spacing.md,

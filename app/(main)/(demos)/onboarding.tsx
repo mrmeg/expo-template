@@ -41,7 +41,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <OnboardingFlow
         pages={PAGES}
         onComplete={handleComplete}

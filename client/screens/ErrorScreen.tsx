@@ -141,12 +141,12 @@ export function ErrorScreen({
       {(primaryAction || secondaryAction) && (
         <Animated.View style={[styles.actions, actionsEntrance]}>
           {primaryAction && (
-            <Button onPress={primaryAction.onPress}>
+            <Button onPress={primaryAction.onPress} style={styles.actionButton}>
               {primaryAction.label}
             </Button>
           )}
           {secondaryAction && (
-            <Button preset="ghost" onPress={secondaryAction.onPress}>
+            <Button preset="ghost" onPress={secondaryAction.onPress} style={styles.actionButton}>
               {secondaryAction.label}
             </Button>
           )}
@@ -209,6 +209,9 @@ function createStyles(theme: Theme) {
       alignItems: "center",
       gap: spacing.sm,
       marginTop: spacing.xl,
+    },
+    actionButton: {
+      alignSelf: "center",
     },
   });
 }

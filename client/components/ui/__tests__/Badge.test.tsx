@@ -1,6 +1,6 @@
 /**
  * Badge tests — every variant renders its children and the component
- * accepts plain string children (the form Explore uses for "X components").
+ * accepts plain string and mixed primitive children.
  */
 
 import "@/test/mockTheme";
@@ -21,5 +21,10 @@ describe("Badge", () => {
   it("renders the default variant when no variant is supplied", () => {
     render(<Badge>plain</Badge>);
     expect(screen.getByText("plain")).toBeTruthy();
+  });
+
+  it("renders adjacent number and string children as badge text", () => {
+    render(<Badge variant="outline">{4} components</Badge>);
+    expect(screen.getByText("4 components")).toBeTruthy();
   });
 });

@@ -41,7 +41,7 @@ their children.
 | `(main)/(tabs)/index.tsx` (Explore) | Public |
 | `(main)/(tabs)/media.tsx` | Public |
 | `(main)/(tabs)/profile.tsx` | **Protected** (`AuthGate`) |
-| `(main)/(tabs)/settings.tsx` | **Protected** (`AuthGate`) |
+| `(main)/(tabs)/settings.tsx` | Public |
 | `(main)/(demos)/showcase/**` | Public |
 | `(main)/(demos)/**` (including `auth-demo`, `onboarding`, all `screen-*` templates) | Public |
 

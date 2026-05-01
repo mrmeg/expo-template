@@ -165,6 +165,11 @@ Settings, Profile, List, Pricing, Welcome, Card Grid, Chat, Dashboard, Form (mul
 
 Use these as starting points for new screens.
 
+Error-state actions should remain horizontally centered with the message
+content. Onboarding slides should center their icon, title, and description in
+the available viewport while skip and next/done controls stay in stable
+top/bottom control zones.
+
 ### Pricing / account billing surfaces
 
 `client/screens/PricingScreen.tsx` is the shared visual component. When a

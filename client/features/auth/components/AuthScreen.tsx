@@ -12,6 +12,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import type { Theme } from "@/client/constants/colors";
+import { getAppName } from "@/client/lib/identity";
 
 type AuthView = "sign-in" | "sign-up" | "forgot-password" | "verify-email" | "reset-password";
 
@@ -28,6 +29,7 @@ export function AuthScreen({
 }: AuthScreenProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
+  const appName = getAppName();
   const { signIn, signUp, confirmSignUp, resendCode, forgotPassword, resetPassword } = useAuth();
 
   const [view, setView] = useState<AuthView>(initialView);
@@ -305,7 +307,7 @@ export function AuthScreen({
             resizeMode="contain"
           />
           <SerifText size="xl" style={{ color: theme.colors.accent }}>
-            Neurospicy OS
+            {appName}
           </SerifText>
         </View>
 

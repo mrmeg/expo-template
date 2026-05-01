@@ -102,7 +102,7 @@ auth policy without coupling screens to auth internals.
 
 **Invariants:**
 - Splash stays visible until `useAppStartup` reports `ready`
-- Protected surfaces (profile, settings) wrap their exported default in
+- Protected surfaces (currently profile) wrap their exported default in
   `<AuthGate>`; unprotected surfaces never do
 - Signing out from a protected tab replaces that tab's content with
   `AuthScreen` inline — no forced navigation; unprotected tabs remain browsable
