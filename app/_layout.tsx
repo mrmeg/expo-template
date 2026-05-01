@@ -27,7 +27,9 @@ import { setupSentry } from "@/client/lib/sentry";
 import { useAppStartup, OnboardingGate } from "@/client/features/app";
 import { useOnboardingStore } from "@/client/features/onboarding/onboardingStore";
 
-// Validate env vars early — warns in dev, throws in prod
+// Surface partial-feature env config (e.g. only one Cognito var set) at
+// startup. Always warns, never throws — the template stays runnable when
+// optional features are disabled.
 validateClientEnv();
 
 // Initialize Sentry — no-op if EXPO_PUBLIC_SENTRY_DSN is not set

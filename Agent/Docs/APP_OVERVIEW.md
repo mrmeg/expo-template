@@ -43,10 +43,11 @@ Component showcase, form validation demos, auth demos, Reactotron integration, d
 ## How to Use This Template
 
 1. **Clone and install**: `bun install`
-2. **Configure auth**: Set `EXPO_PUBLIC_USER_POOL_ID` and `EXPO_PUBLIC_USER_POOL_CLIENT_ID`
-3. **Configure storage**: Set S3/R2 credentials for media features
-4. **Start building**: Add screens in `app/`, features in `client/features/`, components in `client/components/ui/`
-5. **Generate scaffolding**: `npm run generate component|screen|hook|form <Name>`
+2. **Run as-is**: `npx expo start` — every optional feature (Cognito auth, external API URL, Stripe billing, R2/S3 media) defaults to off, so the template is fully explorable from a fresh `.env.example`.
+3. **Enable auth (optional)**: Set both `EXPO_PUBLIC_USER_POOL_ID` and `EXPO_PUBLIC_USER_POOL_CLIENT_ID` together. Setting just one warns at startup; setting neither keeps the auth shell disabled.
+4. **Enable other features (optional)**: Add S3/R2 credentials for media uploads, billing keys for Stripe (see `BILLING.md`), `EXPO_PUBLIC_API_URL` for an external backend.
+5. **Start building**: Add screens in `app/`, features in `client/features/`, components in `client/components/ui/`.
+6. **Generate scaffolding**: `npm run generate component|screen|hook|form <Name>`.
 
 ## Key Conventions
 

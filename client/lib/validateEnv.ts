@@ -1,9 +1,13 @@
 /**
  * Environment variable validation utility.
  *
- * Call validateClientEnv() at app startup to catch missing vars early.
- * Missing values always warn instead of throwing so route initialization
- * can still complete and features can fail gracefully at point of use.
+ * The template treats Cognito auth, an external API URL, and Stripe billing
+ * as opt-in. A fresh clone with no `.env` should produce no warnings; we only
+ * warn when a feature is half-configured (Cognito with one of the two vars
+ * set, billing flag on with no app URL).
+ *
+ * Validation always warns instead of throwing so route initialization can
+ * still complete and features can fail gracefully at point of use.
  */
 
 interface EnvRule {
@@ -12,21 +16,6 @@ interface EnvRule {
   context: string;
 }
 
-const CLIENT_ENV_RULES = [
-  { key: "EXPO_PUBLIC_USER_POOL_ID", required: true, context: "Auth (Cognito)" },
-  { key: "EXPO_PUBLIC_USER_POOL_CLIENT_ID", required: true, context: "Auth (Cognito)" },
-  { key: "EXPO_PUBLIC_API_URL", required: true, context: "API" },
-] as const;
-
-// Expo only inlines EXPO_PUBLIC_* variables for direct property access.
-const CLIENT_ENV_VALUES = {
-  EXPO_PUBLIC_USER_POOL_ID: process.env.EXPO_PUBLIC_USER_POOL_ID,
-  EXPO_PUBLIC_USER_POOL_CLIENT_ID: process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID,
-  EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
-  EXPO_PUBLIC_BILLING_ENABLED: process.env.EXPO_PUBLIC_BILLING_ENABLED,
-  EXPO_PUBLIC_APP_URL: process.env.EXPO_PUBLIC_APP_URL,
-} as const;
-
 const SERVER_ENV_RULES: EnvRule[] = [
   { key: "R2_JURISDICTION_SPECIFIC_URL", required: true, context: "Media (R2)" },
   { key: "R2_ACCESS_KEY_ID", required: true, context: "Media (R2)" },
@@ -34,18 +23,19 @@ const SERVER_ENV_RULES: EnvRule[] = [
   { key: "R2_BUCKET", required: true, context: "Media (R2)" },
 ];
 
-/**
- * Server-side billing env vars. The whole group is optional — the
- * template stays runnable without Stripe — but a partial config is a
- * footgun, so we warn when some but not all keys are set.
- */
 const SERVER_BILLING_ENV_KEYS = [
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
 ] as const;
 
 function isMissing(value: string | undefined): boolean {
-  return value === undefined || value === "";
+  return value === undefined || value.trim() === "";
+}
+
+function isBillingFlagEnabled(value: string | undefined): boolean {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return normalized === "true" || normalized === "1";
 }
 
 function validate(rules: EnvRule[], label: string): void {
@@ -56,38 +46,45 @@ function validate(rules: EnvRule[], label: string): void {
   if (missing.length === 0) return;
 
   const message = `Missing required ${label} environment variables:\n${missing.join("\n")}`;
-
-  // Always warn, never throw. Throwing at module scope prevents the root
-  // layout from loading, which breaks Expo Router's route initialization
-  // (the router falls back to the first alphabetical route).
-  // Features that need these vars should fail gracefully at point of use.
   console.warn(`⚠️ ${message}`);
 }
 
 /**
  * Validate client-side environment variables (EXPO_PUBLIC_*).
- * Call early in app startup before any service initialization.
+ *
+ * Direct property access is intentional — Expo only inlines
+ * `process.env.EXPO_PUBLIC_*` references that survive static analysis.
  */
 export function validateClientEnv(): void {
-  const missing = CLIENT_ENV_RULES
-    .filter((rule) => rule.required && isMissing(CLIENT_ENV_VALUES[rule.key]))
-    .map((rule) => `  - ${rule.key} (${rule.context})`);
+  const userPoolId = process.env.EXPO_PUBLIC_USER_POOL_ID;
+  const userPoolClientId = process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID;
+  const billingEnabled = process.env.EXPO_PUBLIC_BILLING_ENABLED;
+  const appUrl = process.env.EXPO_PUBLIC_APP_URL;
 
-  if (missing.length > 0) {
-    const message = `Missing required client environment variables:\n${missing.join("\n")}`;
-    console.warn(`⚠️ ${message}`);
+  // Cognito auth — both vars required when enabled, both optional when not.
+  // EXPO_PUBLIC_API_URL is intentionally not validated: the template uses
+  // local Expo Router api routes by default and the prod config falls back
+  // to a placeholder when unset.
+  const poolMissing = isMissing(userPoolId);
+  const clientMissing = isMissing(userPoolClientId);
+  if (poolMissing !== clientMissing) {
+    const missing = poolMissing
+      ? "EXPO_PUBLIC_USER_POOL_ID"
+      : "EXPO_PUBLIC_USER_POOL_CLIENT_ID";
+    const present = poolMissing
+      ? "EXPO_PUBLIC_USER_POOL_CLIENT_ID"
+      : "EXPO_PUBLIC_USER_POOL_ID";
+    console.warn(
+      `⚠️ Partial Cognito config: ${present} is set but ${missing} is missing. Auth will stay disabled until both are configured.`,
+    );
   }
 
-  // Billing flag + app URL sanity check: if billing is enabled on the
-  // client, the app URL should be set so native return URLs resolve
-  // back to the right origin when the request doesn't carry one.
-  const billingEnabled = CLIENT_ENV_VALUES.EXPO_PUBLIC_BILLING_ENABLED;
-  if (billingEnabled && (billingEnabled.toLowerCase() === "true" || billingEnabled === "1")) {
-    if (isMissing(CLIENT_ENV_VALUES.EXPO_PUBLIC_APP_URL)) {
-      console.warn(
-        "⚠️ EXPO_PUBLIC_BILLING_ENABLED=true but EXPO_PUBLIC_APP_URL is empty. Hosted-billing return URLs will fall back to the request origin.",
-      );
-    }
+  // Billing flag + app URL: when billing is enabled on the client, the app
+  // URL anchors Stripe Checkout / Portal return URLs for native callers.
+  if (isBillingFlagEnabled(billingEnabled) && isMissing(appUrl)) {
+    console.warn(
+      "⚠️ EXPO_PUBLIC_BILLING_ENABLED=true but EXPO_PUBLIC_APP_URL is empty. Hosted-billing return URLs will fall back to the request origin.",
+    );
   }
 }
 

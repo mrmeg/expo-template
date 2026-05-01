@@ -320,8 +320,9 @@ The Express server (`server/index.ts`) provides:
 
 | Variable | Purpose | Required |
 |----------|---------|----------|
-| `EXPO_PUBLIC_USER_POOL_ID` | Cognito User Pool ID | For auth |
-| `EXPO_PUBLIC_USER_POOL_CLIENT_ID` | Cognito App Client ID | For auth |
+| `EXPO_PUBLIC_API_URL` | External API origin override | Optional — blank uses local `app/api/*` routes; the prod config falls back to a placeholder |
+| `EXPO_PUBLIC_USER_POOL_ID` | Cognito User Pool ID | Optional — set together with the client id to enable auth; setting just one warns at startup |
+| `EXPO_PUBLIC_USER_POOL_CLIENT_ID` | Cognito App Client ID | Optional — set together with the pool id to enable auth |
 | `EXPO_PUBLIC_SENTRY_DSN` | Sentry DSN | Optional |
 | `EXPO_PUBLIC_BILLING_ENABLED` | Billing feature flag (`"true"` to enable) | Optional (default `false`) |
 | `EXPO_PUBLIC_APP_URL` | Absolute web origin for hosted-billing return URLs | Required when billing is enabled and the request origin is not the public origin |
