@@ -42,6 +42,8 @@ This project uses **bun**. Always use `bun install` and `bun add <package>` — 
 - Run a single file: `bun jest --testPathPattern=path/to/test`
 - CI-style with coverage: `bun run test:ci`
 - Coverage is collected from `client/**`, `app/api/**`, `server/**`, and `shared/**` so route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing) stay observable — not just UI code
+- For component tests that just need a stable theme without mounting providers, `import "@/test/mockTheme";` at the top of the file mocks `useTheme` with a fixed light-scheme palette so colour assertions stay deterministic
+- Coverage focus on reusable surfaces: design-system primitives (Card, Badge, EmptyState, Skeleton, RadioGroup, …), the form primitive trio (`FormProvider` + `FormTextInput` + `FormCheckbox`), and screen templates (Welcome, Error, List, …) keep the regression surface honest. Avoid snapshot-only tests — assert visible behaviour or interaction outcomes
 
 ## Project Structure
 

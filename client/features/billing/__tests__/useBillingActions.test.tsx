@@ -38,15 +38,22 @@ describe("useBillingActions", () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
-    useAuthStore.setState({
-      state: "authenticated",
-      user: { userId: "u1", username: "u1", email: "u1@example.com" },
+    // Wrap store mutation in act() — subscribers (the rendered hook in
+    // each test) re-render synchronously and React's test renderer warns
+    // when that happens outside of act.
+    act(() => {
+      useAuthStore.setState({
+        state: "authenticated",
+        user: { userId: "u1", username: "u1", email: "u1@example.com" },
+      });
     });
   });
 
   afterEach(() => {
     global.fetch = originalFetch;
-    useAuthStore.setState({ state: "unauthenticated", user: null });
+    act(() => {
+      useAuthStore.setState({ state: "unauthenticated", user: null });
+    });
     jest.clearAllMocks();
   });
 
