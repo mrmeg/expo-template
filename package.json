@@ -16,6 +16,7 @@
     "analyze": "expo export -p web --output-dir dist --dump-sourcemap && npx source-map-explorer 'dist/client/**/*.js' --no-border-checks",
     "serve:ssr": "expo serve",
     "bundle-size": "node scripts/check-bundle-size.js",
+    "check:features": "node scripts/check-feature-isolation.js",
     "test": "jest --watchAll",
     "test:ci": "jest --ci --coverage --forceExit",
     "typecheck": "tsc --noEmit",

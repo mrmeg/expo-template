@@ -72,11 +72,37 @@ Organized by concern:
 
 ### Feature Isolation
 
-Features follow strict boundaries:
-- **Never import from other features** — only from the shared layer
-- **Internal imports use relative paths** — makes features copy-portable
-- **Barrel exports via `index.ts`** — external consumers use `@/client/features/<name>`
-- Exception: media imports `globalUIStore` from notifications for toast feedback
+Features follow tiered boundaries — *self-contained by default*, with two
+named exceptions that the script + test in
+`scripts/check-feature-isolation.js` and
+`client/features/__tests__/featureIsolation.test.ts` enforce in CI:
+
+**Shared layer (always allowed):** `client/lib/*`, `client/hooks/*`,
+`client/components/ui/*`, `client/constants/*`, `client/state/*`,
+`shared/*`, `@rn-primitives`. Any feature can import from these.
+
+**Allowed cross-feature dependencies (the contract the test pins):**
+
+| Feature | May import from | Why |
+|---------|-----------------|-----|
+| `app/` | `auth/`, `onboarding/` | Shell composition — `useAppStartup`, `OnboardingGate`, and `AuthGate` orchestrate auth + onboarding at startup. |
+| `billing/` | `auth/` | Identity-only — `useBillingSummary` / `useBillingActions` read `useAuthStore` to learn whether the viewer is signed in. They never touch auth UI components. |
+| All others (`auth`, `onboarding`, `media`, `i18n`, `notifications`, `navigation`, `keyboard`) | — | Self-contained. No cross-feature imports allowed. |
+
+**Conventions:**
+- Internal imports inside a feature use relative paths so the folder stays copy-portable.
+- External consumers (routes, the shell, allowed cross-feature edges above) use the feature's `index.ts` barrel via `@/client/features/<name>`.
+- Adding a new edge requires updating `ALLOWED_DEPENDENCIES` in `scripts/check-feature-isolation.js` *and* the table above; the Jest test fails if the two drift apart.
+
+**Copy-with-feature notes (when extracting a feature into a new project):**
+- `auth/` → standalone. Needs the shared layer plus AWS Amplify + Cognito env vars.
+- `onboarding/` → standalone. Needs AsyncStorage on native (already in shared layer).
+- `media/` → standalone. Needs `app/api/media/*` + `server/api/media/storage.ts` + `shared/media.ts` + R2/S3 env vars. Toast feedback uses `client/state/globalUIStore` from the shared layer.
+- `billing/` → copy with `auth/` (identity dependency) and the `app/api/billing/*` server routes + `server/api/billing/*` registry + `shared/billing.ts`.
+- `app/` → copy with `auth/` and `onboarding/` (composition dependency); this folder is the shell, not portable on its own.
+- `i18n/`, `notifications/`, `navigation/`, `keyboard/` → standalone with shared-layer dependencies only.
+
+Run `bun run check:features` locally to validate; `bun run test:ci` runs the same scan as part of the suite.
 
 ## Provider Nesting Order
 
