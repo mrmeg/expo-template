@@ -4,52 +4,28 @@ import { useTheme } from "@/client/hooks/useTheme";
 import { spacing } from "@/client/constants/spacing";
 import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
 import { Icon } from "@/client/components/ui/Icon";
-import type { IconName } from "@/client/components/ui/Icon";
 import { Badge } from "@/client/components/ui/Badge";
 import { AnimatedView } from "@/client/components/ui/AnimatedView";
 import { STAGGER_DELAY } from "@/client/hooks/useStaggeredEntrance";
 import { SEO } from "@/client/components/SEO";
 import { blurActiveElementOnWeb } from "@/client/features/navigation/blurActiveElementOnWeb";
+import {
+  DEMOS,
+  SCREEN_TEMPLATES,
+  getComponentCount,
+  type ScreenTemplateEntry,
+} from "@/client/showcase/registry";
 import type { Theme } from "@/client/constants/colors";
-
-interface NavItem {
-  href: string;
-  icon: IconName;
-  label: string;
-  description?: string;
-}
-
-const screenTemplates: NavItem[] = [
-  { href: "/(main)/(demos)/screen-settings", icon: "sliders", label: "Settings", description: "Grouped lists & toggles" },
-  { href: "/(main)/(demos)/screen-profile", icon: "user", label: "Profile", description: "Avatar, stats, sections" },
-  { href: "/(main)/(demos)/screen-list", icon: "list", label: "List", description: "Search & pull to refresh" },
-  { href: "/(main)/(demos)/screen-pricing", icon: "credit-card", label: "Pricing", description: "Plans & comparison" },
-  { href: "/(main)/(demos)/screen-welcome", icon: "log-in", label: "Welcome", description: "Landing & social login" },
-  { href: "/(main)/(demos)/screen-card-grid", icon: "grid", label: "Card Grid", description: "Filterable card layout" },
-  { href: "/(main)/(demos)/screen-chat", icon: "message-circle", label: "Chat", description: "Messaging conversation" },
-  { href: "/(main)/(demos)/screen-dashboard", icon: "bar-chart-2", label: "Dashboard", description: "Metrics & activity feed" },
-  { href: "/(main)/(demos)/screen-form", icon: "edit-3", label: "Form", description: "Multi-step wizard" },
-  { href: "/(main)/(demos)/screen-notifications", icon: "bell", label: "Notifications", description: "Grouped notification list" },
-  { href: "/(main)/(demos)/screen-search", icon: "search", label: "Search", description: "Filtered search results" },
-  { href: "/(main)/(demos)/screen-error", icon: "alert-triangle", label: "Error", description: "Error state variants" },
-  { href: "/(main)/(demos)/detail-hero", icon: "layout", label: "Detail / Hero", description: "Hero image detail view" },
-];
-
-const demos: NavItem[] = [
-  { href: "/(main)/(demos)/form-demo", icon: "edit-3", label: "Form Validation" },
-  { href: "/(main)/(demos)/auth-demo", icon: "shield", label: "Auth Demo" },
-  { href: "/(main)/(demos)/developer", icon: "terminal", label: "Developer Tools" },
-  { href: "/(main)/(demos)/onboarding", icon: "navigation", label: "Onboarding" },
-];
 
 export default function ExploreScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
+  const componentCount = getComponentCount();
 
   // Pair templates into rows of 2 for grid layout
-  const templateRows: NavItem[][] = [];
-  for (let i = 0; i < screenTemplates.length; i += 2) {
-    templateRows.push(screenTemplates.slice(i, i + 2));
+  const templateRows: ScreenTemplateEntry[][] = [];
+  for (let i = 0; i < SCREEN_TEMPLATES.length; i += 2) {
+    templateRows.push(SCREEN_TEMPLATES.slice(i, i + 2));
   }
 
   return (
@@ -73,7 +49,7 @@ export default function ExploreScreen() {
                     <View style={styles.featuredIcon}>
                       <Icon name="layers" color={theme.colors.accentForeground} size={22} />
                     </View>
-                    <Badge variant="outline">35 components</Badge>
+                    <Badge variant="outline">{componentCount} components</Badge>
                   </View>
                   <SansSerifBoldText style={styles.featuredTitle}>
                     Component Library
@@ -100,7 +76,7 @@ export default function ExploreScreen() {
             {templateRows.map((row, ri) => (
               <View key={ri} style={styles.gridRow}>
                 {row.map((item) => (
-                  <Link key={item.href} href={item.href as any} asChild>
+                  <Link key={item.id} href={item.route as any} asChild>
                     <Pressable
                       onPressIn={blurActiveElementOnWeb}
                       style={Platform.OS === "web"
@@ -132,9 +108,9 @@ export default function ExploreScreen() {
         <AnimatedView type="fadeSlideUp" delay={STAGGER_DELAY * 6}>
           <SansSerifText style={styles.sectionLabel}>Demos & Tools</SansSerifText>
           <View style={styles.demoCard}>
-            {demos.map((item, index) => (
-              <View key={item.href}>
-                <Link href={item.href as any} asChild>
+            {DEMOS.map((item, index) => (
+              <View key={item.id}>
+                <Link href={item.route as any} asChild>
                   <Pressable
                     onPressIn={blurActiveElementOnWeb}
                     style={Platform.OS === "web"
@@ -151,7 +127,7 @@ export default function ExploreScreen() {
                     <Icon name="chevron-right" color={theme.colors.border} size={16} />
                   </Pressable>
                 </Link>
-                {index < demos.length - 1 && <View style={styles.demoDivider} />}
+                {index < DEMOS.length - 1 && <View style={styles.demoDivider} />}
               </View>
             ))}
           </View>

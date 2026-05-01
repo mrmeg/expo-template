@@ -70,15 +70,13 @@ See `Agent/Docs/ARCHITECTURE.md` for the canonical architecture reference and `A
 1. Scaffold: `bun run generate component <Name>`
 2. Implement in `client/components/ui/<Name>.tsx`
 3. Add a showcase demo under `app/(main)/(demos)/showcase/`
-4. Update the component count in the Explore tab
+4. Add an entry to `COMPONENTS` in `client/showcase/registry.ts` — the Explore tab's component count and any future filtering read from there. The registry test (`client/showcase/__tests__/registry.test.ts`) verifies the import path resolves on disk.
 
-## Adding a New Screen Template
+## Adding a New Screen Template Or Demo
 
-1. Scaffold: `bun run generate screen <Name>` — writes both
-   `client/screens/<Name>Screen.tsx` (the reusable template) and
-   `app/(main)/(demos)/screen-<kebab-name>.tsx` (the demo route).
-2. Wire navigation: add a Stack entry in `app/(main)/_layout.tsx` and an
-   Explore-tab entry if the screen should be discoverable.
+1. Scaffold: `bun run generate screen <Name>` — writes both `client/screens/<Name>Screen.tsx` (reusable template) and `app/(main)/(demos)/screen-<kebab>.tsx` (demo route). Standalone demos can be hand-written directly under `app/(main)/(demos)/`.
+2. Wire navigation: add a Stack entry in `app/(main)/_layout.tsx` if you need a deep link beyond the demo route.
+3. Register: add an entry to `SCREEN_TEMPLATES` (or `DEMOS`) in `client/showcase/registry.ts` so it shows up in the Explore tab. The registry test enforces unique ids/routes and that every documented route maps to a real `.tsx` file.
 
 ## Scaffolding
 
