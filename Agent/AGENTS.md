@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `fix-lint-dependency.md` | Ready | High |
 | `align-env-validation-with-optional-template-features.md` | Ready | High |
 | `modernize-generator-scaffolds.md` | Ready | High |
 | `harden-media-empty-and-unconfigured-states.md` | Ready | High |
