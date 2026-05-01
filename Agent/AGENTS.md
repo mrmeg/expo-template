@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `parameterize-app-identity.md` | Ready | Medium |
 | `restore-template-ci-workflow.md` | Ready | Medium |
 | `create-template-registry-for-showcase-and-explore.md` | Ready | Medium |
 | `expand-reusable-surface-coverage.md` | Ready | Medium |
