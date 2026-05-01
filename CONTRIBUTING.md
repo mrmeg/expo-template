@@ -66,16 +66,21 @@ See `CLAUDE.md` for detailed architecture documentation. Key directories:
 
 ## Adding a New Screen Template
 
-1. Create the template in `client/screens/<Name>Screen.tsx`
-2. Create a demo route in `app/(main)/`
-3. Register the route in `app/(main)/_layout.tsx`
-4. Add an entry to the Explore tab
+1. Scaffold: `bun run generate screen <Name>` — writes both
+   `client/screens/<Name>Screen.tsx` (the reusable template) and
+   `app/(main)/(demos)/screen-<kebab-name>.tsx` (the demo route).
+2. Wire navigation: add a Stack entry in `app/(main)/_layout.tsx` and an
+   Explore-tab entry if the screen should be discoverable.
 
 ## Scaffolding
 
 ```bash
-npx tsx scripts/generate.ts component <Name>   # UI component
-npx tsx scripts/generate.ts screen <Name>       # Screen route
-npx tsx scripts/generate.ts hook <Name>         # Custom hook
-npx tsx scripts/generate.ts form <Name>         # Form component
+bun run generate component <Name>   # UI component → client/components/ui/<Name>.tsx
+bun run generate screen <Name>      # client/screens/<Name>Screen.tsx + app/(main)/(demos)/screen-<kebab>.tsx
+bun run generate hook <Name>        # client/hooks/use<Name>.ts (working scaffold, no TODO bodies)
+bun run generate form <Name>        # client/components/forms/<Name>Form.tsx, built on @/client/lib/form primitives
 ```
+
+The generator never overwrites existing files; rerun after deleting the
+stale file if you need to regenerate. Names in PascalCase, kebab-case, or
+snake_case are all accepted and normalized to PascalCase exports.

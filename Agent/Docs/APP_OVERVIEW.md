@@ -47,7 +47,7 @@ Component showcase, form validation demos, auth demos, Reactotron integration, d
 3. **Enable auth (optional)**: Set both `EXPO_PUBLIC_USER_POOL_ID` and `EXPO_PUBLIC_USER_POOL_CLIENT_ID` together. Setting just one warns at startup; setting neither keeps the auth shell disabled.
 4. **Enable other features (optional)**: Add S3/R2 credentials for media uploads, billing keys for Stripe (see `BILLING.md`), `EXPO_PUBLIC_API_URL` for an external backend.
 5. **Start building**: Add screens in `app/`, features in `client/features/`, components in `client/components/ui/`.
-6. **Generate scaffolding**: `npm run generate component|screen|hook|form <Name>`.
+6. **Generate scaffolding**: `bun run generate component|screen|hook|form <Name>` (`screen` writes both `client/screens/<Name>Screen.tsx` and a demo route under `app/(main)/(demos)`).
 
 ## Key Conventions
 

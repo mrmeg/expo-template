@@ -79,22 +79,25 @@ Built on `@rn-primitives` with full theme integration:
 | `npm run build` | Build for web |
 | `npm test` | Run tests in watch mode |
 | `npm run lint` | Run ESLint |
-| `npm run generate component <Name>` | Generate a new component |
-| `npm run generate screen <Name>` | Generate a new screen |
+| `bun run generate component <Name>` | Generate a UI component in `client/components/ui/` |
+| `bun run generate screen <Name>` | Generate a reusable screen + demo route under `app/(main)/(demos)` |
+| `bun run generate hook <Name>` | Generate a hook in `client/hooks/` |
+| `bun run generate form <Name>` | Generate a form built on `@/client/lib/form` primitives |
 
 ### Generator CLI
 
-Quickly scaffold new components or screens:
+Quickly scaffold components, screens, hooks, and forms with paths and
+imports that match the rest of the template:
 
 ```bash
-# Generate a component
-npm run generate component MyButton
-
-# Generate a screen
-npm run generate screen Settings
+bun run generate component MyButton    # client/components/ui/MyButton.tsx
+bun run generate screen Settings       # client/screens/SettingsScreen.tsx + demo route
+bun run generate hook Debounce         # client/hooks/useDebounce.ts
+bun run generate form ContactInfo      # client/components/forms/ContactInfoForm.tsx
 ```
 
-Generated files follow project patterns with proper theming and TypeScript.
+The generator never overwrites existing files. Names in PascalCase,
+kebab-case, or snake_case are all accepted and normalized.
 
 ### Testing
 
