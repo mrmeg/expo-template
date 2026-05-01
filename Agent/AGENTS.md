@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `modernize-generator-scaffolds.md` | Ready | High |
 | `harden-media-empty-and-unconfigured-states.md` | Ready | High |
 | `refresh-public-template-docs.md` | Ready | Medium |
 | `align-billing-docs-with-session-routes.md` | Ready | Medium |
