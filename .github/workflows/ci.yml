@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    # Runs the cheap quality gates that match `bun run` commands locally.
+    # Should pass on a fresh clone with no `.env` set — every optional
+    # feature (auth, billing, media, Sentry) defaults to off, and tests
+    # mock the AWS / Stripe surfaces.
+    name: Lint, Type Check, Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Feature isolation check
+        run: bun run check:features
+
+      - name: Test
+        run: bun run test:ci
+
+  bundle-size:
+    # Builds the web export and compares the client JS total against the
+    # checked-in baseline (`scripts/bundle-baseline.json`). Fails on
+    # >10% growth. Runs in parallel with `validate` since neither needs
+    # the other's output.
+    name: Web Build + Bundle Size
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build web export
+        run: bun run build
+
+      - name: Bundle size check
+        run: bun run bundle-size

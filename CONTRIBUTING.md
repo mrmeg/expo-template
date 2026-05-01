@@ -27,11 +27,13 @@ This project uses **bun**. Always use `bun install` and `bun add <package>` — 
 
 - [ ] `bun run lint` passes
 - [ ] `bun run typecheck` passes
+- [ ] `bun run check:features` passes (cross-feature import contract)
 - [ ] `bun run test:ci` — all tests pass
 - [ ] Web tested (`bun run web`)
 - [ ] iOS/Android tested if touching native code
 - [ ] New components include showcase demos
 - [ ] No secrets or credentials committed
+- [ ] CI is green — `.github/workflows/ci.yml` runs the same gates plus the web build + bundle-size delta
 
 ## Testing
 

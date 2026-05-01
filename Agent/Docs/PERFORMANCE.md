@@ -125,3 +125,4 @@ in `useMediaLibrary`.
 - Jest timeout: 10 seconds (avoids hanging tests)
 - Coverage targets: `client/**` (excludes devtools, test files, index re-exports)
 - Coverage script: `test:ci` includes `--forceExit` to prevent Jest hanging on async cleanup
+- CI: `.github/workflows/ci.yml` runs `bun run test:ci` and a separate `Web Build + Bundle Size` job that runs `bun run build && bun run bundle-size` so >10% client bundle growth is gated at the PR level

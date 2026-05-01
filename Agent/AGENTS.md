@@ -59,7 +59,8 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 | Server | Express 5 | Compression, CORS, rate limiting, security headers |
 | Testing | Jest 29 + jest-expo + RNTL 13 | Coverage on client/**, 10s timeout |
 | Linting | ESLint 10 + @tanstack/eslint-plugin-query | Expo lint config |
-| Package Mgr | Bun | `bun.lock` committed for reproducible installs |
+| CI | GitHub Actions | Bun-based: typecheck → lint → feature isolation → test (validate job), build → bundle-size (bundle-size job, parallel) |
+| Package Mgr | Bun | `bun.lock` committed for reproducible installs (`--frozen-lockfile` in CI) |
 | Bundler | Metro (via Expo) | Reanimated wrapping, package dedup |
 | Dev Tools | Reactotron | Dev-only, conditional init |
 

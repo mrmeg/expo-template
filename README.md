@@ -256,6 +256,22 @@ Full walkthrough (products, prices, disabling cleanly) is in
 vars `/api/billing/*` returns `503 billing-disabled` and the UI hides
 purchase CTAs — no Stripe traffic is ever generated.
 
+## CI
+
+`.github/workflows/ci.yml` runs on every push and pull request to
+`main` / `dev`. Two parallel jobs (no app credentials required):
+
+- **Lint, Type Check, Test** — `bun install --frozen-lockfile` →
+  `bun run typecheck` → `bun run lint` → `bun run check:features` →
+  `bun run test:ci`. Same gates as the local `bun run` commands.
+- **Web Build + Bundle Size** — `bun run build` → `bun run bundle-size`.
+  Fails the PR on >10% client bundle growth against
+  `scripts/bundle-baseline.json`.
+
+To reproduce CI locally: `bun install --frozen-lockfile` then run the
+same commands. Tests mock the AWS / Stripe surfaces, so a blank `.env`
+is enough.
+
 ## Tech Stack
 
 - Expo SDK 55, React 19, React Native 0.83, React Native Web 0.21
