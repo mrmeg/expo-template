@@ -13,7 +13,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 | `align-env-validation-with-optional-template-features.md` | Ready | High |
 | `modernize-generator-scaffolds.md` | Ready | High |
 | `harden-media-empty-and-unconfigured-states.md` | Ready | High |
-| `ignore-generated-coverage-output.md` | Ready | Medium |
 | `refresh-public-template-docs.md` | Ready | Medium |
 | `align-billing-docs-with-session-routes.md` | Ready | Medium |
 | `define-feature-dependency-contracts.md` | Ready | Medium |
