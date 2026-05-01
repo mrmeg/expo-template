@@ -4,8 +4,11 @@
  *
  * Web opens `window.location.href` so the browser history contains the
  * return URL naturally. Native uses `expo-web-browser`'s
- * `openAuthSessionAsync` with a `myapp://billing/return` redirect so the
- * system browser resolves back into the app cleanly.
+ * `openAuthSessionAsync` with a deep-link redirect built from the active
+ * app scheme (`<scheme>://billing/return`) so the system browser resolves
+ * back into the app cleanly. The scheme comes from `client/lib/identity`,
+ * which mirrors `app.config.ts` — adopters who rename the template change
+ * the scheme in one place.
  *
  * The return URL is a UX hint, not proof of payment — the hook refetches
  * the billing summary query on return regardless of reported status.
@@ -23,6 +26,7 @@ import {
 } from "../api";
 import { billingSummaryQueryKey } from "./useBillingSummary";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
+import { buildAppDeepLink } from "@/client/lib/identity";
 import type { BillingInterval } from "../types";
 
 export type BillingActionError = BillingProblem;
@@ -167,7 +171,7 @@ function defaultBrowser(): BrowserHandoff {
 }
 
 function nativeReturnUrl(): string {
-  return "myapp://billing/return";
+  return buildAppDeepLink("/billing/return");
 }
 
 /**

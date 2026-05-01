@@ -101,15 +101,20 @@ screen. That screen's only job is to refetch the billing summary and
 route the user back to where they were.
 
 ```ts
-// conceptual
+// conceptual — the literal "myapp" is the template default. Real apps
+// set EXPO_PUBLIC_APP_SCHEME and the value flows through both Expo
+// config and the runtime accessor in client/lib/identity.ts.
 const returnPath = "/billing/return";
-const nativeReturnUrl = "myapp://billing/return";
+const nativeReturnUrl = `${getAppScheme()}://billing/return`; // e.g. "myapp://billing/return"
 const webReturnUrl = "https://app.example.com/billing/return";
 ```
 
-- **Scheme**: `app.json` declares `"scheme": "myapp"`. `expo-web-browser`
-  is already in the dependency list, so no native config work is required
-  to accept the return URL.
+- **Scheme**: derived from `app.identity.ts` (default `"myapp"`, override
+  via `EXPO_PUBLIC_APP_SCHEME`). The Expo `scheme` field in
+  `app.config.ts` and the runtime `buildAppDeepLink()` in
+  `client/lib/identity.ts` both read from the same module so there is
+  one place to change. `expo-web-browser` is already in the dependency
+  list, so no native config work is required to accept the return URL.
 - **Query contract** on the return URL:
   - `status=success` — Checkout success redirect
   - `status=cancel` — Checkout cancel redirect

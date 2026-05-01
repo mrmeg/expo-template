@@ -35,7 +35,7 @@ English and Spanish with lazy-loaded translation bundles. RTL support. Device lo
 17 pre-built screen templates: Settings, Profile, List, Pricing, Welcome, Card Grid, Chat, Dashboard, Multi-step Form, Notifications, Search Results, Error States, Detail Hero.
 
 ### Billing (baseline)
-Stripe **Checkout + Billing Portal** in `hosted-external` mode — web redirects to Stripe, native hands off via `expo-web-browser` through the `myapp://billing/return` scheme. Stripe webhooks are the authoritative source of billing state; the client consumes a normalized `BillingSummary` keyed to the Cognito `sub`. Native PaymentSheet, App Store / Play Store in-app purchase, metered billing, tax, and team seats are **out of scope for the baseline**. Adopters shipping native apps in regulated digital-goods categories must confirm platform policy before enabling the default. See [BILLING.md](./BILLING.md).
+Stripe **Checkout + Billing Portal** in `hosted-external` mode — web redirects to Stripe, native hands off via `expo-web-browser` through `<APP_SCHEME>://billing/return` (default `myapp`, override via `EXPO_PUBLIC_APP_SCHEME`; see `app.identity.ts`). Stripe webhooks are the authoritative source of billing state; the client consumes a normalized `BillingSummary` keyed to the Cognito `sub`. Native PaymentSheet, App Store / Play Store in-app purchase, metered billing, tax, and team seats are **out of scope for the baseline**. Adopters shipping native apps in regulated digital-goods categories must confirm platform policy before enabling the default. See [BILLING.md](./BILLING.md).
 
 ### Developer Tools
 Component showcase, form validation demos, auth demos, Reactotron integration, developer settings screen.

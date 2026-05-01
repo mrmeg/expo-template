@@ -41,6 +41,30 @@ The `.env.example` file enumerates every optional feature flag — copy it to
 `.env` and fill in only the credentials you need. A blank `.env` boots the
 app with auth, billing, and media all disabled.
 
+## Renaming the Template
+
+App identity (name, slug, native scheme, iOS bundle id, Android package)
+lives in **one** place: `app.identity.ts`. Both `app.config.ts` (the
+native build config) and `client/lib/identity.ts` (the runtime accessor
+the billing return URL uses) read from it.
+
+To rename without searching the tree, set these five env vars in `.env`
+(any subset can be overridden — the rest fall back to template defaults):
+
+```bash
+EXPO_PUBLIC_APP_NAME="Acme"
+EXPO_PUBLIC_APP_SLUG="acme-app"
+EXPO_PUBLIC_APP_SCHEME="acme"
+EXPO_PUBLIC_APP_IOS_BUNDLE_ID="com.acme.app"
+EXPO_PUBLIC_APP_ANDROID_PACKAGE="com.acme.app"
+```
+
+`getAppIdentity()` validates each override at config-load time — a
+malformed scheme or non-reverse-DNS package throws before native build
+runs, so a typo can't quietly ship into TestFlight. After changing
+identity for native, re-run `expo prebuild` to regenerate the iOS /
+Android projects with the new bundle ids.
+
 ## Scripts
 
 | Script | Description |

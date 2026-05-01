@@ -1,4 +1,5 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
+import { getAppIdentity } from "./app.identity";
 
 const withNativeBuildSettings = require("./plugins/withNativeBuildSettings");
 
@@ -85,28 +86,29 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
 }
 
 export default function appConfig(_: ConfigContext): ExpoConfig {
+  const identity = getAppIdentity();
   const updatesChannel = resolveUpdatesChannel();
   const buildNodeHeapMb = resolveBuildNodeHeapMb();
   const buildNodeOptions = `--max-old-space-size=${buildNodeHeapMb}`;
 
   let config: ExpoConfig = {
-    name: "template",
-    slug: "template",
+    name: identity.name,
+    slug: identity.slug,
     version: "0.0.1",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "myapp",
+    scheme: identity.scheme,
     userInterfaceStyle: "automatic",
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.mrmeg.template",
+      bundleIdentifier: identity.iosBundleIdentifier,
     },
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#ffffff",
       },
-      package: "com.mrmeg.template",
+      package: identity.androidPackage,
     },
     web: {
       bundler: "metro",
@@ -120,6 +122,9 @@ export default function appConfig(_: ConfigContext): ExpoConfig {
     extra: {
       updatesChannel,
       buildNodeHeapMb,
+      // Surface the active scheme on `Constants.expoConfig.extra.appScheme`
+      // for any code path that prefers ExpoConfig over EXPO_PUBLIC_* env.
+      appScheme: identity.scheme,
     },
   };
 
