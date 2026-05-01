@@ -50,6 +50,7 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
       "expo-router",
       {
         origin: "",
+        unstable_useServerRendering: true,
         asyncRoutes: {
           web: false,
         },

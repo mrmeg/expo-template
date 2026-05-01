@@ -42,3 +42,4 @@ yarn-error.*
 
 CLAUDE.md
 Agent/Playbooks
+.agents/

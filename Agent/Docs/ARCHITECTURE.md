@@ -38,7 +38,7 @@
 |----------|-------|---------|-------|
 | iOS | expo-router/entry | Metro | New Architecture enabled |
 | Android | expo-router/entry | Metro | New Architecture enabled |
-| Web | expo-router/entry | Metro → static export | Served by Express in prod |
+| Web | expo-router/entry | Metro → server export | Server-rendered by Express in prod |
 
 ## Directory Architecture
 
@@ -54,7 +54,7 @@ File-based routing via Expo Router with nested layouts:
   - `api/media/` — S3 presigned URLs (upload, read, list, delete)
   - `api/billing/` — Stripe Checkout / Portal / Webhook / Summary routes driven by the process-wide `BillingRegistry` (`server/api/billing/registry.ts`). Unconfigured registries return `503 billing-disabled`.
   - `api/_shared/` — Cross-route helpers: `auth.ts` (`requireAuthenticatedUser` fronted by a `TokenVerifier` port — returns structured 401s and fails closed when no verifier is registered), `errors.ts` (typed JSON error responses), `cors.ts`
-- **Web HTML** (`+html.tsx`) — Global CSS, theme-aware styles, font loading
+- **Web HTML** (`+html.tsx`) — Server-only root document, global CSS, theme-aware styles, font loading
 
 ### Client Layer (`client/`)
 
@@ -141,6 +141,7 @@ file path, and graceful failure behavior.
 | Feature folders | Portable, self-contained modules; easy to add/remove features |
 | AWS Amplify for auth | Managed Cognito integration, session token handling |
 | Express for prod web | Rate limiting, security headers, compression — missing from static hosts |
+| Expo Router SSR for web | Request-time HTML for dynamic routes while preserving Expo Router API routes and a single universal route tree |
 | Discriminated union API responses | Type-safe error handling without exceptions |
 | Platform-specific files (.native.ts) | Clean platform splits without runtime checks |
 | Stripe Checkout + Billing Portal (hosted-external) as the billing baseline | One flow works web/iOS/Android without store-specific IAP integrations; webhooks own server state. Adopters needing native IAP introduce a new billing mode rather than mutating the default. See `BILLING.md`. |
@@ -148,6 +149,10 @@ file path, and graceful failure behavior.
 ## Build & Deploy
 
 - **Dev**: `npx expo start` (Metro dev server)
-- **Web prod**: `expo export -p web` → Express serves `dist/`
+- **Web prod**: `expo export -p web` → `dist/client` static assets plus
+  `dist/server` renderer → Express serves and renders requests.
+- **Local SSR verification**: `bun run build` then `bun run serve:ssr` for the
+  Expo production server, or `bun run start-local` to exercise the custom
+  Express adapter.
 - **Native**: EAS Build (configured in app.json)
 - **Local verification**: `bun run typecheck`, `bun run lint`, `bun run test:ci`

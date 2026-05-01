@@ -10,7 +10,18 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| _No Ready specs — queue empty._ | — | — |
+| `fix-lint-dependency.md` | Ready | High |
+| `align-env-validation-with-optional-template-features.md` | Ready | High |
+| `modernize-generator-scaffolds.md` | Ready | High |
+| `harden-media-empty-and-unconfigured-states.md` | Ready | High |
+| `ignore-generated-coverage-output.md` | Ready | Medium |
+| `refresh-public-template-docs.md` | Ready | Medium |
+| `align-billing-docs-with-session-routes.md` | Ready | Medium |
+| `define-feature-dependency-contracts.md` | Ready | Medium |
+| `parameterize-app-identity.md` | Ready | Medium |
+| `restore-template-ci-workflow.md` | Ready | Medium |
+| `create-template-registry-for-showcase-and-explore.md` | Ready | Medium |
+| `expand-reusable-surface-coverage.md` | Ready | Medium |
 
 ## Workflow
 

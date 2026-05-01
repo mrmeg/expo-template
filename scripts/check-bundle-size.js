@@ -7,7 +7,7 @@
  *   node scripts/check-bundle-size.js          # Compare against baseline
  *   node scripts/check-bundle-size.js --update  # Set current size as baseline
  *
- * Expects dist/ to already exist (run `bun run build` first).
+ * Expects dist/client to already exist (run `bun run build` first).
  * Uses only Node.js built-ins — no external dependencies.
  */
 
@@ -15,7 +15,7 @@ const fs = require("fs");
 const path = require("path");
 
 const THRESHOLD = 0.10; // 10% growth allowed
-const DIST_DIR = path.join(process.cwd(), "dist");
+const DIST_DIR = path.join(process.cwd(), "dist", "client");
 const BASELINE_PATH = path.join(__dirname, "bundle-baseline.json");
 
 function getJsFiles(dir) {
@@ -60,7 +60,7 @@ function writeBaseline(totalBytes) {
 const jsFiles = getJsFiles(DIST_DIR);
 
 if (jsFiles.length === 0) {
-  console.error("No JS files found in dist/. Run 'bun run build' first.");
+  console.error("No JS files found in dist/client. Run 'bun run build' first.");
   process.exit(1);
 }
 

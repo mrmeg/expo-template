@@ -17,11 +17,16 @@ bun run build && bun run bundle-size --update
 
 ### `bun run analyze`
 
-Builds the web export with source maps and opens `source-map-explorer`, showing a treemap of every module in the bundle. Use this to identify large dependencies and dead code.
+Builds the web export with source maps and opens `source-map-explorer` against
+`dist/client/**/*.js`, showing a treemap of every hydrated client module. Use
+this to identify large dependencies and dead code without counting the SSR
+server renderer.
 
 ### `bun run bundle-size`
 
-Compares the total JS bundle size in `dist/` against the baseline in `scripts/bundle-baseline.json`. Exits with code 1 if the bundle grew more than 10% from the baseline.
+Compares the total client JS bundle size in `dist/client` against the baseline
+in `scripts/bundle-baseline.json`. Exits with code 1 if the bundle grew more
+than 10% from the baseline.
 
 ### Setting the Baseline
 

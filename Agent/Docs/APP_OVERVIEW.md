@@ -12,7 +12,7 @@ A production-ready **Expo app template** for building cross-platform application
 |----------|--------|-------|
 | iOS | Full support | New Architecture enabled, tablet support |
 | Android | Full support | New Architecture enabled |
-| Web | Full support | Express server for production, async routes |
+| Web | Full support | Expo Router SSR through the Express production server |
 
 ## Core Capabilities
 

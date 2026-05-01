@@ -4,10 +4,12 @@
 
 ## Bundle Size
 
-- Monitoring: `npm run bundle-size` compares against `scripts/bundle-baseline.json`
+- Monitoring: `bun run bundle-size` compares client JS against `scripts/bundle-baseline.json`
 - Threshold: 10% growth allowed before flagging
-- Analysis: `npm run analyze` runs source-map-explorer on production export
-- Only minified JS files are measured
+- Analysis: `bun run analyze` runs source-map-explorer on the production client export
+- Only minified JS files in `dist/client` are measured. The SSR renderer in
+  `dist/server` is tracked through export/server smoke tests, not the client
+  bundle budget.
 
 ## React Query Defaults
 
@@ -45,10 +47,17 @@
 
 ## Web-Specific
 
-- **Express compression**: Gzip on all responses in production
-- **Static assets**: 1-hour cache max-age
+- **Server rendering**: Expo Router SSR is enabled with `web.output = "server"`
+  and `unstable_useServerRendering`. Routes render at request time through the
+  Express `expo-server` adapter.
+- **Express compression**: Gzip on all responses in production.
+- **Static assets**: `dist/client` assets are served with 1-hour cache max-age.
+- **HTML caching**: SSR HTML is request-time output. Add CDN/runtime cache rules
+  per route before caching personalized or authenticated pages.
 - **Shadows**: `getShadowStyle()` returns empty object on web — `boxShadow` causes React Native Web crashes
-- **Async routes**: Enabled for web, allowing route-level code splitting
+- **Async routes**: Disabled for web in the template baseline to keep the SSR
+  experiment deterministic. Re-enable only after measuring route-level split
+  gains against added request/chunk overhead.
 
 ## Rate Limiting
 
