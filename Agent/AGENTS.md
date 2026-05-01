@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `expand-reusable-surface-coverage.md` | Ready | Medium |
 
 ## Workflow
 
