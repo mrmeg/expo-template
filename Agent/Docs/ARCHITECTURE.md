@@ -75,6 +75,9 @@ The reusable design system is packaged as `@mrmeg/expo-ui`. The root app
 consumes it through workspace resolution while published consumers install it
 from the private npm scope.
 
+Consumer app setup, supported imports, font loading, and publish/update
+workflow are documented in `Agent/Docs/EXPO_UI_PACKAGE.md`.
+
 Package exports:
 
 - `@mrmeg/expo-ui`

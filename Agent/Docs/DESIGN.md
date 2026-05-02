@@ -177,7 +177,8 @@ New reusable UI primitives should be generated into
 Publishable package code owns design tokens, UI hooks, theme state, global
 notification state, haptics, animation helpers, and the Sentry bridge. It does
 not ship font files; `useResources()` and `app/+html.tsx` load Lato through
-Google Fonts on web.
+Google Fonts on web. See `Agent/Docs/EXPO_UI_PACKAGE.md` for consumer app
+setup, supported imports, and publish/update workflow.
 
 ## Screen Templates
 

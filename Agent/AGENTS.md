@@ -36,6 +36,7 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 | Performance | `./Docs/PERFORMANCE.md` | Performance Expert | Budgets, benchmarks, known bottlenecks |
 | User Flows | `./Docs/USER_FLOWS.md` | Human Advocate | Key user journeys, accessibility notes |
 | Billing | `./Docs/BILLING.md` | Architect | Stripe subscriptions baseline (hosted-external), return contract, entitlement |
+| Expo UI Package | `./Docs/EXPO_UI_PACKAGE.md` | Code Expert | Consumer integration reference for the private reusable UI package |
 | App Overview | `./Docs/APP_OVERVIEW.md` | — | High-level app overview |
 
 ## Tech Stack Reference
