@@ -179,6 +179,6 @@ file path, and graceful failure behavior.
 - **Local SSR verification**: `bun run build` then `bun run serve:ssr` for the
   Expo production server, or `bun run start-local` to exercise the custom
   Express adapter.
-- **Native**: EAS Build. Identity (name, slug, scheme, bundle id, package) lives in `app.identity.ts` and is consumed by `app.config.ts`; override via `EXPO_PUBLIC_APP_*` env vars without editing tracked files. Re-run `expo prebuild` after identity changes.
+- **Native**: EAS Build. Identity (name, slug, scheme, bundle id, package) lives in `app.identity.js` with sibling `app.identity.d.ts` types and is consumed by `app.config.ts`; override via `EXPO_PUBLIC_APP_*` env vars without editing tracked files. Re-run `expo prebuild` after identity changes.
 - **Local verification**: `bun run typecheck`, `bun run lint`, `bun run check:features`, `bun run test:ci`
 - **CI**: `.github/workflows/ci.yml` runs the same gates plus `bun run build` + `bun run bundle-size` on every push/PR to `main`/`dev` (Bun-based, frozen lockfile, no app credentials required)

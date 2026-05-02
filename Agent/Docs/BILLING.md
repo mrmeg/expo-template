@@ -109,8 +109,9 @@ const nativeReturnUrl = `${getAppScheme()}://billing/return`; // e.g. "myapp://b
 const webReturnUrl = "https://app.example.com/billing/return";
 ```
 
-- **Scheme**: derived from `app.identity.ts` (default `"myapp"`, override
-  via `EXPO_PUBLIC_APP_SCHEME`). The Expo `scheme` field in
+- **Scheme**: derived from `app.identity.js` (default `"myapp"`, override
+  via `EXPO_PUBLIC_APP_SCHEME`; TypeScript consumers read the sibling
+  `app.identity.d.ts` declarations). The Expo `scheme` field in
   `app.config.ts` and the runtime `buildAppDeepLink()` in
   `client/lib/identity.ts` both read from the same module so there is
   one place to change. `expo-web-browser` is already in the dependency

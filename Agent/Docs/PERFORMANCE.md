@@ -55,9 +55,18 @@
 - **HTML caching**: SSR HTML is request-time output. Add CDN/runtime cache rules
   per route before caching personalized or authenticated pages.
 - **Shadows**: `getShadowStyle()` returns empty object on web — `boxShadow` causes React Native Web crashes
-- **Async routes**: Disabled for web in the template baseline to keep the SSR
-  experiment deterministic. Re-enable only after measuring route-level split
-  gains against added request/chunk overhead.
+- **Async routes**: Enabled for web (`asyncRoutes.web = true`) to keep
+  route-specific demo/template code out of the entry bundle while preserving
+  SSR through the Expo Router server output.
+
+## Entry Bundle Hygiene
+
+- Sentry is loaded through `client/lib/sentry.ts` with a dynamic import. When
+  `EXPO_PUBLIC_SENTRY_DSN` is unset, startup does not install global handlers
+  or pull `@sentry/react-native` into the entry bundle.
+- Shared icon/resource code imports `@expo/vector-icons/Feather` directly
+  rather than the package barrel so other icon sets do not become entry
+  dependencies.
 
 ## Rate Limiting
 
