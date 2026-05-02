@@ -10,7 +10,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `./Specs/document-expo-ui-package-consumer-integration.md` | Ready | High |
 
 ## Workflow
 
