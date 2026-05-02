@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 import { Stack } from "expo-router";
-import { useTheme } from "@/client/hooks/useTheme";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { WebBackButton } from "@/client/features/navigation/WebBackButton";
 
 export const unstable_settings = {

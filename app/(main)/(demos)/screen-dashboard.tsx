@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from "react";
 import { View, StyleSheet } from "react-native";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
-import { SansSerifText } from "@/client/components/ui/StyledText";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import {
   DashboardScreen,
   type MetricCard,
@@ -10,7 +10,7 @@ import {
   type ActivityItem,
   type DashboardDateRange,
 } from "@/client/screens/DashboardScreen";
-import type { Theme } from "@/client/constants/colors";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 const METRICS: MetricCard[] = [
   { label: "Revenue", value: "$12,450", trend: "up", trendValue: "+12%", icon: "dollar-sign" },

@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { View, Pressable, StyleSheet, Alert, Platform } from "react-native";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
-import { SansSerifText } from "@/client/components/ui/StyledText";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { ErrorScreen, type ErrorVariant } from "@/client/screens/ErrorScreen";
-import type { Theme } from "@/client/constants/colors";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 const VARIANTS: { key: ErrorVariant; label: string }[] = [
   { key: "not-found", label: "Not Found" },

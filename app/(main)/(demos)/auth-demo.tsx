@@ -4,14 +4,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthWrapper } from "@/client/features/auth/components/AuthWrapper";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
 import { useAuthStore, AuthState } from "@/client/features/auth/stores/authStore";
-import { useTheme } from "@/client/hooks/useTheme";
-import { Button } from "@/client/components/ui/Button";
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/client/components/ui/Card";
-import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
-import { Icon } from "@/client/components/ui/Icon";
-import { spacing } from "@/client/constants/spacing";
-import type { Theme } from "@/client/constants/colors";
-import type { IconName } from "@/client/components/ui/Icon";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { Button } from "@mrmeg/expo-ui/components/Button";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@mrmeg/expo-ui/components/Card";
+import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import type { Theme } from "@mrmeg/expo-ui/constants";
+import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 
 // Auth state badge component
 function AuthStateBadge({ state }: { state: AuthState }) {

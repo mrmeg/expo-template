@@ -7,6 +7,13 @@ module.exports = {
 
   // Module path aliases matching tsconfig
   moduleNameMapper: {
+    "^@mrmeg/expo-ui$": "<rootDir>/packages/ui/src/index.ts",
+    "^@mrmeg/expo-ui/components$": "<rootDir>/packages/ui/src/components/index.ts",
+    "^@mrmeg/expo-ui/components/(.*)$": "<rootDir>/packages/ui/src/components/$1",
+    "^@mrmeg/expo-ui/constants$": "<rootDir>/packages/ui/src/constants/index.ts",
+    "^@mrmeg/expo-ui/hooks$": "<rootDir>/packages/ui/src/hooks/index.ts",
+    "^@mrmeg/expo-ui/state$": "<rootDir>/packages/ui/src/state/index.ts",
+    "^@mrmeg/expo-ui/lib$": "<rootDir>/packages/ui/src/lib/index.ts",
     "^@/(.*)$": "<rootDir>/$1",
   },
 
@@ -41,12 +48,14 @@ module.exports = {
     "app/api/**/*.{ts,tsx}",
     "server/**/*.{js,ts}",
     "shared/**/*.{ts,tsx}",
+    "packages/ui/src/**/*.{ts,tsx}",
     "!client/**/*.d.ts",
     "!client/**/index.ts",
     "!client/devtools/**",
     "!app/api/**/index.ts",
     "!server/**/*.test.{js,ts}",
     "!shared/**/*.d.ts",
+    "!packages/ui/src/**/index.ts",
     "!**/__tests__/**",
     "!**/node_modules/**",
     "!**/dist/**",

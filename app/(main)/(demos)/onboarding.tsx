@@ -4,8 +4,8 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { OnboardingFlow, type OnboardingPage } from "@/client/features/onboarding/OnboardingFlow";
 import { useOnboardingStore } from "@/client/features/onboarding/onboardingStore";
-import { useTheme } from "@/client/hooks/useTheme";
-import type { Theme } from "@/client/constants/colors";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 const PAGES: OnboardingPage[] = [
   {

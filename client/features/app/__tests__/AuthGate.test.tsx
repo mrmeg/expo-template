@@ -12,7 +12,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
 
-jest.mock("@/client/hooks/useTheme", () => ({
+jest.mock("@mrmeg/expo-ui/hooks", () => ({
   useTheme: () => ({
     theme: {
       dark: false,

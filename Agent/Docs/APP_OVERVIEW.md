@@ -46,7 +46,7 @@ Component showcase, form validation demos, auth demos, Reactotron integration, d
 2. **Run as-is**: `npx expo start` — every optional feature (Cognito auth, external API URL, Stripe billing, R2/S3 media) defaults to off, so the template is fully explorable from a fresh `.env.example`.
 3. **Enable auth (optional)**: Set both `EXPO_PUBLIC_USER_POOL_ID` and `EXPO_PUBLIC_USER_POOL_CLIENT_ID` together. Setting just one warns at startup; setting neither keeps the auth shell disabled.
 4. **Enable other features (optional)**: Add S3/R2 credentials for media uploads, billing keys for Stripe (see `BILLING.md`), `EXPO_PUBLIC_API_URL` for an external backend.
-5. **Start building**: Add screens in `app/`, features in `client/features/`, components in `client/components/ui/`.
+5. **Start building**: Add screens in `app/`, features in `client/features/`, and reusable UI components in `packages/ui/src/components/`.
 6. **Generate scaffolding**: `bun run generate component|screen|hook|form <Name>` (`screen` writes both `client/screens/<Name>Screen.tsx` and a demo route under `app/(main)/(demos)`).
 
 ## Key Conventions

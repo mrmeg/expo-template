@@ -1,8 +1,8 @@
 import React from "react";
 import { useRouter } from "expo-router";
-import { SansSerifText } from "@/client/components/ui/StyledText";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
+import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
 import { DetailHeroScreen } from "@/client/screens/DetailHeroScreen";
 
 export default function DetailHeroDemo() {

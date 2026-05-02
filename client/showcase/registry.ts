@@ -11,7 +11,7 @@
  * `app/(main)/(demos)/showcase/index.tsx` (component showcase).
  */
 
-import type { IconName } from "@/client/components/ui/Icon";
+import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,7 +26,7 @@ export interface ScreenTemplateEntry {
   label: string;
   /** One-line description shown beneath the label. */
   description: string;
-  /** Feather icon name from `@/client/components/ui/Icon`. */
+  /** Feather icon name from `@mrmeg/expo-ui/components/Icon`. */
   icon: IconName;
 }
 
@@ -40,7 +40,7 @@ export interface DemoEntry {
 export interface ComponentEntry {
   /** Stable identifier (PascalCase by convention). */
   id: string;
-  /** Module path under `@/client/components/ui/`. */
+  /** Module path under `@mrmeg/expo-ui/components/`. */
   importPath: string;
   /** Loose grouping for future filtering — keeps the registry expressive without dictating UI. */
   category: ComponentCategory;
@@ -90,42 +90,42 @@ export const DEMOS: DemoEntry[] = [
 // ---------------------------------------------------------------------------
 
 /**
- * UI components from `@/client/components/ui/` that the showcase exposes.
+ * UI components from `@mrmeg/expo-ui/components/` that the showcase exposes.
  * Excludes infrastructure pieces like `ErrorBoundary`, `StatusBar`,
  * `MaxWidthContainer`, `DismissKeyboard`, and `Notification` — those are
  * mounted by the shell, not browsed by adopters.
  */
 export const COMPONENTS: ComponentEntry[] = [
-  { id: "Accordion", importPath: "@/client/components/ui/Accordion", category: "navigation" },
-  { id: "Alert", importPath: "@/client/components/ui/Alert", category: "feedback" },
-  { id: "AnimatedView", importPath: "@/client/components/ui/AnimatedView", category: "layout" },
-  { id: "Badge", importPath: "@/client/components/ui/Badge", category: "feedback" },
-  { id: "BottomSheet", importPath: "@/client/components/ui/BottomSheet", category: "overlay" },
-  { id: "Button", importPath: "@/client/components/ui/Button", category: "form" },
-  { id: "Card", importPath: "@/client/components/ui/Card", category: "layout" },
-  { id: "Checkbox", importPath: "@/client/components/ui/Checkbox", category: "form" },
-  { id: "Collapsible", importPath: "@/client/components/ui/Collapsible", category: "navigation" },
-  { id: "Dialog", importPath: "@/client/components/ui/Dialog", category: "overlay" },
-  { id: "Drawer", importPath: "@/client/components/ui/Drawer", category: "overlay" },
-  { id: "DropdownMenu", importPath: "@/client/components/ui/DropdownMenu", category: "overlay" },
-  { id: "EmptyState", importPath: "@/client/components/ui/EmptyState", category: "feedback" },
-  { id: "Icon", importPath: "@/client/components/ui/Icon", category: "typography" },
-  { id: "InputOTP", importPath: "@/client/components/ui/InputOTP", category: "form" },
-  { id: "Label", importPath: "@/client/components/ui/Label", category: "form" },
-  { id: "Popover", importPath: "@/client/components/ui/Popover", category: "overlay" },
-  { id: "Progress", importPath: "@/client/components/ui/Progress", category: "feedback" },
-  { id: "RadioGroup", importPath: "@/client/components/ui/RadioGroup", category: "form" },
-  { id: "Select", importPath: "@/client/components/ui/Select", category: "form" },
-  { id: "Separator", importPath: "@/client/components/ui/Separator", category: "layout" },
-  { id: "Skeleton", importPath: "@/client/components/ui/Skeleton", category: "feedback" },
-  { id: "Slider", importPath: "@/client/components/ui/Slider", category: "form" },
-  { id: "StyledText", importPath: "@/client/components/ui/StyledText", category: "typography" },
-  { id: "Switch", importPath: "@/client/components/ui/Switch", category: "form" },
-  { id: "Tabs", importPath: "@/client/components/ui/Tabs", category: "navigation" },
-  { id: "TextInput", importPath: "@/client/components/ui/TextInput", category: "form" },
-  { id: "Toggle", importPath: "@/client/components/ui/Toggle", category: "form" },
-  { id: "ToggleGroup", importPath: "@/client/components/ui/ToggleGroup", category: "form" },
-  { id: "Tooltip", importPath: "@/client/components/ui/Tooltip", category: "overlay" },
+  { id: "Accordion", importPath: "@mrmeg/expo-ui/components/Accordion", category: "navigation" },
+  { id: "Alert", importPath: "@mrmeg/expo-ui/components/Alert", category: "feedback" },
+  { id: "AnimatedView", importPath: "@mrmeg/expo-ui/components/AnimatedView", category: "layout" },
+  { id: "Badge", importPath: "@mrmeg/expo-ui/components/Badge", category: "feedback" },
+  { id: "BottomSheet", importPath: "@mrmeg/expo-ui/components/BottomSheet", category: "overlay" },
+  { id: "Button", importPath: "@mrmeg/expo-ui/components/Button", category: "form" },
+  { id: "Card", importPath: "@mrmeg/expo-ui/components/Card", category: "layout" },
+  { id: "Checkbox", importPath: "@mrmeg/expo-ui/components/Checkbox", category: "form" },
+  { id: "Collapsible", importPath: "@mrmeg/expo-ui/components/Collapsible", category: "navigation" },
+  { id: "Dialog", importPath: "@mrmeg/expo-ui/components/Dialog", category: "overlay" },
+  { id: "Drawer", importPath: "@mrmeg/expo-ui/components/Drawer", category: "overlay" },
+  { id: "DropdownMenu", importPath: "@mrmeg/expo-ui/components/DropdownMenu", category: "overlay" },
+  { id: "EmptyState", importPath: "@mrmeg/expo-ui/components/EmptyState", category: "feedback" },
+  { id: "Icon", importPath: "@mrmeg/expo-ui/components/Icon", category: "typography" },
+  { id: "InputOTP", importPath: "@mrmeg/expo-ui/components/InputOTP", category: "form" },
+  { id: "Label", importPath: "@mrmeg/expo-ui/components/Label", category: "form" },
+  { id: "Popover", importPath: "@mrmeg/expo-ui/components/Popover", category: "overlay" },
+  { id: "Progress", importPath: "@mrmeg/expo-ui/components/Progress", category: "feedback" },
+  { id: "RadioGroup", importPath: "@mrmeg/expo-ui/components/RadioGroup", category: "form" },
+  { id: "Select", importPath: "@mrmeg/expo-ui/components/Select", category: "form" },
+  { id: "Separator", importPath: "@mrmeg/expo-ui/components/Separator", category: "layout" },
+  { id: "Skeleton", importPath: "@mrmeg/expo-ui/components/Skeleton", category: "feedback" },
+  { id: "Slider", importPath: "@mrmeg/expo-ui/components/Slider", category: "form" },
+  { id: "StyledText", importPath: "@mrmeg/expo-ui/components/StyledText", category: "typography" },
+  { id: "Switch", importPath: "@mrmeg/expo-ui/components/Switch", category: "form" },
+  { id: "Tabs", importPath: "@mrmeg/expo-ui/components/Tabs", category: "navigation" },
+  { id: "TextInput", importPath: "@mrmeg/expo-ui/components/TextInput", category: "form" },
+  { id: "Toggle", importPath: "@mrmeg/expo-ui/components/Toggle", category: "form" },
+  { id: "ToggleGroup", importPath: "@mrmeg/expo-ui/components/ToggleGroup", category: "form" },
+  { id: "Tooltip", importPath: "@mrmeg/expo-ui/components/Tooltip", category: "overlay" },
 ];
 
 // ---------------------------------------------------------------------------

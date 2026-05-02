@@ -8,14 +8,14 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
-import { AnimatedView } from "@/client/components/ui/AnimatedView";
-import { useTheme } from "@/client/hooks/useTheme";
-import { STAGGER_DELAY } from "@/client/hooks/useStaggeredEntrance";
-import { spacing } from "@/client/constants/spacing";
-import { SansSerifText } from "@/client/components/ui/StyledText";
-import { Icon, type IconName } from "@/client/components/ui/Icon";
-import { Switch } from "@/client/components/ui/Switch";
-import type { Theme } from "@/client/constants/colors";
+import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
+import { Switch } from "@mrmeg/expo-ui/components/Switch";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
 // Types

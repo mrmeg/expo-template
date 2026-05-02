@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { router } from "expo-router";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
-import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
-import { Button } from "@/client/components/ui/Button";
-import { Switch } from "@/client/components/ui/Switch";
-import { Icon } from "@/client/components/ui/Icon";
-import { Alert } from "@/client/components/ui/Alert";
-import { globalUIStore } from "@/client/state/globalUIStore";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { Button } from "@mrmeg/expo-ui/components/Button";
+import { Switch } from "@mrmeg/expo-ui/components/Switch";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { Alert } from "@mrmeg/expo-ui/components/Alert";
+import { globalUIStore } from "@mrmeg/expo-ui/state";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
 import { AuthGate } from "@/client/features/app";
@@ -20,8 +20,8 @@ import {
   type BillingProblem,
   type BillingSummary,
 } from "@/client/features/billing";
-import type { Theme } from "@/client/constants/colors";
-import { palette } from "@/client/constants/colors";
+import type { Theme } from "@mrmeg/expo-ui/constants";
+import { palette } from "@mrmeg/expo-ui/constants";
 import { SEO } from "@/client/components/SEO";
 
 /**

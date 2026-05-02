@@ -9,15 +9,15 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
-import { AnimatedView } from "@/client/components/ui/AnimatedView";
-import { useTheme } from "@/client/hooks/useTheme";
-import { STAGGER_DELAY } from "@/client/hooks/useStaggeredEntrance";
-import { spacing } from "@/client/constants/spacing";
-import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
-import { Button } from "@/client/components/ui/Button";
-import { Icon, type IconName } from "@/client/components/ui/Icon";
-import { SkeletonCard } from "@/client/components/ui/Skeleton";
-import type { Theme } from "@/client/constants/colors";
+import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { Button } from "@mrmeg/expo-ui/components/Button";
+import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
+import { SkeletonCard } from "@mrmeg/expo-ui/components/Skeleton";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
 // Types

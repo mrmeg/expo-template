@@ -51,28 +51,28 @@ See `Agent/Docs/ARCHITECTURE.md` for the canonical architecture reference and `A
 
 - `app/` — Expo Router file-based routing (UI routes + `app/api/*` server routes)
 - `client/features/` — Self-contained feature modules (auth, billing, media, i18n, notifications, onboarding, keyboard, navigation, app)
-- `client/components/ui/` — Design system primitives
+- `packages/ui/src/components/` — Design system primitives for `@mrmeg/expo-ui`
 - `client/screens/` — Pre-built screen templates
 - `client/lib/api/` — `apiClient` (typed fetch) + `authenticatedFetch` (Amplify-aware)
 - `client/lib/form/` — Form primitives (`FormProvider`, `FormTextInput`, `FormCheckbox`, …) on top of react-hook-form + Zod
 - `client/lib/storage/` — Cross-platform AsyncStorage wrapper
-- `client/state/` — Shared Zustand stores (theme, drawer); per-feature stores live under `client/features/<name>/stores/`
+- `client/state/` — App-local Zustand stores; UI package stores own theme and global notification state
 - `server/` — Express production server (compression, CORS, rate limiting, security headers)
 - `shared/` — Code shared between client and server (e.g. `shared/media.ts` path constants)
 
 ## Design System
 
 - Shadcn-inspired, zinc palette + teal accent
-- See `client/constants/` for tokens (colors, fonts, spacing) and `Agent/Docs/DESIGN.md` for the full reference
+- See `packages/ui/src/constants/` for tokens (colors, fonts, spacing) and `Agent/Docs/DESIGN.md` for the full reference
 - Component sizes: sm=32, md=36, lg=40
 - Use `StyleSheet.flatten([...])` (not raw arrays) for `@rn-primitives` style props — nested style arrays crash React Native Web
 
 ## Adding a New Component
 
 1. Scaffold: `bun run generate component <Name>`
-2. Implement in `client/components/ui/<Name>.tsx`
+2. Implement in `packages/ui/src/components/<Name>.tsx`
 3. Add a showcase demo under `app/(main)/(demos)/showcase/`
-4. Add an entry to `COMPONENTS` in `client/showcase/registry.ts` — the Explore tab's component count and any future filtering read from there. The registry test (`client/showcase/__tests__/registry.test.ts`) verifies the import path resolves on disk.
+4. Export it from `packages/ui/src/components/index.ts` and add an entry to `COMPONENTS` in `client/showcase/registry.ts` — the Explore tab's component count and any future filtering read from there. The registry test (`client/showcase/__tests__/registry.test.ts`) verifies the package import path resolves on disk.
 
 ## Adding a New Screen Template Or Demo
 
@@ -83,7 +83,7 @@ See `Agent/Docs/ARCHITECTURE.md` for the canonical architecture reference and `A
 ## Scaffolding
 
 ```bash
-bun run generate component <Name>   # UI component → client/components/ui/<Name>.tsx
+bun run generate component <Name>   # UI component → packages/ui/src/components/<Name>.tsx
 bun run generate screen <Name>      # client/screens/<Name>Screen.tsx + app/(main)/(demos)/screen-<kebab>.tsx
 bun run generate hook <Name>        # client/hooks/use<Name>.ts (working scaffold, no TODO bodies)
 bun run generate form <Name>        # client/components/forms/<Name>Form.tsx, built on @/client/lib/form primitives

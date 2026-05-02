@@ -10,7 +10,9 @@ Shadcn-inspired, zinc-based palette. Clean, minimal, consistent across platforms
 
 ### Palette
 
-Zinc-based neutral scale with teal accent. Defined in `client/constants/colors.ts`.
+Zinc-based neutral scale with teal accent. Defined in
+`packages/ui/src/constants/colors.ts` and consumed through
+`@mrmeg/expo-ui/constants`.
 
 | Token | Light | Dark | Usage |
 |-------|-------|------|-------|
@@ -36,7 +38,7 @@ Zinc-based neutral scale with teal accent. Defined in `client/constants/colors.t
 
 ## Typography
 
-Defined in `client/constants/fonts.ts`.
+Defined in `packages/ui/src/constants/fonts.ts`.
 
 | Scale | Size | Line Height | Letter Spacing |
 |-------|------|-------------|----------------|
@@ -49,13 +51,13 @@ Defined in `client/constants/fonts.ts`.
 | 3xl | 30 | 36 | -0.5 |
 | 4xl | 36 | 40 | -0.75 |
 
-- Font family: Lato (`Lato_400Regular`, `Lato_700Bold` via `@expo-google-fonts/lato`, system fallback)
-- Weights: 400 (normal), 500 (medium), 700 (bold) — only the two ttf weights are loaded; "500" is rendered with synthetic font-weight CSS
+- Font family: Lato on web via Google Fonts, system sans-serif fallback on native
+- Weights: 400 (normal), 500 (medium), 700 (bold) — web loads 400/700 and renders 500 with synthetic font-weight CSS
 - **2xl+ sizes get negative letter spacing** for tighter headings
 
 ## Spacing & Layout
 
-Defined in `client/constants/spacing.ts`. Base unit: 8px.
+Defined in `packages/ui/src/constants/spacing.ts`. Base unit: 8px.
 
 | Token | Value | Usage |
 |-------|-------|-------|
@@ -121,7 +123,8 @@ Applies to: Button, TextInput, Toggle, Select.
 
 ## Component Library (35 components)
 
-All in `client/components/ui/`:
+All exported from `@mrmeg/expo-ui/components` and implemented in
+`packages/ui/src/components/`:
 
 **Layout:** AnimatedView, Card, MaxWidthContainer, Separator, DismissKeyboard
 **Typography:** StyledText (semantic variants)
@@ -156,6 +159,25 @@ All in `client/components/ui/`:
 - `toggleTheme()` / `setTheme(mode)` — switch themes
 
 Contrast calculations are cached (max 500 entries).
+
+## Package Imports
+
+The template consumes its reusable UI through the private package namespace,
+even during local workspace development:
+
+```tsx
+import { Button } from "@mrmeg/expo-ui/components/Button";
+import { spacing, type Theme } from "@mrmeg/expo-ui/constants";
+import { useTheme, useResources } from "@mrmeg/expo-ui/hooks";
+```
+
+New reusable UI primitives should be generated into
+`packages/ui/src/components/`, exported from
+`packages/ui/src/components/index.ts`, and kept free of `@/client/*` imports.
+Publishable package code owns design tokens, UI hooks, theme state, global
+notification state, haptics, animation helpers, and the Sentry bridge. It does
+not ship font files; `useResources()` and `app/+html.tsx` load Lato through
+Google Fonts on web.
 
 ## Screen Templates
 

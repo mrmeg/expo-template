@@ -1,4 +1,4 @@
-import { colors } from "@/client/constants/colors";
+import { colors } from "@mrmeg/expo-ui/constants";
 import { ScrollViewStyleReset } from "expo-router/html";
 import { type PropsWithChildren } from "react";
 
@@ -89,6 +89,13 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          id="mrmeg-expo-ui-lato"
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap"
+        />
 
         {/*
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native.

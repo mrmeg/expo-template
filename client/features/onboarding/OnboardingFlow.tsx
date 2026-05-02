@@ -8,12 +8,12 @@ import {
   ViewToken,
   useWindowDimensions,
 } from "react-native";
-import { SansSerifBoldText, SansSerifText } from "@/client/components/ui/StyledText";
-import { Button } from "@/client/components/ui/Button";
-import { Icon, type IconName } from "@/client/components/ui/Icon";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
-import type { Theme } from "@/client/constants/colors";
+import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { Button } from "@mrmeg/expo-ui/components/Button";
+import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 const CONTROL_ZONE_SPACE = 128;
 

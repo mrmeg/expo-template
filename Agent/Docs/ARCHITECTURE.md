@@ -62,12 +62,35 @@ Organized by concern:
 - **`features/`** — Self-contained domain modules (auth, media, i18n, keyboard, navigation, onboarding, app, billing). Toast notifications are not a feature — `Notification` is a UI primitive (`components/ui/Notification.tsx`) and the global toast queue is a shared store (`state/globalUIStore`).
   - `features/billing/` (baseline, hosted-external) owns the client side of Stripe Checkout / Billing Portal: `useBillingSummary` (React Query over `/api/billing/summary`, scoped to the authenticated user with `placeholderData = freeBillingSummary()`), plus the planned `useCheckout` / `usePortal` hooks and entitlement helper. UI code consumes the normalized `BillingSummary` from `shared/billing.ts` — never raw Stripe. Server-side identity mapping lives in `server/api/billing/account.ts` (`BillingAccountResolver`). See `Agent/Docs/BILLING.md`.
   - `features/app/` owns the shell contract: `useAppStartup` (single startup gate), `AuthGate` (per-surface auth policy), `OnboardingGate` (first-run flow), `isAuthEnabled` (env predicate)
-- **`components/ui/`** — 35 design system primitives (shadcn-inspired)
-- **`hooks/`** — 9 shared hooks (useClipboard, useDebounce, useDimensions, useReduceMotion, useResources, useScalePress, useStaggeredEntrance, useTheme, useToggle)
+- **`components/`** — app-local shared components
+- **`hooks/`** — app-local hooks (useClipboard, useDebounce, useToggle)
 - **`lib/`** — Utilities (API client, haptics, storage, gesture handler, devtools)
-- **`state/`** — Global stores (theme, drawer, globalUI)
+- **`state/`** — App-local global stores (drawer); UI package stores own theme and global notification state
 - **`config/`** — Environment-aware config (base + dev/prod overrides)
-- **`constants/`** — Design tokens (colors, spacing, fonts)
+- **`constants/`** — App-local constants only. Design tokens live in `packages/ui`.
+
+### UI Package (`packages/ui/`)
+
+The reusable design system is packaged as `@mrmeg/expo-ui`. The root app
+consumes it through workspace resolution while published consumers install it
+from the private npm scope.
+
+Package exports:
+
+- `@mrmeg/expo-ui`
+- `@mrmeg/expo-ui/components`
+- `@mrmeg/expo-ui/components/<Component>`
+- `@mrmeg/expo-ui/constants`
+- `@mrmeg/expo-ui/hooks`
+- `@mrmeg/expo-ui/state`
+- `@mrmeg/expo-ui/lib`
+
+Package-owned source includes the 35 UI primitives, design tokens, theme and
+resource hooks, motion hooks, haptics/animation/Sentry helpers, theme store,
+and global notification store. It does not ship font files; web loads Lato
+through Google Fonts while native uses platform sans-serif fallbacks. Package
+source must use relative imports internally and must not import from
+`@/client/*`.
 
 ### Feature Isolation
 
@@ -76,9 +99,12 @@ named exceptions that the script + test in
 `scripts/check-feature-isolation.js` and
 `client/features/__tests__/featureIsolation.test.ts` enforce in CI:
 
-**Shared layer (always allowed):** `client/lib/*`, `client/hooks/*`,
-`client/components/ui/*`, `client/constants/*`, `client/state/*`,
-`shared/*`, `@rn-primitives`. Any feature can import from these.
+**Shared layer (always allowed):** `@mrmeg/expo-ui/*`, `client/lib/*`,
+`client/hooks/*`, `client/state/*`, `shared/*`, `@rn-primitives`. Any feature
+can import from these. App-local feature code should import UI primitives,
+tokens, theme hooks, resource loading, and UI stores from `@mrmeg/expo-ui`
+rather than `@/client/components/ui`, `@/client/constants`, or UI-owned
+client hooks/state.
 
 **Allowed cross-feature dependencies (the contract the test pins):**
 
@@ -96,7 +122,7 @@ named exceptions that the script + test in
 **Copy-with-feature notes (when extracting a feature into a new project):**
 - `auth/` → standalone. Needs the shared layer plus AWS Amplify + Cognito env vars.
 - `onboarding/` → standalone. Needs AsyncStorage on native (already in shared layer).
-- `media/` → standalone. Needs `app/api/media/*` + `server/api/media/storage.ts` + `shared/media.ts` + R2/S3 env vars. Toast feedback uses `client/state/globalUIStore` from the shared layer.
+- `media/` → standalone. Needs `app/api/media/*` + `server/api/media/storage.ts` + `shared/media.ts` + R2/S3 env vars. Toast feedback uses `globalUIStore` from `@mrmeg/expo-ui/state`.
 - `billing/` → copy with `auth/` (identity dependency) and the `app/api/billing/*` server routes + `server/api/billing/*` registry + `shared/billing.ts`.
 - `app/` → copy with `auth/` and `onboarding/` (composition dependency); this folder is the shell, not portable on its own.
 - `i18n/`, `navigation/`, `keyboard/` → standalone with shared-layer dependencies only.
@@ -180,5 +206,5 @@ file path, and graceful failure behavior.
   Expo production server, or `bun run start-local` to exercise the custom
   Express adapter.
 - **Native**: EAS Build. Identity (name, slug, scheme, bundle id, package) lives in `app.identity.js` with sibling `app.identity.d.ts` types and is consumed by `app.config.ts`; override via `EXPO_PUBLIC_APP_*` env vars without editing tracked files. Re-run `expo prebuild` after identity changes.
-- **Local verification**: `bun run typecheck`, `bun run lint`, `bun run check:features`, `bun run test:ci`
+- **Local verification**: `bun run typecheck`, `bun run lint`, `bun run check:features`, `bun run test:ci`, `bun run ui:typecheck`, `bun run ui:test`, `bun run ui:build`, `bun run ui:pack`, `bun run ui:consumer-smoke`
 - **CI**: `.github/workflows/ci.yml` runs the same gates plus `bun run build` + `bun run bundle-size` on every push/PR to `main`/`dev` (Bun-based, frozen lockfile, no app credentials required)

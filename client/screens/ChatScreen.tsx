@@ -11,15 +11,15 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAvoidingView } from "@/client/features/keyboard";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
-import { fontFamilies } from "@/client/constants/fonts";
-import { SansSerifText } from "@/client/components/ui/StyledText";
-import { TextInput } from "@/client/components/ui/TextInput";
-import { Icon } from "@/client/components/ui/Icon";
-import { Skeleton } from "@/client/components/ui/Skeleton";
-import { shouldUseNativeDriver } from "@/client/lib/animations";
-import type { Theme } from "@/client/constants/colors";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { fontFamilies } from "@mrmeg/expo-ui/constants";
+import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { Skeleton } from "@mrmeg/expo-ui/components/Skeleton";
+import { shouldUseNativeDriver } from "@mrmeg/expo-ui/lib";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
 // Types

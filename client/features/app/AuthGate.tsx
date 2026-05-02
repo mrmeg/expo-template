@@ -2,8 +2,8 @@ import React from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
 import { AuthScreen } from "@/client/features/auth/components/AuthScreen";
-import { useTheme } from "@/client/hooks/useTheme";
-import type { Theme } from "@/client/constants/colors";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 import { isAuthEnabled } from "./isAuthEnabled";
 
 /**

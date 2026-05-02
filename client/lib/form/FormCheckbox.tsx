@@ -6,7 +6,7 @@ import {
   type FieldPath,
   type UseControllerProps,
 } from "react-hook-form";
-import { Checkbox, type CheckboxProps } from "@/client/components/ui/Checkbox";
+import { Checkbox, type CheckboxProps } from "@mrmeg/expo-ui/components/Checkbox";
 import { FormMessage } from "./FormMessage";
 
 type FormCheckboxProps<

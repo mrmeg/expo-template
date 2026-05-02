@@ -1,14 +1,14 @@
 import { View, StyleSheet, Pressable, Platform, ScrollView } from "react-native";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
-import { useThemeStore } from "@/client/state/themeStore";
-import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
-import { Icon } from "@/client/components/ui/Icon";
-import type { IconName } from "@/client/components/ui/Icon";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { useThemeStore } from "@mrmeg/expo-ui/state";
+import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 import { useTranslation } from "react-i18next";
 import { setLanguage } from "@/client/features/i18n";
 import Config from "@/client/config";
-import type { Theme } from "@/client/constants/colors";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 import { SEO } from "@/client/components/SEO";
 
 const LANGUAGES = [

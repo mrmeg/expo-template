@@ -3,7 +3,7 @@ import { View, Alert, Platform, StyleSheet } from "react-native";
 import { z } from "zod";
 import { useForm, zodResolver, FormTextInput, FormCheckbox } from "@/client/lib/form";
 import { FormScreen, type FormStep } from "@/client/screens/FormScreen";
-import { spacing } from "@/client/constants/spacing";
+import { spacing } from "@mrmeg/expo-ui/constants";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),

@@ -71,11 +71,11 @@ describe("validateName", () => {
 });
 
 describe("getPlannedFiles — component", () => {
-  it("emits a single PascalCase tsx in client/components/ui", () => {
+  it("emits a single PascalCase tsx in the UI package", () => {
     const plan = getPlannedFiles("component", "MyButton");
     expect(plan.files).toHaveLength(1);
-    expect(plan.files[0].relativePath).toBe("client/components/ui/MyButton.tsx");
-    expect(plan.followUps[0]).toContain("@/client/components/ui/MyButton");
+    expect(plan.files[0].relativePath).toBe("packages/ui/src/components/MyButton.tsx");
+    expect(plan.followUps[0]).toContain("@mrmeg/expo-ui/components/MyButton");
   });
 
   it("uses only the theme value from useTheme (no unused getShadowStyle)", () => {
@@ -86,7 +86,7 @@ describe("getPlannedFiles — component", () => {
 
   it("normalizes kebab-case input to PascalCase in the path and exports", () => {
     const plan = getPlannedFiles("component", "my-button");
-    expect(plan.files[0].relativePath).toBe("client/components/ui/MyButton.tsx");
+    expect(plan.files[0].relativePath).toBe("packages/ui/src/components/MyButton.tsx");
     expect(plan.files[0].content).toContain("export function MyButton");
   });
 });

@@ -6,6 +6,27 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@mrmeg/expo-ui": [
+        "./packages/ui/src/index.ts"
+      ],
+      "@mrmeg/expo-ui/components": [
+        "./packages/ui/src/components/index.ts"
+      ],
+      "@mrmeg/expo-ui/components/*": [
+        "./packages/ui/src/components/*"
+      ],
+      "@mrmeg/expo-ui/constants": [
+        "./packages/ui/src/constants/index.ts"
+      ],
+      "@mrmeg/expo-ui/hooks": [
+        "./packages/ui/src/hooks/index.ts"
+      ],
+      "@mrmeg/expo-ui/state": [
+        "./packages/ui/src/state/index.ts"
+      ],
+      "@mrmeg/expo-ui/lib": [
+        "./packages/ui/src/lib/index.ts"
       ]
     },
     "noImplicitAny": false,

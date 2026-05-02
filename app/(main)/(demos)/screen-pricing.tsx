@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { router } from "expo-router";
 
-import { SansSerifText } from "@/client/components/ui/StyledText";
-import { useTheme } from "@/client/hooks/useTheme";
+import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { PricingScreen, type PricingPlan } from "@/client/screens/PricingScreen";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
-import { globalUIStore } from "@/client/state/globalUIStore";
+import { globalUIStore } from "@mrmeg/expo-ui/state";
 import { isAuthEnabled } from "@/client/features/app";
 import Config from "@/client/config";
 import {

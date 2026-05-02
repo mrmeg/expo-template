@@ -6,7 +6,7 @@
  *     two Explore links pointing at the same screen).
  *   - Documented templates that point at routes whose source files have
  *     since been deleted (a stale registry entry would 404 in Explore).
- *   - Component count drifting away from the actual `client/components/ui/`
+ *   - Component count drifting away from the actual `packages/ui/src/components/`
  *     listing — the count drives the "X components" badge in Explore.
  */
 
@@ -75,17 +75,17 @@ describe("template registry — components", () => {
     expect(getComponentCount()).toBeGreaterThan(0);
   });
 
-  it("every component import path resolves to a .tsx file in client/components/ui/", () => {
+  it("every component import path resolves to a .tsx file in packages/ui/src/components/", () => {
     const missing = COMPONENTS.filter((c) => {
-      const relative = c.importPath.replace(/^@\//, "");
-      return !fs.existsSync(path.join(REPO_ROOT, `${relative}.tsx`));
+      const componentName = c.importPath.replace(/^@mrmeg\/expo-ui\/components\//, "");
+      return !fs.existsSync(path.join(REPO_ROOT, "packages/ui/src/components", `${componentName}.tsx`));
     });
     expect(missing.map((c) => c.importPath)).toEqual([]);
   });
 
-  it("import paths use the @/ alias and live under client/components/ui/", () => {
+  it("import paths use the package component namespace", () => {
     for (const entry of COMPONENTS) {
-      expect(entry.importPath).toMatch(/^@\/client\/components\/ui\/[A-Z][A-Za-z0-9]+$/);
+      expect(entry.importPath).toMatch(/^@mrmeg\/expo-ui\/components\/[A-Z][A-Za-z0-9]+$/);
     }
   });
 });

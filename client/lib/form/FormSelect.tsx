@@ -13,11 +13,11 @@ import {
   SelectContent,
   SelectItem,
   type SelectSize,
-} from "@/client/components/ui/Select";
-import { StyledText } from "@/client/components/ui/StyledText";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
-import { fontFamilies } from "@/client/constants/fonts";
+} from "@mrmeg/expo-ui/components/Select";
+import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { fontFamilies } from "@mrmeg/expo-ui/constants";
 import { FormMessage } from "./FormMessage";
 
 interface SelectOption {

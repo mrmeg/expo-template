@@ -2,9 +2,9 @@ import React, { useEffect } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useAuthStore } from "../stores/authStore";
 import { useAuth } from "../hooks/useAuth";
-import { useTheme } from "@/client/hooks/useTheme";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { AuthScreen } from "./AuthScreen";
-import type { Theme } from "@/client/constants/colors";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 interface AuthWrapperProps {
   children: React.ReactNode;

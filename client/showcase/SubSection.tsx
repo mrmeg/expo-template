@@ -1,8 +1,8 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { StyledText } from "@/client/components/ui/StyledText";
-import { spacing } from "@/client/constants/spacing";
-import { fontFamilies } from "@/client/constants/fonts";
+import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { fontFamilies } from "@mrmeg/expo-ui/constants";
 
 interface SubSectionProps {
   label?: string;

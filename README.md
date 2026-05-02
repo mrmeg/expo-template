@@ -85,7 +85,7 @@ Android projects with the new bundle ids.
 ## Generator CLI
 
 ```bash
-bun run generate component MyButton    # client/components/ui/MyButton.tsx
+bun run generate component MyButton    # packages/ui/src/components/MyButton.tsx
 bun run generate screen Settings       # client/screens/SettingsScreen.tsx + app/(main)/(demos)/screen-settings.tsx
 bun run generate hook Debounce         # client/hooks/useDebounce.ts
 bun run generate form ContactInfo      # client/components/forms/ContactInfoForm.tsx
@@ -102,9 +102,10 @@ bun jest --testPathPattern=<path>      # single suite
 bun run test:ci                        # CI-style with coverage
 ```
 
-Coverage is collected from `client/**`, `app/api/**`, `server/**`, and
-`shared/**` so CI flags drift in the route-level seams (CORS, rate
-limiting, auth bootstrap, media storage, billing) — not just UI.
+Coverage is collected from `client/**`, `packages/ui/src/**`, `app/api/**`,
+`server/**`, and `shared/**` so CI flags drift in the route-level seams
+(CORS, rate limiting, auth bootstrap, media storage, billing) and the packaged
+UI system.
 
 ## Architecture
 
@@ -116,9 +117,8 @@ limiting, auth bootstrap, media storage, billing) — not just UI.
   └── api/                    # Expo Server routes (media, billing, etc.)
 
 /client
-  ├── components/ui/          # 35+ design system components on @rn-primitives
+  ├── components/             # App-local shared components
   ├── config/                 # Base / dev / prod app config (merged at runtime)
-  ├── constants/              # Design tokens (colors, fonts, spacing)
   ├── features/               # Self-contained feature folders
   │   ├── auth/               #   Cognito (optional)
   │   ├── billing/            #   Stripe hosted-external (optional)
@@ -129,14 +129,16 @@ limiting, auth bootstrap, media storage, billing) — not just UI.
   │   ├── keyboard/           #   Cross-platform keyboard handling
   │   ├── navigation/         #   Web back-button + back behavior
   │   └── app/                #   Startup sequencing + auth gates
-  ├── hooks/                  # Shared hooks (useTheme, useResources, …)
+  ├── hooks/                  # App-local hooks
   ├── lib/                    # Shared utilities
   │   ├── api/                #   apiClient + authenticatedFetch
   │   ├── form/               #   FormProvider, FormTextInput, FormCheckbox, …
   │   ├── storage/            #   Cross-platform AsyncStorage wrapper
   │   └── devtools/           #   Reactotron config
   ├── screens/                # 13+ pre-built screen templates
-  └── state/                  # Shared Zustand stores (theme, drawer)
+  └── state/                  # App-local Zustand stores
+
+/packages/ui                  # @mrmeg/expo-ui private npm package source
 
 /server                       # Express production server (compression, CORS, rate limits)
 /shared                       # Code shared between client & server (e.g. media path constants)
@@ -159,7 +161,7 @@ function Greeting() {
 }
 
 // Or use the tx prop on the styled text components:
-import { SansSerifText } from "@/client/components/ui/StyledText";
+import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 <SansSerifText tx="common.ok" />;
 ```
 
@@ -207,8 +209,8 @@ or `config.prod.ts` based on `__DEV__`.
 ## Theming
 
 ```tsx
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
 
 function Card({ children }) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
@@ -228,10 +230,32 @@ function Card({ children }) {
 }
 ```
 
-Color tokens live in `client/constants/colors.ts` (`background`,
-`foreground`, `card`, `cardForeground`, `primary`, `primaryForeground`,
-`accent`, `border`, `muted`, `mutedForeground`, `destructive`, …). For
-the full design system see `Agent/Docs/DESIGN.md`.
+Color tokens live in `packages/ui/src/constants/colors.ts` and are imported
+through `@mrmeg/expo-ui/constants`. The reusable primitives, theme hooks,
+resource-loading hook, toast store, and UI helpers ship from the local
+workspace package `@mrmeg/expo-ui`.
+
+The package does not ship font files. Web loads Lato through Google Fonts from
+`app/+html.tsx` and `useResources()`; native platforms use system sans-serif
+fallbacks.
+
+Package validation:
+
+```bash
+bun run ui:typecheck
+bun run ui:test
+bun run ui:build
+bun run ui:pack
+bun run ui:consumer-smoke
+```
+
+To publish privately, authenticate through your developer or CI npm config
+and run `npm publish --access restricted` from `packages/ui` after `bun run
+ui:build`. Do not commit `.npmrc` tokens or registry secrets. Consumer Expo
+apps install `@mrmeg/expo-ui` plus the peer dependencies listed in
+`packages/ui/package.json`.
+
+For the full design system see `Agent/Docs/DESIGN.md`.
 
 ## Billing (Stripe, hosted-external)
 
@@ -284,7 +308,7 @@ is enough.
 - react-hook-form 7 + Zod 4 + `@hookform/resolvers`
 - `react-native-reanimated` 4.2, `react-native-keyboard-controller` 1.20
 - `@expo/vector-icons` (Feather icon set in `Icon`)
-- `@expo-google-fonts/lato` for the typography scale
+- Lato on web via Google Fonts, system sans-serif on native
 - Jest 29 + jest-expo + RNTL 13
 - ESLint 10 (flat config) + `@tanstack/eslint-plugin-query`
 - Express 5 (production web server)

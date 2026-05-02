@@ -1,15 +1,15 @@
 import React, { useState, useCallback } from "react";
 import { View, Pressable, StyleSheet, Platform } from "react-native";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
-import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
-import { Icon } from "@/client/components/ui/Icon";
-import { Badge } from "@/client/components/ui/Badge";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import {
   SearchResultsScreen,
   type SearchFilter,
 } from "@/client/screens/SearchResultsScreen";
-import type { Theme } from "@/client/constants/colors";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 interface SearchItem {
   id: string;

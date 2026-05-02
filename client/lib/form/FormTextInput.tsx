@@ -5,7 +5,7 @@ import {
   type FieldPath,
   type UseControllerProps,
 } from "react-hook-form";
-import { TextInput } from "@/client/components/ui/TextInput";
+import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 
 type TextInputProps = React.ComponentProps<typeof TextInput>;
 

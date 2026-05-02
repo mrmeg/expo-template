@@ -8,8 +8,8 @@
 import { View, ViewProps, StyleSheet } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
 
 interface KeyboardStickyFooterProps extends ViewProps {
   children: React.ReactNode;

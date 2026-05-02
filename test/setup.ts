@@ -46,6 +46,19 @@ jest.mock("@expo/vector-icons", () => {
   };
 });
 
+jest.mock("@expo/vector-icons/Feather", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+  function MockFeather(props: any) {
+    return React.createElement(View, { ...props, testID: props.testID || "icon-Feather" });
+  }
+  MockFeather.font = {};
+  return {
+    __esModule: true,
+    default: MockFeather,
+  };
+});
+
 // Mock expo-splash-screen
 jest.mock("expo-splash-screen", () => ({
   preventAutoHideAsync: jest.fn().mockResolvedValue(true),

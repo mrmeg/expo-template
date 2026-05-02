@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, View, Pressable, Text } from "react-native";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
 
 export function ThemeToggle() {
   const { toggleTheme, currentTheme, scheme, theme } = useTheme();

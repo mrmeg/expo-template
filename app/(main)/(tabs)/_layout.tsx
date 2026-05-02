@@ -1,8 +1,8 @@
 import { Tabs } from "expo-router";
-import { useTheme } from "@/client/hooks/useTheme";
-import { Icon } from "@/client/components/ui/Icon";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { Platform } from "react-native";
-import { spacing } from "@/client/constants/spacing";
+import { spacing } from "@mrmeg/expo-ui/constants";
 
 /**
  * Tab navigator for main app screens.

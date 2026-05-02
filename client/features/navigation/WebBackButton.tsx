@@ -1,7 +1,7 @@
 import { Platform, Pressable } from "react-native";
 import { router } from "expo-router";
-import { Icon } from "@/client/components/ui/Icon";
-import { useTheme } from "@/client/hooks/useTheme";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { canGoBack } from "./backBehavior";
 import { blurActiveElementOnWeb } from "./blurActiveElementOnWeb";
 

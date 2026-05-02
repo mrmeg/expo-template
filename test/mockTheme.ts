@@ -41,22 +41,27 @@ const theme = {
   navigation: {},
 };
 
-jest.mock("@/client/hooks/useTheme", () => ({
-  useTheme: () => ({
-    theme,
-    scheme: "light",
-    getShadowStyle: () => ({}),
-    getContrastingColor: (
-      _bg: string,
-      _light = "#FFFFFF",
-      dark = "#0F172A",
-    ) => dark,
-    getContrastRatio: () => 4.5,
-    withAlpha: (color: string) => color,
-    toggleTheme: jest.fn(),
-    setTheme: jest.fn(),
-  }),
-  __esModule: true,
-}));
+jest.mock("@mrmeg/expo-ui/hooks", () => {
+  const actual = jest.requireActual("@mrmeg/expo-ui/hooks");
+  return {
+    ...actual,
+    useTheme: () => ({
+      theme,
+      scheme: "light",
+      getShadowStyle: () => ({}),
+      getContrastingColor: (
+        _bg: string,
+        _light = "#FFFFFF",
+        dark = "#0F172A",
+      ) => dark,
+      getContrastRatio: () => 4.5,
+      withAlpha: (color: string) => color,
+      toggleTheme: jest.fn(),
+      setTheme: jest.fn(),
+      currentTheme: "light",
+    }),
+    __esModule: true,
+  };
+});
 
 export {};

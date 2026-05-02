@@ -6,12 +6,12 @@ import { SignUpForm } from "./SignUpForm";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { VerifyEmailForm } from "./VerifyEmailForm";
 import { ResetPasswordForm } from "./ResetPasswordForm";
-import { DismissKeyboard } from "@/client/components/ui/DismissKeyboard";
-import { SerifText } from "@/client/components/ui/StyledText";
+import { DismissKeyboard } from "@mrmeg/expo-ui/components/DismissKeyboard";
+import { SerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { useAuth } from "../hooks/useAuth";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
-import type { Theme } from "@/client/constants/colors";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 import { getAppName } from "@/client/lib/identity";
 
 type AuthView = "sign-in" | "sign-up" | "forgot-password" | "verify-email" | "reset-password";

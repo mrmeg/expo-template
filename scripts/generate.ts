@@ -77,10 +77,10 @@ export interface PlannedGeneration {
 function componentTemplate(name: string): string {
   const pascalName = toPascalCase(name);
   return `import { StyleProp, ViewStyle, StyleSheet, View } from "react-native";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
-import { SansSerifText } from "@/client/components/ui/StyledText";
-import type { Theme } from "@/client/constants/colors";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 export interface ${pascalName}Props {
   /** Optional style override applied to the outer container. */
@@ -126,10 +126,10 @@ function screenComponentTemplate(name: string): string {
   const pascalName = toPascalCase(name);
   return `import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
-import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
-import type { Theme } from "@/client/constants/colors";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 export interface ${pascalName}ScreenProps {
   /** Optional style override applied to the SafeAreaView container. */
@@ -237,8 +237,8 @@ import {
   useForm,
   zodResolver,
 } from "@/client/lib/form";
-import { Button } from "@/client/components/ui/Button";
-import { spacing } from "@/client/constants/spacing";
+import { Button } from "@mrmeg/expo-ui/components/Button";
+import { spacing } from "@mrmeg/expo-ui/constants";
 
 const ${camelName}Schema = z.object({
   // Replace with the real fields for this form.
@@ -336,12 +336,13 @@ export function getPlannedFiles(type: GeneratorType, name: string): PlannedGener
   const pascalName = toPascalCase(name);
   switch (type) {
   case "component": {
-    const relativePath = `client/components/ui/${pascalName}.tsx`;
+    const relativePath = `packages/ui/src/components/${pascalName}.tsx`;
     return {
       type,
       files: [{ relativePath, content: componentTemplate(name) }],
       followUps: [
-        `import { ${pascalName} } from "@/client/components/ui/${pascalName}";`,
+        `import { ${pascalName} } from "@mrmeg/expo-ui/components/${pascalName}";`,
+        `Export ${pascalName} from packages/ui/src/components/index.ts before publishing.`,
       ],
     };
   }
@@ -396,7 +397,7 @@ export function getPlannedFiles(type: GeneratorType, name: string): PlannedGener
 function showHelp() {
   log("\nUsage: bun run generate <type> <name>\n", "blue");
   log("Types:", "yellow");
-  log("  component  - Create a new UI component in client/components/ui/");
+  log("  component  - Create a new UI component in packages/ui/src/components/");
   log("  screen     - Create a new reusable screen in client/screens/ + demo route in app/(main)/(demos)/");
   log("  hook       - Create a new hook in client/hooks/");
   log("  form       - Create a new form component in client/components/forms/ (uses @/client/lib/form primitives)");

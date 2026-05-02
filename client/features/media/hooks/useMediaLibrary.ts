@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Crypto from "expo-crypto";
-import { Alert } from "@/client/components/ui/Alert";
+import { Alert } from "@mrmeg/expo-ui/components/Alert";
 import { logDev } from "@/client/lib/devtools";
 import { extractVideoThumbnail } from "./useVideoThumbnails";
-import { globalUIStore } from "@/client/state/globalUIStore";
+import { globalUIStore } from "@mrmeg/expo-ui/state";
 import { useCompressionStore } from "../stores/compressionStore";
 import {
   compressImage,

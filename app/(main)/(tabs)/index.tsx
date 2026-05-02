@@ -1,12 +1,12 @@
 import { View, StyleSheet, Pressable, Platform, ScrollView } from "react-native";
 import { Link } from "expo-router";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
-import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
-import { Icon } from "@/client/components/ui/Icon";
-import { Badge } from "@/client/components/ui/Badge";
-import { AnimatedView } from "@/client/components/ui/AnimatedView";
-import { STAGGER_DELAY } from "@/client/hooks/useStaggeredEntrance";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { Badge } from "@mrmeg/expo-ui/components/Badge";
+import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
+import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { SEO } from "@/client/components/SEO";
 import { blurActiveElementOnWeb } from "@/client/features/navigation/blurActiveElementOnWeb";
 import {
@@ -15,7 +15,7 @@ import {
   getComponentCount,
   type ScreenTemplateEntry,
 } from "@/client/showcase/registry";
-import type { Theme } from "@/client/constants/colors";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 export default function ExploreScreen() {
   const { theme } = useTheme();

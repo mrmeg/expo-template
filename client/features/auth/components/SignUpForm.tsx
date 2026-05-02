@@ -1,8 +1,8 @@
 import React, { useState, useRef } from "react";
 import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform, TextInput as RNTextInput } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "@/client/hooks/useTheme";
-import { spacing } from "@/client/constants/spacing";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
 import {
   Card,
   CardHeader,
@@ -10,11 +10,11 @@ import {
   CardFooter,
   CardTitle,
   CardDescription,
-} from "@/client/components/ui/Card";
-import { TextInput } from "@/client/components/ui/TextInput";
-import { Button } from "@/client/components/ui/Button";
-import { SansSerifText, SansSerifBoldText } from "@/client/components/ui/StyledText";
-import type { Theme } from "@/client/constants/colors";
+} from "@mrmeg/expo-ui/components/Card";
+import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
+import { Button } from "@mrmeg/expo-ui/components/Button";
+import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import type { Theme } from "@mrmeg/expo-ui/constants";
 
 export interface SignUpFormProps {
   onSignUp?: (data: { name: string; email: string; password: string }) => void | Promise<void>;

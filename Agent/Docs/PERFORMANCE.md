@@ -29,9 +29,9 @@
 ## Animation
 
 - **Reanimated 4.2**: Worklet-based animations run on UI thread
-- **useScalePress**: Shared press animation hook for consistent tap feedback
-- **useStaggeredEntrance**: List item entrance animations with configurable delay
-- **useReduceMotion**: Respects OS accessibility setting
+- **useScalePress**: Shared press animation hook from `@mrmeg/expo-ui/hooks` for consistent tap feedback
+- **useStaggeredEntrance**: List item entrance animations with configurable delay from `@mrmeg/expo-ui/hooks`
+- **useReduceMotion**: Package hook that respects OS accessibility settings
 
 ## i18n
 
@@ -43,7 +43,7 @@
 
 - **Inline requires enabled**: Defers module initialization until first use
 - **Experimental import support**: Enables modern import features
-- **Package deduplication**: @react-navigation packages deduped to prevent duplicate React contexts (Bun hoisting workaround)
+- **Package deduplication**: @react-navigation and core React Native runtime packages are deduped to prevent duplicate React contexts and duplicate UI package peer runtimes under Bun/workspace resolution
 
 ## Web-Specific
 
@@ -61,7 +61,7 @@
 
 ## Entry Bundle Hygiene
 
-- Sentry is loaded through `client/lib/sentry.ts` with a dynamic import. When
+- Sentry is loaded through `@mrmeg/expo-ui/lib` with a dynamic import. When
   `EXPO_PUBLIC_SENTRY_DSN` is unset, startup does not install global handlers
   or pull `@sentry/react-native` into the entry bundle.
 - Shared icon/resource code imports `@expo/vector-icons/Feather` directly

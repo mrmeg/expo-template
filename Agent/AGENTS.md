@@ -10,7 +10,7 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `./Specs/extract-ui-components-to-private-npm-package.md` | Ready | High |
+| `./Specs/document-expo-ui-package-consumer-integration.md` | Ready | High |
 
 ## Workflow
 
