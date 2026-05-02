@@ -4,7 +4,7 @@ Reusable Expo and React Native UI primitives shared by the template and consumer
 
 ## Install
 
-Install from the private npm scope after publishing:
+Install from npm after publishing:
 
 ```sh
 bun add @mrmeg/expo-ui
@@ -28,6 +28,123 @@ The root barrel also exports the public surface:
 ```tsx
 import { Button, colors, useTheme } from "@mrmeg/expo-ui";
 ```
+
+## Theme System
+
+Use `useTheme()` for theme-aware app styles:
+
+```tsx
+import { StyleSheet, View } from "react-native";
+import { StyledText } from "@mrmeg/expo-ui/components";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+
+export function Panel() {
+  const { theme, getShadowStyle } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.panel,
+        {
+          backgroundColor: theme.colors.card,
+          borderColor: theme.colors.border,
+        },
+        getShadowStyle("subtle"),
+      ]}
+    >
+      <StyledText semantic="heading">Theme-aware panel</StyledText>
+      <StyledText semantic="body" style={{ color: theme.colors.mutedForeground }}>
+        Uses package tokens instead of hardcoded colors.
+      </StyledText>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  panel: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: spacing.radiusLg,
+    padding: spacing.cardPadding,
+    gap: spacing.sm,
+  },
+});
+```
+
+`useTheme()` returns the active `theme`, resolved `scheme`, persisted `currentTheme`, `setTheme`, `toggleTheme`, shadow helpers, contrast helpers, and `withAlpha`. Use semantic tokens such as `theme.colors.background`, `foreground`, `card`, `border`, `accent`, `primary`, `mutedForeground`, `destructive`, `success`, and `warning`.
+
+Use `StyledText` for theme-aware text:
+
+```tsx
+import { BodyText, CaptionText, HeadingText, StyledText } from "@mrmeg/expo-ui/components";
+
+<HeadingText>Settings</HeadingText>
+<BodyText>Manage your account.</BodyText>
+<CaptionText>Changes sync automatically.</CaptionText>
+<StyledText semantic="label" tx="common.email" />
+```
+
+Useful `StyledText` props:
+
+- `semantic`: `title`, `heading`, `subheading`, `body`, `caption`, `label`
+- `size`: `xs`, `sm`, `base`, `body`, `lg`, `xl`, `xxl`, `display`
+- `fontWeight`: `light`, `regular`, `medium`, `semibold`, `bold`
+- `variant`: `sansSerif`, `serif`
+- `align`, `tx`, `txOptions`
+
+## Component Guide
+
+All components are exported from `@mrmeg/expo-ui/components`; direct imports such as `@mrmeg/expo-ui/components/Button` are supported.
+
+Layout:
+
+- `AnimatedView` - Reanimated visibility/entrance wrapper.
+- `Card` - Framed content with `variant`: `default`, `outline`, `ghost`; includes `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`.
+- `MaxWidthContainer` - Centered responsive content width.
+- `Separator` - Theme-aware divider.
+- `DismissKeyboard` - Tap-away keyboard dismissal wrapper.
+
+Forms and actions:
+
+- `Button` - Commands with `preset`: `default`, `outline`, `ghost`, `link`, `destructive`, `secondary`; `size`: `sm`, `md`, `lg`; supports `loading`, `fullWidth`, accessories, and shadows.
+- `TextInput` - Inputs with `variant`: `outline`, `filled`, `underlined`; `size`: `sm`, `md`, `lg`; supports labels, helper/error text, clear/password affordances, and left/right elements.
+- `Checkbox`, `RadioGroup`, `Select`, `Switch`, `Toggle`, `ToggleGroup`, `InputOTP`, `Slider`, `Label` - Form controls built on package tokens and `@rn-primitives` where applicable.
+
+Feedback:
+
+- `Alert`, `Badge`, `Notification`, `Progress`, `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard`, `EmptyState`, `StatusBar`.
+- Mount `Notification` once near the app root; trigger it with `globalUIStore`.
+
+Overlays and navigation:
+
+- `Dialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `Tooltip` require `PortalHost` near the app root.
+- `Tabs`, `Accordion`, and `Collapsible` cover in-page navigation and disclosure.
+
+Example:
+
+```tsx
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@mrmeg/expo-ui/components";
+
+<Card variant="outline">
+  <CardHeader>
+    <CardTitle>Subscription</CardTitle>
+    <Badge variant="secondary">Active</Badge>
+  </CardHeader>
+  <CardContent>
+    <Button preset="default" fullWidth>
+      Manage billing
+    </Button>
+  </CardContent>
+</Card>
+```
+
+LLM rules:
+
+- Prefer `StyledText` semantic variants over raw `Text`.
+- Use `useTheme()` and semantic tokens instead of hardcoded colors.
+- Use `Button.preset`, not `variant`, for buttons.
+- Mount `PortalHost` before using overlays, menus, select content, popovers, or tooltips.
+- Import from package exports, not `packages/ui/src/*`.
 
 ## App Startup
 

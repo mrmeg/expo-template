@@ -138,7 +138,7 @@ UI system.
   ├── screens/                # 13+ pre-built screen templates
   └── state/                  # App-local Zustand stores
 
-/packages/ui                  # @mrmeg/expo-ui private npm package source
+/packages/ui                  # @mrmeg/expo-ui npm package source
 
 /server                       # Express production server (compression, CORS, rate limits)
 /shared                       # Code shared between client & server (e.g. media path constants)
@@ -249,8 +249,8 @@ bun run ui:pack
 bun run ui:consumer-smoke
 ```
 
-To publish privately, authenticate through your developer or CI npm config
-and run `npm publish --access restricted` from `packages/ui` after `bun run
+To publish, authenticate through your developer or CI npm config
+and run `npm publish --access public` from `packages/ui` after `bun run
 ui:build`. Do not commit `.npmrc` tokens or registry secrets. Consumer Expo
 apps install `@mrmeg/expo-ui` plus the peer dependencies listed in
 `packages/ui/package.json`.
