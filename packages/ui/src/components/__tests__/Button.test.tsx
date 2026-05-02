@@ -9,9 +9,13 @@
  */
 
 import React from "react";
-import { Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
+import type { ReactTestInstance } from "react-test-renderer";
 import { Button } from "../Button";
+
+const mockScalePressIn = jest.fn();
+const mockScalePressOut = jest.fn();
 
 // Mock useTheme hook with new semantic colors
 jest.mock("../../hooks/useTheme", () => ({
@@ -22,10 +26,10 @@ jest.mock("../../hooks/useTheme", () => ({
         foreground: "#0F172A",
         card: "#F8FAFC",
         cardForeground: "#0F172A",
-        primary: "#14B8A6",
-        primaryForeground: "#FFFFFF",
-        secondary: "#6366F1",
-        secondaryForeground: "#FFFFFF",
+        primary: "#18181B",
+        primaryForeground: "#FAFAFA",
+        secondary: "#F4F4F5",
+        secondaryForeground: "#18181B",
         muted: "#F1F5F9",
         mutedForeground: "#64748B",
         destructive: "#EF4444",
@@ -45,7 +49,29 @@ jest.mock("../../hooks/useTheme", () => ({
   }),
 }));
 
+function findFlattenedStyleByBackground(nodes: ReactTestInstance[], backgroundColor: string) {
+  return nodes
+    .map((node) => StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined)
+    .find((style) => style?.backgroundColor === backgroundColor);
+}
+
+jest.mock("../../hooks/useScalePress", () => ({
+  useScalePress: () => ({
+    animatedStyle: {},
+    pressHandlers: {
+      onPressIn: mockScalePressIn,
+      onPressOut: mockScalePressOut,
+    },
+    scale: { value: 1 },
+  }),
+}));
+
 describe("Button", () => {
+  beforeEach(() => {
+    mockScalePressIn.mockClear();
+    mockScalePressOut.mockClear();
+  });
+
   describe("Rendering", () => {
     it("renders with children", () => {
       render(
@@ -75,6 +101,26 @@ describe("Button", () => {
         expect(screen.getByText(preset)).toBeTruthy();
         unmount();
       });
+    });
+
+    it("renders the default preset with primary color tokens", () => {
+      const { UNSAFE_getAllByType } = render(<Button preset="default" text="Primary action" />);
+
+      const buttonSurface = findFlattenedStyleByBackground(UNSAFE_getAllByType(View), "#18181B");
+      const textStyle = StyleSheet.flatten(screen.getByText("Primary action").props.style) as Record<string, unknown>;
+
+      expect(buttonSurface).toEqual(expect.objectContaining({ backgroundColor: "#18181B" }));
+      expect(textStyle).toEqual(expect.objectContaining({ color: "#FAFAFA" }));
+    });
+
+    it("renders the secondary preset with secondary color tokens", () => {
+      const { UNSAFE_getAllByType } = render(<Button preset="secondary" text="Secondary action" />);
+
+      const buttonSurface = findFlattenedStyleByBackground(UNSAFE_getAllByType(View), "#F4F4F5");
+      const textStyle = StyleSheet.flatten(screen.getByText("Secondary action").props.style) as Record<string, unknown>;
+
+      expect(buttonSurface).toEqual(expect.objectContaining({ backgroundColor: "#F4F4F5" }));
+      expect(textStyle).toEqual(expect.objectContaining({ color: "#18181B" }));
     });
 
     it("renders different sizes", () => {
@@ -163,6 +209,96 @@ describe("Button", () => {
       fireEvent.press(screen.getByRole("button"));
 
       expect(onPress).not.toHaveBeenCalled();
+    });
+
+    it("composes focus and blur handlers with internal focus state", () => {
+      const onFocus = jest.fn();
+      const onBlur = jest.fn();
+      const focusEvent = { nativeEvent: { target: 1 } };
+      const blurEvent = { nativeEvent: { target: 1 } };
+
+      render(<Button text="Focus me" onFocus={onFocus} onBlur={onBlur} />);
+
+      const button = screen.getByRole("button");
+      fireEvent(button, "focus", focusEvent);
+      fireEvent(button, "blur", blurEvent);
+
+      expect(onFocus).toHaveBeenCalledTimes(1);
+      expect(onFocus).toHaveBeenCalledWith(focusEvent);
+      expect(onBlur).toHaveBeenCalledTimes(1);
+      expect(onBlur).toHaveBeenCalledWith(blurEvent);
+    });
+
+    it("composes press-in and press-out handlers with scale animation handlers", () => {
+      const onPressIn = jest.fn();
+      const onPressOut = jest.fn();
+      const pressInEvent = { nativeEvent: { pageX: 10, pageY: 20 } };
+      const pressOutEvent = { nativeEvent: { pageX: 15, pageY: 25 } };
+
+      render(
+        <Button
+          text="Press me"
+          onPressIn={onPressIn}
+          onPressOut={onPressOut}
+        />
+      );
+
+      const button = screen.getByRole("button");
+      fireEvent(button, "pressIn", pressInEvent);
+      fireEvent(button, "pressOut", pressOutEvent);
+
+      expect(mockScalePressIn).toHaveBeenCalledTimes(1);
+      expect(onPressIn).toHaveBeenCalledTimes(1);
+      expect(onPressIn).toHaveBeenCalledWith(pressInEvent);
+      expect(mockScalePressOut).toHaveBeenCalledTimes(1);
+      expect(onPressOut).toHaveBeenCalledTimes(1);
+      expect(onPressOut).toHaveBeenCalledWith(pressOutEvent);
+    });
+
+    it("does not call press-in or press-out handlers when disabled", () => {
+      const onPressIn = jest.fn();
+      const onPressOut = jest.fn();
+
+      render(
+        <Button
+          text="Disabled"
+          onPressIn={onPressIn}
+          onPressOut={onPressOut}
+          disabled
+        />
+      );
+
+      const button = screen.getByRole("button");
+      fireEvent(button, "pressIn");
+      fireEvent(button, "pressOut");
+
+      expect(mockScalePressIn).not.toHaveBeenCalled();
+      expect(onPressIn).not.toHaveBeenCalled();
+      expect(mockScalePressOut).not.toHaveBeenCalled();
+      expect(onPressOut).not.toHaveBeenCalled();
+    });
+
+    it("does not call press-in or press-out handlers when loading", () => {
+      const onPressIn = jest.fn();
+      const onPressOut = jest.fn();
+
+      render(
+        <Button
+          text="Loading"
+          onPressIn={onPressIn}
+          onPressOut={onPressOut}
+          loading
+        />
+      );
+
+      const button = screen.getByRole("button");
+      fireEvent(button, "pressIn");
+      fireEvent(button, "pressOut");
+
+      expect(mockScalePressIn).not.toHaveBeenCalled();
+      expect(onPressIn).not.toHaveBeenCalled();
+      expect(mockScalePressOut).not.toHaveBeenCalled();
+      expect(onPressOut).not.toHaveBeenCalled();
     });
   });
 

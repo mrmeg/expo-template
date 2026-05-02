@@ -1,5 +1,4 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { captureException } from "../lib/sentry";
 
 interface ErrorBoundaryProps {
   /**
@@ -22,6 +21,10 @@ interface ErrorBoundaryProps {
     errorInfo: ErrorInfo | null;
     resetError: () => void;
   }>;
+  /**
+   * Optional app-owned error reporter.
+   */
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 interface ErrorBoundaryState {
@@ -81,14 +84,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       console.error("Error info:", errorInfo);
     }
 
-    // Report to Sentry (no-op if DSN not configured)
-    captureException(error, {
-      contexts: {
-        react: {
-          componentStack: errorInfo?.componentStack ?? undefined,
-        },
-      },
-    });
+    this.props.onError?.(error, errorInfo);
   }
 
   render() {

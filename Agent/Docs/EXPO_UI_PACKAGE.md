@@ -16,7 +16,7 @@ Package-owned:
 - design tokens in `packages/ui/src/constants/`
 - theme, resource, dimension, motion, and reduce-motion hooks in `packages/ui/src/hooks/`
 - theme and global notification stores in `packages/ui/src/state/`
-- haptics, animation helpers, and Sentry bridge in `packages/ui/src/lib/`
+- haptics and animation helpers in `packages/ui/src/lib/`
 
 App-owned:
 
@@ -24,6 +24,7 @@ App-owned:
 - provider composition in `app/_layout.tsx`
 - web document head configuration in `app/+html.tsx`
 - app identity, environment, auth, billing, media, and other domain behavior
+- monitoring integrations such as Sentry
 - npm auth tokens and CI publishing credentials
 
 Package source must stay portable. Do not import `@/client/*` from `packages/ui/src/*`.
@@ -38,6 +39,13 @@ bun add @mrmeg/expo-ui
 
 Consumers must also install the peer dependencies listed in `packages/ui/package.json`. Keep npm auth tokens in developer, CI, or package-manager configuration. Do not commit tokens.
 
+The published package is tested against the Expo SDK 55 stack used by this
+template: React 19.2, React Native 0.83, React Native Web 0.21,
+Reanimated 4.2, Worklets 0.7, and `@rn-primitives/*` 1.4. Consumer apps
+should start from the same Expo SDK family or deliberately update this
+package and its peer ranges together. Do not mix this package with older or
+newer Expo / React Native major families and assume compatibility.
+
 ## Public Imports
 
 The package export map supports these stable import paths:
@@ -48,7 +56,7 @@ import { Button as ButtonDirect } from "@mrmeg/expo-ui/components/Button";
 import { colors, spacing, typography, type Theme } from "@mrmeg/expo-ui/constants";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
 import { globalUIStore, useThemeStore } from "@mrmeg/expo-ui/state";
-import { hapticLight, setupSentry } from "@mrmeg/expo-ui/lib";
+import { hapticLight } from "@mrmeg/expo-ui/lib";
 ```
 
 The root barrel also exports the package surface:
@@ -58,6 +66,27 @@ import { Button, colors, useTheme } from "@mrmeg/expo-ui";
 ```
 
 Prefer subpath imports when an app only needs one package area. Use direct component subpaths such as `@mrmeg/expo-ui/components/Button` when that keeps an app's imports clearer.
+
+## Build Output
+
+The package ships ESM (`"type": "module"`) from `packages/ui/dist`.
+TypeScript emits the package with bundler-style source imports, then
+`scripts/fix-ui-package-esm.mjs` rewrites emitted relative JavaScript
+specifiers to explicit `.js` or `/index.js` paths so Node ESM, package
+inspectors, and non-Metro tooling can resolve the published files.
+
+Plain Node runtime checks are intentionally limited to token-oriented
+entrypoints that do not require React Native rendering. `bun run
+ui:consumer-smoke` installs the packed tarball into a clean fixture,
+checks the export-map files for the documented public entrypoints,
+type-checks imports from root, components, direct component subpaths,
+constants, hooks, state, and lib, and runs a Node ESM import of
+`@mrmeg/expo-ui/constants` to prove the token entrypoint is runtime-safe.
+Components, hooks, state, and lib entrypoints remain validated through
+TypeScript/package-resolution checks and Expo/Jest coverage because they
+legitimately depend on React Native runtimes. Monitoring libraries are kept
+out of the UI package so consumers do not install app-owned integrations just
+to use the design system.
 
 ## App Startup
 

@@ -9,6 +9,7 @@ import React from "react";
 import { Platform } from "react-native";
 import { renderHook } from "@testing-library/react-native";
 import { useTheme } from "../useTheme";
+import { colors } from "../../constants/colors";
 
 describe("useTheme", () => {
   describe("theme object", () => {
@@ -34,6 +35,15 @@ describe("useTheme", () => {
     it("returns a currentTheme value", () => {
       const { result } = renderHook(() => useTheme());
       expect(["system", "light", "dark"]).toContain(result.current.currentTheme);
+    });
+
+    it("keeps secondary neutral and accent teal across themes", () => {
+      expect(colors.light.colors.secondary).toBe("#F4F4F5");
+      expect(colors.light.colors.secondaryForeground).toBe("#18181B");
+      expect(colors.light.colors.accent).toBe("#14b8a6");
+      expect(colors.dark.colors.secondary).toBe("#27272A");
+      expect(colors.dark.colors.secondaryForeground).toBe("#FAFAFA");
+      expect(colors.dark.colors.accent).toBe("#2dd4bf");
     });
   });
 

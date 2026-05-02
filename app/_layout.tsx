@@ -5,7 +5,7 @@ if (__DEV__) {
   require("@/client/lib/devtools/ReactotronConfig");
 }
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ErrorInfo } from "react";
 import { ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -23,7 +23,7 @@ import { ErrorScreen } from "@/client/components/ErrorScreen";
 import { initI18n } from "@/client/features/i18n";
 import Config from "@/client/config";
 import { validateClientEnv } from "@/client/lib/validateEnv";
-import { setupSentry } from "@mrmeg/expo-ui/lib";
+import { captureException, setupSentry } from "@/client/lib/sentry";
 import { useAppStartup, OnboardingGate } from "@/client/features/app";
 import { useOnboardingStore } from "@/client/features/onboarding/onboardingStore";
 
@@ -34,6 +34,16 @@ validateClientEnv();
 
 // Initialize Sentry — no-op if EXPO_PUBLIC_SENTRY_DSN is not set
 setupSentry();
+
+function reportBoundaryError(error: Error, errorInfo: ErrorInfo) {
+  captureException(error, {
+    contexts: {
+      react: {
+        componentStack: errorInfo.componentStack ?? undefined,
+      },
+    },
+  });
+}
 
 export const unstable_settings = {
   initialRouteName: "(main)",
@@ -96,7 +106,11 @@ export default function RootLayout() {
           fonts: colors[scheme ?? "light"].fonts,
         }}>
           <KeyboardProvider>
-            <ErrorBoundary catchErrors={Config.catchErrors} FallbackComponent={ErrorScreen}>
+            <ErrorBoundary
+              catchErrors={Config.catchErrors}
+              FallbackComponent={ErrorScreen}
+              onError={reportBoundaryError}
+            >
               {hasSeenOnboarding ? (
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(main)" />

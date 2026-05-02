@@ -89,11 +89,12 @@ Package exports:
 - `@mrmeg/expo-ui/lib`
 
 Package-owned source includes the 35 UI primitives, design tokens, theme and
-resource hooks, motion hooks, haptics/animation/Sentry helpers, theme store,
-and global notification store. It does not ship font files; web loads Lato
-through Google Fonts while native uses platform sans-serif fallbacks. Package
-source must use relative imports internally and must not import from
-`@/client/*`.
+resource hooks, motion hooks, haptics/animation helpers, theme store, and
+global notification store. App-owned integrations such as Sentry stay in
+`client/lib/*` and are passed into package components through explicit props
+when needed. The package does not ship font files; web loads Lato through
+Google Fonts while native uses platform sans-serif fallbacks. Package source
+must use relative imports internally and must not import from `@/client/*`.
 
 ### Feature Isolation
 
@@ -139,7 +140,7 @@ QueryClientProvider (staleTime=5min, gcTime=10min)
   └─ SafeAreaProvider
        └─ ThemeProvider (React Navigation, dark/light)
             └─ KeyboardProvider (platform-aware)
-                 └─ ErrorBoundary (Sentry-backed)
+                 └─ ErrorBoundary (app reporter callback)
                       └─ Stack Navigator
   ├─ Notification (global toast portal)
   └─ PortalHost (@rn-primitives modals/tooltips)

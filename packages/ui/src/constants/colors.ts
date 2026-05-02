@@ -117,8 +117,8 @@ const lightTheme: Theme = {
 
     primary: palette.gray900,
     primaryForeground: palette.gray50,
-    secondary: palette.teal500,
-    secondaryForeground: palette.white,
+    secondary: palette.gray100,
+    secondaryForeground: palette.gray900,
     muted: palette.gray100,
     mutedForeground: palette.gray500,
 
@@ -157,8 +157,8 @@ const darkTheme: Theme = {
 
     primary: palette.gray50,
     primaryForeground: palette.gray900,
-    secondary: palette.teal400,
-    secondaryForeground: palette.black,
+    secondary: palette.gray800,
+    secondaryForeground: palette.gray50,
     muted: palette.dark700,
     mutedForeground: palette.dark400,
 

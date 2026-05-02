@@ -2,6 +2,12 @@
 
 Reusable Expo and React Native UI primitives shared by the template and consumer apps. The package does not ship font files; web consumers load Lato from Google Fonts and native consumers use platform sans-serif fallbacks.
 
+This package is public for installability, reuse across MrMeg projects, and
+discoverability. It is a personal reusable Expo / React Native design-system
+package, not a generally supported open-source UI library. The package is
+published as `UNLICENSED`; use outside MrMeg projects requires explicit
+permission.
+
 ## Install
 
 Install from npm after publishing:
@@ -10,7 +16,12 @@ Install from npm after publishing:
 bun add @mrmeg/expo-ui
 ```
 
-Consumers must also install the peer dependencies listed in `package.json`. Keep npm auth tokens in developer or CI configuration, not in this repository.
+Consumers must also install the peer dependencies listed in `package.json`.
+The tested baseline is Expo SDK 55 with React 19.2, React Native 0.83,
+React Native Web 0.21, Reanimated 4.2, Worklets 0.7, and
+`@rn-primitives/*` 1.4. Start consumer apps from the same Expo SDK family
+or update the package and peer ranges deliberately. Keep npm auth tokens in
+developer or CI configuration, not in this repository.
 
 ## Imports
 
@@ -20,7 +31,7 @@ import { Button as ButtonDirect } from "@mrmeg/expo-ui/components/Button";
 import { colors, spacing, typography } from "@mrmeg/expo-ui/constants";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
 import { globalUIStore, useThemeStore } from "@mrmeg/expo-ui/state";
-import { hapticLight, setupSentry } from "@mrmeg/expo-ui/lib";
+import { hapticLight } from "@mrmeg/expo-ui/lib";
 ```
 
 The root barrel also exports the public surface:
@@ -71,7 +82,7 @@ const styles = StyleSheet.create({
 });
 ```
 
-`useTheme()` returns the active `theme`, resolved `scheme`, persisted `currentTheme`, `setTheme`, `toggleTheme`, shadow helpers, contrast helpers, and `withAlpha`. Use semantic tokens such as `theme.colors.background`, `foreground`, `card`, `border`, `accent`, `primary`, `mutedForeground`, `destructive`, `success`, and `warning`.
+`useTheme()` returns the active `theme`, resolved `scheme`, persisted `currentTheme`, `setTheme`, `toggleTheme`, shadow helpers, contrast helpers, and `withAlpha`. Use semantic tokens such as `theme.colors.background`, `foreground`, `card`, `border`, `primary`, `secondary`, `accent`, `mutedForeground`, `destructive`, `success`, and `warning`. `primary` is the neutral action color, `secondary` is a neutral secondary surface, and `accent` is the teal highlight color.
 
 Use `StyledText` for theme-aware text:
 
@@ -106,7 +117,7 @@ Layout:
 
 Forms and actions:
 
-- `Button` - Commands with `preset`: `default`, `outline`, `ghost`, `link`, `destructive`, `secondary`; `size`: `sm`, `md`, `lg`; supports `loading`, `fullWidth`, accessories, and shadows.
+- `Button` - Commands with `preset`: `default` for primary neutral actions, `secondary` for neutral secondary actions, plus `outline`, `ghost`, `link`, and `destructive`; `size`: `sm`, `md`, `lg`; supports `loading`, `fullWidth`, accessories, and shadows.
 - `TextInput` - Inputs with `variant`: `outline`, `filled`, `underlined`; `size`: `sm`, `md`, `lg`; supports labels, helper/error text, clear/password affordances, and left/right elements.
 - `Checkbox`, `RadioGroup`, `Select`, `Switch`, `Toggle`, `ToggleGroup`, `InputOTP`, `Slider`, `Label` - Form controls built on package tokens and `@rn-primitives` where applicable.
 
@@ -211,3 +222,7 @@ bun run ui:consumer-smoke
 ```
 
 `bun run ui:pack` runs a dry pack so the published file list and package size can be inspected before release.
+`bun run ui:consumer-smoke` installs the packed tarball into a clean fixture,
+checks the documented export-map files, type-checks all public package
+entrypoints, and verifies that `@mrmeg/expo-ui/constants` can be imported
+by plain Node ESM for token inspection.

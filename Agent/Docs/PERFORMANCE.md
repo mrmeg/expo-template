@@ -61,7 +61,7 @@
 
 ## Entry Bundle Hygiene
 
-- Sentry is loaded through `@mrmeg/expo-ui/lib` with a dynamic import. When
+- Sentry is loaded through `client/lib/sentry.ts` with a dynamic import. When
   `EXPO_PUBLIC_SENTRY_DSN` is unset, startup does not install global handlers
   or pull `@sentry/react-native` into the entry bundle.
 - Shared icon/resource code imports `@expo/vector-icons/Feather` directly

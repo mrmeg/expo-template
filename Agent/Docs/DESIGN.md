@@ -175,10 +175,11 @@ New reusable UI primitives should be generated into
 `packages/ui/src/components/`, exported from
 `packages/ui/src/components/index.ts`, and kept free of `@/client/*` imports.
 Publishable package code owns design tokens, UI hooks, theme state, global
-notification state, haptics, animation helpers, and the Sentry bridge. It does
-not ship font files; `useResources()` and `app/+html.tsx` load Lato through
-Google Fonts on web. See `Agent/Docs/EXPO_UI_PACKAGE.md` for consumer app
-setup, supported imports, and publish/update workflow.
+notification state, haptics, and animation helpers. App-owned integrations
+such as Sentry stay outside the UI package. It does not ship font files;
+`useResources()` and `app/+html.tsx` load Lato through Google Fonts on web. See
+`Agent/Docs/EXPO_UI_PACKAGE.md` for consumer app setup, supported imports, and
+publish/update workflow.
 
 ## Screen Templates
 

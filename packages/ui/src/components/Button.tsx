@@ -190,6 +190,10 @@ export function Button(props: ButtonProps) {
     size = "md",
     loading = false,
     fullWidth = false,
+    onFocus,
+    onBlur,
+    onPressIn,
+    onPressOut,
     ...rest
   } = props;
 
@@ -208,15 +212,15 @@ export function Button(props: ButtonProps) {
   if (customBgColor && typeof customBgColor === "string") {
     backgroundColor = customBgColor;
   } else if (preset === "default") {
-    backgroundColor = theme.colors.accent;
-  } else if (preset === "secondary") {
     backgroundColor = theme.colors.primary;
+  } else if (preset === "secondary") {
+    backgroundColor = theme.colors.secondary;
   } else if (preset === "destructive") {
     backgroundColor = theme.colors.destructive;
   } else if (preset === "outline" || preset === "ghost" || preset === "link") {
     backgroundColor = "transparent";
   } else {
-    backgroundColor = theme.colors.accent;
+    backgroundColor = theme.colors.primary;
   }
 
   // Determine text color per preset for readable contrast
@@ -228,9 +232,9 @@ export function Button(props: ButtonProps) {
         : preset === "link"
           ? theme.colors.accent
           : preset === "default"
-            ? theme.colors.accentForeground
+            ? theme.colors.primaryForeground
             : preset === "secondary"
-              ? theme.colors.primaryForeground
+              ? theme.colors.secondaryForeground
               : getContrastingColor(backgroundColor, palette.white, palette.black);
 
   const [focused, setFocused] = useState(false);
@@ -241,15 +245,36 @@ export function Button(props: ButtonProps) {
     scaleTo: preset === "link" ? 1 : 0.97,
   });
 
+  const handleFocus: PressableProps["onFocus"] = (event) => {
+    setFocused(true);
+    onFocus?.(event);
+  };
+
+  const handleBlur: PressableProps["onBlur"] = (event) => {
+    setFocused(false);
+    onBlur?.(event);
+  };
+
+  const handlePressIn: PressableProps["onPressIn"] = (event) => {
+    pressHandlers.onPressIn();
+    onPressIn?.(event);
+  };
+
+  const handlePressOut: PressableProps["onPressOut"] = (event) => {
+    pressHandlers.onPressOut();
+    onPressOut?.(event);
+  };
+
   return (
     <TextColorContext.Provider value={textColor}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ disabled: !!isDisabled, busy: loading }}
         {...rest}
-        {...pressHandlers}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         style={{ alignSelf: fullWidth ? "stretch" : (flattenedStyle?.alignSelf as ViewStyle["alignSelf"]) ?? "flex-start" }}
         disabled={isDisabled}
       >
@@ -355,10 +380,10 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       ...(Platform.OS === "web" && { cursor: "pointer" as any }),
     } as ViewStyle,
     buttonDefault: {
-      backgroundColor: theme.colors.accent,
+      backgroundColor: theme.colors.primary,
     } as ViewStyle,
     buttonSecondary: {
-      backgroundColor: theme.colors.primary,
+      backgroundColor: theme.colors.secondary,
     } as ViewStyle,
     buttonDestructive: {
       backgroundColor: theme.colors.destructive,

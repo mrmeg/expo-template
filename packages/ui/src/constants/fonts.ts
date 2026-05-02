@@ -1,5 +1,3 @@
-import { Platform } from "react-native";
-
 // Type for allowed font weights in React Navigation v7
 type NavigationFontWeight =
   | "normal"
@@ -32,26 +30,32 @@ interface NavigationFonts {
 const WEB_FONT_STACK =
   "system-ui, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\"";
 
-export const fontFamilies = {
-  serif: Platform.select({
-    ios: { regular: "Georgia", bold: "Georgia" },
-    web: { regular: "Georgia, 'Times New Roman', serif", bold: "Georgia, 'Times New Roman', serif" },
-    default: { regular: "serif", bold: "serif" },
-  })!,
-  sansSerif: Platform.select({
-    web: {
+const isReactNativeRuntime =
+  typeof navigator !== "undefined" && navigator.product === "ReactNative";
+const isWebRuntime = typeof document !== "undefined" && !isReactNativeRuntime;
+
+const serifFamilies = isWebRuntime
+  ? { regular: "Georgia, 'Times New Roman', serif", bold: "Georgia, 'Times New Roman', serif" }
+  : { regular: "Georgia", bold: "Georgia" };
+
+const sansSerifFamilies = isWebRuntime
+  ? {
       regular: `"Lato", ${WEB_FONT_STACK}`,
       bold: `"Lato", ${WEB_FONT_STACK}`,
-    },
-    ios: {
-      regular: "System",
-      bold: "System",
-    },
-    default: {
-      regular: "sans-serif",
-      bold: "sans-serif",
-    },
-  })!,
+    }
+  : isReactNativeRuntime
+    ? {
+        regular: "System",
+        bold: "System",
+      }
+    : {
+        regular: "sans-serif",
+        bold: "sans-serif",
+      };
+
+export const fontFamilies = {
+  serif: serifFamilies,
+  sansSerif: sansSerifFamilies,
 };
 
 // Navigation theme fonts configuration
@@ -72,60 +76,66 @@ export const typography: Record<TypographySize, { fontSize: number; lineHeight: 
   "4xl": { fontSize: 36, lineHeight: 40 },
 };
 
+const webNavigationFonts: NavigationFonts = {
+  regular: {
+    fontFamily: fontFamilies.sansSerif.regular || WEB_FONT_STACK,
+    fontWeight: "400",
+  },
+  medium: {
+    fontFamily: fontFamilies.sansSerif.regular || WEB_FONT_STACK,
+    fontWeight: "500",
+  },
+  bold: {
+    fontFamily: fontFamilies.sansSerif.bold || WEB_FONT_STACK,
+    fontWeight: "600",
+  },
+  heavy: {
+    fontFamily: fontFamilies.sansSerif.bold || WEB_FONT_STACK,
+    fontWeight: "700",
+  },
+};
+
+const nativeNavigationFonts: NavigationFonts = {
+  regular: {
+    fontFamily: fontFamilies.sansSerif.regular || "System",
+    fontWeight: "400",
+  },
+  medium: {
+    fontFamily: fontFamilies.sansSerif.regular || "System",
+    fontWeight: "500",
+  },
+  bold: {
+    fontFamily: fontFamilies.sansSerif.bold || "System",
+    fontWeight: "600",
+  },
+  heavy: {
+    fontFamily: fontFamilies.sansSerif.bold || "System",
+    fontWeight: "700",
+  },
+};
+
+const defaultNavigationFonts: NavigationFonts = {
+  regular: {
+    fontFamily: fontFamilies.sansSerif.regular || "sans-serif",
+    fontWeight: "normal",
+  },
+  medium: {
+    fontFamily: fontFamilies.sansSerif.regular || "sans-serif-medium",
+    fontWeight: "normal",
+  },
+  bold: {
+    fontFamily: fontFamilies.sansSerif.bold || "sans-serif",
+    fontWeight: "600",
+  },
+  heavy: {
+    fontFamily: fontFamilies.sansSerif.bold || "sans-serif",
+    fontWeight: "700",
+  },
+};
+
 // Navigation theme fonts configuration
-export const navigationFonts: NavigationFonts = Platform.select({
-  web: {
-    regular: {
-      fontFamily: fontFamilies.sansSerif.regular || WEB_FONT_STACK,
-      fontWeight: "400",
-    },
-    medium: {
-      fontFamily: fontFamilies.sansSerif.regular || WEB_FONT_STACK,
-      fontWeight: "500",
-    },
-    bold: {
-      fontFamily: fontFamilies.sansSerif.bold || WEB_FONT_STACK,
-      fontWeight: "600",
-    },
-    heavy: {
-      fontFamily: fontFamilies.sansSerif.bold || WEB_FONT_STACK,
-      fontWeight: "700",
-    },
-  },
-  ios: {
-    regular: {
-      fontFamily: fontFamilies.sansSerif.regular || "System",
-      fontWeight: "400",
-    },
-    medium: {
-      fontFamily: fontFamilies.sansSerif.regular || "System",
-      fontWeight: "500",
-    },
-    bold: {
-      fontFamily: fontFamilies.sansSerif.bold || "System",
-      fontWeight: "600",
-    },
-    heavy: {
-      fontFamily: fontFamilies.sansSerif.bold || "System",
-      fontWeight: "700",
-    },
-  },
-  default: {
-    regular: {
-      fontFamily: fontFamilies.sansSerif.regular || "sans-serif",
-      fontWeight: "normal",
-    },
-    medium: {
-      fontFamily: fontFamilies.sansSerif.regular || "sans-serif-medium",
-      fontWeight: "normal",
-    },
-    bold: {
-      fontFamily: fontFamilies.sansSerif.bold || "sans-serif",
-      fontWeight: "600",
-    },
-    heavy: {
-      fontFamily: fontFamilies.sansSerif.bold || "sans-serif",
-      fontWeight: "700",
-    },
-  },
-});
+export const navigationFonts: NavigationFonts = isWebRuntime
+  ? webNavigationFonts
+  : isReactNativeRuntime
+    ? nativeNavigationFonts
+    : defaultNavigationFonts;
