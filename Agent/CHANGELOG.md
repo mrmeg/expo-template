@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added `UIProvider` to `@mrmeg/expo-ui` so consumer apps can mount the package notification surface, status bar, and `@rn-primitives` portal host through the UI package instead of importing `@rn-primitives/portal` directly. `@rn-primitives/portal` is now a package dependency, the template root layout uses `UIProvider`, and the package docs/smoke fixture describe the new startup contract.
+
 - Fixed the `Publish UI Package` workflow after trusted-publishing failures: publish now happens before committing future version bumps, exact-version reruns can retry an already-bumped release, npm is updated before publish, the UI package repository URL matches npm's trusted-publisher repository check, the publish step clears setup-node token config so npm can use OIDC, and a GitHub `NPM_TOKEN` secret can be used as a fallback publish credential.
 
 - Added a manual `Publish UI Package` GitHub Actions workflow for `@mrmeg/expo-ui` trusted publishing. The workflow can bump the package version, run the UI gates and consumer smoke check, commit the version bump, and publish through npm OIDC without local npm login.

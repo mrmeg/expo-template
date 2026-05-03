@@ -12,10 +12,8 @@ import * as SplashScreen from "expo-splash-screen";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { useResources } from "@mrmeg/expo-ui/hooks";
-import { Notification } from "@mrmeg/expo-ui/components/Notification";
+import { UIProvider } from "@mrmeg/expo-ui/components/UIProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { PortalHost } from "@rn-primitives/portal";
-import { StatusBar } from "@mrmeg/expo-ui/components/StatusBar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { KeyboardProvider } from "@/client/features/keyboard/platform";
 import { ErrorBoundary } from "@mrmeg/expo-ui/components/ErrorBoundary";
@@ -106,26 +104,25 @@ export default function RootLayout() {
           fonts: colors[scheme ?? "light"].fonts,
         }}>
           <KeyboardProvider>
-            <ErrorBoundary
-              catchErrors={Config.catchErrors}
-              FallbackComponent={ErrorScreen}
-              onError={reportBoundaryError}
-            >
-              {hasSeenOnboarding ? (
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(main)" />
-                  <Stack.Screen name="+not-found" />
-                </Stack>
-              ) : (
-                <OnboardingGate />
-              )}
-            </ErrorBoundary>
-            <StatusBar />
+            <UIProvider>
+              <ErrorBoundary
+                catchErrors={Config.catchErrors}
+                FallbackComponent={ErrorScreen}
+                onError={reportBoundaryError}
+              >
+                {hasSeenOnboarding ? (
+                  <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(main)" />
+                    <Stack.Screen name="+not-found" />
+                  </Stack>
+                ) : (
+                  <OnboardingGate />
+                )}
+              </ErrorBoundary>
+            </UIProvider>
           </KeyboardProvider>
         </ThemeProvider>
       </SafeAreaProvider>
-      <Notification />
-      <PortalHost />
     </QueryClientProvider>
   );
 }

@@ -17,6 +17,7 @@ Package-owned:
 - theme, resource, dimension, motion, and reduce-motion hooks in `packages/ui/src/hooks/`
 - theme and global notification stores in `packages/ui/src/state/`
 - haptics and animation helpers in `packages/ui/src/lib/`
+- root UI infrastructure through `UIProvider`, including `PortalHost`, `Notification`, and `StatusBar`
 
 App-owned:
 
@@ -37,7 +38,7 @@ After publishing, consumer apps install the package from npm:
 bun add @mrmeg/expo-ui
 ```
 
-Consumers must also install the peer dependencies listed in `packages/ui/package.json`. Keep npm auth tokens in developer, CI, or package-manager configuration. Do not commit tokens.
+Consumers must also install the peer dependencies listed in `packages/ui/package.json`. `@rn-primitives/portal` is package-managed because `UIProvider` mounts the portal host used by package overlays. Keep npm auth tokens in developer, CI, or package-manager configuration. Do not commit tokens.
 
 The published package is tested against the Expo SDK 55 stack used by this
 template: React 19.2, React Native 0.83, React Native Web 0.21,
@@ -54,7 +55,7 @@ keys.
 The package export map supports these stable import paths:
 
 ```tsx
-import { Button, StyledText } from "@mrmeg/expo-ui/components";
+import { Button, StyledText, UIProvider } from "@mrmeg/expo-ui/components";
 import { Button as ButtonDirect } from "@mrmeg/expo-ui/components/Button";
 import { colors, spacing, typography, type Theme } from "@mrmeg/expo-ui/constants";
 import { colors as colorsDirect } from "@mrmeg/expo-ui/constants/colors";
@@ -67,7 +68,7 @@ import { hapticLight } from "@mrmeg/expo-ui/lib";
 The root barrel also exports the package surface:
 
 ```tsx
-import { Button, colors, useTheme } from "@mrmeg/expo-ui";
+import { Button, UIProvider, colors, useTheme } from "@mrmeg/expo-ui";
 ```
 
 Prefer subpath imports when an app only needs one package area. Use direct component subpaths such as `@mrmeg/expo-ui/components/Button` when that keeps an app's imports clearer.
@@ -104,8 +105,7 @@ import { ThemeProvider } from "@react-navigation/native";
 import * as SplashScreen from "expo-splash-screen";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
-import { ErrorBoundary, Notification, StatusBar } from "@mrmeg/expo-ui/components";
-import { PortalHost } from "@rn-primitives/portal";
+import { ErrorBoundary, UIProvider } from "@mrmeg/expo-ui/components";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -125,18 +125,17 @@ export default function RootLayout() {
         fonts: colors[scheme ?? "light"].fonts,
       }}
     >
-      <ErrorBoundary>
-        {/* App navigation goes here. */}
-      </ErrorBoundary>
-      <Notification />
-      <PortalHost />
-      <StatusBar />
+      <UIProvider>
+        <ErrorBoundary>
+          {/* App navigation goes here. */}
+        </ErrorBoundary>
+      </UIProvider>
     </ThemeProvider>
   );
 }
 ```
 
-`Notification` reads the global notification store from the package. `PortalHost` is required by `@rn-primitives` overlays such as dialogs, popovers, tooltips, and dropdown menus.
+`UIProvider` mounts `Notification`, `StatusBar`, and the default portal host required by `@rn-primitives` overlays such as dialogs, popovers, tooltips, and dropdown menus. Disable individual mounts with `notification={false}`, `statusBar={false}`, or `portalHost={false}` only when an app deliberately owns that root surface.
 
 ## Theme System
 
@@ -351,11 +350,12 @@ import { Button, TextInput } from "@mrmeg/expo-ui/components";
 |-----------|---------|-------|
 | `Alert` | Cross-platform imperative alerts | Use for blocking confirm/alert dialogs; uses native alerts off web and browser alerts on web |
 | `Badge` | Short status labels | `variant`: `default`, `secondary`, `outline`, `destructive` |
-| `Notification` | Global toast surface | Mount once near the root; driven by `globalUIStore` |
+| `UIProvider` | Root package UI infrastructure | Mount once near the root; owns `Notification`, `StatusBar`, and the default portal host |
+| `Notification` | Global toast surface | Mounted by `UIProvider`; driven by `globalUIStore` |
 | `Progress` | Determinate or indeterminate progress | `variant`: `default`, `accent`, `destructive`; `size`: `sm`, `md`, `lg` |
 | `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Use instead of layout-shifting spinners for content regions |
 | `EmptyState` | Empty/error content blocks | Supports icon, title, description, and optional action |
-| `StatusBar` | Theme-aware native status bar | Reads `scheme` from `useTheme()` |
+| `StatusBar` | Theme-aware native status bar | Mounted by `UIProvider`; reads `scheme` from `useTheme()` |
 
 ```tsx
 import { Badge, EmptyState, Progress } from "@mrmeg/expo-ui/components";
@@ -374,7 +374,7 @@ globalUIStore.getState().show({
 
 ### Overlays And Menus
 
-These components require `PortalHost` from `@rn-primitives/portal` mounted near the app root.
+These components require `UIProvider` mounted near the app root so the package-owned portal host exists.
 
 | Component | Use For | Notes |
 |-----------|---------|-------|
@@ -610,7 +610,7 @@ For workspace development inside this template, the root dependency is `@mrmeg/e
 - On native, rely on system sans-serif unless a future spec explicitly adds remote native font support.
 - Use `useTheme()` and semantic theme tokens instead of hardcoded colors.
 - Use `StyledText` semantic variants instead of raw `Text` when building UI with this library.
-- Mount `PortalHost` before using dialogs, drawers, popovers, dropdown menus, tooltips, or select content.
+- Mount `UIProvider` before using dialogs, drawers, popovers, dropdown menus, tooltips, select content, or package notifications.
 - Keep package code free of `@/client/*` imports.
 - Keep npm auth tokens and publish credentials out of the repo.
 - Update this doc when the package export map, startup contract, or font strategy changes.
@@ -619,6 +619,6 @@ For workspace development inside this template, the root dependency is `@mrmeg/e
 
 - Copying `packages/ui/src/components/*` into each app instead of installing the package.
 - Adding package assets to fix fonts. Web font loading belongs in Google Fonts links and `useResources()`; native currently uses system fallback.
-- Forgetting `PortalHost`, which breaks overlay primitives.
+- Forgetting `UIProvider`, which breaks overlay primitives and package notifications.
 - Importing from `packages/ui/src/*` in consumer apps. Consumers should import from `@mrmeg/expo-ui/*`.
 - Treating a local workspace path as the publish contract. `packages/ui/package.json` exports are the source of truth.

@@ -8,6 +8,14 @@ package, not a generally supported open-source UI library. The package is
 published as `UNLICENSED`; use outside MrMeg projects requires explicit
 permission.
 
+## For LLMs And Coding Agents
+
+When this package is installed from npm, read
+`node_modules/@mrmeg/expo-ui/LLM_USAGE.md` before creating app-local UI
+primitives. That file is shipped in the npm package and gives the short
+component-selection rules, import paths, setup requirements, and examples that
+help agents choose existing package components instead of rebuilding them.
+
 ## Install
 
 Install from npm after publishing:
@@ -19,16 +27,17 @@ bun add @mrmeg/expo-ui
 Consumers must also install the peer dependencies listed in `package.json`.
 The tested baseline is Expo SDK 55 with React 19.2, React Native 0.83,
 React Native Web 0.21, Reanimated 4.2, Worklets 0.7, and
-`@rn-primitives/*` 1.4. `i18next` and `react-i18next` are runtime peers
-because `StyledText` and `Notification` support translated text keys. Start
-consumer apps from the same Expo SDK family or update the package and peer
-ranges deliberately. Keep npm auth tokens in developer or CI configuration,
-not in this repository.
+`@rn-primitives/*` 1.4. `@rn-primitives/portal` is package-managed because
+`UIProvider` mounts the portal host used by package overlays. `i18next` and
+`react-i18next` are runtime peers because `StyledText` and `Notification`
+support translated text keys. Start consumer apps from the same Expo SDK
+family or update the package and peer ranges deliberately. Keep npm auth tokens
+in developer or CI configuration, not in this repository.
 
 ## Imports
 
 ```tsx
-import { Button, StyledText } from "@mrmeg/expo-ui/components";
+import { Button, StyledText, UIProvider } from "@mrmeg/expo-ui/components";
 import { Button as ButtonDirect } from "@mrmeg/expo-ui/components/Button";
 import { colors, spacing, typography } from "@mrmeg/expo-ui/constants";
 import { colors as colorsDirect } from "@mrmeg/expo-ui/constants/colors";
@@ -41,7 +50,7 @@ import { hapticLight } from "@mrmeg/expo-ui/lib";
 The root barrel also exports the public surface:
 
 ```tsx
-import { Button, colors, useTheme } from "@mrmeg/expo-ui";
+import { Button, UIProvider, colors, useTheme } from "@mrmeg/expo-ui";
 ```
 
 ## Theme System
@@ -182,7 +191,7 @@ Use `Button.preset`, not `variant`. `default` is the neutral primary action, `se
 
 Use `StyledText` or its aliases instead of raw `Text` whenever the text is part of app UI. Use `TextInput` for labeled fields because it already owns label, helper text, error text, clear buttons, password visibility, numeric filtering, and left/right elements.
 
-Mount `PortalHost` once before using `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, or `Tooltip`. Mount `Notification` once near the root and trigger it from `globalUIStore`.
+Mount `UIProvider` once near the root before using `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, or package notifications. Trigger transient feedback from `globalUIStore`.
 
 Use `Skeleton` components for loading content with stable dimensions, `EmptyState` for no-data/recoverable errors, `Alert` for blocking confirm/alert dialogs, and `Notification` for transient global feedback.
 
@@ -250,7 +259,7 @@ LLM rules:
 - Prefer `StyledText` semantic variants over raw `Text`.
 - Use `useTheme()` and semantic tokens instead of hardcoded colors.
 - Use `Button.preset`, not `variant`, for buttons.
-- Mount `PortalHost` before using overlays, menus, select content, popovers, or tooltips.
+- Mount `UIProvider` before using overlays, menus, select content, popovers, tooltips, or package notifications.
 - Import from package exports, not `packages/ui/src/*`.
 
 ## App Startup
@@ -261,8 +270,7 @@ Call `useResources()` once near the Expo app root before hiding the splash scree
 import { ThemeProvider } from "@react-navigation/native";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
-import { Notification, StatusBar } from "@mrmeg/expo-ui/components";
-import { PortalHost } from "@rn-primitives/portal";
+import { UIProvider } from "@mrmeg/expo-ui/components";
 
 export default function RootLayout() {
   const { scheme } = useTheme();
@@ -278,10 +286,9 @@ export default function RootLayout() {
         fonts: colors[scheme ?? "light"].fonts,
       }}
     >
-      {/* App navigation goes here. */}
-      <Notification />
-      <PortalHost />
-      <StatusBar />
+      <UIProvider>
+        {/* App navigation goes here. */}
+      </UIProvider>
     </ThemeProvider>
   );
 }
