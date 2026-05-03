@@ -21,6 +21,9 @@ jobs:
     name: Publish @mrmeg/expo-ui
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -109,11 +112,68 @@ jobs:
           NPM_PUBLISH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -n "${NPM_PUBLISH_TOKEN:-}" ]; then
-            echo "//registry.npmjs.org/:_authToken=${NPM_PUBLISH_TOKEN}" > "${RUNNER_TEMP}/.npmrc"
-            export NPM_CONFIG_USERCONFIG="${RUNNER_TEMP}/.npmrc"
+          echo "//registry.npmjs.org/:_authToken=${NPM_PUBLISH_TOKEN}" > "${RUNNER_TEMP}/.npmrc"
+          export NPM_CONFIG_USERCONFIG="${RUNNER_TEMP}/.npmrc"
           else
-            unset NODE_AUTH_TOKEN
-            unset NPM_CONFIG_USERCONFIG
+          node <<'NODE'
+          const { writeFileSync } = require("node:fs");
+          const { join } = require("node:path");
+
+          async function checkedJson(url, options, label) {
+            const response = await fetch(url, options);
+            const body = await response.text();
+
+            if (!response.ok) {
+              throw new Error(`${label} failed with ${response.status}: ${body}`);
+            }
+
+            return JSON.parse(body);
+          }
+
+          async function main() {
+            const requestUrl = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+            const requestToken = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+            const runnerTemp = process.env.RUNNER_TEMP;
+
+            if (!requestUrl || !requestToken) {
+              throw new Error("GitHub OIDC token request env is missing. Check id-token: write permissions.");
+            }
+
+            const githubOidc = await checkedJson(
+              `${requestUrl}&audience=npm:registry.npmjs.org`,
+              {
+                headers: {
+                  authorization: `bearer ${requestToken}`,
+                },
+              },
+              "GitHub OIDC token request"
+            );
+
+            const npmToken = await checkedJson(
+              "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/%40mrmeg%2Fexpo-ui",
+              {
+                method: "POST",
+                headers: {
+                  authorization: `Bearer ${githubOidc.value}`,
+                },
+              },
+              "npm OIDC token exchange"
+            );
+
+            if (!npmToken.token) {
+              throw new Error("npm OIDC token exchange did not return a publish token.");
+            }
+
+            writeFileSync(join(runnerTemp, ".npmrc"), `//registry.npmjs.org/:_authToken=${npmToken.token}\n`);
+          }
+
+          main().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+          export NPM_CONFIG_USERCONFIG="${RUNNER_TEMP}/.npmrc"
+          unset NODE_AUTH_TOKEN
           fi
           npm publish --access public --registry=https://registry.npmjs.org/
 

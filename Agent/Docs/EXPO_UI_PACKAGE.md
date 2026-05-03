@@ -561,9 +561,11 @@ Fallback token setup:
 2. Add it to GitHub repository secrets as `NPM_TOKEN`.
 3. Rerun the same `Publish UI Package` workflow.
 
-When `NPM_TOKEN` is absent, the workflow clears setup-node token config and
-tries trusted publishing via OIDC. When `NPM_TOKEN` is present, it writes a
-temporary npm config for that one publish step.
+When `NPM_TOKEN` is absent, the workflow requests a GitHub OIDC token, exchanges
+it with npm for a short-lived package publish token, writes that token to a
+temporary npm config for the publish step, and clears setup-node's placeholder
+`NODE_AUTH_TOKEN`. When `NPM_TOKEN` is present, it writes that token to the same
+temporary npm config for the publish step.
 
 If a publish fails after the workflow has already bumped the package version,
 rerun the workflow with the exact current version, for example `version=0.1.2`.

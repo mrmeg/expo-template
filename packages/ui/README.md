@@ -333,8 +333,9 @@ publishing instead:
    and `ref=dev`.
 
 The workflow uses npm OIDC, not a checked-in token or local npm login. It bumps
-the package version, updates `bun.lock`, runs the package gates, commits the
-version bump, and publishes from `packages/ui`.
+the package version, updates `bun.lock`, runs the package gates, exchanges the
+GitHub OIDC token for a short-lived npm publish token, commits the version bump,
+and publishes from `packages/ui`.
 
 Keep `repository.url` in `package.json` as
 `git+https://github.com/mrmeg/expo-template.git`. npm trusted publishing checks
