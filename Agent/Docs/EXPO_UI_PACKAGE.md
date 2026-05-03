@@ -38,7 +38,7 @@ After publishing, consumer apps install the package from npm:
 bun add @mrmeg/expo-ui
 ```
 
-Consumers must also install the peer dependencies listed in `packages/ui/package.json`. `@rn-primitives/portal` is package-managed because `UIProvider` mounts the portal host used by package overlays. Keep npm auth tokens in developer, CI, or package-manager configuration. Do not commit tokens.
+Consumers must also install the peer dependencies listed in `packages/ui/package.json`. `@rn-primitives/portal` is package-managed because `UIProvider` mounts the portal host used by package overlays. i18n setup is optional; package text components render plain children and `text` props without `i18next` or `react-i18next`. Keep npm auth tokens in developer, CI, or package-manager configuration. Do not commit tokens.
 
 The published package is tested against the Expo SDK 55 stack used by this
 template: React 19.2, React Native 0.83, React Native Web 0.21,
@@ -46,9 +46,8 @@ Reanimated 4.2, Worklets 0.7, and `@rn-primitives/*` 1.4. Consumer apps
 should start from the same Expo SDK family or deliberately update this
 package and its peer ranges together. Do not mix this package with older or
 newer Expo / React Native major families and assume compatibility. The
-package also declares `i18next` and `react-i18next` as runtime peers because
-`StyledText` and `Notification` call `useTranslation()` for translated text
-keys.
+package keeps i18n integration behind `configureExpoUiI18n()` so consumers can
+opt in without making `react-i18next` a basic package requirement.
 
 ## Public Imports
 
@@ -62,7 +61,7 @@ import { colors as colorsDirect } from "@mrmeg/expo-ui/constants/colors";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
 import { useTheme as useThemeDirect } from "@mrmeg/expo-ui/hooks/useTheme";
 import { globalUIStore, useThemeStore } from "@mrmeg/expo-ui/state";
-import { hapticLight } from "@mrmeg/expo-ui/lib";
+import { configureExpoUiI18n, hapticLight } from "@mrmeg/expo-ui/lib";
 ```
 
 The root barrel also exports the package surface:
@@ -243,7 +242,7 @@ Use `colors[scheme].navigation` and `colors[scheme].fonts` when wiring React Nav
 
 ## Typography
 
-Use `StyledText` for new package-aware text. It applies theme text color, font family, sizing, line-height, i18n lookup, and nested text color context used by buttons and toggle controls.
+Use `StyledText` for new package-aware text. It applies theme text color, font family, sizing, line-height, optional i18n lookup, and nested text color context used by buttons and toggle controls.
 
 ```tsx
 import {
@@ -276,6 +275,17 @@ Text options:
 | `variant` | `sansSerif`, `serif` |
 | `align` | `left`, `center`, `right`, `justify`, `auto` |
 | `tx`, `txOptions` | i18n key and interpolation options |
+
+`tx` support is optional. If no package translator is configured, `tx` renders
+the key and `text` renders as provided. Apps that already own i18n can opt in
+once near startup:
+
+```tsx
+import { configureExpoUiI18n } from "@mrmeg/expo-ui/lib";
+import { i18n } from "./i18n";
+
+configureExpoUiI18n((key, options) => i18n.t(key, options));
+```
 
 Package font strategy still applies: Lato on web via Google Fonts, platform sans-serif on native, Georgia/system serif fallback for serif text.
 

@@ -16,7 +16,7 @@ import { Button as ButtonDirect } from "@mrmeg/expo-ui/components/Button";
 import { colors, spacing, typography } from "@mrmeg/expo-ui/constants";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
 import { globalUIStore, useThemeStore } from "@mrmeg/expo-ui/state";
-import { hapticLight } from "@mrmeg/expo-ui/lib";
+import { configureExpoUiI18n, hapticLight } from "@mrmeg/expo-ui/lib";
 ```
 
 The root barrel also exports the public surface:
@@ -67,6 +67,18 @@ export function RootLayout() {
 `UIProvider` mounts the default portal host required before using `Dialog`,
 `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`,
 `SelectContent`, or `Tooltip`.
+
+i18n is optional. Do not add app-level i18n setup just to use this package.
+Plain children and `text` props work without `i18next` or `react-i18next`.
+`tx` props render the key until the consumer opts in with a package-local
+translator:
+
+```tsx
+import { configureExpoUiI18n } from "@mrmeg/expo-ui/lib";
+import { i18n } from "./i18n";
+
+configureExpoUiI18n((key, options) => i18n.t(key, options));
+```
 
 ## Theme And Text Rules
 

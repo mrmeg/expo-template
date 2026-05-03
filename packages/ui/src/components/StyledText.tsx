@@ -1,8 +1,8 @@
 import React, { forwardRef } from "react";
 import { Text as RNText, TextProps as RNTextProps, StyleSheet } from "react-native";
-import { useTranslation } from "react-i18next";
 import { useTheme } from "../hooks/useTheme";
 import { fontFamilies } from "../constants/fonts";
+import { translateText } from "../lib/i18n";
 
 /**
  * TextClassContext provides className context for nested text components
@@ -149,7 +149,6 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
   } = props;
 
   const { theme } = useTheme();
-  const { t } = useTranslation();
 
   // Check if there's a color override from parent context (e.g., Button)
   const contextColor = React.useContext(TextColorContext);
@@ -181,7 +180,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
   const styleHasLineHeight = flatStyle && "lineHeight" in flatStyle;
   const resolvedLineHeight = styleHasFontSize && !styleHasLineHeight ? undefined : lineHeight;
 
-  const i18nText = tx ? String(t(tx, txOptions as any)) : text;
+  const i18nText = translateText(tx, text, txOptions);
   const content = i18nText || children;
 
   return (

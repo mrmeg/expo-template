@@ -28,11 +28,11 @@ Consumers must also install the peer dependencies listed in `package.json`.
 The tested baseline is Expo SDK 55 with React 19.2, React Native 0.83,
 React Native Web 0.21, Reanimated 4.2, Worklets 0.7, and
 `@rn-primitives/*` 1.4. `@rn-primitives/portal` is package-managed because
-`UIProvider` mounts the portal host used by package overlays. `i18next` and
-`react-i18next` are runtime peers because `StyledText` and `Notification`
-support translated text keys. Start consumer apps from the same Expo SDK
-family or update the package and peer ranges deliberately. Keep npm auth tokens
-in developer or CI configuration, not in this repository.
+`UIProvider` mounts the portal host used by package overlays. i18n setup is
+optional; plain text and children render without `i18next` or
+`react-i18next`. Start consumer apps from the same Expo SDK family or update
+the package and peer ranges deliberately. Keep npm auth tokens in developer or
+CI configuration, not in this repository.
 
 ## Imports
 
@@ -44,7 +44,7 @@ import { colors as colorsDirect } from "@mrmeg/expo-ui/constants/colors";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
 import { useTheme as useThemeDirect } from "@mrmeg/expo-ui/hooks/useTheme";
 import { globalUIStore, useThemeStore } from "@mrmeg/expo-ui/state";
-import { hapticLight } from "@mrmeg/expo-ui/lib";
+import { configureExpoUiI18n, hapticLight } from "@mrmeg/expo-ui/lib";
 ```
 
 The root barrel also exports the public surface:
@@ -115,6 +115,17 @@ Useful `StyledText` props:
 - `fontWeight`: `light`, `regular`, `medium`, `semibold`, `bold`
 - `variant`: `sansSerif`, `serif`
 - `align`, `tx`, `txOptions`
+
+`tx` support is opt-in. Without a configured translator, `tx` renders the key
+and `text` renders as provided. Consumers that already use i18n can connect it
+once near app startup:
+
+```tsx
+import { configureExpoUiI18n } from "@mrmeg/expo-ui/lib";
+import { i18n } from "./i18n";
+
+configureExpoUiI18n((key, options) => i18n.t(key, options));
+```
 
 ## Component Guide
 

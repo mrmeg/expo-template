@@ -8,7 +8,6 @@ import Animated, {
   useReducedMotion,
   Easing,
 } from "react-native-reanimated";
-import { useTranslation } from "react-i18next";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { fontFamilies } from "../constants/fonts";
 import { Icon } from "./Icon";
@@ -17,6 +16,7 @@ import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { StyledText } from "./StyledText";
 import type { Theme } from "../constants/colors";
+import { translateText } from "../lib/i18n";
 import { globalUIStore } from "../state/globalUIStore";
 
 /**
@@ -45,7 +45,6 @@ import { globalUIStore } from "../state/globalUIStore";
  * ```
  */
 export const Notification = () => {
-  const { t } = useTranslation();
   const { theme, getShadowStyle } = useTheme();
   const reduceMotion = useReducedMotion();
   const insets = useContext(SafeAreaInsetsContext);
@@ -166,11 +165,11 @@ export const Notification = () => {
 
     switch (alert?.type) {
       case "error":
-        return t("notification.error");
+        return translateText("notification.error");
       case "success":
-        return t("notification.success");
+        return translateText("notification.success");
       case "warning":
-        return t("notification.warning");
+        return translateText("notification.warning");
       case "info":
         return "";
       default:

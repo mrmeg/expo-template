@@ -320,6 +320,9 @@ export function Button(props: ButtonProps) {
 
               {(tx || text) ? (
                 <StyledText
+                  tx={tx}
+                  text={text}
+                  txOptions={txOptions}
                   style={[
                     styles.text,
                     state.pressed && styles.pressedText,
@@ -327,9 +330,7 @@ export function Button(props: ButtonProps) {
                     isDisabled && disabledTextStyleOverride,
                     textStyleOverride,
                   ]}
-                >
-                  {tx || text}
-                </StyledText>
+                />
               ) : !loading && children ? (
                 // Wrap string children in StyledText to apply TextColorContext
                 typeof children === "string" ? (

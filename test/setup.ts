@@ -127,10 +127,11 @@ jest.mock("react-native-safe-area-context", () => {
   const { View } = require("react-native");
   const insets = { top: 0, right: 0, bottom: 0, left: 0 };
   const frame = { x: 0, y: 0, width: 0, height: 0 };
+  const SafeAreaInsetsContext = React.createContext(insets);
   return {
     SafeAreaProvider: ({ children }: any) => React.createElement(View, null, children),
     SafeAreaView: ({ children, ...props }: any) => React.createElement(View, props, children),
-    SafeAreaInsetsContext: { Consumer: ({ children }: any) => children(insets) },
+    SafeAreaInsetsContext,
     useSafeAreaInsets: () => insets,
     useSafeAreaFrame: () => frame,
     initialWindowMetrics: { insets, frame },
