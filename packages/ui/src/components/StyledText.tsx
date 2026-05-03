@@ -111,7 +111,7 @@ export type TextProps = RNTextProps & {
    */
   tx?: string;
   /**
-   * The text to display if not using `tx` or nested components.
+   * The text to display directly, or as fallback text when `tx` is provided.
    */
   text?: string;
   /**

@@ -42,6 +42,20 @@ describe("UIProvider without app i18n", () => {
     expect(screen.getByText("StatusBar")).toBeTruthy();
   });
 
+  it("uses readable package notification defaults without app i18n", () => {
+    act(() => {
+      globalUIStore.getState().show({ type: "error" });
+    });
+
+    render(
+      <UIProvider>
+        <Text>App content</Text>
+      </UIProvider>
+    );
+
+    expect(screen.getByText("Error")).toBeTruthy();
+  });
+
   it("uses the configured translator for package notification defaults", () => {
     configureExpoUiI18n((key) => `translated:${key}`);
     act(() => {

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Bumped `@mrmeg/expo-ui` to `0.1.5` and fixed zero-config notification defaults so package-owned error/success/warning toast titles render readable fallback text when a consumer has not configured i18n.
+
 - Updated the `Publish UI Package` workflow so pushes to `main` that change `packages/ui/package.json` publish the exact committed `@mrmeg/expo-ui` version when it is not already on npm. Manual workflow dispatch still supports bumping and committing a release version.
 
 - Added `UIProvider` to `@mrmeg/expo-ui` so consumer apps can mount the package notification surface, status bar, and `@rn-primitives` portal host through the UI package instead of importing `@rn-primitives/portal` directly. `@rn-primitives/portal` is now a package dependency, the template root layout uses `UIProvider`, and the package docs/smoke fixture describe the new startup contract.

@@ -116,9 +116,10 @@ Useful `StyledText` props:
 - `variant`: `sansSerif`, `serif`
 - `align`, `tx`, `txOptions`
 
-`tx` support is opt-in. Without a configured translator, `tx` renders the key
-and `text` renders as provided. Consumers that already use i18n can connect it
-once near app startup:
+`tx` support is opt-in. Without a configured translator, `tx` renders its
+fallback text when provided and otherwise renders the key; package-owned
+defaults such as notification titles use readable fallback text. Consumers
+that already use i18n can connect it once near app startup:
 
 ```tsx
 import { configureExpoUiI18n } from "@mrmeg/expo-ui/lib";

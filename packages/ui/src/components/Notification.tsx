@@ -165,11 +165,11 @@ export const Notification = () => {
 
     switch (alert?.type) {
       case "error":
-        return translateText("notification.error");
+        return translateText("notification.error", "Error");
       case "success":
-        return translateText("notification.success");
+        return translateText("notification.success", "Success");
       case "warning":
-        return translateText("notification.warning");
+        return translateText("notification.warning", "Warning");
       case "info":
         return "";
       default:

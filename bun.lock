@@ -103,7 +103,7 @@
     },
     "packages/ui": {
       "name": "@mrmeg/expo-ui",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "dependencies": {
         "@rn-primitives/portal": "~1.4.0",
       },

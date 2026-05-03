@@ -70,8 +70,9 @@ export function RootLayout() {
 
 i18n is optional. Do not add app-level i18n setup just to use this package.
 Plain children and `text` props work without `i18next` or `react-i18next`.
-`tx` props render the key until the consumer opts in with a package-local
-translator:
+`tx` props render fallback text when provided and otherwise render the key
+until the consumer opts in with a package-local translator. Package-owned
+defaults such as notification titles stay human-readable without app i18n:
 
 ```tsx
 import { configureExpoUiI18n } from "@mrmeg/expo-ui/lib";

@@ -277,8 +277,9 @@ Text options:
 | `tx`, `txOptions` | i18n key and interpolation options |
 
 `tx` support is optional. If no package translator is configured, `tx` renders
-the key and `text` renders as provided. Apps that already own i18n can opt in
-once near startup:
+fallback text when provided and otherwise renders the key; package-owned
+defaults such as notification titles use readable fallback text. Apps that
+already own i18n can opt in once near startup:
 
 ```tsx
 import { configureExpoUiI18n } from "@mrmeg/expo-ui/lib";

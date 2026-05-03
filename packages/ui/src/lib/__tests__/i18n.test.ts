@@ -5,10 +5,14 @@ describe("expo-ui i18n adapter", () => {
     configureExpoUiI18n(null);
   });
 
-  it("uses literal text before tx keys", () => {
+  it("uses fallback text when no translator is configured", () => {
+    expect(translateText("common.submit", "Submit")).toBe("Submit");
+  });
+
+  it("uses the configured translator before fallback text", () => {
     configureExpoUiI18n((key) => `translated:${key}`);
 
-    expect(translateText("common.submit", "Submit")).toBe("Submit");
+    expect(translateText("common.submit", "Submit")).toBe("translated:common.submit");
   });
 
   it("falls back to the key when no translator is configured", () => {
@@ -22,5 +26,11 @@ describe("expo-ui i18n adapter", () => {
 
     expect(translateText("cart.items", undefined, { count: 3 })).toBe("cart.items:3");
     expect(translate).toHaveBeenCalledWith("cart.items", { count: 3 });
+  });
+
+  it("uses fallback text when a configured translator returns undefined", () => {
+    configureExpoUiI18n(() => undefined);
+
+    expect(translateText("common.submit", "Submit")).toBe("Submit");
   });
 });

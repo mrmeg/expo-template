@@ -64,7 +64,7 @@ export interface ButtonProps extends PressableProps {
    */
   tx?: TextProps["tx"];
   /**
-   * The text to display if not using `tx` or nested components.
+   * The text to display directly, or as fallback text when `tx` is provided.
    */
   text?: TextProps["text"];
   /**

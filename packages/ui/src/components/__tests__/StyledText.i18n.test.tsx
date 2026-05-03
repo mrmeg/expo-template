@@ -48,12 +48,26 @@ describe("StyledText i18n adapter", () => {
     expect(screen.getByText("common.save")).toBeTruthy();
   });
 
+  it("uses text as the tx fallback when no translator is configured", () => {
+    render(<StyledText tx="common.save" text="Save" />);
+
+    expect(screen.getByText("Save")).toBeTruthy();
+  });
+
   it("uses the configured translator for tx props", () => {
     configureExpoUiI18n((key, options) => `${key}:${(options as any)?.name}`);
 
     render(<StyledText tx="common.greeting" txOptions={{ name: "Matt" }} />);
 
     expect(screen.getByText("common.greeting:Matt")).toBeTruthy();
+  });
+
+  it("uses the configured translator before tx fallback text", () => {
+    configureExpoUiI18n((key) => `translated:${key}`);
+
+    render(<StyledText tx="common.save" text="Save" />);
+
+    expect(screen.getByText("translated:common.save")).toBeTruthy();
   });
 
   it("translates Button tx props through StyledText", () => {
