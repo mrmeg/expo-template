@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added a manual `Publish UI Package` GitHub Actions workflow for `@mrmeg/expo-ui` trusted publishing. The workflow can bump the package version, run the UI gates and consumer smoke check, commit the version bump, and publish through npm OIDC without local npm login.
+
 - Added `bun run ui:release` as a repo-root helper for `@mrmeg/expo-ui` releases. It bumps the package version, updates the lockfile, runs the package gates and packed consumer smoke check, and publishes with `npm publish --access public` only when `--publish` is passed.
 
 - Fixed the packed `@mrmeg/expo-ui` consumer contract for fresh Expo SDK 55 apps: declared the i18n runtime peers used by `StyledText` and `Notification`, added Metro-friendly leaf exports for constants and hooks, and expanded `ui:consumer-smoke` to install the packed tarball into a clean Expo app and run an iOS export without a custom Metro config.

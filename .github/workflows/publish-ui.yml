@@ -1,0 +1,105 @@
+name: Publish UI Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version bump: patch, minor, major, or exact x.y.z"
+        required: true
+        default: "patch"
+      ref:
+        description: "Branch to release from"
+        required: true
+        default: "dev"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish @mrmeg/expo-ui
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Bump UI package version
+        id: version
+        run: |
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const { readFileSync, writeFileSync } = require("node:fs");
+          const semver = require("semver");
+
+          const packagePath = "packages/ui/package.json";
+          const pkg = JSON.parse(readFileSync(packagePath, "utf8"));
+          const bump = process.env.VERSION;
+          const next = semver.valid(bump) ?? semver.inc(pkg.version, bump);
+
+          if (!next) {
+            throw new Error(`Invalid version "${bump}". Use patch, minor, major, or exact x.y.z.`);
+          }
+
+          if (semver.lte(next, pkg.version)) {
+            throw new Error(`Next version ${next} must be greater than current version ${pkg.version}.`);
+          }
+
+          pkg.version = next;
+          writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
+          console.log(`version=${next}`);
+          NODE
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Check npm version availability
+        run: |
+          if npm view "@mrmeg/expo-ui@${{ steps.version.outputs.version }}" version >/dev/null 2>&1; then
+            echo "@mrmeg/expo-ui@${{ steps.version.outputs.version }} is already published."
+            exit 1
+          fi
+
+      - name: Update lockfile
+        run: bun install --lockfile-only
+
+      - name: Type check UI package
+        run: bun run ui:typecheck
+
+      - name: Test UI package
+        run: bun run ui:test
+
+      - name: Build UI package
+        run: bun run ui:build
+
+      - name: Pack UI package dry run
+        run: bun run ui:pack
+
+      - name: Consumer smoke test
+        run: bun run ui:consumer-smoke
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/ui/package.json bun.lock
+          git commit -m "chore: release @mrmeg/expo-ui v${{ steps.version.outputs.version }}"
+          git push origin "HEAD:${{ inputs.ref }}"
+
+      - name: Publish to npm
+        working-directory: packages/ui
+        run: npm publish --access public

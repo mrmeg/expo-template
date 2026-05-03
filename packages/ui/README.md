@@ -323,6 +323,19 @@ The release command requires a clean working tree by default. Commit current
 changes first, or pass `--allow-dirty` when you intentionally want to release
 from uncommitted local changes.
 
+If npm login email is unavailable, publish through GitHub Actions trusted
+publishing instead:
+
+1. In npm package settings for `@mrmeg/expo-ui`, add a trusted publisher:
+   GitHub Actions, owner `mrmeg`, repository `expo-template`, workflow
+   filename `publish-ui.yml`.
+2. In GitHub Actions, run the `Publish UI Package` workflow with `version=patch`
+   and `ref=dev`.
+
+The workflow uses npm OIDC, not a checked-in token or local npm login. It bumps
+the package version, updates `bun.lock`, runs the package gates, commits the
+version bump, and publishes from `packages/ui`.
+
 Manual package checks:
 
 ```sh

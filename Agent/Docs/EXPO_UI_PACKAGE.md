@@ -525,6 +525,32 @@ The release command requires a clean working tree by default. Commit current
 changes first, or pass `--allow-dirty` only when intentionally releasing from
 uncommitted local changes.
 
+### GitHub Trusted Publishing
+
+When local npm login is blocked or should be avoided, use the `Publish UI
+Package` GitHub Actions workflow. It uses npm trusted publishing via OIDC, so it
+does not require a long-lived npm token or local npm auth email after setup.
+
+One-time npm package setup:
+
+1. Open npm package settings for `@mrmeg/expo-ui`.
+2. Add a trusted publisher.
+3. Select GitHub Actions.
+4. Set owner/user to `mrmeg`.
+5. Set repository to `expo-template`.
+6. Set workflow filename to `publish-ui.yml`.
+
+Routine publish:
+
+1. Open GitHub Actions.
+2. Run the `Publish UI Package` workflow.
+3. Set `version` to `patch`, `minor`, `major`, or an exact version.
+4. Set `ref` to the release branch, normally `dev`.
+
+The workflow bumps `packages/ui/package.json`, updates `bun.lock`, runs the UI
+package gates and packed consumer smoke check, commits the version bump back to
+the selected branch, then runs `npm publish --access public` from `packages/ui`.
+
 Manual package gates:
 
 ```sh

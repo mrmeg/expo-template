@@ -263,6 +263,12 @@ Do not commit `.npmrc` tokens or registry secrets. Consumer Expo apps install
 including `i18next` and `react-i18next` for the package text/notification
 translation hooks.
 
+If local npm login is blocked, use GitHub Actions trusted publishing instead.
+After one-time npm package setup, run the `Publish UI Package` workflow from
+GitHub Actions with `version=patch` and `ref=dev`. That workflow bumps the UI
+package version, runs the package gates, commits the version bump, and publishes
+through npm OIDC without an npm token or local auth email.
+
 For the full design system see `Agent/Docs/DESIGN.md`.
 
 ## Billing (Stripe, hosted-external)
