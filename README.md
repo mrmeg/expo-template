@@ -264,10 +264,12 @@ including `i18next` and `react-i18next` for the package text/notification
 translation hooks.
 
 If local npm login is blocked, use GitHub Actions trusted publishing instead.
-After one-time npm package setup, run the `Publish UI Package` workflow from
-GitHub Actions with `version=patch` and `ref=dev`. That workflow bumps the UI
-package version, runs the package gates, commits the version bump, and publishes
-through npm OIDC without an npm token or local auth email.
+After one-time npm package setup, pushing a commit that changes
+`packages/ui/package.json` on `main` publishes the exact committed UI
+package version when npm does not already have it. The same `Publish UI Package`
+workflow can still be run manually with `version=patch` and `ref=main`; manual
+runs bump the UI package version, run the package gates, commit the version
+bump, and publish through npm OIDC without an npm token or local auth email.
 
 For the full design system see `Agent/Docs/DESIGN.md`.
 

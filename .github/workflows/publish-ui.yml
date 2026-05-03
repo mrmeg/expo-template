@@ -1,6 +1,11 @@
 name: Publish UI Package
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - packages/ui/package.json
   workflow_dispatch:
     inputs:
       version:
@@ -10,7 +15,7 @@ on:
       ref:
         description: "Branch to release from"
         required: true
-        default: "dev"
+        default: "main"
 
 permissions:
   contents: write
@@ -28,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
@@ -55,6 +60,14 @@ jobs:
 
           const packagePath = "packages/ui/package.json";
           const pkg = JSON.parse(readFileSync(packagePath, "utf8"));
+          const eventName = process.env.GITHUB_EVENT_NAME;
+
+          if (eventName === "push") {
+            console.log(`version=${pkg.version}`);
+            console.log("changed=false");
+            process.exit(0);
+          }
+
           const bump = process.env.VERSION;
           const exact = semver.valid(bump);
           const next = exact ?? semver.inc(pkg.version, bump);
@@ -82,31 +95,44 @@ jobs:
           VERSION: ${{ inputs.version }}
 
       - name: Check npm version availability
+        id: availability
         run: |
           if npm view "@mrmeg/expo-ui@${{ steps.version.outputs.version }}" version >/dev/null 2>&1; then
             echo "@mrmeg/expo-ui@${{ steps.version.outputs.version }} is already published."
+            if [ "${{ github.event_name }}" = "push" ]; then
+              echo "should_publish=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             exit 1
           fi
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
 
       - name: Update lockfile
+        if: steps.availability.outputs.should_publish == 'true'
         run: bun install --lockfile-only
 
       - name: Type check UI package
+        if: steps.availability.outputs.should_publish == 'true'
         run: bun run ui:typecheck
 
       - name: Test UI package
+        if: steps.availability.outputs.should_publish == 'true'
         run: bun run ui:test
 
       - name: Build UI package
+        if: steps.availability.outputs.should_publish == 'true'
         run: bun run ui:build
 
       - name: Pack UI package dry run
+        if: steps.availability.outputs.should_publish == 'true'
         run: bun run ui:pack
 
       - name: Consumer smoke test
+        if: steps.availability.outputs.should_publish == 'true'
         run: bun run ui:consumer-smoke
 
       - name: Publish to npm
+        if: steps.availability.outputs.should_publish == 'true'
         working-directory: packages/ui
         env:
           NPM_PUBLISH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -121,6 +147,7 @@ jobs:
           npm publish --access public --registry=https://registry.npmjs.org/
 
       - name: Commit version bump
+        if: github.event_name == 'workflow_dispatch' && steps.availability.outputs.should_publish == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

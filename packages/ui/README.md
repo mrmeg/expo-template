@@ -336,13 +336,14 @@ publishing instead:
 1. In npm package settings for `@mrmeg/expo-ui`, add a trusted publisher:
    GitHub Actions, owner `mrmeg`, repository `expo-template`, workflow
    filename `publish-ui.yml`.
-2. In GitHub Actions, run the `Publish UI Package` workflow with `version=patch`
-   and `ref=dev`.
+2. Bump `packages/ui/package.json` in a commit and push it to `main`.
 
-The workflow uses npm OIDC, not a checked-in token or local npm login. It bumps
-the package version, updates `bun.lock`, runs the package gates, lets npm CLI
-use the GitHub Actions OIDC environment, commits the version bump, and publishes
-from `packages/ui`.
+The workflow uses npm OIDC, not a checked-in token or local npm login. On push,
+it reads the committed package version, skips cleanly if that version is already
+published, otherwise runs the package gates and publishes from `packages/ui`.
+The workflow can also be run manually with `version=patch` and `ref=main`; manual
+runs bump the package version, update `bun.lock`, run the package gates, commit
+the version bump, and publish.
 
 Keep `repository.url` in `package.json` as
 `git+https://github.com/mrmeg/expo-template.git`. npm trusted publishing checks
@@ -353,9 +354,9 @@ If npm trusted publishing is blocked by package settings, add an npm automation
 or granular publish token to GitHub Actions secrets as `NPM_TOKEN` and rerun the
 same workflow. The token is used only for the publish step.
 
-If the workflow fails after the version is already bumped, rerun it with the
-exact current package version, for example `version=0.1.2`. Exact-version reruns
-do not bump again.
+If the manual workflow fails after the version is already bumped, rerun it with
+the exact current package version, for example `version=0.1.3`. Exact-version
+reruns do not bump again.
 
 Manual package checks:
 

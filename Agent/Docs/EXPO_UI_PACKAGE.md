@@ -542,16 +542,27 @@ One-time npm package setup:
 5. Set repository to `expo-template`.
 6. Set workflow filename to `publish-ui.yml`.
 
-Routine publish:
+Push-based publish:
+
+1. Bump `packages/ui/package.json` to a version not yet published on npm.
+2. Commit and push to `main`.
+
+The `Publish UI Package` workflow runs automatically when
+`packages/ui/package.json` changes on `main`. It reads the committed
+version, skips cleanly if npm already has it, otherwise runs the UI package
+gates and packed consumer smoke check, then runs `npm publish --access public`
+from `packages/ui`.
+
+Manual publish:
 
 1. Open GitHub Actions.
 2. Run the `Publish UI Package` workflow.
 3. Set `version` to `patch`, `minor`, `major`, or an exact version.
-4. Set `ref` to the release branch, normally `dev`.
+4. Set `ref` to the release branch, normally `main`.
 
-The workflow bumps `packages/ui/package.json`, updates `bun.lock`, runs the UI
-package gates and packed consumer smoke check, runs `npm publish --access
-public` from `packages/ui`, then commits the version bump back to the selected
+Manual workflow runs bump `packages/ui/package.json`, update `bun.lock`, run the
+UI package gates and packed consumer smoke check, run `npm publish --access
+public` from `packages/ui`, then commit the version bump back to the selected
 branch after publish succeeds.
 
 Fallback token setup:
@@ -566,9 +577,9 @@ token config and lets npm CLI use the GitHub Actions OIDC environment for
 trusted publishing. When `NPM_TOKEN` is present, it writes that token to a
 temporary npm config for the publish step.
 
-If a publish fails after the workflow has already bumped the package version,
-rerun the workflow with the exact current version, for example `version=0.1.2`.
-Exact-version reruns do not bump the package again.
+If a manual publish fails after the workflow has already bumped the package
+version, rerun the workflow with the exact current version, for example
+`version=0.1.3`. Exact-version reruns do not bump the package again.
 
 For trusted publishing, npm requires `packages/ui/package.json` `repository.url`
 to match the GitHub repository exactly. Keep it in npm's canonical git URL
