@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed the `Publish UI Package` workflow after the first trusted-publishing failure: publish now happens before committing future version bumps, exact-version reruns can retry an already-bumped release, npm is updated before publish, and the UI package repository URL matches npm's trusted-publisher repository check.
+
 - Added a manual `Publish UI Package` GitHub Actions workflow for `@mrmeg/expo-ui` trusted publishing. The workflow can bump the package version, run the UI gates and consumer smoke check, commit the version bump, and publish through npm OIDC without local npm login.
 
 - Added `bun run ui:release` as a repo-root helper for `@mrmeg/expo-ui` releases. It bumps the package version, updates the lockfile, runs the package gates and packed consumer smoke check, and publishes with `npm publish --access public` only when `--publish` is passed.

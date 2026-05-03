@@ -33,6 +33,9 @@ jobs:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
+      - name: Use latest npm
+        run: npm install -g npm@latest
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -50,10 +53,17 @@ jobs:
           const packagePath = "packages/ui/package.json";
           const pkg = JSON.parse(readFileSync(packagePath, "utf8"));
           const bump = process.env.VERSION;
-          const next = semver.valid(bump) ?? semver.inc(pkg.version, bump);
+          const exact = semver.valid(bump);
+          const next = exact ?? semver.inc(pkg.version, bump);
 
           if (!next) {
             throw new Error(`Invalid version "${bump}". Use patch, minor, major, or exact x.y.z.`);
+          }
+
+          if (exact && next === pkg.version) {
+            console.log(`version=${next}`);
+            console.log("changed=false");
+            process.exit(0);
           }
 
           if (semver.lte(next, pkg.version)) {
@@ -63,6 +73,7 @@ jobs:
           pkg.version = next;
           writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
           console.log(`version=${next}`);
+          console.log("changed=true");
           NODE
         env:
           VERSION: ${{ inputs.version }}
@@ -92,14 +103,18 @@ jobs:
       - name: Consumer smoke test
         run: bun run ui:consumer-smoke
 
+      - name: Publish to npm
+        working-directory: packages/ui
+        run: npm publish --access public
+
       - name: Commit version bump
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add packages/ui/package.json bun.lock
+          if git diff --cached --quiet; then
+            echo "No version bump changes to commit."
+            exit 0
+          fi
           git commit -m "chore: release @mrmeg/expo-ui v${{ steps.version.outputs.version }}"
           git push origin "HEAD:${{ inputs.ref }}"
-
-      - name: Publish to npm
-        working-directory: packages/ui
-        run: npm publish --access public

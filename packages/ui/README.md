@@ -336,6 +336,10 @@ The workflow uses npm OIDC, not a checked-in token or local npm login. It bumps
 the package version, updates `bun.lock`, runs the package gates, commits the
 version bump, and publishes from `packages/ui`.
 
+If the workflow fails after the version is already bumped, rerun it with the
+exact current package version, for example `version=0.1.2`. Exact-version reruns
+do not bump again.
+
 Manual package checks:
 
 ```sh

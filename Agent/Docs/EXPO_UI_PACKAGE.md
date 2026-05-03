@@ -548,8 +548,17 @@ Routine publish:
 4. Set `ref` to the release branch, normally `dev`.
 
 The workflow bumps `packages/ui/package.json`, updates `bun.lock`, runs the UI
-package gates and packed consumer smoke check, commits the version bump back to
-the selected branch, then runs `npm publish --access public` from `packages/ui`.
+package gates and packed consumer smoke check, runs `npm publish --access
+public` from `packages/ui`, then commits the version bump back to the selected
+branch after publish succeeds.
+
+If a publish fails after the workflow has already bumped the package version,
+rerun the workflow with the exact current version, for example `version=0.1.2`.
+Exact-version reruns do not bump the package again.
+
+For trusted publishing, npm requires `packages/ui/package.json` `repository.url`
+to match the GitHub repository exactly. Keep it as
+`https://github.com/mrmeg/expo-template`.
 
 Manual package gates:
 
