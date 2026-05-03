@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Added `bun run ui:release` as a repo-root helper for `@mrmeg/expo-ui` releases. It bumps the package version, updates the lockfile, runs the package gates and packed consumer smoke check, and publishes with `npm publish --access public` only when `--publish` is passed.
+
+- Fixed the packed `@mrmeg/expo-ui` consumer contract for fresh Expo SDK 55 apps: declared the i18n runtime peers used by `StyledText` and `Notification`, added Metro-friendly leaf exports for constants and hooks, and expanded `ui:consumer-smoke` to install the packed tarball into a clean Expo app and run an iOS export without a custom Metro config.
+
 - Added an LLM-friendly consumer integration reference for the `@mrmeg/expo-ui` package, including supported imports, app startup wiring, web/native font behavior, peer dependency expectations, publish/update flow, and rules for keeping the package lightweight.
 
 - Extracted the reusable UI surface into the workspace package `@mrmeg/expo-ui` under `packages/ui`. The package owns the 35 UI primitives, design tokens, theme/resource/motion hooks, theme and global notification stores, and UI helpers; package source now uses relative imports and no longer depends on `@/client/*`. The package intentionally does not ship font files: web loads Lato through Google Fonts, while native uses system sans-serif fallbacks. The template app, showcase registry, root layout, screens, features, form helpers, tests, and generator imports now consume UI through `@mrmeg/expo-ui` subpaths. Added package scripts for typecheck/test/build/publish dry-run plus a packed-package consumer smoke check, and documented npm publishing/consumer setup in README and Agent docs.

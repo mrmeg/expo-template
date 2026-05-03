@@ -249,11 +249,19 @@ bun run ui:pack
 bun run ui:consumer-smoke
 ```
 
-To publish, authenticate through your developer or CI npm config
-and run `npm publish --access public` from `packages/ui` after `bun run
-ui:build`. Do not commit `.npmrc` tokens or registry secrets. Consumer Expo
-apps install `@mrmeg/expo-ui` plus the peer dependencies listed in
-`packages/ui/package.json`.
+To publish, authenticate through your developer or CI npm config and run the
+repo-root release helper:
+
+```sh
+bun run ui:release -- --patch --publish
+```
+
+Use `--patch`, `--minor`, `--major`, or an exact version such as `0.2.0`. Without
+`--publish`, the command performs the same version bump and gates as a dry run.
+Do not commit `.npmrc` tokens or registry secrets. Consumer Expo apps install
+`@mrmeg/expo-ui` plus the peer dependencies listed in `packages/ui/package.json`,
+including `i18next` and `react-i18next` for the package text/notification
+translation hooks.
 
 For the full design system see `Agent/Docs/DESIGN.md`.
 

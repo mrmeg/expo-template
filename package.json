@@ -25,6 +25,7 @@
     "ui:build": "bun run --cwd packages/ui build",
     "ui:pack": "bun run --cwd packages/ui publish:dry-run",
     "ui:consumer-smoke": "node scripts/check-ui-package-consumer.mjs",
+    "ui:release": "node scripts/release-ui-package.mjs",
     "test": "jest --watchAll",
     "test:ci": "jest --ci --coverage --forceExit",
     "typecheck": "tsc --noEmit",

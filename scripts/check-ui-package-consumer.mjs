@@ -16,6 +16,7 @@ function run(command, args, options = {}) {
 
 const root = process.cwd();
 const fixture = await mkdtemp(join(tmpdir(), "expo-ui-consumer-"));
+const exportOutput = join(tmpdir(), "ui-consumer-ios-export");
 let tarball;
 
 function tarballNameForPackage(packageName, version) {
@@ -24,6 +25,14 @@ function tarballNameForPackage(packageName, version) {
 
 async function readJson(path) {
   return JSON.parse(await readFile(path, "utf8"));
+}
+
+function dependencyVersion(name, rootPackage, uiPackage) {
+  return (
+    rootPackage.dependencies?.[name] ??
+    rootPackage.devDependencies?.[name] ??
+    uiPackage.peerDependencies?.[name]
+  );
 }
 
 async function assertFileExists(path, label) {
@@ -52,7 +61,9 @@ async function assertInstalledExportFiles() {
     { entrypoint: "@mrmeg/expo-ui/components", key: "./components", wildcardReplacement: "" },
     { entrypoint: "@mrmeg/expo-ui/components/Button", key: "./components/*", wildcardReplacement: "Button" },
     { entrypoint: "@mrmeg/expo-ui/constants", key: "./constants", wildcardReplacement: "" },
+    { entrypoint: "@mrmeg/expo-ui/constants/colors", key: "./constants/*", wildcardReplacement: "colors" },
     { entrypoint: "@mrmeg/expo-ui/hooks", key: "./hooks", wildcardReplacement: "" },
+    { entrypoint: "@mrmeg/expo-ui/hooks/useTheme", key: "./hooks/*", wildcardReplacement: "useTheme" },
     { entrypoint: "@mrmeg/expo-ui/state", key: "./state", wildcardReplacement: "" },
     { entrypoint: "@mrmeg/expo-ui/lib", key: "./lib", wildcardReplacement: "" },
   ];
@@ -71,22 +82,48 @@ async function assertInstalledExportFiles() {
 
 try {
   const uiPackage = await readJson(join(root, "packages/ui/package.json"));
+  const rootPackage = await readJson(join(root, "package.json"));
   run("bun", ["run", "--cwd", "packages/ui", "build"], { cwd: root });
   run("bun", ["pm", "pack"], { cwd: join(root, "packages/ui") });
   tarball = join(root, "packages/ui", tarballNameForPackage(uiPackage.name, uiPackage.version));
+
+  const peerDependencies = Object.fromEntries(
+    Object.keys(uiPackage.peerDependencies ?? {}).map((name) => [
+      name,
+      dependencyVersion(name, rootPackage, uiPackage),
+    ])
+  );
 
   await writeFile(
     join(fixture, "package.json"),
     JSON.stringify(
       {
+        name: "expo-ui-consumer-smoke",
         private: true,
         type: "module",
+        main: "index.ts",
         dependencies: {
           "@mrmeg/expo-ui": tarball,
-          "@types/react": "~19.2.14",
-          typescript: "~5.9.2",
+          ...peerDependencies,
         },
-        devDependencies: {},
+        devDependencies: {
+          "@types/react": rootPackage.devDependencies["@types/react"],
+          typescript: rootPackage.devDependencies.typescript,
+        },
+      },
+      null,
+      2
+    )
+  );
+  await writeFile(
+    join(fixture, "app.json"),
+    JSON.stringify(
+      {
+        expo: {
+          name: "Expo UI Consumer Smoke",
+          slug: "expo-ui-consumer-smoke",
+          platforms: ["ios"],
+        },
       },
       null,
       2
@@ -104,11 +141,49 @@ try {
           skipLibCheck: true,
           noEmit: true,
         },
-        include: ["index.tsx"],
+        include: ["index.ts", "index.tsx", "App.tsx"],
       },
       null,
       2
     )
+  );
+  await writeFile(
+    join(fixture, "index.ts"),
+    [
+      'import { registerRootComponent } from "expo";',
+      'import App from "./App";',
+      "",
+      "registerRootComponent(App);",
+      "",
+    ].join("\n")
+  );
+  await writeFile(
+    join(fixture, "App.tsx"),
+    [
+      'import { View } from "react-native";',
+      'import { colors } from "@mrmeg/expo-ui/constants";',
+      'import { colors as leafColors } from "@mrmeg/expo-ui/constants/colors";',
+      'import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";',
+      'import { useTheme as useThemeLeaf } from "@mrmeg/expo-ui/hooks/useTheme";',
+      'import { Button } from "@mrmeg/expo-ui/components/Button";',
+      'import { Notification } from "@mrmeg/expo-ui/components/Notification";',
+      'import { StyledText } from "@mrmeg/expo-ui/components/StyledText";',
+      "",
+      "export default function App() {",
+      "  const { theme } = useTheme();",
+      "  const { scheme } = useThemeLeaf();",
+      "  const { loaded } = useResources();",
+      "",
+      "  return (",
+      "    <View style={{ flex: 1, backgroundColor: colors.light.colors.background, padding: 24 }}>",
+      "      <StyledText text={`${loaded}-${theme.colors.background}-${leafColors[scheme].colors.background}`} />",
+      '      <Button text="Smoke" />',
+      "      <Notification />",
+      "    </View>",
+      "  );",
+      "}",
+      "",
+    ].join("\n")
   );
   await writeFile(
     join(fixture, "index.tsx"),
@@ -116,8 +191,12 @@ try {
       'import { Button as RootButton, colors as rootColors, useTheme as useRootTheme } from "@mrmeg/expo-ui";',
       'import { Button as ComponentButton, StyledText } from "@mrmeg/expo-ui/components";',
       'import { Button } from "@mrmeg/expo-ui/components/Button";',
+      'import { Notification } from "@mrmeg/expo-ui/components/Notification";',
+      'import { StyledText as StyledTextDirect } from "@mrmeg/expo-ui/components/StyledText";',
       'import { spacing, colors, typography } from "@mrmeg/expo-ui/constants";',
+      'import { colors as leafColors } from "@mrmeg/expo-ui/constants/colors";',
       'import { useTheme, useResources } from "@mrmeg/expo-ui/hooks";',
+      'import { useTheme as useThemeLeaf } from "@mrmeg/expo-ui/hooks/useTheme";',
       'import { globalUIStore, useThemeStore } from "@mrmeg/expo-ui/state";',
       'import { hapticLight } from "@mrmeg/expo-ui/lib";',
       "",
@@ -125,9 +204,13 @@ try {
       "  RootButton,",
       "  ComponentButton,",
       "  StyledText,",
+      "  StyledTextDirect,",
+      "  Notification,",
       "  rootColors,",
       "  useRootTheme,",
       "  typography,",
+      "  leafColors,",
+      "  useThemeLeaf,",
       "  globalUIStore,",
       "  useThemeStore,",
       "  hapticLight,",
@@ -171,7 +254,12 @@ try {
   await assertInstalledExportFiles();
   run("bun", ["x", "tsc", "--noEmit"], { cwd: fixture });
   run("node", ["runtime-check.mjs"], { cwd: fixture });
+  await rm(exportOutput, { recursive: true, force: true });
+  run("bunx", ["expo", "export", "--platform", "ios", "--output-dir", exportOutput, "--no-minify"], {
+    cwd: fixture,
+  });
 } finally {
   if (tarball) await rm(tarball, { force: true });
+  await rm(exportOutput, { recursive: true, force: true });
   await rm(fixture, { recursive: true, force: true });
 }

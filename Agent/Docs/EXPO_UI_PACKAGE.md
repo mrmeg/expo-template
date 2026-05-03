@@ -44,7 +44,10 @@ template: React 19.2, React Native 0.83, React Native Web 0.21,
 Reanimated 4.2, Worklets 0.7, and `@rn-primitives/*` 1.4. Consumer apps
 should start from the same Expo SDK family or deliberately update this
 package and its peer ranges together. Do not mix this package with older or
-newer Expo / React Native major families and assume compatibility.
+newer Expo / React Native major families and assume compatibility. The
+package also declares `i18next` and `react-i18next` as runtime peers because
+`StyledText` and `Notification` call `useTranslation()` for translated text
+keys.
 
 ## Public Imports
 
@@ -54,7 +57,9 @@ The package export map supports these stable import paths:
 import { Button, StyledText } from "@mrmeg/expo-ui/components";
 import { Button as ButtonDirect } from "@mrmeg/expo-ui/components/Button";
 import { colors, spacing, typography, type Theme } from "@mrmeg/expo-ui/constants";
+import { colors as colorsDirect } from "@mrmeg/expo-ui/constants/colors";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme as useThemeDirect } from "@mrmeg/expo-ui/hooks/useTheme";
 import { globalUIStore, useThemeStore } from "@mrmeg/expo-ui/state";
 import { hapticLight } from "@mrmeg/expo-ui/lib";
 ```
@@ -77,16 +82,18 @@ inspectors, and non-Metro tooling can resolve the published files.
 
 Plain Node runtime checks are intentionally limited to token-oriented
 entrypoints that do not require React Native rendering. `bun run
-ui:consumer-smoke` installs the packed tarball into a clean fixture,
-checks the export-map files for the documented public entrypoints,
+ui:consumer-smoke` installs the packed tarball into a clean Expo SDK 55
+fixture, checks the export-map files for the documented public entrypoints,
 type-checks imports from root, components, direct component subpaths,
-constants, hooks, state, and lib, and runs a Node ESM import of
-`@mrmeg/expo-ui/constants` to prove the token entrypoint is runtime-safe.
-Components, hooks, state, and lib entrypoints remain validated through
-TypeScript/package-resolution checks and Expo/Jest coverage because they
-legitimately depend on React Native runtimes. Monitoring libraries are kept
-out of the UI package so consumers do not install app-owned integrations just
-to use the design system.
+constants, hooks, state, and lib, runs a Node ESM import of
+`@mrmeg/expo-ui/constants` to prove the token entrypoint is runtime-safe,
+and runs `bunx expo export --platform ios --no-minify` against direct
+imports from `@mrmeg/expo-ui/constants`, `@mrmeg/expo-ui/hooks`, and direct
+component subpaths. The fixture intentionally does not include a custom
+`metro.config.js`, so this catches package export-map regressions that plain
+Node or TypeScript resolution can miss. Monitoring libraries are kept out of
+the UI package so consumers do not install app-owned integrations just to
+use the design system.
 
 ## App Startup
 
@@ -317,11 +324,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@mrmeg/expo-ui/compone
 | `Checkbox` | Boolean selection | `size`: `sm`, `md`, `lg`; supports error state |
 | `RadioGroup` | Single choice | Root controls value; `RadioGroupItem` must be inside `RadioGroup`; `size`: `sm`, `md`, `lg` |
 | `Select` | Option menus | Compound primitives: `SelectTrigger`, `SelectValue`, `SelectContent`, `SelectItem`, `SelectGroup`, `SelectLabel`, `SelectSeparator` |
-| `Switch` | Binary setting | `variant`: `default`, `ios`, `material`; accepts custom track/thumb sizes |
+| `Switch` | Binary setting | `variant`: `default`, `ios`; accepts custom track/thumb sizes |
 | `Toggle` | Pressed/unpressed control | `variant`: `default`, `outline`; `size`: `sm`, `default`, `lg`; supports loading and icon |
 | `ToggleGroup` | Single or multi toggle groups | `variant`: `default`, `outline`; `size`: `sm`, `default`, `lg` |
 | `InputOTP` | One-time-code entry | Supports length, grouping, validation, complete callback |
-| `Slider` | Numeric range selection | `size`: `sm`, `md`, `lg` |
+| `Slider` | Numeric value selection | `size`: `sm`, `md` |
 
 ```tsx
 import { Button, TextInput } from "@mrmeg/expo-ui/components";
@@ -342,7 +349,7 @@ import { Button, TextInput } from "@mrmeg/expo-ui/components";
 
 | Component | Use For | Notes |
 |-----------|---------|-------|
-| `Alert` | Inline status messages | Compound alert primitives |
+| `Alert` | Cross-platform imperative alerts | Use for blocking confirm/alert dialogs; uses native alerts off web and browser alerts on web |
 | `Badge` | Short status labels | `variant`: `default`, `secondary`, `outline`, `destructive` |
 | `Notification` | Global toast surface | Mount once near the root; driven by `globalUIStore` |
 | `Progress` | Determinate or indeterminate progress | `variant`: `default`, `accent`, `destructive`; `size`: `sm`, `md`, `lg` |
@@ -371,7 +378,7 @@ These components require `PortalHost` from `@rn-primitives/portal` mounted near 
 
 | Component | Use For | Notes |
 |-----------|---------|-------|
-| `Dialog` | Modal decisions and custom modal content | Compound primitives include trigger/content/header/body/footer/title/description/close patterns |
+| `Dialog`, `AlertDialog` | Modal decisions and custom modal content | Compound primitives include trigger/content/header/body/footer/title/description/close patterns |
 | `BottomSheet` | Mobile-first modal sheets | Compound parts include trigger, content, header, body, footer, handle, close |
 | `Drawer` | Side panels and navigation drawers | Compound parts include trigger, content, header, body, footer, close |
 | `DropdownMenu` | Menus and command lists | Supports submenus, checkbox/radio items, labels, separators, shortcuts |
@@ -387,6 +394,31 @@ Use `StyleSheet.flatten()` when passing composed style arrays to `@rn-primitives
 | `Tabs` | In-page tabbed views | `variant`: `underline`, `pill`; `size`: `sm`, `md`, `lg`; compound parts: `TabsList`, `TabsTrigger`, `TabsContent` |
 | `Accordion` | Expand/collapse sections | Supports single and multiple mode |
 | `Collapsible` | Simple controlled disclosure | Use for one-off expandable regions |
+
+### Compound Export Checklist
+
+The installed package README is the consumer-facing reference and includes the full LLM component use-case index. Keep this checklist aligned with public component exports so consuming agents can discover compound parts without reading source.
+
+| Root | Exported Parts |
+|------|----------------|
+| `Accordion` | `AccordionItem`, `AccordionTrigger`, `AccordionContent` |
+| `AlertDialog` | `AlertDialogTrigger`, `AlertDialogContent`, `AlertDialogTitle`, `AlertDialogDescription`, `AlertDialogAction`, `AlertDialogCancel` |
+| `BottomSheet` | `BottomSheetTrigger`, `BottomSheetContent`, `BottomSheetHandle`, `BottomSheetHeader`, `BottomSheetBody`, `BottomSheetFooter`, `BottomSheetClose` |
+| `Card` | `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` |
+| `Collapsible` | `CollapsibleTrigger`, `CollapsibleContent` |
+| `Dialog` | `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogFooter`, `DialogTitle`, `DialogDescription`, `DialogClose` |
+| `Drawer` | `DrawerTrigger`, `DrawerContent`, `DrawerHeader`, `DrawerBody`, `DrawerFooter`, `DrawerClose` |
+| `DropdownMenu` | `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuGroup`, `DropdownMenuItem`, `DropdownMenuCheckboxItem`, `DropdownMenuRadioGroup`, `DropdownMenuRadioItem`, `DropdownMenuLabel`, `DropdownMenuSeparator`, `DropdownMenuShortcut`, `DropdownMenuPortal`, `DropdownMenuSub`, `DropdownMenuSubTrigger`, `DropdownMenuSubContent` |
+| `Popover` | `PopoverTrigger`, `PopoverContent`, `PopoverHeader`, `PopoverBody`, `PopoverFooter` |
+| `RadioGroup` | `RadioGroupItem` |
+| `Select` | `SelectTrigger`, `SelectValue`, `SelectContent`, `SelectItem`, `SelectGroup`, `SelectLabel`, `SelectSeparator` |
+| `Skeleton` | `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` |
+| `Tabs` | `TabsList`, `TabsTrigger`, `TabsContent` |
+| `Toggle` | `ToggleIcon` |
+| `ToggleGroup` | `ToggleGroupItem`, `ToggleGroupIcon` |
+| `Tooltip` | `TooltipTrigger`, `TooltipContent`, `TooltipBody` |
+
+Text aliases exported by `StyledText` are `SerifText`, `SansSerifText`, `SerifBoldText`, `SansSerifBoldText`, `DisplayText`, `TitleText`, `HeadingText`, `SubheadingText`, `BodyText`, `CaptionText`, and `LabelText`.
 
 ## Choosing Components
 
@@ -477,7 +509,23 @@ bun run ui:consumer-smoke
 
 ## Publish And Update Flow
 
-Before publishing a package update:
+Use the repo-root release command for routine publishes:
+
+```sh
+bun run ui:release -- --patch --publish
+```
+
+The version argument can be `--patch`, `--minor`, `--major`, or an exact version such
+as `0.2.0`. The command updates `packages/ui/package.json` and `bun.lock`, runs
+the package gates, verifies the packed-package consumer smoke fixture, and only
+publishes when `--publish` is present. Without `--publish`, it performs a dry
+run through the same gates.
+
+The release command requires a clean working tree by default. Commit current
+changes first, or pass `--allow-dirty` only when intentionally releasing from
+uncommitted local changes.
+
+Manual package gates:
 
 ```sh
 bun run ui:typecheck
@@ -487,7 +535,7 @@ bun run ui:pack
 bun run ui:consumer-smoke
 ```
 
-Publish from `packages/ui` using public npm access:
+Manual publish fallback from `packages/ui` using public npm access:
 
 ```sh
 bun run --cwd packages/ui build
@@ -505,7 +553,7 @@ For workspace development inside this template, the root dependency is `@mrmeg/e
 ## LLM Rules
 
 - Import reusable UI from `@mrmeg/expo-ui`, not copied app-local files.
-- Use exported subpaths only: root, `components`, `components/*`, `constants`, `hooks`, `state`, and `lib`.
+- Use exported subpaths only: root, `components`, `components/*`, `constants`, `constants/*`, `hooks`, `hooks/*`, `state`, and `lib`.
 - Do not add `.ttf` files to the package for Lato.
 - On web, use `useResources()` plus app-owned `+html.tsx` preload links.
 - On native, rely on system sans-serif unless a future spec explicitly adds remote native font support.

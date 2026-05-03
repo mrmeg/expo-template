@@ -84,7 +84,9 @@ Package exports:
 - `@mrmeg/expo-ui/components`
 - `@mrmeg/expo-ui/components/<Component>`
 - `@mrmeg/expo-ui/constants`
+- `@mrmeg/expo-ui/constants/<module>`
 - `@mrmeg/expo-ui/hooks`
+- `@mrmeg/expo-ui/hooks/<hook>`
 - `@mrmeg/expo-ui/state`
 - `@mrmeg/expo-ui/lib`
 
