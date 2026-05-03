@@ -105,9 +105,16 @@ jobs:
 
       - name: Publish to npm
         working-directory: packages/ui
+        env:
+          NPM_PUBLISH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          unset NODE_AUTH_TOKEN
-          unset NPM_CONFIG_USERCONFIG
+          if [ -n "${NPM_PUBLISH_TOKEN:-}" ]; then
+            echo "//registry.npmjs.org/:_authToken=${NPM_PUBLISH_TOKEN}" > "${RUNNER_TEMP}/.npmrc"
+            export NPM_CONFIG_USERCONFIG="${RUNNER_TEMP}/.npmrc"
+          else
+            unset NODE_AUTH_TOKEN
+            unset NPM_CONFIG_USERCONFIG
+          fi
           npm publish --access public --registry=https://registry.npmjs.org/
 
       - name: Commit version bump

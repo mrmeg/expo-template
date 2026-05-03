@@ -336,6 +336,10 @@ The workflow uses npm OIDC, not a checked-in token or local npm login. It bumps
 the package version, updates `bun.lock`, runs the package gates, commits the
 version bump, and publishes from `packages/ui`.
 
+If npm trusted publishing is blocked by package settings, add an npm automation
+or granular publish token to GitHub Actions secrets as `NPM_TOKEN` and rerun the
+same workflow. The token is used only for the publish step.
+
 If the workflow fails after the version is already bumped, rerun it with the
 exact current package version, for example `version=0.1.2`. Exact-version reruns
 do not bump again.

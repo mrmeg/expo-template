@@ -530,6 +530,8 @@ uncommitted local changes.
 When local npm login is blocked or should be avoided, use the `Publish UI
 Package` GitHub Actions workflow. It uses npm trusted publishing via OIDC, so it
 does not require a long-lived npm token or local npm auth email after setup.
+If trusted publishing is blocked by npm account setup, the same workflow can
+publish with a GitHub Actions secret named `NPM_TOKEN` as a fallback.
 
 One-time npm package setup:
 
@@ -551,6 +553,17 @@ The workflow bumps `packages/ui/package.json`, updates `bun.lock`, runs the UI
 package gates and packed consumer smoke check, runs `npm publish --access
 public` from `packages/ui`, then commits the version bump back to the selected
 branch after publish succeeds.
+
+Fallback token setup:
+
+1. Create an npm automation or granular access token with publish access to
+   `@mrmeg/expo-ui`.
+2. Add it to GitHub repository secrets as `NPM_TOKEN`.
+3. Rerun the same `Publish UI Package` workflow.
+
+When `NPM_TOKEN` is absent, the workflow clears setup-node token config and
+tries trusted publishing via OIDC. When `NPM_TOKEN` is present, it writes a
+temporary npm config for that one publish step.
 
 If a publish fails after the workflow has already bumped the package version,
 rerun the workflow with the exact current version, for example `version=0.1.2`.
