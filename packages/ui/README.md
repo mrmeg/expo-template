@@ -336,6 +336,11 @@ The workflow uses npm OIDC, not a checked-in token or local npm login. It bumps
 the package version, updates `bun.lock`, runs the package gates, commits the
 version bump, and publishes from `packages/ui`.
 
+Keep `repository.url` in `package.json` as
+`git+https://github.com/mrmeg/expo-template.git`. npm trusted publishing checks
+that metadata during publish, and publish-time URL normalization can block OIDC
+auth.
+
 If npm trusted publishing is blocked by package settings, add an npm automation
 or granular publish token to GitHub Actions secrets as `NPM_TOKEN` and rerun the
 same workflow. The token is used only for the publish step.

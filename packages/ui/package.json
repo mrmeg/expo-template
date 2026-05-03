@@ -15,7 +15,7 @@
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mrmeg/expo-template",
+    "url": "git+https://github.com/mrmeg/expo-template.git",
     "directory": "packages/ui"
   },
   "bugs": {

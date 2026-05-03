@@ -570,8 +570,10 @@ rerun the workflow with the exact current version, for example `version=0.1.2`.
 Exact-version reruns do not bump the package again.
 
 For trusted publishing, npm requires `packages/ui/package.json` `repository.url`
-to match the GitHub repository exactly. Keep it as
-`https://github.com/mrmeg/expo-template`.
+to match the GitHub repository exactly. Keep it in npm's canonical git URL
+form: `git+https://github.com/mrmeg/expo-template.git`. If npm prints a
+publish-time warning that it normalized `repository.url`, fix the package
+metadata before rerunning trusted publishing.
 
 Manual package gates:
 
