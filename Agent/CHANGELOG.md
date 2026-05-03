@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- Fixed the `Publish UI Package` workflow after the first trusted-publishing failure: publish now happens before committing future version bumps, exact-version reruns can retry an already-bumped release, npm is updated before publish, and the UI package repository URL matches npm's trusted-publisher repository check.
+- Fixed the `Publish UI Package` workflow after trusted-publishing failures: publish now happens before committing future version bumps, exact-version reruns can retry an already-bumped release, npm is updated before publish, the UI package repository URL matches npm's trusted-publisher repository check, and the publish step clears setup-node token config so npm can use OIDC.
 
 - Added a manual `Publish UI Package` GitHub Actions workflow for `@mrmeg/expo-ui` trusted publishing. The workflow can bump the package version, run the UI gates and consumer smoke check, commit the version bump, and publish through npm OIDC without local npm login.
 

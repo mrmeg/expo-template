@@ -105,7 +105,10 @@ jobs:
 
       - name: Publish to npm
         working-directory: packages/ui
-        run: npm publish --access public
+        run: |
+          unset NODE_AUTH_TOKEN
+          unset NPM_CONFIG_USERCONFIG
+          npm publish --access public --registry=https://registry.npmjs.org/
 
       - name: Commit version bump
         run: |
