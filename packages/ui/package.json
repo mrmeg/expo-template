@@ -79,11 +79,7 @@
     "publish:dry-run": "bun pm pack --dry-run"
   },
   "dependencies": {
-    "@rn-primitives/portal": "~1.4.0"
-  },
-  "peerDependencies": {
     "@expo/vector-icons": ">=15.0.0 <16.0.0",
-    "@react-native-async-storage/async-storage": ">=2.2.0 <2.3.0",
     "@rn-primitives/accordion": "~1.4.0",
     "@rn-primitives/alert-dialog": "~1.4.0",
     "@rn-primitives/checkbox": "~1.4.0",
@@ -92,6 +88,7 @@
     "@rn-primitives/dropdown-menu": "~1.4.0",
     "@rn-primitives/label": "~1.4.0",
     "@rn-primitives/popover": "~1.4.0",
+    "@rn-primitives/portal": "~1.4.0",
     "@rn-primitives/radio-group": "~1.4.0",
     "@rn-primitives/select": "~1.4.0",
     "@rn-primitives/separator": "~1.4.0",
@@ -100,8 +97,10 @@
     "@rn-primitives/tabs": "~1.4.0",
     "@rn-primitives/toggle": "~1.4.0",
     "@rn-primitives/toggle-group": "~1.4.0",
-    "@rn-primitives/tooltip": "~1.4.0",
-    "@rn-primitives/types": "~1.4.0",
+    "@rn-primitives/tooltip": "~1.4.0"
+  },
+  "peerDependencies": {
+    "@react-native-async-storage/async-storage": ">=2.2.0 <2.3.0",
     "expo": "~55.0.0",
     "expo-font": "~55.0.0",
     "expo-haptics": "~55.0.0",

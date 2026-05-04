@@ -15,6 +15,8 @@ jest.mock("../../hooks/useTheme", () => ({
         foreground: "#0F172A",
         card: "#F8FAFC",
         cardForeground: "#0F172A",
+        popover: "#FFFFFF",
+        popoverForeground: "#0F172A",
         primary: "#14B8A6",
         primaryForeground: "#FFFFFF",
         secondary: "#6366F1",
@@ -26,11 +28,14 @@ jest.mock("../../hooks/useTheme", () => ({
         success: "#22C55E",
         warning: "#F59E0B",
         border: "#E2E8F0",
+        input: "#E2E8F0",
+        ring: "#A1A1AA",
         overlay: "rgba(0, 0, 0, 0.5)",
       },
     },
     scheme: "light",
     getShadowStyle: () => ({}),
+    getFocusRingStyle: () => ({}),
     getContrastingColor: (bg: string, light: string, dark: string) => {
       return bg === "#FFFFFF" || bg === "transparent" ? dark : light;
     },

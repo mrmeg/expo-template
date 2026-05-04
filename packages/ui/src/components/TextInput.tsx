@@ -200,7 +200,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
     },
     ref
   ) => {
-    const { theme, getContrastingColor } = useTheme();
+    const { theme, getContrastingColor, getFocusRingStyle } = useTheme();
     const styles = createStyles(theme, variant, size);
     const [focused, setFocused] = useState(false);
     const [contentHeight, setContentHeight] = useState(0);
@@ -233,10 +233,10 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
     const borderColor = hasError
       ? theme.colors.destructive
       : focused
-        ? theme.colors.primary
+        ? theme.colors.ring
         : forceLight
           ? "#d1d5db"
-          : theme.colors.border;
+          : theme.colors.input;
 
     const inputPaddingLeft = leftElement
       ? sizeConfig.paddingHorizontal + spacing.xl
@@ -288,7 +288,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
         )}
 
         {/* Input Container */}
-        <View style={styles.wrapper}>
+        <View style={[styles.wrapper, focused && getFocusRingStyle()]}>
           {/* Left Element */}
           {leftElement && <View style={styles.leftElement}>{leftElement}</View>}
 
@@ -327,9 +327,6 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
               variant === "filled" && styles.filled,
               style,
               focused && focusedStyle,
-              focused && Platform.OS === "web" && {
-                boxShadow: `0 0 0 2px ${theme.colors.background}, 0 0 0 4px ${theme.colors.primary}`,
-              } as any,
               isDisabled && styles.disabled,
               hasError && styles.error,
               Platform.OS === "web" && { fontSize: Math.max(sizeConfig.fontSize, 16) },
@@ -433,6 +430,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       width: "100%",
       position: "relative",
       backgroundColor: "transparent",
+      borderRadius: variant === "underlined" ? 0 : spacing.radiusMd,
       justifyContent: "center",
     },
     input: {

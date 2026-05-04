@@ -104,7 +104,7 @@ const createStyles = (theme: Theme) =>
       lineHeight: 24,
       color: theme.colors.foreground,
       textAlign: "center",
-      letterSpacing: -0.3,
+      letterSpacing: 0,
     },
     description: {
       fontSize: 14,

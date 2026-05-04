@@ -24,15 +24,15 @@ Install from npm after publishing:
 bun add @mrmeg/expo-ui
 ```
 
-Consumers must also install the peer dependencies listed in `package.json`.
-The tested baseline is Expo SDK 55 with React 19.2, React Native 0.83,
-React Native Web 0.21, Reanimated 4.2, Worklets 0.7, and
-`@rn-primitives/*` 1.4. `@rn-primitives/portal` is package-managed because
-`UIProvider` mounts the portal host used by package overlays. i18n setup is
-optional; plain text and children render without `i18next` or
-`react-i18next`. Start consumer apps from the same Expo SDK family or update
-the package and peer ranges deliberately. Keep npm auth tokens in developer or
-CI configuration, not in this repository.
+Consumers must also install the native and Expo peer dependencies listed in
+`package.json`. The tested baseline is Expo SDK 55 with React 19.2, React
+Native 0.83, React Native Web 0.21, Reanimated 4.2, and Worklets 0.7.
+`@rn-primitives/*` packages are managed by `@mrmeg/expo-ui` because they are
+implementation details of the exported UI components. i18n setup is optional;
+plain text and children render without `i18next` or `react-i18next`. Start
+consumer apps from the same Expo SDK family or update the package and peer
+ranges deliberately. Keep npm auth tokens in developer or CI configuration,
+not in this repository.
 
 ## Imports
 
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
 });
 ```
 
-`useTheme()` returns the active `theme`, resolved `scheme`, persisted `currentTheme`, `setTheme`, `toggleTheme`, shadow helpers, contrast helpers, and `withAlpha`. Use semantic tokens such as `theme.colors.background`, `foreground`, `card`, `border`, `primary`, `secondary`, `accent`, `mutedForeground`, `destructive`, `success`, and `warning`. `primary` is the neutral action color, `secondary` is a neutral secondary surface, and `accent` is the teal highlight color.
+`useTheme()` returns the active `theme`, resolved `scheme`, persisted `currentTheme`, `setTheme`, `toggleTheme`, cross-platform shadow helpers, a web focus-ring helper, contrast helpers, and `withAlpha`. Use semantic tokens such as `theme.colors.background`, `foreground`, `card`, `popover`, `border`, `input`, `ring`, `primary`, `secondary`, `accent`, `mutedForeground`, `destructive`, `success`, and `warning`. `primary` is the neutral action color, `secondary` is a neutral secondary surface, `accent` is the teal highlight color, `input` is the default form-control border, and `ring` is the focus outline color.
 
 Use `StyledText` for theme-aware text:
 
@@ -195,11 +195,11 @@ Most compound components support both direct named imports and dot notation on t
 | `ToggleGroup` | `ToggleGroupItem`, `ToggleGroupIcon` |
 | `Tooltip` | `TooltipTrigger`, `TooltipContent`, `TooltipBody` |
 
-Text aliases are exported for common semantic typography: `SerifText`, `SansSerifText`, `SerifBoldText`, `SansSerifBoldText`, `DisplayText`, `TitleText`, `HeadingText`, `SubheadingText`, `BodyText`, `CaptionText`, and `LabelText`. `TextClassContext` and `TextColorContext` are advanced context exports used by package controls to pass nested text styling.
+Text aliases are exported for common semantic typography: `SerifText`, `SansSerifText`, `SerifBoldText`, `SansSerifBoldText`, `DisplayText`, `TitleText`, `HeadingText`, `SubheadingText`, `BodyText`, `CaptionText`, and `LabelText`. `TextClassContext`, `TextColorContext`, and `TextStyleContext` are advanced context exports used by package controls to pass nested text styling.
 
 ### Common Patterns
 
-Use `Button.preset`, not `variant`. `default` is the neutral primary action, `secondary` is a neutral secondary surface, `outline` is for lower-emphasis actions, `ghost` is for compact toolbars, `link` is for text-like commands, and `destructive` is for dangerous actions.
+Use `Button.preset`, not `variant`. `default` is the neutral primary action, `secondary` is a neutral secondary surface, `outline` is for lower-emphasis actions, `ghost` is for compact toolbars, `link` is for text-like commands, and `destructive` is for dangerous actions. Button visible heights are compact: `sm` 28px, `md` 32px, and `lg` 40px. Native Button targets preserve tap comfort with computed hit slop up to 44px. Nested `StyledText` children inherit the selected Button size, so use `size="sm"` for compact popover, tooltip, and toolbar triggers.
 
 Use `StyledText` or its aliases instead of raw `Text` whenever the text is part of app UI. Use `TextInput` for labeled fields because it already owns label, helper text, error text, clear buttons, password visibility, numeric filtering, and left/right elements.
 
@@ -322,7 +322,7 @@ On web, `useResources()` injects the Google Fonts Lato stylesheet after hydratio
 />
 ```
 
-On native, the package uses platform sans-serif fallbacks. `useResources()` still loads `Feather.font` from the consumer app's `@expo/vector-icons` peer dependency for icon rendering.
+On native, the package uses platform sans-serif fallbacks. `useResources()` still loads `Feather.font` from the package-managed `@expo/vector-icons` dependency for icon rendering.
 
 ## Package Checks
 

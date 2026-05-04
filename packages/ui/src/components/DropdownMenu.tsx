@@ -49,7 +49,7 @@ function DropdownMenuSubTrigger({
           borderRadius: spacing.radiusSm,
           paddingHorizontal: spacing.sm,
           paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
-          backgroundColor: open ? theme.colors.card : "transparent",
+          backgroundColor: open ? theme.colors.muted : "transparent",
           ...(Platform.OS === "web" && {
             cursor: "pointer" as any,
             outlineStyle: "none" as any,
@@ -87,7 +87,7 @@ function DropdownMenuSubContent({
       <DropdownMenuPrimitive.SubContent
         {...props}
         style={{
-          backgroundColor: theme.colors.background,
+          backgroundColor: theme.colors.popover,
           borderWidth: 1,
           borderColor: theme.colors.border,
           borderRadius: spacing.radiusMd,
@@ -151,7 +151,7 @@ function DropdownMenuContent({
                 avoidCollisions={true}
                 {...props}
                 style={{
-                  backgroundColor: theme.colors.background,
+                  backgroundColor: theme.colors.popover,
                   borderWidth: 1,
                   borderColor: theme.colors.border,
                   borderRadius: spacing.radiusSm,
@@ -427,7 +427,7 @@ function DropdownMenuShortcut({ style: styleOverride, ...props }: DropdownMenuSh
         {
           marginLeft: "auto" as any,
           fontSize: 12,
-          letterSpacing: 2,
+          letterSpacing: 0,
           color: theme.colors.text,
           opacity: 0.6,
         },

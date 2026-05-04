@@ -446,7 +446,7 @@ export default function ShowcaseScreen() {
               <View style={styles.buttonRow}>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button preset="default" style={styles.smallButton}>
+                    <Button preset="default" size="sm" style={styles.smallButton}>
                       <StyledText style={styles.smallButtonText}>Top</StyledText>
                     </Button>
                   </PopoverTrigger>
@@ -459,7 +459,7 @@ export default function ShowcaseScreen() {
 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button preset="default" style={styles.smallButton}>
+                    <Button preset="default" size="sm" style={styles.smallButton}>
                       <StyledText style={styles.smallButtonText}>Bottom</StyledText>
                     </Button>
                   </PopoverTrigger>
@@ -475,7 +475,7 @@ export default function ShowcaseScreen() {
             <SubSection label="Real-World Example: User Info Card">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button preset="outline">
+                  <Button preset="outline" size="sm">
                     <StyledText style={styles.outlineButtonText}>View Profile</StyledText>
                   </Button>
                 </PopoverTrigger>
@@ -632,7 +632,7 @@ export default function ShowcaseScreen() {
                 <View style={styles.collapsibleHeader}>
                   <StyledText style={styles.boldText}>@peduarte starred 3 repositories</StyledText>
                   <CollapsibleTrigger asChild>
-                    <Button preset="outline" style={styles.smallButton}>
+                    <Button preset="outline" size="sm" style={styles.smallButton}>
                       <StyledText style={[styles.labelText, { fontSize: 12 }]}>Toggle</StyledText>
                     </Button>
                   </CollapsibleTrigger>
@@ -918,7 +918,7 @@ export default function ShowcaseScreen() {
               <View style={styles.tooltipRow}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button preset="outline" style={styles.smallButton}>
+                    <Button preset="outline" size="sm" style={styles.smallButton}>
                       <StyledText style={styles.smallButtonText}>Hover me</StyledText>
                     </Button>
                   </TooltipTrigger>
@@ -944,7 +944,7 @@ export default function ShowcaseScreen() {
               <View style={styles.tooltipRow}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button preset="default" style={styles.smallButton}>
+                    <Button preset="default" size="sm" style={styles.smallButton}>
                       <StyledText style={styles.smallButtonText}>Top</StyledText>
                     </Button>
                   </TooltipTrigger>
@@ -955,7 +955,7 @@ export default function ShowcaseScreen() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button preset="default" style={styles.smallButton}>
+                    <Button preset="default" size="sm" style={styles.smallButton}>
                       <StyledText style={styles.smallButtonText}>Bottom</StyledText>
                     </Button>
                   </TooltipTrigger>
@@ -970,7 +970,7 @@ export default function ShowcaseScreen() {
               <View style={styles.tooltipRow}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button preset="outline" style={styles.smallButton}>
+                    <Button preset="outline" size="sm" style={styles.smallButton}>
                       <StyledText style={styles.smallButtonText}>Default</StyledText>
                     </Button>
                   </TooltipTrigger>
@@ -981,7 +981,7 @@ export default function ShowcaseScreen() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button preset="outline" style={styles.smallButton}>
+                    <Button preset="outline" size="sm" style={styles.smallButton}>
                       <StyledText style={styles.smallButtonText}>Dark</StyledText>
                     </Button>
                   </TooltipTrigger>
@@ -992,7 +992,7 @@ export default function ShowcaseScreen() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button preset="outline" style={styles.smallButton}>
+                    <Button preset="outline" size="sm" style={styles.smallButton}>
                       <StyledText style={styles.smallButtonText}>Light</StyledText>
                     </Button>
                   </TooltipTrigger>

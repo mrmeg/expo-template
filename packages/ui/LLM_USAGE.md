@@ -86,6 +86,8 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 - Use `useTheme()` and semantic tokens instead of hardcoded colors.
 - Use `StyledText` or its semantic aliases instead of raw `Text` for app UI.
 - Use `Button.preset`, not `variant`, for buttons.
+- Button visible heights are compact: `sm` 28px, `md` 32px, and `lg` 40px.
+- Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the selected Button size.
 - Use `globalUIStore` plus root-mounted `UIProvider` for transient global feedback.
 - Keep app monitoring, auth, API, and domain behavior outside this package.
 
@@ -95,7 +97,10 @@ Useful theme tokens include:
 theme.colors.background;
 theme.colors.foreground;
 theme.colors.card;
+theme.colors.popover;
 theme.colors.border;
+theme.colors.input;
+theme.colors.ring;
 theme.colors.primary;
 theme.colors.secondary;
 theme.colors.accent;
@@ -110,6 +115,14 @@ Token intent:
 - `primary`: neutral action color
 - `secondary`: neutral secondary surface
 - `accent`: teal highlight color
+- `input`: form-control border color
+- `ring`: focus outline color
+- `popover`: elevated overlay surface
+
+Use `getShadowStyle()` for package surfaces that need elevation and
+`getFocusRingStyle()` for web focus styling. Keep web controls compact, but
+preserve mobile tap comfort with package controls that already provide native
+hit slop or 44px touch rows.
 
 ## Component Use-Case Index
 

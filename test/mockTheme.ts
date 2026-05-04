@@ -20,6 +20,8 @@ const theme = {
     foreground: "#0F172A",
     card: "#F8FAFC",
     cardForeground: "#0F172A",
+    popover: "#FFFFFF",
+    popoverForeground: "#0F172A",
     primary: "#0F172A",
     primaryForeground: "#FFFFFF",
     secondary: "#6366F1",
@@ -49,6 +51,7 @@ jest.mock("@mrmeg/expo-ui/hooks", () => {
       theme,
       scheme: "light",
       getShadowStyle: () => ({}),
+      getFocusRingStyle: () => ({}),
       getContrastingColor: (
         _bg: string,
         _light = "#FFFFFF",

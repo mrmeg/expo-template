@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Colors, colors } from "../constants/colors";
 import { useColorScheme as useColorSchemeDefault, ViewStyle, Platform, StyleSheet } from "react-native";
 import { useThemeStore } from "../state/themeStore";
@@ -30,6 +30,7 @@ interface ExtendedColorScheme {
   scheme: "light" | "dark";
   // Shadow helper function
   getShadowStyle: (type: ShadowType) => ViewStyle;
+  getFocusRingStyle: (offset?: number) => ViewStyle;
   // Color utility methods
   getContrastingColor: (backgroundColor: string, color1?: string, color2?: string) => string;
   getTextColorForBackground: (backgroundColor: string) => "light" | "dark";
@@ -47,6 +48,7 @@ interface ExtendedColorScheme {
  * - theme: active theme colors (light or dark)
  * - scheme: "light" | "dark"
  * - getShadowStyle(type): returns cross-platform shadow style object
+ * - getFocusRingStyle(offset): returns web focus ring style object
  * - getContrastingColor(bg, color1?, color2?): pick best contrast of two options
  * - getTextColorForBackground(bg): returns "light" or "dark"
  * - withAlpha(color, alpha): adds transparency
@@ -85,7 +87,7 @@ export function useTheme(): ExtendedColorScheme & {
   }, [effectiveScheme]);
 
   // Toggle between light, dark, and system themes
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     if (userTheme === "light") {
       setTheme("dark");
     } else if (userTheme === "dark") {
@@ -93,15 +95,15 @@ export function useTheme(): ExtendedColorScheme & {
     } else {
       setTheme("light");
     }
-  };
+  }, [setTheme, userTheme]);
 
   /**
    * getShadowStyle
    * Returns platform-appropriate shadow styles
-   * - Web: returns empty object (boxShadow not supported by RN Web)
+   * - Web: uses CSS boxShadow through React Native Web
    * - Native: uses shadowColor, shadowOffset, shadowOpacity, shadowRadius, elevation
    */
-  const getShadowStyle = (type: ShadowType): ViewStyle => {
+  const getShadowStyle = useCallback((type: ShadowType): ViewStyle => {
     const shadowConfigs = {
       base: {
         shadowColor: theme.colors.overlay,
@@ -135,14 +137,34 @@ export function useTheme(): ExtendedColorScheme & {
 
     const config = shadowConfigs[type];
 
+    if (Platform.OS === "web") {
+      const webShadows: Record<ShadowType, ViewStyle> = {
+        base: { boxShadow: theme.dark ? "0 1px 2px rgba(0, 0, 0, 0.45)" : "0 1px 2px rgba(0, 0, 0, 0.08)" } as ViewStyle,
+        soft: { boxShadow: theme.dark ? "0 8px 24px rgba(0, 0, 0, 0.36)" : "0 8px 24px rgba(0, 0, 0, 0.10)" } as ViewStyle,
+        sharp: { boxShadow: theme.dark ? "0 1px 1px rgba(0, 0, 0, 0.55)" : "0 1px 1px rgba(0, 0, 0, 0.12)" } as ViewStyle,
+        subtle: { boxShadow: theme.dark ? "0 1px 2px rgba(0, 0, 0, 0.32)" : "0 1px 2px rgba(0, 0, 0, 0.05)" } as ViewStyle,
+      };
+
+      return webShadows[type];
+    }
+
     return Platform.select({
-      web: {} as ViewStyle, // Empty on web - boxShadow causes crashes
       default: config,
     }) as ViewStyle;
-  };
+  }, [theme]);
+
+  const getFocusRingStyle = useCallback((offset = 2): ViewStyle => {
+    if (Platform.OS !== "web") {
+      return {};
+    }
+
+    return {
+      boxShadow: `0 0 0 ${offset}px ${theme.colors.background}, 0 0 0 ${offset + 2}px ${theme.colors.ring}`,
+    } as ViewStyle;
+  }, [theme.colors.background, theme.colors.ring]);
 
   // Helper to calculate contrast ratio between two colors
-  const getContrastRatio = (color1: string, color2: string): number => {
+  const getContrastRatio = useCallback((color1: string, color2: string): number => {
     const rgb1 = parseColor(color1);
     const rgb2 = parseColor(color2);
 
@@ -155,11 +177,11 @@ export function useTheme(): ExtendedColorScheme & {
     const lum2 = calculateLuminance(rgb2[0], rgb2[1], rgb2[2]);
 
     return calculateContrastRatio(lum1, lum2);
-  };
+  }, []);
 
   // Cached version of getContrastingColor for performance
   // Uses module-level cache to prevent memory leak
-  const getCachedContrastingColor = (
+  const getCachedContrastingColor = useCallback((
     backgroundColor: string,
     color1?: string,
     color2?: string
@@ -168,12 +190,13 @@ export function useTheme(): ExtendedColorScheme & {
     return getCachedOrCompute(cacheKey, () =>
       getBetterContrast(backgroundColor, color1, color2)
     );
-  };
+  }, []);
 
-  return {
+  return useMemo(() => ({
     theme,
     scheme: theme.dark ? "dark" : "light",
     getShadowStyle,
+    getFocusRingStyle,
     toggleTheme,
     setTheme,
     currentTheme: userTheme,
@@ -181,7 +204,16 @@ export function useTheme(): ExtendedColorScheme & {
     getTextColorForBackground,
     withAlpha,
     getContrastRatio,
-  };
+  }), [
+    getCachedContrastingColor,
+    getContrastRatio,
+    getFocusRingStyle,
+    getShadowStyle,
+    setTheme,
+    theme,
+    toggleTheme,
+    userTheme,
+  ]);
 }
 
 
@@ -391,7 +423,7 @@ type UseStylesReturn<T extends StyleSheet.NamedStyles<T>> = {
  *       borderRadius: spacing.radiusMd,
  *     },
  *     text: {
- *       color: theme.colors.textPrimary,
+ *       color: theme.colors.text,
  *       fontSize: 16,
  *     },
  *   }));
@@ -409,19 +441,24 @@ export function useStyles<T extends StyleSheet.NamedStyles<T>>(
 ): UseStylesReturn<T> {
   const themeContext = useTheme();
 
-  const styles = StyleSheet.create(
-    factory({
-      theme: themeContext.theme,
-      spacing: spacingConstants,
-    })
+  const styles = useMemo(
+    () =>
+      StyleSheet.create(
+        factory({
+          theme: themeContext.theme,
+          spacing: spacingConstants,
+        })
+      ),
+    [factory, themeContext.theme]
   );
 
-  return {
+  return useMemo(() => ({
     styles,
     theme: themeContext.theme,
     spacing: spacingConstants,
     scheme: themeContext.scheme,
     getShadowStyle: themeContext.getShadowStyle,
+    getFocusRingStyle: themeContext.getFocusRingStyle,
     getContrastingColor: themeContext.getContrastingColor,
     getTextColorForBackground: themeContext.getTextColorForBackground,
     withAlpha: themeContext.withAlpha,
@@ -429,5 +466,5 @@ export function useStyles<T extends StyleSheet.NamedStyles<T>>(
     toggleTheme: themeContext.toggleTheme,
     setTheme: themeContext.setTheme,
     currentTheme: themeContext.currentTheme,
-  };
+  }), [styles, themeContext]);
 }

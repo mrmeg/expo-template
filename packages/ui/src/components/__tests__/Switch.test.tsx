@@ -21,11 +21,14 @@ jest.mock("../../hooks/useTheme", () => ({
         muted: "#F1F5F9",
         mutedForeground: "#64748B",
         border: "#E2E8F0",
+        input: "#E4E4E7",
+        ring: "#A1A1AA",
         background: "#FFFFFF",
         foreground: "#0F172A",
       },
     },
     getShadowStyle: () => ({}),
+    getFocusRingStyle: () => ({}),
     getContrastingColor: () => "#FFFFFF",
     withAlpha: (color: string, alpha: number) => {
       if (color.startsWith("#") && color.length === 7) {

@@ -184,7 +184,7 @@ function SelectContent({
                   avoidCollisions={true}
                   {...props}
                   style={{
-                    backgroundColor: theme.colors.background,
+                    backgroundColor: theme.colors.popover,
                     borderWidth: 1,
                     borderColor: theme.colors.border,
                     borderRadius: spacing.radiusSm,

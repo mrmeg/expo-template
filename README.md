@@ -259,9 +259,9 @@ bun run ui:release -- --patch --publish
 Use `--patch`, `--minor`, `--major`, or an exact version such as `0.2.0`. Without
 `--publish`, the command performs the same version bump and gates as a dry run.
 Do not commit `.npmrc` tokens or registry secrets. Consumer Expo apps install
-`@mrmeg/expo-ui` plus the peer dependencies listed in `packages/ui/package.json`,
-including `i18next` and `react-i18next` for the package text/notification
-translation hooks.
+`@mrmeg/expo-ui` plus the native and Expo peer dependencies listed in
+`packages/ui/package.json`. Package implementation details such as
+`@rn-primitives/*` and `@expo/vector-icons` are managed by `@mrmeg/expo-ui`.
 
 If local npm login is blocked, use GitHub Actions trusted publishing instead.
 After one-time npm package setup, pushing a commit that changes
@@ -326,7 +326,7 @@ is enough.
 - `@expo/vector-icons` (Feather icon set in `Icon`)
 - Lato on web via Google Fonts, system sans-serif on native
 - Jest 29 + jest-expo + RNTL 13
-- ESLint 10 (flat config) + `@tanstack/eslint-plugin-query`
+- ESLint 10 flat config
 - Express 5 (production web server)
 - Bun (package manager + script runner)
 

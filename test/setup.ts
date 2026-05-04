@@ -44,7 +44,7 @@ jest.mock("@expo/vector-icons", () => {
     Zocial: makeIcon("Zocial"),
     Fontisto: makeIcon("Fontisto"),
   };
-});
+}, { virtual: true });
 
 jest.mock("@expo/vector-icons/Feather", () => {
   const React = require("react");
@@ -57,7 +57,7 @@ jest.mock("@expo/vector-icons/Feather", () => {
     __esModule: true,
     default: MockFeather,
   };
-});
+}, { virtual: true });
 
 // Mock expo-splash-screen
 jest.mock("expo-splash-screen", () => ({

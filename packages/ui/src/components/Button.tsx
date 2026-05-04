@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import Animated from "react-native-reanimated";
 import { spacing } from "../constants/spacing";
-import { StyledText, TextColorContext, TextProps } from "./StyledText";
+import { StyledText, TextColorContext, TextProps, TextStyleContext } from "./StyledText";
 import { fontFamilies } from "../constants/fonts";
 import type { Theme } from "../constants/colors";
 import { palette } from "../constants/colors";
@@ -33,24 +33,27 @@ export type ButtonSize = "sm" | "md" | "lg";
 
 const SIZE_CONFIGS: Record<ButtonSize, { paddingVertical: number; paddingHorizontal: number; fontSize: number; height: number }> = {
   sm: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: 12,
+    paddingVertical: spacing.xxs,
+    paddingHorizontal: 10,
     fontSize: 12,
-    height: 32,
+    height: 28,
   },
   md: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: 12,
     fontSize: 14,
-    height: 36,
+    height: 32,
   },
   lg: {
-    paddingVertical: 10,
-    paddingHorizontal: spacing.lg,
-    fontSize: 16,
-    height: 44,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.md,
+    fontSize: 15,
+    height: 40,
   },
 };
+
+const getNativeHitSlop = (sizeConfig: { height: number }) =>
+  Math.ceil(Math.max(0, spacing.touchTarget - sizeConfig.height) / 2);
 
 export interface ButtonAccessoryProps {
   style: StyleProp<ViewStyle | TextStyle | ImageStyle>;
@@ -197,10 +200,11 @@ export function Button(props: ButtonProps) {
     ...rest
   } = props;
 
-  const { theme, getContrastingColor, getShadowStyle } = useTheme();
+  const { theme, getContrastingColor, getFocusRingStyle, getShadowStyle } = useTheme();
   const styles = createStyles(theme, size);
   const shadowStyle = getShadowStyle("base");
   const sizeConfig = SIZE_CONFIGS[size];
+  const focusRingStyle = getFocusRingStyle();
 
   // Pre-compute background color for contrast calculation
   // Always flatten to handle both array styles (from Slot) and RegisteredStyle
@@ -267,74 +271,64 @@ export function Button(props: ButtonProps) {
 
   return (
     <TextColorContext.Provider value={textColor}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !!isDisabled, busy: loading }}
-        {...rest}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        style={{ alignSelf: fullWidth ? "stretch" : (flattenedStyle?.alignSelf as ViewStyle["alignSelf"]) ?? "flex-start" }}
-        disabled={isDisabled}
-      >
-        {(state) => (
-          <Animated.View style={scaleStyle}>
-            <View
-              style={[
-                styles.button,
-                preset === "default" && styles.buttonDefault,
-                preset === "outline" && styles.buttonOutline,
-                preset === "ghost" && styles.buttonGhost,
-                preset === "link" && styles.buttonLink,
-                preset === "destructive" && styles.buttonDestructive,
-                preset === "secondary" && styles.buttonSecondary,
-                fullWidth && styles.fullWidth,
-                withShadow && !isDisabled && shadowStyle,
-                state.pressed && styles.pressed,
-                state.pressed && pressedStyleOverride,
-                isDisabled && styles.disabled,
-                isDisabled && disabledStyleOverride,
-                Platform.OS === "web" && focused && !isDisabled && {
-                  boxShadow: `0 0 0 2px ${theme.colors.background}, 0 0 0 4px ${theme.colors.accent}`,
-                } as any,
-                // Spread array styles from Slot to prevent nested arrays on web
-                ...(Array.isArray(styleOverride) ? styleOverride : [styleOverride]),
-              ]}
-            >
-              {!!LeftAccessory && !loading && (
-                <LeftAccessory
-                  style={styles.leftAccessory}
-                  pressableState={state}
-                  disabled={isDisabled}
-                />
-              )}
+      <TextStyleContext.Provider value={styles.text}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !!isDisabled, busy: loading }}
+          {...rest}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          style={{ alignSelf: fullWidth ? "stretch" : (flattenedStyle?.alignSelf as ViewStyle["alignSelf"]) ?? "flex-start" }}
+          hitSlop={rest.hitSlop ?? (Platform.OS === "web" ? undefined : getNativeHitSlop(sizeConfig))}
+          disabled={isDisabled}
+        >
+          {(state) => (
+            <Animated.View style={scaleStyle}>
+              <View
+                style={[
+                  styles.button,
+                  preset === "default" && styles.buttonDefault,
+                  preset === "outline" && styles.buttonOutline,
+                  preset === "ghost" && styles.buttonGhost,
+                  preset === "link" && styles.buttonLink,
+                  preset === "destructive" && styles.buttonDestructive,
+                  preset === "secondary" && styles.buttonSecondary,
+                  fullWidth && styles.fullWidth,
+                  withShadow && !isDisabled && shadowStyle,
+                  state.pressed && preset === "outline" && styles.pressedMuted,
+                  state.pressed && preset === "ghost" && styles.pressedMuted,
+                  state.pressed && styles.pressed,
+                  state.pressed && pressedStyleOverride,
+                  isDisabled && styles.disabled,
+                  isDisabled && disabledStyleOverride,
+                  focused && !isDisabled && focusRingStyle,
+                  // Spread array styles from Slot to prevent nested arrays on web
+                  ...(Array.isArray(styleOverride) ? styleOverride : [styleOverride]),
+                ]}
+              >
+                {!!LeftAccessory && !loading && (
+                  <LeftAccessory
+                    style={styles.leftAccessory}
+                    pressableState={state}
+                    disabled={isDisabled}
+                  />
+                )}
 
-              {loading && (
-                <ActivityIndicator
-                  size="small"
-                  color={textColor}
-                  style={styles.loader}
-                />
-              )}
+                {loading && (
+                  <ActivityIndicator
+                    size="small"
+                    color={textColor}
+                    style={styles.loader}
+                  />
+                )}
 
-              {(tx || text) ? (
-                <StyledText
-                  tx={tx}
-                  text={text}
-                  txOptions={txOptions}
-                  style={[
-                    styles.text,
-                    state.pressed && styles.pressedText,
-                    state.pressed && pressedTextStyleOverride,
-                    isDisabled && disabledTextStyleOverride,
-                    textStyleOverride,
-                  ]}
-                />
-              ) : !loading && children ? (
-                // Wrap string children in StyledText to apply TextColorContext
-                typeof children === "string" ? (
+                {(tx || text) ? (
                   <StyledText
+                    tx={tx}
+                    text={text}
+                    txOptions={txOptions}
                     style={[
                       styles.text,
                       state.pressed && styles.pressedText,
@@ -342,25 +336,38 @@ export function Button(props: ButtonProps) {
                       isDisabled && disabledTextStyleOverride,
                       textStyleOverride,
                     ]}
-                  >
-                    {children}
-                  </StyledText>
-                ) : (
-                  children
-                )
-              ) : null}
+                  />
+                ) : !loading && children ? (
+                  // Wrap string children in StyledText to apply control typography.
+                  typeof children === "string" ? (
+                    <StyledText
+                      style={[
+                        styles.text,
+                        state.pressed && styles.pressedText,
+                        state.pressed && pressedTextStyleOverride,
+                        isDisabled && disabledTextStyleOverride,
+                        textStyleOverride,
+                      ]}
+                    >
+                      {children}
+                    </StyledText>
+                  ) : (
+                    children
+                  )
+                ) : null}
 
-              {!!RightAccessory && !loading && (
-                <RightAccessory
-                  style={styles.rightAccessory}
-                  pressableState={state}
-                  disabled={isDisabled}
-                />
-              )}
-            </View>
-          </Animated.View>
-        )}
-      </Pressable>
+                {!!RightAccessory && !loading && (
+                  <RightAccessory
+                    style={styles.rightAccessory}
+                    pressableState={state}
+                    disabled={isDisabled}
+                  />
+                )}
+              </View>
+            </Animated.View>
+          )}
+        </Pressable>
+      </TextStyleContext.Provider>
     </TextColorContext.Provider>
   );
 }
@@ -392,7 +399,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
     buttonOutline: {
       backgroundColor: "transparent",
       borderWidth: 1,
-      borderColor: theme.colors.border,
+      borderColor: theme.colors.input,
     } as ViewStyle,
     buttonGhost: {
       backgroundColor: "transparent",
@@ -415,6 +422,9 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
     } as TextStyle,
     pressed: {
       opacity: 0.9,
+    } as ViewStyle,
+    pressedMuted: {
+      backgroundColor: theme.colors.muted,
     } as ViewStyle,
     pressedText: {
       opacity: 0.9,

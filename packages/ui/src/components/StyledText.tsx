@@ -1,5 +1,5 @@
 import React, { forwardRef } from "react";
-import { Text as RNText, TextProps as RNTextProps, StyleSheet } from "react-native";
+import { Text as RNText, TextProps as RNTextProps, StyleProp, StyleSheet, TextStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { fontFamilies } from "../constants/fonts";
 import { translateText } from "../lib/i18n";
@@ -15,6 +15,12 @@ export const TextClassContext = React.createContext<string | undefined>(undefine
  * Allows parent components (like Button) to override text color for all children
  */
 export const TextColorContext = React.createContext<string | undefined>(undefined);
+
+/**
+ * TextStyleContext allows controls such as Button to pass sizing typography to
+ * nested StyledText children without forcing consumers to use the `text` prop.
+ */
+export const TextStyleContext = React.createContext<StyleProp<TextStyle> | undefined>(undefined);
 
 /**
  * Font size variants following the DM Sans / DM Serif Display scale
@@ -59,9 +65,9 @@ const LINE_HEIGHTS: Record<FontSize, number> = {
 };
 
 const LETTER_SPACING: Partial<Record<FontSize, number>> = {
-  sm: 0.5,
-  xxl: -0.3,
-  display: -0.5,
+  sm: 0,
+  xxl: 0,
+  display: 0,
 };
 
 const SEMANTIC_CONFIGS: Record<SemanticVariant, { size: FontSize; weight: FontWeight }> = {
@@ -152,6 +158,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
 
   // Check if there's a color override from parent context (e.g., Button)
   const contextColor = React.useContext(TextColorContext);
+  const contextTextStyle = React.useContext(TextStyleContext);
 
   // Use context color if provided, otherwise use theme default
   const color = contextColor ?? theme.colors.text;
@@ -179,6 +186,13 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
   const styleHasFontSize = flatStyle && "fontSize" in flatStyle;
   const styleHasLineHeight = flatStyle && "lineHeight" in flatStyle;
   const resolvedLineHeight = styleHasFontSize && !styleHasLineHeight ? undefined : lineHeight;
+  const flattenedContextTextStyle = contextTextStyle
+    ? StyleSheet.flatten(contextTextStyle)
+    : undefined;
+  const resolvedContextTextStyle =
+    flattenedContextTextStyle && styleHasFontSize && !styleHasLineHeight
+      ? { ...flattenedContextTextStyle, lineHeight: undefined }
+      : contextTextStyle;
 
   const i18nText = translateText(tx, text, txOptions);
   const content = i18nText || children;
@@ -196,6 +210,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
           ...(letterSpacing !== undefined && { letterSpacing }),
           ...(align && { textAlign: align }),
         },
+        resolvedContextTextStyle,
         style,
         // When a parent (Button, ToggleGroupItem) sets TextColorContext,
         // that color must win over any color in the style prop

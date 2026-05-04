@@ -38,11 +38,11 @@ After publishing, consumer apps install the package from npm:
 bun add @mrmeg/expo-ui
 ```
 
-Consumers must also install the peer dependencies listed in `packages/ui/package.json`. `@rn-primitives/portal` is package-managed because `UIProvider` mounts the portal host used by package overlays. i18n setup is optional; package text components render plain children and `text` props without `i18next` or `react-i18next`. Keep npm auth tokens in developer, CI, or package-manager configuration. Do not commit tokens.
+Consumers must also install the native and Expo peer dependencies listed in `packages/ui/package.json`. `@rn-primitives/*` packages are package-managed because they are implementation details of the exported UI components and `UIProvider` mounts the portal host used by package overlays. i18n setup is optional; package text components render plain children and `text` props without `i18next` or `react-i18next`. Keep npm auth tokens in developer, CI, or package-manager configuration. Do not commit tokens.
 
 The published package is tested against the Expo SDK 55 stack used by this
 template: React 19.2, React Native 0.83, React Native Web 0.21,
-Reanimated 4.2, Worklets 0.7, and `@rn-primitives/*` 1.4. Consumer apps
+Reanimated 4.2, and Worklets 0.7. Consumer apps
 should start from the same Expo SDK family or deliberately update this
 package and its peer ranges together. Do not mix this package with older or
 newer Expo / React Native major families and assume compatibility. The
@@ -187,7 +187,8 @@ const styles = StyleSheet.create({
 | `currentTheme` | User preference: `"system"`, `"light"`, or `"dark"` |
 | `setTheme(mode)` | Persist the theme preference |
 | `toggleTheme()` | Cycle `light -> dark -> system -> light` |
-| `getShadowStyle(type)` | Native shadow style for `base`, `soft`, `sharp`, or `subtle`; returns `{}` on web |
+| `getShadowStyle(type)` | Cross-platform elevation for `base`, `soft`, `sharp`, or `subtle`; returns native shadow/elevation off web and CSS `boxShadow` on web |
+| `getFocusRingStyle(offset?)` | Web-only shadcn-style focus ring using `background` and `ring`; returns `{}` on native |
 | `getContrastingColor(bg, color1?, color2?)` | Pick the most readable color for a background |
 | `getTextColorForBackground(bg)` | Return `"light"` or `"dark"` for a background |
 | `withAlpha(color, alpha)` | Convert a color to an alpha-adjusted value |
@@ -200,6 +201,8 @@ theme.colors.background;
 theme.colors.foreground;
 theme.colors.card;
 theme.colors.cardForeground;
+theme.colors.popover;
+theme.colors.popoverForeground;
 theme.colors.primary;
 theme.colors.primaryForeground;
 theme.colors.secondary;
@@ -213,8 +216,18 @@ theme.colors.destructiveForeground;
 theme.colors.success;
 theme.colors.warning;
 theme.colors.border;
+theme.colors.input;
+theme.colors.ring;
 theme.colors.overlay;
 ```
+
+Token intent follows a shadcn-style neutral foundation: `primary` is the
+neutral action color, `secondary` is a neutral secondary surface, `accent` is
+the teal highlight color, `input` is the default form-control border, `ring`
+is the focus outline color, and `popover` is the elevated overlay surface.
+Buttons use compact visible heights (`sm` 28px, `md` 32px, `lg` 40px) while
+using native hit slop up to 44px where small visual controls need a larger
+mobile target.
 
 Theme preference is stored by `useThemeStore` from `@mrmeg/expo-ui/state` using AsyncStorage on native and localStorage on web:
 
@@ -460,7 +473,7 @@ Native:
 Icons:
 
 - `useResources()` still loads `Feather.font` from `@expo/vector-icons`.
-- That icon font comes from the consumer app's peer dependency, not from bundled files inside `@mrmeg/expo-ui`.
+- That icon font comes from the package-managed `@expo/vector-icons` dependency, not from bundled font files inside `@mrmeg/expo-ui`.
 
 Recommended Expo web head setup:
 

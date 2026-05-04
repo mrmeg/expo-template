@@ -14,12 +14,16 @@ jest.mock("../../hooks/useTheme", () => ({
         secondary: "#F4F4F5",
         secondaryForeground: "#18181B",
         foreground: "#0F172A",
+        background: "#FFFFFF",
+        input: "#E4E4E7",
+        ring: "#A1A1AA",
         accent: "#0F766E",
         destructive: "#EF4444",
       },
     },
     getContrastingColor: (_bg: string, light: string) => light,
     getShadowStyle: () => ({}),
+    getFocusRingStyle: () => ({}),
   }),
 }));
 

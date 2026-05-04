@@ -39,7 +39,7 @@ function DialogContent({
 }: DialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
   const textColor = getContrastingColor(
-    theme.colors.background,
+    theme.colors.popover,
     palette.white,
     palette.black,
   );
@@ -62,7 +62,7 @@ function DialogContent({
                     <DialogPrimitive.Content
                       style={StyleSheet.flatten([
                         {
-                          backgroundColor: theme.colors.background,
+                          backgroundColor: theme.colors.popover,
                           borderColor: theme.colors.border,
                           borderWidth: 1,
                           borderRadius: spacing.radiusLg,
@@ -131,7 +131,7 @@ function DialogTitle({
           {
             fontSize: 18,
             lineHeight: 24,
-            letterSpacing: -0.3,
+            letterSpacing: 0,
             color: theme.colors.text,
           },
           style,
@@ -208,7 +208,7 @@ function AlertDialogContent({
 }: AlertDialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
   const textColor = getContrastingColor(
-    theme.colors.background,
+    theme.colors.popover,
     palette.white,
     palette.black,
   );
@@ -231,7 +231,7 @@ function AlertDialogContent({
                     <AlertDialogPrimitive.Content
                       style={StyleSheet.flatten([
                         {
-                          backgroundColor: theme.colors.background,
+                          backgroundColor: theme.colors.popover,
                           borderColor: theme.colors.border,
                           borderWidth: 1,
                           borderRadius: spacing.radiusLg,
@@ -273,7 +273,7 @@ function AlertDialogTitle({
           {
             fontSize: 18,
             lineHeight: 24,
-            letterSpacing: -0.3,
+            letterSpacing: 0,
             color: theme.colors.text,
           },
           style,

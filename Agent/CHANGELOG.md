@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- Tightened the `@mrmeg/expo-ui` consumer dependency contract: moved `@expo/vector-icons` from peer dependency to package dependency, promoted all `@rn-primitives/*` implementation packages into package dependencies, restored the directly imported `@rn-primitives/portal` dependency, and kept native/runtime singleton packages as consumer-managed peers. The package docs now describe that split, and the Jest harness resolves Bun virtual-store React Native modules plus virtual package-owned icon mocks so package tests run after the dependency move.
+
+- Refined `@mrmeg/expo-ui` toward a more polished shadcn-style cross-platform surface: added `popover`, `input`, and `ring` semantic tokens, enabled web `boxShadow` output from `getShadowStyle()`, added `getFocusRingStyle()` for web focus rings, removed negative letter spacing from package text surfaces, tightened Button/TextInput focus and pressed states, moved overlay menus/dialogs onto the popover surface, and improved mobile touch comfort for compact checkbox/radio/tab controls.
+
+- Fixed Expo web startup for the template app with a fork-friendly setup: Metro now only aliases the local `@mrmeg/expo-ui` workspace source during development, while `pretty-format@29.7.0` is pinned as a root dev dependency so Expo web HMR resolves the compatible CommonJS formatter without custom resolver dedupe. Refreshed Baseline browser data through a package override so nested Expo/Browserslist copies stop emitting stale-data warnings.
+
 - Bumped `@mrmeg/expo-ui` to `0.1.5` and fixed zero-config notification defaults so package-owned error/success/warning toast titles render readable fallback text when a consumer has not configured i18n.
 
 - Updated the `Publish UI Package` workflow so pushes to `main` that change `packages/ui/package.json` publish the exact committed `@mrmeg/expo-ui` version when it is not already on npm. Manual workflow dispatch still supports bumping and committing a release version.

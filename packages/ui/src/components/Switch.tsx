@@ -66,7 +66,7 @@ function Switch({
   style: styleOverride,
   ...props
 }: SwitchProps) {
-  const { theme, getContrastingColor, withAlpha } = useTheme();
+  const { theme, getContrastingColor, getShadowStyle, withAlpha } = useTheme();
   const reduceMotion = useReducedMotion();
   const hasMounted = useRef(false);
 
@@ -108,8 +108,8 @@ function Switch({
   const isIOS = variant === "ios";
   // Keep the default checked state on a stable dark neutral so the white thumb
   // stays distinct in both light and dark themes.
-  const checkedColor = isIOS ? "#34C759" : palette.gray900;
-  const uncheckedColor = theme.dark ? withAlpha(palette.white, 0.18) : palette.gray200;
+  const checkedColor = isIOS ? "#34C759" : theme.colors.primary;
+  const uncheckedColor = theme.dark ? withAlpha(palette.white, 0.18) : theme.colors.input;
   const trackBg = props.checked ? checkedColor : uncheckedColor;
   const trackBorderColor = props.checked
     ? theme.dark
@@ -146,7 +146,7 @@ function Switch({
         borderRadius: size.height / 2,
         justifyContent: "center",
         opacity: props.disabled ? 0.5 : 1,
-        ...(Platform.OS === "web" && { cursor: "pointer" as any }),
+        ...(Platform.OS === "web" && { cursor: props.disabled ? "not-allowed" : ("pointer" as any) }),
         ...(flattenedStyle || {}),
       }}
       hitSlop={DEFAULT_HIT_SLOP}
@@ -207,13 +207,7 @@ function Switch({
               borderColor: thumbBorderColor,
               justifyContent: "center",
               alignItems: "center",
-              ...(Platform.OS !== "web" && {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.15,
-                shadowRadius: 2,
-                elevation: 2,
-              }),
+              ...getShadowStyle("sharp"),
             },
             thumbAnimatedStyle,
           ]}

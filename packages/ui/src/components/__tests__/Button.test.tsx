@@ -13,6 +13,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import type { ReactTestInstance } from "react-test-renderer";
 import { Button } from "../Button";
+import { StyledText } from "../StyledText";
 
 const mockScalePressIn = jest.fn();
 const mockScalePressOut = jest.fn();
@@ -26,6 +27,8 @@ jest.mock("../../hooks/useTheme", () => ({
         foreground: "#0F172A",
         card: "#F8FAFC",
         cardForeground: "#0F172A",
+        popover: "#FFFFFF",
+        popoverForeground: "#0F172A",
         primary: "#18181B",
         primaryForeground: "#FAFAFA",
         secondary: "#F4F4F5",
@@ -37,6 +40,8 @@ jest.mock("../../hooks/useTheme", () => ({
         success: "#22C55E",
         warning: "#F59E0B",
         border: "#E2E8F0",
+        input: "#E2E8F0",
+        ring: "#A1A1AA",
         overlay: "rgba(0, 0, 0, 0.5)",
       },
     },
@@ -46,6 +51,7 @@ jest.mock("../../hooks/useTheme", () => ({
       return bg === "#FFFFFF" || bg === "transparent" ? dark : light;
     },
     getShadowStyle: () => ({}),
+    getFocusRingStyle: () => ({}),
   }),
 }));
 
@@ -124,17 +130,37 @@ describe("Button", () => {
     });
 
     it("renders different sizes", () => {
-      const sizes = ["sm", "md", "lg"] as const;
+      const sizes = [
+        ["sm", 28],
+        ["md", 32],
+        ["lg", 40],
+      ] as const;
 
-      sizes.forEach((size) => {
-        const { unmount } = render(
+      sizes.forEach(([size, minHeight]) => {
+        const { unmount, UNSAFE_getAllByType } = render(
           <Button size={size}>
             <Text>{size}</Text>
           </Button>
         );
+        const buttonSurface = findFlattenedStyleByBackground(UNSAFE_getAllByType(View), "#18181B");
+
         expect(screen.getByText(size)).toBeTruthy();
+        expect(buttonSurface).toEqual(expect.objectContaining({ minHeight }));
         unmount();
       });
+    });
+
+    it("applies button size typography to nested StyledText children", () => {
+      render(
+        <Button size="sm">
+          <StyledText>Compact</StyledText>
+        </Button>
+      );
+
+      const textStyle = StyleSheet.flatten(screen.getByText("Compact").props.style) as Record<string, unknown>;
+
+      expect(textStyle.fontSize).toBe(12);
+      expect(textStyle.lineHeight).toBeCloseTo(16.8);
     });
 
     it("renders loading state", () => {

@@ -1,4 +1,5 @@
 /* eslint-disable no-undef */
+const fs = require("fs");
 const { getDefaultConfig } = require("expo/metro-config");
 const {
   wrapWithReanimatedMetroConfig,
@@ -6,42 +7,93 @@ const {
 const path = require("path");
 
 const config = getDefaultConfig(__dirname);
-const uiPackagePath = path.resolve(__dirname, "packages/ui/src");
+const useLocalUiSource = process.env.EXPO_UI_LOCAL_SOURCE === "1";
+const appNodeModules = path.resolve(__dirname, "node_modules");
+const resolveAppPackage = (packageName) =>
+  fs.realpathSync(path.resolve(appNodeModules, packageName));
 
-// Deduplicate @react-navigation packages to prevent context mismatch
-// between expo-router's nested copy and the hoisted copy (bun hoisting issue)
-const dedupePackages = {
-  "@react-navigation/native": path.resolve(__dirname, "node_modules/@react-navigation/native"),
-  "@react-navigation/core": path.resolve(__dirname, "node_modules/@react-navigation/core"),
-  "react": path.resolve(__dirname, "node_modules/react"),
-  "react-native": path.resolve(__dirname, "node_modules/react-native"),
-  "react-native-reanimated": path.resolve(__dirname, "node_modules/react-native-reanimated"),
-  "react-native-gesture-handler": path.resolve(__dirname, "node_modules/react-native-gesture-handler"),
-  "react-native-safe-area-context": path.resolve(__dirname, "node_modules/react-native-safe-area-context"),
+const resolvePackageFrom = (packageName, fromPackageName) => {
+  const fromPackageRoot = path.dirname(
+    require.resolve(`${fromPackageName}/package.json`)
+  );
+  return fs.realpathSync(
+    path.dirname(
+      require.resolve(`${packageName}/package.json`, {
+        paths: [fromPackageRoot],
+      })
+    )
+  );
 };
+
+// LOCAL UI PACKAGE DEVELOPMENT ONLY.
+//
+// This block is only needed when working on packages/ui from inside this
+// monorepo and you want Metro to read package source directly:
+// EXPO_UI_LOCAL_SOURCE=1 bun run web
+//
+// Forked apps and external consumers should resolve @mrmeg/expo-ui through
+// package.json exports instead. If your fork does not edit packages/ui, delete
+// this entire EXPO_UI_LOCAL_SOURCE block and the path import above if unused.
+if (useLocalUiSource) {
+  const uiPackageRoot = path.resolve(__dirname, "packages/ui");
+  const uiPackagePath = path.join(uiPackageRoot, "src");
+
+  config.watchFolders = Array.from(
+    new Set([...(config.watchFolders || []), uiPackageRoot])
+  );
+  config.resolver = {
+    ...config.resolver,
+    extraNodeModules: {
+      ...(config.resolver.extraNodeModules || {}),
+      "@mrmeg/expo-ui": uiPackagePath,
+    },
+  };
+}
+
+config.resolver.nodeModulesPaths = Array.from(
+  new Set([appNodeModules, ...(config.resolver.nodeModulesPaths || [])])
+);
+
+// Bun installs packages in virtual folders under node_modules/.bun. Metro can
+// start package resolution from those virtual folders and then probe nested
+// package paths that Bun does not create, such as
+// expo/node_modules/pretty-format/package.json. Keep singleton runtime
+// packages pointed at the app-level install, and point Expo's pretty-format
+// import at the exact Bun store package Expo resolves under Node.
+const dedupePackages = {
+  "@react-navigation/native": resolveAppPackage("@react-navigation/native"),
+  "@react-navigation/core": resolveAppPackage("@react-navigation/core"),
+  react: resolveAppPackage("react"),
+  "react-dom": resolveAppPackage("react-dom"),
+  "react-native": resolveAppPackage("react-native"),
+  "react-native-reanimated": resolveAppPackage("react-native-reanimated"),
+  "react-native-gesture-handler": resolveAppPackage(
+    "react-native-gesture-handler"
+  ),
+  "react-native-safe-area-context": resolveAppPackage(
+    "react-native-safe-area-context"
+  ),
+  "pretty-format": resolvePackageFrom("pretty-format", "expo"),
+};
+
+config.resolver.extraNodeModules = {
+  ...(config.resolver.extraNodeModules || {}),
+  ...dedupePackages,
+};
+
 const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (moduleName === "@mrmeg/expo-ui") {
-    const resolve = originalResolveRequest || context.resolveRequest;
-    return resolve(context, path.join(uiPackagePath, "index.ts"), platform);
-  }
-
-  if (moduleName.startsWith("@mrmeg/expo-ui/")) {
-    const resolve = originalResolveRequest || context.resolveRequest;
-    const subpath = moduleName.replace("@mrmeg/expo-ui/", "");
-    const sourcePath = subpath.includes("/")
-      ? path.join(uiPackagePath, `${subpath}.tsx`)
-      : path.join(uiPackagePath, subpath, "index.ts");
-    return resolve(context, sourcePath, platform);
-  }
-
-  for (const [pkg, pkgPath] of Object.entries(dedupePackages)) {
-    if (moduleName === pkg || moduleName.startsWith(pkg + "/")) {
-      const newName = moduleName.replace(pkg, pkgPath);
+  for (const [packageName, packagePath] of Object.entries(dedupePackages)) {
+    if (moduleName === packageName || moduleName.startsWith(`${packageName}/`)) {
       const resolve = originalResolveRequest || context.resolveRequest;
-      return resolve(context, newName, platform);
+      return resolve(
+        context,
+        moduleName.replace(packageName, packagePath),
+        platform
+      );
     }
   }
+
   const resolve = originalResolveRequest || context.resolveRequest;
   return resolve(context, moduleName, platform);
 };

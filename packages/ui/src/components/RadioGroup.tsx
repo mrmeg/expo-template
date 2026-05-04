@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect } from "react";
-import { View, StyleSheet, StyleProp, ViewStyle, Pressable } from "react-native";
+import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -184,7 +184,7 @@ function RadioGroupItem({
       onPress={handlePress}
       style={{
         borderColor,
-        backgroundColor: "transparent",
+        backgroundColor: theme.colors.background,
         borderRadius: sizeConfig.outer / 2,
         borderWidth: sizeConfig.borderWidth,
         width: sizeConfig.outer,
@@ -192,6 +192,7 @@ function RadioGroupItem({
         justifyContent: "center",
         alignItems: "center",
         opacity: disabled ? 0.5 : 1,
+        ...(Platform.OS === "web" && { cursor: disabled ? "not-allowed" : ("pointer" as any) }),
         ...(flattenedStyle || {}),
       }}
       hitSlop={DEFAULT_HIT_SLOP}
@@ -262,6 +263,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
+    minHeight: spacing.touchTarget,
   },
   labelContainer: {
     flex: 1,

@@ -77,9 +77,9 @@ function TooltipContent({
       case "default":
       default:
         return {
-          background: theme.colors.card,
+          background: theme.colors.popover,
           border: theme.colors.border,
-          text: getContrastingColor(theme.colors.card, palette.white, palette.black),
+          text: getContrastingColor(theme.colors.popover, palette.white, palette.black),
         };
     }
   };

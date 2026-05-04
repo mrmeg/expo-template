@@ -30,6 +30,7 @@ export const spacing = {
   cardPadding: 16,        // Default card padding
   sectionSpacing: 32,     // Space between major sections
   listItemSpacing: 8,     // Space between list items
+  touchTarget: 44,        // Minimum comfortable native touch target
 
   // Border radius — shadcn-inspired scale (radiusMd = 6px default)
   radiusNone: 0,
@@ -68,6 +69,7 @@ export const {
   cardPadding,
   sectionSpacing,
   listItemSpacing,
+  touchTarget,
   radiusNone,
   radiusXs,
   radiusSm,

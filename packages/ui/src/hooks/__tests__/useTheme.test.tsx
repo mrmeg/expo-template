@@ -20,11 +20,15 @@ describe("useTheme", () => {
       expect(theme.colors).toBeDefined();
       expect(theme.colors.background).toBeDefined();
       expect(theme.colors.foreground).toBeDefined();
+      expect(theme.colors.popover).toBeDefined();
+      expect(theme.colors.popoverForeground).toBeDefined();
       expect(theme.colors.primary).toBeDefined();
       expect(theme.colors.accent).toBeDefined();
       expect(theme.colors.destructive).toBeDefined();
       expect(theme.colors.muted).toBeDefined();
       expect(theme.colors.border).toBeDefined();
+      expect(theme.colors.input).toBeDefined();
+      expect(theme.colors.ring).toBeDefined();
     });
 
     it("returns a scheme value of light or dark", () => {
@@ -35,6 +39,18 @@ describe("useTheme", () => {
     it("returns a currentTheme value", () => {
       const { result } = renderHook(() => useTheme());
       expect(["system", "light", "dark"]).toContain(result.current.currentTheme);
+    });
+
+    it("keeps helper identities stable across unchanged rerenders", () => {
+      const { result, rerender } = renderHook(() => useTheme());
+      const first = result.current;
+
+      rerender({});
+
+      expect(result.current.getShadowStyle).toBe(first.getShadowStyle);
+      expect(result.current.getFocusRingStyle).toBe(first.getFocusRingStyle);
+      expect(result.current.getContrastingColor).toBe(first.getContrastingColor);
+      expect(result.current.getContrastRatio).toBe(first.getContrastRatio);
     });
 
     it("keeps secondary neutral and accent teal across themes", () => {
@@ -58,13 +74,42 @@ describe("useTheme", () => {
       });
     });
 
-    it("returns empty object on web platform", () => {
-      const originalSelect = Platform.select;
-      // On web, should return empty object
+    it("returns CSS boxShadow on web platform", () => {
+      const originalOS = Platform.OS;
+      Object.defineProperty(Platform, "OS", {
+        configurable: true,
+        value: "web",
+      });
+
       const { result } = renderHook(() => useTheme());
-      const style = result.current.getShadowStyle("base");
-      // In test env (default platform), should be an object
-      expect(typeof style).toBe("object");
+      const style = result.current.getShadowStyle("base") as Record<string, unknown>;
+
+      expect(style.boxShadow).toEqual(expect.stringContaining("rgba"));
+
+      Object.defineProperty(Platform, "OS", {
+        configurable: true,
+        value: originalOS,
+      });
+    });
+  });
+
+  describe("getFocusRingStyle", () => {
+    it("returns CSS focus ring on web platform", () => {
+      const originalOS = Platform.OS;
+      Object.defineProperty(Platform, "OS", {
+        configurable: true,
+        value: "web",
+      });
+
+      const { result } = renderHook(() => useTheme());
+      const style = result.current.getFocusRingStyle() as Record<string, unknown>;
+
+      expect(style.boxShadow).toEqual(expect.stringContaining("0 0 0 4px"));
+
+      Object.defineProperty(Platform, "OS", {
+        configurable: true,
+        value: originalOS,
+      });
     });
   });
 

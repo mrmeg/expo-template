@@ -59,7 +59,7 @@ function Slider({
   showValue = false,
   style: styleOverride,
 }: SliderProps) {
-  const { theme } = useTheme();
+  const { theme, getShadowStyle } = useTheme();
   const dims = SIZES[size];
 
   // Track layout width captured via onLayout
@@ -243,16 +243,10 @@ function Slider({
                 width: dims.thumb,
                 height: dims.thumb,
                 borderRadius: dims.thumb / 2,
-                backgroundColor: palette.white,
+                backgroundColor: theme.colors.background,
                 borderWidth: 1,
-                borderColor: theme.colors.border,
-                ...(Platform.OS !== "web" && {
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 2,
-                  elevation: 2,
-                }),
+                borderColor: theme.colors.primary,
+                ...getShadowStyle("sharp"),
               },
               thumbAnimatedStyle,
             ]}

@@ -94,6 +94,8 @@ function TabsList({ style, children, ...props }: TabsListProps) {
         backgroundColor: theme.colors.muted,
         borderRadius: spacing.radiusMd,
         padding: 2,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
       }
     : {
         flexDirection: "row" as const,
@@ -121,7 +123,7 @@ export interface TabsTriggerProps extends TabsPrimitive.TriggerProps {
 }
 
 function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTriggerProps) {
-  const { theme } = useTheme();
+  const { theme, getShadowStyle } = useTheme();
   const { variant, size } = useTabsContext();
   const sizeConfig = SIZE_CONFIGS[size];
   const reduceMotion = useReducedMotion();
@@ -151,7 +153,7 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
 
   const triggerBaseStyle: ViewStyle = {
     flex: 1,
-    height: sizeConfig.height,
+    height: Platform.OS === "web" ? sizeConfig.height : spacing.touchTarget,
     paddingHorizontal: sizeConfig.paddingHorizontal,
     flexDirection: "row",
     alignItems: "center",
@@ -164,6 +166,7 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
   const pillActiveStyle: ViewStyle = isSelected && variant === "pill" ? {
     backgroundColor: theme.colors.background,
     borderRadius: spacing.radiusSm,
+    ...getShadowStyle("subtle"),
   } : {};
 
   return (

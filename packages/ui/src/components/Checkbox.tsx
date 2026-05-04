@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, StyleProp, ViewStyle, Pressable } from "react-native";
+import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -115,7 +115,7 @@ function Checkbox({
       disabled={disabled}
       style={{
         borderColor,
-        backgroundColor: checked || indeterminate ? theme.colors.primary : "transparent",
+        backgroundColor: checked || indeterminate ? theme.colors.primary : theme.colors.background,
         borderRadius: spacing.radiusSm,
         borderWidth: 1,
         width: sizeConfig.size,
@@ -123,6 +123,7 @@ function Checkbox({
         justifyContent: "center",
         alignItems: "center",
         opacity: disabled ? 0.5 : 1,
+        ...(Platform.OS === "web" && { cursor: disabled ? "not-allowed" : ("pointer" as any) }),
         ...(flattenedStyle || {}),
       }}
       hitSlop={DEFAULT_HIT_SLOP}
@@ -201,6 +202,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
+    minHeight: spacing.touchTarget,
   },
   labelContainer: {
     flex: 1,

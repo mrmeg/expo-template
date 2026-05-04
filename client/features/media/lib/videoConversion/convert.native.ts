@@ -6,7 +6,7 @@
  *
  * For formats that need conversion (WebM, etc.), consider:
  * 1. Server-side conversion via Cloudflare Stream or similar
- * 2. Using expo-dev-client with native FFmpeg bindings
+ * 2. Adding a custom native client with native FFmpeg bindings
  * 3. Restricting video picker to MP4/MOV formats on native
  */
 

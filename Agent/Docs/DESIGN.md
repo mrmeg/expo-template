@@ -87,11 +87,11 @@ Defined in `packages/ui/src/constants/spacing.ts`. Base unit: 8px.
 
 | Size | Height | Usage |
 |------|--------|-------|
-| sm | 32 | Compact UI |
-| md | 36 | Default |
-| lg | 40 | Touch-friendly |
+| sm | 28 | Dense toolbar, popover, tooltip, and inline actions |
+| md | 32 | Default Button |
+| lg | 40 | Prominent Button |
 
-Applies to: Button, TextInput, Toggle, Select.
+Button preserves native tap comfort with hit slop up to the 44px touch target. TextInput, Toggle, Select, and other controls may use their own height scale when they need denser alignment or fixed control geometry.
 
 ### Cards
 - **Border-only** by default — no drop shadow
@@ -100,8 +100,9 @@ Applies to: Button, TextInput, Toggle, Select.
 
 ### Buttons
 - Font weight: `"500"` (medium, not bold)
-- Padding: `buttonPadding = 10`
-- Outline variant uses `theme.colors.border` (not primary) with `foreground` text
+- Visible heights: `sm` 28px, `md` 32px, `lg` 40px
+- Outline variant uses `theme.colors.input` (not primary) with `foreground` text
+- Nested `StyledText` children inherit the selected Button size typography; use `size="sm"` for compact toolbar, popover, and tooltip triggers.
 
 ### Shadows
 - Subtle: opacity 0.05–0.15, small offsets

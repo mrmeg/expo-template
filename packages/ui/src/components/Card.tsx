@@ -56,8 +56,9 @@ export interface CardProps {
 }
 
 function Card({ children, style: styleOverride, variant = "default", onPress, disabled }: CardProps) {
-  const { theme } = useTheme();
+  const { theme, getShadowStyle } = useTheme();
   const styles = createCardStyles(theme);
+  const shadowStyle = getShadowStyle("subtle");
   const ctx = { theme, styles };
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !onPress || !!disabled,
@@ -70,6 +71,7 @@ function Card({ children, style: styleOverride, variant = "default", onPress, di
       style={[
         styles.card,
         variant === "default" && styles.cardDefault,
+        variant === "default" && shadowStyle,
         variant === "outline" && styles.cardOutline,
         variant === "ghost" && styles.cardGhost,
         styleOverride,
@@ -191,7 +193,6 @@ const createCardStyles = (theme: Theme) =>
   StyleSheet.create({
     card: {
       borderRadius: spacing.radiusLg,
-      overflow: "hidden",
     } as ViewStyle,
     cardDefault: {
       backgroundColor: theme.colors.card,
@@ -225,7 +226,7 @@ const createCardStyles = (theme: Theme) =>
     title: {
       fontSize: 18,
       lineHeight: 24,
-      letterSpacing: -0.3,
+      letterSpacing: 0,
     } as TextStyle,
     description: {
       fontSize: 14,

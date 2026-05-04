@@ -54,6 +54,8 @@ export interface ThemeColors {
   foreground: string;
   card: string;
   cardForeground: string;
+  popover: string;
+  popoverForeground: string;
 
   // Text colors (semantic aliases for clarity)
   text: string;
@@ -79,6 +81,8 @@ export interface ThemeColors {
 
   // Utility
   border: string;
+  input: string;
+  ring: string;
   overlay: string;
 }
 
@@ -109,8 +113,10 @@ const lightTheme: Theme = {
   colors: {
     background: palette.white,
     foreground: palette.gray950,
-    card: palette.gray50,
+    card: palette.white,
     cardForeground: palette.gray950,
+    popover: palette.white,
+    popoverForeground: palette.gray950,
 
     text: palette.gray950,
     textDim: palette.gray500,
@@ -131,6 +137,8 @@ const lightTheme: Theme = {
     warning: palette.amber500,
 
     border: palette.gray200,
+    input: palette.gray200,
+    ring: palette.gray400,
     overlay: "rgba(0, 0, 0, 0.5)",
   },
   navigation: {
@@ -151,6 +159,8 @@ const darkTheme: Theme = {
     foreground: palette.dark100,
     card: palette.dark800,
     cardForeground: palette.dark100,
+    popover: palette.dark800,
+    popoverForeground: palette.dark100,
 
     text: palette.dark100,
     textDim: palette.dark400,
@@ -171,6 +181,8 @@ const darkTheme: Theme = {
     warning: palette.amber400,
 
     border: palette.dark700,
+    input: palette.dark700,
+    ring: palette.dark400,
     overlay: "rgba(0, 0, 0, 0.7)",
   },
   navigation: {
