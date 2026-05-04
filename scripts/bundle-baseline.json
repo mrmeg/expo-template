@@ -1,5 +1,10 @@
 {
   "totalBytes": 5995827,
+  "metric": "budgeted client JS excluding known optional lazy chunks",
   "lastUpdated": "2026-05-04T03:37:07.031Z",
-  "note": "Run 'bun run bundle-size --update' to update after intentional size changes"
+  "note": "Run 'bun run bundle-size --update' to update after intentional eager bundle size changes",
+  "excludedLazyChunkPatterns": [
+    "^heic2any-[^/\\\\]+\\.js$",
+    "^VideoThumbnails-[^/\\\\]+\\.js$"
+  ]
 }

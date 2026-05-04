@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- Adjusted the bundle-size gate to budget client JS separately from known
+  optional lazy media chunks. The check now logs total emitted JS and excluded
+  lazy chunks, so split HEIC/video-thumbnail helpers stay visible in CI without
+  failing the app-bundle threshold when they remain lazy-loaded.
+
 - Added a `Publish Media Package` GitHub Actions workflow for
   `@mrmeg/expo-media` trusted publishing. It mirrors the UI package workflow:
   push-based exact-version publishing from `main`, manual version bumps,

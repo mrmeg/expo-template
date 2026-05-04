@@ -4,13 +4,17 @@
 
 ## Bundle Size
 
-- Monitoring: `bun run bundle-size` compares client JS against `scripts/bundle-baseline.json`
-- Current baseline: 5,995,827 bytes of client JS from the latest local web export
+- Monitoring: `bun run bundle-size` compares budgeted client JS against
+  `scripts/bundle-baseline.json` and separately reports total emitted JS.
+- Current baseline: 5,995,827 budgeted bytes from the latest local web export
 - Threshold: 10% growth allowed before flagging
 - Analysis: `bun run analyze` runs source-map-explorer on the production client export
-- Only minified JS files in `dist/client` are measured. The SSR renderer in
-  `dist/server` is tracked through export/server smoke tests, not the client
-  bundle budget.
+- Only minified JS files in `dist/client` are scanned. Known optional lazy media
+  chunks, currently `heic2any-*` for HEIC conversion and
+  `VideoThumbnails-*` for the native thumbnail adapter, are excluded from the
+  threshold and printed separately so they stay visible without failing the
+  app-bundle budget. The SSR renderer in `dist/server` is tracked through
+  export/server smoke tests, not the client bundle budget.
 
 ## React Query Defaults
 
