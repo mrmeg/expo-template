@@ -187,12 +187,28 @@ const styles = StyleSheet.create({
 | `currentTheme` | User preference: `"system"`, `"light"`, or `"dark"` |
 | `setTheme(mode)` | Persist the theme preference |
 | `toggleTheme()` | Cycle `light -> dark -> system -> light` |
-| `getShadowStyle(type)` | Cross-platform elevation for `base`, `soft`, `sharp`, or `subtle`; returns native shadow/elevation off web and CSS `boxShadow` on web |
+| `getShadowStyle(type)` | Cross-platform elevation for `base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`, `cardHover`, or `cardSubtle`; returns native shadow/elevation off web and CSS `boxShadow` on web |
 | `getFocusRingStyle(offset?)` | Web-only shadcn-style focus ring using `background` and `ring`; returns `{}` on native |
 | `getContrastingColor(bg, color1?, color2?)` | Pick the most readable color for a background |
 | `getTextColorForBackground(bg)` | Return `"light"` or `"dark"` for a background |
 | `withAlpha(color, alpha)` | Convert a color to an alpha-adjusted value |
 | `getContrastRatio(a, b)` | Numeric WCAG contrast ratio helper |
+
+Use `useStyles()` for memoized theme-aware local styles. Its factory receives
+`{ theme, spacing, withAlpha }`, and the hook return also includes the normal
+`useTheme()` helpers:
+
+```tsx
+import { useStyles } from "@mrmeg/expo-ui/hooks";
+
+const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
+  card: {
+    backgroundColor: withAlpha(theme.colors.primary, 0.08),
+    borderRadius: spacing.radiusMd,
+    padding: spacing.md,
+  },
+}));
+```
 
 Use semantic tokens instead of hardcoded colors:
 

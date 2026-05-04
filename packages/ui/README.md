@@ -95,7 +95,21 @@ const styles = StyleSheet.create({
 });
 ```
 
-`useTheme()` returns the active `theme`, resolved `scheme`, persisted `currentTheme`, `setTheme`, `toggleTheme`, cross-platform shadow helpers, a web focus-ring helper, contrast helpers, and `withAlpha`. Use semantic tokens such as `theme.colors.background`, `foreground`, `card`, `popover`, `border`, `input`, `ring`, `primary`, `secondary`, `accent`, `mutedForeground`, `destructive`, `success`, and `warning`. `primary` is the neutral action color, `secondary` is a neutral secondary surface, `accent` is the teal highlight color, `input` is the default form-control border, and `ring` is the focus outline color.
+`useTheme()` returns the active `theme`, resolved `scheme`, persisted `currentTheme`, `setTheme`, `toggleTheme`, cross-platform shadow helpers, a web focus-ring helper, contrast helpers, and `withAlpha`. `getShadowStyle(type)` supports `base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`, `cardHover`, and `cardSubtle`. Use semantic tokens such as `theme.colors.background`, `foreground`, `card`, `popover`, `border`, `input`, `ring`, `primary`, `secondary`, `accent`, `mutedForeground`, `destructive`, `success`, and `warning`. `primary` is the neutral action color, `secondary` is a neutral secondary surface, `accent` is the teal highlight color, `input` is the default form-control border, and `ring` is the focus outline color.
+
+Use `useStyles()` when a component needs memoized theme-aware styles. The style factory receives `{ theme, spacing, withAlpha }`, and the returned hook value also includes the normal `useTheme()` helpers.
+
+```tsx
+import { useStyles } from "@mrmeg/expo-ui/hooks";
+
+const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
+  card: {
+    backgroundColor: withAlpha(theme.colors.primary, 0.08),
+    borderRadius: spacing.radiusMd,
+    padding: spacing.md,
+  },
+}));
+```
 
 Use `StyledText` for theme-aware text:
 

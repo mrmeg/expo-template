@@ -6,9 +6,9 @@
  */
 
 import React from "react";
-import { Platform } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { renderHook } from "@testing-library/react-native";
-import { useTheme } from "../useTheme";
+import { useStyles, useTheme } from "../useTheme";
 import { colors } from "../../constants/colors";
 
 describe("useTheme", () => {
@@ -66,7 +66,18 @@ describe("useTheme", () => {
   describe("getShadowStyle", () => {
     it("returns an object for each shadow type", () => {
       const { result } = renderHook(() => useTheme());
-      const types = ["base", "soft", "sharp", "subtle"] as const;
+      const types = [
+        "base",
+        "soft",
+        "sharp",
+        "subtle",
+        "elevated",
+        "glow",
+        "glass",
+        "card",
+        "cardHover",
+        "cardSubtle",
+      ] as const;
 
       types.forEach((type) => {
         const style = result.current.getShadowStyle(type);
@@ -90,6 +101,24 @@ describe("useTheme", () => {
         configurable: true,
         value: originalOS,
       });
+    });
+  });
+
+  describe("useStyles", () => {
+    it("passes withAlpha into the style factory context", () => {
+      const { result } = renderHook(() =>
+        useStyles(({ theme, spacing, withAlpha }) => ({
+          card: {
+            backgroundColor: withAlpha(theme.colors.primary, 0.08),
+            padding: spacing.sm,
+          },
+        }))
+      );
+
+      const cardStyle = StyleSheet.flatten(result.current.styles.card);
+
+      expect(cardStyle.backgroundColor).toBe(result.current.withAlpha(result.current.theme.colors.primary, 0.08));
+      expect(cardStyle.padding).toBe(result.current.spacing.sm);
     });
   });
 

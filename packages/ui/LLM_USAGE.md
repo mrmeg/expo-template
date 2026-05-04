@@ -119,10 +119,25 @@ Token intent:
 - `ring`: focus outline color
 - `popover`: elevated overlay surface
 
-Use `getShadowStyle()` for package surfaces that need elevation and
-`getFocusRingStyle()` for web focus styling. Keep web controls compact, but
-preserve mobile tap comfort with package controls that already provide native
-hit slop or 44px touch rows.
+Use `getShadowStyle()` for package surfaces that need elevation. It supports
+`base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`,
+`cardHover`, and `cardSubtle`, returning native shadow/elevation off web and
+CSS `boxShadow` on web. Use `getFocusRingStyle()` for web focus styling. Keep
+web controls compact, but preserve mobile tap comfort with package controls
+that already provide native hit slop or 44px touch rows.
+
+Use `useStyles()` for memoized theme-aware local styles. Its factory receives
+`{ theme, spacing, withAlpha }`, so components can derive alpha-adjusted
+semantic colors without destructuring `withAlpha` outside the factory:
+
+```tsx
+const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
+  card: {
+    backgroundColor: withAlpha(theme.colors.primary, 0.08),
+    padding: spacing.md,
+  },
+}));
+```
 
 ## Component Use-Case Index
 

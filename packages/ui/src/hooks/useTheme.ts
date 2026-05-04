@@ -4,7 +4,17 @@ import { useColorScheme as useColorSchemeDefault, ViewStyle, Platform, StyleShee
 import { useThemeStore } from "../state/themeStore";
 import { spacing as spacingConstants } from "../constants/spacing";
 
-type ShadowType = "base" | "soft" | "sharp" | "subtle";
+type ShadowType =
+  | "base"
+  | "soft"
+  | "sharp"
+  | "subtle"
+  | "elevated"
+  | "glow"
+  | "glass"
+  | "card"
+  | "cardHover"
+  | "cardSubtle";
 
 // Module-level cache for contrast calculations to avoid memory leak
 // and share across components
@@ -133,6 +143,48 @@ export function useTheme(): ExtendedColorScheme & {
         shadowRadius: 2,
         elevation: 1,
       },
+      elevated: {
+        shadowColor: theme.colors.overlay,
+        shadowOffset: { width: 0, height: 20 },
+        shadowOpacity: 0.15,
+        shadowRadius: 40,
+        elevation: 16,
+      },
+      glow: {
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 20,
+        elevation: 10,
+      },
+      glass: {
+        shadowColor: theme.colors.overlay,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 30,
+        elevation: 4,
+      },
+      card: {
+        shadowColor: theme.colors.overlay,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 4,
+      },
+      cardHover: {
+        shadowColor: theme.colors.overlay,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 24,
+        elevation: 8,
+      },
+      cardSubtle: {
+        shadowColor: theme.colors.overlay,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 3,
+        elevation: 2,
+      },
     };
 
     const config = shadowConfigs[type];
@@ -143,6 +195,12 @@ export function useTheme(): ExtendedColorScheme & {
         soft: { boxShadow: theme.dark ? "0 8px 24px rgba(0, 0, 0, 0.36)" : "0 8px 24px rgba(0, 0, 0, 0.10)" } as ViewStyle,
         sharp: { boxShadow: theme.dark ? "0 1px 1px rgba(0, 0, 0, 0.55)" : "0 1px 1px rgba(0, 0, 0, 0.12)" } as ViewStyle,
         subtle: { boxShadow: theme.dark ? "0 1px 2px rgba(0, 0, 0, 0.32)" : "0 1px 2px rgba(0, 0, 0, 0.05)" } as ViewStyle,
+        elevated: { boxShadow: theme.dark ? "0 20px 40px rgba(0, 0, 0, 0.38)" : "0 20px 40px rgba(0, 0, 0, 0.15)" } as ViewStyle,
+        glow: { boxShadow: `0 0 20px ${theme.colors.primary}` } as ViewStyle,
+        glass: { boxShadow: theme.dark ? "0 4px 30px rgba(0, 0, 0, 0.32)" : "0 4px 30px rgba(0, 0, 0, 0.05)" } as ViewStyle,
+        card: { boxShadow: theme.dark ? "0 1px 2px rgba(0, 0, 0, 0.32)" : "0 1px 3px rgba(0, 0, 0, 0.08)" } as ViewStyle,
+        cardHover: { boxShadow: theme.dark ? "0 8px 24px rgba(0, 0, 0, 0.36)" : "0 8px 24px rgba(0, 0, 0, 0.12)" } as ViewStyle,
+        cardSubtle: { boxShadow: theme.dark ? "0 1px 2px rgba(0, 0, 0, 0.32)" : "0 1px 3px rgba(0, 0, 0, 0.05)" } as ViewStyle,
       };
 
       return webShadows[type];
@@ -393,6 +451,7 @@ function withAlpha(color: string, alpha: number): string {
 interface StyleContext {
   theme: Colors["light" | "dark"];
   spacing: typeof spacingConstants;
+  withAlpha: (color: string, alpha: number) => string;
 }
 
 /**
@@ -408,17 +467,17 @@ type UseStylesReturn<T extends StyleSheet.NamedStyles<T>> = {
  * useStyles
  *
  * A hook that combines useTheme with StyleSheet.create for theme-aware styling.
- * Provides access to theme colors and spacing constants within the style factory.
+ * Provides access to theme colors, spacing constants, and color helpers within the style factory.
  *
- * @param factory - A function that receives { theme, spacing } and returns style definitions
+ * @param factory - A function that receives { theme, spacing, withAlpha } and returns style definitions
  * @returns { styles, theme, spacing, ...themeUtilities }
  *
  * @example
  * ```tsx
  * function MyComponent() {
- *   const { styles, theme } = useStyles(({ theme, spacing }) => ({
+ *   const { styles, theme } = useStyles(({ theme, spacing, withAlpha }) => ({
  *     container: {
- *       backgroundColor: theme.colors.background,
+ *       backgroundColor: withAlpha(theme.colors.primary, 0.08),
  *       padding: spacing.md,
  *       borderRadius: spacing.radiusMd,
  *     },
@@ -447,9 +506,10 @@ export function useStyles<T extends StyleSheet.NamedStyles<T>>(
         factory({
           theme: themeContext.theme,
           spacing: spacingConstants,
+          withAlpha: themeContext.withAlpha,
         })
       ),
-    [factory, themeContext.theme]
+    [factory, themeContext.theme, themeContext.withAlpha]
   );
 
   return useMemo(() => ({
