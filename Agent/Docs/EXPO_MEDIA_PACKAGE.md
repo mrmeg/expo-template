@@ -665,9 +665,23 @@ Use the `Publish Media Package` GitHub Actions workflow to publish
 version selection, package gates, packed consumer smoke validation, npm OIDC
 trusted publishing, and optional `NPM_TOKEN` fallback.
 
+First publish bootstrap:
+
+1. If `@mrmeg/expo-media` does not exist on npm yet, create an npm automation
+   or granular access token with publish access to the `@mrmeg` scope.
+2. Add it to GitHub repository secrets as `NPM_TOKEN`.
+3. Run the `Publish Media Package` workflow manually once.
+4. After the package exists, configure npm trusted publishing for
+   `publish-media.yml`.
+5. Remove `NPM_TOKEN` if you want future publishes to rely only on OIDC.
+
+Push-based runs skip cleanly when the package does not exist and `NPM_TOKEN` is
+absent, so the initial missing package does not make CI fail. Manual runs fail
+with setup instructions in that same state.
+
 One-time npm package setup:
 
-1. Open npm package settings for `@mrmeg/expo-media`.
+1. Open npm package settings for `@mrmeg/expo-media` after the first publish.
 2. Add a trusted publisher.
 3. Select GitHub Actions.
 4. Set owner/user to `mrmeg`.
@@ -699,7 +713,7 @@ after publish succeeds.
 Fallback token setup:
 
 1. Create an npm automation or granular access token with publish access to
-   `@mrmeg/expo-media`.
+   `@mrmeg/expo-media`, or to the `@mrmeg` scope before the package exists.
 2. Add it to GitHub repository secrets as `NPM_TOKEN`.
 3. Rerun the same `Publish Media Package` workflow.
 

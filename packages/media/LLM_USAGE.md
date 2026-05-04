@@ -81,3 +81,8 @@ package boundary and installed docs.
 Use `.github/workflows/publish-media.yml` for GitHub publishing. It mirrors the
 UI package trusted-publishing workflow, uses npm OIDC by default, supports
 `NPM_TOKEN` fallback, and runs the media gates before `npm publish`.
+
+If `@mrmeg/expo-media` does not exist on npm yet, push-based workflow runs skip
+without failing unless `NPM_TOKEN` is configured. First publish should be a
+manual workflow run with `NPM_TOKEN`; trusted publishing can be configured after
+the package exists.

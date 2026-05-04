@@ -458,8 +458,14 @@ Use the `Publish Media Package` GitHub Actions workflow to publish
 - repository: `expo-template`
 - workflow filename: `publish-media.yml`
 
-The workflow also supports a repository secret named `NPM_TOKEN` as a fallback
-publish credential. Pushes to `main` that change `packages/media/package.json`
-publish the committed version when npm does not already have it. Manual runs
-can bump `patch`, `minor`, `major`, or an exact version, then publish and commit
-the version bump back to the selected branch.
+If the package does not exist on npm yet, first publish needs a repository
+secret named `NPM_TOKEN` with publish access to the `@mrmeg` scope. Run the
+workflow manually once with that token, then configure trusted publishing from
+the new package settings page. Push-based runs skip cleanly when the package is
+missing and no token is configured so CI does not fail before the first publish.
+
+After bootstrap, the workflow uses npm trusted publishing by default and still
+supports `NPM_TOKEN` as a fallback publish credential. Pushes to `main` that
+change `packages/media/package.json` publish the committed version when npm does
+not already have it. Manual runs can bump `patch`, `minor`, `major`, or an exact
+version, then publish and commit the version bump back to the selected branch.

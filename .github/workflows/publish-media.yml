@@ -96,15 +96,38 @@ jobs:
 
       - name: Check npm version availability
         id: availability
+        env:
+          NPM_PUBLISH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if npm view "@mrmeg/expo-media@${{ steps.version.outputs.version }}" version >/dev/null 2>&1; then
-            echo "@mrmeg/expo-media@${{ steps.version.outputs.version }} is already published."
+          PACKAGE="@mrmeg/expo-media"
+          VERSION="${{ steps.version.outputs.version }}"
+          PACKAGE_EXISTS=true
+
+          if ! npm view "${PACKAGE}" version >/dev/null 2>&1; then
+            PACKAGE_EXISTS=false
+          fi
+
+          if npm view "${PACKAGE}@${VERSION}" version >/dev/null 2>&1; then
+            echo "${PACKAGE}@${VERSION} is already published."
             if [ "${{ github.event_name }}" = "push" ]; then
               echo "should_publish=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             exit 1
           fi
+
+          if [ "${PACKAGE_EXISTS}" = "false" ] && [ -z "${NPM_PUBLISH_TOKEN:-}" ]; then
+            echo "${PACKAGE} does not exist on npm yet."
+            echo "First publish cannot use package-level trusted publishing because there is no npm package settings page yet."
+            echo "Add a GitHub Actions secret named NPM_TOKEN with publish access, run this workflow manually once, then configure trusted publishing for publish-media.yml."
+            if [ "${{ github.event_name }}" = "push" ]; then
+              echo "Skipping first publish on push so CI stays green."
+              echo "should_publish=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            exit 1
+          fi
+
           echo "should_publish=true" >> "$GITHUB_OUTPUT"
 
       - name: Update lockfile
