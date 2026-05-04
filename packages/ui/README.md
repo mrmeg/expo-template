@@ -97,6 +97,11 @@ const styles = StyleSheet.create({
 
 `useTheme()` returns the active `theme`, resolved `scheme`, persisted `currentTheme`, `setTheme`, `toggleTheme`, cross-platform shadow helpers, a web focus-ring helper, contrast helpers, and `withAlpha`. `getShadowStyle(type)` supports `base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`, `cardHover`, and `cardSubtle`. Use semantic tokens such as `theme.colors.background`, `foreground`, `card`, `popover`, `border`, `input`, `ring`, `primary`, `secondary`, `accent`, `mutedForeground`, `destructive`, `success`, and `warning`. `primary` is the neutral action color, `secondary` is a neutral secondary surface, `accent` is the teal highlight color, `input` is the default form-control border, and `ring` is the focus outline color.
 
+When `currentTheme` is `"system"`, the package tracks the OS color scheme and
+updates all `useTheme()` and `useStyles()` consumers through the package theme
+store. Apps should not add their own Appearance or `matchMedia` listeners just
+to make package components follow system light/dark changes.
+
 Use `useStyles()` when a component needs memoized theme-aware styles. The style factory receives `{ theme, spacing, withAlpha }`, and the returned hook value also includes the normal `useTheme()` helpers.
 
 ```tsx

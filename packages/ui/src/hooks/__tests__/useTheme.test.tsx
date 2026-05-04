@@ -7,9 +7,14 @@
 
 import React from "react";
 import { Platform, StyleSheet } from "react-native";
-import { renderHook } from "@testing-library/react-native";
+import { act, renderHook } from "@testing-library/react-native";
 import { useStyles, useTheme } from "../useTheme";
 import { colors } from "../../constants/colors";
+import { useThemeStore } from "../../state/themeStore";
+
+beforeEach(() => {
+  useThemeStore.setState({ userTheme: "system", systemTheme: "light" });
+});
 
 describe("useTheme", () => {
   describe("theme object", () => {
@@ -39,6 +44,35 @@ describe("useTheme", () => {
     it("returns a currentTheme value", () => {
       const { result } = renderHook(() => useTheme());
       expect(["system", "light", "dark"]).toContain(result.current.currentTheme);
+    });
+
+    it("updates system theme consumers while currentTheme stays system", () => {
+      const { result } = renderHook(() => useTheme());
+
+      expect(result.current.currentTheme).toBe("system");
+      expect(result.current.scheme).toBe("light");
+
+      act(() => {
+        useThemeStore.getState().setSystemTheme("dark");
+      });
+
+      expect(result.current.currentTheme).toBe("system");
+      expect(result.current.scheme).toBe("dark");
+      expect(result.current.theme).toBe(colors.dark);
+    });
+
+    it("ignores system theme changes when the user selected an explicit theme", () => {
+      useThemeStore.setState({ userTheme: "light", systemTheme: "light" });
+
+      const { result } = renderHook(() => useTheme());
+
+      act(() => {
+        useThemeStore.getState().setSystemTheme("dark");
+      });
+
+      expect(result.current.currentTheme).toBe("light");
+      expect(result.current.scheme).toBe("light");
+      expect(result.current.theme).toBe(colors.light);
     });
 
     it("keeps helper identities stable across unchanged rerenders", () => {

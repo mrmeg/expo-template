@@ -4,17 +4,18 @@
  * Tests default state, setTheme, and persistence behavior.
  */
 
-import { useThemeStore } from "../themeStore";
+import { resolveThemePreference, useThemeStore } from "../themeStore";
 
 // Reset store between tests
 beforeEach(() => {
-  useThemeStore.setState({ userTheme: "system" });
+  useThemeStore.setState({ userTheme: "system", systemTheme: "light" });
 });
 
 describe("themeStore", () => {
   it("has default theme of system", () => {
     const state = useThemeStore.getState();
     expect(state.userTheme).toBe("system");
+    expect(["light", "dark"]).toContain(state.systemTheme);
   });
 
   it("setTheme updates to light", () => {
@@ -36,5 +37,19 @@ describe("themeStore", () => {
   it("loadTheme is a function", () => {
     const state = useThemeStore.getState();
     expect(typeof state.loadTheme).toBe("function");
+  });
+
+  it("updates systemTheme independently from the user preference", () => {
+    useThemeStore.getState().setSystemTheme("dark");
+
+    expect(useThemeStore.getState().userTheme).toBe("system");
+    expect(useThemeStore.getState().systemTheme).toBe("dark");
+  });
+
+  it("resolves system preference to the current system theme", () => {
+    expect(resolveThemePreference("system", "dark")).toBe("dark");
+    expect(resolveThemePreference("system", "light")).toBe("light");
+    expect(resolveThemePreference("dark", "light")).toBe("dark");
+    expect(resolveThemePreference("light", "dark")).toBe("light");
   });
 });

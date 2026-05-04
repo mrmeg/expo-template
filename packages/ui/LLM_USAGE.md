@@ -139,6 +139,11 @@ const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
 }));
 ```
 
+When the saved theme preference is `system`, the package theme store owns the
+OS color-scheme subscription, including web `prefers-color-scheme`. Do not add
+app-local Appearance or `matchMedia` listeners for package components; import
+`useTheme()`, `useStyles()`, and `useThemeStore` from `@mrmeg/expo-ui`.
+
 ## Component Use-Case Index
 
 Use this table before creating a new app-local primitive.

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { Colors, colors } from "../constants/colors";
-import { useColorScheme as useColorSchemeDefault, ViewStyle, Platform, StyleSheet } from "react-native";
-import { useThemeStore } from "../state/themeStore";
+import { ViewStyle, Platform, StyleSheet } from "react-native";
+import { resolveThemePreference, useThemeStore } from "../state/themeStore";
 import { spacing as spacingConstants } from "../constants/spacing";
 
 type ShadowType =
@@ -74,18 +74,13 @@ export function useTheme(): ExtendedColorScheme & {
   toggleTheme: () => void;
   setTheme: (theme: "system" | "light" | "dark") => void;
   currentTheme: "system" | "light" | "dark";
-  } {
+} {
   const userTheme = useThemeStore((s) => s.userTheme);
+  const systemTheme = useThemeStore((s) => s.systemTheme);
   const setTheme = useThemeStore((s) => s.setTheme);
-  let defaultScheme = useColorSchemeDefault();
-
-  // Ensure a scheme is selected, even if we fail to get one
-  if (!defaultScheme) {
-    defaultScheme = "light";
-  }
 
   // Determine which theme to use (user preference or system)
-  const effectiveScheme = userTheme === "system" ? defaultScheme : userTheme;
+  const effectiveScheme = resolveThemePreference(userTheme, systemTheme);
   const theme = colors[effectiveScheme];
 
   // Sync theme to DOM so CSS in +html.tsx follows the app's runtime theme

@@ -85,7 +85,7 @@
     },
     "packages/ui": {
       "name": "@mrmeg/expo-ui",
-      "version": "0.1.7",
+      "version": "0.1.8",
       "dependencies": {
         "@expo/vector-icons": ">=15.0.0 <16.0.0",
         "@rn-primitives/accordion": "~1.4.0",

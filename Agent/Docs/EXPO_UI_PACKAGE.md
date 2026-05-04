@@ -210,6 +210,12 @@ const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
 }));
 ```
 
+When `currentTheme` is `"system"`, the package theme store owns the system
+color-scheme subscription. It tracks native `Appearance` changes and web
+`prefers-color-scheme`, then updates all package `useTheme()` and `useStyles()`
+consumers through the same store signal. Consumer apps should not add local
+Appearance or `matchMedia` compatibility code for package components.
+
 Use semantic tokens instead of hardcoded colors:
 
 ```tsx
