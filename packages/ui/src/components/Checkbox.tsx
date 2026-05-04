@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform } from "react-native";
 import Animated, {
   useSharedValue,
@@ -77,6 +77,15 @@ function Checkbox({
 
   // Simple fast opacity for the checkmark icon
   const checkOpacity = useSharedValue(checked || indeterminate ? 1 : 0);
+  const isVisuallyChecked = !!checked || indeterminate;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      checkOpacity.value = withTiming(isVisuallyChecked ? 1 : 0, { duration: 0 });
+    } else {
+      checkOpacity.value = withTiming(isVisuallyChecked ? 1 : 0, { duration: 60 });
+    }
+  }, [checkOpacity, isVisuallyChecked, reduceMotion]);
 
   const wrappedOnCheckedChange = (next: boolean) => {
     if (next) hapticLight();
@@ -96,7 +105,7 @@ function Checkbox({
   // Dynamic border color with sufficient contrast against background
   const borderColor = error
     ? theme.colors.destructive
-    : checked || indeterminate
+    : isVisuallyChecked
       ? theme.colors.primary
       : getContrastingColor(
         theme.colors.background,
@@ -115,7 +124,7 @@ function Checkbox({
       disabled={disabled}
       style={{
         borderColor,
-        backgroundColor: checked || indeterminate ? theme.colors.primary : theme.colors.background,
+        backgroundColor: isVisuallyChecked ? theme.colors.primary : theme.colors.background,
         borderRadius: spacing.radiusSm,
         borderWidth: 1,
         width: sizeConfig.size,

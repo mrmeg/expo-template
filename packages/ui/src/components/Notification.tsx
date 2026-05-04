@@ -160,8 +160,12 @@ export const Notification = () => {
     }
   };
 
-  const getTitle = () => {
-    if (alert?.title) return alert.title;
+  const getTitle = (message?: string) => {
+    if (alert?.title?.trim()) return alert.title;
+
+    if (alert?.loading) {
+      return translateText("notification.loading", "Loading");
+    }
 
     switch (alert?.type) {
     case "error":
@@ -171,15 +175,20 @@ export const Notification = () => {
     case "warning":
       return translateText("notification.warning", "Warning");
     case "info":
-      return "";
+      return message ? "" : translateText("notification.info", "Info");
     default:
       return "";
     }
   };
 
   const { icon, color: iconColor, bgColor: iconBgColor } = getIconProps();
-  const title = getTitle();
-  const hasMessage = !!alert?.messages?.[0];
+  const message = alert?.messages?.find((item) => item.trim().length > 0);
+  const title = getTitle(message);
+  const hasMessage = !!message;
+
+  if (!alert?.show) {
+    return null;
+  }
 
   return (
     <Animated.View
@@ -226,7 +235,7 @@ export const Notification = () => {
               style={[styles.alertDescription, { color: theme.colors.mutedForeground }]}
               numberOfLines={2}
             >
-              {alert!.messages![0]}
+              {message}
             </StyledText>
           )}
         </View>

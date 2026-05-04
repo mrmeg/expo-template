@@ -20,8 +20,8 @@
 │  │  i18n…)  │ │          │ │                  │    │
 │  └──────────┘ └──────────┘ └──────────────────┘    │
 ├─────────────────────────────────────────────────────┤
-│                 Shared Layer                         │
-│            shared/media.ts (paths, types)            │
+│              Shared / Package Layer                  │
+│      shared/media.ts compatibility + packages/media  │
 ├─────────────────────────────────────────────────────┤
 │                 Server Layer                         │
 │     Express (prod web) │ API Routes (Expo Server)    │
@@ -51,7 +51,7 @@ File-based routing via Expo Router with nested layouts:
   - **Tabs** (`(tabs)/`) — 4 bottom tabs: Explore, Media, Profile, Settings
   - **Demos** (`(demos)/`) — 13 screen templates plus standalone demos (form, auth, developer, onboarding) and the component showcase
 - **API routes** (`app/api/`) — Server-side endpoints. Cross-route helpers live in `server/api/shared/` (`auth.ts` with `requireAuthenticatedUser` fronted by a pluggable `TokenVerifier` — returns structured 401s and fails closed when no verifier is registered, `errors.ts` typed JSON error responses, `cors.ts`):
-  - `api/media/` — R2/S3 presigned URLs (upload, read, list, delete). Bootstrap and `S3Client` lazy-construction live in `server/api/media/storage.ts`; missing `R2_*` env vars return `503 media-disabled` from every route.
+  - `api/media/` — thin wrappers around `server/media/handlers.ts`, which configures `@mrmeg/expo-media/server` for R2/S3 presigned URLs (upload, read, list, delete). Missing `R2_*` env vars return `503 media-disabled` from every route before an `S3Client` is constructed.
   - `api/billing/` — Stripe Checkout / Portal / Webhook / Summary routes driven by the process-wide `BillingRegistry` (`server/api/billing/registry.ts`). Unconfigured registries return `503 billing-disabled`.
 - **Web HTML** (`+html.tsx`) — Server-only root document, global CSS, theme-aware styles, font loading
 
@@ -98,6 +98,31 @@ when needed. The package does not ship font files; web loads Lato through
 Google Fonts while native uses platform sans-serif fallbacks. Package source
 must use relative imports internally and must not import from `@/client/*`.
 
+### Media Package (`packages/media/`)
+
+Reusable media infrastructure is packaged as `@mrmeg/expo-media`. The root app
+uses workspace resolution while future consumers install it from npm.
+
+Package exports:
+
+- `@mrmeg/expo-media`
+- `@mrmeg/expo-media/client`
+- `@mrmeg/expo-media/react-query`
+- `@mrmeg/expo-media/processing`
+- `@mrmeg/expo-media/processing/image-compression`
+- `@mrmeg/expo-media/processing/image-compression/config`
+- `@mrmeg/expo-media/processing/video-conversion`
+- `@mrmeg/expo-media/processing/video-thumbnails`
+- `@mrmeg/expo-media/server`
+
+Package-owned source includes media config contracts, key safety helpers,
+content-type-to-extension mapping, client upload/list/read/delete factories,
+React Query hook factories, processing helpers, and framework-agnostic S3/R2
+handler factories. App-owned integrations such as auth, bucket env var names,
+CORS, route files, UI screens, metadata persistence, and FFmpeg worker serving
+stay outside the package. Package source must use relative imports internally
+and must not import from `@/client/*` or `@/server/*`.
+
 ### Feature Isolation
 
 Features follow tiered boundaries — *self-contained by default*, with two
@@ -105,8 +130,9 @@ named exceptions that the script + test in
 `scripts/check-feature-isolation.js` and
 `client/features/__tests__/featureIsolation.test.ts` enforce in CI:
 
-**Shared layer (always allowed):** `@mrmeg/expo-ui/*`, `client/lib/*`,
-`client/hooks/*`, `client/state/*`, `shared/*`, `@rn-primitives`. Any feature
+**Shared layer (always allowed):** `@mrmeg/expo-ui/*`,
+`@mrmeg/expo-media/*`, `client/lib/*`, `client/hooks/*`,
+`client/state/*`, `shared/*`, `@rn-primitives`. Any feature
 can import from these. App-local feature code should import UI primitives,
 tokens, theme hooks, resource loading, and UI stores from `@mrmeg/expo-ui`
 rather than `@/client/components/ui`, `@/client/constants`, or UI-owned
@@ -128,7 +154,7 @@ client hooks/state.
 **Copy-with-feature notes (when extracting a feature into a new project):**
 - `auth/` → standalone. Needs the shared layer plus AWS Amplify + Cognito env vars.
 - `onboarding/` → standalone. Needs AsyncStorage on native (already in shared layer).
-- `media/` → standalone. Needs `app/api/media/*` + `server/api/media/storage.ts` + `shared/media.ts` + R2/S3 env vars. Toast feedback uses `globalUIStore` from `@mrmeg/expo-ui/state`.
+- `media/` → standalone. Needs `@mrmeg/expo-media`, the thin `app/api/media/*` wrappers, `server/media/*` config/handler adapters, `shared/media.ts` compatibility helpers, and R2/S3 env vars. Toast feedback uses `globalUIStore` from `@mrmeg/expo-ui/state`.
 - `billing/` → copy with `auth/` (identity dependency) and the `app/api/billing/*` server routes + `server/api/billing/*` registry + `shared/billing.ts`.
 - `app/` → copy with `auth/` and `onboarding/` (composition dependency); this folder is the shell, not portable on its own.
 - `i18n/`, `navigation/`, `keyboard/` → standalone with shared-layer dependencies only.
@@ -178,8 +204,8 @@ Two API layers:
 Client (pick/capture)
   → Image compression (HEIC → JPEG, resize)
   → Optional web video conversion (WebM/AVI/MKV → MP4 via FFmpeg.wasm worker)
-  → POST /api/media/getUploadUrl (get presigned S3 URL)
-  → PUT to S3 presigned URL (direct upload)
+  → POST /api/media/getUploadUrl ({ mediaType, contentType, size? })
+  → PUT to S3 presigned URL with matching Content-Type
   → POST /api/media/getSignedUrls (read-back URLs, 24hr expiry)
 ```
 

@@ -72,6 +72,18 @@ describe("Checkbox", () => {
     expect(checkbox.props.accessibilityState.checked).toBe(true);
   });
 
+  it("updates when checked is changed by a parent", () => {
+    const { rerender } = render(
+      <Checkbox checked={false} onCheckedChange={() => {}} />
+    );
+
+    expect(screen.getByRole("checkbox").props.accessibilityState.checked).toBe(false);
+
+    rerender(<Checkbox checked={true} onCheckedChange={() => {}} />);
+
+    expect(screen.getByRole("checkbox").props.accessibilityState.checked).toBe(true);
+  });
+
   it("calls onCheckedChange when pressed", () => {
     const onCheckedChange = jest.fn();
 

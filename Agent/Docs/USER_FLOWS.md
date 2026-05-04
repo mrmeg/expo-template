@@ -104,16 +104,20 @@ Settings tab → Sign Out button
 ## Media Upload
 
 ```
-Media tab → Pick image/video
+Media tab → Pick up to configured selection limit (20 by default) images/videos
   → useMediaLibrary hook (expo-image-picker)
-  → If image:
+  → For each image:
       → Compress (HEIC → JPEG if needed)
-      → Apply compression settings from compressionStore
-  → If video:
+      → Apply app defaults from mediaSettings through compressionStore
+      → Keep source asset if the compressed output is not smaller
+  → For each video:
       → Generate thumbnail (expo-video-thumbnails)
-  → POST /api/media/getUploadUrl
-  → PUT to presigned S3 URL
-  → Toast notification (globalUIStore) on success/failure
+      → Convert unsupported web formats to MP4 only when the result is smaller
+  → Sequentially upload each selected asset
+      → POST /api/media/getUploadUrl with mediaType + contentType + optional size
+      → PUT to presigned S3/R2 URL with the same Content-Type
+      → If video thumbnail exists, upload it to thumbnails with the video basename
+  → Toast notification (globalUIStore) on success/partial failure/failure
   → Refresh media list
 ```
 
@@ -129,9 +133,13 @@ Media tab → Load media list
   → 200 OK:
       → POST /api/media/getSignedUrls (batch signed URLs)
       → Display grid/list of media items
-      → Tap item → Detail view
-        → If video → VideoPlayer component
-      → Long press → Delete option
+      → Tap image thumbnail → full-screen image preview
+      → Tap video preview → VideoPlayer component
+      → Select individual rows with checkboxes, or select all visible rows
+      → Delete selected rows
+        → POST /api/media/delete with selected keys
+        → Include generated thumbnail keys for selected videos
+      → Delete one row
         → DELETE /api/media/delete
         → Refresh list
   → Other error (network, 5xx):

@@ -8,7 +8,13 @@ const compression = require("compression");
 const morgan = require("morgan");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
-const { GENERAL_LIMIT, STRICT_LIMIT, STRICT_LIMIT_PATHS } = require("./rateLimits");
+const {
+  GENERAL_LIMIT,
+  MEDIA_SIGNER_LIMIT,
+  MEDIA_SIGNER_LIMIT_PATHS,
+  STRICT_LIMIT,
+  STRICT_LIMIT_PATHS,
+} = require("./rateLimits");
 
 const CLIENT_BUILD_DIR = path.join(process.cwd(), "dist/client");
 const SERVER_BUILD_DIR = path.join(process.cwd(), "dist/server");
@@ -57,6 +63,15 @@ const generalLimiter = rateLimit({
   message: { error: "Too many requests, please try again later" },
 });
 
+// Media upload URL signing supports normal batch uploads without sharing the
+// stricter side-effect budget used by billing/report/correction endpoints.
+const mediaSignerLimiter = rateLimit({
+  ...MEDIA_SIGNER_LIMIT,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many upload requests, please try again later" },
+});
+
 // Stricter rate limiting for sensitive endpoints (see server/rateLimits.js)
 const strictLimiter = rateLimit({
   ...STRICT_LIMIT,
@@ -68,8 +83,12 @@ const strictLimiter = rateLimit({
 // Apply general rate limiting to all API routes
 app.use("/api", generalLimiter);
 
-// Apply strict rate limiting to upload-url and other sensitive endpoints.
+// Apply route-specific rate limiting.
 // Paths are defined in ./rateLimits.js so tests can assert coverage.
+for (const path of MEDIA_SIGNER_LIMIT_PATHS) {
+  app.use(path, mediaSignerLimiter);
+}
+
 for (const path of STRICT_LIMIT_PATHS) {
   app.use(path, strictLimiter);
 }

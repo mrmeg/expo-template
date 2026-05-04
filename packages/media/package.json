@@ -1,0 +1,106 @@
+{
+  "name": "@mrmeg/expo-media",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Reusable Expo media contracts, storage handlers, client hooks, and processing helpers for MrMeg projects.",
+  "keywords": [
+    "expo",
+    "react-native",
+    "media",
+    "s3",
+    "r2",
+    "presigned-url"
+  ],
+  "author": "Matt Megenhardt",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrmeg/expo-template.git",
+    "directory": "packages/media"
+  },
+  "bugs": {
+    "url": "https://github.com/mrmeg/expo-template/issues"
+  },
+  "homepage": "https://github.com/mrmeg/expo-template/tree/main/packages/media",
+  "type": "module",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "package.json",
+    "README.md",
+    "LLM_USAGE.md",
+    "llms.txt",
+    "llms-full.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./react-query": {
+      "types": "./dist/react-query/index.d.ts",
+      "default": "./dist/react-query/index.js"
+    },
+    "./processing": {
+      "types": "./dist/processing/index.d.ts",
+      "default": "./dist/processing/index.js"
+    },
+    "./processing/image-compression": {
+      "types": "./dist/processing/imageCompression/index.d.ts",
+      "default": "./dist/processing/imageCompression/index.js"
+    },
+    "./processing/image-compression/config": {
+      "types": "./dist/processing/imageCompression/config.d.ts",
+      "default": "./dist/processing/imageCompression/config.js"
+    },
+    "./processing/video-conversion": {
+      "types": "./dist/processing/videoConversion/index.d.ts",
+      "default": "./dist/processing/videoConversion/index.js"
+    },
+    "./processing/video-thumbnails": {
+      "types": "./dist/processing/videoThumbnails.d.ts",
+      "default": "./dist/processing/videoThumbnails.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "jest --config ../../jest.config.js packages/media/src --runInBand --watchman=false",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-media-package-esm.mjs",
+    "publish:dry-run": "bun pm pack --dry-run"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1041.0",
+    "@aws-sdk/s3-request-presigner": "^3.1041.0",
+    "@tanstack/react-query": "^5.100.9",
+    "ulid": "^3.0.2",
+    "zustand": "^5.0.12"
+  },
+  "peerDependencies": {
+    "expo": "~55.0.0",
+    "expo-crypto": "~55.0.0",
+    "expo-file-system": "~55.0.0",
+    "expo-image-manipulator": "~55.0.0",
+    "expo-image-picker": "~55.0.0",
+    "expo-video-thumbnails": "~55.0.0",
+    "heic2any": "^0.0.4",
+    "react": ">=19.2.0 <20.0.0",
+    "react-native": ">=0.83.0 <0.84.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.14",
+    "typescript": "~5.9.2"
+  }
+}

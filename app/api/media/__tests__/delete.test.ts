@@ -141,7 +141,7 @@ describe("media delete route", () => {
     expect(res.status).toBe(500);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
     const body = await res.json();
-    expect(body.message).toBe("Failed to delete file");
+    expect(body.message).toBe("Failed to delete file.");
     errorSpy.mockRestore();
   });
 
@@ -163,7 +163,7 @@ describe("media delete route", () => {
 
   it("POST rejects more than 1000 keys", async () => {
     const { POST } = require("../delete+api");
-    const keys = Array.from({ length: 1001 }, (_, i) => `k${i}`);
+    const keys = Array.from({ length: 1001 }, (_, i) => `uploads/k${i}`);
     const res: Response = await POST(
       makeRequest("http://localhost/api/media/delete", {
         method: "POST",
@@ -180,28 +180,35 @@ describe("media delete route", () => {
 
   it("POST success returns the deleted keys and any S3-reported errors", async () => {
     mockSend.mockResolvedValueOnce({
-      Deleted: [{ Key: "a" }, { Key: "b" }],
-      Errors: [{ Key: "c", Message: "NoSuchKey" }],
+      Deleted: [{ Key: "uploads/a" }, { Key: "uploads/b" }],
+      Errors: [{ Key: "uploads/c", Message: "NoSuchKey" }],
     });
     const { POST } = require("../delete+api");
     const res: Response = await POST(
       makeRequest("http://localhost/api/media/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keys: ["a", "b", "c"] }),
+        body: JSON.stringify({ keys: ["uploads/a", "uploads/b", "uploads/c"] }),
       })
     );
 
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
-    expect(body.deleted).toEqual(["a", "b"]);
-    expect(body.errors).toEqual([{ key: "c", message: "NoSuchKey" }]);
+    expect(body.deleted).toEqual(["uploads/a", "uploads/b"]);
+    expect(body.errors).toEqual([{ key: "uploads/c", message: "NoSuchKey" }]);
 
     const cmd = mockSend.mock.calls[0][0];
     expect(cmd.input).toEqual({
       Bucket: "test-bucket",
-      Delete: { Objects: [{ Key: "a" }, { Key: "b" }, { Key: "c" }], Quiet: false },
+      Delete: {
+        Objects: [
+          { Key: "uploads/a" },
+          { Key: "uploads/b" },
+          { Key: "uploads/c" },
+        ],
+        Quiet: false,
+      },
     });
   });
 });

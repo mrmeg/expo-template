@@ -30,7 +30,7 @@ describe("server/ffmpegWorker", () => {
     const configSource = fs.readFileSync(
       path.join(
         REPO_ROOT,
-        "client/features/media/lib/videoConversion/config.ts"
+        "packages/media/src/processing/videoConversion/config.ts"
       ),
       "utf8"
     );

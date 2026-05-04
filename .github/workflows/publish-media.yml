@@ -1,0 +1,160 @@
+name: Publish Media Package
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - packages/media/package.json
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version bump: patch, minor, major, or exact x.y.z"
+        required: true
+        default: "patch"
+      ref:
+        description: "Branch to release from"
+        required: true
+        default: "main"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish @mrmeg/expo-media
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Use latest npm
+        run: npm install -g npm@latest
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Bump media package version
+        id: version
+        run: |
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const { readFileSync, writeFileSync } = require("node:fs");
+          const semver = require("semver");
+
+          const packagePath = "packages/media/package.json";
+          const pkg = JSON.parse(readFileSync(packagePath, "utf8"));
+          const eventName = process.env.GITHUB_EVENT_NAME;
+
+          if (eventName === "push") {
+            console.log(`version=${pkg.version}`);
+            console.log("changed=false");
+            process.exit(0);
+          }
+
+          const bump = process.env.VERSION;
+          const exact = semver.valid(bump);
+          const next = exact ?? semver.inc(pkg.version, bump);
+
+          if (!next) {
+            throw new Error(`Invalid version "${bump}". Use patch, minor, major, or exact x.y.z.`);
+          }
+
+          if (exact && next === pkg.version) {
+            console.log(`version=${next}`);
+            console.log("changed=false");
+            process.exit(0);
+          }
+
+          if (semver.lte(next, pkg.version)) {
+            throw new Error(`Next version ${next} must be greater than current version ${pkg.version}.`);
+          }
+
+          pkg.version = next;
+          writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
+          console.log(`version=${next}`);
+          console.log("changed=true");
+          NODE
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Check npm version availability
+        id: availability
+        run: |
+          if npm view "@mrmeg/expo-media@${{ steps.version.outputs.version }}" version >/dev/null 2>&1; then
+            echo "@mrmeg/expo-media@${{ steps.version.outputs.version }} is already published."
+            if [ "${{ github.event_name }}" = "push" ]; then
+              echo "should_publish=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            exit 1
+          fi
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Update lockfile
+        if: steps.availability.outputs.should_publish == 'true'
+        run: bun install --lockfile-only
+
+      - name: Type check media package
+        if: steps.availability.outputs.should_publish == 'true'
+        run: bun run media:typecheck
+
+      - name: Test media package
+        if: steps.availability.outputs.should_publish == 'true'
+        run: bun run media:test
+
+      - name: Build media package
+        if: steps.availability.outputs.should_publish == 'true'
+        run: bun run media:build
+
+      - name: Pack media package dry run
+        if: steps.availability.outputs.should_publish == 'true'
+        run: bun run media:pack
+
+      - name: Consumer smoke test
+        if: steps.availability.outputs.should_publish == 'true'
+        run: bun run media:consumer-smoke
+
+      - name: Publish to npm
+        if: steps.availability.outputs.should_publish == 'true'
+        working-directory: packages/media
+        env:
+          NPM_PUBLISH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "${NPM_PUBLISH_TOKEN:-}" ]; then
+            echo "//registry.npmjs.org/:_authToken=${NPM_PUBLISH_TOKEN}" > "${RUNNER_TEMP}/.npmrc"
+            export NPM_CONFIG_USERCONFIG="${RUNNER_TEMP}/.npmrc"
+          else
+            unset NODE_AUTH_TOKEN
+            unset NPM_CONFIG_USERCONFIG
+          fi
+          npm publish --access public --registry=https://registry.npmjs.org/
+
+      - name: Commit version bump
+        if: github.event_name == 'workflow_dispatch' && steps.availability.outputs.should_publish == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/media/package.json bun.lock
+          if git diff --cached --quiet; then
+            echo "No version bump changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: release @mrmeg/expo-media v${{ steps.version.outputs.version }}"
+          git push origin "HEAD:${{ inputs.ref }}"

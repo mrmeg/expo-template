@@ -398,7 +398,7 @@ import { Button, TextInput } from "@mrmeg/expo-ui/components";
 | `Alert` | Cross-platform imperative alerts | Use for blocking confirm/alert dialogs; uses native alerts off web and browser alerts on web |
 | `Badge` | Short status labels | `variant`: `default`, `secondary`, `outline`, `destructive` |
 | `UIProvider` | Root package UI infrastructure | Mount once near the root; owns `Notification`, `StatusBar`, and the default portal host |
-| `Notification` | Global toast surface | Mounted by `UIProvider`; driven by `globalUIStore` |
+| `Notification` | Global toast surface | Mounted by `UIProvider`; driven by `globalUIStore`; loading/info alerts fall back to readable default text when title/messages are omitted |
 | `Progress` | Determinate or indeterminate progress | `variant`: `default`, `accent`, `destructive`; `size`: `sm`, `md`, `lg` |
 | `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Use instead of layout-shifting spinners for content regions |
 | `EmptyState` | Empty/error content blocks | Supports icon, title, description, and optional action |

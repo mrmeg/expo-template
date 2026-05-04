@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -15,13 +15,21 @@ import {
   SansSerifBoldText,
 } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
+import { Checkbox } from "@mrmeg/expo-ui/components/Checkbox";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { ImagePreview } from "@/client/features/media/components/ImagePreview";
 import { VideoPlayer } from "@/client/features/media/components/VideoPlayer";
 import { useMediaList, formatBytes } from "@/client/features/media/hooks/useMediaList";
 import { useSignedUrls } from "@/client/features/media/hooks/useSignedUrls";
-import { useMediaDelete } from "@/client/features/media/hooks/useMediaDelete";
+import {
+  useMediaDelete,
+  useMediaDeleteBatch,
+} from "@/client/features/media/hooks/useMediaDelete";
 import { useMediaUpload } from "@/client/features/media/hooks/useMediaUpload";
-import { useMediaLibrary } from "@/client/features/media/hooks/useMediaLibrary";
+import {
+  useMediaLibrary,
+  type ProcessedAsset,
+} from "@/client/features/media/hooks/useMediaLibrary";
 import { isMediaError } from "@/client/features/media/lib/problem";
 import {
   MEDIA_PATHS,
@@ -29,6 +37,7 @@ import {
   isImageKey,
   getVideoThumbnailKey,
 } from "@/shared/media";
+import { MEDIA_APP_SETTINGS } from "@/client/features/media/mediaSettings";
 import { globalUIStore } from "@mrmeg/expo-ui/state";
 import { logDev } from "@/client/lib/devtools";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -40,7 +49,13 @@ export default function MediaScreen() {
   const { theme, getShadowStyle } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [filter, setFilter] = useState<FilterType>("all");
+  const [isUploadingBatch, setIsUploadingBatch] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
   const [playingVideo, setPlayingVideo] = useState<{
+    url: string;
+    title: string;
+  } | null>(null);
+  const [previewingImage, setPreviewingImage] = useState<{
     url: string;
     title: string;
   } | null>(null);
@@ -51,13 +66,95 @@ export default function MediaScreen() {
   const missingEnvVars = mediaDisabled && error.problem.kind === "disabled" ? error.problem.missing : undefined;
   const fetchError = !mediaDisabled && error ? error : null;
   const { mutateAsync: deleteFile, isPending: isDeleting } = useMediaDelete();
+  const { mutateAsync: deleteFiles, isPending: isDeletingBatch } =
+    useMediaDeleteBatch();
   const { mutateAsync: uploadFile, isPending: isUploading } = useMediaUpload();
   const { pickMedia, processing: isPicking } = useMediaLibrary();
+  const mediaItems = useMemo(() => data?.items ?? [], [data?.items]);
+  const visibleKeys = useMemo(
+    () => mediaItems.map((item) => item.key),
+    [mediaItems]
+  );
+  const visibleKeySet = useMemo(() => new Set(visibleKeys), [visibleKeys]);
+  const selectedVisibleCount = useMemo(
+    () => visibleKeys.filter((key) => selectedKeys.has(key)).length,
+    [selectedKeys, visibleKeys]
+  );
+  const selectedCount = selectedKeys.size;
+  const isDeleteBusy = isDeleting || isDeletingBatch;
+  const isAllVisibleSelected =
+    visibleKeys.length > 0 && selectedVisibleCount === visibleKeys.length;
+  const isPartiallyVisibleSelected =
+    selectedVisibleCount > 0 && selectedVisibleCount < visibleKeys.length;
+  const uploadDisabled =
+    mediaDisabled || isPicking || isUploading || isUploadingBatch;
+
+  useEffect(() => {
+    setSelectedKeys((current) => {
+      if (current.size === 0) return current;
+
+      const next = new Set(
+        [...current].filter((key) => visibleKeySet.has(key))
+      );
+      return next.size === current.size ? current : next;
+    });
+  }, [visibleKeySet]);
+
+  const clearSelection = () => {
+    setSelectedKeys(new Set());
+  };
+
+  const toggleSelectedKey = (key: string) => {
+    setSelectedKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    if (visibleKeys.length === 0) return;
+
+    setSelectedKeys((current) => {
+      const next = new Set(current);
+
+      if (isAllVisibleSelected) {
+        for (const key of visibleKeys) next.delete(key);
+      } else {
+        for (const key of visibleKeys) next.add(key);
+      }
+
+      return next;
+    });
+  };
+
+  const getDeletePayloadKeys = (keys: string[]) => {
+    const payload = new Set<string>();
+
+    for (const key of keys) {
+      payload.add(key);
+      if (
+        MEDIA_APP_SETTINGS.uploads.deleteVideoThumbnailWithVideo &&
+        isVideoKey(key)
+      ) {
+        payload.add(getVideoThumbnailKey(key));
+      }
+    }
+
+    return [...payload];
+  };
 
   const handleDelete = async (key: string) => {
     try {
       // If deleting a video, also delete its thumbnail
-      if (isVideoKey(key)) {
+      if (
+        MEDIA_APP_SETTINGS.uploads.deleteVideoThumbnailWithVideo &&
+        isVideoKey(key)
+      ) {
         const thumbnailKey = getVideoThumbnailKey(key);
         try {
           await deleteFile(thumbnailKey);
@@ -68,6 +165,24 @@ export default function MediaScreen() {
       }
 
       await deleteFile(key);
+      setSelectedKeys((current) => {
+        const thumbnailKey =
+          MEDIA_APP_SETTINGS.uploads.deleteVideoThumbnailWithVideo &&
+          isVideoKey(key)
+            ? getVideoThumbnailKey(key)
+            : null;
+
+        if (!current.has(key) && !(thumbnailKey && current.has(thumbnailKey))) {
+          return current;
+        }
+
+        const next = new Set(current);
+        next.delete(key);
+        if (thumbnailKey) {
+          next.delete(thumbnailKey);
+        }
+        return next;
+      });
       globalUIStore.getState().show({
         type: "success",
         title: "Deleted",
@@ -86,67 +201,186 @@ export default function MediaScreen() {
     }
   };
 
-  const handleUpload = async () => {
-    // Allow both images and videos
-    const assets = await pickMedia({ mediaTypes: ["images", "videos"] });
-    if (!assets || assets.length === 0) return;
+  const handleDeleteSelected = async () => {
+    const selectedForDelete = [...selectedKeys];
+    if (selectedForDelete.length === 0) return;
 
-    const asset = assets[0];
-    const isVideo = asset.type === "video" || asset.mimeType?.startsWith("video/");
-
-    // Determine media type based on content and filter
-    let mediaType: keyof typeof MEDIA_PATHS;
-    if (filter !== "all" && filter !== "thumbnails") {
-      mediaType = filter;
-    } else if (isVideo) {
-      mediaType = "videos";
-    } else {
-      mediaType = "uploads";
-    }
-
-    // Pass blob on web, URI on native
-    const file = asset.blob || asset.uri;
+    globalUIStore.getState().show({
+      type: "info",
+      title: "Deleting",
+      messages: [
+        selectedForDelete.length === 1
+          ? "Deleting selected file..."
+          : `Deleting ${selectedForDelete.length} selected files...`,
+      ],
+      loading: true,
+    });
 
     try {
-      // Upload the main file
-      const result = await uploadFile({
-        file,
-        contentType: asset.mimeType || "application/octet-stream",
-        mediaType,
-      });
+      const payloadKeys = getDeletePayloadKeys(selectedForDelete);
+      const result = await deleteFiles(payloadKeys);
+      const errorCount = result.errors?.length ?? 0;
 
-      // If it's a video with a thumbnail, upload the thumbnail too
-      if (isVideo && (asset.thumbnailBlob || asset.thumbnailUri)) {
-        try {
-          // Derive thumbnail filename from video key (e.g., "01ABC123.mp4" -> "01ABC123")
-          const videoFilename = result.key.split("/").pop() || "";
-          const thumbnailBasename = videoFilename.replace(/\.[^.]+$/, "");
+      clearSelection();
+      globalUIStore.getState().hide();
 
-          // Upload thumbnail - on web we have the blob, on native we need the URI
-          const thumbnailFile = asset.thumbnailBlob || asset.thumbnailUri;
-          if (thumbnailFile) {
-            await uploadFile({
-              file: thumbnailFile,
-              contentType: "image/jpeg",
-              mediaType: "thumbnails",
-              customFilename: thumbnailBasename, // Use video's ULID as thumbnail name
-            });
-            logDev(`Uploaded video thumbnail: ${thumbnailBasename}.jpg`);
-          }
-        } catch (thumbnailError) {
-          logDev(`Failed to upload thumbnail: ${thumbnailError}`);
-          // Don't fail the whole upload if thumbnail fails
-        }
+      if (errorCount > 0) {
+        globalUIStore.getState().show({
+          type: "warning",
+          title: "Delete Incomplete",
+          messages: [
+            `${selectedForDelete.length} selected files processed`,
+            `${errorCount} storage item${errorCount === 1 ? "" : "s"} failed`,
+          ],
+          duration: 6000,
+        });
+        return;
       }
 
       globalUIStore.getState().show({
         type: "success",
-        title: "Uploaded",
-        messages: [isVideo ? "Video uploaded successfully" : "File uploaded successfully"],
+        title: "Deleted",
+        messages: [
+          selectedForDelete.length === 1
+            ? "Selected file deleted"
+            : `${selectedForDelete.length} selected files deleted`,
+        ],
         duration: 3000,
       });
-      refetch();
     } catch (error) {
+      globalUIStore.getState().hide();
+      globalUIStore.getState().show({
+        type: "error",
+        title: "Delete Failed",
+        messages: [
+          error instanceof Error ? error.message : "Failed to delete files",
+        ],
+        duration: 5000,
+      });
+    }
+  };
+
+  const getUploadMediaType = (asset: ProcessedAsset): keyof typeof MEDIA_PATHS => {
+    const isVideo = asset.type === "video" || asset.mimeType?.startsWith("video/");
+
+    if (filter !== "all" && filter !== "thumbnails") {
+      return filter;
+    }
+
+    return isVideo
+      ? MEDIA_APP_SETTINGS.uploads.defaultVideoMediaType
+      : MEDIA_APP_SETTINGS.uploads.defaultImageMediaType;
+  };
+
+  const uploadAsset = async (asset: ProcessedAsset) => {
+    const isVideo = asset.type === "video" || asset.mimeType?.startsWith("video/");
+    const file = asset.blob || asset.uri;
+
+    const result = await uploadFile({
+      file,
+      contentType: asset.mimeType || "application/octet-stream",
+      mediaType: getUploadMediaType(asset),
+    });
+
+    if (
+      isVideo &&
+      MEDIA_APP_SETTINGS.uploads.uploadVideoThumbnails &&
+      (asset.thumbnailBlob || asset.thumbnailUri)
+    ) {
+      try {
+        const videoFilename = result.key.split("/").pop() || "";
+        const thumbnailBasename = videoFilename.replace(/\.[^.]+$/, "");
+        const thumbnailFile = asset.thumbnailBlob || asset.thumbnailUri;
+
+        if (thumbnailFile) {
+          await uploadFile({
+            file: thumbnailFile,
+            contentType: "image/jpeg",
+            mediaType: "thumbnails",
+            customFilename: thumbnailBasename,
+          });
+          logDev(`Uploaded video thumbnail: ${thumbnailBasename}.jpg`);
+        }
+      } catch (thumbnailError) {
+        logDev(`Failed to upload thumbnail: ${thumbnailError}`);
+      }
+    }
+
+    return { isVideo };
+  };
+
+  const handleUpload = async () => {
+    setIsUploadingBatch(true);
+
+    try {
+      const assets = await pickMedia({
+        mediaTypes: ["images", "videos"],
+        allowsMultipleSelection: true,
+        selectionLimit: MEDIA_APP_SETTINGS.uploads.selectionLimit,
+      });
+      if (!assets || assets.length === 0) return;
+
+      let uploadedCount = 0;
+      let videoCount = 0;
+      const failedFiles: string[] = [];
+
+      for (const [index, asset] of assets.entries()) {
+        globalUIStore.getState().show({
+          type: "info",
+          title: assets.length > 1 ? `Uploading ${index + 1} of ${assets.length}` : "Uploading",
+          messages: [asset.fileName || "Uploading file"],
+          loading: true,
+        });
+
+        try {
+          const uploaded = await uploadAsset(asset);
+          uploadedCount += 1;
+          if (uploaded.isVideo) videoCount += 1;
+        } catch (assetError) {
+          const fileName = asset.fileName || `File ${index + 1}`;
+          failedFiles.push(fileName);
+          logDev(`Failed to upload ${fileName}: ${assetError}`);
+        }
+      }
+
+      globalUIStore.getState().hide();
+
+      if (uploadedCount > 0) {
+        refetch();
+      }
+
+      if (uploadedCount === 0) {
+        globalUIStore.getState().show({
+          type: "error",
+          title: "Upload Failed",
+          messages: ["No files were uploaded"],
+          duration: 5000,
+        });
+        return;
+      }
+
+      const successMessage =
+        uploadedCount === 1
+          ? videoCount === 1
+            ? "Video uploaded successfully"
+            : "File uploaded successfully"
+          : `${uploadedCount} files uploaded successfully`;
+      const toastMessages =
+        failedFiles.length > 0
+          ? [
+            `${uploadedCount} of ${assets.length} files uploaded`,
+            `Failed: ${failedFiles.join(", ")}`,
+          ]
+          : [successMessage];
+
+      globalUIStore.getState().show({
+        type: failedFiles.length > 0 ? "warning" : "success",
+        title: failedFiles.length > 0 ? "Upload Incomplete" : "Uploaded",
+        messages: toastMessages,
+        duration: failedFiles.length > 0 ? 6000 : 3000,
+      });
+    } catch (error) {
+      globalUIStore.getState().hide();
       globalUIStore.getState().show({
         type: "error",
         title: "Upload Failed",
@@ -155,6 +389,8 @@ export default function MediaScreen() {
         ],
         duration: 5000,
       });
+    } finally {
+      setIsUploadingBatch(false);
     }
   };
 
@@ -191,6 +427,10 @@ export default function MediaScreen() {
     setPlayingVideo({ url: signedUrl, title: filename });
   };
 
+  const handlePreviewImage = (filename: string, signedUrl: string) => {
+    setPreviewingImage({ url: signedUrl, title: filename });
+  };
+
   const filters: { key: FilterType; label: string }[] = [
     { key: "all", label: "All" },
     { key: "avatars", label: "Avatars" },
@@ -210,7 +450,10 @@ export default function MediaScreen() {
               styles.filterTab,
               filter === f.key && styles.filterTabActive,
             ]}
-            onPress={() => setFilter(f.key)}
+            onPress={() => {
+              setFilter(f.key);
+              clearSelection();
+            }}
           >
             <SansSerifText
               style={[
@@ -234,7 +477,7 @@ export default function MediaScreen() {
         </View>
         <View style={styles.stat}>
           <SansSerifBoldText style={styles.statValue}>
-            {formatBytes(data?.items.reduce((sum, i) => sum + i.size, 0) ?? 0)}
+            {formatBytes(mediaItems.reduce((sum, i) => sum + i.size, 0))}
           </SansSerifBoldText>
           <SansSerifText style={styles.statLabel}>Total Size</SansSerifText>
         </View>
@@ -245,7 +488,7 @@ export default function MediaScreen() {
           preset="default"
           size="sm"
           onPress={handleUpload}
-          disabled={mediaDisabled || isPicking || isUploading}
+          disabled={uploadDisabled}
         >
           <Icon name="upload" size={16} color={theme.colors.primaryForeground} />
         </Button>
@@ -280,7 +523,7 @@ export default function MediaScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
-      ) : data?.items.length === 0 ? (
+      ) : mediaItems.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Icon
             name="folder"
@@ -293,106 +536,172 @@ export default function MediaScreen() {
           </SansSerifText>
         </View>
       ) : (
-        <FlatList
-          data={data?.items}
-          keyExtractor={(item) => item.key}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
-              tintColor={theme.colors.primary}
+        <>
+          <View style={[styles.selectionToolbar, getShadowStyle("subtle")]}>
+            <Checkbox
+              checked={isAllVisibleSelected}
+              indeterminate={isPartiallyVisibleSelected}
+              onCheckedChange={toggleSelectAllVisible}
+              disabled={isDeleteBusy}
+              label={isAllVisibleSelected ? "Deselect all" : "Select all"}
             />
-          }
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => {
-            const filename = item.key.split("/").pop() || item.key;
-            const isImage = isImageKey(item.key);
-            const isVideo = isVideoKey(item.key);
-            // Look up by full key since we pass full paths to getSignedUrls
-            const signedUrl = signedUrlData?.urls?.[item.key];
+            <SansSerifText style={styles.selectionSummary}>
+              {selectedCount > 0
+                ? `${selectedCount} selected`
+                : `${visibleKeys.length} visible`}
+            </SansSerifText>
+            <View style={styles.selectionActions}>
+              {selectedCount > 0 && (
+                <Button
+                  preset="ghost"
+                  size="sm"
+                  text="Clear"
+                  onPress={clearSelection}
+                  disabled={isDeleteBusy}
+                />
+              )}
+              <Button
+                preset="destructive"
+                size="sm"
+                text={selectedCount > 0 ? `Delete (${selectedCount})` : "Delete"}
+                onPress={handleDeleteSelected}
+                disabled={selectedCount === 0 || isDeleteBusy}
+                loading={isDeletingBatch}
+                LeftAccessory={() => (
+                  <Icon
+                    name="trash-2"
+                    size={14}
+                    color={theme.colors.destructiveForeground}
+                  />
+                )}
+              />
+            </View>
+          </View>
 
-            // Get thumbnail URL for videos
-            const thumbnailFilename = isVideo
-              ? filename.replace(/\.[^.]+$/, ".jpg")
-              : null;
-            const thumbnailUrl = thumbnailFilename
-              ? thumbnailUrlData?.urls?.[thumbnailFilename]
-              : null;
+          <FlatList
+            data={mediaItems}
+            keyExtractor={(item) => item.key}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefetching}
+                onRefresh={refetch}
+                tintColor={theme.colors.primary}
+              />
+            }
+            contentContainerStyle={styles.listContent}
+            extraData={selectedKeys}
+            style={styles.list}
+            renderItem={({ item }) => {
+              const filename = item.key.split("/").pop() || item.key;
+              const isImage = isImageKey(item.key);
+              const isVideo = isVideoKey(item.key);
+              const isSelected = selectedKeys.has(item.key);
+              // Look up by full key since we pass full paths to getSignedUrls
+              const signedUrl = signedUrlData?.urls?.[item.key];
 
-            return (
-              <Pressable
-                style={[styles.fileItem, getShadowStyle("subtle")]}
-                onPress={() => {
-                  if (isVideo && signedUrl) {
-                    handlePlayVideo(filename, signedUrl);
-                  }
-                }}
-                disabled={!isVideo || !signedUrl}
-              >
-                {/* Thumbnail */}
-                <View style={styles.thumbnailContainer}>
-                  {isImage && signedUrl ? (
-                    <Image
-                      source={{ uri: signedUrl }}
-                      style={styles.thumbnail}
-                      resizeMode="cover"
-                    />
-                  ) : isVideo && thumbnailUrl ? (
-                    <Image
-                      source={{ uri: thumbnailUrl }}
-                      style={styles.thumbnail}
-                      resizeMode="cover"
-                    />
-                  ) : isVideo ? (
-                    <View style={styles.videoThumbnail}>
-                      <Icon name="video" size={24} color={theme.colors.primary} />
-                    </View>
-                  ) : (
-                    <View style={styles.iconContainer}>
-                      <Icon
-                        name="file"
-                        size={24}
-                        color={theme.colors.mutedForeground}
-                      />
-                    </View>
-                  )}
+              // Get thumbnail URL for videos
+              const thumbnailFilename = isVideo
+                ? filename.replace(/\.[^.]+$/, ".jpg")
+                : null;
+              const thumbnailUrl = thumbnailFilename
+                ? thumbnailUrlData?.urls?.[thumbnailFilename]
+                : null;
 
-                  {/* Play overlay for videos */}
-                  {isVideo && signedUrl && (
-                    <View style={styles.playOverlay}>
-                      <View style={styles.playButton}>
-                        <Icon name="play" size={16} color="white" />
-                      </View>
-                    </View>
-                  )}
-                </View>
-
-                {/* File info */}
-                <View style={styles.fileInfo}>
-                  <SansSerifText style={styles.fileName} numberOfLines={1}>
-                    {filename}
-                  </SansSerifText>
-                  <SansSerifText style={styles.fileMeta}>
-                    {formatBytes(item.size)} • {formatDate(item.lastModified)}
-                    {isVideo && " • Video"}
-                  </SansSerifText>
-                  <SansSerifText style={styles.filePath} numberOfLines={1}>
-                    {item.key}
-                  </SansSerifText>
-                </View>
-
-                {/* Delete button */}
-                <Pressable
-                  style={styles.deleteButton}
-                  onPress={() => handleDelete(item.key)}
-                  disabled={isDeleting}
+              return (
+                <View
+                  style={[
+                    styles.fileItem,
+                    isSelected && styles.fileItemSelected,
+                    getShadowStyle("subtle"),
+                  ]}
                 >
-                  <Icon name="trash-2" size={18} color={theme.colors.destructive} />
-                </Pressable>
-              </Pressable>
-            );
-          }}
-        />
+                  <View style={styles.itemCheckbox}>
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleSelectedKey(item.key)}
+                      disabled={isDeleteBusy}
+                      accessibilityLabel={`Select ${filename}`}
+                    />
+                  </View>
+
+                  {/* Thumbnail */}
+                  <View style={styles.thumbnailContainer}>
+                    {isImage && signedUrl ? (
+                      <Pressable
+                        onPress={() => handlePreviewImage(filename, signedUrl)}
+                        accessibilityRole="imagebutton"
+                        accessibilityLabel={`Open ${filename}`}
+                      >
+                        <Image
+                          source={{ uri: signedUrl }}
+                          style={styles.thumbnail}
+                          resizeMode="cover"
+                        />
+                      </Pressable>
+                    ) : isVideo && thumbnailUrl ? (
+                      <Image
+                        source={{ uri: thumbnailUrl }}
+                        style={styles.thumbnail}
+                        resizeMode="cover"
+                      />
+                    ) : isVideo ? (
+                      <View style={styles.videoThumbnail}>
+                        <Icon name="video" size={24} color={theme.colors.primary} />
+                      </View>
+                    ) : (
+                      <View style={styles.iconContainer}>
+                        <Icon
+                          name="file"
+                          size={24}
+                          color={theme.colors.mutedForeground}
+                        />
+                      </View>
+                    )}
+
+                    {/* Play overlay for videos */}
+                    {isVideo && signedUrl && (
+                      <Pressable
+                        style={styles.playOverlay}
+                        onPress={() => handlePlayVideo(filename, signedUrl)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Play ${filename}`}
+                      >
+                        <View style={styles.playButton}>
+                          <Icon name="play" size={16} color="white" />
+                        </View>
+                      </Pressable>
+                    )}
+                  </View>
+
+                  {/* File info */}
+                  <View style={styles.fileInfo}>
+                    <SansSerifText style={styles.fileName} numberOfLines={1}>
+                      {filename}
+                    </SansSerifText>
+                    <SansSerifText style={styles.fileMeta}>
+                      {formatBytes(item.size)} • {formatDate(item.lastModified)}
+                      {isVideo && " • Video"}
+                    </SansSerifText>
+                    <SansSerifText style={styles.filePath} numberOfLines={1}>
+                      {item.key}
+                    </SansSerifText>
+                  </View>
+
+                  {/* Delete button */}
+                  <Pressable
+                    style={styles.deleteButton}
+                    onPress={() => handleDelete(item.key)}
+                    disabled={isDeleteBusy}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete ${filename}`}
+                  >
+                    <Icon name="trash-2" size={18} color={theme.colors.destructive} />
+                  </Pressable>
+                </View>
+              );
+            }}
+          />
+        </>
       )}
 
       {/* Video Player Modal */}
@@ -402,6 +711,16 @@ export default function MediaScreen() {
           visible={!!playingVideo}
           onClose={() => setPlayingVideo(null)}
           title={playingVideo.title}
+        />
+      )}
+
+      {/* Image Preview Modal */}
+      {previewingImage && (
+        <ImagePreview
+          uri={previewingImage.url}
+          visible={!!previewingImage}
+          onClose={() => setPreviewingImage(null)}
+          title={previewingImage.title}
         />
       )}
     </View>
@@ -498,6 +817,32 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing.sm,
       textAlign: "center",
     },
+    selectionToolbar: {
+      flexDirection: "row",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: spacing.sm,
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.sm,
+      padding: spacing.sm,
+      backgroundColor: theme.colors.card,
+      borderRadius: spacing.radiusMd,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    selectionSummary: {
+      flex: 1,
+      fontSize: 12,
+      color: theme.colors.mutedForeground,
+    },
+    selectionActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+    },
+    list: {
+      flex: 1,
+    },
     listContent: {
       padding: spacing.md,
       gap: spacing.sm,
@@ -511,6 +856,16 @@ const createStyles = (theme: Theme) =>
       borderWidth: 1,
       borderColor: theme.colors.border,
       gap: spacing.sm,
+    },
+    fileItemSelected: {
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.muted,
+    },
+    itemCheckbox: {
+      width: 28,
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
     },
     thumbnailContainer: {
       position: "relative",

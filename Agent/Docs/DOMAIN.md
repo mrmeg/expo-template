@@ -40,16 +40,37 @@ Files stored in S3/R2 with presigned URL access.
 - Upload URLs expire in 5 minutes
 - Read URLs expire in 24 hours
 - Batch delete maximum: 1000 keys per request
+- Media list bulk delete sends selected visible keys through the batch delete route
 - Video thumbnails derive path from video key (`videos/x.mp4` → `thumbnails/x.jpg`)
-- Image compression happens client-side before upload (HEIC → JPEG conversion on iOS)
+- Deleting selected videos also deletes their generated thumbnail keys
+- Image compression happens client-side before upload through granular `@mrmeg/expo-media/processing/*` subpaths
+- If a compressed image is not smaller than the source asset, the upload uses the source asset instead
+- If optional web video conversion is not smaller than the source asset, the upload uses the source video instead
+- Upload signing validates `mediaType`, `contentType`, optional `size`, and policy before returning a URL
+- Clients cannot choose raw buckets or prefixes; keys must stay inside configured media type prefixes
 
-**Media Paths** (from `shared/media.ts`):
+**Media Paths** (template compatibility surface in `shared/media.ts`, concrete server config in `server/media/config.ts`):
 | Path | Prefix | Purpose |
 |------|--------|---------|
 | avatars | `users/avatars` | User profile images |
 | videos | `videos` | Video uploads |
 | thumbnails | `thumbnails` | Auto-generated video thumbnails |
 | uploads | `uploads` | General file uploads |
+
+**Image Compression Defaults**
+
+`client/features/media/mediaSettings.ts` owns app-wide media defaults.
+`client/features/media/stores/compressionStore.ts` initializes from those
+settings and resolves unspecified uploads to the configured default preset,
+currently `gallery`.
+
+| Preset | maxDimension | quality | maxSizeKB | minQuality | format |
+|---|---:|---:|---:|---:|---|
+| gallery | 2048 | 0.85 | 1000 | 0.65 | jpeg |
+
+`expo-image-picker` is called with `quality: 1`; package compression applies
+after picking. If the recompressed output is not smaller than the source asset,
+the upload keeps the source asset.
 
 ### Theme Preference
 
@@ -159,7 +180,7 @@ See [`BILLING.md`](./BILLING.md) for the full architecture.
 ## Business Rules
 
 ### Feature Isolation
-- Features default to *self-contained* — only the shared layer (`@mrmeg/expo-ui/*`, `client/lib/*`, `client/hooks/*`, `client/state/*`, `shared/*`, `@rn-primitives`) is unconditionally importable.
+- Features default to *self-contained* — only the shared layer (`@mrmeg/expo-ui/*`, `@mrmeg/expo-media/*`, `client/lib/*`, `client/hooks/*`, `client/state/*`, `shared/*`, `@rn-primitives`) is unconditionally importable.
 - Two named cross-feature edges are allowed and enforced by `scripts/check-feature-isolation.js` + the `featureIsolation.test.ts` suite:
   - `app/` may import `auth/` and `onboarding/` (shell composition: `useAppStartup`, `OnboardingGate`, `AuthGate`).
   - `billing/` may import `auth/` (identity-only — `useAuthStore` for the signed-in viewer; never auth UI).
@@ -174,7 +195,8 @@ See [`BILLING.md`](./BILLING.md) for the full architecture.
 
 ### Rate Limiting
 - General API: 500 requests / 15 minutes
-- Sensitive endpoints (upload URL, reports): 10 requests / 1 minute
+- Media upload URL signing: 60 requests / 1 minute
+- Sensitive side-effect endpoints (reports, corrections, billing sessions): 10 requests / 1 minute
 
 ### Cross-Platform Storage
 - All persisted state MUST use platform-aware storage

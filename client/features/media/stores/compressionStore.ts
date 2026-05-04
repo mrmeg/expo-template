@@ -8,9 +8,9 @@ import {
   type CompressionConfig,
   type ImagePreset,
   IMAGE_PRESETS,
-  DEFAULT_PRESET,
   resolveCompressionConfig,
-} from "../lib/imageCompression";
+} from "@mrmeg/expo-media/processing/image-compression/config";
+import { MEDIA_APP_SETTINGS } from "../mediaSettings";
 
 interface CompressionState {
   /** Default preset used when no compression option is specified */
@@ -45,9 +45,9 @@ interface CompressionActions {
 type CompressionStore = CompressionState & CompressionActions;
 
 const initialState: CompressionState = {
-  defaultPreset: DEFAULT_PRESET,
-  userOverrides: null,
-  enabled: true,
+  defaultPreset: MEDIA_APP_SETTINGS.imageCompression.defaultPreset,
+  userOverrides: MEDIA_APP_SETTINGS.imageCompression.userOverrides,
+  enabled: MEDIA_APP_SETTINGS.imageCompression.enabled,
 };
 
 export const useCompressionStore = create<CompressionStore>()((set, get) => ({

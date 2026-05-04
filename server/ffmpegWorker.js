@@ -1,7 +1,7 @@
 /**
  * FFmpeg worker asset contract.
  *
- * The web video-conversion flow (client/features/media/lib/videoConversion)
+ * The web video-conversion flow (`@mrmeg/expo-media/processing/video-conversion`)
  * lazy-loads FFmpeg.wasm and proxies the worker through a same-origin URL to
  * satisfy the cross-origin worker-blob trick from GitHub issue #694.
  *
@@ -20,17 +20,17 @@ const path = require("path");
 
 /**
  * URL the client fetches to load the worker. Keep in sync with
- * `FFMPEG_WORKER_URL` in
- * `client/features/media/lib/videoConversion/config.ts`.
+ * `FFMPEG_WORKER_URL` from
+ * `@mrmeg/expo-media/processing/video-conversion`.
  */
 const FFMPEG_WORKER_URL = "/_expo/static/js/web/ffmpeg-worker.js";
 
 /**
- * Path to the worker file, relative to the repo root. The worker lives
- * alongside its consumer in the feature folder.
+ * Path to the worker file, relative to the repo root. The worker ships with
+ * the reusable media package, while this app owns same-origin serving.
  */
 const FFMPEG_WORKER_RELATIVE_PATH =
-  "client/features/media/lib/videoConversion/ffmpeg-worker.js";
+  "packages/media/src/processing/videoConversion/ffmpeg-worker.js";
 
 /**
  * Resolve the absolute worker path against a caller-supplied base directory.

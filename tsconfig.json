@@ -27,6 +27,21 @@
       ],
       "@mrmeg/expo-ui/lib": [
         "./packages/ui/src/lib/index.ts"
+      ],
+      "@mrmeg/expo-media": [
+        "./packages/media/src/index.ts"
+      ],
+      "@mrmeg/expo-media/client": [
+        "./packages/media/src/client/index.ts"
+      ],
+      "@mrmeg/expo-media/react-query": [
+        "./packages/media/src/react-query/index.ts"
+      ],
+      "@mrmeg/expo-media/processing": [
+        "./packages/media/src/processing/index.ts"
+      ],
+      "@mrmeg/expo-media/server": [
+        "./packages/media/src/server/index.ts"
       ]
     },
     "noImplicitAny": false,

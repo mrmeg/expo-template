@@ -14,6 +14,19 @@ module.exports = {
     "^@mrmeg/expo-ui/hooks$": "<rootDir>/packages/ui/src/hooks/index.ts",
     "^@mrmeg/expo-ui/state$": "<rootDir>/packages/ui/src/state/index.ts",
     "^@mrmeg/expo-ui/lib$": "<rootDir>/packages/ui/src/lib/index.ts",
+    "^@mrmeg/expo-media$": "<rootDir>/packages/media/src/index.ts",
+    "^@mrmeg/expo-media/client$": "<rootDir>/packages/media/src/client/index.ts",
+    "^@mrmeg/expo-media/react-query$": "<rootDir>/packages/media/src/react-query/index.ts",
+    "^@mrmeg/expo-media/processing/image-compression$":
+      "<rootDir>/packages/media/src/processing/imageCompression/index.ts",
+    "^@mrmeg/expo-media/processing/image-compression/config$":
+      "<rootDir>/packages/media/src/processing/imageCompression/config.ts",
+    "^@mrmeg/expo-media/processing/video-conversion$":
+      "<rootDir>/packages/media/src/processing/videoConversion/index.ts",
+    "^@mrmeg/expo-media/processing/video-thumbnails$":
+      "<rootDir>/packages/media/src/processing/videoThumbnails.ts",
+    "^@mrmeg/expo-media/processing$": "<rootDir>/packages/media/src/processing/index.ts",
+    "^@mrmeg/expo-media/server$": "<rootDir>/packages/media/src/server/index.ts",
     "^@/(.*)$": "<rootDir>/$1",
   },
 
@@ -49,6 +62,7 @@ module.exports = {
     "server/**/*.{js,ts}",
     "shared/**/*.{ts,tsx}",
     "packages/ui/src/**/*.{ts,tsx}",
+    "packages/media/src/**/*.{ts,tsx}",
     "!client/**/*.d.ts",
     "!client/**/index.ts",
     "!client/devtools/**",
@@ -56,6 +70,7 @@ module.exports = {
     "!server/**/*.test.{js,ts}",
     "!shared/**/*.d.ts",
     "!packages/ui/src/**/index.ts",
+    "!packages/media/src/**/index.ts",
     "!**/__tests__/**",
     "!**/node_modules/**",
     "!**/dist/**",

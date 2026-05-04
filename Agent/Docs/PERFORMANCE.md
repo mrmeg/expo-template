@@ -23,8 +23,8 @@
 
 ## Image Handling
 
-- **HEIC → JPEG conversion**: Client-side before upload (iOS captures in HEIC)
-- **Compression**: Configurable quality/dimensions via compressionStore
+- **HEIC → JPEG conversion**: Package processing helper before upload where needed
+- **Compression**: App-wide defaults live in mediaSettings, flow through compressionStore, and use granular `@mrmeg/expo-media/processing/*` subpaths
 - **Presigned URLs**: Upload URLs expire 5 min, read URLs expire 24 hours — no persistent public URLs
 
 ## Animation
@@ -56,9 +56,12 @@
 - **HTML caching**: SSR HTML is request-time output. Add CDN/runtime cache rules
   per route before caching personalized or authenticated pages.
 - **Shadows**: `getShadowStyle()` returns empty object on web — `boxShadow` causes React Native Web crashes
-- **Async routes**: Enabled for web (`asyncRoutes.web = true`) to keep
-  route-specific demo/template code out of the entry bundle while preserving
-  SSR through the Expo Router server output.
+- **Async routes**: Enabled for production web exports
+  (`asyncRoutes.web = "production"`) to keep route-specific demo/template code
+  out of the built entry bundle while preserving SSR through the Expo Router
+  server output. Development web keeps routes eager because Expo Router async
+  route HMR can resolve grouped tab chunks such as `./media` from the repo root
+  and crash Metro.
 
 ## Entry Bundle Hygiene
 
@@ -74,11 +77,12 @@
 | Scope | Limit | Window |
 |-------|-------|--------|
 | General API (all `/api`) | 500 req | 15 min |
-| Strict (`/api/media/getUploadUrl`, `/api/reports`, `/api/corrections`) | 10 req | 1 min |
+| Media signer (`/api/media/getUploadUrl`) | 60 req | 1 min |
+| Strict side-effect routes (`/api/reports`, `/api/corrections`, billing session creation) | 10 req | 1 min |
 
-Strict paths are configured in `server/rateLimits.js` and enforced by
-`server/index.ts`. Both limiters stack; the strict window dominates for
-covered routes.
+Scoped paths are configured in `server/rateLimits.js` and enforced by
+`server/index.ts`. The general limiter stacks with the media signer and strict
+limiters; the narrowest matching route limiter dominates for covered routes.
 
 ## Color Contrast Caching
 
@@ -121,7 +125,7 @@ URL to satisfy the cross-origin worker-blob workaround from
 | Piece | Value |
 |-------|-------|
 | URL the client fetches | `/_expo/static/js/web/ffmpeg-worker.js` |
-| File in the repo | `client/features/media/lib/videoConversion/ffmpeg-worker.js` |
+| File in the repo | `packages/media/src/processing/videoConversion/ffmpeg-worker.js` |
 | Single source of truth | `server/ffmpegWorker.js` (CommonJS, consumed by both Metro and Express) |
 
 Both runtimes that serve web assets read through `server/ffmpegWorker.js`
@@ -135,8 +139,8 @@ so the URL and the file path cannot drift apart:
 If the worker file moves, update `FFMPEG_WORKER_RELATIVE_PATH` in
 `server/ffmpegWorker.js`. The regression suite in
 `server/__tests__/ffmpegWorker.test.js` asserts the file exists at that
-path and that `client/features/media/lib/videoConversion/config.ts` still
-exports the matching `FFMPEG_WORKER_URL`.
+path and that `@mrmeg/expo-media/processing/video-conversion` exports the matching
+`FFMPEG_WORKER_URL`.
 
 Failure handling: `convertVideo` throws `FFmpegWorkerUnavailableError`
 when the worker URL returns a non-OK status or HTML (the Expo SSR
@@ -146,8 +150,8 @@ and uploads the original format instead of hanging inside
 
 To disable web video conversion entirely, delete the `FFmpeg` block in
 both `metro.config.js` and `server/index.ts`, delete
-`client/features/media/lib/videoConversion/`, and remove the call sites
-in `useMediaLibrary`.
+the package worker-serving adapter if unused, and remove the conversion call
+sites in `useMediaLibrary`.
 
 ## Known Considerations
 

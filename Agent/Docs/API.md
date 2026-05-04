@@ -8,15 +8,15 @@ All routes live under `app/api/` and use the Expo Router `+api.ts` convention.
 
 ### Media Endpoints
 
-Base path: `/api/media/`. Routes call `getMediaStorageEnv()` first; when
-any of `R2_JURISDICTION_SPECIFIC_URL`, `R2_ACCESS_KEY_ID`,
-`R2_SECRET_ACCESS_KEY`, `R2_BUCKET` is missing or whitespace-only the
-handler returns `503 media-disabled` with a typed body
-(`{ code: "media-disabled", message, missing: string[] }`) and never
-constructs an S3 client. The Media tab renders a setup-state when the
-client receives that response. OPTIONS preflight succeeds even when
-storage is unconfigured, and the body never echoes credential values —
-only env-var names.
+Base path: `/api/media/`. Routes are thin Expo Router wrappers over
+`@mrmeg/expo-media/server` through `server/media/handlers.ts`. The
+template adapter maps the existing `R2_JURISDICTION_SPECIFIC_URL`,
+`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_BUCKET` env vars into
+package config. Missing or whitespace-only values return `503
+media-disabled` with `{ code: "media-disabled", message, missing:
+string[] }` and never construct an S3 client. OPTIONS preflight succeeds
+even when storage is unconfigured, and the body never echoes credential
+values — only env-var names.
 
 #### POST `/api/media/getUploadUrl`
 
@@ -25,9 +25,11 @@ Generate a presigned S3 URL for uploading a file.
 **Request:**
 ```json
 {
-  "extension": "jpg",
   "mediaType": "uploads",
-  "customFilename": "my-photo"  // optional
+  "contentType": "image/jpeg",
+  "size": 12345,
+  "customFilename": "my-photo",
+  "metadata": {}
 }
 ```
 
@@ -41,8 +43,16 @@ Generate a presigned S3 URL for uploading a file.
 ```
 
 - Upload URL expires in 5 minutes
-- Filenames use ULID by default (or `customFilename` if provided)
-- `mediaType` must be a valid `MediaPath` from `shared/media.ts`
+- Filenames use ULID by default
+- Server derives the extension from the approved `contentType`
+- `Content-Type` is included in the signed `PutObjectCommand`
+- `mediaType` must be configured in `server/media/config.ts`
+- Custom filenames are sanitized and only allowed by app policy
+- Clients cannot choose raw buckets, arbitrary prefixes, or unrestricted keys
+
+Typed upload errors include `invalid-media-type`, `invalid-content-type`,
+`oversized-file`, `custom-filename-forbidden`, `bad-key`, and
+`storage-failure`.
 
 #### POST `/api/media/getSignedUrls`
 
@@ -231,8 +241,7 @@ customer linking (metadata lookup → single-match email backfill →
 
 **Rate limits:** `/api/billing/checkout-session` and
 `/api/billing/portal-session` are registered in `STRICT_LIMIT_PATHS`
-(10/min — see Rate Limiting table below) alongside
-`/api/media/getUploadUrl`. The webhook is intentionally not rate-limited
+(10/min — see Rate Limiting table below). The webhook is intentionally not rate-limited
 since Stripe retries can burst faster and signature verification already
 gates abuse.
 
@@ -316,7 +325,8 @@ The Express server (`server/index.ts`) provides:
 | Scope | Limit | Window | Routes |
 |-------|-------|--------|--------|
 | General | 500 requests | 15 minutes | All `/api/*` |
-| Strict | 10 requests | 1 minute | `/api/media/getUploadUrl`, `/api/reports`, `/api/corrections` |
+| Media signer | 60 requests | 1 minute | `/api/media/getUploadUrl` |
+| Strict | 10 requests | 1 minute | `/api/reports`, `/api/corrections`, `/api/billing/checkout-session`, `/api/billing/portal-session` |
 
 ### Security Headers
 
@@ -351,6 +361,10 @@ generated. Full setup walkthrough (products, prices, `stripe listen`
 webhook forwarding) lives in [`BILLING.md`](./BILLING.md#local-setup-fresh-stripe-account).
 
 ## Shared Types (`shared/media.ts`)
+
+`shared/media.ts` is now a compatibility surface for template screens and
+legacy imports. The reusable contracts live in `@mrmeg/expo-media`, and the
+template's concrete media type config lives in `server/media/config.ts`.
 
 ```typescript
 const MEDIA_PATHS = {

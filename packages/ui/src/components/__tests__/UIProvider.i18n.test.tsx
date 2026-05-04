@@ -56,6 +56,60 @@ describe("UIProvider without app i18n", () => {
     expect(screen.getByText("Error")).toBeTruthy();
   });
 
+  it("keeps info notifications readable when no message is provided", () => {
+    act(() => {
+      globalUIStore.getState().show({ type: "info" });
+    });
+
+    render(
+      <UIProvider>
+        <Text>App content</Text>
+      </UIProvider>
+    );
+
+    expect(screen.getByText("Info")).toBeTruthy();
+  });
+
+  it("keeps loading notifications readable when no message is provided", () => {
+    act(() => {
+      globalUIStore.getState().show({ type: "info", loading: true });
+    });
+
+    render(
+      <UIProvider>
+        <Text>App content</Text>
+      </UIProvider>
+    );
+
+    expect(screen.getByText("Loading")).toBeTruthy();
+  });
+
+  it("removes the notification shell when the alert is hidden", () => {
+    act(() => {
+      globalUIStore.getState().show({
+        type: "info",
+        title: "Optimizing Image",
+        messages: ["Optimizing image..."],
+        loading: true,
+      });
+    });
+
+    render(
+      <UIProvider>
+        <Text>App content</Text>
+      </UIProvider>
+    );
+
+    expect(screen.getByText("Optimizing Image")).toBeTruthy();
+
+    act(() => {
+      globalUIStore.getState().hide();
+    });
+
+    expect(screen.queryByText("Optimizing Image")).toBeNull();
+    expect(screen.queryByText("Optimizing image...")).toBeNull();
+  });
+
   it("uses the configured translator for package notification defaults", () => {
     configureExpoUiI18n((key) => `translated:${key}`);
     act(() => {

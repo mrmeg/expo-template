@@ -1,0 +1,27 @@
+# @mrmeg/expo-media
+
+Docs for agents:
+
+- README.md: install, server/client setup, app-wide defaults, processing,
+  migration, security, validation.
+- LLM_USAGE.md: concise import and implementation rules.
+- llms-full.md: expanded package contract.
+
+Public entrypoints:
+
+- @mrmeg/expo-media
+- @mrmeg/expo-media/client
+- @mrmeg/expo-media/react-query
+- @mrmeg/expo-media/processing
+- @mrmeg/expo-media/processing/image-compression
+- @mrmeg/expo-media/processing/image-compression/config
+- @mrmeg/expo-media/processing/video-conversion
+- @mrmeg/expo-media/processing/video-thumbnails
+- @mrmeg/expo-media/server
+
+Do not import server code from client entrypoints. Upload signing uses
+mediaType plus contentType, not extension-only signing.
+Client upload defaults are app-owned; keep them in one settings module and
+choose named upload policies from screens.
+Prefer granular processing entrypoints. The broad /processing barrel is for
+compatibility and can pull all processing features into a bundler graph.

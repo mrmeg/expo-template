@@ -10,6 +10,7 @@
         "@aws-sdk/s3-request-presigner": "^3.1041.0",
         "@expo/metro-runtime": "~55.0.10",
         "@hookform/resolvers": "^5.2.2",
+        "@mrmeg/expo-media": "workspace:*",
         "@mrmeg/expo-ui": "workspace:*",
         "@react-native-async-storage/async-storage": "2.2.0",
         "@react-navigation/core": "^7.17.2",
@@ -81,6 +82,32 @@
         "react-test-renderer": "19.2.0",
         "reactotron-react-native": "^5.1.18",
         "typescript": "~5.9.2",
+      },
+    },
+    "packages/media": {
+      "name": "@mrmeg/expo-media",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.1041.0",
+        "@aws-sdk/s3-request-presigner": "^3.1041.0",
+        "@tanstack/react-query": "^5.100.9",
+        "ulid": "^3.0.2",
+        "zustand": "^5.0.12",
+      },
+      "devDependencies": {
+        "@types/react": "~19.2.14",
+        "typescript": "~5.9.2",
+      },
+      "peerDependencies": {
+        "expo": "~55.0.0",
+        "expo-crypto": "~55.0.0",
+        "expo-file-system": "~55.0.0",
+        "expo-image-manipulator": "~55.0.0",
+        "expo-image-picker": "~55.0.0",
+        "expo-video-thumbnails": "~55.0.0",
+        "heic2any": "^0.0.4",
+        "react": ">=19.2.0 <20.0.0",
+        "react-native": ">=0.83.0 <0.84.0",
       },
     },
     "packages/ui": {
@@ -587,6 +614,8 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
+
+    "@mrmeg/expo-media": ["@mrmeg/expo-media@workspace:packages/media"],
 
     "@mrmeg/expo-ui": ["@mrmeg/expo-ui@workspace:packages/ui"],
 

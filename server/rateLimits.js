@@ -4,9 +4,10 @@
  * Kept as plain data so tests can assert the mapping between routes and
  * limiters without loading the full server (which binds a port).
  *
- * The strict limiter enforces the 10-request-per-minute budget documented in
- * Agent/Docs/PERFORMANCE.md for the most abuse-prone endpoints. The general
- * limiter covers all /api traffic and stacks with the strict one.
+ * The upload signer uses a media-specific budget so batch uploads do not hit
+ * the more conservative strict limiter used by endpoints with heavier side
+ * effects. The general limiter covers all /api traffic and stacks with both
+ * scoped limiters.
  */
 
 const GENERAL_LIMIT = {
@@ -19,16 +20,27 @@ const STRICT_LIMIT = {
   max: 10,
 };
 
+const MEDIA_SIGNER_LIMIT = {
+  windowMs: 60 * 1000, // 1 minute
+  max: 60,
+};
+
 /**
- * Paths that receive the strict (10/min) limiter.
+ * Paths that receive the media signer limiter.
  *
  * Note: `/api/media/getUploadUrl` matches the Expo Router API file
  * `app/api/media/getUploadUrl+api.ts` that the media hook actually calls.
  * Misalignment between this list and the real route path silently downgrades
  * enforcement to the general 500/15-min bucket.
  */
-const STRICT_LIMIT_PATHS = [
+const MEDIA_SIGNER_LIMIT_PATHS = [
   "/api/media/getUploadUrl",
+];
+
+/**
+ * Paths that receive the strict (10/min) limiter.
+ */
+const STRICT_LIMIT_PATHS = [
   "/api/reports",
   "/api/corrections",
   // Hosted-external billing session routes — session creation is abuse-prone
@@ -41,6 +53,8 @@ const STRICT_LIMIT_PATHS = [
 
 module.exports = {
   GENERAL_LIMIT,
+  MEDIA_SIGNER_LIMIT,
+  MEDIA_SIGNER_LIMIT_PATHS,
   STRICT_LIMIT,
   STRICT_LIMIT_PATHS,
 };

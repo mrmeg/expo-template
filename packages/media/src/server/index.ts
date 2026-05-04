@@ -1,0 +1,11 @@
+export {
+  createMediaHandlers,
+  resetMediaStorageForTests,
+  type CreateMediaHandlersOptions,
+  type MediaCorsCallbacks,
+  type MediaEventCallbacks,
+  type MediaHandlers,
+  type MediaPolicyCallbacks,
+  type MediaPolicyDecision,
+  type MediaPolicyResult,
+} from "./handlers";

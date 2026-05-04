@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- Added a `Publish Media Package` GitHub Actions workflow for
+  `@mrmeg/expo-media` trusted publishing. It mirrors the UI package workflow:
+  push-based exact-version publishing from `main`, manual version bumps,
+  media package gates, packed consumer smoke validation, npm OIDC publishing,
+  and `NPM_TOKEN` fallback support.
+
 - Reduced showcase render churn by moving high-frequency demo state into
   memoized local sections, memoizing the top-level showcase styles, and
   adding React Scan verification docs/scripts. `Button` and `TextInput` in

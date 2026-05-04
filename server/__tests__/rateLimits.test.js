@@ -1,14 +1,16 @@
 /**
  * Rate-limit configuration regression tests.
  *
- * These assert the mapping between the Express server's strict limiter and
- * the routes it covers. Drift here has historically caused the
- * /api/media/getUploadUrl path to silently fall back to the general
- * 500/15-min limiter instead of the intended 10/min budget.
+ * These assert the mapping between the Express server's scoped limiters and
+ * the routes they cover. Drift here can silently downgrade a route to the
+ * general 500/15-min limiter or accidentally move normal upload signing back
+ * into the stricter side-effect budget.
  */
 
 const {
   GENERAL_LIMIT,
+  MEDIA_SIGNER_LIMIT,
+  MEDIA_SIGNER_LIMIT_PATHS,
   STRICT_LIMIT,
   STRICT_LIMIT_PATHS,
 } = require("../rateLimits");
@@ -24,14 +26,21 @@ describe("server/rateLimits", () => {
     expect(GENERAL_LIMIT.windowMs).toBe(15 * 60 * 1000);
   });
 
-  it("covers the real upload-url route that the client hits", () => {
+  it("keeps the media signer budget practical for batch uploads", () => {
+    expect(MEDIA_SIGNER_LIMIT.max).toBe(60);
+    expect(MEDIA_SIGNER_LIMIT.windowMs).toBe(60 * 1000);
+  });
+
+  it("covers the real upload-url route with the media signer limiter", () => {
     // client/features/media/hooks/useMediaUpload.ts calls /api/media/getUploadUrl.
-    // The strict limiter MUST include that exact path; misalignment downgrades
-    // the most abuse-prone endpoint to the general limiter.
-    expect(STRICT_LIMIT_PATHS).toContain("/api/media/getUploadUrl");
+    // The media signer limiter MUST include that exact path; misalignment
+    // downgrades upload URL signing to the general limiter.
+    expect(MEDIA_SIGNER_LIMIT_PATHS).toContain("/api/media/getUploadUrl");
+    expect(STRICT_LIMIT_PATHS).not.toContain("/api/media/getUploadUrl");
   });
 
   it("does not reintroduce the stale /api/media/upload-url path", () => {
+    expect(MEDIA_SIGNER_LIMIT_PATHS).not.toContain("/api/media/upload-url");
     expect(STRICT_LIMIT_PATHS).not.toContain("/api/media/upload-url");
   });
 
