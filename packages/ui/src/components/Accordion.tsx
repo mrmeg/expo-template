@@ -7,7 +7,7 @@ import Animated, {
   useReducedMotion,
 } from "react-native-reanimated";
 import { Icon } from "./Icon";
-import { TextClassContext } from "./StyledText";
+import { TextClassContext, TextSelectabilityContext } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
@@ -251,37 +251,42 @@ function AccordionTrigger({
 
   return (
     <TextClassContext.Provider value="">
-      <AccordionPrimitive.Header>
-        <AccordionPrimitive.Trigger {...props} asChild>
-          <Trigger
-            style={[
-              {
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: spacing.md,
-                borderRadius: spacing.radiusMd,
-                paddingVertical: spacing.md,
-                ...(Platform.OS === "web" && { cursor: "pointer" as any }),
-              },
-              // Spread array styles from primitives to prevent nested arrays on web
-              ...(styleOverride && typeof styleOverride !== "function"
-                ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
-                : []
-              ),
-            ]}>
-            <>{children}</>
-            <Animated.View style={chevronStyle}>
-              <Icon
-                name="chevron-down"
-                size={16}
-                color={theme.colors.textDim}
-                decorative
-              />
-            </Animated.View>
-          </Trigger>
-        </AccordionPrimitive.Trigger>
-      </AccordionPrimitive.Header>
+      <TextSelectabilityContext.Provider value={false}>
+        <AccordionPrimitive.Header>
+          <AccordionPrimitive.Trigger {...props} asChild>
+            <Trigger
+              style={[
+                {
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: spacing.md,
+                  borderRadius: spacing.radiusMd,
+                  paddingVertical: spacing.md,
+                  ...(Platform.OS === "web" && {
+                    cursor: "pointer" as any,
+                    userSelect: "none" as any,
+                  }),
+                },
+                // Spread array styles from primitives to prevent nested arrays on web
+                ...(styleOverride && typeof styleOverride !== "function"
+                  ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
+                  : []
+                ),
+              ]}>
+              <>{children}</>
+              <Animated.View style={chevronStyle}>
+                <Icon
+                  name="chevron-down"
+                  size={16}
+                  color={theme.colors.textDim}
+                  decorative
+                />
+              </Animated.View>
+            </Trigger>
+          </AccordionPrimitive.Trigger>
+        </AccordionPrimitive.Header>
+      </TextSelectabilityContext.Provider>
     </TextClassContext.Provider>
   );
 }

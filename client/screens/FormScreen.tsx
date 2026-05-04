@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   ScrollView,
@@ -53,7 +53,7 @@ function StepIndicator({
   currentStep: number;
   theme: Theme;
 }) {
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <View style={styles.stepRow}>
@@ -117,7 +117,7 @@ export function FormScreen({
 }: FormScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);

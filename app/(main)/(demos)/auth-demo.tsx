@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthWrapper } from "@/client/features/auth/components/AuthWrapper";
@@ -53,7 +53,7 @@ function AuthStateBadge({ state }: { state: AuthState }) {
 // Protected content section
 function ProtectedSection() {
   const { theme } = useTheme();
-  const dynamicStyles = createStyles(theme);
+  const dynamicStyles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <Card style={dynamicStyles.card}>
@@ -87,7 +87,7 @@ function ProtectedSection() {
 // User info section
 function UserInfoSection() {
   const { theme } = useTheme();
-  const dynamicStyles = createStyles(theme);
+  const dynamicStyles = useMemo(() => createStyles(theme), [theme]);
   const { user } = useAuthStore();
   const { signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
@@ -168,7 +168,7 @@ function UserInfoSection() {
 // Auth state monitor section
 function AuthStateMonitor() {
   const { theme } = useTheme();
-  const dynamicStyles = createStyles(theme);
+  const dynamicStyles = useMemo(() => createStyles(theme), [theme]);
   const { state, pendingVerificationEmail, error } = useAuthStore();
   const { checkAuthState } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
@@ -275,7 +275,7 @@ function AuthStateMonitor() {
 // How It Works section
 function HowItWorksSection() {
   const { theme } = useTheme();
-  const dynamicStyles = createStyles(theme);
+  const dynamicStyles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <Card style={dynamicStyles.card}>
@@ -337,7 +337,7 @@ function HowItWorksSection() {
 // Main content when authenticated
 function AuthenticatedContent() {
   const { theme } = useTheme();
-  const dynamicStyles = createStyles(theme);
+  const dynamicStyles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <SafeAreaView style={dynamicStyles.container} edges={["bottom"]}>

@@ -35,11 +35,11 @@ function updateAndroidBuildGradle(contents, androidNodeArgs) {
     return contents.replace(/^\s*nodeExecutableAndArgs\s*=\s*\[[^\]]*\]\s*$/m, nodeArgsLine);
   }
 
-  if (contents.includes('// nodeExecutableAndArgs = ["node"]')) {
-    return contents.replace('// nodeExecutableAndArgs = ["node"]', nodeArgsLine);
+  if (contents.includes("// nodeExecutableAndArgs = [\"node\"]")) {
+    return contents.replace("// nodeExecutableAndArgs = [\"node\"]", nodeArgsLine);
   }
 
-  const anchor = '    bundleCommand = "export:embed"';
+  const anchor = "    bundleCommand = \"export:embed\"";
   if (!contents.includes(anchor)) {
     throw new Error("Unable to locate Expo bundleCommand in android/app/build.gradle");
   }

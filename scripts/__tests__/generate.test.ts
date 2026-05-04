@@ -104,7 +104,7 @@ describe("getPlannedFiles — screen", () => {
     const plan = getPlannedFiles("screen", "Welcome");
     const demo = plan.files.find((f) => f.relativePath.startsWith("app/"))!;
     expect(demo.content).toContain(
-      'import { WelcomeScreen } from "@/client/screens/WelcomeScreen";',
+      "import { WelcomeScreen } from \"@/client/screens/WelcomeScreen\";",
     );
     expect(demo.content).toContain("<WelcomeScreen />");
   });
@@ -154,7 +154,7 @@ describe("getPlannedFiles — form", () => {
 
   it("uses the shared form primitives in @/client/lib/form", () => {
     const { content } = getPlannedFiles("form", "ContactInfo").files[0];
-    expect(content).toContain('from "@/client/lib/form"');
+    expect(content).toContain("from \"@/client/lib/form\"");
     expect(content).toContain("FormProvider");
     expect(content).toContain("FormTextInput");
     expect(content).toContain("useForm");

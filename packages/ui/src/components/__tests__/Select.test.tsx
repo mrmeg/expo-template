@@ -5,6 +5,7 @@
  */
 
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../Select";
 
@@ -15,10 +16,15 @@ jest.mock("../../hooks/useTheme", () => ({
       colors: {
         foreground: "#0F172A",
         background: "#FFFFFF",
+        popover: "#18181B",
+        popoverForeground: "#F4F4F5",
+        text: "#111111",
         border: "#E2E8F0",
+        input: "#E2E8F0",
         muted: "#F1F5F9",
         mutedForeground: "#64748B",
         primary: "#18181B",
+        accent: "#14B8A6",
         overlay: "rgba(0,0,0,0.5)",
       },
     },
@@ -51,14 +57,20 @@ jest.mock("@rn-primitives/select", () => {
       <View style={style} {...props}>{children}</View>
     ),
     Item: ({ children, value, label, style, ...props }: any) => (
-      <Pressable style={style} {...props}><Text>{label}</Text></Pressable>
+      <SelectContext.Provider value={{ value: { value, label }, onValueChange: jest.fn() }}>
+        <Pressable style={style} {...props}>{children}</Pressable>
+      </SelectContext.Provider>
     ),
     Group: ({ children, ...props }: any) => <View {...props}>{children}</View>,
     Label: ({ children, ...props }: any) => <Text {...props}>{children}</Text>,
     useRootContext: () => React.useContext(SelectContext),
     Overlay: ({ children, ...props }: any) => <View {...props}>{children}</View>,
     Portal: ({ children, ...props }: any) => <>{children}</>,
-    ItemText: ({ children, ...props }: any) => <Text {...props}>{children}</Text>,
+    ItemText: ({ children, ...props }: any) => {
+      const { value } = React.useContext(SelectContext);
+      return <Text {...props}>{children ?? value?.label}</Text>;
+    },
+    ItemIndicator: ({ children, ...props }: any) => <View {...props}>{children}</View>,
     ScrollUpButton: ({ children, ...props }: any) => <View {...props}>{children}</View>,
     ScrollDownButton: ({ children, ...props }: any) => <View {...props}>{children}</View>,
     Viewport: ({ children, ...props }: any) => <View {...props}>{children}</View>,
@@ -114,5 +126,42 @@ describe("Select", () => {
     expect(screen.getByText("Option A")).toBeTruthy();
     expect(screen.getByText("Option B")).toBeTruthy();
     expect(screen.getByText("Option C")).toBeTruthy();
+  });
+
+  it("styles default item text with popover foreground color", () => {
+    render(
+      <Select>
+        <SelectTrigger>
+          <SelectValue placeholder="Choose" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="a" label="Option A" />
+        </SelectContent>
+      </Select>
+    );
+
+    const itemTextStyle = StyleSheet.flatten(screen.getByText("Option A").props.style);
+
+    expect(itemTextStyle).toEqual(expect.objectContaining({
+      color: "#F4F4F5",
+      fontSize: 14,
+      lineHeight: 20,
+    }));
+  });
+
+  it("does not duplicate label text when text children are also provided", () => {
+    render(
+      <Select>
+        <SelectTrigger>
+          <SelectValue placeholder="Choose" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="a" label="Option A">Option A</SelectItem>
+        </SelectContent>
+      </Select>
+    );
+
+    expect(screen.getByText("Option A")).toBeTruthy();
+    expect(screen.queryByText("Option AOption A")).toBeNull();
   });
 });

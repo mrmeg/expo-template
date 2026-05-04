@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Pressable, StyleSheet, Alert, Platform } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -16,7 +16,7 @@ const VARIANTS: { key: ErrorVariant; label: string }[] = [
 
 export default function ScreenErrorDemo() {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [variant, setVariant] = useState<ErrorVariant>("generic");
 
   const showAlert = (msg: string) => {

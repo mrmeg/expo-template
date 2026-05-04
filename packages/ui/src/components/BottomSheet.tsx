@@ -166,9 +166,9 @@ type SheetAction = { type: "OPEN" } | { type: "CLOSE" } | { type: "TOGGLE" };
 
 function sheetReducer(state: boolean, action: SheetAction): boolean {
   switch (action.type) {
-    case "OPEN": return true;
-    case "CLOSE": return false;
-    case "TOGGLE": return !state;
+  case "OPEN": return true;
+  case "CLOSE": return false;
+  case "TOGGLE": return !state;
   }
 }
 
@@ -455,29 +455,29 @@ function BottomSheetContent({
   const panResponder = useRef(
     Platform.OS !== "web" && swipeEnabled
       ? PanResponder.create({
-          onStartShouldSetPanResponder: () => false,
-          onMoveShouldSetPanResponder: (
-            _evt: GestureResponderEvent,
-            gestureState: PanResponderGestureState
-          ) => {
-            const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
-            const isSignificant = Math.abs(gestureState.dy) > 10;
-            const isDownward = gestureState.dy > 0;
-            return isVertical && isSignificant && isDownward;
-          },
-          onPanResponderMove: (
-            _evt: GestureResponderEvent,
-            gestureState: PanResponderGestureState
-          ) => {
-            handleDragMove(gestureState.dy);
-          },
-          onPanResponderRelease: (
-            _evt: GestureResponderEvent,
-            gestureState: PanResponderGestureState
-          ) => {
-            handleDragRelease(Math.max(0, gestureState.dy), gestureState.vy);
-          },
-        })
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (
+          _evt: GestureResponderEvent,
+          gestureState: PanResponderGestureState
+        ) => {
+          const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+          const isSignificant = Math.abs(gestureState.dy) > 10;
+          const isDownward = gestureState.dy > 0;
+          return isVertical && isSignificant && isDownward;
+        },
+        onPanResponderMove: (
+          _evt: GestureResponderEvent,
+          gestureState: PanResponderGestureState
+        ) => {
+          handleDragMove(gestureState.dy);
+        },
+        onPanResponderRelease: (
+          _evt: GestureResponderEvent,
+          gestureState: PanResponderGestureState
+        ) => {
+          handleDragRelease(Math.max(0, gestureState.dy), gestureState.vy);
+        },
+      })
       : null
   ).current;
 
@@ -488,11 +488,11 @@ function BottomSheetContent({
   const dragContextValue: DragContextValue | null =
     Platform.OS === "web" && swipeEnabled
       ? {
-          onDragMove: handleDragMove,
-          onDragEnd: (dy: number, velocity: number) => {
-            handleDragRelease(Math.max(0, dy), velocity);
-          },
-        }
+        onDragMove: handleDragMove,
+        onDragEnd: (dy: number, velocity: number) => {
+          handleDragRelease(Math.max(0, dy), velocity);
+        },
+      }
       : null;
 
   const handleBackdropPress = () => {

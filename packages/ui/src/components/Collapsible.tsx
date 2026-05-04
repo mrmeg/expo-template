@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Animated, Platform, StyleSheet, View } from "react-native";
-import { TextClassContext } from "./StyledText";
+import { TextClassContext, TextSelectabilityContext } from "./StyledText";
 import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
 import * as CollapsiblePrimitive from "@rn-primitives/collapsible";
@@ -60,22 +60,25 @@ function CollapsibleTrigger({ style: styleOverride, ...props }: CollapsibleTrigg
 
   return (
     <TextClassContext.Provider value="">
-      <CollapsiblePrimitive.Trigger
-        {...props}
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingVertical: spacing.sm,
-          ...(Platform.OS === "web" && {
-            cursor: "pointer" as any,
-            outlineStyle: "none" as any,
-          }),
-          ...(styleOverride && typeof styleOverride !== "function"
-            ? StyleSheet.flatten(styleOverride)
-            : {}),
-        }}
-      />
+      <TextSelectabilityContext.Provider value={false}>
+        <CollapsiblePrimitive.Trigger
+          {...props}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingVertical: spacing.sm,
+            ...(Platform.OS === "web" && {
+              cursor: "pointer" as any,
+              outlineStyle: "none" as any,
+              userSelect: "none" as any,
+            }),
+            ...(styleOverride && typeof styleOverride !== "function"
+              ? StyleSheet.flatten(styleOverride)
+              : {}),
+          }}
+        />
+      </TextSelectabilityContext.Provider>
     </TextClassContext.Provider>
   );
 }

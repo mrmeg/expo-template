@@ -5,6 +5,7 @@
 ## Bundle Size
 
 - Monitoring: `bun run bundle-size` compares client JS against `scripts/bundle-baseline.json`
+- Current baseline: 5,995,827 bytes of client JS from the latest local web export
 - Threshold: 10% growth allowed before flagging
 - Analysis: `bun run analyze` runs source-map-explorer on the production client export
 - Only minified JS files in `dist/client` are measured. The SSR renderer in
@@ -87,18 +88,28 @@ covered routes.
 
 ## Render Churn Checks
 
-- Web pages can opt into React Scan by adding `?scan` to the URL. The root
-  web HTML injects `https://unpkg.com/react-scan/dist/auto.global.js` only
-  for that request.
+- Local web pages can opt into React Scan by adding `?scan` to the URL. The
+  root web HTML injects `https://unpkg.com/react-scan/dist/auto.global.js`
+  only for local hosts such as `localhost`, `127.0.0.1`, and `.local`.
 - `bun run web:scan` starts the Expo web server. Open
   `http://localhost:8081/showcase?scan` to inspect the
   showcase with render outlines.
-- `bun run scan:showcase` runs the React Scan CLI against an already-running
-  showcase route on port 8081.
+- `bun run scan:showcase` opens the scan-enabled showcase route on port 8081
+  against an already-running web server. Set `EXPO_DEV_SERVER_PORT` or `PORT`
+  when this repo is running on another port.
 - Large catalog/demo routes should isolate frequently changing examples into
   small components with local state. State for text input, switches, skeleton
   toggles, animations, select/radio controls, sliders, and OTP inputs should
   not live at the top of the full showcase route.
+- Auth forms use `client/features/auth/components/AuthTextField.tsx` to keep
+  per-keystroke value and validation state inside each field. The form card
+  shell should not re-render while typing; keep new auth inputs on that
+  boundary and cover them with
+  `client/features/auth/components/__tests__/authRenderChurn.test.tsx`.
+- Reusable screen templates and package controls should memoize
+  theme-derived StyleSheet factories with `useMemo()` so parent renders,
+  typing, toggles, and list refreshes do not allocate new style objects unless
+  the theme or size inputs changed.
 
 ## FFmpeg Worker Contract (web video conversion)
 

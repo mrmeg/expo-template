@@ -117,9 +117,16 @@ export default function Root({ children }: PropsWithChildren) {
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if (new URLSearchParams(window.location.search).has('scan')) {
-                document.write('<script crossorigin="anonymous" src="https://unpkg.com/react-scan/dist/auto.global.js"><\\/script>');
-              }
+              (function () {
+                var scanHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
+                var scanEnabledHost = scanHosts.includes(window.location.hostname) || window.location.hostname.endsWith('.local');
+                if (scanEnabledHost && new URLSearchParams(window.location.search).has('scan')) {
+                  var reactScanScript = document.createElement('script');
+                  reactScanScript.crossOrigin = 'anonymous';
+                  reactScanScript.src = 'https://unpkg.com/react-scan/dist/auto.global.js';
+                  document.head.appendChild(reactScanScript);
+                }
+              })();
             `,
           }}
         />

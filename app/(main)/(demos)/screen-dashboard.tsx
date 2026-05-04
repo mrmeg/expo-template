@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { View, StyleSheet } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -52,7 +52,7 @@ const ACTIVITY_FEED: ActivityItem[] = [
     id: "a5",
     icon: "star",
     title: "New 5-star review",
-    description: '"Great product, fast shipping!" - J. Chen',
+    description: "\"Great product, fast shipping!\" - J. Chen",
     timestamp: "4h ago",
   },
 ];
@@ -64,7 +64,7 @@ const DATE_RANGE_OPTIONS = [
 ];
 
 function PlaceholderCard({ text, theme }: { text: string; theme: Theme }) {
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   return (
     <View style={styles.placeholderCard}>
       <SansSerifText style={styles.placeholderText}>{text}</SansSerifText>

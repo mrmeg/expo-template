@@ -60,6 +60,8 @@ export default function ShowcaseScreen() {
   const [showUrls, setShowUrls] = useState(false);
   const [statusBarPosition, setStatusBarPosition] = useState("bottom");
   const [collapsibleOpen, setCollapsibleOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState("account");
+  const [projectTab, setProjectTab] = useState("overview");
 
   return (
     <View style={styles.container}>
@@ -1080,7 +1082,7 @@ export default function ShowcaseScreen() {
           {/* Tabs */}
           <Section title="Tabs">
             <SubSection label="Underline (Default)">
-              <Tabs value="account" onValueChange={() => {}}>
+              <Tabs value={settingsTab} onValueChange={setSettingsTab}>
                 <TabsList>
                   <TabsTrigger value="account">Account</TabsTrigger>
                   <TabsTrigger value="password">Password</TabsTrigger>
@@ -1098,7 +1100,7 @@ export default function ShowcaseScreen() {
               </Tabs>
             </SubSection>
             <SubSection label="Pill Variant">
-              <Tabs value="overview" onValueChange={() => {}} variant="pill">
+              <Tabs value={projectTab} onValueChange={setProjectTab} variant="pill">
                 <TabsList>
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -1838,16 +1840,18 @@ const DialogSection = memo(function DialogSection({
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete your account and remove your data from our servers.
             </AlertDialogDescription>
-            <AlertDialogCancel asChild>
-              <Button preset="outline">
-                <SansSerifText style={styles.outlineButtonText}>Cancel</SansSerifText>
-              </Button>
-            </AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <Button preset="destructive">
-                <SansSerifText style={{ color: theme.colors.destructiveForeground }}>Delete</SansSerifText>
-              </Button>
-            </AlertDialogAction>
+            <DialogFooter>
+              <AlertDialogCancel asChild>
+                <Button preset="outline" size="sm">
+                  <SansSerifText style={styles.outlineButtonText}>Cancel</SansSerifText>
+                </Button>
+              </AlertDialogCancel>
+              <AlertDialogAction asChild>
+                <Button preset="destructive" size="sm">
+                  <SansSerifText style={{ color: theme.colors.destructiveForeground }}>Delete</SansSerifText>
+                </Button>
+              </AlertDialogAction>
+            </DialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </SubSection>

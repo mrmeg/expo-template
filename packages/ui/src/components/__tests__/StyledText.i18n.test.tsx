@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react-native";
 import { configureExpoUiI18n } from "../../lib/i18n";
 import { Button } from "../Button";
-import { StyledText } from "../StyledText";
+import { StyledText, TextSelectabilityContext } from "../StyledText";
 
 jest.mock("../../hooks/useTheme", () => ({
   useTheme: () => ({
@@ -44,6 +44,26 @@ describe("StyledText i18n adapter", () => {
     render(<StyledText>Plain text</StyledText>);
 
     expect(screen.getByText("Plain text")).toBeTruthy();
+  });
+
+  it("keeps standalone text selectable by default", () => {
+    render(<StyledText>Selectable copy</StyledText>);
+
+    const text = screen.getByText("Selectable copy");
+
+    expect(text.props.selectable).toBe(true);
+  });
+
+  it("allows controls to disable nested StyledText selection through context", () => {
+    render(
+      <TextSelectabilityContext.Provider value={false}>
+        <StyledText>Control label</StyledText>
+      </TextSelectabilityContext.Provider>
+    );
+
+    const text = screen.getByText("Control label");
+
+    expect(text.props.selectable).toBe(false);
   });
 
   it("falls back to the tx key when no translator is configured", () => {

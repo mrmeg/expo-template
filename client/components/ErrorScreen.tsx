@@ -1,4 +1,4 @@
-import React, { ErrorInfo } from "react";
+import React, { useMemo, ErrorInfo } from "react";
 import {
   View,
   ScrollView,
@@ -47,7 +47,7 @@ export interface ErrorScreenProps {
  */
 export function ErrorScreen({ error, errorInfo, resetError }: ErrorScreenProps) {
   const { theme, getShadowStyle } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [showDetails, setShowDetails] = React.useState(__DEV__);
 
   return (

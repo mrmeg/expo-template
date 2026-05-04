@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { View, StyleSheet } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -34,7 +34,7 @@ const CATEGORIES: CardGridCategory[] = [
 
 export default function ScreenCardGridDemo() {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const filteredProducts =

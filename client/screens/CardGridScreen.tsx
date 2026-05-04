@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback } from "react";
+import React, { useMemo, ReactNode, useCallback } from "react";
 import {
   View,
   FlatList,
@@ -92,7 +92,7 @@ export function CardGridScreen<T>({
   style: styleOverride,
 }: CardGridScreenProps<T>) {
   const { theme } = useTheme();
-  const styles = createStyles(theme, cardSpacing);
+  const styles = useMemo(() => createStyles(theme, cardSpacing), [theme, cardSpacing]);
 
   // -------------------------------------------------------------------------
   // Sort cycling

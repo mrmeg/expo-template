@@ -1,6 +1,6 @@
 import React from "react";
 import { Icon } from "./Icon";
-import { TextClassContext, TextColorContext } from "./StyledText";
+import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import * as TogglePrimitive from "@rn-primitives/toggle";
@@ -162,6 +162,7 @@ function Toggle({
   const flattenedStyle = styleOverride ? StyleSheet.flatten(styleOverride) : undefined;
 
   const isDisabled = props.disabled || loading;
+  const children = props.children;
 
   return (
     <TextColorContext.Provider value={textColor}>
@@ -203,6 +204,7 @@ function Toggle({
             ...(Platform.OS === "web" && {
               cursor: isDisabled ? "not-allowed" : ("pointer" as any),
               transition: "all 150ms",
+              userSelect: "none" as any,
             }),
             // Apply custom style override
             ...(flattenedStyle || {}),
@@ -216,9 +218,19 @@ function Toggle({
           }}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={textColor} />
+            <TextSelectabilityContext.Provider value={false}>
+              <ActivityIndicator size="small" color={textColor} />
+            </TextSelectabilityContext.Provider>
+          ) : typeof children === "function" ? (
+            (state: any) => (
+              <TextSelectabilityContext.Provider value={false}>
+                {children(state)}
+              </TextSelectabilityContext.Provider>
+            )
           ) : (
-            props.children
+            <TextSelectabilityContext.Provider value={false}>
+              {children}
+            </TextSelectabilityContext.Provider>
           )}
         </TogglePrimitive.Root>
       </TextClassContext.Provider>

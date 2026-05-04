@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { SansSerifBoldText, SansSerifText } from "./StyledText";
 import { Button, type ButtonProps } from "./Button";
@@ -57,7 +57,7 @@ export function EmptyState({
   children,
 }: EmptyStateProps) {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <View style={[styles.container, style]}>
@@ -67,10 +67,10 @@ export function EmptyState({
         </View>
       )}
 
-      <SansSerifBoldText style={styles.title}>{title}</SansSerifBoldText>
+      <SansSerifBoldText selectable={false} style={styles.title}>{title}</SansSerifBoldText>
 
       {!!description && (
-        <SansSerifText style={styles.description}>{description}</SansSerifText>
+        <SansSerifText selectable={false} style={styles.description}>{description}</SansSerifText>
       )}
 
       {children}
@@ -116,5 +116,6 @@ const createStyles = (theme: Theme) =>
     },
     action: {
       marginTop: spacing.lg,
+      alignSelf: "center",
     },
   });

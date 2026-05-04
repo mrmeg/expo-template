@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { View, StyleSheet, Pressable, Platform, ScrollView } from "react-native";
 import { Link } from "expo-router";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
@@ -19,7 +20,7 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 
 export default function ExploreScreen() {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const componentCount = getComponentCount();
 
   // Pair templates into rows of 2 for grid layout

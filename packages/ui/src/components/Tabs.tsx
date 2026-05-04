@@ -90,18 +90,18 @@ function TabsList({ style, children, ...props }: TabsListProps) {
 
   const listStyle = variant === "pill"
     ? {
-        flexDirection: "row" as const,
-        backgroundColor: theme.colors.muted,
-        borderRadius: spacing.radiusMd,
-        padding: 2,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-      }
+      flexDirection: "row" as const,
+      backgroundColor: theme.colors.muted,
+      borderRadius: spacing.radiusMd,
+      padding: 2,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    }
     : {
-        flexDirection: "row" as const,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
-      };
+      flexDirection: "row" as const,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    };
 
   return (
     <TabsPrimitive.List
@@ -187,7 +187,7 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
               />
             )}
             {typeof children === "string" ? (
-              <StyledText style={{ fontSize: sizeConfig.fontSize }}>{children}</StyledText>
+              <StyledText selectable={false} style={{ fontSize: sizeConfig.fontSize }}>{children}</StyledText>
             ) : (
               children as React.ReactNode
             )}

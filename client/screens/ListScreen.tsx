@@ -1,4 +1,4 @@
-import React, { ReactNode, useState, useCallback } from "react";
+import React, { useMemo, ReactNode, useState, useCallback } from "react";
 import {
   View,
   FlatList,
@@ -69,7 +69,7 @@ export function ListScreen<T>({
   style: styleOverride,
 }: ListScreenProps<T>) {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearch = useCallback(

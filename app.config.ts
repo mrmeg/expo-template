@@ -47,6 +47,7 @@ function isSentryConfigured(): boolean {
 
 function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
   const plugins: NonNullable<ExpoConfig["plugins"]> = [
+    "@sentry/react-native",
     [
       "expo-router",
       {

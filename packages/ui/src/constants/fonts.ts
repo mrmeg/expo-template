@@ -40,18 +40,18 @@ const serifFamilies = isWebRuntime
 
 const sansSerifFamilies = isWebRuntime
   ? {
-      regular: `"Lato", ${WEB_FONT_STACK}`,
-      bold: `"Lato", ${WEB_FONT_STACK}`,
-    }
+    regular: `"Lato", ${WEB_FONT_STACK}`,
+    bold: `"Lato", ${WEB_FONT_STACK}`,
+  }
   : isReactNativeRuntime
     ? {
-        regular: "System",
-        bold: "System",
-      }
+      regular: "System",
+      bold: "System",
+    }
     : {
-        regular: "sans-serif",
-        bold: "sans-serif",
-      };
+      regular: "sans-serif",
+      bold: "sans-serif",
+    };
 
 export const fontFamilies = {
   serif: serifFamilies,

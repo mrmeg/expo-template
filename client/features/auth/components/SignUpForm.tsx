@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform, TextInput as RNTextInput } from "react-native";
+import React, { useCallback, useMemo, useRef } from "react";
+import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -11,10 +11,10 @@ import {
   CardTitle,
   CardDescription,
 } from "@mrmeg/expo-ui/components/Card";
-import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import type { Theme } from "@mrmeg/expo-ui/constants";
+import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 
 export interface SignUpFormProps {
   onSignUp?: (data: { name: string; email: string; password: string }) => void | Promise<void>;
@@ -47,101 +47,83 @@ export function SignUpForm({
 }: SignUpFormProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const resolvedTitle = title ?? t("auth.signUpTitle");
   const resolvedDescription = description ?? t("auth.signUpDescription");
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [nameError, setNameError] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const nameRef = useRef<AuthTextFieldHandle>(null);
+  const emailRef = useRef<AuthTextFieldHandle>(null);
+  const passwordRef = useRef<AuthTextFieldHandle>(null);
+  const confirmPasswordRef = useRef<AuthTextFieldHandle>(null);
 
-  const emailRef = useRef<RNTextInput>(null);
-  const passwordRef = useRef<RNTextInput>(null);
-  const confirmPasswordRef = useRef<RNTextInput>(null);
-
-  const validateName = (value: string): boolean => {
+  const validateName = useCallback((value: string): string => {
     if (!requireName) {
-      setNameError("");
-      return true;
+      return "";
     }
     if (!value.trim()) {
-      setNameError(t("errors.nameRequired"));
-      return false;
+      return t("errors.nameRequired");
     }
     if (value.trim().length < 2) {
-      setNameError(t("errors.nameTooShort"));
-      return false;
+      return t("errors.nameTooShort");
     }
-    setNameError("");
-    return true;
-  };
+    return "";
+  }, [requireName, t]);
 
-  const validateEmail = (value: string): boolean => {
+  const validateEmail = useCallback((value: string): string => {
     if (!value.trim()) {
-      setEmailError(t("errors.emailRequired"));
-      return false;
+      return t("errors.emailRequired");
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
-      setEmailError(t("errors.invalidEmail"));
-      return false;
+      return t("errors.invalidEmail");
     }
-    setEmailError("");
-    return true;
-  };
+    return "";
+  }, [t]);
 
-  const validatePassword = (value: string): boolean => {
+  const validatePassword = useCallback((value: string): string => {
     if (!value) {
-      setPasswordError(t("errors.passwordRequired"));
-      return false;
+      return t("errors.passwordRequired");
     }
     if (value.length < 8) {
-      setPasswordError(t("errors.passwordMinLength", { count: 8 }));
-      return false;
+      return t("errors.passwordMinLength", { count: 8 });
     }
-    setPasswordError("");
-    return true;
-  };
+    return "";
+  }, [t]);
 
-  const validateConfirmPassword = (value: string): boolean => {
+  const validateConfirmPassword = useCallback((value: string): string => {
     if (!value) {
-      setConfirmPasswordError(t("errors.confirmPasswordRequired"));
-      return false;
+      return t("errors.confirmPasswordRequired");
     }
-    if (value !== password) {
-      setConfirmPasswordError(t("errors.passwordMismatch"));
-      return false;
+    if (value !== passwordRef.current?.getValue()) {
+      return t("errors.passwordMismatch");
     }
-    setConfirmPasswordError("");
-    return true;
-  };
+    return "";
+  }, [t]);
 
-  const handleSubmit = async () => {
-    const isNameValid = validateName(name);
-    const isEmailValid = validateEmail(email);
-    const isPasswordValid = validatePassword(password);
-    const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
+  const handleSubmit = useCallback(async () => {
+    const isNameValid = !requireName || (nameRef.current?.validate() ?? false);
+    const isEmailValid = emailRef.current?.validate() ?? false;
+    const isPasswordValid = passwordRef.current?.validate() ?? false;
+    const isConfirmPasswordValid = confirmPasswordRef.current?.validate() ?? false;
     if (isNameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid) {
+      const name = nameRef.current?.getValue() ?? "";
+      const email = emailRef.current?.getValue() ?? "";
+      const password = passwordRef.current?.getValue() ?? "";
       await onSignUp?.({ name: name.trim(), email, password });
     }
-  };
+  }, [onSignUp, requireName]);
 
   const getSocialLabel = (provider: string): string => {
     switch (provider) {
-      case "google":
-        return t("auth.continueWithGoogle");
-      case "apple":
-        return t("auth.continueWithApple");
-      case "github":
-        return t("auth.continueWithGithub");
-      default:
-        return t("auth.continueWith", { provider });
+    case "google":
+      return t("auth.continueWithGoogle");
+    case "apple":
+      return t("auth.continueWithApple");
+    case "github":
+      return t("auth.continueWithGithub");
+    default:
+      return t("auth.continueWith", { provider });
     }
   };
 
@@ -163,18 +145,12 @@ export function SignUpForm({
 
           {requireName && (
             <View style={styles.inputGroup}>
-              <TextInput
+              <AuthTextField
+                ref={nameRef}
                 testID="sign-up-name-input"
                 label={t("auth.name")}
                 placeholder={t("auth.namePlaceholder")}
-                value={name}
-                onChangeText={(text) => {
-                  setName(text);
-                  if (nameError) validateName(text);
-                }}
-                onBlur={() => validateName(name)}
-                error={!!nameError}
-                errorText={nameError}
+                validateValue={validateName}
                 autoCapitalize="words"
                 autoComplete="name"
                 autoCorrect={false}
@@ -188,19 +164,12 @@ export function SignUpForm({
           )}
 
           <View style={styles.inputGroup}>
-            <TextInput
+            <AuthTextField
               ref={emailRef}
               testID="sign-up-email-input"
               label={t("auth.email")}
               placeholder={t("auth.emailPlaceholder")}
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (emailError) validateEmail(text);
-              }}
-              onBlur={() => validateEmail(email)}
-              error={!!emailError}
-              errorText={emailError}
+              validateValue={validateEmail}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -214,22 +183,17 @@ export function SignUpForm({
           </View>
 
           <View style={styles.inputGroup}>
-            <TextInput
+            <AuthTextField
               ref={passwordRef}
               testID="sign-up-password-input"
               label={t("auth.password")}
               placeholder={t("auth.createPasswordPlaceholder")}
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (passwordError) validatePassword(text);
-                if (confirmPassword && confirmPasswordError) {
-                  validateConfirmPassword(confirmPassword);
+              validateValue={validatePassword}
+              onValueChange={() => {
+                if (confirmPasswordRef.current?.getValue() && confirmPasswordRef.current.hasError()) {
+                  confirmPasswordRef.current.validate();
                 }
               }}
-              onBlur={() => validatePassword(password)}
-              error={!!passwordError}
-              errorText={passwordError}
               secureTextEntry
               showSecureEntryToggle
               autoCapitalize="none"
@@ -243,19 +207,12 @@ export function SignUpForm({
           </View>
 
           <View style={styles.inputGroup}>
-            <TextInput
+            <AuthTextField
               ref={confirmPasswordRef}
               testID="sign-up-confirm-password-input"
               label={t("auth.confirmPassword")}
               placeholder={t("auth.confirmPasswordPlaceholder")}
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                if (confirmPasswordError) validateConfirmPassword(text);
-              }}
-              onBlur={() => validateConfirmPassword(confirmPassword)}
-              error={!!confirmPasswordError}
-              errorText={confirmPasswordError}
+              validateValue={validateConfirmPassword}
               secureTextEntry
               showSecureEntryToggle
               autoCapitalize="none"

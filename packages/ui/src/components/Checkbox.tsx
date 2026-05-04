@@ -141,19 +141,19 @@ function Checkbox({
         }}
       >
         <Animated.View style={checkAnimatedStyle}>
-        {indeterminate ? (
-          <Icon
-            name="minus"
-            size={sizeConfig.iconSize}
-            color={theme.colors.primaryForeground}
-          />
-        ) : (
-          <Icon
-            name="check"
-            size={sizeConfig.iconSize}
-            color={theme.colors.primaryForeground}
-          />
-        )}
+          {indeterminate ? (
+            <Icon
+              name="minus"
+              size={sizeConfig.iconSize}
+              color={theme.colors.primaryForeground}
+            />
+          ) : (
+            <Icon
+              name="check"
+              size={sizeConfig.iconSize}
+              color={theme.colors.primaryForeground}
+            />
+          )}
         </Animated.View>
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
@@ -180,6 +180,7 @@ function Checkbox({
       {checkboxElement}
       <View style={styles.labelContainer}>
         <StyledText
+          selectable={false}
           style={[
             styles.label,
             { color: theme.colors.text },
@@ -189,7 +190,7 @@ function Checkbox({
         >
           {label}
           {required && (
-            <StyledText style={[styles.required, { color: theme.colors.destructive }]}> *</StyledText>
+            <StyledText selectable={false} style={[styles.required, { color: theme.colors.destructive }]}> *</StyledText>
           )}
         </StyledText>
       </View>

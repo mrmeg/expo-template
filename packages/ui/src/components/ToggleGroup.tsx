@@ -1,6 +1,6 @@
 import type { IconName } from "./Icon";
 import { Icon } from "./Icon";
-import { TextClassContext, TextColorContext } from "./StyledText";
+import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText";
 import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
 import * as ToggleGroupPrimitive from "@rn-primitives/toggle-group";
@@ -250,6 +250,7 @@ function ToggleGroupItem({
             ...(Platform.OS === "web" && {
               cursor: props.disabled ? "not-allowed" : ("pointer" as any),
               transition: "all 150ms",
+              userSelect: "none" as any,
               // Ensure proper z-index on focus
               ...(isSelected && {
                 zIndex: 10,
@@ -258,7 +259,17 @@ function ToggleGroupItem({
           }}
           hitSlop={DEFAULT_HIT_SLOP}
         >
-          {children}
+          {typeof children === "function" ? (
+            (state: any) => (
+              <TextSelectabilityContext.Provider value={false}>
+                {children(state)}
+              </TextSelectabilityContext.Provider>
+            )
+          ) : (
+            <TextSelectabilityContext.Provider value={false}>
+              {children}
+            </TextSelectabilityContext.Provider>
+          )}
         </ToggleGroupPrimitive.Item>
       </TextClassContext.Provider>
     </TextColorContext.Provider>

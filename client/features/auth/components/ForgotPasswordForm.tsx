@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
@@ -11,10 +11,10 @@ import {
   CardTitle,
   CardDescription,
 } from "@mrmeg/expo-ui/components/Card";
-import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import type { Theme } from "@mrmeg/expo-ui/constants";
+import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 
 export interface ForgotPasswordFormProps {
   onSubmit?: (email: string) => void | Promise<void>;
@@ -43,33 +43,32 @@ export function ForgotPasswordForm({
 }: ForgotPasswordFormProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const resolvedTitle = title ?? t("auth.forgotPasswordTitle");
   const resolvedDescription = description ?? t("auth.forgotPasswordDescription");
 
-  const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState("");
+  const emailRef = useRef<AuthTextFieldHandle>(null);
+  const [submittedEmail, setSubmittedEmail] = useState("");
 
-  const validateEmail = (value: string): boolean => {
+  const validateEmail = useCallback((value: string): string => {
     if (!value.trim()) {
-      setEmailError(t("errors.emailRequired"));
-      return false;
+      return t("errors.emailRequired");
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
-      setEmailError(t("errors.invalidEmail"));
-      return false;
+      return t("errors.invalidEmail");
     }
-    setEmailError("");
-    return true;
-  };
+    return "";
+  }, [t]);
 
-  const handleSubmit = async () => {
-    if (validateEmail(email)) {
+  const handleSubmit = useCallback(async () => {
+    if (emailRef.current?.validate()) {
+      const email = emailRef.current.getValue();
+      setSubmittedEmail(email);
       await onSubmit?.(email);
     }
-  };
+  }, [onSubmit]);
 
   const wrapContent = (content: React.ReactNode) => {
     if (embedded) {
@@ -99,7 +98,7 @@ export function ForgotPasswordForm({
           <CardHeader>
             <CardTitle>{t("auth.checkYourEmail")}</CardTitle>
             <CardDescription>
-              {t("auth.resetLinkSentDescription", { email })}
+              {t("auth.resetLinkSentDescription", { email: submittedEmail })}
             </CardDescription>
           </CardHeader>
 
@@ -113,7 +112,7 @@ export function ForgotPasswordForm({
             <Button
               preset="outline"
               onPress={() => {
-                setEmail("");
+                emailRef.current?.setValue("");
                 onBack?.();
               }}
               fullWidth
@@ -143,17 +142,12 @@ export function ForgotPasswordForm({
           )}
 
           <View style={styles.inputGroup}>
-            <TextInput
+            <AuthTextField
+              ref={emailRef}
+              testID="forgot-password-email-input"
               label={t("auth.email")}
               placeholder={t("auth.emailPlaceholder")}
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (emailError) validateEmail(text);
-              }}
-              onBlur={() => validateEmail(email)}
-              error={!!emailError}
-              errorText={emailError}
+              validateValue={validateEmail}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -166,6 +160,7 @@ export function ForgotPasswordForm({
           </View>
 
           <Button
+            testID="forgot-password-submit-button"
             preset="default"
             onPress={handleSubmit}
             loading={loading}

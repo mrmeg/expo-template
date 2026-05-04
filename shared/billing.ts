@@ -152,9 +152,9 @@ export function normalizeStripeSubscription(
   const priceId = subscription.items.data[0]?.price.id ?? null;
   const plan = priceId
     ? catalog.find(
-        (p) =>
-          p.stripePriceIdMonth === priceId || p.stripePriceIdYear === priceId,
-      )
+      (p) =>
+        p.stripePriceIdMonth === priceId || p.stripePriceIdYear === priceId,
+    )
     : undefined;
 
   const interval = (() => {
@@ -185,18 +185,18 @@ export function normalizeStripeSubscription(
 
 function toBillingStatus(raw: string): BillingStatus {
   switch (raw) {
-    case "trialing":
-    case "active":
-    case "past_due":
-    case "canceled":
-    case "incomplete":
-      return raw;
-    case "incomplete_expired":
-    case "unpaid":
-      return "canceled";
-    case "paused":
-      return "past_due";
-    default:
-      return "free";
+  case "trialing":
+  case "active":
+  case "past_due":
+  case "canceled":
+  case "incomplete":
+    return raw;
+  case "incomplete_expired":
+  case "unpaid":
+    return "canceled";
+  case "paused":
+    return "past_due";
+  default:
+    return "free";
   }
 }

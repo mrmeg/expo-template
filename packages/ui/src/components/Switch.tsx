@@ -108,21 +108,18 @@ function Switch({
   }));
 
   const isIOS = variant === "ios";
-  // Keep the default checked state on a stable dark neutral so the white thumb
-  // stays distinct in both light and dark themes.
-  const checkedColor = isIOS ? "#34C759" : theme.colors.primary;
-  const uncheckedColor = theme.dark ? withAlpha(palette.white, 0.18) : theme.colors.input;
+  const checkedColor = isIOS ? "#34C759" : theme.colors.accent;
+  const uncheckedColor = theme.dark ? withAlpha(palette.white, 0.12) : theme.colors.input;
   const trackBg = props.checked ? checkedColor : uncheckedColor;
   const trackBorderColor = props.checked
-    ? theme.dark
-      ? withAlpha(palette.white, 0.18)
-      : withAlpha(palette.black, 0.08)
+    ? withAlpha(checkedColor, theme.dark ? 0.55 : 0.42)
     : theme.dark
-      ? withAlpha(palette.white, 0.14)
+      ? withAlpha(palette.white, 0.16)
       : palette.gray300;
+  const thumbBackgroundColor = theme.dark ? palette.gray100 : palette.white;
   const thumbBorderColor = theme.dark
-    ? withAlpha(palette.black, 0.24)
-    : withAlpha(palette.black, 0.12);
+    ? withAlpha(palette.black, 0.36)
+    : withAlpha(palette.black, 0.1);
   const thumbIndicatorColor = props.checked ? checkedColor : theme.colors.textDim;
 
   // Calculate label color for ON state
@@ -187,6 +184,7 @@ function Switch({
           pointerEvents="none"
         >
           <StyledText
+            selectable={false}
             style={{
               fontFamily: fontFamilies.sansSerif.bold,
               fontSize: labelFontSize,
@@ -208,12 +206,12 @@ function Switch({
               height: thumbSize,
               marginLeft: thumbInset,
               borderRadius: thumbSize / 2,
-              backgroundColor: palette.white,
+              backgroundColor: thumbBackgroundColor,
               borderWidth: 1,
               borderColor: thumbBorderColor,
               justifyContent: "center",
               alignItems: "center",
-              ...getShadowStyle("sharp"),
+              ...getShadowStyle("subtle"),
             },
             thumbAnimatedStyle,
           ]}
@@ -243,6 +241,7 @@ function Switch({
           pointerEvents="none"
         >
           <StyledText
+            selectable={false}
             style={{
               fontFamily: fontFamilies.sansSerif.bold,
               fontSize: labelFontSize,

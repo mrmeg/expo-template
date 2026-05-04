@@ -9,7 +9,7 @@
  */
 
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import type { ReactTestInstance } from "react-test-renderer";
 import { Button } from "../Button";
@@ -163,15 +163,61 @@ describe("Button", () => {
       expect(textStyle.lineHeight).toBeCloseTo(16.8);
     });
 
+    it("disables text selection for button labels", () => {
+      render(<Button text="Submit" />);
+
+      const label = screen.getByText("Submit");
+      const textStyle = StyleSheet.flatten(label.props.style) as Record<string, unknown>;
+
+      expect(label.props.selectable).toBe(false);
+      expect(textStyle.userSelect).toBe("none");
+    });
+
     it("renders loading state", () => {
-      render(
+      const { UNSAFE_getAllByType } = render(
         <Button loading>
           <Text>Loading</Text>
         </Button>
       );
 
-      // When loading, children should not be rendered
-      expect(screen.queryByText("Loading")).toBeNull();
+      const hiddenContentStyle = UNSAFE_getAllByType(View)
+        .map((node) => StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined)
+        .find((style) => style?.opacity === 0);
+
+      expect(UNSAFE_getAllByType(ActivityIndicator)).toHaveLength(1);
+      expect(screen.getByText("Loading")).toBeTruthy();
+      expect(hiddenContentStyle).toEqual(expect.objectContaining({ opacity: 0 }));
+    });
+
+    it("preserves the previous resting width while a loading label changes", () => {
+      const { UNSAFE_getAllByType, rerender } = render(
+        <Button loading={false}>
+          <Text>Click to Load</Text>
+        </Button>
+      );
+      const buttonSurface = findFlattenedStyleByBackground(UNSAFE_getAllByType(View), "#18181B");
+      const buttonSurfaceNode = UNSAFE_getAllByType(View).find((node) => {
+        const style = StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined;
+        return style?.backgroundColor === "#18181B";
+      });
+
+      expect(buttonSurface).toBeTruthy();
+      expect(buttonSurfaceNode).toBeTruthy();
+
+      fireEvent(buttonSurfaceNode!, "layout", {
+        nativeEvent: { layout: { width: 128, height: 32 } },
+      });
+
+      rerender(
+        <Button loading>
+          <Text>Loading...</Text>
+        </Button>
+      );
+
+      const loadingButtonSurface = findFlattenedStyleByBackground(UNSAFE_getAllByType(View), "#18181B");
+
+      expect(loadingButtonSurface).toEqual(expect.objectContaining({ width: 128 }));
+      expect(screen.getByText("Loading...")).toBeTruthy();
     });
   });
 
@@ -351,11 +397,11 @@ describe("Button", () => {
       expect(screen.getByText("With Right")).toBeTruthy();
     });
 
-    it("hides accessories when loading", () => {
+    it("keeps accessories mounted but hidden when loading", () => {
       const LeftAccessory = () => <Text>Left</Text>;
       const RightAccessory = () => <Text>Right</Text>;
 
-      render(
+      const { UNSAFE_getAllByType } = render(
         <Button
           text="Loading"
           loading
@@ -364,8 +410,13 @@ describe("Button", () => {
         />
       );
 
-      expect(screen.queryByText("Left")).toBeNull();
-      expect(screen.queryByText("Right")).toBeNull();
+      const hiddenContentStyle = UNSAFE_getAllByType(View)
+        .map((node) => StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined)
+        .find((style) => style?.opacity === 0);
+
+      expect(screen.getByText("Left")).toBeTruthy();
+      expect(screen.getByText("Right")).toBeTruthy();
+      expect(hiddenContentStyle).toEqual(expect.objectContaining({ opacity: 0 }));
     });
   });
 });

@@ -7,6 +7,25 @@
   adding React Scan verification docs/scripts. `Button` and `TextInput` in
   `@mrmeg/expo-ui` now memoize their theme/size StyleSheet factories so
   repeated parent renders and controlled input updates allocate less work.
+  Reusable screen templates, auth/onboarding/media surfaces, and demo routes
+  now memoize theme-derived StyleSheet factories as well. Auth forms isolate
+  text value/error state inside `AuthTextField`, so typing in sign-in,
+  sign-up, forgot-password, reset-password, and verify-email fields no longer
+  re-renders each form's static card shell. React Scan injection is limited to
+  local web hosts, and the current web export establishes a 5.72 MB client-JS
+  bundle baseline for the existing bundle-size gate. `StyledText` remains
+  selectable by default for readable content, while package controls now opt
+  labels and chrome out of selection to prevent accidental highlight jitter
+  during clicks, drags, and typing-adjacent interactions. `Button` keeps its
+  content mounted during loading and overlays the spinner so loading transitions
+  preserve the resting button width. `Select` now renders
+  default item labels from the primitive once, applies popover foreground tokens
+  to dropdown text, and uses the accent token for selected-item checks so option
+  menus stay readable in dark mode. `Slider` now syncs controlled values to
+  Reanimated shared values after render so strict-mode logging no longer reports
+  shared-value reads or writes during React render, and `Slider`/`Switch` now
+  use the accent token plus softer thumb borders/shadows so dark-mode controls
+  avoid harsh white ring treatment.
 
 - Tightened the `@mrmeg/expo-ui` consumer dependency contract: moved `@expo/vector-icons` from peer dependency to package dependency, promoted all `@rn-primitives/*` implementation packages into package dependencies, restored the directly imported `@rn-primitives/portal` dependency, and kept native/runtime singleton packages as consumer-managed peers. The package docs now describe that split, and the Jest harness resolves Bun virtual-store React Native modules plus virtual package-owned icon mocks so package tests run after the dependency move.
 

@@ -255,7 +255,7 @@ Use `colors[scheme].navigation` and `colors[scheme].fonts` when wiring React Nav
 
 ## Typography
 
-Use `StyledText` for new package-aware text. It applies theme text color, font family, sizing, line-height, optional i18n lookup, and nested text color context used by buttons and toggle controls.
+Use `StyledText` for new package-aware text. It applies theme text color, font family, sizing, line-height, optional i18n lookup, and nested text color/selectability context used by buttons and toggle controls.
 
 ```tsx
 import {
@@ -287,6 +287,7 @@ Text options:
 | `fontWeight` | `light`, `regular`, `medium`, `semibold`, `bold` |
 | `variant` | `sansSerif`, `serif` |
 | `align` | `left`, `center`, `right`, `justify`, `auto` |
+| `selectable` | Defaults to `true`; controls disable selection for interactive chrome |
 | `tx`, `txOptions` | i18n key and interpolation options |
 
 `tx` support is optional. If no package translator is configured, `tx` renders
@@ -342,16 +343,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@mrmeg/expo-ui/compone
 
 | Component | Use For | Notes |
 |-----------|---------|-------|
-| `Button` | Primary and secondary actions | `preset`: `default`, `outline`, `ghost`, `link`, `destructive`, `secondary`; `size`: `sm`, `md`, `lg`; supports `loading`, `fullWidth`, `withShadow`, `LeftAccessory`, `RightAccessory` |
+| `Button` | Primary and secondary actions | `preset`: `default`, `outline`, `ghost`, `link`, `destructive`, `secondary`; `size`: `sm`, `md`, `lg`; supports `loading`, `fullWidth`, `withShadow`, `LeftAccessory`, `RightAccessory`; loading overlays the spinner while preserving content width |
 | `TextInput` | Text entry | `variant`: `outline`, `filled`, `underlined`; `size`: `sm`, `md`, `lg`; supports labels, helper/error text, clear/password affordances, left/right elements |
 | `Checkbox` | Boolean selection | `size`: `sm`, `md`, `lg`; supports error state |
 | `RadioGroup` | Single choice | Root controls value; `RadioGroupItem` must be inside `RadioGroup`; `size`: `sm`, `md`, `lg` |
-| `Select` | Option menus | Compound primitives: `SelectTrigger`, `SelectValue`, `SelectContent`, `SelectItem`, `SelectGroup`, `SelectLabel`, `SelectSeparator` |
-| `Switch` | Binary setting | `variant`: `default`, `ios`; accepts custom track/thumb sizes |
+| `Select` | Option menus | Compound primitives: `SelectTrigger`, `SelectValue`, `SelectContent`, `SelectItem`, `SelectGroup`, `SelectLabel`, `SelectSeparator`; item labels render from the required `label` prop and use popover foreground tokens in overlay content |
+| `Switch` | Binary setting | `variant`: `default`, `ios`; accepts custom track/thumb sizes; default checked state uses the accent token with softened thumb borders |
 | `Toggle` | Pressed/unpressed control | `variant`: `default`, `outline`; `size`: `sm`, `default`, `lg`; supports loading and icon |
 | `ToggleGroup` | Single or multi toggle groups | `variant`: `default`, `outline`; `size`: `sm`, `default`, `lg` |
 | `InputOTP` | One-time-code entry | Supports length, grouping, validation, complete callback |
-| `Slider` | Numeric value selection | `size`: `sm`, `md` |
+| `Slider` | Numeric value selection | `size`: `sm`, `md`; active track and thumb affordance use the accent token |
 
 ```tsx
 import { Button, TextInput } from "@mrmeg/expo-ui/components";
@@ -441,6 +442,11 @@ The installed package README is the consumer-facing reference and includes the f
 | `Toggle` | `ToggleIcon` |
 | `ToggleGroup` | `ToggleGroupItem`, `ToggleGroupIcon` |
 | `Tooltip` | `TooltipTrigger`, `TooltipContent`, `TooltipBody` |
+
+Standalone `StyledText` remains selectable by default for readable copy. Package
+controls disable selection for labels, tabs, badges, menu items, and other
+interactive chrome where accidental drag selection would make the control feel
+jittery.
 
 Text aliases exported by `StyledText` are `SerifText`, `SansSerifText`, `SerifBoldText`, `SansSerifBoldText`, `DisplayText`, `TitleText`, `HeadingText`, `SubheadingText`, `BodyText`, `CaptionText`, and `LabelText`.
 

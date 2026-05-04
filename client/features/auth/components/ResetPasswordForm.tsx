@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform, TextInput as RNTextInput } from "react-native";
+import React, { useCallback, useMemo, useRef } from "react";
+import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -11,10 +11,10 @@ import {
   CardTitle,
   CardDescription,
 } from "@mrmeg/expo-ui/components/Card";
-import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import type { Theme } from "@mrmeg/expo-ui/constants";
+import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 
 export interface ResetPasswordFormProps {
   onSubmit?: (params: { code: string; newPassword: string }) => void | Promise<void>;
@@ -45,64 +45,52 @@ export function ResetPasswordForm({
 }: ResetPasswordFormProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const resolvedTitle = title ?? t("auth.resetYourPassword");
   const resolvedDescription = description ?? t("auth.resetYourPasswordDescription");
 
-  const [code, setCode] = useState("");
-  const [codeError, setCodeError] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const codeRef = useRef<AuthTextFieldHandle>(null);
+  const passwordRef = useRef<AuthTextFieldHandle>(null);
+  const confirmPasswordRef = useRef<AuthTextFieldHandle>(null);
 
-  const passwordRef = useRef<RNTextInput>(null);
-  const confirmPasswordRef = useRef<RNTextInput>(null);
-
-  const validateCode = (value: string): boolean => {
+  const validateCode = useCallback((value: string): string => {
     if (!value) {
-      setCodeError(t("errors.codeRequired"));
-      return false;
+      return t("errors.codeRequired");
     }
-    setCodeError("");
-    return true;
-  };
+    return "";
+  }, [t]);
 
-  const validatePassword = (value: string): boolean => {
+  const validatePassword = useCallback((value: string): string => {
     if (!value) {
-      setPasswordError(t("errors.passwordRequired"));
-      return false;
+      return t("errors.passwordRequired");
     }
     if (value.length < minPasswordLength) {
-      setPasswordError(t("errors.passwordMinLength", { count: minPasswordLength }));
-      return false;
+      return t("errors.passwordMinLength", { count: minPasswordLength });
     }
-    setPasswordError("");
-    return true;
-  };
+    return "";
+  }, [minPasswordLength, t]);
 
-  const validateConfirmPassword = (value: string): boolean => {
+  const validateConfirmPassword = useCallback((value: string): string => {
     if (!value) {
-      setConfirmPasswordError(t("errors.confirmPasswordRequired"));
-      return false;
+      return t("errors.confirmPasswordRequired");
     }
-    if (value !== password) {
-      setConfirmPasswordError(t("errors.passwordMismatch"));
-      return false;
+    if (value !== passwordRef.current?.getValue()) {
+      return t("errors.passwordMismatch");
     }
-    setConfirmPasswordError("");
-    return true;
-  };
+    return "";
+  }, [t]);
 
-  const handleSubmit = async () => {
-    const isCodeValid = validateCode(code);
-    const isPasswordValid = validatePassword(password);
-    const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
+  const handleSubmit = useCallback(async () => {
+    const isCodeValid = codeRef.current?.validate() ?? false;
+    const isPasswordValid = passwordRef.current?.validate() ?? false;
+    const isConfirmPasswordValid = confirmPasswordRef.current?.validate() ?? false;
     if (isCodeValid && isPasswordValid && isConfirmPasswordValid) {
+      const code = codeRef.current?.getValue() ?? "";
+      const password = passwordRef.current?.getValue() ?? "";
       await onSubmit?.({ code, newPassword: password });
     }
-  };
+  }, [onSubmit]);
 
   const wrapContent = (content: React.ReactNode) => {
     if (embedded) {
@@ -167,17 +155,12 @@ export function ResetPasswordForm({
           )}
 
           <View style={styles.inputGroup}>
-            <TextInput
+            <AuthTextField
+              ref={codeRef}
+              testID="reset-password-code-input"
               label={t("auth.verificationCode")}
               placeholder={t("auth.verificationCodePlaceholder")}
-              value={code}
-              onChangeText={(text) => {
-                setCode(text);
-                if (codeError) validateCode(text);
-              }}
-              onBlur={() => validateCode(code)}
-              error={!!codeError}
-              errorText={codeError}
+              validateValue={validateCode}
               autoCapitalize="none"
               keyboardType="number-pad"
               editable={!loading}
@@ -189,21 +172,17 @@ export function ResetPasswordForm({
           </View>
 
           <View style={styles.inputGroup}>
-            <TextInput
+            <AuthTextField
               ref={passwordRef}
+              testID="reset-password-password-input"
               label={t("auth.newPassword")}
               placeholder={t("auth.newPasswordPlaceholder")}
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (passwordError) validatePassword(text);
-                if (confirmPassword && confirmPasswordError) {
-                  validateConfirmPassword(confirmPassword);
+              validateValue={validatePassword}
+              onValueChange={() => {
+                if (confirmPasswordRef.current?.getValue() && confirmPasswordRef.current.hasError()) {
+                  confirmPasswordRef.current.validate();
                 }
               }}
-              onBlur={() => validatePassword(password)}
-              error={!!passwordError}
-              errorText={passwordError}
               secureTextEntry
               showSecureEntryToggle
               autoCapitalize="none"
@@ -217,18 +196,12 @@ export function ResetPasswordForm({
           </View>
 
           <View style={styles.inputGroup}>
-            <TextInput
+            <AuthTextField
               ref={confirmPasswordRef}
+              testID="reset-password-confirm-password-input"
               label={t("auth.confirmNewPassword")}
               placeholder={t("auth.confirmNewPasswordPlaceholder")}
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                if (confirmPasswordError) validateConfirmPassword(text);
-              }}
-              onBlur={() => validateConfirmPassword(confirmPassword)}
-              error={!!confirmPasswordError}
-              errorText={confirmPasswordError}
+              validateValue={validateConfirmPassword}
               secureTextEntry
               showSecureEntryToggle
               autoCapitalize="none"
@@ -247,6 +220,7 @@ export function ResetPasswordForm({
           </View>
 
           <Button
+            testID="reset-password-submit-button"
             preset="default"
             onPress={handleSubmit}
             loading={loading}

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { View, Pressable, StyleSheet, Platform } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -35,7 +35,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function ScreenListDemo() {
   const { theme, getShadowStyle } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [contacts, setContacts] = useState(ALL_CONTACTS);
   const [refreshing, setRefreshing] = useState(false);
 

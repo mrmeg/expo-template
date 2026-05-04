@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useRef } from "react";
+import React, { useMemo, useCallback, useContext, useEffect, useRef } from "react";
 import { StyleSheet, View, ActivityIndicator, Pressable, Platform } from "react-native";
 import Animated, {
   useSharedValue,
@@ -49,7 +49,7 @@ export const Notification = () => {
   const reduceMotion = useReducedMotion();
   const insets = useContext(SafeAreaInsetsContext);
   const { alert, hide } = globalUIStore();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const position = alert?.position ?? "top";
   const isBottom = position === "bottom";
@@ -132,31 +132,31 @@ export const Notification = () => {
 
   const getIconProps = (): { icon: IconName; color: string; bgColor: string } => {
     switch (alert?.type) {
-      case "error":
-        return {
-          icon: "alert-circle",
-          color: theme.colors.destructive,
-          bgColor: theme.colors.destructive + "15",
-        };
-      case "success":
-        return {
-          icon: "check-circle",
-          color: theme.colors.success,
-          bgColor: theme.colors.success + "15",
-        };
-      case "warning":
-        return {
-          icon: "alert-triangle",
-          color: theme.colors.warning,
-          bgColor: theme.colors.warning + "15",
-        };
-      case "info":
-      default:
-        return {
-          icon: "info",
-          color: theme.colors.accent,
-          bgColor: theme.colors.accent + "15",
-        };
+    case "error":
+      return {
+        icon: "alert-circle",
+        color: theme.colors.destructive,
+        bgColor: theme.colors.destructive + "15",
+      };
+    case "success":
+      return {
+        icon: "check-circle",
+        color: theme.colors.success,
+        bgColor: theme.colors.success + "15",
+      };
+    case "warning":
+      return {
+        icon: "alert-triangle",
+        color: theme.colors.warning,
+        bgColor: theme.colors.warning + "15",
+      };
+    case "info":
+    default:
+      return {
+        icon: "info",
+        color: theme.colors.accent,
+        bgColor: theme.colors.accent + "15",
+      };
     }
   };
 
@@ -164,16 +164,16 @@ export const Notification = () => {
     if (alert?.title) return alert.title;
 
     switch (alert?.type) {
-      case "error":
-        return translateText("notification.error", "Error");
-      case "success":
-        return translateText("notification.success", "Success");
-      case "warning":
-        return translateText("notification.warning", "Warning");
-      case "info":
-        return "";
-      default:
-        return "";
+    case "error":
+      return translateText("notification.error", "Error");
+    case "success":
+      return translateText("notification.success", "Success");
+    case "warning":
+      return translateText("notification.warning", "Warning");
+    case "info":
+      return "";
+    default:
+      return "";
     }
   };
 
@@ -213,6 +213,7 @@ export const Notification = () => {
         <View style={styles.alertContent}>
           {!!title && (
             <StyledText
+              selectable={false}
               style={[styles.alertTitle, { color: theme.colors.foreground }]}
               numberOfLines={1}
             >
@@ -221,6 +222,7 @@ export const Notification = () => {
           )}
           {hasMessage && (
             <StyledText
+              selectable={false}
               style={[styles.alertDescription, { color: theme.colors.mutedForeground }]}
               numberOfLines={2}
             >

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -38,7 +38,7 @@ type FilterType = "all" | keyof typeof MEDIA_PATHS;
 
 export default function MediaScreen() {
   const { theme, getShadowStyle } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [filter, setFilter] = useState<FilterType>("all");
   const [playingVideo, setPlayingVideo] = useState<{
     url: string;

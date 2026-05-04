@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { View, Pressable, StyleSheet, Platform } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -40,7 +40,7 @@ const INITIAL_FILTERS: SearchFilter[] = [
 
 export default function ScreenSearchDemo() {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState(INITIAL_FILTERS);
 

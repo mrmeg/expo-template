@@ -2,10 +2,9 @@ import * as React from "react";
 import { Platform, StyleSheet, type TextStyle, View } from "react-native";
 import { Icon } from "./Icon";
 import { AnimatedView } from "./AnimatedView";
-import { TextClassContext, TextColorContext } from "./StyledText";
+import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
-import { palette } from "../constants/colors";
 import * as SelectPrimitive from "@rn-primitives/select";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -87,6 +86,7 @@ function SelectTrigger({
         ...(Platform.OS === "web" && {
           cursor: disabled ? "not-allowed" : ("pointer" as any),
           outlineStyle: "none" as any,
+          userSelect: "none" as any,
         }),
         ...(disabled && { opacity: 0.5 }),
         ...(styleOverride && typeof styleOverride !== "function"
@@ -94,12 +94,16 @@ function SelectTrigger({
           : {}),
       }}
     >
-      {typeof children === "function" ? null : children}
-      <Icon
-        name="chevron-down"
-        size={16}
-        color={theme.colors.mutedForeground}
-      />
+      <TextColorContext.Provider value={theme.colors.text}>
+        <TextSelectabilityContext.Provider value={false}>
+          {typeof children === "function" ? null : children}
+          <Icon
+            name="chevron-down"
+            size={16}
+            color={theme.colors.mutedForeground}
+          />
+        </TextSelectabilityContext.Provider>
+      </TextColorContext.Provider>
     </SelectPrimitive.Trigger>
   );
 }
@@ -129,6 +133,7 @@ function SelectValue({
         fontSize: sizeConfig.fontSize,
         color: theme.colors.text,
         flex: 1,
+        userSelect: "none",
         ...(styleOverride && typeof styleOverride !== "function"
           ? StyleSheet.flatten(styleOverride)
           : {}),
@@ -154,15 +159,9 @@ function SelectContent({
   style: styleOverride,
   ...props
 }: SelectContentProps) {
-  const { theme, getShadowStyle, getContrastingColor } = useTheme();
+  const { theme, getShadowStyle } = useTheme();
   const shadowStyle = StyleSheet.flatten(getShadowStyle("soft"));
   const insets = useSafeAreaInsets();
-
-  const textColor = getContrastingColor(
-    theme.colors.background,
-    palette.white,
-    palette.black
-  );
 
   return (
     <SelectPrimitive.Portal hostName={portalHost}>
@@ -174,33 +173,36 @@ function SelectContent({
           })}
         >
           <AnimatedView type="fade">
-            <TextColorContext.Provider value={textColor}>
+            <TextColorContext.Provider value={theme.colors.popoverForeground}>
               <TextClassContext.Provider value="">
-                <SelectPrimitive.Content
-                  side={side}
-                  align={align}
-                  sideOffset={sideOffset}
-                  insets={insets}
-                  avoidCollisions={true}
-                  {...props}
-                  style={{
-                    backgroundColor: theme.colors.popover,
-                    borderWidth: 1,
-                    borderColor: theme.colors.border,
-                    borderRadius: spacing.radiusSm,
-                    padding: spacing.xs,
-                    minWidth: 128,
-                    overflow: "hidden",
-                    ...shadowStyle,
-                    ...(Platform.OS === "web" && {
-                      zIndex: 50,
-                      cursor: "default" as any,
-                    }),
-                    ...(styleOverride && typeof styleOverride !== "function"
-                      ? StyleSheet.flatten(styleOverride)
-                      : {}),
-                  }}
-                />
+                <TextSelectabilityContext.Provider value={false}>
+                  <SelectPrimitive.Content
+                    side={side}
+                    align={align}
+                    sideOffset={sideOffset}
+                    insets={insets}
+                    avoidCollisions={true}
+                    {...props}
+                    style={{
+                      backgroundColor: theme.colors.popover,
+                      borderWidth: 1,
+                      borderColor: theme.colors.border,
+                      borderRadius: spacing.radiusSm,
+                      padding: spacing.xs,
+                      minWidth: 128,
+                      overflow: "hidden",
+                      ...shadowStyle,
+                      ...(Platform.OS === "web" && {
+                        zIndex: 50,
+                        cursor: "default" as any,
+                        userSelect: "none" as any,
+                      }),
+                      ...(styleOverride && typeof styleOverride !== "function"
+                        ? StyleSheet.flatten(styleOverride)
+                        : {}),
+                    }}
+                  />
+                </TextSelectabilityContext.Provider>
               </TextClassContext.Provider>
             </TextColorContext.Provider>
           </AnimatedView>
@@ -223,6 +225,10 @@ function SelectItem({
   ...props
 }: SelectItemProps) {
   const { theme } = useTheme();
+  const shouldRenderDefaultText =
+    children == null ||
+    typeof children === "string" ||
+    typeof children === "number";
 
   return (
     <TextClassContext.Provider value="">
@@ -241,6 +247,7 @@ function SelectItem({
           ...(Platform.OS === "web" && {
             cursor: props.disabled ? "not-allowed" : ("pointer" as any),
             outlineStyle: "none" as any,
+            userSelect: "none" as any,
           }),
           ...(props.disabled && { opacity: 0.5 }),
           ...(styleOverride && typeof styleOverride !== "function"
@@ -262,13 +269,24 @@ function SelectItem({
             <Icon
               name="check"
               size={16}
-              color={theme.colors.text}
+              color={theme.colors.accent}
               {...(Platform.OS === "web" && { style: { pointerEvents: "none" as any } })}
             />
           </SelectPrimitive.ItemIndicator>
         </View>
-        <SelectPrimitive.ItemText />
-        {typeof children === "function" ? null : children}
+        <TextSelectabilityContext.Provider value={false}>
+          {shouldRenderDefaultText ? (
+            <SelectPrimitive.ItemText
+              style={{
+                color: theme.colors.popoverForeground,
+                fontSize: 14,
+                lineHeight: 20,
+              }}
+            />
+          ) : typeof children === "function" ? null : (
+            children
+          )}
+        </TextSelectabilityContext.Provider>
       </SelectPrimitive.Item>
     </TextClassContext.Provider>
   );
@@ -316,7 +334,8 @@ function SelectLabel({
         paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
         fontSize: 14,
         fontWeight: "500" as TextStyle["fontWeight"],
-        color: theme.colors.text,
+        color: theme.colors.popoverForeground,
+        userSelect: "none",
         ...(styleOverride && typeof styleOverride !== "function"
           ? StyleSheet.flatten(styleOverride)
           : {}),

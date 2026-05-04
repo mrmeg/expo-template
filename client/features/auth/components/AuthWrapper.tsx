@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useMemo, useEffect } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useAuthStore } from "../stores/authStore";
 import { useAuth } from "../hooks/useAuth";
@@ -20,7 +20,7 @@ export function AuthWrapper({
   showLoading = true,
 }: AuthWrapperProps) {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { state } = useAuthStore();
   const { checkAuthState } = useAuth();
 

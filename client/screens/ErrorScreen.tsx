@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -93,7 +93,7 @@ export function ErrorScreen({
 }: ErrorScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const defaults = VARIANT_DEFAULTS[variant];
   const resolvedIcon = icon ?? defaults.icon;

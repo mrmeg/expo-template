@@ -91,9 +91,9 @@ export function FormSelect<
   // Convert string value to Option format for the Select primitive
   const selectedOption = field.value
     ? options.find((opt) => opt.value === field.value) ?? {
-        value: field.value as string,
-        label: field.value as string,
-      }
+      value: field.value as string,
+      label: field.value as string,
+    }
     : undefined;
 
   return (

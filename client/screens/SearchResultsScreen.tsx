@@ -1,4 +1,4 @@
-import React, { ReactNode, useState, useCallback } from "react";
+import React, { useMemo, ReactNode, useState, useCallback } from "react";
 import {
   View,
   FlatList,
@@ -106,7 +106,7 @@ export function SearchResultsScreen<T>({
   style: styleOverride,
 }: SearchResultsScreenProps<T>) {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const handleSearch = useCallback(

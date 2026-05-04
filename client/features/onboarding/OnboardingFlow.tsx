@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useMemo, useRef, useState, useCallback } from "react";
 import {
   View,
   FlatList,
@@ -77,7 +77,7 @@ export function OnboardingFlow({
   skipLabel = "Skip",
 }: OnboardingFlowProps) {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { width: screenWidth } = useWindowDimensions();
 
   const flatListRef = useRef<FlatList>(null);

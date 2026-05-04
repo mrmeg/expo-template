@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Image, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SignInForm } from "./SignInForm";
@@ -28,7 +28,7 @@ export function AuthScreen({
   onAuthenticated,
 }: AuthScreenProps) {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const appName = getAppName();
   const { signIn, signUp, confirmSignUp, resendCode, forgotPassword, resetPassword } = useAuth();
 

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Platform, StyleSheet, View, ViewProps } from "react-native";
 import { AnimatedView } from "./AnimatedView";
-import { TextClassContext, TextColorContext } from "./StyledText";
+import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import * as TooltipPrimitive from "@rn-primitives/tooltip";
@@ -62,25 +62,25 @@ function TooltipContent({
   // Determine colors based on variant
   const getVariantColors = () => {
     switch (variant) {
-      case "dark":
-        return {
-          background: palette.gray800,
-          border: palette.gray800,
-          text: palette.white,
-        };
-      case "light":
-        return {
-          background: palette.white,
-          border: palette.gray200,
-          text: palette.gray800,
-        };
-      case "default":
-      default:
-        return {
-          background: theme.colors.popover,
-          border: theme.colors.border,
-          text: getContrastingColor(theme.colors.popover, palette.white, palette.black),
-        };
+    case "dark":
+      return {
+        background: palette.gray800,
+        border: palette.gray800,
+        text: palette.white,
+      };
+    case "light":
+      return {
+        background: palette.white,
+        border: palette.gray200,
+        text: palette.gray800,
+      };
+    case "default":
+    default:
+      return {
+        background: theme.colors.popover,
+        border: theme.colors.border,
+        text: getContrastingColor(theme.colors.popover, palette.white, palette.black),
+      };
     }
   };
 
@@ -106,13 +106,15 @@ function TooltipContent({
           <AnimatedView type="fade" enterDuration={150}>
             <TextColorContext.Provider value={colors.text}>
               <TextClassContext.Provider value="">
-                <TooltipPrimitive.Content
-                  side={side}
-                  align={align}
-                  sideOffset={sideOffset}
-                  style={contentStyle}
-                  {...props}
-                />
+                <TextSelectabilityContext.Provider value={false}>
+                  <TooltipPrimitive.Content
+                    side={side}
+                    align={align}
+                    sideOffset={sideOffset}
+                    style={contentStyle}
+                    {...props}
+                  />
+                </TextSelectabilityContext.Provider>
               </TextClassContext.Provider>
             </TextColorContext.Provider>
           </AnimatedView>

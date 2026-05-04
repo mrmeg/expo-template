@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
@@ -11,10 +11,10 @@ import {
   CardTitle,
   CardDescription,
 } from "@mrmeg/expo-ui/components/Card";
-import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import type { Theme } from "@mrmeg/expo-ui/constants";
+import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 
 export interface VerifyEmailFormProps {
   email: string;
@@ -53,10 +53,9 @@ export function VerifyEmailForm({
 }: VerifyEmailFormProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const [code, setCode] = useState("");
-  const [codeError, setCodeError] = useState("");
+  const codeRef = useRef<AuthTextFieldHandle>(null);
   const [cooldown, setCooldown] = useState(0);
 
   const resolvedTitle = title ?? t("auth.verifyEmailTitle");
@@ -69,34 +68,27 @@ export function VerifyEmailForm({
     }
   }, [cooldown]);
 
-  const validateCode = (): boolean => {
-    if (code.length !== codeLength) {
-      setCodeError(t("auth.enterAllDigits", { count: codeLength }));
-      return false;
-    }
-    if (!/^\d+$/.test(code)) {
-      setCodeError(t("auth.codeDigitsOnly"));
-      return false;
-    }
-    setCodeError("");
-    return true;
-  };
+  const normalizeCode = useCallback(
+    (value: string) => value.replace(/[^0-9]/g, "").slice(0, codeLength),
+    [codeLength],
+  );
 
-  const handleCodeChange = (value: string) => {
-    // Only allow digits, limit to codeLength
-    const digits = value.replace(/[^0-9]/g, "").slice(0, codeLength);
-    setCode(digits);
-
-    if (codeError) {
-      setCodeError("");
+  const validateCode = useCallback((value: string): string => {
+    if (value.length !== codeLength) {
+      return t("auth.enterAllDigits", { count: codeLength });
     }
-  };
+    if (!/^\d+$/.test(value)) {
+      return t("auth.codeDigitsOnly");
+    }
+    return "";
+  }, [codeLength, t]);
 
-  const handleSubmit = async () => {
-    if (validateCode()) {
+  const handleSubmit = useCallback(async () => {
+    if (codeRef.current?.validate()) {
+      const code = codeRef.current.getValue();
       await onVerify?.(code);
     }
-  };
+  }, [onVerify]);
 
   const handleResend = async () => {
     if (cooldown > 0) return;
@@ -121,27 +113,28 @@ export function VerifyEmailForm({
           )}
 
           {/* Simple visible input */}
-          <TextInput
+          <AuthTextField
+            ref={codeRef}
+            testID="verify-email-code-input"
             label={t("auth.verificationCode")}
             placeholder={t("auth.enterDigitCode", { count: codeLength })}
-            value={code}
-            onChangeText={handleCodeChange}
+            normalize={normalizeCode}
+            validateValue={validateCode}
             keyboardType="number-pad"
             maxLength={codeLength}
             autoComplete="one-time-code"
             textContentType="oneTimeCode"
             editable={!loading}
-            error={!!codeError}
-            errorText={codeError}
             returnKeyType="go"
             onSubmitEditing={handleSubmit}
           />
 
           <Button
+            testID="verify-email-submit-button"
             preset="default"
             onPress={handleSubmit}
             loading={loading}
-            disabled={loading || code.length !== codeLength}
+            disabled={loading}
             fullWidth
           >
             <SansSerifBoldText>{t("auth.verifyEmailButton")}</SansSerifBoldText>

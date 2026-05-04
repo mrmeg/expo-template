@@ -86,7 +86,7 @@ Android projects with the new bundle ids.
 
 ## Render Performance Checks
 
-The web document injects React Scan only when a URL includes `?scan`.
+The web document injects React Scan only when a local URL includes `?scan`.
 Start web, then open the showcase with the query string:
 
 ```bash
@@ -94,10 +94,19 @@ bun run web:scan
 # open http://localhost:8081/showcase?scan
 ```
 
-You can also run the external scanner against an already-running dev server:
+You can also open the scan-enabled showcase against an already-running dev
+server:
 
 ```bash
 bun run scan:showcase
+```
+
+If another Expo app is already using `8081`, start this repo on a specific
+port and pass that same port to the opener:
+
+```bash
+EXPO_DEV_SERVER_PORT=8087 bunx expo start --web --port 8087
+EXPO_DEV_SERVER_PORT=8087 bun run scan:showcase
 ```
 
 Use this when editing `client/showcase` or reusable `packages/ui` components.

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -27,7 +27,7 @@ import Constants from "expo-constants";
  */
 export default function DeveloperScreen() {
   const { theme, scheme, getShadowStyle } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Storage state
   const [storageKeys, setStorageKeys] = useState<string[]>([]);

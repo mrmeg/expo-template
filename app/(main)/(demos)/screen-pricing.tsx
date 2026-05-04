@@ -230,29 +230,29 @@ function announceResult(result: BillingActionResult): void {
 
 function messagesForProblem(problem: BillingProblem): string[] {
   switch (problem.kind) {
-    case "unauthorized":
-      return ["Sign in to continue."];
-    case "billing-disabled":
-      return ["Billing isn't enabled in this environment."];
-    case "no-customer":
-      return ["We couldn't find a Stripe customer for your account yet."];
-    case "configuration-missing":
-      return [
-        "This plan isn't configured for the selected interval.",
-        problem.message,
-      ].filter((message): message is string => Boolean(message));
-    case "unknown-plan":
-      return ["This plan isn't available right now."];
-    case "billing-conflict":
-      return [
-        "Your account is linked to multiple Stripe customers — contact support.",
-      ];
-    case "bad-request":
-      return [problem.message || "We couldn't process that request."];
-    case "network-error":
-      return ["Connection interrupted — please try again."];
-    case "server-error":
-    default:
-      return [problem.message || "Something went wrong. Please try again."];
+  case "unauthorized":
+    return ["Sign in to continue."];
+  case "billing-disabled":
+    return ["Billing isn't enabled in this environment."];
+  case "no-customer":
+    return ["We couldn't find a Stripe customer for your account yet."];
+  case "configuration-missing":
+    return [
+      "This plan isn't configured for the selected interval.",
+      problem.message,
+    ].filter((message): message is string => Boolean(message));
+  case "unknown-plan":
+    return ["This plan isn't available right now."];
+  case "billing-conflict":
+    return [
+      "Your account is linked to multiple Stripe customers — contact support.",
+    ];
+  case "bad-request":
+    return [problem.message || "We couldn't process that request."];
+  case "network-error":
+    return ["Connection interrupted — please try again."];
+  case "server-error":
+  default:
+    return [problem.message || "Something went wrong. Please try again."];
   }
 }

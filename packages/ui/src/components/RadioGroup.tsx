@@ -241,6 +241,7 @@ function RadioGroupItem({
       {radioElement}
       <View style={styles.labelContainer}>
         <StyledText
+          selectable={false}
           style={[
             styles.label,
             { color: theme.colors.text },
@@ -250,7 +251,7 @@ function RadioGroupItem({
         >
           {label}
           {required && (
-            <StyledText style={[styles.required, { color: theme.colors.destructive }]}> *</StyledText>
+            <StyledText selectable={false} style={[styles.required, { color: theme.colors.destructive }]}> *</StyledText>
           )}
         </StyledText>
       </View>

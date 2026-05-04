@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { View, StyleSheet, Pressable, Platform, ScrollView } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -23,7 +24,7 @@ export default function SettingsRoute() {
   const { theme, scheme, getShadowStyle } = useTheme();
   const { userTheme, setTheme } = useThemeStore();
   const { t, i18n } = useTranslation();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const themeOptions: { value: "system" | "light" | "dark"; label: string; icon: IconName }[] = [
     { value: "system", label: t("settings.theme.system"), icon: "smartphone" },

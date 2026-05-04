@@ -1,5 +1,5 @@
 {
-  "totalBytes": 0,
-  "lastUpdated": "",
-  "note": "Run 'bun run bundle-size --update' to set the baseline after a clean build"
+  "totalBytes": 5995827,
+  "lastUpdated": "2026-05-04T03:37:07.031Z",
+  "note": "Run 'bun run bundle-size --update' to update after intentional size changes"
 }

@@ -13,8 +13,6 @@ interface SEOProps {
  */
 export function SEO({ title, description, ogImage, ogType = "website" }: SEOProps) {
   if (Platform.OS !== "web") return null;
-
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const Head = require("expo-router/head").default;
 
   return (

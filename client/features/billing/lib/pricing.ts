@@ -107,15 +107,15 @@ export function defaultActionLabel(
     return state === "current" ? "Current plan" : "Sign in to continue";
   }
   switch (state) {
-    case "current":
-      return "Current plan";
-    case "manage":
-      return "Manage subscription";
-    case "downgrade-disabled":
-      return "Manage subscription";
-    case "upgrade":
-    default:
-      return "Choose plan";
+  case "current":
+    return "Current plan";
+  case "manage":
+    return "Manage subscription";
+  case "downgrade-disabled":
+    return "Manage subscription";
+  case "upgrade":
+  default:
+    return "Choose plan";
   }
 }
 

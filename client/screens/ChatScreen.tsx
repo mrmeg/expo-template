@@ -164,7 +164,7 @@ function TypingDot({ delay, theme }: { delay: number; theme: Theme }) {
 }
 
 function TypingIndicator({ theme }: { theme: Theme }) {
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   return (
     <View style={styles.receivedRow}>
       <View style={[styles.bubble, styles.receivedBubble, styles.typingBubble]}>
@@ -181,46 +181,46 @@ function TypingIndicator({ theme }: { theme: Theme }) {
 // ---------------------------------------------------------------------------
 
 function StatusText({ status, theme }: { status?: MessageStatus; theme: Theme }) {
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   if (!status) return null;
 
   switch (status) {
-    case "sending":
-      return <SansSerifText style={styles.statusText}>Sending...</SansSerifText>;
-    case "sent":
-      return (
-        <View style={styles.statusRow}>
-          <Icon name="check" size={11} color={theme.colors.mutedForeground} decorative />
-        </View>
-      );
-    case "delivered":
-      return (
-        <View style={styles.statusRow}>
-          <Icon name="check" size={11} color={theme.colors.mutedForeground} decorative />
-          <Icon
-            name="check"
-            size={11}
-            color={theme.colors.mutedForeground}
-            style={{ marginLeft: -6 }}
-            decorative
-          />
-        </View>
-      );
-    case "read":
-      return (
-        <View style={styles.statusRow}>
-          <Icon name="check" size={11} color={theme.colors.accent} decorative />
-          <Icon
-            name="check"
-            size={11}
-            color={theme.colors.accent}
-            style={{ marginLeft: -6 }}
-            decorative
-          />
-        </View>
-      );
-    default:
-      return null;
+  case "sending":
+    return <SansSerifText style={styles.statusText}>Sending...</SansSerifText>;
+  case "sent":
+    return (
+      <View style={styles.statusRow}>
+        <Icon name="check" size={11} color={theme.colors.mutedForeground} decorative />
+      </View>
+    );
+  case "delivered":
+    return (
+      <View style={styles.statusRow}>
+        <Icon name="check" size={11} color={theme.colors.mutedForeground} decorative />
+        <Icon
+          name="check"
+          size={11}
+          color={theme.colors.mutedForeground}
+          style={{ marginLeft: -6 }}
+          decorative
+        />
+      </View>
+    );
+  case "read":
+    return (
+      <View style={styles.statusRow}>
+        <Icon name="check" size={11} color={theme.colors.accent} decorative />
+        <Icon
+          name="check"
+          size={11}
+          color={theme.colors.accent}
+          style={{ marginLeft: -6 }}
+          decorative
+        />
+      </View>
+    );
+  default:
+    return null;
   }
 }
 
@@ -229,7 +229,7 @@ function StatusText({ status, theme }: { status?: MessageStatus; theme: Theme })
 // ---------------------------------------------------------------------------
 
 function LoadingSkeleton({ theme }: { theme: Theme }) {
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const rows = [
     { isMine: false, width: "65%" },
     { isMine: true, width: "55%" },
@@ -276,7 +276,7 @@ export function ChatScreen({
 }: ChatScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [inputText, setInputText] = React.useState("");
   const canSend = inputText.trim().length > 0;
 

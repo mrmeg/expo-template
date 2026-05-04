@@ -23,6 +23,12 @@ export const TextColorContext = React.createContext<string | undefined>(undefine
 export const TextStyleContext = React.createContext<StyleProp<TextStyle> | undefined>(undefined);
 
 /**
+ * Allows interactive controls to disable text selection for nested StyledText
+ * without changing the package-wide default for readable content.
+ */
+export const TextSelectabilityContext = React.createContext<boolean | undefined>(undefined);
+
+/**
  * Font size variants following the DM Sans / DM Serif Display scale
  */
 export type FontSize = "xs" | "sm" | "base" | "body" | "lg" | "xl" | "xxl" | "display";
@@ -136,7 +142,8 @@ export type TextProps = RNTextProps & {
  * - Semantic variants (title, heading, subheading, body, caption, label)
  * - Text alignment prop
  * - Font weight options (light, regular, medium, semibold, bold)
- * - Text selection enabled by default (userSelect: "auto")
+ * - Text selection enabled by default; pass `selectable={false}` for control
+ *   chrome such as button labels, tabs, badges, and field labels
  * - numberOfLines and ellipsizeMode support from RN TextProps
  */
 export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
@@ -150,6 +157,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
     size,
     semantic,
     align,
+    selectable,
     children,
     ...otherProps
   } = props;
@@ -159,6 +167,8 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
   // Check if there's a color override from parent context (e.g., Button)
   const contextColor = React.useContext(TextColorContext);
   const contextTextStyle = React.useContext(TextStyleContext);
+  const contextSelectable = React.useContext(TextSelectabilityContext);
+  const resolvedSelectable = selectable ?? contextSelectable ?? true;
 
   // Use context color if provided, otherwise use theme default
   const color = contextColor ?? theme.colors.text;
@@ -206,7 +216,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
           fontFamily,
           fontSize,
           ...(resolvedLineHeight !== undefined && { lineHeight: resolvedLineHeight }),
-          userSelect: "auto", // Changed from "none" to allow text selection
+          userSelect: resolvedSelectable ? "auto" : "none",
           ...(letterSpacing !== undefined && { letterSpacing }),
           ...(align && { textAlign: align }),
         },
@@ -216,6 +226,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
         // that color must win over any color in the style prop
         contextColor != null && { color: contextColor },
       ]}
+      selectable={resolvedSelectable}
       {...otherProps}
     >
       {content}

@@ -1,7 +1,7 @@
 import { palette } from "../constants/colors";
 import { useTheme } from "../hooks/useTheme";
 import { hapticLight } from "../lib/haptics";
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Platform, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -48,6 +48,11 @@ function clampAndSnap(raw: number, min: number, max: number, step: number): numb
   return Math.round(stepped * 1e6) / 1e6;
 }
 
+function getValueRatio(value: number, min: number, max: number): number {
+  const range = max - min || 1;
+  return Math.min(Math.max((value - min) / range, 0), 1);
+}
+
 function Slider({
   value = 0,
   onValueChange,
@@ -59,8 +64,20 @@ function Slider({
   showValue = false,
   style: styleOverride,
 }: SliderProps) {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme, getShadowStyle, withAlpha } = useTheme();
   const dims = SIZES[size];
+  const inactiveTrackColor = theme.dark ? withAlpha(palette.white, 0.1) : theme.colors.muted;
+  const activeTrackColor = disabled
+    ? theme.dark
+      ? withAlpha(palette.white, 0.28)
+      : theme.colors.mutedForeground
+    : theme.colors.accent;
+  const thumbBackgroundColor = theme.dark ? theme.colors.card : theme.colors.background;
+  const thumbBorderColor = disabled
+    ? theme.dark
+      ? withAlpha(palette.white, 0.32)
+      : theme.colors.mutedForeground
+    : theme.colors.accent;
 
   // Track layout width captured via onLayout
   const trackWidth = useSharedValue(0);
@@ -81,26 +98,28 @@ function Slider({
     hapticLight();
   }, []);
 
-  // Sync external value prop changes with animation
-  const prevExternalValue = useRef(value);
-  if (value !== prevExternalValue.current) {
-    prevExternalValue.current = value;
-    if (trackWidth.value > 0) {
-      const ratio = (value - min) / (max - min || 1);
-      thumbX.value = withTiming(ratio * trackWidth.value, { duration: 80 });
+  // Sync external value prop changes after render. Reanimated warns when shared
+  // values are read or written while React is rendering.
+  useEffect(() => {
+    const ratio = getValueRatio(value, min, max);
+    const width = trackWidth.value;
+
+    if (width > 0) {
+      thumbX.value = withTiming(ratio * width, { duration: 80 });
     }
+
     lastSnappedValue.value = value;
-  }
+  }, [lastSnappedValue, max, min, thumbX, trackWidth, value]);
 
   const onTrackLayout = useCallback(
     (e: { nativeEvent: { layout: { width: number } } }) => {
       const w = e.nativeEvent.layout.width;
       trackWidth.value = w;
       // Set initial thumb position without animation
-      const ratio = (value - min) / (max - min || 1);
+      const ratio = getValueRatio(value, min, max);
       thumbX.value = ratio * w;
     },
-    [value, min, max],
+    [max, min, thumbX, trackWidth, value],
   );
 
   const panGesture = Gesture.Pan()
@@ -190,6 +209,7 @@ function Slider({
           pointerEvents="none"
         >
           <StyledText
+            selectable={false}
             style={{
               fontSize: 11,
               color: theme.colors.textDim,
@@ -216,7 +236,7 @@ function Slider({
             style={{
               height: dims.track,
               borderRadius: dims.track / 2,
-              backgroundColor: theme.colors.muted,
+              backgroundColor: inactiveTrackColor,
               overflow: "hidden",
             }}
           >
@@ -226,7 +246,7 @@ function Slider({
                 {
                   height: dims.track,
                   borderRadius: dims.track / 2,
-                  backgroundColor: theme.colors.primary,
+                  backgroundColor: activeTrackColor,
                 },
                 fillStyle,
               ]}
@@ -243,10 +263,10 @@ function Slider({
                 width: dims.thumb,
                 height: dims.thumb,
                 borderRadius: dims.thumb / 2,
-                backgroundColor: theme.colors.background,
+                backgroundColor: thumbBackgroundColor,
                 borderWidth: 1,
-                borderColor: theme.colors.primary,
-                ...getShadowStyle("sharp"),
+                borderColor: thumbBorderColor,
+                ...getShadowStyle("subtle"),
               },
               thumbAnimatedStyle,
             ]}

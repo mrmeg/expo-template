@@ -115,6 +115,9 @@ Useful `StyledText` props:
 - `fontWeight`: `light`, `regular`, `medium`, `semibold`, `bold`
 - `variant`: `sansSerif`, `serif`
 - `align`, `tx`, `txOptions`
+- `selectable`: defaults to `true` for readable copy; package controls disable
+  selection for labels and other interactive chrome where accidental drag
+  selection would feel broken.
 
 `tx` support is opt-in. Without a configured translator, `tx` renders its
 fallback text when provided and otherwise renders the key; package-owned
@@ -141,7 +144,7 @@ All components are exported from `@mrmeg/expo-ui/components`; direct imports suc
 | `AnimatedView` | Entrance and visibility animation | Hand-rolled Reanimated wrappers | Staggered list rows, revealed panels, animated empty states |
 | `Badge` | Short status labels | Custom pill `View` + `Text` | Draft/active states, counts, plan labels, role tags |
 | `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets | Action pickers, mobile filters, quick edit forms, contextual details |
-| `Button` | Commands and CTAs | Pressable plus custom text styling | Submit, save, cancel, delete, navigation CTAs, icon-accessory buttons |
+| `Button` | Commands and CTAs | Pressable plus custom text styling | Submit, save, cancel, delete, navigation CTAs, icon-accessory buttons; loading state preserves resting width |
 | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Framed content groups | Ad hoc bordered panels | List items, pricing plans, settings sections, summaries, dashboards |
 | `Checkbox` | Boolean selection | Custom checkmark controls | Terms consent, checklist items, multi-select filters, notification opt-ins |
 | `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | One-off disclosure | Local animated height wrappers | Advanced settings, hidden helper text, optional details |
@@ -159,13 +162,13 @@ All components are exported from `@mrmeg/expo-ui/components`; direct imports suc
 | `Popover` | Anchored contextual content | Custom anchored views | Inline help, quick previews, contextual controls, small forms |
 | `Progress` | Determinate or indeterminate progress | Layout-shifting spinners for progress regions | Upload progress, onboarding completion, long-running task state |
 | `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows | Plan interval, visibility choice, survey answer, preference setting |
-| `Select` | Option menus | Custom dropdowns | Country picker, category selector, status selector, compact form choice |
+| `Select` | Option menus | Custom dropdowns | Country picker, category selector, status selector, compact form choice; `label` drives default item text and overlay text uses popover foreground tokens |
 | `Separator` | Horizontal or vertical dividers | Border-only spacer views | Menu dividers, section dividers, card dividers |
 | `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Blank space or generic spinners | List loading, profile card loading, dashboard placeholders |
-| `Slider` | Numeric value selection | Custom pan gesture track | Volume, percentage, rating, threshold, range-like settings |
+| `Slider` | Numeric value selection | Custom pan gesture track | Volume, percentage, rating, threshold, range-like settings; accent active track and thumb affordance |
 | `StatusBar` | Theme-aware native status bar | Per-screen status-bar duplication | Root layout status styling, dark/light mode updates |
 | `StyledText` and text aliases | Theme-aware typography | Raw `Text` with hardcoded styles | Titles, headings, labels, body copy, captions, translated text |
-| `Switch` | Binary settings | Custom toggle switches | Enable notifications, privacy setting, feature toggles |
+| `Switch` | Binary settings | Custom toggle switches | Enable notifications, privacy setting, feature toggles; accent checked track with softened thumb border |
 | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | In-page tabbed views | Custom segmented/tab controls | Profile sections, report views, settings categories |
 | `TextInput` | Text entry | Raw `TextInput` with repeated label/error code | Email/password, search, numeric input, multiline notes |
 | `Toggle`, `ToggleIcon` | Pressed/unpressed control | Button with local selected styling | Favorite, mute, bold/italic, view mode button |
@@ -195,7 +198,7 @@ Most compound components support both direct named imports and dot notation on t
 | `ToggleGroup` | `ToggleGroupItem`, `ToggleGroupIcon` |
 | `Tooltip` | `TooltipTrigger`, `TooltipContent`, `TooltipBody` |
 
-Text aliases are exported for common semantic typography: `SerifText`, `SansSerifText`, `SerifBoldText`, `SansSerifBoldText`, `DisplayText`, `TitleText`, `HeadingText`, `SubheadingText`, `BodyText`, `CaptionText`, and `LabelText`. `TextClassContext`, `TextColorContext`, and `TextStyleContext` are advanced context exports used by package controls to pass nested text styling.
+Text aliases are exported for common semantic typography: `SerifText`, `SansSerifText`, `SerifBoldText`, `SansSerifBoldText`, `DisplayText`, `TitleText`, `HeadingText`, `SubheadingText`, `BodyText`, `CaptionText`, and `LabelText`. `TextClassContext`, `TextColorContext`, `TextStyleContext`, and `TextSelectabilityContext` are advanced context exports used by package controls to pass nested text styling and control-label selectability.
 
 ### Common Patterns
 

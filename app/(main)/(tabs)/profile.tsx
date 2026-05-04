@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { router } from "expo-router";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
@@ -37,7 +37,7 @@ export default function ProfileRoute() {
 
 function ProfileScreen() {
   const { theme, getShadowStyle } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { signOut } = useAuth();
   const { user, state: authState } = useAuthStore();
   const billingQuery = useBillingSummary();
@@ -47,8 +47,8 @@ function ProfileScreen() {
   const statusColor = entitled
     ? theme.colors.success
     : billing?.status === "past_due"
-    ? theme.colors.warning
-    : theme.colors.mutedForeground;
+      ? theme.colors.warning
+      : theme.colors.mutedForeground;
 
   const billingActions = useBillingActions();
   const billingEnabled = Config.billingEnabled;
@@ -56,8 +56,8 @@ function ProfileScreen() {
   const billingAction = !billingEnabled
     ? null
     : canManage
-    ? ("manage" as const)
-    : ("upgrade" as const);
+      ? ("manage" as const)
+      : ("upgrade" as const);
 
   // Mock preference states
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -430,20 +430,20 @@ function ProfileScreen() {
 
 function statusToLabel(status: BillingSummary["status"] | undefined): string {
   switch (status) {
-    case "trialing":
-      return "Trial";
-    case "active":
-      return "Active";
-    case "past_due":
-      return "Past due";
-    case "canceled":
-      return "Canceled";
-    case "incomplete":
-      return "Incomplete";
-    case "free":
-    case undefined:
-    default:
-      return "Free";
+  case "trialing":
+    return "Trial";
+  case "active":
+    return "Active";
+  case "past_due":
+    return "Past due";
+  case "canceled":
+    return "Canceled";
+  case "incomplete":
+    return "Incomplete";
+  case "free":
+  case undefined:
+  default:
+    return "Free";
   }
 }
 
@@ -634,24 +634,24 @@ const createStyles = (theme: Theme) =>
 
 function messagesForProblem(problem: BillingProblem): string[] {
   switch (problem.kind) {
-    case "unauthorized":
-      return ["Sign in to manage billing."];
-    case "billing-disabled":
-      return ["Billing isn't enabled in this environment."];
-    case "no-customer":
-      return ["You don't have a Stripe customer yet — subscribe first."];
-    case "billing-conflict":
-      return ["Your account is linked to multiple Stripe customers — contact support."];
-    case "configuration-missing":
-      return [problem.message || "Billing configuration is incomplete."];
-    case "unknown-plan":
-      return ["That plan isn't available right now."];
-    case "bad-request":
-      return [problem.message || "We couldn't process that request."];
-    case "network-error":
-      return ["Connection interrupted — please try again."];
-    case "server-error":
-    default:
-      return [problem.message || "Something went wrong. Please try again."];
+  case "unauthorized":
+    return ["Sign in to manage billing."];
+  case "billing-disabled":
+    return ["Billing isn't enabled in this environment."];
+  case "no-customer":
+    return ["You don't have a Stripe customer yet — subscribe first."];
+  case "billing-conflict":
+    return ["Your account is linked to multiple Stripe customers — contact support."];
+  case "configuration-missing":
+    return [problem.message || "Billing configuration is incomplete."];
+  case "unknown-plan":
+    return ["That plan isn't available right now."];
+  case "bad-request":
+    return [problem.message || "We couldn't process that request."];
+  case "network-error":
+    return ["Connection interrupted — please try again."];
+  case "server-error":
+  default:
+    return [problem.message || "Something went wrong. Please try again."];
   }
 }

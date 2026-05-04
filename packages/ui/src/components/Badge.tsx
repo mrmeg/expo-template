@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
@@ -28,7 +28,7 @@ export interface BadgeProps {
  */
 function Badge({ children, variant = "default", style: styleOverride }: BadgeProps) {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const textStyle = [
     styles.text,
     variant === "default" && { color: theme.colors.primaryForeground },
@@ -41,11 +41,11 @@ function Badge({ children, variant = "default", style: styleOverride }: BadgePro
     (child) => typeof child === "string" || typeof child === "number",
   );
   const content = hasOnlyTextChildren ? (
-    <StyledText style={textStyle}>{normalizedChildren.join("")}</StyledText>
+    <StyledText selectable={false} style={textStyle}>{normalizedChildren.join("")}</StyledText>
   ) : (
     React.Children.map(children, (child) => {
       if (typeof child === "string" || typeof child === "number") {
-        return <StyledText style={textStyle}>{child}</StyledText>;
+        return <StyledText selectable={false} style={textStyle}>{child}</StyledText>;
       }
 
       return child;
@@ -95,6 +95,7 @@ const createStyles = (theme: Theme) =>
       fontSize: 12,
       fontWeight: "500",
       lineHeight: 18,
+      userSelect: "none",
     },
   });
 

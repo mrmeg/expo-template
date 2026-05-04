@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { useMemo, ReactNode } from "react";
 import {
   View,
   StyleSheet,
@@ -61,7 +61,7 @@ export function WelcomeScreen({
 }: WelcomeScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Staggered entrance animations
   const logoEntrance = useStaggeredEntrance({ type: "scale", delay: 0 });

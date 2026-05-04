@@ -280,9 +280,9 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
         {/* Label */}
         {!!label && (
           <View style={styles.labelContainer}>
-            <StyledText style={styles.label}>
+            <StyledText selectable={false} style={styles.label}>
               {label}
-              {required && <StyledText style={styles.required}> *</StyledText>}
+              {required && <StyledText selectable={false} style={styles.required}> *</StyledText>}
             </StyledText>
           </View>
         )}
@@ -409,6 +409,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
         {/* Helper Text or Error Text */}
         {!!(helperText || errorText) && (
           <StyledText
+            selectable={false}
             style={[
               styles.helperText,
               hasError && styles.errorText,

@@ -9,8 +9,6 @@
  * The script is also exposed as `bun run check:features` for local
  * use; this test makes the same scan part of the standard suite.
  */
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { scan, ALLOWED_DEPENDENCIES } = require("@/scripts/check-feature-isolation");
 
 interface Violation {

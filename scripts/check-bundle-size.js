@@ -94,7 +94,7 @@ console.log(`Growth: ${growthPercent}% (threshold: ${THRESHOLD * 100}%)`);
 
 if (growth > THRESHOLD) {
   console.error(
-    `\nBundle size exceeded threshold! ` +
+    "\nBundle size exceeded threshold! " +
     `Current: ${formatBytes(totalBytes)}, ` +
     `Baseline: ${formatBytes(baseline.totalBytes)}, ` +
     `Growth: ${growthPercent}%`

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
 import { AuthScreen } from "@/client/features/auth/components/AuthScreen";
@@ -25,7 +25,7 @@ interface AuthGateProps {
 
 export function AuthGate({ children }: AuthGateProps) {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const state = useAuthStore((s) => s.state);
 
   if (!isAuthEnabled()) {

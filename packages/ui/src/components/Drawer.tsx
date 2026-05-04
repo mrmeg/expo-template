@@ -160,13 +160,13 @@ function parseWidth(width: number | `${number}%`): number {
 // Reducer for stable state management
 // ============================================================================
 
-type DrawerAction = { type: 'OPEN' } | { type: 'CLOSE' } | { type: 'TOGGLE' };
+type DrawerAction = { type: "OPEN" } | { type: "CLOSE" } | { type: "TOGGLE" };
 
 function drawerReducer(state: boolean, action: DrawerAction): boolean {
   switch (action.type) {
-    case 'OPEN': return true;
-    case 'CLOSE': return false;
-    case 'TOGGLE': return !state;  // Always uses current state!
+  case "OPEN": return true;
+  case "CLOSE": return false;
+  case "TOGGLE": return !state;  // Always uses current state!
   }
 }
 
@@ -196,7 +196,7 @@ function DrawerRoot({
       // We use a functional update pattern via dispatch to ensure we get current state
       controlledOnOpenChange?.(!controlledOpen);
     } else {
-      dispatch({ type: 'TOGGLE' });
+      dispatch({ type: "TOGGLE" });
     }
   };
 
@@ -205,7 +205,7 @@ function DrawerRoot({
     if (isControlled) {
       controlledOnOpenChange?.(newOpen);
     } else {
-      dispatch({ type: newOpen ? 'OPEN' : 'CLOSE' });
+      dispatch({ type: newOpen ? "OPEN" : "CLOSE" });
     }
   };
 

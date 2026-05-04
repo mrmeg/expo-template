@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useMemo, useRef, useState, useCallback } from "react";
 import {
   View,
   TextInput as RNTextInput,
@@ -114,7 +114,7 @@ function InputOTP({
   const reduceMotion = useReducedMotion();
   const inputRef = useRef<RNTextInput>(null);
   const [focused, setFocused] = useState(false);
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const hasError = error || !!errorText;
 
   // Active cell index: next empty cell, or last cell when full
@@ -310,6 +310,7 @@ function OTPCell({
         ]}
       >
         <StyledText
+          selectable={false}
           style={{
             fontSize: CELL_FONT_SIZE,
             fontWeight: CELL_FONT_WEIGHT,

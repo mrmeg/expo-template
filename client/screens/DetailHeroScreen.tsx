@@ -1,4 +1,4 @@
-import React, { ReactNode, useRef } from "react";
+import React, { useMemo, ReactNode, useRef } from "react";
 import {
   View,
   Animated,
@@ -77,7 +77,7 @@ export function DetailHeroScreen({
 }: DetailHeroScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const styles = createStyles(theme, insets.top, heroHeight);
+  const styles = useMemo(() => createStyles(theme, insets.top, heroHeight), [theme, insets.top, heroHeight]);
   const heroBg = heroBackgroundColor || theme.colors.accent;
 
   const scrollY = useRef(new Animated.Value(0)).current;

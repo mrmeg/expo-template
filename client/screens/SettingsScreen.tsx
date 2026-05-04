@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { useMemo, ReactNode } from "react";
 import {
   View,
   ScrollView,
@@ -80,125 +80,125 @@ export interface SettingsScreenProps {
 
 export function SettingsScreen({ sections, header, style: styleOverride }: SettingsScreenProps) {
   const { theme, getShadowStyle } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const renderItem = (item: SettingsItem, isLast: boolean) => {
     switch (item.type) {
-      case "navigate":
-        return (
-          <View key={item.label}>
-            <Pressable
-              onPress={item.onPress}
-              style={Platform.OS === "web" ? { ...styles.row, cursor: "pointer" as any } : styles.row}
-            >
-              <View style={styles.rowLeft}>
-                {item.icon && (
-                  <View style={styles.iconContainer}>
-                    <Icon name={item.icon} color={theme.colors.primary} size={20} />
-                  </View>
-                )}
-                <SansSerifText style={styles.label}>{item.label}</SansSerifText>
-              </View>
-              <View style={styles.rowRight}>
-                {item.value && (
-                  <SansSerifText style={styles.value}>{item.value}</SansSerifText>
-                )}
-                <Icon name="chevron-right" color={theme.colors.mutedForeground} size={20} />
-              </View>
-            </Pressable>
-            {!isLast && <View style={item.icon ? styles.dividerInset : styles.divider} />}
-          </View>
-        );
-
-      case "toggle":
-        return (
-          <View key={item.label}>
-            <View style={styles.row}>
-              <View style={styles.rowLeft}>
-                {item.icon && (
-                  <View style={styles.iconContainer}>
-                    <Icon name={item.icon} color={theme.colors.primary} size={20} />
-                  </View>
-                )}
-                <SansSerifText style={styles.label}>{item.label}</SansSerifText>
-              </View>
-              <Switch checked={item.value} onCheckedChange={item.onValueChange} />
-            </View>
-            {!isLast && <View style={item.icon ? styles.dividerInset : styles.divider} />}
-          </View>
-        );
-
-      case "select":
-        return (
-          <View key={item.label}>
-            {item.options.map((option, optIndex) => {
-              const isSelected = option.value === item.selectedValue;
-              const isLastOpt = optIndex === item.options.length - 1;
-              return (
-                <View key={option.value}>
-                  <Pressable
-                    onPress={() => item.onSelect(option.value)}
-                    style={Platform.OS === "web" ? { ...styles.row, cursor: "pointer" as any } : styles.row}
-                  >
-                    <View style={styles.rowLeft}>
-                      {item.icon && optIndex === 0 && (
-                        <View style={styles.iconContainer}>
-                          <Icon name={item.icon} color={theme.colors.primary} size={20} />
-                        </View>
-                      )}
-                      {item.icon && optIndex > 0 && <View style={styles.iconSpacer} />}
-                      <SansSerifText style={styles.label}>{option.label}</SansSerifText>
-                    </View>
-                    <View style={[styles.radio, isSelected && styles.radioSelected]}>
-                      {isSelected && <View style={styles.radioInner} />}
-                    </View>
-                  </Pressable>
-                  {!(isLastOpt && isLast) && <View style={item.icon ? styles.dividerInset : styles.divider} />}
+    case "navigate":
+      return (
+        <View key={item.label}>
+          <Pressable
+            onPress={item.onPress}
+            style={Platform.OS === "web" ? { ...styles.row, cursor: "pointer" as any } : styles.row}
+          >
+            <View style={styles.rowLeft}>
+              {item.icon && (
+                <View style={styles.iconContainer}>
+                  <Icon name={item.icon} color={theme.colors.primary} size={20} />
                 </View>
-              );
-            })}
-          </View>
-        );
-
-      case "info":
-        return (
-          <View key={item.label}>
-            <View style={styles.row}>
-              <View style={styles.rowLeft}>
-                {item.icon && (
-                  <View style={styles.iconContainer}>
-                    <Icon name={item.icon} color={theme.colors.primary} size={20} />
-                  </View>
-                )}
-                <SansSerifText style={styles.label}>{item.label}</SansSerifText>
-              </View>
-              <SansSerifText style={styles.value}>{item.value}</SansSerifText>
+              )}
+              <SansSerifText style={styles.label}>{item.label}</SansSerifText>
             </View>
-            {!isLast && <View style={item.icon ? styles.dividerInset : styles.divider} />}
-          </View>
-        );
+            <View style={styles.rowRight}>
+              {item.value && (
+                <SansSerifText style={styles.value}>{item.value}</SansSerifText>
+              )}
+              <Icon name="chevron-right" color={theme.colors.mutedForeground} size={20} />
+            </View>
+          </Pressable>
+          {!isLast && <View style={item.icon ? styles.dividerInset : styles.divider} />}
+        </View>
+      );
 
-      case "destructive":
-        return (
-          <View key={item.label}>
-            <Pressable
-              onPress={item.onPress}
-              style={Platform.OS === "web" ? { ...styles.row, cursor: "pointer" as any } : styles.row}
-            >
-              <View style={styles.rowLeft}>
-                {item.icon && (
-                  <View style={[styles.iconContainer, { backgroundColor: theme.colors.destructive + "20" }]}>
-                    <Icon name={item.icon} color={theme.colors.destructive} size={20} />
-                  </View>
-                )}
-                <SansSerifText style={[styles.label, { color: theme.colors.destructive }]}>
-                  {item.label}
-                </SansSerifText>
-              </View>
-            </Pressable>
-            {!isLast && <View style={styles.divider} />}
+    case "toggle":
+      return (
+        <View key={item.label}>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              {item.icon && (
+                <View style={styles.iconContainer}>
+                  <Icon name={item.icon} color={theme.colors.primary} size={20} />
+                </View>
+              )}
+              <SansSerifText style={styles.label}>{item.label}</SansSerifText>
+            </View>
+            <Switch checked={item.value} onCheckedChange={item.onValueChange} />
           </View>
-        );
+          {!isLast && <View style={item.icon ? styles.dividerInset : styles.divider} />}
+        </View>
+      );
+
+    case "select":
+      return (
+        <View key={item.label}>
+          {item.options.map((option, optIndex) => {
+            const isSelected = option.value === item.selectedValue;
+            const isLastOpt = optIndex === item.options.length - 1;
+            return (
+              <View key={option.value}>
+                <Pressable
+                  onPress={() => item.onSelect(option.value)}
+                  style={Platform.OS === "web" ? { ...styles.row, cursor: "pointer" as any } : styles.row}
+                >
+                  <View style={styles.rowLeft}>
+                    {item.icon && optIndex === 0 && (
+                      <View style={styles.iconContainer}>
+                        <Icon name={item.icon} color={theme.colors.primary} size={20} />
+                      </View>
+                    )}
+                    {item.icon && optIndex > 0 && <View style={styles.iconSpacer} />}
+                    <SansSerifText style={styles.label}>{option.label}</SansSerifText>
+                  </View>
+                  <View style={[styles.radio, isSelected && styles.radioSelected]}>
+                    {isSelected && <View style={styles.radioInner} />}
+                  </View>
+                </Pressable>
+                {!(isLastOpt && isLast) && <View style={item.icon ? styles.dividerInset : styles.divider} />}
+              </View>
+            );
+          })}
+        </View>
+      );
+
+    case "info":
+      return (
+        <View key={item.label}>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              {item.icon && (
+                <View style={styles.iconContainer}>
+                  <Icon name={item.icon} color={theme.colors.primary} size={20} />
+                </View>
+              )}
+              <SansSerifText style={styles.label}>{item.label}</SansSerifText>
+            </View>
+            <SansSerifText style={styles.value}>{item.value}</SansSerifText>
+          </View>
+          {!isLast && <View style={item.icon ? styles.dividerInset : styles.divider} />}
+        </View>
+      );
+
+    case "destructive":
+      return (
+        <View key={item.label}>
+          <Pressable
+            onPress={item.onPress}
+            style={Platform.OS === "web" ? { ...styles.row, cursor: "pointer" as any } : styles.row}
+          >
+            <View style={styles.rowLeft}>
+              {item.icon && (
+                <View style={[styles.iconContainer, { backgroundColor: theme.colors.destructive + "20" }]}>
+                  <Icon name={item.icon} color={theme.colors.destructive} size={20} />
+                </View>
+              )}
+              <SansSerifText style={[styles.label, { color: theme.colors.destructive }]}>
+                {item.label}
+              </SansSerifText>
+            </View>
+          </Pressable>
+          {!isLast && <View style={styles.divider} />}
+        </View>
+      );
     }
   };
 
@@ -209,21 +209,21 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
 
         {sections.map((section, sectionIndex) => (
           <AnimatedView key={section.title} type="fadeSlideUp" delay={STAGGER_DELAY * (sectionIndex + 1)}>
-          <View style={styles.section}>
-            <SansSerifText style={styles.sectionTitle}>
-              {section.title}
-            </SansSerifText>
+            <View style={styles.section}>
+              <SansSerifText style={styles.sectionTitle}>
+                {section.title}
+              </SansSerifText>
 
-            <View style={[styles.card, getShadowStyle("subtle")]}>
-              {section.items.map((item, index) =>
-                renderItem(item, index === section.items.length - 1)
+              <View style={[styles.card, getShadowStyle("subtle")]}>
+                {section.items.map((item, index) =>
+                  renderItem(item, index === section.items.length - 1)
+                )}
+              </View>
+
+              {section.footer && (
+                <SansSerifText style={styles.footer}>{section.footer}</SansSerifText>
               )}
             </View>
-
-            {section.footer && (
-              <SansSerifText style={styles.footer}>{section.footer}</SansSerifText>
-            )}
-          </View>
           </AnimatedView>
         ))}
       </ScrollView>

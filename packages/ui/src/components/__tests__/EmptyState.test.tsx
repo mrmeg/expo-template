@@ -41,6 +41,21 @@ describe("EmptyState", () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
+  it("centers the action button in wide containers", () => {
+    const onAction = jest.fn();
+    render(
+      <EmptyState
+        title="No items"
+        actionLabel="Add one"
+        onAction={onAction}
+      />,
+    );
+
+    expect(screen.getByRole("button").props.style).toMatchObject({
+      alignSelf: "center",
+    });
+  });
+
   it("does not render an action button when only actionLabel is provided (action requires onAction too)", () => {
     render(<EmptyState title="No items" actionLabel="Add one" />);
     expect(screen.queryByText("Add one")).toBeNull();

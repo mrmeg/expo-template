@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { useMemo, ReactNode } from "react";
 import {
   View,
   ScrollView,
@@ -178,7 +178,7 @@ export function DashboardScreen({
   style: styleOverride,
 }: DashboardScreenProps) {
   const { theme, getShadowStyle } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Track stagger index across all animated groups
   let staggerIndex = 0;

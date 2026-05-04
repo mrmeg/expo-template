@@ -14,7 +14,7 @@
  * ```
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import {
   View,
   Modal,
@@ -59,7 +59,7 @@ export function VideoPlayer({
   const insets = useSafeAreaInsets();
   // Use initialWindowMetrics as fallback since Modal may not have SafeAreaProvider context
   const topInset = insets.top || initialWindowMetrics?.insets.top || 0;
-  const styles = createStyles(theme, topInset);
+  const styles = useMemo(() => createStyles(theme, topInset), [theme, topInset]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 

@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { useMemo, ReactNode } from "react";
 import {
   View,
   ScrollView,
@@ -73,7 +73,7 @@ export function ProfileScreen({
   style: styleOverride,
 }: ProfileScreenProps) {
   const { theme, getShadowStyle } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Staggered entrance animations
   const avatarEntrance = useStaggeredEntrance({ type: "scale", delay: 0 });

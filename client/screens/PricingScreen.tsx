@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { useMemo, ReactNode } from "react";
 import {
   View,
   ScrollView,
@@ -88,7 +88,7 @@ export function PricingScreen({
   style: styleOverride,
 }: PricingScreenProps) {
   const { theme, getShadowStyle } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <View style={[styles.container, styleOverride]}>
@@ -137,77 +137,77 @@ export function PricingScreen({
               type="fadeSlideUp"
               delay={STAGGER_DELAY * (3 + index)}
             >
-            <View
-              style={[
-                styles.planCard,
-                getShadowStyle("subtle"),
-                plan.highlighted && styles.planHighlighted,
-              ]}
-            >
-              {/* Plan header */}
-              <View style={styles.planHeader}>
-                <View style={styles.planNameRow}>
-                  <SansSerifBoldText style={styles.planName}>{plan.name}</SansSerifBoldText>
-                  {plan.badge && (
-                    <Badge variant={plan.highlighted ? "default" : "outline"}>
-                      {plan.badge}
-                    </Badge>
-                  )}
-                </View>
-                <View style={styles.priceRow}>
-                  <SansSerifBoldText style={styles.price}>{plan.price}</SansSerifBoldText>
-                  {plan.period && (
-                    <SansSerifText style={styles.period}>/{plan.period}</SansSerifText>
-                  )}
-                </View>
-              </View>
-
-              {/* Features */}
-              <View style={styles.featuresList}>
-                {plan.features.map((feature) => (
-                  <View key={feature.label} style={styles.featureRow}>
-                    <Icon
-                      name={feature.included ? "check" : "x"}
-                      size={16}
-                      color={
-                        feature.included
-                          ? theme.colors.accent
-                          : theme.colors.mutedForeground
-                      }
-                    />
-                    <SansSerifText
-                      style={[
-                        styles.featureLabel,
-                        !feature.included && styles.featureDisabled,
-                      ]}
-                    >
-                      {feature.label}
-                    </SansSerifText>
-                  </View>
-                ))}
-              </View>
-
-              {/* CTA */}
-              <Button
-                preset={plan.isCurrent ? "outline" : plan.highlighted ? "default" : "outline"}
-                fullWidth
-                disabled={plan.isCurrent || Boolean(plan.disabledReason) || plan.loading}
-                loading={plan.loading}
-                onPress={plan.onSelect}
+              <View
+                style={[
+                  styles.planCard,
+                  getShadowStyle("subtle"),
+                  plan.highlighted && styles.planHighlighted,
+                ]}
               >
-                {plan.actionLabel ??
+                {/* Plan header */}
+                <View style={styles.planHeader}>
+                  <View style={styles.planNameRow}>
+                    <SansSerifBoldText style={styles.planName}>{plan.name}</SansSerifBoldText>
+                    {plan.badge && (
+                      <Badge variant={plan.highlighted ? "default" : "outline"}>
+                        {plan.badge}
+                      </Badge>
+                    )}
+                  </View>
+                  <View style={styles.priceRow}>
+                    <SansSerifBoldText style={styles.price}>{plan.price}</SansSerifBoldText>
+                    {plan.period && (
+                      <SansSerifText style={styles.period}>/{plan.period}</SansSerifText>
+                    )}
+                  </View>
+                </View>
+
+                {/* Features */}
+                <View style={styles.featuresList}>
+                  {plan.features.map((feature) => (
+                    <View key={feature.label} style={styles.featureRow}>
+                      <Icon
+                        name={feature.included ? "check" : "x"}
+                        size={16}
+                        color={
+                          feature.included
+                            ? theme.colors.accent
+                            : theme.colors.mutedForeground
+                        }
+                      />
+                      <SansSerifText
+                        style={[
+                          styles.featureLabel,
+                          !feature.included && styles.featureDisabled,
+                        ]}
+                      >
+                        {feature.label}
+                      </SansSerifText>
+                    </View>
+                  ))}
+                </View>
+
+                {/* CTA */}
+                <Button
+                  preset={plan.isCurrent ? "outline" : plan.highlighted ? "default" : "outline"}
+                  fullWidth
+                  disabled={plan.isCurrent || Boolean(plan.disabledReason) || plan.loading}
+                  loading={plan.loading}
+                  onPress={plan.onSelect}
+                >
+                  {plan.actionLabel ??
                   (plan.isCurrent
                     ? "Current plan"
                     : plan.highlighted
-                    ? "Get Started"
-                    : "Select")}
-              </Button>
-              {plan.disabledReason && !plan.isCurrent && (
-                <SansSerifText style={styles.disabledReason}>
-                  {plan.disabledReason}
-                </SansSerifText>
-              )}
-            </View>
+                      ? "Get Started"
+                      : "Select")}
+                </Button>
+                {plan.disabledReason && !plan.isCurrent && (
+                  <SansSerifText style={styles.disabledReason}>
+                    {plan.disabledReason}
+                  </SansSerifText>
+                )}
+              </View>
             </AnimatedView>
           ))}
         </View>

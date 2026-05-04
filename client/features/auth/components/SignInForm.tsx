@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform, TextInput as RNTextInput } from "react-native";
+import React, { useCallback, useMemo, useRef } from "react";
+import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -11,10 +11,10 @@ import {
   CardTitle,
   CardDescription,
 } from "@mrmeg/expo-ui/components/Card";
-import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import type { Theme } from "@mrmeg/expo-ui/constants";
+import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 
 export interface SignInFormProps {
   onSignIn?: (data: { email: string; password: string }) => void | Promise<void>;
@@ -47,63 +47,55 @@ export function SignInForm({
 }: SignInFormProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const resolvedTitle = title ?? t("auth.signInTitle");
   const resolvedDescription = description ?? t("auth.signInDescription");
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
+  const emailRef = useRef<AuthTextFieldHandle>(null);
+  const passwordRef = useRef<AuthTextFieldHandle>(null);
 
-  const passwordRef = useRef<RNTextInput>(null);
-
-  const validateEmail = (value: string): boolean => {
+  const validateEmail = useCallback((value: string): string => {
     if (!value.trim()) {
-      setEmailError(t("errors.emailRequired"));
-      return false;
+      return t("errors.emailRequired");
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
-      setEmailError(t("errors.invalidEmail"));
-      return false;
+      return t("errors.invalidEmail");
     }
-    setEmailError("");
-    return true;
-  };
+    return "";
+  }, [t]);
 
-  const validatePassword = (value: string): boolean => {
+  const validatePassword = useCallback((value: string): string => {
     if (!value) {
-      setPasswordError(t("errors.passwordRequired"));
-      return false;
+      return t("errors.passwordRequired");
     }
     if (value.length < 6) {
-      setPasswordError(t("errors.passwordMinLength", { count: 6 }));
-      return false;
+      return t("errors.passwordMinLength", { count: 6 });
     }
-    setPasswordError("");
-    return true;
-  };
+    return "";
+  }, [t]);
 
-  const handleSubmit = async () => {
-    const isEmailValid = validateEmail(email);
-    const isPasswordValid = validatePassword(password);
+  const handleSubmit = useCallback(async () => {
+    const isEmailValid = emailRef.current?.validate() ?? false;
+    const isPasswordValid = passwordRef.current?.validate() ?? false;
     if (isEmailValid && isPasswordValid) {
+      const email = emailRef.current?.getValue() ?? "";
+      const password = passwordRef.current?.getValue() ?? "";
       await onSignIn?.({ email, password });
     }
-  };
+  }, [onSignIn]);
 
   const getSocialLabel = (provider: string): string => {
     switch (provider) {
-      case "google":
-        return t("auth.continueWithGoogle");
-      case "apple":
-        return t("auth.continueWithApple");
-      case "github":
-        return t("auth.continueWithGithub");
-      default:
-        return t("auth.continueWith", { provider });
+    case "google":
+      return t("auth.continueWithGoogle");
+    case "apple":
+      return t("auth.continueWithApple");
+    case "github":
+      return t("auth.continueWithGithub");
+    default:
+      return t("auth.continueWith", { provider });
     }
   };
 
@@ -124,18 +116,12 @@ export function SignInForm({
           )}
 
           <View style={styles.inputGroup}>
-            <TextInput
+            <AuthTextField
+              ref={emailRef}
               testID="sign-in-email-input"
               label={t("auth.email")}
               placeholder={t("auth.emailPlaceholder")}
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (emailError) validateEmail(text);
-              }}
-              onBlur={() => validateEmail(email)}
-              error={!!emailError}
-              errorText={emailError}
+              validateValue={validateEmail}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -149,19 +135,12 @@ export function SignInForm({
           </View>
 
           <View style={styles.inputGroup}>
-            <TextInput
+            <AuthTextField
               ref={passwordRef}
               testID="sign-in-password-input"
               label={t("auth.password")}
               placeholder={t("auth.passwordPlaceholder")}
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (passwordError) validatePassword(text);
-              }}
-              onBlur={() => validatePassword(password)}
-              error={!!passwordError}
-              errorText={passwordError}
+              validateValue={validatePassword}
               secureTextEntry
               showSecureEntryToggle
               autoCapitalize="none"

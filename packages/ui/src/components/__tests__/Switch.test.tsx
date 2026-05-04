@@ -16,6 +16,8 @@ jest.mock("../../hooks/useTheme", () => ({
       colors: {
         primary: "#18181B",
         primaryForeground: "#FFFFFF",
+        accent: "#14B8A6",
+        accentForeground: "#FFFFFF",
         text: "#0F172A",
         textDim: "#64748B",
         muted: "#F1F5F9",
@@ -138,10 +140,26 @@ describe("Switch", () => {
         expect.objectContaining({
           backgroundColor: "#FFFFFF",
           borderWidth: 1,
-          borderColor: "rgba(0, 0, 0, 0.12)",
+          borderColor: "rgba(0, 0, 0, 0.1)",
         }),
       ])
     );
+  });
+
+  it("uses the accent token for the default checked track", () => {
+    const tree = render(<Switch checked={true} onCheckedChange={() => {}} />).toJSON();
+
+    expect(tree).toBeTruthy();
+    expect(Array.isArray(tree)).toBe(false);
+
+    if (!tree || Array.isArray(tree)) {
+      throw new Error("Expected a single switch tree");
+    }
+
+    const track = tree.children?.[0] as any;
+
+    expect(track?.props.style.backgroundColor).toBe("#14B8A6");
+    expect(track?.props.style.borderColor).toBe("rgba(20, 184, 166, 0.42)");
   });
 
   it("keeps custom switch thumb inset equal to vertical clearance", () => {

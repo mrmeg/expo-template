@@ -54,7 +54,7 @@ export function resetBillingBootstrap(): void {
 export function billingBootstrapState(): {
   bootstrapped: boolean;
   outcome: typeof lastBootstrapped;
-} {
+  } {
   return { bootstrapped, outcome: lastBootstrapped };
 }
 

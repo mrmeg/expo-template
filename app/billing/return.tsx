@@ -14,7 +14,7 @@
  * the source of truth, and this screen never mutates state based on it.
  */
 
-import { useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
@@ -30,7 +30,7 @@ import { billingSummaryQueryKey } from "@/client/features/billing";
 
 export default function BillingReturnScreen() {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
   const { status } = useLocalSearchParams<{ status?: string }>();
   const userId = useAuthStore((s) => s.user?.userId ?? null);
@@ -81,41 +81,41 @@ function normalizeStatus(raw: string | string[] | undefined): NormalizedStatus {
 
 function statusToCopy(status: NormalizedStatus) {
   switch (status) {
-    case "success":
-      return {
-        icon: "check-circle" as const,
-        iconColor: (theme: Theme) => theme.colors.success,
-        title: "Processing your subscription",
-        subtitle:
+  case "success":
+    return {
+      icon: "check-circle" as const,
+      iconColor: (theme: Theme) => theme.colors.success,
+      title: "Processing your subscription",
+      subtitle:
           "We're confirming your payment. Your plan will update as soon as Stripe sends us the final receipt.",
-        cta: "Go to account",
-      };
-    case "cancel":
-      return {
-        icon: "x-circle" as const,
-        iconColor: (theme: Theme) => theme.colors.mutedForeground,
-        title: "Checkout canceled",
-        subtitle: "No charge was made. You can choose a different plan at any time.",
-        cta: "Back to pricing",
-      };
-    case "portal":
-      return {
-        icon: "arrow-left" as const,
-        iconColor: (theme: Theme) => theme.colors.foreground,
-        title: "Back in the app",
-        subtitle:
+      cta: "Go to account",
+    };
+  case "cancel":
+    return {
+      icon: "x-circle" as const,
+      iconColor: (theme: Theme) => theme.colors.mutedForeground,
+      title: "Checkout canceled",
+      subtitle: "No charge was made. You can choose a different plan at any time.",
+      cta: "Back to pricing",
+    };
+  case "portal":
+    return {
+      icon: "arrow-left" as const,
+      iconColor: (theme: Theme) => theme.colors.foreground,
+      title: "Back in the app",
+      subtitle:
           "Any changes you made are being applied. Your plan will refresh automatically.",
-        cta: "Continue",
-      };
-    case "unknown":
-    default:
-      return {
-        icon: "info" as const,
-        iconColor: (theme: Theme) => theme.colors.mutedForeground,
-        title: "You're back",
-        subtitle: "Your billing information is being refreshed.",
-        cta: "Continue",
-      };
+      cta: "Continue",
+    };
+  case "unknown":
+  default:
+    return {
+      icon: "info" as const,
+      iconColor: (theme: Theme) => theme.colors.mutedForeground,
+      title: "You're back",
+      subtitle: "Your billing information is being refreshed.",
+      cta: "Continue",
+    };
   }
 }
 

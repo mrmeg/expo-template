@@ -88,7 +88,7 @@ if (!allowDirty && status.stdout.trim()) {
   console.error(status.stdout.trim());
   console.error("");
   console.error("Commit current changes first, then rerun:");
-  console.error(`  git add -A && git commit -m "chore: prepare ui package release"`);
+  console.error("  git add -A && git commit -m \"chore: prepare ui package release\"");
   console.error(`  bun run ui:release -- --${bump} ${publish ? "--publish" : ""}`.trimEnd());
   console.error("");
   console.error("Or intentionally release from local changes:");

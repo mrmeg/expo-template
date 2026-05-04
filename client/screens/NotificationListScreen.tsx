@@ -140,7 +140,7 @@ export function NotificationListScreen({
   style: styleOverride,
 }: NotificationListScreenProps) {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const sections = useMemo(
     () => groupNotifications(notifications),
@@ -235,12 +235,12 @@ export function NotificationListScreen({
         style={
           Platform.OS === "web"
             ? {
-                ...StyleSheet.flatten([
-                  styles.row,
-                  !item.read && styles.rowUnread,
-                ]),
-                cursor: "pointer" as any,
-              }
+              ...StyleSheet.flatten([
+                styles.row,
+                !item.read && styles.rowUnread,
+              ]),
+              cursor: "pointer" as any,
+            }
             : StyleSheet.flatten([styles.row, !item.read && styles.rowUnread])
         }
       >

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { StyleSheet, StyleProp, TextStyle, Platform } from "react-native";
 import * as LabelPrimitive from "@rn-primitives/label";
 import { useTheme } from "../hooks/useTheme";
@@ -83,7 +84,7 @@ export function Label({
   onPress,
 }: LabelProps) {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const sizeConfig = SIZE_CONFIGS[size];
   const textStyle = StyleSheet.flatten([
     styles.label,
@@ -106,7 +107,7 @@ export function Label({
         style={textStyle}
       >
         {children}
-        {required && <StyledText style={styles.required}> *</StyledText>}
+        {required && <StyledText selectable={false} style={styles.required}> *</StyledText>}
       </LabelPrimitive.Text>
     </LabelPrimitive.Root>
   );
@@ -121,10 +122,12 @@ const createStyles = (theme: Theme) =>
       fontFamily: fontFamilies.sansSerif.regular,
       fontWeight: "500" as const,
       color: theme.colors.text,
+      userSelect: "none",
     },
     required: {
       color: theme.colors.destructive,
       fontFamily: fontFamilies.sansSerif.bold,
+      userSelect: "none",
     },
     errorLabel: {
       color: theme.colors.destructive,
