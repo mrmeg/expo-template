@@ -143,4 +143,54 @@ describe("Switch", () => {
       ])
     );
   });
+
+  it("keeps custom switch thumb inset equal to vertical clearance", () => {
+    const tree = render(
+      <Switch
+        checked={false}
+        onCheckedChange={() => {}}
+        size={{ width: 60, height: 32 }}
+        thumbSize={20}
+        labelOn="ON"
+        labelOff="OFF"
+      />
+    ).toJSON();
+
+    expect(tree).toBeTruthy();
+    expect(Array.isArray(tree)).toBe(false);
+
+    if (!tree || Array.isArray(tree)) {
+      throw new Error("Expected a single switch tree");
+    }
+
+    const labelOn = tree.children?.[1] as any;
+    const thumbWrapper = tree.children?.[2] as any;
+    const thumbInner = thumbWrapper?.children?.[0] as any;
+    const labelOff = tree.children?.[3] as any;
+    const thumbAnimatedStyle = thumbInner?.props.style.find((entry: any) => entry?.transform);
+
+    expect(thumbInner?.props.style).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          marginLeft: 6,
+        }),
+      ]),
+    );
+    expect(thumbAnimatedStyle).toEqual({
+      transform: [{ translateX: 0 }],
+    });
+
+    expect(labelOn?.props.style).toEqual(
+      expect.objectContaining({
+        left: 4,
+        right: 30,
+      }),
+    );
+    expect(labelOff?.props.style).toEqual(
+      expect.objectContaining({
+        left: 30,
+        right: 4,
+      }),
+    );
+  });
 });

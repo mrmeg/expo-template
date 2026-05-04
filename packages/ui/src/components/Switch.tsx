@@ -95,13 +95,15 @@ function Switch({
     }
   }, [props.checked, reduceMotion]);
 
-  // Thumb slides from left to right
-  const thumbOffset = 2;
-  const thumbEnd = size.width - thumbSize - thumbOffset;
+  // Thumb slides from left to right with equal inset on every side.
+  const thumbInset = Math.max(2, (size.height - thumbSize) / 2);
+  const thumbTravel = Math.max(0, size.width - thumbSize - thumbInset * 2);
+  const labelGap = spacing.xs;
+  const labelHorizontalInset = spacing.xs;
 
   const thumbAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: interpolate(progress.value, [0, 1], [thumbOffset, thumbEnd]) },
+      { translateX: interpolate(progress.value, [0, 1], [0, thumbTravel]) },
     ],
   }));
 
@@ -174,7 +176,10 @@ function Switch({
         <View
           style={{
             position: "absolute",
-            left: spacing.sm,
+            top: 0,
+            bottom: 0,
+            left: labelHorizontalInset,
+            right: thumbInset + thumbSize + labelGap,
             justifyContent: "center",
             alignItems: "center",
             opacity: props.checked ? 1 : 0,
@@ -201,6 +206,7 @@ function Switch({
             {
               width: thumbSize,
               height: thumbSize,
+              marginLeft: thumbInset,
               borderRadius: thumbSize / 2,
               backgroundColor: palette.white,
               borderWidth: 1,
@@ -226,7 +232,10 @@ function Switch({
         <View
           style={{
             position: "absolute",
-            right: spacing.sm,
+            top: 0,
+            bottom: 0,
+            left: thumbInset + thumbSize + labelGap,
+            right: labelHorizontalInset,
             justifyContent: "center",
             alignItems: "center",
             opacity: props.checked ? 0 : 1,

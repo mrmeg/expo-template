@@ -116,6 +116,7 @@ Button preserves native tap comfort with hit slop up to the 44px touch target. T
 - Width 44, height 24, thumb 20
 - 1px border on track + thumb for contrast
 - Default checked state uses a stable dark-neutral track so the white thumb stays visible in both themes
+- Custom track/thumb sizes keep the thumb inset equal to the vertical clearance, so the circle does not hug one edge of a taller track
 
 ### Tab Bar
 - `accent` for active tint
