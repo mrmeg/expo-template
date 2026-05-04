@@ -1,6 +1,6 @@
 {
   "name": "@mrmeg/expo-media",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "Reusable Expo media contracts, storage handlers, client hooks, and processing helpers for MrMeg projects.",
   "keywords": [

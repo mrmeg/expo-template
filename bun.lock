@@ -86,7 +86,7 @@
     },
     "packages/media": {
       "name": "@mrmeg/expo-media",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@aws-sdk/client-s3": "^3.1041.0",
         "@aws-sdk/s3-request-presigner": "^3.1041.0",
