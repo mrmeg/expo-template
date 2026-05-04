@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { memo, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
 import { KeyboardAwareScrollView } from "@/client/features/keyboard/platform";
@@ -53,68 +53,13 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 
 export default function ShowcaseScreen() {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
-
-  // Buttons state
-  const [loading, setLoading] = useState(false);
-  const handleLoadingDemo = () => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 2000);
-  };
-
-  // Forms state
-  const [textValue, setTextValue] = useState("");
-  const [passwordValue, setPasswordValue] = useState("");
-  const [toggleValue, setToggleValue] = useState(false);
-  const [checkbox1, setCheckbox1] = useState(false);
-  const [checkbox2, setCheckbox2] = useState(true);
-  const [singleTogglePressed, setSingleTogglePressed] = useState(false);
-  const [alignment, setAlignment] = useState<string | undefined>("left");
-  const [formats, setFormats] = useState<string[]>(["bold"]);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Navigation state
   const [showBookmarks, setShowBookmarks] = useState(true);
   const [showUrls, setShowUrls] = useState(false);
   const [statusBarPosition, setStatusBarPosition] = useState("bottom");
   const [collapsibleOpen, setCollapsibleOpen] = useState(false);
-
-  // Auth Forms state
-  const [authForm, setAuthForm] = useState<string>("signin");
-  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
-  const [resetPasswordSuccess, setResetPasswordSuccess] = useState(false);
-
-  // Empty State & Skeleton state
-  const [showSkeleton, setShowSkeleton] = useState(true);
-
-  // Bottom Sheet state
-  const [basicOpen, setBasicOpen] = useState(false);
-  const [snapOpen, setSnapOpen] = useState(false);
-  const [fullOpen, setFullOpen] = useState(false);
-  const [scrollOpen, setScrollOpen] = useState(false);
-
-  // Dialog state
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [alertDialogOpen, setAlertDialogOpen] = useState(false);
-
-  // Select state
-  const [selectedFruit, setSelectedFruit] = useState<{ value: string; label: string } | undefined>();
-
-  // RadioGroup state
-  const [radioValue, setRadioValue] = useState("default");
-
-  // Progress state
-  const [progressValue, setProgressValue] = useState(33);
-
-  // Slider state
-  const [sliderValue, setSliderValue] = useState(50);
-  const [rangeValue, setRangeValue] = useState(5);
-
-  // AnimatedView state
-  const [animKey, setAnimKey] = useState(0);
-
-  // InputOTP state
-  const [otpValue, setOtpValue] = useState("");
-  const [otpValue4, setOtpValue4] = useState("");
 
   return (
     <View style={styles.container}>
@@ -180,31 +125,7 @@ export default function ShowcaseScreen() {
             </SubSection>
           </Section>
 
-          <Section title="Button States">
-            <SubSection label="Disabled">
-              <Button preset="default" disabled onPress={() => { }}>
-                <StyledText style={styles.buttonText}>Disabled Button</StyledText>
-              </Button>
-            </SubSection>
-
-            <SubSection label="Loading">
-              <Button
-                preset="default"
-                loading={loading}
-                onPress={handleLoadingDemo}
-              >
-                <StyledText style={styles.buttonText}>
-                  {loading ? "Loading..." : "Click to Load"}
-                </StyledText>
-              </Button>
-            </SubSection>
-
-            <SubSection label="Full Width">
-              <Button preset="default" fullWidth onPress={() => { }}>
-                <StyledText style={styles.buttonText}>Full Width Button</StyledText>
-              </Button>
-            </SubSection>
-          </Section>
+          <ButtonStatesSection styles={styles} />
 
           <Section title="Button Sizes">
             <SubSection label="Small">
@@ -264,142 +185,7 @@ export default function ShowcaseScreen() {
           {/* FORMS                                        */}
           {/* ============================================ */}
 
-          <Section title="Text Input">
-            <SubSection label="Standard Input">
-              <TextInput
-                label="Username"
-                placeholder="Enter your username..."
-                value={textValue}
-                onChangeText={setTextValue}
-              />
-            </SubSection>
-
-            <SubSection label="Password Input">
-              <TextInput
-                label="Password"
-                placeholder="Enter password..."
-                secureTextEntry
-                showSecureEntryToggle
-                value={passwordValue}
-                onChangeText={setPasswordValue}
-              />
-            </SubSection>
-          </Section>
-
-          <Section title="Switch">
-            <SubSection label="Basic">
-              <View style={styles.switchRow}>
-                <StyledText style={styles.labelText}>Basic Switch</StyledText>
-                <Switch checked={toggleValue} onCheckedChange={setToggleValue} />
-              </View>
-            </SubSection>
-
-            <SubSection label="With Labels">
-              <View style={styles.switchRow}>
-                <StyledText style={styles.labelText}>Switch with Labels</StyledText>
-                <Switch
-                  size={{ width: 60, height: 32 }}
-                  checked={toggleValue}
-                  onCheckedChange={setToggleValue}
-                  labelOn="ON"
-                  labelOff="OFF"
-                />
-              </View>
-            </SubSection>
-
-            <SubSection label="Large Size">
-              <View style={styles.switchRow}>
-                <StyledText style={styles.labelText}>Large Switch</StyledText>
-                <Switch
-                  checked={toggleValue}
-                  onCheckedChange={setToggleValue}
-                  size={{ width: 70, height: 36 }}
-                  thumbSize={32}
-                  labelOn="YES"
-                  labelOff="NO"
-                />
-              </View>
-            </SubSection>
-          </Section>
-
-          <Section title="Checkbox">
-            <SubSection>
-              <View style={styles.checkboxRow}>
-                <Checkbox checked={checkbox1} onCheckedChange={setCheckbox1} />
-                <StyledText style={styles.labelText}>Checkbox Option 1</StyledText>
-              </View>
-              <View style={[styles.checkboxRow, { marginTop: spacing.md }]}>
-                <Checkbox checked={checkbox2} onCheckedChange={setCheckbox2} />
-                <StyledText style={styles.labelText}>Checkbox Option 2 (initially checked)</StyledText>
-              </View>
-            </SubSection>
-          </Section>
-
-          <Section title="Toggle">
-            <SubSection label="Single Toggle">
-              <Toggle pressed={singleTogglePressed} onPressedChange={setSingleTogglePressed}>
-                <StyledText style={styles.labelText}>Toggle Me</StyledText>
-              </Toggle>
-            </SubSection>
-          </Section>
-
-          <Section title="Toggle Group">
-            <SubSection label="Single Selection">
-              <ToggleGroup type="single" value={alignment} onValueChange={setAlignment}>
-                <ToggleGroupItem value="left">
-                  <StyledText style={styles.labelText}>Left</StyledText>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="center">
-                  <StyledText style={styles.labelText}>Center</StyledText>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="right">
-                  <StyledText style={styles.labelText}>Right</StyledText>
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </SubSection>
-
-            <SubSection label="Multiple Selection">
-              <ToggleGroup type="multiple" value={formats} onValueChange={setFormats}>
-                <ToggleGroupItem value="bold">
-                  <StyledText style={[styles.labelText, { fontWeight: "bold" }]}>B</StyledText>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="italic">
-                  <StyledText style={[styles.labelText, { fontStyle: "italic" }]}>I</StyledText>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="underline">
-                  <StyledText style={[styles.labelText, { textDecorationLine: "underline" }]}>U</StyledText>
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </SubSection>
-
-            <SubSection label="Outline Variant">
-              <ToggleGroup type="single" variant="outline" value={alignment} onValueChange={setAlignment}>
-                <ToggleGroupItem value="left">
-                  <StyledText style={styles.labelText}>Left</StyledText>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="center">
-                  <StyledText style={styles.labelText}>Center</StyledText>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="right">
-                  <StyledText style={styles.labelText}>Right</StyledText>
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </SubSection>
-
-            <SubSection label="Small Size">
-              <ToggleGroup type="single" size="sm" value={alignment} onValueChange={setAlignment}>
-                <ToggleGroupItem value="left">
-                  <StyledText style={styles.labelText}>L</StyledText>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="center">
-                  <StyledText style={styles.labelText}>C</StyledText>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="right">
-                  <StyledText style={styles.labelText}>R</StyledText>
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </SubSection>
-          </Section>
+          <FormControlsSections styles={styles} />
 
           {/* ============================================ */}
           {/* NAVIGATION                                   */}
@@ -1133,146 +919,7 @@ export default function ShowcaseScreen() {
           {/* AUTH FORMS                                   */}
           {/* ============================================ */}
 
-          <Section title="Auth Forms">
-            <SubSection label="Select Form">
-              <ToggleGroup
-                type="single"
-                value={authForm}
-                onValueChange={(val) => {
-                  if (val) {
-                    setAuthForm(val);
-                    setForgotPasswordSuccess(false);
-                    setResetPasswordSuccess(false);
-                  }
-                }}
-              >
-                <ToggleGroupItem value="signin">
-                  <StyledText style={styles.labelText}>Sign In</StyledText>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="signup">
-                  <StyledText style={styles.labelText}>Sign Up</StyledText>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="verify">
-                  <StyledText style={styles.labelText}>Verify</StyledText>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="forgot">
-                  <StyledText style={styles.labelText}>Forgot</StyledText>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="reset">
-                  <StyledText style={styles.labelText}>Reset</StyledText>
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </SubSection>
-
-            {authForm === "signin" && (
-              <SignInForm
-                embedded
-                onSignIn={async ({ email, password }) => {
-                  console.log("Sign in:", email, password);
-                  await new Promise((resolve) => setTimeout(resolve, 1000));
-                  globalUIStore.getState().show({
-                    type: "success",
-                    title: "Success",
-                    messages: ["Signed in successfully!"],
-                    duration: 2000,
-                  });
-                }}
-                onForgotPassword={() => {
-                  globalUIStore.getState().show({
-                    type: "info",
-                    messages: ["Forgot password clicked"],
-                    duration: 2000,
-                  });
-                }}
-                onSignUp={() => setAuthForm("signup")}
-                onSocialSignIn={(provider) => {
-                  globalUIStore.getState().show({
-                    type: "info",
-                    messages: [`${provider} sign in clicked`],
-                    duration: 2000,
-                  });
-                }}
-              />
-            )}
-
-            {authForm === "signup" && (
-              <SignUpForm
-                embedded
-                onSignUp={async ({ name, email, password }) => {
-                  console.log("Sign up:", name, email, password);
-                  await new Promise((resolve) => setTimeout(resolve, 1000));
-                  globalUIStore.getState().show({
-                    type: "success",
-                    title: "Success",
-                    messages: ["Account created successfully!"],
-                    duration: 2000,
-                  });
-                  setAuthForm("verify");
-                }}
-                onSignIn={() => setAuthForm("signin")}
-                onSocialSignUp={(provider) => {
-                  globalUIStore.getState().show({
-                    type: "info",
-                    messages: [`${provider} sign up clicked`],
-                    duration: 2000,
-                  });
-                }}
-              />
-            )}
-
-            {authForm === "verify" && (
-              <VerifyEmailForm
-                email="user@example.com"
-                embedded
-                onVerify={async (code) => {
-                  console.log("Verify code:", code);
-                  await new Promise((resolve) => setTimeout(resolve, 1000));
-                  globalUIStore.getState().show({
-                    type: "success",
-                    title: "Email Verified",
-                    messages: ["Your email has been verified successfully!"],
-                    duration: 2000,
-                  });
-                }}
-                onResendCode={async () => {
-                  await new Promise((resolve) => setTimeout(resolve, 500));
-                  globalUIStore.getState().show({
-                    type: "info",
-                    messages: ["Verification code resent"],
-                    duration: 2000,
-                  });
-                }}
-                onBack={() => setAuthForm("signin")}
-                onChangeEmail={() => setAuthForm("signup")}
-              />
-            )}
-
-            {authForm === "forgot" && (
-              <ForgotPasswordForm
-                embedded
-                onSubmit={async (email) => {
-                  console.log("Forgot password:", email);
-                  await new Promise((resolve) => setTimeout(resolve, 1000));
-                  setForgotPasswordSuccess(true);
-                }}
-                onBack={() => setAuthForm("signin")}
-                success={forgotPasswordSuccess}
-              />
-            )}
-
-            {authForm === "reset" && (
-              <ResetPasswordForm
-                embedded
-                onSubmit={async (password) => {
-                  console.log("Reset password:", password);
-                  await new Promise((resolve) => setTimeout(resolve, 1000));
-                  setResetPasswordSuccess(true);
-                }}
-                onBack={() => setAuthForm("signin")}
-                success={resetPasswordSuccess}
-              />
-            )}
-          </Section>
+          <AuthFormsSection styles={styles} />
 
           {/* ============================================ */}
           {/* EMPTY STATE & SKELETON                       */}
@@ -1337,77 +984,7 @@ export default function ShowcaseScreen() {
             </SubSection>
           </Section>
 
-          <Section title="Skeleton">
-            <SubSection label="Base shapes">
-              <View style={styles.skeletonRow}>
-                <Skeleton width={80} height={20} />
-                <Skeleton width={120} height={20} />
-                <Skeleton width={60} height={20} />
-              </View>
-              <View style={[styles.skeletonRow, { marginTop: spacing.sm }]}>
-                <Skeleton width={40} height={40} circle />
-                <Skeleton width={48} height={48} circle />
-                <Skeleton width={32} height={32} circle />
-              </View>
-            </SubSection>
-
-            <SubSection label="Text placeholder">
-              <SkeletonText lines={4} />
-            </SubSection>
-
-            <SubSection label="Avatar">
-              <View style={styles.skeletonRow}>
-                <SkeletonAvatar size={32} />
-                <SkeletonAvatar size={40} />
-                <SkeletonAvatar size={48} />
-                <SkeletonAvatar size={56} />
-              </View>
-            </SubSection>
-
-            <SubSection label="Card">
-              <SkeletonCard />
-            </SubSection>
-
-            <SubSection label="Card (no image)">
-              <SkeletonCard showImage={false} />
-            </SubSection>
-
-            <SubSection label="Toggle: Skeleton vs Real content">
-              <Button
-                preset="outline"
-                onPress={() => setShowSkeleton(!showSkeleton)}
-                style={{ marginBottom: spacing.md }}
-              >
-                <SansSerifText style={{ color: theme.colors.foreground }}>
-                  {showSkeleton ? "Show real content" : "Show skeleton"}
-                </SansSerifText>
-              </Button>
-
-              {showSkeleton ? (
-                <SkeletonCard showAvatar textLines={2} />
-              ) : (
-                <View style={styles.realCard}>
-                  <View style={styles.realImagePlaceholder}>
-                    <Icon name="image" size={32} color={theme.colors.mutedForeground} />
-                  </View>
-                  <View style={styles.realCardBody}>
-                    <View style={styles.realAvatarRow}>
-                      <View style={styles.realAvatar}>
-                        <SansSerifBoldText style={styles.realAvatarText}>JD</SansSerifBoldText>
-                      </View>
-                      <View>
-                        <SansSerifBoldText style={styles.realName}>Jane Doe</SansSerifBoldText>
-                        <SansSerifText style={styles.realMeta}>2 hours ago</SansSerifText>
-                      </View>
-                    </View>
-                    <SansSerifText style={styles.realBodyText}>
-                      This is the actual loaded content that replaces the skeleton placeholder.
-                    </SansSerifText>
-                  </View>
-                </View>
-              )}
-            </SubSection>
-          </Section>
+          <SkeletonSection styles={styles} theme={theme} />
 
           {/* Badge */}
           <Section title="Badge">
@@ -1490,249 +1067,15 @@ export default function ShowcaseScreen() {
             </SubSection>
           </Section>
 
-          {/* AnimatedView */}
-          <Section title="AnimatedView">
-            <SubSection label="Animation Types">
-              <Button
-                preset="outline"
-                onPress={() => setAnimKey((k) => k + 1)}
-                style={{ marginBottom: spacing.md }}
-              >
-                <SansSerifText style={{ color: theme.colors.foreground }}>
-                  Replay animations
-                </SansSerifText>
-              </Button>
-              <View key={animKey} style={{ gap: spacing.sm }}>
-                <AnimatedView type="fade">
-                  <View style={{ padding: spacing.sm, backgroundColor: theme.colors.muted, borderRadius: spacing.radiusMd }}>
-                    <SansSerifText style={{ color: theme.colors.text }}>fade</SansSerifText>
-                  </View>
-                </AnimatedView>
-                <AnimatedView type="fadeSlideUp" delay={100}>
-                  <View style={{ padding: spacing.sm, backgroundColor: theme.colors.muted, borderRadius: spacing.radiusMd }}>
-                    <SansSerifText style={{ color: theme.colors.text }}>fadeSlideUp (delay 100ms)</SansSerifText>
-                  </View>
-                </AnimatedView>
-                <AnimatedView type="fadeSlideDown" delay={200}>
-                  <View style={{ padding: spacing.sm, backgroundColor: theme.colors.muted, borderRadius: spacing.radiusMd }}>
-                    <SansSerifText style={{ color: theme.colors.text }}>fadeSlideDown (delay 200ms)</SansSerifText>
-                  </View>
-                </AnimatedView>
-                <AnimatedView type="scale" delay={300}>
-                  <View style={{ padding: spacing.sm, backgroundColor: theme.colors.muted, borderRadius: spacing.radiusMd }}>
-                    <SansSerifText style={{ color: theme.colors.text }}>scale (delay 300ms)</SansSerifText>
-                  </View>
-                </AnimatedView>
-              </View>
-            </SubSection>
-          </Section>
+          <AnimatedViewSection theme={theme} />
 
           {/* ============================================ */}
           {/* BOTTOM SHEET                                 */}
           {/* ============================================ */}
 
-          <Section title="Bottom Sheet">
-            {/* Basic open/close */}
-            <SubSection label="Basic">
-              <BottomSheet open={basicOpen} onOpenChange={setBasicOpen}>
-                <BottomSheet.Trigger asChild>
-                  <Button preset="default">
-                    <SansSerifText style={{ color: theme.colors.accentForeground }}>
-                      Open basic sheet
-                    </SansSerifText>
-                  </Button>
-                </BottomSheet.Trigger>
-                <BottomSheet.Content>
-                  <BottomSheet.Handle />
-                  <BottomSheet.Body>
-                    <View style={styles.sheetSection}>
-                      <SansSerifBoldText style={styles.sheetTitle}>
-                        Hello from the bottom sheet
-                      </SansSerifBoldText>
-                      <SansSerifText style={styles.sheetDescription}>
-                        This is a basic bottom sheet. Swipe down or tap the backdrop to close.
-                      </SansSerifText>
-                    </View>
-                    <BottomSheet.Close asChild>
-                      <Button preset="outline" fullWidth>
-                        <SansSerifText style={{ color: theme.colors.foreground }}>
-                          Close
-                        </SansSerifText>
-                      </Button>
-                    </BottomSheet.Close>
-                  </BottomSheet.Body>
-                </BottomSheet.Content>
-              </BottomSheet>
-            </SubSection>
+          <BottomSheetSection styles={styles} theme={theme} />
 
-            {/* Multiple snap points */}
-            <SubSection label="Snap Points (25%, 50%, 90%)">
-              <BottomSheet
-                open={snapOpen}
-                onOpenChange={setSnapOpen}
-                snapPoints={["25%", "50%", "90%"]}
-              >
-                <BottomSheet.Trigger asChild>
-                  <Button preset="outline">
-                    <SansSerifText style={{ color: theme.colors.foreground }}>
-                      Open with snap points
-                    </SansSerifText>
-                  </Button>
-                </BottomSheet.Trigger>
-                <BottomSheet.Content>
-                  <BottomSheet.Handle />
-                  <BottomSheet.Body>
-                    <SansSerifBoldText style={styles.sheetTitle}>
-                      Snap Points
-                    </SansSerifBoldText>
-                    <SansSerifText style={styles.sheetDescription}>
-                      This sheet has three snap points at 25%, 50%, and 90%.
-                      On native, try swiping to snap between them.
-                    </SansSerifText>
-                  </BottomSheet.Body>
-                </BottomSheet.Content>
-              </BottomSheet>
-            </SubSection>
-
-            {/* Full compound */}
-            <SubSection label="Full Compound (Handle + Header + Body + Footer)">
-              <BottomSheet open={fullOpen} onOpenChange={setFullOpen} snapPoints={["60%"]}>
-                <BottomSheet.Trigger asChild>
-                  <Button preset="outline">
-                    <SansSerifText style={{ color: theme.colors.foreground }}>
-                      Open full sheet
-                    </SansSerifText>
-                  </Button>
-                </BottomSheet.Trigger>
-                <BottomSheet.Content>
-                  <BottomSheet.Handle />
-                  <BottomSheet.Header>
-                    <View style={styles.sheetHeaderRow}>
-                      <SansSerifBoldText style={styles.sheetHeaderTitle}>
-                        Share with...
-                      </SansSerifBoldText>
-                      <BottomSheet.Close asChild>
-                        <Button preset="ghost" size="sm">
-                          <Icon name="x" size={20} color={theme.colors.mutedForeground} />
-                        </Button>
-                      </BottomSheet.Close>
-                    </View>
-                  </BottomSheet.Header>
-                  <BottomSheet.Body>
-                    {["Alice Johnson", "Bob Smith", "Carol Williams", "David Brown"].map(
-                      (name) => (
-                        <View key={name} style={styles.contactRow}>
-                          <View style={styles.contactAvatar}>
-                            <SansSerifBoldText style={styles.contactInitial}>
-                              {name[0]}
-                            </SansSerifBoldText>
-                          </View>
-                          <SansSerifText style={styles.contactName}>{name}</SansSerifText>
-                        </View>
-                      )
-                    )}
-                  </BottomSheet.Body>
-                  <BottomSheet.Footer>
-                    <Button preset="default" fullWidth onPress={() => setFullOpen(false)}>
-                      <SansSerifText style={{ color: theme.colors.accentForeground }}>
-                        Share
-                      </SansSerifText>
-                    </Button>
-                  </BottomSheet.Footer>
-                </BottomSheet.Content>
-              </BottomSheet>
-            </SubSection>
-
-            {/* Scrollable content */}
-            <SubSection label="Scrollable Content">
-              <BottomSheet open={scrollOpen} onOpenChange={setScrollOpen} snapPoints={["70%"]}>
-                <BottomSheet.Trigger asChild>
-                  <Button preset="outline">
-                    <SansSerifText style={{ color: theme.colors.foreground }}>
-                      Open scrollable sheet
-                    </SansSerifText>
-                  </Button>
-                </BottomSheet.Trigger>
-                <BottomSheet.Content>
-                  <BottomSheet.Handle />
-                  <BottomSheet.Header>
-                    <SansSerifBoldText style={styles.sheetHeaderTitle}>
-                      Terms of Service
-                    </SansSerifBoldText>
-                  </BottomSheet.Header>
-                  <BottomSheet.Body>
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <SansSerifText key={i} style={styles.loremParagraph}>
-                        {i + 1}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-                        Ut enim ad minim veniam, quis nostrud exercitation ullamco.
-                      </SansSerifText>
-                    ))}
-                  </BottomSheet.Body>
-                  <BottomSheet.Footer>
-                    <Button preset="default" fullWidth onPress={() => setScrollOpen(false)}>
-                      <SansSerifText style={{ color: theme.colors.accentForeground }}>
-                        Accept
-                      </SansSerifText>
-                    </Button>
-                  </BottomSheet.Footer>
-                </BottomSheet.Content>
-              </BottomSheet>
-            </SubSection>
-          </Section>
-
-          {/* Dialog */}
-          <Section title="Dialog">
-            <SubSection label="Basic Dialog">
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button preset="outline">
-                    <SansSerifText style={styles.outlineButtonText}>Edit Profile</SansSerifText>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Edit Profile</DialogTitle>
-                    <DialogDescription>
-                      Make changes to your profile here. Click save when you are done.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button preset="default">
-                        <SansSerifText style={styles.buttonText}>Save Changes</SansSerifText>
-                      </Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </SubSection>
-            <SubSection label="Alert Dialog">
-              <AlertDialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button preset="destructive">
-                    <SansSerifText style={{ color: theme.colors.destructiveForeground }}>Delete Account</SansSerifText>
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogTitle>Delete Account?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your account and remove your data from our servers.
-                  </AlertDialogDescription>
-                  <AlertDialogCancel asChild>
-                    <Button preset="outline">
-                      <SansSerifText style={styles.outlineButtonText}>Cancel</SansSerifText>
-                    </Button>
-                  </AlertDialogCancel>
-                  <AlertDialogAction asChild>
-                    <Button preset="destructive">
-                      <SansSerifText style={{ color: theme.colors.destructiveForeground }}>Delete</SansSerifText>
-                    </Button>
-                  </AlertDialogAction>
-                </AlertDialogContent>
-              </AlertDialog>
-            </SubSection>
-          </Section>
+          <DialogSection styles={styles} theme={theme} />
 
           {/* Tabs */}
           <Section title="Tabs">
@@ -1770,78 +1113,9 @@ export default function ShowcaseScreen() {
             </SubSection>
           </Section>
 
-          {/* Select */}
-          <Section title="Select">
-            <SubSection label="Basic">
-              <Select value={selectedFruit} onValueChange={setSelectedFruit}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pick a fruit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Fruits</SelectLabel>
-                    <SelectItem value="apple" label="Apple">Apple</SelectItem>
-                    <SelectItem value="banana" label="Banana">Banana</SelectItem>
-                    <SelectItem value="cherry" label="Cherry">Cherry</SelectItem>
-                    <SelectItem value="date" label="Date">Date</SelectItem>
-                    <SelectItem value="elderberry" label="Elderberry">Elderberry</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </SubSection>
-            <SubSection label="Sizes">
-              <View style={{ gap: spacing.sm }}>
-                <Select>
-                  <SelectTrigger size="sm">
-                    <SelectValue placeholder="Small" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="a" label="Option A">Option A</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select>
-                  <SelectTrigger size="md">
-                    <SelectValue placeholder="Medium" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="a" label="Option A">Option A</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select>
-                  <SelectTrigger size="lg">
-                    <SelectValue placeholder="Large" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="a" label="Option A">Option A</SelectItem>
-                  </SelectContent>
-                </Select>
-              </View>
-            </SubSection>
-          </Section>
+          <SelectSection />
 
-          {/* RadioGroup */}
-          <Section title="RadioGroup">
-            <SubSection label="Basic">
-              <RadioGroup value={radioValue} onValueChange={setRadioValue}>
-                <RadioGroupItem value="default" label="Default" />
-                <RadioGroupItem value="comfortable" label="Comfortable" />
-                <RadioGroupItem value="compact" label="Compact" />
-              </RadioGroup>
-            </SubSection>
-            <SubSection label="Sizes">
-              <View style={{ gap: spacing.md }}>
-                <RadioGroup value="a" onValueChange={() => {}} size="sm">
-                  <RadioGroupItem value="a" label="Small" />
-                </RadioGroup>
-                <RadioGroup value="a" onValueChange={() => {}} size="md">
-                  <RadioGroupItem value="a" label="Medium" />
-                </RadioGroup>
-                <RadioGroup value="a" onValueChange={() => {}} size="lg">
-                  <RadioGroupItem value="a" label="Large" />
-                </RadioGroup>
-              </View>
-            </SubSection>
-          </Section>
+          <RadioGroupSection />
 
           {/* Progress */}
           <Section title="Progress">
@@ -1864,44 +1138,855 @@ export default function ShowcaseScreen() {
             </SubSection>
           </Section>
 
-          {/* Slider */}
-          <Section title="Slider">
-            <SubSection label="Basic">
-              <SansSerifText style={styles.labelText}>Value: {sliderValue}</SansSerifText>
-              <Slider value={sliderValue} onValueChange={setSliderValue} />
-            </SubSection>
-            <SubSection label="Custom Range">
-              <Slider
-                value={rangeValue}
-                onValueChange={setRangeValue}
-                min={0}
-                max={10}
-                step={1}
-                showValue
-              />
-            </SubSection>
-            <SubSection label="Disabled">
-              <Slider value={40} disabled />
-            </SubSection>
-          </Section>
+          <SliderSection styles={styles} />
 
-          {/* InputOTP */}
-          <Section title="InputOTP">
-            <SubSection label="6-Digit">
-              <InputOTP value={otpValue} onChangeText={setOtpValue} length={6} />
-            </SubSection>
-            <SubSection label="4-Digit">
-              <InputOTP value={otpValue4} onChangeText={setOtpValue4} length={4} />
-            </SubSection>
-            <SubSection label="Error State">
-              <InputOTP value="" onChangeText={() => {}} length={6} error />
-            </SubSection>
-          </Section>
+          <InputOTPSection />
         </View>
       </KeyboardAwareScrollView>
     </View>
   );
 }
+
+type ShowcaseStyles = ReturnType<typeof createStyles>;
+
+const ButtonStatesSection = memo(function ButtonStatesSection({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  const handleLoadingDemo = () => {
+    setLoading(true);
+    setTimeout(() => setLoading(false), 2000);
+  };
+
+  return (
+    <Section title="Button States">
+      <SubSection label="Disabled">
+        <Button preset="default" disabled onPress={() => { }}>
+          <StyledText style={styles.buttonText}>Disabled Button</StyledText>
+        </Button>
+      </SubSection>
+
+      <SubSection label="Loading">
+        <Button
+          preset="default"
+          loading={loading}
+          onPress={handleLoadingDemo}
+        >
+          <StyledText style={styles.buttonText}>
+            {loading ? "Loading..." : "Click to Load"}
+          </StyledText>
+        </Button>
+      </SubSection>
+
+      <SubSection label="Full Width">
+        <Button preset="default" fullWidth onPress={() => { }}>
+          <StyledText style={styles.buttonText}>Full Width Button</StyledText>
+        </Button>
+      </SubSection>
+    </Section>
+  );
+});
+
+const FormControlsSections = memo(function FormControlsSections({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
+  const [textValue, setTextValue] = useState("");
+  const [passwordValue, setPasswordValue] = useState("");
+  const [toggleValue, setToggleValue] = useState(false);
+  const [checkbox1, setCheckbox1] = useState(false);
+  const [checkbox2, setCheckbox2] = useState(true);
+  const [singleTogglePressed, setSingleTogglePressed] = useState(false);
+  const [alignment, setAlignment] = useState<string | undefined>("left");
+  const [formats, setFormats] = useState<string[]>(["bold"]);
+
+  return (
+    <>
+      <Section title="Text Input">
+        <SubSection label="Standard Input">
+          <TextInput
+            label="Username"
+            placeholder="Enter your username..."
+            value={textValue}
+            onChangeText={setTextValue}
+          />
+        </SubSection>
+
+        <SubSection label="Password Input">
+          <TextInput
+            label="Password"
+            placeholder="Enter password..."
+            secureTextEntry
+            showSecureEntryToggle
+            value={passwordValue}
+            onChangeText={setPasswordValue}
+          />
+        </SubSection>
+      </Section>
+
+      <Section title="Switch">
+        <SubSection label="Basic">
+          <View style={styles.switchRow}>
+            <StyledText style={styles.labelText}>Basic Switch</StyledText>
+            <Switch checked={toggleValue} onCheckedChange={setToggleValue} />
+          </View>
+        </SubSection>
+
+        <SubSection label="With Labels">
+          <View style={styles.switchRow}>
+            <StyledText style={styles.labelText}>Switch with Labels</StyledText>
+            <Switch
+              size={{ width: 60, height: 32 }}
+              checked={toggleValue}
+              onCheckedChange={setToggleValue}
+              labelOn="ON"
+              labelOff="OFF"
+            />
+          </View>
+        </SubSection>
+
+        <SubSection label="Large Size">
+          <View style={styles.switchRow}>
+            <StyledText style={styles.labelText}>Large Switch</StyledText>
+            <Switch
+              checked={toggleValue}
+              onCheckedChange={setToggleValue}
+              size={{ width: 70, height: 36 }}
+              thumbSize={32}
+              labelOn="YES"
+              labelOff="NO"
+            />
+          </View>
+        </SubSection>
+      </Section>
+
+      <Section title="Checkbox">
+        <SubSection>
+          <View style={styles.checkboxRow}>
+            <Checkbox checked={checkbox1} onCheckedChange={setCheckbox1} />
+            <StyledText style={styles.labelText}>Checkbox Option 1</StyledText>
+          </View>
+          <View style={[styles.checkboxRow, { marginTop: spacing.md }]}>
+            <Checkbox checked={checkbox2} onCheckedChange={setCheckbox2} />
+            <StyledText style={styles.labelText}>Checkbox Option 2 (initially checked)</StyledText>
+          </View>
+        </SubSection>
+      </Section>
+
+      <Section title="Toggle">
+        <SubSection label="Single Toggle">
+          <Toggle pressed={singleTogglePressed} onPressedChange={setSingleTogglePressed}>
+            <StyledText style={styles.labelText}>Toggle Me</StyledText>
+          </Toggle>
+        </SubSection>
+      </Section>
+
+      <Section title="Toggle Group">
+        <SubSection label="Single Selection">
+          <ToggleGroup type="single" value={alignment} onValueChange={setAlignment}>
+            <ToggleGroupItem value="left">
+              <StyledText style={styles.labelText}>Left</StyledText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="center">
+              <StyledText style={styles.labelText}>Center</StyledText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="right">
+              <StyledText style={styles.labelText}>Right</StyledText>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </SubSection>
+
+        <SubSection label="Multiple Selection">
+          <ToggleGroup type="multiple" value={formats} onValueChange={setFormats}>
+            <ToggleGroupItem value="bold">
+              <StyledText style={[styles.labelText, { fontWeight: "bold" }]}>B</StyledText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="italic">
+              <StyledText style={[styles.labelText, { fontStyle: "italic" }]}>I</StyledText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="underline">
+              <StyledText style={[styles.labelText, { textDecorationLine: "underline" }]}>U</StyledText>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </SubSection>
+
+        <SubSection label="Outline Variant">
+          <ToggleGroup type="single" variant="outline" value={alignment} onValueChange={setAlignment}>
+            <ToggleGroupItem value="left">
+              <StyledText style={styles.labelText}>Left</StyledText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="center">
+              <StyledText style={styles.labelText}>Center</StyledText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="right">
+              <StyledText style={styles.labelText}>Right</StyledText>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </SubSection>
+
+        <SubSection label="Small Size">
+          <ToggleGroup type="single" size="sm" value={alignment} onValueChange={setAlignment}>
+            <ToggleGroupItem value="left">
+              <StyledText style={styles.labelText}>L</StyledText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="center">
+              <StyledText style={styles.labelText}>C</StyledText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="right">
+              <StyledText style={styles.labelText}>R</StyledText>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </SubSection>
+      </Section>
+    </>
+  );
+});
+
+const AuthFormsSection = memo(function AuthFormsSection({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
+  const [authForm, setAuthForm] = useState<string>("signin");
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
+  const [resetPasswordSuccess, setResetPasswordSuccess] = useState(false);
+
+  return (
+    <Section title="Auth Forms">
+      <SubSection label="Select Form">
+        <ToggleGroup
+          type="single"
+          value={authForm}
+          onValueChange={(val) => {
+            if (val) {
+              setAuthForm(val);
+              setForgotPasswordSuccess(false);
+              setResetPasswordSuccess(false);
+            }
+          }}
+        >
+          <ToggleGroupItem value="signin">
+            <StyledText style={styles.labelText}>Sign In</StyledText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="signup">
+            <StyledText style={styles.labelText}>Sign Up</StyledText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="verify">
+            <StyledText style={styles.labelText}>Verify</StyledText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="forgot">
+            <StyledText style={styles.labelText}>Forgot</StyledText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="reset">
+            <StyledText style={styles.labelText}>Reset</StyledText>
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </SubSection>
+
+      {authForm === "signin" && (
+        <SignInForm
+          embedded
+          onSignIn={async ({ email, password }) => {
+            console.log("Sign in:", email, password);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            globalUIStore.getState().show({
+              type: "success",
+              title: "Success",
+              messages: ["Signed in successfully!"],
+              duration: 2000,
+            });
+          }}
+          onForgotPassword={() => {
+            globalUIStore.getState().show({
+              type: "info",
+              messages: ["Forgot password clicked"],
+              duration: 2000,
+            });
+          }}
+          onSignUp={() => setAuthForm("signup")}
+          onSocialSignIn={(provider) => {
+            globalUIStore.getState().show({
+              type: "info",
+              messages: [`${provider} sign in clicked`],
+              duration: 2000,
+            });
+          }}
+        />
+      )}
+
+      {authForm === "signup" && (
+        <SignUpForm
+          embedded
+          onSignUp={async ({ name, email, password }) => {
+            console.log("Sign up:", name, email, password);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            globalUIStore.getState().show({
+              type: "success",
+              title: "Success",
+              messages: ["Account created successfully!"],
+              duration: 2000,
+            });
+            setAuthForm("verify");
+          }}
+          onSignIn={() => setAuthForm("signin")}
+          onSocialSignUp={(provider) => {
+            globalUIStore.getState().show({
+              type: "info",
+              messages: [`${provider} sign up clicked`],
+              duration: 2000,
+            });
+          }}
+        />
+      )}
+
+      {authForm === "verify" && (
+        <VerifyEmailForm
+          email="user@example.com"
+          embedded
+          onVerify={async (code) => {
+            console.log("Verify code:", code);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            globalUIStore.getState().show({
+              type: "success",
+              title: "Email Verified",
+              messages: ["Your email has been verified successfully!"],
+              duration: 2000,
+            });
+          }}
+          onResendCode={async () => {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            globalUIStore.getState().show({
+              type: "info",
+              messages: ["Verification code resent"],
+              duration: 2000,
+            });
+          }}
+          onBack={() => setAuthForm("signin")}
+          onChangeEmail={() => setAuthForm("signup")}
+        />
+      )}
+
+      {authForm === "forgot" && (
+        <ForgotPasswordForm
+          embedded
+          onSubmit={async (email) => {
+            console.log("Forgot password:", email);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            setForgotPasswordSuccess(true);
+          }}
+          onBack={() => setAuthForm("signin")}
+          success={forgotPasswordSuccess}
+        />
+      )}
+
+      {authForm === "reset" && (
+        <ResetPasswordForm
+          embedded
+          onSubmit={async (password) => {
+            console.log("Reset password:", password);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            setResetPasswordSuccess(true);
+          }}
+          onBack={() => setAuthForm("signin")}
+          success={resetPasswordSuccess}
+        />
+      )}
+    </Section>
+  );
+});
+
+const SkeletonSection = memo(function SkeletonSection({
+  styles,
+  theme,
+}: {
+  styles: ShowcaseStyles;
+  theme: Theme;
+}) {
+  const [showSkeleton, setShowSkeleton] = useState(true);
+
+  return (
+    <Section title="Skeleton">
+      <SubSection label="Base shapes">
+        <View style={styles.skeletonRow}>
+          <Skeleton width={80} height={20} />
+          <Skeleton width={120} height={20} />
+          <Skeleton width={60} height={20} />
+        </View>
+        <View style={[styles.skeletonRow, { marginTop: spacing.sm }]}>
+          <Skeleton width={40} height={40} circle />
+          <Skeleton width={48} height={48} circle />
+          <Skeleton width={32} height={32} circle />
+        </View>
+      </SubSection>
+
+      <SubSection label="Text placeholder">
+        <SkeletonText lines={4} />
+      </SubSection>
+
+      <SubSection label="Avatar">
+        <View style={styles.skeletonRow}>
+          <SkeletonAvatar size={32} />
+          <SkeletonAvatar size={40} />
+          <SkeletonAvatar size={48} />
+          <SkeletonAvatar size={56} />
+        </View>
+      </SubSection>
+
+      <SubSection label="Card">
+        <SkeletonCard />
+      </SubSection>
+
+      <SubSection label="Card (no image)">
+        <SkeletonCard showImage={false} />
+      </SubSection>
+
+      <SubSection label="Toggle: Skeleton vs Real content">
+        <Button
+          preset="outline"
+          onPress={() => setShowSkeleton(!showSkeleton)}
+          style={{ marginBottom: spacing.md }}
+        >
+          <SansSerifText style={{ color: theme.colors.foreground }}>
+            {showSkeleton ? "Show real content" : "Show skeleton"}
+          </SansSerifText>
+        </Button>
+
+        {showSkeleton ? (
+          <SkeletonCard showAvatar textLines={2} />
+        ) : (
+          <View style={styles.realCard}>
+            <View style={styles.realImagePlaceholder}>
+              <Icon name="image" size={32} color={theme.colors.mutedForeground} />
+            </View>
+            <View style={styles.realCardBody}>
+              <View style={styles.realAvatarRow}>
+                <View style={styles.realAvatar}>
+                  <SansSerifBoldText style={styles.realAvatarText}>JD</SansSerifBoldText>
+                </View>
+                <View>
+                  <SansSerifBoldText style={styles.realName}>Jane Doe</SansSerifBoldText>
+                  <SansSerifText style={styles.realMeta}>2 hours ago</SansSerifText>
+                </View>
+              </View>
+              <SansSerifText style={styles.realBodyText}>
+                This is the actual loaded content that replaces the skeleton placeholder.
+              </SansSerifText>
+            </View>
+          </View>
+        )}
+      </SubSection>
+    </Section>
+  );
+});
+
+const AnimatedViewSection = memo(function AnimatedViewSection({
+  theme,
+}: {
+  theme: Theme;
+}) {
+  const [animKey, setAnimKey] = useState(0);
+
+  return (
+    <Section title="AnimatedView">
+      <SubSection label="Animation Types">
+        <Button
+          preset="outline"
+          onPress={() => setAnimKey((key) => key + 1)}
+          style={{ marginBottom: spacing.md }}
+        >
+          <SansSerifText style={{ color: theme.colors.foreground }}>
+            Replay animations
+          </SansSerifText>
+        </Button>
+        <View key={animKey} style={{ gap: spacing.sm }}>
+          <AnimatedView type="fade">
+            <View style={{ padding: spacing.sm, backgroundColor: theme.colors.muted, borderRadius: spacing.radiusMd }}>
+              <SansSerifText style={{ color: theme.colors.text }}>fade</SansSerifText>
+            </View>
+          </AnimatedView>
+          <AnimatedView type="fadeSlideUp" delay={100}>
+            <View style={{ padding: spacing.sm, backgroundColor: theme.colors.muted, borderRadius: spacing.radiusMd }}>
+              <SansSerifText style={{ color: theme.colors.text }}>fadeSlideUp (delay 100ms)</SansSerifText>
+            </View>
+          </AnimatedView>
+          <AnimatedView type="fadeSlideDown" delay={200}>
+            <View style={{ padding: spacing.sm, backgroundColor: theme.colors.muted, borderRadius: spacing.radiusMd }}>
+              <SansSerifText style={{ color: theme.colors.text }}>fadeSlideDown (delay 200ms)</SansSerifText>
+            </View>
+          </AnimatedView>
+          <AnimatedView type="scale" delay={300}>
+            <View style={{ padding: spacing.sm, backgroundColor: theme.colors.muted, borderRadius: spacing.radiusMd }}>
+              <SansSerifText style={{ color: theme.colors.text }}>scale (delay 300ms)</SansSerifText>
+            </View>
+          </AnimatedView>
+        </View>
+      </SubSection>
+    </Section>
+  );
+});
+
+const BottomSheetSection = memo(function BottomSheetSection({
+  styles,
+  theme,
+}: {
+  styles: ShowcaseStyles;
+  theme: Theme;
+}) {
+  const [basicOpen, setBasicOpen] = useState(false);
+  const [snapOpen, setSnapOpen] = useState(false);
+  const [fullOpen, setFullOpen] = useState(false);
+  const [scrollOpen, setScrollOpen] = useState(false);
+
+  return (
+    <Section title="Bottom Sheet">
+      <SubSection label="Basic">
+        <BottomSheet open={basicOpen} onOpenChange={setBasicOpen}>
+          <BottomSheet.Trigger asChild>
+            <Button preset="default">
+              <SansSerifText style={{ color: theme.colors.accentForeground }}>
+                Open basic sheet
+              </SansSerifText>
+            </Button>
+          </BottomSheet.Trigger>
+          <BottomSheet.Content>
+            <BottomSheet.Handle />
+            <BottomSheet.Body>
+              <View style={styles.sheetSection}>
+                <SansSerifBoldText style={styles.sheetTitle}>
+                  Hello from the bottom sheet
+                </SansSerifBoldText>
+                <SansSerifText style={styles.sheetDescription}>
+                  This is a basic bottom sheet. Swipe down or tap the backdrop to close.
+                </SansSerifText>
+              </View>
+              <BottomSheet.Close asChild>
+                <Button preset="outline" fullWidth>
+                  <SansSerifText style={{ color: theme.colors.foreground }}>
+                    Close
+                  </SansSerifText>
+                </Button>
+              </BottomSheet.Close>
+            </BottomSheet.Body>
+          </BottomSheet.Content>
+        </BottomSheet>
+      </SubSection>
+
+      <SubSection label="Snap Points (25%, 50%, 90%)">
+        <BottomSheet
+          open={snapOpen}
+          onOpenChange={setSnapOpen}
+          snapPoints={["25%", "50%", "90%"]}
+        >
+          <BottomSheet.Trigger asChild>
+            <Button preset="outline">
+              <SansSerifText style={{ color: theme.colors.foreground }}>
+                Open with snap points
+              </SansSerifText>
+            </Button>
+          </BottomSheet.Trigger>
+          <BottomSheet.Content>
+            <BottomSheet.Handle />
+            <BottomSheet.Body>
+              <SansSerifBoldText style={styles.sheetTitle}>
+                Snap Points
+              </SansSerifBoldText>
+              <SansSerifText style={styles.sheetDescription}>
+                This sheet has three snap points at 25%, 50%, and 90%.
+                On native, try swiping to snap between them.
+              </SansSerifText>
+            </BottomSheet.Body>
+          </BottomSheet.Content>
+        </BottomSheet>
+      </SubSection>
+
+      <SubSection label="Full Compound (Handle + Header + Body + Footer)">
+        <BottomSheet open={fullOpen} onOpenChange={setFullOpen} snapPoints={["60%"]}>
+          <BottomSheet.Trigger asChild>
+            <Button preset="outline">
+              <SansSerifText style={{ color: theme.colors.foreground }}>
+                Open full sheet
+              </SansSerifText>
+            </Button>
+          </BottomSheet.Trigger>
+          <BottomSheet.Content>
+            <BottomSheet.Handle />
+            <BottomSheet.Header>
+              <View style={styles.sheetHeaderRow}>
+                <SansSerifBoldText style={styles.sheetHeaderTitle}>
+                  Share with...
+                </SansSerifBoldText>
+                <BottomSheet.Close asChild>
+                  <Button preset="ghost" size="sm">
+                    <Icon name="x" size={20} color={theme.colors.mutedForeground} />
+                  </Button>
+                </BottomSheet.Close>
+              </View>
+            </BottomSheet.Header>
+            <BottomSheet.Body>
+              {["Alice Johnson", "Bob Smith", "Carol Williams", "David Brown"].map(
+                (name) => (
+                  <View key={name} style={styles.contactRow}>
+                    <View style={styles.contactAvatar}>
+                      <SansSerifBoldText style={styles.contactInitial}>
+                        {name[0]}
+                      </SansSerifBoldText>
+                    </View>
+                    <SansSerifText style={styles.contactName}>{name}</SansSerifText>
+                  </View>
+                )
+              )}
+            </BottomSheet.Body>
+            <BottomSheet.Footer>
+              <Button preset="default" fullWidth onPress={() => setFullOpen(false)}>
+                <SansSerifText style={{ color: theme.colors.accentForeground }}>
+                  Share
+                </SansSerifText>
+              </Button>
+            </BottomSheet.Footer>
+          </BottomSheet.Content>
+        </BottomSheet>
+      </SubSection>
+
+      <SubSection label="Scrollable Content">
+        <BottomSheet open={scrollOpen} onOpenChange={setScrollOpen} snapPoints={["70%"]}>
+          <BottomSheet.Trigger asChild>
+            <Button preset="outline">
+              <SansSerifText style={{ color: theme.colors.foreground }}>
+                Open scrollable sheet
+              </SansSerifText>
+            </Button>
+          </BottomSheet.Trigger>
+          <BottomSheet.Content>
+            <BottomSheet.Handle />
+            <BottomSheet.Header>
+              <SansSerifBoldText style={styles.sheetHeaderTitle}>
+                Terms of Service
+              </SansSerifBoldText>
+            </BottomSheet.Header>
+            <BottomSheet.Body>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <SansSerifText key={i} style={styles.loremParagraph}>
+                  {i + 1}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                  Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                  Ut enim ad minim veniam, quis nostrud exercitation ullamco.
+                </SansSerifText>
+              ))}
+            </BottomSheet.Body>
+            <BottomSheet.Footer>
+              <Button preset="default" fullWidth onPress={() => setScrollOpen(false)}>
+                <SansSerifText style={{ color: theme.colors.accentForeground }}>
+                  Accept
+                </SansSerifText>
+              </Button>
+            </BottomSheet.Footer>
+          </BottomSheet.Content>
+        </BottomSheet>
+      </SubSection>
+    </Section>
+  );
+});
+
+const DialogSection = memo(function DialogSection({
+  styles,
+  theme,
+}: {
+  styles: ShowcaseStyles;
+  theme: Theme;
+}) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [alertDialogOpen, setAlertDialogOpen] = useState(false);
+
+  return (
+    <Section title="Dialog">
+      <SubSection label="Basic Dialog">
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button preset="outline">
+              <SansSerifText style={styles.outlineButtonText}>Edit Profile</SansSerifText>
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Profile</DialogTitle>
+              <DialogDescription>
+                Make changes to your profile here. Click save when you are done.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button preset="default">
+                  <SansSerifText style={styles.buttonText}>Save Changes</SansSerifText>
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </SubSection>
+      <SubSection label="Alert Dialog">
+        <AlertDialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
+          <AlertDialogTrigger asChild>
+            <Button preset="destructive">
+              <SansSerifText style={{ color: theme.colors.destructiveForeground }}>Delete Account</SansSerifText>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogTitle>Delete Account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your account and remove your data from our servers.
+            </AlertDialogDescription>
+            <AlertDialogCancel asChild>
+              <Button preset="outline">
+                <SansSerifText style={styles.outlineButtonText}>Cancel</SansSerifText>
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button preset="destructive">
+                <SansSerifText style={{ color: theme.colors.destructiveForeground }}>Delete</SansSerifText>
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogContent>
+        </AlertDialog>
+      </SubSection>
+    </Section>
+  );
+});
+
+const SelectSection = memo(function SelectSection() {
+  const [selectedFruit, setSelectedFruit] = useState<{ value: string; label: string } | undefined>();
+
+  return (
+    <Section title="Select">
+      <SubSection label="Basic">
+        <Select value={selectedFruit} onValueChange={setSelectedFruit}>
+          <SelectTrigger>
+            <SelectValue placeholder="Pick a fruit" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Fruits</SelectLabel>
+              <SelectItem value="apple" label="Apple">Apple</SelectItem>
+              <SelectItem value="banana" label="Banana">Banana</SelectItem>
+              <SelectItem value="cherry" label="Cherry">Cherry</SelectItem>
+              <SelectItem value="date" label="Date">Date</SelectItem>
+              <SelectItem value="elderberry" label="Elderberry">Elderberry</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </SubSection>
+      <SubSection label="Sizes">
+        <View style={{ gap: spacing.sm }}>
+          <Select>
+            <SelectTrigger size="sm">
+              <SelectValue placeholder="Small" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="a" label="Option A">Option A</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select>
+            <SelectTrigger size="md">
+              <SelectValue placeholder="Medium" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="a" label="Option A">Option A</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select>
+            <SelectTrigger size="lg">
+              <SelectValue placeholder="Large" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="a" label="Option A">Option A</SelectItem>
+            </SelectContent>
+          </Select>
+        </View>
+      </SubSection>
+    </Section>
+  );
+});
+
+const RadioGroupSection = memo(function RadioGroupSection() {
+  const [radioValue, setRadioValue] = useState("default");
+
+  return (
+    <Section title="RadioGroup">
+      <SubSection label="Basic">
+        <RadioGroup value={radioValue} onValueChange={setRadioValue}>
+          <RadioGroupItem value="default" label="Default" />
+          <RadioGroupItem value="comfortable" label="Comfortable" />
+          <RadioGroupItem value="compact" label="Compact" />
+        </RadioGroup>
+      </SubSection>
+      <SubSection label="Sizes">
+        <View style={{ gap: spacing.md }}>
+          <RadioGroup value="a" onValueChange={() => { }} size="sm">
+            <RadioGroupItem value="a" label="Small" />
+          </RadioGroup>
+          <RadioGroup value="a" onValueChange={() => { }} size="md">
+            <RadioGroupItem value="a" label="Medium" />
+          </RadioGroup>
+          <RadioGroup value="a" onValueChange={() => { }} size="lg">
+            <RadioGroupItem value="a" label="Large" />
+          </RadioGroup>
+        </View>
+      </SubSection>
+    </Section>
+  );
+});
+
+const SliderSection = memo(function SliderSection({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
+  const [sliderValue, setSliderValue] = useState(50);
+  const [rangeValue, setRangeValue] = useState(5);
+
+  return (
+    <Section title="Slider">
+      <SubSection label="Basic">
+        <SansSerifText style={styles.labelText}>Value: {sliderValue}</SansSerifText>
+        <Slider value={sliderValue} onValueChange={setSliderValue} />
+      </SubSection>
+      <SubSection label="Custom Range">
+        <Slider
+          value={rangeValue}
+          onValueChange={setRangeValue}
+          min={0}
+          max={10}
+          step={1}
+          showValue
+        />
+      </SubSection>
+      <SubSection label="Disabled">
+        <Slider value={40} disabled />
+      </SubSection>
+    </Section>
+  );
+});
+
+const InputOTPSection = memo(function InputOTPSection() {
+  const [otpValue, setOtpValue] = useState("");
+  const [otpValue4, setOtpValue4] = useState("");
+
+  return (
+    <Section title="InputOTP">
+      <SubSection label="6-Digit">
+        <InputOTP value={otpValue} onChangeText={setOtpValue} length={6} />
+      </SubSection>
+      <SubSection label="4-Digit">
+        <InputOTP value={otpValue4} onChangeText={setOtpValue4} length={4} />
+      </SubSection>
+      <SubSection label="Error State">
+        <InputOTP value="" onChangeText={() => { }} length={6} error />
+      </SubSection>
+    </Section>
+  );
+});
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({

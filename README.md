@@ -71,6 +71,8 @@ Android projects with the new bundle ids.
 |--------|-------------|
 | `npx expo start` | Expo dev server (interactive) |
 | `bun run web` | Start the Expo web dev server |
+| `bun run web:scan` | Start the Expo web dev server for React Scan inspection |
+| `bun run scan:showcase` | Open React Scan against the local showcase route on port 8081 |
 | `bun run ios` / `bun run android` | Build + run on simulator / emulator |
 | `bun run build` | Production web export → `dist/` (client + SSR server) |
 | `bun run start` | Run the Express production server (`server/index.ts`) |
@@ -81,6 +83,27 @@ Android projects with the new bundle ids.
 | `bun run bundle-size` | Compare client JS against `scripts/bundle-baseline.json` |
 | `bun run analyze` | `source-map-explorer` treemap of the client bundle |
 | `bun run generate component\|screen\|hook\|form <Name>` | Scaffold a new module — see [Generator CLI](#generator-cli) |
+
+## Render Performance Checks
+
+The web document injects React Scan only when a URL includes `?scan`.
+Start web, then open the showcase with the query string:
+
+```bash
+bun run web:scan
+# open http://localhost:8081/showcase?scan
+```
+
+You can also run the external scanner against an already-running dev server:
+
+```bash
+bun run scan:showcase
+```
+
+Use this when editing `client/showcase` or reusable `packages/ui` components.
+For broad catalog pages, keep frequently updated demos in small local-state
+components so typing, sliders, OTP input, and toggles do not re-render the
+entire showcase route.
 
 ## Generator CLI
 

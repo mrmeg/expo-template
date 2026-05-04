@@ -85,6 +85,21 @@ covered routes.
 - LRU cache with 500-entry max
 - Avoids redundant WCAG ratio computation on re-renders
 
+## Render Churn Checks
+
+- Web pages can opt into React Scan by adding `?scan` to the URL. The root
+  web HTML injects `https://unpkg.com/react-scan/dist/auto.global.js` only
+  for that request.
+- `bun run web:scan` starts the Expo web server. Open
+  `http://localhost:8081/showcase?scan` to inspect the
+  showcase with render outlines.
+- `bun run scan:showcase` runs the React Scan CLI against an already-running
+  showcase route on port 8081.
+- Large catalog/demo routes should isolate frequently changing examples into
+  small components with local state. State for text input, switches, skeleton
+  toggles, animations, select/radio controls, sliders, and OTP inputs should
+  not live at the top of the full showcase route.
+
 ## FFmpeg Worker Contract (web video conversion)
 
 Web client-side video conversion lazy-loads FFmpeg.wasm (~30MB core) on the

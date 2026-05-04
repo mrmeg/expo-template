@@ -12,6 +12,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "web:scan": "expo start --web",
+    "scan:showcase": "open 'http://localhost:8081/showcase?scan'",
     "build": "NODE_OPTIONS=--max-old-space-size=8192 expo export -p web --output-dir dist",
     "build-web": "NODE_OPTIONS=--max-old-space-size=8192 bun x expo export -p web --output-dir dist --dump-sourcemap",
     "build-sourcemap": "bun run build-web",

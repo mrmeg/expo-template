@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- Reduced showcase render churn by moving high-frequency demo state into
+  memoized local sections, memoizing the top-level showcase styles, and
+  adding React Scan verification docs/scripts. `Button` and `TextInput` in
+  `@mrmeg/expo-ui` now memoize their theme/size StyleSheet factories so
+  repeated parent renders and controlled input updates allocate less work.
+
 - Tightened the `@mrmeg/expo-ui` consumer dependency contract: moved `@expo/vector-icons` from peer dependency to package dependency, promoted all `@rn-primitives/*` implementation packages into package dependencies, restored the directly imported `@rn-primitives/portal` dependency, and kept native/runtime singleton packages as consumer-managed peers. The package docs now describe that split, and the Jest harness resolves Bun virtual-store React Native modules plus virtual package-owned icon mocks so package tests run after the dependency move.
 
 - Refined `@mrmeg/expo-ui` toward a more polished shadcn-style cross-platform surface: added `popover`, `input`, and `ring` semantic tokens, enabled web `boxShadow` output from `getShadowStyle()`, added `getFocusRingStyle()` for web focus rings, removed negative letter spacing from package text surfaces, tightened Button/TextInput focus and pressed states, moved overlay menus/dialogs onto the popover surface, and improved mobile touch comfort for compact checkbox/radio/tab controls.

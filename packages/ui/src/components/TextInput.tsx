@@ -1,4 +1,4 @@
-import React, { useState, ReactNode } from "react";
+import React, { useMemo, useState, ReactNode } from "react";
 import {
   StyleSheet,
   TextInput as RNTextInput,
@@ -201,7 +201,7 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
     ref
   ) => {
     const { theme, getContrastingColor, getFocusRingStyle } = useTheme();
-    const styles = createStyles(theme, variant, size);
+    const styles = useMemo(() => createStyles(theme, variant, size), [theme, variant, size]);
     const [focused, setFocused] = useState(false);
     const [contentHeight, setContentHeight] = useState(0);
     const [passwordVisible, setPasswordVisible] = useState(false);

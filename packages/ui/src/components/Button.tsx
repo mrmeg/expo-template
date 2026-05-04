@@ -1,4 +1,4 @@
-import React, { ComponentType, useState } from "react";
+import React, { ComponentType, useMemo, useState } from "react";
 import {
   Pressable,
   PressableProps,
@@ -201,7 +201,7 @@ export function Button(props: ButtonProps) {
   } = props;
 
   const { theme, getContrastingColor, getFocusRingStyle, getShadowStyle } = useTheme();
-  const styles = createStyles(theme, size);
+  const styles = useMemo(() => createStyles(theme, size), [theme, size]);
   const shadowStyle = getShadowStyle("base");
   const sizeConfig = SIZE_CONFIGS[size];
   const focusRingStyle = getFocusRingStyle();
