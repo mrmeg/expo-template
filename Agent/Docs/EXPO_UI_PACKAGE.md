@@ -6,7 +6,7 @@
 
 `@mrmeg/expo-ui` is the reusable UI package for MrMeg Expo apps. It owns reusable design-system code that should update across apps from one package version instead of being copied into each project.
 
-Package-owned code lives in `packages/ui/src/` in this template. Published consumers install the package from npm and import from its public export map.
+Package-owned code lives in `packages/ui/src/` in this template. Published consumers install the package from npm and import from its public export map. The npm package also ships `README.md`, `LLM_USAGE.md`, `llms.txt`, and `llms-full.md` so coding agents in consumer repos can discover the package contract from `node_modules/@mrmeg/expo-ui`.
 
 ## Ownership Boundary
 
@@ -666,6 +666,8 @@ For workspace development inside this template, the root dependency is `@mrmeg/e
 
 ## LLM Rules
 
+- In consumer repos, read `node_modules/@mrmeg/expo-ui/llms.txt` first, then
+  `LLM_USAGE.md` or `llms-full.md` when implementation detail is needed.
 - Import reusable UI from `@mrmeg/expo-ui`, not copied app-local files.
 - Use exported subpaths only: root, `components`, `components/*`, `constants`, `constants/*`, `hooks`, `hooks/*`, `state`, and `lib`.
 - Do not add `.ttf` files to the package for Lato.

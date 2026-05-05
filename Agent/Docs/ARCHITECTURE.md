@@ -49,11 +49,13 @@ File-based routing via Expo Router with nested layouts:
 - **Root layout** (`_layout.tsx`) — Provider stack, splash screen, error boundary
 - **Main group** (`(main)/`) — Stack navigator, header config
   - **Tabs** (`(tabs)/`) — 4 bottom tabs: Explore, Media, Profile, Settings
-  - **Demos** (`(demos)/`) — 13 screen templates plus standalone demos (form, auth, developer, onboarding) and the component showcase
+  - **Demos** (`(demos)/`) — 13 screen templates plus standalone demos (form, auth, developer, server alpha, onboarding) and the component showcase
 - **API routes** (`app/api/`) — Server-side endpoints. Cross-route helpers live in `server/api/shared/` (`auth.ts` with `requireAuthenticatedUser` fronted by a pluggable `TokenVerifier` — returns structured 401s and fails closed when no verifier is registered, `errors.ts` typed JSON error responses, `cors.ts`):
+  - `api/template/*` — minimal Expo Router server-pattern endpoints used by the Server Alpha demo to prove API routes, POST body handling, server runtime helpers, middleware headers, and data-loader parity.
   - `api/media/` — thin wrappers around `server/media/handlers.ts`, which configures `@mrmeg/expo-media/server` for R2/S3 presigned URLs (upload, read, list, delete). Missing `R2_*` env vars return `503 media-disabled` from every route before an `S3Client` is constructed. When real storage is configured, the template adapter requires `requireAuthenticatedUser()` for upload/list/read/delete unless `EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA=true` is set outside production; production ignores that public-media flag.
   - `api/billing/` — Stripe Checkout / Portal / Webhook / Summary routes driven by the process-wide `BillingRegistry` (`server/api/billing/registry.ts`). Unconfigured registries return `503 billing-disabled`.
 - **Web HTML** (`+html.tsx`) — Server-only root document, global CSS, theme-aware styles, font loading
+- **Server middleware** (`+middleware.ts`) — Alpha Expo Router middleware enabled through the config plugin and currently matched to `/api` plus the Server Alpha demo routes. It is intentionally lightweight and only stamps a response header plus safe `Vary: Origin` handling.
 
 ### Client Layer (`client/`)
 

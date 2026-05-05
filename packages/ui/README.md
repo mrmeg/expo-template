@@ -11,10 +11,13 @@ permission.
 ## For LLMs And Coding Agents
 
 When this package is installed from npm, read
-`node_modules/@mrmeg/expo-ui/LLM_USAGE.md` before creating app-local UI
-primitives. That file is shipped in the npm package and gives the short
-component-selection rules, import paths, setup requirements, and examples that
-help agents choose existing package components instead of rebuilding them.
+`node_modules/@mrmeg/expo-ui/llms.txt` first, then
+`node_modules/@mrmeg/expo-ui/LLM_USAGE.md` or
+`node_modules/@mrmeg/expo-ui/llms-full.md` before creating app-local UI
+primitives. Those files are shipped in the npm package and give the short
+component-selection rules, import paths, setup requirements, component catalog,
+and examples that help agents choose existing package components instead of
+rebuilding them.
 
 ## Install
 

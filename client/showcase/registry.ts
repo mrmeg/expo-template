@@ -81,6 +81,7 @@ export const SCREEN_TEMPLATES: ScreenTemplateEntry[] = [
 export const DEMOS: DemoEntry[] = [
   { id: "form-validation", route: "/(main)/(demos)/form-demo", icon: "edit-3", label: "Form Validation" },
   { id: "auth", route: "/(main)/(demos)/auth-demo", icon: "shield", label: "Auth Demo" },
+  { id: "server-alpha", route: "/(main)/(demos)/server-alpha", icon: "server", label: "Server Alpha" },
   { id: "developer", route: "/(main)/(demos)/developer", icon: "terminal", label: "Developer Tools" },
   { id: "onboarding", route: "/(main)/(demos)/onboarding", icon: "navigation", label: "Onboarding" },
 ];

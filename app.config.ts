@@ -53,6 +53,8 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
       {
         origin: "",
         unstable_useServerRendering: true,
+        unstable_useServerMiddleware: true,
+        unstable_useServerDataLoaders: true,
         asyncRoutes: {
           // Keep development web routes eager; Expo Router's async-route HMR
           // can resolve grouped tab chunks like "./media" from the repo root.

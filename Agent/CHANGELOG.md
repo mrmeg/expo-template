@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+- Fixed production serving for Bun-exported package assets. Expo web export
+  writes package fonts/images under `dist/client/assets/node_modules/.bun`,
+  and Express' default static middleware ignores dot-directories. The
+  production server now exposes only that generated Bun asset subtree so
+  `@expo/vector-icons` Feather fonts load instead of rendering square glyphs.
+
+- Enabled Expo Router's alpha server middleware path for API requests and
+  added a Server Alpha demo that exercises SSR data loaders plus a matching
+  `/api/template/status` route. The new route returns request/runtime status
+  with `Cache-Control: no-store`, the middleware stamps
+  `X-Expo-Router-Middleware: 1`, `unstable_useServerDataLoaders` emits loader
+  endpoints, and Agent docs now describe the server-route, middleware, and
+  loader conventions for future projects.
+
+- Expanded the Server Alpha demo into a copyable pattern set: overview loader,
+  dynamic route-param loader, catalog API route, POST echo API route, client
+  refresh buttons, and middleware coverage for both API and demo routes. The
+  matching API routes are all exercised from the Server Alpha UI instead of
+  existing only as curl targets.
+
 ## NEEDS INPUT FROM USER
 
 - `publish-expo-media-0-1-1.md` is blocked on npm credential setup. The latest

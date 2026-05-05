@@ -32,7 +32,9 @@
     "dist",
     "package.json",
     "README.md",
-    "LLM_USAGE.md"
+    "LLM_USAGE.md",
+    "llms.txt",
+    "llms-full.md"
   ],
   "exports": {
     ".": {

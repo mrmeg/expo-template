@@ -55,8 +55,25 @@
 - **Server rendering**: Expo Router SSR is enabled with `web.output = "server"`
   and `unstable_useServerRendering`. Routes render at request time through the
   Express `expo-server` adapter.
+- **Server middleware**: `unstable_useServerMiddleware` is enabled and the root
+  `+middleware.ts` is matched to `/api` plus the Server Alpha demo routes. Keep
+  broad middleware work minimal because it runs before matched request
+  handlers.
+- **Data loaders**: `unstable_useServerDataLoaders` is enabled. Use loaders for
+  route-scoped server data that should be embedded into SSR HTML or fetched by
+  Expo Router's loader endpoint during client navigation. Request-specific
+  loaders should set explicit cache headers, return JSON-serializable data
+  only, and avoid leaking secrets into the hydrated client payload.
+  `/(main)/(demos)/server-alpha` shows an overview loader, and
+  `/(main)/(demos)/server-alpha/[example]` shows dynamic route params flowing
+  through a loader.
 - **Express compression**: Gzip on all responses in production.
 - **Static assets**: `dist/client` assets are served with 1-hour cache max-age.
+  Expo assets exported under Bun's virtual store path
+  (`dist/client/assets/node_modules/.bun`) are mounted separately with
+  `dotfiles: "allow"` and immutable 1-year caching so package fonts/images,
+  including `@expo/vector-icons` Feather fonts, resolve in production without
+  opening dotfile serving for the whole client build.
 - **HTML caching**: SSR HTML is request-time output. Add CDN/runtime cache rules
   per route before caching personalized or authenticated pages.
 - **Shadows**: `getShadowStyle()` returns empty object on web — `boxShadow` causes React Native Web crashes

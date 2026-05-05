@@ -18,6 +18,7 @@ const {
 
 const CLIENT_BUILD_DIR = path.join(process.cwd(), "dist/client");
 const SERVER_BUILD_DIR = path.join(process.cwd(), "dist/server");
+const BUN_ASSET_DIR = path.join(CLIENT_BUILD_DIR, "assets/node_modules/.bun");
 
 const app = express();
 
@@ -92,6 +93,18 @@ for (const path of MEDIA_SIGNER_LIMIT_PATHS) {
 for (const path of STRICT_LIMIT_PATHS) {
   app.use(path, strictLimiter);
 }
+
+// Bun's virtual store lives under node_modules/.bun, and Expo exports assets
+// such as @expo/vector-icons fonts using that real path. Express static ignores
+// dot-directories by default, so expose only the generated Bun asset subtree.
+app.use(
+  "/assets/node_modules/.bun",
+  express.static(BUN_ASSET_DIR, {
+    dotfiles: "allow",
+    immutable: true,
+    maxAge: "1y",
+  })
+);
 
 app.use(
   express.static(CLIENT_BUILD_DIR, {

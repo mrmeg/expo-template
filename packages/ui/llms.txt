@@ -1,0 +1,34 @@
+# @mrmeg/expo-ui
+
+Docs for agents:
+
+- README.md: install, setup, imports, theme usage, components, publishing.
+- LLM_USAGE.md: concise component-selection and implementation rules.
+- llms-full.md: expanded package contract and component catalog.
+
+Public entrypoints:
+
+- @mrmeg/expo-ui
+- @mrmeg/expo-ui/components
+- @mrmeg/expo-ui/components/*
+- @mrmeg/expo-ui/constants
+- @mrmeg/expo-ui/constants/*
+- @mrmeg/expo-ui/hooks
+- @mrmeg/expo-ui/hooks/*
+- @mrmeg/expo-ui/state
+- @mrmeg/expo-ui/lib
+
+Do not recreate primitives this package already provides. Import reusable UI
+from the package and compose it in the app.
+
+Call useResources() once near the Expo app root. Mount UIProvider once near the
+root before using package notifications or overlay primitives: Dialog,
+AlertDialog, BottomSheet, Drawer, DropdownMenu, Popover, SelectContent, or
+Tooltip.
+
+Use useTheme(), useStyles(), semantic tokens, StyledText, and package controls.
+Do not add app-local Appearance or matchMedia listeners for package theme sync.
+Do not import from dist, source checkout paths, or app-local copies.
+
+i18n is optional. Plain children and text props work without app i18n. Use
+configureExpoUiI18n() only when the app wants package tx props translated.

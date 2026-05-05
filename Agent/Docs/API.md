@@ -6,6 +6,98 @@
 
 All routes live under `app/api/` and use the Expo Router `+api.ts` convention.
 
+Server middleware is enabled for API requests through `app/+middleware.ts`.
+The middleware runs before matched API route handlers and stamps
+`X-Expo-Router-Middleware: 1` on downstream responses. Keep it lightweight:
+do authentication, CORS, body parsing, and route-specific validation in the
+API route/helper layer unless every API request genuinely needs the work.
+
+### Template Server Pattern Endpoints
+
+Base path: `/api/template/*`. These endpoints support the Server Alpha demo
+and are intentionally small adoption probes for Expo Router's server runtime,
+middleware, API route, and data-loader path.
+They are reachable from Explore -> Server Alpha through the Matching API
+Routes controls, so they should stay tied to visible template behavior instead
+of becoming curl-only fixtures.
+
+#### GET `/api/template/status`
+
+Returns request-scoped server status. The body intentionally includes runtime
+metadata only, not environment variable values.
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "servedAt": "2026-05-05T12:00:00.000Z",
+  "request": {
+    "method": "GET",
+    "path": "/api/template/status",
+    "hasRequest": true,
+    "originHeader": "http://localhost:8081",
+    "userAgent": "..."
+  },
+  "runtime": {
+    "mode": "server",
+    "environment": null,
+    "origin": "http://localhost:8081",
+    "nodeEnv": "production"
+  }
+}
+```
+
+The route returns `Cache-Control: no-store`, supports OPTIONS preflight through
+the shared CORS helper, and is used by the `/(main)/(demos)/server-alpha`
+screen alongside that screen's route loader.
+
+#### GET `/api/template/examples`
+
+Returns the same server-pattern catalog that the Server Alpha overview route
+loader uses. This gives new projects both shapes to copy: SSR-loader data for
+first paint and API-route data for client refreshes.
+The Server Alpha screen's "Load catalog" action calls this route.
+
+**Response (200):**
+```json
+{
+  "status": { "ok": true },
+  "examples": [
+    {
+      "id": "dynamic-loader",
+      "label": "Dynamic Loader",
+      "route": "/server-alpha/dynamic-loader",
+      "apiPath": null,
+      "loaderPath": "/_expo/loaders/server-alpha/dynamic-loader"
+    }
+  ],
+  "generatedAt": "2026-05-05T12:00:00.000Z"
+}
+```
+
+#### POST `/api/template/echo`
+
+Echoes parsed JSON alongside request-scoped status. This exists to show that
+request body handling belongs in API routes, not middleware or loaders.
+The Server Alpha screen's "POST echo" action calls this route with a sample
+JSON payload.
+
+**Request:**
+```json
+{ "action": "preview", "count": 2 }
+```
+
+**Response (200):**
+```json
+{
+  "status": { "ok": true },
+  "echoedAt": "2026-05-05T12:00:00.000Z",
+  "body": { "action": "preview", "count": 2 }
+}
+```
+
+Invalid or empty JSON bodies are echoed as `null`.
+
 ### Media Endpoints
 
 Base path: `/api/media/`. Routes are thin Expo Router wrappers over
