@@ -28,6 +28,12 @@
   production ignores. The Media tab now renders auth/access errors as a
   dedicated state.
 
+- Refactored the template Media tab to resolve uploads through named
+  `MEDIA_APP_SETTINGS.uploadPolicies`. The default all-media flow now uses the
+  `generalImage` policy for images and `video` policy for videos, while avatar
+  uploads use the `avatar` policy and normal user-selected files are never
+  redirected into the generated-thumbnail media type.
+
 - Adjusted the bundle-size gate to budget client JS separately from known
   optional lazy media chunks. The check now logs total emitted JS and excluded
   lazy chunks, so split HEIC/video-thumbnail helpers stay visible in CI without

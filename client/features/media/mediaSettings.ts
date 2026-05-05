@@ -39,6 +39,20 @@ export type MediaAppSettings = {
   };
 };
 
+export type MediaUploadPolicyName = keyof MediaAppSettings["uploadPolicies"];
+
+export type MediaUploadFilter = "all" | MediaType;
+
+export type MediaUploadPolicyAsset = {
+  type?: string | null;
+  mimeType?: string | null;
+};
+
+export type ResolvedMediaUploadPolicy = {
+  name: MediaUploadPolicyName;
+  policy: MediaUploadPolicy;
+};
+
 /**
  * App-owned media defaults.
  *
@@ -81,3 +95,31 @@ export const MEDIA_APP_SETTINGS: MediaAppSettings = {
     },
   },
 };
+
+export function resolveMediaUploadPolicy(
+  asset: MediaUploadPolicyAsset,
+  filter: MediaUploadFilter,
+): ResolvedMediaUploadPolicy {
+  if (isVideoUploadAsset(asset)) {
+    return {
+      name: "video",
+      policy: MEDIA_APP_SETTINGS.uploadPolicies.video,
+    };
+  }
+
+  if (filter === "avatars") {
+    return {
+      name: "avatar",
+      policy: MEDIA_APP_SETTINGS.uploadPolicies.avatar,
+    };
+  }
+
+  return {
+    name: "generalImage",
+    policy: MEDIA_APP_SETTINGS.uploadPolicies.generalImage,
+  };
+}
+
+function isVideoUploadAsset(asset: MediaUploadPolicyAsset): boolean {
+  return asset.type === "video" || Boolean(asset.mimeType?.startsWith("video/"));
+}

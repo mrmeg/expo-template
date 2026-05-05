@@ -37,7 +37,10 @@ import {
   isImageKey,
   getVideoThumbnailKey,
 } from "@/shared/media";
-import { MEDIA_APP_SETTINGS } from "@/client/features/media/mediaSettings";
+import {
+  MEDIA_APP_SETTINGS,
+  resolveMediaUploadPolicy,
+} from "@/client/features/media/mediaSettings";
 import { globalUIStore } from "@mrmeg/expo-ui/state";
 import { logDev } from "@/client/lib/devtools";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -321,26 +324,15 @@ export default function MediaScreen() {
     }
   };
 
-  const getUploadMediaType = (asset: ProcessedAsset): keyof typeof MEDIA_PATHS => {
-    const isVideo = asset.type === "video" || asset.mimeType?.startsWith("video/");
-
-    if (filter !== "all" && filter !== "thumbnails") {
-      return filter;
-    }
-
-    return isVideo
-      ? MEDIA_APP_SETTINGS.uploads.defaultVideoMediaType
-      : MEDIA_APP_SETTINGS.uploads.defaultImageMediaType;
-  };
-
   const uploadAsset = async (asset: ProcessedAsset) => {
     const isVideo = asset.type === "video" || asset.mimeType?.startsWith("video/");
     const file = asset.blob || asset.uri;
+    const uploadPolicy = resolveMediaUploadPolicy(asset, filter);
 
     const result = await uploadFile({
       file,
       contentType: asset.mimeType || "application/octet-stream",
-      mediaType: getUploadMediaType(asset),
+      mediaType: uploadPolicy.policy.mediaType,
     });
 
     if (
@@ -374,10 +366,13 @@ export default function MediaScreen() {
     setIsUploadingBatch(true);
 
     try {
+      // The picker processes images before per-asset upload resolution. Use
+      // the default image policy here; videos ignore image compression.
       const assets = await pickMedia({
         mediaTypes: ["images", "videos"],
         allowsMultipleSelection: true,
         selectionLimit: MEDIA_APP_SETTINGS.uploads.selectionLimit,
+        compression: MEDIA_APP_SETTINGS.uploadPolicies.generalImage.compression,
       });
       if (!assets || assets.length === 0) return;
 
