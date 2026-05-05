@@ -10,7 +10,7 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority |
 |------|--------|----------|
-| `publish-expo-media-0-1-1.md` | Ready | High |
+| `publish-expo-media-0-1-1.md` | Blocked | High |
 | `isolate-media-list-prefixes.md` | Ready | High |
 | `group-media-batch-delete-by-bucket.md` | Ready | High |
 | `require-auth-policy-for-template-media-routes.md` | Ready | High |

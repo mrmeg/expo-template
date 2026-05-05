@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## NEEDS INPUT FROM USER
+
+- `publish-expo-media-0-1-1.md` is blocked on npm credential setup. The latest
+  `publish-media.yml` run passed install, typecheck, tests, build, pack, and
+  consumer smoke before `npm publish` failed with `ENEEDAUTH`; GitHub has no
+  `NPM_TOKEN` secret configured, and `npm trust list @mrmeg/expo-media --json`
+  requires interactive one-time-password/browser authentication before the
+  trusted publisher can be inspected or configured.
+
 - Adjusted the bundle-size gate to budget client JS separately from known
   optional lazy media chunks. The check now logs total emitted JS and excluded
   lazy chunks, so split HEIC/video-thumbnail helpers stay visible in CI without

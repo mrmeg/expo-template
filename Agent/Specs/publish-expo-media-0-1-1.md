@@ -1,6 +1,6 @@
 # Spec: Publish Expo Media 0.1.1
 
-**Status:** Ready
+**Status:** Blocked
 **Priority:** High
 **Scope:** Server + Client
 
