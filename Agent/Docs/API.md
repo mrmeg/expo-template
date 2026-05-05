@@ -111,9 +111,16 @@ Delete multiple files from S3.
 
 #### GET `/api/media/list`
 
-List S3 objects with pagination.
+List S3 objects within a configured media type prefix. Unscoped bucket-root
+listing is not allowed.
 
-**Query:** `?prefix=uploads&limit=100&cursor=token`
+**Query:** `?mediaType=uploads&limit=100&cursor=token`
+
+`prefix` is still accepted for narrower, already-configured paths such as
+`?mediaType=uploads&prefix=uploads/gallery`, or for compatibility when the
+prefix resolves to a configured media type. Unknown, empty, absolute,
+traversal, or cross-media-type prefixes return `400 bad-key`; omitting both
+`mediaType` and a valid configured prefix returns `400 bad-request`.
 
 **Response (200):**
 ```json

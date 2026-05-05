@@ -244,6 +244,21 @@ Clients choose `mediaType`, not a raw bucket or path. The server derives keys
 inside configured prefixes and derives file extensions from approved content
 types.
 
+Listing also stays scoped. Use `mediaType` for normal list requests:
+
+```ts
+await client.list({ mediaType: "uploads" });
+```
+
+Optional `prefix` values must be narrower paths inside a configured media type
+prefix. Requests without `mediaType` or a valid configured prefix return
+`400 bad-request`; unknown, absolute, traversal, or cross-media-type prefixes
+return `400 bad-key`. Apps that need an "all media" view should list each
+configured media type separately and merge the visible results client-side
+instead of listing the storage bucket root. Keep pagination per media type;
+the template's All view merges the current visible page from each configured
+type rather than creating a cross-type cursor.
+
 ## Client Setup
 
 ```ts
@@ -387,6 +402,7 @@ Rules:
 - allowed content types and optional size limits are checked before signing
 - `Content-Type` is included in the signed `PutObjectCommand`
 - read/delete/list keys must stay inside configured prefixes
+- list requests must include `mediaType` or a valid narrower configured prefix
 - batch delete accepts up to 1000 keys
 
 ## Error Handling

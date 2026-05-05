@@ -248,6 +248,15 @@ Config fields:
 send arbitrary bucket names or raw prefixes. The server derives the final
 object key under the configured prefix.
 
+Listing follows the same contract. A list request must include a configured
+`mediaType` or a narrower prefix that resolves inside a configured media type.
+The package rejects bucket-root listing, unknown prefixes, absolute paths,
+traversal, and prefixes that cross media-type boundaries. If an app needs an
+"all media" view, query each configured media type separately and merge the
+visible results client-side. Keep pagination per media type; the template's
+All view merges the current visible page from each configured type rather than
+creating a cross-type cursor.
+
 ## Server Handlers
 
 Wrap the config with package handlers:

@@ -48,6 +48,9 @@ Files stored in S3/R2 with presigned URL access.
 - If optional web video conversion is not smaller than the source asset, the upload uses the source video instead
 - Upload signing validates `mediaType`, `contentType`, optional `size`, and policy before returning a URL
 - Clients cannot choose raw buckets or prefixes; keys must stay inside configured media type prefixes
+- Media listing requires a configured `mediaType` or a narrower prefix inside
+  one; an all-media view aggregates known media types client-side instead of
+  listing the bucket root
 
 **Media Paths** (template compatibility surface in `shared/media.ts`, concrete server config in `server/media/config.ts`):
 | Path | Prefix | Purpose |

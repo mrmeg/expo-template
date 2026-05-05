@@ -14,11 +14,17 @@ import {
   getMediaTypeConfig,
   getMediaTypeNames,
   isAllowedContentType,
+  normalizeMediaPrefix,
   validateMediaConfig,
   type MediaBucketConfig,
   type MediaConfig,
 } from "../config";
-import { buildMediaKey, resolveRequestedKey } from "../keys";
+import {
+  buildMediaKey,
+  isSafeObjectKey,
+  mediaTypeForKey,
+  resolveRequestedKey,
+} from "../keys";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -304,38 +310,35 @@ export function createMediaHandlers<TAuth = unknown>(
     const auth = authOrResponse;
 
     const url = new URL(request.url);
-    const prefix = url.searchParams.get("prefix") || "";
+    const requestedPrefix = url.searchParams.get("prefix");
     const cursor = url.searchParams.get("cursor") || undefined;
-    const limit = Math.min(Number.parseInt(url.searchParams.get("limit") || "100", 10), 1000);
+    const requestedLimit = Number.parseInt(url.searchParams.get("limit") || "100", 10);
+    const limit = Number.isFinite(requestedLimit) ? Math.min(requestedLimit, 1000) : 100;
     const mediaType = url.searchParams.get("mediaType") || undefined;
 
-    let targetMediaType = mediaType;
-    if (!targetMediaType && prefix) {
-      const resolved = resolveKeys(config, ["__placeholder"], prefix);
-      targetMediaType = resolved?.mediaTypes[0];
-    }
-    if (mediaType && !getMediaTypeConfig(config, mediaType)) {
-      return problem(request, options.cors, 400, "invalid-media-type", "Unknown mediaType.", {
-        validTypes: getMediaTypeNames(config),
-      });
-    }
+    const scope = resolveListScope(config, mediaType, requestedPrefix, request, options.cors);
+    if (scope instanceof Response) return scope;
 
     const policy = normalizePolicyDecision(
-      await options.policy?.canList?.({ request, auth, mediaType: targetMediaType, prefix }),
+      await options.policy?.canList?.({
+        request,
+        auth,
+        mediaType: scope.mediaType,
+        prefix: scope.prefix,
+      }),
     );
     if (!policy.allowed) {
       return problem(request, options.cors, 403, policy.code ?? "forbidden", policy.reason ?? "List is not allowed.");
     }
 
-    const mediaTypeForBucket = targetMediaType ?? getMediaTypeNames(config)[0];
-    const bucket = mediaTypeForBucket ? getBucketConfig(config, mediaTypeForBucket) : null;
+    const bucket = getBucketConfig(config, scope.mediaType);
     if (!bucket) return problem(request, options.cors, 503, "media-disabled", "Media storage is not configured.");
 
     try {
       const result = await getS3Client(bucket).send(
         new ListObjectsV2Command({
           Bucket: bucket.bucket,
-          Prefix: prefix || undefined,
+          Prefix: scope.prefix,
           MaxKeys: limit,
           ContinuationToken: cursor,
         }),
@@ -455,6 +458,65 @@ export function createMediaHandlers<TAuth = unknown>(
     deleteOne,
     deleteMany,
   };
+}
+
+function resolveListScope(
+  config: MediaConfig,
+  mediaType: string | undefined,
+  requestedPrefix: string | null,
+  request: Request,
+  cors?: MediaCorsCallbacks,
+): { mediaType: string; prefix: string } | Response {
+  if (mediaType) {
+    const mediaTypeConfig = getMediaTypeConfig(config, mediaType);
+    if (!mediaTypeConfig) {
+      return problem(request, cors, 400, "invalid-media-type", "Unknown mediaType.", {
+        validTypes: getMediaTypeNames(config),
+      });
+    }
+
+    const mediaTypePrefix = normalizeMediaPrefix(mediaTypeConfig.prefix);
+    if (requestedPrefix === null) {
+      return { mediaType, prefix: mediaTypePrefix };
+    }
+
+    const prefix = normalizeRequestedListPrefix(requestedPrefix);
+    if (!prefix || !isPrefixInside(prefix, mediaTypePrefix)) {
+      return problem(request, cors, 400, "bad-key", "Prefix is outside this media type.");
+    }
+
+    return { mediaType, prefix };
+  }
+
+  if (requestedPrefix === null) {
+    return problem(request, cors, 400, "bad-request", "List requires mediaType or a configured prefix.");
+  }
+
+  const prefix = normalizeRequestedListPrefix(requestedPrefix);
+  if (!prefix) {
+    return problem(request, cors, 400, "bad-key", "Prefix is outside configured media prefixes.");
+  }
+
+  const resolvedMediaType = mediaTypeForKey(config, prefix);
+  if (!resolvedMediaType) {
+    return problem(request, cors, 400, "bad-key", "Prefix is outside configured media prefixes.");
+  }
+
+  return { mediaType: resolvedMediaType, prefix };
+}
+
+function normalizeRequestedListPrefix(prefix: string): string | null {
+  const trimmed = prefix.trim();
+  if (!trimmed || trimmed.startsWith("/") || trimmed.includes("\\") || trimmed.includes("\0")) {
+    return null;
+  }
+
+  const normalized = normalizeMediaPrefix(trimmed);
+  return normalized && isSafeObjectKey(normalized) ? normalized : null;
+}
+
+function isPrefixInside(prefix: string, mediaTypePrefix: string): boolean {
+  return prefix === mediaTypePrefix || prefix.startsWith(`${mediaTypePrefix}/`);
 }
 
 function getReadyConfig(

@@ -125,7 +125,8 @@ Media tab → Pick up to configured selection limit (20 by default) images/video
 
 ```
 Media tab → Load media list
-  → GET /api/media/list (paginated)
+  → For a selected media type: GET /api/media/list?mediaType=<type> (paginated)
+  → For All: run one configured media-type list per template media type and merge visible results
   → 503 media-disabled (no R2/S3 env vars):
       → Render setup-state in the Media tab (cloud-off icon, missing-vars list)
       → Disable the upload button

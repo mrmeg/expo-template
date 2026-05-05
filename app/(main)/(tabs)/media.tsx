@@ -44,6 +44,14 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 import { SEO } from "@/client/components/SEO";
 
 type FilterType = "all" | keyof typeof MEDIA_PATHS;
+type MediaType = keyof typeof MEDIA_PATHS;
+
+const LIST_MEDIA_TYPES = [
+  "avatars",
+  "videos",
+  "thumbnails",
+  "uploads",
+] as const satisfies readonly MediaType[];
 
 export default function MediaScreen() {
   const { theme, getShadowStyle } = useTheme();
@@ -60,8 +68,56 @@ export default function MediaScreen() {
     title: string;
   } | null>(null);
 
-  const prefix = filter === "all" ? "" : MEDIA_PATHS[filter];
-  const { data, isLoading, error, refetch, isRefetching } = useMediaList({ prefix });
+  const mediaListQueries = {
+    avatars: useMediaList({
+      mediaType: "avatars",
+      enabled: filter === "all" || filter === "avatars",
+    }),
+    videos: useMediaList({
+      mediaType: "videos",
+      enabled: filter === "all" || filter === "videos",
+    }),
+    thumbnails: useMediaList({
+      mediaType: "thumbnails",
+      enabled: filter === "all" || filter === "thumbnails",
+    }),
+    uploads: useMediaList({
+      mediaType: "uploads",
+      enabled: filter === "all" || filter === "uploads",
+    }),
+  };
+  const activeMediaListQueries = filter === "all"
+    ? LIST_MEDIA_TYPES.map((mediaType) => mediaListQueries[mediaType])
+    : [mediaListQueries[filter]];
+  const data = useMemo(() => {
+    if (filter !== "all") {
+      return mediaListQueries[filter].data;
+    }
+
+    const items = LIST_MEDIA_TYPES.flatMap(
+      (mediaType) => mediaListQueries[mediaType].data?.items ?? [],
+    );
+
+    return {
+      items,
+      totalCount: items.length,
+      nextCursor: undefined,
+    };
+  }, [
+    filter,
+    mediaListQueries.avatars.data,
+    mediaListQueries.videos.data,
+    mediaListQueries.thumbnails.data,
+    mediaListQueries.uploads.data,
+  ]);
+  const isLoading = activeMediaListQueries.some((query) => query.isLoading);
+  const isRefetching = activeMediaListQueries.some((query) => query.isRefetching);
+  const error = activeMediaListQueries.find((query) => query.error)?.error ?? null;
+  const refetch = () => {
+    for (const query of activeMediaListQueries) {
+      void query.refetch();
+    }
+  };
   const mediaDisabled = isMediaError(error) && error.problem.kind === "disabled";
   const missingEnvVars = mediaDisabled && error.problem.kind === "disabled" ? error.problem.missing : undefined;
   const fetchError = !mediaDisabled && error ? error : null;

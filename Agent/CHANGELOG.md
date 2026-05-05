@@ -11,6 +11,11 @@
   requires interactive one-time-password/browser authentication before the
   trusted publisher can be inspected or configured.
 
+- Constrained `@mrmeg/expo-media` list requests to configured media type
+  prefixes. `GET /api/media/list` now rejects unscoped bucket-root listing and
+  unknown or escaping prefixes before reaching S3/R2, while the template Media
+  tab's All filter aggregates fixed configured media-type queries client-side.
+
 - Adjusted the bundle-size gate to budget client JS separately from known
   optional lazy media chunks. The check now logs total emitted JS and excluded
   lazy chunks, so split HEIC/video-thumbnail helpers stay visible in CI without
