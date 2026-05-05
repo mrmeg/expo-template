@@ -16,6 +16,11 @@
   unknown or escaping prefixes before reaching S3/R2, while the template Media
   tab's All filter aggregates fixed configured media-type queries client-side.
 
+- Fixed `@mrmeg/expo-media` batch deletion for multi-bucket configs. Batch
+  delete now groups keys by each resolved media type's configured bucket,
+  preserves one policy check over the full request, merges confirmed deletions,
+  and returns per-key errors for partial bucket failures.
+
 - Adjusted the bundle-size gate to budget client JS separately from known
   optional lazy media chunks. The check now logs total emitted JS and excluded
   lazy chunks, so split HEIC/video-thumbnail helpers stay visible in CI without

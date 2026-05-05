@@ -404,6 +404,9 @@ Rules:
 - read/delete/list keys must stay inside configured prefixes
 - list requests must include `mediaType` or a valid narrower configured prefix
 - batch delete accepts up to 1000 keys
+- batch delete groups keys by the bucket configured for each resolved media
+  type, merges confirmed deletions, and reports per-key errors for partial
+  bucket failures
 
 ## Error Handling
 

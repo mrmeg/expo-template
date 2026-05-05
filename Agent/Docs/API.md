@@ -108,6 +108,10 @@ Delete multiple files from S3.
 ```
 
 - Maximum 1000 keys per batch request
+- Keys are grouped by each resolved media type's configured bucket before
+  deletion. Mixed-bucket requests can partially succeed; in that case
+  `success` is `false`, `deleted` contains confirmed deletions, and `errors`
+  contains S3-reported or per-key bucket failure messages.
 
 #### GET `/api/media/list`
 

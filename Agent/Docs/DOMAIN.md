@@ -41,6 +41,8 @@ Files stored in S3/R2 with presigned URL access.
 - Read URLs expire in 24 hours
 - Batch delete maximum: 1000 keys per request
 - Media list bulk delete sends selected visible keys through the batch delete route
+- Batch delete groups keys by each key's resolved media type bucket; partial
+  bucket failures keep confirmed deletions and return per-key errors
 - Video thumbnails derive path from video key (`videos/x.mp4` → `thumbnails/x.jpg`)
 - Deleting selected videos also deletes their generated thumbnail keys
 - Image compression happens client-side before upload through granular `@mrmeg/expo-media/processing/*` subpaths

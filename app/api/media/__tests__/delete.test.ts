@@ -194,7 +194,7 @@ describe("media delete route", () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.success).toBe(true);
+    expect(body.success).toBe(false);
     expect(body.deleted).toEqual(["uploads/a", "uploads/b"]);
     expect(body.errors).toEqual([{ key: "uploads/c", message: "NoSuchKey" }]);
 

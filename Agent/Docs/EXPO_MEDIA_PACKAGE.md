@@ -313,6 +313,12 @@ This template keeps these public routes:
 Missing bucket credentials or invalid media config return a typed `503`
 `media-disabled` JSON response without constructing an S3 client.
 
+Batch delete resolves every key to its configured media type before storage
+mutation. When a request spans multiple physical buckets, the handler sends one
+delete command per bucket, merges confirmed deletions, and returns per-key
+errors for any bucket group that fails. `events.onDeleted` runs once with the
+confirmed deleted keys only.
+
 ## Client Setup
 
 Create the package client once:

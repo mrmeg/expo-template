@@ -61,6 +61,41 @@ const config = createMediaConfig({
   },
 });
 
+const multiBucketConfig = createMediaConfig({
+  buckets: {
+    avatarMedia: {
+      provider: "s3",
+      bucket: "avatar-bucket",
+      region: "us-east-1",
+      credentials: {
+        accessKeyId: "avatar-access-key",
+        secretAccessKey: "avatar-secret-key",
+      },
+    },
+    uploadMedia: {
+      provider: "s3",
+      bucket: "upload-bucket",
+      region: "us-east-1",
+      credentials: {
+        accessKeyId: "upload-access-key",
+        secretAccessKey: "upload-secret-key",
+      },
+    },
+  },
+  mediaTypes: {
+    avatars: {
+      bucket: "avatarMedia",
+      prefix: "users/avatars",
+      allowedContentTypes: ["image/jpeg"],
+    },
+    uploads: {
+      bucket: "uploadMedia",
+      prefix: "uploads",
+      allowedContentTypes: ["image/jpeg"],
+    },
+  },
+});
+
 describe("createMediaHandlers list", () => {
   beforeEach(() => {
     mockSend.mockReset();
@@ -158,5 +193,141 @@ describe("createMediaHandlers list", () => {
       Bucket: "test-bucket",
       Prefix: "uploads/gallery",
     });
+  });
+});
+
+describe("createMediaHandlers batch delete", () => {
+  beforeEach(() => {
+    mockSend.mockReset();
+    resetMediaStorageForTests();
+  });
+
+  it("groups batch deletes by each key's configured bucket", async () => {
+    mockSend
+      .mockResolvedValueOnce({ Deleted: [{ Key: "users/avatars/a.jpg" }] })
+      .mockResolvedValueOnce({ Deleted: [{ Key: "uploads/b.jpg" }] });
+    const handlers = createMediaHandlers({ config: multiBucketConfig });
+
+    const res = await handlers.deleteMany(
+      new Request("http://localhost/delete", {
+        method: "POST",
+        body: JSON.stringify({
+          keys: ["users/avatars/a.jpg", "uploads/b.jpg"],
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      success: true,
+      deleted: ["users/avatars/a.jpg", "uploads/b.jpg"],
+      errors: [],
+    });
+    expect(mockSend).toHaveBeenCalledTimes(2);
+    expect(mockSend.mock.calls[0][0].input).toEqual({
+      Bucket: "avatar-bucket",
+      Delete: {
+        Objects: [{ Key: "users/avatars/a.jpg" }],
+        Quiet: false,
+      },
+    });
+    expect(mockSend.mock.calls[1][0].input).toEqual({
+      Bucket: "upload-bucket",
+      Delete: {
+        Objects: [{ Key: "uploads/b.jpg" }],
+        Quiet: false,
+      },
+    });
+  });
+
+  it("keeps one delete command when resolved keys share one bucket", async () => {
+    mockSend.mockResolvedValueOnce({
+      Deleted: [{ Key: "users/avatars/a.jpg" }, { Key: "uploads/b.jpg" }],
+    });
+    const handlers = createMediaHandlers({ config });
+
+    const res = await handlers.deleteMany(
+      new Request("http://localhost/delete", {
+        method: "POST",
+        body: JSON.stringify({
+          keys: ["users/avatars/a.jpg", "uploads/b.jpg"],
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockSend.mock.calls[0][0].input).toEqual({
+      Bucket: "test-bucket",
+      Delete: {
+        Objects: [
+          { Key: "users/avatars/a.jpg" },
+          { Key: "uploads/b.jpg" },
+        ],
+        Quiet: false,
+      },
+    });
+  });
+
+  it("calls canDelete with all keys and media types before storage deletion", async () => {
+    mockSend
+      .mockResolvedValueOnce({ Deleted: [] })
+      .mockResolvedValueOnce({ Deleted: [] });
+    const canDelete = jest.fn(() => {
+      expect(mockSend).not.toHaveBeenCalled();
+      return true;
+    });
+    const handlers = createMediaHandlers({
+      config: multiBucketConfig,
+      policy: { canDelete },
+    });
+
+    const res = await handlers.deleteMany(
+      new Request("http://localhost/delete", {
+        method: "POST",
+        body: JSON.stringify({
+          keys: ["users/avatars/a.jpg", "uploads/b.jpg"],
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(canDelete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        keys: ["users/avatars/a.jpg", "uploads/b.jpg"],
+        mediaTypes: ["avatars", "uploads"],
+      }),
+    );
+  });
+
+  it("returns successful deletes plus per-key errors when one bucket group fails", async () => {
+    mockSend
+      .mockResolvedValueOnce({ Deleted: [{ Key: "users/avatars/a.jpg" }] })
+      .mockRejectedValueOnce(new Error("upload bucket denied"));
+    const onDeleted = jest.fn();
+    const handlers = createMediaHandlers({
+      config: multiBucketConfig,
+      events: { onDeleted },
+    });
+
+    const res = await handlers.deleteMany(
+      new Request("http://localhost/delete", {
+        method: "POST",
+        body: JSON.stringify({
+          keys: ["users/avatars/a.jpg", "uploads/b.jpg"],
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      success: false,
+      deleted: ["users/avatars/a.jpg"],
+      errors: [{ key: "uploads/b.jpg", message: "upload bucket denied" }],
+    });
+    expect(onDeleted).toHaveBeenCalledTimes(1);
+    expect(onDeleted).toHaveBeenCalledWith(
+      expect.objectContaining({ keys: ["users/avatars/a.jpg"] }),
+    );
   });
 });
