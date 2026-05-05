@@ -56,6 +56,7 @@ const STORAGE_KEYS = [
   "R2_ACCESS_KEY_ID",
   "R2_SECRET_ACCESS_KEY",
   "ALLOWED_ORIGINS",
+  "EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA",
 ] as const;
 
 describe("media delete route", () => {
@@ -69,6 +70,7 @@ describe("media delete route", () => {
     process.env.R2_ACCESS_KEY_ID = "test-access-key";
     process.env.R2_SECRET_ACCESS_KEY = "test-secret-key";
     process.env.ALLOWED_ORIGINS = ORIGIN;
+    process.env.EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA = "true";
     const { _resetMediaStorageForTests } = require("@/server/api/media/storage");
     _resetMediaStorageForTests();
     // NODE_ENV stays at its Jest default ("test") so sanitizeErrorDetails

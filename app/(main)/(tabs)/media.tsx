@@ -119,8 +119,13 @@ export default function MediaScreen() {
     }
   };
   const mediaDisabled = isMediaError(error) && error.problem.kind === "disabled";
+  const mediaAccessError =
+    isMediaError(error) &&
+    (error.problem.kind === "unauthorized" || error.problem.kind === "forbidden")
+      ? error
+      : null;
   const missingEnvVars = mediaDisabled && error.problem.kind === "disabled" ? error.problem.missing : undefined;
-  const fetchError = !mediaDisabled && error ? error : null;
+  const fetchError = !mediaDisabled && !mediaAccessError && error ? error : null;
   const { mutateAsync: deleteFile, isPending: isDeleting } = useMediaDelete();
   const { mutateAsync: deleteFiles, isPending: isDeletingBatch } =
     useMediaDeleteBatch();
@@ -563,6 +568,21 @@ export default function MediaScreen() {
               Missing: {missingEnvVars.join(", ")}
             </SansSerifText>
           )}
+        </View>
+      ) : mediaAccessError ? (
+        <View style={styles.emptyContainer} testID="media-auth-required">
+          <Icon name="lock" size={48} color={theme.colors.mutedForeground} />
+          <SansSerifText style={styles.emptyText}>
+            {mediaAccessError.problem.kind === "unauthorized"
+              ? "Sign in to access media"
+              : "Media access denied"}
+          </SansSerifText>
+          <SansSerifText style={styles.emptySubtext}>
+            {mediaAccessError.message}
+          </SansSerifText>
+          <Button preset="default" size="sm" onPress={() => refetch()}>
+            Retry
+          </Button>
         </View>
       ) : fetchError ? (
         <View style={styles.emptyContainer} testID="media-error">

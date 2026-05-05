@@ -287,6 +287,15 @@ export const mediaHandlers = createMediaHandlers({
 });
 ```
 
+The template route adapter keeps auth app-owned. Its
+`server/media/handlers.ts` calls the shared `requireAuthenticatedUser()` helper
+for upload, list, read, and delete whenever real storage is configured.
+`EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA=true` is available only for local/demo
+storage access outside production; production ignores it and fails closed.
+Consumers should replace `authorize` and the `canUpload`/`canRead`/`canList`/
+`canDelete` policy callbacks with product-specific ownership, role, or
+read-only rules instead of changing `@mrmeg/expo-media`.
+
 Policy callbacks are where product rules live. Examples:
 
 - only let a user upload avatars to their own account

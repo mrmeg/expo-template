@@ -21,6 +21,13 @@
   preserves one policy check over the full request, merges confirmed deletions,
   and returns per-key errors for partial bucket failures.
 
+- Required authenticated access for template media routes when real storage is
+  configured. Upload, list, signed-read, and delete now fail closed with 401 by
+  default, while `media-disabled` remains public for setup guidance and
+  `EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA=true` is an explicit local/demo bypass that
+  production ignores. The Media tab now renders auth/access errors as a
+  dedicated state.
+
 - Adjusted the bundle-size gate to budget client JS separately from known
   optional lazy media chunks. The check now logs total emitted JS and excluded
   lazy chunks, so split HEIC/video-thumbnail helpers stay visible in CI without

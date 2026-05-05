@@ -39,7 +39,7 @@ their children.
 | Surface | Auth gate |
 |---|---|
 | `(main)/(tabs)/index.tsx` (Explore) | Public |
-| `(main)/(tabs)/media.tsx` | Public |
+| `(main)/(tabs)/media.tsx` | Public tab; configured media storage requires route auth and shows an auth/access state when signed out |
 | `(main)/(tabs)/profile.tsx` | **Protected** (`AuthGate`) |
 | `(main)/(tabs)/settings.tsx` | Public |
 | `(main)/(demos)/showcase/**` | Public |
@@ -131,6 +131,9 @@ Media tab → Load media list
       → Render setup-state in the Media tab (cloud-off icon, missing-vars list)
       → Disable the upload button
       → React Query does NOT retry — caller must reconfigure
+  → 401/403 auth or access failure:
+      → Render auth/access state in the Media tab
+      → React Query does NOT retry
   → 200 OK:
       → POST /api/media/getSignedUrls (batch signed URLs)
       → Display grid/list of media items

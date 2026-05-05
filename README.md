@@ -17,7 +17,7 @@ spec-driven agent workflow under `Agent/`.
 ### Optional features (all default off, enabled by env)
 - **Auth** — AWS Amplify / Cognito; without `EXPO_PUBLIC_USER_POOL_ID` and `EXPO_PUBLIC_USER_POOL_CLIENT_ID` the auth shell stays disabled and the template remains explorable.
 - **Billing** — Stripe Checkout + Billing Portal (`hosted-external`). Without `STRIPE_*` env vars every `/api/billing/*` route returns a typed `503 billing-disabled` and the UI hides purchase CTAs.
-- **Media** — R2/S3 uploads, signed URLs, browse, delete, client-side compression, video thumbnails. Without the four `R2_*` env vars every `/api/media/*` route returns a typed `503 media-disabled` and the Media tab renders a setup state.
+- **Media** — R2/S3 uploads, signed URLs, browse, delete, client-side compression, video thumbnails. Without the four `R2_*` env vars every `/api/media/*` route returns a typed `503 media-disabled` and the Media tab renders a setup state. With real storage configured, media routes require auth by default; `EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA=true` is a local/demo-only bypass ignored in production.
 - **Sentry** — `@sentry/react-native`, no-op when `EXPO_PUBLIC_SENTRY_DSN` is unset.
 
 ### Developer experience
