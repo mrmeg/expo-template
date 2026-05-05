@@ -11,7 +11,6 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 | Spec | Status | Priority |
 |------|--------|----------|
 | `publish-expo-media-0-1-1.md` | Blocked | High |
-| `require-auth-policy-for-template-media-routes.md` | Ready | High |
 | `use-named-media-upload-policies.md` | Ready | Medium |
 
 ## Workflow
