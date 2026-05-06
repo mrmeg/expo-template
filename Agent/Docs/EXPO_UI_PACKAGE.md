@@ -277,7 +277,7 @@ Use `colors[scheme].navigation` and `colors[scheme].fonts` when wiring React Nav
 
 ## Typography
 
-Use `StyledText` for new package-aware text. It applies theme text color, font family, sizing, line-height, optional i18n lookup, and nested text color/selectability context used by buttons and toggle controls.
+Use `StyledText` for new package-aware text. It applies theme text color, font family, sizing, line-height, optional i18n lookup, and nested text color/selectability context used by buttons and toggle controls. Explicit `style` values win over inherited text color, so `Button textStyle={{ color: ... }}` and nested `StyledText style={styles.label}` can override a control's default label color when an app needs status-specific action text.
 
 ```tsx
 import {
@@ -365,7 +365,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@mrmeg/expo-ui/compone
 
 | Component | Use For | Notes |
 |-----------|---------|-------|
-| `Button` | Primary and secondary actions | `preset`: `default`, `outline`, `ghost`, `link`, `destructive`, `secondary`; `size`: `sm`, `md`, `lg`; supports `loading`, `fullWidth`, `withShadow`, `LeftAccessory`, `RightAccessory`; loading overlays the spinner while preserving content width |
+| `Button` | Primary and secondary actions | `preset`: `default`, `outline`, `ghost`, `link`, `destructive`, `secondary`; `size`: `sm`, `md`, `lg`; supports `loading`, `fullWidth`, `withShadow`, `LeftAccessory`, `RightAccessory`; `textStyle.color` overrides the preset label color; loading overlays the spinner while preserving content width |
 | `TextInput` | Text entry | `variant`: `outline`, `filled`, `underlined`; `size`: `sm`, `md`, `lg`; supports labels, helper/error text, clear/password affordances, left/right elements |
 | `Checkbox` | Boolean selection | `size`: `sm`, `md`, `lg`; supports error state |
 | `RadioGroup` | Single choice | Root controls value; `RadioGroupItem` must be inside `RadioGroup`; `size`: `sm`, `md`, `lg` |

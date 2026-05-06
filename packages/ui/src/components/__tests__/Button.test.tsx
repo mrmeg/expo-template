@@ -129,6 +129,38 @@ describe("Button", () => {
       expect(textStyle).toEqual(expect.objectContaining({ color: "#18181B" }));
     });
 
+    it("allows textStyle color to override the button label color", () => {
+      render(
+        <Button
+          preset="outline"
+          text="Verify"
+          textStyle={{ color: "#22C55E" }}
+        />
+      );
+
+      const textStyle = StyleSheet.flatten(screen.getByText("Verify").props.style) as Record<string, unknown>;
+
+      expect(textStyle).toEqual(expect.objectContaining({ color: "#22C55E" }));
+    });
+
+    it("allows nested StyledText color styles to override the button context color", () => {
+      const styles = StyleSheet.create({
+        actionLabel: {
+          color: "#EF4444",
+        },
+      });
+
+      render(
+        <Button preset="outline">
+          <StyledText style={styles.actionLabel}>Unverify</StyledText>
+        </Button>
+      );
+
+      const textStyle = StyleSheet.flatten(screen.getByText("Unverify").props.style) as Record<string, unknown>;
+
+      expect(textStyle).toEqual(expect.objectContaining({ color: "#EF4444" }));
+    });
+
     it("renders different sizes", () => {
       const sizes = [
         ["sm", 28],

@@ -103,6 +103,7 @@ Button preserves native tap comfort with hit slop up to the 44px touch target. T
 - Visible heights: `sm` 28px, `md` 32px, `lg` 40px
 - Outline variant uses `theme.colors.input` (not primary) with `foreground` text
 - Nested `StyledText` children inherit the selected Button size typography; use `size="sm"` for compact toolbar, popover, and tooltip triggers.
+- Explicit `textStyle.color` or nested `StyledText style={{ color: ... }}` can override a Button preset color for status-specific action labels.
 
 ### Shadows
 - Subtle: opacity 0.05–0.15, small offsets
