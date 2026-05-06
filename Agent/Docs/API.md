@@ -421,7 +421,9 @@ const response = await authenticatedFetch("/api/protected-endpoint", {
 
 ## Production Server
 
-The Express server (`server/index.ts`) provides:
+The default Bun server (`server.bun.ts`) provides these controls before handing
+unmatched requests to `expo-server/adapter/bun`. The Express fallback
+(`server/index.ts`) keeps the same route limits and security posture.
 
 ### Rate Limiting
 

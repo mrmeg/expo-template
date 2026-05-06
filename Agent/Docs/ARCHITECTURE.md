@@ -24,7 +24,7 @@
 │      shared/media.ts compatibility + packages/media  │
 ├─────────────────────────────────────────────────────┤
 │                 Server Layer                         │
-│     Express (prod web) │ API Routes (Expo Server)    │
+│     Bun (prod web)     │ API Routes (Expo Server)    │
 │     S3/R2 media APIs   │ CORS, rate limiting         │
 └─────────────────────────────────────────────────────┘
           │                          │
@@ -38,7 +38,7 @@
 |----------|-------|---------|-------|
 | iOS | expo-router/entry | Metro | New Architecture enabled |
 | Android | expo-router/entry | Metro | New Architecture enabled |
-| Web | expo-router/entry | Metro → server export | Server-rendered by Express in prod |
+| Web | expo-router/entry | Metro → server export | Server-rendered by Bun in prod |
 
 ## Directory Architecture
 
@@ -225,7 +225,7 @@ file path, and graceful failure behavior.
 | @rn-primitives over RNP | Unstyled primitives allow full design system control |
 | Feature folders | Portable, self-contained modules; easy to add/remove features |
 | AWS Amplify for auth | Managed Cognito integration, session token handling |
-| Express for prod web | Rate limiting, security headers, compression — missing from static hosts |
+| Bun + Expo Server for prod web | Rate limiting, security headers, static compression, and `expo-server/adapter/bun` SSR while keeping Express as a fallback |
 | Expo Router SSR for web | Request-time HTML for dynamic routes while preserving Expo Router API routes and a single universal route tree |
 | Discriminated union API responses | Type-safe error handling without exceptions |
 | Platform-specific files (.native.ts) | Clean platform splits without runtime checks |
@@ -235,10 +235,11 @@ file path, and graceful failure behavior.
 
 - **Dev**: `npx expo start` (Metro dev server)
 - **Web prod**: `expo export -p web` → `dist/client` static assets plus
-  `dist/server` renderer → Express serves and renders requests.
+  `dist/server` renderer → the Bun production server serves compressed static
+  assets and renders requests through `expo-server/adapter/bun`.
 - **Local SSR verification**: `bun run build` then `bun run serve:ssr` for the
-  Expo production server, or `bun run start-local` to exercise the custom
-  Express adapter.
+  Expo production server, `bun run start-local` to exercise the custom Bun
+  adapter, or `bun run start-local:express` to exercise the Express fallback.
 - **Native**: EAS Build. Identity (name, slug, scheme, bundle id, package) lives in `app.identity.js` with sibling `app.identity.d.ts` types and is consumed by `app.config.ts`; override via `EXPO_PUBLIC_APP_*` env vars without editing tracked files. Re-run `expo prebuild` after identity changes.
 - **Local verification**: `bun run typecheck`, `bun run lint`, `bun run check:features`, `bun run test:ci`, `bun run ui:typecheck`, `bun run ui:test`, `bun run ui:build`, `bun run ui:pack`, `bun run ui:consumer-smoke`
 - **CI**: `.github/workflows/ci.yml` runs the same gates plus `bun run build` + `bun run bundle-size` on every push/PR to `main`/`dev` (Bun-based, frozen lockfile, no app credentials required)

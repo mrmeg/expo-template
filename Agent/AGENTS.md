@@ -56,7 +56,7 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 | i18n | i18next + expo-localization | en/es, lazy-loaded, RTL support |
 | Animation | react-native-reanimated 4.2 | Worklets via react-native-worklets |
 | Monitoring | Sentry (@sentry/react-native 8) | Optional, env-var gated |
-| Server | Express 5 | Compression, CORS, rate limiting, security headers |
+| Server | Bun + Expo Server | `expo-server/adapter/bun` by default; Express 5 fallback; compression, CORS, rate limiting, security headers |
 | Testing | Jest 29 + jest-expo + RNTL 13 | Coverage on client/**, 10s timeout |
 | Linting | ESLint 10 flat config | Expo lint config |
 | CI | GitHub Actions | Bun-based: typecheck → lint → feature isolation → test (validate job), build → bundle-size (bundle-size job, parallel) |

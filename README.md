@@ -2,7 +2,7 @@
 
 A production-ready starter for cross-platform Expo apps. Ships with a
 shadcn-inspired design system, optional auth/billing/media features that
-each fail closed when unconfigured, an Express production server, and a
+each fail closed when unconfigured, a Bun production server, and a
 spec-driven agent workflow under `Agent/`.
 
 ## Features
@@ -21,7 +21,7 @@ spec-driven agent workflow under `Agent/`.
 - **Sentry** — `@sentry/react-native`, no-op when `EXPO_PUBLIC_SENTRY_DSN` is unset.
 
 ### Developer experience
-- **Express production server** — gzip compression, CORS, rate limiting (a strict 10/min bucket on `/api/media/getUploadUrl` and the billing checkout/portal routes), security headers, Morgan logging.
+- **Bun production server** — Expo Router SSR through `expo-server/adapter/bun`, static Brotli/gzip compression, CORS, rate limiting (a strict 10/min bucket on `/api/media/getUploadUrl` and the billing checkout/portal routes), security headers, request logging. The Express server remains available as a fallback.
 - **Generator CLI** — `bun run generate component|screen|hook|form <Name>` — paths and imports match the rest of the template.
 - **Reactotron** — auto-connects in dev mode for native runs.
 - **Spec-driven Night/Day Shift workflow** — see `Agent/AGENTS.md`.
@@ -75,8 +75,10 @@ Android projects with the new bundle ids.
 | `bun run scan:showcase` | Open React Scan against the local showcase route on port 8081 |
 | `bun run ios` / `bun run android` | Build + run on simulator / emulator |
 | `bun run build` | Production web export → `dist/` (client + SSR server) |
-| `bun run start` | Run the Express production server (`server/index.ts`) |
-| `bun run start-local` | Same, with `.env` autoloaded by Bun |
+| `bun run start` | Run the Bun production server (`server.bun.ts`) |
+| `bun run start-local` | Run the Bun production server with `.env` autoloaded |
+| `bun run start:express` | Run the fallback Express production server (`server/index.ts`) |
+| `bun run start-local:express` | Run the fallback Express server with `.env` autoloaded by Bun |
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run lint` | `expo lint` (ESLint flat config) |
 | `bun run test:ci` | `jest --ci --coverage --forceExit` |
@@ -172,7 +174,8 @@ UI system.
 
 /packages/ui                  # @mrmeg/expo-ui npm package source
 
-/server                       # Express production server (compression, CORS, rate limits)
+/server.bun.ts                # Default Bun production server (compression, CORS, rate limits)
+/server                       # Express fallback server and shared server helpers
 /shared                       # Code shared between client & server (e.g. media path constants)
 /scripts                      # Generator CLI + bundle-size check
 /test                         # Jest setup
@@ -359,7 +362,7 @@ is enough.
 - Lato on web via Google Fonts, system sans-serif on native
 - Jest 29 + jest-expo + RNTL 13
 - ESLint 10 flat config
-- Express 5 (production web server)
+- Bun + Expo Server (production web server), with Express 5 fallback
 - Bun (package manager + script runner)
 
 ## Agent Workflow

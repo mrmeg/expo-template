@@ -54,7 +54,8 @@
 
 - **Server rendering**: Expo Router SSR is enabled with `web.output = "server"`
   and `unstable_useServerRendering`. Routes render at request time through the
-  Express `expo-server` adapter.
+  Bun `expo-server` adapter by default. The Express adapter remains available
+  through the fallback scripts.
 - **Server middleware**: `unstable_useServerMiddleware` is enabled and the root
   `+middleware.ts` is matched to `/api` plus the Server Alpha demo routes. Keep
   broad middleware work minimal because it runs before matched request
@@ -67,13 +68,15 @@
   `/(main)/(demos)/server-alpha` shows an overview loader, and
   `/(main)/(demos)/server-alpha/[example]` shows dynamic route params flowing
   through a loader.
-- **Express compression**: Gzip on all responses in production.
+- **Static compression**: The Bun server negotiates Brotli first, then gzip,
+  for text-like static assets (JS, CSS, HTML, JSON, XML, SVG, maps, and other
+  text extensions). It sets `Content-Encoding`, `Content-Length`, and
+  `Vary: Accept-Encoding`; compressed immutable asset bodies are cached in
+  memory so bundles are not recompressed on every request.
 - **Static assets**: `dist/client` assets are served with 1-hour cache max-age.
-  Expo assets exported under Bun's virtual store path
-  (`dist/client/assets/node_modules/.bun`) are mounted separately with
-  `dotfiles: "allow"` and immutable 1-year caching so package fonts/images,
-  including `@expo/vector-icons` Feather fonts, resolve in production without
-  opening dotfile serving for the whole client build.
+  Expo assets under `/_expo/static/*` and package assets under `/assets/*`
+  receive immutable 1-year caching, including Bun virtual-store paths such as
+  `dist/client/assets/node_modules/.bun`.
 - **HTML caching**: SSR HTML is request-time output. Add CDN/runtime cache rules
   per route before caching personalized or authenticated pages.
 - **Shadows**: `getShadowStyle()` returns empty object on web — `boxShadow` causes React Native Web crashes
@@ -101,9 +104,10 @@
 | Media signer (`/api/media/getUploadUrl`) | 60 req | 1 min |
 | Strict side-effect routes (`/api/reports`, `/api/corrections`, billing session creation) | 10 req | 1 min |
 
-Scoped paths are configured in `server/rateLimits.js` and enforced by
-`server/index.ts`. The general limiter stacks with the media signer and strict
-limiters; the narrowest matching route limiter dominates for covered routes.
+Scoped paths are configured in `server/rateLimits.js` and enforced by both
+`server.bun.ts` and the Express fallback. The general limiter stacks with the
+media signer and strict limiters; the narrowest matching route limiter
+dominates for covered routes.
 
 ## Color Contrast Caching
 
@@ -147,15 +151,17 @@ URL to satisfy the cross-origin worker-blob workaround from
 |-------|-------|
 | URL the client fetches | `/_expo/static/js/web/ffmpeg-worker.js` |
 | File in the repo | `packages/media/src/processing/videoConversion/ffmpeg-worker.js` |
-| Single source of truth | `server/ffmpegWorker.js` (CommonJS, consumed by both Metro and Express) |
+| Single source of truth | `server/ffmpegWorker.js` (CommonJS, consumed by Metro, Bun, and Express) |
 
 Both runtimes that serve web assets read through `server/ffmpegWorker.js`
 so the URL and the file path cannot drift apart:
 
 - `metro.config.js` — dev server (`expo start`). Serves the worker via a
   middleware shim.
-- `server/index.ts` — production Express server. Serves the worker from
-  the static build via `app.get(FFMPEG_WORKER_URL, …)`.
+- `server.bun.ts` — default production Bun server. Serves the worker through
+  the same static-compression path as exported JS.
+- `server/index.ts` — fallback production Express server. Serves the worker
+  from the static build via `app.get(FFMPEG_WORKER_URL, …)`.
 
 If the worker file moves, update `FFMPEG_WORKER_RELATIVE_PATH` in
 `server/ffmpegWorker.js`. The regression suite in
@@ -170,7 +176,7 @@ and uploads the original format instead of hanging inside
 `FFmpeg.load()`.
 
 To disable web video conversion entirely, delete the `FFmpeg` block in
-both `metro.config.js` and `server/index.ts`, delete
+`metro.config.js`, `server.bun.ts`, and `server/index.ts`, delete
 the package worker-serving adapter if unused, and remove the conversion call
 sites in `useMediaLibrary`.
 

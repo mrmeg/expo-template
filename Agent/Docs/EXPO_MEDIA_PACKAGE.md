@@ -42,7 +42,7 @@ App-owned:
 - Expo Router API route files
 - app-wide media defaults and upload policies
 - media manager screens and domain UI
-- FFmpeg worker serving in Metro and production Express
+- FFmpeg worker serving in Metro, production Bun, and fallback Express
 - monitoring SDKs and app logging
 
 Do not move auth, billing, user-specific database metadata, or app navigation
@@ -549,8 +549,8 @@ Important behavior:
   helpers and should be avoided in light screens, stores, or config modules.
 
 The FFmpeg worker remains an app deployment responsibility. This template keeps
-`server/ffmpegWorker.js`, `metro.config.js`, and `server/index.ts` responsible
-for same-origin worker serving.
+`server/ffmpegWorker.js`, `metro.config.js`, `server.bun.ts`, and
+`server/index.ts` responsible for same-origin worker serving.
 
 ## File Paths And Keys
 

@@ -6,8 +6,10 @@
     "packages/*"
   ],
   "scripts": {
-    "start": "node ./server/index.ts",
-    "start-local": "bun --env-file=.env ./server/index.ts",
+    "start": "bun ./server.bun.ts",
+    "start-local": "bun --env-file=.env ./server.bun.ts",
+    "start:express": "node ./server/index.ts",
+    "start-local:express": "bun --env-file=.env ./server/index.ts",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",

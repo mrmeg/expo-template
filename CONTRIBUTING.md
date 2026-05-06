@@ -57,7 +57,8 @@ See `Agent/Docs/ARCHITECTURE.md` for the canonical architecture reference and `A
 - `client/lib/form/` — Form primitives (`FormProvider`, `FormTextInput`, `FormCheckbox`, …) on top of react-hook-form + Zod
 - `client/lib/storage/` — Cross-platform AsyncStorage wrapper
 - `client/state/` — App-local Zustand stores; UI package stores own theme and global notification state
-- `server/` — Express production server (compression, CORS, rate limiting, security headers)
+- `server.bun.ts` — default Bun production server (static compression, CORS, rate limiting, security headers)
+- `server/` — Express fallback server and shared server helpers
 - `shared/` — Code shared between client and server (e.g. `shared/media.ts` path constants)
 
 ## Design System
