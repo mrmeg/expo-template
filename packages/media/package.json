@@ -12,7 +12,7 @@
     "presigned-url"
   ],
   "author": "Matt Megenhardt",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mrmeg/expo-template.git",
