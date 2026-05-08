@@ -2036,7 +2036,6 @@ const createStyles = (theme: Theme) =>
     },
     labelText: {
       fontFamily: fontFamilies.sansSerif.regular,
-      color: theme.colors.foreground,
     },
     boldText: {
       fontFamily: fontFamilies.sansSerif.bold,
@@ -2049,7 +2048,6 @@ const createStyles = (theme: Theme) =>
     smallButtonText: {
       fontFamily: fontFamilies.sansSerif.bold,
       fontSize: 12,
-      color: theme.colors.primaryForeground,
     },
 
     // Forms
