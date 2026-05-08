@@ -207,8 +207,7 @@ export function DetailHeroScreen({
 
       {/* Sticky header overlay */}
       <Animated.View
-        pointerEvents="box-none"
-        style={[styles.stickyHeader, { opacity: navBarOpacity }]}
+        style={[styles.stickyHeader, { opacity: navBarOpacity, pointerEvents: "box-none" }]}
       >
         <View style={styles.stickyHeaderInner}>
           {onBack ? (
@@ -229,8 +228,7 @@ export function DetailHeroScreen({
       {/* Floating back button */}
       {onBack && (
         <Animated.View
-          pointerEvents="box-none"
-          style={[styles.backButtonContainer, { opacity: backButtonOpacity }]}
+          style={[styles.backButtonContainer, { opacity: backButtonOpacity, pointerEvents: "box-none" }]}
         >
           <Pressable
             onPress={onBack}

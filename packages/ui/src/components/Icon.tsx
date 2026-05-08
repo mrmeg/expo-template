@@ -81,8 +81,7 @@ export function Icon(props: IconProps) {
   // intercepting touches when used inside TouchableOpacity on iOS
   return (
     <View
-      pointerEvents="none"
-      style={style}
+      style={[style, { pointerEvents: "none" }]}
       accessible={!decorative}
       {...(decorative && {
         importantForAccessibility: "no" as const,

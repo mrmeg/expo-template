@@ -392,9 +392,8 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
 
           {showErrorIcon && (
             <View
-              style={styles.errorIcon}
+              style={[styles.errorIcon, { pointerEvents: "none" }]}
               accessibilityLabel="Error"
-              pointerEvents="none"
             >
               <Icon
                 name="alert-circle"

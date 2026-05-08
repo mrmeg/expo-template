@@ -164,8 +164,8 @@ function Switch({
           backgroundColor: trackBg,
           borderWidth: 1,
           borderColor: trackBorderColor,
+          pointerEvents: "none",
         }}
-        pointerEvents="none"
       />
 
       {/* Label ON */}
@@ -180,8 +180,8 @@ function Switch({
             justifyContent: "center",
             alignItems: "center",
             opacity: props.checked ? 1 : 0,
+            pointerEvents: "none",
           }}
-          pointerEvents="none"
         >
           <StyledText
             selectable={false}
@@ -237,8 +237,8 @@ function Switch({
             justifyContent: "center",
             alignItems: "center",
             opacity: props.checked ? 0 : 1,
+            pointerEvents: "none",
           }}
-          pointerEvents="none"
         >
           <StyledText
             selectable={false}

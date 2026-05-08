@@ -329,7 +329,7 @@ export function Button(props: ButtonProps) {
                   onLayout={handleButtonLayout}
                 >
                   {loading && (
-                    <View style={styles.loaderOverlay} pointerEvents="none">
+                    <View style={[styles.loaderOverlay, { pointerEvents: "none" }]}>
                       <ActivityIndicator
                         size="small"
                         color={textColor}
@@ -337,7 +337,7 @@ export function Button(props: ButtonProps) {
                     </View>
                   )}
 
-                  <View style={[styles.content, loading && styles.loadingContent]} pointerEvents={loading ? "none" : "auto"}>
+                  <View style={[styles.content, loading && styles.loadingContent, { pointerEvents: loading ? "none" : "auto" }]}>
                     {!!LeftAccessory && (
                       <LeftAccessory
                         style={styles.leftAccessory}

@@ -205,8 +205,8 @@ function Slider({
               alignItems: "center",
             },
             valueLabelStyle,
+            { pointerEvents: "none" },
           ]}
-          pointerEvents="none"
         >
           <StyledText
             selectable={false}

@@ -194,7 +194,6 @@ export const Notification = () => {
     <Animated.View
       accessibilityLiveRegion="polite"
       accessibilityRole="alert"
-      pointerEvents={alert?.show ? "auto" : "none"}
       style={[
         styles.container,
         isBottom
@@ -202,6 +201,7 @@ export const Notification = () => {
           : { top: topPosition },
         animatedContainerStyle,
         !alert?.show && { opacity: 0 },
+        { pointerEvents: alert?.show ? "auto" : "none" },
       ]}
     >
       <View style={[
