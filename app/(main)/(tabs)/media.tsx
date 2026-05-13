@@ -966,7 +966,7 @@ const createStyles = (theme: Theme) =>
       alignItems: "center",
     },
     playOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       justifyContent: "center",
       alignItems: "center",
       backgroundColor: "rgba(0, 0, 0, 0.3)",

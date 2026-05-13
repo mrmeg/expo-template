@@ -68,6 +68,11 @@ export function RootLayout() {
 `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`,
 `SelectContent`, or `Tooltip`.
 
+On native, `BottomSheet.Content` avoids the soft keyboard by default through
+`react-native-keyboard-controller`. Mount that library's `KeyboardProvider`
+near the app root before using bottom sheets with text inputs, or pass
+`avoidKeyboard={false}` to opt out for a specific sheet.
+
 i18n is optional. Do not add app-level i18n setup just to use this package.
 Plain children and `text` props work without `i18next` or `react-i18next`.
 `tx` props render fallback text when provided and otherwise render the key
@@ -154,7 +159,7 @@ Use this table before creating a new app-local primitive.
 | `Alert` | Cross-platform imperative alerts | Direct `window.alert` or duplicated RN/web branching | Confirm destructive actions, native alert dialogs |
 | `AnimatedView` | Entrance and visibility animation | Hand-rolled Reanimated wrappers | Staggered list rows, revealed panels, animated empty states |
 | `Badge` | Short status labels | Custom pill `View` + `Text` | Draft/active states, counts, plan labels, role tags |
-| `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets | Action pickers, mobile filters, quick edit forms |
+| `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets | Action pickers, mobile filters, keyboard-aware quick edit forms |
 | `Button` | Commands and CTAs | Pressable plus custom text styling | Submit, save, cancel, delete, navigation CTAs |
 | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Framed content groups | Ad hoc bordered panels | List items, pricing plans, settings sections, summaries |
 | `Checkbox` | Boolean selection | Custom checkmark controls | Terms consent, checklist items, multi-select filters |

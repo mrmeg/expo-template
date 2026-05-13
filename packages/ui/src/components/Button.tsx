@@ -476,7 +476,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       marginLeft: spacing.sm,
     } as ViewStyle,
     loaderOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       alignItems: "center",
       justifyContent: "center",
     } as ViewStyle,

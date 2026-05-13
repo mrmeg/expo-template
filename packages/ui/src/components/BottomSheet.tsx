@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   View,
   ViewProps,
@@ -18,6 +18,7 @@ import {
 import { Portal } from "@rn-primitives/portal";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { Pressable as SlotPressable } from "@rn-primitives/slot";
+import { KeyboardController, useKeyboardAnimation } from "react-native-keyboard-controller";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { shouldUseNativeDriver } from "../lib/animations";
@@ -95,6 +96,10 @@ interface BottomSheetContentProps extends ViewProps {
   swipeEnabled?: boolean;
   /** Velocity threshold for quick swipe to close */
   velocityThreshold?: number;
+  /** Whether to move the sheet with the native keyboard animation. Default: true. */
+  avoidKeyboard?: boolean;
+  /** Whether to dismiss the keyboard when a native drag starts. Default: true. */
+  dismissKeyboardOnDrag?: boolean;
   style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
 }
@@ -121,6 +126,15 @@ interface BottomSheetCloseProps {
   style?: StyleProp<ViewStyle>;
 }
 
+type BottomSheetPanelProps = ViewProps & {
+  accessibilityViewIsModal?: boolean;
+  children: React.ReactNode;
+  panHandlers?: ReturnType<typeof PanResponder.create>["panHandlers"];
+  sheetStyle: ViewStyle;
+  styleOverride?: StyleProp<ViewStyle>;
+  translateY: Animated.Value | Animated.AnimatedAddition<number>;
+};
+
 // ============================================================================
 // Context
 // ============================================================================
@@ -145,6 +159,43 @@ interface DragContextValue {
 }
 
 const DragContext = createContext<DragContextValue | null>(null);
+
+function BottomSheetPanel({
+  accessibilityViewIsModal,
+  children,
+  panHandlers,
+  sheetStyle,
+  styleOverride,
+  translateY,
+  ...props
+}: BottomSheetPanelProps) {
+  return (
+    <Animated.View
+      style={[
+        sheetStyle,
+        { transform: [{ translateY }] },
+        styleOverride && typeof styleOverride !== "function"
+          ? StyleSheet.flatten(styleOverride)
+          : undefined,
+      ]}
+      accessibilityViewIsModal={accessibilityViewIsModal}
+      {...panHandlers}
+      {...props}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+function KeyboardAvoidingBottomSheetPanel(props: BottomSheetPanelProps) {
+  const { height: keyboardHeight } = useKeyboardAnimation();
+  const composedTranslateY = useMemo(
+    () => Animated.add(props.translateY, keyboardHeight),
+    [keyboardHeight, props.translateY]
+  );
+
+  return <BottomSheetPanel {...props} translateY={composedTranslateY} />;
+}
 
 // ============================================================================
 // Utility Functions
@@ -263,6 +314,8 @@ function BottomSheetTrigger({ asChild, children, style: styleOverride }: BottomS
 function BottomSheetContent({
   swipeEnabled = true,
   velocityThreshold = 500,
+  avoidKeyboard = true,
+  dismissKeyboardOnDrag = true,
   style: styleOverride,
   children,
   ...props
@@ -382,6 +435,12 @@ function BottomSheetContent({
     [translateY, backdropOpacity, maxHeight]
   );
 
+  const dismissKeyboardForDrag = useCallback(() => {
+    if (Platform.OS !== "web" && dismissKeyboardOnDrag) {
+      void KeyboardController.dismiss();
+    }
+  }, [dismissKeyboardOnDrag]);
+
   // ------------------------------------------------------------------
   // Trigger animation during render if open changed
   // ------------------------------------------------------------------
@@ -452,34 +511,37 @@ function BottomSheetContent({
   // Native: PanResponder for swipe gestures on the whole sheet
   // ------------------------------------------------------------------
 
-  const panResponder = useRef(
-    Platform.OS !== "web" && swipeEnabled
-      ? PanResponder.create({
-        onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (
-          _evt: GestureResponderEvent,
-          gestureState: PanResponderGestureState
-        ) => {
-          const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
-          const isSignificant = Math.abs(gestureState.dy) > 10;
-          const isDownward = gestureState.dy > 0;
-          return isVertical && isSignificant && isDownward;
-        },
-        onPanResponderMove: (
-          _evt: GestureResponderEvent,
-          gestureState: PanResponderGestureState
-        ) => {
-          handleDragMove(gestureState.dy);
-        },
-        onPanResponderRelease: (
-          _evt: GestureResponderEvent,
-          gestureState: PanResponderGestureState
-        ) => {
-          handleDragRelease(Math.max(0, gestureState.dy), gestureState.vy);
-        },
-      })
-      : null
-  ).current;
+  const panResponder = useMemo(
+    () =>
+      Platform.OS !== "web" && swipeEnabled
+        ? PanResponder.create({
+          onStartShouldSetPanResponder: () => false,
+          onMoveShouldSetPanResponder: (
+            _evt: GestureResponderEvent,
+            gestureState: PanResponderGestureState
+          ) => {
+            const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+            const isSignificant = Math.abs(gestureState.dy) > 10;
+            const isDownward = gestureState.dy > 0;
+            return isVertical && isSignificant && isDownward;
+          },
+          onPanResponderGrant: dismissKeyboardForDrag,
+          onPanResponderMove: (
+            _evt: GestureResponderEvent,
+            gestureState: PanResponderGestureState
+          ) => {
+            handleDragMove(gestureState.dy);
+          },
+          onPanResponderRelease: (
+            _evt: GestureResponderEvent,
+            gestureState: PanResponderGestureState
+          ) => {
+            handleDragRelease(Math.max(0, gestureState.dy), gestureState.vy);
+          },
+        })
+        : null,
+    [dismissKeyboardForDrag, handleDragMove, handleDragRelease, swipeEnabled]
+  );
 
   // ------------------------------------------------------------------
   // Web: drag context provides callbacks for Handle's pointer events
@@ -529,6 +591,11 @@ function BottomSheetContent({
     </TextColorContext.Provider>
   );
 
+  const PanelComponent =
+    Platform.OS !== "web" && avoidKeyboard
+      ? KeyboardAvoidingBottomSheetPanel
+      : BottomSheetPanel;
+
   const contentElement = (
     <Portal name="bottom-sheet-portal">
       <FullWindowOverlay>
@@ -552,20 +619,16 @@ function BottomSheetContent({
             </Animated.View>
 
             {/* Sheet Panel */}
-            <Animated.View
-              style={[
-                sheetStyle,
-                { transform: [{ translateY }] },
-                styleOverride && typeof styleOverride !== "function"
-                  ? StyleSheet.flatten(styleOverride)
-                  : undefined,
-              ]}
+            <PanelComponent
+              sheetStyle={sheetStyle}
+              styleOverride={styleOverride}
+              translateY={translateY}
               accessibilityViewIsModal={true}
               {...(Platform.OS === "web" && {
                 role: "dialog",
                 "aria-modal": true,
               } as any)}
-              {...(panResponder ? panResponder.panHandlers : {})}
+              panHandlers={panResponder ? panResponder.panHandlers : undefined}
               {...props}
             >
               {dragContextValue ? (
@@ -575,7 +638,7 @@ function BottomSheetContent({
               ) : (
                 sheetContent
               )}
-            </Animated.View>
+            </PanelComponent>
           </View>
         </BottomSheetContext.Provider>
       </FullWindowOverlay>

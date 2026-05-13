@@ -10,7 +10,8 @@
    ```
 4. Restart the dev server
 
-That's it. The app automatically initializes Sentry when the DSN is present and does nothing when it's empty.
+That's it for runtime error reporting. The app initializes Sentry when the DSN
+is present and does nothing when it's empty.
 
 ## How It Works
 
@@ -35,25 +36,28 @@ npx sentry-cli sourcemaps upload \
   dist/
 ```
 
-## EAS Build Integration
+## Native Upload Integration
 
-For native builds, add the Sentry Expo plugin to `app.json`:
+Native debug-symbol and source-map upload is intentionally separate from the
+runtime DSN so the template still builds before Sentry is set up.
 
-```json
-{
-  "expo": {
-    "plugins": [
-      ["@sentry/react-native/expo", {
-        "organization": "YOUR_ORG",
-        "project": "YOUR_PROJECT"
-      }]
-    ]
-  }
-}
+Set all three private values in your local shell or EAS secrets before running
+`expo prebuild` / native builds:
+
+```bash
+SENTRY_AUTH_TOKEN=sntrys_...
+SENTRY_ORG=your-org
+SENTRY_PROJECT=your-project
 ```
 
-This automatically uploads native source maps during EAS builds. Requires `SENTRY_AUTH_TOKEN` in EAS secrets.
+When all three are present, `app.config.ts` registers the Sentry native config
+plugin. When any value is missing, generated native projects do not get Sentry
+upload steps, so local builds skip upload instead of failing before Sentry is
+set up.
 
 ## Disabling Sentry
 
-Remove or leave empty the `EXPO_PUBLIC_SENTRY_DSN` env var. The integration is completely inert when no DSN is configured — no network requests, no global handlers.
+Remove or leave empty the Sentry env vars. With no
+`EXPO_PUBLIC_SENTRY_DSN`, runtime tracking is inert. With any of
+`SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, or `SENTRY_PROJECT` missing, native upload
+steps are skipped.

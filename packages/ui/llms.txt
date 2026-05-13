@@ -25,6 +25,8 @@ Call useResources() once near the Expo app root. Mount UIProvider once near the
 root before using package notifications or overlay primitives: Dialog,
 AlertDialog, BottomSheet, Drawer, DropdownMenu, Popover, SelectContent, or
 Tooltip.
+On native, mount react-native-keyboard-controller's KeyboardProvider before
+using BottomSheet.Content with text inputs; avoidKeyboard defaults to true.
 
 Use useTheme(), useStyles(), semantic tokens, StyledText, and package controls.
 Do not add app-local Appearance or matchMedia listeners for package theme sync.

@@ -92,6 +92,9 @@
 - Sentry is loaded through `client/lib/sentry.ts` with a dynamic import. When
   `EXPO_PUBLIC_SENTRY_DSN` is unset, startup does not install global handlers
   or pull `@sentry/react-native` into the entry bundle.
+- Native Sentry debug-symbol/source-map upload is separately gated on
+  `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`; template native
+  builds skip upload when any of those values are missing.
 - Shared icon/resource code imports `@expo/vector-icons/Feather` directly
   rather than the package barrel so other icon sets do not become entry
   dependencies.

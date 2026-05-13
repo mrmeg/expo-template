@@ -35,7 +35,7 @@ export default function TabLayout() {
         options={{
           title: "Explore",
           tabBarIcon: ({ color, size }) => (
-            <Icon name="compass" color={color} size={size} />
+            <Icon name="compass" color={color as string} size={size} />
           ),
         }}
       />
@@ -44,7 +44,7 @@ export default function TabLayout() {
         options={{
           title: "Media",
           tabBarIcon: ({ color, size }) => (
-            <Icon name="image" color={color} size={size} />
+            <Icon name="image" color={color as string} size={size} />
           ),
         }}
       />
@@ -53,7 +53,7 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, size }) => (
-            <Icon name="user" color={color} size={size} />
+            <Icon name="user" color={color as string} size={size} />
           ),
         }}
       />
@@ -62,7 +62,7 @@ export default function TabLayout() {
         options={{
           title: "Settings",
           tabBarIcon: ({ color, size }) => (
-            <Icon name="settings" color={color} size={size} />
+            <Icon name="settings" color={color as string} size={size} />
           ),
         }}
       />

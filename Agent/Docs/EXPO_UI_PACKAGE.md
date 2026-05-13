@@ -38,7 +38,7 @@ After publishing, consumer apps install the package from npm:
 bun add @mrmeg/expo-ui
 ```
 
-Consumers must also install the native and Expo peer dependencies listed in `packages/ui/package.json`. `@rn-primitives/*` packages are package-managed because they are implementation details of the exported UI components and `UIProvider` mounts the portal host used by package overlays. i18n setup is optional; package text components render plain children and `text` props without `i18next` or `react-i18next`. Keep npm auth tokens in developer, CI, or package-manager configuration. Do not commit tokens.
+Consumers must also install the native and Expo peer dependencies listed in `packages/ui/package.json`. `@rn-primitives/*` packages are package-managed because they are implementation details of the exported UI components and `UIProvider` mounts the portal host used by package overlays. Native bottom sheet keyboard avoidance uses `react-native-keyboard-controller`; mount that library's `KeyboardProvider` near the app root when sheets contain text inputs. i18n setup is optional; package text components render plain children and `text` props without `i18next` or `react-i18next`. Keep npm auth tokens in developer, CI, or package-manager configuration. Do not commit tokens.
 
 The published package is tested against the Expo SDK 55 stack used by this
 template: React 19.2, React Native 0.83, React Native Web 0.21,
@@ -101,6 +101,7 @@ Call `useResources()` once near the app root and feed its `loaded` value into th
 
 ```tsx
 import { ThemeProvider } from "@react-navigation/native";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import * as SplashScreen from "expo-splash-screen";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
@@ -124,17 +125,20 @@ export default function RootLayout() {
         fonts: colors[scheme ?? "light"].fonts,
       }}
     >
-      <UIProvider>
-        <ErrorBoundary>
-          {/* App navigation goes here. */}
-        </ErrorBoundary>
-      </UIProvider>
+      <KeyboardProvider>
+        <UIProvider>
+          <ErrorBoundary>
+            {/* App navigation goes here. */}
+          </ErrorBoundary>
+        </UIProvider>
+      </KeyboardProvider>
     </ThemeProvider>
   );
 }
 ```
 
 `UIProvider` mounts `Notification`, `StatusBar`, and the default portal host required by `@rn-primitives` overlays such as dialogs, popovers, tooltips, and dropdown menus. Disable individual mounts with `notification={false}`, `statusBar={false}`, or `portalHost={false}` only when an app deliberately owns that root surface.
+`KeyboardProvider` gives native `BottomSheet.Content` access to keyboard-controller animation values; pass `avoidKeyboard={false}` for sheets that should not move with the soft keyboard.
 
 ## Theme System
 
@@ -426,7 +430,7 @@ These components require `UIProvider` mounted near the app root so the package-o
 | Component | Use For | Notes |
 |-----------|---------|-------|
 | `Dialog`, `AlertDialog` | Modal decisions and custom modal content | Compound primitives include trigger/content/header/body/footer/title/description/close patterns |
-| `BottomSheet` | Mobile-first modal sheets | Compound parts include trigger, content, header, body, footer, handle, close |
+| `BottomSheet` | Mobile-first modal sheets | Compound parts include trigger, content, header, body, footer, handle, close; native `Content` avoids the keyboard by default when `KeyboardProvider` is mounted |
 | `Drawer` | Side panels and navigation drawers | Compound parts include trigger, content, header, body, footer, close |
 | `DropdownMenu` | Menus and command lists | Supports submenus, checkbox/radio items, labels, separators, shortcuts |
 | `Popover` | Anchored contextual content | Compound header/body/footer support |
@@ -676,6 +680,7 @@ For workspace development inside this template, the root dependency is `@mrmeg/e
 - Use `useTheme()` and semantic theme tokens instead of hardcoded colors.
 - Use `StyledText` semantic variants instead of raw `Text` when building UI with this library.
 - Mount `UIProvider` before using dialogs, drawers, popovers, dropdown menus, tooltips, select content, or package notifications.
+- Mount `KeyboardProvider` from `react-native-keyboard-controller` before using native bottom sheets with text inputs.
 - Keep package code free of `@/client/*` imports.
 - Keep npm auth tokens and publish credentials out of the repo.
 - Update this doc when the package export map, startup contract, or font strategy changes.
@@ -685,5 +690,6 @@ For workspace development inside this template, the root dependency is `@mrmeg/e
 - Copying `packages/ui/src/components/*` into each app instead of installing the package.
 - Adding package assets to fix fonts. Web font loading belongs in Google Fonts links and `useResources()`; native currently uses system fallback.
 - Forgetting `UIProvider`, which breaks overlay primitives and package notifications.
+- Forgetting `KeyboardProvider`, which leaves native bottom sheets without keyboard-controller animation values.
 - Importing from `packages/ui/src/*` in consumer apps. Consumers should import from `@mrmeg/expo-ui/*`.
 - Treating a local workspace path as the publish contract. `packages/ui/package.json` exports are the source of truth.

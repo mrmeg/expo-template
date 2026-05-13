@@ -450,6 +450,9 @@ unmatched requests to `expo-server/adapter/bun`. The Express fallback
 | `EXPO_PUBLIC_USER_POOL_ID` | Cognito User Pool ID | Optional — set together with the client id to enable auth; setting just one warns at startup |
 | `EXPO_PUBLIC_USER_POOL_CLIENT_ID` | Cognito App Client ID | Optional — set together with the pool id to enable auth |
 | `EXPO_PUBLIC_SENTRY_DSN` | Sentry DSN | Optional |
+| `SENTRY_AUTH_TOKEN` | Sentry native upload auth token | Optional — set with org/project to upload native debug symbols and source maps |
+| `SENTRY_ORG` | Sentry organization slug | Optional — set with auth token/project for native upload |
+| `SENTRY_PROJECT` | Sentry project slug | Optional — set with auth token/org for native upload |
 | `EXPO_PUBLIC_BILLING_ENABLED` | Billing feature flag (`"true"` to enable) | Optional (default `false`) |
 | `EXPO_PUBLIC_APP_URL` | Absolute web origin for hosted-billing return URLs | Required when billing is enabled and the request origin is not the public origin |
 | `STRIPE_SECRET_KEY` | Stripe server SDK key | For billing |

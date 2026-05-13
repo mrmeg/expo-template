@@ -36,6 +36,11 @@ the root when the app uses package feedback or overlay components.
 `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`,
 `Tooltip`, or `globalUIStore` notifications.
 
+On native, `BottomSheet.Content` composes its sheet transform with
+`react-native-keyboard-controller` keyboard animation values. Mount that
+library's `KeyboardProvider` near the app root before using bottom sheets with
+text inputs, or pass `avoidKeyboard={false}` for sheets that should not move.
+
 i18n is optional. Plain children and `text` props work without `i18next` or
 `react-i18next`. Use `configureExpoUiI18n()` only when a consuming app wants
 package `tx` props translated by its app-owned i18n instance.
@@ -82,7 +87,7 @@ Use this catalog before creating a new app-local primitive.
 | `Alert` | `@mrmeg/expo-ui/components` | Cross-platform imperative alerts | Avoid direct `window.alert` and duplicated native/web branching. |
 | `AnimatedView` | `@mrmeg/expo-ui/components` | Entrance and visibility animation | Keep simple reveal effects in the package wrapper. |
 | `Badge` | `@mrmeg/expo-ui/components` | Short status labels | Prefer over custom pill views. |
-| `BottomSheet` | `@mrmeg/expo-ui/components` | Mobile-first modal sheets | Requires root `UIProvider` portal setup. |
+| `BottomSheet` | `@mrmeg/expo-ui/components` | Mobile-first modal sheets | Requires root `UIProvider`; native text-input sheets also require `KeyboardProvider`. |
 | `Button` | `@mrmeg/expo-ui/components` | Commands and CTAs | Use `preset`, not `variant`; visible heights are compact. |
 | `Card` | `@mrmeg/expo-ui/components` | Individual framed content groups | Do not wrap whole page sections in cards. |
 | `Checkbox` | `@mrmeg/expo-ui/components` | Boolean selection in forms or lists | Prefer over custom checkmark controls. |

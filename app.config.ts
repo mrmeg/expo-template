@@ -41,13 +41,26 @@ function resolveBuildNodeHeapMb(): string {
   return "32768";
 }
 
-function isSentryConfigured(): boolean {
-  return Boolean(process.env.EXPO_PUBLIC_SENTRY_DSN?.trim());
+function readOptionalEnv(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+
+  return value || undefined;
+}
+
+function readSentryNativeUploadConfig(): { organization: string; project: string } | null {
+  const authToken = readOptionalEnv("SENTRY_AUTH_TOKEN");
+  const organization = readOptionalEnv("SENTRY_ORG");
+  const project = readOptionalEnv("SENTRY_PROJECT");
+
+  if (!authToken || !organization || !project) {
+    return null;
+  }
+
+  return { organization, project };
 }
 
 function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
   const plugins: NonNullable<ExpoConfig["plugins"]> = [
-    "@sentry/react-native",
     [
       "expo-router",
       {
@@ -83,8 +96,16 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
     "expo-localization",
   ];
 
-  if (isSentryConfigured()) {
-    plugins.push("@sentry/react-native");
+  const sentryNativeUpload = readSentryNativeUploadConfig();
+
+  if (sentryNativeUpload) {
+    plugins.push([
+      "@sentry/react-native/expo",
+      {
+        organization: sentryNativeUpload.organization,
+        project: sentryNativeUpload.project,
+      },
+    ]);
   }
 
   return plugins;

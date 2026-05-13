@@ -1642,6 +1642,10 @@ const BottomSheetSection = memo(function BottomSheetSection({
   const [snapOpen, setSnapOpen] = useState(false);
   const [fullOpen, setFullOpen] = useState(false);
   const [scrollOpen, setScrollOpen] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [keyboardTitle, setKeyboardTitle] = useState("Weekly planning");
+  const [keyboardNote, setKeyboardNote] = useState("");
+  const [keyboardFooterNote, setKeyboardFooterNote] = useState("");
 
   return (
     <Section title="Bottom Sheet">
@@ -1784,6 +1788,66 @@ const BottomSheetSection = memo(function BottomSheetSection({
                   Accept
                 </SansSerifText>
               </Button>
+            </BottomSheet.Footer>
+          </BottomSheet.Content>
+        </BottomSheet>
+      </SubSection>
+
+      <SubSection label="Keyboard Avoidance">
+        <BottomSheet open={keyboardOpen} onOpenChange={setKeyboardOpen} snapPoints={["65%"]}>
+          <BottomSheet.Trigger asChild>
+            <Button preset="outline">
+              <SansSerifText style={{ color: theme.colors.foreground }}>
+                Open keyboard sheet
+              </SansSerifText>
+            </Button>
+          </BottomSheet.Trigger>
+          <BottomSheet.Content>
+            <BottomSheet.Handle />
+            <BottomSheet.Header>
+              <View style={styles.sheetHeaderRow}>
+                <SansSerifBoldText style={styles.sheetHeaderTitle}>
+                  Edit reminder
+                </SansSerifBoldText>
+                <BottomSheet.Close asChild>
+                  <Button preset="ghost" size="sm">
+                    <Icon name="x" size={20} color={theme.colors.mutedForeground} />
+                  </Button>
+                </BottomSheet.Close>
+              </View>
+            </BottomSheet.Header>
+            <BottomSheet.Body>
+              <View style={styles.sheetForm}>
+                <TextInput
+                  label="Title"
+                  placeholder="Reminder title"
+                  value={keyboardTitle}
+                  onChangeText={setKeyboardTitle}
+                />
+                <TextInput
+                  label="Details"
+                  placeholder="Add context..."
+                  multiline
+                  numberOfLines={4}
+                  value={keyboardNote}
+                  onChangeText={setKeyboardNote}
+                />
+              </View>
+            </BottomSheet.Body>
+            <BottomSheet.Footer>
+              <View style={styles.sheetFooterForm}>
+                <TextInput
+                  label="Footer note"
+                  placeholder="Quick note"
+                  value={keyboardFooterNote}
+                  onChangeText={setKeyboardFooterNote}
+                />
+                <Button preset="default" fullWidth onPress={() => setKeyboardOpen(false)}>
+                  <SansSerifText style={{ color: theme.colors.accentForeground }}>
+                    Save reminder
+                  </SansSerifText>
+                </Button>
+              </View>
             </BottomSheet.Footer>
           </BottomSheet.Content>
         </BottomSheet>
@@ -2201,6 +2265,12 @@ const createStyles = (theme: Theme) =>
     // Bottom Sheet
     sheetSection: {
       marginBottom: spacing.lg,
+    },
+    sheetForm: {
+      gap: spacing.md,
+    },
+    sheetFooterForm: {
+      gap: spacing.sm,
     },
     sheetTitle: {
       fontSize: 20,

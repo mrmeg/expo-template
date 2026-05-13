@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- Made native Sentry upload truly optional for the template. `app.config.ts`
+  now registers the Sentry native config plugin only when `SENTRY_AUTH_TOKEN`,
+  `SENTRY_ORG`, and `SENTRY_PROJECT` are all present, so generated native
+  projects do not install debug-symbol/source-map upload steps until Sentry is
+  configured.
+
+- Added keyboard-controller-backed native keyboard avoidance to
+  `@mrmeg/expo-ui` `BottomSheet.Content`. Native sheets now compose their
+  existing snap/drag transform with `react-native-keyboard-controller`
+  animation values, dismiss the keyboard when a drag starts by default, and
+  expose `avoidKeyboard` / `dismissKeyboardOnDrag` opt-out props. The UI
+  package version is now `0.2.0` for publishing/updating consumers.
+
 - Fixed production serving for Bun-exported package assets. Expo web export
   writes package fonts/images under `dist/client/assets/node_modules/.bun`,
   and Express' default static middleware ignores dot-directories. The

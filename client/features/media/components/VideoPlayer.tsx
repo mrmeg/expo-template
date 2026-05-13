@@ -219,7 +219,7 @@ const createStyles = (theme: Theme, topInset: number) =>
       height: "100%",
     },
     loadingOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       justifyContent: "center",
       alignItems: "center",
       backgroundColor: "black",
@@ -231,7 +231,7 @@ const createStyles = (theme: Theme, topInset: number) =>
       fontSize: 14,
     },
     errorOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       justifyContent: "center",
       alignItems: "center",
       backgroundColor: "black",

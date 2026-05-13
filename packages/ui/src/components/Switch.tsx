@@ -159,7 +159,7 @@ function Switch({
       {/* Track background */}
       <View
         style={{
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           borderRadius: size.height / 2,
           backgroundColor: trackBg,
           borderWidth: 1,
