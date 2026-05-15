@@ -94,6 +94,7 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
     "expo-font",
     "expo-web-browser",
     "expo-localization",
+    "@sentry/react-native"
   ];
 
   const sentryNativeUpload = readSentryNativeUploadConfig();
