@@ -12,6 +12,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { useResources } from "@mrmeg/expo-ui/hooks";
+import { syncThemeFromEnvironment } from "@mrmeg/expo-ui/state";
 import { UIProvider } from "@mrmeg/expo-ui/components/UIProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -81,6 +82,13 @@ export default function RootLayout() {
   // Initialize i18n
   useEffect(() => {
     initI18n().then(() => setI18nReady(true));
+  }, []);
+
+  // Read persisted theme + start the OS color-scheme listener after the
+  // first commit. Deferring keeps SSR and the initial client render in
+  // sync — see packages/ui/src/state/themeStore.ts.
+  useEffect(() => {
+    return syncThemeFromEnvironment();
   }, []);
 
   // Hide splash screen once the full startup gate has resolved — fonts, i18n,

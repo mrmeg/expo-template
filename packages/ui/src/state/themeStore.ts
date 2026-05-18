@@ -32,7 +32,9 @@ function getSystemTheme(): ResolvedTheme {
 
 export const useThemeStore = create<ThemeStore>((set) => ({
   userTheme: "system",
-  systemTheme: getSystemTheme(),
+  // Always start with "light" so SSR and the first client render agree.
+  // Real values are populated by `syncThemeFromEnvironment()` after mount.
+  systemTheme: "light",
 
   setTheme: (theme) => {
     set({
@@ -119,6 +121,19 @@ export function startSystemThemeListener(): () => void {
   return stopSystemThemeListener;
 }
 
-// Load saved theme on store creation
-useThemeStore.getState().loadTheme();
-startSystemThemeListener();
+// Single entry point for host apps to populate the store from the
+// environment (persisted preference + OS color scheme listener). Safe to
+// call multiple times — `startSystemThemeListener` is idempotent — and
+// returns the unsubscribe so it can be used directly inside `useEffect`.
+export function syncThemeFromEnvironment(): () => void {
+  useThemeStore.getState().loadTheme();
+  return startSystemThemeListener();
+}
+
+// Native has no SSR mismatch concern, so keep the historical auto-init
+// behavior there. On web the host app must call `syncThemeFromEnvironment()`
+// from a top-level `useEffect` to avoid hydration mismatches.
+if (Platform.OS !== "web") {
+  useThemeStore.getState().loadTheme();
+  startSystemThemeListener();
+}
