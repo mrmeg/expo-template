@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 // Type for allowed font weights in React Navigation v7
 type NavigationFontWeight =
   | "normal"
@@ -30,9 +32,13 @@ interface NavigationFonts {
 const WEB_FONT_STACK =
   "system-ui, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\"";
 
-const isReactNativeRuntime =
-  typeof navigator !== "undefined" && navigator.product === "ReactNative";
-const isWebRuntime = typeof document !== "undefined" && !isReactNativeRuntime;
+// IMPORTANT: do NOT key these on `typeof document` / `typeof navigator`.
+// On a web bundle, Node SSR sees `undefined` for both and the client sees them,
+// producing different snapshot values at module load -> hydration mismatch on
+// every <StyledText>. `Platform.OS` (from react-native-web) returns "web" in
+// both environments, so the value is stable.
+const isWebRuntime = Platform.OS === "web";
+const isReactNativeRuntime = Platform.OS !== "web";
 
 const serifFamilies = isWebRuntime
   ? { regular: "Georgia, 'Times New Roman', serif", bold: "Georgia, 'Times New Roman', serif" }
