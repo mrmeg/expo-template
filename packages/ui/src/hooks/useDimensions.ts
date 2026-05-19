@@ -17,20 +17,38 @@ type WindowDimensions = {
 }
 
 /**
+* Helper function to calculate dimension-based flags
+*/
+const calculateDimensionFlags = (width: number, height: number): WindowDimensions => {
+  const orientation = width > height ? "landscape" : "portrait";
+  return {
+    width,
+    height,
+    orientation,
+    isSmallScreen: width <= SCREEN_SIZES.SMALL,
+    isMediumScreen: width > SCREEN_SIZES.SMALL && width <= SCREEN_SIZES.MEDIUM,
+    isLargeScreen: width > SCREEN_SIZES.MEDIUM,
+  };
+};
+
+// SSR-safe default used for the very first render on both server and client.
+// We intentionally do NOT read window.innerWidth synchronously here, even on
+// the client: doing so would make the initial client render diverge from the
+// SSR HTML (server has no window) and produce hydration mismatches that cascade
+// through every responsive component and shift React's useId counter.
+// Real dimensions are populated by the useEffect after mount.
+const SSR_SAFE_INITIAL: WindowDimensions = calculateDimensionFlags(0, 0);
+
+/**
 * Provides a consistent way to access window dimensions and screen size information across mobile and web.
 *
 */
 export const useDimensions = (): WindowDimensions => {
   const isWeb = Platform.OS === "web";
 
-  const [dimensions, setDimensions] = useState<WindowDimensions>({
-    width: 0,
-    height: 0,
-    orientation: "portrait",
-    isSmallScreen: true,
-    isMediumScreen: false,
-    isLargeScreen: false,
-  });
+  // First render returns the SSR-safe value so server and client agree.
+  // The useEffect below replaces it with real dimensions on the client.
+  const [dimensions, setDimensions] = useState<WindowDimensions>(SSR_SAFE_INITIAL);
 
   useEffect(() => {
     const initialDimensions = isWeb
@@ -38,15 +56,7 @@ export const useDimensions = (): WindowDimensions => {
       : Dimensions.get("window");
 
     const updateDimensions = (width: number, height: number) => {
-      const orientation = width > height ? "landscape" : "portrait";
-      setDimensions({
-        width,
-        height,
-        orientation,
-        isSmallScreen: width <= SCREEN_SIZES.SMALL,
-        isMediumScreen: width > SCREEN_SIZES.SMALL,
-        isLargeScreen: width > SCREEN_SIZES.MEDIUM,
-      });
+      setDimensions(calculateDimensionFlags(width, height));
     };
 
     updateDimensions(initialDimensions.width, initialDimensions.height);
