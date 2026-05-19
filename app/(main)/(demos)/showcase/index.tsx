@@ -1,5 +1,5 @@
 import React, { memo, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
 import { KeyboardAwareScrollView } from "@/client/features/keyboard/platform";
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
@@ -92,37 +92,37 @@ export default function ShowcaseScreen() {
           <Section title="Button Presets">
             <SubSection label="Default">
               <Button preset="default" onPress={() => console.log("Default pressed")}>
-                <StyledText style={styles.buttonText}>Default Button</StyledText>
+                Default Button
               </Button>
             </SubSection>
 
             <SubSection label="Secondary">
               <Button preset="secondary" onPress={() => console.log("Secondary pressed")}>
-                <StyledText style={styles.buttonText}>Secondary Button</StyledText>
+                Secondary Button
               </Button>
             </SubSection>
 
             <SubSection label="Outline">
               <Button preset="outline" onPress={() => console.log("Outline pressed")}>
-                <StyledText style={styles.outlineButtonText}>Outline Button</StyledText>
+                Outline Button
               </Button>
             </SubSection>
 
             <SubSection label="Ghost">
               <Button preset="ghost" onPress={() => console.log("Ghost pressed")}>
-                <StyledText style={styles.ghostButtonText}>Ghost Button</StyledText>
+                Ghost Button
               </Button>
             </SubSection>
 
             <SubSection label="Link">
               <Button preset="link" onPress={() => console.log("Link pressed")}>
-                <StyledText style={styles.linkButtonText}>Link Button</StyledText>
+                Link Button
               </Button>
             </SubSection>
 
             <SubSection label="Destructive">
               <Button preset="destructive" onPress={() => console.log("Destructive pressed")}>
-                <StyledText style={styles.buttonText}>Destructive Button</StyledText>
+                Destructive Button
               </Button>
             </SubSection>
           </Section>
@@ -1360,33 +1360,39 @@ const AuthFormsSection = memo(function AuthFormsSection({
   return (
     <Section title="Auth Forms">
       <SubSection label="Select Form">
-        <ToggleGroup
-          type="single"
-          value={authForm}
-          onValueChange={(val) => {
-            if (val) {
-              setAuthForm(val);
-              setForgotPasswordSuccess(false);
-              setResetPasswordSuccess(false);
-            }
-          }}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.authFormToggleRow}
         >
-          <ToggleGroupItem value="signin">
-            <StyledText style={styles.labelText}>Sign In</StyledText>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="signup">
-            <StyledText style={styles.labelText}>Sign Up</StyledText>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="verify">
-            <StyledText style={styles.labelText}>Verify</StyledText>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="forgot">
-            <StyledText style={styles.labelText}>Forgot</StyledText>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="reset">
-            <StyledText style={styles.labelText}>Reset</StyledText>
-          </ToggleGroupItem>
-        </ToggleGroup>
+          <ToggleGroup
+            type="single"
+            value={authForm}
+            onValueChange={(val) => {
+              if (val) {
+                setAuthForm(val);
+                setForgotPasswordSuccess(false);
+                setResetPasswordSuccess(false);
+              }
+            }}
+          >
+            <ToggleGroupItem value="signin">
+              <StyledText style={styles.labelText}>Sign In</StyledText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="signup">
+              <StyledText style={styles.labelText}>Sign Up</StyledText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="verify">
+              <StyledText style={styles.labelText}>Verify</StyledText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="forgot">
+              <StyledText style={styles.labelText}>Forgot</StyledText>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="reset">
+              <StyledText style={styles.labelText}>Reset</StyledText>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </ScrollView>
       </SubSection>
 
       {authForm === "signin" && (
@@ -2081,9 +2087,10 @@ const createStyles = (theme: Theme) =>
     },
 
     // Shared text styles
+    // No `color` override — Button supplies the correct per-preset text color
+    // via TextColorContext (e.g. secondaryForeground for `preset="secondary"`).
     buttonText: {
       fontFamily: fontFamilies.sansSerif.bold,
-      color: theme.colors.primaryForeground,
     },
     outlineButtonText: {
       fontFamily: fontFamilies.sansSerif.bold,
@@ -2115,6 +2122,9 @@ const createStyles = (theme: Theme) =>
     },
 
     // Forms
+    authFormToggleRow: {
+      paddingRight: spacing.md,
+    },
     switchRow: {
       flexDirection: "row",
       alignItems: "center",

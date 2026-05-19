@@ -19,6 +19,10 @@ export default function MainLayout() {
     <Stack
       initialRouteName="(tabs)"
       screenOptions={{
+        // Painted underneath each stack screen. Without this the screen
+        // container defaults to white and flashes through on push/pop and
+        // during the first frame of a freshly-mounted screen.
+        contentStyle: { backgroundColor: theme.colors.background },
         headerStyle: { backgroundColor: theme.colors.background },
         headerTintColor: theme.colors.foreground,
         headerTitleStyle: { fontWeight: "600" },

@@ -89,15 +89,15 @@
     "zustand": "^5.0.12"
   },
   "peerDependencies": {
-    "expo": "~55.0.0",
-    "expo-crypto": "~55.0.0",
-    "expo-file-system": "~55.0.0",
-    "expo-image-manipulator": "~55.0.0",
-    "expo-image-picker": "~55.0.0",
-    "expo-video-thumbnails": "~55.0.0",
+    "expo": ">=55.0.0 <57.0.0",
+    "expo-crypto": ">=55.0.0 <57.0.0",
+    "expo-file-system": ">=55.0.0 <57.0.0",
+    "expo-image-manipulator": ">=55.0.0 <57.0.0",
+    "expo-image-picker": ">=55.0.0 <57.0.0",
+    "expo-video-thumbnails": ">=55.0.0 <57.0.0",
     "heic2any": "^0.0.4",
     "react": ">=19.2.0 <20.0.0",
-    "react-native": ">=0.83.0 <0.84.0"
+    "react-native": ">=0.83.0 <0.86.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.14",

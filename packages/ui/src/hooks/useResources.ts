@@ -3,6 +3,16 @@ import * as Font from "expo-font";
 import Feather from "@expo/vector-icons/Feather";
 import { Platform } from "react-native";
 
+// Eager, module-scope load so expo-font registers Feather in its SSR
+// serverContext. When the server renders the HTML document, expo-font emits
+// an @font-face <style> into the head — without this kickoff, server-rendered
+// <Icon> components paint as empty glyphs until hydration runs the effect
+// below, producing a visible icon-pop flash on icon-heavy SSR screens
+// (e.g. OnboardingFlow). On the client this also primes the font ahead of
+// the effect; the effect's loadAsync becomes a no-op for the already-loaded
+// font.
+void Font.loadAsync(Feather.font);
+
 interface LoadResourcesResult {
   loaded: boolean;
   error: Error | null;

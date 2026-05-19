@@ -6,12 +6,11 @@ import {
   StyleSheet,
   Platform,
   ViewToken,
-  useWindowDimensions,
 } from "react-native";
 import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, useDimensions } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -78,7 +77,11 @@ export function OnboardingFlow({
 }: OnboardingFlowProps) {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const { width: screenWidth } = useWindowDimensions();
+  // SSR-aware: react-native's useWindowDimensions returns width:0 on server,
+  // which collapses each FlatList page to a 0-width column (one word per
+  // line). useDimensions seeds from SsrViewportContext so the initial render
+  // matches the viewport — set at the root in app/_layout.tsx.
+  const { width: screenWidth } = useDimensions();
 
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);

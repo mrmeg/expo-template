@@ -14,6 +14,10 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        // Painted underneath each tab's scene. Without this the navigator's
+        // scene container defaults to white and shows through during the
+        // tab-switch transition (most visible in dark mode).
+        sceneStyle: { backgroundColor: theme.colors.background },
         tabBarActiveTintColor: theme.colors.accent,
         tabBarInactiveTintColor: theme.colors.mutedForeground,
         tabBarStyle: {

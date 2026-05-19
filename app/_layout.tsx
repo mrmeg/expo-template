@@ -6,6 +6,7 @@ if (__DEV__) {
 }
 
 import { useEffect, useState, type ErrorInfo } from "react";
+import { Platform } from "react-native";
 import { ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -91,6 +92,14 @@ export default function RootLayout() {
     return syncThemeFromEnvironment();
   }, []);
 
+  // Drop the `theme-loading` shield that the blocking script in +html.tsx
+  // adds for dark-mode visitors. Once React has committed, the rendered tree
+  // is themed correctly and there's no white-flash risk to mitigate.
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined") return;
+    document.documentElement.classList.remove("theme-loading");
+  }, []);
+
   // Hide splash screen once the full startup gate has resolved — fonts, i18n,
   // onboarding persistence, and (when configured) auth bootstrap.
   useEffect(() => {
@@ -99,7 +108,10 @@ export default function RootLayout() {
     }
   }, [ready]);
 
-  if (!ready) {
+  // Block render on native until startup completes so the splash screen stays
+  // visible and we don't flash an unstyled tree. On web, render through so
+  // SSR ships real content (fonts/i18n come in via useEffect after mount).
+  if (Platform.OS !== "web" && !ready) {
     return null;
   }
 
@@ -119,7 +131,14 @@ export default function RootLayout() {
                 onError={reportBoundaryError}
               >
                 {hasSeenOnboarding ? (
-                  <Stack screenOptions={{ headerShown: false }}>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      // Theme-aware backdrop so the white default doesn't
+                      // flash through on screen transitions.
+                      contentStyle: { backgroundColor: colors[scheme ?? "light"].colors.background },
+                    }}
+                  >
                     <Stack.Screen name="(main)" />
                     <Stack.Screen name="+not-found" />
                   </Stack>
