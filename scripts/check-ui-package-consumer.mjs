@@ -231,12 +231,10 @@ try {
   await writeFile(
     join(fixture, "runtime-check.mjs"),
     [
-      "const runtimeSafeEntrypoints = [",
-      "  {",
-      "    specifier: \"@mrmeg/expo-ui/constants\",",
-      "    validate: (module) => Boolean(module.colors && module.spacing && module.typography),",
-      "  },",
-      "];",
+      "// constants now imports Platform from \"react-native\" (for SSR-stable web detection),",
+      "// so it requires a bundler alias to react-native-web. The Expo export step below",
+      "// still exercises the full surface via Metro.",
+      "const runtimeSafeEntrypoints = [];",
       "",
       "for (const entrypoint of runtimeSafeEntrypoints) {",
       "  try {",
