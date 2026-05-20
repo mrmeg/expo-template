@@ -50,14 +50,15 @@ SENTRY_ORG=your-org
 SENTRY_PROJECT=your-project
 ```
 
-When all three are present, `app.config.ts` registers the Sentry native config
-plugin. When any value is missing, generated native projects do not get Sentry
-upload steps, so local builds skip upload instead of failing before Sentry is
-set up.
+When all three are present, `app.config.ts` registers both Sentry config
+plugins (`@sentry/react-native` and `@sentry/react-native/expo`), which wire
+sentry-cli into the iOS and Android build phases. When any value is missing,
+neither plugin is registered, so native builds skip Sentry upload steps
+entirely instead of invoking sentry-cli without credentials.
 
 ## Disabling Sentry
 
 Remove or leave empty the Sentry env vars. With no
 `EXPO_PUBLIC_SENTRY_DSN`, runtime tracking is inert. With any of
-`SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, or `SENTRY_PROJECT` missing, native upload
-steps are skipped.
+`SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, or `SENTRY_PROJECT` missing, both Sentry
+config plugins are skipped and native builds run with no sentry-cli steps.

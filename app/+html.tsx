@@ -1,6 +1,6 @@
+import { type PropsWithChildren } from "react";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { ScrollViewStyleReset, useServerDocumentContext } from "expo-router/html";
-import { type PropsWithChildren } from "react";
 
 // This file is web-only and used to configure the root HTML for every
 // web page during server rendering.

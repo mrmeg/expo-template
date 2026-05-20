@@ -94,12 +94,17 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
     "expo-font",
     "expo-web-browser",
     "expo-localization",
-    "@sentry/react-native"
   ];
 
+  // Sentry's config plugins inject sentry-cli into native build phases for
+  // debug-symbol and source-map upload. We only register them when the upload
+  // credentials are present so the template builds clean before Sentry is
+  // configured. Runtime tracking (client/lib/sentry.ts) is gated separately on
+  // EXPO_PUBLIC_SENTRY_DSN and works without these plugins.
   const sentryNativeUpload = readSentryNativeUploadConfig();
 
   if (sentryNativeUpload) {
+    plugins.push("@sentry/react-native");
     plugins.push([
       "@sentry/react-native/expo",
       {

@@ -18,11 +18,11 @@ jest.mock("@aws-sdk/client-s3", () => {
     ListObjectsV2Command: MockCommand,
     PutObjectCommand: MockCommand,
   };
-});
+}, { virtual: true });
 
 jest.mock("@aws-sdk/s3-request-presigner", () => ({
   getSignedUrl: jest.fn(async () => "https://signed.example/url"),
-}));
+}), { virtual: true });
 
 import { setTokenVerifier } from "@/server/api/shared/auth";
 
@@ -67,6 +67,7 @@ describe("media route auth policy", () => {
   const originalEnv: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>> = {};
 
   beforeEach(() => {
+    jest.resetModules();
     for (const key of ENV_KEYS) originalEnv[key] = process.env[key];
     configureStorage();
     delete process.env.EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA;

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { StyleProp, ViewStyle, View } from "react-native";
+import type { StyleProp, TextProps, TextStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import Feather from "@expo/vector-icons/Feather";
 import type { Theme } from "../constants/colors";
@@ -40,10 +40,21 @@ type IconBaseProps = {
   /** Icon color - can be a hex color or a theme color name. Defaults to theme's text color */
   color?: string | ThemeColorName;
   /** Additional styles for positioning, transforms, etc. */
-  style?: StyleProp<ViewStyle>;
+  style?: StyleProp<TextStyle>;
   /** When true, hides the icon from the accessibility tree. @default false */
   decorative?: boolean;
 };
+
+type IconAccessibilityProps = Pick<
+  TextProps,
+  "accessible" | "importantForAccessibility" | "accessibilityElementsHidden" | "aria-hidden"
+>;
+
+type CustomIconComponentProps = {
+  size: number;
+  color: string;
+  style?: StyleProp<TextStyle>;
+} & Partial<IconAccessibilityProps>;
 
 type FeatherIconProps = IconBaseProps & {
   /** The icon name to render (Feather icons) */
@@ -54,14 +65,14 @@ type FeatherIconProps = IconBaseProps & {
 type CustomIconProps = IconBaseProps & {
   name?: never;
   /** Custom component to render instead of Feather. Receives size and color as props. */
-  component: React.ComponentType<{ size: number; color: string }>;
+  component: React.ComponentType<CustomIconComponentProps>;
 };
 
 export type IconProps = FeatherIconProps | CustomIconProps;
 
 /**
  * Universal Icon Component
- * Wraps @expo/vector-icons Feather with theme integration and style support
+ * Renders @expo/vector-icons Feather with theme integration and style support
  *
  * Usage:
  * ```tsx
@@ -77,27 +88,35 @@ export function Icon(props: IconProps) {
 
   const CustomComponent = "component" in props ? props.component : undefined;
 
-  // Wrap in View with pointerEvents="none" to prevent icons from
-  // intercepting touches when used inside TouchableOpacity on iOS
-  return (
-    <View
-      style={[style, { pointerEvents: "none" }]}
-      accessible={!decorative}
-      {...(decorative && {
-        importantForAccessibility: "no" as const,
+  const accessibilityProps: IconAccessibilityProps = decorative
+    ? {
+        accessible: false,
+        importantForAccessibility: "no-hide-descendants",
         accessibilityElementsHidden: true,
         "aria-hidden": true,
-      })}
-    >
-      {CustomComponent ? (
-        <CustomComponent size={size} color={iconColor} />
-      ) : (
-        <Feather
-          name={(props as FeatherIconProps).name}
-          size={size}
-          color={iconColor}
-        />
-      )}
-    </View>
+      }
+    : { accessible: true };
+
+  const iconStyle = [style, { pointerEvents: "none" as const }];
+
+  if (CustomComponent) {
+    return (
+      <CustomComponent
+        size={size}
+        color={iconColor}
+        style={iconStyle}
+        {...accessibilityProps}
+      />
+    );
+  }
+
+  return (
+    <Feather
+      name={(props as FeatherIconProps).name}
+      size={size}
+      color={iconColor}
+      style={iconStyle}
+      {...accessibilityProps}
+    />
   );
 }

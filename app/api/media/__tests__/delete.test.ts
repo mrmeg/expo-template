@@ -36,7 +36,7 @@ jest.mock("@aws-sdk/client-s3", () => {
     DeleteObjectCommand: MockDeleteObjectCommand,
     DeleteObjectsCommand: MockDeleteObjectsCommand,
   };
-});
+}, { virtual: true });
 
 const ORIGIN = "http://localhost:8081";
 
@@ -63,6 +63,7 @@ describe("media delete route", () => {
   const originalEnv: Partial<Record<(typeof STORAGE_KEYS)[number], string | undefined>> = {};
 
   beforeEach(() => {
+    jest.resetModules();
     for (const key of STORAGE_KEYS) originalEnv[key] = process.env[key];
     mockSend.mockReset();
     process.env.R2_BUCKET = "test-bucket";

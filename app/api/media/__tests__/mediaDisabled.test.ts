@@ -36,11 +36,11 @@ jest.mock("@aws-sdk/client-s3", () => {
     PutObjectCommand: Cmd,
     GetObjectCommand: Cmd,
   };
-});
+}, { virtual: true });
 
 jest.mock("@aws-sdk/s3-request-presigner", () => ({
   getSignedUrl: jest.fn(async () => "https://signed.example/url"),
-}));
+}), { virtual: true });
 
 const ORIGIN = "http://localhost:8081";
 const ALL_R2_KEYS = [
@@ -64,6 +64,7 @@ describe("media routes — disabled state", () => {
   const originalEnv: Partial<Record<string, string | undefined>> = {};
 
   beforeEach(() => {
+    jest.resetModules();
     for (const key of ALL_R2_KEYS) {
       originalEnv[key] = process.env[key];
       delete process.env[key];
