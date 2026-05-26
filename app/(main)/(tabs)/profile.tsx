@@ -181,7 +181,7 @@ function ProfileScreen() {
           <View style={styles.headerSection}>
             <Pressable onPress={handleEditProfile}>
               <View style={[styles.avatar, getShadowStyle("soft")]}>
-                <Icon name="user" color={theme.colors.primaryForeground} size={48} />
+                <Icon name="user" color={palette.white} size={48} />
               </View>
             </Pressable>
             <SansSerifBoldText style={styles.name}>
@@ -370,7 +370,7 @@ function ProfileScreen() {
               <Pressable style={styles.connectedRow} onPress={handleConnectGoogle}>
                 <View style={styles.connectedRowLeft}>
                   <View style={[styles.providerIcon, { backgroundColor: "#DB4437" }]}>
-                    <SansSerifBoldText style={[styles.providerLetter, { color: palette.white }]}>G</SansSerifBoldText>
+                    <SansSerifBoldText style={styles.providerLetter}>G</SansSerifBoldText>
                   </View>
                   <View>
                     <SansSerifText style={styles.settingsLabel}>Google</SansSerifText>
@@ -595,6 +595,7 @@ const createStyles = (theme: Theme) =>
     },
     providerLetter: {
       fontSize: 16,
+      color: palette.white,
       fontWeight: "bold",
     },
     connectedStatus: {
