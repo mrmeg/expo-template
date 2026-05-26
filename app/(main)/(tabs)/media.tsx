@@ -738,7 +738,7 @@ export default function MediaScreen() {
                         accessibilityLabel={`Play ${filename}`}
                       >
                         <View style={styles.playButton}>
-                          <Icon name="play" size={16} color="white" />
+                          <Icon name="play" size={16} color={theme.colors.primaryForeground} />
                         </View>
                       </Pressable>
                     )}
