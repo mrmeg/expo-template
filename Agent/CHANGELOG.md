@@ -2,6 +2,44 @@
 
 ## [Unreleased]
 
+- Fixed dark-mode contrast on the Media tab play overlay and the Profile tab
+  avatar fallback. Both icons hard-coded `color="white"` / `color={palette.white}`
+  on a `theme.colors.primary` background; in dark mode `primary` resolves to
+  near-white, so the icons disappeared. They now use
+  `theme.colors.primaryForeground`. The `providerLetter` style default was
+  also dropped; both Connected Accounts call sites now pass an explicit
+  color so a future provider added by an agent cannot silently regress.
+
+- Added a contrast lint guard. `bun run lint:theme` (script:
+  `scripts/check-primary-fg.mjs`) walks `app/`, `client/`, and
+  `packages/ui/src/components/` for the bug pattern and exits non-zero on
+  any descendant `color="white"` (or `palette.white`/`palette.black` etc.)
+  inside a JSX element backed by `backgroundColor: theme.colors.primary` or
+  `theme.colors.foreground` — including style references via `styles.X`.
+  Translucent variants (`withAlpha(theme.colors.primary, x)`,
+  `theme.colors.primary + "20"`) are explicitly ignored.
+
+- Added a contrast invariant test
+  (`packages/ui/src/constants/__tests__/colors.test.ts`) asserting WCAG
+  contrast for inverting token pairs: ≥ 4.5 : 1 for text-on-surface
+  (`background ↔ foreground`, `card ↔ cardForeground`, `popover ↔
+  popoverForeground`) and ≥ 3 : 1 for UI components (`primary ↔
+  primaryForeground`, `secondary ↔ secondaryForeground`). Three pairs
+  fall short today (`muted/mutedForeground` text, `accent/accentForeground`
+  UI light, `destructive/destructiveForeground` UI dark) and are tracked
+  as `it.todo` palette debt; they don't affect this fix and warrant a
+  follow-up palette spec.
+
+- Extracted pure color-contrast helpers from
+  `packages/ui/src/hooks/useTheme.ts` into
+  `packages/ui/src/lib/contrast.ts` so non-React code (lint scripts, unit
+  tests) can call `parseColor`, `calculateLuminance`,
+  `calculateContrastRatio`, `getContrastRatio`, `getBetterContrast`,
+  `getTextColorForBackground`, and `withAlpha` without instantiating the
+  hook. Re-exported from `@mrmeg/expo-ui/lib`. The `useTheme()` return
+  surface (`getContrastingColor`, `getContrastRatio`, `withAlpha`,
+  `getTextColorForBackground`) is unchanged for consumers.
+
 - Made native Sentry upload truly optional for the template. `app.config.ts`
   now registers the Sentry native config plugin only when `SENTRY_AUTH_TOKEN`,
   `SENTRY_ORG`, and `SENTRY_PROJECT` are all present, so generated native

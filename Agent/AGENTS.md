@@ -10,7 +10,7 @@ Pick tasks from `./Specs/`. Work specs marked **Ready** in priority order. Bugs 
 
 | Spec | Status | Priority | Type | Area | Blocked By |
 |------|--------|----------|------|------|------------|
-| [`fix-dark-mode-icon-on-primary-bg`](Specs/fix-dark-mode-icon-on-primary-bg.md) | Ready | High | Bug | app | — |
+| [`fix-dark-mode-icon-on-primary-bg`](Specs/fix-dark-mode-icon-on-primary-bg.md) | Merged | High | Bug | app | — |
 | [`fix-web-theme-first-paint-race`](Specs/fix-web-theme-first-paint-race.md) | Blocked | High | Bug | app, packages/ui | Phase 0 spike must validate the SSR-theme bridge (loader + per-request React context, NOT middleware-AsyncLocalStorage) |
 | [`add-dark-splash-and-themed-app-icon`](Specs/add-dark-splash-and-themed-app-icon.md) | Blocked | High | Feature | app, native build | Designer-supplied dark splash + Android monochrome icon assets |
 | [`document-theming-contracts-in-expo-ui-package-doc`](Specs/document-theming-contracts-in-expo-ui-package-doc.md) | Blocked | Medium | Docs Drift | packages/ui, docs | `fix-web-theme-first-paint-race` reaches Ready (design final after Phase 0 spike) |
