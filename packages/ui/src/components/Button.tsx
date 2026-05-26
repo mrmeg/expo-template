@@ -4,6 +4,7 @@ import {
   PressableProps,
   PressableStateCallbackType,
   LayoutChangeEvent,
+  DimensionValue,
   StyleProp,
   TextStyle,
   ViewStyle,
@@ -55,21 +56,20 @@ const SIZE_CONFIGS: Record<ButtonSize, { paddingVertical: number; paddingHorizon
 const getNativeHitSlop = (sizeConfig: { height: number }) =>
   Math.ceil(Math.max(0, spacing.touchTarget - sizeConfig.height) / 2);
 
-export type ButtonAccessoryStyle = Pick<
-  ViewStyle,
-  | "margin"
-  | "marginHorizontal"
-  | "marginVertical"
-  | "marginTop"
-  | "marginRight"
-  | "marginBottom"
-  | "marginLeft"
-  | "marginStart"
-  | "marginEnd"
->;
+export type ButtonAccessoryStyle = {
+  margin?: DimensionValue;
+  marginHorizontal?: DimensionValue;
+  marginVertical?: DimensionValue;
+  marginTop?: DimensionValue;
+  marginRight?: DimensionValue;
+  marginBottom?: DimensionValue;
+  marginLeft?: DimensionValue;
+  marginStart?: DimensionValue;
+  marginEnd?: DimensionValue;
+};
 
 export interface ButtonAccessoryProps {
-  style: StyleProp<ButtonAccessoryStyle>;
+  style: ButtonAccessoryStyle;
   pressableState: PressableStateCallbackType;
   disabled?: boolean;
 }
