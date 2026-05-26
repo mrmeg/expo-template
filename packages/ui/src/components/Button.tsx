@@ -7,7 +7,6 @@ import {
   StyleProp,
   TextStyle,
   ViewStyle,
-  ImageStyle,
   StyleSheet,
   View,
   Platform,
@@ -56,8 +55,21 @@ const SIZE_CONFIGS: Record<ButtonSize, { paddingVertical: number; paddingHorizon
 const getNativeHitSlop = (sizeConfig: { height: number }) =>
   Math.ceil(Math.max(0, spacing.touchTarget - sizeConfig.height) / 2);
 
+export type ButtonAccessoryStyle = Pick<
+  ViewStyle,
+  | "margin"
+  | "marginHorizontal"
+  | "marginVertical"
+  | "marginTop"
+  | "marginRight"
+  | "marginBottom"
+  | "marginLeft"
+  | "marginStart"
+  | "marginEnd"
+>;
+
 export interface ButtonAccessoryProps {
-  style: StyleProp<ViewStyle | TextStyle | ImageStyle>;
+  style: StyleProp<ButtonAccessoryStyle>;
   pressableState: PressableStateCallbackType;
   disabled?: boolean;
 }

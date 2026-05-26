@@ -12,7 +12,8 @@ import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import type { ReactTestInstance } from "react-test-renderer";
-import { Button } from "../Button";
+import { Button, type ButtonAccessoryProps } from "../Button";
+import { Icon } from "../Icon";
 import { StyledText } from "../StyledText";
 
 const mockScalePressIn = jest.fn();
@@ -427,6 +428,19 @@ describe("Button", () => {
 
       expect(screen.getByText("Right")).toBeTruthy();
       expect(screen.getByText("With Right")).toBeTruthy();
+    });
+
+    it("allows icon accessories to consume spacing style without casts", () => {
+      const LeftAccessory = ({ style }: ButtonAccessoryProps) => (
+        <Icon name="check" style={style} decorative />
+      );
+
+      const { UNSAFE_getByProps } = render(
+        <Button text="With Icon" LeftAccessory={LeftAccessory} />
+      );
+
+      expect(UNSAFE_getByProps({ testID: "icon-Feather" })).toBeTruthy();
+      expect(screen.getByText("With Icon")).toBeTruthy();
     });
 
     it("keeps accessories mounted but hidden when loading", () => {
