@@ -37,7 +37,7 @@ near the root when the app uses package feedback or overlay components.
 `@rn-primitives` portal host.
 
 ```tsx
-import { ThemeProvider } from "@react-navigation/native";
+import { ThemeProvider } from "expo-router";
 import { UIProvider } from "@mrmeg/expo-ui/components";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";

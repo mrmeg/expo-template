@@ -7,8 +7,7 @@ if (__DEV__) {
 
 import { useEffect, useState, type ErrorInfo } from "react";
 import { Platform } from "react-native";
-import { ThemeProvider } from "@react-navigation/native";
-import { Stack } from "expo-router";
+import { Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";

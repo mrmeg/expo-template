@@ -54,15 +54,9 @@ config.resolver.nodeModulesPaths = Array.from(
   new Set([appNodeModules, ...(config.resolver.nodeModulesPaths || [])])
 );
 
-// Bun installs packages in virtual folders under node_modules/.bun. Metro can
-// start package resolution from those virtual folders and then probe nested
-// package paths that Bun does not create, such as
-// expo/node_modules/pretty-format/package.json. Keep singleton runtime
-// packages pointed at the app-level install, and point Expo's pretty-format
-// import at the exact Bun store package Expo resolves under Node.
+// Keep singleton runtime packages pointed at the app-level install, and point
+// Expo's pretty-format import at the exact package Expo resolves under Node.
 const dedupePackages = {
-  "@react-navigation/native": resolveAppPackage("@react-navigation/native"),
-  "@react-navigation/core": resolveAppPackage("@react-navigation/core"),
   react: resolveAppPackage("react"),
   "react-dom": resolveAppPackage("react-dom"),
   "react-native": resolveAppPackage("react-native"),

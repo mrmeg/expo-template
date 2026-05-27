@@ -307,7 +307,7 @@ LLM rules:
 Call `useResources()` once near the Expo app root before hiding the splash screen:
 
 ```tsx
-import { ThemeProvider } from "@react-navigation/native";
+import { ThemeProvider } from "expo-router";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
 import { UIProvider } from "@mrmeg/expo-ui/components";
