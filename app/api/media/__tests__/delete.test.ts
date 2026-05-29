@@ -38,6 +38,17 @@ jest.mock("@aws-sdk/client-s3", () => {
   };
 }, { virtual: true });
 
+// `@/server/media/handlers` also imports `getSignedUrl` from
+// @aws-sdk/s3-request-presigner, and the real presigner package pulls in the
+// real @aws-sdk/client-s3 transitively. Left unmocked, that real client can
+// win module resolution under the full parallel CI suite, bypassing the
+// client-s3 mock above so `.send()` hits the network and times out at 10s.
+// Mocking the presigner here (matching auth/mediaDisabled tests) keeps the
+// whole S3 surface stubbed regardless of test ordering.
+jest.mock("@aws-sdk/s3-request-presigner", () => ({
+  getSignedUrl: jest.fn(async () => "https://signed.example/url"),
+}), { virtual: true });
+
 const ORIGIN = "http://localhost:8081";
 
 function makeRequest(
