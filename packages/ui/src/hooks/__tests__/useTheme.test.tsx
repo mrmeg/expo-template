@@ -11,6 +11,7 @@ import { act, renderHook } from "@testing-library/react-native";
 import { useStyles, useTheme } from "../useTheme";
 import { colors } from "../../constants/colors";
 import { useThemeStore } from "../../state/themeStore";
+import { ThemeColorScope } from "../../state/themeColorScope";
 
 beforeEach(() => {
   useThemeStore.setState({ userTheme: "system", systemTheme: "light", colorOverrides: {} });
@@ -149,6 +150,77 @@ describe("useTheme", () => {
       });
 
       expect(result.current.theme.colors.primary).toBe("#7575eb");
+    });
+  });
+
+  describe("scoped color overrides", () => {
+    function wrap(scope: React.ComponentProps<typeof ThemeColorScope>["colors"]) {
+      function Wrapper({ children }: { children: React.ReactNode }) {
+        return <ThemeColorScope colors={scope}>{children}</ThemeColorScope>;
+      }
+      return Wrapper;
+    }
+
+    it("applies a scoped override for the active scheme", () => {
+      const { result } = renderHook(() => useTheme(), {
+        wrapper: wrap({ light: { primary: "#ff0000" } }),
+      });
+
+      expect(result.current.theme.colors.primary).toBe("#ff0000");
+      // Untouched keys still inherit the package defaults.
+      expect(result.current.theme.colors.background).toBe(colors.light.colors.background);
+    });
+
+    it("scope wins over the global store override", () => {
+      useThemeStore.setState({ colorOverrides: { light: { primary: "#0000ff" } } });
+
+      const { result } = renderHook(() => useTheme(), {
+        wrapper: wrap({ light: { primary: "#ff0000" } }),
+      });
+
+      expect(result.current.theme.colors.primary).toBe("#ff0000");
+    });
+
+    it("fills in from the store override for keys the scope does not set", () => {
+      useThemeStore.setState({ colorOverrides: { light: { primary: "#0000ff", accent: "#00ff00" } } });
+
+      const { result } = renderHook(() => useTheme(), {
+        wrapper: wrap({ light: { primary: "#ff0000" } }),
+      });
+
+      // Scope wins where it sets a key...
+      expect(result.current.theme.colors.primary).toBe("#ff0000");
+      // ...and the store brand shows through where the scope is silent.
+      expect(result.current.theme.colors.accent).toBe("#00ff00");
+    });
+
+    it("ignores a scope for the inactive scheme (identity preserved)", () => {
+      // Active scheme is light; a dark-only scope must not apply.
+      const { result } = renderHook(() => useTheme(), {
+        wrapper: wrap({ dark: { primary: "#ff0000" } }),
+      });
+
+      expect(result.current.theme).toBe(colors.light);
+    });
+
+    it("nested scopes merge (inner wins, outer fills in)", () => {
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <ThemeColorScope colors={{ light: { primary: "#111111", accent: "#222222" } }}>
+          <ThemeColorScope colors={{ light: { primary: "#999999" } }}>
+            {children}
+          </ThemeColorScope>
+        </ThemeColorScope>
+      );
+
+      const { result } = renderHook(() => useTheme(), { wrapper });
+
+      expect(result.current.theme.colors.primary).toBe("#999999"); // inner
+      expect(result.current.theme.colors.accent).toBe("#222222");  // outer
+    });
+
+    it("no scope + no store = base by reference", () => {
+      const { result } = renderHook(() => useTheme());
+      expect(result.current.theme).toBe(colors.light);
     });
   });
 

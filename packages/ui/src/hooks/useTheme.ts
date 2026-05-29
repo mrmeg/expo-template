@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import { Colors, colors } from "../constants/colors";
 import { ViewStyle, Platform, StyleSheet } from "react-native";
 import { resolveThemePreference, useThemeStore } from "../state/themeStore";
+import { useThemeColorScope } from "../state/themeColorScope";
 import { spacing as spacingConstants } from "../constants/spacing";
 
 type ShadowType =
@@ -79,25 +80,31 @@ export function useTheme(): ExtendedColorScheme & {
   const systemTheme = useThemeStore((s) => s.systemTheme);
   const setTheme = useThemeStore((s) => s.setTheme);
   const colorOverrides = useThemeStore((s) => s.colorOverrides);
+  const scoped = useThemeColorScope();
 
   // Determine which theme to use (user preference or system)
   const effectiveScheme = resolveThemePreference(userTheme, systemTheme);
   const base = colors[effectiveScheme];
 
-  // Layer any app-injected palette over the package defaults for the active
-  // scheme. When no override is present we return the base theme *by reference*
-  // so memoization and identity checks downstream stay stable (and the package
-  // behaves exactly as it did before overrides existed).
-  const override = colorOverrides[effectiveScheme];
+  // Layer overrides on top of the package defaults for the active scheme, in
+  // precedence order: package default → global store (app brand) → scoped
+  // context (per-subtree, e.g. a survey theme). When neither override is
+  // present we return the base theme *by reference* so memoization and identity
+  // checks downstream stay stable (and the package behaves exactly as it did
+  // before overrides existed).
+  const storeOverride = colorOverrides[effectiveScheme]; // global app brand
+  const scopedOverride = scoped?.[effectiveScheme];       // subtree override
   const theme = useMemo(() => {
-    if (!override || Object.keys(override).length === 0) {
-      return base;
+    const hasStore = storeOverride && Object.keys(storeOverride).length > 0;
+    const hasScoped = scopedOverride && Object.keys(scopedOverride).length > 0;
+    if (!hasStore && !hasScoped) {
+      return base; // identity preserved — no allocation, stable references
     }
     return {
       ...base,
-      colors: { ...base.colors, ...override },
+      colors: { ...base.colors, ...storeOverride, ...scopedOverride },
     };
-  }, [base, override]);
+  }, [base, storeOverride, scopedOverride]);
 
   // Sync theme to DOM so CSS in +html.tsx follows the app's runtime theme
   useEffect(() => {

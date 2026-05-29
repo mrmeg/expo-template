@@ -122,6 +122,47 @@ const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
 }));
 ```
 
+### Color overrides
+
+The package ships a neutral default palette. `useTheme()` resolves colors in
+three layers, last wins:
+
+1. **Package defaults** — the built-in zinc/teal palette.
+2. **Global brand** (`setColors`) — your app's one palette, applied everywhere.
+3. **Scoped override** (`ThemeColorScope`) — a per-subtree palette layered on
+   top of the brand, for transient theming that should not leak globally.
+
+With no override at either layer, `useTheme()` returns the base theme by
+reference — identical to pre-override behavior, with no extra allocation.
+
+Forward your app's brand palette once (e.g. from a top-level effect). Each
+scheme is a `Partial<ThemeColors>`, so you only specify the keys you want to
+re-skin:
+
+```tsx
+import { useThemeStore } from "@mrmeg/expo-ui/state";
+
+useThemeStore.getState().setColors({
+  light: { primary: "#7c3aed", accent: "#14b8a6" },
+  dark: { primary: "#a78bfa", accent: "#2dd4bf" },
+});
+```
+
+Use `ThemeColorScope` to override colors for one subtree without touching the
+global theme — a survey with a user-created palette, a preview pane, an embed.
+It is React context, so it applies only inside the provider and unwinds when
+that subtree unmounts. Nested scopes compose (inner keys win, outer fill in),
+and a scoped key wins over the global brand for components inside it:
+
+```tsx
+import { ThemeColorScope } from "@mrmeg/expo-ui/state";
+
+<ThemeColorScope colors={{ light: surveyColors, dark: surveyColors }}>
+  {/* every package component in here renders with the survey palette */}
+  <SurveyScreen />
+</ThemeColorScope>
+```
+
 Use `StyledText` for theme-aware text:
 
 ```tsx

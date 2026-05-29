@@ -149,6 +149,17 @@ OS color-scheme subscription, including web `prefers-color-scheme`. Do not add
 app-local Appearance or `matchMedia` listeners for package components; import
 `useTheme()`, `useStyles()`, and `useThemeStore` from `@mrmeg/expo-ui`.
 
+`useTheme()` resolves colors in three layers, last wins: package defaults →
+global brand (`useThemeStore.getState().setColors(overrides)`) → scoped
+override (`ThemeColorScope`). Each override is `{ light?, dark? }` of
+`Partial<ThemeColors>`; only the keys you pass are replaced. Call `setColors`
+once to forward the app's brand palette globally. Wrap a subtree in
+`<ThemeColorScope colors={{ light, dark }}>` for transient per-subtree theming
+(user-created palettes, previews, embeds) that must not leak globally — it is
+React context, scoped keys win over the global brand inside it, and nested
+scopes merge (inner wins, outer fills in). With no override at either layer,
+`useTheme()` returns the base theme by reference.
+
 ## Component Use-Case Index
 
 Use this table before creating a new app-local primitive.
