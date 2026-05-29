@@ -78,10 +78,26 @@ export function useTheme(): ExtendedColorScheme & {
   const userTheme = useThemeStore((s) => s.userTheme);
   const systemTheme = useThemeStore((s) => s.systemTheme);
   const setTheme = useThemeStore((s) => s.setTheme);
+  const colorOverrides = useThemeStore((s) => s.colorOverrides);
 
   // Determine which theme to use (user preference or system)
   const effectiveScheme = resolveThemePreference(userTheme, systemTheme);
-  const theme = colors[effectiveScheme];
+  const base = colors[effectiveScheme];
+
+  // Layer any app-injected palette over the package defaults for the active
+  // scheme. When no override is present we return the base theme *by reference*
+  // so memoization and identity checks downstream stay stable (and the package
+  // behaves exactly as it did before overrides existed).
+  const override = colorOverrides[effectiveScheme];
+  const theme = useMemo(() => {
+    if (!override || Object.keys(override).length === 0) {
+      return base;
+    }
+    return {
+      ...base,
+      colors: { ...base.colors, ...override },
+    };
+  }, [base, override]);
 
   // Sync theme to DOM so CSS in +html.tsx follows the app's runtime theme
   useEffect(() => {

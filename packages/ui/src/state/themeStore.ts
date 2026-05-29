@@ -2,16 +2,48 @@ import { Appearance, Platform } from "react-native";
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import type { ThemeColors } from "../constants/colors";
+
 const THEME_KEY = "user-theme-preference";
 
 export type ThemePreference = "system" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
 
+/**
+ * Per-scheme color overrides a host app can inject to brand the package.
+ *
+ * The package ships a neutral default palette (see `constants/colors.ts`).
+ * A consuming app almost always has its own brand palette; without a way to
+ * push it in, package components (Badge, Button, inputs, …) render with the
+ * package's colors while app-authored siblings render with the app's — the
+ * two disagree on what e.g. `primary` means, producing collisions such as
+ * white text on a white badge. `setColors` lets the app forward its palette
+ * once so every package component resolves against the same source of truth.
+ *
+ * Each scheme is `Partial<ThemeColors>`: only the keys provided are overridden,
+ * so an app can re-skin `primary`/`accent` while inheriting neutral defaults.
+ */
+export type ColorOverrides = {
+  light?: Partial<ThemeColors>;
+  dark?: Partial<ThemeColors>;
+};
+
 export type ThemeStore = {
   userTheme: ThemePreference;
   systemTheme: ResolvedTheme;
+  /**
+   * App-injected palette overrides, applied by `useTheme` on top of the
+   * package defaults. Empty by default — zero override means the package
+   * behaves exactly as before this field existed (fully backward compatible).
+   */
+  colorOverrides: ColorOverrides;
   setTheme: (theme: ThemePreference) => void;
   setSystemTheme: (theme: ResolvedTheme) => void;
+  /**
+   * Replace the active color overrides. Pass `{}` (or omit both schemes) to
+   * clear overrides and fall back to the package defaults.
+   */
+  setColors: (overrides: ColorOverrides) => void;
   loadTheme: () => void;
 };
 
@@ -35,6 +67,14 @@ export const useThemeStore = create<ThemeStore>((set) => ({
   // Always start with "light" so SSR and the first client render agree.
   // Real values are populated by `syncThemeFromEnvironment()` after mount.
   systemTheme: "light",
+
+  // No overrides by default: the package renders with its built-in palette
+  // until a host app calls `setColors`.
+  colorOverrides: {},
+
+  setColors: (overrides) => {
+    set({ colorOverrides: overrides ?? {} });
+  },
 
   setTheme: (theme) => {
     set({

@@ -13,7 +13,7 @@ import { colors } from "../../constants/colors";
 import { useThemeStore } from "../../state/themeStore";
 
 beforeEach(() => {
-  useThemeStore.setState({ userTheme: "system", systemTheme: "light" });
+  useThemeStore.setState({ userTheme: "system", systemTheme: "light", colorOverrides: {} });
 });
 
 describe("useTheme", () => {
@@ -94,6 +94,61 @@ describe("useTheme", () => {
       expect(colors.dark.colors.secondary).toBe("#27272A");
       expect(colors.dark.colors.secondaryForeground).toBe("#FAFAFA");
       expect(colors.dark.colors.accent).toBe("#2dd4bf");
+    });
+  });
+
+  describe("color overrides", () => {
+    it("returns the base theme by reference when no override is set", () => {
+      const { result } = renderHook(() => useTheme());
+      expect(result.current.theme).toBe(colors.light);
+    });
+
+    it("treats an empty per-scheme override as no override (identity preserved)", () => {
+      useThemeStore.setState({ colorOverrides: { light: {} } });
+      const { result } = renderHook(() => useTheme());
+      expect(result.current.theme).toBe(colors.light);
+    });
+
+    it("merges app-injected colors over the package palette for the active scheme", () => {
+      useThemeStore.setState({ colorOverrides: { light: { primary: "#7575eb" } } });
+      const { result } = renderHook(() => useTheme());
+
+      // Overridden key reflects the app palette...
+      expect(result.current.theme.colors.primary).toBe("#7575eb");
+      // ...while untouched keys still inherit the package defaults.
+      expect(result.current.theme.colors.background).toBe(colors.light.colors.background);
+      // The base constant is not mutated.
+      expect(colors.light.colors.primary).not.toBe("#7575eb");
+    });
+
+    it("applies the override for the resolved scheme only", () => {
+      useThemeStore.setState({
+        userTheme: "system",
+        systemTheme: "light",
+        colorOverrides: { dark: { primary: "#7575eb" } },
+      });
+      const { result } = renderHook(() => useTheme());
+
+      // Active scheme is light, so the dark-only override must not apply.
+      expect(result.current.theme).toBe(colors.light);
+
+      act(() => {
+        useThemeStore.getState().setSystemTheme("dark");
+      });
+
+      expect(result.current.scheme).toBe("dark");
+      expect(result.current.theme.colors.primary).toBe("#7575eb");
+    });
+
+    it("reacts to setColors at runtime", () => {
+      const { result } = renderHook(() => useTheme());
+      expect(result.current.theme).toBe(colors.light);
+
+      act(() => {
+        useThemeStore.getState().setColors({ light: { primary: "#7575eb" } });
+      });
+
+      expect(result.current.theme.colors.primary).toBe("#7575eb");
     });
   });
 

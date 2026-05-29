@@ -32,6 +32,7 @@ export default function MainLayout() {
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: true, title: "Explore", headerBackTitle: " " }} />
       <Stack.Screen name="(demos)/showcase/index" options={{ title: "UI Components", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/themed-showcase" options={{ title: "Themed Showcase", ...webHeaderLeft }} />
       <Stack.Screen name="(demos)/developer" options={{ title: "Developer Tools", ...webHeaderLeft }} />
       <Stack.Screen name="(demos)/server-alpha" options={{ title: "Server Alpha", ...webHeaderLeft }} />
       <Stack.Screen name="(demos)/server-alpha/[example]" options={{ title: "Server Pattern", ...webHeaderLeft }} />
