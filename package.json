@@ -16,7 +16,7 @@
     "web:scan": "expo start --web",
     "scan:showcase": "node -e \"const { spawnSync } = require('node:child_process'); const port = process.env.EXPO_DEV_SERVER_PORT || process.env.PORT || '8081'; spawnSync('open', ['http://localhost:' + port + '/showcase?scan'], { stdio: 'inherit' });\"",
     "build": "NODE_OPTIONS=--max-old-space-size=8192 expo export -p web --output-dir dist",
-    "build-web": "NODE_OPTIONS=--max-old-space-size=8192 bun x expo export -p web --output-dir dist --dump-sourcemap",
+    "build-web": "NODE_OPTIONS=--max-old-space-size=8192 expo export -p web --output-dir dist --dump-sourcemap",
     "build-sourcemap": "bun run build-web",
     "view-sourcemap": "bun x source-map-explorer 'dist/client/_expo/static/js/web/*.js' --no-border-checks",
     "analyze": "bun run build-web && bun run view-sourcemap",
