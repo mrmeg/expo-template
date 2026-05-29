@@ -115,7 +115,7 @@
     "jest-expo": "~56.0.4",
     "morgan": "^1.10.1",
     "pretty-format": "30.4.1",
-    "react-test-renderer": "19.2.6",
+    "react-test-renderer": "19.2.3",
     "reactotron-react-native": "^5.1.18",
     "typescript": "~6.0.3"
   },
