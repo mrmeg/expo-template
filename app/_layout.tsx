@@ -19,7 +19,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { KeyboardProvider } from "@/client/features/keyboard/platform";
 import { ErrorBoundary } from "@mrmeg/expo-ui/components/ErrorBoundary";
 import { ErrorScreen } from "@/client/components/ErrorScreen";
-import { initI18n } from "@/client/features/i18n";
+import { ensureI18nInitialized, initI18n } from "@/client/features/i18n";
 import Config from "@/client/config";
 import { validateClientEnv } from "@/client/lib/validateEnv";
 import { captureException, setupSentry } from "@/client/lib/sentry";
@@ -73,6 +73,13 @@ const queryClient = new QueryClient({
 });
 
 export default function RootLayout() {
+  // Initialize English synchronously, during render, so i18next is ready on the
+  // server (effects don't run during SSR). Without this, an SSR-reachable
+  // screen's `t()` emits raw keys server-side and translations client-side →
+  // hydration mismatch. Idempotent; the post-hydration locale upgrade still
+  // happens in the initI18n() effect below. See docs/ssr-hydration.md §3.
+  ensureI18nInitialized();
+
   const { scheme } = useTheme();
   const { loaded: fontsLoaded } = useResources();
   const [i18nReady, setI18nReady] = useState(false);
