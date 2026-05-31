@@ -11,7 +11,6 @@ import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Re-export primitives that don't need styling
 const DropdownMenu = DropdownMenuPrimitive.Root;
-const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
 const DropdownMenuSub = DropdownMenuPrimitive.Sub;
@@ -19,6 +18,22 @@ const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
 // Platform-specific overlay
 const FullWindowOverlay = Platform.OS === "ios" ? RNFullWindowOverlay : React.Fragment;
+
+/**
+ * DropdownMenuTrigger Component
+ * Wraps the primitive Trigger to default `accessibilityRole="button"`.
+ *
+ * The underlying @rn-primitives Trigger renders a RN-Web Pressable (or a Slot
+ * when `asChild`) without a role, so on web it becomes `role="generic"` —
+ * breaking screen-reader semantics and `getByRole("button")` queries. When
+ * `asChild` is used, the child's own role still wins (the Slot merges child
+ * props over slot props), so this only fills the gap when none is set.
+ */
+type DropdownMenuTriggerProps = DropdownMenuPrimitive.TriggerProps;
+
+function DropdownMenuTrigger({ ...props }: DropdownMenuTriggerProps) {
+  return <DropdownMenuPrimitive.Trigger accessibilityRole="button" {...props} />;
+}
 
 /**
  * DropdownMenuSubTrigger Component
@@ -473,6 +488,7 @@ export {
 };
 
 export type {
+  DropdownMenuTriggerProps,
   DropdownMenuSubTriggerProps,
   DropdownMenuSubContentProps,
   DropdownMenuContentProps,
