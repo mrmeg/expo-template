@@ -7,7 +7,7 @@ const ONBOARDING_KEY = "has-seen-onboarding";
 export type OnboardingStore = {
   hasSeenOnboarding: boolean;
   setHasSeenOnboarding: (seen: boolean) => void;
-  loadOnboarding: () => void;
+  loadOnboarding: () => Promise<void>;
 };
 
 export const useOnboardingStore = create<OnboardingStore>((set) => ({
@@ -24,21 +24,30 @@ export const useOnboardingStore = create<OnboardingStore>((set) => ({
 
   loadOnboarding: () => {
     if (Platform.OS !== "web") {
-      AsyncStorage.getItem(ONBOARDING_KEY)
+      return AsyncStorage.getItem(ONBOARDING_KEY)
         .then((saved) => {
           if (saved !== null) {
             set({ hasSeenOnboarding: JSON.parse(saved) });
           }
         })
         .catch(() => {});
-    } else if (typeof window !== "undefined" && window.localStorage) {
+    }
+    if (typeof window !== "undefined" && window.localStorage) {
       const saved = localStorage.getItem(ONBOARDING_KEY);
       if (saved !== null) {
         set({ hasSeenOnboarding: JSON.parse(saved) });
       }
     }
+    return Promise.resolve();
   },
 }));
 
-// Load saved state on store creation
-useOnboardingStore.getState().loadOnboarding();
+// Native has no SSR, so eagerly hydrate from storage on store creation. On web
+// the read is deferred to a useEffect (see useAppStartup) so the first client
+// render matches the server's `hasSeenOnboarding: false` — otherwise the gate
+// the server rendered and the Stack the client renders disagree, producing both
+// a hydration mismatch and a returning-user onboarding flash. Mirrors the
+// themeStore web/native split.
+if (Platform.OS !== "web") {
+  useOnboardingStore.getState().loadOnboarding();
+}

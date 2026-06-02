@@ -16,6 +16,27 @@ import { join } from "path";
 const root = join(__dirname, "..");
 const read = (rel: string) => readFileSync(join(root, rel), "utf8");
 
+// `app/_layout.tsx` is the routed entry, but it may define RootLayout inline or
+// re-export it from the feature layer (it currently does the latter:
+// `export { default } from "@/client/features/app/RootLayout"`). The render-body
+// i18n init we guard lives in whichever file actually defines the component, so
+// resolve that file here instead of hard-coding `app/_layout.tsx`.
+function resolveRootLayoutSource(): { rel: string; src: string } {
+  const entry = read("app/_layout.tsx");
+  const reexport = entry.match(/export\s*\{\s*default\s*\}\s*from\s*["']([^"']+)["']/);
+  if (!reexport) return { rel: "app/_layout.tsx", src: entry };
+
+  const spec = reexport[1].replace(/^@\//, "");
+  for (const ext of [".tsx", ".ts", "/index.tsx", "/index.ts"]) {
+    try {
+      return { rel: spec + ext, src: read(spec + ext) };
+    } catch {
+      // try the next candidate extension
+    }
+  }
+  throw new Error(`Could not resolve RootLayout source re-exported from "${reexport[1]}"`);
+}
+
 describe("SSR hydration guardrails", () => {
   // §1 — the HTML shell must render the framework's SSR nodes (RNW <style>,
   // expo-font @font-face). Dropping these causes FOUC + icon-font mismatch.
@@ -35,13 +56,13 @@ describe("SSR hydration guardrails", () => {
   // §3 — i18n must initialize synchronously during render (incl. SSR), not only
   // in an effect, or SSR-reachable t() leaks raw keys server-side.
   describe("i18n initializes synchronously for SSR", () => {
-    it("app/_layout.tsx calls ensureI18nInitialized() in the render body, not only an effect", () => {
-      const layout = read("app/_layout.tsx");
-      expect(layout).toContain("ensureI18nInitialized()");
+    it("the root layout calls ensureI18nInitialized() in the render body, not only an effect", () => {
+      const { src } = resolveRootLayoutSource();
+      expect(src).toContain("ensureI18nInitialized()");
 
       // The call must not live exclusively inside a useEffect — the whole point
       // is that it runs during render (effects don't fire on the server).
-      const renderBody = layout.slice(layout.indexOf("export default function RootLayout"));
+      const renderBody = src.slice(src.indexOf("export default function RootLayout"));
       const callIndex = renderBody.indexOf("ensureI18nInitialized()");
       const firstEffectIndex = renderBody.indexOf("useEffect(");
       expect(callIndex).toBeGreaterThanOrEqual(0);

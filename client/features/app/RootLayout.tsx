@@ -102,6 +102,18 @@ export default function RootLayout() {
     document.documentElement.classList.remove("theme-loading");
   }, []);
 
+  // Drop the `onboarding-seen` shield (added pre-paint by +html.tsx) once the
+  // persisted state has resolved to "seen" and we're rendering the app. Gating
+  // removal on the resolved-true value — rather than removing on mount — keeps
+  // the gate hidden through the swap so returning users never see it, while
+  // still letting a runtime onboarding reset (flag back to false) show the gate.
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined") return;
+    if (hasSeenOnboarding) {
+      document.documentElement.classList.remove("onboarding-seen");
+    }
+  }, [hasSeenOnboarding]);
+
   // Hide splash screen once the full startup gate has resolved — fonts, i18n,
   // onboarding persistence, and (when configured) auth bootstrap.
   useEffect(() => {

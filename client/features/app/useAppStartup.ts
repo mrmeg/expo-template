@@ -35,11 +35,13 @@ export function useAppStartup({ fontsLoaded, i18nReady }: StartupInputs): Startu
   const [authBootstrapped, setAuthBootstrapped] = useState(!authEnabled);
 
   // Load onboarding from persistence once, then mark as loaded so downstream
-  // checks can trust `hasSeenOnboarding`. The store's internal loader is
-  // fire-and-forget, so we wrap it with a micro-task to surface completion.
+  // checks can trust `hasSeenOnboarding`. `loadOnboarding()` resolves only after
+  // the persisted value has been read (AsyncStorage on native, localStorage on
+  // web), so awaiting it is what keeps the native splash up until the real flag
+  // is known instead of flashing the default-false gate.
   useEffect(() => {
     let cancelled = false;
-    Promise.resolve(useOnboardingStore.getState().loadOnboarding()).finally(() => {
+    useOnboardingStore.getState().loadOnboarding().finally(() => {
       if (!cancelled) setOnboardingLoaded(true);
     });
     return () => {

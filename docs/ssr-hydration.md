@@ -139,6 +139,36 @@ body background is correct on first paint. Any component that reads theme/window
 for render output should resolve to a stable default on the first render (gate
 on a `useHydrated()`-style flag) and switch after mount.
 
+### 6. Onboarding gate — a personalization flash, masked like the theme
+
+The server can't read `localStorage`, so `useOnboardingStore` resolves
+`hasSeenOnboarding: false` during SSR and `RootLayout` emits the **OnboardingGate**
+into the HTML. A returning visitor's browser paints that gate for one frame on
+every reload before hydration reads the persisted flag and swaps in the app —
+the split-second onboarding flash. (This is the same data the "onboarding gate
+masks `(main)` routes" gotcha below describes, seen from the user's side.)
+
+It's masked exactly like the theme white-flash (§5), in four parts:
+
+1. **`onboardingStore.ts`** auto-loads from storage on **native only** — on web
+   the read is deferred to a `useEffect` so the first client render matches the
+   server's `false` (no hydration mismatch). Mirrors `themeStore`. `loadOnboarding()`
+   returns a `Promise` so the startup gate can actually await the real read.
+2. **`app/+html.tsx`** ships a blocking `ONBOARDING_SEEN_SCRIPT` that reads
+   `localStorage["has-seen-onboarding"]` before paint and adds `onboarding-seen`
+   to `<html>` when truthy. A CSS rule (`html.onboarding-seen #root
+   [data-testid="onboarding-gate"] { display: none }`) then hides the gate, so a
+   returning visitor sees the themed background — not onboarding — until hydration.
+3. **`RootLayout.tsx`** drops the `onboarding-seen` class once `hasSeenOnboarding`
+   resolves to `true`, so the gate is unhidden only *after* the Stack renders, and
+   a runtime onboarding reset (flag back to `false`) still shows the gate.
+4. **New visitors** have no persisted flag → no class → the fully-styled SSR
+   onboarding (the `[data-testid="onboarding-*"]` critical CSS) paints normally.
+
+If you remove either the script or the CSS rule, the flash returns. Keep the
+store's web read deferred — eagerly reading `localStorage` at module load (the
+old behavior) trades the flash for a hydration mismatch on returning users.
+
 ## How to verify an SSR fix — do NOT rely on Jest/tsc alone
 
 Jest mocks `expo-font` and `react-i18next`, and `tsc` doesn't model Metro/SSR,
