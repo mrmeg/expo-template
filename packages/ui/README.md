@@ -29,12 +29,12 @@ bun add @mrmeg/expo-ui
 
 Consumers must also install the native and Expo peer dependencies listed in
 `package.json`. The tested baseline is Expo SDK 55 with React 19.2, React
-Native 0.83, React Native Web 0.21, Reanimated 4.2, and Worklets 0.7.
+Native 0.83, and React Native Web 0.21. UI animations and keyboard-aware
+sheet offsets use React Native Animated by default.
 `@rn-primitives/*` packages are managed by `@mrmeg/expo-ui` because they are
 implementation details of the exported UI components. Native bottom sheet
-keyboard avoidance uses `react-native-keyboard-controller`; mount that
-library's `KeyboardProvider` near the app root when sheets contain text
-inputs. i18n setup is optional; plain text and children render without
+keyboard avoidance uses React Native keyboard events. i18n setup is optional;
+plain text and children render without
 `i18next` or `react-i18next`. Start
 consumer apps from the same Expo SDK family or update the package and peer
 ranges deliberately. Keep npm auth tokens in developer or CI configuration,
@@ -207,7 +207,7 @@ All components are exported from `@mrmeg/expo-ui/components`; direct imports suc
 |-----------|---------|----------------------|--------------------------|
 | `Accordion`, `AccordionItem`, `AccordionTrigger`, `AccordionContent` | Multi-section disclosure | Custom FAQ/settings expanders | FAQ lists, grouped settings, help sections, dense detail pages |
 | `Alert` | Cross-platform imperative alerts | Direct `window.alert` or duplicated RN/web branching | Confirm destructive actions, native alert dialogs, simple blocking messages |
-| `AnimatedView` | Entrance and visibility animation | Hand-rolled Reanimated wrappers | Staggered list rows, revealed panels, animated empty states |
+| `AnimatedView` | Entrance and visibility animation | Hand-rolled one-off Animated wrappers | Staggered list rows, revealed panels, animated empty states |
 | `Badge` | Short status labels | Custom pill `View` + `Text` | Draft/active states, counts, plan labels, role tags |
 | `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets | Action pickers, mobile filters, keyboard-aware quick edit forms, contextual details |
 | `Button` | Commands and CTAs | Pressable plus custom text styling | Submit, save, cancel, delete, navigation CTAs, icon-accessory buttons; loading state preserves resting width |
@@ -272,7 +272,7 @@ Use `Button.preset`, not `variant`. `default` is the neutral primary action, `se
 
 Use `StyledText` or its aliases instead of raw `Text` whenever the text is part of app UI. Use `TextInput` for labeled fields because it already owns label, helper text, error text, clear buttons, password visibility, numeric filtering, and left/right elements.
 
-Mount `UIProvider` once near the root before using `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, or package notifications. On native, mount `KeyboardProvider` from `react-native-keyboard-controller` near the root before using `BottomSheet.Content` with text inputs; `avoidKeyboard` defaults to `true` and can be disabled per sheet. Trigger transient feedback from `globalUIStore`.
+Mount `UIProvider` once near the root before using `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, or package notifications. On native, `BottomSheet.Content` listens to React Native keyboard events when `avoidKeyboard` is enabled; it defaults to `true` and can be disabled per sheet. Trigger transient feedback from `globalUIStore`.
 
 Use `Skeleton` components for loading content with stable dimensions, `EmptyState` for no-data/recoverable errors, `Alert` for blocking confirm/alert dialogs, and `Notification` for transient global feedback.
 

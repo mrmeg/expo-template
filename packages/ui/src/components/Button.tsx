@@ -12,8 +12,8 @@ import {
   View,
   Platform,
   ActivityIndicator,
+  Animated,
 } from "react-native";
-import Animated from "react-native-reanimated";
 import { spacing } from "../constants/spacing";
 import { StyledText, TextProps } from "./StyledText";
 import { Icon, type IconProps } from "./Icon";

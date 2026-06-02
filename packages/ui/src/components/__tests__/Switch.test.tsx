@@ -5,6 +5,7 @@
  */
 
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { Switch } from "../Switch";
 
@@ -130,19 +131,18 @@ describe("Switch", () => {
     const track = tree.children?.[0] as any;
     const thumbWrapper = tree.children?.[1] as any;
     const thumbInner = thumbWrapper?.children?.[0] as any;
+    const thumbStyle = StyleSheet.flatten(thumbInner?.props.style);
 
     expect(track?.props.style.backgroundColor).toBe("#E4E4E7");
     expect(track?.props.style.borderWidth).toBe(1);
     expect(track?.props.style.borderColor).toBe("#D4D4D8");
 
-    expect(thumbInner?.props.style).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          backgroundColor: "#FFFFFF",
-          borderWidth: 1,
-          borderColor: "rgba(0, 0, 0, 0.1)",
-        }),
-      ])
+    expect(thumbStyle).toEqual(
+      expect.objectContaining({
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "rgba(0, 0, 0, 0.1)",
+      }),
     );
   });
 
@@ -185,18 +185,14 @@ describe("Switch", () => {
     const thumbWrapper = tree.children?.[2] as any;
     const thumbInner = thumbWrapper?.children?.[0] as any;
     const labelOff = tree.children?.[3] as any;
-    const thumbAnimatedStyle = thumbInner?.props.style.find((entry: any) => entry?.transform);
+    const thumbStyle = StyleSheet.flatten(thumbInner?.props.style);
 
-    expect(thumbInner?.props.style).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          marginLeft: 6,
-        }),
-      ]),
+    expect(thumbStyle).toEqual(
+      expect.objectContaining({
+        marginLeft: 6,
+      }),
     );
-    expect(thumbAnimatedStyle).toEqual({
-      transform: [{ translateX: 0 }],
-    });
+    expect(thumbStyle?.transform).toEqual([{ translateX: 0 }]);
 
     expect(labelOn?.props.style).toEqual(
       expect.objectContaining({

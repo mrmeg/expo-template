@@ -1,14 +1,7 @@
-import React, { useEffect } from "react";
-import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
-import Reanimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withRepeat,
-  withSequence,
-  useReducedMotion,
-} from "react-native-reanimated";
+import React, { useEffect, useRef } from "react";
+import { Animated, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
+import { useReducedMotion } from "../hooks/useReduceMotion";
 
 // ============================================================================
 // Types
@@ -46,8 +39,8 @@ const SIZE_MAP: Record<ProgressSize, number> = {
  * Progress Component
  *
  * A linear progress bar supporting determinate and indeterminate modes.
- * Determinate mode animates the fill width via Reanimated.
- * Indeterminate mode pulses opacity via RN core Animated.loop.
+ * Determinate mode animates the fill with React Native Animated.
+ * Indeterminate mode pulses opacity via Animated.loop.
  *
  * @example
  * ```tsx
@@ -116,7 +109,7 @@ export function Progress({
 }
 
 // ============================================================================
-// Determinate Fill (Reanimated)
+// Determinate Fill
 // ============================================================================
 
 interface DeterminateFillProps {
@@ -138,20 +131,18 @@ function DeterminateFill({
   // Animate scaleX (GPU compositor) instead of width (JS-thread layout each
   // frame). transformOrigin "left" grows the fill from the left edge, so a
   // full-width bar scaled by clamped/100 needs no container measurement.
-  const scaleX = useSharedValue(0);
+  const scaleX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    scaleX.value = withTiming(clamped / 100, {
+    Animated.timing(scaleX, {
+      toValue: clamped / 100,
       duration: reduceMotion ? 0 : 300,
-    });
+      useNativeDriver: true,
+    }).start();
   }, [clamped, reduceMotion, scaleX]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scaleX: scaleX.value }],
-  }));
-
   return (
-    <Reanimated.View
+    <Animated.View
       style={[
         {
           width: "100%",
@@ -160,14 +151,14 @@ function DeterminateFill({
           backgroundColor: fillColor,
           transformOrigin: "left",
         },
-        animatedStyle,
+        { transform: [{ scaleX }] },
       ]}
     />
   );
 }
 
 // ============================================================================
-// Indeterminate Fill (Reanimated opacity loop — follows Skeleton.tsx pattern)
+// Indeterminate Fill
 // ============================================================================
 
 interface IndeterminateFillProps {
@@ -183,29 +174,35 @@ function IndeterminateFill({
   borderRadius,
   reduceMotion,
 }: IndeterminateFillProps) {
-  const opacity = useSharedValue(reduceMotion ? 0.7 : 0.4);
+  const opacity = useRef(new Animated.Value(reduceMotion ? 0.7 : 0.4)).current;
 
   useEffect(() => {
-    // reduceMotion comes from an OS accessibility subscription, so reacting to
-    // it in an effect is correct. A single ternary assignment (matching the
-    // RadioGroup pattern) keeps this off the no-event-handler heuristic.
-    opacity.value = reduceMotion
-      ? withTiming(0.7, { duration: 0 })
-      : withRepeat(
-        withSequence(
-          withTiming(1.0, { duration: 800 }),
-          withTiming(0.4, { duration: 800 })
-        ),
-        -1
-      );
+    if (reduceMotion) {
+      opacity.setValue(0.7);
+      return;
+    }
+
+    opacity.setValue(0.4);
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.4,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
   }, [opacity, reduceMotion]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
   return (
-    <Reanimated.View
+    <Animated.View
       style={[
         {
           width: "40%",
@@ -213,7 +210,7 @@ function IndeterminateFill({
           borderRadius,
           backgroundColor: fillColor,
         },
-        animatedStyle,
+        { opacity },
       ]}
     />
   );

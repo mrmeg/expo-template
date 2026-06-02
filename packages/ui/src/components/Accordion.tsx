@@ -1,14 +1,9 @@
-import { useEffect, useState } from "react";
-import { Platform, Pressable, View, ViewStyle } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  useReducedMotion,
-} from "react-native-reanimated";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Platform, Pressable, View, ViewStyle } from "react-native";
 import { Icon } from "./Icon";
 import { TextClassContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
+import { useReducedMotion } from "../hooks/useReduceMotion";
 import { spacing } from "../constants/spacing";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
 
@@ -232,22 +227,27 @@ function AccordionTrigger({
   const { theme } = useTheme();
   const reduceMotion = useReducedMotion();
   const { isExpanded } = AccordionPrimitive.useItemContext();
-  const rotation = useSharedValue(isExpanded ? 1 : 0);
+  const rotation = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
 
   useEffect(() => {
     const target = isExpanded ? 1 : 0;
-    if (reduceMotion) {
-      rotation.value = target;
-      return;
-    }
-    rotation.value = withTiming(target, {
-      duration: isExpanded ? 200 : 150,
-    });
+    Animated.timing(rotation, {
+      toValue: target,
+      duration: reduceMotion ? 0 : isExpanded ? 200 : 150,
+      useNativeDriver: true,
+    }).start();
   }, [isExpanded, reduceMotion, rotation]);
 
-  const chevronStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value * 180}deg` }],
-  }));
+  const chevronStyle = {
+    transform: [
+      {
+        rotate: rotation.interpolate({
+          inputRange: [0, 1],
+          outputRange: ["0deg", "180deg"],
+        }),
+      },
+    ],
+  };
 
   return (
     <TextClassContext.Provider value="">

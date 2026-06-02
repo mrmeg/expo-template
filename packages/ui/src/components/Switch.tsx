@@ -5,15 +5,9 @@ import { useTheme } from "../hooks/useTheme";
 import { hapticLight } from "../lib/haptics";
 import * as SwitchPrimitives from "@rn-primitives/switch";
 import React, { useCallback, useEffect, useRef } from "react";
-import { ActivityIndicator, Platform, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  interpolate,
-  useReducedMotion,
-} from "react-native-reanimated";
+import { ActivityIndicator, Platform, StyleProp, StyleSheet, View, ViewStyle, Animated } from "react-native";
 import { StyledText } from "./StyledText";
+import { useReducedMotion } from "../hooks/useReduceMotion";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -83,16 +77,16 @@ function Switch({
     hasMounted.current = true;
   }, []);
 
-  // Single shared value drives everything: 0 = off, 1 = on
-  const progress = useSharedValue(props.checked ? 1 : 0);
+  // Single animated value drives everything: 0 = off, 1 = on
+  const progress = useRef(new Animated.Value(props.checked ? 1 : 0)).current;
 
   useEffect(() => {
     const target = props.checked ? 1 : 0;
-    if (reduceMotion) {
-      progress.value = withTiming(target, { duration: 0 });
-    } else {
-      progress.value = withTiming(target, { duration: 120 });
-    }
+    Animated.timing(progress, {
+      toValue: target,
+      duration: reduceMotion ? 0 : 120,
+      useNativeDriver: true,
+    }).start();
   }, [props.checked, reduceMotion, progress]);
 
   // Thumb slides from left to right with equal inset on every side.
@@ -101,11 +95,16 @@ function Switch({
   const labelGap = spacing.xs;
   const labelHorizontalInset = spacing.xs;
 
-  const thumbAnimatedStyle = useAnimatedStyle(() => ({
+  const thumbAnimatedStyle = {
     transform: [
-      { translateX: interpolate(progress.value, [0, 1], [0, thumbTravel]) },
+      {
+        translateX: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, thumbTravel],
+        }),
+      },
     ],
-  }));
+  };
 
   const isIOS = variant === "ios";
   const checkedColor = isIOS ? "#34C759" : theme.colors.accent;

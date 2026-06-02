@@ -17,13 +17,16 @@ import {
 import { Portal } from "@rn-primitives/portal";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { Pressable as SlotPressable } from "@rn-primitives/slot";
-import { KeyboardController, useKeyboardAnimation } from "react-native-keyboard-controller";
 import { useTheme } from "../hooks/useTheme";
 import { useDimensions } from "../hooks/useDimensions";
 import { spacing } from "../constants/spacing";
 import { shouldUseNativeDriver } from "../lib/animations";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  BottomSheetKeyboardController,
+  useBottomSheetKeyboardAnimation,
+} from "./BottomSheetKeyboard";
 
 /**
  * BottomSheet Component with Sub-components
@@ -188,7 +191,7 @@ function BottomSheetPanel({
 }
 
 function KeyboardAvoidingBottomSheetPanel(props: BottomSheetPanelProps) {
-  const { height: keyboardHeight } = useKeyboardAnimation();
+  const { height: keyboardHeight } = useBottomSheetKeyboardAnimation();
   const composedTranslateY = useMemo(
     () => Animated.add(props.translateY, keyboardHeight),
     [keyboardHeight, props.translateY]
@@ -444,7 +447,7 @@ function BottomSheetContent({
 
   const dismissKeyboardForDrag = useCallback(() => {
     if (Platform.OS !== "web" && dismissKeyboardOnDrag) {
-      void KeyboardController.dismiss();
+      void BottomSheetKeyboardController.dismiss();
     }
   }, [dismissKeyboardOnDrag]);
 

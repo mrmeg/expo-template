@@ -1,14 +1,7 @@
-import React, { useEffect } from "react";
-import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withRepeat,
-  withSequence,
-  useReducedMotion,
-} from "react-native-reanimated";
+import React, { useEffect, useRef } from "react";
+import { View, StyleSheet, StyleProp, ViewStyle, Animated } from "react-native";
 import { useTheme } from "../hooks/useTheme";
+import { useReducedMotion } from "../hooks/useReduceMotion";
 import { spacing } from "../constants/spacing";
 import type { Theme } from "../constants/colors";
 
@@ -50,26 +43,32 @@ export function Skeleton({
 }: SkeletonProps) {
   const { theme } = useTheme();
   const reduceMotion = useReducedMotion();
-  const opacity = useSharedValue(reduceMotion ? 0.6 : 0.3);
+  const opacity = useRef(new Animated.Value(reduceMotion ? 0.6 : 0.3)).current;
 
   useEffect(() => {
-    // reduceMotion comes from an OS accessibility subscription, so reacting to
-    // it in an effect is correct. A single ternary assignment (matching the
-    // RadioGroup pattern) keeps this off the no-event-handler heuristic.
-    opacity.value = reduceMotion
-      ? withTiming(0.6, { duration: 0 })
-      : withRepeat(
-        withSequence(
-          withTiming(1, { duration: 800 }),
-          withTiming(0.3, { duration: 800 })
-        ),
-        -1
-      );
-  }, [opacity, reduceMotion]);
+    if (reduceMotion) {
+      opacity.setValue(0.6);
+      return;
+    }
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
+    opacity.setValue(0.3);
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.3,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [opacity, reduceMotion]);
 
   const resolvedSize = circle ? (typeof height === "number" ? height : 40) : undefined;
 
@@ -82,7 +81,7 @@ export function Skeleton({
           borderRadius: circle ? (resolvedSize! / 2) : borderRadius,
           backgroundColor: theme.colors.muted,
         },
-        animatedStyle,
+        { opacity },
         style,
       ]}
     />

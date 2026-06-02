@@ -1,15 +1,8 @@
 import { palette } from "../constants/colors";
 import { useTheme } from "../hooks/useTheme";
 import { hapticLight } from "../lib/haptics";
-import React, { useCallback, useEffect, useRef } from "react";
-import { Platform, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Animated, GestureResponderEvent, PanResponder, Platform, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { StyledText } from "./StyledText";
 
 export type SliderSize = "sm" | "md";
@@ -41,7 +34,6 @@ export interface SliderProps {
 }
 
 function clampAndSnap(raw: number, min: number, max: number, step: number): number {
-  "worklet";
   const clamped = Math.min(Math.max(raw, min), max);
   const stepped = Math.round((clamped - min) / step) * step + min;
   // Avoid floating-point drift
@@ -79,95 +71,92 @@ function Slider({
       : theme.colors.mutedForeground
     : theme.colors.accent;
 
-  // Track layout width captured via onLayout
-  const trackWidth = useSharedValue(0);
-  // Thumb position in pixels along the track
-  const thumbX = useSharedValue(0);
-  // Last snapped value (worklet-side) to detect step changes for haptics
-  const lastSnappedValue = useSharedValue(value);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const trackWidthRef = useRef(0);
+  const thumbX = useRef(new Animated.Value(0)).current;
+  const lastSnappedValue = useRef(value);
 
-  // Keep a ref to onValueChange so the worklet always calls the latest version
-  const onValueChangeRef = useRef(onValueChange);
-  onValueChangeRef.current = onValueChange;
+  const updateFromPosition = useCallback(
+    (rawX: number) => {
+      const width = trackWidthRef.current;
+      const x = Math.min(Math.max(rawX, 0), width);
+      thumbX.stopAnimation();
+      thumbX.setValue(x);
 
-  const jsOnValueChange = useCallback((v: number) => {
-    onValueChangeRef.current?.(v);
-  }, []);
+      const ratio = width > 0 ? x / width : 0;
+      const raw = min + ratio * (max - min);
+      const snapped = clampAndSnap(raw, min, max, step);
+      if (snapped !== lastSnappedValue.current) {
+        lastSnappedValue.current = snapped;
+        hapticLight();
+      }
+      onValueChange?.(snapped);
+    },
+    [max, min, onValueChange, step, thumbX],
+  );
 
-  const jsHaptic = useCallback(() => {
-    hapticLight();
-  }, []);
+  const handleGesture = useCallback(
+    (event: GestureResponderEvent) => {
+      updateFromPosition(event.nativeEvent.locationX);
+    },
+    [updateFromPosition],
+  );
 
-  // Sync external value prop changes after render. Reanimated warns when shared
-  // values are read or written while React is rendering.
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => !disabled,
+        onMoveShouldSetPanResponder: () => !disabled,
+        onPanResponderGrant: handleGesture,
+        onPanResponderMove: handleGesture,
+      }),
+    [disabled, handleGesture],
+  );
+
   useEffect(() => {
     const ratio = getValueRatio(value, min, max);
-    const width = trackWidth.value;
+    const width = trackWidthRef.current;
 
     if (width > 0) {
-      thumbX.value = withTiming(ratio * width, { duration: 80 });
+      Animated.timing(thumbX, {
+        toValue: ratio * width,
+        duration: 80,
+        useNativeDriver: true,
+      }).start();
     }
 
-    lastSnappedValue.value = value;
-  }, [lastSnappedValue, max, min, thumbX, trackWidth, value]);
+    lastSnappedValue.current = value;
+  }, [max, min, thumbX, value]);
 
   const onTrackLayout = useCallback(
     (e: { nativeEvent: { layout: { width: number } } }) => {
       const w = e.nativeEvent.layout.width;
-      trackWidth.value = w;
+      trackWidthRef.current = w;
+      setTrackWidth(w);
       // Set initial thumb position without animation
       const ratio = getValueRatio(value, min, max);
-      thumbX.value = ratio * w;
+      thumbX.stopAnimation();
+      thumbX.setValue(ratio * w);
     },
-    [max, min, thumbX, trackWidth, value],
+    [max, min, thumbX, value],
   );
 
-  const panGesture = Gesture.Pan()
-    .enabled(!disabled)
-    .onBegin((e) => {
-      "worklet";
-      // Jump to touch position
-      const x = Math.min(Math.max(e.x, 0), trackWidth.value);
-      thumbX.value = x;
-      const ratio = trackWidth.value > 0 ? x / trackWidth.value : 0;
-      const raw = min + ratio * (max - min);
-      const snapped = clampAndSnap(raw, min, max, step);
-      if (snapped !== lastSnappedValue.value) {
-        lastSnappedValue.value = snapped;
-        runOnJS(jsHaptic)();
-      }
-      runOnJS(jsOnValueChange)(snapped);
-    })
-    .onUpdate((e) => {
-      "worklet";
-      const x = Math.min(Math.max(e.x, 0), trackWidth.value);
-      thumbX.value = x;
-      const ratio = trackWidth.value > 0 ? x / trackWidth.value : 0;
-      const raw = min + ratio * (max - min);
-      const snapped = clampAndSnap(raw, min, max, step);
-      if (snapped !== lastSnappedValue.value) {
-        lastSnappedValue.value = snapped;
-        runOnJS(jsHaptic)();
-      }
-      runOnJS(jsOnValueChange)(snapped);
-    });
-
-  // Animate scaleX (GPU compositor) rather than width (JS-thread layout each
-  // frame). The fill is full-width and scaled by thumb position / track width,
-  // growing from the left via transformOrigin.
-  const fillStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scaleX: trackWidth.value > 0 ? thumbX.value / trackWidth.value : 0 },
-    ],
-  }));
-
-  const thumbAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: thumbX.value - dims.thumb / 2 }],
-  }));
-
-  const valueLabelStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: thumbX.value - 14 }],
-  }));
+  const safeTrackWidth = Math.max(trackWidth, 1);
+  const fillScale = thumbX.interpolate({
+    inputRange: [0, safeTrackWidth],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+  const thumbTranslateX = thumbX.interpolate({
+    inputRange: [0, safeTrackWidth],
+    outputRange: [-dims.thumb / 2, safeTrackWidth - dims.thumb / 2],
+    extrapolate: "clamp",
+  });
+  const labelTranslateX = thumbX.interpolate({
+    inputRange: [0, safeTrackWidth],
+    outputRange: [-14, safeTrackWidth - 14],
+    extrapolate: "clamp",
+  });
 
   const flattenedStyle = styleOverride ? StyleSheet.flatten(styleOverride) : undefined;
 
@@ -209,7 +198,7 @@ function Slider({
               width: 28,
               alignItems: "center",
             },
-            valueLabelStyle,
+            { transform: [{ translateX: labelTranslateX }] },
             { pointerEvents: "none" },
           ]}
         >
@@ -227,59 +216,58 @@ function Slider({
       )}
 
       {/* Gesture area */}
-      <GestureDetector gesture={panGesture}>
+      <View
+        style={{
+          height: dims.thumb,
+          justifyContent: "center",
+          ...(Platform.OS === "web" && { cursor: disabled ? "default" : ("pointer" as any) }),
+        }}
+        onLayout={onTrackLayout}
+        {...panResponder.panHandlers}
+      >
+        {/* Track background */}
         <View
           style={{
-            height: dims.thumb,
-            justifyContent: "center",
-            ...(Platform.OS === "web" && { cursor: disabled ? "default" : ("pointer" as any) }),
+            height: dims.track,
+            borderRadius: dims.track / 2,
+            backgroundColor: inactiveTrackColor,
+            overflow: "hidden",
           }}
-          onLayout={onTrackLayout}
         >
-          {/* Track background */}
-          <View
-            style={{
-              height: dims.track,
-              borderRadius: dims.track / 2,
-              backgroundColor: inactiveTrackColor,
-              overflow: "hidden",
-            }}
-          >
-            {/* Fill */}
-            <Animated.View
-              style={[
-                {
-                  width: "100%",
-                  height: dims.track,
-                  borderRadius: dims.track / 2,
-                  backgroundColor: activeTrackColor,
-                  transformOrigin: "left",
-                },
-                fillStyle,
-              ]}
-            />
-          </View>
-
-          {/* Thumb */}
+          {/* Fill */}
           <Animated.View
             style={[
               {
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: dims.thumb,
-                height: dims.thumb,
-                borderRadius: dims.thumb / 2,
-                backgroundColor: thumbBackgroundColor,
-                borderWidth: 1,
-                borderColor: thumbBorderColor,
-                ...getShadowStyle("subtle"),
+                width: "100%",
+                height: dims.track,
+                borderRadius: dims.track / 2,
+                backgroundColor: activeTrackColor,
+                transformOrigin: "left",
               },
-              thumbAnimatedStyle,
+              { transform: [{ scaleX: fillScale }] },
             ]}
           />
         </View>
-      </GestureDetector>
+
+        {/* Thumb */}
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: dims.thumb,
+              height: dims.thumb,
+              borderRadius: dims.thumb / 2,
+              backgroundColor: thumbBackgroundColor,
+              borderWidth: 1,
+              borderColor: thumbBorderColor,
+              ...getShadowStyle("subtle"),
+            },
+            { transform: [{ translateX: thumbTranslateX }] },
+          ]}
+        />
+      </View>
     </View>
   );
 }

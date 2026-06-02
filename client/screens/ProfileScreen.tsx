@@ -7,8 +7,8 @@ import {
   Platform,
   StyleProp,
   ViewStyle,
+  Animated,
 } from "react-native";
-import Animated from "react-native-reanimated";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { useStaggeredEntrance, STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";

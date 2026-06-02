@@ -1,12 +1,7 @@
-import { useCallback } from "react";
-import {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  useReducedMotion,
-} from "react-native-reanimated";
+import { useCallback, useMemo, useRef } from "react";
+import { Animated } from "react-native";
 import { hapticLight } from "../lib/haptics";
+import { useReducedMotion } from "./useReduceMotion";
 
 interface ScalePressOptions {
   /**
@@ -37,7 +32,7 @@ interface ScalePressOptions {
 }
 
 /**
- * Hook for press-feedback scale animation using Reanimated.
+ * Hook for press-feedback scale animation using React Native Animated.
  *
  * Returns an animated style and onPressIn/onPressOut handlers to spread onto a Pressable.
  * Respects reduced motion preferences.
@@ -63,32 +58,41 @@ export function useScalePress(options: ScalePressOptions = {}) {
   } = options;
 
   const reduceMotion = useReducedMotion();
-  const scale = useSharedValue(1);
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const animateTo = useCallback(
+    (toValue: number) => {
+      scale.stopAnimation();
+
+      if (reduceMotion) {
+        scale.setValue(toValue);
+        return;
+      }
+
+      Animated.spring(scale, {
+        toValue,
+        damping,
+        stiffness,
+        useNativeDriver: true,
+      }).start();
+    },
+    [damping, reduceMotion, scale, stiffness],
+  );
 
   const onPressIn = useCallback(() => {
     if (disabled) return;
     if (haptic) hapticLight();
-
-    if (reduceMotion) {
-      scale.value = withTiming(scaleTo, { duration: 0 });
-    } else {
-      scale.value = withSpring(scaleTo, { damping, stiffness });
-    }
-  }, [disabled, haptic, reduceMotion, scale, scaleTo, damping, stiffness]);
+    animateTo(scaleTo);
+  }, [animateTo, disabled, haptic, scaleTo]);
 
   const onPressOut = useCallback(() => {
     if (disabled) return;
+    animateTo(1);
+  }, [animateTo, disabled]);
 
-    if (reduceMotion) {
-      scale.value = withTiming(1, { duration: 0 });
-    } else {
-      scale.value = withSpring(1, { damping, stiffness });
-    }
-  }, [disabled, reduceMotion, scale, damping, stiffness]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const animatedStyle = useMemo(() => ({
+    transform: [{ scale }],
+  }), [scale]);
 
   return {
     animatedStyle,

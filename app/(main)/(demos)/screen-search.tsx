@@ -28,7 +28,7 @@ const ALL_ITEMS: SearchItem[] = [
   { id: "6", title: "USB-C Monitor Stand", description: "Aluminum stand with built-in hub and 100W charging.", type: "product", tag: "$89.99" },
   { id: "7", title: "Expo Router Deep Dive", description: "File-based routing, layouts, and typed routes explained.", type: "article", tag: "Tutorial" },
   { id: "8", title: "Minimalist Desk Mat", description: "Felt desk mat in charcoal gray, 900 x 400 mm.", type: "product", tag: "$34.99" },
-  { id: "9", title: "Animation Performance Tips", description: "How to keep animations at 60fps with Reanimated.", type: "article", tag: "Guide" },
+  { id: "9", title: "Animation Performance Tips", description: "How to keep animations smooth with React Native Animated.", type: "article", tag: "Guide" },
   { id: "10", title: "Portable Charger 20K", description: "Compact power bank with dual USB-C ports.", type: "product", tag: "$49.99" },
 ];
 

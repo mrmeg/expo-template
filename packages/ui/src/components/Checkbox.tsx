@@ -1,16 +1,11 @@
-import React, { useEffect } from "react";
-import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  useReducedMotion,
-} from "react-native-reanimated";
+import React, { useCallback, useEffect, useRef } from "react";
+import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform, Animated } from "react-native";
 import { Icon } from "./Icon";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { hapticLight } from "../lib/haptics";
+import { useReducedMotion } from "../hooks/useReduceMotion";
 import * as CheckboxPrimitive from "@rn-primitives/checkbox";
 
 const DEFAULT_HIT_SLOP = 8;
@@ -76,31 +71,29 @@ function Checkbox({
   const sizeConfig = SIZE_CONFIGS[size];
 
   // Simple fast opacity for the checkmark icon
-  const checkOpacity = useSharedValue(checked || indeterminate ? 1 : 0);
+  const checkOpacity = useRef(new Animated.Value(checked || indeterminate ? 1 : 0)).current;
   const isVisuallyChecked = !!checked || indeterminate;
 
+  const animateCheckOpacity = useCallback(
+    (nextVisible: boolean) => {
+      Animated.timing(checkOpacity, {
+        toValue: nextVisible ? 1 : 0,
+        duration: reduceMotion ? 0 : 60,
+        useNativeDriver: true,
+      }).start();
+    },
+    [checkOpacity, reduceMotion],
+  );
+
   useEffect(() => {
-    if (reduceMotion) {
-      checkOpacity.value = withTiming(isVisuallyChecked ? 1 : 0, { duration: 0 });
-    } else {
-      checkOpacity.value = withTiming(isVisuallyChecked ? 1 : 0, { duration: 60 });
-    }
-  }, [checkOpacity, isVisuallyChecked, reduceMotion]);
+    animateCheckOpacity(isVisuallyChecked);
+  }, [animateCheckOpacity, isVisuallyChecked]);
 
   const wrappedOnCheckedChange = (next: boolean) => {
     if (next) hapticLight();
-
-    if (reduceMotion) {
-      checkOpacity.value = withTiming(next ? 1 : 0, { duration: 0 });
-    } else {
-      checkOpacity.value = withTiming(next ? 1 : 0, { duration: 60 });
-    }
+    animateCheckOpacity(next);
     onCheckedChange?.(next);
   };
-
-  const checkAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: checkOpacity.value,
-  }));
 
   // Dynamic border color with sufficient contrast against background
   const borderColor = error
@@ -146,7 +139,7 @@ function Checkbox({
           alignItems: "center",
         }}
       >
-        <Animated.View style={checkAnimatedStyle}>
+        <Animated.View style={{ opacity: checkOpacity }}>
           {indeterminate ? (
             <Icon
               name="minus"

@@ -1,16 +1,11 @@
 import * as React from "react";
-import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { Animated, Platform, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import * as TabsPrimitive from "@rn-primitives/tabs";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  useReducedMotion,
-} from "react-native-reanimated";
 import { StyledText } from "./StyledText";
 import { TextClassContext, TextColorContext } from "./StyledText.context";
 import { Icon, type IconName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
+import { useReducedMotion } from "../hooks/useReduceMotion";
 import { spacing } from "../constants/spacing";
 
 // ============================================================================
@@ -135,17 +130,15 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
   const rootContext = TabsPrimitive.useRootContext();
   const isSelected = rootContext.value === value;
 
-  const activeOpacity = useSharedValue(isSelected ? 1 : 0);
+  const activeOpacity = React.useRef(new Animated.Value(isSelected ? 1 : 0)).current;
 
   React.useEffect(() => {
-    activeOpacity.value = reduceMotion
-      ? (isSelected ? 1 : 0)
-      : withTiming(isSelected ? 1 : 0, { duration: 200 });
+    Animated.timing(activeOpacity, {
+      toValue: isSelected ? 1 : 0,
+      duration: reduceMotion ? 0 : 200,
+      useNativeDriver: true,
+    }).start();
   }, [isSelected, reduceMotion, activeOpacity]);
-
-  const indicatorStyle = useAnimatedStyle(() => ({
-    opacity: activeOpacity.value,
-  }));
 
   const textColor = isDisabled
     ? theme.colors.mutedForeground
@@ -204,7 +197,7 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
                   height: 2,
                   backgroundColor: theme.colors.foreground,
                 },
-                indicatorStyle,
+                { opacity: activeOpacity },
               ]}
             />
           )}

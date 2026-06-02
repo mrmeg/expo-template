@@ -357,7 +357,7 @@ is enough.
 - Stripe 22 (server, hosted-external Checkout + Billing Portal)
 - AWS S3 client + presigner (R2-compatible)
 - react-hook-form 7 + Zod 4 + `@hookform/resolvers`
-- `react-native-reanimated` 4.2, `react-native-keyboard-controller` 1.20
+- React Native `Animated` for package UI motion
 - `@expo/vector-icons` (Feather icon set in `Icon`)
 - Lato on web via Google Fonts, system sans-serif on native
 - Jest 29 + jest-expo + RNTL 13

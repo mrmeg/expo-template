@@ -1,6 +1,5 @@
 import React, { createContext, use } from "react";
-import { View, Pressable, StyleSheet, ViewStyle, TextStyle, StyleProp, Platform } from "react-native";
-import Animated from "react-native-reanimated";
+import { View, Pressable, StyleSheet, ViewStyle, TextStyle, StyleProp, Platform, Animated } from "react-native";
 import { StyledText, TextProps } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { useScalePress } from "../hooks/useScalePress";

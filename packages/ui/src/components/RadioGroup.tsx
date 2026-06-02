@@ -1,15 +1,10 @@
-import React, { createContext, use, useEffect } from "react";
-import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  useReducedMotion,
-} from "react-native-reanimated";
+import React, { createContext, use, useEffect, useRef } from "react";
+import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform, Animated } from "react-native";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { hapticLight } from "../lib/haptics";
+import { useReducedMotion } from "../hooks/useReduceMotion";
 import * as RadioGroupPrimitive from "@rn-primitives/radio-group";
 
 const DEFAULT_HIT_SLOP = 8;
@@ -155,17 +150,15 @@ function RadioGroupItem({
   const isChecked = groupValue === itemValue;
 
   // Animated dot scale — follows Checkbox opacity pattern
-  const dotScale = useSharedValue(isChecked ? 1 : 0);
+  const dotScale = useRef(new Animated.Value(isChecked ? 1 : 0)).current;
 
   useEffect(() => {
-    dotScale.value = reduceMotion
-      ? (isChecked ? 1 : 0)
-      : withTiming(isChecked ? 1 : 0, { duration: 60 });
+    Animated.timing(dotScale, {
+      toValue: isChecked ? 1 : 0,
+      duration: reduceMotion ? 0 : 60,
+      useNativeDriver: true,
+    }).start();
   }, [isChecked, reduceMotion, dotScale]);
-
-  const dotStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: dotScale.value }],
-  }));
 
   // Border color follows Checkbox pattern
   const borderColor = error
@@ -206,7 +199,7 @@ function RadioGroupItem({
           and accessibility state for screen readers. */}
       <Animated.View
         style={[
-          dotStyle,
+          { transform: [{ scale: dotScale }] },
           {
             width: sizeConfig.inner,
             height: sizeConfig.inner,

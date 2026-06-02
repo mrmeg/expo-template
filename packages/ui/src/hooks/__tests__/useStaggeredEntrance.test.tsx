@@ -23,7 +23,7 @@ describe("useStaggeredEntrance", () => {
       useStaggeredEntrance({ type: "fade" })
     );
 
-    // With mocked Reanimated, useAnimatedStyle returns the fn result
+    // The hook returns a React Native Animated style object.
     expect(result.current).toHaveProperty("opacity");
   });
 

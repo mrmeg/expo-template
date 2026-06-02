@@ -1,9 +1,6 @@
 /* eslint-disable no-undef */
 const fs = require("fs");
 const { getDefaultConfig } = require("expo/metro-config");
-const {
-  wrapWithReanimatedMetroConfig,
-} = require("react-native-reanimated/metro-config");
 const path = require("path");
 
 const config = getDefaultConfig(__dirname);
@@ -60,7 +57,6 @@ const dedupePackages = {
   react: resolveAppPackage("react"),
   "react-dom": resolveAppPackage("react-dom"),
   "react-native": resolveAppPackage("react-native"),
-  "react-native-reanimated": resolveAppPackage("react-native-reanimated"),
   "react-native-gesture-handler": resolveAppPackage(
     "react-native-gesture-handler"
   ),
@@ -130,4 +126,4 @@ if (ffmpegWorkerAsset) {
 // END FFmpeg
 // ============================================================================
 
-module.exports = wrapWithReanimatedMetroConfig(config);
+module.exports = config;

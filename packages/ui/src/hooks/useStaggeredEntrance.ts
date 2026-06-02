@@ -1,13 +1,6 @@
-import { useEffect } from "react";
-import {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
-  withDelay,
-  useReducedMotion,
-  Easing,
-} from "react-native-reanimated";
+import { useEffect, useMemo, useRef } from "react";
+import { Animated, Easing } from "react-native";
+import { useReducedMotion } from "./useReduceMotion";
 
 type EntranceType = "fade" | "fadeSlideUp" | "fadeSlideDown" | "scale";
 
@@ -41,7 +34,7 @@ interface StaggeredEntranceOptions {
 }
 
 /**
- * Hook for entrance animations with stagger support using Reanimated.
+ * Hook for entrance animations with stagger support using React Native Animated.
  *
  * Returns an animated style to apply to an Animated.View.
  * Respects reduced motion preferences.
@@ -69,8 +62,8 @@ export function useStaggeredEntrance(options: StaggeredEntranceOptions = {}) {
   } = options;
 
   const reduceMotion = useReducedMotion();
-  const opacity = useSharedValue(reduceMotion ? 1 : 0);
-  const translateY = useSharedValue(
+  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(
     reduceMotion
       ? 0
       : type === "fadeSlideUp"
@@ -78,54 +71,86 @@ export function useStaggeredEntrance(options: StaggeredEntranceOptions = {}) {
         : type === "fadeSlideDown"
           ? -slideDistance
           : 0
-  );
-  const scale = useSharedValue(
+  )).current;
+  const scale = useRef(new Animated.Value(
     reduceMotion ? 1 : type === "scale" ? initialScale : 1
-  );
+  )).current;
 
   useEffect(() => {
     if (reduceMotion) {
-      opacity.value = 1;
-      translateY.value = 0;
-      scale.value = 1;
+      opacity.setValue(1);
+      translateY.setValue(0);
+      scale.setValue(1);
       return;
     }
+
+    opacity.setValue(0);
+    translateY.setValue(
+      type === "fadeSlideUp"
+        ? slideDistance
+        : type === "fadeSlideDown"
+          ? -slideDistance
+          : 0
+    );
+    scale.setValue(type === "scale" ? initialScale : 1);
 
     const timingConfig = {
       duration,
       easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
     };
 
-    opacity.value = withDelay(delay, withTiming(1, timingConfig));
+    const animations = [
+      Animated.timing(opacity, {
+        toValue: 1,
+        ...timingConfig,
+      }),
+    ];
 
     if (type === "fadeSlideUp" || type === "fadeSlideDown") {
-      translateY.value = withDelay(delay, withTiming(0, timingConfig));
+      animations.push(
+        Animated.timing(translateY, {
+          toValue: 0,
+          ...timingConfig,
+        })
+      );
     }
 
     if (type === "scale") {
-      scale.value = withDelay(
-        delay,
-        withSpring(1, { damping: 14, stiffness: 250 })
+      animations.push(
+        Animated.spring(scale, {
+          toValue: 1,
+          damping: 14,
+          stiffness: 250,
+          useNativeDriver: true,
+        })
       );
     }
-  }, [reduceMotion, opacity, translateY, scale, duration, delay, type]);
 
-  const animatedStyle = useAnimatedStyle(() => {
+    const animation = delay > 0
+      ? Animated.sequence([Animated.delay(delay), Animated.parallel(animations)])
+      : Animated.parallel(animations);
+
+    animation.start();
+    return () => animation.stop();
+  }, [delay, duration, initialScale, opacity, reduceMotion, scale, slideDistance, translateY, type]);
+
+  const animatedStyle = useMemo(() => {
     if (type === "fade") {
-      return { opacity: opacity.value };
+      return { opacity };
     }
     if (type === "fadeSlideUp" || type === "fadeSlideDown") {
       return {
-        opacity: opacity.value,
-        transform: [{ translateY: translateY.value }],
+        opacity,
+        transform: [{ translateY }],
       };
     }
     // scale
     return {
-      opacity: opacity.value,
-      transform: [{ scale: scale.value }],
+      opacity,
+      transform: [{ scale }],
     };
-  });
+  }, [opacity, scale, translateY, type]);
 
   return animatedStyle;
 }

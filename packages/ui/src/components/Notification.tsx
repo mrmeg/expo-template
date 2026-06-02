@@ -1,26 +1,19 @@
 import React, { useMemo, useCallback, use, useEffect, useEffectEvent, useRef } from "react";
-import { StyleSheet, View, ActivityIndicator, Pressable, Platform } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-  useReducedMotion,
-  Easing,
-} from "react-native-reanimated";
+import { Animated, Easing, StyleSheet, View, ActivityIndicator, Pressable, Platform } from "react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { fontFamilies } from "../constants/fonts";
 import { Icon } from "./Icon";
 import type { IconName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
+import { useReducedMotion } from "../hooks/useReduceMotion";
 import { spacing } from "../constants/spacing";
 import { StyledText } from "./StyledText";
 import type { Theme } from "../constants/colors";
 import { translateText } from "../lib/i18n";
 import { globalUIStore } from "../state/globalUIStore";
 
-const timingIn = { duration: 150, easing: Easing.out(Easing.quad) };
-const timingOut = { duration: 100, easing: Easing.in(Easing.quad) };
+const timingIn = { duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: true };
+const timingOut = { duration: 100, easing: Easing.in(Easing.quad), useNativeDriver: true };
 
 /**
  * Notification
@@ -58,8 +51,8 @@ export const Notification = () => {
   const isBottom = position === "bottom";
 
   // Just opacity + translateY — no scale (scale = bouncy feel)
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(0);
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
 
   const wasVisibleRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,15 +63,23 @@ export const Notification = () => {
 
   const animateOut = useCallback(() => {
     if (reduceMotion) {
-      opacity.value = withTiming(0, { duration: 0 });
+      opacity.setValue(0);
       hideNotification();
       return;
     }
 
     const slideTarget = isBottom ? 8 : -8;
-    opacity.value = withTiming(0, timingOut);
-    translateY.value = withTiming(slideTarget, timingOut, (finished) => {
-      if (finished) runOnJS(hideNotification)();
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 0,
+        ...timingOut,
+      }),
+      Animated.timing(translateY, {
+        toValue: slideTarget,
+        ...timingOut,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) hideNotification();
     });
   }, [reduceMotion, isBottom, opacity, translateY, hideNotification]);
 
@@ -102,14 +103,22 @@ export const Notification = () => {
       const slideFrom = isBottom ? 8 : -8;
 
       if (reduceMotion) {
-        opacity.value = withTiming(1, { duration: 0 });
-        translateY.value = withTiming(0, { duration: 0 });
+        opacity.setValue(1);
+        translateY.setValue(0);
       } else {
-        opacity.value = 0;
-        translateY.value = slideFrom;
+        opacity.setValue(0);
+        translateY.setValue(slideFrom);
 
-        opacity.value = withTiming(1, timingIn);
-        translateY.value = withTiming(0, timingIn);
+        Animated.parallel([
+          Animated.timing(opacity, {
+            toValue: 1,
+            ...timingIn,
+          }),
+          Animated.timing(translateY, {
+            toValue: 0,
+            ...timingIn,
+          }),
+        ]).start();
       }
     }
 
@@ -130,10 +139,10 @@ export const Notification = () => {
     // onAutoDismiss is an Effect Event — intentionally omitted from deps.
   }, [alert, reduceMotion, isBottom, opacity, translateY]);
 
-  const animatedContainerStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
+  const animatedContainerStyle = {
+    opacity,
+    transform: [{ translateY }],
+  };
 
   const topPosition = insets?.top ? insets.top : 20;
   const bottomPosition = insets?.bottom ? insets.bottom : 20;

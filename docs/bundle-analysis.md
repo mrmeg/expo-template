@@ -69,7 +69,6 @@ Watch for these in `source-map-explorer`:
 | Package | Typical Size | Notes |
 |---------|-------------|-------|
 | `aws-amplify` | ~200KB+ | Auth only? Consider `@aws-amplify/auth` alone |
-| `react-native-reanimated` | ~150KB | Required for animations |
 | `@rn-primitives/*` | ~5-10KB each | 14 packages installed |
 | `zod` | ~13KB | Form validation |
 | `react-hook-form` | ~9KB | Form state |

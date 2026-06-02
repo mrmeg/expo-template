@@ -8,12 +8,6 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  useReducedMotion,
-} from "react-native-reanimated";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { fontFamilies } from "../constants/fonts";
@@ -79,7 +73,6 @@ const CELL_HEIGHT = 40;
 const CELL_FONT_SIZE = 20;
 const CELL_FONT_WEIGHT = "600" as const;
 const BULLET = "\u2022";
-const ANIM_DURATION = 60;
 
 /**
  * OTP/verification code input with individual character cells.
@@ -111,7 +104,6 @@ function InputOTP({
   style: styleOverride,
 }: InputOTPProps) {
   const { theme } = useTheme();
-  const reduceMotion = useReducedMotion();
   const inputRef = useRef<RNTextInput>(null);
   const [focused, setFocused] = useState(false);
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -207,7 +199,6 @@ function InputOTP({
               hasError={hasError}
               disabled={disabled}
               theme={theme}
-              reduceMotion={reduceMotion}
               onPress={focusInput}
             />
           );
@@ -235,7 +226,6 @@ interface OTPCellProps {
   hasError: boolean;
   disabled: boolean;
   theme: Theme;
-  reduceMotion: boolean;
   onPress: () => void;
 }
 
@@ -247,44 +237,17 @@ function OTPCell({
   hasError,
   disabled,
   theme,
-  reduceMotion,
   onPress,
 }: OTPCellProps) {
   // borderWidth is a layout property — animating it forces a JS-thread layout
-  // pass every frame. The 1↔2px change reads as instant anyway, so compute it
-  // during render and only animate borderColor (a GPU-composited property).
+  // pass every frame. The 1↔2px and color changes read as instant for OTP
+  // cells, so compute both during render.
   const borderWidth = isActive && !hasError ? 2 : 1;
-  const borderColor = useSharedValue(
-    hasError
-      ? theme.colors.destructive
-      : isActive
-        ? theme.colors.primary
-        : theme.colors.border,
-  );
-
-  // Update animated color when state changes
-  React.useEffect(() => {
-    const duration = reduceMotion ? 0 : ANIM_DURATION;
-    const targetColor = hasError
-      ? theme.colors.destructive
-      : isActive
-        ? theme.colors.primary
-        : theme.colors.border;
-
-    borderColor.value = withTiming(targetColor, { duration });
-  }, [
-    isActive,
-    hasError,
-    theme.colors.destructive,
-    theme.colors.primary,
-    theme.colors.border,
-    reduceMotion,
-    borderColor,
-  ]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    borderColor: borderColor.value,
-  }));
+  const borderColor = hasError
+    ? theme.colors.destructive
+    : isActive
+      ? theme.colors.primary
+      : theme.colors.border;
 
   return (
     <Pressable
@@ -294,7 +257,7 @@ function OTPCell({
       accessibilityLabel={`Digit ${index + 1} of ${total}`}
       accessibilityState={{ disabled }}
     >
-      <Animated.View
+      <View
         style={[
           {
             width: CELL_WIDTH,
@@ -305,8 +268,8 @@ function OTPCell({
             alignItems: "center",
             backgroundColor: "transparent",
             opacity: disabled ? 0.5 : 1,
+            borderColor,
           },
-          animatedStyle,
         ]}
       >
         <StyledText
@@ -322,7 +285,7 @@ function OTPCell({
         >
           {char}
         </StyledText>
-      </Animated.View>
+      </View>
     </Pressable>
   );
 }

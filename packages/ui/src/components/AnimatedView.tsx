@@ -1,6 +1,5 @@
 import React from "react";
-import { ViewProps } from "react-native";
-import Animated from "react-native-reanimated";
+import { Animated, ViewProps } from "react-native";
 import { useStaggeredEntrance } from "../hooks/useStaggeredEntrance";
 
 /**
@@ -30,7 +29,7 @@ interface AnimatedViewProps extends ViewProps {
 
 /**
  * Cross-Platform Animated View Component
- * Uses Reanimated for smooth 60fps animations on all platforms
+ * Uses React Native Animated for lightweight cross-platform animations
  *
  * Features:
  * - Multiple animation types (fade, fadeSlideUp, fadeSlideDown, scale)
