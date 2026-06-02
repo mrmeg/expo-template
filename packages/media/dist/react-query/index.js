@@ -27,8 +27,12 @@ export function createMediaQueryHooks({ client, queryKeyNamespace = "media", }) 
         });
     }
     function useMediaUpload() {
+        const queryClient = useQueryClient();
         return useMutation({
             mutationFn: (options) => client.upload(options),
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: [queryKeyNamespace, "list"] });
+            },
         });
     }
     function useMediaDelete() {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useReducer } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
@@ -118,16 +118,57 @@ const SWATCH_KEYS: (keyof ThemeColors)[] = [
   "ring",
 ];
 
+type ShowcaseState = {
+  palette: string;
+  switchOn: boolean;
+  checked: boolean;
+  tab: string;
+  name: string;
+};
+
+type ShowcaseAction =
+  | { type: "paletteChanged"; palette: string }
+  | { type: "switchChanged"; switchOn: boolean }
+  | { type: "checkedChanged"; checked: boolean }
+  | { type: "tabChanged"; tab: string }
+  | { type: "nameChanged"; name: string };
+
+const INITIAL_SHOWCASE_STATE: ShowcaseState = {
+  palette: "violet",
+  switchOn: true,
+  checked: true,
+  tab: "buttons",
+  name: "",
+};
+
+function showcaseReducer(
+  state: ShowcaseState,
+  action: ShowcaseAction
+): ShowcaseState {
+  switch (action.type) {
+  case "paletteChanged":
+    return { ...state, palette: action.palette };
+  case "switchChanged":
+    return { ...state, switchOn: action.switchOn };
+  case "checkedChanged":
+    return { ...state, checked: action.checked };
+  case "tabChanged":
+    return { ...state, tab: action.tab };
+  case "nameChanged":
+    return { ...state, name: action.name };
+  }
+}
+
 export default function ThemedShowcaseScreen() {
   const { theme, scheme } = useTheme();
   const setColors = useThemeStore((s) => s.setColors);
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const [palette, setPalette] = useState<string>("violet");
-  const [switchOn, setSwitchOn] = useState(true);
-  const [checked, setChecked] = useState(true);
-  const [tab, setTab] = useState("buttons");
-  const [name, setName] = useState("");
+  const [state, dispatch] = useReducer(
+    showcaseReducer,
+    INITIAL_SHOWCASE_STATE
+  );
+  const { palette, switchOn, checked, tab, name } = state;
 
   // Push the selected brand palette into the package theme store. Selecting
   // "default" clears the override so components fall back to the package
@@ -158,7 +199,9 @@ export default function ThemedShowcaseScreen() {
                 type="single"
                 value={palette}
                 onValueChange={(val) => {
-                  if (val) setPalette(val);
+                  if (val) {
+                    dispatch({ type: "paletteChanged", palette: val });
+                  }
                 }}
               >
                 {PALETTE_ORDER.map((key) => (
@@ -193,8 +236,8 @@ export default function ThemedShowcaseScreen() {
 
           <Section title="Buttons">
             <View style={styles.row}>
-              <Button preset="default" onPress={() => {}}>Default</Button>
-              <Button preset="secondary" onPress={() => {}}>Secondary</Button>
+              <Button preset="default" text="Default" onPress={() => {}} />
+              <Button preset="secondary" text="Secondary" onPress={() => {}} />
               <Button preset="outline" onPress={() => {}}>
                 <StyledText style={styles.outlineText}>Outline</StyledText>
               </Button>
@@ -204,17 +247,17 @@ export default function ThemedShowcaseScreen() {
               <Button preset="link" onPress={() => {}}>
                 <StyledText style={styles.linkText}>Link</StyledText>
               </Button>
-              <Button preset="destructive" onPress={() => {}}>Destructive</Button>
+              <Button preset="destructive" text="Destructive" onPress={() => {}} />
             </View>
           </Section>
 
           <Section title="Badges">
             <SubSection label="default uses primary; the override re-skins it">
               <View style={styles.row}>
-                <Badge>Default</Badge>
-                <Badge variant="secondary">Secondary</Badge>
-                <Badge variant="outline">Outline</Badge>
-                <Badge variant="destructive">Destructive</Badge>
+                <Badge text="Default" />
+                <Badge variant="secondary" text="Secondary" />
+                <Badge variant="outline" text="Outline" />
+                <Badge variant="destructive" text="Destructive" />
               </View>
             </SubSection>
           </Section>
@@ -225,13 +268,25 @@ export default function ThemedShowcaseScreen() {
                 label="Display name"
                 placeholder="Type to focus and see the ring color"
                 value={name}
-                onChangeText={setName}
+                onChangeText={(value) =>
+                  dispatch({ type: "nameChanged", name: value })
+                }
               />
             </SubSection>
             <SubSection label="Switch & Checkbox">
               <View style={styles.controlRow}>
-                <Switch checked={switchOn} onCheckedChange={setSwitchOn} />
-                <Checkbox checked={checked} onCheckedChange={setChecked} />
+                <Switch
+                  checked={switchOn}
+                  onCheckedChange={(value) =>
+                    dispatch({ type: "switchChanged", switchOn: value })
+                  }
+                />
+                <Checkbox
+                  checked={checked}
+                  onCheckedChange={(value) =>
+                    dispatch({ type: "checkedChanged", checked: value })
+                  }
+                />
                 <StyledText style={styles.labelText}>
                   Toggles use the active primary color
                 </StyledText>
@@ -248,11 +303,22 @@ export default function ThemedShowcaseScreen() {
           </Section>
 
           <Section title="Tabs">
-            <Tabs value={tab} onValueChange={setTab}>
+            <Tabs
+              value={tab}
+              onValueChange={(value) =>
+                dispatch({ type: "tabChanged", tab: value })
+              }
+            >
               <TabsList>
-                <TabsTrigger value="buttons">Overview</TabsTrigger>
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="activity">Activity</TabsTrigger>
+                <TabsTrigger value="buttons">
+                  <StyledText>Overview</StyledText>
+                </TabsTrigger>
+                <TabsTrigger value="details">
+                  <StyledText>Details</StyledText>
+                </TabsTrigger>
+                <TabsTrigger value="activity">
+                  <StyledText>Activity</StyledText>
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="buttons">
                 <StyledText style={styles.labelText}>
@@ -284,7 +350,7 @@ export default function ThemedShowcaseScreen() {
                 </StyledText>
               </CardContent>
               <CardFooter>
-                <Button preset="default" size="sm" onPress={() => {}}>Primary action</Button>
+                <Button preset="default" size="sm" text="Primary action" onPress={() => {}} />
               </CardFooter>
             </Card>
           </Section>

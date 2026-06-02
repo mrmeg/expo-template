@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useReducer, useRef, useState } from "react";
 import {
   View,
   StyleSheet,
   FlatList,
-  Image,
   Pressable,
   ActivityIndicator,
   RefreshControl,
+  type ViewStyle,
 } from "react-native";
+import { Image } from "expo-image";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import {
@@ -20,6 +21,7 @@ import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { ImagePreview } from "@/client/features/media/components/ImagePreview";
 import { VideoPlayer } from "@/client/features/media/components/VideoPlayer";
 import { useMediaList, formatBytes } from "@/client/features/media/hooks/useMediaList";
+import type { MediaItem } from "@mrmeg/expo-media/client";
 import { useSignedUrls } from "@/client/features/media/hooks/useSignedUrls";
 import {
   useMediaDelete,
@@ -44,10 +46,19 @@ import {
 import { globalUIStore } from "@mrmeg/expo-ui/state";
 import { logDev } from "@/client/lib/devtools";
 import type { Theme } from "@mrmeg/expo-ui/constants";
-import { SEO } from "@/client/components/SEO";
+import { Seo } from "@/client/components/Seo";
 
 type FilterType = "all" | keyof typeof MEDIA_PATHS;
 type MediaType = keyof typeof MEDIA_PATHS;
+type MediaViewerState =
+  | { type: "video"; url: string; title: string }
+  | { type: "image"; url: string; title: string }
+  | null;
+
+type MediaViewerAction =
+  | { type: "playVideo"; url: string; title: string }
+  | { type: "previewImage"; url: string; title: string }
+  | { type: "close" };
 
 const LIST_MEDIA_TYPES = [
   "avatars",
@@ -56,20 +67,59 @@ const LIST_MEDIA_TYPES = [
   "uploads",
 ] as const satisfies readonly MediaType[];
 
+const MEDIA_FILTERS: { key: FilterType; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "avatars", label: "Avatars" },
+  { key: "videos", label: "Videos" },
+  { key: "uploads", label: "Uploads" },
+];
+
+function getDeletePayloadKeys(keys: string[]) {
+  const payload = new Set<string>();
+
+  for (const key of keys) {
+    payload.add(key);
+    if (
+      MEDIA_APP_SETTINGS.uploads.deleteVideoThumbnailWithVideo &&
+      isVideoKey(key)
+    ) {
+      payload.add(getVideoThumbnailKey(key));
+    }
+  }
+
+  return [...payload];
+}
+
+function mediaViewerReducer(
+  state: MediaViewerState,
+  action: MediaViewerAction
+): MediaViewerState {
+  switch (action.type) {
+  case "playVideo":
+    return { type: "video", url: action.url, title: action.title };
+  case "previewImage":
+    return { type: "image", url: action.url, title: action.title };
+  case "close":
+    return null;
+  }
+}
+
 export default function MediaScreen() {
+  return useMediaScreenContent();
+}
+
+function useMediaScreenContent() {
   const { theme, getShadowStyle } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [filter, setFilter] = useState<FilterType>("all");
   const [isUploadingBatch, setIsUploadingBatch] = useState(false);
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
-  const [playingVideo, setPlayingVideo] = useState<{
-    url: string;
-    title: string;
-  } | null>(null);
-  const [previewingImage, setPreviewingImage] = useState<{
-    url: string;
-    title: string;
-  } | null>(null);
+  const [selectedKeyCandidates, setSelectedKeyCandidates] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [mediaViewer, dispatchMediaViewer] = useReducer(
+    mediaViewerReducer,
+    null
+  );
 
   const mediaListQueries = {
     avatars: useMediaList({
@@ -89,17 +139,33 @@ export default function MediaScreen() {
       enabled: filter === "all" || filter === "uploads",
     }),
   };
+  const avatarsData = mediaListQueries.avatars.data;
+  const videosData = mediaListQueries.videos.data;
+  const thumbnailsData = mediaListQueries.thumbnails.data;
+  const uploadsData = mediaListQueries.uploads.data;
   const activeMediaListQueries = filter === "all"
     ? LIST_MEDIA_TYPES.map((mediaType) => mediaListQueries[mediaType])
     : [mediaListQueries[filter]];
   const data = useMemo(() => {
     if (filter !== "all") {
-      return mediaListQueries[filter].data;
+      switch (filter) {
+      case "avatars":
+        return avatarsData;
+      case "videos":
+        return videosData;
+      case "thumbnails":
+        return thumbnailsData;
+      case "uploads":
+        return uploadsData;
+      }
     }
 
-    const items = LIST_MEDIA_TYPES.flatMap(
-      (mediaType) => mediaListQueries[mediaType].data?.items ?? [],
-    );
+    const items = [
+      ...(avatarsData?.items ?? []),
+      ...(videosData?.items ?? []),
+      ...(thumbnailsData?.items ?? []),
+      ...(uploadsData?.items ?? []),
+    ];
 
     return {
       items,
@@ -108,19 +174,25 @@ export default function MediaScreen() {
     };
   }, [
     filter,
-    mediaListQueries.avatars.data,
-    mediaListQueries.videos.data,
-    mediaListQueries.thumbnails.data,
-    mediaListQueries.uploads.data,
+    avatarsData,
+    videosData,
+    thumbnailsData,
+    uploadsData,
   ]);
   const isLoading = activeMediaListQueries.some((query) => query.isLoading);
   const isRefetching = activeMediaListQueries.some((query) => query.isRefetching);
   const error = activeMediaListQueries.find((query) => query.error)?.error ?? null;
-  const refetch = () => {
-    for (const query of activeMediaListQueries) {
+
+  // activeMediaListQueries is rebuilt every render; stash the latest in a ref so
+  // refetch can stay referentially stable (and the memoized RefreshControl with
+  // it) without going stale.
+  const activeQueriesRef = useRef(activeMediaListQueries);
+  activeQueriesRef.current = activeMediaListQueries;
+  const refetch = useCallback(() => {
+    for (const query of activeQueriesRef.current) {
       void query.refetch();
     }
-  };
+  }, []);
   const mediaDisabled = isMediaError(error) && error.problem.kind === "disabled";
   const mediaAccessError =
     isMediaError(error) &&
@@ -140,6 +212,17 @@ export default function MediaScreen() {
     [mediaItems]
   );
   const visibleKeySet = useMemo(() => new Set(visibleKeys), [visibleKeys]);
+  const selectedKeys = useMemo(() => {
+    if (selectedKeyCandidates.size === 0) return selectedKeyCandidates;
+
+    const visibleSelectedKeys = new Set(
+      [...selectedKeyCandidates].filter((key) => visibleKeySet.has(key))
+    );
+
+    return visibleSelectedKeys.size === selectedKeyCandidates.size
+      ? selectedKeyCandidates
+      : visibleSelectedKeys;
+  }, [selectedKeyCandidates, visibleKeySet]);
   const selectedVisibleCount = useMemo(
     () => visibleKeys.filter((key) => selectedKeys.has(key)).length,
     [selectedKeys, visibleKeys]
@@ -153,23 +236,12 @@ export default function MediaScreen() {
   const uploadDisabled =
     mediaDisabled || isPicking || isUploading || isUploadingBatch;
 
-  useEffect(() => {
-    setSelectedKeys((current) => {
-      if (current.size === 0) return current;
-
-      const next = new Set(
-        [...current].filter((key) => visibleKeySet.has(key))
-      );
-      return next.size === current.size ? current : next;
-    });
-  }, [visibleKeySet]);
-
   const clearSelection = () => {
-    setSelectedKeys(new Set());
+    setSelectedKeyCandidates(new Set());
   };
 
-  const toggleSelectedKey = (key: string) => {
-    setSelectedKeys((current) => {
+  const toggleSelectedKey = useCallback((key: string) => {
+    setSelectedKeyCandidates((current) => {
       const next = new Set(current);
       if (next.has(key)) {
         next.delete(key);
@@ -178,12 +250,12 @@ export default function MediaScreen() {
       }
       return next;
     });
-  };
+  }, []);
 
   const toggleSelectAllVisible = () => {
     if (visibleKeys.length === 0) return;
 
-    setSelectedKeys((current) => {
+    setSelectedKeyCandidates((current) => {
       const next = new Set(current);
 
       if (isAllVisibleSelected) {
@@ -196,23 +268,7 @@ export default function MediaScreen() {
     });
   };
 
-  const getDeletePayloadKeys = (keys: string[]) => {
-    const payload = new Set<string>();
-
-    for (const key of keys) {
-      payload.add(key);
-      if (
-        MEDIA_APP_SETTINGS.uploads.deleteVideoThumbnailWithVideo &&
-        isVideoKey(key)
-      ) {
-        payload.add(getVideoThumbnailKey(key));
-      }
-    }
-
-    return [...payload];
-  };
-
-  const handleDelete = async (key: string) => {
+  const handleDelete = useCallback(async (key: string) => {
     try {
       // If deleting a video, also delete its thumbnail
       if (
@@ -229,7 +285,7 @@ export default function MediaScreen() {
       }
 
       await deleteFile(key);
-      setSelectedKeys((current) => {
+      setSelectedKeyCandidates((current) => {
         const thumbnailKey =
           MEDIA_APP_SETTINGS.uploads.deleteVideoThumbnailWithVideo &&
           isVideoKey(key)
@@ -263,7 +319,7 @@ export default function MediaScreen() {
         duration: 5000,
       });
     }
-  };
+  }, [deleteFile]);
 
   const handleDeleteSelected = async () => {
     const selectedForDelete = [...selectedKeys];
@@ -376,28 +432,37 @@ export default function MediaScreen() {
       });
       if (!assets || assets.length === 0) return;
 
-      let uploadedCount = 0;
-      let videoCount = 0;
-      const failedFiles: string[] = [];
+      globalUIStore.getState().show({
+        type: "info",
+        title: assets.length > 1 ? `Uploading ${assets.length} files` : "Uploading",
+        messages: [
+          assets.length > 1
+            ? "Uploading selected files"
+            : assets[0]?.fileName || "Uploading file",
+        ],
+        loading: true,
+      });
 
-      for (const [index, asset] of assets.entries()) {
-        globalUIStore.getState().show({
-          type: "info",
-          title: assets.length > 1 ? `Uploading ${index + 1} of ${assets.length}` : "Uploading",
-          messages: [asset.fileName || "Uploading file"],
-          loading: true,
-        });
+      const uploadResults = await Promise.all(
+        assets.map(async (asset, index) => {
+          try {
+            const uploaded = await uploadAsset(asset);
+            return { ok: true as const, uploaded };
+          } catch (assetError) {
+            const fileName = asset.fileName || `File ${index + 1}`;
+            logDev(`Failed to upload ${fileName}: ${assetError}`);
+            return { ok: false as const, fileName };
+          }
+        })
+      );
 
-        try {
-          const uploaded = await uploadAsset(asset);
-          uploadedCount += 1;
-          if (uploaded.isVideo) videoCount += 1;
-        } catch (assetError) {
-          const fileName = asset.fileName || `File ${index + 1}`;
-          failedFiles.push(fileName);
-          logDev(`Failed to upload ${fileName}: ${assetError}`);
-        }
-      }
+      const uploadedCount = uploadResults.filter((result) => result.ok).length;
+      const videoCount = uploadResults.filter(
+        (result) => result.ok && result.uploaded.isVideo
+      ).length;
+      const failedFiles = uploadResults.flatMap((result) =>
+        result.ok ? [] : [result.fileName]
+      );
 
       globalUIStore.getState().hide();
 
@@ -450,12 +515,12 @@ export default function MediaScreen() {
     }
   };
 
-  // Get signed URLs for all media items (images and videos) using full keys
+  // Get signed URLs for all media items (images and videos) using full keys.
+  // flatMap filters and transforms in a single pass.
   const mediaKeys =
-    data?.items
-      .filter((item) => isImageKey(item.key) || isVideoKey(item.key))
-      .map((item) => item.key)
-      .filter(Boolean) || [];
+    data?.items.flatMap((item) =>
+      isImageKey(item.key) || isVideoKey(item.key) ? [item.key] : []
+    ) ?? [];
 
   const { data: signedUrlData } = useSignedUrls({
     mediaKeys,
@@ -463,15 +528,15 @@ export default function MediaScreen() {
     enabled: mediaKeys.length > 0,
   });
 
-  // Get signed URLs for video thumbnails
+  // Get signed URLs for video thumbnails. flatMap filters videos, derives the
+  // thumbnail name, and drops any empty result in a single pass.
   const videoKeys =
-    data?.items
-      .filter((item) => isVideoKey(item.key))
-      .map((item) => {
-        const filename = item.key.split("/").pop() || "";
-        return filename.replace(/\.[^.]+$/, ".jpg");
-      })
-      .filter(Boolean) || [];
+    data?.items.flatMap((item) => {
+      if (!isVideoKey(item.key)) return [];
+      const filename = item.key.split("/").pop() || "";
+      const thumbnailKey = filename.replace(/\.[^.]+$/, ".jpg");
+      return thumbnailKey ? [thumbnailKey] : [];
+    }) ?? [];
 
   const { data: thumbnailUrlData } = useSignedUrls({
     mediaKeys: videoKeys,
@@ -479,27 +544,87 @@ export default function MediaScreen() {
     enabled: videoKeys.length > 0,
   });
 
-  const handlePlayVideo = (filename: string, signedUrl: string) => {
-    setPlayingVideo({ url: signedUrl, title: filename });
-  };
+  const handlePlayVideo = useCallback((filename: string, signedUrl: string) => {
+    dispatchMediaViewer({ type: "playVideo", url: signedUrl, title: filename });
+  }, []);
 
-  const handlePreviewImage = (filename: string, signedUrl: string) => {
-    setPreviewingImage({ url: signedUrl, title: filename });
-  };
+  const handlePreviewImage = useCallback((filename: string, signedUrl: string) => {
+    dispatchMediaViewer({
+      type: "previewImage",
+      url: signedUrl,
+      title: filename,
+    });
+  }, []);
 
-  const filters: { key: FilterType; label: string }[] = [
-    { key: "all", label: "All" },
-    { key: "avatars", label: "Avatars" },
-    { key: "videos", label: "Videos" },
-    { key: "uploads", label: "Uploads" },
-  ];
+  const shadowStyle = useMemo(() => getShadowStyle("subtle"), [getShadowStyle]);
+
+  // Memoize the refresh control so the FlatList doesn't get a brand-new element
+  // every render.
+  const refreshControl = useMemo(
+    () => (
+      <RefreshControl
+        refreshing={isRefetching}
+        onRefresh={refetch}
+        tintColor={theme.colors.primary}
+      />
+    ),
+    [isRefetching, refetch, theme.colors.primary]
+  );
+
+  // Stable renderItem so FlatList can window properly; MediaRow is memoized and
+  // receives only primitives + stable callbacks, so untouched rows skip
+  // re-rendering when selection or sibling rows change.
+  const renderMediaItem = useCallback(
+    ({ item }: { item: MediaItem }) => {
+      const isVideo = isVideoKey(item.key);
+      const signedUrl = signedUrlData?.urls?.[item.key];
+      const thumbnailFilename = isVideo
+        ? (item.key.split("/").pop() || item.key).replace(/\.[^.]+$/, ".jpg")
+        : null;
+      const thumbnailUrl = thumbnailFilename
+        ? thumbnailUrlData?.urls?.[thumbnailFilename]
+        : null;
+
+      return (
+        <MediaRow
+          itemKey={item.key}
+          size={item.size}
+          lastModified={item.lastModified}
+          isSelected={selectedKeys.has(item.key)}
+          signedUrl={signedUrl}
+          thumbnailUrl={thumbnailUrl}
+          isDeleteBusy={isDeleteBusy}
+          styles={styles}
+          theme={theme}
+          shadowStyle={shadowStyle}
+          onToggleSelect={toggleSelectedKey}
+          onPreviewImage={handlePreviewImage}
+          onPlayVideo={handlePlayVideo}
+          onDelete={handleDelete}
+        />
+      );
+    },
+    [
+      signedUrlData,
+      thumbnailUrlData,
+      selectedKeys,
+      isDeleteBusy,
+      styles,
+      theme,
+      shadowStyle,
+      toggleSelectedKey,
+      handlePreviewImage,
+      handlePlayVideo,
+      handleDelete,
+    ]
+  );
 
   return (
     <View style={styles.container}>
-      <SEO title="Media - Expo Template" description="Upload, compress, and manage photos and videos with cloud storage." />
+      <Seo title="Media - Expo Template" description="Upload, compress, and manage photos and videos with cloud storage." />
       {/* Filter Tabs */}
       <View style={styles.filterRow}>
-        {filters.map((f) => (
+        {MEDIA_FILTERS.map((f) => (
           <Pressable
             key={f.key}
             style={[
@@ -575,9 +700,7 @@ export default function MediaScreen() {
           <SansSerifText style={styles.emptySubtext}>
             {mediaAccessError.message}
           </SansSerifText>
-          <Button preset="default" size="sm" onPress={() => refetch()}>
-            Retry
-          </Button>
+          <Button preset="default" size="sm" text="Retry" onPress={() => refetch()} />
         </View>
       ) : fetchError ? (
         <View style={styles.emptyContainer} testID="media-error">
@@ -586,9 +709,7 @@ export default function MediaScreen() {
           <SansSerifText style={styles.emptySubtext}>
             {fetchError instanceof Error ? fetchError.message : "Try again in a moment."}
           </SansSerifText>
-          <Button preset="default" size="sm" onPress={() => refetch()}>
-            Retry
-          </Button>
+          <Button preset="default" size="sm" text="Retry" onPress={() => refetch()} />
         </View>
       ) : isLoading ? (
         <View style={styles.loadingContainer}>
@@ -652,146 +773,32 @@ export default function MediaScreen() {
           <FlatList
             data={mediaItems}
             keyExtractor={(item) => item.key}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefetching}
-                onRefresh={refetch}
-                tintColor={theme.colors.primary}
-              />
-            }
+            refreshControl={refreshControl}
             contentContainerStyle={styles.listContent}
             extraData={selectedKeys}
             style={styles.list}
-            renderItem={({ item }) => {
-              const filename = item.key.split("/").pop() || item.key;
-              const isImage = isImageKey(item.key);
-              const isVideo = isVideoKey(item.key);
-              const isSelected = selectedKeys.has(item.key);
-              // Look up by full key since we pass full paths to getSignedUrls
-              const signedUrl = signedUrlData?.urls?.[item.key];
-
-              // Get thumbnail URL for videos
-              const thumbnailFilename = isVideo
-                ? filename.replace(/\.[^.]+$/, ".jpg")
-                : null;
-              const thumbnailUrl = thumbnailFilename
-                ? thumbnailUrlData?.urls?.[thumbnailFilename]
-                : null;
-
-              return (
-                <View
-                  style={[
-                    styles.fileItem,
-                    isSelected && styles.fileItemSelected,
-                    getShadowStyle("subtle"),
-                  ]}
-                >
-                  <View style={styles.itemCheckbox}>
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleSelectedKey(item.key)}
-                      disabled={isDeleteBusy}
-                      accessibilityLabel={`Select ${filename}`}
-                    />
-                  </View>
-
-                  {/* Thumbnail */}
-                  <View style={styles.thumbnailContainer}>
-                    {isImage && signedUrl ? (
-                      <Pressable
-                        onPress={() => handlePreviewImage(filename, signedUrl)}
-                        accessibilityRole="imagebutton"
-                        accessibilityLabel={`Open ${filename}`}
-                      >
-                        <Image
-                          source={{ uri: signedUrl }}
-                          style={styles.thumbnail}
-                          resizeMode="cover"
-                        />
-                      </Pressable>
-                    ) : isVideo && thumbnailUrl ? (
-                      <Image
-                        source={{ uri: thumbnailUrl }}
-                        style={styles.thumbnail}
-                        resizeMode="cover"
-                      />
-                    ) : isVideo ? (
-                      <View style={styles.videoThumbnail}>
-                        <Icon name="video" size={24} color={theme.colors.primary} />
-                      </View>
-                    ) : (
-                      <View style={styles.iconContainer}>
-                        <Icon
-                          name="file"
-                          size={24}
-                          color={theme.colors.mutedForeground}
-                        />
-                      </View>
-                    )}
-
-                    {/* Play overlay for videos */}
-                    {isVideo && signedUrl && (
-                      <Pressable
-                        style={styles.playOverlay}
-                        onPress={() => handlePlayVideo(filename, signedUrl)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Play ${filename}`}
-                      >
-                        <View style={styles.playButton}>
-                          <Icon name="play" size={16} color="white" />
-                        </View>
-                      </Pressable>
-                    )}
-                  </View>
-
-                  {/* File info */}
-                  <View style={styles.fileInfo}>
-                    <SansSerifText style={styles.fileName} numberOfLines={1}>
-                      {filename}
-                    </SansSerifText>
-                    <SansSerifText style={styles.fileMeta}>
-                      {formatBytes(item.size)} • {formatDate(item.lastModified)}
-                      {isVideo && " • Video"}
-                    </SansSerifText>
-                    <SansSerifText style={styles.filePath} numberOfLines={1}>
-                      {item.key}
-                    </SansSerifText>
-                  </View>
-
-                  {/* Delete button */}
-                  <Pressable
-                    style={styles.deleteButton}
-                    onPress={() => handleDelete(item.key)}
-                    disabled={isDeleteBusy}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Delete ${filename}`}
-                  >
-                    <Icon name="trash-2" size={18} color={theme.colors.destructive} />
-                  </Pressable>
-                </View>
-              );
-            }}
+            renderItem={renderMediaItem}
           />
         </>
       )}
 
       {/* Video Player Modal */}
-      {playingVideo && (
+      {mediaViewer?.type === "video" && (
         <VideoPlayer
-          uri={playingVideo.url}
-          visible={!!playingVideo}
-          onClose={() => setPlayingVideo(null)}
-          title={playingVideo.title}
+          uri={mediaViewer.url}
+          visible
+          onClose={() => dispatchMediaViewer({ type: "close" })}
+          title={mediaViewer.title}
         />
       )}
 
       {/* Image Preview Modal */}
-      {previewingImage && (
+      {mediaViewer?.type === "image" && (
         <ImagePreview
-          uri={previewingImage.url}
-          visible={!!previewingImage}
-          onClose={() => setPreviewingImage(null)}
-          title={previewingImage.title}
+          uri={mediaViewer.url}
+          visible
+          onClose={() => dispatchMediaViewer({ type: "close" })}
+          title={mediaViewer.title}
         />
       )}
     </View>
@@ -808,6 +815,140 @@ function formatDate(isoString: string): string {
     minute: "2-digit",
   });
 }
+
+interface MediaRowProps {
+  itemKey: string;
+  size: number;
+  lastModified: string;
+  isSelected: boolean;
+  signedUrl: string | undefined;
+  thumbnailUrl: string | null | undefined;
+  isDeleteBusy: boolean;
+  styles: ReturnType<typeof createStyles>;
+  theme: Theme;
+  shadowStyle: ViewStyle;
+  onToggleSelect: (key: string) => void;
+  onPreviewImage: (filename: string, signedUrl: string) => void;
+  onPlayVideo: (filename: string, signedUrl: string) => void;
+  onDelete: (key: string) => void;
+}
+
+// Memoized row: with primitive props and stable callbacks, untouched rows skip
+// re-rendering when selection or sibling rows change, so FlatList windowing pays
+// off. Handlers stay inline here but only close over this row's own primitives.
+const MediaRow = memo(function MediaRow({
+  itemKey,
+  size,
+  lastModified,
+  isSelected,
+  signedUrl,
+  thumbnailUrl,
+  isDeleteBusy,
+  styles,
+  theme,
+  shadowStyle,
+  onToggleSelect,
+  onPreviewImage,
+  onPlayVideo,
+  onDelete,
+}: MediaRowProps) {
+  const filename = itemKey.split("/").pop() || itemKey;
+  const isImage = isImageKey(itemKey);
+  const isVideo = isVideoKey(itemKey);
+
+  return (
+    <View
+      style={[
+        styles.fileItem,
+        isSelected && styles.fileItemSelected,
+        shadowStyle,
+      ]}
+    >
+      <View style={styles.itemCheckbox}>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={() => onToggleSelect(itemKey)}
+          disabled={isDeleteBusy}
+          accessibilityLabel={`Select ${filename}`}
+        />
+      </View>
+
+      {/* Thumbnail */}
+      <View style={styles.thumbnailContainer}>
+        {isImage && signedUrl ? (
+          <Pressable
+            onPress={() => onPreviewImage(filename, signedUrl)}
+            accessibilityRole="imagebutton"
+            accessibilityLabel={`Open ${filename}`}
+          >
+            <Image
+              source={{ uri: signedUrl }}
+              style={styles.thumbnail}
+              contentFit="cover"
+            />
+          </Pressable>
+        ) : isVideo && thumbnailUrl ? (
+          <Image
+            source={{ uri: thumbnailUrl }}
+            style={styles.thumbnail}
+            contentFit="cover"
+          />
+        ) : isVideo ? (
+          <View style={styles.videoThumbnail}>
+            <Icon name="video" size={24} color={theme.colors.primary} />
+          </View>
+        ) : (
+          <View style={styles.iconContainer}>
+            <Icon
+              name="file"
+              size={24}
+              color={theme.colors.mutedForeground}
+            />
+          </View>
+        )}
+
+        {/* Play overlay for videos */}
+        {isVideo && signedUrl && (
+          <Pressable
+            style={styles.playOverlay}
+            onPress={() => onPlayVideo(filename, signedUrl)}
+            accessibilityRole="button"
+            accessibilityLabel={`Play ${filename}`}
+          >
+            <View style={styles.playButton}>
+              <Icon name="play" size={16} color="white" />
+            </View>
+          </Pressable>
+        )}
+      </View>
+
+      {/* File info */}
+      <View style={styles.fileInfo}>
+        <SansSerifText style={styles.fileName} numberOfLines={1}>
+          {filename}
+        </SansSerifText>
+        <SansSerifText style={styles.fileMeta}>
+          {formatBytes(size)} • {formatDate(lastModified)}
+          {isVideo && " • Video"}
+        </SansSerifText>
+        <SansSerifText style={styles.filePath} numberOfLines={1}>
+          {itemKey}
+        </SansSerifText>
+      </View>
+
+      {/* Delete button */}
+      <Pressable
+        style={styles.deleteButton}
+        onPress={() => onDelete(itemKey)}
+        disabled={isDeleteBusy}
+        accessibilityRole="button"
+        accessibilityLabel={`Delete ${filename}`}
+      >
+        <Icon name="trash-2" size={18} color={theme.colors.destructive} />
+      </Pressable>
+    </View>
+  );
+});
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({

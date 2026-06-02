@@ -80,6 +80,53 @@ export function ListScreen<T>({
     [onSearch]
   );
 
+  // Stable list plumbing (declared before any early return for Rules of Hooks).
+  const renderRow = useCallback(
+    ({ item, index }: { item: T; index: number }) => (
+      <AnimatedView
+        type="fadeSlideUp"
+        delay={Math.min(index, 10) * STAGGER_DELAY}
+      >
+        {renderItem(item, index)}
+      </AnimatedView>
+    ),
+    [renderItem]
+  );
+
+  // Pass a component (not an element) to ListHeaderComponent so the JSX is
+  // built lazily by FlatList — never during an early-return render — and the
+  // callback identity stays stable across renders.
+  const ListHeader = useCallback(
+    () => (
+      <>
+        {header}
+        {searchable && (
+          <View style={styles.searchContainer}>
+            <TextInput
+              placeholder={searchPlaceholder}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              leftElement={<Icon name="search" size={18} color={theme.colors.mutedForeground} />}
+            />
+          </View>
+        )}
+      </>
+    ),
+    [header, searchable, styles, searchPlaceholder, searchQuery, handleSearch, theme.colors.mutedForeground]
+  );
+
+  const refreshControl = useMemo(
+    () =>
+      onRefresh ? (
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.primary}
+        />
+      ) : undefined,
+    [onRefresh, refreshing, theme.colors.primary]
+  );
+
   // Loading state
   if (loading) {
     return (
@@ -121,9 +168,7 @@ export function ListScreen<T>({
         <SansSerifText style={styles.emptyDescription}>{emptyDescription}</SansSerifText>
       )}
       {emptyAction && (
-        <Button preset="default" onPress={emptyAction.onPress} style={styles.emptyButton}>
-          {emptyAction.label}
-        </Button>
+        <Button preset="default" onPress={emptyAction.onPress} text={emptyAction.label} style={styles.emptyButton} />
       )}
     </View>
   );
@@ -133,41 +178,12 @@ export function ListScreen<T>({
       <FlatList
         data={data}
         keyExtractor={keyExtractor}
-        renderItem={({ item, index }) => (
-          <AnimatedView
-            type="fadeSlideUp"
-            delay={Math.min(index, 10) * STAGGER_DELAY}
-          >
-            {renderItem(item, index)}
-          </AnimatedView>
-        )}
-        ListHeaderComponent={
-          <>
-            {header}
-            {searchable && (
-              <View style={styles.searchContainer}>
-                <TextInput
-                  placeholder={searchPlaceholder}
-                  value={searchQuery}
-                  onChangeText={handleSearch}
-                  leftElement={<Icon name="search" size={18} color={theme.colors.mutedForeground} />}
-                />
-              </View>
-            )}
-          </>
-        }
+        renderItem={renderRow}
+        ListHeaderComponent={ListHeader}
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={data.length === 0 ? styles.emptyFlatList : styles.listContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={theme.colors.primary}
-            />
-          ) : undefined
-        }
+        refreshControl={refreshControl}
       />
     </View>
   );

@@ -38,13 +38,14 @@ export function useClipboard(options?: UseClipboardOptions): UseClipboardReturn 
   const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-      }
-    };
+  const clearCopiedTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
+
+  useEffect(() => clearCopiedTimer, [clearCopiedTimer]);
 
   const copy = useCallback(
     async (text: string) => {
@@ -53,9 +54,7 @@ export function useClipboard(options?: UseClipboardOptions): UseClipboardReturn 
         setError(null);
         setCopied(true);
 
-        if (timerRef.current !== null) {
-          clearTimeout(timerRef.current);
-        }
+        clearCopiedTimer();
         timerRef.current = setTimeout(() => {
           setCopied(false);
           timerRef.current = null;
@@ -64,7 +63,7 @@ export function useClipboard(options?: UseClipboardOptions): UseClipboardReturn 
         setError(err instanceof Error ? err.message : "Failed to copy");
       }
     },
-    [copiedDuration]
+    [clearCopiedTimer, copiedDuration]
   );
 
   const paste = useCallback(async () => {

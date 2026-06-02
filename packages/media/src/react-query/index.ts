@@ -76,8 +76,12 @@ export function createMediaQueryHooks({
   }
 
   function useMediaUpload() {
+    const queryClient = useQueryClient();
     return useMutation({
       mutationFn: (options: MediaUploadOptions) => client.upload(options),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeyNamespace, "list"] });
+      },
     });
   }
 

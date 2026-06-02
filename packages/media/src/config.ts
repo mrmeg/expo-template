@@ -75,8 +75,10 @@ export function isBlank(value: unknown): boolean {
 export function normalizeMediaPrefix(prefix: string): string {
   return prefix
     .split("/")
-    .map((part) => part.trim())
-    .filter(Boolean)
+    .flatMap((part) => {
+      const trimmed = part.trim();
+      return trimmed ? [trimmed] : [];
+    })
     .join("/");
 }
 

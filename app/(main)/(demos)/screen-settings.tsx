@@ -2,19 +2,19 @@ import React, { useState } from "react";
 import { Alert, Platform } from "react-native";
 import { SettingsScreen, type SettingsSection } from "@/client/screens/SettingsScreen";
 
+function showAlert(msg: string) {
+  if (Platform.OS === "web") {
+    window.alert(msg);
+  } else {
+    Alert.alert(msg);
+  }
+}
+
 export default function ScreenSettingsDemo() {
   const [notifications, setNotifications] = useState(true);
   const [biometrics, setBiometrics] = useState(false);
   const [autoUpdate, setAutoUpdate] = useState(true);
   const [quality, setQuality] = useState("high");
-
-  const showAlert = (msg: string) => {
-    if (Platform.OS === "web") {
-      window.alert(msg);
-    } else {
-      Alert.alert(msg);
-    }
-  };
 
   const sections: SettingsSection[] = [
     {

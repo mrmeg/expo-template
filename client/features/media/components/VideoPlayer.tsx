@@ -14,7 +14,8 @@
  * ```
  */
 
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useMemo, useEffect } from "react";
+import { useEvent } from "expo";
 import {
   View,
   Modal,
@@ -60,8 +61,6 @@ export function VideoPlayer({
   // Use initialWindowMetrics as fallback since Modal may not have SafeAreaProvider context
   const topInset = insets.top || initialWindowMetrics?.insets.top || 0;
   const styles = useMemo(() => createStyles(theme, topInset), [theme, topInset]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
 
   // Create video player instance with the source
   const player = useVideoPlayer(uri, (player) => {
@@ -71,37 +70,28 @@ export function VideoPlayer({
     }
   });
 
-  // Handle visibility changes
+  // Derive loading/error UI straight from the player's reactive status —
+  // useEvent re-renders on each `statusChange`, so there's no mirrored state
+  // to fall out of sync and no polling interval to leak.
+  const { status } = useEvent(player, "statusChange", {
+    status: player.status,
+  });
+  const isLoading = status === "loading";
+  const hasError = status === "error";
+
+  // Sync playback with visibility — a genuine external-system effect.
+  // Pausing on cleanup stops audio when the modal closes or the player is
+  // swapped, instead of letting it bleed into the background.
   useEffect(() => {
-    if (visible) {
-      setIsLoading(true);
-      setHasError(false);
-      if (autoPlay) {
-        player.play();
-      }
+    if (visible && autoPlay) {
+      player.play();
     } else {
       player.pause();
     }
-  }, [visible, autoPlay, player]);
-
-  // Track player status for loading/error states
-  useEffect(() => {
-    const checkStatus = () => {
-      if (player.status === "readyToPlay" || player.status === "idle") {
-        setIsLoading(false);
-      }
-      if (player.status === "error") {
-        setIsLoading(false);
-        setHasError(true);
-      }
+    return () => {
+      player.pause();
     };
-
-    // Check immediately and set up polling for status changes
-    checkStatus();
-    const interval = setInterval(checkStatus, 100);
-
-    return () => clearInterval(interval);
-  }, [player]);
+  }, [visible, autoPlay, player]);
 
   // Handle close
   const handleClose = () => {
@@ -144,7 +134,7 @@ export function VideoPlayer({
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color="white" />
               <SansSerifText style={styles.loadingText}>
-                Loading video...
+                Loading video…
               </SansSerifText>
             </View>
           )}
@@ -254,21 +244,5 @@ const createStyles = (theme: Theme, topInset: number) =>
       fontWeight: "500",
     },
   });
-
-/**
- * Format duration in seconds to MM:SS or HH:MM:SS
- */
-export function formatDuration(seconds: number): string {
-  if (!seconds || isNaN(seconds)) return "0:00";
-
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, "0")}`;
-}
 
 export default VideoPlayer;

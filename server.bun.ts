@@ -109,7 +109,10 @@ const ffmpegWorkerAsset = loadFfmpegWorker(process.cwd());
 
 function allowedOrigins(): string[] {
   return process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+    ? process.env.ALLOWED_ORIGINS.split(",").flatMap((origin) => {
+      const trimmed = origin.trim();
+      return trimmed ? [trimmed] : [];
+    })
     : DEFAULT_ALLOWED_ORIGINS;
 }
 
@@ -342,11 +345,16 @@ async function serveStaticFile(request: Request, pathname: string): Promise<Resp
     return new Response("Bad Request", { status: 400 });
   }
 
-  for (const filePath of candidates) {
-    const fileStat = await stat(filePath).catch(() => null);
-    if (!fileStat?.isFile()) {
-      continue;
-    }
+  const candidateStats = await Promise.all(
+    candidates.map(async (filePath) => ({
+      filePath,
+      fileStat: await stat(filePath).catch(() => null),
+    }))
+  );
+  const match = candidateStats.find(({ fileStat }) => fileStat?.isFile());
+  if (match) {
+    const { filePath, fileStat } = match;
+    if (!fileStat) return null;
 
     const contentType = contentTypeFor(filePath);
     const headers = new Headers({

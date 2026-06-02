@@ -6,4 +6,5 @@ export { useMediaLibrary } from "./hooks/useMediaLibrary";
 export type { ProcessedAsset, PickMediaOptions } from "./hooks/useMediaLibrary";
 export { extractVideoThumbnail } from "./hooks/useVideoThumbnails";
 export { useCompressionStore, useCompressionConfig, getPresetOptions } from "./stores/compressionStore";
-export { VideoPlayer, formatDuration } from "./components/VideoPlayer";
+export { VideoPlayer } from "./components/VideoPlayer";
+export { formatDuration } from "./components/VideoPlayer.utils";

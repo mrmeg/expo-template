@@ -13,6 +13,14 @@ function daysAgo(days: number): Date {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
+function showAlert(msg: string) {
+  if (Platform.OS === "web") {
+    window.alert(msg);
+  } else {
+    Alert.alert(msg);
+  }
+}
+
 const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   { id: "1", icon: "message-circle", title: "New comment", body: "Alice replied to your post about the design system update.", timestamp: hoursAgo(0.5), read: false },
   { id: "2", icon: "user-plus", title: "New follower", body: "Bob started following you.", timestamp: hoursAgo(2), read: false },
@@ -28,14 +36,6 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 
 export default function ScreenNotificationsDemo() {
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
-
-  const showAlert = (msg: string) => {
-    if (Platform.OS === "web") {
-      window.alert(msg);
-    } else {
-      Alert.alert(msg);
-    }
-  };
 
   const handleMarkAllRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));

@@ -1,19 +1,16 @@
 import React from "react";
 import { Alert, Platform } from "react-native";
-import { useRouter } from "expo-router";
 import { WelcomeScreen } from "@/client/screens/WelcomeScreen";
 
+function showAlert(msg: string) {
+  if (Platform.OS === "web") {
+    window.alert(msg);
+  } else {
+    Alert.alert(msg);
+  }
+}
+
 export default function ScreenWelcomeDemo() {
-  const router = useRouter();
-
-  const showAlert = (msg: string) => {
-    if (Platform.OS === "web") {
-      window.alert(msg);
-    } else {
-      Alert.alert(msg);
-    }
-  };
-
   return (
     <WelcomeScreen
       title="Welcome to Acme"

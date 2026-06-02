@@ -1,6 +1,19 @@
 import { useCallback } from "react";
 import { useAuthStore, initAuth } from "../stores/authStore";
 
+type AuthModule = typeof import("aws-amplify/auth");
+
+async function withInitializedAuth<T>(
+  action: (auth: AuthModule) => Promise<T>
+): Promise<T> {
+  const [auth] = await Promise.all([
+    import("aws-amplify/auth"),
+    initAuth(),
+  ]);
+
+  return action(auth);
+}
+
 export function useAuth() {
   const { initialize, setPendingVerificationEmail, setError } = useAuthStore();
 
@@ -16,9 +29,9 @@ export function useAuth() {
    * Sign in with email and password
    */
   const handleSignIn = useCallback(async ({ email, password }: { email: string; password: string }) => {
-    await initAuth();
-    const { signIn } = await import("aws-amplify/auth");
-    const result = await signIn({ username: email, password });
+    const result = await withInitializedAuth(({ signIn }) =>
+      signIn({ username: email, password })
+    );
 
     if (result.isSignedIn) {
       await initialize();
@@ -37,9 +50,7 @@ export function useAuth() {
     email: string;
     password: string;
   }) => {
-    await initAuth();
-    const { signUp } = await import("aws-amplify/auth");
-    const result = await signUp({
+    const result = await withInitializedAuth(({ signUp }) => signUp({
       username: email,
       password,
       options: {
@@ -49,7 +60,7 @@ export function useAuth() {
         // Enable auto sign-in after email verification
         autoSignIn: true,
       },
-    });
+    }));
 
     console.log("signUp result:", JSON.stringify(result, null, 2));
 
@@ -71,12 +82,15 @@ export function useAuth() {
     email: string;
     code: string;
   }) => {
-    await initAuth();
-    const { confirmSignUp, autoSignIn } = await import("aws-amplify/auth");
-    const result = await confirmSignUp({
-      username: email,
-      confirmationCode: code,
-    });
+    const { result, autoSignIn } = await withInitializedAuth(
+      async ({ confirmSignUp, autoSignIn }) => ({
+        result: await confirmSignUp({
+          username: email,
+          confirmationCode: code,
+        }),
+        autoSignIn,
+      })
+    );
 
     console.log("confirmSignUp result:", JSON.stringify(result, null, 2));
 

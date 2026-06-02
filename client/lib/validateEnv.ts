@@ -39,9 +39,13 @@ function isBillingFlagEnabled(value: string | undefined): boolean {
 }
 
 function validate(rules: EnvRule[], label: string): void {
-  const missing = rules
-    .filter((rule) => rule.required && isMissing(process.env[rule.key]))
-    .map((rule) => `  - ${rule.key} (${rule.context})`);
+  // Single pass: filter to missing required vars and format in one loop.
+  const missing: string[] = [];
+  for (const rule of rules) {
+    if (rule.required && isMissing(process.env[rule.key])) {
+      missing.push(`  - ${rule.key} (${rule.context})`);
+    }
+  }
 
   if (missing.length === 0) return;
 

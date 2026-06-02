@@ -57,7 +57,11 @@ const load = async ({ coreURL: _coreURL, wasmURL: _wasmURL, workerURL: _workerUR
     if (!_coreURL || _coreURL === CORE_URL) {
       _coreURL = CORE_URL.replace("/umd/", "/esm/");
     }
-    // For module context, use dynamic import
+    // For module context, use dynamic import. `_coreURL` is a runtime CDN URL
+    // (with an /esm/ fallback above), so it cannot be a static string literal.
+    // This file is served verbatim as a Web Worker, never bundled — the rule's
+    // "ships in the main bundle" premise does not apply here.
+    // eslint-disable-next-line react-doctor/no-dynamic-import-path
     self.createFFmpegCore = (await import(_coreURL)).default;
     if (!self.createFFmpegCore) {
       throw ERROR_IMPORT_FAILURE;

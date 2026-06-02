@@ -64,9 +64,7 @@ export default function BillingReturnScreen() {
       </View>
       <SansSerifBoldText style={styles.title}>{copy.title}</SansSerifBoldText>
       <SansSerifText style={styles.subtitle}>{copy.subtitle}</SansSerifText>
-      <Button preset="default" onPress={handleDone} style={styles.cta}>
-        {copy.cta}
-      </Button>
+      <Button preset="default" onPress={handleDone} text={copy.cta} style={styles.cta} />
     </View>
   );
 }

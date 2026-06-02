@@ -217,9 +217,8 @@ export function FormScreen({
             onPress={handleBack}
             disabled={isSubmitting}
             style={styles.navButton}
-          >
-            Back
-          </Button>
+            text="Back"
+          />
         ) : (
           <View style={styles.navButton} />
         )}
@@ -230,9 +229,8 @@ export function FormScreen({
           loading={isSubmitting}
           disabled={isSubmitting}
           style={styles.navButton}
-        >
-          {nextButtonLabel}
-        </Button>
+          text={nextButtonLabel}
+        />
       </Animated.View>
     </View>
   );

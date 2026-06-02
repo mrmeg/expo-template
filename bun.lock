@@ -23,6 +23,7 @@
         "expo-file-system": "~56.0.7",
         "expo-font": "~56.0.5",
         "expo-haptics": "~56.0.3",
+        "expo-image": "~56.0.9",
         "expo-image-manipulator": "~56.0.15",
         "expo-image-picker": "~56.0.14",
         "expo-linking": "~56.0.12",
@@ -92,7 +93,6 @@
         "@aws-sdk/s3-request-presigner": "^3.1047.0",
         "@tanstack/react-query": "^5.100.9",
         "ulid": "^3.0.2",
-        "zustand": "^5.0.12",
       },
       "devDependencies": {
         "@types/react": "~19.2.14",
@@ -112,7 +112,7 @@
     },
     "packages/ui": {
       "name": "@mrmeg/expo-ui",
-      "version": "0.5.0",
+      "version": "0.6.1",
       "dependencies": {
         "@expo/vector-icons": ">=15.0.0 <16.0.0",
         "@rn-primitives/accordion": "~1.4.0",
@@ -1295,6 +1295,8 @@
     "expo-glass-effect": ["expo-glass-effect@56.0.4", "", { "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-xI9rXtDwi7RW82uAlfyaXO6+k21ApWJ2tHAWYqPr/FjfmZbKsgNJ4Q0iZzGPCwboqjTGxaRZ61SZxBl8hDt5iA=="],
 
     "expo-haptics": ["expo-haptics@56.0.3", "", { "peerDependencies": { "expo": "*" } }, "sha512-ycoahZJnR9tWAVh/0mJYxbETtHRYaWjiWS8cHlP6aDGU6Q6Y8rZ5NKsuBwWw6HR2Pe30mfVFgbF2HrBR6gtYmw=="],
+
+    "expo-image": ["expo-image@56.0.9", "", { "dependencies": { "sf-symbols-typescript": "^2.2.0" }, "peerDependencies": { "expo": "*", "react": "*", "react-native": "*", "react-native-web": "*" }, "optionalPeers": ["react-native-web"] }, "sha512-FifiRehXnMul5XeUVHWv+COHFUeCAdsYf5MiCPUBlhr4pRb0sxjA4/floi/TEDpATOIw6GqxbrC4FdZBoyrJmw=="],
 
     "expo-image-loader": ["expo-image-loader@56.0.3", "", { "peerDependencies": { "expo": "*" } }, "sha512-JgUo4fUeU1ZC+z8iBFj8v7yoGQnZrLbOVPyNE+DWVrld55F2F6R1ck+rmdm/8TNWLz1LhNQfD7c3XYP1ZikxXA=="],
 

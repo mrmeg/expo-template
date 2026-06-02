@@ -82,12 +82,6 @@ export default function FormDemoScreen() {
     }
   }, [errors]);
 
-  // Mark field as touched (for showing errors after blur)
-  const handleBlur = useCallback((field: keyof FormData) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-    validateField(field);
-  }, [formData]);
-
   // Validate single field
   const validateField = useCallback((field: keyof FormData): boolean => {
     let error: string | undefined;
@@ -138,6 +132,12 @@ export default function FormDemoScreen() {
     setErrors((prev) => ({ ...prev, [field]: error }));
     return !error;
   }, [formData]);
+
+  // Mark field as touched (for showing errors after blur)
+  const markFieldTouched = useCallback((field: keyof FormData) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    validateField(field);
+  }, [validateField]);
 
   // Validate entire form
   const validateForm = useCallback((): boolean => {
@@ -209,8 +209,7 @@ export default function FormDemoScreen() {
     setTouched({});
   }, []);
 
-  // Get password strength
-  const getPasswordStrength = (): { label: string; color: string; width: `${number}%` } => {
+  const passwordStrength = useMemo((): { label: string; color: string; width: `${number}%` } => {
     if (!formData.password) return { label: "", color: theme.colors.muted, width: "0%" };
     const errors = validatePassword(formData.password);
     const score = 4 - errors.length;
@@ -219,9 +218,14 @@ export default function FormDemoScreen() {
     if (score === 2) return { label: "Fair", color: theme.colors.warning, width: "50%" };
     if (score === 3) return { label: "Good", color: theme.colors.primary, width: "75%" };
     return { label: "Strong", color: theme.colors.success, width: "100%" };
-  };
-
-  const passwordStrength = getPasswordStrength();
+  }, [
+    formData.password,
+    theme.colors.destructive,
+    theme.colors.muted,
+    theme.colors.primary,
+    theme.colors.success,
+    theme.colors.warning,
+  ]);
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
@@ -234,166 +238,221 @@ export default function FormDemoScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <SansSerifBoldText style={styles.title}>
-              Form Validation Demo
-            </SansSerifBoldText>
-            <SansSerifText style={styles.subtitle}>
-              Demonstrates client-side validation patterns
-            </SansSerifText>
-          </View>
-
-          {/* Form */}
-          <View style={[styles.form, getShadowStyle("subtle")]}>
-            {/* Name Field */}
-            <View style={styles.field}>
-              <TextInput
-                label="Full Name"
-                placeholder="John Doe"
-                value={formData.name}
-                onChangeText={(value) => updateField("name", value)}
-                onBlur={() => handleBlur("name")}
-                autoCapitalize="words"
-                autoComplete="name"
-              />
-              {touched.name && errors.name && (
-                <SansSerifText style={styles.errorText}>{errors.name}</SansSerifText>
-              )}
-            </View>
-
-            {/* Email Field */}
-            <View style={styles.field}>
-              <TextInput
-                label="Email"
-                placeholder="john@example.com"
-                value={formData.email}
-                onChangeText={(value) => updateField("email", value)}
-                onBlur={() => handleBlur("email")}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-              {touched.email && errors.email && (
-                <SansSerifText style={styles.errorText}>{errors.email}</SansSerifText>
-              )}
-            </View>
-
-            {/* Password Field */}
-            <View style={styles.field}>
-              <TextInput
-                label="Password"
-                placeholder="Enter a strong password"
-                value={formData.password}
-                onChangeText={(value) => updateField("password", value)}
-                onBlur={() => handleBlur("password")}
-                secureTextEntry
-                autoComplete="new-password"
-              />
-              {!!formData.password && (
-                <View style={styles.strengthContainer}>
-                  <View style={styles.strengthBar}>
-                    <View
-                      style={[
-                        styles.strengthFill,
-                        { width: passwordStrength.width, backgroundColor: passwordStrength.color },
-                      ]}
-                    />
-                  </View>
-                  <SansSerifText style={[styles.strengthLabel, { color: passwordStrength.color }]}>
-                    {passwordStrength.label}
-                  </SansSerifText>
-                </View>
-              )}
-              {touched.password && errors.password && (
-                <SansSerifText style={styles.errorText}>{errors.password}</SansSerifText>
-              )}
-            </View>
-
-            {/* Confirm Password Field */}
-            <View style={styles.field}>
-              <TextInput
-                label="Confirm Password"
-                placeholder="Re-enter your password"
-                value={formData.confirmPassword}
-                onChangeText={(value) => updateField("confirmPassword", value)}
-                onBlur={() => handleBlur("confirmPassword")}
-                secureTextEntry
-                autoComplete="new-password"
-              />
-              {touched.confirmPassword && errors.confirmPassword && (
-                <SansSerifText style={styles.errorText}>{errors.confirmPassword}</SansSerifText>
-              )}
-            </View>
-
-            {/* Terms Checkbox */}
-            <View style={styles.checkboxField}>
-              <Checkbox
-                checked={formData.agreeToTerms}
-                onCheckedChange={(checked) => {
-                  updateField("agreeToTerms", checked);
-                  setTouched((prev) => ({ ...prev, agreeToTerms: true }));
-                }}
-              />
-              <SansSerifText style={styles.checkboxLabel}>
-                I agree to the Terms of Service and Privacy Policy
-              </SansSerifText>
-            </View>
-            {touched.agreeToTerms && errors.agreeToTerms && (
-              <SansSerifText style={styles.errorText}>{errors.agreeToTerms}</SansSerifText>
-            )}
-
-            {/* Buttons */}
-            <View style={styles.buttonRow}>
-              <Button
-                preset="ghost"
-                onPress={handleReset}
-                style={styles.resetButton}
-              >
-                <SansSerifText style={styles.resetButtonText}>Reset</SansSerifText>
-              </Button>
-              <Button
-                preset="default"
-                onPress={handleSubmit}
-                loading={isSubmitting}
-                style={styles.submitButton}
-              >
-                <SansSerifBoldText style={styles.submitButtonText}>
-                  Create Account
-                </SansSerifBoldText>
-              </Button>
-            </View>
-          </View>
-
-          {/* Info section */}
-          <View style={styles.infoSection}>
-            <SansSerifBoldText style={styles.infoTitle}>
-              Validation Features
-            </SansSerifBoldText>
-            <View style={styles.infoList}>
-              <SansSerifText style={styles.infoItem}>
-                • Real-time validation on blur
-              </SansSerifText>
-              <SansSerifText style={styles.infoItem}>
-                • Password strength indicator
-              </SansSerifText>
-              <SansSerifText style={styles.infoItem}>
-                • Password confirmation matching
-              </SansSerifText>
-              <SansSerifText style={styles.infoItem}>
-                • Email format validation
-              </SansSerifText>
-              <SansSerifText style={styles.infoItem}>
-                • Required field checking
-              </SansSerifText>
-              <SansSerifText style={styles.infoItem}>
-                • Clear error messages
-              </SansSerifText>
-            </View>
-          </View>
+          <FormDemoHeader styles={styles} />
+          <ValidationForm
+            styles={styles}
+            shadowStyle={getShadowStyle("subtle")}
+            formData={formData}
+            errors={errors}
+            touched={touched}
+            passwordStrength={passwordStrength}
+            isSubmitting={isSubmitting}
+            onUpdateField={updateField}
+            onBlur={markFieldTouched}
+            onSubmit={handleSubmit}
+            onReset={handleReset}
+            onAgreeTouched={() =>
+              setTouched((prev) => ({ ...prev, agreeToTerms: true }))
+            }
+          />
+          <ValidationFeatures styles={styles} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+type FormDemoStyles = ReturnType<typeof createStyles>;
+
+function FormDemoHeader({ styles }: { styles: FormDemoStyles }) {
+  return (
+    <View style={styles.header}>
+      <SansSerifBoldText style={styles.title}>
+        Form Validation Demo
+      </SansSerifBoldText>
+      <SansSerifText style={styles.subtitle}>
+        Demonstrates client-side validation patterns
+      </SansSerifText>
+    </View>
+  );
+}
+
+function ValidationForm({
+  styles,
+  shadowStyle,
+  formData,
+  errors,
+  touched,
+  passwordStrength,
+  isSubmitting,
+  onUpdateField,
+  onBlur,
+  onSubmit,
+  onReset,
+  onAgreeTouched,
+}: {
+  styles: FormDemoStyles;
+  shadowStyle: object;
+  formData: FormData;
+  errors: FormErrors;
+  touched: Record<string, boolean>;
+  passwordStrength: { label: string; color: string; width: `${number}%` };
+  isSubmitting: boolean;
+  onUpdateField: (field: keyof FormData, value: string | boolean) => void;
+  onBlur: (field: keyof FormData) => void;
+  onSubmit: () => void;
+  onReset: () => void;
+  onAgreeTouched: () => void;
+}) {
+  return (
+    <View style={[styles.form, shadowStyle]}>
+      <View style={styles.field}>
+        <TextInput
+          label="Full Name"
+          placeholder="John Doe"
+          value={formData.name}
+          onChangeText={(value) => onUpdateField("name", value)}
+          onBlur={() => onBlur("name")}
+          autoCapitalize="words"
+          autoComplete="name"
+        />
+        {touched.name && errors.name && (
+          <SansSerifText style={styles.errorText}>{errors.name}</SansSerifText>
+        )}
+      </View>
+
+      <View style={styles.field}>
+        <TextInput
+          label="Email"
+          placeholder="john@example.com"
+          value={formData.email}
+          onChangeText={(value) => onUpdateField("email", value)}
+          onBlur={() => onBlur("email")}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+        />
+        {touched.email && errors.email && (
+          <SansSerifText style={styles.errorText}>{errors.email}</SansSerifText>
+        )}
+      </View>
+
+      <View style={styles.field}>
+        <TextInput
+          label="Password"
+          placeholder="Enter a strong password"
+          value={formData.password}
+          onChangeText={(value) => onUpdateField("password", value)}
+          onBlur={() => onBlur("password")}
+          secureTextEntry
+          autoComplete="new-password"
+        />
+        {!!formData.password && (
+          <View style={styles.strengthContainer}>
+            <View style={styles.strengthBar}>
+              <View
+                style={[
+                  styles.strengthFill,
+                  {
+                    width: passwordStrength.width,
+                    backgroundColor: passwordStrength.color,
+                  },
+                ]}
+              />
+            </View>
+            <SansSerifText
+              style={[styles.strengthLabel, { color: passwordStrength.color }]}
+            >
+              {passwordStrength.label}
+            </SansSerifText>
+          </View>
+        )}
+        {touched.password && errors.password && (
+          <SansSerifText style={styles.errorText}>{errors.password}</SansSerifText>
+        )}
+      </View>
+
+      <View style={styles.field}>
+        <TextInput
+          label="Confirm Password"
+          placeholder="Re-enter your password"
+          value={formData.confirmPassword}
+          onChangeText={(value) => onUpdateField("confirmPassword", value)}
+          onBlur={() => onBlur("confirmPassword")}
+          secureTextEntry
+          autoComplete="new-password"
+        />
+        {touched.confirmPassword && errors.confirmPassword && (
+          <SansSerifText style={styles.errorText}>
+            {errors.confirmPassword}
+          </SansSerifText>
+        )}
+      </View>
+
+      <View style={styles.checkboxField}>
+        <Checkbox
+          checked={formData.agreeToTerms}
+          onCheckedChange={(checked) => {
+            onUpdateField("agreeToTerms", checked);
+            onAgreeTouched();
+          }}
+        />
+        <SansSerifText style={styles.checkboxLabel}>
+          I agree to the Terms of Service and Privacy Policy
+        </SansSerifText>
+      </View>
+      {touched.agreeToTerms && errors.agreeToTerms && (
+        <SansSerifText style={styles.errorText}>
+          {errors.agreeToTerms}
+        </SansSerifText>
+      )}
+
+      <View style={styles.buttonRow}>
+        <Button preset="ghost" onPress={onReset} style={styles.resetButton}>
+          <SansSerifText style={styles.resetButtonText}>Reset</SansSerifText>
+        </Button>
+        <Button
+          preset="default"
+          onPress={onSubmit}
+          loading={isSubmitting}
+          style={styles.submitButton}
+        >
+          <SansSerifBoldText style={styles.submitButtonText}>
+            Create Account
+          </SansSerifBoldText>
+        </Button>
+      </View>
+    </View>
+  );
+}
+
+function ValidationFeatures({ styles }: { styles: FormDemoStyles }) {
+  return (
+    <View style={styles.infoSection}>
+      <SansSerifBoldText style={styles.infoTitle}>
+        Validation Features
+      </SansSerifBoldText>
+      <View style={styles.infoList}>
+        <SansSerifText style={styles.infoItem}>
+          • Real-time validation on blur
+        </SansSerifText>
+        <SansSerifText style={styles.infoItem}>
+          • Password strength indicator
+        </SansSerifText>
+        <SansSerifText style={styles.infoItem}>
+          • Password confirmation matching
+        </SansSerifText>
+        <SansSerifText style={styles.infoItem}>
+          • Email format validation
+        </SansSerifText>
+        <SansSerifText style={styles.infoItem}>
+          • Required field checking
+        </SansSerifText>
+        <SansSerifText style={styles.infoItem}>
+          • Clear error messages
+        </SansSerifText>
+      </View>
+    </View>
   );
 }
 

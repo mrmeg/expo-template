@@ -32,7 +32,7 @@ export default function DetailHeroDemo() {
               </SansSerifText>
               <SansSerifText style={{ fontSize: 14, lineHeight: 22, color: theme.colors.mutedForeground }}>
                 Includes 20+ reusable components, dark mode support, form validation,
-                and navigation patterns — everything you need to ship faster.
+                and navigation patterns, everything you need to ship faster.
               </SansSerifText>
             </>
           ),

@@ -94,6 +94,11 @@ export function CardGridScreen<T>({
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme, cardSpacing), [theme, cardSpacing]);
 
+  // Hoist per-column flex objects so renderItem hands stable style references to
+  // each row instead of allocating fresh ones every render.
+  const columnFlexStyle = useMemo<ViewStyle>(() => ({ flex: 1 / columns }), [columns]);
+  const fullFlexStyle = useMemo<ViewStyle>(() => ({ flex: 1 }), []);
+
   // -------------------------------------------------------------------------
   // Sort cycling
   // -------------------------------------------------------------------------
@@ -113,7 +118,7 @@ export function CardGridScreen<T>({
   // Category tabs
   // -------------------------------------------------------------------------
 
-  const renderCategoryTabs = () => {
+  const renderCategoryTabs = useCallback(() => {
     if (!categories || categories.length === 0) return null;
 
     return (
@@ -151,13 +156,13 @@ export function CardGridScreen<T>({
         })}
       </ScrollView>
     );
-  };
+  }, [categories, selectedCategory, onCategoryChange, styles, theme.colors.primary, theme.colors.primaryForeground]);
 
   // -------------------------------------------------------------------------
   // Sort row
   // -------------------------------------------------------------------------
 
-  const renderSortRow = () => {
+  const renderSortRow = useCallback(() => {
     if (!sortOptions || sortOptions.length === 0) return null;
 
     return (
@@ -168,7 +173,66 @@ export function CardGridScreen<T>({
         </Pressable>
       </View>
     );
-  };
+  }, [sortOptions, handleSortCycle, selectedSortLabel, styles, theme.colors.mutedForeground]);
+
+  // -------------------------------------------------------------------------
+  // List plumbing — stable renderItem / header so FlatList can window.
+  // Declared before any early return to satisfy the Rules of Hooks.
+  // -------------------------------------------------------------------------
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: T; index: number }) => {
+      const delay = Math.min(index, 10) * STAGGER_DELAY;
+
+      if (onCardPress) {
+        return (
+          <Pressable onPress={() => onCardPress(item)} style={columnFlexStyle}>
+            <AnimatedView type="fadeSlideUp" delay={delay} style={fullFlexStyle}>
+              {renderCard(item, index)}
+            </AnimatedView>
+          </Pressable>
+        );
+      }
+
+      return (
+        <AnimatedView type="fadeSlideUp" delay={delay} style={columnFlexStyle}>
+          {renderCard(item, index)}
+        </AnimatedView>
+      );
+    },
+    [onCardPress, renderCard, columnFlexStyle, fullFlexStyle]
+  );
+
+  const columnWrapperStyle = useMemo<ViewStyle | undefined>(
+    () => (columns > 1 ? { gap: cardSpacing } : undefined),
+    [columns, cardSpacing]
+  );
+
+  // Pass a component (not an element) so FlatList builds the header JSX lazily —
+  // never during an early-return render. renderCategoryTabs / renderSortRow are
+  // memoized, so this callback identity is stable across unrelated renders.
+  const ListHeader = useCallback(
+    () => (
+      <>
+        {header}
+        {renderCategoryTabs()}
+        {renderSortRow()}
+      </>
+    ),
+    [header, renderCategoryTabs, renderSortRow]
+  );
+
+  const refreshControl = useMemo(
+    () =>
+      onRefresh ? (
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.primary}
+        />
+      ) : undefined,
+    [onRefresh, refreshing, theme.colors.primary]
+  );
 
   // -------------------------------------------------------------------------
   // Loading state
@@ -205,9 +269,7 @@ export function CardGridScreen<T>({
         <SansSerifText style={styles.emptyDescription}>{emptyDescription}</SansSerifText>
       )}
       {emptyAction && (
-        <Button preset="default" onPress={emptyAction.onPress} style={styles.emptyButton}>
-          {emptyAction.label}
-        </Button>
+        <Button preset="default" onPress={emptyAction.onPress} text={emptyAction.label} style={styles.emptyButton} />
       )}
     </View>
   );
@@ -222,56 +284,13 @@ export function CardGridScreen<T>({
         data={data}
         keyExtractor={keyExtractor}
         numColumns={columns}
-        columnWrapperStyle={columns > 1 ? { gap: cardSpacing } : undefined}
-        renderItem={({ item, index }) => {
-          const card = (
-            <AnimatedView
-              type="fadeSlideUp"
-              delay={Math.min(index, 10) * STAGGER_DELAY}
-              style={{ flex: 1 / columns }}
-            >
-              {renderCard(item, index)}
-            </AnimatedView>
-          );
-
-          if (onCardPress) {
-            return (
-              <Pressable
-                onPress={() => onCardPress(item)}
-                style={{ flex: 1 / columns }}
-              >
-                <AnimatedView
-                  type="fadeSlideUp"
-                  delay={Math.min(index, 10) * STAGGER_DELAY}
-                  style={{ flex: 1 }}
-                >
-                  {renderCard(item, index)}
-                </AnimatedView>
-              </Pressable>
-            );
-          }
-
-          return card;
-        }}
-        ListHeaderComponent={
-          <>
-            {header}
-            {renderCategoryTabs()}
-            {renderSortRow()}
-          </>
-        }
+        columnWrapperStyle={columnWrapperStyle}
+        renderItem={renderItem}
+        ListHeaderComponent={ListHeader}
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={data.length === 0 ? styles.emptyFlatList : styles.gridContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={theme.colors.primary}
-            />
-          ) : undefined
-        }
+        refreshControl={refreshControl}
       />
     </View>
   );

@@ -128,7 +128,10 @@ function shouldShowDaySeparator(
 // ---------------------------------------------------------------------------
 
 function TypingDot({ delay, theme }: { delay: number; theme: Theme }) {
-  const opacity = useRef(new Animated.Value(0.3)).current;
+  // Lazy ref init: allocate the Animated.Value once, not on every render.
+  const opacityRef = useRef<Animated.Value | null>(null);
+  if (opacityRef.current === null) opacityRef.current = new Animated.Value(0.3);
+  const opacity = opacityRef.current;
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -186,7 +189,7 @@ function StatusText({ status, theme }: { status?: MessageStatus; theme: Theme })
 
   switch (status) {
   case "sending":
-    return <SansSerifText style={styles.statusText}>Sending...</SansSerifText>;
+    return <SansSerifText style={styles.statusText}>Sending…</SansSerifText>;
   case "sent":
     return (
       <View style={styles.statusRow}>
@@ -228,22 +231,23 @@ function StatusText({ status, theme }: { status?: MessageStatus; theme: Theme })
 // Loading Skeleton
 // ---------------------------------------------------------------------------
 
+const loadingSkeletonRows = [
+  { id: "received-wide", isMine: false, width: "65%" },
+  { id: "sent-medium", isMine: true, width: "55%" },
+  { id: "received-wider", isMine: false, width: "70%" },
+  { id: "sent-short", isMine: true, width: "45%" },
+  { id: "received-medium", isMine: false, width: "60%" },
+  { id: "sent-compact", isMine: true, width: "50%" },
+] as const;
+
 function LoadingSkeleton({ theme }: { theme: Theme }) {
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const rows = [
-    { isMine: false, width: "65%" },
-    { isMine: true, width: "55%" },
-    { isMine: false, width: "70%" },
-    { isMine: true, width: "45%" },
-    { isMine: false, width: "60%" },
-    { isMine: true, width: "50%" },
-  ] as const;
 
   return (
     <View style={styles.skeletonContainer}>
-      {rows.map((row, i) => (
+      {loadingSkeletonRows.map((row) => (
         <View
-          key={i}
+          key={row.id}
           style={[
             styles.skeletonRow,
             row.isMine ? styles.sentRow : styles.receivedRow,

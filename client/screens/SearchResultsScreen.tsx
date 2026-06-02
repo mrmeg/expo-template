@@ -130,126 +130,92 @@ export function SearchResultsScreen<T>({
   const displayCount = resultCount ?? data.length;
   const isGrid = viewMode === "grid";
 
-  // ---------------------------------------------------------------------------
-  // Search bar (shared between loading and loaded states)
-  // ---------------------------------------------------------------------------
-
-  const renderSearchBar = (editable = true) => (
-    <View style={styles.searchContainer}>
-      <TextInput
-        placeholder={searchPlaceholder}
-        value={editable ? searchQuery : ""}
-        onChangeText={editable ? handleSearch : undefined}
+  // Header (search bar + filters + toolbar) is extracted into a memoized child
+  // so this screen stays focused on list orchestration. `editable` is false
+  // only while the skeleton shows.
+  const renderHeaderContent = useCallback(
+    (editable: boolean) => (
+      <SearchResultsHeader
+        styles={styles}
+        theme={theme}
         editable={editable}
-        leftElement={<Icon name="search" size={18} color={theme.colors.mutedForeground} />}
+        searchPlaceholder={searchPlaceholder}
+        searchQuery={searchQuery}
+        onChangeSearch={handleSearch}
+        filters={filters}
+        onFilterPress={onFilterPress}
+        sortOptions={sortOptions}
+        onSortCycle={handleSortCycle}
+        currentSortLabel={currentSortLabel}
+        displayCount={displayCount}
+        resultLabel={resultLabel}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
       />
-    </View>
+    ),
+    [
+      styles,
+      theme,
+      searchPlaceholder,
+      searchQuery,
+      handleSearch,
+      filters,
+      onFilterPress,
+      sortOptions,
+      handleSortCycle,
+      currentSortLabel,
+      displayCount,
+      resultLabel,
+      viewMode,
+      onViewModeChange,
+    ]
   );
 
   // ---------------------------------------------------------------------------
-  // Filter chips
+  // Stable list plumbing (before any early return — Rules of Hooks)
   // ---------------------------------------------------------------------------
 
-  const renderFilters = () => {
-    if (!filters || filters.length === 0) return null;
-    return (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtersContent}
-        style={styles.filtersContainer}
-      >
-        {filters.map((filter) => (
-          <Pressable
-            key={filter.key}
-            onPress={() => onFilterPress?.(filter)}
-            style={[
-              styles.filterChip,
-              filter.active ? styles.filterChipActive : styles.filterChipInactive,
-            ]}
-          >
-            <SansSerifText
-              style={[
-                styles.filterChipText,
-                filter.active
-                  ? styles.filterChipTextActive
-                  : styles.filterChipTextInactive,
-              ]}
-            >
-              {filter.label}
-            </SansSerifText>
-          </Pressable>
-        ))}
-      </ScrollView>
-    );
-  };
+  const renderRow = useCallback(
+    ({ item, index }: { item: T; index: number }) => {
+      const renderForMode = isGrid && renderGridItem ? renderGridItem : renderItem;
+      return (
+        <AnimatedView
+          type="fadeSlideUp"
+          delay={Math.min(index, 10) * STAGGER_DELAY}
+          style={isGrid ? styles.gridItemWrapper : undefined}
+        >
+          {renderForMode(item, index)}
+        </AnimatedView>
+      );
+    },
+    [isGrid, renderGridItem, renderItem, styles]
+  );
 
-  // ---------------------------------------------------------------------------
-  // Toolbar (result count, sort, view toggle)
-  // ---------------------------------------------------------------------------
+  // Pass a component (not an element) so FlatList builds the header JSX lazily —
+  // never during an early-return render. The helper closures read
+  // query/filter/sort/viewMode state; depend on those values, not the helper
+  // identities, so the callback identity is stable across unrelated renders.
+  const ListHeader = useCallback(
+    () => (
+      <>
+        {header}
+        {renderHeaderContent(true)}
+      </>
+    ),
+    [header, renderHeaderContent]
+  );
 
-  const renderToolbar = () => {
-    const hasSortOrToggle = (sortOptions && sortOptions.length > 0) || onViewModeChange;
-    if (!hasSortOrToggle && displayCount === 0) return null;
-
-    return (
-      <View style={styles.toolbar}>
-        <SansSerifText style={styles.resultCountText}>
-          {displayCount} {resultLabel}
-        </SansSerifText>
-
-        <View style={styles.toolbarRight}>
-          {sortOptions && sortOptions.length > 0 && (
-            <Pressable onPress={handleSortCycle} style={styles.sortButton}>
-              <Icon name="sliders" size={14} color={theme.colors.mutedForeground} />
-              {currentSortLabel && (
-                <SansSerifText style={styles.sortLabel}>{currentSortLabel}</SansSerifText>
-              )}
-            </Pressable>
-          )}
-
-          {onViewModeChange && (
-            <View style={styles.viewToggle}>
-              <Pressable
-                onPress={() => onViewModeChange("list")}
-                style={[
-                  styles.viewToggleButton,
-                  viewMode === "list" && styles.viewToggleButtonActive,
-                ]}
-              >
-                <Icon
-                  name="list"
-                  size={16}
-                  color={
-                    viewMode === "list"
-                      ? theme.colors.foreground
-                      : theme.colors.mutedForeground
-                  }
-                />
-              </Pressable>
-              <Pressable
-                onPress={() => onViewModeChange("grid")}
-                style={[
-                  styles.viewToggleButton,
-                  viewMode === "grid" && styles.viewToggleButtonActive,
-                ]}
-              >
-                <Icon
-                  name="grid"
-                  size={16}
-                  color={
-                    viewMode === "grid"
-                      ? theme.colors.foreground
-                      : theme.colors.mutedForeground
-                  }
-                />
-              </Pressable>
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  };
+  const refreshControl = useMemo(
+    () =>
+      onRefresh ? (
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.primary}
+        />
+      ) : undefined,
+    [onRefresh, refreshing, theme.colors.primary]
+  );
 
   // ---------------------------------------------------------------------------
   // Loading state
@@ -259,9 +225,7 @@ export function SearchResultsScreen<T>({
     return (
       <View style={[styles.container, styleOverride]}>
         {header}
-        {renderSearchBar(false)}
-        {renderFilters()}
-        {renderToolbar()}
+        {renderHeaderContent(false)}
         <View style={styles.skeletonList}>
           {isGrid ? (
             <View style={styles.skeletonGrid}>
@@ -305,9 +269,7 @@ export function SearchResultsScreen<T>({
         <SansSerifText style={styles.emptyDescription}>{emptyDescription}</SansSerifText>
       )}
       {emptyAction && (
-        <Button preset="default" onPress={emptyAction.onPress} style={styles.emptyButton}>
-          {emptyAction.label}
-        </Button>
+        <Button preset="default" onPress={emptyAction.onPress} text={emptyAction.label} style={styles.emptyButton} />
       )}
       {emptySuggestions && emptySuggestions.length > 0 && (
         <View style={styles.suggestionsContainer}>
@@ -332,8 +294,6 @@ export function SearchResultsScreen<T>({
   // Render
   // ---------------------------------------------------------------------------
 
-  const renderItemForMode = isGrid && renderGridItem ? renderGridItem : renderItem;
-
   return (
     <View style={[styles.container, styleOverride]}>
       <FlatList
@@ -341,40 +301,163 @@ export function SearchResultsScreen<T>({
         data={data}
         keyExtractor={keyExtractor}
         numColumns={isGrid ? gridColumns : 1}
-        renderItem={({ item, index }) => (
-          <AnimatedView
-            type="fadeSlideUp"
-            delay={Math.min(index, 10) * STAGGER_DELAY}
-            style={isGrid ? styles.gridItemWrapper : undefined}
-          >
-            {renderItemForMode(item, index)}
-          </AnimatedView>
-        )}
-        ListHeaderComponent={
-          <>
-            {header}
-            {renderSearchBar()}
-            {renderFilters()}
-            {renderToolbar()}
-          </>
-        }
+        renderItem={renderRow}
+        ListHeaderComponent={ListHeader}
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={data.length === 0 ? styles.emptyFlatList : styles.listContent}
         columnWrapperStyle={isGrid && data.length > 0 ? styles.gridRow : undefined}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={theme.colors.primary}
-            />
-          ) : undefined
-        }
+        refreshControl={refreshControl}
       />
     </View>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Header (search bar + filter chips + toolbar)
+// ---------------------------------------------------------------------------
+
+interface SearchResultsHeaderProps {
+  styles: ReturnType<typeof createStyles>;
+  theme: Theme;
+  editable: boolean;
+  searchPlaceholder: string;
+  searchQuery: string;
+  onChangeSearch: (query: string) => void;
+  filters?: SearchFilter[];
+  onFilterPress?: (filter: SearchFilter) => void;
+  sortOptions?: SearchSortOption[];
+  onSortCycle: () => void;
+  currentSortLabel?: string;
+  displayCount: number;
+  resultLabel: string;
+  viewMode: "list" | "grid";
+  onViewModeChange?: (mode: "list" | "grid") => void;
+}
+
+const SearchResultsHeader = React.memo(function SearchResultsHeader({
+  styles,
+  theme,
+  editable,
+  searchPlaceholder,
+  searchQuery,
+  onChangeSearch,
+  filters,
+  onFilterPress,
+  sortOptions,
+  onSortCycle,
+  currentSortLabel,
+  displayCount,
+  resultLabel,
+  viewMode,
+  onViewModeChange,
+}: SearchResultsHeaderProps) {
+  const hasSortOrToggle = (sortOptions && sortOptions.length > 0) || !!onViewModeChange;
+  const showToolbar = hasSortOrToggle || displayCount > 0;
+
+  return (
+    <>
+      <View style={styles.searchContainer}>
+        <TextInput
+          placeholder={searchPlaceholder}
+          value={editable ? searchQuery : ""}
+          onChangeText={editable ? onChangeSearch : undefined}
+          editable={editable}
+          leftElement={<Icon name="search" size={18} color={theme.colors.mutedForeground} />}
+        />
+      </View>
+
+      {filters && filters.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersContent}
+          style={styles.filtersContainer}
+        >
+          {filters.map((filter) => (
+            <Pressable
+              key={filter.key}
+              onPress={() => onFilterPress?.(filter)}
+              style={[
+                styles.filterChip,
+                filter.active ? styles.filterChipActive : styles.filterChipInactive,
+              ]}
+            >
+              <SansSerifText
+                style={[
+                  styles.filterChipText,
+                  filter.active
+                    ? styles.filterChipTextActive
+                    : styles.filterChipTextInactive,
+                ]}
+              >
+                {filter.label}
+              </SansSerifText>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
+
+      {showToolbar && (
+        <View style={styles.toolbar}>
+          <SansSerifText style={styles.resultCountText}>
+            {displayCount} {resultLabel}
+          </SansSerifText>
+
+          <View style={styles.toolbarRight}>
+            {sortOptions && sortOptions.length > 0 && (
+              <Pressable onPress={onSortCycle} style={styles.sortButton}>
+                <Icon name="sliders" size={14} color={theme.colors.mutedForeground} />
+                {currentSortLabel && (
+                  <SansSerifText style={styles.sortLabel}>{currentSortLabel}</SansSerifText>
+                )}
+              </Pressable>
+            )}
+
+            {onViewModeChange && (
+              <View style={styles.viewToggle}>
+                <Pressable
+                  onPress={() => onViewModeChange("list")}
+                  style={[
+                    styles.viewToggleButton,
+                    viewMode === "list" && styles.viewToggleButtonActive,
+                  ]}
+                >
+                  <Icon
+                    name="list"
+                    size={16}
+                    color={
+                      viewMode === "list"
+                        ? theme.colors.foreground
+                        : theme.colors.mutedForeground
+                    }
+                  />
+                </Pressable>
+                <Pressable
+                  onPress={() => onViewModeChange("grid")}
+                  style={[
+                    styles.viewToggleButton,
+                    viewMode === "grid" && styles.viewToggleButtonActive,
+                  ]}
+                >
+                  <Icon
+                    name="grid"
+                    size={16}
+                    color={
+                      viewMode === "grid"
+                        ? theme.colors.foreground
+                        : theme.colors.mutedForeground
+                    }
+                  />
+                </Pressable>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+    </>
+  );
+});
 
 // ---------------------------------------------------------------------------
 // Styles

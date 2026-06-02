@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useReducer, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -6,7 +6,7 @@ import {
   Platform,
   Pressable,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -21,59 +21,111 @@ import { getAllKeys, load, clear } from "@/client/lib/storage";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import Constants from "expo-constants";
 
+type StorageState = {
+  keys: string[];
+  data: Record<string, unknown>;
+  loading: boolean;
+  expandedKey: string | null;
+};
+
+type StorageAction =
+  | { type: "loading"; loading: boolean }
+  | { type: "loaded"; keys: string[]; data: Record<string, unknown> }
+  | { type: "cleared" }
+  | { type: "toggleExpanded"; key: string };
+
+const INITIAL_STORAGE_STATE: StorageState = {
+  keys: [],
+  data: {},
+  loading: false,
+  expandedKey: null,
+};
+
+function storageReducer(state: StorageState, action: StorageAction): StorageState {
+  switch (action.type) {
+  case "loading":
+    return { ...state, loading: action.loading };
+  case "loaded":
+    return {
+      ...state,
+      keys: action.keys,
+      data: action.data,
+      loading: false,
+    };
+  case "cleared":
+    return INITIAL_STORAGE_STATE;
+  case "toggleExpanded":
+    return {
+      ...state,
+      expandedKey: state.expandedKey === action.key ? null : action.key,
+    };
+  }
+}
+
 /**
  * Developer tools screen - shows config, environment, storage, and debugging tools.
  * Only visible in development mode in a real app.
  */
 export default function DeveloperScreen() {
   const { theme, scheme, getShadowStyle } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Storage state
-  const [storageKeys, setStorageKeys] = useState<string[]>([]);
-  const [storageData, setStorageData] = useState<Record<string, unknown>>({});
-  const [storageLoading, setStorageLoading] = useState(false);
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [storage, dispatchStorage] = useReducer(
+    storageReducer,
+    INITIAL_STORAGE_STATE
+  );
+  const {
+    keys: storageKeys,
+    data: storageData,
+    loading: storageLoading,
+    expandedKey,
+  } = storage;
 
   // Error trigger state
-  const [shouldError, setShouldError] = useState(false);
+  const [errorTriggerCount, triggerError] = useReducer((count: number) => count + 1, 0);
 
   // Refresh storage keys
   const refreshStorage = useCallback(async () => {
-    setStorageLoading(true);
+    dispatchStorage({ type: "loading", loading: true });
     try {
       const keys = await getAllKeys();
-      setStorageKeys([...keys]);
 
       // Load all values
-      const data: Record<string, unknown> = {};
-      for (const key of keys) {
-        data[key] = await load(key);
-      }
-      setStorageData(data);
+      const entries = await Promise.all(
+        keys.map(async (key) => [key, await load(key)] as const)
+      );
+      const data = Object.fromEntries(entries);
+      dispatchStorage({ type: "loaded", keys: [...keys], data });
     } catch (error) {
       console.error("Failed to load storage:", error);
+      dispatchStorage({ type: "loading", loading: false });
     }
-    setStorageLoading(false);
   }, []);
 
   // Clear all storage
   const clearStorage = useCallback(async () => {
-    setStorageLoading(true);
+    dispatchStorage({ type: "loading", loading: true });
     await clear();
-    setStorageKeys([]);
-    setStorageData({});
-    setStorageLoading(false);
+    dispatchStorage({ type: "cleared" });
   }, []);
 
   // Trigger an error to test ErrorBoundary
-  if (shouldError) {
+  if (errorTriggerCount > 0) {
     throw new Error("Test error triggered from Developer screen");
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: spacing.lg + insets.bottom },
+      ]}
+      contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}
+    >
         {/* Environment Info */}
         <View style={[styles.section, getShadowStyle("subtle")]}>
           <View style={styles.sectionHeader}>
@@ -161,7 +213,7 @@ export default function DeveloperScreen() {
                 <Pressable
                   key={key}
                   style={styles.storageItem}
-                  onPress={() => setExpandedKey(expandedKey === key ? null : key)}
+                  onPress={() => dispatchStorage({ type: "toggleExpanded", key })}
                 >
                   <View style={styles.storageItemHeader}>
                     <Icon
@@ -226,7 +278,7 @@ export default function DeveloperScreen() {
 
           <Button
             preset="destructive"
-            onPress={() => setShouldError(true)}
+            onPress={triggerError}
             fullWidth
           >
             <Icon name="alert-triangle" color={theme.colors.destructiveForeground} size={16} />
@@ -252,8 +304,7 @@ export default function DeveloperScreen() {
             </View>
           )}
         </View>
-      </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 
@@ -301,7 +352,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
     content: {
-      flex: 1,
+      flexGrow: 1,
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg,
     },

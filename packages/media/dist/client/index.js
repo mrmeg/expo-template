@@ -100,8 +100,10 @@ function getUploadSize(file) {
     return file.size;
 }
 async function uploadNative(uploadUrl, fileUri, contentType) {
-    const { File } = await import("expo-file-system");
-    const { fetch: expoFetch } = await import("expo/fetch");
+    const [{ File }, { fetch: expoFetch }] = await Promise.all([
+        import("expo-file-system"),
+        import("expo/fetch"),
+    ]);
     const file = new File(fileUri);
     const response = await expoFetch(uploadUrl, {
         method: "PUT",

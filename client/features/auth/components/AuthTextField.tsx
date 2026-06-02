@@ -1,5 +1,4 @@
 import React, {
-  forwardRef,
   memo,
   useCallback,
   useImperativeHandle,
@@ -21,24 +20,23 @@ export interface AuthTextFieldHandle {
 }
 
 interface AuthTextFieldProps
-  extends Omit<TextInputProps, "error" | "errorText" | "onChangeText" | "value"> {
+  extends Omit<TextInputProps, "error" | "errorText" | "onChangeText" | "value" | "ref"> {
   initialValue?: string;
   normalize?: (value: string) => string;
   onValueChange?: (value: string, handle: AuthTextFieldHandle) => void;
   validateValue?: (value: string) => string;
+  ref?: React.Ref<AuthTextFieldHandle>;
 }
 
-function AuthTextFieldComponent(
-  {
-    initialValue = "",
-    normalize,
-    onValueChange,
-    validateValue,
-    onBlur,
-    ...props
-  }: AuthTextFieldProps,
-  ref: React.ForwardedRef<AuthTextFieldHandle>,
-) {
+function AuthTextFieldComponent({
+  initialValue = "",
+  normalize,
+  onValueChange,
+  validateValue,
+  onBlur,
+  ref,
+  ...props
+}: AuthTextFieldProps) {
   const inputRef = useRef<RNTextInput>(null);
   const valueRef = useRef(initialValue);
   const errorTextRef = useRef("");
@@ -105,4 +103,4 @@ function AuthTextFieldComponent(
   );
 }
 
-export const AuthTextField = memo(forwardRef(AuthTextFieldComponent));
+export const AuthTextField = memo(AuthTextFieldComponent);

@@ -288,17 +288,20 @@ export function createMediaHandlers<TAuth = unknown>(
 
     const urls: Record<string, string> = {};
     try {
-      for (let index = 0; index < resolved.keys.length; index += 1) {
-        const mediaType = resolved.mediaTypes[index]!;
-        const key = resolved.keys[index]!;
-        const bucket = getBucketConfig(config, mediaType);
-        const mediaTypeConfig = getMediaTypeConfig(config, mediaType)!;
-        if (!bucket) throw new Error(`Missing bucket for ${mediaType}`);
-        const command = new GetObjectCommand({ Bucket: bucket.bucket, Key: key });
-        urls[keys[index]!] = await getSignedUrl(getS3Client(bucket), command, {
-          expiresIn: mediaTypeConfig.readExpiresInSeconds ?? 86400,
-        });
-      }
+      const urlEntries = await Promise.all(
+        resolved.keys.map(async (key, index) => {
+          const mediaType = resolved.mediaTypes[index]!;
+          const bucket = getBucketConfig(config, mediaType);
+          const mediaTypeConfig = getMediaTypeConfig(config, mediaType)!;
+          if (!bucket) throw new Error(`Missing bucket for ${mediaType}`);
+          const command = new GetObjectCommand({ Bucket: bucket.bucket, Key: key });
+          const url = await getSignedUrl(getS3Client(bucket), command, {
+            expiresIn: mediaTypeConfig.readExpiresInSeconds ?? 86400,
+          });
+          return [keys[index]!, url] as const;
+        })
+      );
+      Object.assign(urls, Object.fromEntries(urlEntries));
       return json(request, options.cors, 200, { urls });
     } catch (error) {
       return storageFailure(request, options.cors, "Failed to create signed URLs.", error);
@@ -348,11 +351,16 @@ export function createMediaHandlers<TAuth = unknown>(
           ContinuationToken: cursor,
         }),
       );
-      const items = (result.Contents ?? []).map((item) => ({
-        key: item.Key ?? "",
-        size: item.Size ?? 0,
-        lastModified: item.LastModified?.toISOString() ?? "",
-      })).filter((item) => item.key);
+      const items = (result.Contents ?? []).flatMap((item) => {
+        const key = item.Key ?? "";
+        return key
+          ? [{
+              key,
+              size: item.Size ?? 0,
+              lastModified: item.LastModified?.toISOString() ?? "",
+            }]
+          : [];
+      });
       return json(request, options.cors, 200, {
         items,
         totalCount: items.length,
@@ -453,7 +461,9 @@ export function createMediaHandlers<TAuth = unknown>(
         const groupResult = settled[index]!;
         if (groupResult.status === "fulfilled") {
           deleted.push(
-            ...(groupResult.value.result.Deleted?.map((item) => item.Key).filter((key): key is string => Boolean(key)) ?? []),
+            ...(groupResult.value.result.Deleted?.flatMap((item) => (
+              item.Key ? [item.Key] : []
+            )) ?? []),
           );
           errors.push(
             ...(groupResult.value.result.Errors?.map((error) => ({ key: error.Key, message: error.Message })) ?? []),

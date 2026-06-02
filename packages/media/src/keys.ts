@@ -67,11 +67,12 @@ export function mediaTypeForKey(
   if (!isSafeObjectKey(key)) return null;
 
   const matches = Object.entries(config.mediaTypes)
-    .map(([mediaType, settings]) => ({
-      mediaType,
-      prefix: normalizeMediaPrefix(settings.prefix),
-    }))
-    .filter(({ prefix }) => key === prefix || key.startsWith(`${prefix}/`))
+    .flatMap(([mediaType, settings]) => {
+      const prefix = normalizeMediaPrefix(settings.prefix);
+      return key === prefix || key.startsWith(`${prefix}/`)
+        ? [{ mediaType, prefix }]
+        : [];
+    })
     .sort((a, b) => b.prefix.length - a.prefix.length);
 
   return matches[0]?.mediaType ?? null;

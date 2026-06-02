@@ -47,7 +47,10 @@ export function OnboardingGate() {
   const handleComplete = () => setHasSeenOnboarding(true);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View
+      testID="onboarding-gate"
+      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+    >
       <OnboardingFlow
         pages={PAGES}
         onComplete={handleComplete}

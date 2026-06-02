@@ -138,9 +138,8 @@ export function WelcomeScreen({
           size="lg"
           fullWidth
           onPress={primaryAction.onPress}
-        >
-          {primaryAction.label}
-        </Button>
+          text={primaryAction.label}
+        />
 
         {/* Secondary CTA */}
         {secondaryAction && (

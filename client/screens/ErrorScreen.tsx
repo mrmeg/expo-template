@@ -141,14 +141,10 @@ export function ErrorScreen({
       {(primaryAction || secondaryAction) && (
         <Animated.View style={[styles.actions, actionsEntrance]}>
           {primaryAction && (
-            <Button onPress={primaryAction.onPress} style={styles.actionButton}>
-              {primaryAction.label}
-            </Button>
+            <Button onPress={primaryAction.onPress} text={primaryAction.label} style={styles.actionButton} />
           )}
           {secondaryAction && (
-            <Button preset="ghost" onPress={secondaryAction.onPress} style={styles.actionButton}>
-              {secondaryAction.label}
-            </Button>
+            <Button preset="ghost" onPress={secondaryAction.onPress} text={secondaryAction.label} style={styles.actionButton} />
           )}
         </Animated.View>
       )}

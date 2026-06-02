@@ -8,7 +8,7 @@ import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
-import { SEO } from "@/client/components/SEO";
+import { Seo } from "@/client/components/Seo";
 import { blurActiveElementOnWeb } from "@/client/features/navigation/blurActiveElementOnWeb";
 import {
   DEMOS,
@@ -31,7 +31,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
-      <SEO title="Explore - Expo Template" description="Browse UI components, screen templates, and interactive demos built with Expo and React Native." />
+      <Seo title="Explore - Expo Template" description="Browse UI components, screen templates, and interactive demos built with Expo and React Native." />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -50,13 +50,13 @@ export default function ExploreScreen() {
                     <View style={styles.featuredIcon}>
                       <Icon name="layers" color={theme.colors.accentForeground} size={22} />
                     </View>
-                    <Badge variant="outline">{componentCount} components</Badge>
+                    <Badge variant="outline" text={`${componentCount} components`} />
                   </View>
                   <SansSerifBoldText style={styles.featuredTitle}>
                     Component Library
                   </SansSerifBoldText>
                   <SansSerifText style={styles.featuredDesc}>
-                    Buttons, inputs, cards, toggles, menus — themed and cross-platform.
+                    Buttons, inputs, cards, toggles, and menus for themed, cross-platform apps.
                   </SansSerifText>
                   <View style={styles.featuredCta}>
                     <SansSerifText style={styles.featuredCtaText}>
@@ -74,8 +74,8 @@ export default function ExploreScreen() {
         <AnimatedView type="fadeSlideUp" delay={STAGGER_DELAY * 3}>
           <SansSerifText style={styles.sectionLabel}>Screen Templates</SansSerifText>
           <View style={styles.grid}>
-            {templateRows.map((row, ri) => (
-              <View key={ri} style={styles.gridRow}>
+            {templateRows.map((row) => (
+              <View key={row.map((item) => item.id).join("-")} style={styles.gridRow}>
                 {row.map((item) => (
                   <Link key={item.id} href={item.route as any} asChild>
                     <Pressable

@@ -4,7 +4,6 @@ import {
   Animated,
   Pressable,
   StyleSheet,
-  Dimensions,
   Platform,
   StyleProp,
   ViewStyle,
@@ -13,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, useDimensions } from "@mrmeg/expo-ui/hooks";
 import { shouldUseNativeDriver } from "@mrmeg/expo-ui/lib";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -77,10 +76,17 @@ export function DetailHeroScreen({
 }: DetailHeroScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme, insets.top, heroHeight), [theme, insets.top, heroHeight]);
+  const { height: windowHeight } = useDimensions();
+  const styles = useMemo(
+    () => createStyles(theme, insets.top, heroHeight, windowHeight),
+    [theme, insets.top, heroHeight, windowHeight]
+  );
   const heroBg = heroBackgroundColor || theme.colors.accent;
 
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Lazy ref init: allocate the Animated.Value once, not on every render.
+  const scrollYRef = useRef<Animated.Value | null>(null);
+  if (scrollYRef.current === null) scrollYRef.current = new Animated.Value(0);
+  const scrollY = scrollYRef.current;
 
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, heroHeight],
@@ -189,9 +195,7 @@ export function DetailHeroScreen({
           {(primaryAction || secondaryAction) && (
             <View style={styles.actionsRow}>
               {primaryAction && (
-                <Button preset="default" fullWidth onPress={primaryAction.onPress}>
-                  {primaryAction.label}
-                </Button>
+                <Button preset="default" fullWidth onPress={primaryAction.onPress} text={primaryAction.label} />
               )}
               {secondaryAction && (
                 <Button preset="outline" fullWidth onPress={secondaryAction.onPress}>
@@ -249,7 +253,7 @@ export function DetailHeroScreen({
 // Styles
 // ---------------------------------------------------------------------------
 
-const createStyles = (theme: Theme, topInset: number, heroHeight: number) =>
+const createStyles = (theme: Theme, topInset: number, heroHeight: number, windowHeight: number) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -290,7 +294,7 @@ const createStyles = (theme: Theme, topInset: number, heroHeight: number) =>
       backgroundColor: theme.colors.background,
       borderTopLeftRadius: spacing.radius2xl,
       borderTopRightRadius: spacing.radius2xl,
-      minHeight: Dimensions.get("window").height,
+      minHeight: windowHeight,
       paddingTop: spacing.lg,
       paddingHorizontal: spacing.md,
     },

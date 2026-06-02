@@ -23,10 +23,6 @@ interface KeyboardToolbarProps {
   content: any; // The actual react-native-keyboard-controller accepts a function
 }
 
-interface KeyboardControllerType {
-  dismiss: () => void;
-}
-
 // Web implementations - just passthrough/noop components
 const WebKeyboardAvoidingView: React.FC<KeyboardAvoidingViewProps> = ({ children, style }) => {
   return <View style={style}>{children}</View>;
@@ -53,15 +49,6 @@ const WebKeyboardAwareScrollView: React.FC<KeyboardAwareScrollViewProps> = ({
 
 const WebKeyboardToolbar: React.FC<KeyboardToolbarProps> = ({ content }) => {
   return null; // No keyboard toolbar needed on web
-};
-
-const WebKeyboardController: KeyboardControllerType = {
-  dismiss: () => {
-    // On web, we can blur the active element
-    if (document.activeElement && "blur" in document.activeElement) {
-      (document.activeElement as HTMLElement).blur();
-    }
-  },
 };
 
 // Native KeyboardAvoidingView - lazy loaded
@@ -137,14 +124,4 @@ export const KeyboardToolbar: React.FC<KeyboardToolbarProps> = ({ content }) => 
       <NativeKeyboardToolbar content={content} />
     </React.Suspense>
   );
-};
-
-// For KeyboardController, we'll create a simple function-based approach
-export const KeyboardController: KeyboardControllerType = {
-  dismiss: Platform.OS === "web"
-    ? WebKeyboardController.dismiss
-    : async () => {
-      const { KeyboardController } = await import("react-native-keyboard-controller");
-      KeyboardController.dismiss();
-    },
 };

@@ -138,19 +138,30 @@ class Api {
     const maxRetries = options.retry ?? 0;
     const baseDelay = options.retryDelay ?? 1000;
 
-    let result = await this.attemptRequest<T>(method, url, data, options);
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const retryTemporaryFailure = async (
+      result: ApiResult<T>,
+      attempt: number
+    ): Promise<ApiResult<T>> => {
       // Only retry temporary failures
       if (result.kind === "ok" || !("temporary" in result) || !result.temporary) {
-        break;
+        return result;
+      }
+
+      if (attempt >= maxRetries) {
+        return result;
       }
 
       await sleep(calculateBackoff(attempt, baseDelay));
-      result = await this.attemptRequest<T>(method, url, data, options);
-    }
+      return retryTemporaryFailure(
+        await this.attemptRequest<T>(method, url, data, options),
+        attempt + 1
+      );
+    };
 
-    return result;
+    return retryTemporaryFailure(
+      await this.attemptRequest<T>(method, url, data, options),
+      0
+    );
   }
 
   // Convenience methods for common HTTP verbs

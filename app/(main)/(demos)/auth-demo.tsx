@@ -1,6 +1,6 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { View, StyleSheet, ScrollView, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthWrapper } from "@/client/features/auth/components/AuthWrapper";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
 import { useAuthStore, AuthState } from "@/client/features/auth/stores/authStore";
@@ -172,11 +172,19 @@ function AuthStateMonitor() {
   const { state, pendingVerificationEmail, error } = useAuthStore();
   const { checkAuthState } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
-  const [stateHistory, setStateHistory] = useState<{ state: AuthState; timestamp: Date }[]>([]);
+  const stateHistoryId = useRef(0);
+  const [stateHistory, setStateHistory] = useState<{ id: string; state: AuthState; timestamp: Date }[]>([]);
 
   // Track state changes
   useEffect(() => {
-    setStateHistory((prev) => [...prev.slice(-4), { state, timestamp: new Date() }]);
+    setStateHistory((prev) => [
+      ...prev.slice(-4),
+      {
+        id: `${state}-${stateHistoryId.current++}`,
+        state,
+        timestamp: new Date(),
+      },
+    ]);
   }, [state]);
 
   const handleRefresh = async () => {
@@ -242,8 +250,8 @@ function AuthStateMonitor() {
           {stateHistory.length === 0 ? (
             <SansSerifText style={dynamicStyles.historyEmpty}>No state changes yet</SansSerifText>
           ) : (
-            stateHistory.map((entry, index) => (
-              <View key={index} style={dynamicStyles.historyItem}>
+            stateHistory.map((entry) => (
+              <View key={entry.id} style={dynamicStyles.historyItem}>
                 <SansSerifText style={dynamicStyles.historyTime}>
                   {entry.timestamp.toLocaleTimeString()}
                 </SansSerifText>
@@ -337,21 +345,24 @@ function HowItWorksSection() {
 // Main content when authenticated
 function AuthenticatedContent() {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const dynamicStyles = useMemo(() => createStyles(theme), [theme]);
 
   return (
-    <SafeAreaView style={dynamicStyles.container} edges={["bottom"]}>
-      <ScrollView
-        style={dynamicStyles.scrollView}
-        contentContainerStyle={dynamicStyles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <AuthStateMonitor />
-        <ProtectedSection />
-        <UserInfoSection />
-        <HowItWorksSection />
-      </ScrollView>
-    </SafeAreaView>
+    <ScrollView
+      style={dynamicStyles.container}
+      contentContainerStyle={[
+        dynamicStyles.scrollContent,
+        { paddingBottom: spacing.xxxl + insets.bottom },
+      ]}
+      contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}
+    >
+      <AuthStateMonitor />
+      <ProtectedSection />
+      <UserInfoSection />
+      <HowItWorksSection />
+    </ScrollView>
   );
 }
 

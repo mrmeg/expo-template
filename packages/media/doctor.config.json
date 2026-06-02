@@ -1,0 +1,11 @@
+{
+  "$schema": "https://react.doctor/schema/config.json",
+  "ignore": {
+    "overrides": [
+      {
+        "files": ["src/processing/videoConversion/ffmpeg-worker.js"],
+        "rules": ["deslop/unused-file"]
+      }
+    ]
+  }
+}

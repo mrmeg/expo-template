@@ -92,6 +92,7 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
       },
     ],
     "expo-font",
+    "expo-image",
     "expo-web-browser",
     "expo-localization",
   ];

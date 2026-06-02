@@ -161,6 +161,20 @@ export function NotificationListScreen({
     [onArchive]
   );
 
+  // Memoize the refresh control so the list doesn't get a fresh element every
+  // render. Declared before the early return to satisfy the Rules of Hooks.
+  const refreshControl = useMemo(
+    () =>
+      onRefresh ? (
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.primary}
+        />
+      ) : undefined,
+    [onRefresh, refreshing, theme.colors.primary]
+  );
+
   // -----------------------------------------------------------------------
   // Loading skeleton
   // -----------------------------------------------------------------------
@@ -279,9 +293,7 @@ export function NotificationListScreen({
       {header}
       {onMarkAllRead && notifications.some((n) => !n.read) && (
         <View style={styles.markAllContainer}>
-          <Button preset="ghost" size="sm" onPress={onMarkAllRead}>
-            Mark all as read
-          </Button>
+          <Button preset="ghost" size="sm" text="Mark all as read" onPress={onMarkAllRead} />
         </View>
       )}
     </>
@@ -301,15 +313,7 @@ export function NotificationListScreen({
         }
         showsVerticalScrollIndicator={false}
         stickySectionHeadersEnabled={false}
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={theme.colors.primary}
-            />
-          ) : undefined
-        }
+        refreshControl={refreshControl}
       />
     </View>
   );

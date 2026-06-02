@@ -15,6 +15,15 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+const handleSubmit = (data: FormData) => {
+  const summary = JSON.stringify(data, null, 2);
+  if (Platform.OS === "web") {
+    window.alert(summary);
+  } else {
+    Alert.alert("Form Submitted", summary);
+  }
+};
+
 const STEPS: FormStep[] = [
   {
     title: "Personal Info",
@@ -88,15 +97,6 @@ export default function ScreenFormDemo() {
       newsletter: false,
     },
   });
-
-  const handleSubmit = (data: FormData) => {
-    const summary = JSON.stringify(data, null, 2);
-    if (Platform.OS === "web") {
-      window.alert(summary);
-    } else {
-      Alert.alert("Form Submitted", summary);
-    }
-  };
 
   return (
     <FormScreen

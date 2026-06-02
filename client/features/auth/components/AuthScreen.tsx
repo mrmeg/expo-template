@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
-import { View, Image, StyleSheet } from "react-native";
+import React, { useMemo, useReducer } from "react";
+import { View, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SignInForm } from "./SignInForm";
 import { SignUpForm } from "./SignUpForm";
@@ -15,6 +16,48 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 import { getAppName } from "@/client/lib/identity";
 
 type AuthView = "sign-in" | "sign-up" | "forgot-password" | "verify-email" | "reset-password";
+type PostVerifyDestination = "sign-in" | "forgot-password";
+
+type AuthScreenState = {
+  view: AuthView;
+  loading: boolean;
+  error: string;
+  pendingEmail: string;
+  pendingPassword: string;
+  forgotPasswordSuccess: boolean;
+  resetPasswordSuccess: boolean;
+  resending: boolean;
+  postVerifyDestination: PostVerifyDestination;
+};
+
+type AuthScreenAction = {
+  type: "stateChanged";
+  changes: Partial<AuthScreenState>;
+};
+
+function createInitialAuthScreenState(initialView: AuthView): AuthScreenState {
+  return {
+    view: initialView,
+    loading: false,
+    error: "",
+    pendingEmail: "",
+    pendingPassword: "",
+    forgotPasswordSuccess: false,
+    resetPasswordSuccess: false,
+    resending: false,
+    postVerifyDestination: "sign-in",
+  };
+}
+
+function authScreenReducer(
+  state: AuthScreenState,
+  action: AuthScreenAction
+): AuthScreenState {
+  switch (action.type) {
+  case "stateChanged":
+    return { ...state, ...action.changes };
+  }
+}
 
 interface AuthScreenProps {
   /** Initial view to show */
@@ -23,7 +66,26 @@ interface AuthScreenProps {
   onAuthenticated?: () => void;
 }
 
+async function resendVerificationCode(
+  resendCode: ReturnType<typeof useAuth>["resendCode"],
+  email: string
+) {
+  try {
+    const resendResult = await resendCode(email);
+    console.log("Resend verification code result:", JSON.stringify(resendResult, null, 2));
+  } catch (resendErr: any) {
+    console.log("Resend verification code error:", resendErr.name, resendErr.message);
+  }
+}
+
 export function AuthScreen({
+  initialView = "sign-in",
+  onAuthenticated,
+}: AuthScreenProps) {
+  return useAuthScreenContent({ initialView, onAuthenticated });
+}
+
+function useAuthScreenContent({
   initialView = "sign-in",
   onAuthenticated,
 }: AuthScreenProps) {
@@ -32,16 +94,41 @@ export function AuthScreen({
   const appName = getAppName();
   const { signIn, signUp, confirmSignUp, resendCode, forgotPassword, resetPassword } = useAuth();
 
-  const [view, setView] = useState<AuthView>(initialView);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [pendingEmail, setPendingEmail] = useState("");
-  const [pendingPassword, setPendingPassword] = useState(""); // Store password for post-verification sign-in
-  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
-  const [resetPasswordSuccess, setResetPasswordSuccess] = useState(false);
-  const [resending, setResending] = useState(false);
-  // Track where to redirect after email verification
-  const [postVerifyDestination, setPostVerifyDestination] = useState<"sign-in" | "forgot-password">("sign-in");
+  const [authScreenState, dispatchAuthScreen] = useReducer(
+    authScreenReducer,
+    initialView,
+    createInitialAuthScreenState
+  );
+  const {
+    view,
+    loading,
+    error,
+    pendingEmail,
+    pendingPassword,
+    forgotPasswordSuccess,
+    resetPasswordSuccess,
+    resending,
+    postVerifyDestination,
+  } = authScreenState;
+
+  const setAuthScreenState = (changes: Partial<AuthScreenState>) => {
+    dispatchAuthScreen({ type: "stateChanged", changes });
+  };
+
+  const setView = (value: AuthView) => setAuthScreenState({ view: value });
+  const setLoading = (value: boolean) => setAuthScreenState({ loading: value });
+  const setError = (value: string) => setAuthScreenState({ error: value });
+  const setPendingEmail = (value: string) =>
+    setAuthScreenState({ pendingEmail: value });
+  const setPendingPassword = (value: string) =>
+    setAuthScreenState({ pendingPassword: value });
+  const setForgotPasswordSuccess = (value: boolean) =>
+    setAuthScreenState({ forgotPasswordSuccess: value });
+  const setResetPasswordSuccess = (value: boolean) =>
+    setAuthScreenState({ resetPasswordSuccess: value });
+  const setResending = (value: boolean) => setAuthScreenState({ resending: value });
+  const setPostVerifyDestination = (value: PostVerifyDestination) =>
+    setAuthScreenState({ postVerifyDestination: value });
 
   // Sign In
   const handleSignIn = async (data: { email: string; password: string }) => {
@@ -57,12 +144,7 @@ export function AuthScreen({
         setPendingEmail(data.email);
         setPendingPassword(data.password);
         setPostVerifyDestination("sign-in");
-        try {
-          const resendResult = await resendCode(data.email);
-          console.log("Resend verification code result:", JSON.stringify(resendResult, null, 2));
-        } catch (resendErr: any) {
-          console.log("Resend verification code error:", resendErr.name, resendErr.message);
-        }
+        await resendVerificationCode(resendCode, data.email);
         setView("verify-email");
       }
     } catch (err: any) {
@@ -71,12 +153,7 @@ export function AuthScreen({
         setPendingEmail(data.email);
         setPendingPassword(data.password);
         setPostVerifyDestination("sign-in");
-        try {
-          const resendResult = await resendCode(data.email);
-          console.log("Resend verification code result:", JSON.stringify(resendResult, null, 2));
-        } catch (resendErr: any) {
-          console.log("Resend verification code error:", resendErr.name, resendErr.message);
-        }
+        await resendVerificationCode(resendCode, data.email);
         setView("verify-email");
         return;
       }
@@ -298,85 +375,184 @@ export function AuthScreen({
   };
 
   return (
+    <AuthScreenFrame styles={styles} theme={theme} appName={appName}>
+      <AuthViewFields
+        view={view}
+        loading={loading}
+        error={error}
+        pendingEmail={pendingEmail}
+        forgotPasswordSuccess={forgotPasswordSuccess}
+        resetPasswordSuccess={resetPasswordSuccess}
+        resending={resending}
+        postVerifyDestination={postVerifyDestination}
+        onSignIn={handleSignIn}
+        onSignUp={handleSignUp}
+        onVerify={handleVerify}
+        onResendCode={handleResendCode}
+        onForgotPassword={handleForgotPassword}
+        onResetPassword={handleResetPassword}
+        goToSignIn={goToSignIn}
+        goToSignUp={goToSignUp}
+        goToForgotPassword={goToForgotPassword}
+        goToChangeEmail={goToChangeEmail}
+      />
+    </AuthScreenFrame>
+  );
+}
+
+type AuthScreenStyles = ReturnType<typeof createStyles>;
+
+function AuthScreenFrame({
+  styles,
+  theme,
+  appName,
+  children,
+}: {
+  styles: AuthScreenStyles;
+  theme: Theme;
+  appName: string;
+  children: React.ReactNode;
+}) {
+  return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <DismissKeyboard style={styles.content}>
         <View style={styles.logoContainer}>
           <Image
             source={require("@/assets/images/icon.png")}
             style={styles.logo}
-            resizeMode="contain"
+            contentFit="contain"
           />
           <SerifText size="xl" style={{ color: theme.colors.accent }}>
             {appName}
           </SerifText>
         </View>
 
-        {view === "sign-in" && (
-          <SignInForm
-            onSignIn={handleSignIn}
-            onForgotPassword={goToForgotPassword}
-            onSignUp={goToSignUp}
-            loading={loading}
-            error={error}
-            socialProviders={[]}
-            embedded
-          />
-        )}
-
-        {view === "sign-up" && (
-          <SignUpForm
-            onSignUp={handleSignUp}
-            onSignIn={goToSignIn}
-            loading={loading}
-            error={error}
-            socialProviders={[]}
-            requireName={false}
-            embedded
-          />
-        )}
-
-        {view === "verify-email" && (
-          <VerifyEmailForm
-            email={pendingEmail}
-            onVerify={handleVerify}
-            onResendCode={handleResendCode}
-            onBack={postVerifyDestination === "forgot-password" ? goToForgotPassword : goToSignIn}
-            onChangeEmail={postVerifyDestination === "forgot-password" ? undefined : goToChangeEmail}
-            loading={loading}
-            resending={resending}
-            error={error}
-            title={postVerifyDestination === "forgot-password" ? "Verify your email first" : undefined}
-            description={postVerifyDestination === "forgot-password"
-              ? "Your email needs to be verified before you can reset your password. We've sent a verification code."
-              : undefined}
-            embedded
-          />
-        )}
-
-        {view === "forgot-password" && (
-          <ForgotPasswordForm
-            onSubmit={handleForgotPassword}
-            onBack={goToSignIn}
-            loading={loading}
-            error={error}
-            success={forgotPasswordSuccess}
-            embedded
-          />
-        )}
-
-        {view === "reset-password" && (
-          <ResetPasswordForm
-            onSubmit={handleResetPassword}
-            onBack={goToSignIn}
-            loading={loading}
-            error={error}
-            success={resetPasswordSuccess}
-            description={`Enter the code sent to ${pendingEmail} and choose a new password.`}
-            embedded
-          />
-        )}
+        {children}
       </DismissKeyboard>
     </SafeAreaView>
+  );
+}
+
+function AuthViewFields({
+  view,
+  loading,
+  error,
+  pendingEmail,
+  forgotPasswordSuccess,
+  resetPasswordSuccess,
+  resending,
+  postVerifyDestination,
+  onSignIn,
+  onSignUp,
+  onVerify,
+  onResendCode,
+  onForgotPassword,
+  onResetPassword,
+  goToSignIn,
+  goToSignUp,
+  goToForgotPassword,
+  goToChangeEmail,
+}: {
+  view: AuthView;
+  loading: boolean;
+  error: string;
+  pendingEmail: string;
+  forgotPasswordSuccess: boolean;
+  resetPasswordSuccess: boolean;
+  resending: boolean;
+  postVerifyDestination: PostVerifyDestination;
+  onSignIn: (data: { email: string; password: string }) => Promise<void>;
+  onSignUp: (data: { name: string; email: string; password: string }) => Promise<void>;
+  onVerify: (code: string) => Promise<void>;
+  onResendCode: () => Promise<void>;
+  onForgotPassword: (email: string) => Promise<void>;
+  onResetPassword: (data: { code: string; newPassword: string }) => Promise<void>;
+  goToSignIn: () => void;
+  goToSignUp: () => void;
+  goToForgotPassword: () => void;
+  goToChangeEmail: () => void;
+}) {
+  return (
+    <>
+      {view === "sign-in" && (
+        <SignInForm
+          onSignIn={onSignIn}
+          onForgotPassword={goToForgotPassword}
+          onSignUp={goToSignUp}
+          loading={loading}
+          error={error}
+          socialProviders={[]}
+          embedded
+        />
+      )}
+
+      {view === "sign-up" && (
+        <SignUpForm
+          onSignUp={onSignUp}
+          onSignIn={goToSignIn}
+          loading={loading}
+          error={error}
+          socialProviders={[]}
+          requireName={false}
+          embedded
+        />
+      )}
+
+      {view === "verify-email" && (
+        <VerifyEmailForm
+          email={pendingEmail}
+          onVerify={onVerify}
+          onResendCode={onResendCode}
+          onBack={
+            postVerifyDestination === "forgot-password"
+              ? goToForgotPassword
+              : goToSignIn
+          }
+          onChangeEmail={
+            postVerifyDestination === "forgot-password"
+              ? undefined
+              : goToChangeEmail
+          }
+          loading={loading}
+          resending={resending}
+          error={error}
+          title={
+            postVerifyDestination === "forgot-password"
+              ? "Verify your email first"
+              : undefined
+          }
+          description={
+            postVerifyDestination === "forgot-password"
+              ? "Your email needs to be verified before you can reset your password. We've sent a verification code."
+              : undefined
+          }
+          embedded
+        />
+      )}
+
+      {view === "forgot-password" && (
+        <ForgotPasswordForm
+          onSubmit={onForgotPassword}
+          onBack={goToSignIn}
+          loading={loading}
+          error={error}
+          success={forgotPasswordSuccess}
+          embedded
+        />
+      )}
+
+      {view === "reset-password" && (
+        <ResetPasswordForm
+          onSubmit={onResetPassword}
+          onBack={goToSignIn}
+          loading={loading}
+          error={error}
+          success={resetPasswordSuccess}
+          description={`Enter the code sent to ${pendingEmail} and choose a new password.`}
+          embedded
+        />
+      )}
+    </>
   );
 }
 

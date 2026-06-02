@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from "react";
+import React, { memo, useMemo, useReducer, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
 import { KeyboardAwareScrollView } from "@/client/features/keyboard/platform";
@@ -51,17 +51,73 @@ import { fontFamilies } from "@mrmeg/expo-ui/constants";
 import { blurActiveElementOnWeb } from "@/client/features/navigation/blurActiveElementOnWeb";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
+type ShowcaseControlsState = {
+  showBookmarks: boolean;
+  showUrls: boolean;
+  statusBarPosition: string;
+  collapsibleOpen: boolean;
+  settingsTab: string;
+  projectTab: string;
+};
+
+type ShowcaseControlsAction =
+  | { type: "showBookmarksChanged"; showBookmarks: boolean }
+  | { type: "showUrlsChanged"; showUrls: boolean }
+  | { type: "statusBarPositionChanged"; statusBarPosition: string }
+  | { type: "collapsibleOpenChanged"; collapsibleOpen: boolean }
+  | { type: "settingsTabChanged"; settingsTab: string }
+  | { type: "projectTabChanged"; projectTab: string };
+
+const INITIAL_SHOWCASE_CONTROLS: ShowcaseControlsState = {
+  showBookmarks: true,
+  showUrls: false,
+  statusBarPosition: "bottom",
+  collapsibleOpen: false,
+  settingsTab: "account",
+  projectTab: "overview",
+};
+
+function showcaseControlsReducer(
+  state: ShowcaseControlsState,
+  action: ShowcaseControlsAction
+): ShowcaseControlsState {
+  switch (action.type) {
+  case "showBookmarksChanged":
+    return { ...state, showBookmarks: action.showBookmarks };
+  case "showUrlsChanged":
+    return { ...state, showUrls: action.showUrls };
+  case "statusBarPositionChanged":
+    return { ...state, statusBarPosition: action.statusBarPosition };
+  case "collapsibleOpenChanged":
+    return { ...state, collapsibleOpen: action.collapsibleOpen };
+  case "settingsTabChanged":
+    return { ...state, settingsTab: action.settingsTab };
+  case "projectTabChanged":
+    return { ...state, projectTab: action.projectTab };
+  }
+}
+
 export default function ShowcaseScreen() {
+  return useShowcaseScreenContent();
+}
+
+function useShowcaseScreenContent() {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Navigation state
-  const [showBookmarks, setShowBookmarks] = useState(true);
-  const [showUrls, setShowUrls] = useState(false);
-  const [statusBarPosition, setStatusBarPosition] = useState("bottom");
-  const [collapsibleOpen, setCollapsibleOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState("account");
-  const [projectTab, setProjectTab] = useState("overview");
+  const [controls, dispatchControls] = useReducer(
+    showcaseControlsReducer,
+    INITIAL_SHOWCASE_CONTROLS
+  );
+  const {
+    showBookmarks,
+    showUrls,
+    statusBarPosition,
+    collapsibleOpen,
+    settingsTab,
+    projectTab,
+  } = controls;
 
   return (
     <View style={styles.container}>
@@ -91,39 +147,27 @@ export default function ShowcaseScreen() {
 
           <Section title="Button Presets">
             <SubSection label="Default">
-              <Button preset="default" onPress={() => console.log("Default pressed")}>
-                Default Button
-              </Button>
+              <Button preset="default" text="Default Button" onPress={() => console.log("Default pressed")} />
             </SubSection>
 
             <SubSection label="Secondary">
-              <Button preset="secondary" onPress={() => console.log("Secondary pressed")}>
-                Secondary Button
-              </Button>
+              <Button preset="secondary" text="Secondary Button" onPress={() => console.log("Secondary pressed")} />
             </SubSection>
 
             <SubSection label="Outline">
-              <Button preset="outline" onPress={() => console.log("Outline pressed")}>
-                Outline Button
-              </Button>
+              <Button preset="outline" text="Outline Button" onPress={() => console.log("Outline pressed")} />
             </SubSection>
 
             <SubSection label="Ghost">
-              <Button preset="ghost" onPress={() => console.log("Ghost pressed")}>
-                Ghost Button
-              </Button>
+              <Button preset="ghost" text="Ghost Button" onPress={() => console.log("Ghost pressed")} />
             </SubSection>
 
             <SubSection label="Link">
-              <Button preset="link" onPress={() => console.log("Link pressed")}>
-                Link Button
-              </Button>
+              <Button preset="link" text="Link Button" onPress={() => console.log("Link pressed")} />
             </SubSection>
 
             <SubSection label="Destructive">
-              <Button preset="destructive" onPress={() => console.log("Destructive pressed")}>
-                Destructive Button
-              </Button>
+              <Button preset="destructive" text="Destructive Button" onPress={() => console.log("Destructive pressed")} />
             </SubSection>
           </Section>
 
@@ -294,11 +338,11 @@ export default function ShowcaseScreen() {
                 <DropdownMenuContent>
                   <DropdownMenuItem>
                     <StyledText style={styles.labelText}>Profile</StyledText>
-                    <DropdownMenuShortcut>⌘P</DropdownMenuShortcut>
+                    <DropdownMenuShortcut text="⌘P" />
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <StyledText style={styles.labelText}>Settings</StyledText>
-                    <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+                    <DropdownMenuShortcut text="⌘S" />
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive">
@@ -320,10 +364,26 @@ export default function ShowcaseScreen() {
                     <StyledText style={styles.boldText}>Appearance</StyledText>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem checked={showBookmarks} onCheckedChange={setShowBookmarks}>
+                  <DropdownMenuCheckboxItem
+                    checked={showBookmarks}
+                    onCheckedChange={(value) =>
+                      dispatchControls({
+                        type: "showBookmarksChanged",
+                        showBookmarks: value,
+                      })
+                    }
+                  >
                     <StyledText style={styles.labelText}>Show Bookmarks</StyledText>
                   </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem checked={showUrls} onCheckedChange={setShowUrls}>
+                  <DropdownMenuCheckboxItem
+                    checked={showUrls}
+                    onCheckedChange={(value) =>
+                      dispatchControls({
+                        type: "showUrlsChanged",
+                        showUrls: value,
+                      })
+                    }
+                  >
                     <StyledText style={styles.labelText}>Show Full URLs</StyledText>
                   </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
@@ -342,7 +402,15 @@ export default function ShowcaseScreen() {
                     <StyledText style={styles.boldText}>Position</StyledText>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuRadioGroup value={statusBarPosition} onValueChange={setStatusBarPosition}>
+                  <DropdownMenuRadioGroup
+                    value={statusBarPosition}
+                    onValueChange={(value) =>
+                      dispatchControls({
+                        type: "statusBarPositionChanged",
+                        statusBarPosition: value,
+                      })
+                    }
+                  >
                     <DropdownMenuRadioItem value="top">
                       <StyledText style={styles.labelText}>Top</StyledText>
                     </DropdownMenuRadioItem>
@@ -395,7 +463,15 @@ export default function ShowcaseScreen() {
 
           <Section title="Collapsible">
             <SubSection label="Basic Collapsible">
-              <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
+              <Collapsible
+                open={collapsibleOpen}
+                onOpenChange={(value) =>
+                  dispatchControls({
+                    type: "collapsibleOpenChanged",
+                    collapsibleOpen: value,
+                  })
+                }
+              >
                 <CollapsibleTrigger>
                   <View style={styles.collapsibleTrigger}>
                     <StyledText style={styles.boldText}>Can I use this in my project?</StyledText>
@@ -992,10 +1068,10 @@ export default function ShowcaseScreen() {
           <Section title="Badge">
             <SubSection label="Variants">
               <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-                <Badge>Default</Badge>
-                <Badge variant="secondary">Secondary</Badge>
-                <Badge variant="outline">Outline</Badge>
-                <Badge variant="destructive">Destructive</Badge>
+                <Badge text="Default" />
+                <Badge variant="secondary" text="Secondary" />
+                <Badge variant="outline" text="Outline" />
+                <Badge variant="destructive" text="Destructive" />
               </View>
             </SubSection>
           </Section>
@@ -1082,11 +1158,25 @@ export default function ShowcaseScreen() {
           {/* Tabs */}
           <Section title="Tabs">
             <SubSection label="Underline (Default)">
-              <Tabs value={settingsTab} onValueChange={setSettingsTab}>
+              <Tabs
+                value={settingsTab}
+                onValueChange={(value) =>
+                  dispatchControls({
+                    type: "settingsTabChanged",
+                    settingsTab: value,
+                  })
+                }
+              >
                 <TabsList>
-                  <TabsTrigger value="account">Account</TabsTrigger>
-                  <TabsTrigger value="password">Password</TabsTrigger>
-                  <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                  <TabsTrigger value="account">
+                    <StyledText>Account</StyledText>
+                  </TabsTrigger>
+                  <TabsTrigger value="password">
+                    <StyledText>Password</StyledText>
+                  </TabsTrigger>
+                  <TabsTrigger value="notifications">
+                    <StyledText>Notifications</StyledText>
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="account">
                   <SansSerifText style={styles.labelText}>Manage your account settings and preferences.</SansSerifText>
@@ -1100,10 +1190,23 @@ export default function ShowcaseScreen() {
               </Tabs>
             </SubSection>
             <SubSection label="Pill Variant">
-              <Tabs value={projectTab} onValueChange={setProjectTab} variant="pill">
+              <Tabs
+                value={projectTab}
+                onValueChange={(value) =>
+                  dispatchControls({
+                    type: "projectTabChanged",
+                    projectTab: value,
+                  })
+                }
+                variant="pill"
+              >
                 <TabsList>
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                  <TabsTrigger value="overview">
+                    <StyledText>Overview</StyledText>
+                  </TabsTrigger>
+                  <TabsTrigger value="analytics">
+                    <StyledText>Analytics</StyledText>
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview">
                   <SansSerifText style={styles.labelText}>A high-level summary of your project.</SansSerifText>
@@ -1729,7 +1832,7 @@ const BottomSheetSection = memo(function BottomSheetSection({
             <BottomSheet.Header>
               <View style={styles.sheetHeaderRow}>
                 <SansSerifBoldText style={styles.sheetHeaderTitle}>
-                  Share with...
+                  Share with…
                 </SansSerifBoldText>
                 <BottomSheet.Close asChild>
                   <Button preset="ghost" size="sm">
@@ -1942,11 +2045,11 @@ const SelectSection = memo(function SelectSection() {
           <SelectContent>
             <SelectGroup>
               <SelectLabel>Fruits</SelectLabel>
-              <SelectItem value="apple" label="Apple">Apple</SelectItem>
-              <SelectItem value="banana" label="Banana">Banana</SelectItem>
-              <SelectItem value="cherry" label="Cherry">Cherry</SelectItem>
-              <SelectItem value="date" label="Date">Date</SelectItem>
-              <SelectItem value="elderberry" label="Elderberry">Elderberry</SelectItem>
+              <SelectItem value="apple" label="Apple" />
+              <SelectItem value="banana" label="Banana" />
+              <SelectItem value="cherry" label="Cherry" />
+              <SelectItem value="date" label="Date" />
+              <SelectItem value="elderberry" label="Elderberry" />
             </SelectGroup>
           </SelectContent>
         </Select>
@@ -1958,7 +2061,7 @@ const SelectSection = memo(function SelectSection() {
               <SelectValue placeholder="Small" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="a" label="Option A">Option A</SelectItem>
+              <SelectItem value="a" label="Option A" />
             </SelectContent>
           </Select>
           <Select>
@@ -1966,7 +2069,7 @@ const SelectSection = memo(function SelectSection() {
               <SelectValue placeholder="Medium" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="a" label="Option A">Option A</SelectItem>
+              <SelectItem value="a" label="Option A" />
             </SelectContent>
           </Select>
           <Select>
@@ -1974,7 +2077,7 @@ const SelectSection = memo(function SelectSection() {
               <SelectValue placeholder="Large" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="a" label="Option A">Option A</SelectItem>
+              <SelectItem value="a" label="Option A" />
             </SelectContent>
           </Select>
         </View>

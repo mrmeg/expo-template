@@ -13,9 +13,9 @@ export interface UseSignedMediaUrlsOptions extends Omit<SignedMediaUrlsOptions, 
     enabled?: boolean;
 }
 export declare function createMediaQueryHooks({ client, queryKeyNamespace, }: CreateMediaQueryHooksOptions): {
-    useMediaList: ({ prefix, mediaType, limit, cursor, enabled, }?: UseMediaListOptions) => import("@tanstack/react-query").UseQueryResult<import(".").MediaListResult, unknown>;
-    useSignedMediaUrls: ({ mediaKeys, path, enabled, }: UseSignedMediaUrlsOptions) => import("@tanstack/react-query").UseQueryResult<import(".").SignedMediaUrlsResult, unknown>;
-    useSignedUrls: ({ mediaKeys, path, enabled, }: UseSignedMediaUrlsOptions) => import("@tanstack/react-query").UseQueryResult<import(".").SignedMediaUrlsResult, unknown>;
+    useMediaList: ({ prefix, mediaType, limit, cursor, enabled, }?: UseMediaListOptions) => import("@tanstack/react-query").UseQueryResult<NoInfer<import(".").MediaListResult>, unknown>;
+    useSignedMediaUrls: ({ mediaKeys, path, enabled, }: UseSignedMediaUrlsOptions) => import("@tanstack/react-query").UseQueryResult<NoInfer<import(".").SignedMediaUrlsResult>, unknown>;
+    useSignedUrls: ({ mediaKeys, path, enabled, }: UseSignedMediaUrlsOptions) => import("@tanstack/react-query").UseQueryResult<NoInfer<import(".").SignedMediaUrlsResult>, unknown>;
     useMediaUpload: () => import("@tanstack/react-query").UseMutationResult<import(".").MediaUploadResult, Error, MediaUploadOptions<string>, unknown>;
     useMediaDelete: () => import("@tanstack/react-query").UseMutationResult<import(".").MediaDeleteResult, Error, string, unknown>;
     useMediaDeleteBatch: () => import("@tanstack/react-query").UseMutationResult<import(".").MediaDeleteResult, Error, string[], unknown>;

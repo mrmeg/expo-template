@@ -2,21 +2,21 @@ import React from "react";
 import { Alert, Platform } from "react-native";
 import { ProfileScreen, type ProfileStat, type ProfileAction, type ProfileSection } from "@/client/screens/ProfileScreen";
 
+function showAlert(msg: string) {
+  if (Platform.OS === "web") {
+    window.alert(msg);
+  } else {
+    Alert.alert(msg);
+  }
+}
+
+const profileStats: ProfileStat[] = [
+  { icon: "star", value: "4.9", label: "Rating" },
+  { icon: "briefcase", value: "142", label: "Projects" },
+  { icon: "users", value: "1.2K", label: "Followers" },
+];
+
 export default function ScreenProfileDemo() {
-  const showAlert = (msg: string) => {
-    if (Platform.OS === "web") {
-      window.alert(msg);
-    } else {
-      Alert.alert(msg);
-    }
-  };
-
-  const stats: ProfileStat[] = [
-    { icon: "star", value: "4.9", label: "Rating" },
-    { icon: "briefcase", value: "142", label: "Projects" },
-    { icon: "users", value: "1.2K", label: "Followers" },
-  ];
-
   const actions: ProfileAction[] = [
     { label: "Edit Profile", icon: "edit-2", preset: "default", onPress: () => showAlert("Edit Profile") },
     { label: "Share", icon: "share", preset: "outline", onPress: () => showAlert("Share") },
@@ -46,7 +46,7 @@ export default function ScreenProfileDemo() {
       name="Alex Rivera"
       subtitle="Senior Product Designer"
       badge="Pro Member"
-      stats={stats}
+      stats={profileStats}
       actions={actions}
       sections={sections}
     />

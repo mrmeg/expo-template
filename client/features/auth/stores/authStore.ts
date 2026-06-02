@@ -169,9 +169,9 @@ async function handleAutoSignIn() {
 let hubListenerInitialized = false;
 
 export async function initAuth() {
+  if (hubListenerInitialized) return;
   await ensureAmplifyConfigured();
 
-  if (hubListenerInitialized) return;
   hubListenerInitialized = true;
 
   const { Hub } = await import("aws-amplify/utils");

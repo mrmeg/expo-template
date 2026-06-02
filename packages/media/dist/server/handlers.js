@@ -1,8 +1,8 @@
 import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client, } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ulid } from "ulid";
-import { getBucketConfig, getMediaTypeConfig, getMediaTypeNames, isAllowedContentType, validateMediaConfig, } from "../config.js";
-import { buildMediaKey, resolveRequestedKey } from "../keys.js";
+import { getBucketConfig, getMediaTypeConfig, getMediaTypeNames, isAllowedContentType, normalizeMediaPrefix, validateMediaConfig, } from "../config.js";
+import { buildMediaKey, isSafeObjectKey, mediaTypeForKey, resolveRequestedKey, } from "../keys.js";
 const s3ClientCache = new Map();
 export function resetMediaStorageForTests() {
     s3ClientCache.clear();
@@ -147,18 +147,19 @@ export function createMediaHandlers(options) {
         }
         const urls = {};
         try {
-            for (let index = 0; index < resolved.keys.length; index += 1) {
+            const urlEntries = await Promise.all(resolved.keys.map(async (key, index) => {
                 const mediaType = resolved.mediaTypes[index];
-                const key = resolved.keys[index];
                 const bucket = getBucketConfig(config, mediaType);
                 const mediaTypeConfig = getMediaTypeConfig(config, mediaType);
                 if (!bucket)
                     throw new Error(`Missing bucket for ${mediaType}`);
                 const command = new GetObjectCommand({ Bucket: bucket.bucket, Key: key });
-                urls[keys[index]] = await getSignedUrl(getS3Client(bucket), command, {
+                const url = await getSignedUrl(getS3Client(bucket), command, {
                     expiresIn: mediaTypeConfig.readExpiresInSeconds ?? 86400,
                 });
-            }
+                return [keys[index], url];
+            }));
+            Object.assign(urls, Object.fromEntries(urlEntries));
             return json(request, options.cors, 200, { urls });
         }
         catch (error) {
@@ -175,40 +176,43 @@ export function createMediaHandlers(options) {
             return authOrResponse;
         const auth = authOrResponse;
         const url = new URL(request.url);
-        const prefix = url.searchParams.get("prefix") || "";
+        const requestedPrefix = url.searchParams.get("prefix");
         const cursor = url.searchParams.get("cursor") || undefined;
-        const limit = Math.min(Number.parseInt(url.searchParams.get("limit") || "100", 10), 1000);
+        const requestedLimit = Number.parseInt(url.searchParams.get("limit") || "100", 10);
+        const limit = Number.isFinite(requestedLimit) ? Math.min(requestedLimit, 1000) : 100;
         const mediaType = url.searchParams.get("mediaType") || undefined;
-        let targetMediaType = mediaType;
-        if (!targetMediaType && prefix) {
-            const resolved = resolveKeys(config, ["__placeholder"], prefix);
-            targetMediaType = resolved?.mediaTypes[0];
-        }
-        if (mediaType && !getMediaTypeConfig(config, mediaType)) {
-            return problem(request, options.cors, 400, "invalid-media-type", "Unknown mediaType.", {
-                validTypes: getMediaTypeNames(config),
-            });
-        }
-        const policy = normalizePolicyDecision(await options.policy?.canList?.({ request, auth, mediaType: targetMediaType, prefix }));
+        const scope = resolveListScope(config, mediaType, requestedPrefix, request, options.cors);
+        if (scope instanceof Response)
+            return scope;
+        const policy = normalizePolicyDecision(await options.policy?.canList?.({
+            request,
+            auth,
+            mediaType: scope.mediaType,
+            prefix: scope.prefix,
+        }));
         if (!policy.allowed) {
             return problem(request, options.cors, 403, policy.code ?? "forbidden", policy.reason ?? "List is not allowed.");
         }
-        const mediaTypeForBucket = targetMediaType ?? getMediaTypeNames(config)[0];
-        const bucket = mediaTypeForBucket ? getBucketConfig(config, mediaTypeForBucket) : null;
+        const bucket = getBucketConfig(config, scope.mediaType);
         if (!bucket)
             return problem(request, options.cors, 503, "media-disabled", "Media storage is not configured.");
         try {
             const result = await getS3Client(bucket).send(new ListObjectsV2Command({
                 Bucket: bucket.bucket,
-                Prefix: prefix || undefined,
+                Prefix: scope.prefix,
                 MaxKeys: limit,
                 ContinuationToken: cursor,
             }));
-            const items = (result.Contents ?? []).map((item) => ({
-                key: item.Key ?? "",
-                size: item.Size ?? 0,
-                lastModified: item.LastModified?.toISOString() ?? "",
-            })).filter((item) => item.key);
+            const items = (result.Contents ?? []).flatMap((item) => {
+                const key = item.Key ?? "";
+                return key
+                    ? [{
+                            key,
+                            size: item.Size ?? 0,
+                            lastModified: item.LastModified?.toISOString() ?? "",
+                        }]
+                    : [];
+            });
             return json(request, options.cors, 200, {
                 items,
                 totalCount: items.length,
@@ -263,29 +267,51 @@ export function createMediaHandlers(options) {
         if (!policy.allowed) {
             return problem(request, options.cors, 403, policy.code ?? "forbidden", policy.reason ?? "Delete is not allowed.");
         }
-        const mediaType = resolved.mediaTypes[0];
-        const bucket = getBucketConfig(config, mediaType);
-        if (!bucket)
+        const deleteGroups = groupDeleteKeysByBucket(config, resolved.keys, resolved.mediaTypes);
+        if (!deleteGroups) {
             return problem(request, options.cors, 503, "media-disabled", "Media storage is not configured.");
+        }
         try {
             if (!batch) {
+                const bucket = deleteGroups[0]?.bucket;
+                if (!bucket)
+                    return problem(request, options.cors, 503, "media-disabled", "Media storage is not configured.");
                 await getS3Client(bucket).send(new DeleteObjectCommand({ Bucket: bucket.bucket, Key: resolved.keys[0] }));
                 await options.events?.onDeleted?.({ request, auth, keys: resolved.keys });
                 return json(request, options.cors, 200, { success: true, key: resolved.keys[0] });
             }
-            const result = await getS3Client(bucket).send(new DeleteObjectsCommand({
-                Bucket: bucket.bucket,
-                Delete: {
-                    Objects: resolved.keys.map((key) => ({ Key: key })),
-                    Quiet: false,
-                },
-            }));
-            const deleted = result.Deleted?.map((item) => item.Key).filter((key) => Boolean(key)) ?? [];
-            await options.events?.onDeleted?.({ request, auth, keys: deleted });
+            const settled = await Promise.allSettled(deleteGroups.map(async (group) => ({
+                group,
+                result: await getS3Client(group.bucket).send(new DeleteObjectsCommand({
+                    Bucket: group.bucket.bucket,
+                    Delete: {
+                        Objects: group.keys.map((key) => ({ Key: key })),
+                        Quiet: false,
+                    },
+                })),
+            })));
+            const deleted = [];
+            const errors = [];
+            for (let index = 0; index < settled.length; index += 1) {
+                const groupResult = settled[index];
+                if (groupResult.status === "fulfilled") {
+                    deleted.push(...(groupResult.value.result.Deleted?.flatMap((item) => (item.Key ? [item.Key] : [])) ?? []));
+                    errors.push(...(groupResult.value.result.Errors?.map((error) => ({ key: error.Key, message: error.Message })) ?? []));
+                    continue;
+                }
+                const message = getErrorMessage(groupResult.reason);
+                const failedGroup = deleteGroups[index];
+                for (const key of failedGroup?.keys ?? []) {
+                    errors.push({ key, message });
+                }
+            }
+            if (deleted.length > 0) {
+                await options.events?.onDeleted?.({ request, auth, keys: deleted });
+            }
             return json(request, options.cors, 200, {
-                success: true,
+                success: settled.every((result) => result.status === "fulfilled") && errors.length === 0,
                 deleted,
-                errors: result.Errors?.map((error) => ({ key: error.Key, message: error.Message })) ?? [],
+                errors,
             });
         }
         catch (error) {
@@ -300,6 +326,69 @@ export function createMediaHandlers(options) {
         deleteOne,
         deleteMany,
     };
+}
+function resolveListScope(config, mediaType, requestedPrefix, request, cors) {
+    if (mediaType) {
+        const mediaTypeConfig = getMediaTypeConfig(config, mediaType);
+        if (!mediaTypeConfig) {
+            return problem(request, cors, 400, "invalid-media-type", "Unknown mediaType.", {
+                validTypes: getMediaTypeNames(config),
+            });
+        }
+        const mediaTypePrefix = normalizeMediaPrefix(mediaTypeConfig.prefix);
+        if (requestedPrefix === null) {
+            return { mediaType, prefix: mediaTypePrefix };
+        }
+        const prefix = normalizeRequestedListPrefix(requestedPrefix);
+        if (!prefix || !isPrefixInside(prefix, mediaTypePrefix)) {
+            return problem(request, cors, 400, "bad-key", "Prefix is outside this media type.");
+        }
+        return { mediaType, prefix };
+    }
+    if (requestedPrefix === null) {
+        return problem(request, cors, 400, "bad-request", "List requires mediaType or a configured prefix.");
+    }
+    const prefix = normalizeRequestedListPrefix(requestedPrefix);
+    if (!prefix) {
+        return problem(request, cors, 400, "bad-key", "Prefix is outside configured media prefixes.");
+    }
+    const resolvedMediaType = mediaTypeForKey(config, prefix);
+    if (!resolvedMediaType) {
+        return problem(request, cors, 400, "bad-key", "Prefix is outside configured media prefixes.");
+    }
+    return { mediaType: resolvedMediaType, prefix };
+}
+function groupDeleteKeysByBucket(config, keys, mediaTypes) {
+    const groups = new Map();
+    for (let index = 0; index < keys.length; index += 1) {
+        const mediaType = mediaTypes[index];
+        const bucket = getBucketConfig(config, mediaType);
+        if (!bucket)
+            return null;
+        const groupKey = getBucketClientCacheKey(bucket);
+        const existing = groups.get(groupKey);
+        if (existing) {
+            existing.keys.push(keys[index]);
+        }
+        else {
+            groups.set(groupKey, { bucket, keys: [keys[index]] });
+        }
+    }
+    return [...groups.values()];
+}
+function normalizeRequestedListPrefix(prefix) {
+    const trimmed = prefix.trim();
+    if (!trimmed || trimmed.startsWith("/") || trimmed.includes("\\") || trimmed.includes("\0")) {
+        return null;
+    }
+    const normalized = normalizeMediaPrefix(trimmed);
+    return normalized && isSafeObjectKey(normalized) ? normalized : null;
+}
+function isPrefixInside(prefix, mediaTypePrefix) {
+    return prefix === mediaTypePrefix || prefix.startsWith(`${mediaTypePrefix}/`);
+}
+function getErrorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
 }
 function getReadyConfig(request, config, cors) {
     const validation = validateMediaConfig(config);
@@ -337,12 +426,7 @@ function resolveKeys(config, keys, path) {
     return { keys: resolvedKeys, mediaTypes };
 }
 function getS3Client(bucket) {
-    const cacheKey = JSON.stringify({
-        endpoint: bucket.endpoint,
-        region: bucket.region,
-        bucket: bucket.bucket,
-        accessKeyId: bucket.credentials.accessKeyId,
-    });
+    const cacheKey = getBucketClientCacheKey(bucket);
     const cached = s3ClientCache.get(cacheKey);
     if (cached)
         return cached;
@@ -358,6 +442,14 @@ function getS3Client(bucket) {
     const client = new S3Client(config);
     s3ClientCache.set(cacheKey, client);
     return client;
+}
+function getBucketClientCacheKey(bucket) {
+    return JSON.stringify({
+        endpoint: bucket.endpoint,
+        region: bucket.region,
+        bucket: bucket.bucket,
+        accessKeyId: bucket.credentials.accessKeyId,
+    });
 }
 function json(request, cors, status, body) {
     return new Response(JSON.stringify(body), {

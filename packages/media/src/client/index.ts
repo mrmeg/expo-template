@@ -193,8 +193,10 @@ async function uploadNative(
   fileUri: string,
   contentType: string,
 ): Promise<void> {
-  const { File } = await import("expo-file-system");
-  const { fetch: expoFetch } = await import("expo/fetch");
+  const [{ File }, { fetch: expoFetch }] = await Promise.all([
+    import("expo-file-system"),
+    import("expo/fetch"),
+  ]);
   const file = new File(fileUri);
   const response = await expoFetch(uploadUrl, {
     method: "PUT",

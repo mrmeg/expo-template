@@ -14,18 +14,18 @@ const VARIANTS: { key: ErrorVariant; label: string }[] = [
   { key: "generic", label: "Generic" },
 ];
 
+function showAlert(msg: string) {
+  if (Platform.OS === "web") {
+    window.alert(msg);
+  } else {
+    Alert.alert(msg);
+  }
+}
+
 export default function ScreenErrorDemo() {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [variant, setVariant] = useState<ErrorVariant>("generic");
-
-  const showAlert = (msg: string) => {
-    if (Platform.OS === "web") {
-      window.alert(msg);
-    } else {
-      Alert.alert(msg);
-    }
-  };
 
   return (
     <View style={styles.container}>

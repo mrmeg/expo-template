@@ -9,22 +9,22 @@ import { blurActiveElementOnWeb } from "./blurActiveElementOnWeb";
  * Back button for web that handles the case where browser refresh
  * loses Stack navigator history. On native, returns null.
  */
+function handlePress() {
+  blurActiveElementOnWeb();
+
+  if (canGoBack(router)) {
+    router.back();
+  } else {
+    router.replace("/(main)/(tabs)");
+  }
+}
+
 export function WebBackButton({ tintColor }: { tintColor?: string }) {
   const { theme } = useTheme();
 
   if (Platform.OS !== "web") return null;
 
   const color = tintColor || theme.colors.foreground;
-
-  const handlePress = () => {
-    blurActiveElementOnWeb();
-
-    if (canGoBack(router)) {
-      router.back();
-    } else {
-      router.replace("/(main)/(tabs)");
-    }
-  };
 
   return (
     <Pressable onPress={handlePress} hitSlop={8} style={{ paddingLeft: 8 }}>

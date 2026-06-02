@@ -21,12 +21,18 @@ const CONTROL_ZONE_SPACE = 128;
 // ============================================================================
 
 export interface OnboardingPage {
+  /** Stable identifier for list rendering */
+  id?: string;
   /** Icon name to display */
   icon: IconName;
   /** Page title */
   title: string;
   /** Page description */
   description: string;
+}
+
+function getOnboardingPageKey(page: OnboardingPage): string {
+  return page.id ?? `${page.icon}:${page.title}:${page.description}`;
 }
 
 export interface OnboardingFlowProps {
@@ -86,8 +92,13 @@ export function OnboardingFlow({
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Dot indicator animation values
-  const dotWidths = useRef(pages.map((_, i) => new Animated.Value(i === 0 ? 24 : 8))).current;
+  // Dot indicator animation values — lazy ref init so the Animated.Value array
+  // is allocated once on mount instead of on every render.
+  const dotWidthsRef = useRef<Animated.Value[] | null>(null);
+  if (dotWidthsRef.current === null) {
+    dotWidthsRef.current = pages.map((_, i) => new Animated.Value(i === 0 ? 24 : 8));
+  }
+  const dotWidths = dotWidthsRef.current;
 
   const isLastPage = currentIndex === pages.length - 1;
 
@@ -132,21 +143,21 @@ export function OnboardingFlow({
   };
 
   const renderPage = ({ item }: { item: OnboardingPage }) => (
-    <View style={[styles.page, { width: screenWidth }]}>
-      <View style={styles.iconContainer}>
+    <View testID="onboarding-page" style={[styles.page, { width: screenWidth }]}>
+      <View testID="onboarding-icon" style={styles.iconContainer}>
         <Icon name={item.icon} size={80} color={theme.colors.accent} />
       </View>
-      <SansSerifBoldText style={styles.pageTitle}>{item.title}</SansSerifBoldText>
-      <SansSerifText style={styles.pageDescription}>{item.description}</SansSerifText>
+      <SansSerifBoldText testID="onboarding-title" style={styles.pageTitle}>{item.title}</SansSerifBoldText>
+      <SansSerifText testID="onboarding-description" style={styles.pageDescription}>{item.description}</SansSerifText>
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <View testID="onboarding-flow" style={styles.container}>
       {/* Skip button */}
-      <View style={styles.skipContainer}>
+      <View testID="onboarding-skip" style={styles.skipContainer}>
         {!isLastPage && (
-          <Button preset="ghost" onPress={handleSkip}>
+          <Button testID="onboarding-skip-button" preset="ghost" onPress={handleSkip}>
             <SansSerifText style={styles.skipText}>{skipLabel}</SansSerifText>
           </Button>
         )}
@@ -159,7 +170,7 @@ export function OnboardingFlow({
         contentContainerStyle={styles.pagesContent}
         data={pages}
         renderItem={renderPage}
-        keyExtractor={(_, index) => index.toString()}
+        keyExtractor={getOnboardingPageKey}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -178,12 +189,13 @@ export function OnboardingFlow({
       />
 
       {/* Bottom controls */}
-      <View style={styles.bottomControls}>
+      <View testID="onboarding-controls" style={styles.bottomControls}>
         {/* Dot indicators */}
-        <View style={styles.dotsContainer}>
-          {pages.map((_, index) => (
+        <View testID="onboarding-dots" style={styles.dotsContainer}>
+          {pages.map((page, index) => (
             <Animated.View
-              key={index}
+              key={getOnboardingPageKey(page)}
+              testID="onboarding-dot"
               style={[
                 styles.dot,
                 {
@@ -200,13 +212,13 @@ export function OnboardingFlow({
 
         {/* Next / Done button */}
         <Button
+          testID="onboarding-next-button"
           preset="default"
           fullWidth
           onPress={handleNext}
           style={styles.nextButton}
-        >
-          {isLastPage ? doneLabel : nextLabel}
-        </Button>
+          text={isLastPage ? doneLabel : nextLabel}
+        />
       </View>
     </View>
   );

@@ -22,7 +22,7 @@ import {
 } from "@/client/features/billing";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import { palette } from "@mrmeg/expo-ui/constants";
-import { SEO } from "@/client/components/SEO";
+import { Seo } from "@/client/components/Seo";
 
 /**
  * Profile screen - displays user information and account settings.
@@ -66,46 +66,6 @@ function ProfileScreen() {
 
   const isAuthenticated = authState === "authenticated";
 
-  const handleEditProfile = () => {
-    globalUIStore.getState().show({
-      type: "info",
-      messages: ["Edit profile functionality coming soon"],
-      duration: 2000,
-    });
-  };
-
-  const handleChangePassword = () => {
-    globalUIStore.getState().show({
-      type: "info",
-      messages: ["Password change functionality coming soon"],
-      duration: 2000,
-    });
-  };
-
-  const handlePrivacySettings = () => {
-    globalUIStore.getState().show({
-      type: "info",
-      messages: ["Privacy settings coming soon"],
-      duration: 2000,
-    });
-  };
-
-  const handleConnectGoogle = () => {
-    globalUIStore.getState().show({
-      type: "info",
-      messages: ["Google account linking coming soon"],
-      duration: 2000,
-    });
-  };
-
-  const handleConnectApple = () => {
-    globalUIStore.getState().show({
-      type: "info",
-      messages: ["Apple account linking coming soon"],
-      duration: 2000,
-    });
-  };
-
   const handleManageBilling = async () => {
     const result = await billingActions.startPortal();
     if (result.status === "failed" && result.problem) {
@@ -115,10 +75,6 @@ function ProfileScreen() {
         duration: 4000,
       });
     }
-  };
-
-  const handleUpgrade = () => {
-    router.push("/(main)/(demos)/screen-pricing");
   };
 
   const handleSignOut = async () => {
@@ -138,7 +94,7 @@ function ProfileScreen() {
                 messages: ["Signed out successfully"],
                 duration: 2000,
               });
-            } catch (error) {
+            } catch {
               globalUIStore.getState().show({
                 type: "error",
                 messages: ["Failed to sign out"],
@@ -151,30 +107,9 @@ function ProfileScreen() {
     });
   };
 
-  const handleDeleteAccount = () => {
-    Alert.show({
-      title: "Delete Account",
-      message: "This action cannot be undone. All your data will be permanently deleted.",
-      buttons: [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            globalUIStore.getState().show({
-              type: "info",
-              messages: ["Account deletion coming soon"],
-              duration: 2000,
-            });
-          },
-        },
-      ],
-    });
-  };
-
   return (
     <View style={styles.container}>
-      <SEO title="Profile - Expo Template" description="User profile screen with avatar, stats, and editable sections." />
+      <Seo title="Profile - Expo Template" description="User profile screen with avatar, stats, and editable sections." />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           {/* Profile Header */}
@@ -201,115 +136,20 @@ function ProfileScreen() {
             </Button>
           </View>
 
-          {/* Account Info Card */}
-          <View style={styles.section}>
-            <SansSerifBoldText style={styles.sectionTitle}>Account Info</SansSerifBoldText>
-            <View style={[styles.card, getShadowStyle("subtle")]}>
-              <View style={styles.infoRow}>
-                <View style={styles.infoRowLeft}>
-                  <Icon name="user" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText style={styles.infoLabel}>User ID</SansSerifText>
-                </View>
-                <SansSerifText style={styles.infoValue}>
-                  {user?.userId ? user.userId.slice(0, 8) + "..." : "—"}
-                </SansSerifText>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.infoRow}>
-                <View style={styles.infoRowLeft}>
-                  <Icon
-                    name="award"
-                    size={18}
-                    color={entitled ? theme.colors.success : theme.colors.mutedForeground}
-                  />
-                  <SansSerifText style={styles.infoLabel}>Plan</SansSerifText>
-                </View>
-                <SansSerifText style={styles.infoValue}>
-                  {billing?.planLabel ?? "Free"}
-                </SansSerifText>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.infoRow}>
-                <View style={styles.infoRowLeft}>
-                  <Icon name="calendar" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText style={styles.infoLabel}>Renews</SansSerifText>
-                </View>
-                <SansSerifText style={styles.infoValue}>
-                  {formatPeriodEnd(billing?.currentPeriodEnd, billing?.cancelAtPeriodEnd)}
-                </SansSerifText>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.infoRow}>
-                <View style={styles.infoRowLeft}>
-                  <Icon name="shield" size={18} color={statusColor} />
-                  <SansSerifText style={styles.infoLabel}>Status</SansSerifText>
-                </View>
-                <SansSerifText style={[styles.infoValue, { color: statusColor }]}>
-                  {statusLabel}
-                </SansSerifText>
-              </View>
-              {billing?.cancelAtPeriodEnd && (
-                <>
-                  <View style={styles.divider} />
-                  <View style={styles.notice}>
-                    <Icon
-                      name="alert-triangle"
-                      size={16}
-                      color={theme.colors.warning}
-                    />
-                    <SansSerifText style={styles.noticeText}>
-                      Your plan is scheduled to end. Re-enable from Manage
-                      subscription to keep access.
-                    </SansSerifText>
-                  </View>
-                </>
-              )}
-              {billing?.status === "past_due" && (
-                <>
-                  <View style={styles.divider} />
-                  <View style={styles.notice}>
-                    <Icon
-                      name="alert-triangle"
-                      size={16}
-                      color={theme.colors.warning}
-                    />
-                    <SansSerifText style={styles.noticeText}>
-                      Your last payment failed. Update your payment method in
-                      Manage subscription.
-                    </SansSerifText>
-                  </View>
-                </>
-              )}
-              {billingAction && (
-                <>
-                  <View style={styles.divider} />
-                  <Pressable
-                    style={styles.settingsRow}
-                    onPress={
-                      billingAction === "manage" ? handleManageBilling : handleUpgrade
-                    }
-                    disabled={billingActions.isCreatingPortal}
-                  >
-                    <View style={styles.settingsRowLeft}>
-                      <Icon
-                        name={billingAction === "manage" ? "credit-card" : "zap"}
-                        size={18}
-                        color={theme.colors.accent}
-                      />
-                      <SansSerifText style={[styles.settingsLabel, { color: theme.colors.accent }]}>
-                        {billingAction === "manage"
-                          ? billingActions.isCreatingPortal
-                            ? "Opening…"
-                            : "Manage Subscription"
-                          : "Upgrade"}
-                      </SansSerifText>
-                    </View>
-                    <Icon name="chevron-right" size={18} color={theme.colors.accent} />
-                  </Pressable>
-                </>
-              )}
-            </View>
-          </View>
+          <AccountInfoSection
+            styles={styles}
+            shadowStyle={getShadowStyle("subtle")}
+            theme={theme}
+            userId={user?.userId}
+            billing={billing}
+            entitled={entitled}
+            statusColor={statusColor}
+            statusLabel={statusLabel}
+            billingAction={billingAction}
+            isCreatingPortal={billingActions.isCreatingPortal}
+            onManageBilling={handleManageBilling}
+            onUpgrade={handleUpgrade}
+          />
 
           {/* Account Settings */}
           <View style={styles.section}>
@@ -426,6 +266,188 @@ function ProfileScreen() {
       </ScrollView>
     </View>
   );
+}
+
+type ProfileStyles = ReturnType<typeof createStyles>;
+
+function AccountInfoSection({
+  styles,
+  shadowStyle,
+  theme,
+  userId,
+  billing,
+  entitled,
+  statusColor,
+  statusLabel,
+  billingAction,
+  isCreatingPortal,
+  onManageBilling,
+  onUpgrade,
+}: {
+  styles: ProfileStyles;
+  shadowStyle: object;
+  theme: Theme;
+  userId?: string;
+  billing?: BillingSummary;
+  entitled: boolean;
+  statusColor: string;
+  statusLabel: string;
+  billingAction: "manage" | "upgrade" | null;
+  isCreatingPortal: boolean;
+  onManageBilling: () => void;
+  onUpgrade: () => void;
+}) {
+  return (
+    <View style={styles.section}>
+      <SansSerifBoldText style={styles.sectionTitle}>Account Info</SansSerifBoldText>
+      <View style={[styles.card, shadowStyle]}>
+        <View style={styles.infoRow}>
+          <View style={styles.infoRowLeft}>
+            <Icon name="user" size={18} color={theme.colors.mutedForeground} />
+            <SansSerifText style={styles.infoLabel}>User ID</SansSerifText>
+          </View>
+          <SansSerifText style={styles.infoValue}>
+            {userId ? userId.slice(0, 8) + "..." : "—"}
+          </SansSerifText>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.infoRow}>
+          <View style={styles.infoRowLeft}>
+            <Icon
+              name="award"
+              size={18}
+              color={entitled ? theme.colors.success : theme.colors.mutedForeground}
+            />
+            <SansSerifText style={styles.infoLabel}>Plan</SansSerifText>
+          </View>
+          <SansSerifText style={styles.infoValue}>
+            {billing?.planLabel ?? "Free"}
+          </SansSerifText>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.infoRow}>
+          <View style={styles.infoRowLeft}>
+            <Icon name="calendar" size={18} color={theme.colors.mutedForeground} />
+            <SansSerifText style={styles.infoLabel}>Renews</SansSerifText>
+          </View>
+          <SansSerifText style={styles.infoValue}>
+            {formatPeriodEnd(billing?.currentPeriodEnd, billing?.cancelAtPeriodEnd)}
+          </SansSerifText>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.infoRow}>
+          <View style={styles.infoRowLeft}>
+            <Icon name="shield" size={18} color={statusColor} />
+            <SansSerifText style={styles.infoLabel}>Status</SansSerifText>
+          </View>
+          <SansSerifText style={[styles.infoValue, { color: statusColor }]}>
+            {statusLabel}
+          </SansSerifText>
+        </View>
+        {billing?.cancelAtPeriodEnd && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.notice}>
+              <Icon name="alert-triangle" size={16} color={theme.colors.warning} />
+              <SansSerifText style={styles.noticeText}>
+                Your plan is scheduled to end. Re-enable from Manage
+                subscription to keep access.
+              </SansSerifText>
+            </View>
+          </>
+        )}
+        {billing?.status === "past_due" && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.notice}>
+              <Icon name="alert-triangle" size={16} color={theme.colors.warning} />
+              <SansSerifText style={styles.noticeText}>
+                Your last payment failed. Update your payment method in Manage
+                subscription.
+              </SansSerifText>
+            </View>
+          </>
+        )}
+        {billingAction && (
+          <>
+            <View style={styles.divider} />
+            <Pressable
+              style={styles.settingsRow}
+              onPress={billingAction === "manage" ? onManageBilling : onUpgrade}
+              disabled={isCreatingPortal}
+            >
+              <View style={styles.settingsRowLeft}>
+                <Icon
+                  name={billingAction === "manage" ? "credit-card" : "zap"}
+                  size={18}
+                  color={theme.colors.accent}
+                />
+                <SansSerifText
+                  style={[styles.settingsLabel, { color: theme.colors.accent }]}
+                >
+                  {billingAction === "manage"
+                    ? isCreatingPortal
+                      ? "Opening…"
+                      : "Manage Subscription"
+                    : "Upgrade"}
+                </SansSerifText>
+              </View>
+              <Icon name="chevron-right" size={18} color={theme.colors.accent} />
+            </Pressable>
+          </>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function showInfoMessage(message: string) {
+  globalUIStore.getState().show({
+    type: "info",
+    messages: [message],
+    duration: 2000,
+  });
+}
+
+function handleEditProfile() {
+  showInfoMessage("Edit profile functionality coming soon");
+}
+
+function handleChangePassword() {
+  showInfoMessage("Password change functionality coming soon");
+}
+
+function handlePrivacySettings() {
+  showInfoMessage("Privacy settings coming soon");
+}
+
+function handleConnectGoogle() {
+  showInfoMessage("Google account linking coming soon");
+}
+
+function handleConnectApple() {
+  showInfoMessage("Apple account linking coming soon");
+}
+
+function handleUpgrade() {
+  router.push("/(main)/(demos)/screen-pricing");
+}
+
+function handleDeleteAccount() {
+  Alert.show({
+    title: "Delete Account",
+    message: "This action cannot be undone. All your data will be permanently deleted.",
+    buttons: [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          showInfoMessage("Account deletion coming soon");
+        },
+      },
+    ],
+  });
 }
 
 function statusToLabel(status: BillingSummary["status"] | undefined): string {

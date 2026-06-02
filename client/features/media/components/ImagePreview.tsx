@@ -1,13 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Modal,
   Pressable,
   StatusBar,
   StyleSheet,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import {
   initialWindowMetrics,
   useSafeAreaInsets,
@@ -36,13 +36,6 @@ export function ImagePreview({
   const styles = useMemo(() => createStyles(theme, topInset), [theme, topInset]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    if (visible) {
-      setIsLoading(true);
-      setHasError(false);
-    }
-  }, [visible, uri]);
 
   return (
     <Modal
@@ -79,7 +72,7 @@ export function ImagePreview({
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color="white" />
               <SansSerifText style={styles.loadingText}>
-                Loading image...
+                Loading image…
               </SansSerifText>
             </View>
           )}
@@ -99,8 +92,11 @@ export function ImagePreview({
             <Image
               source={{ uri }}
               style={styles.image}
-              resizeMode="contain"
-              onLoadStart={() => setIsLoading(true)}
+              contentFit="contain"
+              onLoadStart={() => {
+                setIsLoading(true);
+                setHasError(false);
+              }}
               onLoadEnd={() => setIsLoading(false)}
               onError={() => {
                 setIsLoading(false);

@@ -3,7 +3,7 @@ export {
   KeyboardAvoidingView,
   KeyboardAwareScrollView,
   KeyboardToolbar,
-  KeyboardController,
 } from "./KeyboardComponents";
+export { KeyboardController } from "./KeyboardController";
 export { KeyboardStickyFooter } from "./KeyboardStickyFooter";
 export { KeyboardProvider } from "./platform";

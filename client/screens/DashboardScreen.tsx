@@ -180,6 +180,16 @@ export function DashboardScreen({
   const { theme, getShadowStyle } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  // Memoize the refresh control so the ScrollView doesn't get a fresh element
+  // every render.
+  const refreshControl = useMemo(
+    () =>
+      onRefresh ? (
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      ) : undefined,
+    [onRefresh, refreshing]
+  );
+
   // Track stagger index across all animated groups
   let staggerIndex = 0;
 
@@ -189,11 +199,7 @@ export function DashboardScreen({
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          ) : undefined
-        }
+        refreshControl={refreshControl}
       >
         {/* Header */}
         {header}

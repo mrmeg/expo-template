@@ -10,12 +10,16 @@ import { useTranslation } from "react-i18next";
 import { setLanguage } from "@/client/features/i18n";
 import Config from "@/client/config";
 import type { Theme } from "@mrmeg/expo-ui/constants";
-import { SEO } from "@/client/components/SEO";
+import { Seo } from "@/client/components/Seo";
 
 const LANGUAGES = [
   { code: "en", label: "English", nativeLabel: "English" },
   { code: "es", label: "Spanish", nativeLabel: "Español" },
 ] as const;
+
+function handleLanguageChange(langCode: string) {
+  setLanguage(langCode);
+}
 
 /**
  * Settings screen - app preferences and configuration.
@@ -32,13 +36,9 @@ export default function SettingsRoute() {
     { value: "dark", label: t("settings.theme.dark"), icon: "moon" },
   ];
 
-  const handleLanguageChange = (langCode: string) => {
-    setLanguage(langCode);
-  };
-
   return (
     <View style={styles.container}>
-      <SEO title="Settings - Expo Template" description="Settings screen with theme, language, and preferences." />
+      <Seo title="Settings - Expo Template" description="Settings screen with theme, language, and preferences." />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Appearance section */}
         <View style={styles.section}>
