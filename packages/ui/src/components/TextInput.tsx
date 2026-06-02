@@ -1,4 +1,4 @@
-import React, { useMemo, useState, ReactNode } from "react";
+import { useMemo, useState, type ReactNode, type Ref } from "react";
 import {
   StyleSheet,
   TextInput as RNTextInput,
@@ -61,6 +61,10 @@ const SIZE_CONFIGS: Record<
 };
 
 interface TextInputCustomProps extends TextInputProps {
+  /**
+   * Forwarded ref to the underlying RNTextInput element.
+   */
+  ref?: Ref<RNTextInput>;
   /**
    * Visual variant
    * @default "outline"
@@ -169,181 +173,192 @@ interface TextInputCustomProps extends TextInputProps {
  * />
  * ```
  */
-export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
-  (
-    {
-      variant = "outline",
-      size = "md",
-      label,
-      helperText,
-      errorText,
-      error,
-      required,
-      rows,
-      showSecureEntryToggle,
-      leftElement,
-      rightElement,
-      clearable = false,
-      wrapperStyle,
-      focusedStyle,
-      forceLight,
-      secureTextEntry,
-      inputMode,
-      style,
-      onChangeText,
-      onFocus,
-      onBlur,
-      value,
-      multiline,
-      editable = true,
-      ...rest
-    },
-    ref
-  ) => {
-    const { theme, getContrastingColor, getFocusRingStyle } = useTheme();
-    const styles = useMemo(() => createStyles(theme, variant, size), [theme, variant, size]);
-    const [focused, setFocused] = useState(false);
-    const [contentHeight, setContentHeight] = useState(0);
-    const [passwordVisible, setPasswordVisible] = useState(false);
+export function TextInput({
+  variant = "outline",
+  size = "md",
+  label,
+  helperText,
+  errorText,
+  error,
+  required,
+  rows,
+  showSecureEntryToggle,
+  leftElement,
+  rightElement,
+  clearable = false,
+  wrapperStyle,
+  focusedStyle,
+  forceLight,
+  secureTextEntry,
+  inputMode,
+  style,
+  onChangeText,
+  onFocus,
+  onBlur,
+  value,
+  multiline,
+  editable = true,
+  ref,
+  ...rest
+}: TextInputCustomProps) {
+  const { theme, getContrastingColor, getFocusRingStyle } = useTheme();
+  const styles = useMemo(() => createStyles(theme, variant, size), [theme, variant, size]);
+  const [focused, setFocused] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
-    const isDisabled = editable === false;
-    const hasError = error || !!errorText;
+  const isDisabled = editable === false;
+  const hasError = error || !!errorText;
 
-    // Determine background color
-    const backgroundColor = forceLight
-      ? palette.white
-      : variant === "filled"
-        ? theme.colors.card
-        : "transparent";
+  // Determine background color
+  const backgroundColor = forceLight
+    ? palette.white
+    : variant === "filled"
+      ? theme.colors.card
+      : "transparent";
 
-    // Handle numeric input validation
-    const handleNumericChange = (input: string) => {
-      if (NUMERIC_REGEX.test(input)) {
-        onChangeText?.(input);
-      }
-    };
-
-    const handleTextChange = (input: string) => {
+  // Handle numeric input validation
+  const handleNumericChange = (input: string) => {
+    if (NUMERIC_REGEX.test(input)) {
       onChangeText?.(input);
-    };
+    }
+  };
 
-    const sizeConfig = SIZE_CONFIGS[size];
+  const handleTextChange = (input: string) => {
+    onChangeText?.(input);
+  };
 
-    // Pre-calculate all values to avoid expensive recalculations on every keystroke
-    const borderColor = hasError
-      ? theme.colors.destructive
-      : focused
-        ? theme.colors.ring
-        : forceLight
-          ? "#d1d5db"
-          : theme.colors.input;
+  const sizeConfig = SIZE_CONFIGS[size];
 
-    const inputPaddingLeft = leftElement
-      ? sizeConfig.paddingHorizontal + spacing.xl
-      : sizeConfig.paddingHorizontal;
+  // Pre-calculate all values to avoid expensive recalculations on every keystroke
+  const borderColor = hasError
+    ? theme.colors.destructive
+    : focused
+      ? theme.colors.ring
+      : forceLight
+        ? "#d1d5db"
+        : theme.colors.input;
 
-    const hasSecureToggle = !!(secureTextEntry && showSecureEntryToggle);
-    const showClearButton = clearable && !hasSecureToggle && !multiline && !isDisabled && !!value;
-    const hasRightSlot = !!rightElement || hasSecureToggle || showClearButton;
-    const showErrorIcon = hasError && !hasRightSlot && !multiline;
+  const inputPaddingLeft = leftElement
+    ? sizeConfig.paddingHorizontal + spacing.xl
+    : sizeConfig.paddingHorizontal;
 
-    const inputPaddingRight = hasRightSlot || showErrorIcon
-      ? sizeConfig.paddingHorizontal + spacing.xl
-      : sizeConfig.paddingHorizontal;
+  const hasSecureToggle = !!(secureTextEntry && showSecureEntryToggle);
+  const showClearButton = clearable && !hasSecureToggle && !multiline && !isDisabled && !!value;
+  const hasRightSlot = !!rightElement || hasSecureToggle || showClearButton;
+  const showErrorIcon = hasError && !hasRightSlot && !multiline;
 
-    const textColor = forceLight
-      ? "#1f2937"
-      : getContrastingColor(
-        backgroundColor === "transparent" ? theme.colors.background : backgroundColor,
-        theme.colors.text,
-        palette.white
-      );
+  const inputPaddingRight = hasRightSlot || showErrorIcon
+    ? sizeConfig.paddingHorizontal + spacing.xl
+    : sizeConfig.paddingHorizontal;
 
-    const shouldScroll = multiline && rest.scrollEnabled !== false && contentHeight > 100;
+  const textColor = forceLight
+    ? "#1f2937"
+    : getContrastingColor(
+      backgroundColor === "transparent" ? theme.colors.background : backgroundColor,
+      theme.colors.text,
+      palette.white
+    );
 
-    const handleFocus = (e: any) => {
-      setFocused(true);
-      onFocus?.(e);
-    };
+  const shouldScroll = multiline && rest.scrollEnabled !== false && contentHeight > 100;
 
-    const handleBlur = (e: any) => {
-      setFocused(false);
-      onBlur?.(e);
-    };
+  const showInputFocusRing = (e: any) => {
+    setFocused(true);
+    onFocus?.(e);
+  };
 
-    const togglePasswordVisible = () => {
-      setPasswordVisible(v => !v);
-    };
+  const hideInputFocusRing = (e: any) => {
+    setFocused(false);
+    onBlur?.(e);
+  };
 
-    return (
-      <View style={wrapperStyle}>
-        {/* Label */}
-        {!!label && (
-          <View style={styles.labelContainer}>
-            <StyledText selectable={false} style={styles.label}>
-              {label}
-              {required && <StyledText selectable={false} style={styles.required}> *</StyledText>}
-            </StyledText>
-          </View>
+  const togglePasswordVisible = () => {
+    setPasswordVisible(v => !v);
+  };
+
+  return (
+    <View style={wrapperStyle}>
+      {/* Label */}
+      {!!label && (
+        <View style={styles.labelContainer}>
+          <StyledText selectable={false} style={styles.label}>
+            {label}
+            {required && <StyledText selectable={false} style={styles.required}> *</StyledText>}
+          </StyledText>
+        </View>
+      )}
+
+      {/* Input Container */}
+      <View style={[styles.wrapper, focused && getFocusRingStyle()]}>
+        {/* Left Element */}
+        {leftElement && <View style={styles.leftElement}>{leftElement}</View>}
+
+        {/* Text Input */}
+        <RNTextInput
+          ref={ref}
+          {...rest}
+          editable={editable}
+          inputMode={inputMode || "text"}
+          multiline={multiline}
+          numberOfLines={rows}
+          secureTextEntry={secureTextEntry && !passwordVisible}
+          onChangeText={
+            inputMode === "numeric" ? handleNumericChange : handleTextChange
+          }
+          onFocus={showInputFocusRing}
+          onBlur={hideInputFocusRing}
+          onContentSizeChange={(e) =>
+            setContentHeight(e.nativeEvent.contentSize.height)
+          }
+          scrollEnabled={shouldScroll}
+          placeholderTextColor={theme.colors.textDim}
+          style={[
+            styles.input,
+            {
+              backgroundColor,
+              borderColor,
+              color: textColor,
+              fontSize: sizeConfig.fontSize,
+              minHeight: multiline ? undefined : sizeConfig.height,
+              paddingVertical: sizeConfig.paddingVertical,
+              paddingLeft: inputPaddingLeft,
+              paddingRight: inputPaddingRight,
+            },
+            variant === "underlined" && styles.underlined,
+            variant === "filled" && styles.filled,
+            style,
+            focused && focusedStyle,
+            isDisabled && styles.disabled,
+            hasError && styles.error,
+            Platform.OS === "web" && { fontSize: Math.max(sizeConfig.fontSize, 16) },
+          ]}
+          textAlignVertical={multiline ? "top" : "center"}
+          value={value}
+          accessibilityLabel={label}
+          accessibilityHint={helperText || errorText}
+          accessibilityState={{ disabled: isDisabled }}
+          aria-invalid={hasError}
+          aria-required={required}
+        />
+
+        {/* Right Element, Clear Button, or Password Toggle */}
+        {showClearButton && !rightElement && (
+          <Pressable
+            style={styles.clearButton}
+            onPress={() => {
+              hapticLight();
+              onChangeText?.("");
+            }}
+            accessibilityLabel="Clear input"
+            accessibilityRole="button"
+          >
+            <Icon name="x" size={spacing.iconSm} color="textDim" decorative />
+          </Pressable>
         )}
 
-        {/* Input Container */}
-        <View style={[styles.wrapper, focused && getFocusRingStyle()]}>
-          {/* Left Element */}
-          {leftElement && <View style={styles.leftElement}>{leftElement}</View>}
-
-          {/* Text Input */}
-          <RNTextInput
-            ref={ref}
-            {...rest}
-            editable={editable}
-            inputMode={inputMode || "text"}
-            multiline={multiline}
-            numberOfLines={rows}
-            secureTextEntry={secureTextEntry && !passwordVisible}
-            onChangeText={
-              inputMode === "numeric" ? handleNumericChange : handleTextChange
-            }
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            onContentSizeChange={(e) =>
-              setContentHeight(e.nativeEvent.contentSize.height)
-            }
-            scrollEnabled={shouldScroll}
-            placeholderTextColor={theme.colors.textDim}
-            style={[
-              styles.input,
-              {
-                backgroundColor,
-                borderColor,
-                color: textColor,
-                fontSize: sizeConfig.fontSize,
-                minHeight: multiline ? undefined : sizeConfig.height,
-                paddingVertical: sizeConfig.paddingVertical,
-                paddingLeft: inputPaddingLeft,
-                paddingRight: inputPaddingRight,
-              },
-              variant === "underlined" && styles.underlined,
-              variant === "filled" && styles.filled,
-              style,
-              focused && focusedStyle,
-              isDisabled && styles.disabled,
-              hasError && styles.error,
-              Platform.OS === "web" && { fontSize: Math.max(sizeConfig.fontSize, 16) },
-            ]}
-            textAlignVertical={multiline ? "top" : "center"}
-            value={value}
-            accessibilityLabel={label}
-            accessibilityHint={helperText || errorText}
-            accessibilityState={{ disabled: isDisabled }}
-            aria-invalid={hasError}
-            aria-required={required}
-          />
-
-          {/* Right Element, Clear Button, or Password Toggle */}
-          {showClearButton && !rightElement && (
+        {showClearButton && rightElement && !hasSecureToggle && (
+          <View style={styles.rightElements}>
             <Pressable
-              style={styles.clearButton}
               onPress={() => {
                 hapticLight();
                 onChangeText?.("");
@@ -353,76 +368,59 @@ export const TextInput = React.forwardRef<RNTextInput, TextInputCustomProps>(
             >
               <Icon name="x" size={spacing.iconSm} color="textDim" decorative />
             </Pressable>
-          )}
+            {rightElement}
+          </View>
+        )}
 
-          {showClearButton && rightElement && !hasSecureToggle && (
-            <View style={styles.rightElements}>
-              <Pressable
-                onPress={() => {
-                  hapticLight();
-                  onChangeText?.("");
-                }}
-                accessibilityLabel="Clear input"
-                accessibilityRole="button"
-              >
-                <Icon name="x" size={spacing.iconSm} color="textDim" decorative />
-              </Pressable>
-              {rightElement}
-            </View>
-          )}
+        {!showClearButton && rightElement && !hasSecureToggle && (
+          <View style={styles.rightElement}>{rightElement}</View>
+        )}
 
-          {!showClearButton && rightElement && !hasSecureToggle && (
-            <View style={styles.rightElement}>{rightElement}</View>
-          )}
-
-          {secureTextEntry && showSecureEntryToggle && (
-            <Pressable
-              style={styles.passwordToggle}
-              onPress={togglePasswordVisible}
-              accessibilityLabel={passwordVisible ? "Hide password" : "Show password"}
-              accessibilityRole="button"
-            >
-              <Icon
-                name={passwordVisible ? "eye-off" : "eye"}
-                size={spacing.iconSm + 4}
-                color="textDim"
-              />
-            </Pressable>
-          )}
-
-          {showErrorIcon && (
-            <View
-              style={[styles.errorIcon, { pointerEvents: "none" }]}
-              accessibilityLabel="Error"
-            >
-              <Icon
-                name="alert-circle"
-                size={spacing.iconSm}
-                color="destructive"
-                decorative
-              />
-            </View>
-          )}
-        </View>
-
-        {/* Helper Text or Error Text */}
-        {!!(helperText || errorText) && (
-          <StyledText
-            selectable={false}
-            style={[
-              styles.helperText,
-              hasError && styles.errorText,
-            ]}
+        {secureTextEntry && showSecureEntryToggle && (
+          <Pressable
+            style={styles.passwordToggle}
+            onPress={togglePasswordVisible}
+            accessibilityLabel={passwordVisible ? "Hide password" : "Show password"}
+            accessibilityRole="button"
           >
-            {errorText || helperText}
-          </StyledText>
+            <Icon
+              name={passwordVisible ? "eye-off" : "eye"}
+              size={spacing.iconSm + 4}
+              color="textDim"
+            />
+          </Pressable>
+        )}
+
+        {showErrorIcon && (
+          <View
+            style={[styles.errorIcon, { pointerEvents: "none" }]}
+            accessibilityLabel="Error"
+          >
+            <Icon
+              name="alert-circle"
+              size={spacing.iconSm}
+              color="destructive"
+              decorative
+            />
+          </View>
         )}
       </View>
-    );
-  }
-);
 
-TextInput.displayName = "TextInput";
+      {/* Helper Text or Error Text */}
+      {!!(helperText || errorText) && (
+        <StyledText
+          selectable={false}
+          style={[
+            styles.helperText,
+            hasError && styles.errorText,
+          ]}
+        >
+          {errorText || helperText}
+        </StyledText>
+      )}
+    </View>
+  );
+}
 
 const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSize) =>
   StyleSheet.create({

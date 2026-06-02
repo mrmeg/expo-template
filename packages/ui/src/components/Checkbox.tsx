@@ -123,14 +123,11 @@ function Checkbox({
       onCheckedChange={wrappedOnCheckedChange}
       disabled={disabled}
       style={{
+        ...styles.box,
         borderColor,
         backgroundColor: isVisuallyChecked ? theme.colors.primary : theme.colors.background,
-        borderRadius: spacing.radiusSm,
-        borderWidth: 1,
         width: sizeConfig.size,
         height: sizeConfig.size,
-        justifyContent: "center",
-        alignItems: "center",
         opacity: disabled ? 0.5 : 1,
         ...(Platform.OS === "web" && { cursor: disabled ? "not-allowed" : ("pointer" as any) }),
         ...(flattenedStyle || {}),
@@ -208,6 +205,12 @@ function Checkbox({
 }
 
 const styles = StyleSheet.create({
+  box: {
+    borderRadius: spacing.radiusSm,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   container: {
     flexDirection: "row",
     alignItems: "center",

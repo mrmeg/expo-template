@@ -1,6 +1,6 @@
 import * as React from "react";
-import { Animated, Platform, StyleSheet, View } from "react-native";
-import { TextClassContext, TextSelectabilityContext } from "./StyledText";
+import { Platform, StyleSheet, View } from "react-native";
+import { TextClassContext, TextSelectabilityContext } from "./StyledText.context";
 import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
 import * as CollapsiblePrimitive from "@rn-primitives/collapsible";
@@ -111,26 +111,22 @@ function CollapsibleContent({
   children,
   ...props
 }: CollapsibleContentProps) {
-  const { theme } = useTheme();
-  const fadeAnim = React.useRef(new Animated.Value(1)).current;
-
   return (
     <TextClassContext.Provider value="">
       <CollapsiblePrimitive.Content
         {...props}
         forceMount={forceMount}
       >
-        <Animated.View
+        <View
           style={{
             overflow: "hidden",
-            opacity: fadeAnim,
             ...(styleOverride && typeof styleOverride !== "function"
               ? StyleSheet.flatten(styleOverride)
               : {}),
           }}
         >
           {children}
-        </Animated.View>
+        </View>
       </CollapsiblePrimitive.Content>
     </TextClassContext.Provider>
   );

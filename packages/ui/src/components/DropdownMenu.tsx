@@ -2,7 +2,7 @@ import * as React from "react";
 import { Platform, StyleSheet, Text, type TextStyle, View } from "react-native";
 import { Icon } from "./Icon";
 import { AnimatedView } from "./AnimatedView";
-import { TextClassContext, TextSelectabilityContext } from "./StyledText";
+import { TextClassContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import * as DropdownMenuPrimitive from "@rn-primitives/dropdown-menu";
@@ -220,14 +220,7 @@ function DropdownMenuItem({
         <DropdownMenuPrimitive.Item
           {...props}
           style={{
-            position: "relative",
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.sm,
-            borderRadius: spacing.radiusSm,
-            paddingHorizontal: spacing.sm,
-            paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
-            backgroundColor: "transparent",
+            ...styles.item,
             ...(Platform.OS === "web" && {
               cursor: props.disabled ? "not-allowed" : ("pointer" as any),
               outlineStyle: "none" as any,
@@ -264,15 +257,7 @@ function DropdownMenuCheckboxItem({
         <DropdownMenuPrimitive.CheckboxItem
           {...props}
           style={{
-            position: "relative",
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.sm,
-            borderRadius: spacing.radiusSm,
-            paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
-            paddingLeft: spacing.xl,
-            paddingRight: spacing.sm,
-            backgroundColor: "transparent",
+            ...styles.indicatorItem,
             ...(Platform.OS === "web" && {
               cursor: props.disabled ? "not-allowed" : ("pointer" as any),
               outlineStyle: "none" as any,
@@ -329,15 +314,7 @@ function DropdownMenuRadioItem({
         <DropdownMenuPrimitive.RadioItem
           {...props}
           style={{
-            position: "relative",
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.sm,
-            borderRadius: spacing.radiusSm,
-            paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
-            paddingLeft: spacing.xl,
-            paddingRight: spacing.sm,
-            backgroundColor: "transparent",
+            ...styles.indicatorItem,
             ...(Platform.OS === "web" && {
               cursor: props.disabled ? "not-allowed" : ("pointer" as any),
               outlineStyle: "none" as any,
@@ -444,11 +421,12 @@ function DropdownMenuSeparator({
  * Text component for displaying keyboard shortcuts
  */
 interface DropdownMenuShortcutProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  text?: string;
   style?: TextStyle;
 }
 
-function DropdownMenuShortcut({ style: styleOverride, ...props }: DropdownMenuShortcutProps) {
+function DropdownMenuShortcut({ children, text, style: styleOverride, ...props }: DropdownMenuShortcutProps) {
   const { theme } = useTheme();
 
   return (
@@ -465,9 +443,35 @@ function DropdownMenuShortcut({ style: styleOverride, ...props }: DropdownMenuSh
         },
         styleOverride,
       ]}
-    />
+    >
+      {text ?? children}
+    </Text>
   );
 }
+
+const styles = StyleSheet.create({
+  item: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    borderRadius: spacing.radiusSm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
+    backgroundColor: "transparent",
+  },
+  indicatorItem: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    borderRadius: spacing.radiusSm,
+    paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
+    paddingLeft: spacing.xl,
+    paddingRight: spacing.sm,
+    backgroundColor: "transparent",
+  },
+});
 
 export {
   DropdownMenu,

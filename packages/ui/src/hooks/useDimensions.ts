@@ -1,5 +1,5 @@
-import { useContext, useEffect, useState } from "react";
-import { Dimensions, Platform, ScaledSize } from "react-native";
+import { use, useEffect, useState } from "react";
+import { Platform, useWindowDimensions } from "react-native";
 import {
   SsrViewportContext,
   SSR_VIEWPORT_DEFAULT_HEIGHT,
@@ -66,7 +66,13 @@ function writeViewportCookie(width: number): void {
 */
 export const useDimensions = (): WindowDimensions => {
   const isWeb = Platform.OS === "web";
-  const ssrWidth = useContext(SsrViewportContext);
+  const ssrWidth = use(SsrViewportContext);
+
+  // Native reads come from useWindowDimensions, which subscribes to rotation /
+  // split-screen / resize and tears the listener down for us — no manual
+  // Dimensions.addEventListener to leak. On web we ignore it and drive layout
+  // from the SSR context + the resize listener below so hydration stays exact.
+  const native = useWindowDimensions();
 
   // Lazy initializer: both server and client first render compute identical
   // flags from the context value, so hydration matches.
@@ -74,34 +80,28 @@ export const useDimensions = (): WindowDimensions => {
     calculateDimensionFlags(ssrWidth, SSR_VIEWPORT_DEFAULT_HEIGHT)
   );
 
+  // Web: read the real viewport after mount and follow resize events. Keeping
+  // this in an effect (not render) preserves the SSR-matched first paint.
   useEffect(() => {
-    const initialDimensions = isWeb
-      ? { width: window.innerWidth, height: window.innerHeight }
-      : Dimensions.get("window");
+    if (!isWeb) return;
 
-    const updateDimensions = (width: number, height: number) => {
-      setDimensions(calculateDimensionFlags(width, height));
+    const syncFromWindow = () => {
+      setDimensions(calculateDimensionFlags(window.innerWidth, window.innerHeight));
+      writeViewportCookie(window.innerWidth);
     };
 
-    updateDimensions(initialDimensions.width, initialDimensions.height);
-
-    if (isWeb) {
-      writeViewportCookie(initialDimensions.width);
-      const handleResize = () => {
-        updateDimensions(window.innerWidth, window.innerHeight);
-        writeViewportCookie(window.innerWidth);
-      };
-      window.addEventListener("resize", handleResize);
-      return () => {
-        window.removeEventListener("resize", handleResize);
-      };
-    } else {
-      const onChange = ({ window }: { window: ScaledSize }) => {
-        updateDimensions(window.width, window.height);
-      };
-      Dimensions.addEventListener("change", onChange);
-    }
+    syncFromWindow();
+    window.addEventListener("resize", syncFromWindow);
+    return () => {
+      window.removeEventListener("resize", syncFromWindow);
+    };
   }, [isWeb]);
+
+  // Native: useWindowDimensions already reacts to changes; mirror it into our
+  // enriched flags. (On web `native` is unused — the effect above wins.)
+  if (!isWeb) {
+    return calculateDimensionFlags(native.width, native.height);
+  }
 
   return dimensions;
 };

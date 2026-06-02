@@ -156,11 +156,11 @@ function InputOTP({
     [value],
   );
 
-  const handleFocus = useCallback(() => {
+  const markOtpFocused = useCallback(() => {
     setFocused(true);
   }, []);
 
-  const handleBlur = useCallback(() => {
+  const markOtpBlurred = useCallback(() => {
     setFocused(false);
   }, []);
 
@@ -172,8 +172,8 @@ function InputOTP({
         value={value}
         onChangeText={handleChangeText}
         onKeyPress={handleKeyPress}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
+        onFocus={markOtpFocused}
+        onBlur={markOtpBlurred}
         maxLength={length}
         autoFocus={autoFocus}
         editable={!disabled}
@@ -216,7 +216,7 @@ function InputOTP({
 
       {/* Error text */}
       {!!errorText && (
-        <StyledText style={[styles.errorText]}>
+        <StyledText style={styles.errorText}>
           {errorText}
         </StyledText>
       )}
@@ -250,7 +250,10 @@ function OTPCell({
   reduceMotion,
   onPress,
 }: OTPCellProps) {
-  const borderWidth = useSharedValue(isActive && !hasError ? 2 : 1);
+  // borderWidth is a layout property — animating it forces a JS-thread layout
+  // pass every frame. The 1↔2px change reads as instant anyway, so compute it
+  // during render and only animate borderColor (a GPU-composited property).
+  const borderWidth = isActive && !hasError ? 2 : 1;
   const borderColor = useSharedValue(
     hasError
       ? theme.colors.destructive
@@ -259,17 +262,15 @@ function OTPCell({
         : theme.colors.border,
   );
 
-  // Update animated values when state changes
+  // Update animated color when state changes
   React.useEffect(() => {
     const duration = reduceMotion ? 0 : ANIM_DURATION;
-    const targetWidth = isActive && !hasError ? 2 : 1;
     const targetColor = hasError
       ? theme.colors.destructive
       : isActive
         ? theme.colors.primary
         : theme.colors.border;
 
-    borderWidth.value = withTiming(targetWidth, { duration });
     borderColor.value = withTiming(targetColor, { duration });
   }, [
     isActive,
@@ -278,12 +279,10 @@ function OTPCell({
     theme.colors.primary,
     theme.colors.border,
     reduceMotion,
-    borderWidth,
     borderColor,
   ]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    borderWidth: borderWidth.value,
     borderColor: borderColor.value,
   }));
 
@@ -301,6 +300,7 @@ function OTPCell({
             width: CELL_WIDTH,
             height: CELL_HEIGHT,
             borderRadius: spacing.radiusMd,
+            borderWidth,
             justifyContent: "center",
             alignItems: "center",
             backgroundColor: "transparent",

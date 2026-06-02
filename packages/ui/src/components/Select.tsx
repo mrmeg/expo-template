@@ -2,7 +2,7 @@ import * as React from "react";
 import { Platform, StyleSheet, type TextStyle, View } from "react-native";
 import { Icon } from "./Icon";
 import { AnimatedView } from "./AnimatedView";
-import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText";
+import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import * as SelectPrimitive from "@rn-primitives/select";
@@ -74,14 +74,10 @@ function SelectTrigger({
       disabled={disabled}
       {...props}
       style={{
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
+        ...styles.trigger,
         height: sizeConfig.height,
         paddingHorizontal: sizeConfig.paddingHorizontal,
-        borderWidth: 1,
         borderColor: error ? theme.colors.destructive : theme.colors.border,
-        borderRadius: spacing.radiusMd,
         backgroundColor: theme.colors.background,
         ...(Platform.OS === "web" && {
           cursor: disabled ? "not-allowed" : ("pointer" as any),
@@ -225,25 +221,18 @@ function SelectItem({
   ...props
 }: SelectItemProps) {
   const { theme } = useTheme();
-  const shouldRenderDefaultText =
-    children == null ||
-    typeof children === "string" ||
-    typeof children === "number";
+  // Render custom element/array children when provided; otherwise fall back to
+  // the default ItemText driven by the required `label` prop. Discriminating on
+  // "is this a renderable node?" keeps the API explicit without switching on the
+  // primitive type of children.
+  const hasCustomChildren = React.isValidElement(children) || Array.isArray(children);
 
   return (
     <TextClassContext.Provider value="">
       <SelectPrimitive.Item
         {...props}
         style={{
-          position: "relative",
-          flexDirection: "row",
-          alignItems: "center",
-          gap: spacing.sm,
-          borderRadius: spacing.radiusSm,
-          paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
-          paddingLeft: spacing.xl,
-          paddingRight: spacing.sm,
-          backgroundColor: "transparent",
+          ...styles.item,
           ...(Platform.OS === "web" && {
             cursor: props.disabled ? "not-allowed" : ("pointer" as any),
             outlineStyle: "none" as any,
@@ -275,7 +264,9 @@ function SelectItem({
           </SelectPrimitive.ItemIndicator>
         </View>
         <TextSelectabilityContext.Provider value={false}>
-          {shouldRenderDefaultText ? (
+          {hasCustomChildren ? (
+            children
+          ) : (
             <SelectPrimitive.ItemText
               style={{
                 color: theme.colors.popoverForeground,
@@ -283,8 +274,6 @@ function SelectItem({
                 lineHeight: 20,
               }}
             />
-          ) : typeof children === "function" ? null : (
-            children
           )}
         </TextSelectabilityContext.Provider>
       </SelectPrimitive.Item>
@@ -371,6 +360,27 @@ function SelectSeparator({
     />
   );
 }
+
+const styles = StyleSheet.create({
+  trigger: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: spacing.radiusMd,
+  },
+  item: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    borderRadius: spacing.radiusSm,
+    paddingVertical: Platform.select({ web: spacing.xs, default: spacing.sm }),
+    paddingLeft: spacing.xl,
+    paddingRight: spacing.sm,
+    backgroundColor: "transparent",
+  },
+});
 
 /**
  * Select Component with Sub-components

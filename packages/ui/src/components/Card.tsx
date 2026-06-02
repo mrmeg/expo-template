@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from "react";
+import React, { createContext, use } from "react";
 import { View, Pressable, StyleSheet, ViewStyle, TextStyle, StyleProp, Platform } from "react-native";
 import Animated from "react-native-reanimated";
 import { StyledText, TextProps } from "./StyledText";
@@ -33,13 +33,12 @@ import type { Theme } from "../constants/colors";
 const CardContext = createContext<{ theme: Theme; styles: ReturnType<typeof createCardStyles> } | null>(null);
 
 function useCardContext() {
-  const ctx = useContext(CardContext);
-  if (!ctx) {
-    // Fallback for standalone usage without Card parent
-    const { theme } = useTheme();
-    return { theme, styles: createCardStyles(theme) };
-  }
-  return ctx;
+  const ctx = use(CardContext);
+  // useTheme must run unconditionally (Rules of Hooks); createCardStyles is a
+  // plain function, so the `??` keeps the fallback styles lazy.
+  const { theme } = useTheme();
+  // Fallback for standalone usage without a Card parent.
+  return ctx ?? { theme, styles: createCardStyles(theme) };
 }
 
 export interface CardProps {

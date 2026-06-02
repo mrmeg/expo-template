@@ -7,7 +7,8 @@ import Animated, {
   withTiming,
   useReducedMotion,
 } from "react-native-reanimated";
-import { StyledText, TextClassContext, TextColorContext } from "./StyledText";
+import { StyledText } from "./StyledText";
+import { TextClassContext, TextColorContext } from "./StyledText.context";
 import { Icon, type IconName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
@@ -49,7 +50,7 @@ const TabsContext = React.createContext<TabsContextValue>({
 });
 
 function useTabsContext() {
-  return React.useContext(TabsContext);
+  return React.use(TabsContext);
 }
 
 // ============================================================================
@@ -67,8 +68,9 @@ function TabsRoot({
   children,
   ...props
 }: TabsProps) {
+  const contextValue = React.useMemo(() => ({ variant, size }), [variant, size]);
   return (
-    <TabsContext.Provider value={{ variant, size }}>
+    <TabsContext.Provider value={contextValue}>
       <TabsPrimitive.Root {...props}>
         {children}
       </TabsPrimitive.Root>
@@ -139,7 +141,7 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
     activeOpacity.value = reduceMotion
       ? (isSelected ? 1 : 0)
       : withTiming(isSelected ? 1 : 0, { duration: 200 });
-  }, [isSelected, reduceMotion]);
+  }, [isSelected, reduceMotion, activeOpacity]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
     opacity: activeOpacity.value,
@@ -186,11 +188,10 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
                 decorative
               />
             )}
-            {typeof children === "string" ? (
-              <StyledText selectable={false} style={{ fontSize: sizeConfig.fontSize }}>{children}</StyledText>
-            ) : (
-              children as React.ReactNode
-            )}
+            {/* Children render as-is. For text content, use the explicit
+                <TabsTrigger.Text> subcomponent so it picks up the trigger's
+                font size and color, instead of a runtime `typeof` check. */}
+            {children as React.ReactNode}
           </View>
           {variant === "underline" && (
             <Animated.View
@@ -214,6 +215,25 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
 }
 
 const TabsTrigger = TabsTriggerInner;
+
+/**
+ * TabsTrigger.Text
+ * Label text for a TabsTrigger. Reads the tab size from context and applies the
+ * matching font size, so callers state their intent explicitly instead of
+ * relying on the trigger to inspect `typeof children`. Text color is inherited
+ * from the trigger via TextColorContext.
+ *
+ * ```tsx
+ * <Tabs.Trigger value="account">
+ *   <Tabs.Trigger.Text>Account</Tabs.Trigger.Text>
+ * </Tabs.Trigger>
+ * ```
+ */
+function TabsTriggerText({ style, ...props }: React.ComponentProps<typeof StyledText>) {
+  const { size } = useTabsContext();
+  const { fontSize } = SIZE_CONFIGS[size];
+  return <StyledText selectable={false} style={[{ fontSize }, style]} {...props} />;
+}
 
 // ============================================================================
 // TabsContent
@@ -251,16 +271,21 @@ const triggerContentStyles = StyleSheet.create({
 // Compound Export
 // ============================================================================
 
+const TabsTriggerCompound = Object.assign(TabsTrigger, {
+  Text: TabsTriggerText,
+});
+
 const Tabs = Object.assign(TabsRoot, {
   List: TabsList,
-  Trigger: TabsTrigger,
+  Trigger: TabsTriggerCompound,
   Content: TabsContent,
 });
 
 export {
   Tabs,
   TabsList,
-  TabsTrigger,
+  TabsTriggerCompound as TabsTrigger,
+  TabsTriggerText,
   TabsContent,
 };
 

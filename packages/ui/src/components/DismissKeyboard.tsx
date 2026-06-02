@@ -10,12 +10,12 @@ type Props = {
   scrollable?: boolean;
 }
 
+const handleDismissKeyboard = () => Platform.OS !== "web" && Keyboard.dismiss();
+
 /**
  * @returns Wrapper for a view that dismisses the keyboard when tapped outside of a text input
  */
 export const DismissKeyboard = ({ children, style, avoidKeyboard = true, scrollable = true }: Props) => {
-  const handlePress = () => Platform.OS !== "web" && Keyboard.dismiss();
-
   const content = scrollable ? (
     <ScrollView
       style={{ flex: 1 }}
@@ -31,7 +31,7 @@ export const DismissKeyboard = ({ children, style, avoidKeyboard = true, scrolla
 
   if (!avoidKeyboard) {
     return (
-      <Pressable onPress={handlePress} accessible={false} style={{ flex: 1 }}>
+      <Pressable onPress={handleDismissKeyboard} accessible={false} style={{ flex: 1 }}>
         {content}
       </Pressable>
     );
@@ -43,7 +43,7 @@ export const DismissKeyboard = ({ children, style, avoidKeyboard = true, scrolla
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
-      <Pressable onPress={handlePress} accessible={false} style={{ flex: 1 }}>
+      <Pressable onPress={handleDismissKeyboard} accessible={false} style={{ flex: 1 }}>
         {content}
       </Pressable>
     </KeyboardAvoidingView>

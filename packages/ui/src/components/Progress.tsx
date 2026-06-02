@@ -1,14 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Animated, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import React, { useEffect } from "react";
+import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import Reanimated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withRepeat,
+  withSequence,
   useReducedMotion,
 } from "react-native-reanimated";
 import { useTheme } from "../hooks/useTheme";
-import { spacing } from "../constants/spacing";
-import { shouldUseNativeDriver } from "../lib/animations";
 
 // ============================================================================
 // Types
@@ -134,43 +134,40 @@ function DeterminateFill({
   borderRadius,
   reduceMotion,
 }: DeterminateFillProps) {
-  const [containerWidth, setContainerWidth] = useState(0);
   const clamped = Math.min(100, Math.max(0, value));
-  const animatedWidth = useSharedValue(0);
+  // Animate scaleX (GPU compositor) instead of width (JS-thread layout each
+  // frame). transformOrigin "left" grows the fill from the left edge, so a
+  // full-width bar scaled by clamped/100 needs no container measurement.
+  const scaleX = useSharedValue(0);
 
   useEffect(() => {
-    if (containerWidth === 0) return;
-    const target = (clamped / 100) * containerWidth;
-    animatedWidth.value = withTiming(target, {
+    scaleX.value = withTiming(clamped / 100, {
       duration: reduceMotion ? 0 : 300,
     });
-  }, [clamped, containerWidth, reduceMotion]);
+  }, [clamped, reduceMotion, scaleX]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    width: animatedWidth.value,
+    transform: [{ scaleX: scaleX.value }],
   }));
 
   return (
-    <View
-      style={{ flex: 1 }}
-      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
-    >
-      <Reanimated.View
-        style={[
-          {
-            height,
-            borderRadius,
-            backgroundColor: fillColor,
-          },
-          animatedStyle,
-        ]}
-      />
-    </View>
+    <Reanimated.View
+      style={[
+        {
+          width: "100%",
+          height,
+          borderRadius,
+          backgroundColor: fillColor,
+          transformOrigin: "left",
+        },
+        animatedStyle,
+      ]}
+    />
   );
 }
 
 // ============================================================================
-// Indeterminate Fill (RN Animated loop — follows Skeleton.tsx pattern)
+// Indeterminate Fill (Reanimated opacity loop — follows Skeleton.tsx pattern)
 // ============================================================================
 
 interface IndeterminateFillProps {
@@ -186,42 +183,38 @@ function IndeterminateFill({
   borderRadius,
   reduceMotion,
 }: IndeterminateFillProps) {
-  const opacity = useRef(new Animated.Value(reduceMotion ? 0.7 : 0.4)).current;
+  const opacity = useSharedValue(reduceMotion ? 0.7 : 0.4);
 
   useEffect(() => {
-    if (reduceMotion) {
-      opacity.setValue(0.7);
-      return;
-    }
-
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 1.0,
-          duration: 800,
-          useNativeDriver: shouldUseNativeDriver,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.4,
-          duration: 800,
-          useNativeDriver: shouldUseNativeDriver,
-        }),
-      ])
-    );
-
-    animation.start();
-    return () => animation.stop();
+    // reduceMotion comes from an OS accessibility subscription, so reacting to
+    // it in an effect is correct. A single ternary assignment (matching the
+    // RadioGroup pattern) keeps this off the no-event-handler heuristic.
+    opacity.value = reduceMotion
+      ? withTiming(0.7, { duration: 0 })
+      : withRepeat(
+        withSequence(
+          withTiming(1.0, { duration: 800 }),
+          withTiming(0.4, { duration: 800 })
+        ),
+        -1
+      );
   }, [opacity, reduceMotion]);
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
   return (
-    <Animated.View
-      style={{
-        width: "40%",
-        height,
-        borderRadius,
-        backgroundColor: fillColor,
-        opacity,
-      }}
+    <Reanimated.View
+      style={[
+        {
+          width: "40%",
+          height,
+          borderRadius,
+          backgroundColor: fillColor,
+        },
+        animatedStyle,
+      ]}
     />
   );
 }

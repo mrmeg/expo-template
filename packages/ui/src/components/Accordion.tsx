@@ -7,7 +7,7 @@ import Animated, {
   useReducedMotion,
 } from "react-native-reanimated";
 import { Icon } from "./Icon";
-import { TextClassContext, TextSelectabilityContext } from "./StyledText";
+import { TextClassContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
@@ -243,7 +243,7 @@ function AccordionTrigger({
     rotation.value = withTiming(target, {
       duration: isExpanded ? 200 : 150,
     });
-  }, [isExpanded, reduceMotion]);
+  }, [isExpanded, reduceMotion, rotation]);
 
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value * 180}deg` }],

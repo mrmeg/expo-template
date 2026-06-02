@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useReducer, useRef } from "react";
+import React, { createContext, use, useState, useReducer, useRef } from "react";
 import {
   View,
   ViewProps,
@@ -6,7 +6,6 @@ import {
   Animated,
   StyleSheet,
   Platform,
-  Dimensions,
   StyleProp,
   ViewStyle,
   PanResponder,
@@ -17,9 +16,10 @@ import { Portal } from "@rn-primitives/portal";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { Pressable as SlotPressable } from "@rn-primitives/slot";
 import { useTheme } from "../hooks/useTheme";
+import { useDimensions } from "../hooks/useDimensions";
 import { shouldUseNativeDriver } from "../lib/animations";
 import { spacing } from "../constants/spacing";
-import { TextColorContext, TextClassContext } from "./StyledText";
+import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 
@@ -135,7 +135,7 @@ interface DrawerFooterProps extends ViewProps {
 const DrawerContext = createContext<DrawerContextValue | null>(null);
 
 function useDrawerContext() {
-  const context = useContext(DrawerContext);
+  const context = use(DrawerContext);
   if (!context) {
     throw new Error("Drawer components must be used within a Drawer");
   }
@@ -146,13 +146,12 @@ function useDrawerContext() {
 // Utility Functions
 // ============================================================================
 
-function parseWidth(width: number | `${number}%`): number {
+function parseWidth(width: number | `${number}%`, screenWidth: number): number {
   if (typeof width === "number") {
     return width;
   }
   // Parse percentage string
   const percentage = parseFloat(width) / 100;
-  const screenWidth = Dimensions.get("window").width;
   return screenWidth * percentage;
 }
 
@@ -209,7 +208,9 @@ function DrawerRoot({
     }
   };
 
-  const parsedWidth = parseWidth(width);
+  // useDimensions reacts to rotation / split-screen, unlike Dimensions.get.
+  const { width: screenWidth } = useDimensions();
+  const parsedWidth = parseWidth(width, screenWidth);
 
   const contextValue: DrawerContextValue = {
     open,
@@ -283,10 +284,19 @@ function DrawerContent({
   const { theme, getShadowStyle } = useTheme();
   const insets = useSafeAreaInsets();
 
-  // Animation values - initialize based on initial open state
+  // Animation values - initialize lazily so the Animated.Value is allocated
+  // once on first render instead of being rebuilt and discarded every render.
   const closedPosition = side === "left" ? -width : width;
-  const translateX = useRef(new Animated.Value(open ? 0 : closedPosition)).current;
-  const backdropOpacity = useRef(new Animated.Value(open ? 1 : 0)).current;
+  const translateXRef = useRef<Animated.Value | null>(null);
+  if (translateXRef.current === null) {
+    translateXRef.current = new Animated.Value(open ? 0 : closedPosition);
+  }
+  const translateX = translateXRef.current;
+  const backdropOpacityRef = useRef<Animated.Value | null>(null);
+  if (backdropOpacityRef.current === null) {
+    backdropOpacityRef.current = new Animated.Value(open ? 1 : 0);
+  }
+  const backdropOpacity = backdropOpacityRef.current;
 
   // Track if drawer is actually visible (for unmounting after close animation)
   const [isVisible, setIsVisible] = useState(open);

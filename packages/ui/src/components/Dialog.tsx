@@ -4,7 +4,7 @@ import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import * as DialogPrimitive from "@rn-primitives/dialog";
 import * as AlertDialogPrimitive from "@rn-primitives/alert-dialog";
 import { AnimatedView } from "./AnimatedView";
-import { TextClassContext, TextColorContext } from "./StyledText";
+import { TextClassContext, TextColorContext } from "./StyledText.context";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";

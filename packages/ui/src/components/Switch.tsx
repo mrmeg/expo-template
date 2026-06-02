@@ -93,7 +93,7 @@ function Switch({
     } else {
       progress.value = withTiming(target, { duration: 120 });
     }
-  }, [props.checked, reduceMotion]);
+  }, [props.checked, reduceMotion, progress]);
 
   // Thumb slides from left to right with equal inset on every side.
   const thumbInset = Math.max(2, (size.height - thumbSize) / 2);
@@ -172,15 +172,10 @@ function Switch({
       {labelOn && !isIOS && (
         <View
           style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
+            ...styles.label,
             left: labelHorizontalInset,
             right: thumbInset + thumbSize + labelGap,
-            justifyContent: "center",
-            alignItems: "center",
             opacity: props.checked ? 1 : 0,
-            pointerEvents: "none",
           }}
         >
           <StyledText
@@ -229,15 +224,10 @@ function Switch({
       {labelOff && !isIOS && (
         <View
           style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
+            ...styles.label,
             left: thumbInset + thumbSize + labelGap,
             right: labelHorizontalInset,
-            justifyContent: "center",
-            alignItems: "center",
             opacity: props.checked ? 0 : 1,
-            pointerEvents: "none",
           }}
         >
           <StyledText
@@ -256,5 +246,16 @@ function Switch({
     </SwitchPrimitives.Root>
   );
 }
+
+const styles = StyleSheet.create({
+  label: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    pointerEvents: "none",
+  },
+});
 
 export { Switch };

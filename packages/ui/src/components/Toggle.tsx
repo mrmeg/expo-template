@@ -1,6 +1,6 @@
 import React from "react";
 import { Icon } from "./Icon";
-import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText";
+import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import * as TogglePrimitive from "@rn-primitives/toggle";
@@ -171,15 +171,11 @@ function Toggle({
           {...props}
           disabled={isDisabled}
           style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: spacing.sm,
+            ...styles.root,
             height: sizeConfig.height,
             minWidth: sizeConfig.minWidth,
             paddingHorizontal: iconOnly ? sizeConfig.height / 2 - sizeConfig.iconSize / 2 : sizeConfig.paddingHorizontal,
             borderRadius: getBorderRadius(),
-            borderWidth: 1,
             // Base variant styles
             ...(variant === "default" && !props.pressed && {
               backgroundColor: "transparent",
@@ -257,9 +253,19 @@ interface ToggleIconProps {
 }
 
 function ToggleIcon({ name, size, color }: ToggleIconProps) {
-  const contextColor = React.useContext(TextColorContext);
+  const contextColor = React.use(TextColorContext);
   return <Icon name={name} size={size || spacing.iconMd} color={color || contextColor} />;
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    borderWidth: 1,
+  },
+});
 
 export { Toggle, ToggleIcon };
 export type { ToggleProps };

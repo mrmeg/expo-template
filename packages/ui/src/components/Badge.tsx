@@ -8,7 +8,8 @@ import type { Theme } from "../constants/colors";
 export type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
 
 export interface BadgeProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  text?: string;
   variant?: BadgeVariant;
   style?: StyleProp<ViewStyle>;
 }
@@ -26,9 +27,10 @@ export interface BadgeProps {
  * <Badge variant="destructive">Error</Badge>
  * ```
  */
-function Badge({ children, variant = "default", style: styleOverride }: BadgeProps) {
+function Badge({ children, text, variant = "default", style: styleOverride }: BadgeProps) {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const badgeContent = text ?? children;
   const textStyle = [
     styles.text,
     variant === "default" && { color: theme.colors.primaryForeground },
@@ -36,14 +38,14 @@ function Badge({ children, variant = "default", style: styleOverride }: BadgePro
     variant === "outline" && { color: theme.colors.foreground },
     variant === "destructive" && { color: theme.colors.destructiveForeground },
   ];
-  const normalizedChildren = React.Children.toArray(children);
+  const normalizedChildren = React.Children.toArray(badgeContent);
   const hasOnlyTextChildren = normalizedChildren.every(
     (child) => typeof child === "string" || typeof child === "number",
   );
   const content = hasOnlyTextChildren ? (
     <StyledText selectable={false} style={textStyle}>{normalizedChildren.join("")}</StyledText>
   ) : (
-    React.Children.map(children, (child) => {
+    React.Children.map(badgeContent, (child) => {
       if (typeof child === "string" || typeof child === "number") {
         return <StyledText selectable={false} style={textStyle}>{child}</StyledText>;
       }

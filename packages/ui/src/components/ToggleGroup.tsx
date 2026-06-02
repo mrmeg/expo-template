@@ -1,11 +1,11 @@
 import type { IconName } from "./Icon";
 import { Icon } from "./Icon";
-import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText";
+import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
 import * as ToggleGroupPrimitive from "@rn-primitives/toggle-group";
 import * as React from "react";
-import { Platform } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -46,7 +46,7 @@ interface ToggleGroupContextValue {
 const ToggleGroupContext = React.createContext<ToggleGroupContextValue | null>(null);
 
 function useToggleGroupContext() {
-  const context = React.useContext(ToggleGroupContext);
+  const context = React.use(ToggleGroupContext);
   if (context === null) {
     throw new Error(
       "ToggleGroup compound components cannot be rendered outside the ToggleGroup component"
@@ -103,6 +103,8 @@ function ToggleGroup({
 }: ToggleGroupProps) {
   const { theme } = useTheme();
 
+  const contextValue = React.useMemo(() => ({ variant, size }), [variant, size]);
+
   // Count valid children for first/last detection
   const childrenArray = React.Children.toArray(children);
   const validChildren = childrenArray.filter(
@@ -144,7 +146,7 @@ function ToggleGroup({
         }),
       }}
     >
-      <ToggleGroupContext.Provider value={{ variant, size }}>
+      <ToggleGroupContext.Provider value={contextValue}>
         {enhancedChildren}
       </ToggleGroupContext.Provider>
     </ToggleGroupPrimitive.Root>
@@ -199,15 +201,10 @@ function ToggleGroupItem({
         <ToggleGroupPrimitive.Item
           {...props}
           style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: spacing.sm,
+            ...styles.item,
             height: sizeConfig.height,
             minWidth: sizeConfig.minWidth,
             paddingHorizontal: sizeConfig.paddingHorizontal,
-            borderWidth: 1,
-            flexShrink: 0,
             // Base variant styles
             ...(context.variant === "default" && !isSelected && {
               backgroundColor: "transparent",
@@ -295,9 +292,20 @@ interface ToggleGroupIconProps {
 }
 
 function ToggleGroupIcon({ name, size, color }: ToggleGroupIconProps) {
-  const contextColor = React.useContext(TextColorContext);
+  const contextColor = React.use(TextColorContext);
   return <Icon name={name} size={size || spacing.iconMd} color={color || contextColor} />;
 }
+
+const styles = StyleSheet.create({
+  item: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+});
 
 export { ToggleGroup, ToggleGroupIcon, ToggleGroupItem };
 export type { ToggleGroupProps, ToggleGroupSize, ToggleGroupVariant };

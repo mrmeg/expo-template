@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useContext, useEffect, useRef } from "react";
+import React, { useMemo, useCallback, use, useEffect, useEffectEvent, useRef } from "react";
 import { StyleSheet, View, ActivityIndicator, Pressable, Platform } from "react-native";
 import Animated, {
   useSharedValue,
@@ -18,6 +18,9 @@ import { StyledText } from "./StyledText";
 import type { Theme } from "../constants/colors";
 import { translateText } from "../lib/i18n";
 import { globalUIStore } from "../state/globalUIStore";
+
+const timingIn = { duration: 150, easing: Easing.out(Easing.quad) };
+const timingOut = { duration: 100, easing: Easing.in(Easing.quad) };
 
 /**
  * Notification
@@ -47,7 +50,7 @@ import { globalUIStore } from "../state/globalUIStore";
 export const Notification = () => {
   const { theme, getShadowStyle } = useTheme();
   const reduceMotion = useReducedMotion();
-  const insets = useContext(SafeAreaInsetsContext);
+  const insets = use(SafeAreaInsetsContext);
   const { alert, hide } = globalUIStore();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -65,9 +68,6 @@ export const Notification = () => {
     hide();
   }, [hide]);
 
-  const timingIn = { duration: 150, easing: Easing.out(Easing.quad) };
-  const timingOut = { duration: 100, easing: Easing.in(Easing.quad) };
-
   const animateOut = useCallback(() => {
     if (reduceMotion) {
       opacity.value = withTiming(0, { duration: 0 });
@@ -81,6 +81,13 @@ export const Notification = () => {
       if (finished) runOnJS(hideNotification)();
     });
   }, [reduceMotion, isBottom, opacity, translateY, hideNotification]);
+
+  // The auto-dismiss timer only needs the latest animateOut; wrapping it in an
+  // Effect Event keeps it out of the deps so the effect doesn't re-run (and
+  // restart the timer) every time animateOut's identity changes.
+  const onAutoDismiss = useEffectEvent(() => {
+    animateOut();
+  });
 
   useEffect(() => {
     const isNowVisible = alert?.show ?? false;
@@ -110,7 +117,7 @@ export const Notification = () => {
 
     if (isNowVisible && !wasVisible && alert?.duration) {
       timerRef.current = setTimeout(() => {
-        animateOut();
+        onAutoDismiss();
       }, alert.duration);
 
       return () => {
@@ -120,7 +127,8 @@ export const Notification = () => {
         }
       };
     }
-  }, [alert, reduceMotion, isBottom, opacity, translateY, animateOut]);
+    // onAutoDismiss is an Effect Event — intentionally omitted from deps.
+  }, [alert, reduceMotion, isBottom, opacity, translateY]);
 
   const animatedContainerStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -260,7 +268,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     position: "absolute",
     left: spacing.md,
     right: spacing.md,
-    zIndex: 1000,
+    // Toast sits above the overlay layer (dialogs/drawers/dropdowns top out
+    // around 52); no need to escalate into the hundreds.
+    zIndex: 60,
     alignItems: "center",
   },
   alert: {

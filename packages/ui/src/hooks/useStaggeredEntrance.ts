@@ -108,7 +108,7 @@ export function useStaggeredEntrance(options: StaggeredEntranceOptions = {}) {
         withSpring(1, { damping: 14, stiffness: 250 })
       );
     }
-  }, [reduceMotion]);
+  }, [reduceMotion, opacity, translateY, scale, duration, delay, type]);
 
   const animatedStyle = useAnimatedStyle(() => {
     if (type === "fade") {

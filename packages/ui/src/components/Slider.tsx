@@ -152,8 +152,13 @@ function Slider({
       runOnJS(jsOnValueChange)(snapped);
     });
 
+  // Animate scaleX (GPU compositor) rather than width (JS-thread layout each
+  // frame). The fill is full-width and scaled by thumb position / track width,
+  // growing from the left via transformOrigin.
   const fillStyle = useAnimatedStyle(() => ({
-    width: thumbX.value,
+    transform: [
+      { scaleX: trackWidth.value > 0 ? thumbX.value / trackWidth.value : 0 },
+    ],
   }));
 
   const thumbAnimatedStyle = useAnimatedStyle(() => ({
@@ -211,7 +216,7 @@ function Slider({
           <StyledText
             selectable={false}
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: theme.colors.textDim,
               userSelect: "none",
             }}
@@ -244,9 +249,11 @@ function Slider({
             <Animated.View
               style={[
                 {
+                  width: "100%",
                   height: dims.track,
                   borderRadius: dims.track / 2,
                   backgroundColor: activeTrackColor,
+                  transformOrigin: "left",
                 },
                 fillStyle,
               ]}

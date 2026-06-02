@@ -1,4 +1,4 @@
-import React, { ComponentType, useCallback, useMemo, useState } from "react";
+import React, { ComponentType, use, useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   PressableProps,
@@ -15,7 +15,9 @@ import {
 } from "react-native";
 import Animated from "react-native-reanimated";
 import { spacing } from "../constants/spacing";
-import { StyledText, TextColorContext, TextProps, TextSelectabilityContext, TextStyleContext } from "./StyledText";
+import { StyledText, TextProps } from "./StyledText";
+import { Icon, type IconProps } from "./Icon";
+import { TextColorContext, TextSelectabilityContext, TextStyleContext } from "./StyledText.context";
 import { fontFamilies } from "../constants/fonts";
 import type { Theme } from "../constants/colors";
 import { palette } from "../constants/colors";
@@ -165,28 +167,32 @@ export interface ButtonProps extends PressableProps {
  *
  * Usage:
  * ```tsx
- * // Default button
- * <Button onPress={handler}>
- *   <SansSerifBoldText>Click Me</SansSerifBoldText>
- * </Button>
+ * // Simplest path — plain label via the `text` prop
+ * <Button onPress={handler} text="Click Me" />
  *
  * // Different variants
- * <Button preset="outline" onPress={handler}>Outline</Button>
- * <Button preset="ghost" onPress={handler}>Ghost</Button>
- * <Button preset="destructive" onPress={handler}>Delete</Button>
+ * <Button preset="outline" onPress={handler} text="Outline" />
+ * <Button preset="ghost" onPress={handler} text="Ghost" />
+ * <Button preset="destructive" onPress={handler} text="Delete" />
  *
  * // Different sizes
- * <Button size="sm" onPress={handler}>Small</Button>
- * <Button size="lg" onPress={handler}>Large</Button>
+ * <Button size="sm" onPress={handler} text="Small" />
+ * <Button size="lg" onPress={handler} text="Large" />
  *
  * // Loading state
- * <Button loading onPress={handler}>Processing...</Button>
+ * <Button loading onPress={handler} text="Processing..." />
  *
  * // Full width
- * <Button fullWidth onPress={handler}>Submit</Button>
+ * <Button fullWidth onPress={handler} text="Submit" />
+ *
+ * // Composed content — icon + label via subcomponents
+ * <Button onPress={handler}>
+ *   <Button.Icon name="heart" />
+ *   <Button.Text>Like</Button.Text>
+ * </Button>
  * ```
  */
-export function Button(props: ButtonProps) {
+function ButtonRoot(props: ButtonProps) {
   const {
     tx,
     text,
@@ -263,12 +269,12 @@ export function Button(props: ButtonProps) {
     scaleTo: preset === "link" ? 1 : 0.97,
   });
 
-  const handleFocus: PressableProps["onFocus"] = (event) => {
+  const showFocusRing: PressableProps["onFocus"] = (event) => {
     setFocused(true);
     onFocus?.(event);
   };
 
-  const handleBlur: PressableProps["onBlur"] = (event) => {
+  const hideFocusRing: PressableProps["onBlur"] = (event) => {
     setFocused(false);
     onBlur?.(event);
   };
@@ -308,8 +314,8 @@ export function Button(props: ButtonProps) {
             {...rest}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
+            onFocus={showFocusRing}
+            onBlur={hideFocusRing}
             style={{ alignSelf: fullWidth ? "stretch" : (flattenedStyle?.alignSelf as ViewStyle["alignSelf"]) ?? "flex-start" }}
             hitSlop={rest.hitSlop ?? (Platform.OS === "web" ? undefined : getNativeHitSlop(sizeConfig))}
             disabled={isDisabled}
@@ -371,25 +377,11 @@ export function Button(props: ButtonProps) {
                           textStyleOverride,
                         ]}
                       />
-                    ) : children ? (
-                      // Wrap string children in StyledText to apply control typography.
-                      typeof children === "string" ? (
-                        <StyledText
-                          style={[
-                            styles.text,
-                            state.pressed && styles.pressedText,
-                            state.pressed && pressedTextStyleOverride,
-                            isDisabled && disabledTextStyleOverride,
-                            textStyleOverride,
-                          ]}
-                        >
-                          {children}
-                        </StyledText>
-                      ) : (
-                        children
-                      )
                     ) : (
-                      null
+                      // Children render as-is. For text content, use the explicit
+                      // <Button.Text> subcomponent so it inherits control typography
+                      // via context instead of relying on a runtime `typeof` check.
+                      children ?? null
                     )}
 
                     {!!RightAccessory && (
@@ -408,6 +400,39 @@ export function Button(props: ButtonProps) {
       </TextSelectabilityContext.Provider>
     </TextColorContext.Provider>
   );
+}
+
+/**
+ * Button.Text
+ * Text content for a Button. Inherits the button's control typography, color,
+ * and non-selectable behavior from context, so callers state their intent
+ * explicitly instead of relying on the component to inspect `typeof children`.
+ *
+ * ```tsx
+ * <Button onPress={save}>
+ *   <Button.Text>Save</Button.Text>
+ * </Button>
+ * ```
+ */
+function ButtonText(props: TextProps) {
+  return <StyledText {...props} />;
+}
+
+/**
+ * Button.Icon
+ * Icon content for a Button. Defaults its color to the button's text color
+ * (from context) and is decorative by default, since the label conveys meaning.
+ *
+ * ```tsx
+ * <Button onPress={like}>
+ *   <Button.Icon name="heart" />
+ *   <Button.Text>Like</Button.Text>
+ * </Button>
+ * ```
+ */
+function ButtonIcon(props: IconProps) {
+  const contextColor = use(TextColorContext);
+  return <Icon decorative color={contextColor} {...props} />;
 }
 
 const createStyles = (theme: Theme, size: ButtonSize) => {
@@ -494,3 +519,17 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
     } as ViewStyle,
   });
 };
+
+/**
+ * Button with explicit subcomponents.
+ * - `Button.Text` for label text (inherits control typography)
+ * - `Button.Icon` for icons (inherits the button's text color)
+ *
+ * The `tx`/`text` props remain the simplest path for plain labels.
+ */
+const Button = Object.assign(ButtonRoot, {
+  Text: ButtonText,
+  Icon: ButtonIcon,
+});
+
+export { Button, ButtonText, ButtonIcon };

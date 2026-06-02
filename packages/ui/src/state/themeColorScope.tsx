@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, use, useMemo, type ReactNode } from "react";
 import type { ColorOverrides } from "./themeStore";
 
 /**
@@ -15,7 +15,7 @@ const ThemeColorScopeContext = createContext<ColorOverrides | null>(null);
 
 /** Read the active scoped override (null when not inside a scope). */
 export function useThemeColorScope(): ColorOverrides | null {
-  return useContext(ThemeColorScopeContext);
+  return use(ThemeColorScopeContext);
 }
 
 // Nested scopes layer: the inner scope's keys win, the outer scope's fill in.
@@ -38,7 +38,7 @@ export function ThemeColorScope({
   colors: ColorOverrides;
   children: ReactNode;
 }) {
-  const parent = useContext(ThemeColorScopeContext);
+  const parent = use(ThemeColorScopeContext);
   const value = useMemo(() => mergeScopes(parent, colors), [parent, colors]);
   return (
     <ThemeColorScopeContext.Provider value={value}>

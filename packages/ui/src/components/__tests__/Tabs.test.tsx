@@ -1,7 +1,7 @@
 /**
  * Tabs component tests
  *
- * Tests rendering, string children wrapping, and variant support.
+ * Tests rendering, explicit TabsTrigger.Text labels, and variant support.
  */
 
 import React from "react";
@@ -46,7 +46,7 @@ jest.mock("@rn-primitives/tabs", () => {
     Content: ({ children, value, style, ...props }: any) => (
       <View style={style} {...props}>{children}</View>
     ),
-    useRootContext: () => React.useContext(RootContext),
+    useRootContext: () => React.use(RootContext),
   };
 });
 
@@ -55,8 +55,12 @@ describe("Tabs", () => {
     render(
       <Tabs value="tab1" onValueChange={() => {}}>
         <TabsList>
-          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
-          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+          <TabsTrigger value="tab1">
+            <TabsTrigger.Text>Tab 1</TabsTrigger.Text>
+          </TabsTrigger>
+          <TabsTrigger value="tab2">
+            <TabsTrigger.Text>Tab 2</TabsTrigger.Text>
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="tab1">
           <></>
@@ -68,16 +72,18 @@ describe("Tabs", () => {
     expect(screen.getByText("Tab 2")).toBeTruthy();
   });
 
-  it("wraps string children in StyledText", () => {
+  it("renders text labels via TabsTrigger.Text", () => {
     render(
       <Tabs value="tab1" onValueChange={() => {}}>
         <TabsList>
-          <TabsTrigger value="tab1">Account</TabsTrigger>
+          <TabsTrigger value="tab1">
+            <TabsTrigger.Text>Account</TabsTrigger.Text>
+          </TabsTrigger>
         </TabsList>
       </Tabs>
     );
 
-    // String children should be rendered (wrapped in StyledText, not raw text in View)
+    // Label text should render (inside a Text element, not raw text in a View)
     expect(screen.getByText("Account")).toBeTruthy();
   });
 
@@ -85,7 +91,9 @@ describe("Tabs", () => {
     render(
       <Tabs value="tab1" onValueChange={() => {}} variant="pill">
         <TabsList>
-          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab1">
+            <TabsTrigger.Text>Tab 1</TabsTrigger.Text>
+          </TabsTrigger>
         </TabsList>
       </Tabs>
     );
@@ -97,7 +105,9 @@ describe("Tabs", () => {
     const { getByText } = render(
       <Tabs value="tab1" onValueChange={() => {}}>
         <TabsList>
-          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab1">
+            <TabsTrigger.Text>Tab 1</TabsTrigger.Text>
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="tab1">
           <></>

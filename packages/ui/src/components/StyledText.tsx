@@ -1,32 +1,9 @@
-import React, { forwardRef } from "react";
+import { use, type Ref } from "react";
 import { Text as RNText, TextProps as RNTextProps, StyleProp, StyleSheet, TextStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { fontFamilies } from "../constants/fonts";
 import { translateText } from "../lib/i18n";
-
-/**
- * TextClassContext provides className context for nested text components
- * Used by @rn-primitives to apply consistent styling through the component tree
- */
-export const TextClassContext = React.createContext<string | undefined>(undefined);
-
-/**
- * TextColorContext provides color context for nested text components
- * Allows parent components (like Button) to override text color for all children
- */
-export const TextColorContext = React.createContext<string | undefined>(undefined);
-
-/**
- * TextStyleContext allows controls such as Button to pass sizing typography to
- * nested StyledText children without forcing consumers to use the `text` prop.
- */
-export const TextStyleContext = React.createContext<StyleProp<TextStyle> | undefined>(undefined);
-
-/**
- * Allows interactive controls to disable text selection for nested StyledText
- * without changing the package-wide default for readable content.
- */
-export const TextSelectabilityContext = React.createContext<boolean | undefined>(undefined);
+import { TextColorContext, TextSelectabilityContext, TextStyleContext } from "./StyledText.context";
 
 /**
  * Font size variants following the DM Sans / DM Serif Display scale
@@ -131,6 +108,10 @@ export type TextProps = RNTextProps & {
    * as well as explicitly setting locale or translation fallbacks.
    */
   txOptions?: object;
+  /**
+   * Forwarded ref to the underlying RNText element.
+   */
+  ref?: Ref<RNText>;
 };
 
 /**
@@ -146,7 +127,7 @@ export type TextProps = RNTextProps & {
  *   chrome such as button labels, tabs, badges, and field labels
  * - numberOfLines and ellipsizeMode support from RN TextProps
  */
-export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
+export function StyledText(props: TextProps) {
   const {
     tx,
     text,
@@ -159,15 +140,16 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
     align,
     selectable,
     children,
+    ref,
     ...otherProps
   } = props;
 
   const { theme } = useTheme();
 
   // Check if there's a color override from parent context (e.g., Button)
-  const contextColor = React.useContext(TextColorContext);
-  const contextTextStyle = React.useContext(TextStyleContext);
-  const contextSelectable = React.useContext(TextSelectabilityContext);
+  const contextColor = use(TextColorContext);
+  const contextTextStyle = use(TextStyleContext);
+  const contextSelectable = use(TextSelectabilityContext);
   const resolvedSelectable = selectable ?? contextSelectable ?? true;
 
   // Use context color if provided, otherwise use theme default
@@ -229,9 +211,7 @@ export const StyledText = forwardRef<RNText, TextProps>((props, ref) => {
       {content}
     </RNText>
   );
-});
-
-StyledText.displayName = "StyledText";
+}
 
 /**
  * Serif Text Component

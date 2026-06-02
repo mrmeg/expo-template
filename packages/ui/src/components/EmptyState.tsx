@@ -79,10 +79,9 @@ export function EmptyState({
         <Button
           preset={actionPreset}
           onPress={onAction}
+          text={actionLabel}
           style={styles.action}
-        >
-          {actionLabel}
-        </Button>
+        />
       )}
     </View>
   );

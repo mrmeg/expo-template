@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from "react";
+import React, { createContext, use, useEffect } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform } from "react-native";
 import Animated, {
   useSharedValue,
@@ -35,8 +35,12 @@ interface RadioGroupContextValue {
 
 const RadioGroupContext = createContext<RadioGroupContextValue | null>(null);
 
+function handleRadioPress() {
+  hapticLight();
+}
+
 function useRadioGroupContext() {
-  const context = useContext(RadioGroupContext);
+  const context = use(RadioGroupContext);
   if (context === null) {
     throw new Error(
       "RadioGroup compound components cannot be rendered outside the RadioGroup component"
@@ -87,8 +91,13 @@ function RadioGroupRoot({
 }: RadioGroupProps) {
   const flattenedStyle = styleOverride ? StyleSheet.flatten(styleOverride) : undefined;
 
+  const contextValue = React.useMemo(
+    () => ({ size, error, value, onValueChange }),
+    [size, error, value, onValueChange]
+  );
+
   return (
-    <RadioGroupContext.Provider value={{ size, error, value, onValueChange }}>
+    <RadioGroupContext.Provider value={contextValue}>
       <RadioGroupPrimitive.Root
         {...props}
         value={value}
@@ -158,11 +167,6 @@ function RadioGroupItem({
     transform: [{ scale: dotScale.value }],
   }));
 
-  // Wrap onPress to add haptic feedback
-  const handlePress = () => {
-    hapticLight();
-  };
-
   // Border color follows Checkbox pattern
   const borderColor = error
     ? theme.colors.destructive
@@ -181,16 +185,15 @@ function RadioGroupItem({
       {...props}
       value={itemValue}
       disabled={disabled}
-      onPress={handlePress}
+      onPress={handleRadioPress}
       style={{
+        ...styles.radio,
         borderColor,
         backgroundColor: theme.colors.background,
         borderRadius: sizeConfig.outer / 2,
         borderWidth: sizeConfig.borderWidth,
         width: sizeConfig.outer,
         height: sizeConfig.outer,
-        justifyContent: "center",
-        alignItems: "center",
         opacity: disabled ? 0.5 : 1,
         ...(Platform.OS === "web" && { cursor: disabled ? "not-allowed" : ("pointer" as any) }),
         ...(flattenedStyle || {}),
@@ -260,6 +263,10 @@ function RadioGroupItem({
 }
 
 const styles = StyleSheet.create({
+  radio: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
   container: {
     flexDirection: "row",
     alignItems: "center",

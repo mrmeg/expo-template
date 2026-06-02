@@ -52,6 +52,8 @@ export const useResources = (): LoadResourcesResult => {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
     async function loadResourcesAndDataAsync() {
       try {
         const fontPromise = Promise.all([
@@ -60,9 +62,12 @@ export const useResources = (): LoadResourcesResult => {
         ]);
 
         // Timeout after 5 seconds — proceed with system fallback fonts
-        const timeoutPromise = new Promise<void>((_, reject) =>
-          setTimeout(() => reject(new Error("Font loading timed out after 5s")), 5000)
-        );
+        const timeoutPromise = new Promise<void>((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error("Font loading timed out after 5s")),
+            5000
+          );
+        });
 
         await Promise.race([fontPromise, timeoutPromise]);
       } catch (e: unknown) {
@@ -70,10 +75,13 @@ export const useResources = (): LoadResourcesResult => {
         console.warn("Font loading issue (proceeding with fallback):", error.message);
         setError(error);
       } finally {
+        clearTimeout(timeoutId);
         setLoaded(true);
       }
     }
     loadResourcesAndDataAsync();
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return { loaded, error };

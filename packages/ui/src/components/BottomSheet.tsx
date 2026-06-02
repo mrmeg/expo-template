@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import React, { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   View,
   ViewProps,
@@ -6,7 +6,6 @@ import {
   Animated,
   StyleSheet,
   Platform,
-  Dimensions,
   StyleProp,
   ViewStyle,
   PanResponder,
@@ -20,9 +19,10 @@ import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { Pressable as SlotPressable } from "@rn-primitives/slot";
 import { KeyboardController, useKeyboardAnimation } from "react-native-keyboard-controller";
 import { useTheme } from "../hooks/useTheme";
+import { useDimensions } from "../hooks/useDimensions";
 import { spacing } from "../constants/spacing";
 import { shouldUseNativeDriver } from "../lib/animations";
-import { TextColorContext, TextClassContext } from "./StyledText";
+import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
@@ -142,7 +142,7 @@ type BottomSheetPanelProps = ViewProps & {
 const BottomSheetContext = createContext<BottomSheetContextValue | null>(null);
 
 function useBottomSheetContext() {
-  const context = useContext(BottomSheetContext);
+  const context = use(BottomSheetContext);
   if (!context) {
     throw new Error("BottomSheet components must be used within a BottomSheet");
   }
@@ -201,8 +201,7 @@ function KeyboardAvoidingBottomSheetPanel(props: BottomSheetPanelProps) {
 // Utility Functions
 // ============================================================================
 
-function resolveSnapPoints(points: SnapPoint[]): number[] {
-  const screenHeight = Dimensions.get("window").height;
+function resolveSnapPoints(points: SnapPoint[], screenHeight: number): number[] {
   return points.map((p) => {
     if (typeof p === "number") return p;
     return (parseFloat(p) / 100) * screenHeight;
@@ -240,7 +239,9 @@ function BottomSheetRoot({
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
 
-  const snapPoints = resolveSnapPoints(rawSnapPoints);
+  // useDimensions reacts to rotation / split-screen, unlike Dimensions.get.
+  const { height: screenHeight } = useDimensions();
+  const snapPoints = resolveSnapPoints(rawSnapPoints, screenHeight);
 
   const toggle = () => {
     if (isControlled) {
@@ -329,8 +330,18 @@ function BottomSheetContent({
   // With bottom:0 positioning, translateY=0 means visible, translateY=maxHeight means hidden below
   const closedPosition = maxHeight;
 
-  const translateY = useRef(new Animated.Value(open ? 0 : closedPosition)).current;
-  const backdropOpacity = useRef(new Animated.Value(open ? 1 : 0)).current;
+  // Initialize lazily so each Animated.Value is allocated once on first render
+  // instead of being rebuilt and discarded on every render.
+  const translateYRef = useRef<Animated.Value | null>(null);
+  if (translateYRef.current === null) {
+    translateYRef.current = new Animated.Value(open ? 0 : closedPosition);
+  }
+  const translateY = translateYRef.current;
+  const backdropOpacityRef = useRef<Animated.Value | null>(null);
+  if (backdropOpacityRef.current === null) {
+    backdropOpacityRef.current = new Animated.Value(open ? 1 : 0);
+  }
+  const backdropOpacity = backdropOpacityRef.current;
 
   const [isVisible, setIsVisible] = useState(open);
   const lastOpenRef = useRef<boolean | null>(null);
@@ -341,10 +352,6 @@ function BottomSheetContent({
   const currentSnapRef = useRef(snapPoints.length - 1);
 
   const textColor = theme.colors.foreground;
-
-  // ------------------------------------------------------------------
-  // Shared snap/close logic used by both native PanResponder and web drag
-  // ------------------------------------------------------------------
 
   const handleDragRelease = useCallback(
     (dragDistance: number, velocity: number) => {
@@ -441,10 +448,6 @@ function BottomSheetContent({
     }
   }, [dismissKeyboardOnDrag]);
 
-  // ------------------------------------------------------------------
-  // Trigger animation during render if open changed
-  // ------------------------------------------------------------------
-
   if (open !== lastOpenRef.current) {
     const previousOpen = lastOpenRef.current;
     lastOpenRef.current = open;
@@ -507,10 +510,6 @@ function BottomSheetContent({
     }
   }
 
-  // ------------------------------------------------------------------
-  // Native: PanResponder for swipe gestures on the whole sheet
-  // ------------------------------------------------------------------
-
   const panResponder = useMemo(
     () =>
       Platform.OS !== "web" && swipeEnabled
@@ -542,10 +541,6 @@ function BottomSheetContent({
         : null,
     [dismissKeyboardForDrag, handleDragMove, handleDragRelease, swipeEnabled]
   );
-
-  // ------------------------------------------------------------------
-  // Web: drag context provides callbacks for Handle's pointer events
-  // ------------------------------------------------------------------
 
   const dragContextValue: DragContextValue | null =
     Platform.OS === "web" && swipeEnabled
@@ -596,12 +591,56 @@ function BottomSheetContent({
       ? KeyboardAvoidingBottomSheetPanel
       : BottomSheetPanel;
 
-  const contentElement = (
+  return (
+    <BottomSheetContentPortal
+      sheetContext={sheetContext}
+      theme={theme}
+      backdropOpacity={backdropOpacity}
+      onBackdropPress={handleBackdropPress}
+      PanelComponent={PanelComponent}
+      sheetStyle={sheetStyle}
+      styleOverride={styleOverride}
+      translateY={translateY}
+      panHandlers={panResponder ? panResponder.panHandlers : undefined}
+      panelProps={props}
+      dragContextValue={dragContextValue}
+      sheetContent={sheetContent}
+    />
+  );
+}
+
+function BottomSheetContentPortal({
+  sheetContext,
+  theme,
+  backdropOpacity,
+  onBackdropPress,
+  PanelComponent,
+  sheetStyle,
+  styleOverride,
+  translateY,
+  panHandlers,
+  panelProps,
+  dragContextValue,
+  sheetContent,
+}: {
+  sheetContext: BottomSheetContextValue;
+  theme: ReturnType<typeof useTheme>["theme"];
+  backdropOpacity: Animated.Value;
+  onBackdropPress: () => void;
+  PanelComponent: React.ComponentType<BottomSheetPanelProps>;
+  sheetStyle: ViewStyle;
+  styleOverride?: StyleProp<ViewStyle>;
+  translateY: Animated.Value;
+  panHandlers?: BottomSheetPanelProps["panHandlers"];
+  panelProps: ViewProps;
+  dragContextValue: DragContextValue | null;
+  sheetContent: React.ReactNode;
+}) {
+  return (
     <Portal name="bottom-sheet-portal">
       <FullWindowOverlay>
         <BottomSheetContext.Provider value={sheetContext}>
           <View style={StyleSheet.absoluteFill}>
-            {/* Backdrop */}
             <Animated.View
               style={[
                 StyleSheet.absoluteFill,
@@ -614,11 +653,10 @@ function BottomSheetContent({
             >
               <Pressable
                 style={StyleSheet.absoluteFill}
-                onPress={handleBackdropPress}
+                onPress={onBackdropPress}
               />
             </Animated.View>
 
-            {/* Sheet Panel */}
             <PanelComponent
               sheetStyle={sheetStyle}
               styleOverride={styleOverride}
@@ -628,8 +666,8 @@ function BottomSheetContent({
                 role: "dialog",
                 "aria-modal": true,
               } as any)}
-              panHandlers={panResponder ? panResponder.panHandlers : undefined}
-              {...props}
+              panHandlers={panHandlers}
+              {...panelProps}
             >
               {dragContextValue ? (
                 <DragContext.Provider value={dragContextValue}>
@@ -644,8 +682,6 @@ function BottomSheetContent({
       </FullWindowOverlay>
     </Portal>
   );
-
-  return contentElement;
 }
 
 // ============================================================================
@@ -654,7 +690,7 @@ function BottomSheetContent({
 
 function BottomSheetHandle({ style }: BottomSheetHandleProps) {
   const { theme } = useTheme();
-  const dragCtx = useContext(DragContext);
+  const dragCtx = use(DragContext);
 
   // Web pointer-event drag — attaches move/up listeners on document
   const dragStartY = useRef(0);

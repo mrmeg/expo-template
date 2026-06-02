@@ -50,7 +50,7 @@ jest.mock("@rn-primitives/select", () => {
       <Pressable accessibilityRole="button" style={style} {...props}>{children}</Pressable>
     ),
     Value: ({ placeholder, style, ...props }: any) => {
-      const { value } = React.useContext(SelectContext);
+      const { value } = React.use(SelectContext);
       return <Text style={style} {...props}>{value?.label || placeholder}</Text>;
     },
     Content: ({ children, style, ...props }: any) => (
@@ -63,11 +63,11 @@ jest.mock("@rn-primitives/select", () => {
     ),
     Group: ({ children, ...props }: any) => <View {...props}>{children}</View>,
     Label: ({ children, ...props }: any) => <Text {...props}>{children}</Text>,
-    useRootContext: () => React.useContext(SelectContext),
+    useRootContext: () => React.use(SelectContext),
     Overlay: ({ children, ...props }: any) => <View {...props}>{children}</View>,
     Portal: ({ children, ...props }: any) => <>{children}</>,
     ItemText: ({ children, ...props }: any) => {
-      const { value } = React.useContext(SelectContext);
+      const { value } = React.use(SelectContext);
       return <Text {...props}>{children ?? value?.label}</Text>;
     },
     ItemIndicator: ({ children, ...props }: any) => <View {...props}>{children}</View>,
@@ -156,7 +156,7 @@ describe("Select", () => {
           <SelectValue placeholder="Choose" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="a" label="Option A">Option A</SelectItem>
+          <SelectItem value="a" label="Option A" />
         </SelectContent>
       </Select>
     );

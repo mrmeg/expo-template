@@ -1,5 +1,5 @@
 import { AnimatedView } from "./AnimatedView";
-import { TextClassContext, TextColorContext } from "./StyledText";
+import { TextClassContext, TextColorContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import * as PopoverPrimitive from "@rn-primitives/popover";

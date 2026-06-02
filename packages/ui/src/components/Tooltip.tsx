@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Platform, StyleSheet, View, ViewProps } from "react-native";
 import { AnimatedView } from "./AnimatedView";
-import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText";
+import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import * as TooltipPrimitive from "@rn-primitives/tooltip";
