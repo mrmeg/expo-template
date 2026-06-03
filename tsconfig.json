@@ -26,6 +26,9 @@
       "@mrmeg/expo-ui/state": [
         "./packages/ui/src/state/index.ts"
       ],
+      "@mrmeg/expo-ui/state/*": [
+        "./packages/ui/src/state/*"
+      ],
       "@mrmeg/expo-ui/lib": [
         "./packages/ui/src/lib/index.ts"
       ],

@@ -1,218 +1,73 @@
-# UI/UX Design Guide
+# Design
 
-> Design system, component conventions, and patterns.
+Reusable UI lives in `packages/ui` and is consumed as `@mrmeg/expo-ui`. App
+screens should use the package components, tokens, hooks, and state rather than
+creating parallel design primitives under `client/`.
 
-## Design Philosophy
+## Source Pointers
 
-Shadcn-inspired, zinc-based palette. Clean, minimal, consistent across platforms. Border-only cards, subtle shadows, tight spacing.
+| Concern | Source |
+|---------|--------|
+| Components | `packages/ui/src/components/` |
+| Tokens | `packages/ui/src/constants/` |
+| Theme hooks | `packages/ui/src/hooks/useTheme.ts` |
+| Resource loading | `packages/ui/src/hooks/useResources.ts` |
+| Theme state | `packages/ui/src/state/themeStore.ts` |
+| Showcase registry | `client/showcase/registry.ts` |
+| Demo screens | `client/screens/`, `app/(main)/(demos)/` |
 
-## Color System
+## Component Rules
 
-### Palette
+- New reusable primitives belong in `packages/ui/src/components/`.
+- Export reusable primitives from the package index and supported subpath
+  exports; keep package internals on relative imports.
+- App-specific wrappers or feature-integrated screens stay under `client/`.
+- Do not import `@/client/*` from `packages/ui`.
+- `@rn-primitives` components should receive flattened styles where needed;
+  raw nested style arrays can break React Native Web.
 
-Zinc-based neutral scale with teal accent. Defined in
-`packages/ui/src/constants/colors.ts` and consumed through
-`@mrmeg/expo-ui/constants`.
+## Visual System
 
-| Token | Light | Dark | Usage |
-|-------|-------|------|-------|
-| `background` | white | zinc-950 | Page backgrounds |
-| `foreground` | zinc-950 | zinc-50 | Primary text |
-| `card` | white | zinc-950 | Card surfaces |
-| `primary` | zinc-900 | zinc-50 | Primary actions (neutral, not teal) |
-| `primaryForeground` | zinc-50 | zinc-900 | Text on primary |
-| `accent` | teal-500 | teal-400 | Highlights, active tabs, badges |
-| `secondary` | zinc-100 | zinc-800 | Secondary surfaces |
-| `muted` | zinc-100 | zinc-800 | Muted backgrounds |
-| `mutedForeground` | zinc-500 | zinc-400 | Secondary text |
-| `border` | zinc-200 | zinc-800 | Borders, dividers |
-| `destructive` | red-500 | red-900 | Error states |
+The package owns a neutral zinc-based theme with a teal accent, dark and light
+schemes, spacing tokens, typography tokens, radius tokens, and platform shadow
+helpers.
 
-### Status Colors
-- Success: green
-- Warning: amber
-- Error: red
+Use semantic theme colors from `useTheme()` and tokens from
+`@mrmeg/expo-ui/constants`. Avoid hard-coded colors in app screens unless a
+feature has a real domain-specific status color.
 
-### Key Rule
-**Primary is neutral** (dark gray / near-white). **Accent is teal** (`theme.colors.accent`). Never use teal as primary.
+Primary actions use the semantic primary color. Accent is for highlights,
+active states, badges, and secondary emphasis.
 
-## Typography
+## Interaction And Accessibility
 
-Defined in `packages/ui/src/constants/fonts.ts`.
+- Use package controls for forms, switches, toggles, tabs, sliders, dialogs,
+  drawers, sheets, popovers, tooltips, and notifications.
+- Keep touch targets and hit slop appropriate for native devices.
+- Use `useReduceMotion()` for nonessential motion.
+- Use theme contrast helpers for dynamic foreground/background combinations.
+- Keep tab labels, buttons, empty states, and error actions screen-reader
+  legible.
 
-| Scale | Size | Line Height | Letter Spacing |
-|-------|------|-------------|----------------|
-| xs | 12 | 16 | 0 |
-| sm | 14 | 20 | 0 |
-| md | 16 | 24 | 0 |
-| lg | 18 | 28 | 0 |
-| xl | 20 | 28 | 0 |
-| 2xl | 24 | 32 | -0.3 |
-| 3xl | 30 | 36 | -0.5 |
-| 4xl | 36 | 40 | -0.75 |
+## Showcase Contract
 
-- Font family: Lato on web via Google Fonts, system sans-serif fallback on native
-- Weights: 400 (normal), 500 (medium), 700 (bold) — web loads 400/700 and renders 500 with synthetic font-weight CSS
-- **2xl+ sizes get negative letter spacing** for tighter headings
+The Explore tab and component showcase are adoption surfaces. When adding a
+reusable component or screen template:
 
-## Spacing & Layout
+- Add a focused demo in `client/showcase`.
+- Keep frequently changing control state inside small demo components so the
+  full showcase does not re-render on each keystroke or toggle.
+- Add or update tests near the package component when behavior changes.
 
-Defined in `packages/ui/src/constants/spacing.ts`. Base unit: 8px.
+## Forms
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| xs | 4 | Tight gaps |
-| sm | 8 | Standard gap |
-| md | 12 | Component padding |
-| lg | 16 | Section padding |
-| xl | 24 | Large gaps |
-| xxl | 32 | Page margins |
-| xxxl | 48 | Major sections |
+The form helpers under `client/lib/form/` wrap package controls for app forms.
+Keep form state local to the smallest useful component. Auth form fields use
+`client/features/auth/components/AuthTextField.tsx` to avoid form-card rerender
+churn while typing.
 
-### Border Radius
+## Error And Empty States
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| radiusNone | 0 | Sharp corners |
-| radiusSm | 4 | Small elements |
-| radiusMd | 6 | Default (buttons, inputs) |
-| radiusLg | 8 | Cards |
-| radiusXl | 12 | Large cards |
-| radius2xl | 16 | Modals |
-| radiusFull | 9999 | Circles, pills |
-
-## Component Conventions
-
-### Sizing
-
-| Size | Height | Usage |
-|------|--------|-------|
-| sm | 28 | Dense toolbar, popover, tooltip, and inline actions |
-| md | 32 | Default Button |
-| lg | 40 | Prominent Button |
-
-Button preserves native tap comfort with hit slop up to the 44px touch target. TextInput, Toggle, Select, and other controls may use their own height scale when they need denser alignment or fixed control geometry.
-
-### Cards
-- **Border-only** by default — no drop shadow
-- Use `theme.colors.border` for card borders
-- `radiusLg` (8px) border radius
-
-### Buttons
-- Font weight: `"500"` (medium, not bold)
-- Visible heights: `sm` 28px, `md` 32px, `lg` 40px
-- Outline variant uses `theme.colors.input` (not primary) with `foreground` text
-- Nested `StyledText` children inherit the selected Button size typography; use `size="sm"` for compact toolbar, popover, and tooltip triggers.
-- Explicit `textStyle.color` or nested `StyledText style={{ color: ... }}` can override a Button preset color for status-specific action labels.
-
-### Shadows
-- Subtle: opacity 0.05–0.15, small offsets
-- Use `getShadowStyle()` from `useTheme()` hook
-- **Web: returns empty object** (boxShadow causes RN Web crashes)
-
-### Checkbox
-- Checked state: `primary` background, `primaryForeground` icon
-
-### Switch
-- Width 44, height 24, thumb 20
-- 1px border on track + thumb for contrast
-- Default checked state uses a stable dark-neutral track so the white thumb stays visible in both themes
-- Custom track/thumb sizes keep the thumb inset equal to the vertical clearance, so the circle does not hug one edge of a taller track
-
-### Tab Bar
-- `accent` for active tint
-- `mutedForeground` for inactive
-- iOS height: 85px (with safe area)
-
-## Component Library (35 components)
-
-All exported from `@mrmeg/expo-ui/components` and implemented in
-`packages/ui/src/components/`:
-
-**Layout:** AnimatedView, Card, MaxWidthContainer, Separator, DismissKeyboard
-**Typography:** StyledText (semantic variants)
-**Forms:** Button, TextInput, Checkbox, RadioGroup, Select, Switch, Toggle, ToggleGroup, InputOTP, Label, Slider
-**Feedback:** Alert, Badge, Notification, Progress, Skeleton, EmptyState, StatusBar, Tooltip
-**Overlay:** BottomSheet, Dialog, Drawer, DropdownMenu, Popover
-**Navigation:** Tabs, Collapsible
-**Utility:** ErrorBoundary, Icon
-
-## Critical Pattern: Style Array Crash Prevention
-
-**@rn-primitives components MUST use `StyleSheet.flatten()`**, never raw style arrays:
-
-```tsx
-// CRASHES on web
-<DropdownMenuItem style={[styles.item, { color: theme.primary }]} />
-
-// CORRECT
-<DropdownMenuItem style={StyleSheet.flatten([styles.item, { color: theme.primary }])} />
-```
-
-## Theming API
-
-`useTheme()` hook provides:
-
-- `theme.colors.*` — all semantic color tokens
-- `scheme` — current scheme ("light" | "dark")
-- `getShadowStyle(elevation)` — platform shadow (empty on web)
-- `getContrastingColor(bg)` — WCAG-compliant text color for any background
-- `getContrastRatio(fg, bg)` — numeric contrast ratio
-- `withAlpha(color, alpha)` — add transparency
-- `toggleTheme()` / `setTheme(mode)` — switch themes
-
-Contrast calculations are cached (max 500 entries).
-
-## Package Imports
-
-The template consumes its reusable UI through the private package namespace,
-even during local workspace development:
-
-```tsx
-import { Button } from "@mrmeg/expo-ui/components/Button";
-import { spacing, type Theme } from "@mrmeg/expo-ui/constants";
-import { useTheme, useResources } from "@mrmeg/expo-ui/hooks";
-```
-
-New reusable UI primitives should be generated into
-`packages/ui/src/components/`, exported from
-`packages/ui/src/components/index.ts`, and kept free of `@/client/*` imports.
-Publishable package code owns design tokens, UI hooks, theme state, global
-notification state, haptics, and animation helpers. App-owned integrations
-such as Sentry stay outside the UI package. It does not ship font files;
-`useResources()` and `app/+html.tsx` load Lato through Google Fonts on web. See
-`Agent/Docs/EXPO_UI_PACKAGE.md` for consumer app setup, supported imports, and
-publish/update workflow.
-
-## Screen Templates
-
-13 pre-built templates exposed via the `client/showcase/registry.ts` `SCREEN_TEMPLATES` array (Explore tab reads from there) with demo routes under `app/(main)/(demos)/`:
-
-Settings, Profile, List, Pricing, Welcome, Card Grid, Chat, Dashboard, Form (multi-step), Notifications, Search, Error states, Detail Hero.
-
-Use these as starting points for new screens.
-
-Error-state actions should remain horizontally centered with the message
-content. Onboarding slides should center their icon, title, and description in
-the available viewport while skip and next/done controls stay in stable
-top/bottom control zones.
-
-### Pricing / account billing surfaces
-
-`client/screens/PricingScreen.tsx` is the shared visual component. When a
-screen is billing-aware, it derives each card's `isCurrent`,
-`actionLabel`, `actionState`, `disabledReason`, and `loading` fields via
-`derivePricingPlan()` from `@/client/features/billing` — the screen
-itself never reads Stripe fields directly. See `app/(main)/(demos)/screen-pricing.tsx`
-for the reference wiring (plan catalog → `derivePricingPlan` → CTA handler
-that calls `useBillingActions`). Unauthenticated users always see
-"Sign in to continue"; entitled users see "Manage subscription"; a `free`
-card for a paid user renders as `downgrade-disabled` with a "Cancel through
-Manage subscription" hint.
-
-`app/(main)/(tabs)/profile.tsx` displays the normalized billing summary
-and exposes a single billing CTA: **Manage Subscription** for anyone with
-a Stripe customer, otherwise **Upgrade** (routes to pricing). Warning rows
-render for `cancelAtPeriodEnd` and `past_due` states — keep those in any
-adopter account screen so the UI doesn't stay mute when Stripe needs
-attention from the user.
+Use package `ErrorBoundary`, `ErrorScreen`, `EmptyState`, `Alert`, and
+`Notification` patterns. User-facing errors should communicate the next useful
+action and avoid exposing raw server details when a typed problem code exists.

@@ -184,7 +184,7 @@ Use this table before creating a new app-local primitive.
 | `InputOTP` | Verification code entry | Multiple manually managed text inputs | Email codes, SMS codes, MFA, invite codes |
 | `Label` | Accessible form labels | Plain styled text labels | Required labels, disabled labels, field group labels |
 | `MaxWidthContainer` | Centered responsive width | Per-screen max-width wrappers | Web pages, tablet layouts, settings forms |
-| `Notification` | Global toast surface | Screen-local toast state | Saved/error/sync notifications, bottom-position alerts |
+| `Notification` | Global toast surface | Screen-local toast state | Saved/error/sync notifications, action toasts, bottom-position alerts |
 | `Popover` | Anchored contextual content | Custom anchored views | Inline help, quick previews, contextual controls |
 | `Progress` | Determinate or indeterminate progress | Layout-shifting spinners for progress regions | Upload progress, onboarding completion |
 | `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows | Plan interval, visibility choice, survey answer |
@@ -259,5 +259,9 @@ globalUIStore.getState().show({
   type: "success",
   title: "Saved",
   messages: ["Your changes were saved."],
+  action: {
+    label: "View",
+    onPress: openSavedItem,
+  },
 });
 ```

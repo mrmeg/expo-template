@@ -51,8 +51,17 @@ export const Notification = () => {
   const isBottom = position === "bottom";
 
   // Just opacity + translateY — no scale (scale = bouncy feel)
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(0)).current;
+  const opacityRef = useRef<Animated.Value | null>(null);
+  if (opacityRef.current === null) {
+    opacityRef.current = new Animated.Value(0);
+  }
+  const opacity = opacityRef.current;
+
+  const translateYRef = useRef<Animated.Value | null>(null);
+  if (translateYRef.current === null) {
+    translateYRef.current = new Animated.Value(0);
+  }
+  const translateY = translateYRef.current;
 
   const wasVisibleRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -61,7 +70,16 @@ export const Notification = () => {
     hide();
   }, [hide]);
 
+  const clearAutoDismissTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
   const animateOut = useCallback(() => {
+    clearAutoDismissTimer();
+
     if (reduceMotion) {
       opacity.setValue(0);
       hideNotification();
@@ -81,7 +99,18 @@ export const Notification = () => {
     ]).start(({ finished }) => {
       if (finished) hideNotification();
     });
-  }, [reduceMotion, isBottom, opacity, translateY, hideNotification]);
+  }, [clearAutoDismissTimer, reduceMotion, isBottom, opacity, translateY, hideNotification]);
+
+  const handleActionPress = useCallback(() => {
+    const action = alert?.action;
+    if (!action) return;
+
+    try {
+      action.onPress();
+    } finally {
+      animateOut();
+    }
+  }, [alert?.action, animateOut]);
 
   // The auto-dismiss timer only needs the latest animateOut; wrapping it in an
   // Effect Event keeps it out of the deps so the effect doesn't re-run (and
@@ -202,6 +231,7 @@ export const Notification = () => {
   const message = alert?.messages?.find((item) => item.trim().length > 0);
   const title = getTitle(message);
   const hasMessage = !!message;
+  const action = alert?.action;
 
   if (!alert?.show) {
     return null;
@@ -256,6 +286,31 @@ export const Notification = () => {
             </StyledText>
           )}
         </View>
+
+        {action && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton,
+              {
+                borderColor: theme.colors.primary + "30",
+                backgroundColor: theme.colors.primary + "10",
+              },
+              pressed && styles.actionButtonPressed,
+            ]}
+            hitSlop={spacing.xs}
+            onPress={handleActionPress}
+            accessibilityLabel={action.label}
+            accessibilityRole="button"
+          >
+            <StyledText
+              selectable={false}
+              style={[styles.actionLabel, { color: theme.colors.primary }]}
+              numberOfLines={1}
+            >
+              {action.label}
+            </StyledText>
+          </Pressable>
+        )}
 
         {/* Close button */}
         <Pressable
@@ -320,6 +375,26 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   alertDescription: {
     fontFamily: fontFamilies.sansSerif.regular,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  actionButton: {
+    minHeight: 28,
+    maxWidth: 140,
+    paddingHorizontal: spacing.sm,
+    borderRadius: spacing.radiusSm,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
+    ...(Platform.OS === "web" && { cursor: "pointer" as any }),
+  },
+  actionButtonPressed: {
+    opacity: 0.75,
+  },
+  actionLabel: {
+    fontFamily: fontFamilies.sansSerif.regular,
+    fontWeight: "600",
     fontSize: 13,
     lineHeight: 18,
   },

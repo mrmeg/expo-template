@@ -46,5 +46,12 @@ coverage/
 
 
 CLAUDE.md
-Agent/
 .agents/
+
+# Agent framework: keep current docs and HTML plans durable, ignore other
+# generated or legacy Agent artifacts by default.
+Agent/*
+!Agent/Docs/
+!Agent/Docs/**
+!Agent/Plans/
+!Agent/Plans/**

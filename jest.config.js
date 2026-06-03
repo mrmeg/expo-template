@@ -13,6 +13,7 @@ module.exports = {
     "^@mrmeg/expo-ui/constants$": "<rootDir>/packages/ui/src/constants/index.ts",
     "^@mrmeg/expo-ui/hooks$": "<rootDir>/packages/ui/src/hooks/index.ts",
     "^@mrmeg/expo-ui/state$": "<rootDir>/packages/ui/src/state/index.ts",
+    "^@mrmeg/expo-ui/state/(.*)$": "<rootDir>/packages/ui/src/state/$1",
     "^@mrmeg/expo-ui/lib$": "<rootDir>/packages/ui/src/lib/index.ts",
     "^@mrmeg/expo-media$": "<rootDir>/packages/media/src/index.ts",
     "^@mrmeg/expo-media/client$": "<rootDir>/packages/media/src/client/index.ts",

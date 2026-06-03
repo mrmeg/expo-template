@@ -1,489 +1,99 @@
-# API Reference
-
-> Endpoints, schemas, auth patterns, and error handling.
-
-## API Routes (Expo Router Server)
-
-All routes live under `app/api/` and use the Expo Router `+api.ts` convention.
-
-Server middleware is enabled for API requests through `app/+middleware.ts`.
-The middleware runs before matched API route handlers and stamps
-`X-Expo-Router-Middleware: 1` on downstream responses. Keep it lightweight:
-do authentication, CORS, body parsing, and route-specific validation in the
-API route/helper layer unless every API request genuinely needs the work.
-
-### Template Server Pattern Endpoints
-
-Base path: `/api/template/*`. These endpoints support the Server Alpha demo
-and are intentionally small adoption probes for Expo Router's server runtime,
-middleware, API route, and data-loader path.
-They are reachable from Explore -> Server Alpha through the Matching API
-Routes controls, so they should stay tied to visible template behavior instead
-of becoming curl-only fixtures.
-
-#### GET `/api/template/status`
-
-Returns request-scoped server status. The body intentionally includes runtime
-metadata only, not environment variable values.
-
-**Response (200):**
-```json
-{
-  "ok": true,
-  "servedAt": "2026-05-05T12:00:00.000Z",
-  "request": {
-    "method": "GET",
-    "path": "/api/template/status",
-    "hasRequest": true,
-    "originHeader": "http://localhost:8081",
-    "userAgent": "..."
-  },
-  "runtime": {
-    "mode": "server",
-    "environment": null,
-    "origin": "http://localhost:8081",
-    "nodeEnv": "production"
-  }
-}
-```
-
-The route returns `Cache-Control: no-store`, supports OPTIONS preflight through
-the shared CORS helper, and is used by the `/(main)/(demos)/server-alpha`
-screen alongside that screen's route loader.
-
-#### GET `/api/template/examples`
-
-Returns the same server-pattern catalog that the Server Alpha overview route
-loader uses. This gives new projects both shapes to copy: SSR-loader data for
-first paint and API-route data for client refreshes.
-The Server Alpha screen's "Load catalog" action calls this route.
-
-**Response (200):**
-```json
-{
-  "status": { "ok": true },
-  "examples": [
-    {
-      "id": "dynamic-loader",
-      "label": "Dynamic Loader",
-      "route": "/server-alpha/dynamic-loader",
-      "apiPath": null,
-      "loaderPath": "/_expo/loaders/server-alpha/dynamic-loader"
-    }
-  ],
-  "generatedAt": "2026-05-05T12:00:00.000Z"
-}
-```
-
-#### POST `/api/template/echo`
-
-Echoes parsed JSON alongside request-scoped status. This exists to show that
-request body handling belongs in API routes, not middleware or loaders.
-The Server Alpha screen's "POST echo" action calls this route with a sample
-JSON payload.
-
-**Request:**
-```json
-{ "action": "preview", "count": 2 }
-```
-
-**Response (200):**
-```json
-{
-  "status": { "ok": true },
-  "echoedAt": "2026-05-05T12:00:00.000Z",
-  "body": { "action": "preview", "count": 2 }
-}
-```
-
-Invalid or empty JSON bodies are echoed as `null`.
-
-### Media Endpoints
-
-Base path: `/api/media/`. Routes are thin Expo Router wrappers over
-`@mrmeg/expo-media/server` through `server/media/handlers.ts`. The
-template adapter maps the existing `R2_JURISDICTION_SPECIFIC_URL`,
-`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_BUCKET` env vars into
-package config. Missing or whitespace-only values return `503
-media-disabled` with `{ code: "media-disabled", message, missing:
-string[] }` and never construct an S3 client. OPTIONS preflight succeeds
-even when storage is unconfigured, and the body never echoes credential
-values — only env-var names.
-
-#### POST `/api/media/getUploadUrl`
-
-Generate a presigned S3 URL for uploading a file.
-
-**Request:**
-```json
-{
-  "mediaType": "uploads",
-  "contentType": "image/jpeg",
-  "size": 12345,
-  "customFilename": "my-photo",
-  "metadata": {}
-}
-```
-
-**Response (200):**
-```json
-{
-  "uploadUrl": "https://s3.../presigned-url",
-  "key": "uploads/01HXYZ.jpg",
-  "expiresAt": "2024-01-01T00:05:00Z"
-}
-```
-
-- Upload URL expires in 5 minutes
-- Filenames use ULID by default
-- Server derives the extension from the approved `contentType`
-- `Content-Type` is included in the signed `PutObjectCommand`
-- `mediaType` must be configured in `server/media/config.ts`
-- Custom filenames are sanitized and only allowed by app policy
-- Clients cannot choose raw buckets, arbitrary prefixes, or unrestricted keys
-
-Typed upload errors include `invalid-media-type`, `invalid-content-type`,
-`oversized-file`, `custom-filename-forbidden`, `bad-key`, and
-`storage-failure`.
-
-#### POST `/api/media/getSignedUrls`
-
-Batch-generate presigned read URLs for existing files.
-
-**Request:**
-```json
-{
-  "keys": ["uploads/abc.jpg", "videos/xyz.mp4"],
-  "path": "uploads"  // optional prefix filter
-}
-```
-
-**Response (200):**
-```json
-{
-  "urls": {
-    "uploads/abc.jpg": "https://s3.../signed-read-url",
-    "videos/xyz.mp4": "https://s3.../signed-read-url"
-  }
-}
-```
-
-- Read URLs expire in 24 hours
-
-#### DELETE `/api/media/delete`
-
-Delete a single file from S3.
-
-**Query:** `?key=uploads/abc.jpg`
-
-**Response (200):**
-```json
-{ "success": true, "key": "uploads/abc.jpg" }
-```
-
-#### POST `/api/media/delete` (batch)
-
-Delete multiple files from S3.
-
-**Request:**
-```json
-{ "keys": ["uploads/abc.jpg", "uploads/def.png"] }
-```
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "deleted": ["uploads/abc.jpg", "uploads/def.png"],
-  "errors": []
-}
-```
-
-- Maximum 1000 keys per batch request
-- Keys are grouped by each resolved media type's configured bucket before
-  deletion. Mixed-bucket requests can partially succeed; in that case
-  `success` is `false`, `deleted` contains confirmed deletions, and `errors`
-  contains S3-reported or per-key bucket failure messages.
-
-#### GET `/api/media/list`
-
-List S3 objects within a configured media type prefix. Unscoped bucket-root
-listing is not allowed.
-
-**Query:** `?mediaType=uploads&limit=100&cursor=token`
-
-`prefix` is still accepted for narrower, already-configured paths such as
-`?mediaType=uploads&prefix=uploads/gallery`, or for compatibility when the
-prefix resolves to a configured media type. Unknown, empty, absolute,
-traversal, or cross-media-type prefixes return `400 bad-key`; omitting both
-`mediaType` and a valid configured prefix returns `400 bad-request`.
-
-**Response (200):**
-```json
-{
-  "items": [
-    { "key": "uploads/abc.jpg", "size": 12345, "lastModified": "..." }
-  ],
-  "totalCount": 42,
-  "nextCursor": "token-or-null"
-}
-```
-
-### Billing Endpoints (baseline, hosted-external)
-
-Base path: `/api/billing/`. These routes are the default Stripe
-subscription surface. See [`BILLING.md`](./BILLING.md) for the full
-architecture. The route files live in `app/api/billing/` and depend
-on the process-wide registry in `server/api/billing/registry.ts`;
-when the registry is unconfigured every route returns `503`
-`billing-disabled`.
-
-| Route | Method | Auth | Purpose |
-|-------|--------|------|---------|
-| `/api/billing/summary` | GET | Cognito bearer | Return normalized `BillingSummary` for the signed-in user |
-| `/api/billing/checkout-session` | POST | Cognito bearer | Create a Stripe Checkout Session in `subscription` mode; returns `{ url, expiresAt }` |
-| `/api/billing/portal-session` | POST | Cognito bearer | Create a Stripe Billing Portal session; returns `{ url }` |
-| `/api/billing/webhook` | POST | Stripe signature (no Cognito) | Receive Stripe events; server-authoritative state writes |
-
-**Authentication**: protected routes call `requireAuthenticatedUser`
-from `server/api/shared/auth.ts`. That helper extracts the bearer token,
-passes it to the process-wide `TokenVerifier`, and returns a
-`{ userId, email }` shape — or a structured 401 response when the
-header is missing, the scheme is not Bearer, the token is empty, no
-verifier is registered (fail closed), or verification throws.
-
-**Checkout body**:
-
-```ts
-type CheckoutBody = {
-  planId: string;              // from the plan catalog
-  interval: "month" | "year";
-  returnPath?: string;         // defaults to "/billing/return"
-};
-
-type CheckoutResponse = {
-  url: string;                 // Stripe Checkout Session URL
-  expiresAt: string | null;
-};
-```
-
-The server maps `{ planId, interval }` onto a server-owned Stripe
-price id. Clients MUST NOT send raw price ids — unknown plans return
-`400 unknown-plan` with the catalog's ids; plans missing a price for
-the requested interval return `422 configuration-missing`.
-
-**Portal body**:
-
-```ts
-type PortalBody = { returnPath?: string };
-type PortalResponse = { url: string };
-```
-
-Users with no Stripe customer return `409 no-customer`.
-
-**Typed error codes** (client `BillingProblem` union in
-`client/features/billing/lib/problem.ts`):
-
-| HTTP | `code` | Meaning |
-|------|--------|---------|
-| 401 | `unauthorized` | Missing/invalid bearer token |
-| 400 | `bad-request` | Malformed body |
-| 400 | `unknown-plan` | `planId` not in catalog (body includes `availablePlans`) |
-| 400 | `missing-signature` | Webhook without `Stripe-Signature` |
-| 400 | `invalid-signature` | Webhook signature rejected |
-| 409 | `billing-conflict` | Multiple Stripe customers match this user (body includes `candidateCustomerIds`) |
-| 409 | `no-customer` | Portal opened for a user with no Stripe customer |
-| 422 | `configuration-missing` | Plan has no price configured for the requested interval |
-| 503 | `billing-disabled` | Billing registry not configured on this server |
-| 500 | `server-error` | Unhandled server-side failure |
-| 500 | `webhook-handler-failed` | Webhook handler threw — Stripe will retry (event NOT marked processed) |
-
-**Webhook raw-body contract**: `webhook+api.ts` calls
-`request.text()` BEFORE any JSON parsing, so the bytes handed to the
-signature verifier match exactly what Stripe signed. Do not call
-`request.json()` on this route. If the Expo Server adapter ever
-inserts body-parsing middleware upstream, mount a dedicated Express
-raw-body route for `/api/billing/webhook` ahead of
-`createRequestHandler()`.
-
-**Idempotency**: the webhook route short-circuits duplicate
-deliveries via an in-memory `IdempotencyStore`
-(`server/api/billing/idempotency.ts`). Multi-instance
-deployments MUST swap this for a shared store (Redis, Postgres
-unique index) using `setWebhookIdempotencyStore(...)`. The handler
-is only marked processed on success — failures leave the event
-unmarked so Stripe's retries re-run it.
-
-**Rate limits**: `/api/billing/checkout-session` and
-`/api/billing/portal-session` are registered in `STRICT_LIMIT_PATHS`
-(10/min). The webhook is NOT strict-limited — Stripe retries burst
-faster than 10/min and its signature requirement already gates abuse.
-
-**Normalized summary shape** (canonical definition in
-`shared/billing.ts`):
-
-```ts
-interface BillingSummary {
-  customerId: string | null;
-  planId: string;
-  planLabel: string;
-  status: "free" | "trialing" | "active" | "past_due" | "canceled" | "incomplete";
-  interval: "month" | "year" | null;
-  currentPeriodEnd: string | null;
-  cancelAtPeriodEnd: boolean;
-  features: string[];
-  sourceUpdatedAt: string;
-}
-```
-
-The summary is keyed to the Cognito `sub`, not email. Raw Stripe IDs
-stay server-side; clients never read them. The server-side resolver
-(`server/api/billing/account.ts`) owns deterministic Stripe
-customer linking (metadata lookup → single-match email backfill →
-`CustomerConflictError` → create).
-
-**Rate limits:** `/api/billing/checkout-session` and
-`/api/billing/portal-session` are registered in `STRICT_LIMIT_PATHS`
-(10/min — see Rate Limiting table below). The webhook is intentionally not rate-limited
-since Stripe retries can burst faster and signature verification already
-gates abuse.
-
-**Return URL contract:** hosted sessions redirect to a single return
-path (`/billing/return`) with `status=success|cancel|portal`. Web uses
-`https://…/billing/return`; native uses `myapp://billing/return` via
-`expo-web-browser`'s `openAuthSessionAsync`. Client refetches the
-summary on return — the redirect is a UX hint, not proof of payment.
-
-### CORS
-
-All API routes handle OPTIONS preflight. CORS is configured in `server/api/shared/cors.ts`:
-
-- Allowed origins: configurable via `ALLOWED_ORIGINS` env var
-- Defaults: `http://localhost:8081`, `http://localhost:3000`
-- Headers: `Content-Type`, `Authorization`
-- Methods: `GET`, `POST`, `DELETE`, `OPTIONS` (DELETE is advertised globally so single-file media deletion works cross-origin; individual routes still choose which verbs to implement)
-- Preflight cache: 86400 seconds (24 hours)
-
-## Client API Layer
-
-### apiClient (`client/lib/api/apiClient.ts`)
-
-Typed fetch wrapper returning discriminated unions:
-
-```typescript
-type ApiResult<T> = ApiOk<T> | ApiProblem;
-
-// Success
-{ kind: "ok", data: T }
-
-// Errors
-{ kind: "timeout" }
-{ kind: "unauthorized" }
-{ kind: "forbidden" }
-{ kind: "not-found" }
-{ kind: "bad-data" }
-{ kind: "network-error" }
-{ kind: "server-error" }
-{ kind: "unknown", temporary: boolean }
-```
-
-**Usage:**
-```typescript
-import { api } from "@/client/lib/api";
-
-const result = await api.get<User[]>("/users");
-if (result.kind === "ok") {
-  // result.data is User[]
-}
-```
-
-Methods: `api.get()`, `api.post()`, `api.put()`, `api.patch()`, `api.delete()`
-
-**Retry behavior:**
-- 2 retries with exponential backoff
-- Does NOT retry on 401, 403, 404
-
-### authenticatedFetch (`client/lib/api/authenticatedFetch.ts`)
-
-Amplify-aware fetch that injects Cognito session tokens:
-
-```typescript
-import { authenticatedFetch } from "@/client/lib/api";
-
-const response = await authenticatedFetch("/api/protected-endpoint", {
-  method: "POST",
-  body: JSON.stringify(data),
-});
-```
-
-- Automatically retrieves token from `fetchAuthSession()`
-- Sets `Authorization: Bearer <token>` header
-
-## Production Server
-
-The default Bun server (`server.bun.ts`) provides these controls before handing
-unmatched requests to `expo-server/adapter/bun`. The Express fallback
-(`server/index.ts`) keeps the same route limits and security posture.
-
-### Rate Limiting
-
-| Scope | Limit | Window | Routes |
-|-------|-------|--------|--------|
-| General | 500 requests | 15 minutes | All `/api/*` |
-| Media signer | 60 requests | 1 minute | `/api/media/getUploadUrl` |
-| Strict | 10 requests | 1 minute | `/api/reports`, `/api/corrections`, `/api/billing/checkout-session`, `/api/billing/portal-session` |
-
-### Security Headers
-
-- `X-Content-Type-Options: nosniff`
-- `X-Frame-Options: DENY`
-- `Referrer-Policy: strict-origin-when-cross-origin`
-- `Permissions-Policy` (camera, microphone, geolocation disabled)
-- `Strict-Transport-Security` (prod only, 1 year max-age)
-- Request ID tracking (UUID per request)
-
-## Environment Variables
-
-| Variable | Purpose | Required |
-|----------|---------|----------|
-| `EXPO_PUBLIC_API_URL` | External API origin override | Optional — blank uses local `app/api/*` routes; the prod config falls back to a placeholder |
-| `EXPO_PUBLIC_USER_POOL_ID` | Cognito User Pool ID | Optional — set together with the client id to enable auth; setting just one warns at startup |
-| `EXPO_PUBLIC_USER_POOL_CLIENT_ID` | Cognito App Client ID | Optional — set together with the pool id to enable auth |
-| `EXPO_PUBLIC_SENTRY_DSN` | Sentry DSN | Optional |
-| `SENTRY_AUTH_TOKEN` | Sentry native upload auth token | Optional — set with org/project to upload native debug symbols and source maps |
-| `SENTRY_ORG` | Sentry organization slug | Optional — set with auth token/project for native upload |
-| `SENTRY_PROJECT` | Sentry project slug | Optional — set with auth token/org for native upload |
-| `EXPO_PUBLIC_BILLING_ENABLED` | Billing feature flag (`"true"` to enable) | Optional (default `false`) |
-| `EXPO_PUBLIC_APP_URL` | Absolute web origin for hosted-billing return URLs | Required when billing is enabled and the request origin is not the public origin |
-| `STRIPE_SECRET_KEY` | Stripe server SDK key | For billing |
-| `STRIPE_WEBHOOK_SECRET` | Stripe signature verification secret | For billing |
-| `STRIPE_PRICE_ID_<PLAN>_MONTH` | Monthly price id for `<plan>` in the catalog | For that plan's monthly option |
-| `STRIPE_PRICE_ID_<PLAN>_YEAR` | Yearly price id for `<plan>` in the catalog | For that plan's yearly option |
-| `ALLOWED_ORIGINS` | CORS origins (comma-separated) | Optional |
-| `PORT` | Server port (default 3000) | Optional |
-| AWS S3/R2 credentials | S3 bucket access | For media API |
-
-Billing is opt-in: with neither Stripe key set, every `/api/billing/*`
-route returns `503 billing-disabled` and no Stripe traffic is ever
-generated. Full setup walkthrough (products, prices, `stripe listen`
-webhook forwarding) lives in [`BILLING.md`](./BILLING.md#local-setup-fresh-stripe-account).
-
-## Shared Types (`shared/media.ts`)
-
-`shared/media.ts` is now a compatibility surface for template screens and
-legacy imports. The reusable contracts live in `@mrmeg/expo-media`, and the
-template's concrete media type config lives in `server/media/config.ts`.
-
-```typescript
-const MEDIA_PATHS = {
-  avatars: "users/avatars",
-  videos: "videos",
-  thumbnails: "thumbnails",
-  uploads: "uploads",
-};
-
-type MediaType = keyof typeof MEDIA_PATHS;  // "avatars" | "videos" | ...
-type MediaPath = typeof MEDIA_PATHS[MediaType];  // "users/avatars" | ...
-```
-
-Utility functions: `getVideoThumbnailKey()`, `isVideoKey()`, `isImageKey()`
+# API
+
+This template uses Expo Router API routes under `app/api/**/+api.ts`, with
+shared server helpers under `server/api/**`.
+
+## Route Families
+
+| Family | Routes | Purpose |
+|--------|--------|---------|
+| Template | `app/api/template/*+api.ts` | Server Alpha demo endpoints for status, examples, and echo |
+| Media | `app/api/media/*+api.ts` | Upload signing, read signing, listing, and deletion |
+| Billing | `app/api/billing/*+api.ts` | Stripe summary, checkout, portal, and webhook |
+
+`app/+middleware.ts` is enabled for API and Server Alpha routes. Keep it
+lightweight; route-specific auth, parsing, and validation belong in route
+helpers unless every route genuinely needs the work.
+
+## Shared Helpers
+
+| Concern | Source | Contract |
+|---------|--------|----------|
+| CORS | `server/api/shared/cors.ts` | OPTIONS support and allowed-origin headers |
+| Auth | `server/api/shared/auth.ts` | `requireAuthenticatedUser()` with pluggable token verifier |
+| Errors | `server/api/shared/errors.ts` | Typed JSON problem responses |
+| Rate limits | `server/rateLimits.js` | Shared limiter data for Bun and Express servers |
+
+Protected routes fail closed when auth is not configured. Missing or invalid
+bearer tokens return structured 401 responses.
+
+## Media API
+
+Media routes wrap `@mrmeg/expo-media/server` through app adapters in
+`server/media/`.
+
+Required storage env:
+
+- `R2_JURISDICTION_SPECIFIC_URL`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET`
+
+When these are missing, every media route returns `503 media-disabled` and the
+server does not construct an S3 client. OPTIONS preflight still succeeds.
+
+Key invariants:
+
+- Upload signing validates media type, content type, size, and configured
+  policy before returning a presigned URL.
+- Clients cannot choose arbitrary buckets, raw prefixes, or unrestricted keys.
+- Upload URLs expire quickly; read URLs are short-lived signed URLs.
+- Batch delete can partially succeed and must report confirmed deletions plus
+  per-key errors.
+- Production ignores the public media bypass; `EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA`
+  is local/demo-only.
+
+## Billing API
+
+Billing is the hosted-external Stripe baseline.
+
+| Route | Method | Auth | Notes |
+|-------|--------|------|-------|
+| `/api/billing/summary` | GET | Cognito bearer | Returns normalized `BillingSummary` |
+| `/api/billing/checkout-session` | POST | Cognito bearer | Creates Stripe Checkout session from server-owned price ids |
+| `/api/billing/portal-session` | POST | Cognito bearer | Creates Billing Portal session |
+| `/api/billing/webhook` | POST | Stripe signature | Uses raw request text before JSON parsing |
+
+When billing is unconfigured, routes return `503 billing-disabled` and no
+Stripe traffic is generated.
+
+Billing state is webhook-authoritative. Return URLs are UX signals only; client
+code refetches summary after returning from Checkout or Portal.
+
+## Client API Surface
+
+`client/lib/api/apiClient.ts` returns discriminated results for generic fetch
+work. It retries transient failures and does not retry 401, 403, or 404.
+
+`client/lib/api/authenticatedFetch.ts` injects Cognito tokens via Amplify and is
+the default for protected bundled feature calls.
+
+Feature-specific wrappers live in the feature folder, for example
+`client/features/billing/api.ts` and `client/features/media/mediaClient.ts`.
+They should normalize errors for UI code instead of leaking raw server shapes.
+
+## Server Runtime
+
+`server.bun.ts` is the default production server. It serves compressed static
+assets, applies security headers, handles CORS/rate limiting, and passes SSR
+requests to Expo Server.
+
+`server/index.ts` is the Express fallback and should preserve the same route
+limits and security posture.
+
+Rate limit data is centralized in `server/rateLimits.js`:
+
+- General `/api/*`: 500 requests per 15 minutes.
+- Media signer: `/api/media/getUploadUrl`, 60 requests per minute.
+- Strict side-effect routes: billing checkout/portal and legacy reports paths,
+  10 requests per minute.

@@ -224,7 +224,7 @@ All components are exported from `@mrmeg/expo-ui/components`; direct imports suc
 | `InputOTP` | Verification code entry | Multiple manually managed text inputs | Email codes, SMS codes, MFA, invite codes |
 | `Label` | Accessible form labels | Plain styled text labels | Required labels, disabled labels, field group labels |
 | `MaxWidthContainer` | Centered responsive width | Per-screen max-width wrappers | Web pages, tablet layouts, settings forms, auth panels |
-| `Notification` | Global toast surface | Screen-local toast state | Saved/error/sync notifications, loading toast, bottom-position alerts |
+| `Notification` | Global toast surface | Screen-local toast state | Saved/error/sync notifications, action toasts, loading toast, bottom-position alerts |
 | `Popover` | Anchored contextual content | Custom anchored views | Inline help, quick previews, contextual controls, small forms |
 | `Progress` | Determinate or indeterminate progress | Layout-shifting spinners for progress regions | Upload progress, onboarding completion, long-running task state |
 | `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows | Plan interval, visibility choice, survey answer, preference setting |
@@ -332,6 +332,10 @@ globalUIStore.getState().show({
   type: "success",
   title: "Saved",
   messages: ["Your changes were saved."],
+  action: {
+    label: "View",
+    onPress: openSavedItem,
+  },
 });
 ```
 

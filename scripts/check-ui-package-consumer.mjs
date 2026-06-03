@@ -65,6 +65,7 @@ async function assertInstalledExportFiles() {
     { entrypoint: "@mrmeg/expo-ui/hooks", key: "./hooks", wildcardReplacement: "" },
     { entrypoint: "@mrmeg/expo-ui/hooks/useTheme", key: "./hooks/*", wildcardReplacement: "useTheme" },
     { entrypoint: "@mrmeg/expo-ui/state", key: "./state", wildcardReplacement: "" },
+    { entrypoint: "@mrmeg/expo-ui/state/globalUIStore", key: "./state/*", wildcardReplacement: "globalUIStore" },
     { entrypoint: "@mrmeg/expo-ui/lib", key: "./lib", wildcardReplacement: "" },
   ];
 
@@ -199,6 +200,7 @@ try {
       "import { useTheme, useResources } from \"@mrmeg/expo-ui/hooks\";",
       "import { useTheme as useThemeLeaf } from \"@mrmeg/expo-ui/hooks/useTheme\";",
       "import { globalUIStore, useThemeStore } from \"@mrmeg/expo-ui/state\";",
+      "import { globalUIStore as directGlobalUIStore } from \"@mrmeg/expo-ui/state/globalUIStore\";",
       "import { configureExpoUiI18n, hapticLight } from \"@mrmeg/expo-ui/lib\";",
       "",
       "const publicSurface = {",
@@ -214,6 +216,7 @@ try {
       "  leafColors,",
       "  useThemeLeaf,",
       "  globalUIStore,",
+      "  directGlobalUIStore,",
       "  useThemeStore,",
       "  configureExpoUiI18n,",
       "  hapticLight,",

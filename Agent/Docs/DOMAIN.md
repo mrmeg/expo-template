@@ -1,210 +1,87 @@
-# Domain Model
+# Domain
 
-> Business entities, rules, and invariants.
+This repo is an app template, so the domain is a set of reusable product
+capabilities rather than one concrete business model. The important rules are
+the contracts adopters inherit.
 
-## Overview
+## Optional Feature Posture
 
-This is an **Expo app template** — a starter kit for building cross-platform apps. The domain is intentionally generic, providing foundational capabilities that concrete apps build upon.
+Auth, billing, media, and Sentry are optional. A blank `.env` should still let
+the template run and be explored.
 
-## Core Entities
+| Feature | Enabled by | Missing-env behavior |
+|---------|------------|----------------------|
+| Auth | `EXPO_PUBLIC_USER_POOL_ID` and `EXPO_PUBLIC_USER_POOL_CLIENT_ID` | `AuthGate` becomes a no-op |
+| Billing | Public billing flag plus server Stripe env | UI hides purchase actions; routes return `billing-disabled` |
+| Media | R2/S3 env vars | Media UI shows setup state; routes return `media-disabled` |
+| Sentry | `EXPO_PUBLIC_SENTRY_DSN` | Runtime tracking stays inert |
+| Native Sentry upload | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Config plugins are skipped |
 
-### User (Auth)
+## Identity
 
-Managed by AWS Cognito via Amplify.
+App identity lives in `app.identity.js` with TypeScript declarations in
+`app.identity.d.ts`. `app.config.ts` and runtime deep-link helpers both read
+from this source. Override name, slug, scheme, iOS bundle id, and Android
+package with `EXPO_PUBLIC_APP_*` env vars instead of editing many files.
 
-| Property | Type | Source |
-|----------|------|--------|
-| userId | string | Cognito sub |
-| email | string | Cognito attribute |
-| authState | `loading \| authenticated \| unauthenticated` | authStore |
-| session tokens | JWT | Amplify fetchAuthSession() |
+## Auth
 
-**Invariants:**
-- Auth state is determined by Amplify Hub listener (singleton init pattern)
-- State transitions throttled to 2-second minimum to prevent auth loops
-- Tokens auto-refreshed by Amplify SDK
-- `authStore` must be initialized once before any auth-dependent UI renders
+Auth is Cognito via Amplify. The client-facing user identity is the Cognito
+`sub` plus email. Protected screens use `AuthGate`; public screens stay
+browsable whether auth is enabled or not.
 
-### Media
+Rules:
 
-Files stored in S3/R2 with presigned URL access.
+- Configure both public Cognito env vars or neither.
+- Protected routes and billing/media server routes fail closed when auth is
+  required and no verifier is available.
+- Signing out on a protected tab replaces that tab with auth UI rather than
+  forcing navigation away from public surfaces.
 
-| Property | Type | Notes |
-|----------|------|-------|
-| key | string | S3 object key (e.g., `uploads/01HXYZ.jpg`) |
-| mediaType | MediaType | `avatars \| videos \| thumbnails \| uploads` |
-| size | number | File size in bytes |
-| lastModified | Date | S3 metadata |
+## Media
 
-**Invariants:**
-- Upload URLs expire in 5 minutes
-- Read URLs expire in 24 hours
-- Batch delete maximum: 1000 keys per request
-- Media list bulk delete sends selected visible keys through the batch delete route
-- Batch delete groups keys by each key's resolved media type bucket; partial
-  bucket failures keep confirmed deletions and return per-key errors
-- Video thumbnails derive path from video key (`videos/x.mp4` → `thumbnails/x.jpg`)
-- Deleting selected videos also deletes their generated thumbnail keys
-- Image compression happens client-side before upload through granular `@mrmeg/expo-media/processing/*` subpaths
-- If a compressed image is not smaller than the source asset, the upload uses the source asset instead
-- If optional web video conversion is not smaller than the source asset, the upload uses the source video instead
-- Upload signing validates `mediaType`, `contentType`, optional `size`, and policy before returning a URL
-- Clients cannot choose raw buckets or prefixes; keys must stay inside configured media type prefixes
-- Media listing requires a configured `mediaType` or a narrower prefix inside
-  one; an all-media view aggregates known media types client-side instead of
-  listing the bucket root
+Media files are stored in S3/R2-compatible storage and accessed through signed
+URLs. The server controls buckets, prefixes, key generation, allowed media
+types, and content-type policy.
 
-**Media Paths** (template compatibility surface in `shared/media.ts`, concrete server config in `server/media/config.ts`):
-| Path | Prefix | Purpose |
-|------|--------|---------|
-| avatars | `users/avatars` | User profile images |
-| videos | `videos` | Video uploads |
-| thumbnails | `thumbnails` | Auto-generated video thumbnails |
-| uploads | `uploads` | General file uploads |
+Rules:
 
-**Image Compression Defaults**
+- Clients request upload/read/delete/list operations through API routes, not
+  direct bucket credentials.
+- Upload signing validates the configured media type and content type.
+- Client-side compression should keep the original file when conversion does
+  not reduce size.
+- Video thumbnails derive from video keys and should be deleted with their
+  source video when selected.
+- All-media listing aggregates configured media types; it must not list the
+  bucket root.
 
-`client/features/media/mediaSettings.ts` owns app-wide media defaults.
-`client/features/media/stores/compressionStore.ts` initializes from those
-settings and resolves unspecified uploads to the configured default preset,
-currently `gallery`.
+## Billing
 
-| Preset | maxDimension | quality | maxSizeKB | minQuality | format |
-|---|---:|---:|---:|---:|---|
-| gallery | 2048 | 0.85 | 1000 | 0.65 | jpeg |
+Billing is Stripe hosted-external by default: Checkout for purchase, Billing
+Portal for management, and webhooks for authoritative state.
 
-`expo-image-picker` is called with `quality: 1`; package compression applies
-after picking. If the recompressed output is not smaller than the source asset,
-the upload keeps the source asset.
+Rules:
 
-### Theme Preference
+- Clients send plan ids and intervals, never raw Stripe price ids.
+- The server owns the plan catalog to price-id mapping.
+- Subscription state is keyed to Cognito `sub`, not email.
+- Webhook processing is authoritative; return URLs are UX hints.
+- Entitlement is derived through shared helpers from normalized billing state.
+- Native IAP, native PaymentSheet, tax, metered billing, seats, and invoices
+  are outside the baseline and need their own explicit mode.
 
-| Property | Type | Notes |
-|----------|------|-------|
-| mode | `system \| light \| dark` | User preference |
-| resolved | `light \| dark` | Actual applied theme |
+## Onboarding And Startup
 
-**Invariants:**
-- Persisted to AsyncStorage (native) / localStorage (web)
-- `system` mode follows OS preference
-- Web: `html[data-theme]` attribute synced for CSS
+`client/features/app/useAppStartup.ts` owns startup readiness. The splash stays
+up until resources, i18n, onboarding state, and optional auth bootstrap resolve.
 
-### Language Preference
+Onboarding is owned by the shell and rendered inline before the main Stack for
+first-run users. The demo route only showcases the same primitive.
 
-| Property | Type | Notes |
-|----------|------|-------|
-| language | `en \| es` | Currently supported |
-| isRTL | boolean | Derived from language |
+## Feature Isolation
 
-**Invariants:**
-- Default language detected from device locale
-- Translations lazy-loaded (only English bundled by default)
-- RTL layout forced via `I18nManager.forceRTL()` when applicable
-
-### Onboarding State
-
-| Property | Type | Notes |
-|----------|------|-------|
-| completed | boolean | Persisted |
-
-**Invariants:**
-- Once completed, never shown again (unless store is reset)
-- Persisted to AsyncStorage/localStorage
-- Onboarding is owned by the shell (`OnboardingGate`) and rendered inline by
-  `app/_layout.tsx` when `hasSeenOnboarding === false`. The main Stack never
-  mounts during first-run onboarding.
-
-### App Shell Contract
-
-Owned by `client/features/app/`. Governs startup sequencing and per-surface
-auth policy without coupling screens to auth internals.
-
-| Piece | Purpose |
-|-------|---------|
-| `isAuthEnabled()` | Env predicate — true iff both `EXPO_PUBLIC_USER_POOL_ID` and `EXPO_PUBLIC_USER_POOL_CLIENT_ID` are set |
-| `useAppStartup({fontsLoaded, i18nReady})` | Single readiness gate. Resolves only after fonts, i18n, onboarding-load, and (if auth is enabled) Amplify bootstrap have all completed |
-| `AuthGate` | Per-surface policy. No-op when auth is disabled; spinner while loading; inline `AuthScreen` when unauthenticated; children when authenticated |
-| `OnboardingGate` | First-run host for `OnboardingFlow`; flips `hasSeenOnboarding` on complete |
-
-**Invariants:**
-- Splash stays visible until `useAppStartup` reports `ready`
-- Protected surfaces (currently profile) wrap their exported default in
-  `<AuthGate>`; unprotected surfaces never do
-- Signing out from a protected tab replaces that tab's content with
-  `AuthScreen` inline — no forced navigation; unprotected tabs remain browsable
-- The template is fully explorable when auth env vars are absent
-
-### Subscription (Billing)
-
-Managed by Stripe under the template's `hosted-external` billing mode.
-See [`BILLING.md`](./BILLING.md) for the full architecture.
-
-| Property | Type | Source |
-|----------|------|--------|
-| state | `free \| trialing \| active \| past_due \| canceled \| incomplete` | Server webhook → normalized summary |
-| plan | string \| null | Server (Stripe price → plan name) |
-| currentPeriodEnd | ISO string \| null | Stripe |
-| cancelAtPeriodEnd | boolean | Stripe |
-
-**Invariants:**
-- **Stripe webhooks are the authoritative trigger** for any state
-  transition. Client-side "I came back from Checkout" signals are UX
-  hints, not state writes.
-- The subscription row is keyed to the **Cognito `sub`**, not email.
-  A user who changes their email never loses their subscription.
-- The client consumes a **normalized `BillingSummary`** only; raw Stripe
-  IDs stay server-side (`shared/billing.ts` defines the shape — see
-  `BillingSummary`, `freeBillingSummary`, `normalizeStripeSubscription`).
-- **Customer linking is deterministic.** The default
-  `BillingAccountResolver` (`server/api/billing/account.ts`) first
-  looks up Stripe customers by `metadata.appUserId`; if none, it
-  backfills metadata onto exactly one unclaimed email match; multiple
-  email matches throw `CustomerConflictError` rather than auto-linking;
-  otherwise it creates a fresh customer with
-  `metadata.appUserId = userId`. No fuzzy matching.
-- **Entitlement** = `state ∈ { trialing, active, past_due }`. Every
-  feature gate calls a shared entitlement helper, not `state` directly.
-- **Mode**: the template defaults to `hosted-external`. Adopters needing
-  `native-iap` or `native-paymentsheet` add a new mode — they do **not**
-  stretch the hosted flow onto platform-policy-sensitive surfaces.
-- Native purchase and portal handoffs use `expo-web-browser`'s
-  `openAuthSessionAsync` with the `myapp://billing/return` scheme.
-
-### Compression Settings
-
-| Property | Type | Notes |
-|----------|------|-------|
-| quality | number | Image compression quality |
-| maxWidth | number | Max resize width |
-| maxHeight | number | Max resize height |
-
-**Invariants:**
-- Presets available for different use cases
-- Applied client-side before upload
-
-## Business Rules
-
-### Feature Isolation
-- Features default to *self-contained* — only the shared layer (`@mrmeg/expo-ui/*`, `@mrmeg/expo-media/*`, `client/lib/*`, `client/hooks/*`, `client/state/*`, `shared/*`, `@rn-primitives`) is unconditionally importable.
-- Two named cross-feature edges are allowed and enforced by `scripts/check-feature-isolation.js` + the `featureIsolation.test.ts` suite:
-  - `app/` may import `auth/` and `onboarding/` (shell composition: `useAppStartup`, `OnboardingGate`, `AuthGate`).
-  - `billing/` may import `auth/` (identity-only — `useAuthStore` for the signed-in viewer; never auth UI).
-- All other features (`media`, `i18n`, `keyboard`, `navigation`, `onboarding`, `auth`) must not cross-import. Toast feedback uses `globalUIStore` from `@mrmeg/expo-ui/state` rather than a `notifications` feature.
-- This rule enables features to be added/removed independently. See `Agent/Docs/ARCHITECTURE.md#feature-isolation` for the full matrix.
-
-### API Error Handling
-- All API calls return discriminated unions (never throw)
-- Error types: `timeout`, `unauthorized`, `forbidden`, `not-found`, `bad-data`, `network-error`, `server-error`, `unknown`
-- 401/403/404 errors are NOT retried
-- Other errors retry twice with exponential backoff
-
-### Rate Limiting
-- General API: 500 requests / 15 minutes
-- Media upload URL signing: 60 requests / 1 minute
-- Sensitive side-effect endpoints (reports, corrections, billing sessions): 10 requests / 1 minute
-
-### Cross-Platform Storage
-- All persisted state MUST use platform-aware storage
-- Native: AsyncStorage
-- Web: localStorage
-- Stores abstract this via `Platform.OS` checks
+Feature folders should remain portable. Keep cross-feature imports limited to
+the allowed app-shell and billing-identity edges documented in
+`Agent/Docs/ARCHITECTURE.md`. Run `bun run check:features` after boundary
+changes.

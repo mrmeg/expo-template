@@ -101,7 +101,7 @@ Use this catalog before creating a new app-local primitive.
 | `InputOTP` | `@mrmeg/expo-ui/components` | Verification code entry | Prefer over manually managed text input groups. |
 | `Label` | `@mrmeg/expo-ui/components` | Accessible form labels | Use with package form controls. |
 | `MaxWidthContainer` | `@mrmeg/expo-ui/components` | Centered responsive width | Use for web and tablet constrained layouts. |
-| `Notification` | `@mrmeg/expo-ui/components` | Global toast surface | Trigger through `globalUIStore` with root `UIProvider`. |
+| `Notification` | `@mrmeg/expo-ui/components` | Global toast surface | Trigger through `globalUIStore` with root `UIProvider`; optional actions dismiss after press. |
 | `Popover` | `@mrmeg/expo-ui/components` | Anchored contextual content | Requires root `UIProvider` portal setup. |
 | `Progress` | `@mrmeg/expo-ui/components` | Determinate or indeterminate progress | Prefer over layout-shifting spinners for progress regions. |
 | `RadioGroup` | `@mrmeg/expo-ui/components` | Small mutually exclusive choices | Use `Select` for longer option sets. |

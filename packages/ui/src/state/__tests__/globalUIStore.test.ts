@@ -50,18 +50,28 @@ describe("globalUIStore", () => {
   });
 
   it("show() with optional fields", () => {
+    const onPress = jest.fn();
+
     globalUIStore.getState().show({
       type: "warning",
       title: "Warning",
       duration: 5000,
       loading: true,
       position: "bottom",
+      action: {
+        label: "Retry",
+        onPress,
+      },
     });
 
     const alert = globalUIStore.getState().alert;
     expect(alert!.duration).toBe(5000);
     expect(alert!.loading).toBe(true);
     expect(alert!.position).toBe("bottom");
+    expect(alert!.action).toEqual({
+      label: "Retry",
+      onPress,
+    });
   });
 
   it("calling show() again replaces the previous alert", () => {
