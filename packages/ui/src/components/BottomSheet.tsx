@@ -59,6 +59,10 @@ import {
 // Platform-specific overlay wrapper
 const FullWindowOverlay = Platform.OS === "ios" ? RNFullWindowOverlay : React.Fragment;
 
+// Floor for the keyboard-avoiding height shrink, so a tall keyboard on a short
+// screen can't collapse the sheet to nothing.
+const MIN_KEYBOARD_SHEET_HEIGHT = 220;
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -131,6 +135,10 @@ interface BottomSheetCloseProps {
 
 type BottomSheetPanelProps = ViewProps & {
   accessibilityViewIsModal?: boolean;
+  /** Animated sheet height — shrinks the sheet to fit above the keyboard. */
+  animatedHeight?: Animated.AnimatedInterpolation<number>;
+  /** Animated bottom offset — lifts the sheet to sit above the keyboard. */
+  animatedBottom?: Animated.Value;
   children: React.ReactNode;
   panHandlers?: ReturnType<typeof PanResponder.create>["panHandlers"];
   sheetStyle: ViewStyle;
@@ -165,6 +173,8 @@ const DragContext = createContext<DragContextValue | null>(null);
 
 function BottomSheetPanel({
   accessibilityViewIsModal,
+  animatedHeight,
+  animatedBottom,
   children,
   panHandlers,
   sheetStyle,
@@ -176,6 +186,10 @@ function BottomSheetPanel({
     <Animated.View
       style={[
         sheetStyle,
+        // Layout overrides (JS-driven) must come after sheetStyle so they win.
+        animatedBottom ? { bottom: animatedBottom } : undefined,
+        animatedHeight ? { height: animatedHeight } : undefined,
+        // Open/close + drag (native-driven) live on transform, a separate node.
         { transform: [{ translateY }] },
         styleOverride && typeof styleOverride !== "function"
           ? StyleSheet.flatten(styleOverride)
@@ -190,14 +204,47 @@ function BottomSheetPanel({
   );
 }
 
+/**
+ * Lifts the sheet above the keyboard while keeping its top edge on-screen.
+ *
+ * The naive approach translates the whole rigid box up by the keyboard height,
+ * which shoves the header (and any inputs near the top) off the top of the
+ * screen on tall sheets. Instead we lift the sheet's bottom to sit just above
+ * the keyboard and shrink its height by the same amount, so the top edge holds
+ * steady. The flex Body soaks up the lost height and scrolls, leaving the
+ * header, focused input, and footer all visible.
+ *
+ * This drives layout props (`bottom`/`height`) with a JS-driven keyboard value,
+ * intentionally separate from the native-driven open/close `translateY` — a
+ * single Animated.Value can't feed both a native transform and a JS layout
+ * prop, but distinct nodes on the same view can.
+ */
 function KeyboardAvoidingBottomSheetPanel(props: BottomSheetPanelProps) {
   const { height: keyboardHeight } = useBottomSheetKeyboardAnimation();
-  const composedTranslateY = useMemo(
-    () => Animated.add(props.translateY, keyboardHeight),
-    [keyboardHeight, props.translateY]
-  );
 
-  return <BottomSheetPanel {...props} translateY={composedTranslateY} />;
+  // sheetStyle.height is the resolved max snap height (a number, set by Content).
+  const baseHeight =
+    typeof props.sheetStyle.height === "number" ? props.sheetStyle.height : undefined;
+
+  const animatedHeight = useMemo(() => {
+    if (baseHeight === undefined) return undefined;
+    // keyboardHeight: 0 (closed) → keyboard px (open). Shrink the sheet by it,
+    // clamped to a usable minimum so it never collapses on short screens.
+    const shrunk = Animated.subtract(baseHeight, keyboardHeight);
+    return shrunk.interpolate({
+      inputRange: [MIN_KEYBOARD_SHEET_HEIGHT, baseHeight],
+      outputRange: [MIN_KEYBOARD_SHEET_HEIGHT, baseHeight],
+      extrapolate: "clamp",
+    });
+  }, [baseHeight, keyboardHeight]);
+
+  return (
+    <BottomSheetPanel
+      {...props}
+      animatedHeight={animatedHeight}
+      animatedBottom={keyboardHeight}
+    />
+  );
 }
 
 // ============================================================================
