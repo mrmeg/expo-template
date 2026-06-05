@@ -27,9 +27,9 @@ const path = require("path");
  */
 const ALLOWED_DEPENDENCIES = {
   app: {
-    allowed: ["auth", "onboarding"],
+    allowed: ["auth", "i18n", "keyboard", "onboarding"],
     reason:
-      "Shell composition layer — `useAppStartup`, `OnboardingGate`, and `AuthGate` orchestrate the auth and onboarding features at startup.",
+      "Shell composition layer — root startup owns auth, i18n bootstrap, keyboard provider wiring, and onboarding gates.",
   },
   billing: {
     allowed: ["auth"],
@@ -43,6 +43,7 @@ const ALLOWED_DEPENDENCIES = {
   i18n: { allowed: [], reason: "Self-contained." },
   navigation: { allowed: [], reason: "Self-contained." },
   keyboard: { allowed: [], reason: "Self-contained." },
+  "server-alpha": { allowed: [], reason: "Self-contained server/demo route pattern." },
 };
 
 const FEATURES_ROOT = path.join(__dirname, "..", "client", "features");

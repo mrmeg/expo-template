@@ -47,8 +47,9 @@ Allowed cross-feature edges are intentionally narrow:
 
 | Feature | May import from | Reason |
 |---------|-----------------|--------|
-| `app` | `auth`, `onboarding` | Shell startup and gates |
+| `app` | `auth`, `i18n`, `keyboard`, `onboarding` | Root startup, providers, bootstrap, and gates |
 | `billing` | `auth` | Identity for billing requests only |
+| `server-alpha` | none | Self-contained server/data-loader demo pattern |
 
 `scripts/check-feature-isolation.js` and
 `client/features/__tests__/featureIsolation.test.ts` enforce this contract.

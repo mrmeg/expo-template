@@ -8,7 +8,7 @@
  * regression here is what pushed tall sheets off the top of the screen.
  */
 
-import { Animated, Keyboard } from "react-native";
+import { Animated, Keyboard, type EmitterSubscription, type KeyboardEvent } from "react-native";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import { useBottomSheetKeyboardAnimation } from "../BottomSheetKeyboard";
 
@@ -18,19 +18,26 @@ function currentValue(value: Animated.Value): number {
 }
 
 function mockKeyboardListeners() {
-  const listeners: Record<string, (event: any) => void> = {};
-  jest.spyOn(Keyboard, "addListener").mockImplementation(((event: string, cb: any) => {
+  type KeyboardListenerEntry = Parameters<typeof Keyboard.addListener>;
+  const listeners: Partial<Record<KeyboardListenerEntry[0], KeyboardListenerEntry[1]>> =
+    {};
+  jest.spyOn(Keyboard, "addListener").mockImplementation((event, cb) => {
     listeners[event] = cb;
-    return { remove: jest.fn() };
-  }) as typeof Keyboard.addListener);
+    return { remove: jest.fn() } as unknown as EmitterSubscription;
+  });
   return {
     show: (height: number) =>
       (listeners.keyboardWillShow ?? listeners.keyboardDidShow)?.({
-        endCoordinates: { height },
+        endCoordinates: { height, screenX: 0, screenY: 0, width: 0 },
+        easing: "keyboard",
         duration: 10,
-      }),
+      } satisfies KeyboardEvent),
     hide: () =>
-      (listeners.keyboardWillHide ?? listeners.keyboardDidHide)?.({ duration: 10 }),
+      (listeners.keyboardWillHide ?? listeners.keyboardDidHide)?.({
+        duration: 10,
+        easing: "keyboard",
+        endCoordinates: { height: 0, screenX: 0, screenY: 0, width: 0 },
+      } satisfies KeyboardEvent),
   };
 }
 
