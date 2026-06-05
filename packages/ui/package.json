@@ -24,7 +24,8 @@
   "homepage": "https://github.com/mrmeg/expo-template/tree/main/packages/ui",
   "type": "module",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
