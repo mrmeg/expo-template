@@ -14,9 +14,9 @@ const trackedBlobUrls = new Set();
  * @param url - The blob URL to track
  */
 export function trackBlobUrl(url) {
-    if (url.startsWith("blob:")) {
-        trackedBlobUrls.add(url);
-    }
+  if (url.startsWith("blob:")) {
+    trackedBlobUrls.add(url);
+  }
 }
 /**
  * Revoke a single compressed image's blob URL to free memory.
@@ -25,17 +25,17 @@ export function trackBlobUrl(url) {
  * @param image - CompressedImage or URI string to revoke
  */
 export function revokeCompressedImage(image) {
-    const uri = typeof image === "string" ? image : image.uri;
-    if (uri.startsWith("blob:")) {
-        try {
-            URL.revokeObjectURL(uri);
-            trackedBlobUrls.delete(uri);
-            logDev(`[Web] Revoked blob URL: ${uri.substring(0, 50)}...`);
-        }
-        catch (error) {
-            logDev(`[Web] Failed to revoke blob URL: ${error}`);
-        }
+  const uri = typeof image === "string" ? image : image.uri;
+  if (uri.startsWith("blob:")) {
+    try {
+      URL.revokeObjectURL(uri);
+      trackedBlobUrls.delete(uri);
+      logDev(`[Web] Revoked blob URL: ${uri.substring(0, 50)}...`);
     }
+    catch (error) {
+      logDev(`[Web] Failed to revoke blob URL: ${error}`);
+    }
+  }
 }
 /**
  * Revoke multiple compressed images' blob URLs.
@@ -43,26 +43,26 @@ export function revokeCompressedImage(image) {
  * @param images - Array of CompressedImage objects or URI strings
  */
 export function cleanupCompressedImages(images) {
-    for (const image of images) {
-        revokeCompressedImage(image);
-    }
+  for (const image of images) {
+    revokeCompressedImage(image);
+  }
 }
 /**
  * Revoke all tracked blob URLs.
  * Useful for cleanup on unmount or when clearing image state.
  */
 export function revokeAllTrackedUrls() {
-    const count = trackedBlobUrls.size;
-    for (const url of trackedBlobUrls) {
-        try {
-            URL.revokeObjectURL(url);
-        }
-        catch {
-            // Ignore errors for already-revoked URLs
-        }
+  const count = trackedBlobUrls.size;
+  for (const url of trackedBlobUrls) {
+    try {
+      URL.revokeObjectURL(url);
     }
-    trackedBlobUrls.clear();
-    if (count > 0) {
-        logDev(`[Web] Revoked ${count} tracked blob URLs`);
+    catch {
+      // Ignore errors for already-revoked URLs
     }
+  }
+  trackedBlobUrls.clear();
+  if (count > 0) {
+    logDev(`[Web] Revoked ${count} tracked blob URLs`);
+  }
 }

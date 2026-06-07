@@ -90,11 +90,11 @@ export function Icon(props: IconProps) {
 
   const accessibilityProps: IconAccessibilityProps = decorative
     ? {
-        accessible: false,
-        importantForAccessibility: "no-hide-descendants",
-        accessibilityElementsHidden: true,
-        "aria-hidden": true,
-      }
+      accessible: false,
+      importantForAccessibility: "no-hide-descendants",
+      accessibilityElementsHidden: true,
+      "aria-hidden": true,
+    }
     : { accessible: true };
 
   const iconStyle = [style, { pointerEvents: "none" as const }];

@@ -355,10 +355,10 @@ export function createMediaHandlers<TAuth = unknown>(
         const key = item.Key ?? "";
         return key
           ? [{
-              key,
-              size: item.Size ?? 0,
-              lastModified: item.LastModified?.toISOString() ?? "",
-            }]
+            key,
+            size: item.Size ?? 0,
+            lastModified: item.LastModified?.toISOString() ?? "",
+          }]
           : [];
       });
       return json(request, options.cors, 200, {

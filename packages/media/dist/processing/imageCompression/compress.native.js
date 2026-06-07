@@ -10,28 +10,28 @@ import { calculateDimensions, getMimeType, reduceQuality, shouldContinueCompress
  * Map compression format config to expo-image-manipulator SaveFormat.
  */
 function getSaveFormat(format) {
-    switch (format) {
-        case "png":
-            return SaveFormat.PNG;
-        case "webp":
-            return SaveFormat.WEBP;
-        case "jpeg":
-        default:
-            return SaveFormat.JPEG;
-    }
+  switch (format) {
+  case "png":
+    return SaveFormat.PNG;
+  case "webp":
+    return SaveFormat.WEBP;
+  case "jpeg":
+  default:
+    return SaveFormat.JPEG;
+  }
 }
 /**
  * Get file size from a URI using expo-file-system.
  * Returns 0 if the file doesn't exist or can't be read.
  */
 function getFileSize(uri) {
-    try {
-        const file = new File(uri);
-        return file.size;
-    }
-    catch {
-        return 0;
-    }
+  try {
+    const file = new File(uri);
+    return file.size;
+  }
+  catch {
+    return 0;
+  }
 }
 /**
  * Compress an image using expo-image-manipulator.
@@ -47,48 +47,48 @@ function getFileSize(uri) {
  * @returns Promise resolving to CompressedImage with file URI and metadata
  */
 export async function compressImage(options) {
-    const { uri, width, height, config } = options;
-    const { targetWidth, targetHeight } = calculateDimensions(width, height, config.maxDimension);
-    const format = config.format || "jpeg";
-    const saveFormat = getSaveFormat(config.format);
-    logDev(`[Native] Compressing image: ${width}x${height} -> ${targetWidth}x${targetHeight}, quality: ${config.quality}, format: ${format}`);
-    let quality = config.quality;
-    // Perform initial compression
-    let result = await compressWithQuality(uri, targetWidth, targetHeight, width, height, saveFormat, quality);
-    let fileSize = getFileSize(result.uri);
-    // Progressive quality reduction to hit target size
-    while (shouldContinueCompression(fileSize, config.maxSizeKB, quality, config.minQuality)) {
-        quality = reduceQuality(quality);
-        logDev(`Image still ${formatFileSize(fileSize)} > ${config.maxSizeKB}KB, reducing quality to ${quality}`);
-        result = await compressWithQuality(uri, targetWidth, targetHeight, width, height, saveFormat, quality);
-        fileSize = getFileSize(result.uri);
-    }
-    logDev(`Compression complete: ${formatFileSize(fileSize)}, quality: ${quality}`);
-    return {
-        uri: result.uri,
-        width: result.width,
-        height: result.height,
-        mimeType: getMimeType(config.format),
-        size: fileSize,
-    };
+  const { uri, width, height, config } = options;
+  const { targetWidth, targetHeight } = calculateDimensions(width, height, config.maxDimension);
+  const format = config.format || "jpeg";
+  const saveFormat = getSaveFormat(config.format);
+  logDev(`[Native] Compressing image: ${width}x${height} -> ${targetWidth}x${targetHeight}, quality: ${config.quality}, format: ${format}`);
+  let quality = config.quality;
+  // Perform initial compression
+  let result = await compressWithQuality(uri, targetWidth, targetHeight, width, height, saveFormat, quality);
+  let fileSize = getFileSize(result.uri);
+  // Progressive quality reduction to hit target size
+  while (shouldContinueCompression(fileSize, config.maxSizeKB, quality, config.minQuality)) {
+    quality = reduceQuality(quality);
+    logDev(`Image still ${formatFileSize(fileSize)} > ${config.maxSizeKB}KB, reducing quality to ${quality}`);
+    result = await compressWithQuality(uri, targetWidth, targetHeight, width, height, saveFormat, quality);
+    fileSize = getFileSize(result.uri);
+  }
+  logDev(`Compression complete: ${formatFileSize(fileSize)}, quality: ${quality}`);
+  return {
+    uri: result.uri,
+    width: result.width,
+    height: result.height,
+    mimeType: getMimeType(config.format),
+    size: fileSize,
+  };
 }
 /**
  * Internal helper to perform compression with specific quality.
  */
 async function compressWithQuality(sourceUri, targetWidth, targetHeight, originalWidth, originalHeight, saveFormat, quality) {
-    const context = ImageManipulator.manipulate(sourceUri);
-    // Only resize if dimensions changed
-    if (targetWidth !== originalWidth || targetHeight !== originalHeight) {
-        context.resize({ width: targetWidth, height: targetHeight });
-    }
-    const imageRef = await context.renderAsync();
-    const result = await imageRef.saveAsync({
-        format: saveFormat,
-        compress: quality,
-    });
-    return {
-        uri: result.uri,
-        width: result.width,
-        height: result.height,
-    };
+  const context = ImageManipulator.manipulate(sourceUri);
+  // Only resize if dimensions changed
+  if (targetWidth !== originalWidth || targetHeight !== originalHeight) {
+    context.resize({ width: targetWidth, height: targetHeight });
+  }
+  const imageRef = await context.renderAsync();
+  const result = await imageRef.saveAsync({
+    format: saveFormat,
+    compress: quality,
+  });
+  return {
+    uri: result.uri,
+    width: result.width,
+    height: result.height,
+  };
 }

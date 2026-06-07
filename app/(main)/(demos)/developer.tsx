@@ -126,184 +126,184 @@ export default function DeveloperScreen() {
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
-        {/* Environment Info */}
-        <View style={[styles.section, getShadowStyle("subtle")]}>
-          <View style={styles.sectionHeader}>
-            <Icon name="settings" color={theme.colors.primary} size={20} />
-            <SansSerifBoldText style={styles.sectionTitle}>
+      {/* Environment Info */}
+      <View style={[styles.section, getShadowStyle("subtle")]}>
+        <View style={styles.sectionHeader}>
+          <Icon name="settings" color={theme.colors.primary} size={20} />
+          <SansSerifBoldText style={styles.sectionTitle}>
               Environment
-            </SansSerifBoldText>
-          </View>
-
-          <View style={styles.infoGrid}>
-            <InfoRow label="Mode" value={__DEV__ ? "Development" : "Production"} />
-            <InfoRow label="Platform" value={Platform.OS} />
-            <InfoRow label="Version" value={Platform.Version?.toString() ?? "N/A"} />
-            <InfoRow label="Theme" value={scheme ?? "system"} />
-            <InfoRow
-              label="Expo SDK"
-              value={Constants.expoConfig?.sdkVersion ?? "N/A"}
-            />
-            <InfoRow
-              label="App Version"
-              value={Constants.expoConfig?.version ?? "N/A"}
-            />
-          </View>
+          </SansSerifBoldText>
         </View>
 
-        {/* Configuration */}
-        <View style={[styles.section, getShadowStyle("subtle")]}>
-          <View style={styles.sectionHeader}>
-            <Icon name="settings" color={theme.colors.primary} size={20} />
-            <SansSerifBoldText style={styles.sectionTitle}>
+        <View style={styles.infoGrid}>
+          <InfoRow label="Mode" value={__DEV__ ? "Development" : "Production"} />
+          <InfoRow label="Platform" value={Platform.OS} />
+          <InfoRow label="Version" value={Platform.Version?.toString() ?? "N/A"} />
+          <InfoRow label="Theme" value={scheme ?? "system"} />
+          <InfoRow
+            label="Expo SDK"
+            value={Constants.expoConfig?.sdkVersion ?? "N/A"}
+          />
+          <InfoRow
+            label="App Version"
+            value={Constants.expoConfig?.version ?? "N/A"}
+          />
+        </View>
+      </View>
+
+      {/* Configuration */}
+      <View style={[styles.section, getShadowStyle("subtle")]}>
+        <View style={styles.sectionHeader}>
+          <Icon name="settings" color={theme.colors.primary} size={20} />
+          <SansSerifBoldText style={styles.sectionTitle}>
               Configuration
-            </SansSerifBoldText>
-          </View>
-
-          <View style={styles.infoGrid}>
-            <InfoRow label="API URL" value={Config.apiUrl || "(not set)"} />
-            <InfoRow label="API Timeout" value={`${Config.apiTimeout}ms`} />
-            <InfoRow label="Persist Navigation" value={Config.persistNavigation} />
-            <InfoRow label="Catch Errors" value={Config.catchErrors} />
-            <InfoRow label="Exit Routes" value={Config.exitRoutes.join(", ")} />
-          </View>
+          </SansSerifBoldText>
         </View>
 
-        {/* Storage Inspector */}
-        <View style={[styles.section, getShadowStyle("subtle")]}>
-          <View style={styles.sectionHeader}>
-            <Icon name="database" color={theme.colors.primary} size={20} />
-            <SansSerifBoldText style={styles.sectionTitle}>
+        <View style={styles.infoGrid}>
+          <InfoRow label="API URL" value={Config.apiUrl || "(not set)"} />
+          <InfoRow label="API Timeout" value={`${Config.apiTimeout}ms`} />
+          <InfoRow label="Persist Navigation" value={Config.persistNavigation} />
+          <InfoRow label="Catch Errors" value={Config.catchErrors} />
+          <InfoRow label="Exit Routes" value={Config.exitRoutes.join(", ")} />
+        </View>
+      </View>
+
+      {/* Storage Inspector */}
+      <View style={[styles.section, getShadowStyle("subtle")]}>
+        <View style={styles.sectionHeader}>
+          <Icon name="database" color={theme.colors.primary} size={20} />
+          <SansSerifBoldText style={styles.sectionTitle}>
               Storage Inspector
-            </SansSerifBoldText>
-          </View>
-
-          <View style={styles.buttonRow}>
-            <Button
-              preset="outline"
-              size="sm"
-              onPress={refreshStorage}
-              disabled={storageLoading}
-              style={styles.flex1}
-            >
-              <Icon name="refresh-cw" color={theme.colors.primary} size={14} />
-              <SansSerifText style={styles.buttonText}> Refresh</SansSerifText>
-            </Button>
-            <Button
-              preset="destructive"
-              size="sm"
-              onPress={clearStorage}
-              disabled={storageLoading || storageKeys.length === 0}
-              style={styles.flex1}
-            >
-              <Icon name="trash-2" color={theme.colors.destructiveForeground} size={14} />
-              <SansSerifText style={styles.buttonTextLight}> Clear All</SansSerifText>
-            </Button>
-          </View>
-
-          {storageKeys.length === 0 ? (
-            <View style={styles.emptyState}>
-              <SansSerifText style={styles.emptyText}>
-                {storageLoading ? "Loading..." : "No data in storage. Tap Refresh to scan."}
-              </SansSerifText>
-            </View>
-          ) : (
-            <View style={styles.storageList}>
-              {storageKeys.map((key) => (
-                <Pressable
-                  key={key}
-                  style={styles.storageItem}
-                  onPress={() => dispatchStorage({ type: "toggleExpanded", key })}
-                >
-                  <View style={styles.storageItemHeader}>
-                    <Icon
-                      name={expandedKey === key ? "chevron-down" : "chevron-right"}
-                      color={theme.colors.mutedForeground}
-                      size={16}
-                    />
-                    <SansSerifText style={styles.storageKey} numberOfLines={1}>
-                      {key}
-                    </SansSerifText>
-                  </View>
-                  {expandedKey === key && (
-                    <View style={styles.storageValue}>
-                      <SansSerifText style={styles.storageValueText}>
-                        {JSON.stringify(storageData[key], null, 2)}
-                      </SansSerifText>
-                    </View>
-                  )}
-                </Pressable>
-              ))}
-            </View>
-          )}
+          </SansSerifBoldText>
         </View>
 
-        {/* Auth Demo */}
-        <View style={[styles.section, getShadowStyle("subtle")]}>
-          <View style={styles.sectionHeader}>
-            <Icon name="lock" color={theme.colors.primary} size={20} />
-            <SansSerifBoldText style={styles.sectionTitle}>
-              Auth Demo
-            </SansSerifBoldText>
-          </View>
-
-          <SansSerifText style={styles.debugDescription}>
-            Test the authentication flow with Cognito integration.
-          </SansSerifText>
-
+        <View style={styles.buttonRow}>
           <Button
-            preset="default"
-            onPress={() => router.push("/(main)/(demos)/auth-demo" as any)}
-            fullWidth
+            preset="outline"
+            size="sm"
+            onPress={refreshStorage}
+            disabled={storageLoading}
+            style={styles.flex1}
           >
-            <Icon name="lock" color={theme.colors.primaryForeground} size={16} />
-            <SansSerifBoldText style={{ color: theme.colors.primaryForeground }}>
-              {" "}Open Auth Demo
-            </SansSerifBoldText>
+            <Icon name="refresh-cw" color={theme.colors.primary} size={14} />
+            <SansSerifText style={styles.buttonText}> Refresh</SansSerifText>
           </Button>
-        </View>
-
-        {/* Debug Tools */}
-        <View style={[styles.section, getShadowStyle("subtle")]}>
-          <View style={styles.sectionHeader}>
-            <Icon name="terminal" color={theme.colors.primary} size={20} />
-            <SansSerifBoldText style={styles.sectionTitle}>
-              Debug Tools
-            </SansSerifBoldText>
-          </View>
-
-          <SansSerifText style={styles.debugDescription}>
-            Test the ErrorBoundary by triggering a controlled error.
-          </SansSerifText>
-
           <Button
             preset="destructive"
-            onPress={triggerError}
-            fullWidth
+            size="sm"
+            onPress={clearStorage}
+            disabled={storageLoading || storageKeys.length === 0}
+            style={styles.flex1}
           >
-            <Icon name="alert-triangle" color={theme.colors.destructiveForeground} size={16} />
-            <SansSerifBoldText style={styles.buttonTextLight}>
-              {" "}Trigger Test Error
-            </SansSerifBoldText>
+            <Icon name="trash-2" color={theme.colors.destructiveForeground} size={14} />
+            <SansSerifText style={styles.buttonTextLight}> Clear All</SansSerifText>
           </Button>
+        </View>
 
-          <SansSerifText style={styles.debugHint}>
+        {storageKeys.length === 0 ? (
+          <View style={styles.emptyState}>
+            <SansSerifText style={styles.emptyText}>
+              {storageLoading ? "Loading..." : "No data in storage. Tap Refresh to scan."}
+            </SansSerifText>
+          </View>
+        ) : (
+          <View style={styles.storageList}>
+            {storageKeys.map((key) => (
+              <Pressable
+                key={key}
+                style={styles.storageItem}
+                onPress={() => dispatchStorage({ type: "toggleExpanded", key })}
+              >
+                <View style={styles.storageItemHeader}>
+                  <Icon
+                    name={expandedKey === key ? "chevron-down" : "chevron-right"}
+                    color={theme.colors.mutedForeground}
+                    size={16}
+                  />
+                  <SansSerifText style={styles.storageKey} numberOfLines={1}>
+                    {key}
+                  </SansSerifText>
+                </View>
+                {expandedKey === key && (
+                  <View style={styles.storageValue}>
+                    <SansSerifText style={styles.storageValueText}>
+                      {JSON.stringify(storageData[key], null, 2)}
+                    </SansSerifText>
+                  </View>
+                )}
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Auth Demo */}
+      <View style={[styles.section, getShadowStyle("subtle")]}>
+        <View style={styles.sectionHeader}>
+          <Icon name="lock" color={theme.colors.primary} size={20} />
+          <SansSerifBoldText style={styles.sectionTitle}>
+              Auth Demo
+          </SansSerifBoldText>
+        </View>
+
+        <SansSerifText style={styles.debugDescription}>
+            Test the authentication flow with Cognito integration.
+        </SansSerifText>
+
+        <Button
+          preset="default"
+          onPress={() => router.push("/(main)/(demos)/auth-demo" as any)}
+          fullWidth
+        >
+          <Icon name="lock" color={theme.colors.primaryForeground} size={16} />
+          <SansSerifBoldText style={{ color: theme.colors.primaryForeground }}>
+            {" "}Open Auth Demo
+          </SansSerifBoldText>
+        </Button>
+      </View>
+
+      {/* Debug Tools */}
+      <View style={[styles.section, getShadowStyle("subtle")]}>
+        <View style={styles.sectionHeader}>
+          <Icon name="terminal" color={theme.colors.primary} size={20} />
+          <SansSerifBoldText style={styles.sectionTitle}>
+              Debug Tools
+          </SansSerifBoldText>
+        </View>
+
+        <SansSerifText style={styles.debugDescription}>
+            Test the ErrorBoundary by triggering a controlled error.
+        </SansSerifText>
+
+        <Button
+          preset="destructive"
+          onPress={triggerError}
+          fullWidth
+        >
+          <Icon name="alert-triangle" color={theme.colors.destructiveForeground} size={16} />
+          <SansSerifBoldText style={styles.buttonTextLight}>
+            {" "}Trigger Test Error
+          </SansSerifBoldText>
+        </Button>
+
+        <SansSerifText style={styles.debugHint}>
             The ErrorBoundary will catch this and show the error screen.
             Use the "Try Again" button to reset.
-          </SansSerifText>
+        </SansSerifText>
 
-          {__DEV__ && (
-            <View style={styles.reactotronNote}>
-              <SansSerifBoldText style={styles.reactotronTitle}>
+        {__DEV__ && (
+          <View style={styles.reactotronNote}>
+            <SansSerifBoldText style={styles.reactotronTitle}>
                 Reactotron
-              </SansSerifBoldText>
-              <SansSerifText style={styles.reactotronText}>
+            </SansSerifBoldText>
+            <SansSerifText style={styles.reactotronText}>
                 Reactotron is enabled in development. Open the Reactotron app to see logs,
                 network requests, and AsyncStorage data.
-              </SansSerifText>
-            </View>
-          )}
-        </View>
+            </SansSerifText>
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 }

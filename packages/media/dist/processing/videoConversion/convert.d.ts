@@ -17,9 +17,9 @@ import type { VideoConversionOptions, VideoConversionResult } from "./types";
  * hang.
  */
 export declare class FFmpegWorkerUnavailableError extends Error {
-    readonly url: string;
-    readonly status?: number;
-    constructor(url: string, status?: number, message?: string);
+  readonly url: string;
+  readonly status?: number;
+  constructor(url: string, status?: number, message?: string);
 }
 /**
  * Convert a video to MP4 (H.264/AAC) format

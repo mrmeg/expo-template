@@ -15,9 +15,9 @@ const trackedFileUris = new Set();
  * @param uri - The file URI to track
  */
 export function trackFileUri(uri) {
-    if (uri.startsWith("file://")) {
-        trackedFileUris.add(uri);
-    }
+  if (uri.startsWith("file://")) {
+    trackedFileUris.add(uri);
+  }
 }
 export const trackBlobUrl = trackFileUri;
 /**
@@ -27,20 +27,20 @@ export const trackBlobUrl = trackFileUri;
  * @param image - CompressedImage or URI string to delete
  */
 export function revokeCompressedImage(image) {
-    const uri = typeof image === "string" ? image : image.uri;
-    if (uri.startsWith("file://")) {
-        try {
-            const file = new File(uri);
-            if (file.exists) {
-                file.delete();
-                logDev(`[Native] Deleted compressed file: ${uri.substring(uri.lastIndexOf("/") + 1)}`);
-            }
-            trackedFileUris.delete(uri);
-        }
-        catch (error) {
-            logDev(`[Native] Failed to delete file: ${error}`);
-        }
+  const uri = typeof image === "string" ? image : image.uri;
+  if (uri.startsWith("file://")) {
+    try {
+      const file = new File(uri);
+      if (file.exists) {
+        file.delete();
+        logDev(`[Native] Deleted compressed file: ${uri.substring(uri.lastIndexOf("/") + 1)}`);
+      }
+      trackedFileUris.delete(uri);
     }
+    catch (error) {
+      logDev(`[Native] Failed to delete file: ${error}`);
+    }
+  }
 }
 /**
  * Delete multiple compressed image files.
@@ -48,30 +48,30 @@ export function revokeCompressedImage(image) {
  * @param images - Array of CompressedImage objects or URI strings
  */
 export function cleanupCompressedImages(images) {
-    for (const image of images) {
-        revokeCompressedImage(image);
-    }
+  for (const image of images) {
+    revokeCompressedImage(image);
+  }
 }
 /**
  * Delete all tracked compressed files.
  * Useful for cleanup on unmount or when clearing image state.
  */
 export function revokeAllTrackedFiles() {
-    const count = trackedFileUris.size;
-    for (const uri of trackedFileUris) {
-        try {
-            const file = new File(uri);
-            if (file.exists) {
-                file.delete();
-            }
-        }
-        catch {
-            // Ignore errors for already-deleted files
-        }
+  const count = trackedFileUris.size;
+  for (const uri of trackedFileUris) {
+    try {
+      const file = new File(uri);
+      if (file.exists) {
+        file.delete();
+      }
     }
-    trackedFileUris.clear();
-    if (count > 0) {
-        logDev(`[Native] Deleted ${count} tracked compressed files`);
+    catch {
+      // Ignore errors for already-deleted files
     }
+  }
+  trackedFileUris.clear();
+  if (count > 0) {
+    logDev(`[Native] Deleted ${count} tracked compressed files`);
+  }
 }
 export const revokeAllTrackedUrls = revokeAllTrackedFiles;

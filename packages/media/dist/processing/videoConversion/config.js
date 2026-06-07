@@ -8,21 +8,21 @@
  * - quality: Slow conversion, smaller file size, best quality
  */
 export const CONVERSION_PRESETS = {
-    fast: {
-        ffmpegPreset: "ultrafast",
-        crf: 28,
-        description: "Quick conversion, larger file",
-    },
-    balanced: {
-        ffmpegPreset: "medium",
-        crf: 23,
-        description: "Balanced speed and quality",
-    },
-    quality: {
-        ffmpegPreset: "slow",
-        crf: 18,
-        description: "Best quality, slower conversion",
-    },
+  fast: {
+    ffmpegPreset: "ultrafast",
+    crf: 28,
+    description: "Quick conversion, larger file",
+  },
+  balanced: {
+    ffmpegPreset: "medium",
+    crf: 23,
+    description: "Balanced speed and quality",
+  },
+  quality: {
+    ffmpegPreset: "slow",
+    crf: 18,
+    description: "Best quality, slower conversion",
+  },
 };
 /**
  * Default preset to use

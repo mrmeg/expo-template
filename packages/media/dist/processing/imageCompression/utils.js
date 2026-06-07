@@ -12,22 +12,22 @@
  * @returns Target dimensions maintaining aspect ratio
  */
 export function calculateDimensions(width, height, maxDimension) {
-    if (!maxDimension || (width <= maxDimension && height <= maxDimension)) {
-        return { targetWidth: width, targetHeight: height };
-    }
-    const aspectRatio = width / height;
-    if (width > height) {
-        return {
-            targetWidth: maxDimension,
-            targetHeight: Math.round(maxDimension / aspectRatio),
-        };
-    }
-    else {
-        return {
-            targetWidth: Math.round(maxDimension * aspectRatio),
-            targetHeight: maxDimension,
-        };
-    }
+  if (!maxDimension || (width <= maxDimension && height <= maxDimension)) {
+    return { targetWidth: width, targetHeight: height };
+  }
+  const aspectRatio = width / height;
+  if (width > height) {
+    return {
+      targetWidth: maxDimension,
+      targetHeight: Math.round(maxDimension / aspectRatio),
+    };
+  }
+  else {
+    return {
+      targetWidth: Math.round(maxDimension * aspectRatio),
+      targetHeight: maxDimension,
+    };
+  }
 }
 /**
  * Get MIME type from compression format.
@@ -36,15 +36,15 @@ export function calculateDimensions(width, height, maxDimension) {
  * @returns MIME type string
  */
 export function getMimeType(format) {
-    switch (format) {
-        case "png":
-            return "image/png";
-        case "webp":
-            return "image/webp";
-        case "jpeg":
-        default:
-            return "image/jpeg";
-    }
+  switch (format) {
+  case "png":
+    return "image/png";
+  case "webp":
+    return "image/webp";
+  case "jpeg":
+  default:
+    return "image/jpeg";
+  }
 }
 /**
  * Calculate the next quality step for progressive compression.
@@ -54,7 +54,7 @@ export function getMimeType(format) {
  * @returns Next quality value
  */
 export function reduceQuality(currentQuality) {
-    return Math.round((currentQuality - 0.05) * 100) / 100;
+  return Math.round((currentQuality - 0.05) * 100) / 100;
 }
 /**
  * Check if file size exceeds max size and quality can still be reduced.
@@ -66,10 +66,10 @@ export function reduceQuality(currentQuality) {
  * @returns true if compression should continue
  */
 export function shouldContinueCompression(fileSize, maxSizeKB, currentQuality, minQuality) {
-    if (!maxSizeKB)
-        return false;
-    const maxSizeBytes = maxSizeKB * 1024;
-    return fileSize > maxSizeBytes && currentQuality > minQuality;
+  if (!maxSizeKB)
+    return false;
+  const maxSizeBytes = maxSizeKB * 1024;
+  return fileSize > maxSizeBytes && currentQuality > minQuality;
 }
 /**
  * Check whether a processed file should replace its source asset.
@@ -80,13 +80,13 @@ export function shouldContinueCompression(fileSize, maxSizeKB, currentQuality, m
  * reduce upload cost.
  */
 export function shouldUseProcessedFile(sourceSize, processedSize) {
-    return sourceSize <= 0 || processedSize < sourceSize;
+  return sourceSize <= 0 || processedSize < sourceSize;
 }
 /**
  * Check whether a compressed image should replace the source asset.
  */
 export function shouldUseCompressedImage(sourceSize, compressedSize) {
-    return shouldUseProcessedFile(sourceSize, compressedSize);
+  return shouldUseProcessedFile(sourceSize, compressedSize);
 }
 /**
  * Format file size for logging.
@@ -95,8 +95,8 @@ export function shouldUseCompressedImage(sourceSize, compressedSize) {
  * @returns Formatted string (e.g., "150KB" or "1.5MB")
  */
 export function formatFileSize(bytes) {
-    if (bytes >= 1024 * 1024) {
-        return `${(bytes / 1024 / 1024).toFixed(2)}MB`;
-    }
-    return `${(bytes / 1024).toFixed(0)}KB`;
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / 1024 / 1024).toFixed(2)}MB`;
+  }
+  return `${(bytes / 1024).toFixed(0)}KB`;
 }

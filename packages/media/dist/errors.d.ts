@@ -17,8 +17,8 @@ export type MediaProblem = {
     message: string;
 };
 export declare class MediaError extends Error {
-    readonly problem: MediaProblem;
-    constructor(problem: MediaProblem);
+  readonly problem: MediaProblem;
+  constructor(problem: MediaProblem);
 }
 export declare function toMediaError(response: Response): Promise<MediaError>;
 export declare function isMediaError(error: unknown): error is MediaError;
