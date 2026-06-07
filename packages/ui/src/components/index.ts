@@ -21,6 +21,7 @@ export * from "./Notification";
 export * from "./Popover";
 export * from "./Progress";
 export * from "./RadioGroup";
+export * from "./SegmentedControl";
 export * from "./Select";
 export * from "./Separator";
 export * from "./Skeleton";

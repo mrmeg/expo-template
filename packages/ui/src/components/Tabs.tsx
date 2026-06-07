@@ -148,6 +148,10 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
 
   const triggerBaseStyle: ViewStyle = {
     flex: 1,
+    // Allow the trigger to shrink below its content's intrinsic width so long
+    // labels are constrained to the trigger's flex share (and can ellipsize)
+    // instead of overflowing and clipping at the screen edge.
+    minWidth: 0,
     height: Platform.OS === "web" ? sizeConfig.height : spacing.touchTarget,
     paddingHorizontal: sizeConfig.paddingHorizontal,
     flexDirection: "row",
@@ -222,10 +226,17 @@ const TabsTrigger = TabsTriggerInner;
  * </Tabs.Trigger>
  * ```
  */
-function TabsTriggerText({ style, ...props }: React.ComponentProps<typeof StyledText>) {
+function TabsTriggerText({ style, numberOfLines = 1, ...props }: React.ComponentProps<typeof StyledText>) {
   const { size } = useTabsContext();
   const { fontSize } = SIZE_CONFIGS[size];
-  return <StyledText selectable={false} style={[{ fontSize }, style]} {...props} />;
+  return (
+    <StyledText
+      selectable={false}
+      numberOfLines={numberOfLines}
+      style={[{ fontSize, flexShrink: 1 }, style]}
+      {...props}
+    />
+  );
 }
 
 // ============================================================================
@@ -257,6 +268,10 @@ const triggerContentStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.xs,
+    // Shrink with the trigger (paired with the trigger's minWidth:0) so a long
+    // label ellipsizes rather than forcing the trigger wider than its share.
+    flexShrink: 1,
+    minWidth: 0,
   },
 });
 

@@ -39,6 +39,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGr
 import { RadioGroup, RadioGroupItem } from "@mrmeg/expo-ui/components/RadioGroup";
 import { Progress } from "@mrmeg/expo-ui/components/Progress";
 import { Slider } from "@mrmeg/expo-ui/components/Slider";
+import { SegmentedControl } from "@mrmeg/expo-ui/components/SegmentedControl";
 import { InputOTP } from "@mrmeg/expo-ui/components/InputOTP";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@mrmeg/expo-ui/components/Card";
@@ -141,102 +142,6 @@ function useShowcaseScreenContent() {
             </Link>
           </View>
 
-          {/* ============================================ */}
-          {/* BUTTONS                                      */}
-          {/* ============================================ */}
-
-          <Section title="Button Presets">
-            <SubSection label="Default">
-              <Button preset="default" text="Default Button" onPress={() => console.log("Default pressed")} />
-            </SubSection>
-
-            <SubSection label="Secondary">
-              <Button preset="secondary" text="Secondary Button" onPress={() => console.log("Secondary pressed")} />
-            </SubSection>
-
-            <SubSection label="Outline">
-              <Button preset="outline" text="Outline Button" onPress={() => console.log("Outline pressed")} />
-            </SubSection>
-
-            <SubSection label="Ghost">
-              <Button preset="ghost" text="Ghost Button" onPress={() => console.log("Ghost pressed")} />
-            </SubSection>
-
-            <SubSection label="Link">
-              <Button preset="link" text="Link Button" onPress={() => console.log("Link pressed")} />
-            </SubSection>
-
-            <SubSection label="Destructive">
-              <Button preset="destructive" text="Destructive Button" onPress={() => console.log("Destructive pressed")} />
-            </SubSection>
-          </Section>
-
-          <ButtonStatesSection styles={styles} />
-
-          <Section title="Button Sizes">
-            <SubSection label="Small">
-              <Button preset="default" size="sm" onPress={() => { }}>
-                <StyledText style={styles.buttonText}>Small</StyledText>
-              </Button>
-            </SubSection>
-
-            <SubSection label="Default">
-              <Button preset="default" onPress={() => { }}>
-                <StyledText style={styles.buttonText}>Default</StyledText>
-              </Button>
-            </SubSection>
-
-            <SubSection label="Large">
-              <Button preset="default" size="lg" onPress={() => { }}>
-                <StyledText style={styles.buttonText}>Large</StyledText>
-              </Button>
-            </SubSection>
-          </Section>
-
-          <Section title="With Icons">
-            <SubSection label="Left Icon">
-              <Button preset="default" onPress={() => { }}>
-                <Icon name="heart" size={16} color={theme.colors.primaryForeground} />
-                <StyledText style={[styles.buttonText, { marginLeft: spacing.xs }]}>
-                  With Left Icon
-                </StyledText>
-              </Button>
-            </SubSection>
-
-            <SubSection label="Right Icon">
-              <Button preset="outline" onPress={() => { }}>
-                <StyledText style={[styles.outlineButtonText, { marginRight: spacing.xs }]}>
-                  Continue
-                </StyledText>
-                <Icon name="arrow-right" size={16} color={theme.colors.primary} />
-              </Button>
-            </SubSection>
-
-            <SubSection label="Icon Only">
-              <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Button preset="default" onPress={() => { }}>
-                  <Icon name="heart" size={18} color={theme.colors.primaryForeground} />
-                </Button>
-                <Button preset="outline" onPress={() => { }}>
-                  <Icon name="heart" size={18} color={theme.colors.primary} />
-                </Button>
-                <Button preset="ghost" onPress={() => { }}>
-                  <Icon name="heart" size={18} color={theme.colors.foreground} />
-                </Button>
-              </View>
-            </SubSection>
-          </Section>
-
-          {/* ============================================ */}
-          {/* FORMS                                        */}
-          {/* ============================================ */}
-
-          <FormControlsSections styles={styles} />
-
-          {/* ============================================ */}
-          {/* NAVIGATION                                   */}
-          {/* ============================================ */}
-
           <Section title="Accordion">
             <Accordion type="single" collapsible>
               <AccordionItem value="item-1">
@@ -273,57 +178,334 @@ function useShowcaseScreenContent() {
             </Accordion>
           </Section>
 
-          <Section title="Popover">
-            <SubSection label="Side Positioning">
-              <View style={styles.buttonRow}>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button preset="default" size="sm" style={styles.smallButton}>
-                      <StyledText style={styles.smallButtonText}>Top</StyledText>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent side="top" align="center">
-                    <PopoverBody>
-                      <StyledText style={styles.labelText}>Popover on top</StyledText>
-                    </PopoverBody>
-                  </PopoverContent>
-                </Popover>
-
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button preset="default" size="sm" style={styles.smallButton}>
-                      <StyledText style={styles.smallButtonText}>Bottom</StyledText>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent side="bottom" align="center">
-                    <PopoverBody>
-                      <StyledText style={styles.labelText}>Popover on bottom</StyledText>
-                    </PopoverBody>
-                  </PopoverContent>
-                </Popover>
-              </View>
+          <Section title="Alert">
+            <SubSection label="Simple Alert">
+              <Button
+                preset="default"
+                onPress={() =>
+                  Alert.show({
+                    message: "This is a simple alert message",
+                  })
+                }
+              >
+                <StyledText style={styles.buttonText}>Show Simple Alert</StyledText>
+              </Button>
             </SubSection>
 
-            <SubSection label="Real-World Example: User Info Card">
-              <Popover>
-                <PopoverTrigger asChild>
+            <SubSection label="Alert with Title">
+              <Button
+                preset="outline"
+                onPress={() =>
+                  Alert.show({
+                    title: "Important",
+                    message: "This alert has a title and a message",
+                  })
+                }
+              >
+                <StyledText style={styles.outlineButtonText}>Show Alert with Title</StyledText>
+              </Button>
+            </SubSection>
+
+            <SubSection label="Confirmation Alert">
+              <Button
+                preset="outline"
+                onPress={() =>
+                  Alert.show({
+                    title: "Delete Item",
+                    message: "Are you sure you want to delete this item?",
+                    buttons: [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: () => {
+                          globalUIStore.getState().show({
+                            type: "success",
+                            title: "Deleted",
+                            messages: ["Item has been deleted"],
+                            duration: 2000,
+                          });
+                        },
+                      },
+                    ],
+                  })
+                }
+              >
+                <StyledText style={styles.outlineButtonText}>Show Confirmation</StyledText>
+              </Button>
+            </SubSection>
+          </Section>
+
+          <AnimatedViewSection theme={theme} />
+
+          <AuthFormsSection styles={styles} />
+
+          <Section title="Badge">
+            <SubSection label="Variants">
+              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                <Badge text="Default" />
+                <Badge variant="secondary" text="Secondary" />
+                <Badge variant="outline" text="Outline" />
+                <Badge variant="destructive" text="Destructive" />
+              </View>
+            </SubSection>
+          </Section>
+
+          <BottomSheetSection styles={styles} theme={theme} />
+
+          <Section title="Button Presets">
+            <SubSection label="Default">
+              <Button preset="default" text="Default Button" onPress={() => console.log("Default pressed")} />
+            </SubSection>
+
+            <SubSection label="Secondary">
+              <Button preset="secondary" text="Secondary Button" onPress={() => console.log("Secondary pressed")} />
+            </SubSection>
+
+            <SubSection label="Outline">
+              <Button preset="outline" text="Outline Button" onPress={() => console.log("Outline pressed")} />
+            </SubSection>
+
+            <SubSection label="Ghost">
+              <Button preset="ghost" text="Ghost Button" onPress={() => console.log("Ghost pressed")} />
+            </SubSection>
+
+            <SubSection label="Link">
+              <Button preset="link" text="Link Button" onPress={() => console.log("Link pressed")} />
+            </SubSection>
+
+            <SubSection label="Destructive">
+              <Button preset="destructive" text="Destructive Button" onPress={() => console.log("Destructive pressed")} />
+            </SubSection>
+          </Section>
+
+          <Section title="Button Sizes">
+            <SubSection label="Small">
+              <Button preset="default" size="sm" onPress={() => { }}>
+                <StyledText style={styles.buttonText}>Small</StyledText>
+              </Button>
+            </SubSection>
+
+            <SubSection label="Default">
+              <Button preset="default" onPress={() => { }}>
+                <StyledText style={styles.buttonText}>Default</StyledText>
+              </Button>
+            </SubSection>
+
+            <SubSection label="Large">
+              <Button preset="default" size="lg" onPress={() => { }}>
+                <StyledText style={styles.buttonText}>Large</StyledText>
+              </Button>
+            </SubSection>
+          </Section>
+
+          <ButtonStatesSection styles={styles} />
+
+          <Section title="Button Icons">
+            <SubSection label="Left Icon">
+              <Button preset="default" onPress={() => { }}>
+                <Icon name="heart" size={16} color={theme.colors.primaryForeground} />
+                <StyledText style={[styles.buttonText, { marginLeft: spacing.xs }]}>
+                  With Left Icon
+                </StyledText>
+              </Button>
+            </SubSection>
+
+            <SubSection label="Right Icon">
+              <Button preset="outline" onPress={() => { }}>
+                <StyledText style={[styles.outlineButtonText, { marginRight: spacing.xs }]}>
+                  Continue
+                </StyledText>
+                <Icon name="arrow-right" size={16} color={theme.colors.primary} />
+              </Button>
+            </SubSection>
+
+            <SubSection label="Icon Only">
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Button preset="default" onPress={() => { }}>
+                  <Icon name="heart" size={18} color={theme.colors.primaryForeground} />
+                </Button>
+                <Button preset="outline" onPress={() => { }}>
+                  <Icon name="heart" size={18} color={theme.colors.primary} />
+                </Button>
+                <Button preset="ghost" onPress={() => { }}>
+                  <Icon name="heart" size={18} color={theme.colors.foreground} />
+                </Button>
+              </View>
+            </SubSection>
+          </Section>
+
+          <Section title="Card">
+            <SubSection label="Default">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Card Title</CardTitle>
+                  <CardDescription>A short description of the card content.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SansSerifText style={{ color: theme.colors.text }}>
+                    This is the main content area of the card.
+                  </SansSerifText>
+                </CardContent>
+                <CardFooter>
                   <Button preset="outline" size="sm">
-                    <StyledText style={styles.outlineButtonText}>View Profile</StyledText>
+                    <SansSerifText style={{ color: theme.colors.foreground }}>Action</SansSerifText>
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent side="bottom" align="start" sideOffset={8}>
-                  <View style={{ minWidth: 200 }}>
-                    <View style={{ paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-                      <StyledText style={[styles.boldText, { fontSize: 16 }]}>John Doe</StyledText>
-                      <StyledText style={[styles.labelText, { fontSize: 12, opacity: 0.7 }]}>john@example.com</StyledText>
+                </CardFooter>
+              </Card>
+            </SubSection>
+            <SubSection label="Outline Variant">
+              <Card variant="outline">
+                <CardHeader>
+                  <CardTitle>Outline Card</CardTitle>
+                  <CardDescription>Uses the outline variant with transparent background.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SansSerifText style={{ color: theme.colors.text }}>
+                    Outline cards are useful for secondary content.
+                  </SansSerifText>
+                </CardContent>
+              </Card>
+            </SubSection>
+            <SubSection label="Pressable">
+              <Card onPress={() => globalUIStore.getState().show({ type: "info", title: "Card Pressed", messages: ["You tapped the pressable card."] })}>
+                <CardHeader>
+                  <CardTitle>Pressable Card</CardTitle>
+                  <CardDescription>Tap me for a scale animation.</CardDescription>
+                </CardHeader>
+              </Card>
+            </SubSection>
+          </Section>
+
+          <CheckboxSection styles={styles} />
+
+          <Section title="Collapsible">
+            <SubSection label="Basic Collapsible">
+              <Collapsible
+                open={collapsibleOpen}
+                onOpenChange={(value) =>
+                  dispatchControls({
+                    type: "collapsibleOpenChanged",
+                    collapsibleOpen: value,
+                  })
+                }
+              >
+                <CollapsibleTrigger>
+                  <View style={styles.collapsibleTrigger}>
+                    <StyledText style={styles.boldText}>Can I use this in my project?</StyledText>
+                    <StyledText style={[styles.labelText, { fontSize: 18, opacity: 0.7 }]}>
+                      {collapsibleOpen ? "\u2212" : "+"}
+                    </StyledText>
+                  </View>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <View style={{ paddingTop: spacing.sm }}>
+                    <StyledText style={styles.labelText}>
+                      Yes! This is a reusable collapsible component built with @rn-primitives/collapsible. It supports
+                      smooth animations and works across iOS, Android, and Web.
+                    </StyledText>
+                  </View>
+                </CollapsibleContent>
+              </Collapsible>
+            </SubSection>
+
+            <SubSection label="With Button Trigger (asChild)">
+              <Collapsible>
+                <View style={styles.collapsibleHeader}>
+                  <StyledText style={styles.boldText}>@peduarte starred 3 repositories</StyledText>
+                  <CollapsibleTrigger asChild>
+                    <Button preset="outline" size="sm" style={styles.smallButton}>
+                      <StyledText style={[styles.labelText, { fontSize: 12 }]}>Toggle</StyledText>
+                    </Button>
+                  </CollapsibleTrigger>
+                </View>
+                <View style={[styles.collapsibleItem, { borderColor: theme.colors.border }]}>
+                  <StyledText style={styles.labelText}>@radix-ui/primitives</StyledText>
+                </View>
+                <CollapsibleContent>
+                  <View style={{ gap: spacing.sm }}>
+                    <View style={[styles.collapsibleItem, { borderColor: theme.colors.border }]}>
+                      <StyledText style={styles.labelText}>@radix-ui/react</StyledText>
                     </View>
-                    <View style={{ paddingTop: spacing.sm }}>
-                      <StyledText style={[styles.labelText, { fontSize: 14, marginBottom: spacing.xs }]}>Member since 2024</StyledText>
-                      <StyledText style={[styles.labelText, { fontSize: 14 }]}>Premium Account</StyledText>
+                    <View style={[styles.collapsibleItem, { borderColor: theme.colors.border }]}>
+                      <StyledText style={styles.labelText}>@stitches/core</StyledText>
                     </View>
                   </View>
-                </PopoverContent>
-              </Popover>
+                </CollapsibleContent>
+              </Collapsible>
+            </SubSection>
+          </Section>
+
+          <DialogSection styles={styles} theme={theme} />
+
+          <Section title="Drawer">
+            <SubSection label="Left Drawer">
+              <Drawer side="left" width={280}>
+                <Drawer.Trigger asChild>
+                  <Button preset="outline">
+                    <StyledText style={styles.outlineButtonText}>Open Left Drawer</StyledText>
+                  </Button>
+                </Drawer.Trigger>
+                <Drawer.Content>
+                  <Drawer.Header>
+                    <StyledText style={[styles.boldText, { fontSize: 18 }]}>Navigation</StyledText>
+                  </Drawer.Header>
+                  <Drawer.Body>
+                    <View style={{ gap: spacing.md }}>
+                      <StyledText style={styles.labelText}>Home</StyledText>
+                      <StyledText style={styles.labelText}>Profile</StyledText>
+                      <StyledText style={styles.labelText}>Settings</StyledText>
+                      <StyledText style={styles.labelText}>About</StyledText>
+                    </View>
+                  </Drawer.Body>
+                  <Drawer.Footer>
+                    <Drawer.Close asChild>
+                      <Button preset="outline">
+                        <StyledText style={styles.outlineButtonText}>Close</StyledText>
+                      </Button>
+                    </Drawer.Close>
+                  </Drawer.Footer>
+                </Drawer.Content>
+              </Drawer>
+            </SubSection>
+
+            <SubSection label="Right Drawer">
+              <Drawer side="right" width="75%">
+                <Drawer.Trigger asChild>
+                  <Button preset="outline">
+                    <StyledText style={styles.outlineButtonText}>Open Right Drawer</StyledText>
+                  </Button>
+                </Drawer.Trigger>
+                <Drawer.Content>
+                  <Drawer.Header>
+                    <StyledText style={[styles.boldText, { fontSize: 18 }]}>Filters</StyledText>
+                  </Drawer.Header>
+                  <Drawer.Body>
+                    <View style={{ gap: spacing.md }}>
+                      <StyledText style={styles.labelText}>Category: All</StyledText>
+                      <StyledText style={styles.labelText}>Price: $0 - $100</StyledText>
+                      <StyledText style={styles.labelText}>Rating: 4+ stars</StyledText>
+                      <StyledText style={[styles.labelText, { marginTop: spacing.lg, opacity: 0.6 }]}>
+                        Swipe right to close (on native)
+                      </StyledText>
+                    </View>
+                  </Drawer.Body>
+                  <Drawer.Footer>
+                    <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                      <Drawer.Close asChild>
+                        <Button preset="outline" style={{ flex: 1 }}>
+                          <StyledText style={styles.outlineButtonText}>Cancel</StyledText>
+                        </Button>
+                      </Drawer.Close>
+                      <Drawer.Close asChild>
+                        <Button preset="default" style={{ flex: 1 }}>
+                          <StyledText style={styles.smallButtonText}>Apply</StyledText>
+                        </Button>
+                      </Drawer.Close>
+                    </View>
+                  </Drawer.Footer>
+                </Drawer.Content>
+              </Drawer>
             </SubSection>
           </Section>
 
@@ -461,193 +643,132 @@ function useShowcaseScreenContent() {
             </SubSection>
           </Section>
 
-          <Section title="Collapsible">
-            <SubSection label="Basic Collapsible">
-              <Collapsible
-                open={collapsibleOpen}
-                onOpenChange={(value) =>
-                  dispatchControls({
-                    type: "collapsibleOpenChanged",
-                    collapsibleOpen: value,
-                  })
-                }
-              >
-                <CollapsibleTrigger>
-                  <View style={styles.collapsibleTrigger}>
-                    <StyledText style={styles.boldText}>Can I use this in my project?</StyledText>
-                    <StyledText style={[styles.labelText, { fontSize: 18, opacity: 0.7 }]}>
-                      {collapsibleOpen ? "\u2212" : "+"}
-                    </StyledText>
-                  </View>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <View style={{ paddingTop: spacing.sm }}>
-                    <StyledText style={styles.labelText}>
-                      Yes! This is a reusable collapsible component built with @rn-primitives/collapsible. It supports
-                      smooth animations and works across iOS, Android, and Web.
-                    </StyledText>
-                  </View>
-                </CollapsibleContent>
-              </Collapsible>
+          <Section title="Empty State">
+            <SubSection label="Full (icon + title + description + action)">
+              <View style={styles.demoCard}>
+                <EmptyState
+                  icon="inbox"
+                  title="No messages"
+                  description="You don't have any messages yet. Start a conversation to get going."
+                  actionLabel="Compose"
+                  onAction={() => { }}
+                />
+              </View>
             </SubSection>
 
-            <SubSection label="With Button Trigger (asChild)">
-              <Collapsible>
-                <View style={styles.collapsibleHeader}>
-                  <StyledText style={styles.boldText}>@peduarte starred 3 repositories</StyledText>
-                  <CollapsibleTrigger asChild>
-                    <Button preset="outline" size="sm" style={styles.smallButton}>
-                      <StyledText style={[styles.labelText, { fontSize: 12 }]}>Toggle</StyledText>
-                    </Button>
-                  </CollapsibleTrigger>
-                </View>
-                <View style={[styles.collapsibleItem, { borderColor: theme.colors.border }]}>
-                  <StyledText style={styles.labelText}>@radix-ui/primitives</StyledText>
-                </View>
-                <CollapsibleContent>
-                  <View style={{ gap: spacing.sm }}>
-                    <View style={[styles.collapsibleItem, { borderColor: theme.colors.border }]}>
-                      <StyledText style={styles.labelText}>@radix-ui/react</StyledText>
-                    </View>
-                    <View style={[styles.collapsibleItem, { borderColor: theme.colors.border }]}>
-                      <StyledText style={styles.labelText}>@stitches/core</StyledText>
-                    </View>
+            <SubSection label="Minimal (title only)">
+              <View style={styles.demoCard}>
+                <EmptyState title="Nothing here yet" />
+              </View>
+            </SubSection>
+
+            <SubSection label="Search empty state">
+              <View style={styles.demoCard}>
+                <EmptyState
+                  icon="search"
+                  title="No results found"
+                  description="Try adjusting your search terms or filters."
+                />
+              </View>
+            </SubSection>
+
+            <SubSection label="As ListEmptyComponent">
+              <View style={styles.demoCard}>
+                <EmptyState
+                  icon="folder"
+                  title="No files"
+                  description="Upload your first file to get started."
+                  actionLabel="Upload"
+                  onAction={() => { }}
+                />
+              </View>
+            </SubSection>
+
+            <SubSection label="Custom children">
+              <View style={styles.demoCard}>
+                <EmptyState
+                  icon="wifi-off"
+                  title="You're offline"
+                  description="Check your internet connection and try again."
+                >
+                  <View style={styles.customChildRow}>
+                    <Icon name="info" size={16} color={theme.colors.mutedForeground} />
+                    <SansSerifText style={styles.customChildText}>
+                      Last synced 5 minutes ago
+                    </SansSerifText>
                   </View>
-                </CollapsibleContent>
-              </Collapsible>
+                </EmptyState>
+              </View>
             </SubSection>
           </Section>
 
-          <Section title="Drawer">
-            <SubSection label="Left Drawer">
-              <Drawer side="left" width={280}>
-                <Drawer.Trigger asChild>
-                  <Button preset="outline">
-                    <StyledText style={styles.outlineButtonText}>Open Left Drawer</StyledText>
-                  </Button>
-                </Drawer.Trigger>
-                <Drawer.Content>
-                  <Drawer.Header>
-                    <StyledText style={[styles.boldText, { fontSize: 18 }]}>Navigation</StyledText>
-                  </Drawer.Header>
-                  <Drawer.Body>
-                    <View style={{ gap: spacing.md }}>
-                      <StyledText style={styles.labelText}>Home</StyledText>
-                      <StyledText style={styles.labelText}>Profile</StyledText>
-                      <StyledText style={styles.labelText}>Settings</StyledText>
-                      <StyledText style={styles.labelText}>About</StyledText>
-                    </View>
-                  </Drawer.Body>
-                  <Drawer.Footer>
-                    <Drawer.Close asChild>
-                      <Button preset="outline">
-                        <StyledText style={styles.outlineButtonText}>Close</StyledText>
-                      </Button>
-                    </Drawer.Close>
-                  </Drawer.Footer>
-                </Drawer.Content>
-              </Drawer>
+          <Section title="Icons">
+            <SubSection label="Basic Icons">
+              <View style={styles.iconRow}>
+                <Icon name="heart" size={24} />
+                <Icon name="star" size={24} />
+                <Icon name="settings" size={24} />
+                <Icon name="home" size={24} />
+                <Icon name="user" size={24} />
+                <Icon name="mail" size={24} />
+                <Icon name="bell" size={24} />
+                <Icon name="search" size={24} />
+                <Icon name="shopping-cart" size={24} />
+              </View>
             </SubSection>
 
-            <SubSection label="Right Drawer">
-              <Drawer side="right" width="75%">
-                <Drawer.Trigger asChild>
-                  <Button preset="outline">
-                    <StyledText style={styles.outlineButtonText}>Open Right Drawer</StyledText>
-                  </Button>
-                </Drawer.Trigger>
-                <Drawer.Content>
-                  <Drawer.Header>
-                    <StyledText style={[styles.boldText, { fontSize: 18 }]}>Filters</StyledText>
-                  </Drawer.Header>
-                  <Drawer.Body>
-                    <View style={{ gap: spacing.md }}>
-                      <StyledText style={styles.labelText}>Category: All</StyledText>
-                      <StyledText style={styles.labelText}>Price: $0 - $100</StyledText>
-                      <StyledText style={styles.labelText}>Rating: 4+ stars</StyledText>
-                      <StyledText style={[styles.labelText, { marginTop: spacing.lg, opacity: 0.6 }]}>
-                        Swipe right to close (on native)
-                      </StyledText>
-                    </View>
-                  </Drawer.Body>
-                  <Drawer.Footer>
-                    <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                      <Drawer.Close asChild>
-                        <Button preset="outline" style={{ flex: 1 }}>
-                          <StyledText style={styles.outlineButtonText}>Cancel</StyledText>
-                        </Button>
-                      </Drawer.Close>
-                      <Drawer.Close asChild>
-                        <Button preset="default" style={{ flex: 1 }}>
-                          <StyledText style={styles.smallButtonText}>Apply</StyledText>
-                        </Button>
-                      </Drawer.Close>
-                    </View>
-                  </Drawer.Footer>
-                </Drawer.Content>
-              </Drawer>
+            <SubSection label="Icon Sizes">
+              <View style={styles.iconRow}>
+                <Icon name="heart" size={16} />
+                <Icon name="heart" size={24} />
+                <Icon name="heart" size={32} />
+                <Icon name="heart" size={48} />
+              </View>
+            </SubSection>
+
+            <SubSection label="Icon Colors">
+              <View style={styles.iconRow}>
+                <Icon name="heart" size={32} color={theme.colors.destructive} />
+                <Icon name="star" size={32} color={theme.colors.warning} />
+                <Icon name="check-circle" size={32} color={theme.colors.success} />
+                <Icon name="info" size={32} color={theme.colors.primary} />
+              </View>
+            </SubSection>
+
+            <SubSection label="Status Icons">
+              <View style={styles.iconRow}>
+                <Icon name="alert-circle" size={28} color={theme.colors.destructive} />
+                <Icon name="check-circle" size={28} color={theme.colors.success} />
+                <Icon name="alert-triangle" size={28} color={theme.colors.warning} />
+                <Icon name="info" size={28} color={theme.colors.foreground} />
+              </View>
             </SubSection>
           </Section>
 
-          {/* ============================================ */}
-          {/* FEEDBACK                                     */}
-          {/* ============================================ */}
+          <InputOTPSection />
 
-          <Section title="Alert">
-            <SubSection label="Simple Alert">
-              <Button
-                preset="default"
-                onPress={() =>
-                  Alert.show({
-                    message: "This is a simple alert message",
-                  })
-                }
-              >
-                <StyledText style={styles.buttonText}>Show Simple Alert</StyledText>
-              </Button>
+          <Section title="Label">
+            <SubSection label="Basic">
+              <Label nativeID="demo-label">Email address</Label>
             </SubSection>
-
-            <SubSection label="Alert with Title">
-              <Button
-                preset="outline"
-                onPress={() =>
-                  Alert.show({
-                    title: "Important",
-                    message: "This alert has a title and a message",
-                  })
-                }
-              >
-                <StyledText style={styles.outlineButtonText}>Show Alert with Title</StyledText>
-              </Button>
+            <SubSection label="Required">
+              <Label nativeID="demo-required" required>Password</Label>
             </SubSection>
-
-            <SubSection label="Confirmation Alert">
-              <Button
-                preset="outline"
-                onPress={() =>
-                  Alert.show({
-                    title: "Delete Item",
-                    message: "Are you sure you want to delete this item?",
-                    buttons: [
-                      { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: () => {
-                          globalUIStore.getState().show({
-                            type: "success",
-                            title: "Deleted",
-                            messages: ["Item has been deleted"],
-                            duration: 2000,
-                          });
-                        },
-                      },
-                    ],
-                  })
-                }
-              >
-                <StyledText style={styles.outlineButtonText}>Show Confirmation</StyledText>
-              </Button>
+            <SubSection label="Error State">
+              <Label nativeID="demo-error" error>Username</Label>
+            </SubSection>
+            <SubSection label="Sizes">
+              <View style={{ gap: spacing.xs }}>
+                <Label nativeID="demo-sm" size="sm">Small label</Label>
+                <Label nativeID="demo-md" size="md">Medium label</Label>
+                <Label nativeID="demo-lg" size="lg">Large label</Label>
+              </View>
+            </SubSection>
+            <SubSection label="With Input">
+              <View style={{ gap: spacing.xs }}>
+                <Label nativeID="demo-input" required>Display name</Label>
+                <TextInput placeholder="Enter your name" />
+              </View>
             </SubSection>
           </Section>
 
@@ -777,6 +898,226 @@ function useShowcaseScreenContent() {
             </SubSection>
           </Section>
 
+          <Section title="Popover">
+            <SubSection label="Side Positioning">
+              <View style={styles.buttonRow}>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button preset="default" size="sm" style={styles.smallButton}>
+                      <StyledText style={styles.smallButtonText}>Top</StyledText>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent side="top" align="center">
+                    <PopoverBody>
+                      <StyledText style={styles.labelText}>Popover on top</StyledText>
+                    </PopoverBody>
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button preset="default" size="sm" style={styles.smallButton}>
+                      <StyledText style={styles.smallButtonText}>Bottom</StyledText>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent side="bottom" align="center">
+                    <PopoverBody>
+                      <StyledText style={styles.labelText}>Popover on bottom</StyledText>
+                    </PopoverBody>
+                  </PopoverContent>
+                </Popover>
+              </View>
+            </SubSection>
+
+            <SubSection label="Real-World Example: User Info Card">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button preset="outline" size="sm">
+                    <StyledText style={styles.outlineButtonText}>View Profile</StyledText>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="start" sideOffset={8}>
+                  <View style={{ minWidth: 200 }}>
+                    <View style={{ paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+                      <StyledText style={[styles.boldText, { fontSize: 16 }]}>John Doe</StyledText>
+                      <StyledText style={[styles.labelText, { fontSize: 12, opacity: 0.7 }]}>john@example.com</StyledText>
+                    </View>
+                    <View style={{ paddingTop: spacing.sm }}>
+                      <StyledText style={[styles.labelText, { fontSize: 14, marginBottom: spacing.xs }]}>Member since 2024</StyledText>
+                      <StyledText style={[styles.labelText, { fontSize: 14 }]}>Premium Account</StyledText>
+                    </View>
+                  </View>
+                </PopoverContent>
+              </Popover>
+            </SubSection>
+          </Section>
+
+          <Section title="Progress">
+            <SubSection label="Determinate">
+              <View style={{ gap: spacing.sm }}>
+                <Progress value={33} />
+                <Progress value={66} />
+                <Progress value={100} />
+              </View>
+            </SubSection>
+            <SubSection label="Variants">
+              <View style={{ gap: spacing.sm }}>
+                <Progress value={50} variant="default" />
+                <Progress value={50} variant="accent" />
+                <Progress value={50} variant="destructive" />
+              </View>
+            </SubSection>
+            <SubSection label="Indeterminate">
+              <Progress />
+            </SubSection>
+          </Section>
+
+          <RadioGroupSection />
+
+          <SegmentedControlSection />
+
+          <SelectSection />
+
+          <Section title="Separator">
+            <SubSection label="Horizontal (Default)">
+              <View style={{ gap: spacing.sm }}>
+                <StyledText style={styles.labelText}>Content above separator</StyledText>
+                <Separator margin={spacing.sm} />
+                <StyledText style={styles.labelText}>Content below separator</StyledText>
+              </View>
+            </SubSection>
+
+            <SubSection label="Size Variants">
+              <View style={{ gap: spacing.xs }}>
+                <View style={styles.separatorRow}>
+                  <StyledText style={[styles.labelText, { width: 40 }]}>sm</StyledText>
+                  <View style={{ flex: 1 }}>
+                    <Separator size="sm" margin={0} />
+                  </View>
+                </View>
+                <View style={styles.separatorRow}>
+                  <StyledText style={[styles.labelText, { width: 40 }]}>md</StyledText>
+                  <View style={{ flex: 1 }}>
+                    <Separator size="md" margin={0} />
+                  </View>
+                </View>
+                <View style={styles.separatorRow}>
+                  <StyledText style={[styles.labelText, { width: 40 }]}>lg</StyledText>
+                  <View style={{ flex: 1 }}>
+                    <Separator size="lg" margin={0} />
+                  </View>
+                </View>
+              </View>
+            </SubSection>
+
+            <SubSection label="Visual Variants">
+              <View style={{ gap: spacing.sm }}>
+                <View style={styles.separatorRow}>
+                  <StyledText style={[styles.labelText, { width: 70 }]}>default</StyledText>
+                  <View style={{ flex: 1 }}>
+                    <Separator variant="default" margin={0} />
+                  </View>
+                </View>
+                <View style={styles.separatorRow}>
+                  <StyledText style={[styles.labelText, { width: 70 }]}>muted</StyledText>
+                  <View style={{ flex: 1 }}>
+                    <Separator variant="muted" margin={0} />
+                  </View>
+                </View>
+                <View style={styles.separatorRow}>
+                  <StyledText style={[styles.labelText, { width: 70 }]}>primary</StyledText>
+                  <View style={{ flex: 1 }}>
+                    <Separator variant="primary" margin={0} />
+                  </View>
+                </View>
+              </View>
+            </SubSection>
+
+            <SubSection label="Vertical Orientation">
+              <View style={{ flexDirection: "row", alignItems: "center", height: 60 }}>
+                <StyledText style={styles.labelText}>Left</StyledText>
+                <Separator orientation="vertical" margin={spacing.md} />
+                <StyledText style={styles.labelText}>Center</StyledText>
+                <Separator orientation="vertical" variant="primary" margin={spacing.md} />
+                <StyledText style={styles.labelText}>Right</StyledText>
+              </View>
+            </SubSection>
+          </Section>
+
+          <SkeletonSection styles={styles} theme={theme} />
+
+          <SliderSection styles={styles} />
+
+          <SwitchSection styles={styles} />
+
+          <Section title="Tabs">
+            <SubSection label="Underline (Default)">
+              <Tabs
+                value={settingsTab}
+                onValueChange={(value) =>
+                  dispatchControls({
+                    type: "settingsTabChanged",
+                    settingsTab: value,
+                  })
+                }
+              >
+                <TabsList>
+                  <TabsTrigger value="account">
+                    <TabsTrigger.Text>Account</TabsTrigger.Text>
+                  </TabsTrigger>
+                  <TabsTrigger value="password">
+                    <TabsTrigger.Text>Password</TabsTrigger.Text>
+                  </TabsTrigger>
+                  <TabsTrigger value="notifications">
+                    <TabsTrigger.Text>Notifications</TabsTrigger.Text>
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="account">
+                  <SansSerifText style={styles.labelText}>Manage your account settings and preferences.</SansSerifText>
+                </TabsContent>
+                <TabsContent value="password">
+                  <SansSerifText style={styles.labelText}>Update your password and security settings.</SansSerifText>
+                </TabsContent>
+                <TabsContent value="notifications">
+                  <SansSerifText style={styles.labelText}>Configure how you receive notifications.</SansSerifText>
+                </TabsContent>
+              </Tabs>
+            </SubSection>
+            <SubSection label="Pill Variant">
+              <Tabs
+                value={projectTab}
+                onValueChange={(value) =>
+                  dispatchControls({
+                    type: "projectTabChanged",
+                    projectTab: value,
+                  })
+                }
+                variant="pill"
+              >
+                <TabsList>
+                  <TabsTrigger value="overview">
+                    <TabsTrigger.Text>Overview</TabsTrigger.Text>
+                  </TabsTrigger>
+                  <TabsTrigger value="analytics">
+                    <TabsTrigger.Text>Analytics</TabsTrigger.Text>
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview">
+                  <SansSerifText style={styles.labelText}>A high-level summary of your project.</SansSerifText>
+                </TabsContent>
+                <TabsContent value="analytics">
+                  <SansSerifText style={styles.labelText}>Detailed analytics and usage metrics.</SansSerifText>
+                </TabsContent>
+              </Tabs>
+            </SubSection>
+          </Section>
+
+          <TextInputSection styles={styles} />
+
+          <ToggleSection styles={styles} />
+
+          <ToggleGroupSection styles={styles} />
+
           <Section title="Tooltip">
             <SubSection label="Basic Tooltip">
               <View style={styles.tooltipRow}>
@@ -868,10 +1209,6 @@ function useShowcaseScreenContent() {
             </SubSection>
           </Section>
 
-          {/* ============================================ */}
-          {/* TYPOGRAPHY                                   */}
-          {/* ============================================ */}
-
           <Section title="Typography">
             <SubSection label="Sans Serif">
               <StyledText style={styles.sansSerifText}>Sans Serif Text - Default body text</StyledText>
@@ -884,368 +1221,6 @@ function useShowcaseScreenContent() {
             </SubSection>
           </Section>
 
-          <Section title="Icons">
-            <SubSection label="Basic Icons">
-              <View style={styles.iconRow}>
-                <Icon name="heart" size={24} />
-                <Icon name="star" size={24} />
-                <Icon name="settings" size={24} />
-                <Icon name="home" size={24} />
-                <Icon name="user" size={24} />
-                <Icon name="mail" size={24} />
-                <Icon name="bell" size={24} />
-                <Icon name="search" size={24} />
-                <Icon name="shopping-cart" size={24} />
-              </View>
-            </SubSection>
-
-            <SubSection label="Icon Sizes">
-              <View style={styles.iconRow}>
-                <Icon name="heart" size={16} />
-                <Icon name="heart" size={24} />
-                <Icon name="heart" size={32} />
-                <Icon name="heart" size={48} />
-              </View>
-            </SubSection>
-
-            <SubSection label="Icon Colors">
-              <View style={styles.iconRow}>
-                <Icon name="heart" size={32} color={theme.colors.destructive} />
-                <Icon name="star" size={32} color={theme.colors.warning} />
-                <Icon name="check-circle" size={32} color={theme.colors.success} />
-                <Icon name="info" size={32} color={theme.colors.primary} />
-              </View>
-            </SubSection>
-
-            <SubSection label="Status Icons">
-              <View style={styles.iconRow}>
-                <Icon name="alert-circle" size={28} color={theme.colors.destructive} />
-                <Icon name="check-circle" size={28} color={theme.colors.success} />
-                <Icon name="alert-triangle" size={28} color={theme.colors.warning} />
-                <Icon name="info" size={28} color={theme.colors.foreground} />
-              </View>
-            </SubSection>
-          </Section>
-
-          <Section title="Separator">
-            <SubSection label="Horizontal (Default)">
-              <View style={{ gap: spacing.sm }}>
-                <StyledText style={styles.labelText}>Content above separator</StyledText>
-                <Separator margin={spacing.sm} />
-                <StyledText style={styles.labelText}>Content below separator</StyledText>
-              </View>
-            </SubSection>
-
-            <SubSection label="Size Variants">
-              <View style={{ gap: spacing.xs }}>
-                <View style={styles.separatorRow}>
-                  <StyledText style={[styles.labelText, { width: 40 }]}>sm</StyledText>
-                  <View style={{ flex: 1 }}>
-                    <Separator size="sm" margin={0} />
-                  </View>
-                </View>
-                <View style={styles.separatorRow}>
-                  <StyledText style={[styles.labelText, { width: 40 }]}>md</StyledText>
-                  <View style={{ flex: 1 }}>
-                    <Separator size="md" margin={0} />
-                  </View>
-                </View>
-                <View style={styles.separatorRow}>
-                  <StyledText style={[styles.labelText, { width: 40 }]}>lg</StyledText>
-                  <View style={{ flex: 1 }}>
-                    <Separator size="lg" margin={0} />
-                  </View>
-                </View>
-              </View>
-            </SubSection>
-
-            <SubSection label="Visual Variants">
-              <View style={{ gap: spacing.sm }}>
-                <View style={styles.separatorRow}>
-                  <StyledText style={[styles.labelText, { width: 70 }]}>default</StyledText>
-                  <View style={{ flex: 1 }}>
-                    <Separator variant="default" margin={0} />
-                  </View>
-                </View>
-                <View style={styles.separatorRow}>
-                  <StyledText style={[styles.labelText, { width: 70 }]}>muted</StyledText>
-                  <View style={{ flex: 1 }}>
-                    <Separator variant="muted" margin={0} />
-                  </View>
-                </View>
-                <View style={styles.separatorRow}>
-                  <StyledText style={[styles.labelText, { width: 70 }]}>primary</StyledText>
-                  <View style={{ flex: 1 }}>
-                    <Separator variant="primary" margin={0} />
-                  </View>
-                </View>
-              </View>
-            </SubSection>
-
-            <SubSection label="Vertical Orientation">
-              <View style={{ flexDirection: "row", alignItems: "center", height: 60 }}>
-                <StyledText style={styles.labelText}>Left</StyledText>
-                <Separator orientation="vertical" margin={spacing.md} />
-                <StyledText style={styles.labelText}>Center</StyledText>
-                <Separator orientation="vertical" variant="primary" margin={spacing.md} />
-                <StyledText style={styles.labelText}>Right</StyledText>
-              </View>
-            </SubSection>
-          </Section>
-
-          {/* ============================================ */}
-          {/* AUTH FORMS                                   */}
-          {/* ============================================ */}
-
-          <AuthFormsSection styles={styles} />
-
-          {/* ============================================ */}
-          {/* EMPTY STATE & SKELETON                       */}
-          {/* ============================================ */}
-
-          <Section title="Empty State">
-            <SubSection label="Full (icon + title + description + action)">
-              <View style={styles.demoCard}>
-                <EmptyState
-                  icon="inbox"
-                  title="No messages"
-                  description="You don't have any messages yet. Start a conversation to get going."
-                  actionLabel="Compose"
-                  onAction={() => { }}
-                />
-              </View>
-            </SubSection>
-
-            <SubSection label="Minimal (title only)">
-              <View style={styles.demoCard}>
-                <EmptyState title="Nothing here yet" />
-              </View>
-            </SubSection>
-
-            <SubSection label="Search empty state">
-              <View style={styles.demoCard}>
-                <EmptyState
-                  icon="search"
-                  title="No results found"
-                  description="Try adjusting your search terms or filters."
-                />
-              </View>
-            </SubSection>
-
-            <SubSection label="As ListEmptyComponent">
-              <View style={styles.demoCard}>
-                <EmptyState
-                  icon="folder"
-                  title="No files"
-                  description="Upload your first file to get started."
-                  actionLabel="Upload"
-                  onAction={() => { }}
-                />
-              </View>
-            </SubSection>
-
-            <SubSection label="Custom children">
-              <View style={styles.demoCard}>
-                <EmptyState
-                  icon="wifi-off"
-                  title="You're offline"
-                  description="Check your internet connection and try again."
-                >
-                  <View style={styles.customChildRow}>
-                    <Icon name="info" size={16} color={theme.colors.mutedForeground} />
-                    <SansSerifText style={styles.customChildText}>
-                      Last synced 5 minutes ago
-                    </SansSerifText>
-                  </View>
-                </EmptyState>
-              </View>
-            </SubSection>
-          </Section>
-
-          <SkeletonSection styles={styles} theme={theme} />
-
-          {/* Badge */}
-          <Section title="Badge">
-            <SubSection label="Variants">
-              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-                <Badge text="Default" />
-                <Badge variant="secondary" text="Secondary" />
-                <Badge variant="outline" text="Outline" />
-                <Badge variant="destructive" text="Destructive" />
-              </View>
-            </SubSection>
-          </Section>
-
-          {/* Card */}
-          <Section title="Card">
-            <SubSection label="Default">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Card Title</CardTitle>
-                  <CardDescription>A short description of the card content.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SansSerifText style={{ color: theme.colors.text }}>
-                    This is the main content area of the card.
-                  </SansSerifText>
-                </CardContent>
-                <CardFooter>
-                  <Button preset="outline" size="sm">
-                    <SansSerifText style={{ color: theme.colors.foreground }}>Action</SansSerifText>
-                  </Button>
-                </CardFooter>
-              </Card>
-            </SubSection>
-            <SubSection label="Outline Variant">
-              <Card variant="outline">
-                <CardHeader>
-                  <CardTitle>Outline Card</CardTitle>
-                  <CardDescription>Uses the outline variant with transparent background.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SansSerifText style={{ color: theme.colors.text }}>
-                    Outline cards are useful for secondary content.
-                  </SansSerifText>
-                </CardContent>
-              </Card>
-            </SubSection>
-            <SubSection label="Pressable">
-              <Card onPress={() => globalUIStore.getState().show({ type: "info", title: "Card Pressed", messages: ["You tapped the pressable card."] })}>
-                <CardHeader>
-                  <CardTitle>Pressable Card</CardTitle>
-                  <CardDescription>Tap me for a scale animation.</CardDescription>
-                </CardHeader>
-              </Card>
-            </SubSection>
-          </Section>
-
-          {/* Label */}
-          <Section title="Label">
-            <SubSection label="Basic">
-              <Label nativeID="demo-label">Email address</Label>
-            </SubSection>
-            <SubSection label="Required">
-              <Label nativeID="demo-required" required>Password</Label>
-            </SubSection>
-            <SubSection label="Error State">
-              <Label nativeID="demo-error" error>Username</Label>
-            </SubSection>
-            <SubSection label="Sizes">
-              <View style={{ gap: spacing.xs }}>
-                <Label nativeID="demo-sm" size="sm">Small label</Label>
-                <Label nativeID="demo-md" size="md">Medium label</Label>
-                <Label nativeID="demo-lg" size="lg">Large label</Label>
-              </View>
-            </SubSection>
-            <SubSection label="With Input">
-              <View style={{ gap: spacing.xs }}>
-                <Label nativeID="demo-input" required>Display name</Label>
-                <TextInput placeholder="Enter your name" />
-              </View>
-            </SubSection>
-          </Section>
-
-          <AnimatedViewSection theme={theme} />
-
-          {/* ============================================ */}
-          {/* BOTTOM SHEET                                 */}
-          {/* ============================================ */}
-
-          <BottomSheetSection styles={styles} theme={theme} />
-
-          <DialogSection styles={styles} theme={theme} />
-
-          {/* Tabs */}
-          <Section title="Tabs">
-            <SubSection label="Underline (Default)">
-              <Tabs
-                value={settingsTab}
-                onValueChange={(value) =>
-                  dispatchControls({
-                    type: "settingsTabChanged",
-                    settingsTab: value,
-                  })
-                }
-              >
-                <TabsList>
-                  <TabsTrigger value="account">
-                    <StyledText>Account</StyledText>
-                  </TabsTrigger>
-                  <TabsTrigger value="password">
-                    <StyledText>Password</StyledText>
-                  </TabsTrigger>
-                  <TabsTrigger value="notifications">
-                    <StyledText>Notifications</StyledText>
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="account">
-                  <SansSerifText style={styles.labelText}>Manage your account settings and preferences.</SansSerifText>
-                </TabsContent>
-                <TabsContent value="password">
-                  <SansSerifText style={styles.labelText}>Update your password and security settings.</SansSerifText>
-                </TabsContent>
-                <TabsContent value="notifications">
-                  <SansSerifText style={styles.labelText}>Configure how you receive notifications.</SansSerifText>
-                </TabsContent>
-              </Tabs>
-            </SubSection>
-            <SubSection label="Pill Variant">
-              <Tabs
-                value={projectTab}
-                onValueChange={(value) =>
-                  dispatchControls({
-                    type: "projectTabChanged",
-                    projectTab: value,
-                  })
-                }
-                variant="pill"
-              >
-                <TabsList>
-                  <TabsTrigger value="overview">
-                    <StyledText>Overview</StyledText>
-                  </TabsTrigger>
-                  <TabsTrigger value="analytics">
-                    <StyledText>Analytics</StyledText>
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="overview">
-                  <SansSerifText style={styles.labelText}>A high-level summary of your project.</SansSerifText>
-                </TabsContent>
-                <TabsContent value="analytics">
-                  <SansSerifText style={styles.labelText}>Detailed analytics and usage metrics.</SansSerifText>
-                </TabsContent>
-              </Tabs>
-            </SubSection>
-          </Section>
-
-          <SelectSection />
-
-          <RadioGroupSection />
-
-          {/* Progress */}
-          <Section title="Progress">
-            <SubSection label="Determinate">
-              <View style={{ gap: spacing.sm }}>
-                <Progress value={33} />
-                <Progress value={66} />
-                <Progress value={100} />
-              </View>
-            </SubSection>
-            <SubSection label="Variants">
-              <View style={{ gap: spacing.sm }}>
-                <Progress value={50} variant="default" />
-                <Progress value={50} variant="accent" />
-                <Progress value={50} variant="destructive" />
-              </View>
-            </SubSection>
-            <SubSection label="Indeterminate">
-              <Progress />
-            </SubSection>
-          </Section>
-
-          <SliderSection styles={styles} />
-
-          <InputOTPSection />
         </View>
       </KeyboardAwareScrollView>
     </View>
@@ -1295,159 +1270,193 @@ const ButtonStatesSection = memo(function ButtonStatesSection({
   );
 });
 
-const FormControlsSections = memo(function FormControlsSections({
+const TextInputSection = memo(function TextInputSection({
   styles,
 }: {
   styles: ShowcaseStyles;
 }) {
   const [textValue, setTextValue] = useState("");
   const [passwordValue, setPasswordValue] = useState("");
+
+  return (
+    <Section title="Text Input">
+      <SubSection label="Standard Input">
+        <TextInput
+          label="Username"
+          placeholder="Enter your username..."
+          value={textValue}
+          onChangeText={setTextValue}
+        />
+      </SubSection>
+
+      <SubSection label="Password Input">
+        <TextInput
+          label="Password"
+          placeholder="Enter password..."
+          secureTextEntry
+          showSecureEntryToggle
+          value={passwordValue}
+          onChangeText={setPasswordValue}
+        />
+      </SubSection>
+    </Section>
+  );
+});
+
+const SwitchSection = memo(function SwitchSection({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
   const [toggleValue, setToggleValue] = useState(false);
+
+  return (
+    <Section title="Switch">
+      <SubSection label="Basic">
+        <View style={styles.switchRow}>
+          <StyledText style={styles.labelText}>Basic Switch</StyledText>
+          <Switch checked={toggleValue} onCheckedChange={setToggleValue} />
+        </View>
+      </SubSection>
+
+      <SubSection label="With Labels">
+        <View style={styles.switchRow}>
+          <StyledText style={styles.labelText}>Switch with Labels</StyledText>
+          <Switch
+            size={{ width: 60, height: 32 }}
+            checked={toggleValue}
+            onCheckedChange={setToggleValue}
+            labelOn="ON"
+            labelOff="OFF"
+          />
+        </View>
+      </SubSection>
+
+      <SubSection label="Large Size">
+        <View style={styles.switchRow}>
+          <StyledText style={styles.labelText}>Large Switch</StyledText>
+          <Switch
+            checked={toggleValue}
+            onCheckedChange={setToggleValue}
+            size={{ width: 70, height: 36 }}
+            thumbSize={32}
+            labelOn="YES"
+            labelOff="NO"
+          />
+        </View>
+      </SubSection>
+    </Section>
+  );
+});
+
+const CheckboxSection = memo(function CheckboxSection({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
   const [checkbox1, setCheckbox1] = useState(false);
   const [checkbox2, setCheckbox2] = useState(true);
+
+  return (
+    <Section title="Checkbox">
+      <SubSection>
+        <View style={styles.checkboxRow}>
+          <Checkbox checked={checkbox1} onCheckedChange={setCheckbox1} />
+          <StyledText style={styles.labelText}>Checkbox Option 1</StyledText>
+        </View>
+        <View style={[styles.checkboxRow, { marginTop: spacing.md }]}>
+          <Checkbox checked={checkbox2} onCheckedChange={setCheckbox2} />
+          <StyledText style={styles.labelText}>Checkbox Option 2 (initially checked)</StyledText>
+        </View>
+      </SubSection>
+    </Section>
+  );
+});
+
+const ToggleSection = memo(function ToggleSection({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
   const [singleTogglePressed, setSingleTogglePressed] = useState(false);
+
+  return (
+    <Section title="Toggle">
+      <SubSection label="Single Toggle">
+        <Toggle pressed={singleTogglePressed} onPressedChange={setSingleTogglePressed}>
+          <StyledText style={styles.labelText}>Toggle Me</StyledText>
+        </Toggle>
+      </SubSection>
+    </Section>
+  );
+});
+
+const ToggleGroupSection = memo(function ToggleGroupSection({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
   const [alignment, setAlignment] = useState<string | undefined>("left");
   const [formats, setFormats] = useState<string[]>(["bold"]);
 
   return (
-    <>
-      <Section title="Text Input">
-        <SubSection label="Standard Input">
-          <TextInput
-            label="Username"
-            placeholder="Enter your username..."
-            value={textValue}
-            onChangeText={setTextValue}
-          />
-        </SubSection>
+    <Section title="Toggle Group">
+      <SubSection label="Single Selection">
+        <ToggleGroup type="single" value={alignment} onValueChange={setAlignment}>
+          <ToggleGroupItem value="left">
+            <StyledText style={styles.labelText}>Left</StyledText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="center">
+            <StyledText style={styles.labelText}>Center</StyledText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="right">
+            <StyledText style={styles.labelText}>Right</StyledText>
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </SubSection>
 
-        <SubSection label="Password Input">
-          <TextInput
-            label="Password"
-            placeholder="Enter password..."
-            secureTextEntry
-            showSecureEntryToggle
-            value={passwordValue}
-            onChangeText={setPasswordValue}
-          />
-        </SubSection>
-      </Section>
+      <SubSection label="Multiple Selection">
+        <ToggleGroup type="multiple" value={formats} onValueChange={setFormats}>
+          <ToggleGroupItem value="bold">
+            <StyledText style={[styles.labelText, { fontWeight: "bold" }]}>B</StyledText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="italic">
+            <StyledText style={[styles.labelText, { fontStyle: "italic" }]}>I</StyledText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="underline">
+            <StyledText style={[styles.labelText, { textDecorationLine: "underline" }]}>U</StyledText>
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </SubSection>
 
-      <Section title="Switch">
-        <SubSection label="Basic">
-          <View style={styles.switchRow}>
-            <StyledText style={styles.labelText}>Basic Switch</StyledText>
-            <Switch checked={toggleValue} onCheckedChange={setToggleValue} />
-          </View>
-        </SubSection>
+      <SubSection label="Outline Variant">
+        <ToggleGroup type="single" variant="outline" value={alignment} onValueChange={setAlignment}>
+          <ToggleGroupItem value="left">
+            <StyledText style={styles.labelText}>Left</StyledText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="center">
+            <StyledText style={styles.labelText}>Center</StyledText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="right">
+            <StyledText style={styles.labelText}>Right</StyledText>
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </SubSection>
 
-        <SubSection label="With Labels">
-          <View style={styles.switchRow}>
-            <StyledText style={styles.labelText}>Switch with Labels</StyledText>
-            <Switch
-              size={{ width: 60, height: 32 }}
-              checked={toggleValue}
-              onCheckedChange={setToggleValue}
-              labelOn="ON"
-              labelOff="OFF"
-            />
-          </View>
-        </SubSection>
-
-        <SubSection label="Large Size">
-          <View style={styles.switchRow}>
-            <StyledText style={styles.labelText}>Large Switch</StyledText>
-            <Switch
-              checked={toggleValue}
-              onCheckedChange={setToggleValue}
-              size={{ width: 70, height: 36 }}
-              thumbSize={32}
-              labelOn="YES"
-              labelOff="NO"
-            />
-          </View>
-        </SubSection>
-      </Section>
-
-      <Section title="Checkbox">
-        <SubSection>
-          <View style={styles.checkboxRow}>
-            <Checkbox checked={checkbox1} onCheckedChange={setCheckbox1} />
-            <StyledText style={styles.labelText}>Checkbox Option 1</StyledText>
-          </View>
-          <View style={[styles.checkboxRow, { marginTop: spacing.md }]}>
-            <Checkbox checked={checkbox2} onCheckedChange={setCheckbox2} />
-            <StyledText style={styles.labelText}>Checkbox Option 2 (initially checked)</StyledText>
-          </View>
-        </SubSection>
-      </Section>
-
-      <Section title="Toggle">
-        <SubSection label="Single Toggle">
-          <Toggle pressed={singleTogglePressed} onPressedChange={setSingleTogglePressed}>
-            <StyledText style={styles.labelText}>Toggle Me</StyledText>
-          </Toggle>
-        </SubSection>
-      </Section>
-
-      <Section title="Toggle Group">
-        <SubSection label="Single Selection">
-          <ToggleGroup type="single" value={alignment} onValueChange={setAlignment}>
-            <ToggleGroupItem value="left">
-              <StyledText style={styles.labelText}>Left</StyledText>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="center">
-              <StyledText style={styles.labelText}>Center</StyledText>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="right">
-              <StyledText style={styles.labelText}>Right</StyledText>
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </SubSection>
-
-        <SubSection label="Multiple Selection">
-          <ToggleGroup type="multiple" value={formats} onValueChange={setFormats}>
-            <ToggleGroupItem value="bold">
-              <StyledText style={[styles.labelText, { fontWeight: "bold" }]}>B</StyledText>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="italic">
-              <StyledText style={[styles.labelText, { fontStyle: "italic" }]}>I</StyledText>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="underline">
-              <StyledText style={[styles.labelText, { textDecorationLine: "underline" }]}>U</StyledText>
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </SubSection>
-
-        <SubSection label="Outline Variant">
-          <ToggleGroup type="single" variant="outline" value={alignment} onValueChange={setAlignment}>
-            <ToggleGroupItem value="left">
-              <StyledText style={styles.labelText}>Left</StyledText>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="center">
-              <StyledText style={styles.labelText}>Center</StyledText>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="right">
-              <StyledText style={styles.labelText}>Right</StyledText>
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </SubSection>
-
-        <SubSection label="Small Size">
-          <ToggleGroup type="single" size="sm" value={alignment} onValueChange={setAlignment}>
-            <ToggleGroupItem value="left">
-              <StyledText style={styles.labelText}>L</StyledText>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="center">
-              <StyledText style={styles.labelText}>C</StyledText>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="right">
-              <StyledText style={styles.labelText}>R</StyledText>
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </SubSection>
-      </Section>
-    </>
+      <SubSection label="Small Size">
+        <ToggleGroup type="single" size="sm" value={alignment} onValueChange={setAlignment}>
+          <ToggleGroupItem value="left">
+            <StyledText style={styles.labelText}>L</StyledText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="center">
+            <StyledText style={styles.labelText}>C</StyledText>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="right">
+            <StyledText style={styles.labelText}>R</StyledText>
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </SubSection>
+    </Section>
   );
 });
 
@@ -1878,9 +1887,19 @@ const BottomSheetSection = memo(function BottomSheetSection({
           <BottomSheet.Content>
             <BottomSheet.Handle />
             <BottomSheet.Header>
-              <SansSerifBoldText style={styles.sheetHeaderTitle}>
-                Terms of Service
-              </SansSerifBoldText>
+              {/* X close stays in the fixed header so it's always reachable
+                  without scrolling to the footer button. Pull-down-to-dismiss
+                  also works (native iOS sheet behavior). */}
+              <View style={styles.sheetHeaderRow}>
+                <SansSerifBoldText style={styles.sheetHeaderTitle}>
+                  Terms of Service
+                </SansSerifBoldText>
+                <BottomSheet.Close asChild>
+                  <Button preset="ghost" size="sm">
+                    <Icon name="x" size={20} color={theme.colors.mutedForeground} />
+                  </Button>
+                </BottomSheet.Close>
+              </View>
             </BottomSheet.Header>
             <BottomSheet.Body>
               {Array.from({ length: 12 }).map((_, i) => (
@@ -2141,6 +2160,33 @@ const SliderSection = memo(function SliderSection({
       </SubSection>
       <SubSection label="Disabled">
         <Slider value={40} disabled />
+      </SubSection>
+    </Section>
+  );
+});
+
+const SegmentedControlSection = memo(function SegmentedControlSection() {
+  const [range, setRange] = useState("Week");
+  const [view, setView] = useState("List");
+
+  return (
+    <Section title="Segmented Control">
+      <SubSection label="Basic">
+        <SegmentedControl
+          values={["Day", "Week", "Month"]}
+          value={range}
+          onValueChange={setRange}
+        />
+      </SubSection>
+      <SubSection label="Two Segments">
+        <SegmentedControl
+          values={["List", "Grid"]}
+          value={view}
+          onValueChange={setView}
+        />
+      </SubSection>
+      <SubSection label="Disabled">
+        <SegmentedControl values={["On", "Off"]} value="On" disabled />
       </SubSection>
     </Section>
   );

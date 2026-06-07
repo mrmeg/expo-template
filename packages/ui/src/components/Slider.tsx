@@ -1,16 +1,33 @@
 import { palette } from "../constants/colors";
 import { useTheme } from "../hooks/useTheme";
 import { hapticLight } from "../lib/haptics";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, GestureResponderEvent, PanResponder, Platform, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import React, { useCallback, useRef } from "react";
+import { StyleProp, View, ViewStyle } from "react-native";
+import { Slider as NativeSlider } from "@expo/ui/community/slider";
 import { StyledText } from "./StyledText";
 
-export type SliderSize = "sm" | "md";
+/**
+ * Slider — a themed range input backed by the platform's native slider via
+ * `@expo/ui/community/slider`:
+ *
+ *   - iOS:     SwiftUI `Slider`
+ *   - Android: Material 3 `Slider`
+ *   - Web:     native `<input type="range">` (themed via `accentColor`)
+ *
+ * The public `SliderProps` surface (value / onValueChange / min / max / step /
+ * disabled / showValue / size / style) is preserved, and the active track is
+ * themed with the design system's accent color on every platform. Thumb and
+ * inactive-track tints additionally apply on Android (iOS/web draw the system
+ * thumb). Haptic feedback fires on each step change, matching the prior
+ * hand-rolled slider.
+ *
+ * Platform-owned behaviors (props accepted for ergonomics, but the platform
+ * decides):
+ *   - `size` is accepted for call-site compatibility but has no effect — the
+ *     platform owns the track/thumb dimensions.
+ */
 
-const SIZES = {
-  sm: { track: 4, thumb: 16 },
-  md: { track: 6, thumb: 20 },
-} as const;
+export type SliderSize = "sm" | "md";
 
 export interface SliderProps {
   /** Current value */
@@ -23,26 +40,14 @@ export interface SliderProps {
   max?: number;
   /** Step increment @default 1 */
   step?: number;
-  /** Size variant @default "md" */
+  /** Size variant. Accepted for compatibility; the platform owns sizing. @default "md" */
   size?: SliderSize;
   /** Disable interaction @default false */
   disabled?: boolean;
-  /** Show value label above thumb @default false */
+  /** Show the current value as a label above the track @default false */
   showValue?: boolean;
   /** Style override for outer container */
   style?: StyleProp<ViewStyle>;
-}
-
-function clampAndSnap(raw: number, min: number, max: number, step: number): number {
-  const clamped = Math.min(Math.max(raw, min), max);
-  const stepped = Math.round((clamped - min) / step) * step + min;
-  // Avoid floating-point drift
-  return Math.round(stepped * 1e6) / 1e6;
-}
-
-function getValueRatio(value: number, min: number, max: number): number {
-  const range = max - min || 1;
-  return Math.min(Math.max((value - min) / range, 0), 1);
 }
 
 function Slider({
@@ -51,223 +56,73 @@ function Slider({
   min = 0,
   max = 100,
   step = 1,
-  size = "md",
+  // Accepted for call-site compatibility; the platform owns track/thumb sizing.
+  size: _size = "md",
   disabled = false,
   showValue = false,
   style: styleOverride,
 }: SliderProps) {
-  const { theme, getShadowStyle, withAlpha } = useTheme();
-  const dims = SIZES[size];
+  const { theme, withAlpha } = useTheme();
+
   const inactiveTrackColor = theme.dark ? withAlpha(palette.white, 0.1) : theme.colors.muted;
   const activeTrackColor = disabled
     ? theme.dark
       ? withAlpha(palette.white, 0.28)
       : theme.colors.mutedForeground
     : theme.colors.accent;
-  const thumbBackgroundColor = theme.dark ? theme.colors.card : theme.colors.background;
-  const thumbBorderColor = disabled
+  const thumbTintColor = disabled
     ? theme.dark
       ? withAlpha(palette.white, 0.32)
       : theme.colors.mutedForeground
     : theme.colors.accent;
 
-  const [trackWidth, setTrackWidth] = useState(0);
-  const trackWidthRef = useRef(0);
-  const thumbX = useRef(new Animated.Value(0)).current;
-  const lastSnappedValue = useRef(value);
-
-  const updateFromPosition = useCallback(
-    (rawX: number) => {
-      const width = trackWidthRef.current;
-      const x = Math.min(Math.max(rawX, 0), width);
-      thumbX.stopAnimation();
-      thumbX.setValue(x);
-
-      const ratio = width > 0 ? x / width : 0;
-      const raw = min + ratio * (max - min);
-      const snapped = clampAndSnap(raw, min, max, step);
-      if (snapped !== lastSnappedValue.current) {
-        lastSnappedValue.current = snapped;
+  // Fire a light haptic whenever the slider crosses a step boundary, matching
+  // the prior hand-rolled behavior. Native emits already-stepped values.
+  const lastValue = useRef(value);
+  const handleValueChange = useCallback(
+    (next: number) => {
+      if (next !== lastValue.current) {
+        lastValue.current = next;
         hapticLight();
       }
-      onValueChange?.(snapped);
+      onValueChange?.(next);
     },
-    [max, min, onValueChange, step, thumbX],
-  );
-
-  const handleGesture = useCallback(
-    (event: GestureResponderEvent) => {
-      updateFromPosition(event.nativeEvent.locationX);
-    },
-    [updateFromPosition],
-  );
-
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => !disabled,
-        onMoveShouldSetPanResponder: () => !disabled,
-        onPanResponderGrant: handleGesture,
-        onPanResponderMove: handleGesture,
-      }),
-    [disabled, handleGesture],
-  );
-
-  useEffect(() => {
-    const ratio = getValueRatio(value, min, max);
-    const width = trackWidthRef.current;
-
-    if (width > 0) {
-      Animated.timing(thumbX, {
-        toValue: ratio * width,
-        duration: 80,
-        useNativeDriver: true,
-      }).start();
-    }
-
-    lastSnappedValue.current = value;
-  }, [max, min, thumbX, value]);
-
-  const onTrackLayout = useCallback(
-    (e: { nativeEvent: { layout: { width: number } } }) => {
-      const w = e.nativeEvent.layout.width;
-      trackWidthRef.current = w;
-      setTrackWidth(w);
-      // Set initial thumb position without animation
-      const ratio = getValueRatio(value, min, max);
-      thumbX.stopAnimation();
-      thumbX.setValue(ratio * w);
-    },
-    [max, min, thumbX, value],
-  );
-
-  const safeTrackWidth = Math.max(trackWidth, 1);
-  const fillScale = thumbX.interpolate({
-    inputRange: [0, safeTrackWidth],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-  const thumbTranslateX = thumbX.interpolate({
-    inputRange: [0, safeTrackWidth],
-    outputRange: [-dims.thumb / 2, safeTrackWidth - dims.thumb / 2],
-    extrapolate: "clamp",
-  });
-  const labelTranslateX = thumbX.interpolate({
-    inputRange: [0, safeTrackWidth],
-    outputRange: [-14, safeTrackWidth - 14],
-    extrapolate: "clamp",
-  });
-
-  const flattenedStyle = styleOverride ? StyleSheet.flatten(styleOverride) : undefined;
-
-  // Accessibility action handler
-  const handleAccessibilityAction = useCallback(
-    (event: { nativeEvent: { actionName: string } }) => {
-      const action = event.nativeEvent.actionName;
-      let next = value;
-      if (action === "increment") {
-        next = Math.min(value + step, max);
-      } else if (action === "decrement") {
-        next = Math.max(value - step, min);
-      }
-      if (next !== value) {
-        onValueChange?.(next);
-      }
-    },
-    [value, step, min, max, onValueChange],
+    [onValueChange],
   );
 
   return (
-    <View
-      style={[{ opacity: disabled ? 0.5 : 1 }, flattenedStyle]}
-      accessibilityRole="adjustable"
-      accessibilityValue={{ min, max, now: value }}
-      accessibilityActions={[
-        { name: "increment", label: "Increment" },
-        { name: "decrement", label: "Decrement" },
-      ]}
-      onAccessibilityAction={handleAccessibilityAction}
-    >
-      {/* Value label above thumb */}
+    // `alignSelf: "stretch"` gives the native slider's Host a definite width on
+    // the first layout pass. Without it the SwiftUI/Compose Host measures width
+    // lazily, so the thumb starts at an unresolved position and visibly snaps to
+    // the correct spot on first interaction.
+    <View style={[{ opacity: disabled ? 0.5 : 1, alignSelf: "stretch" }, styleOverride]}>
       {showValue && (
-        <Animated.View
-          style={[
-            {
-              position: "absolute",
-              top: -20,
-              width: 28,
-              alignItems: "center",
-            },
-            { transform: [{ translateX: labelTranslateX }] },
-            { pointerEvents: "none" },
-          ]}
-        >
-          <StyledText
-            selectable={false}
-            style={{
-              fontSize: 12,
-              color: theme.colors.textDim,
-              userSelect: "none",
-            }}
-          >
-            {value}
-          </StyledText>
-        </Animated.View>
-      )}
-
-      {/* Gesture area */}
-      <View
-        style={{
-          height: dims.thumb,
-          justifyContent: "center",
-          ...(Platform.OS === "web" && { cursor: disabled ? "default" : ("pointer" as any) }),
-        }}
-        onLayout={onTrackLayout}
-        {...panResponder.panHandlers}
-      >
-        {/* Track background */}
-        <View
+        <StyledText
+          selectable={false}
           style={{
-            height: dims.track,
-            borderRadius: dims.track / 2,
-            backgroundColor: inactiveTrackColor,
-            overflow: "hidden",
+            fontSize: 12,
+            color: theme.colors.textDim,
+            marginBottom: 4,
+            userSelect: "none",
           }}
         >
-          {/* Fill */}
-          <Animated.View
-            style={[
-              {
-                width: "100%",
-                height: dims.track,
-                borderRadius: dims.track / 2,
-                backgroundColor: activeTrackColor,
-                transformOrigin: "left",
-              },
-              { transform: [{ scaleX: fillScale }] },
-            ]}
-          />
-        </View>
-
-        {/* Thumb */}
-        <Animated.View
-          style={[
-            {
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: dims.thumb,
-              height: dims.thumb,
-              borderRadius: dims.thumb / 2,
-              backgroundColor: thumbBackgroundColor,
-              borderWidth: 1,
-              borderColor: thumbBorderColor,
-              ...getShadowStyle("subtle"),
-            },
-            { transform: [{ translateX: thumbTranslateX }] },
-          ]}
-        />
-      </View>
+          {value}
+        </StyledText>
+      )}
+      <NativeSlider
+        value={value}
+        minimumValue={min}
+        maximumValue={max}
+        step={step}
+        disabled={disabled}
+        onValueChange={handleValueChange}
+        style={{ width: "100%" }}
+        // Active track — honored on iOS, Android, and web (`accentColor`).
+        minimumTrackTintColor={activeTrackColor}
+        // Inactive track + thumb — honored on Android; system-drawn elsewhere.
+        maximumTrackTintColor={inactiveTrackColor}
+        thumbTintColor={thumbTintColor}
+      />
     </View>
   );
 }

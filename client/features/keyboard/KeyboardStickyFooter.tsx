@@ -1,4 +1,12 @@
+/**
+ * KeyboardStickyFooter (Native)
+ *
+ * Uses KeyboardStickyView from react-native-keyboard-controller to animate
+ * the footer above the keyboard on iOS and Android.
+ */
+
 import { View, ViewProps, StyleSheet } from "react-native";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -12,20 +20,22 @@ export function KeyboardStickyFooter({ children, style, ...props }: KeyboardStic
   const { theme } = useTheme();
 
   return (
-    <View
-      style={[
-        styles.footer,
-        {
-          paddingBottom: insets.bottom || spacing.lg,
-          borderTopColor: theme.colors.border,
-          backgroundColor: theme.colors.card,
-        },
-        style,
-      ]}
-      {...props}
-    >
-      {children}
-    </View>
+    <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom: insets.bottom || spacing.lg,
+            borderTopColor: theme.colors.border,
+            backgroundColor: theme.colors.card,
+          },
+          style,
+        ]}
+        {...props}
+      >
+        {children}
+      </View>
+    </KeyboardStickyView>
   );
 }
 

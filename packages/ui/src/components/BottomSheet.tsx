@@ -1,52 +1,55 @@
-import React, { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import React, { createContext, use, useState } from "react";
 import {
   View,
   ViewProps,
   Pressable,
-  Animated,
-  StyleSheet,
-  Platform,
   StyleProp,
   ViewStyle,
-  PanResponder,
-  PanResponderGestureState,
-  GestureResponderEvent,
   ScrollView,
   ScrollViewProps,
+  Platform,
 } from "react-native";
-import { Portal } from "@rn-primitives/portal";
-import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
-import { Pressable as SlotPressable } from "@rn-primitives/slot";
-import { useTheme } from "../hooks/useTheme";
-import { useDimensions } from "../hooks/useDimensions";
-import { spacing } from "../constants/spacing";
-import { shouldUseNativeDriver } from "../lib/animations";
-import { TextColorContext, TextClassContext } from "./StyledText.context";
+import { BottomSheet as NativeBottomSheet } from "@expo/ui/community/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  BottomSheetKeyboardController,
-  useBottomSheetKeyboardAnimation,
-} from "./BottomSheetKeyboard";
+import { useTheme } from "../hooks/useTheme";
+import { spacing } from "../constants/spacing";
+import { TextColorContext, TextClassContext } from "./StyledText.context";
 
 /**
- * BottomSheet Component with Sub-components
+ * BottomSheet — a sliding bottom sheet with a compound API, backed by the
+ * platform's native sheet via `@expo/ui/community/bottom-sheet`:
  *
- * A sliding bottom sheet overlay with snap points, swipe gestures,
- * and compound component pattern matching Drawer.tsx.
+ *   - iOS:     SwiftUI `.sheet()` with presentation detents
+ *   - Android: Material3 `ModalBottomSheet`
+ *   - Web:     `vaul` drawer (bundled with @expo/ui)
+ *
+ * The compound surface (Trigger / Content / Handle / Header / Body / Footer /
+ * Close), controlled + uncontrolled state, and theming match a hand-rolled
+ * sheet, but the platform owns gestures and keyboard avoidance — so there's no
+ * PanResponder, snap-physics, or keyboard lift-and-shrink code to maintain.
+ *
+ * Platform-owned behaviors (props accepted for ergonomics, but the platform
+ * decides):
+ *   - `.Handle` is a no-op: the platform draws the drag indicator.
+ *   - `swipeEnabled` / `avoidKeyboard` / `dismissKeyboardOnDrag` are accepted
+ *     for call-site ergonomics but have no effect — the platform handles them.
+ *   - Sheet *chrome* (corner radius, system background, safe area) is the
+ *     platform's on native; theming reaches the content + background color.
+ *   - On Android only two snap states exist (partial / expanded); extra snap
+ *     points map to the nearest of those two.
  *
  * @example
  * ```tsx
- * <BottomSheet>
+ * <BottomSheet open={open} onOpenChange={setOpen} snapPoints={["50%"]}>
  *   <BottomSheet.Trigger asChild>
- *     <Button>Open Sheet</Button>
+ *     <Button>Open</Button>
  *   </BottomSheet.Trigger>
  *   <BottomSheet.Content>
- *     <BottomSheet.Handle />
  *     <BottomSheet.Header>
  *       <SansSerifBoldText>Title</SansSerifBoldText>
  *     </BottomSheet.Header>
  *     <BottomSheet.Body>
- *       <SansSerifText>Content here</SansSerifText>
+ *       <SansSerifText>Content</SansSerifText>
  *     </BottomSheet.Body>
  *     <BottomSheet.Footer>
  *       <Button>Action</Button>
@@ -55,13 +58,6 @@ import {
  * </BottomSheet>
  * ```
  */
-
-// Platform-specific overlay wrapper
-const FullWindowOverlay = Platform.OS === "ios" ? RNFullWindowOverlay : React.Fragment;
-
-// Floor for the keyboard-avoiding height shrink, so a tall keyboard on a short
-// screen can't collapse the sheet to nothing.
-const MIN_KEYBOARD_SHEET_HEIGHT = 220;
 
 // ============================================================================
 // Types
@@ -73,21 +69,28 @@ interface BottomSheetContextValue {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   toggle: () => void;
-  snapPoints: number[];
-  currentSnapIndex: number;
+  snapPoints: SnapPoint[];
   closeOnBackdropPress: boolean;
 }
 
 interface BottomSheetProps {
-  /** Controlled open state */
+  /** Controlled open state. Omit to use uncontrolled mode with `defaultOpen`. */
   open?: boolean;
-  /** Callback when open state changes */
+  /** Callback when open state changes. */
   onOpenChange?: (open: boolean) => void;
-  /** Default open state for uncontrolled mode */
+  /** Initial open state for uncontrolled mode. Default: false. */
   defaultOpen?: boolean;
-  /** Snap point heights (px or percentage strings) */
+  /** Snap point heights (px or percentage strings). Default: ["50%"]. */
   snapPoints?: SnapPoint[];
-  /** Whether to close when backdrop is pressed */
+  /**
+   * Whether swiping/pulling down dismisses the sheet. Maps to the native sheet's
+   * `enablePanDownToClose` (iOS `interactiveDismissDisabled`). Default: true.
+   *
+   * Note for scrollable content on iOS: interactive dismiss is all-or-nothing —
+   * when the inner scroll view is at its top, a continued downward drag is taken
+   * by the sheet's dismiss gesture. If that's undesirable, set this to `false`
+   * and provide an explicit close affordance (a button / the X in the header).
+   */
   closeOnBackdropPress?: boolean;
   children: React.ReactNode;
 }
@@ -99,13 +102,11 @@ interface BottomSheetTriggerProps {
 }
 
 interface BottomSheetContentProps extends ViewProps {
-  /** Whether to enable swipe/drag gestures */
+  /** Accepted for call-site ergonomics; ignored (platform owns gestures). */
   swipeEnabled?: boolean;
-  /** Velocity threshold for quick swipe to close */
-  velocityThreshold?: number;
-  /** Whether to move the sheet with the native keyboard animation. Default: true. */
+  /** Accepted for call-site ergonomics; ignored (platform owns keyboard avoidance). */
   avoidKeyboard?: boolean;
-  /** Whether to dismiss the keyboard when a native drag starts. Default: true. */
+  /** Accepted for call-site ergonomics; ignored (platform owns keyboard). */
   dismissKeyboardOnDrag?: boolean;
   style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
@@ -133,19 +134,6 @@ interface BottomSheetCloseProps {
   style?: StyleProp<ViewStyle>;
 }
 
-type BottomSheetPanelProps = ViewProps & {
-  accessibilityViewIsModal?: boolean;
-  /** Animated sheet height — shrinks the sheet to fit above the keyboard. */
-  animatedHeight?: Animated.AnimatedInterpolation<number>;
-  /** Animated bottom offset — lifts the sheet to sit above the keyboard. */
-  animatedBottom?: Animated.Value;
-  children: React.ReactNode;
-  panHandlers?: ReturnType<typeof PanResponder.create>["panHandlers"];
-  sheetStyle: ViewStyle;
-  styleOverride?: StyleProp<ViewStyle>;
-  translateY: Animated.Value | Animated.AnimatedAddition<number>;
-};
-
 // ============================================================================
 // Context
 // ============================================================================
@@ -160,161 +148,38 @@ function useBottomSheetContext() {
   return context;
 }
 
-/**
- * Internal context for Content → Handle communication.
- * Allows Handle to initiate drag on web using the Content's animation values.
- */
-interface DragContextValue {
-  onDragMove: (dy: number) => void;
-  onDragEnd: (dy: number, velocity: number) => void;
-}
-
-const DragContext = createContext<DragContextValue | null>(null);
-
-function BottomSheetPanel({
-  accessibilityViewIsModal,
-  animatedHeight,
-  animatedBottom,
-  children,
-  panHandlers,
-  sheetStyle,
-  styleOverride,
-  translateY,
-  ...props
-}: BottomSheetPanelProps) {
-  return (
-    <Animated.View
-      style={[
-        sheetStyle,
-        // Layout overrides (JS-driven) must come after sheetStyle so they win.
-        animatedBottom ? { bottom: animatedBottom } : undefined,
-        animatedHeight ? { height: animatedHeight } : undefined,
-        // Open/close + drag (native-driven) live on transform, a separate node.
-        { transform: [{ translateY }] },
-        styleOverride && typeof styleOverride !== "function"
-          ? StyleSheet.flatten(styleOverride)
-          : undefined,
-      ]}
-      accessibilityViewIsModal={accessibilityViewIsModal}
-      {...panHandlers}
-      {...props}
-    >
-      {children}
-    </Animated.View>
-  );
-}
-
-/**
- * Lifts the sheet above the keyboard while keeping its top edge on-screen.
- *
- * The naive approach translates the whole rigid box up by the keyboard height,
- * which shoves the header (and any inputs near the top) off the top of the
- * screen on tall sheets. Instead we lift the sheet's bottom to sit just above
- * the keyboard and shrink its height by the same amount, so the top edge holds
- * steady. The flex Body soaks up the lost height and scrolls, leaving the
- * header, focused input, and footer all visible.
- *
- * This drives layout props (`bottom`/`height`) with a JS-driven keyboard value,
- * intentionally separate from the native-driven open/close `translateY` — a
- * single Animated.Value can't feed both a native transform and a JS layout
- * prop, but distinct nodes on the same view can.
- */
-function KeyboardAvoidingBottomSheetPanel(props: BottomSheetPanelProps) {
-  const { height: keyboardHeight } = useBottomSheetKeyboardAnimation();
-
-  // sheetStyle.height is the resolved max snap height (a number, set by Content).
-  const baseHeight =
-    typeof props.sheetStyle.height === "number" ? props.sheetStyle.height : undefined;
-
-  const animatedHeight = useMemo(() => {
-    if (baseHeight === undefined) return undefined;
-    // keyboardHeight: 0 (closed) → keyboard px (open). Shrink the sheet by it,
-    // clamped to a usable minimum so it never collapses on short screens.
-    const shrunk = Animated.subtract(baseHeight, keyboardHeight);
-    return shrunk.interpolate({
-      inputRange: [MIN_KEYBOARD_SHEET_HEIGHT, baseHeight],
-      outputRange: [MIN_KEYBOARD_SHEET_HEIGHT, baseHeight],
-      extrapolate: "clamp",
-    });
-  }, [baseHeight, keyboardHeight]);
-
-  return (
-    <BottomSheetPanel
-      {...props}
-      animatedHeight={animatedHeight}
-      animatedBottom={keyboardHeight}
-    />
-  );
-}
-
 // ============================================================================
-// Utility Functions
-// ============================================================================
-
-function resolveSnapPoints(points: SnapPoint[], screenHeight: number): number[] {
-  return points.map((p) => {
-    if (typeof p === "number") return p;
-    return (parseFloat(p) / 100) * screenHeight;
-  });
-}
-
-// ============================================================================
-// Reducer
-// ============================================================================
-
-type SheetAction = { type: "OPEN" } | { type: "CLOSE" } | { type: "TOGGLE" };
-
-function sheetReducer(state: boolean, action: SheetAction): boolean {
-  switch (action.type) {
-  case "OPEN": return true;
-  case "CLOSE": return false;
-  case "TOGGLE": return !state;
-  }
-}
-
-// ============================================================================
-// BottomSheet Root
+// Root
 // ============================================================================
 
 function BottomSheetRoot({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
   defaultOpen = false,
-  snapPoints: rawSnapPoints = ["50%"],
+  snapPoints = ["50%"],
   closeOnBackdropPress = true,
   children,
 }: BottomSheetProps) {
-  const [internalOpen, dispatch] = useReducer(sheetReducer, defaultOpen);
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
 
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
-
-  // useDimensions reacts to rotation / split-screen, unlike Dimensions.get.
-  const { height: screenHeight } = useDimensions();
-  const snapPoints = resolveSnapPoints(rawSnapPoints, screenHeight);
-
-  const toggle = () => {
-    if (isControlled) {
-      controlledOnOpenChange?.(!controlledOpen);
-    } else {
-      dispatch({ type: "TOGGLE" });
-    }
-  };
 
   const onOpenChange = (newOpen: boolean) => {
     if (isControlled) {
       controlledOnOpenChange?.(newOpen);
     } else {
-      dispatch({ type: newOpen ? "OPEN" : "CLOSE" });
+      setInternalOpen(newOpen);
     }
   };
+
+  const toggle = () => onOpenChange(!open);
 
   const contextValue: BottomSheetContextValue = {
     open,
     onOpenChange,
     toggle,
     snapPoints,
-    currentSnapIndex: 0,
     closeOnBackdropPress,
   };
 
@@ -348,10 +213,7 @@ function BottomSheetTrigger({ asChild, children, style: styleOverride }: BottomS
   return (
     <Pressable
       onPress={handlePress}
-      style={[
-        Platform.OS === "web" && { cursor: "pointer" as any },
-        styleOverride,
-      ]}
+      style={[Platform.OS === "web" && { cursor: "pointer" as any }, styleOverride]}
     >
       {children}
     </Pressable>
@@ -359,465 +221,68 @@ function BottomSheetTrigger({ asChild, children, style: styleOverride }: BottomS
 }
 
 // ============================================================================
-// Content
+// Content — renders the native sheet, wraps children in themed flex column
 // ============================================================================
 
 function BottomSheetContent({
-  swipeEnabled = true,
-  velocityThreshold = 500,
-  avoidKeyboard = true,
-  dismissKeyboardOnDrag = true,
+  // Accepted-but-ignored ergonomics props (platform owns these behaviors):
+  swipeEnabled: _swipeEnabled,
+  avoidKeyboard: _avoidKeyboard,
+  dismissKeyboardOnDrag: _dismissKeyboardOnDrag,
   style: styleOverride,
   children,
-  ...props
 }: BottomSheetContentProps) {
-  const sheetContext = useBottomSheetContext();
-  const { open, onOpenChange, snapPoints, closeOnBackdropPress } = sheetContext;
+  const { open, onOpenChange, snapPoints, closeOnBackdropPress } = useBottomSheetContext();
   const { theme } = useTheme();
 
-  // Highest snap point is the max height
-  const maxHeight = Math.max(...snapPoints);
-  // With bottom:0 positioning, translateY=0 means visible, translateY=maxHeight means hidden below
-  const closedPosition = maxHeight;
+  // Boolean open → native imperative index. Open at the highest snap point so
+  // the sheet starts fully expanded; -1 keeps it closed.
+  const index = open ? snapPoints.length - 1 : -1;
 
-  // Initialize lazily so each Animated.Value is allocated once on first render
-  // instead of being rebuilt and discarded on every render.
-  const translateYRef = useRef<Animated.Value | null>(null);
-  if (translateYRef.current === null) {
-    translateYRef.current = new Animated.Value(open ? 0 : closedPosition);
-  }
-  const translateY = translateYRef.current;
-  const backdropOpacityRef = useRef<Animated.Value | null>(null);
-  if (backdropOpacityRef.current === null) {
-    backdropOpacityRef.current = new Animated.Value(open ? 1 : 0);
-  }
-  const backdropOpacity = backdropOpacityRef.current;
-
-  const [isVisible, setIsVisible] = useState(open);
-  const lastOpenRef = useRef<boolean | null>(null);
-  const runningAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
-  const currentHeightRef = useRef(maxHeight);
-
-  // Track which snap we're at
-  const currentSnapRef = useRef(snapPoints.length - 1);
-
-  const textColor = theme.colors.foreground;
-
-  const handleDragRelease = useCallback(
-    (dragDistance: number, velocity: number) => {
-      const visibleHeight = currentHeightRef.current - dragDistance;
-
-      if (velocity > velocityThreshold / 1000 || dragDistance > currentHeightRef.current * 0.4) {
-        const lowerSnaps = snapPoints.filter((s) => s < currentHeightRef.current);
-
-        if (lowerSnaps.length > 0 && dragDistance < currentHeightRef.current * 0.4) {
-          const nextSnap = lowerSnaps[lowerSnaps.length - 1];
-          currentHeightRef.current = nextSnap;
-          const targetY = maxHeight - nextSnap;
-
-          Animated.parallel([
-            Animated.spring(translateY, {
-              toValue: targetY,
-              tension: 65,
-              friction: 11,
-              useNativeDriver: shouldUseNativeDriver,
-            }),
-            Animated.timing(backdropOpacity, {
-              toValue: 1,
-              duration: 150,
-              useNativeDriver: shouldUseNativeDriver,
-            }),
-          ]).start();
-        } else {
-          Animated.parallel([
-            Animated.timing(translateY, {
-              toValue: closedPosition,
-              duration: 200,
-              useNativeDriver: shouldUseNativeDriver,
-            }),
-            Animated.timing(backdropOpacity, {
-              toValue: 0,
-              duration: 200,
-              useNativeDriver: shouldUseNativeDriver,
-            }),
-          ]).start(() => {
-            onOpenChange(false);
-            setIsVisible(false);
-          });
-        }
-      } else {
-        let nearestSnap = snapPoints[0];
-        let minDistance = Infinity;
-        for (const snap of snapPoints) {
-          const dist = Math.abs(visibleHeight - snap);
-          if (dist < minDistance) {
-            minDistance = dist;
-            nearestSnap = snap;
-          }
-        }
-
-        currentHeightRef.current = nearestSnap;
-        const targetY = maxHeight - nearestSnap;
-
-        Animated.parallel([
-          Animated.spring(translateY, {
-            toValue: targetY,
-            tension: 65,
-            friction: 11,
-            useNativeDriver: shouldUseNativeDriver,
-          }),
-          Animated.timing(backdropOpacity, {
-            toValue: 1,
-            duration: 150,
-            useNativeDriver: shouldUseNativeDriver,
-          }),
-        ]).start();
-      }
-    },
-    [snapPoints, maxHeight, closedPosition, translateY, backdropOpacity, onOpenChange, velocityThreshold]
-  );
-
-  const handleDragMove = useCallback(
-    (dy: number) => {
-      // Base offset: where the sheet sits at the current snap point
-      // translateY=0 means top snap (maxHeight visible), higher values = further down
-      const baseOffset = maxHeight - currentHeightRef.current;
-      const newY = Math.max(baseOffset, baseOffset + dy);
-      translateY.setValue(newY);
-      // Progress: 1 = fully at current snap, 0 = fully closed
-      const dragFromBase = newY - baseOffset;
-      const progress = 1 - dragFromBase / currentHeightRef.current;
-      backdropOpacity.setValue(Math.max(0, progress));
-    },
-    [translateY, backdropOpacity, maxHeight]
-  );
-
-  const dismissKeyboardForDrag = useCallback(() => {
-    if (Platform.OS !== "web" && dismissKeyboardOnDrag) {
-      void BottomSheetKeyboardController.dismiss();
-    }
-  }, [dismissKeyboardOnDrag]);
-
-  if (open !== lastOpenRef.current) {
-    const previousOpen = lastOpenRef.current;
-    lastOpenRef.current = open;
-
-    if (runningAnimationRef.current) {
-      runningAnimationRef.current.stop();
-      runningAnimationRef.current = null;
-    }
-
-    if (open) {
-      if (!isVisible) {
-        setIsVisible(true);
-      }
-
-      currentSnapRef.current = snapPoints.length - 1;
-      currentHeightRef.current = maxHeight;
-
-      if (previousOpen === null) {
-        translateY.setValue(closedPosition);
-        backdropOpacity.setValue(0);
-      }
-
-      const animation = Animated.parallel([
-        Animated.spring(translateY, {
-          toValue: 0,
-          tension: 65,
-          friction: 11,
-          useNativeDriver: shouldUseNativeDriver,
-        }),
-        Animated.timing(backdropOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: shouldUseNativeDriver,
-        }),
-      ]);
-
-      runningAnimationRef.current = animation;
-      animation.start(({ finished }) => {
-        if (finished) runningAnimationRef.current = null;
-      });
-    } else if (previousOpen === true) {
-      const animation = Animated.parallel([
-        Animated.timing(translateY, {
-          toValue: closedPosition,
-          duration: 200,
-          useNativeDriver: shouldUseNativeDriver,
-        }),
-        Animated.timing(backdropOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: shouldUseNativeDriver,
-        }),
-      ]);
-
-      runningAnimationRef.current = animation;
-      animation.start(({ finished }) => {
-        runningAnimationRef.current = null;
-        if (finished) setIsVisible(false);
-      });
-    }
-  }
-
-  const panResponder = useMemo(
-    () =>
-      Platform.OS !== "web" && swipeEnabled
-        ? PanResponder.create({
-          onStartShouldSetPanResponder: () => false,
-          onMoveShouldSetPanResponder: (
-            _evt: GestureResponderEvent,
-            gestureState: PanResponderGestureState
-          ) => {
-            const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
-            const isSignificant = Math.abs(gestureState.dy) > 10;
-            const isDownward = gestureState.dy > 0;
-            return isVertical && isSignificant && isDownward;
-          },
-          onPanResponderGrant: dismissKeyboardForDrag,
-          onPanResponderMove: (
-            _evt: GestureResponderEvent,
-            gestureState: PanResponderGestureState
-          ) => {
-            handleDragMove(gestureState.dy);
-          },
-          onPanResponderRelease: (
-            _evt: GestureResponderEvent,
-            gestureState: PanResponderGestureState
-          ) => {
-            handleDragRelease(Math.max(0, gestureState.dy), gestureState.vy);
-          },
-        })
-        : null,
-    [dismissKeyboardForDrag, handleDragMove, handleDragRelease, swipeEnabled]
-  );
-
-  const dragContextValue: DragContextValue | null =
-    Platform.OS === "web" && swipeEnabled
-      ? {
-        onDragMove: handleDragMove,
-        onDragEnd: (dy: number, velocity: number) => {
-          handleDragRelease(Math.max(0, dy), velocity);
-        },
-      }
-      : null;
-
-  const handleBackdropPress = () => {
-    if (closeOnBackdropPress) {
-      onOpenChange(false);
-    }
+  const handleChange = (newIndex: number) => {
+    // Native fires onChange(-1) on dismiss (swipe / backdrop / back button).
+    if (newIndex < 0 && open) onOpenChange(false);
   };
 
-  if (!isVisible && !open) {
-    return null;
-  }
-
-  const sheetStyle: ViewStyle = {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: maxHeight,
-    backgroundColor: theme.colors.card,
-    borderTopLeftRadius: spacing.radiusXl,
-    borderTopRightRadius: spacing.radiusXl,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: theme.colors.border,
-    ...(Platform.OS === "web" && { zIndex: 51 }),
-  };
-
-  const sheetContent = (
-    <TextColorContext.Provider value={textColor}>
-      <TextClassContext.Provider value="">
-        {children}
-      </TextClassContext.Provider>
-    </TextColorContext.Provider>
-  );
-
-  const PanelComponent =
-    Platform.OS !== "web" && avoidKeyboard
-      ? KeyboardAvoidingBottomSheetPanel
-      : BottomSheetPanel;
-
   return (
-    <BottomSheetContentPortal
-      sheetContext={sheetContext}
-      theme={theme}
-      backdropOpacity={backdropOpacity}
-      onBackdropPress={handleBackdropPress}
-      PanelComponent={PanelComponent}
-      sheetStyle={sheetStyle}
-      styleOverride={styleOverride}
-      translateY={translateY}
-      panHandlers={panResponder ? panResponder.panHandlers : undefined}
-      panelProps={props}
-      dragContextValue={dragContextValue}
-      sheetContent={sheetContent}
-    />
-  );
-}
-
-function BottomSheetContentPortal({
-  sheetContext,
-  theme,
-  backdropOpacity,
-  onBackdropPress,
-  PanelComponent,
-  sheetStyle,
-  styleOverride,
-  translateY,
-  panHandlers,
-  panelProps,
-  dragContextValue,
-  sheetContent,
-}: {
-  sheetContext: BottomSheetContextValue;
-  theme: ReturnType<typeof useTheme>["theme"];
-  backdropOpacity: Animated.Value;
-  onBackdropPress: () => void;
-  PanelComponent: React.ComponentType<BottomSheetPanelProps>;
-  sheetStyle: ViewStyle;
-  styleOverride?: StyleProp<ViewStyle>;
-  translateY: Animated.Value;
-  panHandlers?: BottomSheetPanelProps["panHandlers"];
-  panelProps: ViewProps;
-  dragContextValue: DragContextValue | null;
-  sheetContent: React.ReactNode;
-}) {
-  return (
-    <Portal name="bottom-sheet-portal">
-      <FullWindowOverlay>
-        <BottomSheetContext.Provider value={sheetContext}>
-          <View style={StyleSheet.absoluteFill}>
-            <Animated.View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor: theme.colors.overlay,
-                  opacity: backdropOpacity,
-                },
-                Platform.OS === "web" && { zIndex: 50 },
-              ]}
-            >
-              <Pressable
-                style={StyleSheet.absoluteFill}
-                onPress={onBackdropPress}
-              />
-            </Animated.View>
-
-            <PanelComponent
-              sheetStyle={sheetStyle}
-              styleOverride={styleOverride}
-              translateY={translateY}
-              accessibilityViewIsModal={true}
-              {...(Platform.OS === "web" && {
-                role: "dialog",
-                "aria-modal": true,
-              } as any)}
-              panHandlers={panHandlers}
-              {...panelProps}
-            >
-              {dragContextValue ? (
-                <DragContext.Provider value={dragContextValue}>
-                  {sheetContent}
-                </DragContext.Provider>
-              ) : (
-                sheetContent
-              )}
-            </PanelComponent>
-          </View>
-        </BottomSheetContext.Provider>
-      </FullWindowOverlay>
-    </Portal>
-  );
-}
-
-// ============================================================================
-// Handle
-// ============================================================================
-
-function BottomSheetHandle({ style }: BottomSheetHandleProps) {
-  const { theme } = useTheme();
-  const dragCtx = use(DragContext);
-
-  // Web pointer-event drag — attaches move/up listeners on document
-  const dragStartY = useRef(0);
-  const lastTimestamp = useRef(0);
-  const lastDy = useRef(0);
-  const isDragging = useRef(false);
-
-  useEffect(() => {
-    if (Platform.OS !== "web" || !dragCtx) return;
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!isDragging.current) return;
-      const dy = e.clientY - dragStartY.current;
-      const now = Date.now();
-      const dt = (now - lastTimestamp.current) / 1000;
-      lastTimestamp.current = now;
-      lastDy.current = dy;
-      dragCtx.onDragMove(dy);
-
-      // Store velocity data on the event for release calculation
-      (isDragging as any)._lastDt = dt;
-      (isDragging as any)._lastDy = dy;
-    };
-
-    const onPointerUp = (e: PointerEvent) => {
-      if (!isDragging.current) return;
-      isDragging.current = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-
-      const dy = e.clientY - dragStartY.current;
-      const dt = (isDragging as any)._lastDt || 0.016;
-      const prevDy = (isDragging as any)._lastDy || 0;
-      const velocity = dt > 0 ? (dy - prevDy) / dt / 1000 : 0;
-      dragCtx.onDragEnd(dy, velocity);
-    };
-
-    document.addEventListener("pointermove", onPointerMove);
-    document.addEventListener("pointerup", onPointerUp);
-    return () => {
-      document.removeEventListener("pointermove", onPointerMove);
-      document.removeEventListener("pointerup", onPointerUp);
-    };
-  }, [dragCtx]);
-
-  const handlePointerDown = useCallback(
-    (e: any) => {
-      if (Platform.OS !== "web" || !dragCtx) return;
-      isDragging.current = true;
-      dragStartY.current = e.nativeEvent?.clientY ?? e.clientY;
-      lastTimestamp.current = Date.now();
-      lastDy.current = 0;
-      document.body.style.cursor = "grabbing";
-      document.body.style.userSelect = "none";
-    },
-    [dragCtx]
-  );
-
-  return (
-    <View
-      style={[
-        staticStyles.handleContainer,
-        Platform.OS === "web" && { cursor: "grab" as any },
-        style,
-      ]}
-      {...(Platform.OS === "web" && dragCtx
-        ? { onPointerDown: handlePointerDown } as any
-        : {})}
+    <NativeBottomSheet
+      index={index}
+      snapPoints={snapPoints as (string | number)[]}
+      enablePanDownToClose={closeOnBackdropPress}
+      onChange={handleChange}
+      onClose={() => {
+        if (open) onOpenChange(false);
+      }}
+      // Themes the scrim/background on web (vaul) and Android (containerColor).
+      backgroundStyle={{ backgroundColor: theme.colors.card }}
     >
-      <View
-        style={[
-          staticStyles.handle,
-          { backgroundColor: theme.colors.muted },
-        ]}
-      />
-    </View>
+      <TextColorContext.Provider value={theme.colors.foreground}>
+        <TextClassContext.Provider value="">
+          <View
+            style={[
+              {
+                flex: 1,
+                // Themes the content surface across all platforms regardless of
+                // native sheet chrome.
+                backgroundColor: theme.colors.card,
+              },
+              styleOverride,
+            ]}
+          >
+            {children}
+          </View>
+        </TextClassContext.Provider>
+      </TextColorContext.Provider>
+    </NativeBottomSheet>
   );
+}
+
+// ============================================================================
+// Handle — no-op (the platform draws the drag indicator)
+// ============================================================================
+
+function BottomSheetHandle(_props: BottomSheetHandleProps) {
+  return null;
 }
 
 // ============================================================================
@@ -901,49 +366,26 @@ function BottomSheetClose({ asChild, children, style: styleOverride }: BottomShe
 
   const handlePress = () => onOpenChange(false);
 
-  if (asChild) {
-    return (
-      <SlotPressable
-        onPress={handlePress}
-        style={[
-          Platform.OS === "web" && { cursor: "pointer" as any },
-          styleOverride,
-        ]}
-      >
-        {children}
-      </SlotPressable>
-    );
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children as React.ReactElement<any>, {
+      onPress: handlePress,
+      style: [
+        (children as React.ReactElement<any>).props.style,
+        Platform.OS === "web" && { cursor: "pointer" as any },
+        styleOverride,
+      ],
+    });
   }
 
   return (
     <Pressable
       onPress={handlePress}
-      style={[
-        Platform.OS === "web" && { cursor: "pointer" as any },
-        styleOverride,
-      ]}
+      style={[Platform.OS === "web" && { cursor: "pointer" as any }, styleOverride]}
     >
       {children}
     </Pressable>
   );
 }
-
-// ============================================================================
-// Static styles
-// ============================================================================
-
-const staticStyles = StyleSheet.create({
-  handleContainer: {
-    alignItems: "center",
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-  },
-});
 
 // ============================================================================
 // Compound export

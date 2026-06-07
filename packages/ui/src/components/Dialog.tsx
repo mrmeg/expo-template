@@ -54,9 +54,9 @@ function DialogContent({
             Platform.OS === "web" && { zIndex: 50 },
           ])}
         >
-          <AnimatedView type="fade" enterDuration={200}>
+          <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
             <View style={overlayStyles.centeredContainer}>
-              <AnimatedView type="scale" enterDuration={250}>
+              <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
                 <TextColorContext.Provider value={textColor}>
                   <TextClassContext.Provider value="">
                     <DialogPrimitive.Content
@@ -67,9 +67,7 @@ function DialogContent({
                           borderWidth: 1,
                           borderRadius: spacing.radiusLg,
                           padding: spacing.lg,
-                          width: "90%",
-                          maxWidth: 450,
-                          maxHeight: "85%",
+                          width: "100%",
                           ...getShadowStyle("soft"),
                         },
                         style,
@@ -223,9 +221,9 @@ function AlertDialogContent({
             Platform.OS === "web" && { zIndex: 52 },
           ])}
         >
-          <AnimatedView type="fade" enterDuration={200}>
+          <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
             <View style={overlayStyles.centeredContainer}>
-              <AnimatedView type="scale" enterDuration={250}>
+              <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
                 <TextColorContext.Provider value={textColor}>
                   <TextClassContext.Provider value="">
                     <AlertDialogPrimitive.Content
@@ -236,9 +234,7 @@ function AlertDialogContent({
                           borderWidth: 1,
                           borderRadius: spacing.radiusLg,
                           padding: spacing.lg,
-                          width: "90%",
-                          maxWidth: 450,
-                          maxHeight: "85%",
+                          width: "100%",
                           ...getShadowStyle("soft"),
                         },
                         style,
@@ -332,6 +328,18 @@ const overlayStyles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  // Sizes the dialog relative to the full-screen centered container. Both the
+  // width AND maxHeight must live on this wrapper (the direct flex child of the
+  // full-screen container) rather than on Content: a percentage resolves
+  // against the parent's resolved box, and this wrapper's box is the screen.
+  // Putting `maxHeight: "85%"` on Content instead resolves it against this
+  // (content-sized) wrapper — clamping the card to 85% of its own content
+  // height, so the footer spills out the bottom.
+  sizer: {
+    width: "90%",
+    maxWidth: 450,
+    maxHeight: "85%",
   },
 });
 
