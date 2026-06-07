@@ -9,6 +9,15 @@ import React, {
 import { TextInput as RNTextInput } from "react-native";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 
+/**
+ * AuthTextField is intentionally an *uncontrolled* input: the live text lives in
+ * the native field and is mirrored into `valueRef`, not React state. This avoids
+ * the controlled-`value` round-trip (re-render -> push string back into the
+ * native buffer) that causes cursor flicker on auth screens while typing. The
+ * only state that triggers a re-render is `errorText`. Parents read/write the
+ * value through the imperative handle (`getValue`/`setValue`).
+ */
+
 type TextInputProps = React.ComponentProps<typeof TextInput>;
 
 export interface AuthTextFieldHandle {
@@ -40,7 +49,6 @@ function AuthTextFieldComponent({
   const inputRef = useRef<RNTextInput>(null);
   const valueRef = useRef(initialValue);
   const errorTextRef = useRef("");
-  const [value, setValue] = useState(initialValue);
   const [errorText, setErrorText] = useState("");
 
   const validate = useCallback(
@@ -53,6 +61,11 @@ function AuthTextFieldComponent({
     [validateValue],
   );
 
+  // Push text into the uncontrolled native field without a React re-render.
+  const setNativeText = useCallback((nextValue: string) => {
+    inputRef.current?.setNativeProps({ text: nextValue });
+  }, []);
+
   const handle = useMemo<AuthTextFieldHandle>(
     () => ({
       focus: () => inputRef.current?.focus(),
@@ -60,12 +73,12 @@ function AuthTextFieldComponent({
       setValue: (nextValue) => {
         const normalizedValue = normalize?.(nextValue) ?? nextValue;
         valueRef.current = normalizedValue;
-        setValue(normalizedValue);
+        setNativeText(normalizedValue);
       },
       validate: () => validate(),
       hasError: () => errorTextRef.current.length > 0,
     }),
-    [normalize, validate],
+    [normalize, setNativeText, validate],
   );
 
   useImperativeHandle(ref, () => handle, [handle]);
@@ -74,7 +87,13 @@ function AuthTextFieldComponent({
     (nextRawValue: string) => {
       const nextValue = normalize?.(nextRawValue) ?? nextRawValue;
       valueRef.current = nextValue;
-      setValue(nextValue);
+
+      // Only reach back into the native field when normalization actually
+      // changed the text (e.g. stripping non-digits from an OTP). Typing the
+      // common case leaves the native buffer untouched -> no flicker.
+      if (nextValue !== nextRawValue) {
+        setNativeText(nextValue);
+      }
 
       if (errorTextRef.current) {
         const nextError = validateValue?.(nextValue) ?? "";
@@ -84,14 +103,14 @@ function AuthTextFieldComponent({
 
       onValueChange?.(nextValue, handle);
     },
-    [handle, normalize, onValueChange, validateValue],
+    [handle, normalize, onValueChange, setNativeText, validateValue],
   );
 
   return (
     <TextInput
       {...props}
       ref={inputRef}
-      value={value}
+      defaultValue={initialValue}
       onChangeText={handleChangeText}
       onBlur={(event) => {
         validate();

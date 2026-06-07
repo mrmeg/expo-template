@@ -59,6 +59,55 @@ jest.mock("@expo/vector-icons/Feather", () => {
   };
 }, { virtual: true });
 
+// Mock @expo/ui (bare entry) — jest-expo reports Platform.OS === "ios", so the
+// UI TextInput routes to the native @expo/ui field, which would otherwise call
+// requireNativeModule('ExpoUI'). Render it as a plain RN TextInput so existing
+// tests keep exercising real behavior. `useNativeState` becomes a stable
+// { value } object (mirrors the web polyfill). Community submodules
+// (@expo/ui/community/*) are NOT intercepted here — those are mocked per-file.
+jest.mock("@expo/ui", () => {
+  const React = require("react");
+  const { TextInput: RNTextInput, View } = require("react-native");
+
+  function useNativeState(initialValue: unknown) {
+    const ref = React.useRef({ value: initialValue });
+    return ref.current;
+  }
+
+  // Host is a bridging container on device; in tests it's just a passthrough View.
+  const Host = ({ children, style }: any) =>
+    React.createElement(View, { style }, children);
+
+  const TextInput = React.forwardRef(function MockExpoTextInput(props: any, ref: any) {
+    const { value, defaultValue, onChangeText, style, textStyle, ...rest } = props;
+    const observable = value && typeof value === "object" ? value : null;
+    const stringValue = observable ? observable.value : value;
+    const innerRef = React.useRef(null);
+
+    React.useImperativeHandle(ref, () => ({
+      focus: () => innerRef.current?.focus(),
+      blur: () => innerRef.current?.blur(),
+      clear: () => {},
+      isFocused: () => innerRef.current?.isFocused?.() ?? false,
+      setSelection: () => Promise.resolve(),
+    }));
+
+    return React.createElement(RNTextInput, {
+      ...rest,
+      ref: innerRef,
+      value: stringValue,
+      defaultValue,
+      onChangeText: (text: string) => {
+        if (observable) observable.value = text;
+        onChangeText?.(text);
+      },
+      style: [style, textStyle],
+    });
+  });
+
+  return { __esModule: true, Host, TextInput, useNativeState };
+});
+
 // Mock expo-splash-screen
 jest.mock("expo-splash-screen", () => ({
   preventAutoHideAsync: jest.fn().mockResolvedValue(true),

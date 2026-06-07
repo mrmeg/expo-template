@@ -113,6 +113,29 @@ describe("TextInput", () => {
       const input = screen.getByPlaceholderText("Password");
       expect(input.props.secureTextEntry).toBe(true);
     });
+
+    it("toggles visibility via the secure entry toggle", () => {
+      render(
+        <TextInput
+          placeholder="Password"
+          secureTextEntry
+          showSecureEntryToggle
+          value="secret"
+        />
+      );
+
+      const input = screen.getByPlaceholderText("Password");
+      expect(input.props.secureTextEntry).toBe(true);
+
+      // Tap the eye button -> reveals the text.
+      fireEvent.press(screen.getByLabelText("Show password"));
+      expect(input.props.secureTextEntry).toBe(false);
+
+      // Tap again -> hides it. Text persists across the toggle.
+      fireEvent.press(screen.getByLabelText("Hide password"));
+      expect(input.props.secureTextEntry).toBe(true);
+      expect(input.props.value).toBe("secret");
+    });
   });
 
   describe("Disabled State", () => {

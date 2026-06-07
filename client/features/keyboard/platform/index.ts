@@ -16,3 +16,10 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
  * On web, KeyboardAwareScrollView is just a regular ScrollView
  */
 export const KeyboardAwareScrollView = ScrollView as React.ComponentType<ScrollViewProps & { [key: string]: any }>;
+
+/**
+ * On web there is no software keyboard to dismiss, so the overlay renders nothing.
+ */
+export function DismissKeyboardOverlay() {
+  return null;
+}

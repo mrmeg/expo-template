@@ -1,7 +1,7 @@
 import React, { memo, useMemo, useReducer, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
-import { KeyboardAwareScrollView } from "@/client/features/keyboard/platform";
+import { KeyboardAwareScrollView, DismissKeyboardOverlay } from "@/client/features/keyboard/platform";
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
@@ -122,7 +122,18 @@ function useShowcaseScreenContent() {
 
   return (
     <View style={styles.container}>
-      <KeyboardAwareScrollView contentContainerStyle={styles.scrollContent}>
+      {/*
+        keyboardDismissMode="interactive" lets a downward scroll drag dismiss the
+        keyboard. We deliberately do NOT wrap content in a tap-to-dismiss Pressable:
+        the native @expo/ui TextInput is a SwiftUI field that doesn't claim RN's JS
+        responder, so a wrapping Pressable would win the focus tap and immediately
+        dismiss the keyboard before it opens.
+      */}
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
         <View style={styles.content}>
           <View style={styles.header}>
             <ThemeToggle />
@@ -1223,6 +1234,7 @@ function useShowcaseScreenContent() {
 
         </View>
       </KeyboardAwareScrollView>
+      <DismissKeyboardOverlay />
     </View>
   );
 }
@@ -1887,19 +1899,12 @@ const BottomSheetSection = memo(function BottomSheetSection({
           <BottomSheet.Content>
             <BottomSheet.Handle />
             <BottomSheet.Header>
-              {/* X close stays in the fixed header so it's always reachable
-                  without scrolling to the footer button. Pull-down-to-dismiss
-                  also works (native iOS sheet behavior). */}
-              <View style={styles.sheetHeaderRow}>
-                <SansSerifBoldText style={styles.sheetHeaderTitle}>
-                  Terms of Service
-                </SansSerifBoldText>
-                <BottomSheet.Close asChild>
-                  <Button preset="ghost" size="sm">
-                    <Icon name="x" size={20} color={theme.colors.mutedForeground} />
-                  </Button>
-                </BottomSheet.Close>
-              </View>
+              {/* The Body scrolls, so the sheet drops pull-down-to-dismiss (it
+                  would otherwise steal the scroll gesture on iOS) and the Header
+                  surfaces a close X automatically — no manual Close needed. */}
+              <SansSerifBoldText style={styles.sheetHeaderTitle}>
+                Terms of Service
+              </SansSerifBoldText>
             </BottomSheet.Header>
             <BottomSheet.Body>
               {Array.from({ length: 12 }).map((_, i) => (

@@ -1,4 +1,13 @@
-import { useMemo, useState, type ReactNode, type Ref } from "react";
+import {
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+  type Ref,
+} from "react";
 import {
   StyleSheet,
   TextInput as RNTextInput,
@@ -10,6 +19,12 @@ import {
   View,
   Pressable,
 } from "react-native";
+import {
+  Host,
+  TextInput as ExpoTextInput,
+  useNativeState,
+  type TextInputRef as ExpoTextInputRef,
+} from "@expo/ui";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { fontFamilies } from "../constants/fonts";
@@ -173,7 +188,22 @@ interface TextInputCustomProps extends TextInputProps {
  * />
  * ```
  */
-export function TextInput({
+export function TextInput(props: TextInputCustomProps) {
+  // On iOS/Android, route to the native @expo/ui field for flicker-free,
+  // platform-native text editing. Web keeps the full-featured RN implementation
+  // (no flicker problem there, and it preserves every in-field affordance).
+  if (Platform.OS !== "web") {
+    return <NativeTextInput {...props} />;
+  }
+  return <WebTextInput {...props} />;
+}
+
+/**
+ * Web / fallback implementation — the original React Native TextInput with the
+ * complete chrome (variants, sizes, overlays, password toggle, clear button,
+ * error icon). Unchanged from the pre-native version.
+ */
+function WebTextInput({
   variant = "outline",
   size = "md",
   label,
@@ -422,8 +452,220 @@ export function TextInput({
   );
 }
 
+type ExpoTextInputProps = ComponentProps<typeof ExpoTextInput>;
+
+/**
+ * Native (iOS / Android) implementation backed by `@expo/ui`'s TextInput, which
+ * bridges to SwiftUI's `TextField`/`SecureField` and Jetpack Compose's
+ * `TextField`. The text buffer lives natively (via `useNativeState`), so typing
+ * never round-trips through React state — eliminating the cursor flicker seen on
+ * controlled RN inputs.
+ *
+ * By design (reliability over feature-parity) this path renders the field plus
+ * sibling label / helper / error text only. The in-field overlays from the web
+ * implementation — password visibility toggle, clear button, left/right
+ * elements, and error icon — are intentionally omitted on native to avoid
+ * layering RN views over the native host view.
+ */
+function NativeTextInput({
+  variant = "outline",
+  size = "md",
+  label,
+  helperText,
+  errorText,
+  error,
+  required,
+  rows,
+  forceLight,
+  inputMode,
+  onChangeText,
+  value,
+  defaultValue,
+  editable = true,
+  multiline,
+  secureTextEntry,
+  showSecureEntryToggle,
+  ref,
+  wrapperStyle,
+  // Web-only affordances. Destructured out of `rest` so they're NOT forwarded to
+  // the native field; intentionally unused on this path (see doc comment above).
+  // `style` (an RN TextStyle) is likewise dropped — it doesn't map to
+  // UniversalStyle and is replaced by the `boxStyle`/`textStyle` computed below.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  leftElement, rightElement, clearable, focusedStyle, style,
+  ...rest
+}: TextInputCustomProps) {
+  const { theme, getContrastingColor } = useTheme();
+  const styles = useMemo(() => createStyles(theme, variant, size), [theme, variant, size]);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+
+  const hasError = error || !!errorText;
+  const sizeConfig = SIZE_CONFIGS[size];
+
+  // Password visibility toggle. Flipping `secureTextEntry` swaps SwiftUI's
+  // SecureField <-> TextField on iOS and toggles Compose's visualTransformation
+  // on Android; both bind the same `state` observable, so the text survives.
+  const hasSecureToggle = !!(secureTextEntry && showSecureEntryToggle);
+  const effectiveSecureTextEntry = secureTextEntry && !passwordVisible;
+
+  // Native text buffer. Seeded once; `value` changes are reconciled below.
+  const state = useNativeState<string>(value ?? defaultValue ?? "");
+
+  // Reconcile controlled `value` -> native buffer WITHOUT echoing keystrokes.
+  // Only write when the parent's value genuinely diverges (resets, clears,
+  // programmatic sets); typing already updated `state` natively.
+  useEffect(() => {
+    if (value !== undefined && value !== state.value) {
+      state.value = value;
+    }
+  }, [value, state]);
+
+  // The inner ref is the @expo/ui handle; the outward ref is typed as
+  // RNTextInput because that's what the public TextInputCustomProps declares.
+  // We expose the subset consumers use, plus a `setNativeProps` shim so the
+  // uncontrolled AuthTextField can push corrected text into the native buffer.
+  const innerRef = useRef<ExpoTextInputRef>(null);
+  useImperativeHandle(ref, () => ({
+    focus: () => innerRef.current?.focus(),
+    blur: () => innerRef.current?.blur(),
+    clear: () => {
+      state.value = "";
+    },
+    isFocused: () => innerRef.current?.isFocused() ?? false,
+    setNativeProps: (props: { text?: string }) => {
+      if (typeof props?.text === "string") {
+        state.value = props.text;
+      }
+    },
+  }) as unknown as RNTextInput, [state]);
+
+  const backgroundColor = forceLight
+    ? palette.white
+    : variant === "filled"
+      ? theme.colors.card
+      : "transparent";
+
+  const borderColor = hasError
+    ? theme.colors.destructive
+    : forceLight
+      ? "#d1d5db"
+      : theme.colors.input;
+
+  const textColor = forceLight
+    ? "#1f2937"
+    : getContrastingColor(
+      backgroundColor === "transparent" ? theme.colors.background : backgroundColor,
+      theme.colors.text,
+      palette.white
+    );
+
+  // Map variant/size to @expo/ui's UniversalStyle (translated to SwiftUI /
+  // Compose modifiers natively).
+  const boxStyle: ExpoTextInputProps["style"] = {
+    backgroundColor,
+    borderColor,
+    borderRadius: variant === "underlined" ? 0 : spacing.radiusMd,
+    borderWidth: variant === "outline" ? 1 : 0,
+    paddingHorizontal: sizeConfig.paddingHorizontal,
+    paddingVertical: sizeConfig.paddingVertical,
+    opacity: editable === false ? 0.6 : 1,
+    ...(multiline ? null : { height: sizeConfig.height }),
+  };
+
+  const textStyle: ExpoTextInputProps["textStyle"] = {
+    color: textColor,
+    fontSize: sizeConfig.fontSize,
+    fontFamily: fontFamilies.sansSerif.regular,
+  };
+
+  return (
+    <View style={wrapperStyle}>
+      {!!label && (
+        <View style={styles.labelContainer}>
+          <StyledText selectable={false} style={styles.label}>
+            {label}
+            {required && <StyledText selectable={false} style={styles.required}> *</StyledText>}
+          </StyledText>
+        </View>
+      )}
+
+      {/*
+        Field + optional password toggle laid out as a flex Row. The eye button
+        is a SIBLING of the native Host, never layered over it — that avoids the
+        RN-view-over-Host mis-measurement that bit other native components.
+      */}
+      <View style={hasSecureToggle ? styles.nativeRow : undefined}>
+        {/*
+          The universal @expo/ui TextInput renders a raw SwiftUI / Compose view and
+          MUST be wrapped in <Host>, or iOS throws "a SwiftUI view is being mounted
+          inside a standard UIView". matchContents vertical lets the host fill width
+          via normal RN layout while sizing its height to the native field.
+        */}
+        <Host
+          matchContents={{ vertical: true }}
+          style={hasSecureToggle ? styles.nativeHostFlex : styles.nativeHost}
+        >
+          <ExpoTextInput
+            {...(rest as ExpoTextInputProps)}
+            ref={innerRef}
+            value={state}
+            defaultValue={defaultValue}
+            onChangeText={onChangeText}
+            editable={editable}
+            multiline={multiline}
+            rows={rows}
+            inputMode={inputMode}
+            secureTextEntry={effectiveSecureTextEntry}
+            placeholderTextColor={theme.colors.textDim}
+            style={boxStyle}
+            textStyle={textStyle}
+          />
+        </Host>
+
+        {hasSecureToggle && (
+          <Pressable
+            style={styles.nativePasswordToggle}
+            onPress={() => setPasswordVisible((v) => !v)}
+            accessibilityLabel={passwordVisible ? "Hide password" : "Show password"}
+            accessibilityRole="button"
+          >
+            <Icon
+              name={passwordVisible ? "eye-off" : "eye"}
+              size={spacing.iconSm + 4}
+              color="textDim"
+            />
+          </Pressable>
+        )}
+      </View>
+
+      {!!(helperText || errorText) && (
+        <StyledText
+          selectable={false}
+          style={[styles.helperText, hasError && styles.errorText]}
+        >
+          {errorText || helperText}
+        </StyledText>
+      )}
+    </View>
+  );
+}
+
 const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSize) =>
   StyleSheet.create({
+    nativeHost: {
+      width: "100%",
+    },
+    nativeRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+    },
+    nativeHostFlex: {
+      flex: 1,
+    },
+    nativePasswordToggle: {
+      paddingHorizontal: spacing.xs,
+    },
     wrapper: {
       width: "100%",
       position: "relative",
