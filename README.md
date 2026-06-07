@@ -2,13 +2,13 @@
 
 A production-ready starter for cross-platform Expo apps. Ships with a
 shadcn-inspired design system, optional auth/billing/media features that
-each fail closed when unconfigured, a Bun production server, and a
-spec-driven agent workflow under `Agent/`.
+each fail closed when unconfigured, a Bun production server, and LLM-friendly
+template docs under `docs/`.
 
 ## Features
 
 ### Core
-- **Universal app** — iOS, Android, Web (React Native Web 0.21) on Expo SDK 55 / React 19 / RN 0.83 / TypeScript strict.
+- **Universal app** — iOS, Android, Web (React Native Web 0.21) on Expo SDK 56 / React 19.2 / RN 0.85 / TypeScript strict.
 - **Design system** — 35+ shadcn-inspired components on `@rn-primitives` with a zinc palette, teal accent, dark/light themes, and WCAG contrast helpers.
 - **File-based routing** — Expo Router with typed routes, async web routes, and a server-rendered web build.
 - **State** — Zustand for client state, TanStack React Query for server state, persisted via `AsyncStorage` (native) or `localStorage` (web).
@@ -24,7 +24,7 @@ spec-driven agent workflow under `Agent/`.
 - **Bun production server** — Expo Router SSR through `expo-server/adapter/bun`, static Brotli/gzip compression, CORS, rate limiting (a strict 10/min bucket on `/api/media/getUploadUrl` and the billing checkout/portal routes), security headers, request logging. The Express server remains available as a fallback.
 - **Generator CLI** — `bun run generate component|screen|hook|form <Name>` — paths and imports match the rest of the template.
 - **Reactotron** — auto-connects in dev mode for native runs.
-- **Spec-driven Night/Day Shift workflow** — see `Agent/AGENTS.md`.
+- **Template docs** — LLM-facing modernization guidance in `docs/template-modernization-guide.md`.
 
 ## Getting Started
 
@@ -179,11 +179,11 @@ UI system.
 /shared                       # Code shared between client & server (e.g. media path constants)
 /scripts                      # Generator CLI + bundle-size check
 /test                         # Jest setup
-/Agent                        # Spec-driven workflow (specs, playbooks, docs)
 ```
 
-For deeper architecture, see `Agent/Docs/ARCHITECTURE.md`. For the current
-docs index, start at `Agent/AGENTS.md`.
+For architecture, component, screen-template, and modernization guidance that
+other projects can link to, see `docs/template-modernization-guide.md`. For
+the current docs index, start at `AGENTS.md`.
 
 ## Internationalization
 
@@ -306,7 +306,8 @@ workflow can still be run manually with `version=patch` and `ref=main`; manual
 runs bump the UI package version, run the package gates, commit the version
 bump, and publish through npm OIDC without an npm token or local auth email.
 
-For the full design system see `Agent/Docs/DESIGN.md`.
+For the full design system see `packages/ui/README.md` and
+`docs/template-modernization-guide.md`.
 
 ## Billing (Stripe, hosted-external)
 
@@ -326,10 +327,10 @@ STRIPE_PRICE_ID_PRO_YEAR=price_...
 stripe listen --forward-to localhost:3000/api/billing/webhook
 ```
 
-Full walkthrough (products, prices, disabling cleanly) is in
-[`Agent/Docs/BILLING.md`](./Agent/Docs/BILLING.md). Without Stripe env
-vars `/api/billing/*` returns `503 billing-disabled` and the UI hides
-purchase CTAs — no Stripe traffic is ever generated.
+Billing contracts and disabling behavior are covered in
+`docs/template-modernization-guide.md`. Without Stripe env vars,
+`/api/billing/*` returns `503 billing-disabled` and the UI hides purchase
+CTAs — no Stripe traffic is ever generated.
 
 ## CI
 
@@ -349,9 +350,9 @@ is enough.
 
 ## Tech Stack
 
-- Expo SDK 55, React 19, React Native 0.83, React Native Web 0.21
-- TypeScript 5.9 (strict), path alias `@/*` → repo root
-- Expo Router ~55 (typed, async web routes, server-rendered web build)
+- Expo SDK 56, React 19.2, React Native 0.85, React Native Web 0.21
+- TypeScript 6 (strict), path alias `@/*` -> repo root
+- Expo Router 56 (typed, async web routes, server-rendered web build)
 - Zustand 5, TanStack React Query 5
 - AWS Amplify 6 + Cognito (optional)
 - Stripe 22 (server, hosted-external Checkout + Billing Portal)
@@ -365,15 +366,11 @@ is enough.
 - Bun + Expo Server (production web server), with Express 5 fallback
 - Bun (package manager + script runner)
 
-## Agent Workflow
+## Template Docs
 
-The `Agent/` directory ships a spec-driven workflow:
-
-- `/nightshift` — autonomous overnight loop that picks specs from `Agent/Specs/` and ships them
-- `/dayshift` — interactive mode for writing specs, investigating issues, reviewing
-- Slash commands: `/investigate`, `/write-spec`, `/review-spec`, `/morning-review`, `/status`, `/update-docs`, `/bootstrap-docs`
-
-Start at `Agent/AGENTS.md` for the router and the docs index.
+Start at `docs/template-modernization-guide.md` for LLM-facing component,
+screen-template, and modernization guidance. Start at `AGENTS.md` for compact
+repo guidance and the docs index.
 
 ## License
 

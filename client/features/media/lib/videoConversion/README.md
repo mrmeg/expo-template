@@ -1,30 +1,33 @@
-# Video Conversion (FFmpeg.wasm)
+# App Video Conversion Bridge
 
-Web-only feature that converts non-MP4 videos (WebM, AVI, MKV, etc.) to MP4 (H.264/AAC) for cross-platform playback compatibility.
+App-local bridge for the web video conversion helpers that now live in
+`@mrmeg/expo-media/processing/video-conversion`. It converts non-MP4 videos
+(WebM, AVI, MKV, etc.) to MP4 (H.264/AAC) for cross-platform playback
+compatibility.
 
 ## How It Works
 
 - Uses FFmpeg.wasm (~30MB, loaded lazily on first use)
 - Converts videos client-side in the browser
-- Native platforms (iOS/Android) don't need this - they handle video formats natively
+- Native platforms (iOS/Android) return the original video
+- The production worker is served from `packages/media/src/processing/videoConversion/ffmpeg-worker.js`
 
 ## Files in This Folder
 
 | File | Purpose |
 |------|---------|
-| `config.ts` | CDN URLs, presets, size limits |
-| `convert.ts` | Web implementation using FFmpeg.wasm |
-| `convert.native.ts` | Native stub (no-op, returns original video) |
-| `ffmpeg-worker.js` | Bundled FFmpeg worker (served by Metro/Express) |
-| `index.ts` | Barrel export |
+| `config.ts` | App-local CDN URLs, presets, size limits |
+| `convert.ts` | App-local web implementation using FFmpeg.wasm |
+| `convert.native.ts` | Native stub, returns original video |
+| `ffmpeg-worker.js` | Legacy app-local worker copy |
+| `index.ts` | Barrel export for the app-local bridge |
 | `types.ts` | TypeScript types |
 | `utils.ts` | Format detection utilities |
 
 ## Usage
 
 ```tsx
-import { needsConversion } from "@/client/lib/videoConversion/utils";
-import { convertVideo } from "@/client/lib/videoConversion/convert";
+import { convertVideo, needsConversion } from "@/client/features/media/lib/videoConversion";
 
 if (needsConversion(mimeType)) {
   const result = await convertVideo(videoUri, mimeType, {
@@ -38,7 +41,8 @@ if (needsConversion(mimeType)) {
 
 If you don't need web video conversion, remove this feature entirely:
 
-1. **Delete this folder**: `rm -rf client/lib/videoConversion/`
-2. **metro.config.js**: Delete from `// FFmpeg Video Conversion` to `// END FFmpeg`
-3. **server/index.ts**: Delete from `// FFmpeg Video Conversion` to `// END FFmpeg`
-4. **useMediaLibrary.ts**: Remove videoConversion imports and the conversion logic block
+1. Delete this folder: `client/features/media/lib/videoConversion/`
+2. Remove video conversion imports and conversion logic from
+   `client/features/media/hooks/useMediaLibrary.ts`
+3. If no other code imports `FFMPEG_WORKER_URL`, remove the FFmpeg worker
+   serving hooks from `metro.config.js`, `server/index.ts`, and `server.bun.ts`

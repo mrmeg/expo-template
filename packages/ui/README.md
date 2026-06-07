@@ -28,8 +28,8 @@ bun add @mrmeg/expo-ui
 ```
 
 Consumers must also install the native and Expo peer dependencies listed in
-`package.json`. The tested baseline is Expo SDK 55 with React 19.2, React
-Native 0.83, and React Native Web 0.21. UI animations and keyboard-aware
+`package.json`. The tested baseline is Expo SDK 56 with React 19.2, React
+Native 0.85, and React Native Web 0.21. UI animations and keyboard-aware
 sheet offsets use React Native Animated by default.
 `@rn-primitives/*` packages are managed by `@mrmeg/expo-ui` because they are
 implementation details of the exported UI components. Native bottom sheet
@@ -457,5 +457,5 @@ bun run ui:consumer-smoke
 `bun run ui:consumer-smoke` installs the packed tarball into a clean fixture,
 checks the documented export-map files, type-checks all public package
 entrypoints, verifies that `@mrmeg/expo-ui/constants` can be imported by
-plain Node ESM for token inspection, and runs an Expo SDK 55 iOS export
+plain Node ESM for token inspection, and runs an Expo SDK 56 iOS export
 against the packed package without a custom Metro config.

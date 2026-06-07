@@ -47,7 +47,7 @@ This project uses **bun**. Always use `bun install` and `bun add <package>` — 
 
 ## Project Structure
 
-See `Agent/Docs/ARCHITECTURE.md` for the canonical architecture reference and `Agent/AGENTS.md` for the docs index. Key directories:
+See `docs/template-modernization-guide.md` for the modernization reference and `AGENTS.md` for the docs index. Key directories:
 
 - `app/` — Expo Router file-based routing (UI routes + `app/api/*` server routes)
 - `client/features/` — Self-contained feature modules (auth, billing, media, i18n, notifications, onboarding, keyboard, navigation, app)
@@ -64,7 +64,7 @@ See `Agent/Docs/ARCHITECTURE.md` for the canonical architecture reference and `A
 ## Design System
 
 - Shadcn-inspired, zinc palette + teal accent
-- See `packages/ui/src/constants/` for tokens (colors, fonts, spacing) and `Agent/Docs/DESIGN.md` for the full reference
+- See `packages/ui/src/constants/` for tokens (colors, fonts, spacing) and `packages/ui/README.md` for the full reference
 - Component sizes: sm=32, md=36, lg=40
 - Use `StyleSheet.flatten([...])` (not raw arrays) for `@rn-primitives` style props — nested style arrays crash React Native Web
 
