@@ -162,8 +162,12 @@ It's masked exactly like the theme white-flash (§5), in four parts:
 3. **`RootLayout.tsx`** drops the `onboarding-seen` class once `hasSeenOnboarding`
    resolves to `true`, so the gate is unhidden only *after* the Stack renders, and
    a runtime onboarding reset (flag back to `false`) still shows the gate.
-4. **New visitors** have no persisted flag → no class → the fully-styled SSR
-   onboarding (the `[data-testid="onboarding-*"]` critical CSS) paints normally.
+4. **New visitors** have no persisted flag → no class → the SSR onboarding
+   paints normally, fully styled by the react-native-web `<style>` element the
+   server ships in `headNodes` (§1). Don't add per-element "critical CSS" for
+   it in `+html.tsx`: `#root [data-testid=…]` selectors outrank RNW's generated
+   classes by specificity and keep overriding them *after* hydration (this once
+   collapsed the Get Started button's `fullWidth` inner view to text width).
 
 If you remove either the script or the CSS rule, the flash returns. Keep the
 store's web read deferred — eagerly reading `localStorage` at module load (the

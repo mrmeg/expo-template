@@ -11,16 +11,6 @@ function getRootCssStyles() {
   const lightBackground = colors.light.colors.card;
   const darkText = colors.dark.colors.foreground;
   const darkBackground = colors.dark.colors.card;
-  const lightMutedText = colors.light.colors.mutedForeground;
-  const lightAccent = colors.light.colors.accent;
-  const lightMuted = colors.light.colors.muted;
-  const lightPrimary = colors.light.colors.primary;
-  const lightPrimaryForeground = colors.light.colors.primaryForeground;
-  const darkMutedText = colors.dark.colors.mutedForeground;
-  const darkAccent = colors.dark.colors.accent;
-  const darkMuted = colors.dark.colors.muted;
-  const darkPrimary = colors.dark.colors.primary;
-  const darkPrimaryForeground = colors.dark.colors.primaryForeground;
 
   /**
    * Global CSS styles for the application
@@ -30,17 +20,6 @@ function getRootCssStyles() {
    * Media query fallbacks handle the initial paint before JS hydrates.
    */
   return `
-    /* Light mode (default) */
-    html {
-      --critical-bg: ${colors.light.colors.background};
-      --critical-fg: ${lightText};
-      --critical-muted-fg: ${lightMutedText};
-      --critical-accent: ${lightAccent};
-      --critical-muted: ${lightMuted};
-      --critical-primary: ${lightPrimary};
-      --critical-primary-fg: ${lightPrimaryForeground};
-    }
-
     html,
     body,
     #root {
@@ -76,16 +55,6 @@ function getRootCssStyles() {
 
     /* OS dark mode fallback (before JS hydrates) */
     @media (prefers-color-scheme: dark) {
-      html:not([data-theme]) {
-        --critical-bg: ${colors.dark.colors.background};
-        --critical-fg: ${darkText};
-        --critical-muted-fg: ${darkMutedText};
-        --critical-accent: ${darkAccent};
-        --critical-muted: ${darkMuted};
-        --critical-primary: ${darkPrimary};
-        --critical-primary-fg: ${darkPrimaryForeground};
-      }
-
       html:not([data-theme]) body {
         background-color: ${colors.dark.colors.background};
         color-scheme: dark;
@@ -102,16 +71,6 @@ function getRootCssStyles() {
     }
 
     /* Runtime dark mode (set by JS on <html data-theme="dark">) */
-    html[data-theme="dark"] {
-      --critical-bg: ${colors.dark.colors.background};
-      --critical-fg: ${darkText};
-      --critical-muted-fg: ${darkMutedText};
-      --critical-accent: ${darkAccent};
-      --critical-muted: ${darkMuted};
-      --critical-primary: ${darkPrimary};
-      --critical-primary-fg: ${darkPrimaryForeground};
-    }
-
     html[data-theme="dark"] body {
       background-color: ${colors.dark.colors.background};
       color-scheme: dark;
@@ -127,16 +86,6 @@ function getRootCssStyles() {
     }
 
     /* Runtime light mode (explicit override when OS is dark) */
-    html[data-theme="light"] {
-      --critical-bg: ${colors.light.colors.background};
-      --critical-fg: ${lightText};
-      --critical-muted-fg: ${lightMutedText};
-      --critical-accent: ${lightAccent};
-      --critical-muted: ${lightMuted};
-      --critical-primary: ${lightPrimary};
-      --critical-primary-fg: ${lightPrimaryForeground};
-    }
-
     html[data-theme="light"] body {
       background-color: ${colors.light.colors.background};
       color-scheme: light;
@@ -168,119 +117,7 @@ function getRootCssStyles() {
     html.onboarding-seen #root [data-testid="onboarding-gate"] {
       display: none !important;
     }
-
-    /* Critical first-paint shape for the SSR onboarding gate. React Native
-       Web will replace this with generated classes after hydration, but this
-       keeps throttled first loads from briefly painting plain document flow. */
-    #root [data-testid="onboarding-gate"],
-    #root [data-testid="onboarding-flow"] {
-      background-color: var(--critical-bg);
-      box-sizing: border-box;
-      display: flex;
-      flex: 1 1 auto;
-      min-height: 100%;
-      position: relative;
-      width: 100%;
-    }
-
-    #root [data-testid="onboarding-flow"] {
-      overflow: hidden;
-    }
-
-    #root [data-testid="onboarding-skip"] {
-      align-items: center;
-      box-sizing: border-box;
-      display: flex;
-      justify-content: flex-end;
-      left: 0;
-      min-height: 44px;
-      padding: 8px 16px 0;
-      position: absolute;
-      right: 0;
-      top: 0;
-      z-index: 1;
-    }
-
-    #root [data-testid="onboarding-page"] {
-      align-items: center;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 128px 32px;
-      text-align: center;
-      width: 100vw;
-    }
-
-    #root [data-testid="onboarding-icon"] {
-      margin-bottom: 32px;
-    }
-
-    #root [data-testid="onboarding-title"] {
-      color: var(--critical-fg);
-      font-family: "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      font-size: 28px;
-      font-weight: 700;
-      line-height: 34px;
-      margin: 0 0 8px;
-      max-width: 640px;
-      text-align: center;
-    }
-
-    #root [data-testid="onboarding-description"] {
-      color: var(--critical-muted-fg);
-      font-family: "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      font-size: 16px;
-      line-height: 24px;
-      margin: 0;
-      max-width: 360px;
-      text-align: center;
-    }
-
-    #root [data-testid="onboarding-skip-button"] {
-      color: var(--critical-muted-fg);
-    }
-
-    #root [data-testid="onboarding-controls"] {
-      bottom: 0;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      left: 0;
-      padding: 0 24px 48px;
-      position: absolute;
-      right: 0;
-    }
-
-    #root [data-testid="onboarding-dots"] {
-      align-items: center;
-      display: flex;
-      flex-direction: row;
-      gap: 8px;
-      justify-content: center;
-    }
-
-    #root [data-testid="onboarding-dot"] {
-      background-color: var(--critical-muted);
-      border-radius: 4px;
-      height: 8px;
-    }
-
-    #root [data-testid="onboarding-next-button"] {
-      align-items: center;
-      background-color: var(--critical-primary);
-      border-radius: 8px;
-      box-sizing: border-box;
-      color: var(--critical-primary-fg);
-      display: flex;
-      justify-content: center;
-      min-height: 44px;
-      width: 100%;
-    }
   `;
-
 }
 
 const DEFAULT_DOCUMENT_TITLE = "Expo Template";
