@@ -572,10 +572,20 @@ function NativeTextInput({
     ...(multiline ? null : { height: sizeConfig.height }),
   };
 
+  // "System" is an RN-only sentinel (RCTFont resolves it to the system font).
+  // @expo/ui passes the family verbatim to SwiftUI's Font.custom / Compose,
+  // where no such font exists — the fallback ignores fontSize and renders at
+  // the 17pt default, blowing up text and secure-entry dots. Omit the family
+  // so the native side uses the system font at our requested size.
+  const nativeFontFamily =
+    fontFamilies.sansSerif.regular === "System"
+      ? undefined
+      : fontFamilies.sansSerif.regular;
+
   const textStyle: ExpoTextInputProps["textStyle"] = {
     color: textColor,
     fontSize: sizeConfig.fontSize,
-    fontFamily: fontFamilies.sansSerif.regular,
+    ...(nativeFontFamily ? { fontFamily: nativeFontFamily } : null),
   };
 
   return (
