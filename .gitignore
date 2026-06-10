@@ -55,3 +55,6 @@ Agent/*
 !Agent/Docs/**
 !Agent/Plans/
 !Agent/Plans/**
+
+# Playwright MCP session artifacts (screenshots, page snapshots, console logs)
+.playwright-mcp/
