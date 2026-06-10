@@ -1,0 +1,1640 @@
+# Expo Template — LLM Reference Bundle
+
+<!-- GENERATED FILE - do not edit. Rebuild with `bun run docs:llms`. -->
+<!-- Link index version: https://raw.githubusercontent.com/mrmeg/expo-template/main/llms.txt -->
+
+This file concatenates every LLM-facing doc from https://github.com/mrmeg/expo-template so one fetch
+teaches an agent to apply the template's components and best practices in
+another project.
+
+Two ways to consume this repo:
+
+1. Published packages: run `bun add @mrmeg/expo-ui` (and optionally
+   `@mrmeg/expo-media`), then follow the "@mrmeg/expo-ui Usage" section
+   below. The same guide ships in the npm tarball at
+   `node_modules/@mrmeg/expo-ui/LLM_USAGE.md`.
+2. Pattern reference: follow the "Template Modernization Guide" and "Expo
+   Server Guide" sections below; fetch concrete example files through the
+   "Examples Index" section, or clone https://github.com/mrmeg/expo-template.git for bulk access.
+
+Sections, in order:
+
+1. Template Modernization Guide — repo map, component selection, screen templates, feature patterns, migration order, anti-patterns
+2. @mrmeg/expo-ui Usage — import paths, required app setup, theme rules, component use-case index, examples
+3. @mrmeg/expo-media Reference — media contracts, client hooks, server handlers, processing presets
+4. Expo Server Guide — server output config, API routes, data loaders, middleware, server entries, replication checklist
+5. Web SSR Hydration Constraints — first-render rules for the server-rendered web build
+6. Examples Index — fetchable raw URLs for demo routes, screen templates, component source, form wrappers, server stack
+
+---
+
+<!-- Source: docs/template-modernization-guide.md -->
+<!-- Raw: https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/template-modernization-guide.md -->
+
+# Template Modernization Guide
+
+This guide is the LLM-facing map for using this repo as a reference template.
+Use it when adapting another Expo app to this stack, selecting reusable
+components, choosing a screen template, or checking modernization work against
+the repo's current patterns.
+
+## Start Here
+
+Treat these files as the source of truth before editing another project:
+
+| Need | Source |
+|------|--------|
+| App overview, scripts, architecture, setup | `README.md` |
+| Contribution workflow and project structure | `CONTRIBUTING.md` |
+| Repo guidance and docs index | `AGENTS.md` |
+| UI package setup, components, theming | `packages/ui/README.md` |
+| Media package setup, processing, server handlers | `packages/media/README.md` |
+| Server output, API routes, data loaders, middleware | `docs/server-guide.md` |
+| SSR hydration and web first-render constraints | `docs/ssr-hydration.md` |
+| Bundle budget and analysis workflow | `docs/bundle-analysis.md` |
+| Sentry runtime and native upload setup | `docs/error-tracking.md` |
+| UI component exports | `packages/ui/src/components/index.ts` |
+| Screen and demo registry | `client/showcase/registry.ts` |
+| Demo routes | `app/(main)/(demos)/` |
+| Reusable screen implementations | `client/screens/` |
+
+When code and docs disagree, inspect the source files and update the docs in
+the same change.
+
+## Stack Baseline
+
+The template is a Bun-managed Expo app with Expo Router, server-rendered web
+output, TypeScript strict mode, React Query, Zustand, optional Cognito auth,
+optional Stripe billing, optional S3/R2 media, optional Sentry, and two
+workspace packages:
+
+- `@mrmeg/expo-ui` from `packages/ui`: design tokens, theme state, reusable
+  components, animation/haptic helpers, and global UI state.
+- `@mrmeg/expo-media` from `packages/media`: media contracts, processing
+  helpers, React Query factories, and S3/R2 server handler factories.
+
+App-specific integration belongs in `app/`, `client/`, `server/`, or `shared/`.
+Reusable UI belongs in `packages/ui`. Reusable media contracts and processing
+belong in `packages/media`.
+
+## LLM Use Rules
+
+- Prefer repo components over new primitives. Import from
+  `@mrmeg/expo-ui/components`, `@mrmeg/expo-ui/hooks`, and
+  `@mrmeg/expo-ui/constants`.
+- Use `useTheme()` and token exports for color, spacing, radius, shadow,
+  typography, and contrast decisions. Avoid new hard-coded palettes.
+- Keep reusable package code app-agnostic. `packages/ui` must not import from
+  `@/client/*`; `packages/media` must not depend on app route files or app
+  env names.
+- Keep optional systems fail-closed. A blank `.env` must leave the template
+  explorable with auth, billing, media, and Sentry disabled.
+- Respect SSR first-render constraints on web. Read `docs/ssr-hydration.md`
+  before changing `app/+html.tsx`, root startup, theme startup, i18n startup,
+  onboarding, viewport logic, or font loading.
+- Add showcase coverage when adding a reusable component or screen template.
+  Update `client/showcase/registry.ts` so the Explore tab remains the adoption
+  surface.
+- Use exact local scripts from `package.json`; do not substitute generic Expo
+  or npm commands when a Bun script exists.
+
+## Component Selection
+
+Start with `packages/ui/src/components/index.ts` and the showcase route
+`app/(main)/(demos)/showcase/index.tsx`.
+
+| Use case | Prefer |
+|----------|--------|
+| Page text, headings, localized labels | `StyledText` exports |
+| Primary, secondary, outline, destructive actions | `Button` |
+| Text entry | `TextInput`, app form wrappers under `client/lib/form/` |
+| Boolean input | `Switch`, `Checkbox`, `Toggle` |
+| One-of-many or few-of-many choice | `RadioGroup`, `SegmentedControl`, `Select`, `ToggleGroup` |
+| Numeric selection | `Slider`, or an app-specific stepper built from package primitives |
+| Navigation inside a surface | `Tabs`, `Accordion`, `Collapsible` |
+| Menus and contextual commands | `DropdownMenu`, `Popover`, `Tooltip` |
+| Modal or transient surfaces | `Dialog`, `BottomSheet`, `Drawer` |
+| Status, progress, or async feedback | `Alert`, `Badge`, `Progress`, `Skeleton`, `EmptyState` |
+| Cards and repeated item containers | `Card`, `Separator`, `AnimatedView` |
+| Icons | `Icon`, with names typed by `IconName` |
+| App shell infrastructure | `UIProvider`, `ErrorBoundary`, `StatusBar`, `Notification` |
+
+For forms, use `react-hook-form` through `client/lib/form/FormProvider.tsx`
+and the field wrappers in `client/lib/form/`. Keep field state local to the
+smallest useful component, especially inside showcase demos and high-churn
+forms.
+
+## Screen Templates
+
+The reusable screen templates live in `client/screens/`. Demo routes under
+`app/(main)/(demos)/` show concrete usage and are registered in
+`client/showcase/registry.ts`.
+
+| Template | Source | Use for |
+|----------|--------|---------|
+| Settings | `client/screens/SettingsScreen.tsx` | Grouped settings, toggles, account actions |
+| Profile | `client/screens/ProfileScreen.tsx` | User profile, avatar, stats, sectioned details |
+| List | `client/screens/ListScreen.tsx` | Searchable lists, refresh, loading and empty states |
+| Pricing | `client/screens/PricingScreen.tsx` | Plans, billing intervals, comparison states |
+| Welcome | `client/screens/WelcomeScreen.tsx` | First-run welcome and authentication entry |
+| Card Grid | `client/screens/CardGridScreen.tsx` | Filterable card collections |
+| Chat | `client/screens/ChatScreen.tsx` | Message timelines and composer layout |
+| Dashboard | `client/screens/DashboardScreen.tsx` | Metrics, charts, activity feeds |
+| Form | `client/screens/FormScreen.tsx` | Multi-step forms with validation and review |
+| Notifications | `client/screens/NotificationListScreen.tsx` | Grouped notification feeds |
+| Search Results | `client/screens/SearchResultsScreen.tsx` | Query results, filters, empty states |
+| Error | `client/screens/ErrorScreen.tsx` | Setup, retry, auth, access, and fatal states |
+| Detail Hero | `client/screens/DetailHeroScreen.tsx` | Object detail pages with prominent media |
+
+Use these as starting points, not as containers for unrelated product logic.
+Domain behavior should sit in a feature folder, then pass data and callbacks
+into the screen template.
+
+## App And Feature Patterns
+
+| Pattern | Source | Notes |
+|---------|--------|-------|
+| Root providers and startup gate | `client/features/app/RootLayout.tsx`, `client/features/app/useAppStartup.ts` | Coordinates resources, i18n, onboarding, optional auth, splash hiding |
+| Navigation shell | `app/(main)/`, `app/(main)/(tabs)/` | Main Stack, tabs, demos, route grouping |
+| API routes | `app/api/**/+api.ts`, `server/api/shared/` | Route files stay thin; shared auth, CORS, and errors live under `server/api/shared` |
+| API client | `client/lib/api/` | Use typed results or typed problem objects, not raw `Response` handling in UI |
+| Feature folders | `client/features/<feature>/` | Keep features portable; obey feature isolation checks |
+| Persisted client state | Zustand stores under `client/features/**` or `client/state/` | Use cross-platform storage helpers where persistence is needed |
+| Server state | TanStack React Query | Root defaults live in the provider stack |
+| Media feature | `client/features/media/`, `app/api/media/`, `packages/media/` | App routes own auth/env; package owns reusable media contracts |
+| Billing feature | `client/features/billing/`, `app/api/billing/`, `server/api/billing/` | Server owns plan catalog and Stripe mapping |
+
+## Modernization Path
+
+Use this order when moving an existing project toward this template:
+
+1. Baseline the toolchain: Bun lockfile, Expo SDK, React, React Native,
+   TypeScript strict, Expo Router, and local package scripts.
+2. Move app identity into the single identity surface used by `app.config.ts`
+   and runtime deep-link helpers.
+3. Establish the route shell: root providers, tabs, grouped demo routes,
+   error boundary, safe area, keyboard provider, and startup gate.
+4. Replace one-off UI with `@mrmeg/expo-ui` components and tokens. Port
+   screens by matching the closest template in `client/screens/`.
+5. Normalize forms through `react-hook-form`, `zod`, and `client/lib/form`
+   wrappers.
+6. Move server state to React Query and client state to small Zustand stores.
+7. Convert API calls to typed route contracts and typed problem handling.
+8. Add optional systems behind env gates. Missing auth, billing, media, or
+   Sentry config should degrade to setup/disabled states, not runtime crashes.
+9. Verify SSR and hydration on web before optimizing for native-only behavior.
+10. Add tests at the boundary touched: package component tests, screen tests,
+    route tests, feature isolation, typecheck, lint, and bundle-size checks.
+
+## Modernization Checks
+
+Before calling a migration complete, run the relevant local scripts:
+
+```bash
+bun run typecheck
+bun run lint
+bun run check:features
+bun run test:ci
+bun run ui:typecheck
+bun run ui:test
+bun run media:typecheck
+bun run media:test
+bun run build
+bun run bundle-size
+```
+
+For UI package changes, also use the showcase and React Scan workflow from
+`README.md`. For SSR-sensitive work, verify real server HTML as described in
+`docs/ssr-hydration.md`.
+
+## Anti-Patterns To Remove
+
+- App screens defining new button, input, menu, modal, card, or typography
+  primitives when package components already exist.
+- Hard-coded colors, shadows, radius, and spacing in general-purpose UI.
+- Feature folders importing sibling feature internals outside documented
+  boundary exceptions.
+- Client code reading raw bucket, Stripe, Cognito, or server secret env vars.
+- UI code branching on raw HTTP `Response` objects instead of typed problem
+  objects.
+- Optional feature setup that crashes a blank `.env`.
+- Web startup logic that reads persisted browser state during the first render.
+- Showcase demos with high-churn state at the full-route level.
+
+## Keeping This Guide Current
+
+Update this file when:
+
+- A reusable component is added, removed, renamed, or moved.
+- A screen template is added, removed, renamed, or gets a new intended use.
+- The modernization order changes because of stack, routing, SSR, or package
+  boundary changes.
+- Verification scripts or feature gates change.
+
+Keep examples source-linked and concise. Prefer pointing to the canonical
+implementation over copying code that will drift.
+
+---
+
+<!-- Source: packages/ui/LLM_USAGE.md -->
+<!-- Raw: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/LLM_USAGE.md -->
+
+# @mrmeg/expo-ui LLM Usage Guide
+
+This file ships in the npm package. In a consumer repo, read it from
+`node_modules/@mrmeg/expo-ui/LLM_USAGE.md` before building app UI.
+
+## First Rule
+
+Do not recreate primitives that this package already provides. Import from
+`@mrmeg/expo-ui` and compose the exported components in the app.
+
+## Stable Import Paths
+
+```tsx
+import { Button, StyledText, UIProvider } from "@mrmeg/expo-ui/components";
+import { Button as ButtonDirect } from "@mrmeg/expo-ui/components/Button";
+import { colors, spacing, typography } from "@mrmeg/expo-ui/constants";
+import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
+import { globalUIStore, notify, useThemeStore } from "@mrmeg/expo-ui/state";
+import { configureExpoUiI18n, hapticLight } from "@mrmeg/expo-ui/lib";
+```
+
+The root barrel also exports the public surface:
+
+```tsx
+import { Button, UIProvider, colors, useTheme } from "@mrmeg/expo-ui";
+```
+
+Use only exported package paths: root, `components`, `components/*`,
+`constants`, `constants/*`, `hooks`, `hooks/*`, `state`, and `lib`. Do not
+import from `@mrmeg/expo-ui/dist/*` or from a source checkout path.
+
+## Required App Setup
+
+Call `useResources()` once near the Expo app root. Mount `UIProvider` once
+near the root when the app uses package feedback or overlay components.
+`UIProvider` owns the package `Notification`, `StatusBar`, and default
+`@rn-primitives` portal host.
+
+```tsx
+import { ThemeProvider } from "expo-router";
+import { UIProvider } from "@mrmeg/expo-ui/components";
+import { colors } from "@mrmeg/expo-ui/constants";
+import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
+
+export function RootLayout() {
+  const { scheme } = useTheme();
+  const { loaded } = useResources();
+
+  if (!loaded) return null;
+
+  return (
+    <ThemeProvider
+      value={{
+        dark: colors[scheme ?? "light"].dark,
+        colors: colors[scheme ?? "light"].navigation,
+        fonts: colors[scheme ?? "light"].fonts,
+      }}
+    >
+      <UIProvider>
+        {/* App navigation goes here. */}
+      </UIProvider>
+    </ThemeProvider>
+  );
+}
+```
+
+`UIProvider` mounts the default portal host required before using `Dialog`,
+`AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`,
+`SelectContent`, or `Tooltip`.
+
+On native, `BottomSheet.Content` avoids the soft keyboard by default with
+React Native keyboard events. Pass `avoidKeyboard={false}` to opt out for a
+specific sheet.
+
+i18n is optional. Do not add app-level i18n setup just to use this package.
+Plain children and `text` props work without `i18next` or `react-i18next`.
+`tx` props render fallback text when provided and otherwise render the key
+until the consumer opts in with a package-local translator. Package-owned
+defaults such as notification titles stay human-readable without app i18n:
+
+```tsx
+import { configureExpoUiI18n } from "@mrmeg/expo-ui/lib";
+import { i18n } from "./i18n";
+
+configureExpoUiI18n((key, options) => i18n.t(key, options));
+```
+
+## Theme And Text Rules
+
+- Use `useTheme()` and semantic tokens instead of hardcoded colors.
+- Use `StyledText` or its semantic aliases instead of raw `Text` for app UI.
+- Use `Button.preset`, not `variant`, for buttons.
+- Button visible heights are compact: `sm` 28px, `md` 32px, and `lg` 40px.
+- Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the selected Button size.
+- Use `notify` plus root-mounted `UIProvider` for transient global feedback. (`globalUIStore` remains available for reactive subscriptions and tests.)
+- Keep app monitoring, auth, API, and domain behavior outside this package.
+
+Useful theme tokens include:
+
+```tsx
+theme.colors.background;
+theme.colors.foreground;
+theme.colors.card;
+theme.colors.popover;
+theme.colors.border;
+theme.colors.input;
+theme.colors.ring;
+theme.colors.primary;
+theme.colors.secondary;
+theme.colors.accent;
+theme.colors.mutedForeground;
+theme.colors.destructive;
+theme.colors.success;
+theme.colors.warning;
+```
+
+Token intent:
+
+- `primary`: neutral action color
+- `secondary`: neutral secondary surface
+- `accent`: teal highlight color
+- `input`: form-control border color
+- `ring`: focus outline color
+- `popover`: elevated overlay surface
+
+Use `getShadowStyle()` for package surfaces that need elevation. It supports
+`base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`,
+`cardHover`, and `cardSubtle`, returning native shadow/elevation off web and
+CSS `boxShadow` on web. Use `getFocusRingStyle()` for web focus styling. Keep
+web controls compact, but preserve mobile tap comfort with package controls
+that already provide native hit slop or 44px touch rows.
+
+Use `useStyles()` for memoized theme-aware local styles. Its factory receives
+`{ theme, spacing, withAlpha }`, so components can derive alpha-adjusted
+semantic colors without destructuring `withAlpha` outside the factory:
+
+```tsx
+const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
+  card: {
+    backgroundColor: withAlpha(theme.colors.primary, 0.08),
+    padding: spacing.md,
+  },
+}));
+```
+
+When the saved theme preference is `system`, the package theme store owns the
+OS color-scheme subscription, including web `prefers-color-scheme`. Do not add
+app-local Appearance or `matchMedia` listeners for package components; import
+`useTheme()`, `useStyles()`, and `useThemeStore` from `@mrmeg/expo-ui`.
+
+`useTheme()` resolves colors in three layers, last wins: package defaults →
+global brand (`useThemeStore.getState().setColors(overrides)`) → scoped
+override (`ThemeColorScope`). Each override is `{ light?, dark? }` of
+`Partial<ThemeColors>`; only the keys you pass are replaced. Call `setColors`
+once to forward the app's brand palette globally. Wrap a subtree in
+`<ThemeColorScope colors={{ light, dark }}>` for transient per-subtree theming
+(user-created palettes, previews, embeds) that must not leak globally — it is
+React context, scoped keys win over the global brand inside it, and nested
+scopes merge (inner wins, outer fills in). With no override at either layer,
+`useTheme()` returns the base theme by reference.
+
+## Component Use-Case Index
+
+Use this table before creating a new app-local primitive.
+
+| Component | Use For | Prefer It Instead Of | Common Example Use Cases |
+|-----------|---------|----------------------|--------------------------|
+| `Accordion`, `AccordionItem`, `AccordionTrigger`, `AccordionContent` | Multi-section disclosure | Custom FAQ/settings expanders | FAQ lists, grouped settings, help sections |
+| `Alert` | Cross-platform imperative alerts | Direct `window.alert` or duplicated RN/web branching | Confirm destructive actions, native alert dialogs |
+| `AnimatedView` | Entrance and visibility animation | Hand-rolled one-off Animated wrappers | Staggered list rows, revealed panels, animated empty states |
+| `Badge` | Short status labels | Custom pill `View` + `Text` | Draft/active states, counts, plan labels, role tags |
+| `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets | Action pickers, mobile filters, keyboard-aware quick edit forms |
+| `Button` | Commands and CTAs | Pressable plus custom text styling | Submit, save, cancel, delete, navigation CTAs |
+| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Framed content groups | Ad hoc bordered panels | List items, pricing plans, settings sections, summaries |
+| `Checkbox` | Boolean selection | Custom checkmark controls | Terms consent, checklist items, multi-select filters |
+| `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | One-off disclosure | Local animated height wrappers | Advanced settings, hidden helper text |
+| `Dialog`, `AlertDialog` | Modal decisions and custom modal content | Custom modal overlays | Confirm delete, edit profile, invite user |
+| `DismissKeyboard` | Tap-away keyboard dismissal | Screen-level keyboard handling | Forms, search screens, sign-in screens |
+| `Drawer` | Side panels and drawer navigation | Custom sliding panels | Filter drawer, app navigation drawer, inspector panel |
+| `DropdownMenu` | Menus and command lists | Homemade popover menus | Row actions, account menu, sort menu |
+| `EmptyState` | No-data or recoverable error regions | One-off empty placeholders | Empty inbox, no search results, failed list load |
+| `ErrorBoundary` | React render error fallback | Unhandled screen crashes | Route-level fallback, feature boundary |
+| `Icon` | Feather or custom icons with theme tokens | Raw vector icons with hardcoded colors | Button accessories, empty-state icons, menu icons |
+| `InputOTP` | Verification code entry | Multiple manually managed text inputs | Email codes, SMS codes, MFA, invite codes |
+| `Label` | Accessible form labels | Plain styled text labels | Required labels, disabled labels, field group labels |
+| `MaxWidthContainer` | Centered responsive width | Per-screen max-width wrappers | Web pages, tablet layouts, settings forms |
+| `Notification` | Global toast surface | Screen-local toast state | Saved/error/sync notifications, action toasts, bottom-position alerts |
+| `Popover` | Anchored contextual content | Custom anchored views | Inline help, quick previews, contextual controls |
+| `Progress` | Determinate or indeterminate progress | Layout-shifting spinners for progress regions | Upload progress, onboarding completion |
+| `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows | Plan interval, visibility choice, survey answer |
+| `Select` | Option menus | Custom dropdowns | Country picker, category selector, status selector |
+| `Separator` | Horizontal or vertical dividers | Border-only spacer views | Menu dividers, section dividers, card dividers |
+| `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Blank space or generic spinners | List loading, profile card loading, dashboard placeholders |
+| `Slider` | Numeric value selection | Custom pan gesture track | Volume, percentage, rating, threshold settings |
+| `StatusBar` | Theme-aware native status bar | Per-screen status-bar duplication | Root layout status styling |
+| `StyledText` and text aliases | Theme-aware typography | Raw `Text` with hardcoded styles | Titles, headings, labels, body copy, captions |
+| `Switch` | Binary settings | Custom toggle switches | Enable notifications, privacy setting, feature toggles |
+| `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | In-page tabbed views | Custom segmented/tab controls | Profile sections, report views, settings categories |
+| `TextInput` | Text entry | Raw `TextInput` with repeated label/error code | Email/password, search, numeric input, multiline notes |
+| `Toggle`, `ToggleIcon` | Pressed/unpressed control | Button with local selected styling | Favorite, mute, bold/italic, view mode button |
+| `ToggleGroup`, `ToggleGroupItem`, `ToggleGroupIcon` | Single or multi toggle groups | Custom segmented controls | Alignment, formatting toolbar, filter chips |
+| `Tooltip` | Short hover/focus help | Persistent helper text or custom hover cards | Icon button labels, field hints, disabled action explanations |
+
+## Component Selection Rules
+
+- Use `Button` for commands, `Toggle` for one pressed state, `ToggleGroup` for related pressed states, and `Switch` for binary settings.
+- Use `RadioGroup` for small mutually exclusive choices and `Select` for longer option sets.
+- Use `Dialog` for blocking decisions, `Popover` for contextual controls, `Tooltip` for short explanations, and `DropdownMenu` for action lists.
+- Use `Card` for individual repeated or framed items, not as a wrapper around full page sections.
+- Use `EmptyState` for no-data or recoverable error regions.
+- Use `Skeleton` for loading content with stable layout.
+- Use `Progress` for real progress or indeterminate long-running work.
+
+## Minimal Examples
+
+```tsx
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@mrmeg/expo-ui/components";
+
+<Card variant="outline">
+  <CardHeader>
+    <CardTitle>Subscription</CardTitle>
+    <Badge variant="secondary">Active</Badge>
+  </CardHeader>
+  <CardContent>
+    <Button preset="default" fullWidth>
+      Manage billing
+    </Button>
+  </CardContent>
+</Card>
+```
+
+```tsx
+import { Button, Switch, TextInput } from "@mrmeg/expo-ui/components";
+
+<TextInput
+  label="Email"
+  placeholder="you@example.com"
+  autoCapitalize="none"
+  keyboardType="email-address"
+  errorText={emailError}
+/>
+
+<Switch checked={enabled} onCheckedChange={setEnabled} variant="ios" />
+
+<Button preset="default" size="lg" fullWidth loading={isSubmitting}>
+  Continue
+</Button>
+```
+
+```tsx
+import { EmptyState, Progress, SkeletonCard } from "@mrmeg/expo-ui/components";
+import { notify } from "@mrmeg/expo-ui/state";
+
+{isLoading ? <SkeletonCard /> : null}
+<Progress value={65} variant="accent" />
+<EmptyState icon="inbox" title="No messages" description="New messages will appear here." />
+
+// Convenience helpers
+notify.success("Saved", { messages: ["Your changes were saved."] });
+notify.error("Upload failed");
+notify.warning("Connection slow");
+notify.info("Copied to clipboard");
+
+// Loading spinner — stays until replaced or hidden (no auto-dismiss)
+notify.loading("Uploading…");
+notify.hide();
+
+// Full control (same payload as globalUIStore show())
+notify({ type: "success", title: "Saved", action: { label: "View", onPress: openSavedItem } });
+
+// Loading → success/error around a promise
+await notify.promise(saveProfile(), {
+  loading: "Saving…",
+  success: "Profile saved",          // or (value) => `Saved ${value.name}`
+  error: "Could not save profile",   // or (err) => err.message
+});
+```
+
+---
+
+<!-- Source: packages/media/README.md -->
+<!-- Raw: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/media/README.md -->
+
+# @mrmeg/expo-media
+
+Reusable media contracts, API clients, React Query hooks, processing helpers,
+and server handler factories for MrMeg Expo apps.
+
+## Purpose
+
+This package exists so Expo apps can share the same media infrastructure
+instead of copying storage handlers, upload clients, signed URL hooks, image
+compression utilities, HEIC conversion, thumbnail generation, and media error
+handling into every app.
+
+The package owns primitives. The consuming app still owns auth, routes,
+storage credentials, app-wide defaults, upload policy, metadata, and UI.
+
+## Ownership Boundary
+
+Package-owned:
+
+- media config contracts and safe key helpers
+- client upload/list/read/delete API client factories
+- React Query hook factories
+- image compression, HEIC conversion, thumbnail, and optional web video
+  conversion helpers
+- Fetch-compatible server handlers for S3/R2 presigned URL workflows
+- typed media error mapping
+
+App-owned:
+
+- auth and route mounting
+- bucket credentials and environment variable names
+- server policy decisions and database metadata
+- app-wide media settings
+- UI screens and media manager composition
+- FFmpeg worker serving for web
+- monitoring and analytics SDKs
+
+## Install
+
+```sh
+bun add @mrmeg/expo-media
+```
+
+Expo native modules are peer dependencies because the consuming app must keep
+them aligned with its Expo SDK: `expo-image-picker`,
+`expo-image-manipulator`, `expo-file-system`, `expo-video-thumbnails`, and
+`expo-crypto`. `heic2any` is also a peer dependency for browser HEIC
+conversion, but it is loaded dynamically only when web HEIC conversion runs.
+Server signing dependencies are package-owned.
+
+In this monorepo, the app uses workspace resolution:
+
+```json
+{
+  "dependencies": {
+    "@mrmeg/expo-media": "workspace:*"
+  }
+}
+```
+
+## Public Imports
+
+```ts
+import { createMediaConfig } from "@mrmeg/expo-media";
+import { createMediaClient } from "@mrmeg/expo-media/client";
+import { createMediaQueryHooks } from "@mrmeg/expo-media/react-query";
+import { createMediaHandlers } from "@mrmeg/expo-media/server";
+import {
+  compressImage,
+  convertHeicToJpeg,
+} from "@mrmeg/expo-media/processing/image-compression";
+import {
+  IMAGE_PRESETS,
+  resolveCompressionConfig,
+} from "@mrmeg/expo-media/processing/image-compression/config";
+import {
+  convertVideo,
+  FFMPEG_WORKER_URL,
+  needsConversion,
+} from "@mrmeg/expo-media/processing/video-conversion";
+import { extractVideoThumbnail } from "@mrmeg/expo-media/processing/video-thumbnails";
+```
+
+Root imports are shared-contract only and do not load React Native, Expo native
+modules, or AWS SDK code. Use `/server` only in server route files. Prefer
+granular processing subpaths; the broad `/processing` export remains for
+compatibility but can expose bundlers to every processing feature.
+
+Heavy processing dependencies are behind lazy boundaries. `heic2any` loads
+inside `convertHeicToJpeg()`, native thumbnail extraction loads
+`expo-video-thumbnails` only on the native path, and FFmpeg assets load only
+when web `convertVideo()` runs. Bundlers that honor package side-effect
+metadata also see `"sideEffects": false`.
+
+## Configuration Model
+
+Use two config surfaces:
+
+1. Server storage policy through `createMediaConfig()`
+2. App-wide client defaults through an app-owned settings file
+
+The package intentionally does not own product defaults. Apps should define
+their own media settings once and make screens read those values.
+
+Recommended app-owned settings shape:
+
+```ts
+import type {
+  CompressionConfig,
+  ImagePreset,
+} from "@mrmeg/expo-media/processing/image-compression/config";
+
+type MediaType = "avatars" | "videos" | "thumbnails" | "uploads";
+
+export type MediaUploadPolicy = {
+  mediaType: MediaType;
+  compression?: ImagePreset | Partial<CompressionConfig> | null;
+};
+
+export const MEDIA_APP_SETTINGS = {
+  imageCompression: {
+    enabled: true,
+    defaultPreset: "gallery",
+    userOverrides: null,
+  },
+  processing: {
+    keepOriginalIfLarger: true,
+  },
+  uploads: {
+    selectionLimit: 20,
+    defaultImageMediaType: "uploads",
+    defaultVideoMediaType: "videos",
+    uploadVideoThumbnails: true,
+    deleteVideoThumbnailWithVideo: true,
+  },
+  uploadPolicies: {
+    avatar: { mediaType: "avatars", compression: "avatar" },
+    generalImage: { mediaType: "uploads", compression: "gallery" },
+    originalImage: { mediaType: "uploads", compression: "none" },
+    video: { mediaType: "videos", compression: null },
+  },
+} as const;
+```
+
+## Server Setup
+
+```ts
+import { createMediaConfig } from "@mrmeg/expo-media";
+import { createMediaHandlers } from "@mrmeg/expo-media/server";
+
+export const mediaConfig = createMediaConfig({
+  buckets: {
+    media: {
+      provider: "r2",
+      bucket: process.env.MEDIA_BUCKET,
+      endpoint: process.env.MEDIA_ENDPOINT,
+      region: "auto",
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: process.env.MEDIA_ACCESS_KEY_ID,
+        secretAccessKey: process.env.MEDIA_SECRET_ACCESS_KEY,
+      },
+    },
+  },
+  mediaTypes: {
+    avatars: {
+      bucket: "media",
+      prefix: "users/avatars",
+      allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],
+      maxBytes: 5 * 1024 * 1024,
+      uploadExpiresInSeconds: 300,
+      readExpiresInSeconds: 86400,
+    },
+    uploads: {
+      bucket: "media",
+      prefix: "uploads",
+      allowedContentTypes: [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/heic",
+        "video/mp4",
+        "video/quicktime",
+        "application/pdf",
+      ],
+      maxBytes: 50 * 1024 * 1024,
+      uploadExpiresInSeconds: 300,
+      readExpiresInSeconds: 86400,
+    },
+  },
+});
+
+export const mediaHandlers = createMediaHandlers({
+  config: mediaConfig,
+  authorize: async (request) => requireUser(request),
+  policy: {
+    canUpload: async ({ auth, mediaType, contentType, size }) => ({
+      allowed: true,
+    }),
+    canRead: async ({ auth, keys }) => ({ allowed: true }),
+    canList: async ({ auth, mediaType, prefix }) => ({ allowed: true }),
+    canDelete: async ({ auth, keys }) => ({ allowed: true }),
+  },
+  events: {
+    onUploadSigned: async ({ auth, key, mediaType }) => {
+      // Optional: create app-owned pending metadata.
+    },
+    onDeleted: async ({ auth, keys }) => {
+      // Optional: reconcile app-owned metadata.
+    },
+  },
+});
+```
+
+Expo Router API route files stay thin:
+
+```ts
+import { mediaHandlers } from "@/server/media/handlers";
+
+export const OPTIONS = mediaHandlers.options;
+export const POST = mediaHandlers.getUploadUrl;
+```
+
+Missing bucket credentials or invalid media config return a typed `503`
+`media-disabled` JSON response without constructing an S3 client.
+
+## Server Config Fields
+
+| Field | Purpose |
+|---|---|
+| `buckets.*.provider` | `s3` or `r2` |
+| `buckets.*.bucket` | physical bucket name |
+| `buckets.*.endpoint` | R2 or custom S3 endpoint |
+| `buckets.*.region` | S3 region or R2 `auto` |
+| `buckets.*.credentials` | storage credentials |
+| `mediaTypes.*.bucket` | bucket alias used by the media type |
+| `mediaTypes.*.prefix` | generated object key prefix |
+| `mediaTypes.*.allowedContentTypes` | accepted MIME allowlist |
+| `mediaTypes.*.maxBytes` | optional upload size limit |
+| `mediaTypes.*.uploadExpiresInSeconds` | signed upload URL lifetime |
+| `mediaTypes.*.readExpiresInSeconds` | signed read URL lifetime |
+
+Clients choose `mediaType`, not a raw bucket or path. The server derives keys
+inside configured prefixes and derives file extensions from approved content
+types.
+
+Listing also stays scoped. Use `mediaType` for normal list requests:
+
+```ts
+await client.list({ mediaType: "uploads" });
+```
+
+Optional `prefix` values must be narrower paths inside a configured media type
+prefix. Requests without `mediaType` or a valid configured prefix return
+`400 bad-request`; unknown, absolute, traversal, or cross-media-type prefixes
+return `400 bad-key`. Apps that need an "all media" view should list each
+configured media type separately and merge the visible results client-side
+instead of listing the storage bucket root. Keep pagination per media type;
+the template's All view merges the current visible page from each configured
+type rather than creating a cross-type cursor.
+
+## Client Setup
+
+```ts
+import { createMediaClient } from "@mrmeg/expo-media/client";
+import { createMediaQueryHooks } from "@mrmeg/expo-media/react-query";
+
+export const mediaClient = createMediaClient({
+  basePath: "/api/media",
+  fetcher: authenticatedFetch,
+});
+
+export const {
+  useMediaUpload,
+  useMediaList,
+  useSignedMediaUrls,
+  useMediaDelete,
+  useMediaDeleteBatch,
+} = createMediaQueryHooks({ client: mediaClient });
+```
+
+Uploads use the content-type contract:
+
+```ts
+await upload({
+  file: blobOrNativeUri,
+  mediaType: "avatars",
+  contentType: "image/jpeg",
+  size: blob.size,
+});
+```
+
+The old `{ extension, mediaType }` signing body is not the primary contract.
+The server derives the extension from the approved content type and signs the
+matching `Content-Type` header.
+
+## App-Wide Defaults
+
+Default behavior should be configured by the app, then used by screens and
+hooks. Typical defaults:
+
+| Setting | Example |
+|---|---|
+| compression enabled | `true` |
+| default preset | `gallery` |
+| user overrides | `null` |
+| keep original if processed output is larger | `true` |
+| picker quality | `1` |
+| multi-upload selection limit | `20` |
+| default image media type | `uploads` |
+| default video media type | `videos` |
+| upload video thumbnails | `true` |
+| delete generated thumbnail with video | `true` |
+
+Override precedence:
+
+1. Package preset values from `IMAGE_PRESETS`
+2. App-wide defaults in the app's media settings file
+3. Runtime store overrides, if the app exposes user controls
+4. Per-flow `pickMedia({ compression })` overrides
+
+## Processing
+
+```ts
+import {
+  compressImage,
+  convertHeicToJpeg,
+  shouldUseProcessedFile,
+  shouldUseCompressedImage,
+} from "@mrmeg/expo-media/processing/image-compression";
+import {
+  needsConversion,
+  convertVideo,
+  FFMPEG_WORKER_URL,
+} from "@mrmeg/expo-media/processing/video-conversion";
+import { extractVideoThumbnail } from "@mrmeg/expo-media/processing/video-thumbnails";
+```
+
+Package image presets:
+
+| Preset | maxDimension | quality | maxSizeKB | minQuality | format |
+|---|---:|---:|---:|---:|---|
+| `avatar` | 512 | 0.8 | 200 | 0.6 | jpeg |
+| `thumbnail` | 256 | 0.7 | 100 | 0.5 | jpeg |
+| `product` | 1024 | 0.85 | 500 | 0.6 | jpeg |
+| `gallery` | 2048 | 0.85 | 1000 | 0.65 | jpeg |
+| `highQuality` | 3000 | 0.9 | 2000 | 0.7 | jpeg |
+| `none` | original | original | none | none | original |
+
+Behavior notes:
+
+- Pick the original asset first, then process it.
+- Use `quality: 1` with `expo-image-picker` if package compression is applied
+  after picking.
+- HEIC conversion runs before image compression on web.
+- Image compression lowers quality by `0.05` until `maxSizeKB` is reached or
+  `minQuality` is hit.
+- Use `shouldUseProcessedFile(sourceSize, processed.size)` before upload so
+  larger re-encodes or transcodes do not replace smaller originals.
+- Videos are not image-compressed. Web can optionally transcode unsupported
+  formats to MP4.
+- Apps must serve `FFMPEG_WORKER_URL` from the same origin in Metro and
+  production Express when using web video conversion.
+- Avoid the broad `/processing` barrel in settings, stores, and light screens.
+  Import the exact processing subpath needed so heavy optional features stay
+  eligible for bundler pruning and lazy loading.
+
+Per-flow compression examples:
+
+```ts
+pickMedia({ compression: "avatar" });
+pickMedia({ compression: "gallery" });
+pickMedia({ compression: "none" });
+pickMedia({
+  compression: {
+    maxDimension: 1600,
+    quality: 0.8,
+    maxSizeKB: 750,
+    minQuality: 0.6,
+    format: "jpeg",
+  },
+});
+```
+
+## File Paths And Keys
+
+`mediaTypes.*.prefix` defines where files are stored:
+
+```txt
+users/avatars/01KQT7....jpg
+uploads/01KQT7....jpg
+videos/01KQT7....mp4
+thumbnails/01KQT7....jpg
+```
+
+Rules:
+
+- clients send `mediaType`, not raw paths
+- clients cannot choose arbitrary prefixes
+- object keys are generated server-side unless policy allows a sanitized custom
+  filename
+- allowed content types and optional size limits are checked before signing
+- `Content-Type` is included in the signed `PutObjectCommand`
+- read/delete/list keys must stay inside configured prefixes
+- list requests must include `mediaType` or a valid narrower configured prefix
+- batch delete accepts up to 1000 keys
+- batch delete groups keys by the bucket configured for each resolved media
+  type, merges confirmed deletions, and reports per-key errors for partial
+  bucket failures
+
+## Error Handling
+
+Media client hooks throw `MediaError` with typed problems:
+
+- `disabled`
+- `bad-request`
+- `unauthorized`
+- `forbidden`
+- `unknown`
+
+Server JSON error codes include `media-disabled`, `unauthorized`, `forbidden`,
+`invalid-media-type`, `invalid-content-type`, `oversized-file`, `bad-key`,
+and `storage-failure`.
+
+Screens should branch on typed errors instead of parsing message text.
+
+## Migration Checklist
+
+Use this checklist when refactoring an app:
+
+1. Install the package and peer dependencies.
+2. Move bucket definitions into `createMediaConfig()`.
+3. Replace custom route logic with `createMediaHandlers()`.
+4. Keep Expo Router route files as thin handler exports.
+5. Create a package-backed `mediaClient`.
+6. Replace custom React Query hooks with `createMediaQueryHooks()`.
+7. Add an app-wide media settings file.
+8. Replace inline quality/path decisions with named upload policies.
+9. Replace copied image processing helpers with `/processing` imports.
+10. Reconcile app-owned metadata in handler events.
+11. Add a `media-disabled` setup state.
+12. Run validation.
+
+Good deletion candidates:
+
+- copied S3/R2 presigner code
+- copied route body parsing and validation
+- copied signed URL batching
+- copied React Query media hooks
+- copied image compression utilities
+- copied HEIC conversion utilities
+- copied video thumbnail extraction utilities
+- copied media error mappers
+
+## Validation
+
+Run package checks sequentially when debugging generated artifacts:
+
+```sh
+bun run media:typecheck
+bun run media:test
+bun run media:build
+bun run media:pack
+bun run media:consumer-smoke
+```
+
+`media:consumer-smoke` installs the packed tarball into a clean fixture,
+type-checks documented entrypoints, verifies export-map files, runs a root
+runtime import, and checks that installed-package docs are present.
+
+## GitHub Publishing
+
+Use the `Publish Media Package` GitHub Actions workflow to publish
+`@mrmeg/expo-media` from GitHub. Configure npm trusted publishing for:
+
+- owner/user: `mrmeg`
+- repository: `expo-template`
+- workflow filename: `publish-media.yml`
+
+If the package does not exist on npm yet, first publish needs a repository
+secret named `NPM_TOKEN` with publish access to the `@mrmeg` scope. Run the
+workflow manually once with that token, then configure trusted publishing from
+the new package settings page. Push-based runs skip cleanly when the package is
+missing and no token is configured so CI does not fail before the first publish.
+
+After bootstrap, the workflow uses npm trusted publishing by default and still
+supports `NPM_TOKEN` as a fallback publish credential. Pushes to `main` that
+change `packages/media/package.json` publish the committed version when npm does
+not already have it. Manual runs can bump `patch`, `minor`, `major`, or an exact
+version, then publish and commit the version bump back to the selected branch.
+
+---
+
+<!-- Source: docs/server-guide.md -->
+<!-- Raw: https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/server-guide.md -->
+
+# Expo Server Guide
+
+This guide is the LLM-facing reference for replicating this template's server
+stack — server-rendered web output, API routes, request middleware, and data
+loaders — in another Expo Router project. Data loaders and middleware are Expo
+Router alpha features behind `unstable_` flags (the demos call this surface
+"Server Alpha"); expect their APIs to move between SDK versions, and check the
+pinned Expo version in `package.json` before copying patterns.
+
+## Source Map
+
+| Concern | Source |
+|---------|--------|
+| Server output and router flags | `app.config.ts` |
+| Production server, default (Bun) | `server.bun.ts` |
+| Production server, fallback (Express) | `server/index.ts` |
+| Rate-limit buckets | `server/rateLimits.js` |
+| Request middleware | `app/+middleware.ts` |
+| Data loaders (demo feature) | `client/features/server-alpha/loaders.ts` |
+| Loader-backed routes | `app/(main)/(demos)/server-alpha.tsx`, `app/(main)/(demos)/server-alpha/[example].tsx` |
+| Loader-consuming screens | `client/features/server-alpha/ServerAlphaDemoScreen.tsx`, `ServerAlphaExampleScreen.tsx` |
+| API routes | `app/api/**/+api.ts` |
+| Shared API helpers (CORS, errors, auth) | `server/api/shared/` |
+| SSR first-render constraints | `docs/ssr-hydration.md` |
+
+The Server Alpha demo at route `/server-alpha` walks four live patterns:
+`loader-overview` (loaders hydrate SSR pages), `dynamic-loader` (route params
+flow into typed loaders), `api-route` (handlers own parsing and mutations),
+and `middleware` (request-scoped headers without business logic).
+
+## Enable Server Output
+
+In `app.config.ts`, set the web output mode and the Expo Router plugin flags:
+
+```ts
+web: { bundler: "metro", output: "server" },
+experiments: { typedRoutes: true },
+plugins: [
+  [
+    "expo-router",
+    {
+      origin: "",
+      unstable_useServerRendering: true,
+      unstable_useServerMiddleware: true,
+      unstable_useServerDataLoaders: true,
+      // Keep development web routes eager for HMR; async in production.
+      asyncRoutes: { web: "production" },
+    },
+  ],
+],
+```
+
+- `output: "server"` makes `expo export -p web` emit `dist/client` (static
+  assets) plus `dist/server` (request handler, routes, loaders).
+- `unstable_useServerRendering` enables SSR for web routes.
+- `unstable_useServerMiddleware` enables `app/+middleware.ts`.
+- `unstable_useServerDataLoaders` enables route `loader` exports and
+  `useLoaderData`.
+
+## Serve The Build
+
+Development: `bun run web` (Expo dev server runs SSR, loaders, middleware, and
+API routes in place).
+
+Production: `bun run build` exports `dist/`, then either entry serves it:
+
+- `bun run start` — `server.bun.ts`, the default. Wraps
+  `createRequestHandler({ build: "dist/server" })` from
+  `expo-server/adapter/bun`.
+- `bun run start:express` — `server/index.ts`, Node fallback. Same behavior
+  via `expo-server/adapter/express` and `express-rate-limit`, `cors`,
+  `compression`, `morgan`.
+
+Both entries own concerns that Expo's request handler does not:
+
+- CORS origin allowlist from the `ALLOWED_ORIGINS` env var (comma-separated;
+  localhost defaults otherwise), echoing only allowlisted origins and managing
+  `Vary: Origin`.
+- Per-IP rate-limit buckets defined in `server/rateLimits.js`: general
+  (500/15 min), media signing (60/min), strict (10/min).
+- Security headers: `X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`, `Permissions-Policy`, `X-Request-ID`, and HSTS in
+  production.
+- Static caching and compression: 1-year cache for `/_expo/static/` and
+  `/assets/`, brotli/gzip for text-like bodies over 1KB (Bun entry caches
+  compressed bodies in memory).
+- Loader path normalization: strips `.web`/`.native` suffixes from
+  `/_expo/loaders/*` requests so platform-specific loader files resolve.
+
+## API Routes
+
+Route files live at `app/api/**/<name>+api.ts` and export HTTP-method
+handlers. Keep them thin — parsing, validation, and domain logic live in
+`server/` modules. The canonical shape (from `app/api/template/status+api.ts`):
+
+```ts
+import { getCorsHeaders, getPreflightHeaders } from "@/server/api/shared/cors";
+import { getTemplateServerStatus } from "@/server/api/template/status";
+
+export function OPTIONS(request: Request) {
+  return new Response(null, { status: 200, headers: getPreflightHeaders(request) });
+}
+
+export function GET(request: Request) {
+  return Response.json(getTemplateServerStatus(request), {
+    headers: { "Cache-Control": "no-store", ...getCorsHeaders(request) },
+  });
+}
+```
+
+Shared helpers under `server/api/shared/`:
+
+| Helper | Purpose |
+|--------|---------|
+| `cors.ts` | `getCorsHeaders(request)`, `getPreflightHeaders(request)`, production error redaction |
+| `errors.ts` | `jsonErrorResponse`, `unauthorizedResponse`, `forbiddenResponse`, `badRequestResponse` — typed `{ code, message }` bodies with CORS applied |
+| `auth.ts` | `requireAuthenticatedUser(request)` returns `{ ok: true, user } \| { ok: false, response }`; fails closed with 401 when no verifier is bootstrapped |
+| `authBootstrap.ts`, `cognitoTokenVerifier.ts` | Register a process-wide token verifier at startup; tests reset with `setTokenVerifier(null)` |
+
+Optional features must fail closed: missing env returns a typed disabled
+response (for example the media routes' `503 media-disabled`), never a crash.
+
+## Data Loaders
+
+Loaders give web routes server-fetched, SSR-hydrated data. The pattern has
+three parts.
+
+Define loaders in a feature folder, typed with `LoaderFunction<T>`, returning
+JSON-serializable data. Dynamically import server modules inside the loader
+body so server-only code stays out of the client bundle
+(`client/features/server-alpha/loaders.ts`):
+
+```ts
+import { setResponseHeaders } from "expo-server";
+import type { LoaderFunction } from "expo-router/server";
+
+export const serverAlphaLoader: LoaderFunction<TemplateServerCatalog> = async (request) => {
+  try {
+    setResponseHeaders({ "Cache-Control": "no-store" });
+  } catch {
+    // Static export and direct unit-test calls do not have an active
+    // Expo Server request scope.
+  }
+  const { getTemplateServerCatalog } = await import("@/server/api/template/examples");
+  return getTemplateServerCatalog(request);
+};
+```
+
+Dynamic-route loaders receive params as the second argument:
+
+```ts
+export const serverAlphaExampleLoader: LoaderFunction<ExampleLoaderData> = async (
+  request,
+  params,
+) => {
+  // params.example is string | string[] | undefined for app/.../[example].tsx
+};
+```
+
+Re-export from the route file under the name `loader`, next to the screen
+(`app/(main)/(demos)/server-alpha.tsx`):
+
+```ts
+export { serverAlphaLoader as loader } from "@/client/features/server-alpha/loaders";
+export { default } from "@/client/features/server-alpha/ServerAlphaDemoScreen";
+```
+
+Consume in the screen with `useLoaderData`, typed by the loader itself:
+
+```ts
+import { useLoaderData } from "expo-router";
+
+const catalog = useLoaderData<typeof serverAlphaLoader>();
+```
+
+Loader rules:
+
+- Loaders are read-only. Mutations belong in API route handlers.
+- Wrap `setResponseHeaders` in try/catch; static export and unit tests run
+  loaders without an active request scope.
+- Pair each loader with an API route exposing the same data so the client can
+  refetch after hydration (`serverAlphaLoader` pairs with
+  `app/api/template/examples+api.ts`).
+- Return only JSON-serializable values; loader output crosses the
+  server/client boundary.
+
+## Request Middleware
+
+`app/+middleware.ts` runs on matched server requests. Declare an explicit
+matcher and keep middleware to request-scoped headers and observability —
+auth decisions and mutations belong in route handlers:
+
+```ts
+import { setResponseHeaders } from "expo-server";
+import type { MiddlewareSettings } from "expo-server";
+import type { MiddlewareFunction } from "expo-router/server";
+
+export const unstable_settings: MiddlewareSettings = {
+  matcher: {
+    patterns: ["/api", "/api/[...path]", "/server-alpha", "/server-alpha/[example]"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  },
+};
+
+const middleware: MiddlewareFunction = (request) => {
+  setResponseHeaders((headers) => {
+    headers.set("X-Expo-Router-Middleware", "1");
+    // The repo version also appends Origin to Vary for CORS-cache safety.
+  });
+};
+
+export default middleware;
+```
+
+Note the matcher lists both the public path (`/server-alpha`) and the grouped
+route path (`/(main)/(demos)/server-alpha`) in the repo file — match the route
+shapes your app actually serves.
+
+## SSR Constraints
+
+Server-rendered web means the first client render must match server HTML.
+Before touching root startup, theme startup, fonts, i18n, viewport logic, or
+`app/+html.tsx`, read `docs/ssr-hydration.md` and verify with real server
+HTML, not only tests.
+
+## Replication Checklist
+
+Use this order when adding the server stack to another Expo Router project:
+
+1. Set `web.output: "server"` and the three `unstable_` router flags in app
+   config; confirm the Expo SDK version supports them.
+2. Add a server entry (`server.bun.ts` or `server/index.ts` equivalent) that
+   wraps the `expo-server` adapter and owns CORS, rate limits, security
+   headers, and static caching.
+3. Create `server/api/shared/` with the CORS, error, and auth helpers; keep
+   route files thin handler exports.
+4. Add API routes under `app/api/**/+api.ts` with `OPTIONS` preflight and
+   CORS headers on every response.
+5. Add `app/+middleware.ts` with an explicit matcher, limited to headers and
+   observability.
+6. Add loaders per feature folder, re-export as `loader` from route files,
+   consume with `useLoaderData<typeof loaderFn>()`, and pair each with an API
+   route for client refetch.
+7. Verify SSR hydration per `docs/ssr-hydration.md`.
+
+## Validation
+
+```bash
+bun run typecheck
+bun run lint
+bun run test:ci
+bun run build
+bun run start   # then curl a loader-backed route and inspect server HTML
+```
+
+For loader and API behavior, test the underlying server modules directly
+(see `app/api/template/__tests__/` and `server/api/shared/__tests__/`) and
+verify loader-backed pages render expected data in real server output.
+
+---
+
+<!-- Source: docs/ssr-hydration.md -->
+<!-- Raw: https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/ssr-hydration.md -->
+
+# Web SSR Hydration — Invariants & Checklist
+
+This template renders web in Expo Router **`server` output mode** (see
+`app.config.ts` → `web.output: "server"`). Every web page is server-rendered in
+Node, then hydrated in the browser. React requires the server HTML and the
+client's **first** render to be identical. Any value that differs at first
+render throws `Hydration failed because the server rendered HTML didn't match
+the client…` — verbose in dev, a silent re-render (and subtle bugs) in prod.
+
+## The one rule
+
+**Never let render output depend on something the server cannot know at render
+time.** Render a server-consistent default on the first pass, then switch to the
+real value after mount.
+
+What the server does **not** have during render:
+
+- no `window` / `document` / `localStorage`
+- no OS color scheme
+- `useWindowDimensions()` returns `width: 0, height: 0`
+- only fonts / i18n that were initialized **synchronously during render** —
+  `useEffect` callbacks do **not** run on the server
+
+## Why each piece matters (and where it lives in this template)
+
+The template is already correct on most of these. They're documented so a fork
+doesn't regress them and an agent knows the invariant before editing.
+
+### 1. The HTML shell must render framework SSR nodes — `app/+html.tsx`
+
+`app/+html.tsx` consumes `useServerDocumentContext()` and renders:
+
+- `headNodes` inside `<head>`
+- `bodyNodes` at the end of `<body>`
+- `htmlAttributes` / `bodyAttributes` spread onto `<html>` / `<body>`
+
+These framework-managed nodes carry **the react-native-web `<style>` element**
+(all the `r-*` class rules) **and the expo-font `<style id="expo-generated-fonts">`**
+that holds `@font-face` declarations.
+
+If a custom `Root` omits them (a common mistake when `+html.tsx` is hand-written
+or copied from an older template), the SSR HTML ships without those styles. Two
+failure modes result:
+
+- **Unstyled first paint / FOUC** — RNW only injects its CSS into
+  `document.styleSheets` after JS hydrates.
+- **Icon-font hydration mismatch** — `@expo/vector-icons` renders an empty
+  `<Text/>` until `Font.isLoaded(family)` is true, and on web that check looks
+  for the `@font-face` rule in `<style id="expo-generated-fonts">`. No rule in
+  the HTML → client first render says "not loaded" (empty) while the server
+  (with its `serverContext` populated) renders the glyph → mismatch.
+
+> This exact omission caused a multi-round icon hydration bug in a downstream
+> project forked from an older copy of this template. The contract is documented
+> in `node_modules/expo-router/build/server/ServerDocument.js`.
+
+### 2. Fonts — load via an SSR-aware path, not a bare effect
+
+Fonts must be registered **during render** so expo-font's `serverContext` is
+populated server-side and the `@font-face` ships in the HTML. This template
+loads fonts through `@mrmeg/expo-ui`'s `useResources`, which does an eager,
+module-scope `Font.loadAsync(Feather.font)` (plus a hook-level load) — so icon
+fonts register during SSR and the effect becomes a no-op once loaded.
+
+**Anti-pattern:** a bare `Font.loadAsync(...)` (or a custom `useResources`) that
+only loads inside `useEffect`. That runs client-only, after first render, so the
+server emits empty icons. If you replace the library hook, use expo-font's
+`useFonts(map)` and include the icon fonts (Feather, etc.) in the map.
+
+### 3. i18n must initialize synchronously during render — **including SSR**
+
+> **Implemented in this template.** Use it as the reference for fixing a fork or
+> a downstream app that still calls `initI18n()` only from an effect.
+
+The problem this solves: if `app/_layout.tsx` initializes i18n **only** inside a
+`useEffect` (`initI18n().then(() => setI18nReady(true))`), effects don't run on
+the server, so i18next is uninitialized during SSR. Any `t("a.b")` on a
+server-rendered screen emits the **raw key** server-side and the **translation**
+client-side → a hydration mismatch. The bundled screens that use `t()` (e.g.
+`settings.tsx`) live inside `(main)`, and the onboarding gate replaces the whole
+Stack during SSR (the persisted `hasSeenOnboarding` flag reads false on the
+server), so the bundled routes mask it — but it bites the moment any
+SSR-reachable route calls `t()`.
+
+**How it's wired here:**
+
+1. `client/features/i18n/index.ts` exports an idempotent, **synchronous**
+   English bootstrap and calls it at module load:
+
+   ```ts
+   export function ensureI18nInitialized(): void {
+     if (i18n.isInitialized) return;
+     try {
+       void i18n.use(initReactI18next).init({
+         resources: { en: { translation: en } },
+         lng: fallbackLocale,
+         fallbackLng: fallbackLocale,
+         initAsync: false,           // inline resources + initAsync:false → init resolves synchronously
+         interpolation: { escapeValue: false },
+         react: { useSuspense: false },
+       }).catch(() => { /* terminal state owned by initI18n() */ });
+     } catch { /* never crash module import (e.g. a test mock without initReactI18next) */ }
+   }
+   ensureI18nInitialized();          // best-effort at module load
+   ```
+
+   `initI18n()` remains for the post-hydration locale upgrade — it calls
+   `ensureI18nInitialized()` first, then (for a non-English detected/persisted
+   locale) lazy-loads that bundle and `changeLanguage()`s into it. It stays
+   terminal-state (resolves, never rejects) and still feeds the `i18nReady`
+   startup gate.
+
+2. `app/_layout.tsx` calls `ensureI18nInitialized()` **in the render body**
+   (not an effect). Metro's `inlineRequires` can defer a pure module-load
+   side-effect so it never runs on the server; calling it during render
+   guarantees it runs on SSR before any screen.
+
+i18next v26 note: the synchronous-init flag is `initAsync: false` (it was
+`initImmediate` in older majors). This template is on i18next v26.
+
+### 4. Viewport-dependent layout — seed width from SSR context
+
+Branching layout on `useWindowDimensions().width` (`isCompact = width < 760`,
+etc.) diverges the server (width 0 → "compact") from the client (real width).
+This can shift **sibling order** (e.g. a skipped `{!isCompact && <Nav/>}`
+block), not just styles — a structural mismatch.
+
+This template handles it with `client/components/SsrViewportProvider.tsx`
+(seeded from `@mrmeg/expo-ui/state`'s SSR viewport context, set at the root) +
+`useDimensions()`. Use `useDimensions()` for responsive width, **not** raw
+`useWindowDimensions()`, in anything that renders on web.
+
+### 5. Theme / `typeof window` branches — resolve to a fixed first-render default
+
+`app/+html.tsx` ships a blocking `themeScript` that sets `data-theme` on `<html>`
+before hydration and hides `#root` for dark-mode visitors (the `theme-loading`
+class) to mask the flash. The CSS uses `html[data-theme=…]` selectors so the
+body background is correct on first paint. Any component that reads theme/window
+for render output should resolve to a stable default on the first render (gate
+on a `useHydrated()`-style flag) and switch after mount.
+
+### 6. Onboarding gate — a personalization flash, masked like the theme
+
+The server can't read `localStorage`, so `useOnboardingStore` resolves
+`hasSeenOnboarding: false` during SSR and `RootLayout` emits the **OnboardingGate**
+into the HTML. A returning visitor's browser paints that gate for one frame on
+every reload before hydration reads the persisted flag and swaps in the app —
+the split-second onboarding flash. (This is the same data the "onboarding gate
+masks `(main)` routes" gotcha below describes, seen from the user's side.)
+
+It's masked exactly like the theme white-flash (§5), in four parts:
+
+1. **`onboardingStore.ts`** auto-loads from storage on **native only** — on web
+   the read is deferred to a `useEffect` so the first client render matches the
+   server's `false` (no hydration mismatch). Mirrors `themeStore`. `loadOnboarding()`
+   returns a `Promise` so the startup gate can actually await the real read.
+2. **`app/+html.tsx`** ships a blocking `ONBOARDING_SEEN_SCRIPT` that reads
+   `localStorage["has-seen-onboarding"]` before paint and adds `onboarding-seen`
+   to `<html>` when truthy. A CSS rule (`html.onboarding-seen #root
+   [data-testid="onboarding-gate"] { display: none }`) then hides the gate, so a
+   returning visitor sees the themed background — not onboarding — until hydration.
+3. **`RootLayout.tsx`** drops the `onboarding-seen` class once `hasSeenOnboarding`
+   resolves to `true`, so the gate is unhidden only *after* the Stack renders, and
+   a runtime onboarding reset (flag back to `false`) still shows the gate.
+4. **New visitors** have no persisted flag → no class → the SSR onboarding
+   paints normally, fully styled by the react-native-web `<style>` element the
+   server ships in `headNodes` (§1). Don't add per-element "critical CSS" for
+   it in `+html.tsx`: `#root [data-testid=…]` selectors outrank RNW's generated
+   classes by specificity and keep overriding them *after* hydration (this once
+   collapsed the Get Started button's `fullWidth` inner view to text width).
+
+If you remove either the script or the CSS rule, the flash returns. Keep the
+store's web read deferred — eagerly reading `localStorage` at module load (the
+old behavior) trades the flash for a hydration mismatch on returning users.
+
+## How to verify an SSR fix — do NOT rely on Jest/tsc alone
+
+Jest mocks `expo-font` and `react-i18next`, and `tsc` doesn't model Metro/SSR,
+so **neither catches these**. Always check the **real** server render with the
+dev server running:
+
+```bash
+curl -s http://localhost:8081/<route> > /tmp/ssr.html
+
+grep -c "@font-face" /tmp/ssr.html                       # fonts present  → > 0
+grep -c 'expo-generated-fonts' /tmp/ssr.html              # font <style>   → == 1
+grep -c 'class="css-text-146c3p1"></div>' /tmp/ssr.html   # empty icons    → == 0
+grep -oc 'someNamespace\.someKey' /tmp/ssr.html           # leaked i18n key → == 0
+```
+
+Then open the route in a browser with the console open and confirm **zero**
+hydration warnings. Reproduce **both** a cold reload **and** navigation from
+another page — warm font/i18n caches change which side renders "loaded", so a
+bug can hide on one path and appear on the other.
+
+**Gotcha — the onboarding gate masks `(main)` routes on the server.** During SSR
+the persisted `hasSeenOnboarding` flag is false, so `app/_layout.tsx` renders
+`OnboardingGate` in place of the whole Stack. A `curl /settings` therefore
+returns the onboarding markup, not the settings screen — so it shows *neither*
+translated strings nor leaked keys, which can read as a false pass. To prove the
+i18n fix against a real `(main)` screen, temporarily short-circuit the gate
+(`{true || hasSeenOnboarding ? …}`), restart the dev server (CI mode disables
+reloads), curl, confirm translated strings appear (e.g. `Appearance`,
+`Language`) with no raw `settings.` keys, then revert. This is exactly how the
+§3 fix was verified.
+
+## Guardrail
+
+`__tests__/ssrHydration.guardrail.test.ts` holds source/behavior assertions so a
+fork can't silently drop these:
+
+- `app/+html.tsx` contains `useServerDocumentContext`, `headNodes`, `bodyNodes`.
+- `app/_layout.tsx` calls `ensureI18nInitialized()` in the render body **before**
+  the first `useEffect` (not only in an effect).
+- Importing `@/client/features/i18n` leaves i18next initialized synchronously and
+  `i18n.t("common.ok")` resolves to `"OK"` (not the raw key) — the exact
+  condition the server's first render needs.
+
+These are cheap backstops, not a substitute for the real-server `curl` check
+above (Jest mocks `react-i18next`, so it can't model the SSR render on its own).
+
+---
+
+<!-- Source: llms-examples.txt -->
+<!-- Raw: https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-examples.txt -->
+
+# Expo Template — Examples Index
+
+<!-- GENERATED FILE - do not edit. Rebuild with `bun run docs:llms`. -->
+
+Fetchable raw URLs for this template's example and source files
+(https://github.com/mrmeg/expo-template). Fetch a demo route to see components composed in a real screen,
+then the matching screen template or component source for implementation
+detail. Screen templates in `client/screens/` pair with demo routes named
+`screen-<name>.tsx`.
+
+## Demo Routes (`app/(main)/(demos)/`)
+
+Working in-app examples for every component and screen template; the best reference for real composition.
+
+- app/(main)/(demos)/auth-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/auth-demo.tsx
+- app/(main)/(demos)/detail-hero.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/detail-hero.tsx
+- app/(main)/(demos)/developer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/developer.tsx
+- app/(main)/(demos)/form-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/form-demo.tsx
+- app/(main)/(demos)/onboarding.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/onboarding.tsx
+- app/(main)/(demos)/screen-card-grid.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-card-grid.tsx
+- app/(main)/(demos)/screen-chat.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-chat.tsx
+- app/(main)/(demos)/screen-dashboard.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-dashboard.tsx
+- app/(main)/(demos)/screen-error.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-error.tsx
+- app/(main)/(demos)/screen-form.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-form.tsx
+- app/(main)/(demos)/screen-list.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-list.tsx
+- app/(main)/(demos)/screen-notifications.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-notifications.tsx
+- app/(main)/(demos)/screen-pricing.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-pricing.tsx
+- app/(main)/(demos)/screen-profile.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-profile.tsx
+- app/(main)/(demos)/screen-search.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-search.tsx
+- app/(main)/(demos)/screen-settings.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-settings.tsx
+- app/(main)/(demos)/screen-welcome.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-welcome.tsx
+- app/(main)/(demos)/server-alpha.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha.tsx
+- app/(main)/(demos)/server-alpha/[example].tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha/%5Bexample%5D.tsx
+- app/(main)/(demos)/showcase/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/showcase/index.tsx
+- app/(main)/(demos)/themed-showcase.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/themed-showcase.tsx
+
+## Screen Templates (`client/screens/`)
+
+Reusable screen implementations. Pass data and callbacks in from a feature folder; do not embed domain logic.
+
+- client/screens/CardGridScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/CardGridScreen.tsx
+- client/screens/ChatScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/ChatScreen.tsx
+- client/screens/DashboardScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/DashboardScreen.tsx
+- client/screens/DetailHeroScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/DetailHeroScreen.tsx
+- client/screens/ErrorScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/ErrorScreen.tsx
+- client/screens/FormScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/FormScreen.tsx
+- client/screens/ListScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/ListScreen.tsx
+- client/screens/NotificationListScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/NotificationListScreen.tsx
+- client/screens/PricingScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/PricingScreen.tsx
+- client/screens/ProfileScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/ProfileScreen.tsx
+- client/screens/SearchResultsScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/SearchResultsScreen.tsx
+- client/screens/SettingsScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/SettingsScreen.tsx
+- client/screens/WelcomeScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/WelcomeScreen.tsx
+
+## UI Component Source (`packages/ui/src/components/`)
+
+Source of every @mrmeg/expo-ui component. Consumers import from the npm package, not these paths.
+
+- packages/ui/src/components/Accordion.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Accordion.tsx
+- packages/ui/src/components/Alert.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Alert.tsx
+- packages/ui/src/components/AnimatedView.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/AnimatedView.tsx
+- packages/ui/src/components/Badge.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Badge.tsx
+- packages/ui/src/components/BottomSheet.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/BottomSheet.tsx
+- packages/ui/src/components/Button.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Button.tsx
+- packages/ui/src/components/Card.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Card.tsx
+- packages/ui/src/components/Checkbox.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Checkbox.tsx
+- packages/ui/src/components/Collapsible.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Collapsible.tsx
+- packages/ui/src/components/Dialog.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Dialog.tsx
+- packages/ui/src/components/DismissKeyboard.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/DismissKeyboard.tsx
+- packages/ui/src/components/Drawer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Drawer.tsx
+- packages/ui/src/components/DropdownMenu.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/DropdownMenu.tsx
+- packages/ui/src/components/EmptyState.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/EmptyState.tsx
+- packages/ui/src/components/ErrorBoundary.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ErrorBoundary.tsx
+- packages/ui/src/components/Icon.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Icon.tsx
+- packages/ui/src/components/InputOTP.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/InputOTP.tsx
+- packages/ui/src/components/Label.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Label.tsx
+- packages/ui/src/components/MaxWidthContainer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MaxWidthContainer.tsx
+- packages/ui/src/components/Notification.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Notification.tsx
+- packages/ui/src/components/Popover.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Popover.tsx
+- packages/ui/src/components/Progress.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Progress.tsx
+- packages/ui/src/components/RadioGroup.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/RadioGroup.tsx
+- packages/ui/src/components/SegmentedControl.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/SegmentedControl.tsx
+- packages/ui/src/components/Select.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Select.tsx
+- packages/ui/src/components/Separator.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Separator.tsx
+- packages/ui/src/components/Skeleton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Skeleton.tsx
+- packages/ui/src/components/Slider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Slider.tsx
+- packages/ui/src/components/StatusBar.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StatusBar.tsx
+- packages/ui/src/components/StyledText.context.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StyledText.context.ts
+- packages/ui/src/components/StyledText.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StyledText.tsx
+- packages/ui/src/components/Switch.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Switch.tsx
+- packages/ui/src/components/Tabs.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Tabs.tsx
+- packages/ui/src/components/TextInput.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/TextInput.tsx
+- packages/ui/src/components/Toggle.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Toggle.tsx
+- packages/ui/src/components/ToggleGroup.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ToggleGroup.tsx
+- packages/ui/src/components/Tooltip.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Tooltip.tsx
+- packages/ui/src/components/UIProvider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/UIProvider.tsx
+- packages/ui/src/components/index.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/index.ts
+
+## Form Wrappers (`client/lib/form/`)
+
+react-hook-form + zod wrappers used by form screens and demos.
+
+- client/lib/form/FormCheckbox.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/FormCheckbox.tsx
+- client/lib/form/FormMessage.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/FormMessage.tsx
+- client/lib/form/FormProvider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/FormProvider.tsx
+- client/lib/form/FormSelect.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/FormSelect.tsx
+- client/lib/form/FormSwitch.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/FormSwitch.tsx
+- client/lib/form/FormTextInput.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/FormTextInput.tsx
+- client/lib/form/index.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/index.ts
+- client/lib/form/useFormField.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/useFormField.ts
+
+## Server Stack
+
+Key files for replicating server output, API routes, loaders, and middleware. Read `docs/server-guide.md` first.
+
+- app.config.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app.config.ts
+- server.bun.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server.bun.ts
+- server/index.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/index.ts
+- server/rateLimits.js: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/rateLimits.js
+- app/+middleware.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/%2Bmiddleware.ts
+- client/features/server-alpha/loaders.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/loaders.ts
+- client/features/server-alpha/ServerAlphaDemoScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/ServerAlphaDemoScreen.tsx
+- client/features/server-alpha/ServerAlphaExampleScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/ServerAlphaExampleScreen.tsx
+- app/api/template/status+api.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/api/template/status%2Bapi.ts
+- app/api/template/examples+api.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/api/template/examples%2Bapi.ts
+- app/api/template/echo+api.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/api/template/echo%2Bapi.ts
+- server/api/shared/cors.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/api/shared/cors.ts
+- server/api/shared/errors.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/api/shared/errors.ts
+- server/api/shared/auth.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/api/shared/auth.ts
+- client/showcase/registry.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/showcase/registry.ts

@@ -339,7 +339,8 @@ CTAs — no Stripe traffic is ever generated.
 
 - **Lint, Type Check, Test** — `bun install --frozen-lockfile` →
   `bun run typecheck` → `bun run lint` → `bun run check:features` →
-  `bun run test:ci`. Same gates as the local `bun run` commands.
+  `bun run docs:llms:check` → `bun run test:ci`. Same gates as the local
+  `bun run` commands.
 - **Web Build + Bundle Size** — `bun run build` → `bun run bundle-size`.
   Fails the PR on >10% client bundle growth against
   `scripts/bundle-baseline.json`.
@@ -371,6 +372,17 @@ is enough.
 Start at `docs/template-modernization-guide.md` for LLM-facing component,
 screen-template, and modernization guidance. Start at `AGENTS.md` for compact
 repo guidance and the docs index.
+
+To apply this template's components and patterns from another project, point
+your agent at the root `llms.txt` (index of fetchable docs) or `llms-full.txt`
+(every LLM-facing doc in one file). For example:
+
+> Read https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-full.txt
+> and use this template's components and best practices in this project.
+
+`llms-full.txt` and `llms-examples.txt` are generated — rebuild them with
+`bun run docs:llms` after editing source docs or adding/removing demo routes,
+screens, or components. CI fails when they drift (`bun run docs:llms:check`).
 
 ## License
 

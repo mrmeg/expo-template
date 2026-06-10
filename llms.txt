@@ -1,0 +1,36 @@
+# Expo Template
+
+> Bun-managed Expo SDK 56 template (React Native iOS/Android + server-rendered web) with two reusable npm packages: `@mrmeg/expo-ui` (design system: ~38 components, semantic theme tokens, notifications) and `@mrmeg/expo-media` (S3/R2 media pipeline). These docs teach an LLM agent to apply the template's components and best practices in another project.
+
+Two ways to consume this repo from another project:
+
+- **Use the published packages**: `bun add @mrmeg/expo-ui` (and optionally `@mrmeg/expo-media`), then read `node_modules/@mrmeg/expo-ui/LLM_USAGE.md` — the usage guide ships in the npm tarball.
+- **Use the repo as a pattern reference**: fetch `llms-full.txt` below for everything in one request, or follow individual links. Clone `https://github.com/mrmeg/expo-template.git` when you need screen or component source, not just docs.
+
+Doc links below are raw URLs on the `main` branch and can be fetched directly.
+
+## Docs
+
+- [llms-full.txt](https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-full.txt): every LLM-facing doc below concatenated into one file — fetch this first
+- [llms-examples.txt](https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-examples.txt): fetchable raw URLs for every demo route, screen template, component source file, form wrapper, and server-stack file
+- [Template modernization guide](https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/template-modernization-guide.md): repo map, component selection, screen templates, feature patterns, migration order, anti-patterns
+- [UI package LLM usage](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/LLM_USAGE.md): `@mrmeg/expo-ui` import paths, required app setup, theme rules, component use-case index, minimal examples
+- [UI package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/README.md): full `@mrmeg/expo-ui` install, setup, theming, and publishing reference
+- [Media package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/media/README.md): `@mrmeg/expo-media` contracts, client hooks, server handler factories, processing presets
+- [Expo server guide](https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/server-guide.md): server-rendered output, API routes, data loaders, middleware, server entries, and a replication checklist for other projects
+- [SSR hydration guide](https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/ssr-hydration.md): web first-render constraints and verification for the server-rendered web build
+
+## Source
+
+- [Component exports](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/index.ts): canonical list of `@mrmeg/expo-ui` components
+- [Screen templates](https://github.com/mrmeg/expo-template/tree/main/client/screens): 13 reusable screen implementations (Settings, Profile, List, Pricing, Welcome, Card Grid, Chat, Dashboard, Form, Notifications, Search Results, Error, Detail Hero)
+- [Showcase registry](https://raw.githubusercontent.com/mrmeg/expo-template/main/client/showcase/registry.ts): registry linking every reusable component and screen template to its demo route
+- [Demo routes](https://github.com/mrmeg/expo-template/tree/main/app/%28main%29/%28demos%29): concrete usage examples for each component and screen template
+
+## Optional
+
+- [Repo README](https://raw.githubusercontent.com/mrmeg/expo-template/main/README.md): features, setup, scripts, architecture, theming, CI
+- [Contributing](https://raw.githubusercontent.com/mrmeg/expo-template/main/CONTRIBUTING.md): code style, workflow, PR checklist
+- [AGENTS.md](https://raw.githubusercontent.com/mrmeg/expo-template/main/AGENTS.md): guidance for agents working inside this repo (not needed by external consumers)
+- [Bundle analysis](https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/bundle-analysis.md): bundle-size guard usage and baseline updates
+- [Error tracking](https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/error-tracking.md): Sentry runtime and native upload setup

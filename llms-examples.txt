@@ -1,0 +1,130 @@
+# Expo Template — Examples Index
+
+<!-- GENERATED FILE - do not edit. Rebuild with `bun run docs:llms`. -->
+
+Fetchable raw URLs for this template's example and source files
+(https://github.com/mrmeg/expo-template). Fetch a demo route to see components composed in a real screen,
+then the matching screen template or component source for implementation
+detail. Screen templates in `client/screens/` pair with demo routes named
+`screen-<name>.tsx`.
+
+## Demo Routes (`app/(main)/(demos)/`)
+
+Working in-app examples for every component and screen template; the best reference for real composition.
+
+- app/(main)/(demos)/auth-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/auth-demo.tsx
+- app/(main)/(demos)/detail-hero.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/detail-hero.tsx
+- app/(main)/(demos)/developer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/developer.tsx
+- app/(main)/(demos)/form-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/form-demo.tsx
+- app/(main)/(demos)/onboarding.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/onboarding.tsx
+- app/(main)/(demos)/screen-card-grid.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-card-grid.tsx
+- app/(main)/(demos)/screen-chat.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-chat.tsx
+- app/(main)/(demos)/screen-dashboard.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-dashboard.tsx
+- app/(main)/(demos)/screen-error.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-error.tsx
+- app/(main)/(demos)/screen-form.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-form.tsx
+- app/(main)/(demos)/screen-list.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-list.tsx
+- app/(main)/(demos)/screen-notifications.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-notifications.tsx
+- app/(main)/(demos)/screen-pricing.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-pricing.tsx
+- app/(main)/(demos)/screen-profile.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-profile.tsx
+- app/(main)/(demos)/screen-search.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-search.tsx
+- app/(main)/(demos)/screen-settings.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-settings.tsx
+- app/(main)/(demos)/screen-welcome.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-welcome.tsx
+- app/(main)/(demos)/server-alpha.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha.tsx
+- app/(main)/(demos)/server-alpha/[example].tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha/%5Bexample%5D.tsx
+- app/(main)/(demos)/showcase/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/showcase/index.tsx
+- app/(main)/(demos)/themed-showcase.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/themed-showcase.tsx
+
+## Screen Templates (`client/screens/`)
+
+Reusable screen implementations. Pass data and callbacks in from a feature folder; do not embed domain logic.
+
+- client/screens/CardGridScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/CardGridScreen.tsx
+- client/screens/ChatScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/ChatScreen.tsx
+- client/screens/DashboardScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/DashboardScreen.tsx
+- client/screens/DetailHeroScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/DetailHeroScreen.tsx
+- client/screens/ErrorScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/ErrorScreen.tsx
+- client/screens/FormScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/FormScreen.tsx
+- client/screens/ListScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/ListScreen.tsx
+- client/screens/NotificationListScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/NotificationListScreen.tsx
+- client/screens/PricingScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/PricingScreen.tsx
+- client/screens/ProfileScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/ProfileScreen.tsx
+- client/screens/SearchResultsScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/SearchResultsScreen.tsx
+- client/screens/SettingsScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/SettingsScreen.tsx
+- client/screens/WelcomeScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/WelcomeScreen.tsx
+
+## UI Component Source (`packages/ui/src/components/`)
+
+Source of every @mrmeg/expo-ui component. Consumers import from the npm package, not these paths.
+
+- packages/ui/src/components/Accordion.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Accordion.tsx
+- packages/ui/src/components/Alert.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Alert.tsx
+- packages/ui/src/components/AnimatedView.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/AnimatedView.tsx
+- packages/ui/src/components/Badge.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Badge.tsx
+- packages/ui/src/components/BottomSheet.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/BottomSheet.tsx
+- packages/ui/src/components/Button.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Button.tsx
+- packages/ui/src/components/Card.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Card.tsx
+- packages/ui/src/components/Checkbox.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Checkbox.tsx
+- packages/ui/src/components/Collapsible.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Collapsible.tsx
+- packages/ui/src/components/Dialog.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Dialog.tsx
+- packages/ui/src/components/DismissKeyboard.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/DismissKeyboard.tsx
+- packages/ui/src/components/Drawer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Drawer.tsx
+- packages/ui/src/components/DropdownMenu.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/DropdownMenu.tsx
+- packages/ui/src/components/EmptyState.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/EmptyState.tsx
+- packages/ui/src/components/ErrorBoundary.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ErrorBoundary.tsx
+- packages/ui/src/components/Icon.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Icon.tsx
+- packages/ui/src/components/InputOTP.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/InputOTP.tsx
+- packages/ui/src/components/Label.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Label.tsx
+- packages/ui/src/components/MaxWidthContainer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MaxWidthContainer.tsx
+- packages/ui/src/components/Notification.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Notification.tsx
+- packages/ui/src/components/Popover.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Popover.tsx
+- packages/ui/src/components/Progress.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Progress.tsx
+- packages/ui/src/components/RadioGroup.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/RadioGroup.tsx
+- packages/ui/src/components/SegmentedControl.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/SegmentedControl.tsx
+- packages/ui/src/components/Select.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Select.tsx
+- packages/ui/src/components/Separator.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Separator.tsx
+- packages/ui/src/components/Skeleton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Skeleton.tsx
+- packages/ui/src/components/Slider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Slider.tsx
+- packages/ui/src/components/StatusBar.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StatusBar.tsx
+- packages/ui/src/components/StyledText.context.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StyledText.context.ts
+- packages/ui/src/components/StyledText.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StyledText.tsx
+- packages/ui/src/components/Switch.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Switch.tsx
+- packages/ui/src/components/Tabs.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Tabs.tsx
+- packages/ui/src/components/TextInput.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/TextInput.tsx
+- packages/ui/src/components/Toggle.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Toggle.tsx
+- packages/ui/src/components/ToggleGroup.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ToggleGroup.tsx
+- packages/ui/src/components/Tooltip.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Tooltip.tsx
+- packages/ui/src/components/UIProvider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/UIProvider.tsx
+- packages/ui/src/components/index.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/index.ts
+
+## Form Wrappers (`client/lib/form/`)
+
+react-hook-form + zod wrappers used by form screens and demos.
+
+- client/lib/form/FormCheckbox.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/FormCheckbox.tsx
+- client/lib/form/FormMessage.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/FormMessage.tsx
+- client/lib/form/FormProvider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/FormProvider.tsx
+- client/lib/form/FormSelect.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/FormSelect.tsx
+- client/lib/form/FormSwitch.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/FormSwitch.tsx
+- client/lib/form/FormTextInput.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/FormTextInput.tsx
+- client/lib/form/index.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/index.ts
+- client/lib/form/useFormField.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/lib/form/useFormField.ts
+
+## Server Stack
+
+Key files for replicating server output, API routes, loaders, and middleware. Read `docs/server-guide.md` first.
+
+- app.config.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app.config.ts
+- server.bun.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server.bun.ts
+- server/index.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/index.ts
+- server/rateLimits.js: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/rateLimits.js
+- app/+middleware.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/%2Bmiddleware.ts
+- client/features/server-alpha/loaders.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/loaders.ts
+- client/features/server-alpha/ServerAlphaDemoScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/ServerAlphaDemoScreen.tsx
+- client/features/server-alpha/ServerAlphaExampleScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/ServerAlphaExampleScreen.tsx
+- app/api/template/status+api.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/api/template/status%2Bapi.ts
+- app/api/template/examples+api.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/api/template/examples%2Bapi.ts
+- app/api/template/echo+api.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/api/template/echo%2Bapi.ts
+- server/api/shared/cors.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/api/shared/cors.ts
+- server/api/shared/errors.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/api/shared/errors.ts
+- server/api/shared/auth.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/api/shared/auth.ts
+- client/showcase/registry.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/showcase/registry.ts

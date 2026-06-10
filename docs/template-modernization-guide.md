@@ -16,6 +16,7 @@ Treat these files as the source of truth before editing another project:
 | Repo guidance and docs index | `AGENTS.md` |
 | UI package setup, components, theming | `packages/ui/README.md` |
 | Media package setup, processing, server handlers | `packages/media/README.md` |
+| Server output, API routes, data loaders, middleware | `docs/server-guide.md` |
 | SSR hydration and web first-render constraints | `docs/ssr-hydration.md` |
 | Bundle budget and analysis workflow | `docs/bundle-analysis.md` |
 | Sentry runtime and native upload setup | `docs/error-tracking.md` |

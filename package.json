@@ -25,6 +25,8 @@
     "serve:ssr": "expo serve",
     "bundle-size": "node scripts/check-bundle-size.js",
     "check:features": "node scripts/check-feature-isolation.js",
+    "docs:llms": "node scripts/build-llms-full.mjs",
+    "docs:llms:check": "node scripts/build-llms-full.mjs --check",
     "ui:typecheck": "bun run --cwd packages/ui typecheck",
     "ui:test": "bun run --cwd packages/ui test",
     "ui:build": "bun run --cwd packages/ui build",
