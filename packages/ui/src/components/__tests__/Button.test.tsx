@@ -11,7 +11,7 @@
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
-import type { ReactTestInstance } from "react-test-renderer";
+import type { TestInstance } from "test-renderer";
 import { Button, type ButtonAccessoryProps } from "../Button";
 import { Icon } from "../Icon";
 import { StyledText } from "../StyledText";
@@ -56,10 +56,17 @@ jest.mock("../../hooks/useTheme", () => ({
   }),
 }));
 
-function findFlattenedStyleByBackground(nodes: ReactTestInstance[], backgroundColor: string) {
+function findFlattenedStyleByBackground(nodes: TestInstance[], backgroundColor: string) {
   return nodes
     .map((node) => StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined)
     .find((style) => style?.backgroundColor === backgroundColor);
+}
+
+/** Return all host element descendants of the current render tree. */
+function getAllHostNodes(): TestInstance[] {
+  const root = screen.root;
+  if (!root) return [];
+  return [root, ...root.queryAll(() => true)];
 }
 
 jest.mock("../../hooks/useScalePress", () => ({
@@ -80,8 +87,8 @@ describe("Button", () => {
   });
 
   describe("Rendering", () => {
-    it("renders with children", () => {
-      render(
+    it("renders with children", async () => {
+      await render(
         <Button>
           <Text>Click me</Text>
         </Button>
@@ -90,48 +97,48 @@ describe("Button", () => {
       expect(screen.getByText("Click me")).toBeTruthy();
     });
 
-    it("renders with text prop", () => {
-      render(<Button text="Submit" />);
+    it("renders with text prop", async () => {
+      await render(<Button text="Submit" />);
 
       expect(screen.getByText("Submit")).toBeTruthy();
     });
 
-    it("renders different presets", () => {
+    it("renders different presets", async () => {
       const presets = ["default", "outline", "ghost", "link", "destructive", "secondary"] as const;
 
-      presets.forEach((preset) => {
-        const { unmount } = render(
+      for (const preset of presets) {
+        const { unmount } = await render(
           <Button preset={preset}>
             <Text>{preset}</Text>
           </Button>
         );
         expect(screen.getByText(preset)).toBeTruthy();
-        unmount();
-      });
+        await unmount();
+      }
     });
 
-    it("renders the default preset with primary color tokens", () => {
-      const { UNSAFE_getAllByType } = render(<Button preset="default" text="Primary action" />);
+    it("renders the default preset with primary color tokens", async () => {
+      await render(<Button preset="default" text="Primary action" />);
 
-      const buttonSurface = findFlattenedStyleByBackground(UNSAFE_getAllByType(View), "#18181B");
+      const buttonSurface = findFlattenedStyleByBackground(getAllHostNodes(), "#18181B");
       const textStyle = StyleSheet.flatten(screen.getByText("Primary action").props.style) as Record<string, unknown>;
 
       expect(buttonSurface).toEqual(expect.objectContaining({ backgroundColor: "#18181B" }));
       expect(textStyle).toEqual(expect.objectContaining({ color: "#FAFAFA" }));
     });
 
-    it("renders the secondary preset with secondary color tokens", () => {
-      const { UNSAFE_getAllByType } = render(<Button preset="secondary" text="Secondary action" />);
+    it("renders the secondary preset with secondary color tokens", async () => {
+      await render(<Button preset="secondary" text="Secondary action" />);
 
-      const buttonSurface = findFlattenedStyleByBackground(UNSAFE_getAllByType(View), "#F4F4F5");
+      const buttonSurface = findFlattenedStyleByBackground(getAllHostNodes(), "#F4F4F5");
       const textStyle = StyleSheet.flatten(screen.getByText("Secondary action").props.style) as Record<string, unknown>;
 
       expect(buttonSurface).toEqual(expect.objectContaining({ backgroundColor: "#F4F4F5" }));
       expect(textStyle).toEqual(expect.objectContaining({ color: "#18181B" }));
     });
 
-    it("allows textStyle color to override the button label color", () => {
-      render(
+    it("allows textStyle color to override the button label color", async () => {
+      await render(
         <Button
           preset="outline"
           text="Verify"
@@ -144,14 +151,14 @@ describe("Button", () => {
       expect(textStyle).toEqual(expect.objectContaining({ color: "#22C55E" }));
     });
 
-    it("allows nested StyledText color styles to override the button context color", () => {
+    it("allows nested StyledText color styles to override the button context color", async () => {
       const styles = StyleSheet.create({
         actionLabel: {
           color: "#EF4444",
         },
       });
 
-      render(
+      await render(
         <Button preset="outline">
           <StyledText style={styles.actionLabel}>Unverify</StyledText>
         </Button>
@@ -162,29 +169,29 @@ describe("Button", () => {
       expect(textStyle).toEqual(expect.objectContaining({ color: "#EF4444" }));
     });
 
-    it("renders different sizes", () => {
+    it("renders different sizes", async () => {
       const sizes = [
         ["sm", 28],
         ["md", 32],
         ["lg", 40],
       ] as const;
 
-      sizes.forEach(([size, minHeight]) => {
-        const { unmount, UNSAFE_getAllByType } = render(
+      for (const [size, minHeight] of sizes) {
+        const { unmount } = await render(
           <Button size={size}>
             <Text>{size}</Text>
           </Button>
         );
-        const buttonSurface = findFlattenedStyleByBackground(UNSAFE_getAllByType(View), "#18181B");
+        const buttonSurface = findFlattenedStyleByBackground(getAllHostNodes(), "#18181B");
 
         expect(screen.getByText(size)).toBeTruthy();
         expect(buttonSurface).toEqual(expect.objectContaining({ minHeight }));
-        unmount();
-      });
+        await unmount();
+      }
     });
 
-    it("applies button size typography to nested StyledText children", () => {
-      render(
+    it("applies button size typography to nested StyledText children", async () => {
+      await render(
         <Button size="sm">
           <StyledText>Compact</StyledText>
         </Button>
@@ -196,8 +203,8 @@ describe("Button", () => {
       expect(textStyle.lineHeight).toBeCloseTo(16.8);
     });
 
-    it("disables text selection for button labels", () => {
-      render(<Button text="Submit" />);
+    it("disables text selection for button labels", async () => {
+      await render(<Button text="Submit" />);
 
       const label = screen.getByText("Submit");
       const textStyle = StyleSheet.flatten(label.props.style) as Record<string, unknown>;
@@ -206,30 +213,33 @@ describe("Button", () => {
       expect(textStyle.userSelect).toBe("none");
     });
 
-    it("renders loading state", () => {
-      const { UNSAFE_getAllByType } = render(
+    it("renders loading state", async () => {
+      await render(
         <Button loading>
           <Text>Loading</Text>
         </Button>
       );
 
-      const hiddenContentStyle = UNSAFE_getAllByType(View)
+      const allNodes = getAllHostNodes();
+      const hiddenContentStyle = allNodes
         .map((node) => StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined)
         .find((style) => style?.opacity === 0);
 
-      expect(UNSAFE_getAllByType(ActivityIndicator)).toHaveLength(1);
+      const indicators = screen.root!.queryAll((node) => node.type === "ActivityIndicator");
+      expect(indicators).toHaveLength(1);
       expect(screen.getByText("Loading")).toBeTruthy();
       expect(hiddenContentStyle).toEqual(expect.objectContaining({ opacity: 0 }));
     });
 
-    it("preserves the previous resting width while a loading label changes", () => {
-      const { UNSAFE_getAllByType, rerender } = render(
+    it("preserves the previous resting width while a loading label changes", async () => {
+      const { rerender } = await render(
         <Button loading={false}>
           <Text>Click to Load</Text>
         </Button>
       );
-      const buttonSurface = findFlattenedStyleByBackground(UNSAFE_getAllByType(View), "#18181B");
-      const buttonSurfaceNode = UNSAFE_getAllByType(View).find((node) => {
+      const allNodes = getAllHostNodes();
+      const buttonSurface = findFlattenedStyleByBackground(allNodes, "#18181B");
+      const buttonSurfaceNode = allNodes.find((node) => {
         const style = StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined;
         return style?.backgroundColor === "#18181B";
       });
@@ -237,17 +247,17 @@ describe("Button", () => {
       expect(buttonSurface).toBeTruthy();
       expect(buttonSurfaceNode).toBeTruthy();
 
-      fireEvent(buttonSurfaceNode!, "layout", {
+      await fireEvent(buttonSurfaceNode as TestInstance, "layout", {
         nativeEvent: { layout: { width: 128, height: 32 } },
       });
 
-      rerender(
+      await rerender(
         <Button loading>
           <Text>Loading...</Text>
         </Button>
       );
 
-      const loadingButtonSurface = findFlattenedStyleByBackground(UNSAFE_getAllByType(View), "#18181B");
+      const loadingButtonSurface = findFlattenedStyleByBackground(getAllHostNodes(), "#18181B");
 
       expect(loadingButtonSurface).toEqual(expect.objectContaining({ width: 128 }));
       expect(screen.getByText("Loading...")).toBeTruthy();
@@ -255,14 +265,14 @@ describe("Button", () => {
   });
 
   describe("Accessibility", () => {
-    it("has button accessibility role", () => {
-      render(<Button text="Accessible" />);
+    it("has button accessibility role", async () => {
+      await render(<Button text="Accessible" />);
 
       expect(screen.getByRole("button")).toBeTruthy();
     });
 
-    it("indicates disabled state for accessibility", () => {
-      render(<Button text="Disabled" disabled />);
+    it("indicates disabled state for accessibility", async () => {
+      await render(<Button text="Disabled" disabled />);
 
       const button = screen.getByRole("button");
       expect(button.props.accessibilityState).toEqual(
@@ -273,8 +283,8 @@ describe("Button", () => {
       );
     });
 
-    it("indicates loading/busy state for accessibility", () => {
-      render(<Button text="Loading" loading />);
+    it("indicates loading/busy state for accessibility", async () => {
+      await render(<Button text="Loading" loading />);
 
       const button = screen.getByRole("button");
       expect(button.props.accessibilityState).toEqual(
@@ -286,47 +296,47 @@ describe("Button", () => {
   });
 
   describe("Interactions", () => {
-    it("calls onPress when pressed", () => {
+    it("calls onPress when pressed", async () => {
       const onPress = jest.fn();
 
-      render(<Button text="Press me" onPress={onPress} />);
+      await render(<Button text="Press me" onPress={onPress} />);
 
-      fireEvent.press(screen.getByRole("button"));
+      await fireEvent.press(screen.getByRole("button"));
 
       expect(onPress).toHaveBeenCalledTimes(1);
     });
 
-    it("does not call onPress when disabled", () => {
+    it("does not call onPress when disabled", async () => {
       const onPress = jest.fn();
 
-      render(<Button text="Disabled" onPress={onPress} disabled />);
+      await render(<Button text="Disabled" onPress={onPress} disabled />);
 
-      fireEvent.press(screen.getByRole("button"));
+      await fireEvent.press(screen.getByRole("button"));
 
       expect(onPress).not.toHaveBeenCalled();
     });
 
-    it("does not call onPress when loading", () => {
+    it("does not call onPress when loading", async () => {
       const onPress = jest.fn();
 
-      render(<Button text="Loading" onPress={onPress} loading />);
+      await render(<Button text="Loading" onPress={onPress} loading />);
 
-      fireEvent.press(screen.getByRole("button"));
+      await fireEvent.press(screen.getByRole("button"));
 
       expect(onPress).not.toHaveBeenCalled();
     });
 
-    it("composes focus and blur handlers with internal focus state", () => {
+    it("composes focus and blur handlers with internal focus state", async () => {
       const onFocus = jest.fn();
       const onBlur = jest.fn();
       const focusEvent = { nativeEvent: { target: 1 } };
       const blurEvent = { nativeEvent: { target: 1 } };
 
-      render(<Button text="Focus me" onFocus={onFocus} onBlur={onBlur} />);
+      await render(<Button text="Focus me" onFocus={onFocus} onBlur={onBlur} />);
 
       const button = screen.getByRole("button");
-      fireEvent(button, "focus", focusEvent);
-      fireEvent(button, "blur", blurEvent);
+      await fireEvent(button, "focus", focusEvent);
+      await fireEvent(button, "blur", blurEvent);
 
       expect(onFocus).toHaveBeenCalledTimes(1);
       expect(onFocus).toHaveBeenCalledWith(focusEvent);
@@ -334,13 +344,13 @@ describe("Button", () => {
       expect(onBlur).toHaveBeenCalledWith(blurEvent);
     });
 
-    it("composes press-in and press-out handlers with scale animation handlers", () => {
+    it("composes press-in and press-out handlers with scale animation handlers", async () => {
       const onPressIn = jest.fn();
       const onPressOut = jest.fn();
       const pressInEvent = { nativeEvent: { pageX: 10, pageY: 20 } };
       const pressOutEvent = { nativeEvent: { pageX: 15, pageY: 25 } };
 
-      render(
+      await render(
         <Button
           text="Press me"
           onPressIn={onPressIn}
@@ -349,8 +359,8 @@ describe("Button", () => {
       );
 
       const button = screen.getByRole("button");
-      fireEvent(button, "pressIn", pressInEvent);
-      fireEvent(button, "pressOut", pressOutEvent);
+      await fireEvent(button, "pressIn", pressInEvent);
+      await fireEvent(button, "pressOut", pressOutEvent);
 
       expect(mockScalePressIn).toHaveBeenCalledTimes(1);
       expect(onPressIn).toHaveBeenCalledTimes(1);
@@ -360,11 +370,11 @@ describe("Button", () => {
       expect(onPressOut).toHaveBeenCalledWith(pressOutEvent);
     });
 
-    it("does not call press-in or press-out handlers when disabled", () => {
+    it("does not call press-in or press-out handlers when disabled", async () => {
       const onPressIn = jest.fn();
       const onPressOut = jest.fn();
 
-      render(
+      await render(
         <Button
           text="Disabled"
           onPressIn={onPressIn}
@@ -374,8 +384,8 @@ describe("Button", () => {
       );
 
       const button = screen.getByRole("button");
-      fireEvent(button, "pressIn");
-      fireEvent(button, "pressOut");
+      await fireEvent(button, "pressIn");
+      await fireEvent(button, "pressOut");
 
       expect(mockScalePressIn).not.toHaveBeenCalled();
       expect(onPressIn).not.toHaveBeenCalled();
@@ -383,11 +393,11 @@ describe("Button", () => {
       expect(onPressOut).not.toHaveBeenCalled();
     });
 
-    it("does not call press-in or press-out handlers when loading", () => {
+    it("does not call press-in or press-out handlers when loading", async () => {
       const onPressIn = jest.fn();
       const onPressOut = jest.fn();
 
-      render(
+      await render(
         <Button
           text="Loading"
           onPressIn={onPressIn}
@@ -397,8 +407,8 @@ describe("Button", () => {
       );
 
       const button = screen.getByRole("button");
-      fireEvent(button, "pressIn");
-      fireEvent(button, "pressOut");
+      await fireEvent(button, "pressIn");
+      await fireEvent(button, "pressOut");
 
       expect(mockScalePressIn).not.toHaveBeenCalled();
       expect(onPressIn).not.toHaveBeenCalled();
@@ -408,10 +418,10 @@ describe("Button", () => {
   });
 
   describe("Accessories", () => {
-    it("renders left accessory", () => {
+    it("renders left accessory", async () => {
       const LeftAccessory = () => <Text>Left</Text>;
 
-      render(
+      await render(
         <Button text="With Left" LeftAccessory={LeftAccessory} />
       );
 
@@ -419,10 +429,10 @@ describe("Button", () => {
       expect(screen.getByText("With Left")).toBeTruthy();
     });
 
-    it("renders right accessory", () => {
+    it("renders right accessory", async () => {
       const RightAccessory = () => <Text>Right</Text>;
 
-      render(
+      await render(
         <Button text="With Right" RightAccessory={RightAccessory} />
       );
 
@@ -430,24 +440,24 @@ describe("Button", () => {
       expect(screen.getByText("With Right")).toBeTruthy();
     });
 
-    it("allows icon accessories to consume spacing style without casts", () => {
+    it("allows icon accessories to consume spacing style without casts", async () => {
       const LeftAccessory = ({ style }: ButtonAccessoryProps) => (
         <Icon name="check" style={style} decorative />
       );
 
-      const { UNSAFE_getByProps } = render(
+      await render(
         <Button text="With Icon" LeftAccessory={LeftAccessory} />
       );
 
-      expect(UNSAFE_getByProps({ testID: "icon-Feather" })).toBeTruthy();
+      expect(screen.getByTestId("icon-Feather", { includeHiddenElements: true })).toBeTruthy();
       expect(screen.getByText("With Icon")).toBeTruthy();
     });
 
-    it("keeps accessories mounted but hidden when loading", () => {
+    it("keeps accessories mounted but hidden when loading", async () => {
       const LeftAccessory = () => <Text>Left</Text>;
       const RightAccessory = () => <Text>Right</Text>;
 
-      const { UNSAFE_getAllByType } = render(
+      await render(
         <Button
           text="Loading"
           loading
@@ -456,7 +466,7 @@ describe("Button", () => {
         />
       );
 
-      const hiddenContentStyle = UNSAFE_getAllByType(View)
+      const hiddenContentStyle = getAllHostNodes()
         .map((node) => StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined)
         .find((style) => style?.opacity === 0);
 

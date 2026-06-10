@@ -57,61 +57,61 @@ jest.mock("@rn-primitives/checkbox", () => {
 });
 
 describe("Checkbox", () => {
-  it("renders in unchecked state", () => {
-    render(<Checkbox checked={false} onCheckedChange={() => {}} />);
+  it("renders in unchecked state", async () => {
+    await render(<Checkbox checked={false} onCheckedChange={() => {}} />);
 
     const checkbox = screen.getByRole("checkbox");
     expect(checkbox).toBeTruthy();
     expect(checkbox.props.accessibilityState.checked).toBe(false);
   });
 
-  it("renders in checked state", () => {
-    render(<Checkbox checked={true} onCheckedChange={() => {}} />);
+  it("renders in checked state", async () => {
+    await render(<Checkbox checked={true} onCheckedChange={() => {}} />);
 
     const checkbox = screen.getByRole("checkbox");
     expect(checkbox.props.accessibilityState.checked).toBe(true);
   });
 
-  it("updates when checked is changed by a parent", () => {
-    const { rerender } = render(
+  it("updates when checked is changed by a parent", async () => {
+    const { rerender } = await render(
       <Checkbox checked={false} onCheckedChange={() => {}} />
     );
 
     expect(screen.getByRole("checkbox").props.accessibilityState.checked).toBe(false);
 
-    rerender(<Checkbox checked={true} onCheckedChange={() => {}} />);
+    await rerender(<Checkbox checked={true} onCheckedChange={() => {}} />);
 
     expect(screen.getByRole("checkbox").props.accessibilityState.checked).toBe(true);
   });
 
-  it("calls onCheckedChange when pressed", () => {
+  it("calls onCheckedChange when pressed", async () => {
     const onCheckedChange = jest.fn();
 
-    render(<Checkbox checked={false} onCheckedChange={onCheckedChange} />);
+    await render(<Checkbox checked={false} onCheckedChange={onCheckedChange} />);
 
-    fireEvent.press(screen.getByRole("checkbox"));
+    await fireEvent.press(screen.getByRole("checkbox"));
 
     expect(onCheckedChange).toHaveBeenCalledWith(true);
   });
 
-  it("does not call onCheckedChange when disabled", () => {
+  it("does not call onCheckedChange when disabled", async () => {
     const onCheckedChange = jest.fn();
 
-    render(<Checkbox checked={false} onCheckedChange={onCheckedChange} disabled />);
+    await render(<Checkbox checked={false} onCheckedChange={onCheckedChange} disabled />);
 
-    fireEvent.press(screen.getByRole("checkbox"));
+    await fireEvent.press(screen.getByRole("checkbox"));
 
     expect(onCheckedChange).not.toHaveBeenCalled();
   });
 
-  it("renders label text when provided", () => {
-    render(<Checkbox checked={false} onCheckedChange={() => {}} label="Accept terms" />);
+  it("renders label text when provided", async () => {
+    await render(<Checkbox checked={false} onCheckedChange={() => {}} label="Accept terms" />);
 
     expect(screen.getByText("Accept terms")).toBeTruthy();
   });
 
-  it("indicates disabled state for accessibility", () => {
-    render(<Checkbox checked={false} onCheckedChange={() => {}} disabled />);
+  it("indicates disabled state for accessibility", async () => {
+    await render(<Checkbox checked={false} onCheckedChange={() => {}} disabled />);
 
     const checkbox = screen.getByRole("checkbox");
     expect(checkbox.props.accessibilityState.disabled).toBe(true);

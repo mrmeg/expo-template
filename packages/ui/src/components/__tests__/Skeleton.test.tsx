@@ -18,23 +18,23 @@ import {
 } from "../Skeleton";
 
 describe("Skeleton", () => {
-  it("renders a Skeleton block", () => {
-    const { toJSON } = render(<Skeleton width={120} height={20} />);
+  it("renders a Skeleton block", async () => {
+    const { toJSON } = await render(<Skeleton width={120} height={20} />);
     expect(toJSON()).not.toBeNull();
   });
 
-  it("renders a SkeletonAvatar", () => {
-    const { toJSON } = render(<SkeletonAvatar size={40} />);
+  it("renders a SkeletonAvatar", async () => {
+    const { toJSON } = await render(<SkeletonAvatar size={40} />);
     expect(toJSON()).not.toBeNull();
   });
 
-  it("renders a SkeletonCard", () => {
-    const { toJSON } = render(<SkeletonCard />);
+  it("renders a SkeletonCard", async () => {
+    const { toJSON } = await render(<SkeletonCard />);
     expect(toJSON()).not.toBeNull();
   });
 
-  it("renders SkeletonText with the requested number of lines", () => {
-    const { toJSON } = render(<SkeletonText lines={3} />);
+  it("renders SkeletonText with the requested number of lines", async () => {
+    const { toJSON } = await render(<SkeletonText lines={3} />);
     expect(toJSON()).not.toBeNull();
   });
 });

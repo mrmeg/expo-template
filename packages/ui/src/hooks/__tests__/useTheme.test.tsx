@@ -19,8 +19,8 @@ beforeEach(() => {
 
 describe("useTheme", () => {
   describe("theme object", () => {
-    it("returns a theme with expected color keys", () => {
-      const { result } = renderHook(() => useTheme());
+    it("returns a theme with expected color keys", async () => {
+      const { result } = await renderHook(() => useTheme());
       const { theme } = result.current;
 
       expect(theme.colors).toBeDefined();
@@ -37,23 +37,23 @@ describe("useTheme", () => {
       expect(theme.colors.ring).toBeDefined();
     });
 
-    it("returns a scheme value of light or dark", () => {
-      const { result } = renderHook(() => useTheme());
+    it("returns a scheme value of light or dark", async () => {
+      const { result } = await renderHook(() => useTheme());
       expect(["light", "dark"]).toContain(result.current.scheme);
     });
 
-    it("returns a currentTheme value", () => {
-      const { result } = renderHook(() => useTheme());
+    it("returns a currentTheme value", async () => {
+      const { result } = await renderHook(() => useTheme());
       expect(["system", "light", "dark"]).toContain(result.current.currentTheme);
     });
 
-    it("updates system theme consumers while currentTheme stays system", () => {
-      const { result } = renderHook(() => useTheme());
+    it("updates system theme consumers while currentTheme stays system", async () => {
+      const { result } = await renderHook(() => useTheme());
 
       expect(result.current.currentTheme).toBe("system");
       expect(result.current.scheme).toBe("light");
 
-      act(() => {
+      await act(() => {
         useThemeStore.getState().setSystemTheme("dark");
       });
 
@@ -62,12 +62,12 @@ describe("useTheme", () => {
       expect(result.current.theme).toBe(colors.dark);
     });
 
-    it("ignores system theme changes when the user selected an explicit theme", () => {
+    it("ignores system theme changes when the user selected an explicit theme", async () => {
       useThemeStore.setState({ userTheme: "light", systemTheme: "light" });
 
-      const { result } = renderHook(() => useTheme());
+      const { result } = await renderHook(() => useTheme());
 
-      act(() => {
+      await act(() => {
         useThemeStore.getState().setSystemTheme("dark");
       });
 
@@ -76,11 +76,11 @@ describe("useTheme", () => {
       expect(result.current.theme).toBe(colors.light);
     });
 
-    it("keeps helper identities stable across unchanged rerenders", () => {
-      const { result, rerender } = renderHook(() => useTheme());
+    it("keeps helper identities stable across unchanged rerenders", async () => {
+      const { result, rerender } = await renderHook(() => useTheme());
       const first = result.current;
 
-      rerender({});
+      await rerender({});
 
       expect(result.current.getShadowStyle).toBe(first.getShadowStyle);
       expect(result.current.getFocusRingStyle).toBe(first.getFocusRingStyle);
@@ -99,20 +99,20 @@ describe("useTheme", () => {
   });
 
   describe("color overrides", () => {
-    it("returns the base theme by reference when no override is set", () => {
-      const { result } = renderHook(() => useTheme());
+    it("returns the base theme by reference when no override is set", async () => {
+      const { result } = await renderHook(() => useTheme());
       expect(result.current.theme).toBe(colors.light);
     });
 
-    it("treats an empty per-scheme override as no override (identity preserved)", () => {
+    it("treats an empty per-scheme override as no override (identity preserved)", async () => {
       useThemeStore.setState({ colorOverrides: { light: {} } });
-      const { result } = renderHook(() => useTheme());
+      const { result } = await renderHook(() => useTheme());
       expect(result.current.theme).toBe(colors.light);
     });
 
-    it("merges app-injected colors over the package palette for the active scheme", () => {
+    it("merges app-injected colors over the package palette for the active scheme", async () => {
       useThemeStore.setState({ colorOverrides: { light: { primary: "#7575eb" } } });
-      const { result } = renderHook(() => useTheme());
+      const { result } = await renderHook(() => useTheme());
 
       // Overridden key reflects the app palette...
       expect(result.current.theme.colors.primary).toBe("#7575eb");
@@ -122,18 +122,18 @@ describe("useTheme", () => {
       expect(colors.light.colors.primary).not.toBe("#7575eb");
     });
 
-    it("applies the override for the resolved scheme only", () => {
+    it("applies the override for the resolved scheme only", async () => {
       useThemeStore.setState({
         userTheme: "system",
         systemTheme: "light",
         colorOverrides: { dark: { primary: "#7575eb" } },
       });
-      const { result } = renderHook(() => useTheme());
+      const { result } = await renderHook(() => useTheme());
 
       // Active scheme is light, so the dark-only override must not apply.
       expect(result.current.theme).toBe(colors.light);
 
-      act(() => {
+      await act(() => {
         useThemeStore.getState().setSystemTheme("dark");
       });
 
@@ -141,11 +141,11 @@ describe("useTheme", () => {
       expect(result.current.theme.colors.primary).toBe("#7575eb");
     });
 
-    it("reacts to setColors at runtime", () => {
-      const { result } = renderHook(() => useTheme());
+    it("reacts to setColors at runtime", async () => {
+      const { result } = await renderHook(() => useTheme());
       expect(result.current.theme).toBe(colors.light);
 
-      act(() => {
+      await act(() => {
         useThemeStore.getState().setColors({ light: { primary: "#7575eb" } });
       });
 
@@ -161,8 +161,8 @@ describe("useTheme", () => {
       return Wrapper;
     }
 
-    it("applies a scoped override for the active scheme", () => {
-      const { result } = renderHook(() => useTheme(), {
+    it("applies a scoped override for the active scheme", async () => {
+      const { result } = await renderHook(() => useTheme(), {
         wrapper: wrap({ light: { primary: "#ff0000" } }),
       });
 
@@ -171,20 +171,20 @@ describe("useTheme", () => {
       expect(result.current.theme.colors.background).toBe(colors.light.colors.background);
     });
 
-    it("scope wins over the global store override", () => {
+    it("scope wins over the global store override", async () => {
       useThemeStore.setState({ colorOverrides: { light: { primary: "#0000ff" } } });
 
-      const { result } = renderHook(() => useTheme(), {
+      const { result } = await renderHook(() => useTheme(), {
         wrapper: wrap({ light: { primary: "#ff0000" } }),
       });
 
       expect(result.current.theme.colors.primary).toBe("#ff0000");
     });
 
-    it("fills in from the store override for keys the scope does not set", () => {
+    it("fills in from the store override for keys the scope does not set", async () => {
       useThemeStore.setState({ colorOverrides: { light: { primary: "#0000ff", accent: "#00ff00" } } });
 
-      const { result } = renderHook(() => useTheme(), {
+      const { result } = await renderHook(() => useTheme(), {
         wrapper: wrap({ light: { primary: "#ff0000" } }),
       });
 
@@ -194,16 +194,16 @@ describe("useTheme", () => {
       expect(result.current.theme.colors.accent).toBe("#00ff00");
     });
 
-    it("ignores a scope for the inactive scheme (identity preserved)", () => {
+    it("ignores a scope for the inactive scheme (identity preserved)", async () => {
       // Active scheme is light; a dark-only scope must not apply.
-      const { result } = renderHook(() => useTheme(), {
+      const { result } = await renderHook(() => useTheme(), {
         wrapper: wrap({ dark: { primary: "#ff0000" } }),
       });
 
       expect(result.current.theme).toBe(colors.light);
     });
 
-    it("nested scopes merge (inner wins, outer fills in)", () => {
+    it("nested scopes merge (inner wins, outer fills in)", async () => {
       const wrapper = ({ children }: { children: React.ReactNode }) => (
         <ThemeColorScope colors={{ light: { primary: "#111111", accent: "#222222" } }}>
           <ThemeColorScope colors={{ light: { primary: "#999999" } }}>
@@ -212,21 +212,21 @@ describe("useTheme", () => {
         </ThemeColorScope>
       );
 
-      const { result } = renderHook(() => useTheme(), { wrapper });
+      const { result } = await renderHook(() => useTheme(), { wrapper });
 
       expect(result.current.theme.colors.primary).toBe("#999999"); // inner
       expect(result.current.theme.colors.accent).toBe("#222222");  // outer
     });
 
-    it("no scope + no store = base by reference", () => {
-      const { result } = renderHook(() => useTheme());
+    it("no scope + no store = base by reference", async () => {
+      const { result } = await renderHook(() => useTheme());
       expect(result.current.theme).toBe(colors.light);
     });
   });
 
   describe("getShadowStyle", () => {
-    it("returns an object for each shadow type", () => {
-      const { result } = renderHook(() => useTheme());
+    it("returns an object for each shadow type", async () => {
+      const { result } = await renderHook(() => useTheme());
       const types = [
         "base",
         "soft",
@@ -246,14 +246,14 @@ describe("useTheme", () => {
       });
     });
 
-    it("returns CSS boxShadow on web platform", () => {
+    it("returns CSS boxShadow on web platform", async () => {
       const originalOS = Platform.OS;
       Object.defineProperty(Platform, "OS", {
         configurable: true,
         value: "web",
       });
 
-      const { result } = renderHook(() => useTheme());
+      const { result } = await renderHook(() => useTheme());
       const style = result.current.getShadowStyle("base") as Record<string, unknown>;
 
       expect(style.boxShadow).toEqual(expect.stringContaining("rgba"));
@@ -266,8 +266,8 @@ describe("useTheme", () => {
   });
 
   describe("useStyles", () => {
-    it("passes withAlpha into the style factory context", () => {
-      const { result } = renderHook(() =>
+    it("passes withAlpha into the style factory context", async () => {
+      const { result } = await renderHook(() =>
         useStyles(({ theme, spacing, withAlpha }) => ({
           card: {
             backgroundColor: withAlpha(theme.colors.primary, 0.08),
@@ -284,14 +284,14 @@ describe("useTheme", () => {
   });
 
   describe("getFocusRingStyle", () => {
-    it("returns CSS focus ring on web platform", () => {
+    it("returns CSS focus ring on web platform", async () => {
       const originalOS = Platform.OS;
       Object.defineProperty(Platform, "OS", {
         configurable: true,
         value: "web",
       });
 
-      const { result } = renderHook(() => useTheme());
+      const { result } = await renderHook(() => useTheme());
       const style = result.current.getFocusRingStyle() as Record<string, unknown>;
 
       expect(style.boxShadow).toEqual(expect.stringContaining("0 0 0 4px"));
@@ -304,22 +304,22 @@ describe("useTheme", () => {
   });
 
   describe("withAlpha", () => {
-    it("produces valid rgba strings from hex colors", () => {
-      const { result } = renderHook(() => useTheme());
+    it("produces valid rgba strings from hex colors", async () => {
+      const { result } = await renderHook(() => useTheme());
       const rgba = result.current.withAlpha("#336699", 0.6);
 
       expect(rgba).toMatch(/^rgba\(\d+,\s*\d+,\s*\d+,\s*0\.6\)$/);
     });
 
-    it("handles full opacity", () => {
-      const { result } = renderHook(() => useTheme());
+    it("handles full opacity", async () => {
+      const { result } = await renderHook(() => useTheme());
       const rgba = result.current.withAlpha("#000000", 1);
 
       expect(rgba).toMatch(/^rgba\(0,\s*0,\s*0,\s*1\)$/);
     });
 
-    it("handles zero opacity", () => {
-      const { result } = renderHook(() => useTheme());
+    it("handles zero opacity", async () => {
+      const { result } = await renderHook(() => useTheme());
       const rgba = result.current.withAlpha("#FFFFFF", 0);
 
       expect(rgba).toMatch(/^rgba\(255,\s*255,\s*255,\s*0\)$/);
@@ -327,15 +327,15 @@ describe("useTheme", () => {
   });
 
   describe("getContrastRatio", () => {
-    it("returns 21 for black vs white", () => {
-      const { result } = renderHook(() => useTheme());
+    it("returns 21 for black vs white", async () => {
+      const { result } = await renderHook(() => useTheme());
       const ratio = result.current.getContrastRatio("#000000", "#FFFFFF");
 
       expect(ratio).toBeCloseTo(21, 0);
     });
 
-    it("returns 1 for identical colors", () => {
-      const { result } = renderHook(() => useTheme());
+    it("returns 1 for identical colors", async () => {
+      const { result } = await renderHook(() => useTheme());
       const ratio = result.current.getContrastRatio("#336699", "#336699");
 
       expect(ratio).toBeCloseTo(1, 0);
@@ -343,15 +343,15 @@ describe("useTheme", () => {
   });
 
   describe("getContrastingColor", () => {
-    it("picks the higher-contrast color against a light background", () => {
-      const { result } = renderHook(() => useTheme());
+    it("picks the higher-contrast color against a light background", async () => {
+      const { result } = await renderHook(() => useTheme());
       const color = result.current.getContrastingColor("#FFFFFF", "#000000", "#EEEEEE");
 
       expect(color).toBe("#000000");
     });
 
-    it("picks the higher-contrast color against a dark background", () => {
-      const { result } = renderHook(() => useTheme());
+    it("picks the higher-contrast color against a dark background", async () => {
+      const { result } = await renderHook(() => useTheme());
       const color = result.current.getContrastingColor("#000000", "#000000", "#FFFFFF");
 
       expect(color).toBe("#FFFFFF");
@@ -359,15 +359,15 @@ describe("useTheme", () => {
   });
 
   describe("getTextColorForBackground", () => {
-    it("returns 'light' for dark backgrounds", () => {
-      const { result } = renderHook(() => useTheme());
+    it("returns 'light' for dark backgrounds", async () => {
+      const { result } = await renderHook(() => useTheme());
       const textColor = result.current.getTextColorForBackground("#000000");
 
       expect(textColor).toBe("light");
     });
 
-    it("returns 'dark' for light backgrounds", () => {
-      const { result } = renderHook(() => useTheme());
+    it("returns 'dark' for light backgrounds", async () => {
+      const { result } = await renderHook(() => useTheme());
       const textColor = result.current.getTextColorForBackground("#FFFFFF");
 
       expect(textColor).toBe("dark");

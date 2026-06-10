@@ -20,7 +20,7 @@ afterEach(() => {
 
 describe("useClipboard", () => {
   it("copy() sets copied to true then resets after duration", async () => {
-    const { result } = renderHook(() => useClipboard());
+    const { result } = await renderHook(() => useClipboard());
 
     expect(result.current.copied).toBe(false);
 
@@ -30,14 +30,14 @@ describe("useClipboard", () => {
     expect(result.current.copied).toBe(true);
     expect(Clipboard.setStringAsync).toHaveBeenCalledWith("hello");
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(2000);
     });
     expect(result.current.copied).toBe(false);
   });
 
   it("respects custom copiedDuration", async () => {
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useClipboard({ copiedDuration: 500 })
     );
 
@@ -46,19 +46,19 @@ describe("useClipboard", () => {
     });
     expect(result.current.copied).toBe(true);
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(400);
     });
     expect(result.current.copied).toBe(true);
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(100);
     });
     expect(result.current.copied).toBe(false);
   });
 
   it("paste() returns clipboard contents", async () => {
-    const { result } = renderHook(() => useClipboard());
+    const { result } = await renderHook(() => useClipboard());
 
     let text = "";
     await act(async () => {
@@ -71,7 +71,7 @@ describe("useClipboard", () => {
   it("sets error when copy fails", async () => {
     Clipboard.setStringAsync.mockRejectedValueOnce(new Error("Denied"));
 
-    const { result } = renderHook(() => useClipboard());
+    const { result } = await renderHook(() => useClipboard());
 
     await act(async () => {
       await result.current.copy("test");
@@ -83,7 +83,7 @@ describe("useClipboard", () => {
   it("clears error on next successful copy", async () => {
     Clipboard.setStringAsync.mockRejectedValueOnce(new Error("Denied"));
 
-    const { result } = renderHook(() => useClipboard());
+    const { result } = await renderHook(() => useClipboard());
 
     await act(async () => {
       await result.current.copy("fail");
@@ -100,7 +100,7 @@ describe("useClipboard", () => {
   it("sets error when paste fails", async () => {
     Clipboard.getStringAsync.mockRejectedValueOnce(new Error("Not allowed"));
 
-    const { result } = renderHook(() => useClipboard());
+    const { result } = await renderHook(() => useClipboard());
 
     let text = "";
     await act(async () => {

@@ -19,8 +19,8 @@ import {
 } from "../Card";
 
 describe("Card", () => {
-  it("renders all composed sections in order", () => {
-    render(
+  it("renders all composed sections in order", async () => {
+    await render(
       <Card>
         <CardHeader>
           <CardTitle>Plan</CardTitle>
@@ -41,8 +41,8 @@ describe("Card", () => {
     expect(screen.getByText("Footer text")).toBeTruthy();
   });
 
-  it("renders without optional sections", () => {
-    render(
+  it("renders without optional sections", async () => {
+    await render(
       <Card>
         <CardContent>
           <Text>Only content</Text>

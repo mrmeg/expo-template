@@ -10,62 +10,62 @@ afterEach(() => {
 });
 
 describe("useDebounce", () => {
-  it("returns initial value immediately", () => {
-    const { result } = renderHook(() => useDebounce("hello", 300));
+  it("returns initial value immediately", async () => {
+    const { result } = await renderHook(() => useDebounce("hello", 300));
     expect(result.current).toBe("hello");
   });
 
-  it("updates returned value after the delay", () => {
-    const { result, rerender } = renderHook(
+  it("updates returned value after the delay", async () => {
+    const { result, rerender } = await renderHook(
       ({ value, delay }: { value: string; delay: number }) => useDebounce(value, delay),
       { initialProps: { value: "a", delay: 300 } }
     );
 
-    rerender({ value: "b", delay: 300 });
+    await rerender({ value: "b", delay: 300 });
     expect(result.current).toBe("a");
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(300);
     });
     expect(result.current).toBe("b");
   });
 
-  it("resets timer when value changes within the delay window", () => {
-    const { result, rerender } = renderHook(
+  it("resets timer when value changes within the delay window", async () => {
+    const { result, rerender } = await renderHook(
       ({ value, delay }: { value: string; delay: number }) => useDebounce(value, delay),
       { initialProps: { value: "a", delay: 300 } }
     );
 
-    rerender({ value: "b", delay: 300 });
-    act(() => {
+    await rerender({ value: "b", delay: 300 });
+    await act(() => {
       jest.advanceTimersByTime(200);
     });
     expect(result.current).toBe("a");
 
-    rerender({ value: "c", delay: 300 });
-    act(() => {
+    await rerender({ value: "c", delay: 300 });
+    await act(() => {
       jest.advanceTimersByTime(200);
     });
     // Still "a" because timer was reset
     expect(result.current).toBe("a");
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(100);
     });
     expect(result.current).toBe("c");
   });
 
-  it("cleans up timeout on unmount", () => {
-    const { result, rerender, unmount } = renderHook(
+  it("cleans up timeout on unmount", async () => {
+    const { result, rerender, unmount } = await renderHook(
       ({ value, delay }: { value: string; delay: number }) => useDebounce(value, delay),
       { initialProps: { value: "a", delay: 300 } }
     );
 
-    rerender({ value: "b", delay: 300 });
-    unmount();
+    await rerender({ value: "b", delay: 300 });
+    await unmount();
 
     // Should not throw or update after unmount
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(300);
     });
     expect(result.current).toBe("a");
@@ -73,50 +73,50 @@ describe("useDebounce", () => {
 });
 
 describe("useDebouncedCallback", () => {
-  it("fires callback after delay", () => {
+  it("fires callback after delay", async () => {
     const callback = jest.fn();
-    const { result } = renderHook(() => useDebouncedCallback(callback, 300));
+    const { result } = await renderHook(() => useDebouncedCallback(callback, 300));
 
-    act(() => {
+    await act(() => {
       result.current("arg1");
     });
     expect(callback).not.toHaveBeenCalled();
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(300);
     });
     expect(callback).toHaveBeenCalledWith("arg1");
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  it("does not fire before delay", () => {
+  it("does not fire before delay", async () => {
     const callback = jest.fn();
-    const { result } = renderHook(() => useDebouncedCallback(callback, 300));
+    const { result } = await renderHook(() => useDebouncedCallback(callback, 300));
 
-    act(() => {
+    await act(() => {
       result.current("arg1");
     });
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(200);
     });
     expect(callback).not.toHaveBeenCalled();
   });
 
-  it("resets timer on rapid calls", () => {
+  it("resets timer on rapid calls", async () => {
     const callback = jest.fn();
-    const { result } = renderHook(() => useDebouncedCallback(callback, 300));
+    const { result } = await renderHook(() => useDebouncedCallback(callback, 300));
 
-    act(() => {
+    await act(() => {
       result.current("first");
     });
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(200);
     });
-    act(() => {
+    await act(() => {
       result.current("second");
     });
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(300);
     });
 
@@ -124,70 +124,70 @@ describe("useDebouncedCallback", () => {
     expect(callback).toHaveBeenCalledWith("second");
   });
 
-  it("fires immediately with leading option", () => {
+  it("fires immediately with leading option", async () => {
     const callback = jest.fn();
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useDebouncedCallback(callback, 300, { leading: true })
     );
 
-    act(() => {
+    await act(() => {
       result.current("arg1");
     });
     expect(callback).toHaveBeenCalledWith("arg1");
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  it("suppresses subsequent calls within delay when leading", () => {
+  it("suppresses subsequent calls within delay when leading", async () => {
     const callback = jest.fn();
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useDebouncedCallback(callback, 300, { leading: true })
     );
 
-    act(() => {
+    await act(() => {
       result.current("first");
     });
-    act(() => {
+    await act(() => {
       result.current("second");
     });
     expect(callback).toHaveBeenCalledTimes(1);
     expect(callback).toHaveBeenCalledWith("first");
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(300);
     });
     // Leading mode does not fire trailing
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  it("cancel() prevents pending execution", () => {
+  it("cancel() prevents pending execution", async () => {
     const callback = jest.fn();
-    const { result } = renderHook(() => useDebouncedCallback(callback, 300));
+    const { result } = await renderHook(() => useDebouncedCallback(callback, 300));
 
-    act(() => {
+    await act(() => {
       result.current("arg1");
     });
-    act(() => {
+    await act(() => {
       result.current.cancel();
     });
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(300);
     });
 
     expect(callback).not.toHaveBeenCalled();
   });
 
-  it("cleans up on unmount", () => {
+  it("cleans up on unmount", async () => {
     const callback = jest.fn();
-    const { result, unmount } = renderHook(() =>
+    const { result, unmount } = await renderHook(() =>
       useDebouncedCallback(callback, 300)
     );
 
-    act(() => {
+    await act(() => {
       result.current("arg1");
     });
-    unmount();
+    await unmount();
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(300);
     });
     expect(callback).not.toHaveBeenCalled();

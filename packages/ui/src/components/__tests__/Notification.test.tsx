@@ -8,13 +8,13 @@ jest.mock("../../hooks/useReduceMotion", () => ({
 }));
 
 describe("Notification", () => {
-  afterEach(() => {
+  afterEach(async () => {
     cleanup();
     globalUIStore.setState({ alert: null });
   });
 
-  it("renders the action label when present", () => {
-    act(() => {
+  it("renders the action label when present", async () => {
+    await act(() => {
       globalUIStore.getState().show({
         type: "info",
         title: "Upload failed",
@@ -26,17 +26,17 @@ describe("Notification", () => {
       });
     });
 
-    render(<Notification />);
+    await render(<Notification />);
 
     expect(screen.getByText("Upload failed")).toBeTruthy();
     expect(screen.getByText("Try again when you are back online.")).toBeTruthy();
     expect(screen.getByText("Retry")).toBeTruthy();
   });
 
-  it("calls the action handler and hides the notification when pressed", () => {
+  it("calls the action handler and hides the notification when pressed", async () => {
     const onPress = jest.fn();
 
-    act(() => {
+    await act(() => {
       globalUIStore.getState().show({
         type: "warning",
         title: "Sync paused",
@@ -48,9 +48,9 @@ describe("Notification", () => {
       });
     });
 
-    render(<Notification />);
+    await render(<Notification />);
 
-    act(() => {
+    await act(() => {
       fireEvent.press(screen.getByText("Reconnect"));
     });
 
@@ -59,8 +59,8 @@ describe("Notification", () => {
     expect(screen.queryByText("Reconnect")).toBeNull();
   });
 
-  it("renders normally without an action", () => {
-    act(() => {
+  it("renders normally without an action", async () => {
+    await act(() => {
       globalUIStore.getState().show({
         type: "success",
         title: "Saved",
@@ -68,7 +68,7 @@ describe("Notification", () => {
       });
     });
 
-    render(<Notification />);
+    await render(<Notification />);
 
     expect(screen.getByText("Saved")).toBeTruthy();
     expect(screen.getByText("Your changes are live.")).toBeTruthy();

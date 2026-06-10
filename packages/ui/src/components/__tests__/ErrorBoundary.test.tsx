@@ -18,10 +18,10 @@ describe("ErrorBoundary", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("calls the app-owned error reporter when a child throws", () => {
+  it("calls the app-owned error reporter when a child throws", async () => {
     const onError = jest.fn();
 
-    render(
+    await render(
       <ErrorBoundary
         catchErrors="always"
         FallbackComponent={() => <Text>Recovered</Text>}

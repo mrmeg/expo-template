@@ -9,7 +9,7 @@
  */
 
 import React from "react";
-import { render, screen } from "@testing-library/react-native";
+import { render, screen, act } from "@testing-library/react-native";
 import { Text } from "react-native";
 
 jest.mock("@mrmeg/expo-ui/hooks", () => ({
@@ -59,20 +59,22 @@ describe("AuthGate", () => {
   const originalPool = process.env.EXPO_PUBLIC_USER_POOL_ID;
   const originalClient = process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID;
 
-  afterEach(() => {
+  afterEach(async () => {
     if (originalPool === undefined) delete process.env.EXPO_PUBLIC_USER_POOL_ID;
     else process.env.EXPO_PUBLIC_USER_POOL_ID = originalPool;
     if (originalClient === undefined) delete process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID;
     else process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID = originalClient;
-    useAuthStore.setState({ state: "loading", user: null } as any);
+    await act(() => {
+      useAuthStore.setState({ state: "loading", user: null } as any);
+    });
   });
 
-  it("renders children when auth is not configured in env", () => {
+  it("renders children when auth is not configured in env", async () => {
     delete process.env.EXPO_PUBLIC_USER_POOL_ID;
     delete process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID;
     setAuth("unauthenticated");
 
-    render(
+    await render(
       <AuthGate>
         <Text>PROTECTED</Text>
       </AuthGate>,
@@ -82,12 +84,12 @@ describe("AuthGate", () => {
     expect(screen.queryByText("MOCK_AUTH_SCREEN")).toBeNull();
   });
 
-  it("renders AuthScreen when unauthenticated and auth is configured", () => {
+  it("renders AuthScreen when unauthenticated and auth is configured", async () => {
     process.env.EXPO_PUBLIC_USER_POOL_ID = "pool";
     process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID = "client";
     setAuth("unauthenticated");
 
-    render(
+    await render(
       <AuthGate>
         <Text>PROTECTED</Text>
       </AuthGate>,
@@ -97,12 +99,12 @@ describe("AuthGate", () => {
     expect(screen.queryByText("PROTECTED")).toBeNull();
   });
 
-  it("renders children when authenticated", () => {
+  it("renders children when authenticated", async () => {
     process.env.EXPO_PUBLIC_USER_POOL_ID = "pool";
     process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID = "client";
     setAuth("authenticated");
 
-    render(
+    await render(
       <AuthGate>
         <Text>PROTECTED</Text>
       </AuthGate>,
@@ -112,12 +114,12 @@ describe("AuthGate", () => {
     expect(screen.queryByText("MOCK_AUTH_SCREEN")).toBeNull();
   });
 
-  it("does not render children or AuthScreen while auth is loading", () => {
+  it("does not render children or AuthScreen while auth is loading", async () => {
     process.env.EXPO_PUBLIC_USER_POOL_ID = "pool";
     process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID = "client";
     setAuth("loading");
 
-    render(
+    await render(
       <AuthGate>
         <Text>PROTECTED</Text>
       </AuthGate>,

@@ -46,8 +46,8 @@ jest.mock("@rn-primitives/dropdown-menu", () => {
 });
 
 describe("DropdownMenuTrigger", () => {
-  it("defaults accessibilityRole to button", () => {
-    render(
+  it("defaults accessibilityRole to button", async () => {
+    await render(
       <DropdownMenu>
         <DropdownMenuTrigger>
           <></>
@@ -58,8 +58,8 @@ describe("DropdownMenuTrigger", () => {
     expect(screen.getByRole("button")).toBeTruthy();
   });
 
-  it("lets an explicit accessibilityRole override the default", () => {
-    render(
+  it("lets an explicit accessibilityRole override the default", async () => {
+    await render(
       <DropdownMenu>
         <DropdownMenuTrigger accessibilityRole="menu">
           <></>

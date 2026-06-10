@@ -41,22 +41,22 @@ describe("StyledText i18n adapter", () => {
     configureExpoUiI18n(null);
   });
 
-  it("renders plain children without configuring i18n", () => {
-    render(<StyledText>Plain text</StyledText>);
+  it("renders plain children without configuring i18n", async () => {
+    await render(<StyledText>Plain text</StyledText>);
 
     expect(screen.getByText("Plain text")).toBeTruthy();
   });
 
-  it("keeps standalone text selectable by default", () => {
-    render(<StyledText>Selectable copy</StyledText>);
+  it("keeps standalone text selectable by default", async () => {
+    await render(<StyledText>Selectable copy</StyledText>);
 
     const text = screen.getByText("Selectable copy");
 
     expect(text.props.selectable).toBe(true);
   });
 
-  it("allows controls to disable nested StyledText selection through context", () => {
-    render(
+  it("allows controls to disable nested StyledText selection through context", async () => {
+    await render(
       <TextSelectabilityContext.Provider value={false}>
         <StyledText>Control label</StyledText>
       </TextSelectabilityContext.Provider>
@@ -67,38 +67,38 @@ describe("StyledText i18n adapter", () => {
     expect(text.props.selectable).toBe(false);
   });
 
-  it("falls back to the tx key when no translator is configured", () => {
-    render(<StyledText tx="common.save" />);
+  it("falls back to the tx key when no translator is configured", async () => {
+    await render(<StyledText tx="common.save" />);
 
     expect(screen.getByText("common.save")).toBeTruthy();
   });
 
-  it("uses text as the tx fallback when no translator is configured", () => {
-    render(<StyledText tx="common.save" text="Save" />);
+  it("uses text as the tx fallback when no translator is configured", async () => {
+    await render(<StyledText tx="common.save" text="Save" />);
 
     expect(screen.getByText("Save")).toBeTruthy();
   });
 
-  it("uses the configured translator for tx props", () => {
+  it("uses the configured translator for tx props", async () => {
     configureExpoUiI18n((key, options) => `${key}:${(options as any)?.name}`);
 
-    render(<StyledText tx="common.greeting" txOptions={{ name: "Matt" }} />);
+    await render(<StyledText tx="common.greeting" txOptions={{ name: "Matt" }} />);
 
     expect(screen.getByText("common.greeting:Matt")).toBeTruthy();
   });
 
-  it("uses the configured translator before tx fallback text", () => {
+  it("uses the configured translator before tx fallback text", async () => {
     configureExpoUiI18n((key) => `translated:${key}`);
 
-    render(<StyledText tx="common.save" text="Save" />);
+    await render(<StyledText tx="common.save" text="Save" />);
 
     expect(screen.getByText("translated:common.save")).toBeTruthy();
   });
 
-  it("translates Button tx props through StyledText", () => {
+  it("translates Button tx props through StyledText", async () => {
     configureExpoUiI18n((key) => `translated:${key}`);
 
-    render(<Button tx="common.continue" />);
+    await render(<Button tx="common.continue" />);
 
     expect(screen.getByText("translated:common.continue")).toBeTruthy();
   });

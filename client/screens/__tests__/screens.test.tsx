@@ -19,9 +19,9 @@ import { ListScreen } from "../ListScreen";
 import { WelcomeScreen } from "../WelcomeScreen";
 
 describe("WelcomeScreen", () => {
-  it("renders title, subtitle, primary action, and footer", () => {
+  it("renders title, subtitle, primary action, and footer", async () => {
     const onPrimary = jest.fn();
-    render(
+    await render(
       <WelcomeScreen
         title="Welcome"
         subtitle="Get started"
@@ -35,22 +35,22 @@ describe("WelcomeScreen", () => {
     expect(screen.getByText("Sign in")).toBeTruthy();
     expect(screen.getByText("By continuing you accept the terms.")).toBeTruthy();
 
-    fireEvent.press(screen.getByText("Sign in"));
+    await fireEvent.press(screen.getByText("Sign in"));
     expect(onPrimary).toHaveBeenCalledTimes(1);
   });
 });
 
 describe("ErrorScreen", () => {
-  it("renders the variant defaults when no overrides are supplied", () => {
-    render(<ErrorScreen variant="not-found" />);
+  it("renders the variant defaults when no overrides are supplied", async () => {
+    await render(<ErrorScreen variant="not-found" />);
     expect(screen.getByText("Page not found")).toBeTruthy();
     expect(
       screen.getByText("The page you're looking for doesn't exist or has been moved."),
     ).toBeTruthy();
   });
 
-  it("prefers explicit title/description overrides", () => {
-    render(
+  it("prefers explicit title/description overrides", async () => {
+    await render(
       <ErrorScreen
         variant="generic"
         title="Custom title"
@@ -62,26 +62,26 @@ describe("ErrorScreen", () => {
     expect(screen.queryByText("Something went wrong")).toBeNull();
   });
 
-  it("invokes the primary action onPress", () => {
+  it("invokes the primary action onPress", async () => {
     const onPrimary = jest.fn();
-    render(
+    await render(
       <ErrorScreen
         variant="generic"
         primaryAction={{ label: "Retry", onPress: onPrimary }}
       />,
     );
-    fireEvent.press(screen.getByText("Retry"));
+    await fireEvent.press(screen.getByText("Retry"));
     expect(onPrimary).toHaveBeenCalledTimes(1);
   });
 });
 
 describe("ListScreen", () => {
-  it("renders provided items via renderItem", () => {
+  it("renders provided items via renderItem", async () => {
     const data = [
       { id: "1", label: "Alpha" },
       { id: "2", label: "Bravo" },
     ];
-    render(
+    await render(
       <ListScreen
         data={data}
         keyExtractor={(item) => item.id}
@@ -96,8 +96,8 @@ describe("ListScreen", () => {
     expect(screen.getByText("Bravo")).toBeTruthy();
   });
 
-  it("shows the empty state title and description when data is empty", () => {
-    render(
+  it("shows the empty state title and description when data is empty", async () => {
+    await render(
       <ListScreen
         data={[]}
         keyExtractor={() => ""}
@@ -110,8 +110,8 @@ describe("ListScreen", () => {
     expect(screen.getByText("Add the first one")).toBeTruthy();
   });
 
-  it("shows skeletons during the loading state instead of the empty UI", () => {
-    render(
+  it("shows skeletons during the loading state instead of the empty UI", async () => {
+    await render(
       <ListScreen
         data={[]}
         keyExtractor={() => ""}

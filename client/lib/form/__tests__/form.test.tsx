@@ -51,11 +51,11 @@ function Harness({ onSubmit }: { onSubmit: (data: FormData) => void }) {
 describe("FormProvider + FormTextInput + FormCheckbox", () => {
   it("submits the typed form value when validation passes", async () => {
     const onSubmit = jest.fn();
-    render(<Harness onSubmit={onSubmit} />);
+    await render(<Harness onSubmit={onSubmit} />);
 
-    fireEvent.changeText(screen.getByPlaceholderText("Jane"), "Jane Doe");
+    await fireEvent.changeText(screen.getByPlaceholderText("Jane"), "Jane Doe");
     await act(async () => {
-      fireEvent.press(screen.getByText("Submit"));
+      await fireEvent.press(screen.getByText("Submit"));
     });
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
@@ -64,10 +64,10 @@ describe("FormProvider + FormTextInput + FormCheckbox", () => {
 
   it("blocks submit and surfaces the Zod message when validation fails", async () => {
     const onSubmit = jest.fn();
-    render(<Harness onSubmit={onSubmit} />);
+    await render(<Harness onSubmit={onSubmit} />);
 
     await act(async () => {
-      fireEvent.press(screen.getByText("Submit"));
+      await fireEvent.press(screen.getByText("Submit"));
     });
 
     expect(onSubmit).not.toHaveBeenCalled();

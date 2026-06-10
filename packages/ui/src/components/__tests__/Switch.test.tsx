@@ -76,50 +76,50 @@ jest.mock("@rn-primitives/switch", () => {
 });
 
 describe("Switch", () => {
-  it("renders in unchecked state", () => {
-    render(<Switch checked={false} onCheckedChange={() => {}} />);
+  it("renders in unchecked state", async () => {
+    await render(<Switch checked={false} onCheckedChange={() => {}} />);
 
     const switchEl = screen.getByRole("switch");
     expect(switchEl).toBeTruthy();
     expect(switchEl.props.accessibilityState.checked).toBe(false);
   });
 
-  it("renders in checked state", () => {
-    render(<Switch checked={true} onCheckedChange={() => {}} />);
+  it("renders in checked state", async () => {
+    await render(<Switch checked={true} onCheckedChange={() => {}} />);
 
     const switchEl = screen.getByRole("switch");
     expect(switchEl.props.accessibilityState.checked).toBe(true);
   });
 
-  it("calls onCheckedChange when pressed", () => {
+  it("calls onCheckedChange when pressed", async () => {
     const onCheckedChange = jest.fn();
 
-    render(<Switch checked={false} onCheckedChange={onCheckedChange} />);
+    await render(<Switch checked={false} onCheckedChange={onCheckedChange} />);
 
-    fireEvent.press(screen.getByRole("switch"));
+    await fireEvent.press(screen.getByRole("switch"));
 
     expect(onCheckedChange).toHaveBeenCalledWith(true);
   });
 
-  it("does not call onCheckedChange when disabled", () => {
+  it("does not call onCheckedChange when disabled", async () => {
     const onCheckedChange = jest.fn();
 
-    render(<Switch checked={false} onCheckedChange={onCheckedChange} disabled />);
+    await render(<Switch checked={false} onCheckedChange={onCheckedChange} disabled />);
 
-    fireEvent.press(screen.getByRole("switch"));
+    await fireEvent.press(screen.getByRole("switch"));
 
     expect(onCheckedChange).not.toHaveBeenCalled();
   });
 
-  it("indicates disabled state for accessibility", () => {
-    render(<Switch checked={false} onCheckedChange={() => {}} disabled />);
+  it("indicates disabled state for accessibility", async () => {
+    await render(<Switch checked={false} onCheckedChange={() => {}} disabled />);
 
     const switchEl = screen.getByRole("switch");
     expect(switchEl.props.accessibilityState.disabled).toBe(true);
   });
 
-  it("adds contrast styling to the track and thumb", () => {
-    const tree = render(<Switch checked={false} onCheckedChange={() => {}} />).toJSON();
+  it("adds contrast styling to the track and thumb", async () => {
+    const tree = (await render(<Switch checked={false} onCheckedChange={() => {}} />)).toJSON();
 
     expect(tree).toBeTruthy();
     expect(Array.isArray(tree)).toBe(false);
@@ -146,8 +146,8 @@ describe("Switch", () => {
     );
   });
 
-  it("uses the accent token for the default checked track", () => {
-    const tree = render(<Switch checked={true} onCheckedChange={() => {}} />).toJSON();
+  it("uses the accent token for the default checked track", async () => {
+    const tree = (await render(<Switch checked={true} onCheckedChange={() => {}} />)).toJSON();
 
     expect(tree).toBeTruthy();
     expect(Array.isArray(tree)).toBe(false);
@@ -162,8 +162,8 @@ describe("Switch", () => {
     expect(track?.props.style.borderColor).toBe("rgba(20, 184, 166, 0.42)");
   });
 
-  it("keeps custom switch thumb inset equal to vertical clearance", () => {
-    const tree = render(
+  it("keeps custom switch thumb inset equal to vertical clearance", async () => {
+    const tree = (await render(
       <Switch
         checked={false}
         onCheckedChange={() => {}}
@@ -172,7 +172,7 @@ describe("Switch", () => {
         labelOn="ON"
         labelOff="OFF"
       />
-    ).toJSON();
+    )).toJSON();
 
     expect(tree).toBeTruthy();
     expect(Array.isArray(tree)).toBe(false);

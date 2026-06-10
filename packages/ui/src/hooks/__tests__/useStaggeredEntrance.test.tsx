@@ -9,8 +9,8 @@ import { renderHook } from "@testing-library/react-native";
 import { useStaggeredEntrance } from "../useStaggeredEntrance";
 
 describe("useStaggeredEntrance", () => {
-  it("returns an animated style object for fade type", () => {
-    const { result } = renderHook(() =>
+  it("returns an animated style object for fade type", async () => {
+    const { result } = await renderHook(() =>
       useStaggeredEntrance({ type: "fade" })
     );
 
@@ -18,8 +18,8 @@ describe("useStaggeredEntrance", () => {
     expect(typeof result.current).toBe("object");
   });
 
-  it("returns opacity for fade type", () => {
-    const { result } = renderHook(() =>
+  it("returns opacity for fade type", async () => {
+    const { result } = await renderHook(() =>
       useStaggeredEntrance({ type: "fade" })
     );
 
@@ -27,8 +27,8 @@ describe("useStaggeredEntrance", () => {
     expect(result.current).toHaveProperty("opacity");
   });
 
-  it("returns opacity and transform for fadeSlideUp type", () => {
-    const { result } = renderHook(() =>
+  it("returns opacity and transform for fadeSlideUp type", async () => {
+    const { result } = await renderHook(() =>
       useStaggeredEntrance({ type: "fadeSlideUp" })
     );
 
@@ -36,8 +36,8 @@ describe("useStaggeredEntrance", () => {
     expect(result.current).toHaveProperty("transform");
   });
 
-  it("returns opacity and transform for fadeSlideDown type", () => {
-    const { result } = renderHook(() =>
+  it("returns opacity and transform for fadeSlideDown type", async () => {
+    const { result } = await renderHook(() =>
       useStaggeredEntrance({ type: "fadeSlideDown" })
     );
 
@@ -45,8 +45,8 @@ describe("useStaggeredEntrance", () => {
     expect(result.current).toHaveProperty("transform");
   });
 
-  it("returns opacity and transform for scale type", () => {
-    const { result } = renderHook(() =>
+  it("returns opacity and transform for scale type", async () => {
+    const { result } = await renderHook(() =>
       useStaggeredEntrance({ type: "scale" })
     );
 
@@ -54,8 +54,8 @@ describe("useStaggeredEntrance", () => {
     expect(result.current).toHaveProperty("transform");
   });
 
-  it("uses default type fadeSlideUp when no options given", () => {
-    const { result } = renderHook(() => useStaggeredEntrance());
+  it("uses default type fadeSlideUp when no options given", async () => {
+    const { result } = await renderHook(() => useStaggeredEntrance());
 
     expect(result.current).toHaveProperty("opacity");
     expect(result.current).toHaveProperty("transform");

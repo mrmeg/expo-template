@@ -24,56 +24,56 @@ jest.mock("../../hooks/useTheme", () => ({
 }));
 
 describe("Progress", () => {
-  it("renders in determinate mode with value", () => {
-    render(<Progress value={50} />);
+  it("renders in determinate mode with value", async () => {
+    await render(<Progress value={50} />);
 
     const progressbar = screen.getByRole("progressbar");
     expect(progressbar).toBeTruthy();
   });
 
-  it("sets aria-valuenow for determinate mode", () => {
-    render(<Progress value={75} />);
+  it("sets aria-valuenow for determinate mode", async () => {
+    await render(<Progress value={75} />);
 
     const progressbar = screen.getByRole("progressbar");
     expect(progressbar.props["aria-valuenow"]).toBe(75);
   });
 
-  it("renders in indeterminate mode without value", () => {
-    render(<Progress />);
+  it("renders in indeterminate mode without value", async () => {
+    await render(<Progress />);
 
     const progressbar = screen.getByRole("progressbar");
     expect(progressbar.props["aria-valuenow"]).toBeUndefined();
   });
 
-  it("clamps value between 0 and 100", () => {
-    render(<Progress value={150} />);
+  it("clamps value between 0 and 100", async () => {
+    await render(<Progress value={150} />);
 
     const progressbar = screen.getByRole("progressbar");
     expect(progressbar.props["aria-valuenow"]).toBe(100);
   });
 
-  it("renders all size variants", () => {
+  it("renders all size variants", async () => {
     const sizes = ["sm", "md", "lg"] as const;
 
-    sizes.forEach((size) => {
-      const { unmount } = render(<Progress value={50} size={size} />);
+    for (const size of sizes) {
+      const { unmount } = await render(<Progress value={50} size={size} />);
       expect(screen.getByRole("progressbar")).toBeTruthy();
-      unmount();
-    });
+      await unmount();
+    }
   });
 
-  it("renders all color variants", () => {
+  it("renders all color variants", async () => {
     const variants = ["default", "accent", "destructive"] as const;
 
-    variants.forEach((variant) => {
-      const { unmount } = render(<Progress value={50} variant={variant} />);
+    for (const variant of variants) {
+      const { unmount } = await render(<Progress value={50} variant={variant} />);
       expect(screen.getByRole("progressbar")).toBeTruthy();
-      unmount();
-    });
+      await unmount();
+    }
   });
 
-  it("sets busy accessibility state for indeterminate mode", () => {
-    render(<Progress />);
+  it("sets busy accessibility state for indeterminate mode", async () => {
+    await render(<Progress />);
 
     const progressbar = screen.getByRole("progressbar");
     expect(progressbar.props.accessibilityState).toEqual(

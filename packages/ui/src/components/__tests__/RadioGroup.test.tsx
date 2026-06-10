@@ -22,30 +22,30 @@ function ControlledThree() {
 }
 
 describe("RadioGroup", () => {
-  it("renders all option labels", () => {
-    render(<ControlledThree />);
+  it("renders all option labels", async () => {
+    await render(<ControlledThree />);
     expect(screen.getByText("Alpha")).toBeTruthy();
     expect(screen.getByText("Bravo")).toBeTruthy();
     expect(screen.getByText("Charlie")).toBeTruthy();
   });
 
-  it("changes the selected value when an option label is pressed", () => {
+  it("changes the selected value when an option label is pressed", async () => {
     const onValueChange = jest.fn();
-    render(
+    await render(
       <RadioGroup value="a" onValueChange={onValueChange}>
         <RadioGroup.Item value="a" label="Alpha" />
         <RadioGroup.Item value="b" label="Bravo" />
       </RadioGroup>,
     );
 
-    fireEvent.press(screen.getByText("Bravo"));
+    await fireEvent.press(screen.getByText("Bravo"));
     expect(onValueChange).toHaveBeenCalledWith("b");
   });
 
-  it("throws when an item is rendered outside the root", () => {
+  it("throws when an item is rendered outside the root", async () => {
     // Suppress React's expected error log so the test output stays focused.
     const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-    expect(() => render(<RadioGroup.Item value="x" label="Solo" />)).toThrow();
+    await expect(() => render(<RadioGroup.Item value="x" label="Solo" />)).rejects.toThrow();
     errorSpy.mockRestore();
   });
 });

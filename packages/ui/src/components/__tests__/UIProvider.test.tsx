@@ -31,8 +31,8 @@ jest.mock("../StatusBar", () => {
 });
 
 describe("UIProvider", () => {
-  it("mounts package root UI infrastructure by default", () => {
-    render(
+  it("mounts package root UI infrastructure by default", async () => {
+    await render(
       <UIProvider>
         <Text>App content</Text>
       </UIProvider>
@@ -44,8 +44,8 @@ describe("UIProvider", () => {
     expect(screen.getByText("StatusBar")).toBeTruthy();
   });
 
-  it("can opt out of individual root UI mounts", () => {
-    render(
+  it("can opt out of individual root UI mounts", async () => {
+    await render(
       <UIProvider notification={false} portalHost={false} statusBar={false}>
         <Text>App content</Text>
       </UIProvider>

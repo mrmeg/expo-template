@@ -37,11 +37,11 @@ function fakeResponse(status: number, body: unknown): Response {
 describe("useBillingActions", () => {
   const originalFetch = global.fetch;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Wrap store mutation in act() — subscribers (the rendered hook in
     // each test) re-render synchronously and React's test renderer warns
     // when that happens outside of act.
-    act(() => {
+    await act(() => {
       useAuthStore.setState({
         state: "authenticated",
         user: { userId: "u1", username: "u1", email: "u1@example.com" },
@@ -49,9 +49,9 @@ describe("useBillingActions", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     global.fetch = originalFetch;
-    act(() => {
+    await act(() => {
       useAuthStore.setState({ state: "unauthenticated", user: null });
     });
     jest.clearAllMocks();
@@ -70,7 +70,7 @@ describe("useBillingActions", () => {
     const client = new QueryClient();
     const invalidateSpy = jest.spyOn(client, "invalidateQueries");
 
-    const { result } = renderHook(() => useBillingActions({ browser }), {
+    const { result } = await renderHook(() => useBillingActions({ browser }), {
       wrapper: wrapper(client),
     });
 
@@ -100,7 +100,7 @@ describe("useBillingActions", () => {
 
     const browser: BrowserHandoff = { openHosted: jest.fn() };
 
-    const { result } = renderHook(() => useBillingActions({ browser }), {
+    const { result } = await renderHook(() => useBillingActions({ browser }), {
       wrapper: wrapper(new QueryClient()),
     });
 
@@ -132,7 +132,7 @@ describe("useBillingActions", () => {
 
     const browser: BrowserHandoff = { openHosted: jest.fn() };
 
-    const { result } = renderHook(() => useBillingActions({ browser }), {
+    const { result } = await renderHook(() => useBillingActions({ browser }), {
       wrapper: wrapper(new QueryClient()),
     });
 
@@ -155,7 +155,7 @@ describe("useBillingActions", () => {
       openHosted: jest.fn().mockResolvedValue("dismissed"),
     };
 
-    const { result } = renderHook(() => useBillingActions({ browser }), {
+    const { result } = await renderHook(() => useBillingActions({ browser }), {
       wrapper: wrapper(new QueryClient()),
     });
 

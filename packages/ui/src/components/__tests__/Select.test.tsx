@@ -79,8 +79,8 @@ jest.mock("@rn-primitives/select", () => {
 });
 
 describe("Select", () => {
-  it("renders trigger with placeholder", () => {
-    render(
+  it("renders trigger with placeholder", async () => {
+    await render(
       <Select>
         <SelectTrigger>
           <SelectValue placeholder="Choose a fruit" />
@@ -94,8 +94,8 @@ describe("Select", () => {
     expect(screen.getByText("Choose a fruit")).toBeTruthy();
   });
 
-  it("renders with selected value", () => {
-    render(
+  it("renders with selected value", async () => {
+    await render(
       <Select value={{ value: "apple", label: "Apple" }}>
         <SelectTrigger>
           <SelectValue placeholder="Choose a fruit" />
@@ -109,8 +109,8 @@ describe("Select", () => {
     expect(screen.getAllByText("Apple").length).toBeGreaterThan(0);
   });
 
-  it("renders select items", () => {
-    render(
+  it("renders select items", async () => {
+    await render(
       <Select>
         <SelectTrigger>
           <SelectValue placeholder="Choose" />
@@ -128,8 +128,8 @@ describe("Select", () => {
     expect(screen.getByText("Option C")).toBeTruthy();
   });
 
-  it("styles default item text with popover foreground color", () => {
-    render(
+  it("styles default item text with popover foreground color", async () => {
+    await render(
       <Select>
         <SelectTrigger>
           <SelectValue placeholder="Choose" />
@@ -149,8 +149,8 @@ describe("Select", () => {
     }));
   });
 
-  it("does not duplicate label text when text children are also provided", () => {
-    render(
+  it("does not duplicate label text when text children are also provided", async () => {
+    await render(
       <Select>
         <SelectTrigger>
           <SelectValue placeholder="Choose" />

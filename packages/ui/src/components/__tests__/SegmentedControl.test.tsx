@@ -43,34 +43,34 @@ jest.mock("@expo/ui/community/segmented-control", () => {
 });
 
 describe("SegmentedControl", () => {
-  it("maps the controlled value to selectedIndex", () => {
-    render(
+  it("maps the controlled value to selectedIndex", async () => {
+    await render(
       <SegmentedControl values={["Day", "Week", "Month"]} value="Month" onValueChange={() => {}} />
     );
     expect(screen.getByTestId("segmented").props.accessibilityValue.now).toBe(2);
   });
 
-  it("emits the selected value string on change", () => {
+  it("emits the selected value string on change", async () => {
     const onValueChange = jest.fn();
-    render(
+    await render(
       <SegmentedControl values={["Day", "Week", "Month"]} value="Day" onValueChange={onValueChange} />
     );
-    fireEvent.press(screen.getByTestId("seg-Week"));
+    await fireEvent.press(screen.getByTestId("seg-Week"));
     expect(onValueChange).toHaveBeenCalledWith("Week");
   });
 
-  it("defaults selectedIndex to 0 for an unknown value", () => {
-    render(<SegmentedControl values={["A", "B"]} value="missing" onValueChange={() => {}} />);
+  it("defaults selectedIndex to 0 for an unknown value", async () => {
+    await render(<SegmentedControl values={["A", "B"]} value="missing" onValueChange={() => {}} />);
     expect(screen.getByTestId("segmented").props.accessibilityValue.now).toBe(0);
   });
 
-  it("disables the native control when disabled", () => {
-    render(<SegmentedControl values={["A", "B"]} value="A" disabled />);
+  it("disables the native control when disabled", async () => {
+    await render(<SegmentedControl values={["A", "B"]} value="A" disabled />);
     expect(screen.getByTestId("segmented").props.accessibilityState.disabled).toBe(true);
   });
 
-  it("uses the theme accent as the default tint", () => {
-    render(<SegmentedControl values={["A", "B"]} value="A" />);
+  it("uses the theme accent as the default tint", async () => {
+    await render(<SegmentedControl values={["A", "B"]} value="A" />);
     expect(screen.getByTestId("segmented").props.accessibilityLabel).toBe("#14B8A6");
   });
 });

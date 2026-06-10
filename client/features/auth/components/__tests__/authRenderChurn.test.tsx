@@ -78,10 +78,10 @@ describe("auth form render churn", () => {
     resetCounts();
   });
 
-  it("keeps the SignInForm card shell stable while typing", () => {
+  it("keeps the SignInForm card shell stable while typing", async () => {
     const onSignIn = jest.fn();
 
-    render(
+    await render(
       <SignInForm
         embedded
         onForgotPassword={jest.fn()}
@@ -93,22 +93,22 @@ describe("auth form render churn", () => {
 
     const mountedCounts = { ...mockRenderCounts };
 
-    fireEvent.changeText(screen.getByTestId("sign-in-email-input"), "a@example.com");
-    fireEvent.changeText(screen.getByTestId("sign-in-password-input"), "password");
+    await fireEvent.changeText(screen.getByTestId("sign-in-email-input"), "a@example.com");
+    await fireEvent.changeText(screen.getByTestId("sign-in-password-input"), "password");
 
     expectShellCountsToMatch(mountedCounts);
 
-    fireEvent.press(screen.getByTestId("sign-in-submit-button"));
+    await fireEvent.press(screen.getByTestId("sign-in-submit-button"));
     expect(onSignIn).toHaveBeenCalledWith({
       email: "a@example.com",
       password: "password",
     });
   });
 
-  it("keeps the SignUpForm card shell stable while typing", () => {
+  it("keeps the SignUpForm card shell stable while typing", async () => {
     const onSignUp = jest.fn();
 
-    render(
+    await render(
       <SignUpForm
         embedded
         onSignIn={jest.fn()}
@@ -119,14 +119,14 @@ describe("auth form render churn", () => {
 
     const mountedCounts = { ...mockRenderCounts };
 
-    fireEvent.changeText(screen.getByTestId("sign-up-name-input"), "Ada");
-    fireEvent.changeText(screen.getByTestId("sign-up-email-input"), "ada@example.com");
-    fireEvent.changeText(screen.getByTestId("sign-up-password-input"), "password");
-    fireEvent.changeText(screen.getByTestId("sign-up-confirm-password-input"), "password");
+    await fireEvent.changeText(screen.getByTestId("sign-up-name-input"), "Ada");
+    await fireEvent.changeText(screen.getByTestId("sign-up-email-input"), "ada@example.com");
+    await fireEvent.changeText(screen.getByTestId("sign-up-password-input"), "password");
+    await fireEvent.changeText(screen.getByTestId("sign-up-confirm-password-input"), "password");
 
     expectShellCountsToMatch(mountedCounts);
 
-    fireEvent.press(screen.getByTestId("sign-up-submit-button"));
+    await fireEvent.press(screen.getByTestId("sign-up-submit-button"));
     expect(onSignUp).toHaveBeenCalledWith({
       name: "Ada",
       email: "ada@example.com",
@@ -134,10 +134,10 @@ describe("auth form render churn", () => {
     });
   });
 
-  it("keeps the ForgotPasswordForm card shell stable while typing", () => {
+  it("keeps the ForgotPasswordForm card shell stable while typing", async () => {
     const onSubmit = jest.fn();
 
-    render(
+    await render(
       <ForgotPasswordForm
         embedded
         onBack={jest.fn()}
@@ -147,18 +147,18 @@ describe("auth form render churn", () => {
 
     const mountedCounts = { ...mockRenderCounts };
 
-    fireEvent.changeText(screen.getByTestId("forgot-password-email-input"), "ada@example.com");
+    await fireEvent.changeText(screen.getByTestId("forgot-password-email-input"), "ada@example.com");
 
     expectShellCountsToMatch(mountedCounts);
 
-    fireEvent.press(screen.getByTestId("forgot-password-submit-button"));
+    await fireEvent.press(screen.getByTestId("forgot-password-submit-button"));
     expect(onSubmit).toHaveBeenCalledWith("ada@example.com");
   });
 
-  it("keeps the ResetPasswordForm card shell stable while typing", () => {
+  it("keeps the ResetPasswordForm card shell stable while typing", async () => {
     const onSubmit = jest.fn();
 
-    render(
+    await render(
       <ResetPasswordForm
         embedded
         onBack={jest.fn()}
@@ -168,23 +168,23 @@ describe("auth form render churn", () => {
 
     const mountedCounts = { ...mockRenderCounts };
 
-    fireEvent.changeText(screen.getByTestId("reset-password-code-input"), "123456");
-    fireEvent.changeText(screen.getByTestId("reset-password-password-input"), "password1");
-    fireEvent.changeText(screen.getByTestId("reset-password-confirm-password-input"), "password1");
+    await fireEvent.changeText(screen.getByTestId("reset-password-code-input"), "123456");
+    await fireEvent.changeText(screen.getByTestId("reset-password-password-input"), "password1");
+    await fireEvent.changeText(screen.getByTestId("reset-password-confirm-password-input"), "password1");
 
     expectShellCountsToMatch(mountedCounts);
 
-    fireEvent.press(screen.getByTestId("reset-password-submit-button"));
+    await fireEvent.press(screen.getByTestId("reset-password-submit-button"));
     expect(onSubmit).toHaveBeenCalledWith({
       code: "123456",
       newPassword: "password1",
     });
   });
 
-  it("keeps the VerifyEmailForm card shell stable while typing", () => {
+  it("keeps the VerifyEmailForm card shell stable while typing", async () => {
     const onVerify = jest.fn();
 
-    render(
+    await render(
       <VerifyEmailForm
         embedded
         email="ada@example.com"
@@ -195,12 +195,12 @@ describe("auth form render churn", () => {
 
     const mountedCounts = { ...mockRenderCounts };
 
-    fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "12");
-    fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "12a34567");
+    await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "12");
+    await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "12a34567");
 
     expectShellCountsToMatch(mountedCounts);
 
-    fireEvent.press(screen.getByTestId("verify-email-submit-button"));
+    await fireEvent.press(screen.getByTestId("verify-email-submit-button"));
     expect(onVerify).toHaveBeenCalledWith("123456");
   });
 });

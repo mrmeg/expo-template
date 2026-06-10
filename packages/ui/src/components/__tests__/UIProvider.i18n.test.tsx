@@ -30,8 +30,8 @@ describe("UIProvider without app i18n", () => {
     globalUIStore.setState({ alert: null });
   });
 
-  it("mounts root UI infrastructure without initializing i18n", () => {
-    render(
+  it("mounts root UI infrastructure without initializing i18n", async () => {
+    await render(
       <UIProvider>
         <Text>App content</Text>
       </UIProvider>
@@ -42,12 +42,12 @@ describe("UIProvider without app i18n", () => {
     expect(screen.getByText("StatusBar")).toBeTruthy();
   });
 
-  it("uses readable package notification defaults without app i18n", () => {
-    act(() => {
+  it("uses readable package notification defaults without app i18n", async () => {
+    await act(() => {
       globalUIStore.getState().show({ type: "error" });
     });
 
-    render(
+    await render(
       <UIProvider>
         <Text>App content</Text>
       </UIProvider>
@@ -56,12 +56,12 @@ describe("UIProvider without app i18n", () => {
     expect(screen.getByText("Error")).toBeTruthy();
   });
 
-  it("keeps info notifications readable when no message is provided", () => {
-    act(() => {
+  it("keeps info notifications readable when no message is provided", async () => {
+    await act(() => {
       globalUIStore.getState().show({ type: "info" });
     });
 
-    render(
+    await render(
       <UIProvider>
         <Text>App content</Text>
       </UIProvider>
@@ -70,12 +70,12 @@ describe("UIProvider without app i18n", () => {
     expect(screen.getByText("Info")).toBeTruthy();
   });
 
-  it("keeps loading notifications readable when no message is provided", () => {
-    act(() => {
+  it("keeps loading notifications readable when no message is provided", async () => {
+    await act(() => {
       globalUIStore.getState().show({ type: "info", loading: true });
     });
 
-    render(
+    await render(
       <UIProvider>
         <Text>App content</Text>
       </UIProvider>
@@ -84,8 +84,8 @@ describe("UIProvider without app i18n", () => {
     expect(screen.getByText("Loading")).toBeTruthy();
   });
 
-  it("removes the notification shell when the alert is hidden", () => {
-    act(() => {
+  it("removes the notification shell when the alert is hidden", async () => {
+    await act(() => {
       globalUIStore.getState().show({
         type: "info",
         title: "Optimizing Image",
@@ -94,7 +94,7 @@ describe("UIProvider without app i18n", () => {
       });
     });
 
-    render(
+    await render(
       <UIProvider>
         <Text>App content</Text>
       </UIProvider>
@@ -102,7 +102,7 @@ describe("UIProvider without app i18n", () => {
 
     expect(screen.getByText("Optimizing Image")).toBeTruthy();
 
-    act(() => {
+    await act(() => {
       globalUIStore.getState().hide();
     });
 
@@ -110,13 +110,13 @@ describe("UIProvider without app i18n", () => {
     expect(screen.queryByText("Optimizing image...")).toBeNull();
   });
 
-  it("uses the configured translator for package notification defaults", () => {
+  it("uses the configured translator for package notification defaults", async () => {
     configureExpoUiI18n((key) => `translated:${key}`);
-    act(() => {
+    await act(() => {
       globalUIStore.getState().show({ type: "error" });
     });
 
-    render(
+    await render(
       <UIProvider>
         <Text>App content</Text>
       </UIProvider>

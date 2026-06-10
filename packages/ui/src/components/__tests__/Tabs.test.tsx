@@ -51,8 +51,8 @@ jest.mock("@rn-primitives/tabs", () => {
 });
 
 describe("Tabs", () => {
-  it("renders without crashing", () => {
-    render(
+  it("renders without crashing", async () => {
+    await render(
       <Tabs value="tab1" onValueChange={() => {}}>
         <TabsList>
           <TabsTrigger value="tab1">
@@ -72,8 +72,8 @@ describe("Tabs", () => {
     expect(screen.getByText("Tab 2")).toBeTruthy();
   });
 
-  it("renders text labels via TabsTrigger.Text", () => {
-    render(
+  it("renders text labels via TabsTrigger.Text", async () => {
+    await render(
       <Tabs value="tab1" onValueChange={() => {}}>
         <TabsList>
           <TabsTrigger value="tab1">
@@ -87,8 +87,8 @@ describe("Tabs", () => {
     expect(screen.getByText("Account")).toBeTruthy();
   });
 
-  it("renders pill variant", () => {
-    render(
+  it("renders pill variant", async () => {
+    await render(
       <Tabs value="tab1" onValueChange={() => {}} variant="pill">
         <TabsList>
           <TabsTrigger value="tab1">
@@ -101,8 +101,8 @@ describe("Tabs", () => {
     expect(screen.getByText("Tab 1")).toBeTruthy();
   });
 
-  it("renders content for active tab", () => {
-    const { getByText } = render(
+  it("renders content for active tab", async () => {
+    const { getByText } = await render(
       <Tabs value="tab1" onValueChange={() => {}}>
         <TabsList>
           <TabsTrigger value="tab1">

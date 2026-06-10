@@ -44,65 +44,65 @@ jest.mock("../../hooks/useTheme", () => ({
 
 describe("TextInput", () => {
   describe("Rendering", () => {
-    it("renders with placeholder", () => {
-      render(<TextInput placeholder="Enter text" />);
+    it("renders with placeholder", async () => {
+      await render(<TextInput placeholder="Enter text" />);
 
       expect(screen.getByPlaceholderText("Enter text")).toBeTruthy();
     });
 
-    it("renders with label", () => {
-      render(<TextInput label="Username" placeholder="Enter username" />);
+    it("renders with label", async () => {
+      await render(<TextInput label="Username" placeholder="Enter username" />);
 
       expect(screen.getByText("Username")).toBeTruthy();
     });
 
-    it("renders with value", () => {
-      render(<TextInput value="Test value" />);
+    it("renders with value", async () => {
+      await render(<TextInput value="Test value" />);
 
       expect(screen.getByDisplayValue("Test value")).toBeTruthy();
     });
   });
 
   describe("Interactions", () => {
-    it("calls onChangeText when text changes", () => {
+    it("calls onChangeText when text changes", async () => {
       const onChangeText = jest.fn();
 
-      render(
+      await render(
         <TextInput
           placeholder="Type here"
           onChangeText={onChangeText}
         />
       );
 
-      fireEvent.changeText(screen.getByPlaceholderText("Type here"), "Hello");
+      await fireEvent.changeText(screen.getByPlaceholderText("Type here"), "Hello");
 
       expect(onChangeText).toHaveBeenCalledWith("Hello");
     });
 
-    it("calls onFocus when focused", () => {
+    it("calls onFocus when focused", async () => {
       const onFocus = jest.fn();
 
-      render(<TextInput placeholder="Focus me" onFocus={onFocus} />);
+      await render(<TextInput placeholder="Focus me" onFocus={onFocus} />);
 
-      fireEvent(screen.getByPlaceholderText("Focus me"), "focus");
+      await fireEvent(screen.getByPlaceholderText("Focus me"), "focus");
 
       expect(onFocus).toHaveBeenCalled();
     });
 
-    it("calls onBlur when blurred", () => {
+    it("calls onBlur when blurred", async () => {
       const onBlur = jest.fn();
 
-      render(<TextInput placeholder="Blur me" onBlur={onBlur} />);
+      await render(<TextInput placeholder="Blur me" onBlur={onBlur} />);
 
-      fireEvent(screen.getByPlaceholderText("Blur me"), "blur");
+      await fireEvent(screen.getByPlaceholderText("Blur me"), "blur");
 
       expect(onBlur).toHaveBeenCalled();
     });
   });
 
   describe("Secure Text Entry", () => {
-    it("hides text when secureTextEntry is true", () => {
-      render(
+    it("hides text when secureTextEntry is true", async () => {
+      await render(
         <TextInput
           placeholder="Password"
           secureTextEntry
@@ -114,8 +114,8 @@ describe("TextInput", () => {
       expect(input.props.secureTextEntry).toBe(true);
     });
 
-    it("toggles visibility via the secure entry toggle", () => {
-      render(
+    it("toggles visibility via the secure entry toggle", async () => {
+      await render(
         <TextInput
           placeholder="Password"
           secureTextEntry
@@ -128,19 +128,19 @@ describe("TextInput", () => {
       expect(input.props.secureTextEntry).toBe(true);
 
       // Tap the eye button -> reveals the text.
-      fireEvent.press(screen.getByLabelText("Show password"));
+      await fireEvent.press(screen.getByLabelText("Show password"));
       expect(input.props.secureTextEntry).toBe(false);
 
       // Tap again -> hides it. Text persists across the toggle.
-      fireEvent.press(screen.getByLabelText("Hide password"));
+      await fireEvent.press(screen.getByLabelText("Hide password"));
       expect(input.props.secureTextEntry).toBe(true);
       expect(input.props.value).toBe("secret");
     });
   });
 
   describe("Disabled State", () => {
-    it("is not editable when editable is false", () => {
-      render(
+    it("is not editable when editable is false", async () => {
+      await render(
         <TextInput placeholder="Disabled" editable={false} />
       );
 
