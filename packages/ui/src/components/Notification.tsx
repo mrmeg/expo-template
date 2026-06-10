@@ -147,7 +147,10 @@ export const Notification = () => {
 
     wasVisibleRef.current = isNowVisible;
 
-    if (isNowVisible && !wasVisible && alert?.duration) {
+    // Schedule on every alert change, not just hidden→visible: a notification
+    // that replaces a visible one (e.g. loading → success) still needs its
+    // auto-dismiss timer. The cleanup below clears the previous alert's timer.
+    if (isNowVisible && alert?.duration) {
       timerRef.current = setTimeout(() => {
         onAutoDismiss();
       }, alert.duration);
