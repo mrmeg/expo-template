@@ -15,7 +15,7 @@ import { Button, StyledText, UIProvider } from "@mrmeg/expo-ui/components";
 import { Button as ButtonDirect } from "@mrmeg/expo-ui/components/Button";
 import { colors, spacing, typography } from "@mrmeg/expo-ui/constants";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
-import { globalUIStore, useThemeStore } from "@mrmeg/expo-ui/state";
+import { globalUIStore, notify, useThemeStore } from "@mrmeg/expo-ui/state";
 import { configureExpoUiI18n, hapticLight } from "@mrmeg/expo-ui/lib";
 ```
 
@@ -92,7 +92,7 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 - Use `Button.preset`, not `variant`, for buttons.
 - Button visible heights are compact: `sm` 28px, `md` 32px, and `lg` 40px.
 - Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the selected Button size.
-- Use `globalUIStore` plus root-mounted `UIProvider` for transient global feedback.
+- Use `notify` plus root-mounted `UIProvider` for transient global feedback. (`globalUIStore` remains available for reactive subscriptions and tests.)
 - Keep app monitoring, auth, API, and domain behavior outside this package.
 
 Useful theme tokens include:
@@ -249,19 +249,29 @@ import { Button, Switch, TextInput } from "@mrmeg/expo-ui/components";
 
 ```tsx
 import { EmptyState, Progress, SkeletonCard } from "@mrmeg/expo-ui/components";
-import { globalUIStore } from "@mrmeg/expo-ui/state";
+import { notify } from "@mrmeg/expo-ui/state";
 
 {isLoading ? <SkeletonCard /> : null}
 <Progress value={65} variant="accent" />
 <EmptyState icon="inbox" title="No messages" description="New messages will appear here." />
 
-globalUIStore.getState().show({
-  type: "success",
-  title: "Saved",
-  messages: ["Your changes were saved."],
-  action: {
-    label: "View",
-    onPress: openSavedItem,
-  },
+// Convenience helpers
+notify.success("Saved", { messages: ["Your changes were saved."] });
+notify.error("Upload failed");
+notify.warning("Connection slow");
+notify.info("Copied to clipboard");
+
+// Loading spinner — stays until replaced or hidden (no auto-dismiss)
+notify.loading("Uploading…");
+notify.hide();
+
+// Full control (same payload as globalUIStore show())
+notify({ type: "success", title: "Saved", action: { label: "View", onPress: openSavedItem } });
+
+// Loading → success/error around a promise
+await notify.promise(saveProfile(), {
+  loading: "Saving…",
+  success: "Profile saved",          // or (value) => `Saved ${value.name}`
+  error: "Could not save profile",   // or (err) => err.message
 });
 ```

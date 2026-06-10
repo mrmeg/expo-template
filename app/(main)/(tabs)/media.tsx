@@ -43,7 +43,7 @@ import {
   MEDIA_APP_SETTINGS,
   resolveMediaUploadPolicy,
 } from "@/client/features/media/mediaSettings";
-import { globalUIStore } from "@mrmeg/expo-ui/state";
+import { notify } from "@mrmeg/expo-ui/state";
 import { logDev } from "@/client/lib/devtools";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import { Seo } from "@/client/components/Seo";
@@ -303,16 +303,12 @@ function useMediaScreenContent() {
         }
         return next;
       });
-      globalUIStore.getState().show({
-        type: "success",
-        title: "Deleted",
+      notify.success("Deleted", {
         messages: ["File deleted successfully"],
         duration: 3000,
       });
     } catch (error) {
-      globalUIStore.getState().show({
-        type: "error",
-        title: "Delete Failed",
+      notify.error("Delete Failed", {
         messages: [
           error instanceof Error ? error.message : "Failed to delete file",
         ],
@@ -325,15 +321,12 @@ function useMediaScreenContent() {
     const selectedForDelete = [...selectedKeys];
     if (selectedForDelete.length === 0) return;
 
-    globalUIStore.getState().show({
-      type: "info",
-      title: "Deleting",
+    notify.loading("Deleting", {
       messages: [
         selectedForDelete.length === 1
           ? "Deleting selected file..."
           : `Deleting ${selectedForDelete.length} selected files...`,
       ],
-      loading: true,
     });
 
     try {
@@ -342,12 +335,10 @@ function useMediaScreenContent() {
       const errorCount = result.errors?.length ?? 0;
 
       clearSelection();
-      globalUIStore.getState().hide();
+      notify.hide();
 
       if (errorCount > 0) {
-        globalUIStore.getState().show({
-          type: "warning",
-          title: "Delete Incomplete",
+        notify.warning("Delete Incomplete", {
           messages: [
             `${selectedForDelete.length} selected files processed`,
             `${errorCount} storage item${errorCount === 1 ? "" : "s"} failed`,
@@ -357,9 +348,7 @@ function useMediaScreenContent() {
         return;
       }
 
-      globalUIStore.getState().show({
-        type: "success",
-        title: "Deleted",
+      notify.success("Deleted", {
         messages: [
           selectedForDelete.length === 1
             ? "Selected file deleted"
@@ -368,10 +357,8 @@ function useMediaScreenContent() {
         duration: 3000,
       });
     } catch (error) {
-      globalUIStore.getState().hide();
-      globalUIStore.getState().show({
-        type: "error",
-        title: "Delete Failed",
+      notify.hide();
+      notify.error("Delete Failed", {
         messages: [
           error instanceof Error ? error.message : "Failed to delete files",
         ],
@@ -432,15 +419,12 @@ function useMediaScreenContent() {
       });
       if (!assets || assets.length === 0) return;
 
-      globalUIStore.getState().show({
-        type: "info",
-        title: assets.length > 1 ? `Uploading ${assets.length} files` : "Uploading",
+      notify.loading(assets.length > 1 ? `Uploading ${assets.length} files` : "Uploading", {
         messages: [
           assets.length > 1
             ? "Uploading selected files"
             : assets[0]?.fileName || "Uploading file",
         ],
-        loading: true,
       });
 
       const uploadResults = await Promise.all(
@@ -464,16 +448,14 @@ function useMediaScreenContent() {
         result.ok ? [] : [result.fileName]
       );
 
-      globalUIStore.getState().hide();
+      notify.hide();
 
       if (uploadedCount > 0) {
         refetch();
       }
 
       if (uploadedCount === 0) {
-        globalUIStore.getState().show({
-          type: "error",
-          title: "Upload Failed",
+        notify.error("Upload Failed", {
           messages: ["No files were uploaded"],
           duration: 5000,
         });
@@ -494,17 +476,15 @@ function useMediaScreenContent() {
           ]
           : [successMessage];
 
-      globalUIStore.getState().show({
+      notify({
         type: failedFiles.length > 0 ? "warning" : "success",
         title: failedFiles.length > 0 ? "Upload Incomplete" : "Uploaded",
         messages: toastMessages,
         duration: failedFiles.length > 0 ? 6000 : 3000,
       });
     } catch (error) {
-      globalUIStore.getState().hide();
-      globalUIStore.getState().show({
-        type: "error",
-        title: "Upload Failed",
+      notify.hide();
+      notify.error("Upload Failed", {
         messages: [
           error instanceof Error ? error.message : "Failed to upload file",
         ],
@@ -700,7 +680,13 @@ function useMediaScreenContent() {
           <SansSerifText style={styles.emptySubtext}>
             {mediaAccessError.message}
           </SansSerifText>
-          <Button preset="default" size="sm" text="Retry" onPress={() => refetch()} />
+          <Button
+            preset="default"
+            size="sm"
+            text="Retry"
+            style={styles.retryButton}
+            onPress={() => refetch()}
+          />
         </View>
       ) : fetchError ? (
         <View style={styles.emptyContainer} testID="media-error">
@@ -709,7 +695,13 @@ function useMediaScreenContent() {
           <SansSerifText style={styles.emptySubtext}>
             {fetchError instanceof Error ? fetchError.message : "Try again in a moment."}
           </SansSerifText>
-          <Button preset="default" size="sm" text="Retry" onPress={() => refetch()} />
+          <Button
+            preset="default"
+            size="sm"
+            text="Retry"
+            style={styles.retryButton}
+            onPress={() => refetch()}
+          />
         </View>
       ) : isLoading ? (
         <View style={styles.loadingContainer}>
@@ -1028,6 +1020,11 @@ const createStyles = (theme: Theme) =>
       fontFamily: "monospace",
       marginTop: spacing.sm,
       textAlign: "center",
+    },
+    // Button pins itself to flex-start unless the style override supplies
+    // alignSelf, so the parent's alignItems: "center" alone won't center it.
+    retryButton: {
+      alignSelf: "center",
     },
     selectionToolbar: {
       flexDirection: "row",

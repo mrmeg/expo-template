@@ -8,7 +8,7 @@ import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Switch } from "@mrmeg/expo-ui/components/Switch";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { Alert } from "@mrmeg/expo-ui/components/Alert";
-import { globalUIStore } from "@mrmeg/expo-ui/state";
+import { notify } from "@mrmeg/expo-ui/state";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
 import { AuthGate } from "@/client/features/app";
@@ -69,7 +69,7 @@ function ProfileScreen() {
   const handleManageBilling = async () => {
     const result = await billingActions.startPortal();
     if (result.status === "failed" && result.problem) {
-      globalUIStore.getState().show({
+      notify({
         type: "error",
         messages: messagesForProblem(result.problem),
         duration: 4000,
@@ -89,13 +89,13 @@ function ProfileScreen() {
           onPress: async () => {
             try {
               await signOut();
-              globalUIStore.getState().show({
+              notify({
                 type: "success",
                 messages: ["Signed out successfully"],
                 duration: 2000,
               });
             } catch {
-              globalUIStore.getState().show({
+              notify({
                 type: "error",
                 messages: ["Failed to sign out"],
                 duration: 2000,
@@ -402,7 +402,7 @@ function AccountInfoSection({
 }
 
 function showInfoMessage(message: string) {
-  globalUIStore.getState().show({
+  notify({
     type: "info",
     messages: [message],
     duration: 2000,

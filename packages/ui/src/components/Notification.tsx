@@ -8,6 +8,7 @@ import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { spacing } from "../constants/spacing";
 import { StyledText } from "./StyledText";
+import { palette } from "../constants/colors";
 import type { Theme } from "../constants/colors";
 import { translateText } from "../lib/i18n";
 import { globalUIStore } from "../state/globalUIStore";
@@ -24,20 +25,13 @@ const timingOut = { duration: 100, easing: Easing.in(Easing.quad), useNativeDriv
  * Usage:
  * ```ts
  * // Top notification (default)
- * globalUIStore.getState().show({
- *   type: "success",
- *   title: "Saved",
+ * notify.success("Saved", {
  *   messages: ["Your changes have been saved."],
  *   duration: 3000,
  * });
  *
  * // Bottom toast
- * globalUIStore.getState().show({
- *   type: "info",
- *   title: "Copied to clipboard",
- *   duration: 2000,
- *   position: "bottom",
- * });
+ * notify.info("Copied to clipboard", { duration: 2000, position: "bottom" });
  * ```
  */
 export const Notification = () => {
@@ -254,7 +248,7 @@ export const Notification = () => {
       <View style={[
         styles.alert,
         isBottom && styles.alertBottom,
-        getShadowStyle("base"),
+        getShadowStyle("elevated"),
       ]}>
         {/* Colored icon badge */}
         <View style={[styles.iconBadge, { backgroundColor: iconBgColor }]}>
@@ -345,8 +339,10 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingRight: spacing.xl + spacing.sm,
     borderRadius: spacing.radiusLg,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.card,
+    // Shadows barely read on dark backgrounds, so dark mode separates the
+    // toast from the page by lifting the surface a step above `card` instead.
+    borderColor: theme.dark ? palette.dark600 : theme.colors.border,
+    backgroundColor: theme.dark ? palette.dark700 : theme.colors.card,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,

@@ -5,7 +5,7 @@ import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { PricingScreen, type PricingPlan } from "@/client/screens/PricingScreen";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
-import { globalUIStore } from "@mrmeg/expo-ui/state";
+import { notify } from "@mrmeg/expo-ui/state";
 import { isAuthEnabled } from "@/client/features/app";
 import Config from "@/client/config";
 import {
@@ -97,7 +97,7 @@ export default function ScreenPricingDemo() {
     action: "upgrade" | "manage",
   ): Promise<void> {
     if (!isAuthEnabled) {
-      globalUIStore.getState().show({
+      notify({
         type: "info",
         messages: ["Sign-in is not configured in this environment."],
         duration: 3000,
@@ -105,7 +105,7 @@ export default function ScreenPricingDemo() {
       return;
     }
     if (!isAuthenticated) {
-      globalUIStore.getState().show({
+      notify({
         type: "info",
         messages: ["Sign in to choose a plan."],
         duration: 2500,
@@ -144,7 +144,7 @@ export default function ScreenPricingDemo() {
       onSelect: () => {
         if (derived.isCurrent) return;
         if (derived.actionState === "upgrade" && plan.id === FREE_PLAN_ID) {
-          globalUIStore.getState().show({
+          notify({
             type: "info",
             messages: ["You're already on the free plan."],
             duration: 2500,
@@ -212,7 +212,7 @@ export default function ScreenPricingDemo() {
 
 function announceResult(result: BillingActionResult): void {
   if (result.status === "failed" && result.problem) {
-    globalUIStore.getState().show({
+    notify({
       type: "error",
       messages: messagesForProblem(result.problem),
       duration: 4000,
@@ -220,7 +220,7 @@ function announceResult(result: BillingActionResult): void {
     return;
   }
   if (result.status === "cancel") {
-    globalUIStore.getState().show({
+    notify({
       type: "info",
       messages: ["Checkout canceled — no charge was made."],
       duration: 2500,

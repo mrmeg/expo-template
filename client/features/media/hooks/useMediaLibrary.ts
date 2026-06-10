@@ -22,7 +22,7 @@ import {
   type VideoConversionResult,
 } from "@mrmeg/expo-media/processing/video-conversion";
 import { extractVideoThumbnail } from "@mrmeg/expo-media/processing/video-thumbnails";
-import { globalUIStore } from "@mrmeg/expo-ui/state";
+import { notify } from "@mrmeg/expo-ui/state";
 import { useCompressionStore } from "../stores/compressionStore";
 import { MEDIA_APP_SETTINGS } from "../mediaSettings";
 
@@ -200,13 +200,10 @@ async function processAssetWeb(
     if (isVideo && needsConversion(asset.mimeType)) {
       // Only convert on client if under size limit
       if (blob.size <= MAX_CLIENT_CONVERSION_SIZE) {
-        globalUIStore.getState().show({
-          type: "info",
-          title: getProcessingTitle("Converting Video", context),
+        notify.loading(getProcessingTitle("Converting Video", context), {
           messages: [
             `Loading converter for ${getProcessingFileName(asset, context)}...`,
           ],
-          loading: true,
         });
 
         try {
@@ -219,23 +216,17 @@ async function processAssetWeb(
               {
                 preset: "fast",
                 onProgress: (progress) => {
-                  globalUIStore.getState().show({
-                    type: "info",
-                    title: getProcessingTitle("Converting Video", context),
+                  notify.loading(getProcessingTitle("Converting Video", context), {
                     messages: [
                       `Converting ${getProcessingFileName(asset, context)} to MP4... ${progress}%`,
                     ],
-                    loading: true,
                   });
                 },
                 onLoadingFFmpeg: () => {
-                  globalUIStore.getState().show({
-                    type: "info",
-                    title: getProcessingTitle("Converting Video", context),
+                  notify.loading(getProcessingTitle("Converting Video", context), {
                     messages: [
                       `Loading converter for ${getProcessingFileName(asset, context)}...`,
                     ],
-                    loading: true,
                   });
                 },
               }
@@ -267,24 +258,25 @@ async function processAssetWeb(
             );
           }
 
-          globalUIStore.getState().hide();
+          notify.hide();
         } catch (error) {
           // Hide loading spinner before showing warning
-          globalUIStore.getState().hide();
+          notify.hide();
           const isWorkerUnavailable =
             error instanceof FFmpegWorkerUnavailableError;
-          globalUIStore.getState().show({
-            type: "warning",
-            title: isWorkerUnavailable
+          notify.warning(
+            isWorkerUnavailable
               ? "Video Converter Unavailable"
               : "Conversion Skipped",
-            messages: [
-              isWorkerUnavailable
-                ? "Uploading original format instead"
-                : "Uploading original format",
-            ],
-            duration: 3000,
-          });
+            {
+              messages: [
+                isWorkerUnavailable
+                  ? "Uploading original format instead"
+                  : "Uploading original format",
+              ],
+              duration: 3000,
+            }
+          );
           logDev(`Video conversion failed, using original: ${error}`);
         }
       } else {
@@ -320,11 +312,8 @@ async function processAssetWeb(
 
     if (!isVideo && compressionConfig && imageWidth > 0 && imageHeight > 0) {
       if (shouldShowCompressionNotification) {
-        globalUIStore.getState().show({
-          type: "info",
-          title: getProcessingTitle("Optimizing Image", context),
+        notify.loading(getProcessingTitle("Optimizing Image", context), {
           messages: [`Optimizing ${getProcessingFileName(asset, context)}...`],
-          loading: true,
         });
       }
 
@@ -376,16 +365,14 @@ async function processAssetWeb(
         }
 
         if (shouldShowCompressionNotification) {
-          globalUIStore.getState().hide();
+          notify.hide();
         }
       } catch (error) {
         if (sourceBlobUri) {
           URL.revokeObjectURL(sourceBlobUri);
         }
         if (shouldShowCompressionNotification) {
-          globalUIStore.getState().show({
-            type: "error",
-            title: "Compression Failed",
+          notify.error("Compression Failed", {
             messages: ["Using original image"],
             duration: 3000,
           });
@@ -461,11 +448,8 @@ async function processAssetNative(
       !context?.suppressCompressionNotification;
 
     if (shouldShowCompressionNotification) {
-      globalUIStore.getState().show({
-        type: "info",
-        title: getProcessingTitle("Optimizing Image", context),
+      notify.loading(getProcessingTitle("Optimizing Image", context), {
         messages: [`Optimizing ${getProcessingFileName(asset, context)}...`],
-        loading: true,
       });
     }
 
@@ -505,13 +489,11 @@ async function processAssetNative(
       }
 
       if (shouldShowCompressionNotification) {
-        globalUIStore.getState().hide();
+        notify.hide();
       }
     } catch (error) {
       if (shouldShowCompressionNotification) {
-        globalUIStore.getState().show({
-          type: "error",
-          title: "Compression Failed",
+        notify.error("Compression Failed", {
           messages: ["Using original image"],
           duration: 3000,
         });
@@ -681,11 +663,8 @@ export function useMediaLibrary() {
 
         if (useBatchCompressionNotification) {
           batchCompressionNotificationVisible = true;
-          globalUIStore.getState().show({
-            type: "info",
-            title: "Optimizing Images",
+          notify.loading("Optimizing Images", {
             messages: [`Optimizing ${imageAssetCount} images...`],
-            loading: true,
           });
         }
 
@@ -703,7 +682,7 @@ export function useMediaLibrary() {
         );
 
         if (batchCompressionNotificationVisible) {
-          globalUIStore.getState().hide();
+          notify.hide();
           batchCompressionNotificationVisible = false;
         }
 
@@ -723,7 +702,7 @@ export function useMediaLibrary() {
       return null;
     } catch (error) {
       if (batchCompressionNotificationVisible) {
-        globalUIStore.getState().hide();
+        notify.hide();
       }
       console.error("Error in pickMedia:", error);
       throw error;

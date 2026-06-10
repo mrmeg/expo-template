@@ -49,14 +49,14 @@ import { colors, spacing, typography } from "@mrmeg/expo-ui/constants";
 import { colors as colorsDirect } from "@mrmeg/expo-ui/constants/colors";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
 import { useTheme as useThemeDirect } from "@mrmeg/expo-ui/hooks/useTheme";
-import { globalUIStore, useThemeStore } from "@mrmeg/expo-ui/state";
+import { globalUIStore, notify, useThemeStore } from "@mrmeg/expo-ui/state";
 import { configureExpoUiI18n, hapticLight } from "@mrmeg/expo-ui/lib";
 ```
 
 The root barrel also exports the public surface:
 
 ```tsx
-import { Button, UIProvider, colors, useTheme } from "@mrmeg/expo-ui";
+import { Button, UIProvider, colors, notify, useTheme } from "@mrmeg/expo-ui";
 ```
 
 ## Theme System
@@ -272,7 +272,7 @@ Use `Button.preset`, not `variant`. `default` is the neutral primary action, `se
 
 Use `StyledText` or its aliases instead of raw `Text` whenever the text is part of app UI. Use `TextInput` for labeled fields because it already owns label, helper text, error text, clear buttons, password visibility, numeric filtering, and left/right elements.
 
-Mount `UIProvider` once near the root before using `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, or package notifications. On native, `BottomSheet.Content` listens to React Native keyboard events when `avoidKeyboard` is enabled; it defaults to `true` and can be disabled per sheet. Trigger transient feedback from `globalUIStore`.
+Mount `UIProvider` once near the root before using `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, or package notifications. On native, `BottomSheet.Content` listens to React Native keyboard events when `avoidKeyboard` is enabled; it defaults to `true` and can be disabled per sheet. Trigger transient feedback with `notify`.
 
 Use `Skeleton` components for loading content with stable dimensions, `EmptyState` for no-data/recoverable errors, `Alert` for blocking confirm/alert dialogs, and `Notification` for transient global feedback.
 
@@ -322,15 +322,13 @@ Feedback:
 
 ```tsx
 import { EmptyState, Progress, SkeletonCard } from "@mrmeg/expo-ui/components";
-import { globalUIStore } from "@mrmeg/expo-ui/state";
+import { notify } from "@mrmeg/expo-ui/state";
 
 {isLoading ? <SkeletonCard /> : null}
 <Progress value={65} variant="accent" />
 <EmptyState icon="inbox" title="No messages" description="New messages will appear here." />
 
-globalUIStore.getState().show({
-  type: "success",
-  title: "Saved",
+notify.success("Saved", {
   messages: ["Your changes were saved."],
   action: {
     label: "View",

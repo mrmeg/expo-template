@@ -45,7 +45,7 @@ import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@mrmeg/expo-ui/components/Card";
 import { Label } from "@mrmeg/expo-ui/components/Label";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
-import { globalUIStore } from "@mrmeg/expo-ui/state";
+import { notify } from "@mrmeg/expo-ui/state";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { fontFamilies } from "@mrmeg/expo-ui/constants";
@@ -230,9 +230,7 @@ function useShowcaseScreenContent() {
                         text: "Delete",
                         style: "destructive",
                         onPress: () => {
-                          globalUIStore.getState().show({
-                            type: "success",
-                            title: "Deleted",
+                          notify.success("Deleted", {
                             messages: ["Item has been deleted"],
                             duration: 2000,
                           });
@@ -379,7 +377,7 @@ function useShowcaseScreenContent() {
               </Card>
             </SubSection>
             <SubSection label="Pressable">
-              <Card onPress={() => globalUIStore.getState().show({ type: "info", title: "Card Pressed", messages: ["You tapped the pressable card."] })}>
+              <Card onPress={() => notify.info("Card Pressed", { messages: ["You tapped the pressable card."] })}>
                 <CardHeader>
                   <CardTitle>Pressable Card</CardTitle>
                   <CardDescription>Tap me for a scale animation.</CardDescription>
@@ -788,9 +786,7 @@ function useShowcaseScreenContent() {
               <Button
                 preset="default"
                 onPress={() =>
-                  globalUIStore.getState().show({
-                    type: "success",
-                    title: "Success",
+                  notify.success("Success", {
                     messages: ["Operation completed successfully"],
                     duration: 3000,
                   })
@@ -804,9 +800,7 @@ function useShowcaseScreenContent() {
               <Button
                 preset="outline"
                 onPress={() =>
-                  globalUIStore.getState().show({
-                    type: "error",
-                    title: "Error",
+                  notify.error("Error", {
                     messages: ["Something went wrong"],
                     duration: 3000,
                   })
@@ -820,9 +814,7 @@ function useShowcaseScreenContent() {
               <Button
                 preset="outline"
                 onPress={() =>
-                  globalUIStore.getState().show({
-                    type: "warning",
-                    title: "Warning",
+                  notify.warning("Warning", {
                     messages: ["Please review your input"],
                     duration: 3000,
                   })
@@ -836,11 +828,7 @@ function useShowcaseScreenContent() {
               <Button
                 preset="outline"
                 onPress={() =>
-                  globalUIStore.getState().show({
-                    type: "info",
-                    messages: ["Here's some information for you"],
-                    duration: 3000,
-                  })
+                  notify({ type: "info", messages: ["Here's some information for you"], duration: 3000 })
                 }
               >
                 <StyledText style={styles.outlineButtonText}>Show Info</StyledText>
@@ -851,12 +839,7 @@ function useShowcaseScreenContent() {
               <Button
                 preset="outline"
                 onPress={() => {
-                  globalUIStore.getState().show({
-                    type: "info",
-                    loading: true,
-                    messages: ["Loading data..."],
-                    duration: 2000,
-                  });
+                  notify({ type: "info", loading: true, messages: ["Loading data..."], duration: 2000 });
                 }}
               >
                 <StyledText style={styles.outlineButtonText}>Show Loading</StyledText>
@@ -867,12 +850,7 @@ function useShowcaseScreenContent() {
                 <Button
                   preset="outline"
                   onPress={() => {
-                    globalUIStore.getState().show({
-                      type: "success",
-                      title: "Copied to clipboard",
-                      duration: 2000,
-                      position: "bottom",
-                    });
+                    notify.success("Copied to clipboard", { duration: 2000, position: "bottom" });
                   }}
                 >
                   <StyledText style={styles.outlineButtonText}>Success Toast</StyledText>
@@ -880,9 +858,7 @@ function useShowcaseScreenContent() {
                 <Button
                   preset="outline"
                   onPress={() => {
-                    globalUIStore.getState().show({
-                      type: "info",
-                      title: "Item saved",
+                    notify.info("Item saved", {
                       messages: ["Your changes have been saved."],
                       duration: 2500,
                       position: "bottom",
@@ -894,9 +870,7 @@ function useShowcaseScreenContent() {
                 <Button
                   preset="outline"
                   onPress={() => {
-                    globalUIStore.getState().show({
-                      type: "error",
-                      title: "Failed to upload",
+                    notify.error("Failed to upload", {
                       messages: ["Check your connection and try again."],
                       duration: 3000,
                       position: "bottom",
@@ -1525,27 +1499,17 @@ const AuthFormsSection = memo(function AuthFormsSection({
           onSignIn={async ({ email, password }) => {
             console.log("Sign in:", email, password);
             await new Promise((resolve) => setTimeout(resolve, 1000));
-            globalUIStore.getState().show({
-              type: "success",
-              title: "Success",
+            notify.success("Success", {
               messages: ["Signed in successfully!"],
               duration: 2000,
             });
           }}
           onForgotPassword={() => {
-            globalUIStore.getState().show({
-              type: "info",
-              messages: ["Forgot password clicked"],
-              duration: 2000,
-            });
+            notify({ type: "info", messages: ["Forgot password clicked"], duration: 2000 });
           }}
           onSignUp={() => setAuthForm("signup")}
           onSocialSignIn={(provider) => {
-            globalUIStore.getState().show({
-              type: "info",
-              messages: [`${provider} sign in clicked`],
-              duration: 2000,
-            });
+            notify({ type: "info", messages: [`${provider} sign in clicked`], duration: 2000 });
           }}
         />
       )}
@@ -1556,9 +1520,7 @@ const AuthFormsSection = memo(function AuthFormsSection({
           onSignUp={async ({ name, email, password }) => {
             console.log("Sign up:", name, email, password);
             await new Promise((resolve) => setTimeout(resolve, 1000));
-            globalUIStore.getState().show({
-              type: "success",
-              title: "Success",
+            notify.success("Success", {
               messages: ["Account created successfully!"],
               duration: 2000,
             });
@@ -1566,11 +1528,7 @@ const AuthFormsSection = memo(function AuthFormsSection({
           }}
           onSignIn={() => setAuthForm("signin")}
           onSocialSignUp={(provider) => {
-            globalUIStore.getState().show({
-              type: "info",
-              messages: [`${provider} sign up clicked`],
-              duration: 2000,
-            });
+            notify({ type: "info", messages: [`${provider} sign up clicked`], duration: 2000 });
           }}
         />
       )}
@@ -1582,20 +1540,14 @@ const AuthFormsSection = memo(function AuthFormsSection({
           onVerify={async (code) => {
             console.log("Verify code:", code);
             await new Promise((resolve) => setTimeout(resolve, 1000));
-            globalUIStore.getState().show({
-              type: "success",
-              title: "Email Verified",
+            notify.success("Email Verified", {
               messages: ["Your email has been verified successfully!"],
               duration: 2000,
             });
           }}
           onResendCode={async () => {
             await new Promise((resolve) => setTimeout(resolve, 500));
-            globalUIStore.getState().show({
-              type: "info",
-              messages: ["Verification code resent"],
-              duration: 2000,
-            });
+            notify({ type: "info", messages: ["Verification code resent"], duration: 2000 });
           }}
           onBack={() => setAuthForm("signin")}
           onChangeEmail={() => setAuthForm("signup")}

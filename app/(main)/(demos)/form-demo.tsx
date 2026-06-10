@@ -16,7 +16,7 @@ import {
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 import { Checkbox } from "@mrmeg/expo-ui/components/Checkbox";
-import { globalUIStore } from "@mrmeg/expo-ui/state";
+import { notify } from "@mrmeg/expo-ui/state";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // Form field types
@@ -160,9 +160,7 @@ export default function FormDemoScreen() {
   // Handle form submission
   const handleSubmit = useCallback(async () => {
     if (!validateForm()) {
-      globalUIStore.getState().show({
-        type: "error",
-        title: "Validation Error",
+      notify.error("Validation Error", {
         messages: ["Please fix the errors before submitting"],
         duration: 3000,
       });
@@ -177,9 +175,7 @@ export default function FormDemoScreen() {
     setIsSubmitting(false);
 
     // Show success notification
-    globalUIStore.getState().show({
-      type: "success",
-      title: "Form Submitted!",
+    notify.success("Form Submitted!", {
       messages: [`Welcome, ${formData.name}!`, "Your account has been created."],
       duration: 4000,
     });

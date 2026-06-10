@@ -34,7 +34,7 @@ the root when the app uses package feedback or overlay components.
 `UIProvider` owns the package `Notification`, `StatusBar`, and default
 `@rn-primitives` portal host. Mount it before using `Dialog`, `AlertDialog`,
 `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`,
-`Tooltip`, or `globalUIStore` notifications.
+`Tooltip`, or `notify` / `globalUIStore` notifications.
 
 On native, `BottomSheet.Content` composes its sheet transform with React Native
 keyboard event values. Pass `avoidKeyboard={false}` for sheets that should not
@@ -66,7 +66,7 @@ import { Button, StyledText, UIProvider } from "@mrmeg/expo-ui/components";
 import { Button as ButtonDirect } from "@mrmeg/expo-ui/components/Button";
 import { colors, spacing, typography } from "@mrmeg/expo-ui/constants";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
-import { globalUIStore, useThemeStore } from "@mrmeg/expo-ui/state";
+import { globalUIStore, notify, useThemeStore } from "@mrmeg/expo-ui/state";
 import { configureExpoUiI18n, hapticLight } from "@mrmeg/expo-ui/lib";
 ```
 
@@ -101,7 +101,7 @@ Use this catalog before creating a new app-local primitive.
 | `InputOTP` | `@mrmeg/expo-ui/components` | Verification code entry | Prefer over manually managed text input groups. |
 | `Label` | `@mrmeg/expo-ui/components` | Accessible form labels | Use with package form controls. |
 | `MaxWidthContainer` | `@mrmeg/expo-ui/components` | Centered responsive width | Use for web and tablet constrained layouts. |
-| `Notification` | `@mrmeg/expo-ui/components` | Global toast surface | Trigger through `globalUIStore` with root `UIProvider`; optional actions dismiss after press. |
+| `Notification` | `@mrmeg/expo-ui/components` | Global toast surface | Trigger through `notify` (or `globalUIStore` for subscriptions/tests) with root `UIProvider`; optional actions dismiss after press. |
 | `Popover` | `@mrmeg/expo-ui/components` | Anchored contextual content | Requires root `UIProvider` portal setup. |
 | `Progress` | `@mrmeg/expo-ui/components` | Determinate or indeterminate progress | Prefer over layout-shifting spinners for progress regions. |
 | `RadioGroup` | `@mrmeg/expo-ui/components` | Small mutually exclusive choices | Use `Select` for longer option sets. |
@@ -133,6 +133,37 @@ Use `Card` for individual repeated or framed items, not as a wrapper around
 full page sections. Use `EmptyState` for no-data or recoverable error regions,
 `Skeleton` for loading content with stable layout, and `Progress` for real
 progress or indeterminate long-running work.
+
+## Notifications
+
+`notify` is the primary imperative API for triggering the `Notification` component. Import from `@mrmeg/expo-ui/state` (also re-exported from the package root).
+
+Notifications auto-dismiss after 4s (`DEFAULT_NOTIFICATION_DURATION`) unless a `duration` is given; pass `duration: 0` to keep one up until dismissed. `notify.loading` never auto-dismisses.
+
+```ts
+import { notify } from "@mrmeg/expo-ui/state";
+
+notify.success("Saved", { messages: ["Your changes were saved."] });
+notify.error("Upload failed");
+notify.warning("Connection slow");
+notify.info("Copied to clipboard");
+
+// Loading spinner — persists until replaced or hidden (no auto-dismiss)
+notify.loading("Uploading…");
+notify.hide();
+
+// Full control (same payload as globalUIStore show())
+notify({ type: "success", title: "Saved", duration: 3000, position: "bottom" });
+
+// Loading → success/error around a promise; rethrows on rejection
+await notify.promise(saveProfile(), {
+  loading: "Saving…",
+  success: "Profile saved",          // or (value) => `Saved ${value.name}`
+  error: "Could not save profile",   // or (err) => err.message
+});
+```
+
+`globalUIStore` (the underlying zustand store) remains available for reactive selectors and tests. Use `notify` for all imperative triggers in app code.
 
 ## Validation
 
