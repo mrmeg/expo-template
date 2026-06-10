@@ -1,6 +1,6 @@
 import { fetchAuthSession } from "aws-amplify/auth";
 
-async function getAuthData() {
+export async function getAuthData() {
   try {
     const session = await fetchAuthSession();
     return {
@@ -55,11 +55,9 @@ export async function authenticatedFetch(
     const response = await fetch(url, requestOptions);
     if (timeoutId) clearTimeout(timeoutId);
 
-    // Handle unauthorized responses
-    if (response.status === 401) {
-      throw new Error("Unauthorized");
-    }
-
+    // Return error responses (including 401) as-is: callers map status
+    // codes onto their own typed problem unions (BillingProblem,
+    // MediaError) and need the response body to do it.
     return response;
   } catch (error) {
     if (timeoutId) clearTimeout(timeoutId);
