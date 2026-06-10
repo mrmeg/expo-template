@@ -16,6 +16,12 @@ const sources = [
       "repo map, component selection, screen templates, feature patterns, migration order, anti-patterns",
   },
   {
+    path: "docs/migration-guide.md",
+    title: "External App Migration Guide",
+    summary:
+      "self-contained guide for migrating an existing Expo app to this template's baseline: tier self-assessment, SSR config, loaders, ui package, screen templates, verification gates",
+  },
+  {
     path: "packages/ui/LLM_USAGE.md",
     title: "@mrmeg/expo-ui Usage",
     summary:

@@ -19,6 +19,7 @@ Do normal coding work directly unless the user explicitly asks for a plan.
 | LLM Bundle | [`llms-full.txt`](llms-full.txt) | Generated one-file concat of the LLM docs; rebuild with `bun run docs:llms` |
 | LLM Examples Index | [`llms-examples.txt`](llms-examples.txt) | Generated raw-URL index of demo routes, screens, components, server files |
 | Template Guide | [`docs/template-modernization-guide.md`](docs/template-modernization-guide.md) | LLM-facing component, screen-template, and modernization reference |
+| Migration Guide | [`docs/migration-guide.md`](docs/migration-guide.md) | Self-contained, portable guide for migrating an external Expo app to this template's baseline |
 | Server Guide | [`docs/server-guide.md`](docs/server-guide.md) | Server output, API routes, data loaders, middleware, replication checklist |
 | SSR Hydration | [`docs/ssr-hydration.md`](docs/ssr-hydration.md) | Detailed web SSR mismatch checklist and verification commands |
 | Bundle Analysis | [`docs/bundle-analysis.md`](docs/bundle-analysis.md) | Bundle-size guard usage and baseline update steps |

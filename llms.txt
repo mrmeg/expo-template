@@ -13,6 +13,7 @@ Doc links below are raw URLs on the `main` branch and can be fetched directly.
 
 - [llms-full.txt](https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-full.txt): every LLM-facing doc below concatenated into one file — fetch this first
 - [llms-examples.txt](https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-examples.txt): fetchable raw URLs for every demo route, screen template, component source file, form wrapper, and server-stack file
+- [Migration guide](https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/migration-guide.md): self-contained guide for migrating an existing Expo app to this template's baseline — tier self-assessment, SSR config, loaders, ui package, screen templates, verification gates
 - [Template modernization guide](https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/template-modernization-guide.md): repo map, component selection, screen templates, feature patterns, migration order, anti-patterns
 - [UI package LLM usage](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/LLM_USAGE.md): `@mrmeg/expo-ui` import paths, required app setup, theme rules, component use-case index, minimal examples
 - [UI package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/README.md): full `@mrmeg/expo-ui` install, setup, theming, and publishing reference
