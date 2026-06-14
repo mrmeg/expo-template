@@ -58,3 +58,5 @@ Agent/*
 
 # Playwright MCP session artifacts (screenshots, page snapshots, console logs)
 .playwright-mcp/
+# Verification screenshots dumped at the repo root (real assets live in subfolders)
+/*.png

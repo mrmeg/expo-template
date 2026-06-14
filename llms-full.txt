@@ -725,8 +725,9 @@ Token intent:
 
 Use `getShadowStyle()` for package surfaces that need elevation. It supports
 `base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`,
-`cardHover`, and `cardSubtle`, returning native shadow/elevation off web and
-CSS `boxShadow` on web. Use `getFocusRingStyle()` for web focus styling. Keep
+`cardHover`, and `cardSubtle`, returning a cross-platform `boxShadow` value
+(RN 0.85 + react-native-web 0.21 deprecate the legacy `shadow*` props). Use
+`getFocusRingStyle()` for web focus styling. Keep
 web controls compact, but preserve mobile tap comfort with package controls
 that already provide native hit slop or 44px touch rows.
 

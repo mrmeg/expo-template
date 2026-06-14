@@ -101,7 +101,7 @@ function ToggleGroup({
   children,
   ...props
 }: ToggleGroupProps) {
-  const { theme } = useTheme();
+  const { getShadowStyle } = useTheme();
 
   const contextValue = React.useMemo(() => ({ variant, size }), [variant, size]);
 
@@ -135,12 +135,7 @@ function ToggleGroup({
         alignItems: "center",
         borderRadius: spacing.radiusMd,
         // No shadow on Android - causes text background artifact
-        ...(variant === "outline" && Platform.OS === "ios" && {
-          shadowColor: theme.colors.overlay,
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 2,
-        }),
+        ...(variant === "outline" && Platform.OS === "ios" && getShadowStyle("subtle")),
         ...(Platform.OS === "web" && {
           width: "fit-content" as any,
         }),

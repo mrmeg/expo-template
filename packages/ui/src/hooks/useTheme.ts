@@ -69,7 +69,7 @@ interface ExtendedColorScheme {
  * - getTextColorForBackground("#000") → "light"
  * - getContrastingColor("#f4f4f4", "#222", "#fff") → "#222"
  * - withAlpha("#336699", 0.6) → "rgba(51,102,153,0.6)"
- * - getShadowStyle('base') → { shadowColor, shadowOffset, ... }
+ * - getShadowStyle('base') → { boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.1)" }
  */
 export function useTheme(): ExtendedColorScheme & {
   toggleTheme: () => void;
@@ -127,106 +127,42 @@ export function useTheme(): ExtendedColorScheme & {
 
   /**
    * getShadowStyle
-   * Returns platform-appropriate shadow styles
-   * - Web: uses CSS boxShadow through React Native Web
-   * - Native: uses shadowColor, shadowOffset, shadowOpacity, shadowRadius, elevation
+   * Returns a cross-platform shadow style using the `boxShadow` style prop.
+   *
+   * RN 0.85 + react-native-web 0.21 deprecate the legacy `shadow*` props in
+   * favor of `boxShadow`, which is supported on both native and web. Because
+   * `boxShadow` has no separate opacity field, each preset's opacity is folded
+   * into the color's alpha via `withAlpha`. `elevation` is dropped — `boxShadow`
+   * renders shadows on Android in 0.85+.
    */
   const getShadowStyle = useCallback((type: ShadowType): ViewStyle => {
-    const shadowConfigs = {
-      base: {
-        shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 3,
-      },
-      soft: {
-        shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 4,
-      },
-      sharp: {
-        shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.15,
-        shadowRadius: 1,
-        elevation: 2,
-      },
-      subtle: {
-        shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
-      },
-      elevated: {
-        shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 0, height: 20 },
-        shadowOpacity: 0.15,
-        shadowRadius: 40,
-        elevation: 16,
-      },
-      glow: {
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 20,
-        elevation: 10,
-      },
-      glass: {
-        shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 30,
-        elevation: 4,
-      },
-      card: {
-        shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 4,
-      },
-      cardHover: {
-        shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.12,
-        shadowRadius: 24,
-        elevation: 8,
-      },
-      cardSubtle: {
-        shadowColor: theme.colors.overlay,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 3,
-        elevation: 2,
-      },
+    // Each preset: [offsetX, offsetY, blurRadius, color, opacity].
+    // Darker themes get a stronger alpha so shadows stay visible.
+    const boost = theme.dark ? 3 : 1;
+    const overlay = theme.colors.overlay;
+    const shadowConfigs: Record<
+      ShadowType,
+      { x: number; y: number; blur: number; color: string; opacity: number }
+    > = {
+      base: { x: 0, y: 1, blur: 3, color: overlay, opacity: 0.1 },
+      soft: { x: 0, y: 4, blur: 6, color: overlay, opacity: 0.1 },
+      sharp: { x: 0, y: 1, blur: 1, color: overlay, opacity: 0.15 },
+      subtle: { x: 0, y: 1, blur: 2, color: overlay, opacity: 0.05 },
+      elevated: { x: 0, y: 20, blur: 40, color: overlay, opacity: 0.15 },
+      glow: { x: 0, y: 4, blur: 20, color: theme.colors.primary, opacity: 0.4 },
+      glass: { x: 0, y: 4, blur: 30, color: overlay, opacity: 0.05 },
+      card: { x: 0, y: 2, blur: 8, color: overlay, opacity: 0.08 },
+      cardHover: { x: 0, y: 8, blur: 24, color: overlay, opacity: 0.12 },
+      cardSubtle: { x: 0, y: 1, blur: 3, color: overlay, opacity: 0.08 },
     };
 
-    const config = shadowConfigs[type];
+    const { x, y, blur, color, opacity } = shadowConfigs[type];
+    // Don't boost the glow accent — it's already a deliberate, vivid alpha.
+    const alpha = color === theme.colors.primary ? opacity : Math.min(opacity * boost, 1);
 
-    if (Platform.OS === "web") {
-      const webShadows: Record<ShadowType, ViewStyle> = {
-        base: { boxShadow: theme.dark ? "0 1px 2px rgba(0, 0, 0, 0.45)" : "0 1px 2px rgba(0, 0, 0, 0.08)" } as ViewStyle,
-        soft: { boxShadow: theme.dark ? "0 8px 24px rgba(0, 0, 0, 0.36)" : "0 8px 24px rgba(0, 0, 0, 0.10)" } as ViewStyle,
-        sharp: { boxShadow: theme.dark ? "0 1px 1px rgba(0, 0, 0, 0.55)" : "0 1px 1px rgba(0, 0, 0, 0.12)" } as ViewStyle,
-        subtle: { boxShadow: theme.dark ? "0 1px 2px rgba(0, 0, 0, 0.32)" : "0 1px 2px rgba(0, 0, 0, 0.05)" } as ViewStyle,
-        elevated: { boxShadow: theme.dark ? "0 20px 40px rgba(0, 0, 0, 0.38)" : "0 20px 40px rgba(0, 0, 0, 0.15)" } as ViewStyle,
-        glow: { boxShadow: `0 0 20px ${theme.colors.primary}` } as ViewStyle,
-        glass: { boxShadow: theme.dark ? "0 4px 30px rgba(0, 0, 0, 0.32)" : "0 4px 30px rgba(0, 0, 0, 0.05)" } as ViewStyle,
-        card: { boxShadow: theme.dark ? "0 1px 2px rgba(0, 0, 0, 0.32)" : "0 1px 3px rgba(0, 0, 0, 0.08)" } as ViewStyle,
-        cardHover: { boxShadow: theme.dark ? "0 8px 24px rgba(0, 0, 0, 0.36)" : "0 8px 24px rgba(0, 0, 0, 0.12)" } as ViewStyle,
-        cardSubtle: { boxShadow: theme.dark ? "0 1px 2px rgba(0, 0, 0, 0.32)" : "0 1px 3px rgba(0, 0, 0, 0.05)" } as ViewStyle,
-      };
-
-      return webShadows[type];
-    }
-
-    return Platform.select({
-      default: config,
-    }) as ViewStyle;
+    return {
+      boxShadow: `${x}px ${y}px ${blur}px ${withAlpha(color, alpha)}`,
+    } as ViewStyle;
   }, [theme]);
 
   const getFocusRingStyle = useCallback((offset = 2): ViewStyle => {
