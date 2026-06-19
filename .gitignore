@@ -48,13 +48,8 @@ coverage/
 CLAUDE.md
 .agents/
 
-# Agent framework: keep current docs and HTML plans durable, ignore other
-# generated or legacy Agent artifacts by default.
-Agent/*
-!Agent/Docs/
-!Agent/Docs/**
-!Agent/Plans/
-!Agent/Plans/**
+# Agent framework: local specs are disposable and never tracked.
+/Agent/
 
 # Playwright MCP session artifacts (screenshots, page snapshots, console logs)
 .playwright-mcp/
