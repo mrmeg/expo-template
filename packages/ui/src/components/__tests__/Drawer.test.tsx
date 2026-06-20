@@ -305,4 +305,41 @@ describe("Drawer rail variant", () => {
       Platform.OS = originalOS;
     }
   });
+
+  it("collapses when toggled off mid-hover, then peeks again on re-enter (web)", async () => {
+    const originalOS = Platform.OS;
+    Platform.OS = "web";
+    try {
+      await render(
+        <Drawer variant="rail" collapsedWidth={72} expandedWidth={220} defaultExpanded>
+          <Drawer.Content testID="rail-panel">
+            <Drawer.Header>
+              <Drawer.ToggleCollapse>
+                <Text>Toggle</Text>
+              </Drawer.ToggleCollapse>
+            </Drawer.Header>
+          </Drawer.Content>
+        </Drawer>
+      );
+
+      const panel = () => screen.getByTestId("rail-panel");
+      const widthOf = () => StyleSheet.flatten(panel().props.style).width;
+
+      // Pinned open; pointer enters while open.
+      expect(widthOf()).toBe(220);
+      await act(async () => { panel().props.onMouseEnter(); });
+      expect(widthOf()).toBe(220);
+
+      // Toggle off WITHOUT leaving: hover must not hold it open.
+      await act(async () => { fireEvent.press(screen.getByLabelText("Collapse sidebar")); });
+      expect(widthOf()).toBe(72);
+
+      // Leaving and re-entering re-enables peek-on-hover.
+      await act(async () => { panel().props.onMouseLeave(); });
+      await act(async () => { panel().props.onMouseEnter(); });
+      expect(widthOf()).toBe(220);
+    } finally {
+      Platform.OS = originalOS;
+    }
+  });
 });

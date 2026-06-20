@@ -735,7 +735,26 @@ function DrawerRailContent({
   // so hovering then leaving never clears a pin the toggle set — they don't
   // share one piece of state. Hover is web-only (native has no pointer).
   const [hovered, setHovered] = useState(false);
-  const effectiveExpanded = expanded || (expandOnHover && hovered);
+
+  // If the rail is explicitly collapsed (toggle / controlled prop flips
+  // `expanded` true→false) while the pointer is still over it, the active hover
+  // would instantly re-expand it and the collapse would look like a no-op.
+  // Suppress the current hover session in that case; a fresh mouse-enter clears
+  // the suppression so peek-on-hover works again. Tracked in a ref, read during
+  // the re-render that the `expanded` change already triggers (same pattern as
+  // `lastExpandedRef` below).
+  const hoverSuppressedRef = useRef(false);
+  const prevExpandedRef = useRef(expanded);
+  if (prevExpandedRef.current !== expanded) {
+    const wasExpanded = prevExpandedRef.current;
+    prevExpandedRef.current = expanded;
+    if (wasExpanded && !expanded && hovered) {
+      hoverSuppressedRef.current = true;
+    }
+  }
+
+  const effectiveExpanded =
+    expanded || (expandOnHover && hovered && !hoverSuppressedRef.current);
 
   const textColor = theme.colors.foreground;
   const targetWidth = effectiveExpanded ? expandedWidth : collapsedWidth;
@@ -786,12 +805,19 @@ function DrawerRailContent({
 
   // Hover-to-expand is web-only; native relies on Drawer.ToggleCollapse. These
   // only toggle the transient hover state — they never touch the pinned
-  // `expanded`, so leaving the rail can't collapse a toggle-pinned panel.
+  // `expanded`, so leaving the rail can't collapse a toggle-pinned panel. A
+  // fresh mouse-enter clears any hover suppression left by an in-place collapse.
   const hoverHandlers =
     Platform.OS === "web" && expandOnHover
       ? {
-        onMouseEnter: () => setHovered(true),
-        onMouseLeave: () => setHovered(false),
+        onMouseEnter: () => {
+          hoverSuppressedRef.current = false;
+          setHovered(true);
+        },
+        onMouseLeave: () => {
+          hoverSuppressedRef.current = false;
+          setHovered(false);
+        },
       }
       : {};
 
