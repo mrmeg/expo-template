@@ -2,31 +2,28 @@ import * as React from "react";
 import type { StyleProp, TextProps, TextStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import Feather from "@expo/vector-icons/Feather";
-import type { Theme } from "../constants/colors";
+import type { ThemeColors } from "../constants/colors";
 
 /**
- * Theme color names that can be used as shortcuts
- * Only includes colors that actually exist in the theme
+ * Theme color names that can be used as shortcuts.
+ *
+ * Derived from {@link ThemeColors} so it always covers every semantic token
+ * (`foreground`, `accent`, `border`, …) and can never drift from the theme.
  */
-export type ThemeColorName =
-  | "primary"
-  | "primaryForeground"
-  | "secondary"
-  | "muted"
-  | "destructive"
-  | "success"
-  | "warning"
-  | "text"
-  | "textDim";
+export type ThemeColorName = keyof ThemeColors;
 
-const THEME_COLOR_KEYS: readonly ThemeColorName[] = [
-  "primary", "primaryForeground", "secondary", "muted",
-  "destructive", "success", "warning", "text", "textDim",
-] as const;
-
-function resolveIconColor(color: string | ThemeColorName | undefined, themeColors: Theme["colors"]): string {
+/**
+ * Resolve an icon color against the active theme.
+ *
+ * A string that names an existing theme color resolves to that semantic color;
+ * anything else is treated as a literal color value (hex, `rgb()`, or a CSS
+ * named color). Checking the live theme object — rather than a hand-maintained
+ * list — means new tokens are usable as icon colors automatically, and a token
+ * name never silently falls through as an invalid literal.
+ */
+function resolveIconColor(color: string | ThemeColorName | undefined, themeColors: ThemeColors): string {
   if (!color) return themeColors.text;
-  if (THEME_COLOR_KEYS.includes(color as ThemeColorName)) {
+  if (Object.prototype.hasOwnProperty.call(themeColors, color)) {
     return themeColors[color as ThemeColorName];
   }
   return color;

@@ -16,10 +16,21 @@ jest.mock("../../hooks/useTheme", () => ({
         warning: "#F59E0B",
         text: "#111827",
         textDim: "#6B7280",
+        foreground: "#0A0A0A",
+        accent: "#14B8A6",
       },
     },
   }),
 }));
+
+function iconColorOf(element: React.ReactElement): string {
+  let renderer: TestRenderer.ReactTestRenderer | undefined;
+  act(() => {
+    renderer = TestRenderer.create(element);
+  });
+  const node = renderer!.root.findByProps({ testID: "icon-Feather" });
+  return node.props.color;
+}
 
 describe("Icon", () => {
   it("renders web font icons inside a View without raw text-node warnings", () => {
@@ -61,5 +72,18 @@ describe("Icon", () => {
     expect(icons[1].props.importantForAccessibility).toBe("no-hide-descendants");
     expect(icons[1].props.accessibilityElementsHidden).toBe(true);
     expect(icons[1].props["aria-hidden"]).toBe(true);
+  });
+
+  it("resolves any theme color name to its semantic value", () => {
+    // Includes tokens beyond the old hard-coded shortcut list (foreground, accent),
+    // which previously fell through as invalid literal strings.
+    expect(iconColorOf(<Icon name="box" color="accent" />)).toBe("#14B8A6");
+    expect(iconColorOf(<Icon name="home" color="foreground" />)).toBe("#0A0A0A");
+    expect(iconColorOf(<Icon name="check" color="primary" />)).toBe("#0F172A");
+  });
+
+  it("defaults to the theme text color and passes literal colors through", () => {
+    expect(iconColorOf(<Icon name="mic" />)).toBe("#111827");
+    expect(iconColorOf(<Icon name="mic" color="#FF0000" />)).toBe("#FF0000");
   });
 });
