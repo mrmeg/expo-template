@@ -536,7 +536,7 @@ function useShowcaseScreenContent() {
                     <Drawer.Header>
                       <View style={{ flexDirection: "row", alignItems: "center", height: 32 }}>
                         <View style={{ width: 40, alignItems: "center" }}>
-                          <Icon name="box" size={22} color="accent" />
+                          <Icon name="box" size={22} color={theme.colors.accent} />
                         </View>
                         <StyledText numberOfLines={1} style={[styles.boldText, { fontSize: 16 }]}>
                           Acme
@@ -556,7 +556,7 @@ function useShowcaseScreenContent() {
                             style={{ flexDirection: "row", alignItems: "center", height: 24 }}
                           >
                             <View style={{ width: 40, alignItems: "center" }}>
-                              <Icon name={item.icon} size={20} color="foreground" />
+                              <Icon name={item.icon} size={20} color={theme.colors.foreground} />
                             </View>
                             <StyledText numberOfLines={1} style={styles.labelText}>
                               {item.label}
@@ -570,7 +570,7 @@ function useShowcaseScreenContent() {
                         <Button preset="ghost">
                           <View style={{ flexDirection: "row", alignItems: "center", height: 24 }}>
                             <View style={{ width: 40, alignItems: "center" }}>
-                              <Icon name="sidebar" size={20} color="foreground" />
+                              <Icon name="sidebar" size={20} color={theme.colors.foreground} />
                             </View>
                             <StyledText numberOfLines={1} style={styles.ghostButtonText}>
                               Toggle
