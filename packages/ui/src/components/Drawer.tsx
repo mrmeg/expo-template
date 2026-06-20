@@ -68,6 +68,14 @@ const FullWindowOverlay = Platform.OS === "ios" ? RNFullWindowOverlay : React.Fr
 
 type DrawerSide = "left" | "right";
 
+/**
+ * Drawer presentation mode.
+ * - `"overlay"` (default): modal drawer that slides in over content with a backdrop.
+ * - `"rail"`: docked, always-mounted collapsible sidebar (icon strip that expands to
+ *   a labeled panel). It is in-flow and pushes sibling content as it grows.
+ */
+type DrawerVariant = "overlay" | "rail";
+
 interface DrawerContextValue {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -75,6 +83,14 @@ interface DrawerContextValue {
   side: DrawerSide;
   width: number;
   closeOnBackdropPress: boolean;
+  // Rail mode
+  variant: DrawerVariant;
+  expanded: boolean;
+  setExpanded: (expanded: boolean) => void;
+  toggleExpanded: () => void;
+  collapsedWidth: number;
+  expandedWidth: number;
+  expandOnHover: boolean;
 }
 
 interface DrawerProps {
@@ -86,10 +102,30 @@ interface DrawerProps {
   defaultOpen?: boolean;
   /** Which side the drawer appears from */
   side?: DrawerSide;
-  /** Drawer width in pixels or percentage string */
+  /** Drawer width in pixels or percentage string (overlay mode only) */
   width?: number | `${number}%`;
   /** Whether to close when backdrop is pressed */
   closeOnBackdropPress?: boolean;
+  /**
+   * Presentation mode. `"overlay"` (default) is the classic modal drawer;
+   * `"rail"` is a docked collapsible sidebar. See {@link DrawerVariant}.
+   */
+  variant?: DrawerVariant;
+  /** Collapsed (icon-strip) width in pixels for rail mode. @default 72 */
+  collapsedWidth?: number;
+  /** Expanded (labeled-panel) width in pixels for rail mode. @default 240 */
+  expandedWidth?: number;
+  /**
+   * Whether the rail expands on hover (web only — native has no hover).
+   * @default true on web, false on native
+   */
+  expandOnHover?: boolean;
+  /** Default expanded state for uncontrolled rail mode. @default false */
+  defaultExpanded?: boolean;
+  /** Controlled expanded state for rail mode */
+  expanded?: boolean;
+  /** Callback when rail expanded state changes */
+  onExpandedChange?: (expanded: boolean) => void;
   /** Children components */
   children: React.ReactNode;
 }
@@ -180,6 +216,13 @@ function DrawerRoot({
   side = "left",
   width = 300,
   closeOnBackdropPress = true,
+  variant = "overlay",
+  collapsedWidth = 72,
+  expandedWidth = 240,
+  expandOnHover = Platform.OS === "web",
+  defaultExpanded = false,
+  expanded: controlledExpanded,
+  onExpandedChange: controlledOnExpandedChange,
   children,
 }: DrawerProps) {
   // Use reducer for stable state management - dispatch is stable and reducer always gets current state
@@ -187,6 +230,27 @@ function DrawerRoot({
 
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
+
+  // Rail expand/collapse state (mirrors the open machinery: controlled or uncontrolled)
+  const [internalExpanded, expandedDispatch] = useReducer(drawerReducer, defaultExpanded);
+  const isExpandedControlled = controlledExpanded !== undefined;
+  const expanded = isExpandedControlled ? controlledExpanded : internalExpanded;
+
+  const setExpanded = (newExpanded: boolean) => {
+    if (isExpandedControlled) {
+      controlledOnExpandedChange?.(newExpanded);
+    } else {
+      expandedDispatch({ type: newExpanded ? "OPEN" : "CLOSE" });
+    }
+  };
+
+  const toggleExpanded = () => {
+    if (isExpandedControlled) {
+      controlledOnExpandedChange?.(!controlledExpanded);
+    } else {
+      expandedDispatch({ type: "TOGGLE" });
+    }
+  };
 
   // Stable toggle function - dispatch is stable across renders
   const toggle = () => {
@@ -219,6 +283,13 @@ function DrawerRoot({
     side,
     width: parsedWidth,
     closeOnBackdropPress,
+    variant,
+    expanded,
+    setExpanded,
+    toggleExpanded,
+    collapsedWidth,
+    expandedWidth,
+    expandOnHover,
   };
 
   return (
@@ -268,10 +339,77 @@ function DrawerTrigger({ asChild, children, style: styleOverride }: DrawerTrigge
 }
 
 // ============================================================================
+// Drawer ToggleCollapse Component (rail mode expand/collapse)
+// ============================================================================
+
+interface DrawerToggleCollapseProps {
+  /** Use child component as the toggle */
+  asChild?: boolean;
+  /** Children components */
+  children: React.ReactNode;
+  /** Optional style override */
+  style?: StyleProp<ViewStyle>;
+}
+
+/**
+ * Toggles the rail's expanded state. Native has no hover, so a rail needs an
+ * explicit expand/collapse control; this provides it. On web it works too and
+ * coexists with `expandOnHover`.
+ */
+function DrawerToggleCollapse({ asChild, children, style: styleOverride }: DrawerToggleCollapseProps) {
+  const { expanded, toggleExpanded } = useDrawerContext();
+  const accessibilityLabel = expanded ? "Collapse sidebar" : "Expand sidebar";
+
+  const handlePress = () => {
+    toggleExpanded();
+  };
+
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children as React.ReactElement<any>, {
+      onPress: handlePress,
+      accessibilityRole: "button",
+      accessibilityLabel,
+      style: [
+        (children as React.ReactElement<any>).props.style,
+        Platform.OS === "web" && { cursor: "pointer" as any },
+        styleOverride,
+      ],
+    });
+  }
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      style={[
+        Platform.OS === "web" && { cursor: "pointer" as any },
+        styleOverride,
+      ]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+// ============================================================================
 // Drawer Content Component
 // ============================================================================
 
-function DrawerContent({
+/**
+ * DrawerContent dispatches to the overlay or rail implementation based on the
+ * `variant` set on the Drawer root. Both implementations are separate components
+ * so their hooks never run conditionally.
+ */
+function DrawerContent(props: DrawerContentProps) {
+  const { variant } = useDrawerContext();
+  if (variant === "rail") {
+    return <DrawerRailContent {...props} />;
+  }
+  return <DrawerOverlayContent {...props} />;
+}
+
+function DrawerOverlayContent({
   swipeEnabled = true,
   swipeThreshold = 0.3,
   velocityThreshold = 500,
@@ -563,6 +701,113 @@ function DrawerContent({
 }
 
 // ============================================================================
+// Drawer Rail Content Component
+// ============================================================================
+
+/**
+ * Rail variant of DrawerContent: a docked, always-mounted collapsible sidebar.
+ *
+ * Native open model: the rail is always docked and collapsed; `Drawer.ToggleCollapse`
+ * (or hover on web) expands it. It is decoupled from the overlay `open` state — there
+ * is no slide-in/unmount.
+ *
+ * Layout model: the rail is **in-flow** and pushes sibling content. The panel itself
+ * occupies layout width (`collapsedWidth` → `expandedWidth`); animating that width
+ * reflows whatever renders beside it. Put the rail and the content in a
+ * `flexDirection: "row"` container so the content claims the remaining space.
+ */
+function DrawerRailContent({
+  // Overlay-only props are accepted (shared DrawerContentProps) but ignored in rail mode.
+  swipeEnabled: _swipeEnabled,
+  swipeThreshold: _swipeThreshold,
+  velocityThreshold: _velocityThreshold,
+  style: styleOverride,
+  children,
+  ...props
+}: DrawerContentProps) {
+  const { side, expanded, setExpanded, collapsedWidth, expandedWidth, expandOnHover } =
+    useDrawerContext();
+  const { theme, getShadowStyle } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  const textColor = theme.colors.foreground;
+  const targetWidth = expanded ? expandedWidth : collapsedWidth;
+
+  // Native animates width via Animated.Value (layout prop → useNativeDriver: false).
+  // Web sets the width directly and lets the inline CSS `transition` animate it.
+  const widthRef = useRef<Animated.Value | null>(null);
+  if (widthRef.current === null) {
+    widthRef.current = new Animated.Value(targetWidth);
+  }
+  const widthAnim = widthRef.current;
+
+  // Trigger the native width animation during render when `expanded` changes,
+  // mirroring the overlay's lastOpenRef pattern above. Skip the first render:
+  // the Animated.Value is already initialized to the current target, so there is
+  // nothing to animate toward on mount.
+  const lastExpandedRef = useRef<boolean | null>(null);
+  if (Platform.OS !== "web" && expanded !== lastExpandedRef.current) {
+    const previousExpanded = lastExpandedRef.current;
+    lastExpandedRef.current = expanded;
+    if (previousExpanded !== null) {
+      Animated.timing(widthAnim, {
+        toValue: targetWidth,
+        duration: 180,
+        useNativeDriver: false,
+      }).start();
+    }
+  }
+
+  const shadowStyle = expanded
+    ? StyleSheet.flatten(getShadowStyle("elevated"))
+    : undefined;
+
+  // The rail is in-flow: its own width is what content sits beside, so growing it
+  // pushes that content. No absolute positioning, no spacer.
+  const panelStyle: Animated.WithAnimatedObject<ViewStyle> = {
+    width: Platform.OS === "web" ? targetWidth : widthAnim,
+    overflow: "hidden",
+    backgroundColor: theme.colors.background,
+    borderColor: theme.colors.border,
+    ...(side === "left" ? { borderRightWidth: 1 } : { borderLeftWidth: 1 }),
+    paddingTop: insets.top,
+    paddingBottom: insets.bottom,
+    ...(Platform.OS === "web" && {
+      transition: "width 0.18s ease, box-shadow 0.18s ease",
+    }),
+  };
+
+  // Hover-to-expand is web-only; native relies on Drawer.ToggleCollapse.
+  const hoverHandlers =
+    Platform.OS === "web" && expandOnHover
+      ? {
+        onMouseEnter: () => setExpanded(true),
+        onMouseLeave: () => setExpanded(false),
+      }
+      : {};
+
+  return (
+    <Animated.View
+      style={[
+        panelStyle,
+        shadowStyle,
+        styleOverride && typeof styleOverride !== "function"
+          ? StyleSheet.flatten(styleOverride)
+          : undefined,
+      ]}
+      {...(Platform.OS === "web" && ({ role: "navigation", ...hoverHandlers } as any))}
+      {...props}
+    >
+      <TextColorContext.Provider value={textColor}>
+        <TextClassContext.Provider value="">
+          {children}
+        </TextClassContext.Provider>
+      </TextColorContext.Provider>
+    </Animated.View>
+  );
+}
+
+// ============================================================================
 // Drawer Header Component
 // ============================================================================
 
@@ -701,6 +946,7 @@ const Drawer = Object.assign(DrawerRoot, {
   Body: DrawerBody,
   Footer: DrawerFooter,
   Close: DrawerClose,
+  ToggleCollapse: DrawerToggleCollapse,
 });
 
 export {
@@ -711,15 +957,18 @@ export {
   DrawerBody,
   DrawerFooter,
   DrawerClose,
+  DrawerToggleCollapse,
   useDrawerClose,
 };
 
 export type {
   DrawerProps,
+  DrawerVariant,
   DrawerTriggerProps,
   DrawerContentProps,
   DrawerHeaderProps,
   DrawerBodyProps,
   DrawerFooterProps,
   DrawerCloseProps,
+  DrawerToggleCollapseProps,
 };

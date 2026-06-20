@@ -516,6 +516,81 @@ function useShowcaseScreenContent() {
                 </Drawer.Content>
               </Drawer>
             </SubSection>
+
+            <SubSection label="Collapsible Rail">
+              {/* Docked rail beside content. On web hover the strip to expand; on
+                  native tap the toggle. The rail is in-flow, so expanding it pushes
+                  the content area to the right (it reflows — watch the text reflow). */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  height: 280,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border,
+                  borderRadius: spacing.radiusLg,
+                  overflow: "hidden",
+                }}
+              >
+                <Drawer variant="rail" collapsedWidth={72} expandedWidth={220}>
+                  <Drawer.Content>
+                    <Drawer.Header>
+                      <View style={{ flexDirection: "row", alignItems: "center", height: 32 }}>
+                        <View style={{ width: 40, alignItems: "center" }}>
+                          <Icon name="box" size={22} color="accent" />
+                        </View>
+                        <StyledText numberOfLines={1} style={[styles.boldText, { fontSize: 16 }]}>
+                          Acme
+                        </StyledText>
+                      </View>
+                    </Drawer.Header>
+                    <Drawer.Body>
+                      <View style={{ gap: spacing.lg }}>
+                        {([
+                          { icon: "home", label: "Home" },
+                          { icon: "user", label: "Profile" },
+                          { icon: "bar-chart-2", label: "Analytics" },
+                          { icon: "settings", label: "Settings" },
+                        ] as const).map((item) => (
+                          <View
+                            key={item.label}
+                            style={{ flexDirection: "row", alignItems: "center", height: 24 }}
+                          >
+                            <View style={{ width: 40, alignItems: "center" }}>
+                              <Icon name={item.icon} size={20} color="foreground" />
+                            </View>
+                            <StyledText numberOfLines={1} style={styles.labelText}>
+                              {item.label}
+                            </StyledText>
+                          </View>
+                        ))}
+                      </View>
+                    </Drawer.Body>
+                    <Drawer.Footer>
+                      <Drawer.ToggleCollapse asChild>
+                        <Button preset="ghost">
+                          <View style={{ flexDirection: "row", alignItems: "center", height: 24 }}>
+                            <View style={{ width: 40, alignItems: "center" }}>
+                              <Icon name="sidebar" size={20} color="foreground" />
+                            </View>
+                            <StyledText numberOfLines={1} style={styles.ghostButtonText}>
+                              Toggle
+                            </StyledText>
+                          </View>
+                        </Button>
+                      </Drawer.ToggleCollapse>
+                    </Drawer.Footer>
+                  </Drawer.Content>
+                </Drawer>
+                <View style={{ flex: 1, padding: spacing.md, gap: spacing.sm }}>
+                  <StyledText style={[styles.boldText, { fontSize: 16 }]}>Content area</StyledText>
+                  <StyledText style={styles.labelText}>
+                    Hover the rail (web) or tap Toggle (native) to expand it. The rail is
+                    in-flow, so expanding it pushes this content to the right and reflows
+                    the text.
+                  </StyledText>
+                </View>
+              </View>
+            </SubSection>
           </Section>
 
           <Section title="Dropdown Menu">
