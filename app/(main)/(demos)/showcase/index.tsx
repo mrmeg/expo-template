@@ -1,5 +1,5 @@
 import React, { memo, useMemo, useReducer, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
 import { KeyboardAwareScrollView, DismissKeyboardOverlay } from "@/client/features/keyboard/platform";
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
@@ -534,14 +534,22 @@ function useShowcaseScreenContent() {
                 <Drawer variant="rail" collapsedWidth={72} expandedWidth={220}>
                   <Drawer.Content>
                     <Drawer.Header>
-                      <View style={{ flexDirection: "row", alignItems: "center", height: 32 }}>
-                        <View style={{ width: 40, alignItems: "center" }}>
-                          <Icon name="box" size={22} color="accent" />
-                        </View>
-                        <StyledText numberOfLines={1} style={[styles.boldText, { fontSize: 16 }]}>
-                          Acme
-                        </StyledText>
-                      </View>
+                      {/* Toggle lives at the top: tap the icon to expand/collapse
+                          (native); the brand name appears once expanded. */}
+                      <Drawer.ToggleCollapse asChild>
+                        <Pressable
+                          style={Platform.OS === "web" ? { cursor: "pointer" as any } : undefined}
+                        >
+                          <View style={{ flexDirection: "row", alignItems: "center", height: 32 }}>
+                            <View style={{ width: 40, alignItems: "center" }}>
+                              <Icon name="sidebar" size={22} color="accent" />
+                            </View>
+                            <StyledText numberOfLines={1} style={[styles.boldText, { fontSize: 16 }]}>
+                              Acme
+                            </StyledText>
+                          </View>
+                        </Pressable>
+                      </Drawer.ToggleCollapse>
                     </Drawer.Header>
                     <Drawer.Body>
                       <View style={{ gap: spacing.lg }}>
@@ -565,20 +573,6 @@ function useShowcaseScreenContent() {
                         ))}
                       </View>
                     </Drawer.Body>
-                    <Drawer.Footer>
-                      <Drawer.ToggleCollapse asChild>
-                        <Button preset="ghost">
-                          <View style={{ flexDirection: "row", alignItems: "center", height: 24 }}>
-                            <View style={{ width: 40, alignItems: "center" }}>
-                              <Icon name="sidebar" size={20} color="foreground" />
-                            </View>
-                            <StyledText numberOfLines={1} style={styles.ghostButtonText}>
-                              Toggle
-                            </StyledText>
-                          </View>
-                        </Button>
-                      </Drawer.ToggleCollapse>
-                    </Drawer.Footer>
                   </Drawer.Content>
                 </Drawer>
                 <View style={{ flex: 1, padding: spacing.md, gap: spacing.sm }}>
