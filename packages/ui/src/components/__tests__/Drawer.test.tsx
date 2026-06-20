@@ -8,7 +8,7 @@
 
 import React from "react";
 import { Animated, Platform, StyleSheet, Text } from "react-native";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import { render, screen, fireEvent, act } from "@testing-library/react-native";
 import { Drawer } from "../Drawer";
 
 // The Drawer drives open/close (overlay) and width (rail) through Animated,
@@ -240,6 +240,67 @@ describe("Drawer rail variant", () => {
         screen.getByTestId("rail-panel").props.style
       ).width;
       expect(expandedWidth).toBe(220);
+    } finally {
+      Platform.OS = originalOS;
+    }
+  });
+
+  it("keeps a toggle-pinned rail open after a hover ends (web)", async () => {
+    const originalOS = Platform.OS;
+    Platform.OS = "web";
+    try {
+      await render(
+        <Drawer variant="rail" collapsedWidth={72} expandedWidth={220} defaultExpanded={false}>
+          <Drawer.Content testID="rail-panel">
+            <Drawer.Header>
+              <Drawer.ToggleCollapse>
+                <Text>Toggle</Text>
+              </Drawer.ToggleCollapse>
+            </Drawer.Header>
+          </Drawer.Content>
+        </Drawer>
+      );
+
+      const panel = () => screen.getByTestId("rail-panel");
+      const widthOf = () => StyleSheet.flatten(panel().props.style).width;
+
+      // Pin open via the toggle.
+      await act(async () => { fireEvent.press(screen.getByLabelText("Expand sidebar")); });
+      expect(widthOf()).toBe(220);
+
+      // A transient hover-in then hover-out must NOT collapse the pinned rail.
+      // (fireEvent only maps standard RN events, so call the web hover handlers
+      // directly inside an async act so the state update flushes.)
+      await act(async () => { panel().props.onMouseEnter(); });
+      await act(async () => { panel().props.onMouseLeave(); });
+      expect(widthOf()).toBe(220);
+    } finally {
+      Platform.OS = originalOS;
+    }
+  });
+
+  it("expands on hover and collapses on mouse leave when not pinned (web)", async () => {
+    const originalOS = Platform.OS;
+    Platform.OS = "web";
+    try {
+      await render(
+        <Drawer variant="rail" collapsedWidth={72} expandedWidth={220}>
+          <Drawer.Content testID="rail-panel">
+            <Drawer.Body>
+              <Text>Home</Text>
+            </Drawer.Body>
+          </Drawer.Content>
+        </Drawer>
+      );
+
+      const panel = () => screen.getByTestId("rail-panel");
+      const widthOf = () => StyleSheet.flatten(panel().props.style).width;
+
+      expect(widthOf()).toBe(72);
+      await act(async () => { panel().props.onMouseEnter(); });
+      expect(widthOf()).toBe(220);
+      await act(async () => { panel().props.onMouseLeave(); });
+      expect(widthOf()).toBe(72);
     } finally {
       Platform.OS = originalOS;
     }

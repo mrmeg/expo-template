@@ -725,13 +725,20 @@ function DrawerRailContent({
   children,
   ...props
 }: DrawerContentProps) {
-  const { side, expanded, setExpanded, collapsedWidth, expandedWidth, expandOnHover } =
+  const { side, expanded, collapsedWidth, expandedWidth, expandOnHover } =
     useDrawerContext();
   const { theme, getShadowStyle } = useTheme();
   const insets = useSafeAreaInsets();
 
+  // Hover is a transient "peek" tracked locally; the pinned state comes from
+  // `expanded` (toggle / controlled prop). The rail is open when either is true,
+  // so hovering then leaving never clears a pin the toggle set — they don't
+  // share one piece of state. Hover is web-only (native has no pointer).
+  const [hovered, setHovered] = useState(false);
+  const effectiveExpanded = expanded || (expandOnHover && hovered);
+
   const textColor = theme.colors.foreground;
-  const targetWidth = expanded ? expandedWidth : collapsedWidth;
+  const targetWidth = effectiveExpanded ? expandedWidth : collapsedWidth;
 
   // Native animates width via Animated.Value (layout prop → useNativeDriver: false).
   // Web sets the width directly and lets the inline CSS `transition` animate it.
@@ -741,14 +748,14 @@ function DrawerRailContent({
   }
   const widthAnim = widthRef.current;
 
-  // Trigger the native width animation during render when `expanded` changes,
+  // Trigger the native width animation during render when expansion changes,
   // mirroring the overlay's lastOpenRef pattern above. Skip the first render:
   // the Animated.Value is already initialized to the current target, so there is
   // nothing to animate toward on mount.
   const lastExpandedRef = useRef<boolean | null>(null);
-  if (Platform.OS !== "web" && expanded !== lastExpandedRef.current) {
+  if (Platform.OS !== "web" && effectiveExpanded !== lastExpandedRef.current) {
     const previousExpanded = lastExpandedRef.current;
-    lastExpandedRef.current = expanded;
+    lastExpandedRef.current = effectiveExpanded;
     if (previousExpanded !== null) {
       Animated.timing(widthAnim, {
         toValue: targetWidth,
@@ -758,7 +765,7 @@ function DrawerRailContent({
     }
   }
 
-  const shadowStyle = expanded
+  const shadowStyle = effectiveExpanded
     ? StyleSheet.flatten(getShadowStyle("elevated"))
     : undefined;
 
@@ -777,12 +784,14 @@ function DrawerRailContent({
     }),
   };
 
-  // Hover-to-expand is web-only; native relies on Drawer.ToggleCollapse.
+  // Hover-to-expand is web-only; native relies on Drawer.ToggleCollapse. These
+  // only toggle the transient hover state — they never touch the pinned
+  // `expanded`, so leaving the rail can't collapse a toggle-pinned panel.
   const hoverHandlers =
     Platform.OS === "web" && expandOnHover
       ? {
-        onMouseEnter: () => setExpanded(true),
-        onMouseLeave: () => setExpanded(false),
+        onMouseEnter: () => setHovered(true),
+        onMouseLeave: () => setHovered(false),
       }
       : {};
 
