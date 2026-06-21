@@ -17,18 +17,7 @@ import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 // Types
 // ---------------------------------------------------------------------------
 
-export interface ScreenTemplateEntry {
-  /** Stable identifier, used as React key and for tests. */
-  id: string;
-  /** Route path that Expo Router renders for the demo. */
-  route: string;
-  /** Display label in the Explore grid. */
-  label: string;
-  /** One-line description shown beneath the label. */
-  description: string;
-  /** Feather icon name from `@mrmeg/expo-ui/components/Icon`. */
-  icon: IconName;
-}
+export type { ScreenTemplateEntry } from "@/client/templates/types";
 
 export interface DemoEntry {
   id: string;
@@ -58,21 +47,9 @@ export type ComponentCategory =
 // Screen templates — drive the Explore grid
 // ---------------------------------------------------------------------------
 
-export const SCREEN_TEMPLATES: ScreenTemplateEntry[] = [
-  { id: "settings", route: "/(main)/(demos)/screen-settings", icon: "sliders", label: "Settings", description: "Grouped lists & toggles" },
-  { id: "profile", route: "/(main)/(demos)/screen-profile", icon: "user", label: "Profile", description: "Avatar, stats, sections" },
-  { id: "list", route: "/(main)/(demos)/screen-list", icon: "list", label: "List", description: "Search & pull to refresh" },
-  { id: "pricing", route: "/(main)/(demos)/screen-pricing", icon: "credit-card", label: "Pricing", description: "Plans & comparison" },
-  { id: "welcome", route: "/(main)/(demos)/screen-welcome", icon: "log-in", label: "Welcome", description: "Landing & social login" },
-  { id: "card-grid", route: "/(main)/(demos)/screen-card-grid", icon: "grid", label: "Card Grid", description: "Filterable card layout" },
-  { id: "chat", route: "/(main)/(demos)/screen-chat", icon: "message-circle", label: "Chat", description: "Messaging conversation" },
-  { id: "dashboard", route: "/(main)/(demos)/screen-dashboard", icon: "bar-chart-2", label: "Dashboard", description: "Metrics & activity feed" },
-  { id: "form", route: "/(main)/(demos)/screen-form", icon: "edit-3", label: "Form", description: "Multi-step wizard" },
-  { id: "notifications", route: "/(main)/(demos)/screen-notifications", icon: "bell", label: "Notifications", description: "Grouped notification list" },
-  { id: "search", route: "/(main)/(demos)/screen-search", icon: "search", label: "Search", description: "Filtered search results" },
-  { id: "error", route: "/(main)/(demos)/screen-error", icon: "alert-triangle", label: "Error", description: "Error state variants" },
-  { id: "detail-hero", route: "/(main)/(demos)/detail-hero", icon: "layout", label: "Detail / Hero", description: "Hero image detail view" },
-];
+// Generated from `client/templates/*/meta.ts` by `bun run gen:templates`.
+// Add or remove a template folder and regenerate — no edit here.
+export { SCREEN_TEMPLATES } from "@/client/templates/registry.generated";
 
 // ---------------------------------------------------------------------------
 // Demos & tools — drive the Explore "Demos & Tools" section

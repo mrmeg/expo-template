@@ -69,6 +69,28 @@ describe("template registry — routes resolve to files on disk", () => {
   });
 });
 
+describe("template registry — each template is a self-contained folder", () => {
+  const templateFile = (id: string, file: string) =>
+    path.join(REPO_ROOT, "client", "templates", id, file);
+
+  it("every template id has Screen.tsx, demo.tsx, and meta.ts", () => {
+    const incomplete = SCREEN_TEMPLATES.filter(
+      (t) =>
+        !fs.existsSync(templateFile(t.id, "Screen.tsx")) ||
+        !fs.existsSync(templateFile(t.id, "demo.tsx")) ||
+        !fs.existsSync(templateFile(t.id, "meta.ts")),
+    );
+    expect(incomplete.map((t) => t.id)).toEqual([]);
+  });
+
+  it("the generated registry is sorted by order then id", () => {
+    const sorted = [...SCREEN_TEMPLATES].sort(
+      (a, b) => a.order - b.order || a.id.localeCompare(b.id),
+    );
+    expect(SCREEN_TEMPLATES.map((t) => t.id)).toEqual(sorted.map((t) => t.id));
+  });
+});
+
 describe("template registry — components", () => {
   it("getComponentCount() matches COMPONENTS.length", () => {
     expect(getComponentCount()).toBe(COMPONENTS.length);

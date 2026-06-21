@@ -1875,8 +1875,9 @@ above (Jest mocks `react-i18next`, so it can't model the SSR render on its own).
 Fetchable raw URLs for this template's example and source files
 (https://github.com/mrmeg/expo-template). Fetch a demo route to see components composed in a real screen,
 then the matching screen template or component source for implementation
-detail. Screen templates in `client/screens/` pair with demo routes named
-`screen-<name>.tsx`.
+detail. Screen templates live in self-contained folders under
+`client/templates/<name>/` (`Screen.tsx` + `demo.tsx` + `meta.ts`); the
+`app/(main)/(demos)/screen-<name>.tsx` route re-exports the demo.
 
 ## Demo Routes (`app/(main)/(demos)/`)
 
@@ -1904,23 +1905,51 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/showcase/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/showcase/index.tsx
 - app/(main)/(demos)/themed-showcase.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/themed-showcase.tsx
 
-## Screen Templates (`client/screens/`)
+## Screen Templates (`client/templates/`)
 
-Reusable screen implementations. Pass data and callbacks in from a feature folder; do not embed domain logic.
+Self-contained template folders: Screen.tsx is the reusable, props-driven component (pass data/callbacks from a feature folder; no domain logic), demo.tsx is a worked example with sample data, meta.ts is registry metadata.
 
-- client/screens/CardGridScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/CardGridScreen.tsx
-- client/screens/ChatScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/ChatScreen.tsx
-- client/screens/DashboardScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/DashboardScreen.tsx
-- client/screens/DetailHeroScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/DetailHeroScreen.tsx
-- client/screens/ErrorScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/ErrorScreen.tsx
-- client/screens/FormScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/FormScreen.tsx
-- client/screens/ListScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/ListScreen.tsx
-- client/screens/NotificationListScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/NotificationListScreen.tsx
-- client/screens/PricingScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/PricingScreen.tsx
-- client/screens/ProfileScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/ProfileScreen.tsx
-- client/screens/SearchResultsScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/SearchResultsScreen.tsx
-- client/screens/SettingsScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/SettingsScreen.tsx
-- client/screens/WelcomeScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/screens/WelcomeScreen.tsx
+- client/templates/card-grid/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/card-grid/Screen.tsx
+- client/templates/card-grid/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/card-grid/demo.tsx
+- client/templates/card-grid/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/card-grid/meta.ts
+- client/templates/chat/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/chat/Screen.tsx
+- client/templates/chat/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/chat/demo.tsx
+- client/templates/chat/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/chat/meta.ts
+- client/templates/dashboard/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/dashboard/Screen.tsx
+- client/templates/dashboard/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/dashboard/demo.tsx
+- client/templates/dashboard/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/dashboard/meta.ts
+- client/templates/detail-hero/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/detail-hero/Screen.tsx
+- client/templates/detail-hero/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/detail-hero/demo.tsx
+- client/templates/detail-hero/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/detail-hero/meta.ts
+- client/templates/error/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/error/Screen.tsx
+- client/templates/error/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/error/demo.tsx
+- client/templates/error/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/error/meta.ts
+- client/templates/form/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/form/Screen.tsx
+- client/templates/form/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/form/demo.tsx
+- client/templates/form/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/form/meta.ts
+- client/templates/list/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/list/Screen.tsx
+- client/templates/list/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/list/demo.tsx
+- client/templates/list/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/list/meta.ts
+- client/templates/notifications/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/notifications/Screen.tsx
+- client/templates/notifications/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/notifications/demo.tsx
+- client/templates/notifications/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/notifications/meta.ts
+- client/templates/pricing/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/pricing/Screen.tsx
+- client/templates/pricing/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/pricing/demo.tsx
+- client/templates/pricing/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/pricing/meta.ts
+- client/templates/profile/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/profile/Screen.tsx
+- client/templates/profile/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/profile/demo.tsx
+- client/templates/profile/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/profile/meta.ts
+- client/templates/registry.generated.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/registry.generated.ts
+- client/templates/search/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/search/Screen.tsx
+- client/templates/search/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/search/demo.tsx
+- client/templates/search/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/search/meta.ts
+- client/templates/settings/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/settings/Screen.tsx
+- client/templates/settings/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/settings/demo.tsx
+- client/templates/settings/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/settings/meta.ts
+- client/templates/types.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/types.ts
+- client/templates/welcome/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/welcome/Screen.tsx
+- client/templates/welcome/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/welcome/demo.tsx
+- client/templates/welcome/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/welcome/meta.ts
 
 ## UI Component Source (`packages/ui/src/components/`)
 

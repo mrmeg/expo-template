@@ -14,9 +14,9 @@ import React from "react";
 import { Text, View } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
-import { ErrorScreen } from "../ErrorScreen";
-import { ListScreen } from "../ListScreen";
-import { WelcomeScreen } from "../WelcomeScreen";
+import { ErrorScreen } from "../error/Screen";
+import { ListScreen } from "../list/Screen";
+import { WelcomeScreen } from "../welcome/Screen";
 
 describe("WelcomeScreen", () => {
   it("renders title, subtitle, primary action, and footer", async () => {

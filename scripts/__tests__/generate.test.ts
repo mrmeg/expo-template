@@ -92,33 +92,50 @@ describe("getPlannedFiles — component", () => {
 });
 
 describe("getPlannedFiles — screen", () => {
-  it("emits both a reusable component in client/screens and a kebab-cased demo route", () => {
+  it("emits a self-contained template folder plus a kebab-cased route re-export", () => {
     const plan = getPlannedFiles("screen", "AccountSettings");
     expect(plan.files.map((f) => f.relativePath)).toEqual([
-      "client/screens/AccountSettingsScreen.tsx",
+      "client/templates/account-settings/Screen.tsx",
+      "client/templates/account-settings/demo.tsx",
+      "client/templates/account-settings/meta.ts",
+      "client/templates/account-settings/README.md",
       "app/(main)/(demos)/screen-account-settings.tsx",
     ]);
   });
 
-  it("the demo route renders the reusable screen component", () => {
+  it("the route file re-exports the demo from the template folder", () => {
     const plan = getPlannedFiles("screen", "Welcome");
-    const demo = plan.files.find((f) => f.relativePath.startsWith("app/"))!;
-    expect(demo.content).toContain(
-      "import { WelcomeScreen } from \"@/client/screens/WelcomeScreen\";",
+    const route = plan.files.find((f) => f.relativePath.startsWith("app/"))!;
+    expect(route.content).toContain(
+      "export { default } from \"@/client/templates/welcome/demo\";",
     );
+  });
+
+  it("the demo imports the reusable Screen from the same folder", () => {
+    const plan = getPlannedFiles("screen", "Welcome");
+    const demo = plan.files.find((f) => f.relativePath.endsWith("demo.tsx"))!;
+    expect(demo.content).toContain("import { WelcomeScreen } from \"./Screen\";");
     expect(demo.content).toContain("<WelcomeScreen />");
   });
 
   it("exports the reusable screen as a named export, not default", () => {
     const plan = getPlannedFiles("screen", "Welcome");
-    const component = plan.files.find((f) => f.relativePath.startsWith("client/"))!;
+    const component = plan.files.find((f) => f.relativePath.endsWith("Screen.tsx"))!;
     expect(component.content).toContain("export function WelcomeScreen");
     expect(component.content).not.toMatch(/export default/);
   });
 
-  it("flags the next step of wiring the screen into navigation", () => {
+  it("scaffolds a typed meta.ts entry for the registry codegen", () => {
+    const plan = getPlannedFiles("screen", "AccountSettings");
+    const meta = plan.files.find((f) => f.relativePath.endsWith("meta.ts"))!;
+    expect(meta.content).toContain("import type { ScreenTemplateEntry } from \"../types\";");
+    expect(meta.content).toContain("id: \"account-settings\"");
+    expect(meta.content).toContain("route: \"/(main)/(demos)/screen-account-settings\"");
+  });
+
+  it("flags running the registry codegen as the next step", () => {
     const plan = getPlannedFiles("screen", "Welcome");
-    expect(plan.followUps.some((line) => /Stack|Explore|navigation/i.test(line))).toBe(true);
+    expect(plan.followUps.some((line) => /gen:templates/i.test(line))).toBe(true);
   });
 });
 

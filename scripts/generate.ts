@@ -181,13 +181,61 @@ const createStyles = (theme: Theme) =>
 `;
 }
 
-function screenDemoRouteTemplate(name: string): string {
+function screenDemoTemplate(name: string): string {
   const pascalName = toPascalCase(name);
-  return `import { ${pascalName}Screen } from "@/client/screens/${pascalName}Screen";
+  return `import { ${pascalName}Screen } from "./Screen";
 
-export default function ${pascalName}DemoRoute() {
+/**
+ * Worked example for the ${pascalName} template. Holds the sample data/state;
+ * this is what the route renders. Copy \`Screen.tsx\` for the reusable component.
+ */
+export default function ${pascalName}Demo() {
   return <${pascalName}Screen />;
 }
+`;
+}
+
+function screenRouteReexportTemplate(kebabName: string): string {
+  return `export { default } from "@/client/templates/${kebabName}/demo";
+`;
+}
+
+function screenMetaTemplate(name: string): string {
+  const kebabName = toKebabCase(name);
+  const label = toPascalCase(name);
+  return `import type { ScreenTemplateEntry } from "../types";
+
+export const meta: ScreenTemplateEntry = {
+  id: "${kebabName}",
+  route: "/(main)/(demos)/screen-${kebabName}",
+  label: "${label}",
+  description: "TODO: one-line description",
+  icon: "layout",
+  order: 999,
+};
+`;
+}
+
+function screenReadmeTemplate(name: string): string {
+  const pascalName = toPascalCase(name);
+  const kebabName = toKebabCase(name);
+  return `# ${pascalName} template
+
+TODO: describe what this template is for.
+
+## Files
+
+- \`Screen.tsx\` — the reusable, props-driven component (\`${pascalName}Screen\`). Copy this into your app.
+- \`demo.tsx\` — a worked example with sample data; this is what the route renders.
+- \`meta.ts\` — registry metadata that drives the Explore grid.
+
+## Use it
+
+\`\`\`tsx
+import { ${pascalName}Screen } from "@/client/templates/${kebabName}/Screen";
+\`\`\`
+
+Route: \`/(main)/(demos)/screen-${kebabName}\`
 `;
 }
 
@@ -348,18 +396,21 @@ export function getPlannedFiles(type: GeneratorType, name: string): PlannedGener
   }
   case "screen": {
     const kebabName = toKebabCase(name);
-    const componentPath = `client/screens/${pascalName}Screen.tsx`;
-    const demoPath = `app/(main)/(demos)/screen-${kebabName}.tsx`;
+    const folder = `client/templates/${kebabName}`;
+    const routePath = `app/(main)/(demos)/screen-${kebabName}.tsx`;
     return {
       type,
       files: [
-        { relativePath: componentPath, content: screenComponentTemplate(name) },
-        { relativePath: demoPath, content: screenDemoRouteTemplate(name) },
+        { relativePath: `${folder}/Screen.tsx`, content: screenComponentTemplate(name) },
+        { relativePath: `${folder}/demo.tsx`, content: screenDemoTemplate(name) },
+        { relativePath: `${folder}/meta.ts`, content: screenMetaTemplate(name) },
+        { relativePath: `${folder}/README.md`, content: screenReadmeTemplate(name) },
+        { relativePath: routePath, content: screenRouteReexportTemplate(kebabName) },
       ],
       followUps: [
-        `Reusable component: @/client/screens/${pascalName}Screen`,
+        `Reusable component: @/client/templates/${kebabName}/Screen`,
         `Demo route: /(main)/(demos)/screen-${kebabName}`,
-        "Wire it into the Explore tab or a Stack entry to expose it in navigation.",
+        `Fill in meta.ts (description, icon, order), then run \`bun run gen:templates\` to add it to the Explore grid.`,
       ],
     };
   }
@@ -398,7 +449,7 @@ function showHelp() {
   log("\nUsage: bun run generate <type> <name>\n", "blue");
   log("Types:", "yellow");
   log("  component  - Create a new UI component in packages/ui/src/components/");
-  log("  screen     - Create a new reusable screen in client/screens/ + demo route in app/(main)/(demos)/");
+  log("  screen     - Create a self-contained template in client/templates/<name>/ + route re-export in app/(main)/(demos)/");
   log("  hook       - Create a new hook in client/hooks/");
   log("  form       - Create a new form component in client/components/forms/ (uses @/client/lib/form primitives)");
   log("\nExamples:", "yellow");

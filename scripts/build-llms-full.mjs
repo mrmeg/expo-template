@@ -54,9 +54,9 @@ const exampleDirs = [
     note: "Working in-app examples for every component and screen template; the best reference for real composition.",
   },
   {
-    dir: "client/screens",
+    dir: "client/templates",
     title: "Screen Templates",
-    note: "Reusable screen implementations. Pass data and callbacks in from a feature folder; do not embed domain logic.",
+    note: "Self-contained template folders: Screen.tsx is the reusable, props-driven component (pass data/callbacks from a feature folder; no domain logic), demo.tsx is a worked example with sample data, meta.ts is registry metadata.",
   },
   {
     dir: "packages/ui/src/components",
@@ -130,8 +130,9 @@ async function buildExamples() {
 Fetchable raw URLs for this template's example and source files
 (${repoUrl}). Fetch a demo route to see components composed in a real screen,
 then the matching screen template or component source for implementation
-detail. Screen templates in \`client/screens/\` pair with demo routes named
-\`screen-<name>.tsx\`.
+detail. Screen templates live in self-contained folders under
+\`client/templates/<name>/\` (\`Screen.tsx\` + \`demo.tsx\` + \`meta.ts\`); the
+\`app/(main)/(demos)/screen-<name>.tsx\` route re-exports the demo.
 
 ${sections.join("\n\n")}
 `;

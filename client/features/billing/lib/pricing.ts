@@ -12,7 +12,7 @@ import type {
   PlanDefinition,
 } from "@/shared/billing";
 import { FREE_PLAN_ID } from "@/shared/billing";
-import type { PricingPlanActionState } from "@/client/screens/PricingScreen";
+import type { PricingPlanActionState } from "@/client/templates/pricing/Screen";
 
 export interface PlanDisplay {
   /** Display price like "$19" or "—" (for free-tier / missing price). */
