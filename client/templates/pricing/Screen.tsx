@@ -187,21 +187,25 @@ export function PricingScreen({
                   ))}
                 </View>
 
-                {/* CTA */}
+                {/* CTA. Pass the label via `text` (Button's documented path for
+                    plain labels) rather than as a raw string child — a bare string
+                    child renders unwrapped inside the Button's <View>, which warns
+                    on React Native Web. */}
                 <Button
                   preset={plan.isCurrent ? "outline" : plan.highlighted ? "default" : "outline"}
                   fullWidth
                   disabled={plan.isCurrent || Boolean(plan.disabledReason) || plan.loading}
                   loading={plan.loading}
                   onPress={plan.onSelect}
-                >
-                  {plan.actionLabel ??
-                  (plan.isCurrent
-                    ? "Current plan"
-                    : plan.highlighted
-                      ? "Get Started"
-                      : "Select")}
-                </Button>
+                  text={
+                    plan.actionLabel ??
+                    (plan.isCurrent
+                      ? "Current plan"
+                      : plan.highlighted
+                        ? "Get Started"
+                        : "Select")
+                  }
+                />
                 {plan.disabledReason && !plan.isCurrent && (
                   <SansSerifText style={styles.disabledReason}>
                     {plan.disabledReason}
