@@ -39,8 +39,9 @@ export function ResponsiveRail() {
       expandedWidth={240}
       expandOnHover
     >
-      {/* paddingTop: 0 — the Stack header above already consumes the top inset,
-          so the rail must not add another insets.top on top of it. */}
+      {/* Full-height rail: it owns the top inset (the stack header is suppressed
+          on wide screens, see MainLayout), so Drawer.Content keeps its default
+          insets.top and the rail spans the whole window height. */}
       <Drawer.Content style={styles.content}>
         <Drawer.Header style={styles.header}>
           <Drawer.ToggleCollapse>
@@ -69,7 +70,6 @@ const ICON_COLUMN = 40;
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     content: {
-      paddingTop: 0,
       backgroundColor: theme.colors.card,
     },
     header: {

@@ -8,6 +8,7 @@ import { spacing } from "@mrmeg/expo-ui/constants";
 import { NAV_DESTINATIONS } from "@/client/features/navigation/navDestinations";
 import { ResponsiveTabBar } from "@/client/features/navigation/ResponsiveTabBar";
 import { ResponsiveRail } from "@/client/features/navigation/ResponsiveRail";
+import { ContentHeader } from "@/client/features/navigation/ContentHeader";
 import {
   RailNavStateContext,
   type RailNavState,
@@ -31,11 +32,18 @@ export default function TabLayout() {
   const [navState, setNavState] = useState<RailNavState | null>(null);
   const handleNavState = useCallback((next: RailNavState) => setNavState(next), []);
 
+  // Wide screens suppress the stack header (see MainLayout) so the rail can run
+  // full height; the active destination's label drives the in-content header.
+  const activeName = navState?.state.routes[navState.state.index]?.name;
+  const activeTitle =
+    NAV_DESTINATIONS.find((d) => d.name === activeName)?.label ?? "Explore";
+
   return (
     <RailNavStateContext.Provider value={navState}>
       <View style={{ flex: 1, flexDirection: "row" }}>
         {!isSmallScreen && <ResponsiveRail />}
         <View style={{ flex: 1 }}>
+          {!isSmallScreen && <ContentHeader title={activeTitle} />}
           <Tabs
             tabBar={(props) => (
               <ResponsiveTabBar {...props} onNavState={handleNavState} />

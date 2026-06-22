@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 import { Stack } from "expo-router";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, useDimensions } from "@mrmeg/expo-ui/hooks";
 import { WebBackButton } from "@/client/features/navigation/WebBackButton";
 
 const isWeb = Platform.OS === "web";
@@ -10,6 +10,7 @@ const webHeaderLeft = isWeb
 
 export default function MainLayout() {
   const { theme } = useTheme();
+  const { isSmallScreen } = useDimensions();
 
   return (
     <Stack
@@ -26,7 +27,10 @@ export default function MainLayout() {
         headerBackTitle: "",
       }}
     >
-      <Stack.Screen name="(tabs)" options={{ headerShown: true, title: "Explore", headerBackTitle: " " }} />
+      {/* Wide screens render a full-height rail with its own in-content header
+          (see ResponsiveRail / ContentHeader), so the stack header is suppressed
+          there; narrow screens keep the standard top header. */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: isSmallScreen, title: "Explore", headerBackTitle: " " }} />
       <Stack.Screen name="(demos)/showcase/index" options={{ title: "UI Components", ...webHeaderLeft }} />
       <Stack.Screen name="(demos)/themed-showcase" options={{ title: "Themed Showcase", ...webHeaderLeft }} />
       <Stack.Screen name="(demos)/developer" options={{ title: "Developer Tools", ...webHeaderLeft }} />
