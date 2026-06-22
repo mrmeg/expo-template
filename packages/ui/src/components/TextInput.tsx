@@ -559,16 +559,27 @@ function NativeTextInput({
       palette.white
     );
 
-  // Map variant/size to @expo/ui's UniversalStyle (translated to SwiftUI /
-  // Compose modifiers natively).
-  const boxStyle: ExpoTextInputProps["style"] = {
+  // The rounded surface (fill + border + radius) lives on the RN wrapper View,
+  // NOT on the native field. On the New Architecture (Fabric), @expo/ui's host
+  // paints `backgroundColor` as an un-clipped rect and strokes the rounded border
+  // on top, so a fill handed to the host leaks square corners past the stroke.
+  // Letting the RN View own the surface (with `overflow: "hidden"`) keeps the
+  // fill clipped to `borderRadius`; the native host sits transparent inside it.
+  const surfaceStyle: ViewStyle = {
     backgroundColor,
     borderColor,
     borderRadius: variant === "underlined" ? 0 : spacing.radiusMd,
     borderWidth: variant === "outline" ? 1 : 0,
+    opacity: editable === false ? 0.6 : 1,
+    overflow: "hidden",
+  };
+
+  // Native field: transparent, padding + height only. The visible surface is
+  // drawn by `surfaceStyle` on the wrapper above.
+  const boxStyle: ExpoTextInputProps["style"] = {
+    backgroundColor: "transparent",
     paddingHorizontal: sizeConfig.paddingHorizontal,
     paddingVertical: sizeConfig.paddingVertical,
-    opacity: editable === false ? 0.6 : 1,
     ...(multiline ? null : { height: sizeConfig.height }),
   };
 
@@ -600,11 +611,13 @@ function NativeTextInput({
       )}
 
       {/*
-        Field + optional password toggle laid out as a flex Row. The eye button
-        is a SIBLING of the native Host, never layered over it — that avoids the
-        RN-view-over-Host mis-measurement that bit other native components.
+        Rounded surface owns fill + border + radius and clips with overflow:hidden
+        (see `surfaceStyle`). Field + optional password toggle are laid out inside
+        it as a flex Row; the eye button is a SIBLING of the native Host — never
+        layered over it — which avoids the RN-view-over-Host mis-measurement that
+        bit other native components, and keeps the eye inside the rounded surface.
       */}
-      <View style={hasSecureToggle ? styles.nativeRow : undefined}>
+      <View style={[surfaceStyle, hasSecureToggle && styles.nativeRow]}>
         {/*
           The universal @expo/ui TextInput renders a raw SwiftUI / Compose view and
           MUST be wrapped in <Host>, or iOS throws "a SwiftUI view is being mounted
