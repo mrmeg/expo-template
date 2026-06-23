@@ -3,6 +3,35 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0]
+
+### Added
+
+- **New peer dependency: `react-native-keyboard-controller` (>=1.21.0 <2.0.0).**
+  Required by `DismissKeyboard` to dismiss the software keyboard for the native
+  `@expo/ui` TextInput (see fix below). It ships a no-op web fallback, so web
+  bundles are unaffected.
+
+### Fixed
+
+- **`DismissKeyboard` now dismisses the keyboard for native `@expo/ui` fields.**
+  The native TextInput is a SwiftUI / Compose field that never registers with
+  React Native's `TextInputState`, so the previous `Keyboard.dismiss()` (which
+  only blurs RN-tracked inputs) did nothing — tapping outside never closed the
+  keyboard on iOS or Android. `DismissKeyboard` now mounts a full-screen
+  tap-catcher *only while the keyboard is visible* (`useKeyboardState`) that calls
+  `KeyboardController.dismiss()` at the IME level. Mounting it only while visible
+  avoids stealing the focus tap and fighting bottom sheets / modals. Web remains a
+  no-op (no software keyboard); all existing props (`children`, `style`,
+  `avoidKeyboard`, `scrollable`) and the `KeyboardAvoidingView` / `ScrollView`
+  wrapping behavior are preserved.
+- **Android: TextInput text is now vertically centered.** The native field set a
+  fixed `height`, but Android's Compose `BasicTextField` decoration box defaults to
+  `contentAlignment = topStart`, so text pinned to the top with the slack falling to
+  the bottom (iOS centered fine). The single-line field is now sized by symmetric
+  vertical padding instead of a fixed height, centering the text on Android with no
+  change to iOS sizing or centering. Multiline is unchanged.
+
 ## [0.10.1]
 
 ### Fixed

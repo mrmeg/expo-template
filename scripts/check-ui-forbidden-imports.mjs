@@ -11,7 +11,6 @@ const scanRoots = [
 const forbidden = [
   "react-native-reanimated",
   "react-native-worklets",
-  "react-native-keyboard-controller",
 ];
 const extensions = new Set([".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"]);
 

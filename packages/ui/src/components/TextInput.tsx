@@ -53,6 +53,15 @@ const SIZE_CONFIGS: Record<
     fontSize: number;
     paddingVertical: number;
     paddingHorizontal: number;
+    /**
+     * Symmetric vertical padding for the native (`@expo/ui`) field. Chosen so the
+     * field's total height (text line + 2× padding) lands near `height`, but WITHOUT
+     * forcing a fixed height — on Android, Compose's BasicTextField decoration box
+     * defaults to `contentAlignment = topStart`, so a fixed-height box pins text to
+     * the top with the slack falling to the bottom. Sizing via padding centers the
+     * text instead. See `boxStyle` in NativeTextInput.
+     */
+    nativePaddingVertical: number;
   }
 > = {
   sm: {
@@ -60,18 +69,21 @@ const SIZE_CONFIGS: Record<
     fontSize: 13,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
+    nativePaddingVertical: 7,
   },
   md: {
     height: 36,
     fontSize: 14,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
+    nativePaddingVertical: 8,
   },
   lg: {
     height: 40,
     fontSize: 15,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
+    nativePaddingVertical: 10,
   },
 };
 
@@ -574,13 +586,21 @@ function NativeTextInput({
     overflow: "hidden",
   };
 
-  // Native field: transparent, padding + height only. The visible surface is
-  // drawn by `surfaceStyle` on the wrapper above.
+  // Native field: transparent, padding only. The visible surface is drawn by
+  // `surfaceStyle` on the wrapper above.
+  //
+  // Single-line height comes from symmetric vertical padding, NOT a fixed
+  // `height`. Forcing a height made Android pin the text to the top of the box
+  // (Compose's decoration box uses `contentAlignment = topStart`), leaving a
+  // bottom-heavy gap; iOS centered fine. Letting padding define the height keeps
+  // the text vertically centered on both platforms while matching the previous
+  // visual size (≈ `sizeConfig.height`). Multiline is left to grow naturally.
   const boxStyle: ExpoTextInputProps["style"] = {
     backgroundColor: "transparent",
     paddingHorizontal: sizeConfig.paddingHorizontal,
-    paddingVertical: sizeConfig.paddingVertical,
-    ...(multiline ? null : { height: sizeConfig.height }),
+    paddingVertical: multiline
+      ? sizeConfig.paddingVertical
+      : sizeConfig.nativePaddingVertical,
   };
 
   // "System" is an RN-only sentinel (RCTFont resolves it to the system font).
