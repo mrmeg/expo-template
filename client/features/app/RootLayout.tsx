@@ -6,7 +6,7 @@ if (__DEV__) {
 }
 
 import { useEffect, useState, type ErrorInfo } from "react";
-import { Platform } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { colors } from "@mrmeg/expo-ui/constants";
@@ -16,7 +16,7 @@ import { syncThemeFromEnvironment } from "@mrmeg/expo-ui/state";
 import { UIProvider } from "@mrmeg/expo-ui/components/UIProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { KeyboardProvider } from "@/client/features/keyboard/platform";
+import { KeyboardDismissBoundary, KeyboardProvider } from "@/client/features/keyboard/platform";
 import { ErrorBoundary } from "@mrmeg/expo-ui/components/ErrorBoundary";
 import { ErrorScreen } from "@/client/components/ErrorScreen";
 import { ensureI18nInitialized, initI18n } from "@/client/features/i18n";
@@ -139,27 +139,29 @@ export default function RootLayout() {
         }}>
           <KeyboardProvider>
             <UIProvider>
-              <ErrorBoundary
-                catchErrors={Config.catchErrors}
-                FallbackComponent={ErrorScreen}
-                onError={reportBoundaryError}
-              >
-                {hasSeenOnboarding ? (
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      // Theme-aware backdrop so the white default doesn't
-                      // flash through on screen transitions.
-                      contentStyle: { backgroundColor: colors[scheme ?? "light"].colors.background },
-                    }}
-                  >
-                    <Stack.Screen name="(main)" />
-                    <Stack.Screen name="+not-found" />
-                  </Stack>
-                ) : (
-                  <OnboardingGate />
-                )}
-              </ErrorBoundary>
+              <KeyboardDismissBoundary style={styles.keyboardDismissScope}>
+                <ErrorBoundary
+                  catchErrors={Config.catchErrors}
+                  FallbackComponent={ErrorScreen}
+                  onError={reportBoundaryError}
+                >
+                  {hasSeenOnboarding ? (
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        // Theme-aware backdrop so the white default doesn't
+                        // flash through on screen transitions.
+                        contentStyle: { backgroundColor: colors[scheme ?? "light"].colors.background },
+                      }}
+                    >
+                      <Stack.Screen name="(main)" />
+                      <Stack.Screen name="+not-found" />
+                    </Stack>
+                  ) : (
+                    <OnboardingGate />
+                  )}
+                </ErrorBoundary>
+              </KeyboardDismissBoundary>
             </UIProvider>
           </KeyboardProvider>
         </ThemeProvider>
@@ -167,3 +169,10 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  keyboardDismissScope: {
+    flex: 1,
+    position: "relative",
+  },
+});

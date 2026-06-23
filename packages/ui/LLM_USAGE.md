@@ -177,6 +177,7 @@ Use this table before creating a new app-local primitive.
 | `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | One-off disclosure | Local animated height wrappers | Advanced settings, hidden helper text |
 | `Dialog`, `AlertDialog` | Modal decisions and custom modal content | Custom modal overlays | Confirm delete, edit profile, invite user |
 | `DismissKeyboard` | Tap-away keyboard dismissal | Screen-level keyboard handling | Forms, search screens, sign-in screens |
+| `KeyboardAvoidingView` | Native keyboard-aware layout root | Repeated app-local keyboard wrappers | Screen roots, composer footers, form-heavy subtrees |
 | `Drawer` | Side panels and drawer navigation | Custom sliding panels | Filter drawer, app navigation drawer, inspector panel |
 | `DropdownMenu` | Menus and command lists | Homemade popover menus | Row actions, account menu, sort menu |
 | `EmptyState` | No-data or recoverable error regions | One-off empty placeholders | Empty inbox, no search results, failed list load |

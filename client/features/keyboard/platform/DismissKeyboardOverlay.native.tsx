@@ -28,10 +28,16 @@ export function DismissKeyboardOverlay() {
 
   return (
     <Pressable
-      style={StyleSheet.absoluteFill}
-      onPress={() => KeyboardController.dismiss()}
+      style={[StyleSheet.absoluteFill, styles.overlay]}
+      onPressIn={() => KeyboardController.dismiss()}
       accessibilityLabel="Dismiss keyboard"
       accessibilityRole="button"
     />
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    zIndex: 999,
+  },
+});

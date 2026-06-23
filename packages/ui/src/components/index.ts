@@ -15,6 +15,7 @@ export * from "./EmptyState";
 export * from "./ErrorBoundary";
 export * from "./Icon";
 export * from "./InputOTP";
+export * from "./KeyboardAvoidingView";
 export * from "./Label";
 export * from "./MaxWidthContainer";
 export * from "./Notification";

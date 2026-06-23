@@ -187,6 +187,34 @@ jest.mock("react-native-gesture-handler", () => {
   };
 });
 
+// Mock react-native-keyboard-controller so package tests do not require a
+// linked native module.
+jest.mock("react-native-keyboard-controller", () => {
+  const React = require("react");
+  const { View, ScrollView } = require("react-native");
+  const keyboardState = { isVisible: false, height: 0 };
+
+  const PassthroughView = React.forwardRef(function PassthroughView(
+    { children, style, ...props }: any,
+    ref: any
+  ) {
+    return React.createElement(View, { ...props, ref, style }, children);
+  });
+
+  return {
+    KeyboardProvider: ({ children }: any) => React.createElement(View, null, children),
+    KeyboardAvoidingView: PassthroughView,
+    KeyboardAwareScrollView: ScrollView,
+    KeyboardStickyView: PassthroughView,
+    KeyboardToolbar: PassthroughView,
+    KeyboardController: {
+      dismiss: jest.fn(),
+    },
+    useKeyboardState: (selector?: (state: typeof keyboardState) => unknown) =>
+      selector ? selector(keyboardState) : keyboardState,
+  };
+});
+
 // Mock expo-router
 jest.mock("expo-router", () => ({
   useRouter: () => ({

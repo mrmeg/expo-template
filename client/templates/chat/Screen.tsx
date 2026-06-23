@@ -10,7 +10,6 @@ import {
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyboardAvoidingView } from "@/client/features/keyboard";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { fontFamilies } from "@mrmeg/expo-ui/constants";
@@ -371,7 +370,7 @@ export function ChatScreen({
   }
 
   return (
-    <KeyboardAvoidingView style={[styles.container, styleOverride]}>
+    <View style={[styles.container, styleOverride]}>
       {/* Message list */}
       <FlatList
         data={sortedMessages}
@@ -428,7 +427,7 @@ export function ChatScreen({
           </Pressable>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

@@ -5,11 +5,11 @@ import {
   StyleProp,
   ViewStyle,
   Platform,
-  KeyboardAvoidingView,
   ScrollView,
   View,
 } from "react-native";
 import { KeyboardController, useKeyboardState } from "react-native-keyboard-controller";
+import { KeyboardAvoidingView, useKeyboardAvoidance } from "./KeyboardAvoidingView";
 
 type Props = {
   children: React.ReactNode;
@@ -43,8 +43,8 @@ function KeyboardDismissOverlay() {
 
   return (
     <Pressable
-      style={StyleSheet.absoluteFill}
-      onPress={() => KeyboardController.dismiss()}
+      style={[StyleSheet.absoluteFill, styles.overlay]}
+      onPressIn={() => KeyboardController.dismiss()}
       accessibilityLabel="Dismiss keyboard"
       accessibilityRole="button"
     />
@@ -55,6 +55,7 @@ function KeyboardDismissOverlay() {
  * @returns Wrapper for a view that dismisses the keyboard when tapped outside of a text input
  */
 export const DismissKeyboard = ({ children, style, avoidKeyboard = true, scrollable = true }: Props) => {
+  const hasKeyboardAvoidance = useKeyboardAvoidance();
   const content = scrollable ? (
     <ScrollView
       style={{ flex: 1 }}
@@ -72,7 +73,7 @@ export const DismissKeyboard = ({ children, style, avoidKeyboard = true, scrolla
   // is never created on web, keeping `useKeyboardState` off that platform.
   const overlay = Platform.OS !== "web" ? <KeyboardDismissOverlay /> : null;
 
-  if (!avoidKeyboard) {
+  if (!avoidKeyboard || hasKeyboardAvoidance) {
     return (
       <View style={{ flex: 1 }}>
         {content}
@@ -84,7 +85,6 @@ export const DismissKeyboard = ({ children, style, avoidKeyboard = true, scrolla
   return (
     <KeyboardAvoidingView
       style={[{ flex: 1, width: "100%" }, style]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
       {content}
@@ -92,3 +92,9 @@ export const DismissKeyboard = ({ children, style, avoidKeyboard = true, scrolla
     </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  overlay: {
+    zIndex: 999,
+  },
+});

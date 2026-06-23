@@ -31,10 +31,14 @@ app-local component files.
 Call `useResources()` once near the Expo app root. Mount `UIProvider` once near
 the root when the app uses package feedback or overlay components.
 
-`UIProvider` owns the package `Notification`, `StatusBar`, and default
-`@rn-primitives` portal host. Mount it before using `Dialog`, `AlertDialog`,
-`BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`,
-`Tooltip`, or `notify` / `globalUIStore` notifications.
+`UIProvider` owns the package `Notification`, `StatusBar`, default
+`@rn-primitives` portal host, and native keyboard-avoiding root. Mount it
+before using `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`,
+`Popover`, `SelectContent`, `Tooltip`, or `notify` / `globalUIStore`
+notifications. Pass `keyboardAvoiding={false}` to opt out of the native root
+keyboard avoidance, or use `KeyboardAvoidingView` directly for a subtree with
+custom behavior. Web skips the root keyboard wrapper unless `keyboardAvoiding`
+is explicitly enabled.
 
 On native, `BottomSheet.Content` composes its sheet transform with React Native
 keyboard event values. Pass `avoidKeyboard={false}` for sheets that should not
@@ -99,6 +103,7 @@ Use this catalog before creating a new app-local primitive.
 | `ErrorBoundary` | `@mrmeg/expo-ui/components` | React render error fallback | Use for route or feature boundaries. |
 | `Icon` | `@mrmeg/expo-ui/components` | Feather or custom icons with theme tokens | Avoid raw vector icons with hardcoded colors. |
 | `InputOTP` | `@mrmeg/expo-ui/components` | Verification code entry | Prefer over manually managed text input groups. |
+| `KeyboardAvoidingView` | `@mrmeg/expo-ui/components` | Native keyboard-aware layout roots, composer footers, and form-heavy subtrees | `UIProvider` already mounts one root by default; use this directly only for custom subtrees. |
 | `Label` | `@mrmeg/expo-ui/components` | Accessible form labels | Use with package form controls. |
 | `MaxWidthContainer` | `@mrmeg/expo-ui/components` | Centered responsive width | Use for web and tablet constrained layouts. |
 | `Notification` | `@mrmeg/expo-ui/components` | Global toast surface | Trigger through `notify` (or `globalUIStore` for subscriptions/tests) with root `UIProvider`; optional actions dismiss after press. |

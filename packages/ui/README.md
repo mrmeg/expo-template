@@ -222,6 +222,7 @@ All components are exported from `@mrmeg/expo-ui/components`; direct imports suc
 | `ErrorBoundary` | React render error fallback | Unhandled screen crashes | Route-level fallback, feature boundary, recoverable widget crashes |
 | `Icon` | Feather or custom icons with theme tokens | Raw vector icons with hardcoded colors | Button accessories, empty-state icons, menu icons, status glyphs |
 | `InputOTP` | Verification code entry | Multiple manually managed text inputs | Email codes, SMS codes, MFA, invite codes |
+| `KeyboardAvoidingView` | Native keyboard-aware layout root | Repeated app-local keyboard wrappers | Screen roots, composer footers, form-heavy subtrees |
 | `Label` | Accessible form labels | Plain styled text labels | Required labels, disabled labels, field group labels |
 | `MaxWidthContainer` | Centered responsive width | Per-screen max-width wrappers | Web pages, tablet layouts, settings forms, auth panels |
 | `Notification` | Global toast surface | Screen-local toast state | Saved/error/sync notifications, action toasts, loading toast, bottom-position alerts |
@@ -272,7 +273,7 @@ Use `Button.preset`, not `variant`. `default` is the neutral primary action, `se
 
 Use `StyledText` or its aliases instead of raw `Text` whenever the text is part of app UI. Use `TextInput` for labeled fields because it already owns label, helper text, error text, clear buttons, password visibility, numeric filtering, and left/right elements.
 
-Mount `UIProvider` once near the root before using `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, or package notifications. On native, `BottomSheet.Content` listens to React Native keyboard events when `avoidKeyboard` is enabled; it defaults to `true` and can be disabled per sheet. Trigger transient feedback with `notify`.
+Mount `UIProvider` once near the root before using `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, or package notifications. On native, `UIProvider` also wraps app content in the package keyboard-avoiding root by default, so ordinary screens and fixed footers stay above the soft keyboard without repeated app-local wrappers; pass `keyboardAvoiding={false}` to opt out, or use `KeyboardAvoidingView` directly for a subtree with custom behavior. Web skips the root keyboard wrapper unless `keyboardAvoiding` is explicitly enabled. `BottomSheet.Content` listens to React Native keyboard events when `avoidKeyboard` is enabled; it defaults to `true` and can be disabled per sheet. Trigger transient feedback with `notify`.
 
 Use `Skeleton` components for loading content with stable dimensions, `EmptyState` for no-data/recoverable errors, `Alert` for blocking confirm/alert dialogs, and `Notification` for transient global feedback.
 

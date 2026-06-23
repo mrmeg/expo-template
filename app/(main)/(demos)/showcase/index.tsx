@@ -1,7 +1,7 @@
 import React, { memo, useMemo, useReducer, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
-import { KeyboardAwareScrollView, DismissKeyboardOverlay } from "@/client/features/keyboard/platform";
+import { KeyboardAwareScrollView } from "@/client/features/keyboard/platform";
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
@@ -1277,7 +1277,6 @@ function useShowcaseScreenContent() {
 
         </View>
       </KeyboardAwareScrollView>
-      <DismissKeyboardOverlay />
     </View>
   );
 }

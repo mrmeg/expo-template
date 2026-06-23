@@ -3,7 +3,7 @@
  * to avoid bundling it on web where it's not needed.
  */
 import React from "react";
-import { ScrollView, type ScrollViewProps } from "react-native";
+import { ScrollView, View, type ScrollViewProps, type ViewStyle } from "react-native";
 
 /**
  * No-op KeyboardProvider for web - just renders children
@@ -22,4 +22,14 @@ export const KeyboardAwareScrollView = ScrollView as React.ComponentType<ScrollV
  */
 export function DismissKeyboardOverlay() {
   return null;
+}
+
+export function KeyboardDismissBoundary({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: ViewStyle;
+}) {
+  return React.createElement(View, { style }, children);
 }

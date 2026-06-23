@@ -3,6 +3,25 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0]
+
+### Added
+
+- **`KeyboardAvoidingView` is now a public package component.** Native uses
+  `react-native-keyboard-controller` with `automaticOffset` enabled by default,
+  while web renders a plain `View`.
+- **`UIProvider` now owns app-wide native keyboard avoidance by default.** Apps
+  that mount `KeyboardProvider` above `UIProvider` get root-level keyboard
+  avoiding behavior without adding per-screen `KeyboardAvoidingView` wrappers.
+  Pass `keyboardAvoiding={false}` to opt out, or `keyboardAvoidingProps` to tune
+  the root wrapper. Web skips the root keyboard wrapper unless explicitly
+  enabled.
+
+### Fixed
+
+- **`DismissKeyboard` no longer nests keyboard-avoiding wrappers when the root
+  provider already owns keyboard avoidance.**
+
 ## [0.11.0]
 
 ### Added

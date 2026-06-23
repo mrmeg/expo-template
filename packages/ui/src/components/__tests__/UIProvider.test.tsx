@@ -56,4 +56,26 @@ describe("UIProvider", () => {
     expect(screen.queryByText("PortalHost")).toBeNull();
     expect(screen.queryByText("StatusBar")).toBeNull();
   });
+
+  it("mounts the keyboard-avoiding root by default and can opt out", async () => {
+    const { unmount } = await render(
+      <UIProvider keyboardAvoidingProps={{ testID: "keyboard-root" }}>
+        <Text>App content</Text>
+      </UIProvider>
+    );
+
+    expect(screen.getByTestId("keyboard-root")).toBeTruthy();
+    await unmount();
+
+    await render(
+      <UIProvider
+        keyboardAvoiding={false}
+        keyboardAvoidingProps={{ testID: "keyboard-root" }}
+      >
+        <Text>App content</Text>
+      </UIProvider>
+    );
+
+    expect(screen.queryByTestId("keyboard-root")).toBeNull();
+  });
 });

@@ -95,7 +95,6 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
     "expo-image",
     "expo-web-browser",
     "expo-localization",
-    "@sentry/react-native"
   ];
 
   // Sentry's config plugins inject sentry-cli into native build phases for
