@@ -36,7 +36,7 @@ jest.mock("@aws-sdk/client-s3", () => {
     DeleteObjectCommand: MockDeleteObjectCommand,
     DeleteObjectsCommand: MockDeleteObjectsCommand,
   };
-}, { virtual: true });
+});
 
 // `@/server/media/handlers` also imports `getSignedUrl` from
 // @aws-sdk/s3-request-presigner, and the real presigner package pulls in the
@@ -45,9 +45,15 @@ jest.mock("@aws-sdk/client-s3", () => {
 // client-s3 mock above so `.send()` hits the network and times out at 10s.
 // Mocking the presigner here (matching auth/mediaDisabled tests) keeps the
 // whole S3 surface stubbed regardless of test ordering.
+//
+// NOTE: these mocks intentionally OMIT `{ virtual: true }`. Both packages are
+// real, installed dependencies (of @mrmeg/expo-media), so Jest must key the
+// mock by the module's resolved path. Marking them virtual keys the mock by
+// the bare string instead, which lets a transitive require of the real client
+// slip past under parallel workers — the exact CI flake described above.
 jest.mock("@aws-sdk/s3-request-presigner", () => ({
   getSignedUrl: jest.fn(async () => "https://signed.example/url"),
-}), { virtual: true });
+}));
 
 const ORIGIN = "http://localhost:8081";
 

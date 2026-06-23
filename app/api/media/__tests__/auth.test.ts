@@ -18,11 +18,14 @@ jest.mock("@aws-sdk/client-s3", () => {
     ListObjectsV2Command: MockCommand,
     PutObjectCommand: MockCommand,
   };
-}, { virtual: true });
+});
 
+// No `{ virtual: true }`: both @aws-sdk packages are real installed deps, so the
+// mock must key by resolved path or a transitive require of the real client can
+// win under parallel CI workers and hit the network. See delete.test.ts.
 jest.mock("@aws-sdk/s3-request-presigner", () => ({
   getSignedUrl: jest.fn(async () => "https://signed.example/url"),
-}), { virtual: true });
+}));
 
 import { setTokenVerifier } from "@/server/api/shared/auth";
 
