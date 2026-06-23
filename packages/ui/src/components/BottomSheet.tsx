@@ -1,4 +1,4 @@
-import React, { createContext, use, useCallback, useEffect, useRef, useState } from "react";
+import React, { createContext, use, useCallback, useEffect, useReducer, useRef } from "react";
 import {
   View,
   ViewProps,
@@ -32,7 +32,9 @@ import { Icon } from "./Icon";
  *
  * Platform-owned behaviors (props accepted for ergonomics, but the platform
  * decides):
- *   - `.Handle` is a no-op: the platform draws the drag indicator.
+ *   - `.Handle` replaces the native drag indicator with a pressable equivalent.
+ *     Pressing it walks through the configured snap points, reversing direction
+ *     at either end. Dragging the sheet continues to use the platform gesture.
  *   - `swipeEnabled` / `avoidKeyboard` / `dismissKeyboardOnDrag` are accepted
  *     for call-site ergonomics but have no effect — the platform handles them.
  *   - Sheet *chrome* (corner radius, system background, safe area) is the
@@ -82,6 +84,9 @@ interface BottomSheetContextValue {
   onOpenChange: (open: boolean) => void;
   toggle: () => void;
   snapPoints: SnapPoint[];
+  snapIndex: number;
+  setSnapIndex: (index: number) => void;
+  cycleSnapPoint: () => void;
   closeOnBackdropPress: boolean;
   /**
    * True when a `Body`'s content overflows its viewport (is genuinely
@@ -162,6 +167,88 @@ interface BottomSheetCloseProps {
   asChild?: boolean;
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+}
+
+type SnapDirection = -1 | 1;
+
+interface BottomSheetRootState {
+  internalOpen: boolean;
+  scrollable: boolean;
+  hasHeader: boolean;
+  hasFooter: boolean;
+  snapIndex: number;
+  snapDirection: SnapDirection;
+}
+
+type BottomSheetRootAction =
+  | { type: "setInternalOpen"; open: boolean; maxSnapIndex: number }
+  | { type: "setScrollable"; scrollable: boolean }
+  | { type: "setHasHeader"; present: boolean }
+  | { type: "setHasFooter"; present: boolean }
+  | { type: "setSnapIndex"; index: number; maxSnapIndex: number }
+  | { type: "cycleSnapPoint"; maxSnapIndex: number; android: boolean };
+
+function clampSnapIndex(index: number, maxSnapIndex: number) {
+  return Math.min(Math.max(index, 0), maxSnapIndex);
+}
+
+function createInitialRootState(defaultOpen: boolean, maxSnapIndex: number): BottomSheetRootState {
+  return {
+    internalOpen: defaultOpen,
+    scrollable: false,
+    hasHeader: false,
+    hasFooter: false,
+    snapIndex: maxSnapIndex,
+    snapDirection: -1,
+  };
+}
+
+function bottomSheetRootReducer(
+  state: BottomSheetRootState,
+  action: BottomSheetRootAction
+): BottomSheetRootState {
+  switch (action.type) {
+    case "setInternalOpen":
+      return {
+        ...state,
+        internalOpen: action.open,
+        snapIndex: action.open ? state.snapIndex : action.maxSnapIndex,
+        snapDirection: action.open ? state.snapDirection : -1,
+      };
+    case "setScrollable":
+      return { ...state, scrollable: action.scrollable };
+    case "setHasHeader":
+      return { ...state, hasHeader: action.present };
+    case "setHasFooter":
+      return { ...state, hasFooter: action.present };
+    case "setSnapIndex": {
+      const snapIndex = clampSnapIndex(action.index, action.maxSnapIndex);
+      return {
+        ...state,
+        snapIndex,
+        snapDirection:
+          snapIndex === 0 ? 1 : snapIndex === action.maxSnapIndex ? -1 : state.snapDirection,
+      };
+    }
+    case "cycleSnapPoint": {
+      if (action.maxSnapIndex === 0) return state;
+
+      if (action.android) {
+        const snapIndex = state.snapIndex === action.maxSnapIndex ? 0 : action.maxSnapIndex;
+        return { ...state, snapIndex, snapDirection: snapIndex === 0 ? 1 : -1 };
+      }
+
+      let snapDirection = state.snapDirection;
+      if (state.snapIndex <= 0) snapDirection = 1;
+      if (state.snapIndex >= action.maxSnapIndex) snapDirection = -1;
+
+      return {
+        ...state,
+        snapIndex: state.snapIndex + snapDirection,
+        snapDirection,
+      };
+    }
+  }
 }
 
 // ============================================================================
@@ -271,36 +358,57 @@ function BottomSheetRoot({
   closeOnBackdropPress = true,
   children,
 }: BottomSheetProps) {
-  const [internalOpen, setInternalOpen] = useState(defaultOpen);
-  const [scrollable, setScrollable] = useState(false);
-  const [hasHeader, setHasHeader] = useState(false);
-  const [hasFooter, setHasFooter] = useState(false);
+  const maxSnapIndex = Math.max(snapPoints.length - 1, 0);
+  const [state, dispatch] = useReducer(
+    bottomSheetRootReducer,
+    undefined,
+    () => createInitialRootState(defaultOpen, maxSnapIndex)
+  );
 
   const isControlled = controlledOpen !== undefined;
-  const open = isControlled ? controlledOpen : internalOpen;
+  const open = isControlled ? controlledOpen : state.internalOpen;
+  const snapIndex = clampSnapIndex(state.snapIndex, maxSnapIndex);
 
-  const onOpenChange = (newOpen: boolean) => {
+  const setSnapIndex = useCallback(
+    (index: number) => {
+      dispatch({ type: "setSnapIndex", index, maxSnapIndex });
+    },
+    [maxSnapIndex]
+  );
+
+  const cycleSnapPoint = useCallback(() => {
+    dispatch({
+      type: "cycleSnapPoint",
+      maxSnapIndex,
+      android: Platform.OS === "android",
+    });
+  }, [maxSnapIndex]);
+
+  const onOpenChange = useCallback((newOpen: boolean) => {
     if (isControlled) {
       controlledOnOpenChange?.(newOpen);
     } else {
-      setInternalOpen(newOpen);
+      dispatch({ type: "setInternalOpen", open: newOpen, maxSnapIndex });
     }
-  };
+  }, [controlledOnOpenChange, isControlled, maxSnapIndex]);
 
-  const toggle = () => onOpenChange(!open);
+  const toggle = useCallback(() => onOpenChange(!open), [onOpenChange, open]);
 
   const contextValue: BottomSheetContextValue = {
     open,
     onOpenChange,
     toggle,
     snapPoints,
+    snapIndex,
+    setSnapIndex,
+    cycleSnapPoint,
     closeOnBackdropPress,
-    scrollable,
-    setScrollable,
-    hasHeader,
-    setHasHeader,
-    hasFooter,
-    setHasFooter,
+    scrollable: state.scrollable,
+    setScrollable: (scrollable) => dispatch({ type: "setScrollable", scrollable }),
+    hasHeader: state.hasHeader,
+    setHasHeader: (present) => dispatch({ type: "setHasHeader", present }),
+    hasFooter: state.hasFooter,
+    setHasFooter: (present) => dispatch({ type: "setHasFooter", present }),
   };
 
   return (
@@ -352,15 +460,16 @@ function BottomSheetContent({
   style: styleOverride,
   children,
 }: BottomSheetContentProps) {
-  const { open, onOpenChange, snapPoints, hasHeader } = useBottomSheetContext();
+  const { open, onOpenChange, snapPoints, snapIndex, setSnapIndex, hasHeader } =
+    useBottomSheetContext();
   const { theme } = useTheme();
   const dismissDisabled = useDismissDisabled();
   const showClose = useShowClose();
   const { height: winH } = useWindowDimensions();
 
-  // Boolean open → native imperative index. Open at the highest snap point so
-  // the sheet starts fully expanded; -1 keeps it closed.
-  const index = open ? snapPoints.length - 1 : -1;
+  // Boolean open → native imperative index. The root resets snapIndex to the
+  // highest point while closed; -1 keeps the native sheet closed.
+  const index = open ? snapIndex : -1;
 
   // The native RN-in-SwiftUI host does NOT clamp our RN column to the sheet's
   // detent height — it lays the column out at its full intrinsic content height,
@@ -378,16 +487,26 @@ function BottomSheetContent({
   // dismiss is off, or the body scrolls), float one over the top-right corner.
   // A Header, when present, renders its own (see BottomSheetHeader).
   const showFloatingClose = showClose && !hasHeader;
+  const hasInteractiveHandle = containsHandle(children);
 
   const handleChange = (newIndex: number) => {
     // Native fires onChange(-1) on dismiss (swipe / backdrop / back button).
-    if (newIndex < 0 && open) onOpenChange(false);
+    if (newIndex < 0) {
+      if (open) onOpenChange(false);
+      return;
+    }
+
+    setSnapIndex(newIndex);
   };
 
   return (
     <NativeBottomSheet
       index={index}
       snapPoints={snapPoints as (string | number)[]}
+      // The native indicator lives outside the hosted RN tree and cannot
+      // receive JS presses. Hide it only when the compound Handle supplies the
+      // interactive replacement; sheets without Handle retain native chrome.
+      handleComponent={hasInteractiveHandle ? null : undefined}
       enablePanDownToClose={!dismissDisabled}
       onChange={handleChange}
       onClose={() => {
@@ -430,11 +549,52 @@ function BottomSheetContent({
 }
 
 // ============================================================================
-// Handle — no-op (the platform draws the drag indicator)
+// Handle — pressable snap-point control; native drag gestures remain active
 // ============================================================================
 
-function BottomSheetHandle(_props: BottomSheetHandleProps) {
-  return null;
+/** Walk a React children tree looking for a `BottomSheet.Handle` element. */
+function containsHandle(node: React.ReactNode): boolean {
+  return React.Children.toArray(node).some((child) => {
+    if (!React.isValidElement(child)) return false;
+    if (child.type === BottomSheetHandle) return true;
+    return containsHandle((child.props as { children?: React.ReactNode }).children);
+  });
+}
+
+function BottomSheetHandle({ style }: BottomSheetHandleProps) {
+  const { cycleSnapPoint, snapPoints } = useBottomSheetContext();
+  const { theme } = useTheme();
+  const disabled = snapPoints.length < 2;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Change sheet height"
+      accessibilityHint="Moves the sheet to the next snap point"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={cycleSnapPoint}
+      style={({ pressed }) => [
+        {
+          minHeight: spacing.touchTarget,
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: pressed ? 0.65 : 1,
+        },
+        Platform.OS === "web" && !disabled && { cursor: "pointer" as any },
+        style,
+      ]}
+    >
+      <View
+        style={{
+          width: spacing.xl,
+          height: spacing.xs,
+          borderRadius: spacing.radiusFull,
+          backgroundColor: theme.colors.mutedForeground,
+        }}
+      />
+    </Pressable>
+  );
 }
 
 // ============================================================================
