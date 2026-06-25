@@ -1,4 +1,4 @@
-import React, { createContext, use, useCallback, useEffect, useReducer, useRef } from "react";
+import React, { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import {
   View,
   ViewProps,
@@ -78,6 +78,8 @@ import { Icon } from "./Icon";
 // ============================================================================
 
 type SnapPoint = number | `${number}%`;
+
+const DEFAULT_SNAP_POINTS: SnapPoint[] = ["50%"];
 
 interface BottomSheetContextValue {
   open: boolean;
@@ -208,26 +210,45 @@ function bottomSheetRootReducer(
   action: BottomSheetRootAction
 ): BottomSheetRootState {
   switch (action.type) {
-    case "setInternalOpen":
+    case "setInternalOpen": {
+      const snapIndex = action.open ? state.snapIndex : action.maxSnapIndex;
+      const snapDirection = action.open ? state.snapDirection : -1;
+
+      if (
+        state.internalOpen === action.open &&
+        state.snapIndex === snapIndex &&
+        state.snapDirection === snapDirection
+      ) {
+        return state;
+      }
+
       return {
         ...state,
         internalOpen: action.open,
-        snapIndex: action.open ? state.snapIndex : action.maxSnapIndex,
-        snapDirection: action.open ? state.snapDirection : -1,
+        snapIndex,
+        snapDirection,
       };
+    }
     case "setScrollable":
+      if (state.scrollable === action.scrollable) return state;
       return { ...state, scrollable: action.scrollable };
     case "setHasHeader":
+      if (state.hasHeader === action.present) return state;
       return { ...state, hasHeader: action.present };
     case "setHasFooter":
+      if (state.hasFooter === action.present) return state;
       return { ...state, hasFooter: action.present };
     case "setSnapIndex": {
       const snapIndex = clampSnapIndex(action.index, action.maxSnapIndex);
+      const snapDirection =
+        snapIndex === 0 ? 1 : snapIndex === action.maxSnapIndex ? -1 : state.snapDirection;
+
+      if (state.snapIndex === snapIndex && state.snapDirection === snapDirection) return state;
+
       return {
         ...state,
         snapIndex,
-        snapDirection:
-          snapIndex === 0 ? 1 : snapIndex === action.maxSnapIndex ? -1 : state.snapDirection,
+        snapDirection,
       };
     }
     case "cycleSnapPoint": {
@@ -354,7 +375,7 @@ function BottomSheetRoot({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
   defaultOpen = false,
-  snapPoints = ["50%"],
+  snapPoints = DEFAULT_SNAP_POINTS,
   closeOnBackdropPress = true,
   children,
 }: BottomSheetProps) {
@@ -394,22 +415,52 @@ function BottomSheetRoot({
 
   const toggle = useCallback(() => onOpenChange(!open), [onOpenChange, open]);
 
-  const contextValue: BottomSheetContextValue = {
-    open,
-    onOpenChange,
-    toggle,
-    snapPoints,
-    snapIndex,
-    setSnapIndex,
-    cycleSnapPoint,
-    closeOnBackdropPress,
-    scrollable: state.scrollable,
-    setScrollable: (scrollable) => dispatch({ type: "setScrollable", scrollable }),
-    hasHeader: state.hasHeader,
-    setHasHeader: (present) => dispatch({ type: "setHasHeader", present }),
-    hasFooter: state.hasFooter,
-    setHasFooter: (present) => dispatch({ type: "setHasFooter", present }),
-  };
+  const setScrollable = useCallback((scrollable: boolean) => {
+    dispatch({ type: "setScrollable", scrollable });
+  }, []);
+
+  const setHasHeader = useCallback((present: boolean) => {
+    dispatch({ type: "setHasHeader", present });
+  }, []);
+
+  const setHasFooter = useCallback((present: boolean) => {
+    dispatch({ type: "setHasFooter", present });
+  }, []);
+
+  const contextValue = useMemo<BottomSheetContextValue>(
+    () => ({
+      open,
+      onOpenChange,
+      toggle,
+      snapPoints,
+      snapIndex,
+      setSnapIndex,
+      cycleSnapPoint,
+      closeOnBackdropPress,
+      scrollable: state.scrollable,
+      setScrollable,
+      hasHeader: state.hasHeader,
+      setHasHeader,
+      hasFooter: state.hasFooter,
+      setHasFooter,
+    }),
+    [
+      open,
+      onOpenChange,
+      toggle,
+      snapPoints,
+      snapIndex,
+      setSnapIndex,
+      cycleSnapPoint,
+      closeOnBackdropPress,
+      state.scrollable,
+      setScrollable,
+      state.hasHeader,
+      setHasHeader,
+      state.hasFooter,
+      setHasFooter,
+    ]
+  );
 
   return (
     <BottomSheetContext.Provider value={contextValue}>
