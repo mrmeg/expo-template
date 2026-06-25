@@ -1,28 +1,46 @@
 import React, { useCallback } from "react";
-import { View, type GestureResponderEvent, type ViewStyle } from "react-native";
-import { KeyboardController, useKeyboardState } from "react-native-keyboard-controller";
+import {
+  View,
+  type GestureResponderEvent,
+  type ViewProps,
+} from "react-native";
+import {
+  KeyboardController,
+  useKeyboardContext,
+  useKeyboardState,
+} from "react-native-keyboard-controller";
+import { isTouchInsideKeyboardFocusedInput } from "@mrmeg/expo-ui/components/keyboardFocusRegistry";
 
-type KeyboardDismissBoundaryProps = {
+type KeyboardDismissBoundaryProps = ViewProps & {
   children: React.ReactNode;
-  style?: ViewStyle;
 };
 
-export function KeyboardDismissBoundary({ children, style }: KeyboardDismissBoundaryProps) {
+export function KeyboardDismissBoundary({
+  children,
+  style,
+  ...props
+}: KeyboardDismissBoundaryProps) {
   const isVisible = useKeyboardState((state) => state.isVisible);
+  const { layout: focusedInput } = useKeyboardContext();
 
   const dismissOnTouchStart = useCallback(
-    (_event: GestureResponderEvent) => {
+    (event: GestureResponderEvent) => {
       if (isVisible) {
+        if (isTouchInsideKeyboardFocusedInput(event, focusedInput.value?.layout)) {
+          return false;
+        }
+
         KeyboardController.dismiss();
       }
 
       return false;
     },
-    [isVisible]
+    [focusedInput, isVisible]
   );
 
   return (
     <View
+      {...props}
       style={style}
       onStartShouldSetResponderCapture={dismissOnTouchStart}
     >

@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useCallback,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -33,6 +34,11 @@ import { Icon } from "./Icon";
 import { hapticLight } from "../lib/haptics";
 import type { Theme } from "../constants/colors";
 import { palette } from "../constants/colors";
+import {
+  clearKeyboardFocusedInputLayout,
+  setKeyboardFocusedInputLayout,
+  type KeyboardFocusedInputToken,
+} from "./keyboardFocusRegistry";
 
 /**
  * Size variants for TextInput
@@ -491,6 +497,8 @@ function NativeTextInput({
   forceLight,
   inputMode,
   onChangeText,
+  onFocus,
+  onBlur,
   value,
   defaultValue,
   editable = true,
@@ -537,6 +545,49 @@ function NativeTextInput({
   // We expose the subset consumers use, plus a `setNativeProps` shim so the
   // uncontrolled AuthTextField can push corrected text into the native buffer.
   const innerRef = useRef<ExpoTextInputRef>(null);
+  const surfaceRef = useRef<View>(null);
+  const isFocusedRef = useRef(false);
+  const focusRegistryToken = useMemo<KeyboardFocusedInputToken>(() => ({}), []);
+
+  const syncFocusedInputLayout = useCallback(() => {
+    if (!isFocusedRef.current) return;
+
+    surfaceRef.current?.measureInWindow((absoluteX, absoluteY, width, height) => {
+      if (!isFocusedRef.current) return;
+
+      setKeyboardFocusedInputLayout(focusRegistryToken, {
+        x: 0,
+        y: 0,
+        width,
+        height,
+        absoluteX,
+        absoluteY,
+      });
+    });
+  }, [focusRegistryToken]);
+
+  const handleFocus = useCallback<NonNullable<ExpoTextInputProps["onFocus"]>>(
+    () => {
+      isFocusedRef.current = true;
+      syncFocusedInputLayout();
+      (onFocus as (() => void) | undefined)?.();
+    },
+    [onFocus, syncFocusedInputLayout]
+  );
+
+  const handleBlur = useCallback<NonNullable<ExpoTextInputProps["onBlur"]>>(
+    () => {
+      isFocusedRef.current = false;
+      clearKeyboardFocusedInputLayout(focusRegistryToken);
+      (onBlur as (() => void) | undefined)?.();
+    },
+    [focusRegistryToken, onBlur]
+  );
+
+  useEffect(() => {
+    return () => clearKeyboardFocusedInputLayout(focusRegistryToken);
+  }, [focusRegistryToken]);
+
   useImperativeHandle(ref, () => ({
     focus: () => innerRef.current?.focus(),
     blur: () => innerRef.current?.blur(),
@@ -637,7 +688,11 @@ function NativeTextInput({
         layered over it — which avoids the RN-view-over-Host mis-measurement that
         bit other native components, and keeps the eye inside the rounded surface.
       */}
-      <View style={[surfaceStyle, hasSecureToggle && styles.nativeRow]}>
+      <View
+        ref={surfaceRef}
+        style={[surfaceStyle, hasSecureToggle && styles.nativeRow]}
+        onLayout={syncFocusedInputLayout}
+      >
         {/*
           The universal @expo/ui TextInput renders a raw SwiftUI / Compose view and
           MUST be wrapped in <Host>, or iOS throws "a SwiftUI view is being mounted
@@ -654,6 +709,8 @@ function NativeTextInput({
             value={state}
             defaultValue={defaultValue}
             onChangeText={onChangeText}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             editable={editable}
             multiline={multiline}
             rows={rows}

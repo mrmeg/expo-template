@@ -125,6 +125,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/Tooltip.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Tooltip.tsx
 - packages/ui/src/components/UIProvider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/UIProvider.tsx
 - packages/ui/src/components/index.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/index.ts
+- packages/ui/src/components/keyboardFocusRegistry.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/keyboardFocusRegistry.ts
 
 ## Form Wrappers (`client/lib/form/`)
 
