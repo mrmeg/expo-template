@@ -555,14 +555,22 @@ function NativeTextInput({
     surfaceRef.current?.measureInWindow((absoluteX, absoluteY, width, height) => {
       if (!isFocusedRef.current) return;
 
-      setKeyboardFocusedInputLayout(focusRegistryToken, {
-        x: 0,
-        y: 0,
-        width,
-        height,
-        absoluteX,
-        absoluteY,
-      });
+      setKeyboardFocusedInputLayout(
+        focusRegistryToken,
+        {
+          x: 0,
+          y: 0,
+          width,
+          height,
+          absoluteX,
+          absoluteY,
+        },
+        // Window-independent dismissal: blur the native field directly. Inside a
+        // native bottom sheet the field lives in its own window, where
+        // `KeyboardController.dismiss()` can miss; calling the field's own ref
+        // always resigns it.
+        () => innerRef.current?.blur()
+      );
     });
   }, [focusRegistryToken]);
 

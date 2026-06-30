@@ -3,6 +3,23 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1]
+
+### Fixed
+
+- **`BottomSheet` now dismisses the keyboard when tapping outside a focused
+  field on Android.** The native sheet hosts its content in a separate window
+  (via `@expo/ui`'s `RNHostView`), outside the app's `KeyboardProvider` — so the
+  app-wide tap-away never reached sheet content, and `useKeyboardState()` /
+  `KeyboardController.dismiss()` are blind to that window. iOS papered over this
+  (SwiftUI resigns first-responder on outside taps for free); Compose did not,
+  leaving a focused field stuck open. `BottomSheet.Content` now mounts a
+  transparent dismiss overlay while a field is focused, detecting focus via the
+  window-independent `keyboardFocusRegistry` and resigning the field through its
+  own native `blur()` ref. The registry gained `subscribeKeyboardFocus`,
+  `hasKeyboardFocusedInput`, and `dismissKeyboardFocusedInput`, and `TextInput`
+  now registers a `blur` handle on focus.
+
 ## [0.12.0]
 
 ### Added
