@@ -9,6 +9,8 @@
 const PUBLIC_KEYS = [
   "EXPO_PUBLIC_USER_POOL_ID",
   "EXPO_PUBLIC_USER_POOL_CLIENT_ID",
+  "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY",
+  "EXPO_PUBLIC_AUTH_PROVIDER",
   "EXPO_PUBLIC_API_URL",
   "EXPO_PUBLIC_BILLING_ENABLED",
   "EXPO_PUBLIC_APP_URL",
@@ -127,6 +129,53 @@ describe("validateClientEnv", () => {
 
   it("does not warn when billing is disabled (\"false\") with empty APP_URL", () => {
     process.env.EXPO_PUBLIC_BILLING_ENABLED = "false";
+    load().validateClientEnv();
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not warn when only the Clerk publishable key is set", () => {
+    process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_abc";
+    load().validateClientEnv();
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it("warns when EXPO_PUBLIC_AUTH_PROVIDER=clerk but the publishable key is missing", () => {
+    process.env.EXPO_PUBLIC_AUTH_PROVIDER = "clerk";
+    load().validateClientEnv();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(String(warnSpy.mock.calls[0][0])).toContain("EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY");
+  });
+
+  it("warns when EXPO_PUBLIC_AUTH_PROVIDER=cognito but the pool vars are incomplete", () => {
+    process.env.EXPO_PUBLIC_AUTH_PROVIDER = "cognito";
+    process.env.EXPO_PUBLIC_USER_POOL_ID = "us-east-1_pool";
+    load().validateClientEnv();
+    // Partial-Cognito warning fires too; the explicit-provider one must be present.
+    const messages = warnSpy.mock.calls.map((c) => String(c[0]));
+    expect(messages.some((m) => m.includes("EXPO_PUBLIC_AUTH_PROVIDER=cognito"))).toBe(true);
+  });
+
+  it("warns on an unknown EXPO_PUBLIC_AUTH_PROVIDER value", () => {
+    process.env.EXPO_PUBLIC_AUTH_PROVIDER = "auth0";
+    load().validateClientEnv();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(String(warnSpy.mock.calls[0][0])).toContain("auth0");
+  });
+
+  it("warns when both providers are configured without an explicit choice", () => {
+    process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_abc";
+    process.env.EXPO_PUBLIC_USER_POOL_ID = "us-east-1_pool";
+    process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID = "client-id-abc";
+    load().validateClientEnv();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(String(warnSpy.mock.calls[0][0])).toContain("defaulting to Clerk");
+  });
+
+  it("does not warn when both providers are configured and one is chosen explicitly", () => {
+    process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_abc";
+    process.env.EXPO_PUBLIC_USER_POOL_ID = "us-east-1_pool";
+    process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID = "client-id-abc";
+    process.env.EXPO_PUBLIC_AUTH_PROVIDER = "cognito";
     load().validateClientEnv();
     expect(warnSpy).not.toHaveBeenCalled();
   });

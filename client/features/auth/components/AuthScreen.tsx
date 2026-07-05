@@ -10,6 +10,8 @@ import { ResetPasswordForm } from "./ResetPasswordForm";
 import { DismissKeyboard } from "@mrmeg/expo-ui/components/DismissKeyboard";
 import { SerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { useAuth } from "../hooks/useAuth";
+import { isAuthError } from "../provider";
+import { useAuthStore } from "../stores/authStore";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -138,9 +140,9 @@ function useAuthScreenContent({
     try {
       const result = await signIn(data);
 
-      if (result.isSignedIn) {
+      if (result.status === "complete") {
         onAuthenticated?.();
-      } else if (result.nextStep?.signInStep === "CONFIRM_SIGN_UP") {
+      } else if (result.status === "needsConfirmation") {
         setPendingEmail(data.email);
         setPendingPassword(data.password);
         setPostVerifyDestination("sign-in");
@@ -148,8 +150,10 @@ function useAuthScreenContent({
         setView("verify-email");
       }
     } catch (err: any) {
+      const code = isAuthError(err) ? err.code : "unknown";
+
       // Handle unverified user - resend code and redirect to verification screen
-      if (err.name === "UserNotConfirmedException") {
+      if (code === "userNotConfirmed") {
         setPendingEmail(data.email);
         setPendingPassword(data.password);
         setPostVerifyDestination("sign-in");
@@ -159,9 +163,9 @@ function useAuthScreenContent({
       }
 
       // Handle other common errors
-      if (err.name === "NotAuthorizedException") {
+      if (code === "incorrectCredentials") {
         setError("Incorrect email or password.");
-      } else if (err.name === "UserNotFoundException") {
+      } else if (code === "userNotFound") {
         setError("No account found with this email.");
       } else {
         setError(err.message || "Failed to sign in. Please try again.");
@@ -179,17 +183,25 @@ function useAuthScreenContent({
     try {
       const result = await signUp({ email: data.email, password: data.password });
 
-      if (result.isSignUpComplete) {
-        setView("sign-in");
-      } else if (result.nextStep?.signUpStep === "CONFIRM_SIGN_UP") {
+      if (result.status === "complete") {
+        // Clerk establishes a session on completed sign-up; Cognito may not
+        // (auto-verified pools). handleSignUp already re-initialized the
+        // store, so its state tells us which happened.
+        if (useAuthStore.getState().state === "authenticated") {
+          onAuthenticated?.();
+        } else {
+          setView("sign-in");
+        }
+      } else if (result.status === "needsConfirmation") {
         setPendingEmail(data.email);
         setPostVerifyDestination("sign-in");
         setView("verify-email");
       }
     } catch (err: any) {
-      if (err.name === "UsernameExistsException") {
+      const code = isAuthError(err) ? err.code : "unknown";
+      if (code === "userExists") {
         setError("An account with this email already exists.");
-      } else if (err.name === "InvalidPasswordException") {
+      } else if (code === "invalidPassword") {
         setError("Password does not meet requirements.");
       } else {
         setError(err.message || "Failed to create account. Please try again.");
@@ -211,51 +223,50 @@ function useAuthScreenContent({
 
     try {
       console.log("Verifying email:", pendingEmail);
-      const result = await confirmSignUp({ email: pendingEmail, code }) as any;
+      const result = await confirmSignUp({ email: pendingEmail, code });
       console.log("Verification result:", JSON.stringify(result, null, 2));
 
-      if (result.isSignUpComplete) {
-        // Check if auto sign-in was successful (works for same-session verification)
-        if (result.autoSignedIn) {
-          console.log("Auto sign-in successful, calling onAuthenticated...");
+      // Check if auto sign-in was successful (works for same-session verification)
+      if (result.autoSignedIn) {
+        console.log("Auto sign-in successful, calling onAuthenticated...");
+        setPendingPassword(""); // Clear stored password
+        onAuthenticated?.();
+      } else if (pendingPassword) {
+        // Auto sign-in failed but we have stored credentials from sign-in attempt
+        // This happens when user tried to sign in while unverified, then verified
+        console.log("Auto sign-in not available, signing in with stored credentials...");
+        try {
+          const signInResult = await signIn({ email: pendingEmail, password: pendingPassword });
           setPendingPassword(""); // Clear stored password
-          onAuthenticated?.();
-        } else if (pendingPassword) {
-          // Auto sign-in failed but we have stored credentials from sign-in attempt
-          // This happens when user tried to sign in while unverified, then verified
-          console.log("Auto sign-in not available, signing in with stored credentials...");
-          try {
-            const signInResult = await signIn({ email: pendingEmail, password: pendingPassword });
-            setPendingPassword(""); // Clear stored password
-            if (signInResult.isSignedIn) {
-              console.log("Manual sign-in successful after verification");
-              onAuthenticated?.();
-            } else {
-              setView("sign-in");
-            }
-          } catch (signInErr) {
-            console.log("Sign-in after verification failed:", signInErr);
-            setPendingPassword(""); // Clear stored password
-            setView("sign-in");
-          }
-        } else {
-          // Redirect based on how the user got to verification
-          if (postVerifyDestination === "forgot-password") {
-            console.log("Verification complete, redirecting to forgot-password...");
-            setForgotPasswordSuccess(false);
-            setView("forgot-password");
+          if (signInResult.status === "complete") {
+            console.log("Manual sign-in successful after verification");
+            onAuthenticated?.();
           } else {
-            console.log("Auto sign-in not available, redirecting to sign-in...");
             setView("sign-in");
           }
+        } catch (signInErr) {
+          console.log("Sign-in after verification failed:", signInErr);
+          setPendingPassword(""); // Clear stored password
+          setView("sign-in");
         }
-        setError("");
+      } else {
+        // Redirect based on how the user got to verification
+        if (postVerifyDestination === "forgot-password") {
+          console.log("Verification complete, redirecting to forgot-password...");
+          setForgotPasswordSuccess(false);
+          setView("forgot-password");
+        } else {
+          console.log("Auto sign-in not available, redirecting to sign-in...");
+          setView("sign-in");
+        }
       }
+      setError("");
     } catch (err: any) {
       console.log("Verification error:", err);
-      if (err.name === "CodeMismatchException") {
+      const errCode = isAuthError(err) ? err.code : "unknown";
+      if (errCode === "codeMismatch") {
         setError("Invalid verification code. Please try again.");
-      } else if (err.name === "ExpiredCodeException") {
+      } else if (errCode === "codeExpired") {
         setError("Verification code has expired. Please request a new one.");
       } else {
         setError(err.message || "Verification failed. Please try again.");
@@ -288,23 +299,23 @@ function useAuthScreenContent({
     try {
       const result = await forgotPassword(email);
 
-      console.log("ForgotPassword nextStep:", result.nextStep);
-      if (result.nextStep?.resetPasswordStep === "CONFIRM_RESET_PASSWORD_WITH_CODE") {
-        console.log("ForgotPassword: code delivery details:", JSON.stringify(result.nextStep));
+      console.log("ForgotPassword result:", result.status);
+      if (result.status === "codeSent") {
         setPendingEmail(email);
         setView("reset-password");
       } else {
-        console.log("ForgotPassword: unexpected nextStep, showing success screen");
+        console.log("ForgotPassword: no code expected, showing success screen");
         setPendingEmail(email);
         setForgotPasswordSuccess(true);
       }
     } catch (err: any) {
       console.log("ForgotPassword error:", err.name, err.message);
-      if (err.name === "UserNotFoundException") {
+      const code = isAuthError(err) ? err.code : "unknown";
+      if (code === "userNotFound") {
         // Don't reveal if user exists
         setPendingEmail(email);
         setForgotPasswordSuccess(true);
-      } else if (err.name === "LimitExceededException") {
+      } else if (code === "limitExceeded") {
         setError("Too many attempts. Please try again later.");
       } else {
         setError(err.message || "Failed to send reset code. Please try again.");
@@ -328,11 +339,12 @@ function useAuthScreenContent({
       await resetPassword({ email: pendingEmail, code, newPassword });
       setResetPasswordSuccess(true);
     } catch (err: any) {
-      if (err.name === "CodeMismatchException") {
+      const errCode = isAuthError(err) ? err.code : "unknown";
+      if (errCode === "codeMismatch") {
         setError("Invalid code. Please check your email and try again.");
-      } else if (err.name === "ExpiredCodeException") {
+      } else if (errCode === "codeExpired") {
         setError("Code has expired. Please request a new password reset.");
-      } else if (err.name === "InvalidPasswordException") {
+      } else if (errCode === "invalidPassword") {
         setError("Password does not meet requirements.");
       } else {
         setError(err.message || "Failed to reset password. Please try again.");

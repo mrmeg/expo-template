@@ -25,8 +25,45 @@ afterEach(() => {
 });
 
 describe("ensureAuthBootstrapped", () => {
-  it("returns null when Cognito env vars are missing", () => {
+  it("returns null when no provider env vars are set", () => {
     expect(ensureAuthBootstrapped({})).toBeNull();
+    expect(getTokenVerifier()).toBeNull();
+  });
+
+  it("installs a verifier when Clerk env is present", () => {
+    const result = ensureAuthBootstrapped({ CLERK_SECRET_KEY: "sk_test_xxx" });
+    expect(result).not.toBeNull();
+    expect(getTokenVerifier()).toBe(result);
+  });
+
+  it("installs a verifier when Cognito env is present", () => {
+    const result = ensureAuthBootstrapped({
+      EXPO_PUBLIC_USER_POOL_ID: "us-east-1_xxx",
+      EXPO_PUBLIC_USER_POOL_CLIENT_ID: "client123",
+    });
+    expect(result).not.toBeNull();
+    expect(getTokenVerifier()).toBe(result);
+  });
+
+  it("honors EXPO_PUBLIC_AUTH_PROVIDER=cognito when both providers are set", () => {
+    // Distinguish the branches without hitting the network: an explicit
+    // "cognito" choice with incomplete Cognito env must NOT fall back to
+    // the fully-configured Clerk path.
+    const result = ensureAuthBootstrapped({
+      CLERK_SECRET_KEY: "sk_test_xxx",
+      EXPO_PUBLIC_AUTH_PROVIDER: "cognito",
+    });
+    expect(result).toBeNull();
+    expect(getTokenVerifier()).toBeNull();
+  });
+
+  it("returns null when EXPO_PUBLIC_AUTH_PROVIDER=clerk but the secret key is missing", () => {
+    const result = ensureAuthBootstrapped({
+      EXPO_PUBLIC_AUTH_PROVIDER: "clerk",
+      EXPO_PUBLIC_USER_POOL_ID: "us-east-1_xxx",
+      EXPO_PUBLIC_USER_POOL_CLIENT_ID: "client123",
+    });
+    expect(result).toBeNull();
     expect(getTokenVerifier()).toBeNull();
   });
 

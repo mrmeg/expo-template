@@ -1,21 +1,17 @@
 import { useCallback } from "react";
 import { useAuthStore, initAuth } from "../stores/authStore";
+import { AuthError, getAuthClient, type AuthClient } from "../provider";
 
-type AuthModule = typeof import("aws-amplify/auth");
-
-async function withInitializedAuth<T>(
-  action: (auth: AuthModule) => Promise<T>
-): Promise<T> {
-  const [auth] = await Promise.all([
-    import("aws-amplify/auth"),
-    initAuth(),
-  ]);
-
-  return action(auth);
+async function requireAuthClient(): Promise<AuthClient> {
+  const [client] = await Promise.all([getAuthClient(), initAuth()]);
+  if (!client) {
+    throw new AuthError("unknown", "Auth is not configured in this environment");
+  }
+  return client;
 }
 
 export function useAuth() {
-  const { initialize, setPendingVerificationEmail, setError } = useAuthStore();
+  const { initialize, setPendingVerificationEmail } = useAuthStore();
 
   /**
    * Check if user is currently authenticated
@@ -29,11 +25,10 @@ export function useAuth() {
    * Sign in with email and password
    */
   const handleSignIn = useCallback(async ({ email, password }: { email: string; password: string }) => {
-    const result = await withInitializedAuth(({ signIn }) =>
-      signIn({ username: email, password })
-    );
+    const client = await requireAuthClient();
+    const result = await client.signIn({ email, password });
 
-    if (result.isSignedIn) {
+    if (result.status === "complete") {
       await initialize();
     }
 
@@ -50,27 +45,18 @@ export function useAuth() {
     email: string;
     password: string;
   }) => {
-    const result = await withInitializedAuth(({ signUp }) => signUp({
-      username: email,
-      password,
-      options: {
-        userAttributes: {
-          email,
-        },
-        // Enable auto sign-in after email verification
-        autoSignIn: true,
-      },
-    }));
+    const client = await requireAuthClient();
+    const result = await client.signUp({ email, password });
 
-    console.log("signUp result:", JSON.stringify(result, null, 2));
-
-    // Store email for verification screen
-    if (!result.isSignUpComplete) {
+    if (result.status === "complete") {
+      await initialize();
+    } else {
+      // Store email for verification screen
       setPendingVerificationEmail(email);
     }
 
     return result;
-  }, [setPendingVerificationEmail]);
+  }, [initialize, setPendingVerificationEmail]);
 
   /**
    * Confirm sign up with verification code
@@ -82,36 +68,12 @@ export function useAuth() {
     email: string;
     code: string;
   }) => {
-    const { result, autoSignIn } = await withInitializedAuth(
-      async ({ confirmSignUp, autoSignIn }) => ({
-        result: await confirmSignUp({
-          username: email,
-          confirmationCode: code,
-        }),
-        autoSignIn,
-      })
-    );
+    const client = await requireAuthClient();
+    const result = await client.confirmSignUp({ email, code });
 
-    console.log("confirmSignUp result:", JSON.stringify(result, null, 2));
-
-    if (result.isSignUpComplete) {
-      setPendingVerificationEmail(null);
-
-      // Try auto sign-in - attempt regardless of nextStep since some Cognito configs
-      // don't return COMPLETE_AUTO_SIGN_IN but still support autoSignIn
-      console.log("Sign up complete, attempting auto sign-in...");
-      try {
-        const signInResult = await autoSignIn();
-        console.log("autoSignIn result:", JSON.stringify(signInResult, null, 2));
-        if (signInResult.isSignedIn) {
-          console.log("Auto sign-in successful, initializing auth store...");
-          await initialize();
-          return { ...result, autoSignedIn: true };
-        }
-      } catch (error) {
-        console.log("Auto sign-in not available:", error);
-        // Auto sign-in failed, user needs to sign in manually
-      }
+    setPendingVerificationEmail(null);
+    if (result.autoSignedIn) {
+      await initialize();
     }
 
     return result;
@@ -121,18 +83,16 @@ export function useAuth() {
    * Resend verification code
    */
   const handleResendCode = useCallback(async (email: string) => {
-    await initAuth();
-    const { resendSignUpCode } = await import("aws-amplify/auth");
-    return await resendSignUpCode({ username: email });
+    const client = await requireAuthClient();
+    await client.resendCode(email);
   }, []);
 
   /**
    * Request password reset
    */
   const handleForgotPassword = useCallback(async (email: string) => {
-    await initAuth();
-    const { resetPassword } = await import("aws-amplify/auth");
-    return await resetPassword({ username: email });
+    const client = await requireAuthClient();
+    return await client.forgotPassword(email);
   }, []);
 
   /**
@@ -147,13 +107,8 @@ export function useAuth() {
     code: string;
     newPassword: string;
   }) => {
-    await initAuth();
-    const { confirmResetPassword } = await import("aws-amplify/auth");
-    return await confirmResetPassword({
-      username: email,
-      confirmationCode: code,
-      newPassword,
-    });
+    const client = await requireAuthClient();
+    await client.resetPassword({ email, code, newPassword });
   }, []);
 
   /**

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ensureAmplifyConfigured } from "../config";
+import { getAuthClient } from "../provider";
 import { logDev } from "@/client/lib/devtools";
 
 export interface User {
@@ -65,18 +65,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       });
 
       logDev("Initializing auth store...");
-      const { getCurrentUser } = await import("aws-amplify/auth");
-      const currentUser = await getCurrentUser();
-      logDev("Current user:", currentUser);
+      const client = await getAuthClient();
+      const user = client ? await client.getCurrentUser() : null;
+      logDev("Current user:", user);
 
-      if (currentUser) {
-        const user: User = {
-          userId: currentUser.userId,
-          username: currentUser.username,
-          email: currentUser.signInDetails?.loginId,
-        };
-
-        logDev("Setting authenticated user:", user);
+      if (user) {
         set({
           user,
           state: "authenticated",
@@ -84,7 +77,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           isInitializing: false,
         });
       } else {
-        logDev("No current user found");
         set({
           user: null,
           state: "unauthenticated",
@@ -106,8 +98,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   signOut: async () => {
     try {
       set({ state: "loading", error: null });
-      const { signOut } = await import("aws-amplify/auth");
-      await signOut();
+      const client = await getAuthClient();
+      await client?.signOut();
       set({
         user: null,
         state: "unauthenticated",
@@ -146,47 +138,24 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }),
 }));
 
-// Handle auto sign in after signup completion
-async function handleAutoSignIn() {
-  try {
-    logDev("Attempting auto sign in...");
-    const { autoSignIn } = await import("aws-amplify/auth");
-    const signInResult = await autoSignIn();
-    logDev("Auto sign in result:", signInResult);
-
-    if (signInResult.isSignedIn) {
-      const { initialize } = useAuthStore.getState();
-      await initialize();
-    }
-  } catch (error) {
-    console.error("Auto sign in failed:", error);
-    const { setError } = useAuthStore.getState();
-    setError("Auto sign in failed. Please sign in manually.");
-  }
-}
-
-// Lazy Hub listener setup
-let hubListenerInitialized = false;
+// Lazy provider change-listener setup
+let authListenerInitialized = false;
 
 export async function initAuth() {
-  if (hubListenerInitialized) return;
-  await ensureAmplifyConfigured();
+  if (authListenerInitialized) return;
+  authListenerInitialized = true;
 
-  hubListenerInitialized = true;
+  const client = await getAuthClient();
+  if (!client) return;
+  await client.init();
 
-  const { Hub } = await import("aws-amplify/utils");
-
-  Hub.listen("auth", ({ payload }) => {
-    const { event } = payload;
-    const data = (payload as any).data;
+  client.onAuthChange((event) => {
     const { initialize, setUser, setError } = useAuthStore.getState();
+    logDev("Auth change event:", event.type);
 
-    logDev("Hub auth event:", event, data);
-
-    switch (event) {
-    case "signInWithRedirect":
+    switch (event.type) {
     case "signedIn":
-      logDev("User signed in:", data);
+      // Defer briefly: providers can emit before the session is queryable.
       setTimeout(async () => {
         const state = useAuthStore.getState();
         if (state.state !== "authenticated" && !state.isInitializing) {
@@ -196,39 +165,12 @@ export async function initAuth() {
       break;
 
     case "signedOut":
-      logDev("User signed out");
       setUser(null);
       break;
 
-    case "tokenRefresh":
-      logDev("Token refreshed");
-      break;
-
-    case "tokenRefresh_failure":
-      logDev("Token refresh failed");
+    case "sessionExpired":
       setError("Session expired. Please sign in again.");
       break;
-
-    case "signInWithRedirect_failure":
-      logDev("Sign in failed:", data);
-      setError("Sign in failed. Please try again.");
-      break;
-
-    default: {
-      const eventStr = String(event);
-      // Handle confirmSignUp for auto sign in
-      if (eventStr === "confirmSignUp" || eventStr === "signUp") {
-        logDev(`Auth event: ${eventStr}`, data);
-        if (data && typeof data === "object" && "nextStep" in data) {
-          const nextStep = data.nextStep;
-          if (nextStep?.signUpStep === "COMPLETE_AUTO_SIGN_IN") {
-            logDev("Triggering auto sign in...");
-            handleAutoSignIn();
-          }
-        }
-      }
-      break;
-    }
     }
   });
 }

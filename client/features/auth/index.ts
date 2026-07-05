@@ -8,4 +8,17 @@ export { VerifyEmailForm } from "./components/VerifyEmailForm";
 export { useAuth } from "./hooks/useAuth";
 export { useAuthStore, initAuth } from "./stores/authStore";
 export type { User, AuthState } from "./stores/authStore";
-export { ensureAmplifyConfigured } from "./config";
+export {
+  getAuthClient,
+  getAuthProvider,
+  AuthError,
+  isAuthError,
+} from "./provider";
+export type {
+  AuthClient,
+  AuthProviderName,
+  AuthErrorCode,
+  AuthFlowResult,
+  ConfirmSignUpResult,
+  ForgotPasswordResult,
+} from "./provider";

@@ -1,10 +1,10 @@
-import { fetchAuthSession } from "aws-amplify/auth";
+import { getAuthClient } from "@/client/features/auth/provider";
 
 export async function getAuthData() {
   try {
-    const session = await fetchAuthSession();
+    const client = await getAuthClient();
     return {
-      token: session.tokens?.accessToken?.toString()
+      token: (await client?.getToken()) ?? undefined,
     };
   } catch {
     return { token: undefined };

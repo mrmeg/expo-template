@@ -1,16 +1,15 @@
 /**
- * Single source of truth for whether the Cognito auth shell is wired up.
+ * Single source of truth for whether an auth provider is wired up.
  *
- * Mirrors the env-var predicate in `client/features/auth/config.ts` so the
- * startup gate and per-route auth policy can't drift.
+ * Delegates to `getAuthProvider()` (client/features/auth/provider) so the
+ * startup gate, per-route auth policy, and provider selection can't drift.
  *
- * When false, the template is fully explorable without a live Cognito
- * environment (see Agent/Docs/USER_FLOWS.md). When true, protected surfaces
- * gate on `authStore.state === "authenticated"`.
+ * When false, the template is fully explorable without a live Cognito or
+ * Clerk environment (see Agent/Docs/USER_FLOWS.md). When true, protected
+ * surfaces gate on `authStore.state === "authenticated"`.
  */
+import { getAuthProvider } from "@/client/features/auth/provider";
+
 export function isAuthEnabled(): boolean {
-  return Boolean(
-    process.env.EXPO_PUBLIC_USER_POOL_ID &&
-      process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID,
-  );
+  return getAuthProvider() !== null;
 }

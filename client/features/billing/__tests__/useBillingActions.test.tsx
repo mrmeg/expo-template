@@ -14,9 +14,9 @@ import { useBillingActions, __internal } from "../hooks/useBillingActions";
 import type { BrowserHandoff } from "../hooks/useBillingActions";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
 
-jest.mock("aws-amplify/auth", () => ({
-  fetchAuthSession: async () => ({
-    tokens: { idToken: { toString: () => "test-token" } },
+jest.mock("@/client/features/auth/provider", () => ({
+  getAuthClient: async () => ({
+    getToken: async () => "test-token",
   }),
 }));
 
