@@ -212,6 +212,7 @@ Use this table before creating a new app-local primitive.
 - Use `EmptyState` for no-data or recoverable error regions.
 - Use `Skeleton` for loading content with stable layout.
 - Use `Progress` for real progress or indeterminate long-running work.
+- Use `Drawer.Header` with `icon`, `title`, and `action` for a compact app-brand row; place `Drawer.ToggleCollapse` in `action` for a trailing rail control.
 
 ## Minimal Examples
 
@@ -247,6 +248,20 @@ import { Button, Switch, TextInput } from "@mrmeg/expo-ui/components";
 <Button preset="default" size="lg" fullWidth loading={isSubmitting}>
   Continue
 </Button>
+```
+
+```tsx
+import { Drawer, Icon } from "@mrmeg/expo-ui/components";
+
+<Drawer.Header
+  icon={<Icon name="hexagon" color="accent" />}
+  title="Acme"
+  action={
+    <Drawer.ToggleCollapse>
+      <Icon name="sidebar" decorative />
+    </Drawer.ToggleCollapse>
+  }
+/>
 ```
 
 ```tsx

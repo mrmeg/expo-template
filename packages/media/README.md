@@ -41,8 +41,9 @@ App-owned:
 bun add @mrmeg/expo-media
 ```
 
-Expo native modules are peer dependencies because the consuming app must keep
-them aligned with its Expo SDK: `expo-image-picker`,
+React Query and Expo native modules are peer dependencies because the consuming
+app must own the provider/runtime singletons and keep native modules aligned
+with its Expo SDK: `@tanstack/react-query`, `expo-image-picker`,
 `expo-image-manipulator`, `expo-file-system`, `expo-video-thumbnails`, and
 `expo-crypto`. `heic2any` is also a peer dependency for browser HEIC
 conversion, but it is loaded dynamically only when web HEIC conversion runs.

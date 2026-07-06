@@ -533,24 +533,37 @@ function useShowcaseScreenContent() {
               >
                 <Drawer variant="rail" collapsedWidth={72} expandedWidth={220}>
                   <Drawer.Content>
-                    <Drawer.Header>
-                      {/* Toggle lives at the top: tap the icon to expand/collapse
-                          (native); the brand name appears once expanded. */}
-                      <Drawer.ToggleCollapse asChild>
-                        <Pressable
-                          style={Platform.OS === "web" ? { cursor: "pointer" as any } : undefined}
-                        >
-                          <View style={{ flexDirection: "row", alignItems: "center", height: 32 }}>
-                            <View style={{ width: 40, alignItems: "center" }}>
-                              <Icon name="sidebar" size={22} color="accent" />
-                            </View>
-                            <StyledText numberOfLines={1} style={[styles.boldText, { fontSize: 16 }]}>
-                              Acme
-                            </StyledText>
-                          </View>
-                        </Pressable>
-                      </Drawer.ToggleCollapse>
-                    </Drawer.Header>
+                    <Drawer.Header
+                      icon={
+                        /* The leading brand icon doubles as the native expand
+                           control while the trailing action is clipped. */
+                        <Drawer.ToggleCollapse asChild>
+                          <Pressable
+                            hitSlop={10}
+                            style={Platform.OS === "web" ? { cursor: "pointer" } : undefined}
+                          >
+                            <Icon name="hexagon" size={24} color="accent" />
+                          </Pressable>
+                        </Drawer.ToggleCollapse>
+                      }
+                      title="Acme"
+                      action={
+                        <Drawer.ToggleCollapse asChild>
+                          <Pressable
+                            hitSlop={8}
+                            style={{
+                              width: 28,
+                              height: 28,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              ...(Platform.OS === "web" ? { cursor: "pointer" as const } : {}),
+                            }}
+                          >
+                            <Icon name="sidebar" size={15} color="mutedForeground" />
+                          </Pressable>
+                        </Drawer.ToggleCollapse>
+                      }
+                    />
                     <Drawer.Body>
                       <View style={{ gap: spacing.lg }}>
                         {([

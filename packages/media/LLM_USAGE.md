@@ -40,6 +40,9 @@ const mediaClient = createMediaClient({ basePath: "/api/media", fetcher });
 const hooks = createMediaQueryHooks({ client: mediaClient });
 ```
 
+The app must provide a single `@tanstack/react-query` `QueryClientProvider`;
+the package treats React Query as a peer so hooks share the app's query context.
+
 Use `hooks.useMediaUpload()` for web `Blob`/`File` and native URI uploads.
 Use `useMediaList`, `useSignedMediaUrls`, `useMediaDelete`, and
 `useMediaDeleteBatch` for storage operations.

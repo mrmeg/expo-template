@@ -254,7 +254,7 @@ Most compound components support both direct named imports and dot notation on t
 | `Card` | `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` |
 | `Collapsible` | `CollapsibleTrigger`, `CollapsibleContent` |
 | `Dialog` | `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogFooter`, `DialogTitle`, `DialogDescription`, `DialogClose` |
-| `Drawer` | `DrawerTrigger`, `DrawerContent`, `DrawerHeader`, `DrawerBody`, `DrawerFooter`, `DrawerClose` |
+| `Drawer` | `DrawerTrigger`, `DrawerContent`, `DrawerHeader`, `DrawerBody`, `DrawerFooter`, `DrawerClose`, `DrawerToggleCollapse` |
 | `DropdownMenu` | `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuGroup`, `DropdownMenuItem`, `DropdownMenuCheckboxItem`, `DropdownMenuRadioGroup`, `DropdownMenuRadioItem`, `DropdownMenuLabel`, `DropdownMenuSeparator`, `DropdownMenuShortcut`, `DropdownMenuPortal`, `DropdownMenuSub`, `DropdownMenuSubTrigger`, `DropdownMenuSubContent` |
 | `Popover` | `PopoverTrigger`, `PopoverContent`, `PopoverHeader`, `PopoverBody`, `PopoverFooter` |
 | `RadioGroup` | `RadioGroupItem` |
@@ -272,6 +272,20 @@ Text aliases are exported for common semantic typography: `SerifText`, `SansSeri
 Use `Button.preset`, not `variant`. `default` is the neutral primary action, `secondary` is a neutral secondary surface, `outline` is for lower-emphasis actions, `ghost` is for compact toolbars, `link` is for text-like commands, and `destructive` is for dangerous actions. Button visible heights are compact: `sm` 28px, `md` 32px, and `lg` 40px. Native Button targets preserve tap comfort with computed hit slop up to 44px. Nested `StyledText` children inherit the selected Button size, so use `size="sm"` for compact popover, tooltip, and toolbar triggers.
 
 Use `StyledText` or its aliases instead of raw `Text` whenever the text is part of app UI. Use `TextInput` for labeled fields because it already owns label, helper text, error text, clear buttons, password visibility, numeric filtering, and left/right elements.
+
+`Drawer.Header` accepts `icon`, `title`, and `action` slots for a compact app-brand row. Pass a string title to use the package typography, and place `Drawer.ToggleCollapse` in `action` for a trailing rail control:
+
+```tsx
+<Drawer.Header
+  icon={<Icon name="hexagon" color="accent" />}
+  title="Acme"
+  action={
+    <Drawer.ToggleCollapse>
+      <Icon name="sidebar" decorative />
+    </Drawer.ToggleCollapse>
+  }
+/>
+```
 
 Mount `UIProvider` once near the root before using `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, or package notifications. On native, `UIProvider` also wraps app content in the package keyboard-avoiding root by default, so ordinary screens and fixed footers stay above the soft keyboard without repeated app-local wrappers; pass `keyboardAvoiding={false}` to opt out, or use `KeyboardAvoidingView` directly for a subtree with custom behavior. Web skips the root keyboard wrapper unless `keyboardAvoiding` is explicitly enabled. `BottomSheet.Content` listens to React Native keyboard events when `avoidKeyboard` is enabled; it defaults to `true` and can be disabled per sheet. Trigger transient feedback with `notify`.
 

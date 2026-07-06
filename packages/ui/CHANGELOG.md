@@ -3,6 +3,20 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0]
+
+### Added
+
+- **`Drawer.Header` now supports a compact app-brand layout.** Use the new
+  `icon`, `title`, and `action` slots for a leading brand icon and title with a
+  trailing close or `Drawer.ToggleCollapse` control. Existing child-based
+  headers remain supported.
+
+### Changed
+
+- Expanded peer compatibility through Expo 57, React Native 0.86, and their
+  matching `@expo/ui` and gesture-handler releases.
+
 ## [0.12.1]
 
 ### Fixed

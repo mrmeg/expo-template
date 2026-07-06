@@ -60,6 +60,7 @@ const dedupePackages = {
   react: resolveAppPackage("react"),
   "react-dom": resolveAppPackage("react-dom"),
   "react-native": resolveAppPackage("react-native"),
+  "@tanstack/react-query": resolveAppPackage("@tanstack/react-query"),
   "react-native-reanimated": resolveAppPackage("react-native-reanimated"),
   "react-native-gesture-handler": resolveAppPackage(
     "react-native-gesture-handler"

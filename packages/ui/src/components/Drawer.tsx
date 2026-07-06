@@ -21,7 +21,7 @@ import { shouldUseNativeDriver } from "../lib/animations";
 import { spacing } from "../constants/spacing";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { SansSerifBoldText } from "./StyledText";
 
 /**
  * Drawer Component with Sub-components
@@ -153,7 +153,14 @@ interface DrawerContentProps extends ViewProps {
 }
 
 interface DrawerHeaderProps extends ViewProps {
-  children: React.ReactNode;
+  /** Custom header content. Used when the structured slots are omitted. */
+  children?: React.ReactNode;
+  /** Brand or app icon shown before the title. */
+  icon?: React.ReactNode;
+  /** Header title. Strings receive the package's default drawer title style. */
+  title?: React.ReactNode;
+  /** Trailing control, such as a close or rail-collapse button. */
+  action?: React.ReactNode;
 }
 
 interface DrawerBodyProps extends ViewProps {
@@ -846,8 +853,20 @@ function DrawerRailContent({
 // Drawer Header Component
 // ============================================================================
 
-function DrawerHeader({ children, style, ...props }: DrawerHeaderProps) {
+function DrawerHeader({
+  children,
+  icon,
+  title,
+  action,
+  style,
+  ...props
+}: DrawerHeaderProps) {
   const { theme } = useTheme();
+  const { variant, expandedWidth } = useDrawerContext();
+  const usesStructuredLayout =
+    icon !== undefined || title !== undefined || action !== undefined;
+  const structuredRowWidth =
+    variant === "rail" ? Math.max(0, expandedWidth - spacing.md * 2) : undefined;
 
   return (
     <View
@@ -858,11 +877,65 @@ function DrawerHeader({ children, style, ...props }: DrawerHeaderProps) {
           borderBottomWidth: 1,
           borderBottomColor: theme.colors.border,
         },
+        usesStructuredLayout && {
+          minHeight: 56,
+          paddingVertical: spacing.sm,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
+        },
+        usesStructuredLayout && variant === "rail" && {
+          overflow: "hidden",
+        },
         style,
       ]}
       {...props}
     >
-      {children}
+      {usesStructuredLayout ? (
+        <View
+          style={{
+            flex: variant === "rail" ? undefined : 1,
+            flexShrink: variant === "rail" ? 0 : 1,
+            width: structuredRowWidth,
+            minWidth: 0,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.md,
+          }}
+        >
+          {icon === undefined ? null : (
+            <View style={{ flexShrink: 0 }}>{icon}</View>
+          )}
+          {title === undefined ? null : (
+            <View style={{ flex: 1, minWidth: 0 }}>
+              {typeof title === "string" || typeof title === "number" ? (
+                <SansSerifBoldText
+                  numberOfLines={1}
+                  selectable={false}
+                  style={{ fontSize: 16, lineHeight: 20 }}
+                >
+                  {title}
+                </SansSerifBoldText>
+              ) : (
+                title
+              )}
+            </View>
+          )}
+          {action === undefined ? null : (
+            <View
+              style={{
+                flexShrink: 0,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {action}
+            </View>
+          )}
+        </View>
+      ) : (
+        children
+      )}
     </View>
   );
 }
