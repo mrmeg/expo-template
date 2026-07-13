@@ -28,9 +28,9 @@ bun add @mrmeg/expo-ui
 ```
 
 Consumers must also install the native and Expo peer dependencies listed in
-`package.json`. The tested baseline is Expo SDK 56 with React 19.2, React
-Native 0.85, and React Native Web 0.21. UI animations and keyboard-aware
-sheet offsets use React Native Animated by default.
+`package.json`. The tested compatibility window is Expo SDK 56–57 with React
+19.2, React Native 0.85–0.86, and React Native Web 0.21. UI animations and
+keyboard-aware sheet offsets use React Native Animated by default.
 `@rn-primitives/*` packages are managed by `@mrmeg/expo-ui` because they are
 implementation details of the exported UI components. Native bottom sheet
 keyboard avoidance uses React Native keyboard events. i18n setup is optional;
@@ -428,6 +428,9 @@ The release command requires a clean working tree by default. Commit current
 changes first, or pass `--allow-dirty` when you intentionally want to release
 from uncommitted local changes.
 
+Release validation includes `bun run packages:peer-check`; CI also installs and
+exports packed consumers against Expo 56 and 57.
+
 If npm login email is unavailable, publish through GitHub Actions trusted
 publishing instead:
 
@@ -459,6 +462,7 @@ reruns do not bump again.
 Manual package checks:
 
 ```sh
+bun run packages:peer-check
 bun run ui:typecheck
 bun run ui:test
 bun run ui:build

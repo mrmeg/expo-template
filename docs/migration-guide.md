@@ -32,25 +32,25 @@ The template publishes an LLM consumption layer. From any repo, fetch:
 
 When this guide and `llms-full.txt` disagree, `llms-full.txt` is newer — trust it.
 
-## Target Baseline (as of June 2026)
+## Target Baseline (as of July 2026)
 
 | Package | Version |
 |---------|---------|
-| expo | ~56.0.9 |
-| expo-router | ~56.2.9 |
-| expo-server | ~56.0.5 |
+| expo | ~57.0.4 |
+| expo-router | ~57.0.4 |
+| expo-server | ~57.0.0 |
 | react | 19.2.3 |
-| react-native | 0.85.3 |
+| react-native | 0.86.0 |
 | react-native-web | ^0.21.2 |
-| @mrmeg/expo-ui | ^0.8.0 |
-| @mrmeg/expo-media (if using media) | ^0.1.1 |
+| @mrmeg/expo-ui | ^0.14.0 |
+| @mrmeg/expo-media (if using media) | ^0.2.0 |
 | zustand | ^5.0.14 |
-| @tanstack/react-query | ^5.101.0 |
-| react-hook-form | ^7.78.0 |
+| @tanstack/react-query | ^5.101.2 |
+| react-hook-form | ^7.81.0 |
 | zod | ^4.4.3 |
 | typescript | ~6.0.3 (strict mode) |
-| jest-expo | ~56.0.4 |
-| @testing-library/react-native | ^14.0.0 |
+| jest-expo | ~57.0.1 |
+| @testing-library/react-native | ^14.0.1 |
 | eslint | ^10 (flat config) |
 
 Package manager: **Bun** (`bun.lock`, scripts run via `bun run <script>`).

@@ -29,6 +29,10 @@ Use only exported package paths: root, `components`, `components/*`,
 `constants`, `constants/*`, `hooks`, `hooks/*`, `state`, and `lib`. Do not
 import from `@mrmeg/expo-ui/dist/*` or from a source checkout path.
 
+Supported hosts are Expo 56–57, React 19.2, React Native 0.85–0.86, and React
+Native Web 0.21. Install the peer versions recommended by the consuming app's
+Expo SDK.
+
 ## Required App Setup
 
 Call `useResources()` once near the Expo app root. Mount `UIProvider` once

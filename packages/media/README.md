@@ -41,13 +41,24 @@ App-owned:
 bun add @mrmeg/expo-media
 ```
 
-React Query and Expo native modules are peer dependencies because the consuming
-app must own the provider/runtime singletons and keep native modules aligned
-with its Expo SDK: `@tanstack/react-query`, `expo-image-picker`,
-`expo-image-manipulator`, `expo-file-system`, `expo-video-thumbnails`, and
-`expo-crypto`. `heic2any` is also a peer dependency for browser HEIC
-conversion, but it is loaded dynamically only when web HEIC conversion runs.
-Server signing dependencies are package-owned.
+Core contracts and server handlers require no React or Expo runtime. React
+Query, React Native, Expo native modules, and `heic2any` are optional peers so
+apps install only the features they use while retaining ownership of provider
+singletons and native-module versions. Native compression and thumbnail
+generation use `expo-file-system`, `expo-image-manipulator`, and `expo-video`;
+React Query hooks use `@tanstack/react-query`; browser HEIC conversion uses
+`heic2any`. Server signing dependencies are package-owned.
+
+Install optional peers with the consuming app's package manager. Use Expo CLI
+for Expo-owned modules so their versions match the app SDK:
+
+```sh
+bunx expo install expo-file-system expo-image-manipulator expo-video
+bun add @tanstack/react-query heic2any
+```
+
+The package supports Expo 55–57 and React Native 0.83–0.86. A consumer only
+needs the peers required by the entrypoints and features it imports.
 
 In this monorepo, the app uses workspace resolution:
 
@@ -88,9 +99,9 @@ granular processing subpaths; the broad `/processing` export remains for
 compatibility but can expose bundlers to every processing feature.
 
 Heavy processing dependencies are behind lazy boundaries. `heic2any` loads
-inside `convertHeicToJpeg()`, native thumbnail extraction loads
-`expo-video-thumbnails` only on the native path, and FFmpeg assets load only
-when web `convertVideo()` runs. Bundlers that honor package side-effect
+inside `convertHeicToJpeg()`, native thumbnail extraction loads `expo-video`
+and `expo-image-manipulator` only on the native path, and FFmpeg assets load
+only when web `convertVideo()` runs. Bundlers that honor package side-effect
 metadata also see `"sideEffects": false`.
 
 ## Configuration Model
@@ -360,6 +371,9 @@ Behavior notes:
   larger re-encodes or transcodes do not replace smaller originals.
 - Videos are not image-compressed. Web can optionally transcode unsupported
   formats to MP4.
+- Native thumbnails use `expo-video.generateThumbnailsAsync()` and save the
+  resulting native image reference to a cache-file URI through
+  `expo-image-manipulator`.
 - Apps must serve `FFMPEG_WORKER_URL` from the same origin in Metro and
   production Express when using web video conversion.
 - Avoid the broad `/processing` barrel in settings, stores, and light screens.
@@ -458,6 +472,7 @@ Good deletion candidates:
 Run package checks sequentially when debugging generated artifacts:
 
 ```sh
+bun run packages:peer-check
 bun run media:typecheck
 bun run media:test
 bun run media:build
@@ -466,8 +481,24 @@ bun run media:consumer-smoke
 ```
 
 `media:consumer-smoke` installs the packed tarball into a clean fixture,
-type-checks documented entrypoints, verifies export-map files, runs a root
-runtime import, and checks that installed-package docs are present.
+verifies that core/server entrypoints install without optional peers,
+type-checks documented entrypoints with all features installed, verifies
+export-map files, runs root runtime imports, and checks that installed-package
+docs are present. CI also installs packed media consumers against Expo 55, 56,
+and 57.
+
+## Package Release
+
+For a one-command local release from the repo root, use:
+
+```sh
+bun run media:release -- --patch --publish
+```
+
+Replace `--patch` with `--minor`, `--major`, or an exact version. Without
+`--publish`, the command performs the version bump and all release gates but
+does not publish. It requires a clean working tree unless `--allow-dirty` is
+passed intentionally.
 
 ## GitHub Publishing
 

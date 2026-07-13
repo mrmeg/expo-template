@@ -66,8 +66,9 @@ Conversion helpers should fall back to original media when optional conversion
 is unavailable.
 
 Heavy optional features are lazy: `heic2any` loads only during web HEIC
-conversion, `expo-video-thumbnails` loads only in the native thumbnail path,
-and FFmpeg loads only when web video conversion runs.
+conversion, `expo-video` and `expo-image-manipulator` load only in the native
+thumbnail path, and FFmpeg loads only when web video conversion runs. Core and
+server entrypoints do not require React or Expo peers.
 
 Default image presets are `avatar`, `thumbnail`, `product`, `gallery`,
 `highQuality`, and `none`. The package exports preset values and resolver
@@ -75,9 +76,10 @@ helpers; the consuming app decides which preset is the default for its product.
 
 ## Validation
 
-Run `media:typecheck`, `media:test`, `media:build`, `media:pack`, and
-`media:consumer-smoke` sequentially. The consumer smoke validates the packed
-package boundary and installed docs.
+Run `packages:peer-check`, `media:typecheck`, `media:test`, `media:build`,
+`media:pack`, and `media:consumer-smoke` sequentially. The consumer smoke
+validates both a minimal core/server install and a fully provisioned packed
+package. CI covers Expo 55, 56, and 57 consumers.
 
 ## Publishing Pattern
 
@@ -89,3 +91,6 @@ If `@mrmeg/expo-media` does not exist on npm yet, push-based workflow runs skip
 without failing unless `NPM_TOKEN` is configured. First publish should be a
 manual workflow run with `NPM_TOKEN`; trusted publishing can be configured after
 the package exists.
+
+For a local release, use `bun run media:release -- --patch --publish`. Omit
+`--publish` for the same version bump and validation gates without npm publish.

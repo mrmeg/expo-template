@@ -3,6 +3,17 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0]
+
+### Changed
+
+- Aligned the declared compatibility floor with the package's `@expo/ui`
+  requirement: Expo 56+, React Native 0.85+, and their matching Expo modules.
+- Kept Expo 57 and React Native 0.86 support in the same compatibility window.
+- Removed the duplicate workspace dev copy of
+  `react-native-keyboard-controller`; the root consumer now supplies the peer
+  consistently for tests, builds, and native autolinking.
+
 ## [0.13.0]
 
 ### Added

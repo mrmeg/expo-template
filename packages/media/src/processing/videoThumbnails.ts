@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { extractVideoThumbnailNative } from "./videoThumbnailNative";
 
 export interface ThumbnailResult {
   uri: string;
@@ -22,16 +23,15 @@ async function extractThumbnailNative(
   timeMs: number,
 ): Promise<ThumbnailResult | null> {
   try {
-    const VideoThumbnails = await import("expo-video-thumbnails");
-    const result = await VideoThumbnails.getThumbnailAsync(uri, {
-      time: timeMs,
-      quality: 0.8,
+    const [{ createVideoPlayer }, { ImageManipulator, SaveFormat }] = await Promise.all([
+      import("expo-video"),
+      import("expo-image-manipulator"),
+    ]);
+    return extractVideoThumbnailNative(uri, timeMs, {
+      createVideoPlayer,
+      manipulate: (thumbnail) => ImageManipulator.manipulate(thumbnail),
+      jpegFormat: SaveFormat.JPEG,
     });
-    return {
-      uri: result.uri,
-      width: result.width,
-      height: result.height,
-    };
   } catch {
     return null;
   }

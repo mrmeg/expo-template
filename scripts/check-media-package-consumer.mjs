@@ -16,6 +16,7 @@ function run(command, args, options = {}) {
 
 const root = process.cwd();
 const fixture = await mkdtemp(join(tmpdir(), "expo-media-consumer-"));
+const minimalFixture = await mkdtemp(join(tmpdir(), "expo-media-minimal-consumer-"));
 let tarball;
 
 function tarballNameForPackage(packageName, version) {
@@ -48,8 +49,8 @@ function resolveExportTargets(exportValue) {
   return Object.values(exportValue).filter((target) => typeof target === "string");
 }
 
-async function assertInstalledPackageSurface() {
-  const packageRoot = join(fixture, "node_modules/@mrmeg/expo-media");
+async function assertInstalledPackageSurface(fixtureRoot = fixture) {
+  const packageRoot = join(fixtureRoot, "node_modules/@mrmeg/expo-media");
   const manifest = await readJson(join(packageRoot, "package.json"));
   const exportChecks = [
     { entrypoint: "@mrmeg/expo-media", key: "." },
@@ -83,7 +84,7 @@ async function assertInstalledPackageSurface() {
     }
   }
 
-  for (const doc of ["README.md", "LLM_USAGE.md", "llms.txt", "llms-full.md"]) {
+  for (const doc of ["README.md", "CHANGELOG.md", "LLM_USAGE.md", "llms.txt", "llms-full.md"]) {
     await assertFileExists(join(packageRoot, doc), doc);
   }
 }
@@ -94,6 +95,36 @@ try {
   run("bun", ["run", "--cwd", "packages/media", "build"], { cwd: root });
   run("bun", ["pm", "pack"], { cwd: join(root, "packages/media") });
   tarball = join(root, "packages/media", tarballNameForPackage(mediaPackage.name, mediaPackage.version));
+
+  await writeFile(
+    join(minimalFixture, "package.json"),
+    JSON.stringify(
+      {
+        name: "expo-media-minimal-consumer-smoke",
+        private: true,
+        type: "module",
+        dependencies: {
+          "@mrmeg/expo-media": tarball,
+        },
+      },
+      null,
+      2,
+    ),
+  );
+  await writeFile(
+    join(minimalFixture, "runtime.mjs"),
+    [
+      "const root = await import('@mrmeg/expo-media');",
+      "const server = await import('@mrmeg/expo-media/server');",
+      "if (!root.createMediaConfig || !server.createMediaHandlers) {",
+      "  throw new Error('Minimal core/server consumer could not load package entrypoints');",
+      "}",
+      "",
+    ].join("\n"),
+  );
+  run("bun", ["install", "--omit", "peer"], { cwd: minimalFixture });
+  await assertInstalledPackageSurface(minimalFixture);
+  run("node", ["runtime.mjs"], { cwd: minimalFixture });
 
   const peerDependencies = Object.fromEntries(
     Object.keys(mediaPackage.peerDependencies ?? {}).map((name) => [
@@ -211,4 +242,5 @@ try {
 } finally {
   if (tarball) await rm(tarball, { force: true });
   await rm(fixture, { recursive: true, force: true });
+  await rm(minimalFixture, { recursive: true, force: true });
 }

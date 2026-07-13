@@ -111,6 +111,10 @@ jobs:
         if: steps.availability.outputs.should_publish == 'true'
         run: bun install --lockfile-only
 
+      - name: Check package peer compatibility
+        if: steps.availability.outputs.should_publish == 'true'
+        run: bun run packages:peer-check
+
       - name: Type check UI package
         if: steps.availability.outputs.should_publish == 'true'
         run: bun run ui:typecheck

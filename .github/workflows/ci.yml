@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Check package peer compatibility
+        run: bun run packages:peer-check
+
       - name: Type check
         run: bun run typecheck
 
