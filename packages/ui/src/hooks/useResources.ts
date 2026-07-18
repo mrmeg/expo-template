@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import * as Font from "expo-font";
 import Feather from "@expo/vector-icons/Feather";
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
 import { Platform } from "react-native";
 
 // Eager, module-scope load so expo-font registers Feather in its SSR
@@ -18,25 +24,45 @@ interface LoadResourcesResult {
   error: Error | null;
 }
 
-const LATO_STYLESHEET_ID = "mrmeg-expo-ui-lato";
-const LATO_STYLESHEET_URL = "https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap";
+// The four static Inter weights StyledText's native family keys point at
+// (see constants/fonts.ts). Native-only: web never renders these family names
+// ("Inter_400Regular" etc.) — fontFamilies.sansSerif resolves every weight to
+// the single "Inter" CSS family on web (loaded via ensureWebFontStylesheet
+// below), so fetching these .ttf assets there would just be ~1.3MB of dead
+// weight with nothing pointing at them.
+const interFontMap = {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+};
+
+function loadNativeInterFonts(): Promise<void> {
+  if (Platform.OS === "web") {
+    return Promise.resolve();
+  }
+  return Font.loadAsync(interFontMap);
+}
+
+const INTER_STYLESHEET_ID = "mrmeg-expo-ui-inter";
+const INTER_STYLESHEET_URL = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
 
 function ensureWebFontStylesheet(): Promise<void> {
   if (Platform.OS !== "web" || typeof document === "undefined") {
     return Promise.resolve();
   }
 
-  if (document.getElementById(LATO_STYLESHEET_ID)) {
+  if (document.getElementById(INTER_STYLESHEET_ID)) {
     return Promise.resolve();
   }
 
   return new Promise((resolve, reject) => {
     const link = document.createElement("link");
-    link.id = LATO_STYLESHEET_ID;
+    link.id = INTER_STYLESHEET_ID;
     link.rel = "stylesheet";
-    link.href = LATO_STYLESHEET_URL;
+    link.href = INTER_STYLESHEET_URL;
     link.onload = () => resolve();
-    link.onerror = () => reject(new Error("Lato stylesheet failed to load"));
+    link.onerror = () => reject(new Error("Inter stylesheet failed to load"));
     document.head.appendChild(link);
   });
 }
@@ -44,8 +70,10 @@ function ensureWebFontStylesheet(): Promise<void> {
 /**
  * Loads essential app resources on startup.
  *
- * The UI package does not bundle font files. Web loads Lato from Google Fonts;
- * native platforms use their system sans-serif fallback.
+ * Native platforms load four static Inter weights (via
+ * @expo-google-fonts/inter) so StyledText's weight range resolves to real
+ * font files. Web loads Inter from Google Fonts as a single CSS family;
+ * weight differentiation there comes from a numeric fontWeight instead.
  */
 export const useResources = (): LoadResourcesResult => {
   const [loaded, setLoaded] = useState(false);
@@ -58,6 +86,7 @@ export const useResources = (): LoadResourcesResult => {
       try {
         const fontPromise = Promise.all([
           Font.loadAsync(Feather.font),
+          loadNativeInterFonts(),
           ensureWebFontStylesheet(),
         ]);
 

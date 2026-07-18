@@ -504,9 +504,15 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       width: "100%",
     } as ViewStyle,
     text: {
-      fontFamily: fontFamilies.sansSerif.regular,
+      // Button labels render at medium weight. On native, the family itself
+      // carries the weight (a real static Inter_500Medium file) — pairing it
+      // with a numeric fontWeight would faux-bold on top of that file. Web
+      // shares one "Inter" family across weights, so it needs the numeric
+      // fontWeight to pick the right @font-face variant. (Same rule as
+      // StyledText's getFontFamilyWeight / WEB_FONT_WEIGHTS.)
+      fontFamily: fontFamilies.sansSerif.medium,
       fontSize: sizeConfig.fontSize,
-      fontWeight: "500",
+      ...(Platform.OS === "web" && { fontWeight: "500" as const }),
       textAlign: "center",
       lineHeight: sizeConfig.fontSize * 1.4,
       flexShrink: 0,

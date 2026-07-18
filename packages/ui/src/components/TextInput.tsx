@@ -329,9 +329,9 @@ function WebTextInput({
       {/* Label */}
       {!!label && (
         <View style={styles.labelContainer}>
-          <StyledText selectable={false} style={styles.label}>
+          <StyledText selectable={false} size="base" fontWeight="medium" style={styles.label}>
             {label}
-            {required && <StyledText selectable={false} style={styles.required}> *</StyledText>}
+            {required && <StyledText selectable={false} fontWeight="bold" style={styles.required}> *</StyledText>}
           </StyledText>
         </View>
       )}
@@ -458,6 +458,7 @@ function WebTextInput({
       {!!(helperText || errorText) && (
         <StyledText
           selectable={false}
+          size="sm"
           style={[
             styles.helperText,
             hasError && styles.errorText,
@@ -682,9 +683,9 @@ function NativeTextInput({
     <View style={wrapperStyle}>
       {!!label && (
         <View style={styles.labelContainer}>
-          <StyledText selectable={false} style={styles.label}>
+          <StyledText selectable={false} size="base" fontWeight="medium" style={styles.label}>
             {label}
-            {required && <StyledText selectable={false} style={styles.required}> *</StyledText>}
+            {required && <StyledText selectable={false} fontWeight="bold" style={styles.required}> *</StyledText>}
           </StyledText>
         </View>
       )}
@@ -749,6 +750,7 @@ function NativeTextInput({
       {!!(helperText || errorText) && (
         <StyledText
           selectable={false}
+          size="sm"
           style={[styles.helperText, hasError && styles.errorText]}
         >
           {errorText || helperText}
@@ -808,18 +810,17 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       marginBottom: spacing.xs,
     },
     label: {
-      fontFamily: fontFamilies.sansSerif.regular,
-      fontWeight: "500" as const,
-      fontSize: 14,
+      // fontFamily/fontSize/fontWeight now come from StyledText's
+      // size="base" fontWeight="medium" props (see JSX below), which resolve
+      // the platform-correct family + weight instead of a hardcoded pair.
       color: theme.colors.text,
     },
     required: {
+      // fontFamily/fontWeight now come from StyledText's fontWeight="bold" prop.
       color: theme.colors.destructive,
-      fontFamily: fontFamilies.sansSerif.bold,
     },
     helperText: {
-      fontFamily: fontFamilies.sansSerif.regular,
-      fontSize: 12,
+      // fontFamily/fontSize now come from StyledText's size="sm" prop (see JSX below).
       color: theme.colors.textDim,
       marginTop: spacing.xs,
     },

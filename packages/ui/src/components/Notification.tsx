@@ -1,7 +1,6 @@
 import React, { useMemo, useCallback, use, useEffect, useEffectEvent, useRef } from "react";
 import { Animated, Easing, StyleSheet, View, ActivityIndicator, Pressable, Platform } from "react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
-import { fontFamilies } from "../constants/fonts";
 import { Icon } from "./Icon";
 import type { IconName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
@@ -267,7 +266,9 @@ export const Notification = () => {
           {!!title && (
             <StyledText
               selectable={false}
-              style={[styles.alertTitle, { color: theme.colors.foreground }]}
+              size="base"
+              fontWeight="semibold"
+              style={{ color: theme.colors.foreground }}
               numberOfLines={1}
             >
               {title}
@@ -276,7 +277,8 @@ export const Notification = () => {
           {hasMessage && (
             <StyledText
               selectable={false}
-              style={[styles.alertDescription, { color: theme.colors.mutedForeground }]}
+              size="sm"
+              style={{ color: theme.colors.mutedForeground }}
               numberOfLines={2}
             >
               {message}
@@ -301,7 +303,9 @@ export const Notification = () => {
           >
             <StyledText
               selectable={false}
-              style={[styles.actionLabel, { color: theme.colors.primary }]}
+              size="sm"
+              fontWeight="semibold"
+              style={{ color: theme.colors.primary }}
               numberOfLines={1}
             >
               {action.label}
@@ -366,17 +370,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     justifyContent: "center",
     gap: spacing.xxs,
   },
-  alertTitle: {
-    fontFamily: fontFamilies.sansSerif.regular,
-    fontWeight: "600",
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  alertDescription: {
-    fontFamily: fontFamilies.sansSerif.regular,
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  // alertTitle/alertDescription/actionLabel font styling (family, size,
+  // weight, lineHeight) now comes entirely from StyledText's size/fontWeight
+  // props (see JSX above) — the nearest tokens to the previous hardcoded
+  // values (14/20/600, 13/18/regular, 13/18/600) are "base"+"semibold",
+  // "sm", and "sm"+"semibold" respectively.
   actionButton: {
     minHeight: 28,
     maxWidth: 140,
@@ -390,12 +388,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   actionButtonPressed: {
     opacity: 0.75,
-  },
-  actionLabel: {
-    fontFamily: fontFamilies.sansSerif.regular,
-    fontWeight: "600",
-    fontSize: 13,
-    lineHeight: 18,
   },
   closeButton: {
     position: "absolute",

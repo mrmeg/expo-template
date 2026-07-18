@@ -88,6 +88,7 @@
     "publish:dry-run": "bun pm pack --dry-run"
   },
   "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.2",
     "@expo/vector-icons": ">=15.0.0 <16.0.0",
     "@rn-primitives/accordion": "~1.4.0",
     "@rn-primitives/alert-dialog": "~1.4.0",
