@@ -7,6 +7,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { Checkbox } from "../Checkbox";
+import { spacing } from "../../constants/spacing";
 
 // Mock useTheme hook
 jest.mock("../../hooks/useTheme", () => ({
@@ -115,5 +116,12 @@ describe("Checkbox", () => {
 
     const checkbox = screen.getByRole("checkbox");
     expect(checkbox.props.accessibilityState.disabled).toBe(true);
+  });
+
+  it("uses radiusXs for the box (steps down from radiusSm post radius-rebase to avoid an over-rounded control)", async () => {
+    await render(<Checkbox checked={false} onCheckedChange={() => {}} />);
+
+    const checkbox = screen.getByRole("checkbox");
+    expect(checkbox.props.style.borderRadius).toBe(spacing.radiusXs);
   });
 });

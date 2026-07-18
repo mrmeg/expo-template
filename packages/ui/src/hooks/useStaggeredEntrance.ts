@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Animated, Easing } from "react-native";
 import { useReducedMotion } from "./useReduceMotion";
+import { durations } from "../constants/motion";
 
 type EntranceType = "fade" | "fadeSlideUp" | "fadeSlideDown" | "scale";
 
@@ -18,7 +19,7 @@ interface StaggeredEntranceOptions {
   delay?: number;
   /**
    * Duration of the entrance animation (ms)
-   * @default 200
+   * @default durations.normal (200)
    */
   duration?: number;
   /**
@@ -56,7 +57,7 @@ export function useStaggeredEntrance(options: StaggeredEntranceOptions = {}) {
   const {
     type = "fadeSlideUp",
     delay = 0,
-    duration = 200,
+    duration = durations.normal,
     slideDistance = 8,
     initialScale = 0.95,
   } = options;

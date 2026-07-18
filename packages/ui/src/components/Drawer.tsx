@@ -19,6 +19,7 @@ import { useTheme } from "../hooks/useTheme";
 import { useDimensions } from "../hooks/useDimensions";
 import { shouldUseNativeDriver } from "../lib/animations";
 import { spacing } from "../constants/spacing";
+import { durations } from "../constants/motion";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SansSerifBoldText } from "./StyledText";
@@ -483,12 +484,12 @@ function DrawerOverlayContent({
       const animation = Animated.parallel([
         Animated.timing(translateX, {
           toValue: 0,
-          duration: 200,
+          duration: durations.normal,
           useNativeDriver: shouldUseNativeDriver,
         }),
         Animated.timing(backdropOpacity, {
           toValue: 1,
-          duration: 200,
+          duration: durations.normal,
           useNativeDriver: shouldUseNativeDriver,
         }),
       ]);
@@ -504,12 +505,12 @@ function DrawerOverlayContent({
       const animation = Animated.parallel([
         Animated.timing(translateX, {
           toValue: closedPosition,
-          duration: 200,
+          duration: durations.normal,
           useNativeDriver: shouldUseNativeDriver,
         }),
         Animated.timing(backdropOpacity, {
           toValue: 0,
-          duration: 200,
+          duration: durations.normal,
           useNativeDriver: shouldUseNativeDriver,
         }),
       ]);
@@ -589,7 +590,7 @@ function DrawerOverlayContent({
               }),
               Animated.timing(backdropOpacity, {
                 toValue: 0,
-                duration: 200,
+                duration: durations.normal,
                 useNativeDriver: shouldUseNativeDriver,
               }),
             ]).start(() => {
@@ -607,7 +608,7 @@ function DrawerOverlayContent({
               }),
               Animated.timing(backdropOpacity, {
                 toValue: 1,
-                duration: 150,
+                duration: durations.fast,
                 useNativeDriver: shouldUseNativeDriver,
               }),
             ]).start();
@@ -785,7 +786,7 @@ function DrawerRailContent({
     if (previousExpanded !== null) {
       Animated.timing(widthAnim, {
         toValue: targetWidth,
-        duration: 180,
+        duration: durations.normal,
         useNativeDriver: false,
       }).start();
     }

@@ -263,6 +263,84 @@ describe("useTheme", () => {
         value: originalOS,
       });
     });
+
+    // Count layers by matching whole `<x>px <y>px <blur>px rgba(...)` chunks
+    // instead of splitting on ", " — rgba() itself contains commas.
+    function countLayers(boxShadow: string): number {
+      return (boxShadow.match(/-?\d+px -?\d+px -?\d+px rgba\([^)]+\)/g) ?? []).length;
+    }
+
+    it("emits a dual-layer boxShadow (contact + ambient) for soft-shadow presets", async () => {
+      const { result } = await renderHook(() => useTheme());
+      const dualLayerTypes = [
+        "subtle",
+        "base",
+        "soft",
+        "card",
+        "cardSubtle",
+        "cardHover",
+        "elevated",
+        "glass",
+      ] as const;
+
+      dualLayerTypes.forEach((type) => {
+        const style = result.current.getShadowStyle(type) as Record<string, unknown>;
+        expect(countLayers(style.boxShadow as string)).toBe(2);
+      });
+    });
+
+    it("keeps sharp and glow as single-layer shadows", async () => {
+      const { result } = await renderHook(() => useTheme());
+
+      const sharp = result.current.getShadowStyle("sharp") as Record<string, unknown>;
+      const glow = result.current.getShadowStyle("glow") as Record<string, unknown>;
+
+      expect(countLayers(sharp.boxShadow as string)).toBe(1);
+      expect(countLayers(glow.boxShadow as string)).toBe(1);
+    });
+
+    it("orders the ambient layer with a larger blur and lower opacity than the contact layer", async () => {
+      const { result } = await renderHook(() => useTheme());
+      const style = result.current.getShadowStyle("base") as Record<string, unknown>;
+      const [contact, ambient] = (style.boxShadow as string).split(/,\s*(?=-?\d+px)/);
+
+      const parseLayer = (layer: string) => {
+        const [, blur, alpha] = layer.match(/^-?\d+px -?\d+px (-?\d+)px rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/)!;
+        return { blur: Number(blur), alpha: Number(alpha) };
+      };
+
+      const contactLayer = parseLayer(contact);
+      const ambientLayer = parseLayer(ambient);
+
+      expect(ambientLayer.blur).toBeGreaterThan(contactLayer.blur);
+      expect(ambientLayer.alpha).toBeLessThan(contactLayer.alpha);
+    });
+
+    it("keeps glow on the primary accent color, unboosted, in dark mode", async () => {
+      useThemeStore.setState({ userTheme: "dark", systemTheme: "dark" });
+      const { result } = await renderHook(() => useTheme());
+
+      const style = result.current.getShadowStyle("glow") as Record<string, unknown>;
+      expect(style.boxShadow).toEqual(expect.stringContaining("0.4"));
+    });
+
+    it("boosts ambient-shadow alpha in dark mode without exceeding 1", async () => {
+      useThemeStore.setState({ userTheme: "dark", systemTheme: "dark" });
+      const { result } = await renderHook(() => useTheme());
+
+      const style = result.current.getShadowStyle("elevated") as Record<string, unknown>;
+      const alphas = [...(style.boxShadow as string).matchAll(/rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/g)]
+        .map((match) => Number(match[1]));
+
+      expect(alphas.length).toBe(2);
+      alphas.forEach((alpha) => {
+        expect(alpha).toBeLessThanOrEqual(1);
+        expect(alpha).toBeGreaterThan(0);
+      });
+      // elevated dark boost: 0.08 * 3 and 0.05 * 3, both under the 1.0 cap.
+      expect(alphas[0]).toBeCloseTo(0.24, 5);
+      expect(alphas[1]).toBeCloseTo(0.15, 5);
+    });
   });
 
   describe("useStyles", () => {
