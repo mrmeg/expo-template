@@ -172,11 +172,11 @@ export function SkeletonCard({
   textLines = 3,
   style,
 }: SkeletonCardProps) {
-  const { theme } = useTheme();
+  const { theme, getShadowStyle } = useTheme();
   const styles = createCardStyles(theme);
 
   return (
-    <View style={[styles.card, style]}>
+    <View style={[styles.card, getShadowStyle("subtle"), style]}>
       {showImage && (
         <Skeleton
           width="100%"

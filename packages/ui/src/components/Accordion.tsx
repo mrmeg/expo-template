@@ -4,6 +4,7 @@ import { Icon } from "./Icon";
 import { TextClassContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
+import { useScalePress } from "../hooks/useScalePress";
 import { spacing } from "../constants/spacing";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
 
@@ -220,6 +221,7 @@ const Trigger = Platform.OS === "web" ? View : Pressable;
 function AccordionTrigger({
   children,
   style: styleOverride,
+  disabled,
   ...props
 }: AccordionPrimitive.TriggerProps & {
   children?: React.ReactNode;
@@ -228,6 +230,11 @@ function AccordionTrigger({
   const reduceMotion = useReducedMotion();
   const { isExpanded } = AccordionPrimitive.useItemContext();
   const rotation = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!disabled,
+    scaleTo: 0.97,
+    haptic: false,
+  });
 
   useEffect(() => {
     const target = isExpanded ? 1 : 0;
@@ -253,38 +260,42 @@ function AccordionTrigger({
     <TextClassContext.Provider value="">
       <TextSelectabilityContext.Provider value={false}>
         <AccordionPrimitive.Header>
-          <AccordionPrimitive.Trigger {...props} asChild>
-            <Trigger
-              style={[
-                {
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: spacing.md,
-                  borderRadius: spacing.radiusMd,
-                  paddingVertical: spacing.md,
-                  ...(Platform.OS === "web" && {
-                    cursor: "pointer" as any,
-                    userSelect: "none" as any,
-                  }),
-                },
-                // Spread array styles from primitives to prevent nested arrays on web
-                ...(styleOverride && typeof styleOverride !== "function"
-                  ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
-                  : []
-                ),
-              ]}>
-              <>{children}</>
-              <Animated.View style={chevronStyle}>
-                <Icon
-                  name="chevron-down"
-                  size={16}
-                  color={theme.colors.textDim}
-                  decorative
-                />
-              </Animated.View>
-            </Trigger>
-          </AccordionPrimitive.Trigger>
+          <Animated.View style={scaleStyle}>
+            <AccordionPrimitive.Trigger {...props} disabled={disabled} asChild>
+              <Trigger
+                onPressIn={pressHandlers.onPressIn}
+                onPressOut={pressHandlers.onPressOut}
+                style={[
+                  {
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: spacing.md,
+                    borderRadius: spacing.radiusMd,
+                    paddingVertical: spacing.md,
+                    ...(Platform.OS === "web" && {
+                      cursor: "pointer" as any,
+                      userSelect: "none" as any,
+                    }),
+                  },
+                  // Spread array styles from primitives to prevent nested arrays on web
+                  ...(styleOverride && typeof styleOverride !== "function"
+                    ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
+                    : []
+                  ),
+                ]}>
+                <>{children}</>
+                <Animated.View style={chevronStyle}>
+                  <Icon
+                    name="chevron-down"
+                    size={16}
+                    color={theme.colors.textDim}
+                    decorative
+                  />
+                </Animated.View>
+              </Trigger>
+            </AccordionPrimitive.Trigger>
+          </Animated.View>
         </AccordionPrimitive.Header>
       </TextSelectabilityContext.Provider>
     </TextClassContext.Provider>

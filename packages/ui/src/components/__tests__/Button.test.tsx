@@ -51,7 +51,10 @@ jest.mock("../../hooks/useTheme", () => ({
       // Simple contrast check for testing
       return bg === "#FFFFFF" || bg === "transparent" ? dark : light;
     },
-    getShadowStyle: () => ({}),
+    // Tag the returned style with the requested preset name so tests can
+    // assert *which* shadow preset a component asked for (e.g. Button's
+    // "subtle" resting shadow vs. an unshadowed ghost/outline button).
+    getShadowStyle: (type: string) => ({ shadowPresetTag: type }),
     getFocusRingStyle: () => ({}),
   }),
 }));
@@ -135,6 +138,39 @@ describe("Button", () => {
 
       expect(buttonSurface).toEqual(expect.objectContaining({ backgroundColor: "#F4F4F5" }));
       expect(textStyle).toEqual(expect.objectContaining({ color: "#18181B" }));
+    });
+
+    it("shows the subtle resting shadow on the default preset without opting in", async () => {
+      await render(<Button preset="default" text="Primary action" />);
+
+      const buttonSurface = findFlattenedStyleByBackground(getAllHostNodes(), "#18181B");
+
+      expect(buttonSurface).toEqual(expect.objectContaining({ shadowPresetTag: "subtle" }));
+    });
+
+    it("keeps ghost and outline presets flat (no shadow) by default", async () => {
+      for (const preset of ["ghost", "outline"] as const) {
+        const { unmount } = await render(<Button preset={preset} text="Flat" />);
+
+        const allNodes = getAllHostNodes();
+        const shadowedNode = allNodes
+          .map((node) => StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined)
+          .find((style) => style?.shadowPresetTag === "subtle");
+
+        expect(shadowedNode).toBeUndefined();
+        await unmount();
+      }
+    });
+
+    it("lets withShadow=false opt a default-preset button back out of the shadow", async () => {
+      await render(<Button preset="default" text="No shadow" withShadow={false} />);
+
+      const allNodes = getAllHostNodes();
+      const shadowedNode = allNodes
+        .map((node) => StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined)
+        .find((style) => style?.shadowPresetTag === "subtle");
+
+      expect(shadowedNode).toBeUndefined();
     });
 
     it("allows textStyle color to override the button label color", async () => {

@@ -1,10 +1,11 @@
 import * as React from "react";
-import { Platform, StyleSheet, Text, type TextStyle, View } from "react-native";
+import { Animated, Platform, StyleSheet, Text, type TextStyle, View } from "react-native";
 import { Icon } from "./Icon";
 import { AnimatedView } from "./AnimatedView";
 import { TextClassContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { useScalePress } from "../hooks/useScalePress";
 import * as DropdownMenuPrimitive from "@rn-primitives/dropdown-menu";
 import type { IconName } from "./Icon";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
@@ -31,8 +32,24 @@ const FullWindowOverlay = Platform.OS === "ios" ? RNFullWindowOverlay : React.Fr
  */
 type DropdownMenuTriggerProps = DropdownMenuPrimitive.TriggerProps;
 
-function DropdownMenuTrigger({ ...props }: DropdownMenuTriggerProps) {
-  return <DropdownMenuPrimitive.Trigger accessibilityRole="button" {...props} />;
+function DropdownMenuTrigger({ disabled, ...props }: DropdownMenuTriggerProps) {
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!disabled,
+    scaleTo: 0.97,
+    haptic: false,
+  });
+
+  return (
+    <Animated.View style={scaleStyle}>
+      <DropdownMenuPrimitive.Trigger
+        accessibilityRole="button"
+        disabled={disabled}
+        {...props}
+        onPressIn={pressHandlers.onPressIn}
+        onPressOut={pressHandlers.onPressOut}
+      />
+    </Animated.View>
+  );
 }
 
 /**
@@ -213,26 +230,35 @@ function DropdownMenuItem({
   ...props
 }: DropdownMenuItemProps) {
   const { theme } = useTheme();
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!props.disabled,
+    scaleTo: 0.97,
+    haptic: false,
+  });
 
   return (
     <TextClassContext.Provider value="">
       <TextSelectabilityContext.Provider value={false}>
-        <DropdownMenuPrimitive.Item
-          {...props}
-          style={{
-            ...styles.item,
-            ...(Platform.OS === "web" && {
-              cursor: props.disabled ? "not-allowed" : ("pointer" as any),
-              outlineStyle: "none" as any,
-              userSelect: "none" as any,
-            }),
-            ...(props.disabled && { opacity: 0.5 }),
-            ...(inset && { paddingLeft: spacing.xl }),
-            ...(styleOverride && typeof styleOverride !== "function"
-              ? StyleSheet.flatten(styleOverride)
-              : {}),
-          }}
-        />
+        <Animated.View style={scaleStyle}>
+          <DropdownMenuPrimitive.Item
+            {...props}
+            onPressIn={pressHandlers.onPressIn}
+            onPressOut={pressHandlers.onPressOut}
+            style={{
+              ...styles.item,
+              ...(Platform.OS === "web" && {
+                cursor: props.disabled ? "not-allowed" : ("pointer" as any),
+                outlineStyle: "none" as any,
+                userSelect: "none" as any,
+              }),
+              ...(props.disabled && { opacity: 0.5 }),
+              ...(inset && { paddingLeft: spacing.xl }),
+              ...(styleOverride && typeof styleOverride !== "function"
+                ? StyleSheet.flatten(styleOverride)
+                : {}),
+            }}
+          />
+        </Animated.View>
       </TextSelectabilityContext.Provider>
     </TextClassContext.Provider>
   );
@@ -250,46 +276,55 @@ function DropdownMenuCheckboxItem({
   ...props
 }: DropdownMenuCheckboxItemProps) {
   const { theme } = useTheme();
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!props.disabled,
+    scaleTo: 0.97,
+    haptic: false,
+  });
 
   return (
     <TextClassContext.Provider value="">
       <TextSelectabilityContext.Provider value={false}>
-        <DropdownMenuPrimitive.CheckboxItem
-          {...props}
-          style={{
-            ...styles.indicatorItem,
-            ...(Platform.OS === "web" && {
-              cursor: props.disabled ? "not-allowed" : ("pointer" as any),
-              outlineStyle: "none" as any,
-              userSelect: "none" as any,
-            }),
-            ...(props.disabled && { opacity: 0.5 }),
-            ...(styleOverride && typeof styleOverride !== "function"
-              ? StyleSheet.flatten(styleOverride)
-              : {}),
-          }}
-        >
-          <View
+        <Animated.View style={scaleStyle}>
+          <DropdownMenuPrimitive.CheckboxItem
+            {...props}
+            onPressIn={pressHandlers.onPressIn}
+            onPressOut={pressHandlers.onPressOut}
             style={{
-              position: "absolute",
-              left: spacing.sm,
-              height: 14,
-              width: 14,
-              alignItems: "center",
-              justifyContent: "center",
+              ...styles.indicatorItem,
+              ...(Platform.OS === "web" && {
+                cursor: props.disabled ? "not-allowed" : ("pointer" as any),
+                outlineStyle: "none" as any,
+                userSelect: "none" as any,
+              }),
+              ...(props.disabled && { opacity: 0.5 }),
+              ...(styleOverride && typeof styleOverride !== "function"
+                ? StyleSheet.flatten(styleOverride)
+                : {}),
             }}
           >
-            <DropdownMenuPrimitive.ItemIndicator>
-              <Icon
-                name="check"
-                size={16}
-                color={theme.colors.text}
-                {...(Platform.OS === "web" && { style: { pointerEvents: "none" as any } })}
-              />
-            </DropdownMenuPrimitive.ItemIndicator>
-          </View>
-          {typeof children === "function" ? null : children}
-        </DropdownMenuPrimitive.CheckboxItem>
+            <View
+              style={{
+                position: "absolute",
+                left: spacing.sm,
+                height: 14,
+                width: 14,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <DropdownMenuPrimitive.ItemIndicator>
+                <Icon
+                  name="check"
+                  size={16}
+                  color={theme.colors.text}
+                  {...(Platform.OS === "web" && { style: { pointerEvents: "none" as any } })}
+                />
+              </DropdownMenuPrimitive.ItemIndicator>
+            </View>
+            {typeof children === "function" ? null : children}
+          </DropdownMenuPrimitive.CheckboxItem>
+        </Animated.View>
       </TextSelectabilityContext.Provider>
     </TextClassContext.Provider>
   );
@@ -307,48 +342,57 @@ function DropdownMenuRadioItem({
   ...props
 }: DropdownMenuRadioItemProps) {
   const { theme } = useTheme();
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!props.disabled,
+    scaleTo: 0.97,
+    haptic: false,
+  });
 
   return (
     <TextClassContext.Provider value="">
       <TextSelectabilityContext.Provider value={false}>
-        <DropdownMenuPrimitive.RadioItem
-          {...props}
-          style={{
-            ...styles.indicatorItem,
-            ...(Platform.OS === "web" && {
-              cursor: props.disabled ? "not-allowed" : ("pointer" as any),
-              outlineStyle: "none" as any,
-              userSelect: "none" as any,
-            }),
-            ...(props.disabled && { opacity: 0.5 }),
-            ...(styleOverride && typeof styleOverride !== "function"
-              ? StyleSheet.flatten(styleOverride)
-              : {}),
-          }}
-        >
-          <View
+        <Animated.View style={scaleStyle}>
+          <DropdownMenuPrimitive.RadioItem
+            {...props}
+            onPressIn={pressHandlers.onPressIn}
+            onPressOut={pressHandlers.onPressOut}
             style={{
-              position: "absolute",
-              left: spacing.sm,
-              height: 14,
-              width: 14,
-              alignItems: "center",
-              justifyContent: "center",
+              ...styles.indicatorItem,
+              ...(Platform.OS === "web" && {
+                cursor: props.disabled ? "not-allowed" : ("pointer" as any),
+                outlineStyle: "none" as any,
+                userSelect: "none" as any,
+              }),
+              ...(props.disabled && { opacity: 0.5 }),
+              ...(styleOverride && typeof styleOverride !== "function"
+                ? StyleSheet.flatten(styleOverride)
+                : {}),
             }}
           >
-            <DropdownMenuPrimitive.ItemIndicator>
-              <View
-                style={{
-                  backgroundColor: theme.colors.text,
-                  height: 8,
-                  width: 8,
-                  borderRadius: 4,
-                }}
-              />
-            </DropdownMenuPrimitive.ItemIndicator>
-          </View>
-          {typeof children === "function" ? null : children}
-        </DropdownMenuPrimitive.RadioItem>
+            <View
+              style={{
+                position: "absolute",
+                left: spacing.sm,
+                height: 14,
+                width: 14,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <DropdownMenuPrimitive.ItemIndicator>
+                <View
+                  style={{
+                    backgroundColor: theme.colors.text,
+                    height: 8,
+                    width: 8,
+                    borderRadius: 4,
+                  }}
+                />
+              </DropdownMenuPrimitive.ItemIndicator>
+            </View>
+            {typeof children === "function" ? null : children}
+          </DropdownMenuPrimitive.RadioItem>
+        </Animated.View>
       </TextSelectabilityContext.Provider>
     </TextClassContext.Provider>
   );

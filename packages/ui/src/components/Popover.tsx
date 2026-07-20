@@ -2,9 +2,10 @@ import { AnimatedView } from "./AnimatedView";
 import { TextClassContext, TextColorContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { useScalePress } from "../hooks/useScalePress";
 import * as PopoverPrimitive from "@rn-primitives/popover";
 import * as React from "react";
-import { Platform, StyleSheet, View, ViewProps } from "react-native";
+import { Animated, Platform, StyleSheet, View, ViewProps } from "react-native";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { palette } from "../constants/colors";
 
@@ -12,7 +13,26 @@ import { palette } from "../constants/colors";
  * Popover Trigger Component
  * The element that triggers the popover to open/close
  */
-const PopoverTrigger = PopoverPrimitive.Trigger;
+type PopoverTriggerProps = PopoverPrimitive.TriggerProps;
+
+function PopoverTrigger({ disabled, ...props }: PopoverTriggerProps) {
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!disabled,
+    scaleTo: 0.97,
+    haptic: false,
+  });
+
+  return (
+    <Animated.View style={scaleStyle}>
+      <PopoverPrimitive.Trigger
+        disabled={disabled}
+        {...props}
+        onPressIn={pressHandlers.onPressIn}
+        onPressOut={pressHandlers.onPressOut}
+      />
+    </Animated.View>
+  );
+}
 
 /**
  * FullWindowOverlay wrapper - uses native overlay on iOS for proper z-index handling
