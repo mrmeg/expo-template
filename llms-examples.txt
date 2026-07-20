@@ -102,6 +102,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/ErrorBoundary.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ErrorBoundary.tsx
 - packages/ui/src/components/Icon.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Icon.tsx
 - packages/ui/src/components/InputOTP.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/InputOTP.tsx
+- packages/ui/src/components/Item.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Item.tsx
 - packages/ui/src/components/KeyboardAvoidingView.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/KeyboardAvoidingView.tsx
 - packages/ui/src/components/Label.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Label.tsx
 - packages/ui/src/components/MaxWidthContainer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MaxWidthContainer.tsx
@@ -109,11 +110,13 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/Popover.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Popover.tsx
 - packages/ui/src/components/Progress.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Progress.tsx
 - packages/ui/src/components/RadioGroup.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/RadioGroup.tsx
+- packages/ui/src/components/SectionHeader.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/SectionHeader.tsx
 - packages/ui/src/components/SegmentedControl.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/SegmentedControl.tsx
 - packages/ui/src/components/Select.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Select.tsx
 - packages/ui/src/components/Separator.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Separator.tsx
 - packages/ui/src/components/Skeleton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Skeleton.tsx
 - packages/ui/src/components/Slider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Slider.tsx
+- packages/ui/src/components/StatCard.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StatCard.tsx
 - packages/ui/src/components/StatusBar.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StatusBar.tsx
 - packages/ui/src/components/StyledText.context.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StyledText.context.ts
 - packages/ui/src/components/StyledText.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StyledText.tsx
