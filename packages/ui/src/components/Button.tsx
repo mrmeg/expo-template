@@ -140,7 +140,8 @@ export interface ButtonProps extends PressableProps {
    */
   disabledStyle?: StyleProp<ViewStyle>;
   /**
-   * Whether to show shadow
+   * Whether to show shadow.
+   * @default true for the `default` preset, `false` for every other preset.
    */
   withShadow?: boolean;
   /**
@@ -207,7 +208,7 @@ function ButtonRoot(props: ButtonProps) {
     LeftAccessory,
     disabled,
     disabledStyle: disabledStyleOverride,
-    withShadow = false,
+    withShadow: withShadowProp,
     preset = "default",
     size = "md",
     loading = false,
@@ -221,8 +222,12 @@ function ButtonRoot(props: ButtonProps) {
 
   const { theme, getContrastingColor, getFocusRingStyle, getShadowStyle } = useTheme();
   const styles = useMemo(() => createStyles(theme, size), [theme, size]);
-  const shadowStyle = getShadowStyle("base");
+  const shadowStyle = getShadowStyle("subtle");
   const sizeConfig = SIZE_CONFIGS[size];
+  // Filled (`default`) buttons float by default; ghost/outline/link stay flat
+  // (transparent background reads oddly with a shadow), and destructive/secondary
+  // keep the old opt-in behavior. Callers can still override via `withShadow`.
+  const withShadow = withShadowProp ?? preset === "default";
   const focusRingStyle = getFocusRingStyle();
 
   // Pre-compute background color for contrast calculation

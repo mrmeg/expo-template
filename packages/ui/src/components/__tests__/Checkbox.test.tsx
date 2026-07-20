@@ -24,6 +24,7 @@ jest.mock("../../hooks/useTheme", () => ({
       },
     },
     getShadowStyle: () => ({}),
+    getFocusRingStyle: () => ({}),
     getContrastingColor: (_bg: string, fg: string) => fg,
   }),
 }));
@@ -31,6 +32,20 @@ jest.mock("../../hooks/useTheme", () => ({
 // Mock haptics
 jest.mock("../../lib/haptics", () => ({
   hapticLight: jest.fn(),
+}));
+
+const mockScalePressIn = jest.fn();
+const mockScalePressOut = jest.fn();
+
+jest.mock("../../hooks/useScalePress", () => ({
+  useScalePress: () => ({
+    animatedStyle: {},
+    pressHandlers: {
+      onPressIn: mockScalePressIn,
+      onPressOut: mockScalePressOut,
+    },
+    scale: { value: 1 },
+  }),
 }));
 
 // Mock @rn-primitives/checkbox
@@ -58,6 +73,22 @@ jest.mock("@rn-primitives/checkbox", () => {
 });
 
 describe("Checkbox", () => {
+  beforeEach(() => {
+    mockScalePressIn.mockClear();
+    mockScalePressOut.mockClear();
+  });
+
+  it("wires press-in and press-out to the scale-press handlers", async () => {
+    await render(<Checkbox checked={false} onCheckedChange={() => {}} />);
+
+    const checkbox = screen.getByRole("checkbox");
+    await fireEvent(checkbox, "pressIn");
+    await fireEvent(checkbox, "pressOut");
+
+    expect(mockScalePressIn).toHaveBeenCalledTimes(1);
+    expect(mockScalePressOut).toHaveBeenCalledTimes(1);
+  });
+
   it("renders in unchecked state", async () => {
     await render(<Checkbox checked={false} onCheckedChange={() => {}} />);
 

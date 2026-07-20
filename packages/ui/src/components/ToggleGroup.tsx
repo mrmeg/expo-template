@@ -3,9 +3,10 @@ import { Icon } from "./Icon";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
+import { useScalePress } from "../hooks/useScalePress";
 import * as ToggleGroupPrimitive from "@rn-primitives/toggle-group";
 import * as React from "react";
-import { Platform, StyleSheet } from "react-native";
+import { Animated, Platform, PressableProps, StyleSheet } from "react-native";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -170,10 +171,39 @@ function ToggleGroupItem({
   children,
   ...props
 }: ToggleGroupItemProps) {
-  const { theme, withAlpha, getContrastingColor } = useTheme();
+  const { theme, withAlpha, getContrastingColor, getFocusRingStyle } = useTheme();
   const context = useToggleGroupContext();
   const { value: groupValue } = ToggleGroupPrimitive.useRootContext();
   const sizeConfig = TOGGLE_GROUP_SIZES[context.size];
+  const focusRingStyle = getFocusRingStyle();
+  const [focused, setFocused] = React.useState(false);
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!props.disabled,
+    scaleTo: 0.97,
+    haptic: false,
+  });
+
+  const showFocusRing: PressableProps["onFocus"] = (event) => {
+    let ringVisible = true;
+    if (Platform.OS === "web") {
+      const target = event?.nativeEvent?.target as unknown as
+        | { matches?: (selector: string) => boolean }
+        | null
+        | undefined;
+      if (target && typeof target.matches === "function") {
+        try {
+          ringVisible = target.matches(":focus-visible");
+        } catch {
+          ringVisible = true;
+        }
+      }
+    }
+    setFocused(ringVisible);
+  };
+
+  const hideFocusRing: PressableProps["onBlur"] = () => {
+    setFocused(false);
+  };
 
   // Check if this item is selected
   const isSelected = ToggleGroupPrimitive.utils.getIsSelected(groupValue, props.value);
@@ -193,8 +223,13 @@ function ToggleGroupItem({
   return (
     <TextColorContext.Provider value={textColor}>
       <TextClassContext.Provider value="">
+        <Animated.View style={scaleStyle}>
         <ToggleGroupPrimitive.Item
           {...props}
+          onPressIn={pressHandlers.onPressIn}
+          onPressOut={pressHandlers.onPressOut}
+          onFocus={showFocusRing}
+          onBlur={hideFocusRing}
           style={{
             ...styles.item,
             height: sizeConfig.height,
@@ -248,6 +283,7 @@ function ToggleGroupItem({
                 zIndex: 10,
               }),
             }),
+            ...(focused && !props.disabled ? focusRingStyle : null),
           }}
           hitSlop={DEFAULT_HIT_SLOP}
         >
@@ -263,6 +299,7 @@ function ToggleGroupItem({
             </TextSelectabilityContext.Provider>
           )}
         </ToggleGroupPrimitive.Item>
+        </Animated.View>
       </TextClassContext.Provider>
     </TextColorContext.Provider>
   );

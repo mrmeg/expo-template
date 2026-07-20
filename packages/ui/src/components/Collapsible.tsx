@@ -1,8 +1,9 @@
 import * as React from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Animated, Platform, StyleSheet, View } from "react-native";
 import { TextClassContext, TextSelectabilityContext } from "./StyledText.context";
 import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
+import { useScalePress } from "../hooks/useScalePress";
 import * as CollapsiblePrimitive from "@rn-primitives/collapsible";
 
 /**
@@ -55,29 +56,39 @@ function Collapsible({ children, ...props }: CollapsibleProps) {
  */
 type CollapsibleTriggerProps = CollapsiblePrimitive.TriggerProps;
 
-function CollapsibleTrigger({ style: styleOverride, ...props }: CollapsibleTriggerProps) {
+function CollapsibleTrigger({ style: styleOverride, disabled, ...props }: CollapsibleTriggerProps) {
   const { theme } = useTheme();
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!disabled,
+    scaleTo: 0.97,
+    haptic: false,
+  });
 
   return (
     <TextClassContext.Provider value="">
       <TextSelectabilityContext.Provider value={false}>
-        <CollapsiblePrimitive.Trigger
-          {...props}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingVertical: spacing.sm,
-            ...(Platform.OS === "web" && {
-              cursor: "pointer" as any,
-              outlineStyle: "none" as any,
-              userSelect: "none" as any,
-            }),
-            ...(styleOverride && typeof styleOverride !== "function"
-              ? StyleSheet.flatten(styleOverride)
-              : {}),
-          }}
-        />
+        <Animated.View style={scaleStyle}>
+          <CollapsiblePrimitive.Trigger
+            disabled={disabled}
+            {...props}
+            onPressIn={pressHandlers.onPressIn}
+            onPressOut={pressHandlers.onPressOut}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingVertical: spacing.sm,
+              ...(Platform.OS === "web" && {
+                cursor: "pointer" as any,
+                outlineStyle: "none" as any,
+                userSelect: "none" as any,
+              }),
+              ...(styleOverride && typeof styleOverride !== "function"
+                ? StyleSheet.flatten(styleOverride)
+                : {}),
+            }}
+          />
+        </Animated.View>
       </TextSelectabilityContext.Provider>
     </TextClassContext.Provider>
   );
