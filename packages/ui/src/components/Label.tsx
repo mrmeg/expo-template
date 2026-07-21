@@ -119,8 +119,13 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.xs,
     },
     label: {
-      fontFamily: fontFamilies.sansSerif.regular,
-      fontWeight: "500" as const,
+      // Medium weight: the family carries it on native (a real static
+      // Inter_500Medium file); web shares one "Inter" family across weights,
+      // so it needs the numeric fontWeight to pick the right @font-face
+      // variant. Setting fontWeight on native would faux-bold on top of the
+      // already-medium file (same rule as StyledText's WEB_FONT_WEIGHTS).
+      fontFamily: fontFamilies.sansSerif.medium,
+      ...(Platform.OS === "web" && { fontWeight: "500" as const }),
       color: theme.colors.text,
       userSelect: "none",
     },

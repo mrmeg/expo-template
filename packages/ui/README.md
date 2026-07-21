@@ -1,6 +1,6 @@
 # @mrmeg/expo-ui
 
-Reusable Expo and React Native UI primitives shared by the template and consumer apps. The package does not ship font files; web consumers load Lato from Google Fonts and native consumers use platform sans-serif fallbacks.
+Reusable Expo and React Native UI primitives shared by the template and consumer apps. Typography is Inter: native consumers load four static Inter weights via `@expo-google-fonts/inter`, web consumers load Inter from Google Fonts.
 
 This package is public for installability, reuse across MrMeg projects, and
 discoverability. It is a personal reusable Expo / React Native design-system
@@ -394,21 +394,21 @@ export default function RootLayout() {
 
 ## Fonts
 
-This package does not ship Lato `.ttf` files or other font binaries.
+Typography is Inter across every platform, in four static weights (`Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`, `Inter_700Bold`) from `@expo-google-fonts/inter` — a package dependency, so consumers get it automatically.
 
-On web, `useResources()` injects the Google Fonts Lato stylesheet after hydration if the app has not already added it. For better first paint in Expo Router web apps, add the links in app-owned `app/+html.tsx`:
+On native, `useResources()` loads the four static weights so `StyledText`'s `light`–`bold` range resolves to real font files instead of a faked OS bold. On web, `useResources()` injects a single Google Fonts Inter stylesheet (covering all four weights) after hydration if the app has not already added it; weight differentiation on web comes from a numeric `fontWeight` alongside the shared `"Inter"` CSS family. For better first paint in Expo Router web apps, add the links in app-owned `app/+html.tsx`:
 
 ```tsx
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 <link
-  id="mrmeg-expo-ui-lato"
+  id="mrmeg-expo-ui-inter"
   rel="stylesheet"
-  href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap"
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
 />
 ```
 
-On native, the package uses platform sans-serif fallbacks. `useResources()` still loads `Feather.font` from the package-managed `@expo/vector-icons` dependency for icon rendering.
+`useResources()` also loads `Feather.font` from the package-managed `@expo/vector-icons` dependency for icon rendering.
 
 ## Package Checks
 

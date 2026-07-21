@@ -276,8 +276,12 @@ function OTPCell({
           selectable={false}
           style={{
             fontSize: CELL_FONT_SIZE,
-            fontWeight: CELL_FONT_WEIGHT,
-            fontFamily: fontFamilies.sansSerif.regular,
+            // Semibold weight: the family carries it on native (a real static
+            // Inter_600SemiBold file); web shares one "Inter" family across
+            // weights, so it needs the numeric fontWeight to pick the right
+            // @font-face variant (same rule as StyledText's WEB_FONT_WEIGHTS).
+            ...(Platform.OS === "web" && { fontWeight: CELL_FONT_WEIGHT }),
+            fontFamily: fontFamilies.sansSerif.semibold,
             color: theme.colors.text,
             textAlign: "center",
             lineHeight: CELL_FONT_SIZE * 1.2,

@@ -67,10 +67,10 @@ export function EmptyState({
         </View>
       )}
 
-      <SansSerifBoldText selectable={false} style={styles.title}>{title}</SansSerifBoldText>
+      <SansSerifBoldText selectable={false} size="lg" style={styles.title}>{title}</SansSerifBoldText>
 
       {!!description && (
-        <SansSerifText selectable={false} style={styles.description}>{description}</SansSerifText>
+        <SansSerifText selectable={false} size="base" style={styles.description}>{description}</SansSerifText>
       )}
 
       {children}
@@ -99,15 +99,15 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.md,
     },
     title: {
-      fontSize: 18,
-      lineHeight: 24,
+      // fontSize/lineHeight/letterSpacing now come from StyledText's "lg"
+      // token (18/27/-0.09) via the size prop below, so this picks up the
+      // shared letter-spacing scale instead of a hardcoded 0.
       color: theme.colors.foreground,
       textAlign: "center",
-      letterSpacing: 0,
     },
     description: {
-      fontSize: 14,
-      lineHeight: 20,
+      // fontSize/lineHeight/letterSpacing now come from StyledText's "base"
+      // token (14/21/0) via the size prop below.
       color: theme.colors.mutedForeground,
       textAlign: "center",
       marginTop: spacing.sm,
