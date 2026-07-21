@@ -13,9 +13,9 @@ import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
-import { Button } from "@mrmeg/expo-ui/components/Button";
+import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Skeleton } from "@mrmeg/expo-ui/components/Skeleton";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -260,20 +260,18 @@ export function SearchResultsScreen<T>({
   // ---------------------------------------------------------------------------
 
   const renderEmpty = () => (
-    <View style={styles.emptyContainer}>
-      <View style={styles.emptyIconContainer}>
-        <Icon name={emptyIcon} size={48} color={theme.colors.mutedForeground} />
-      </View>
-      <SansSerifBoldText style={styles.emptyTitle}>{emptyTitle}</SansSerifBoldText>
-      {emptyDescription && (
-        <SansSerifText style={styles.emptyDescription}>{emptyDescription}</SansSerifText>
-      )}
-      {emptyAction && (
-        <Button preset="default" onPress={emptyAction.onPress} text={emptyAction.label} style={styles.emptyButton} />
-      )}
+    <EmptyState
+      style={styles.emptyContainer}
+      icon={emptyIcon}
+      iconSize={48}
+      title={emptyTitle}
+      description={emptyDescription}
+      actionLabel={emptyAction?.label}
+      onAction={emptyAction?.onPress}
+    >
       {emptySuggestions && emptySuggestions.length > 0 && (
         <View style={styles.suggestionsContainer}>
-          <SansSerifText style={styles.suggestionsLabel}>Try searching for:</SansSerifText>
+          <SansSerifText size="sm" style={styles.suggestionsLabel}>Try searching for:</SansSerifText>
           <View style={styles.suggestionsRow}>
             {emptySuggestions.map((suggestion) => (
               <Pressable
@@ -281,13 +279,13 @@ export function SearchResultsScreen<T>({
                 onPress={() => handleSearch(suggestion)}
                 style={styles.suggestionChip}
               >
-                <SansSerifText style={styles.suggestionText}>{suggestion}</SansSerifText>
+                <SansSerifText size="sm" style={styles.suggestionText}>{suggestion}</SansSerifText>
               </Pressable>
             ))}
           </View>
         </View>
       )}
-    </View>
+    </EmptyState>
   );
 
   // ---------------------------------------------------------------------------
@@ -384,8 +382,8 @@ const SearchResultsHeader = React.memo(function SearchResultsHeader({
               ]}
             >
               <SansSerifText
+                size="sm"
                 style={[
-                  styles.filterChipText,
                   filter.active
                     ? styles.filterChipTextActive
                     : styles.filterChipTextInactive,
@@ -400,7 +398,7 @@ const SearchResultsHeader = React.memo(function SearchResultsHeader({
 
       {showToolbar && (
         <View style={styles.toolbar}>
-          <SansSerifText style={styles.resultCountText}>
+          <SansSerifText size="sm" style={styles.resultCountText}>
             {displayCount} {resultLabel}
           </SansSerifText>
 
@@ -409,7 +407,7 @@ const SearchResultsHeader = React.memo(function SearchResultsHeader({
               <Pressable onPress={onSortCycle} style={styles.sortButton}>
                 <Icon name="sliders" size={14} color={theme.colors.mutedForeground} />
                 {currentSortLabel && (
-                  <SansSerifText style={styles.sortLabel}>{currentSortLabel}</SansSerifText>
+                  <SansSerifText size="sm" style={styles.sortLabel}>{currentSortLabel}</SansSerifText>
                 )}
               </Pressable>
             )}
@@ -496,9 +494,6 @@ const createStyles = (theme: Theme) =>
     filterChipInactive: {
       backgroundColor: theme.colors.muted,
     },
-    filterChipText: {
-      fontSize: 13,
-    },
     filterChipTextActive: {
       color: theme.colors.primaryForeground,
     },
@@ -515,7 +510,6 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing.sm,
     },
     resultCountText: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
     },
     toolbarRight: {
@@ -533,7 +527,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.muted,
     },
     sortLabel: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     viewToggle: {
@@ -570,34 +563,6 @@ const createStyles = (theme: Theme) =>
     // Empty state
     emptyContainer: {
       flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: spacing.xl,
-      paddingVertical: spacing.xxxl,
-    },
-    emptyIconContainer: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: theme.colors.muted,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: spacing.lg,
-    },
-    emptyTitle: {
-      fontSize: 18,
-      letterSpacing: -0.3,
-      color: theme.colors.foreground,
-      marginBottom: spacing.xs,
-    },
-    emptyDescription: {
-      fontSize: 14,
-      color: theme.colors.mutedForeground,
-      textAlign: "center",
-      lineHeight: 20,
-    },
-    emptyButton: {
-      marginTop: spacing.lg,
     },
     suggestionsContainer: {
       marginTop: spacing.lg,
@@ -605,7 +570,6 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
     },
     suggestionsLabel: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
     },
     suggestionsRow: {
@@ -621,7 +585,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.muted,
     },
     suggestionText: {
-      fontSize: 13,
       color: theme.colors.foreground,
     },
 

@@ -42,6 +42,7 @@ export default function ScreenErrorDemo() {
               ]}
             >
               <SansSerifText
+                size="sm"
                 style={[
                   styles.tabText,
                   isActive && { color: theme.colors.primaryForeground },
@@ -91,7 +92,6 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusMd,
     },
     tabText: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
     },
     screen: {

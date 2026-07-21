@@ -1,15 +1,12 @@
-import React, { useMemo, useState, useCallback } from "react";
-import { View, Pressable, StyleSheet, Platform } from "react-native";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import React, { useState, useCallback } from "react";
+import { StyleSheet } from "react-native";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
-import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
+import { Item, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from "@mrmeg/expo-ui/components/Item";
 import {
   SearchResultsScreen,
   type SearchFilter,
 } from "./Screen";
-import type { Theme } from "@mrmeg/expo-ui/constants";
 
 interface SearchItem {
   id: string;
@@ -38,9 +35,13 @@ const INITIAL_FILTERS: SearchFilter[] = [
   { key: "product", label: "Products", active: false },
 ];
 
+const styles = StyleSheet.create({
+  row: {
+    paddingHorizontal: spacing.lg,
+  },
+});
+
 export default function ScreenSearchDemo() {
-  const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState(INITIAL_FILTERS);
 
@@ -67,32 +68,18 @@ export default function ScreenSearchDemo() {
   }, []);
 
   const renderItem = (item: SearchItem) => (
-    <Pressable
-      style={
-        Platform.OS === "web"
-          ? { ...styles.row, cursor: "pointer" as any }
-          : styles.row
-      }
-    >
-      <View style={styles.iconCircle}>
-        <Icon
-          name={item.type === "article" ? "file-text" : "package"}
-          size={18}
-          color={theme.colors.foreground}
-        />
-      </View>
-      <View style={styles.rowContent}>
-        <SansSerifBoldText style={styles.rowTitle} numberOfLines={1}>
-          {item.title}
-        </SansSerifBoldText>
-        <SansSerifText style={styles.rowDescription} numberOfLines={2}>
-          {item.description}
-        </SansSerifText>
-      </View>
-      <Badge variant={item.type === "article" ? "secondary" : "outline"}>
-        {item.tag}
-      </Badge>
-    </Pressable>
+    <Item style={styles.row} separator>
+      <ItemMedia icon={item.type === "article" ? "file-text" : "package"} iconColor="foreground" />
+      <ItemContent>
+        <ItemTitle numberOfLines={1}>{item.title}</ItemTitle>
+        <ItemDescription numberOfLines={2}>{item.description}</ItemDescription>
+      </ItemContent>
+      <ItemActions>
+        <Badge variant={item.type === "article" ? "secondary" : "outline"}>
+          {item.tag}
+        </Badge>
+      </ItemActions>
+    </Item>
   );
 
   return (
@@ -113,37 +100,3 @@ export default function ScreenSearchDemo() {
     />
   );
 }
-
-const createStyles = (theme: Theme) =>
-  StyleSheet.create({
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-      gap: spacing.md,
-    },
-    iconCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: spacing.radiusMd,
-      backgroundColor: theme.colors.muted,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    rowContent: {
-      flex: 1,
-      gap: spacing.xxs,
-    },
-    rowTitle: {
-      fontSize: 15,
-      color: theme.colors.foreground,
-    },
-    rowDescription: {
-      fontSize: 13,
-      color: theme.colors.mutedForeground,
-      lineHeight: 18,
-    },
-  });
