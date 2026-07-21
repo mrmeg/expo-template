@@ -51,8 +51,10 @@ processing categories at once. Apps must serve the FFmpeg worker same-origin
 when using web video conversion.
 
 Heavy optional features are lazy. `heic2any` loads only during web HEIC
-conversion, native thumbnail extraction loads `expo-video-thumbnails` only on
-the native path, and FFmpeg loads only when web `convertVideo()` runs.
+conversion, native thumbnail extraction loads `expo-video` and
+`expo-image-manipulator` only on the native path, and FFmpeg loads only when web
+`convertVideo()` runs. Core and server entrypoints require no React or Expo
+peers.
 
 Image presets are `avatar`, `thumbnail`, `product`, `gallery`, `highQuality`,
 and `none`. Apps commonly pick original quality from `expo-image-picker`, then
@@ -62,6 +64,7 @@ is larger.
 Validation commands:
 
 ```sh
+bun run packages:peer-check
 bun run media:typecheck
 bun run media:test
 bun run media:build

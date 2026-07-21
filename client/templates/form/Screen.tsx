@@ -11,7 +11,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { useStaggeredEntrance, STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -85,6 +86,8 @@ function StepIndicator({
                 <Icon name="check" size={14} color={theme.colors.accentForeground} />
               ) : (
                 <SansSerifText
+                  size="sm"
+                  fontWeight="medium"
                   style={[
                     styles.stepNumber,
                     isCurrent && styles.stepNumberCurrent,
@@ -191,14 +194,10 @@ export function FormScreen({
 
         {/* Step title + description */}
         <Animated.View style={[styles.titleContainer, titleEntrance]}>
-          <SansSerifBoldText style={styles.title}>
-            {isReviewStep ? "Review" : step?.title}
-          </SansSerifBoldText>
-          {!isReviewStep && step?.description && (
-            <SansSerifText style={styles.description}>
-              {step.description}
-            </SansSerifText>
-          )}
+          <SectionHeader
+            title={isReviewStep ? "Review" : step?.title ?? ""}
+            description={!isReviewStep ? step?.description : undefined}
+          />
         </Animated.View>
 
         {/* Step content */}
@@ -279,8 +278,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.accent,
     },
     stepNumber: {
-      fontSize: 13,
-      fontWeight: "500",
       color: theme.colors.mutedForeground,
     },
     stepNumberCurrent: {
@@ -300,18 +297,6 @@ const createStyles = (theme: Theme) =>
     // Title + description
     titleContainer: {
       marginBottom: spacing.lg,
-    },
-    title: {
-      fontSize: 24,
-      lineHeight: 32,
-      letterSpacing: -0.3,
-      color: theme.colors.foreground,
-    },
-    description: {
-      fontSize: 15,
-      lineHeight: 22,
-      color: theme.colors.mutedForeground,
-      marginTop: spacing.xs,
     },
 
     // Content

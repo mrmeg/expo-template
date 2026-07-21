@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useCallback,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -33,6 +34,11 @@ import { Icon } from "./Icon";
 import { hapticLight } from "../lib/haptics";
 import type { Theme } from "../constants/colors";
 import { palette } from "../constants/colors";
+import {
+  clearKeyboardFocusedInputLayout,
+  setKeyboardFocusedInputLayout,
+  type KeyboardFocusedInputToken,
+} from "./keyboardFocusRegistry";
 
 /**
  * Size variants for TextInput
@@ -323,9 +329,9 @@ function WebTextInput({
       {/* Label */}
       {!!label && (
         <View style={styles.labelContainer}>
-          <StyledText selectable={false} style={styles.label}>
+          <StyledText selectable={false} size="base" fontWeight="medium" style={styles.label}>
             {label}
-            {required && <StyledText selectable={false} style={styles.required}> *</StyledText>}
+            {required && <StyledText selectable={false} fontWeight="bold" style={styles.required}> *</StyledText>}
           </StyledText>
         </View>
       )}
@@ -452,6 +458,7 @@ function WebTextInput({
       {!!(helperText || errorText) && (
         <StyledText
           selectable={false}
+          size="sm"
           style={[
             styles.helperText,
             hasError && styles.errorText,
@@ -491,6 +498,8 @@ function NativeTextInput({
   forceLight,
   inputMode,
   onChangeText,
+  onFocus,
+  onBlur,
   value,
   defaultValue,
   editable = true,
@@ -537,6 +546,57 @@ function NativeTextInput({
   // We expose the subset consumers use, plus a `setNativeProps` shim so the
   // uncontrolled AuthTextField can push corrected text into the native buffer.
   const innerRef = useRef<ExpoTextInputRef>(null);
+  const surfaceRef = useRef<View>(null);
+  const isFocusedRef = useRef(false);
+  const focusRegistryToken = useMemo<KeyboardFocusedInputToken>(() => ({}), []);
+
+  const syncFocusedInputLayout = useCallback(() => {
+    if (!isFocusedRef.current) return;
+
+    surfaceRef.current?.measureInWindow((absoluteX, absoluteY, width, height) => {
+      if (!isFocusedRef.current) return;
+
+      setKeyboardFocusedInputLayout(
+        focusRegistryToken,
+        {
+          x: 0,
+          y: 0,
+          width,
+          height,
+          absoluteX,
+          absoluteY,
+        },
+        // Window-independent dismissal: blur the native field directly. Inside a
+        // native bottom sheet the field lives in its own window, where
+        // `KeyboardController.dismiss()` can miss; calling the field's own ref
+        // always resigns it.
+        () => innerRef.current?.blur()
+      );
+    });
+  }, [focusRegistryToken]);
+
+  const handleFocus = useCallback<NonNullable<ExpoTextInputProps["onFocus"]>>(
+    () => {
+      isFocusedRef.current = true;
+      syncFocusedInputLayout();
+      (onFocus as (() => void) | undefined)?.();
+    },
+    [onFocus, syncFocusedInputLayout]
+  );
+
+  const handleBlur = useCallback<NonNullable<ExpoTextInputProps["onBlur"]>>(
+    () => {
+      isFocusedRef.current = false;
+      clearKeyboardFocusedInputLayout(focusRegistryToken);
+      (onBlur as (() => void) | undefined)?.();
+    },
+    [focusRegistryToken, onBlur]
+  );
+
+  useEffect(() => {
+    return () => clearKeyboardFocusedInputLayout(focusRegistryToken);
+  }, [focusRegistryToken]);
+
   useImperativeHandle(ref, () => ({
     focus: () => innerRef.current?.focus(),
     blur: () => innerRef.current?.blur(),
@@ -623,9 +683,9 @@ function NativeTextInput({
     <View style={wrapperStyle}>
       {!!label && (
         <View style={styles.labelContainer}>
-          <StyledText selectable={false} style={styles.label}>
+          <StyledText selectable={false} size="base" fontWeight="medium" style={styles.label}>
             {label}
-            {required && <StyledText selectable={false} style={styles.required}> *</StyledText>}
+            {required && <StyledText selectable={false} fontWeight="bold" style={styles.required}> *</StyledText>}
           </StyledText>
         </View>
       )}
@@ -637,7 +697,11 @@ function NativeTextInput({
         layered over it — which avoids the RN-view-over-Host mis-measurement that
         bit other native components, and keeps the eye inside the rounded surface.
       */}
-      <View style={[surfaceStyle, hasSecureToggle && styles.nativeRow]}>
+      <View
+        ref={surfaceRef}
+        style={[surfaceStyle, hasSecureToggle && styles.nativeRow]}
+        onLayout={syncFocusedInputLayout}
+      >
         {/*
           The universal @expo/ui TextInput renders a raw SwiftUI / Compose view and
           MUST be wrapped in <Host>, or iOS throws "a SwiftUI view is being mounted
@@ -654,6 +718,8 @@ function NativeTextInput({
             value={state}
             defaultValue={defaultValue}
             onChangeText={onChangeText}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             editable={editable}
             multiline={multiline}
             rows={rows}
@@ -684,6 +750,7 @@ function NativeTextInput({
       {!!(helperText || errorText) && (
         <StyledText
           selectable={false}
+          size="sm"
           style={[styles.helperText, hasError && styles.errorText]}
         >
           {errorText || helperText}
@@ -743,18 +810,17 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       marginBottom: spacing.xs,
     },
     label: {
-      fontFamily: fontFamilies.sansSerif.regular,
-      fontWeight: "500" as const,
-      fontSize: 14,
+      // fontFamily/fontSize/fontWeight now come from StyledText's
+      // size="base" fontWeight="medium" props (see JSX below), which resolve
+      // the platform-correct family + weight instead of a hardcoded pair.
       color: theme.colors.text,
     },
     required: {
+      // fontFamily/fontWeight now come from StyledText's fontWeight="bold" prop.
       color: theme.colors.destructive,
-      fontFamily: fontFamilies.sansSerif.bold,
     },
     helperText: {
-      fontFamily: fontFamilies.sansSerif.regular,
-      fontSize: 12,
+      // fontFamily/fontSize now come from StyledText's size="sm" prop (see JSX below).
       color: theme.colors.textDim,
       marginTop: spacing.xs,
     },

@@ -10,9 +10,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { useStaggeredEntrance, STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
-import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
+import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
+import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -100,54 +101,42 @@ export function ErrorScreen({
   const resolvedTitle = title ?? defaults.title;
   const resolvedDescription = description ?? defaults.description;
 
-  // Staggered entrance animations
-  const iconEntrance = useStaggeredEntrance({ type: "scale", delay: 0 });
-  const titleEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY });
-  const descEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY * 2 });
-  const actionsEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY * 3 });
+  // Staggered entrance animations — one for the icon/title/description block
+  // (rendered together via EmptyState) and one for the actions that follow.
+  const contentEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: 0 });
+  const actionsEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY * 2 });
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }, styleOverride]}>
       {/* Top spacer */}
       <View style={styles.spacer} />
 
-      {/* Icon */}
-      <Animated.View style={[styles.center, iconEntrance]}>
-        <View style={styles.iconCircle}>
-          <Icon name={resolvedIcon} size={48} color="mutedForeground" decorative />
-        </View>
-      </Animated.View>
-
-      {/* Title */}
-      <Animated.View style={[styles.center, titleEntrance]}>
-        <SansSerifBoldText style={styles.title}>
-          {resolvedTitle}
-        </SansSerifBoldText>
-      </Animated.View>
-
-      {/* Description */}
-      <Animated.View style={[styles.center, descEntrance]}>
-        <SansSerifText style={styles.description}>
-          {resolvedDescription}
-        </SansSerifText>
-        {variant === "maintenance" && estimatedReturn && (
-          <SansSerifText style={styles.estimatedReturn}>
-            {estimatedReturn}
-          </SansSerifText>
-        )}
-      </Animated.View>
-
-      {/* Actions */}
-      {(primaryAction || secondaryAction) && (
-        <Animated.View style={[styles.actions, actionsEntrance]}>
-          {primaryAction && (
-            <Button onPress={primaryAction.onPress} text={primaryAction.label} style={styles.actionButton} />
+      <Animated.View style={contentEntrance}>
+        <EmptyState
+          icon={resolvedIcon}
+          iconSize={48}
+          title={resolvedTitle}
+          description={resolvedDescription}
+        >
+          {variant === "maintenance" && estimatedReturn && (
+            <SansSerifText size="sm" style={styles.estimatedReturn}>
+              {estimatedReturn}
+            </SansSerifText>
           )}
-          {secondaryAction && (
-            <Button preset="ghost" onPress={secondaryAction.onPress} text={secondaryAction.label} style={styles.actionButton} />
+
+          {/* Actions */}
+          {(primaryAction || secondaryAction) && (
+            <Animated.View style={[styles.actions, actionsEntrance]}>
+              {primaryAction && (
+                <Button onPress={primaryAction.onPress} text={primaryAction.label} style={styles.actionButton} />
+              )}
+              {secondaryAction && (
+                <Button preset="ghost" onPress={secondaryAction.onPress} text={secondaryAction.label} style={styles.actionButton} />
+              )}
+            </Animated.View>
           )}
-        </Animated.View>
-      )}
+        </EmptyState>
+      </Animated.View>
 
       {/* Bottom spacer */}
       <View style={styles.spacer} />
@@ -169,34 +158,7 @@ function createStyles(theme: Theme) {
     spacer: {
       flex: 1,
     },
-    center: {
-      alignItems: "center",
-    },
-    iconCircle: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: theme.colors.muted,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: spacing.lg,
-    },
-    title: {
-      fontSize: 22,
-      letterSpacing: -0.3,
-      color: theme.colors.foreground,
-      textAlign: "center",
-      marginBottom: spacing.sm,
-    },
-    description: {
-      fontSize: 15,
-      lineHeight: 22,
-      color: theme.colors.mutedForeground,
-      textAlign: "center",
-      maxWidth: 300,
-    },
     estimatedReturn: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
       textAlign: "center",
       marginTop: spacing.xs,

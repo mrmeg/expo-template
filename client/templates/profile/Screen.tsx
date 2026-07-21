@@ -2,9 +2,7 @@ import React, { useMemo, ReactNode } from "react";
 import {
   View,
   ScrollView,
-  Pressable,
   StyleSheet,
-  Platform,
   StyleProp,
   ViewStyle,
   Animated,
@@ -12,10 +10,12 @@ import {
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { useStaggeredEntrance, STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { SansSerifText, SansSerifBoldText, EyebrowText } from "@mrmeg/expo-ui/components/StyledText";
+import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
+import { Item, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from "@mrmeg/expo-ui/components/Item";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -89,7 +89,7 @@ export function ProfileScreen({
           <Animated.View style={avatarEntrance}>
             <View style={styles.avatar}>
               {avatarContent || (
-                <SansSerifBoldText style={styles.avatarFallback}>
+                <SansSerifBoldText size="display" style={styles.avatarFallback}>
                   {name.charAt(0).toUpperCase()}
                 </SansSerifBoldText>
               )}
@@ -97,11 +97,7 @@ export function ProfileScreen({
           </Animated.View>
 
           <Animated.View style={nameEntrance}>
-            <SansSerifBoldText style={styles.name}>{name}</SansSerifBoldText>
-
-            {subtitle && (
-              <SansSerifText style={[styles.subtitle, { textAlign: "center" }]}>{subtitle}</SansSerifText>
-            )}
+            <SectionHeader align="center" title={name} description={subtitle} />
 
             {badge && (
               <Badge variant="outline" style={styles.badge}>
@@ -117,8 +113,8 @@ export function ProfileScreen({
             {stats.map((stat) => (
               <View key={stat.label} style={styles.statItem}>
                 <Icon name={stat.icon} size={20} color={theme.colors.accent} />
-                <SansSerifBoldText style={styles.statValue}>{stat.value}</SansSerifBoldText>
-                <SansSerifText style={styles.statLabel}>{stat.label}</SansSerifText>
+                <SansSerifBoldText size="xl" style={styles.statValue}>{stat.value}</SansSerifBoldText>
+                <SansSerifText size="sm" style={styles.statLabel}>{stat.label}</SansSerifText>
               </View>
             ))}
           </Animated.View>
@@ -166,50 +162,27 @@ export function ProfileScreen({
         {/* Info Sections */}
         {sections?.map((section) => (
           <View key={section.title} style={styles.section}>
-            <SansSerifText style={styles.sectionTitle}>
+            <EyebrowText style={[styles.sectionTitle, { color: theme.colors.mutedForeground }]}>
               {section.title}
-            </SansSerifText>
+            </EyebrowText>
 
             <View style={[styles.card, getShadowStyle("subtle")]}>
               {section.items.map((item, index) => {
                 const isLast = index === section.items.length - 1;
-                const content = (
-                  <View key={item.label}>
-                    <View style={styles.row}>
-                      <View style={styles.rowLeft}>
-                        {item.icon && (
-                          <View style={styles.iconContainer}>
-                            <Icon name={item.icon} color={theme.colors.primary} size={20} />
-                          </View>
-                        )}
-                        <SansSerifText style={styles.label}>{item.label}</SansSerifText>
-                      </View>
-                      <View style={styles.rowRight}>
-                        {item.value && (
-                          <SansSerifText style={styles.value}>{item.value}</SansSerifText>
-                        )}
-                        {item.onPress && (
-                          <Icon name="chevron-right" color={theme.colors.mutedForeground} size={20} />
-                        )}
-                      </View>
-                    </View>
-                    {!isLast && <View style={item.icon ? styles.dividerInset : styles.divider} />}
-                  </View>
+                return (
+                  <Item key={item.label} onPress={item.onPress} separator={!isLast}>
+                    {item.icon && <ItemMedia icon={item.icon} iconColor="primary" />}
+                    <ItemContent>
+                      <ItemTitle>{item.label}</ItemTitle>
+                    </ItemContent>
+                    <ItemActions>
+                      {item.value && <ItemDescription>{item.value}</ItemDescription>}
+                      {item.onPress && (
+                        <Icon name="chevron-right" color={theme.colors.mutedForeground} size={20} />
+                      )}
+                    </ItemActions>
+                  </Item>
                 );
-
-                if (item.onPress) {
-                  return (
-                    <Pressable
-                      key={item.label}
-                      onPress={item.onPress}
-                      style={Platform.OS === "web" ? { cursor: "pointer" as any } : undefined}
-                    >
-                      {content}
-                    </Pressable>
-                  );
-                }
-
-                return content;
               })}
             </View>
           </View>
@@ -240,25 +213,14 @@ const createStyles = (theme: Theme) =>
     avatar: {
       width: 88,
       height: 88,
-      borderRadius: 44,
+      borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.accent,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.md,
     },
     avatarFallback: {
-      fontSize: 34,
       color: theme.colors.accentForeground,
-    },
-    name: {
-      fontSize: 24,
-      letterSpacing: -0.5,
-      color: theme.colors.foreground,
-    },
-    subtitle: {
-      fontSize: 14,
-      color: theme.colors.mutedForeground,
-      marginTop: spacing.xxs,
     },
     badge: {
       marginTop: spacing.sm,
@@ -280,13 +242,9 @@ const createStyles = (theme: Theme) =>
       gap: spacing.xxs,
     },
     statValue: {
-      fontSize: 20,
-      lineHeight: 28,
-      letterSpacing: -0.3,
       color: theme.colors.foreground,
     },
     statLabel: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     actions: {
@@ -303,10 +261,6 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing.lg,
     },
     sectionTitle: {
-      fontSize: 13,
-      color: theme.colors.mutedForeground,
-      textTransform: "uppercase",
-      letterSpacing: 0.8,
       marginBottom: spacing.sm + 2,
       marginLeft: spacing.xxs,
     },
@@ -316,48 +270,5 @@ const createStyles = (theme: Theme) =>
       borderWidth: 1,
       borderColor: theme.colors.border,
       overflow: "hidden",
-    },
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.md,
-    },
-    rowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      flex: 1,
-    },
-    rowRight: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    iconContainer: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      backgroundColor: theme.colors.muted,
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: spacing.md,
-    },
-    label: {
-      fontSize: 16,
-      color: theme.colors.foreground,
-    },
-    value: {
-      fontSize: 14,
-      color: theme.colors.mutedForeground,
-    },
-    divider: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: theme.colors.border,
-    },
-    dividerInset: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: theme.colors.border,
-      marginLeft: spacing.md + 34 + spacing.md,
     },
   });

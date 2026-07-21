@@ -1,21 +1,30 @@
-import React, { createContext, use, useCallback, useEffect, useReducer, useRef } from "react";
+import React, { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from "react";
 import {
   View,
   ViewProps,
   Pressable,
   StyleProp,
+  StyleSheet,
   ViewStyle,
   ScrollView,
   ScrollViewProps,
   Platform,
+  Animated,
   useWindowDimensions,
 } from "react-native";
 import { BottomSheet as NativeBottomSheet } from "@expo/ui/community/bottom-sheet";
+import { KeyboardController } from "react-native-keyboard-controller";
 import { useSafeAreaInsets, initialWindowMetrics } from "react-native-safe-area-context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { useScalePress } from "../hooks/useScalePress";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { Icon } from "./Icon";
+import {
+  dismissKeyboardFocusedInput,
+  hasKeyboardFocusedInput,
+  subscribeKeyboardFocus,
+} from "./keyboardFocusRegistry";
 
 /**
  * BottomSheet — a sliding bottom sheet with a compound API, backed by the
@@ -78,6 +87,8 @@ import { Icon } from "./Icon";
 // ============================================================================
 
 type SnapPoint = number | `${number}%`;
+
+const DEFAULT_SNAP_POINTS: SnapPoint[] = ["50%"];
 
 interface BottomSheetContextValue {
   open: boolean;
@@ -208,26 +219,45 @@ function bottomSheetRootReducer(
   action: BottomSheetRootAction
 ): BottomSheetRootState {
   switch (action.type) {
-    case "setInternalOpen":
+    case "setInternalOpen": {
+      const snapIndex = action.open ? state.snapIndex : action.maxSnapIndex;
+      const snapDirection = action.open ? state.snapDirection : -1;
+
+      if (
+        state.internalOpen === action.open &&
+        state.snapIndex === snapIndex &&
+        state.snapDirection === snapDirection
+      ) {
+        return state;
+      }
+
       return {
         ...state,
         internalOpen: action.open,
-        snapIndex: action.open ? state.snapIndex : action.maxSnapIndex,
-        snapDirection: action.open ? state.snapDirection : -1,
+        snapIndex,
+        snapDirection,
       };
+    }
     case "setScrollable":
+      if (state.scrollable === action.scrollable) return state;
       return { ...state, scrollable: action.scrollable };
     case "setHasHeader":
+      if (state.hasHeader === action.present) return state;
       return { ...state, hasHeader: action.present };
     case "setHasFooter":
+      if (state.hasFooter === action.present) return state;
       return { ...state, hasFooter: action.present };
     case "setSnapIndex": {
       const snapIndex = clampSnapIndex(action.index, action.maxSnapIndex);
+      const snapDirection =
+        snapIndex === 0 ? 1 : snapIndex === action.maxSnapIndex ? -1 : state.snapDirection;
+
+      if (state.snapIndex === snapIndex && state.snapDirection === snapDirection) return state;
+
       return {
         ...state,
         snapIndex,
-        snapDirection:
-          snapIndex === 0 ? 1 : snapIndex === action.maxSnapIndex ? -1 : state.snapDirection,
+        snapDirection,
       };
     }
     case "cycleSnapPoint": {
@@ -315,36 +345,97 @@ function useShowClose() {
 function SheetCloseButton({ style }: { style?: StyleProp<ViewStyle> }) {
   const { onOpenChange } = useBottomSheetContext();
   const { theme } = useTheme();
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    scaleTo: 0.96,
+  });
+
+  return (
+    <Animated.View style={[style, scaleStyle]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        onPress={() => onOpenChange(false)}
+        onPressIn={pressHandlers.onPressIn}
+        onPressOut={pressHandlers.onPressOut}
+        hitSlop={spacing.sm}
+        style={[
+          {
+            width: spacing.xl,
+            height: spacing.xl,
+            borderRadius: spacing.xl / 2,
+            alignItems: "center",
+            justifyContent: "center",
+            // Higher-contrast than `muted`: a solid `secondary` fill with a
+            // bordered edge so the control reads clearly against the card, and a
+            // full-strength `foreground` glyph instead of the faint muted one.
+            backgroundColor: theme.colors.secondary,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+          },
+          Platform.OS === "web" && { cursor: "pointer" as any },
+        ]}
+      >
+        <Icon name="x" size={22} color="text" />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+// ============================================================================
+// Keyboard dismiss overlay — tap-away dismissal inside the sheet
+// ============================================================================
+
+/**
+ * Tap-away keyboard dismissal for sheet content.
+ *
+ * The native sheet (SwiftUI `.sheet()` / Material `ModalBottomSheet`) hosts its
+ * RN children in a separate native window via @expo/ui's `RNHostView`, OUTSIDE
+ * the app's `KeyboardProvider` / `KeyboardDismissBoundary`. Two consequences,
+ * both worked around here:
+ *
+ *  1. Detection: `react-native-keyboard-controller`'s `useKeyboardState` watches
+ *     the main window and does NOT see a keyboard raised inside the sheet's
+ *     window (the same isolation that makes `useSafeAreaInsets()` read zero in
+ *     here). So presence is read from the `keyboardFocusRegistry` instead, which
+ *     is fed by @expo/ui's own native focus events and is window-independent.
+ *  2. Dispatch: RN's JS responder chain (onStartShouldSetResponder*) is NOT
+ *     dispatched across the `RNHostView` boundary on Android — only `Pressable`
+ *     hit-testing (native `measure()`) works inside the host. So this is a
+ *     transparent `Pressable` mounted ONLY while a field is focused, mirroring
+ *     the app's `DismissKeyboardOverlay`. The tap blurs the focused field via
+ *     its own native ref (`dismissKeyboardFocusedInput`), which resigns the
+ *     responder regardless of window; `KeyboardController.dismiss()` is a
+ *     best-effort fallback for the (rare) case with no registered blur handle.
+ *
+ * iOS doesn't strictly need this (SwiftUI resigns first-responder on outside
+ * taps for free), but the same path is harmless and keeps behavior identical.
+ */
+function SheetKeyboardDismissOverlay() {
+  const hasFocus = useSyncExternalStore(
+    subscribeKeyboardFocus,
+    hasKeyboardFocusedInput,
+    () => false
+  );
+
+  if (Platform.OS === "web" || !hasFocus) return null;
 
   return (
     <Pressable
+      style={[StyleSheet.absoluteFill, styles.keyboardDismissOverlay]}
+      onPressIn={() => {
+        if (!dismissKeyboardFocusedInput()) KeyboardController.dismiss();
+      }}
+      accessibilityLabel="Dismiss keyboard"
       accessibilityRole="button"
-      accessibilityLabel="Close"
-      onPress={() => onOpenChange(false)}
-      hitSlop={spacing.sm}
-      style={({ pressed }) => [
-        {
-          width: spacing.xl,
-          height: spacing.xl,
-          borderRadius: spacing.xl / 2,
-          alignItems: "center",
-          justifyContent: "center",
-          // Higher-contrast than `muted`: a solid `secondary` fill with a
-          // bordered edge so the control reads clearly against the card, and a
-          // full-strength `foreground` glyph instead of the faint muted one.
-          backgroundColor: theme.colors.secondary,
-          borderWidth: 1,
-          borderColor: theme.colors.border,
-          opacity: pressed ? 0.7 : 1,
-        },
-        Platform.OS === "web" && { cursor: "pointer" as any },
-        style,
-      ]}
-    >
-      <Icon name="x" size={22} color="text" />
-    </Pressable>
+    />
   );
 }
+
+const styles = StyleSheet.create({
+  keyboardDismissOverlay: {
+    zIndex: 999,
+  },
+});
 
 // ============================================================================
 // Root
@@ -354,7 +445,7 @@ function BottomSheetRoot({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
   defaultOpen = false,
-  snapPoints = ["50%"],
+  snapPoints = DEFAULT_SNAP_POINTS,
   closeOnBackdropPress = true,
   children,
 }: BottomSheetProps) {
@@ -394,22 +485,52 @@ function BottomSheetRoot({
 
   const toggle = useCallback(() => onOpenChange(!open), [onOpenChange, open]);
 
-  const contextValue: BottomSheetContextValue = {
-    open,
-    onOpenChange,
-    toggle,
-    snapPoints,
-    snapIndex,
-    setSnapIndex,
-    cycleSnapPoint,
-    closeOnBackdropPress,
-    scrollable: state.scrollable,
-    setScrollable: (scrollable) => dispatch({ type: "setScrollable", scrollable }),
-    hasHeader: state.hasHeader,
-    setHasHeader: (present) => dispatch({ type: "setHasHeader", present }),
-    hasFooter: state.hasFooter,
-    setHasFooter: (present) => dispatch({ type: "setHasFooter", present }),
-  };
+  const setScrollable = useCallback((scrollable: boolean) => {
+    dispatch({ type: "setScrollable", scrollable });
+  }, []);
+
+  const setHasHeader = useCallback((present: boolean) => {
+    dispatch({ type: "setHasHeader", present });
+  }, []);
+
+  const setHasFooter = useCallback((present: boolean) => {
+    dispatch({ type: "setHasFooter", present });
+  }, []);
+
+  const contextValue = useMemo<BottomSheetContextValue>(
+    () => ({
+      open,
+      onOpenChange,
+      toggle,
+      snapPoints,
+      snapIndex,
+      setSnapIndex,
+      cycleSnapPoint,
+      closeOnBackdropPress,
+      scrollable: state.scrollable,
+      setScrollable,
+      hasHeader: state.hasHeader,
+      setHasHeader,
+      hasFooter: state.hasFooter,
+      setHasFooter,
+    }),
+    [
+      open,
+      onOpenChange,
+      toggle,
+      snapPoints,
+      snapIndex,
+      setSnapIndex,
+      cycleSnapPoint,
+      closeOnBackdropPress,
+      state.scrollable,
+      setScrollable,
+      state.hasHeader,
+      setHasHeader,
+      state.hasFooter,
+      setHasFooter,
+    ]
+  );
 
   return (
     <BottomSheetContext.Provider value={contextValue}>
@@ -530,6 +651,7 @@ function BottomSheetContent({
             ]}
           >
             {children}
+            <SheetKeyboardDismissOverlay />
             {showFloatingClose && (
               <SheetCloseButton
                 style={{

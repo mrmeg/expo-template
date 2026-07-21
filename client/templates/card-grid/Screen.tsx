@@ -142,6 +142,7 @@ export function CardGridScreen<T>({
               ]}
             >
               <SansSerifText
+                size="body"
                 style={[
                   styles.categoryText,
                   isSelected && {
@@ -168,7 +169,7 @@ export function CardGridScreen<T>({
     return (
       <View style={styles.sortRow}>
         <Pressable onPress={handleSortCycle} style={styles.sortButton}>
-          <SansSerifText style={styles.sortLabel}>{selectedSortLabel}</SansSerifText>
+          <SansSerifText size="sm" style={styles.sortLabel}>{selectedSortLabel}</SansSerifText>
           <Icon name="chevron-down" size={14} color={theme.colors.mutedForeground} />
         </Pressable>
       </View>
@@ -264,9 +265,9 @@ export function CardGridScreen<T>({
       <View style={styles.emptyIconContainer}>
         <Icon name={emptyIcon} size={48} color={theme.colors.mutedForeground} />
       </View>
-      <SansSerifBoldText style={styles.emptyTitle}>{emptyTitle}</SansSerifBoldText>
+      <SansSerifBoldText size="lg" style={styles.emptyTitle}>{emptyTitle}</SansSerifBoldText>
       {emptyDescription && (
-        <SansSerifText style={styles.emptyDescription}>{emptyDescription}</SansSerifText>
+        <SansSerifText size="base" style={styles.emptyDescription}>{emptyDescription}</SansSerifText>
       )}
       {emptyAction && (
         <Button preset="default" onPress={emptyAction.onPress} text={emptyAction.label} style={styles.emptyButton} />
@@ -323,7 +324,6 @@ const createStyles = (theme: Theme, cardSpacing: number) =>
       backgroundColor: "transparent",
     },
     categoryText: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
     },
 
@@ -340,7 +340,6 @@ const createStyles = (theme: Theme, cardSpacing: number) =>
       gap: spacing.xs,
     },
     sortLabel: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
     },
 
@@ -373,23 +372,19 @@ const createStyles = (theme: Theme, cardSpacing: number) =>
     emptyIconContainer: {
       width: 80,
       height: 80,
-      borderRadius: 40,
+      borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.muted,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.lg,
     },
     emptyTitle: {
-      fontSize: 18,
-      letterSpacing: -0.3,
       color: theme.colors.foreground,
       marginBottom: spacing.xs,
     },
     emptyDescription: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
       textAlign: "center",
-      lineHeight: 20,
     },
     emptyButton: {
       marginTop: spacing.lg,

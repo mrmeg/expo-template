@@ -192,7 +192,25 @@ jest.mock("react-native-gesture-handler", () => {
 jest.mock("react-native-keyboard-controller", () => {
   const React = require("react");
   const { View, ScrollView } = require("react-native");
-  const keyboardState = { isVisible: false, height: 0 };
+  const keyboardState = {
+    isVisible: false,
+    height: 0,
+    duration: 0,
+    timestamp: 0,
+    target: -1,
+    type: "default",
+    appearance: "light",
+  };
+  const keyboardContext = {
+    layout: { value: null as any },
+    update: jest.fn(),
+    setKeyboardHandlers: jest.fn(() => jest.fn()),
+    setInputHandlers: jest.fn(() => jest.fn()),
+    setEnabled: jest.fn(),
+    enabled: true,
+    animated: {},
+    reanimated: {},
+  };
 
   const PassthroughView = React.forwardRef(function PassthroughView(
     { children, style, ...props }: any,
@@ -207,11 +225,22 @@ jest.mock("react-native-keyboard-controller", () => {
     KeyboardAwareScrollView: ScrollView,
     KeyboardStickyView: PassthroughView,
     KeyboardToolbar: PassthroughView,
+    useKeyboardContext: () => keyboardContext,
     KeyboardController: {
       dismiss: jest.fn(),
+      state: () => keyboardState,
+      isVisible: () => keyboardState.isVisible,
     },
     useKeyboardState: (selector?: (state: typeof keyboardState) => unknown) =>
       selector ? selector(keyboardState) : keyboardState,
+    __setKeyboardState: (next: Partial<typeof keyboardState>) => {
+      Object.assign(keyboardState, next);
+    },
+    __setFocusedInputLayout: (layout: any) => {
+      keyboardContext.layout.value = layout
+        ? { target: keyboardState.target, parentScrollViewTarget: -1, layout }
+        : null;
+    },
   };
 });
 

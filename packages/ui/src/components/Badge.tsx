@@ -42,12 +42,16 @@ function Badge({ children, text, variant = "default", style: styleOverride }: Ba
   const hasOnlyTextChildren = normalizedChildren.every(
     (child) => typeof child === "string" || typeof child === "number",
   );
+  // size="sm" + fontWeight="medium" match this badge's fontSize/lineHeight/weight
+  // (12/18/500) via the shared StyledText scale — including its "sm" letter
+  // spacing and correct native weight-file resolution — instead of a hand-rolled
+  // fontSize/fontWeight pair.
   const content = hasOnlyTextChildren ? (
-    <StyledText selectable={false} style={textStyle}>{normalizedChildren.join("")}</StyledText>
+    <StyledText selectable={false} size="sm" fontWeight="medium" style={textStyle}>{normalizedChildren.join("")}</StyledText>
   ) : (
     React.Children.map(badgeContent, (child) => {
       if (typeof child === "string" || typeof child === "number") {
-        return <StyledText selectable={false} style={textStyle}>{child}</StyledText>;
+        return <StyledText selectable={false} size="sm" fontWeight="medium" style={textStyle}>{child}</StyledText>;
       }
 
       return child;
@@ -94,9 +98,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.destructive,
     },
     text: {
-      fontSize: 12,
-      fontWeight: "500",
-      lineHeight: 18,
       userSelect: "none",
     },
   });

@@ -69,7 +69,7 @@ interface ExtendedColorScheme {
  * - getTextColorForBackground("#000") → "light"
  * - getContrastingColor("#f4f4f4", "#222", "#fff") → "#222"
  * - withAlpha("#336699", 0.6) → "rgba(51,102,153,0.6)"
- * - getShadowStyle('base') → { boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.1)" }
+ * - getShadowStyle('base') → { boxShadow: "0px 2px 6px rgba(0, 0, 0, 0.05), 0px 4px 12px rgba(0, 0, 0, 0.03)" }
  */
 export function useTheme(): ExtendedColorScheme & {
   toggleTheme: () => void;
@@ -134,34 +134,71 @@ export function useTheme(): ExtendedColorScheme & {
    * `boxShadow` has no separate opacity field, each preset's opacity is folded
    * into the color's alpha via `withAlpha`. `elevation` is dropped — `boxShadow`
    * renders shadows on Android in 0.85+.
+   *
+   * Every preset (except `sharp` and `glow`, which are deliberately
+   * single-layer) is a dual-layer shadow: a tight "contact" layer plus a
+   * wider, softer "ambient" layer, pitsi-ui-style. Layers are comma-joined
+   * into one `boxShadow` value.
    */
   const getShadowStyle = useCallback((type: ShadowType): ViewStyle => {
-    // Each preset: [offsetX, offsetY, blurRadius, color, opacity].
+    // Each preset is one or more layers of [offsetX, offsetY, blurRadius, color, opacity].
     // Darker themes get a stronger alpha so shadows stay visible.
     const boost = theme.dark ? 3 : 1;
     const overlay = theme.colors.overlay;
     const shadowConfigs: Record<
       ShadowType,
-      { x: number; y: number; blur: number; color: string; opacity: number }
+      { x: number; y: number; blur: number; color: string; opacity: number }[]
     > = {
-      base: { x: 0, y: 1, blur: 3, color: overlay, opacity: 0.1 },
-      soft: { x: 0, y: 4, blur: 6, color: overlay, opacity: 0.1 },
-      sharp: { x: 0, y: 1, blur: 1, color: overlay, opacity: 0.15 },
-      subtle: { x: 0, y: 1, blur: 2, color: overlay, opacity: 0.05 },
-      elevated: { x: 0, y: 20, blur: 40, color: overlay, opacity: 0.15 },
-      glow: { x: 0, y: 4, blur: 20, color: theme.colors.primary, opacity: 0.4 },
-      glass: { x: 0, y: 4, blur: 30, color: overlay, opacity: 0.05 },
-      card: { x: 0, y: 2, blur: 8, color: overlay, opacity: 0.08 },
-      cardHover: { x: 0, y: 8, blur: 24, color: overlay, opacity: 0.12 },
-      cardSubtle: { x: 0, y: 1, blur: 3, color: overlay, opacity: 0.08 },
+      subtle: [
+        { x: 0, y: 1, blur: 3, color: overlay, opacity: 0.04 },
+        { x: 0, y: 2, blur: 8, color: overlay, opacity: 0.03 },
+      ],
+      base: [
+        { x: 0, y: 2, blur: 6, color: overlay, opacity: 0.05 },
+        { x: 0, y: 4, blur: 12, color: overlay, opacity: 0.03 },
+      ],
+      soft: [
+        { x: 0, y: 4, blur: 10, color: overlay, opacity: 0.05 },
+        { x: 0, y: 8, blur: 20, color: overlay, opacity: 0.03 },
+      ],
+      card: [
+        { x: 0, y: 4, blur: 12, color: overlay, opacity: 0.05 },
+        { x: 0, y: 8, blur: 24, color: overlay, opacity: 0.03 },
+      ],
+      cardSubtle: [
+        { x: 0, y: 1, blur: 3, color: overlay, opacity: 0.05 },
+        { x: 0, y: 3, blur: 9, color: overlay, opacity: 0.03 },
+      ],
+      cardHover: [
+        { x: 0, y: 8, blur: 24, color: overlay, opacity: 0.06 },
+        { x: 0, y: 16, blur: 48, color: overlay, opacity: 0.04 },
+      ],
+      elevated: [
+        { x: 0, y: 16, blur: 48, color: overlay, opacity: 0.08 },
+        { x: 0, y: 32, blur: 96, color: overlay, opacity: 0.05 },
+      ],
+      glass: [
+        { x: 0, y: 4, blur: 30, color: overlay, opacity: 0.05 },
+        { x: 0, y: 8, blur: 60, color: overlay, opacity: 0.03 },
+      ],
+      // Single layer — intentional crispness, not a soft dual-layer shadow.
+      sharp: [
+        { x: 0, y: 1, blur: 1, color: overlay, opacity: 0.15 },
+      ],
+      // Single layer — already a deliberate, vivid accent glow.
+      glow: [
+        { x: 0, y: 4, blur: 20, color: theme.colors.primary, opacity: 0.4 },
+      ],
     };
 
-    const { x, y, blur, color, opacity } = shadowConfigs[type];
-    // Don't boost the glow accent — it's already a deliberate, vivid alpha.
-    const alpha = color === theme.colors.primary ? opacity : Math.min(opacity * boost, 1);
+    const layers = shadowConfigs[type].map(({ x, y, blur, color, opacity }) => {
+      // Don't boost the glow accent — it's already a deliberate, vivid alpha.
+      const alpha = color === theme.colors.primary ? opacity : Math.min(opacity * boost, 1);
+      return `${x}px ${y}px ${blur}px ${withAlpha(color, alpha)}`;
+    });
 
     return {
-      boxShadow: `${x}px ${y}px ${blur}px ${withAlpha(color, alpha)}`,
+      boxShadow: layers.join(", "),
     } as ViewStyle;
   }, [theme]);
 

@@ -6,13 +6,17 @@ import { meta as chat } from "./chat/meta";
 import { meta as dashboard } from "./dashboard/meta";
 import { meta as detailHero } from "./detail-hero/meta";
 import { meta as error } from "./error/meta";
+import { meta as faq } from "./faq/meta";
 import { meta as form } from "./form/meta";
+import { meta as hero } from "./hero/meta";
 import { meta as list } from "./list/meta";
 import { meta as notifications } from "./notifications/meta";
 import { meta as pricing } from "./pricing/meta";
 import { meta as profile } from "./profile/meta";
 import { meta as search } from "./search/meta";
 import { meta as settings } from "./settings/meta";
+import { meta as stats } from "./stats/meta";
+import { meta as testimonials } from "./testimonials/meta";
 import { meta as welcome } from "./welcome/meta";
 
 /** Screen templates collected from client/templates/*\/meta.ts, sorted by order then id. */
@@ -22,12 +26,16 @@ export const SCREEN_TEMPLATES: ScreenTemplateEntry[] = [
   dashboard,
   detailHero,
   error,
+  faq,
   form,
+  hero,
   list,
   notifications,
   pricing,
   profile,
   search,
   settings,
+  stats,
+  testimonials,
   welcome,
 ].sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));

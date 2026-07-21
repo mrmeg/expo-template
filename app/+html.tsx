@@ -166,7 +166,7 @@ export default function Root({ children }: PropsWithChildren) {
             browser parses any element that uses them. */}
         {headNodes}
 
-        {/* Lato is loaded by @mrmeg/expo-ui's useResources after mount, but
+        {/* Inter is loaded by @mrmeg/expo-ui's useResources after mount, but
             preloading here means it starts downloading on byte 1 instead of
             after JS hydrates. `display=optional` avoids any swap reflow if
             the font hasn't arrived in ~100ms (system fallback used instead).
@@ -175,9 +175,9 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          id="mrmeg-expo-ui-lato"
+          id="mrmeg-expo-ui-inter"
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=optional"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=optional"
         />
 
         {/*

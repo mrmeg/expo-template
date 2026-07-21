@@ -274,25 +274,25 @@ The template publishes an LLM consumption layer. From any repo, fetch:
 
 When this guide and `llms-full.txt` disagree, `llms-full.txt` is newer — trust it.
 
-## Target Baseline (as of June 2026)
+## Target Baseline (as of July 2026)
 
 | Package | Version |
 |---------|---------|
-| expo | ~56.0.9 |
-| expo-router | ~56.2.9 |
-| expo-server | ~56.0.5 |
+| expo | ~57.0.4 |
+| expo-router | ~57.0.4 |
+| expo-server | ~57.0.0 |
 | react | 19.2.3 |
-| react-native | 0.85.3 |
+| react-native | 0.86.0 |
 | react-native-web | ^0.21.2 |
-| @mrmeg/expo-ui | ^0.8.0 |
-| @mrmeg/expo-media (if using media) | ^0.1.1 |
+| @mrmeg/expo-ui | ^0.14.0 |
+| @mrmeg/expo-media (if using media) | ^0.2.0 |
 | zustand | ^5.0.14 |
-| @tanstack/react-query | ^5.101.0 |
-| react-hook-form | ^7.78.0 |
+| @tanstack/react-query | ^5.101.2 |
+| react-hook-form | ^7.81.0 |
 | zod | ^4.4.3 |
 | typescript | ~6.0.3 (strict mode) |
-| jest-expo | ~56.0.4 |
-| @testing-library/react-native | ^14.0.0 |
+| jest-expo | ~57.0.1 |
+| @testing-library/react-native | ^14.0.1 |
 | eslint | ^10 (flat config) |
 
 Package manager: **Bun** (`bun.lock`, scripts run via `bun run <script>`).
@@ -629,6 +629,10 @@ Use only exported package paths: root, `components`, `components/*`,
 `constants`, `constants/*`, `hooks`, `hooks/*`, `state`, and `lib`. Do not
 import from `@mrmeg/expo-ui/dist/*` or from a source checkout path.
 
+Supported hosts are Expo 56–57, React 19.2, React Native 0.85–0.86, and React
+Native Web 0.21. Install the peer versions recommended by the consuming app's
+Expo SDK.
+
 ## Required App Setup
 
 Call `useResources()` once near the Expo app root. Mount `UIProvider` once
@@ -812,6 +816,7 @@ Use this table before creating a new app-local primitive.
 - Use `EmptyState` for no-data or recoverable error regions.
 - Use `Skeleton` for loading content with stable layout.
 - Use `Progress` for real progress or indeterminate long-running work.
+- Use `Drawer.Header` with `icon`, `title`, and `action` for a compact app-brand row; place `Drawer.ToggleCollapse` in `action` for a trailing rail control.
 
 ## Minimal Examples
 
@@ -847,6 +852,20 @@ import { Button, Switch, TextInput } from "@mrmeg/expo-ui/components";
 <Button preset="default" size="lg" fullWidth loading={isSubmitting}>
   Continue
 </Button>
+```
+
+```tsx
+import { Drawer, Icon } from "@mrmeg/expo-ui/components";
+
+<Drawer.Header
+  icon={<Icon name="hexagon" color="accent" />}
+  title="Acme"
+  action={
+    <Drawer.ToggleCollapse>
+      <Icon name="sidebar" decorative />
+    </Drawer.ToggleCollapse>
+  }
+/>
 ```
 
 ```tsx
@@ -926,12 +945,24 @@ App-owned:
 bun add @mrmeg/expo-media
 ```
 
-Expo native modules are peer dependencies because the consuming app must keep
-them aligned with its Expo SDK: `expo-image-picker`,
-`expo-image-manipulator`, `expo-file-system`, `expo-video-thumbnails`, and
-`expo-crypto`. `heic2any` is also a peer dependency for browser HEIC
-conversion, but it is loaded dynamically only when web HEIC conversion runs.
-Server signing dependencies are package-owned.
+Core contracts and server handlers require no React or Expo runtime. React
+Query, React Native, Expo native modules, and `heic2any` are optional peers so
+apps install only the features they use while retaining ownership of provider
+singletons and native-module versions. Native compression and thumbnail
+generation use `expo-file-system`, `expo-image-manipulator`, and `expo-video`;
+React Query hooks use `@tanstack/react-query`; browser HEIC conversion uses
+`heic2any`. Server signing dependencies are package-owned.
+
+Install optional peers with the consuming app's package manager. Use Expo CLI
+for Expo-owned modules so their versions match the app SDK:
+
+```sh
+bunx expo install expo-file-system expo-image-manipulator expo-video
+bun add @tanstack/react-query heic2any
+```
+
+The package supports Expo 55–57 and React Native 0.83–0.86. A consumer only
+needs the peers required by the entrypoints and features it imports.
 
 In this monorepo, the app uses workspace resolution:
 
@@ -972,9 +1003,9 @@ granular processing subpaths; the broad `/processing` export remains for
 compatibility but can expose bundlers to every processing feature.
 
 Heavy processing dependencies are behind lazy boundaries. `heic2any` loads
-inside `convertHeicToJpeg()`, native thumbnail extraction loads
-`expo-video-thumbnails` only on the native path, and FFmpeg assets load only
-when web `convertVideo()` runs. Bundlers that honor package side-effect
+inside `convertHeicToJpeg()`, native thumbnail extraction loads `expo-video`
+and `expo-image-manipulator` only on the native path, and FFmpeg assets load
+only when web `convertVideo()` runs. Bundlers that honor package side-effect
 metadata also see `"sideEffects": false`.
 
 ## Configuration Model
@@ -1244,6 +1275,9 @@ Behavior notes:
   larger re-encodes or transcodes do not replace smaller originals.
 - Videos are not image-compressed. Web can optionally transcode unsupported
   formats to MP4.
+- Native thumbnails use `expo-video.generateThumbnailsAsync()` and save the
+  resulting native image reference to a cache-file URI through
+  `expo-image-manipulator`.
 - Apps must serve `FFMPEG_WORKER_URL` from the same origin in Metro and
   production Express when using web video conversion.
 - Avoid the broad `/processing` barrel in settings, stores, and light screens.
@@ -1342,6 +1376,7 @@ Good deletion candidates:
 Run package checks sequentially when debugging generated artifacts:
 
 ```sh
+bun run packages:peer-check
 bun run media:typecheck
 bun run media:test
 bun run media:build
@@ -1350,8 +1385,24 @@ bun run media:consumer-smoke
 ```
 
 `media:consumer-smoke` installs the packed tarball into a clean fixture,
-type-checks documented entrypoints, verifies export-map files, runs a root
-runtime import, and checks that installed-package docs are present.
+verifies that core/server entrypoints install without optional peers,
+type-checks documented entrypoints with all features installed, verifies
+export-map files, runs root runtime imports, and checks that installed-package
+docs are present. CI also installs packed media consumers against Expo 55, 56,
+and 57.
+
+## Package Release
+
+For a one-command local release from the repo root, use:
+
+```sh
+bun run media:release -- --patch --publish
+```
+
+Replace `--patch` with `--minor`, `--major`, or an exact version. Without
+`--publish`, the command performs the version bump and all release gates but
+does not publish. It requires a clean working tree unless `--allow-dirty` is
+passed intentionally.
 
 ## GitHub Publishing
 
@@ -1893,13 +1944,17 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/screen-chat.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-chat.tsx
 - app/(main)/(demos)/screen-dashboard.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-dashboard.tsx
 - app/(main)/(demos)/screen-error.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-error.tsx
+- app/(main)/(demos)/screen-faq.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-faq.tsx
 - app/(main)/(demos)/screen-form.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-form.tsx
+- app/(main)/(demos)/screen-hero.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-hero.tsx
 - app/(main)/(demos)/screen-list.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-list.tsx
 - app/(main)/(demos)/screen-notifications.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-notifications.tsx
 - app/(main)/(demos)/screen-pricing.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-pricing.tsx
 - app/(main)/(demos)/screen-profile.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-profile.tsx
 - app/(main)/(demos)/screen-search.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-search.tsx
 - app/(main)/(demos)/screen-settings.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-settings.tsx
+- app/(main)/(demos)/screen-stats.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-stats.tsx
+- app/(main)/(demos)/screen-testimonials.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-testimonials.tsx
 - app/(main)/(demos)/screen-welcome.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-welcome.tsx
 - app/(main)/(demos)/server-alpha.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha.tsx
 - app/(main)/(demos)/server-alpha/[example].tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha/%5Bexample%5D.tsx
@@ -1925,9 +1980,15 @@ Self-contained template folders: Screen.tsx is the reusable, props-driven compon
 - client/templates/error/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/error/Screen.tsx
 - client/templates/error/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/error/demo.tsx
 - client/templates/error/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/error/meta.ts
+- client/templates/faq/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/faq/Screen.tsx
+- client/templates/faq/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/faq/demo.tsx
+- client/templates/faq/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/faq/meta.ts
 - client/templates/form/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/form/Screen.tsx
 - client/templates/form/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/form/demo.tsx
 - client/templates/form/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/form/meta.ts
+- client/templates/hero/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/hero/Screen.tsx
+- client/templates/hero/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/hero/demo.tsx
+- client/templates/hero/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/hero/meta.ts
 - client/templates/list/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/list/Screen.tsx
 - client/templates/list/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/list/demo.tsx
 - client/templates/list/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/list/meta.ts
@@ -1947,6 +2008,12 @@ Self-contained template folders: Screen.tsx is the reusable, props-driven compon
 - client/templates/settings/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/settings/Screen.tsx
 - client/templates/settings/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/settings/demo.tsx
 - client/templates/settings/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/settings/meta.ts
+- client/templates/stats/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/stats/Screen.tsx
+- client/templates/stats/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/stats/demo.tsx
+- client/templates/stats/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/stats/meta.ts
+- client/templates/testimonials/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/testimonials/Screen.tsx
+- client/templates/testimonials/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/testimonials/demo.tsx
+- client/templates/testimonials/meta.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/testimonials/meta.ts
 - client/templates/types.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/types.ts
 - client/templates/welcome/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/welcome/Screen.tsx
 - client/templates/welcome/demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/templates/welcome/demo.tsx
@@ -1973,6 +2040,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/ErrorBoundary.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ErrorBoundary.tsx
 - packages/ui/src/components/Icon.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Icon.tsx
 - packages/ui/src/components/InputOTP.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/InputOTP.tsx
+- packages/ui/src/components/Item.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Item.tsx
 - packages/ui/src/components/KeyboardAvoidingView.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/KeyboardAvoidingView.tsx
 - packages/ui/src/components/Label.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Label.tsx
 - packages/ui/src/components/MaxWidthContainer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MaxWidthContainer.tsx
@@ -1980,11 +2048,13 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/Popover.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Popover.tsx
 - packages/ui/src/components/Progress.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Progress.tsx
 - packages/ui/src/components/RadioGroup.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/RadioGroup.tsx
+- packages/ui/src/components/SectionHeader.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/SectionHeader.tsx
 - packages/ui/src/components/SegmentedControl.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/SegmentedControl.tsx
 - packages/ui/src/components/Select.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Select.tsx
 - packages/ui/src/components/Separator.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Separator.tsx
 - packages/ui/src/components/Skeleton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Skeleton.tsx
 - packages/ui/src/components/Slider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Slider.tsx
+- packages/ui/src/components/StatCard.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StatCard.tsx
 - packages/ui/src/components/StatusBar.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StatusBar.tsx
 - packages/ui/src/components/StyledText.context.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StyledText.context.ts
 - packages/ui/src/components/StyledText.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/StyledText.tsx
@@ -1996,6 +2066,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/Tooltip.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Tooltip.tsx
 - packages/ui/src/components/UIProvider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/UIProvider.tsx
 - packages/ui/src/components/index.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/index.ts
+- packages/ui/src/components/keyboardFocusRegistry.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/keyboardFocusRegistry.ts
 
 ## Form Wrappers (`client/lib/form/`)
 

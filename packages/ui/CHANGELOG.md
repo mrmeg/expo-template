@@ -3,6 +3,48 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0]
+
+### Changed
+
+- Aligned the declared compatibility floor with the package's `@expo/ui`
+  requirement: Expo 56+, React Native 0.85+, and their matching Expo modules.
+- Kept Expo 57 and React Native 0.86 support in the same compatibility window.
+- Removed the duplicate workspace dev copy of
+  `react-native-keyboard-controller`; the root consumer now supplies the peer
+  consistently for tests, builds, and native autolinking.
+
+## [0.13.0]
+
+### Added
+
+- **`Drawer.Header` now supports a compact app-brand layout.** Use the new
+  `icon`, `title`, and `action` slots for a leading brand icon and title with a
+  trailing close or `Drawer.ToggleCollapse` control. Existing child-based
+  headers remain supported.
+
+### Changed
+
+- Expanded peer compatibility through Expo 57, React Native 0.86, and their
+  matching `@expo/ui` and gesture-handler releases.
+
+## [0.12.1]
+
+### Fixed
+
+- **`BottomSheet` now dismisses the keyboard when tapping outside a focused
+  field on Android.** The native sheet hosts its content in a separate window
+  (via `@expo/ui`'s `RNHostView`), outside the app's `KeyboardProvider` — so the
+  app-wide tap-away never reached sheet content, and `useKeyboardState()` /
+  `KeyboardController.dismiss()` are blind to that window. iOS papered over this
+  (SwiftUI resigns first-responder on outside taps for free); Compose did not,
+  leaving a focused field stuck open. `BottomSheet.Content` now mounts a
+  transparent dismiss overlay while a field is focused, detecting focus via the
+  window-independent `keyboardFocusRegistry` and resigning the field through its
+  own native `blur()` ref. The registry gained `subscribeKeyboardFocus`,
+  `hasKeyboardFocusedInput`, and `dismissKeyboardFocusedInput`, and `TextInput`
+  now registers a `blur` handle on focus.
+
 ## [0.12.0]
 
 ### Added

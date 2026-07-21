@@ -29,6 +29,10 @@ Use only exported package paths: root, `components`, `components/*`,
 `constants`, `constants/*`, `hooks`, `hooks/*`, `state`, and `lib`. Do not
 import from `@mrmeg/expo-ui/dist/*` or from a source checkout path.
 
+Supported hosts are Expo 56–57, React 19.2, React Native 0.85–0.86, and React
+Native Web 0.21. Install the peer versions recommended by the consuming app's
+Expo SDK.
+
 ## Required App Setup
 
 Call `useResources()` once near the Expo app root. Mount `UIProvider` once
@@ -212,6 +216,7 @@ Use this table before creating a new app-local primitive.
 - Use `EmptyState` for no-data or recoverable error regions.
 - Use `Skeleton` for loading content with stable layout.
 - Use `Progress` for real progress or indeterminate long-running work.
+- Use `Drawer.Header` with `icon`, `title`, and `action` for a compact app-brand row; place `Drawer.ToggleCollapse` in `action` for a trailing rail control.
 
 ## Minimal Examples
 
@@ -247,6 +252,20 @@ import { Button, Switch, TextInput } from "@mrmeg/expo-ui/components";
 <Button preset="default" size="lg" fullWidth loading={isSubmitting}>
   Continue
 </Button>
+```
+
+```tsx
+import { Drawer, Icon } from "@mrmeg/expo-ui/components";
+
+<Drawer.Header
+  icon={<Icon name="hexagon" color="accent" />}
+  title="Acme"
+  action={
+    <Drawer.ToggleCollapse>
+      <Icon name="sidebar" decorative />
+    </Drawer.ToggleCollapse>
+  }
+/>
 ```
 
 ```tsx

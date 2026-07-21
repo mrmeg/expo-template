@@ -196,8 +196,8 @@ export default function ScreenPricingDemo() {
       }}
       footer={
         <SansSerifText
+          size="sm"
           style={{
-            fontSize: 13,
             color: theme.colors.mutedForeground,
             textAlign: "center",
           }}

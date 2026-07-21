@@ -1,6 +1,6 @@
 # @mrmeg/expo-ui
 
-Reusable Expo and React Native UI primitives shared by the template and consumer apps. The package does not ship font files; web consumers load Lato from Google Fonts and native consumers use platform sans-serif fallbacks.
+Reusable Expo and React Native UI primitives shared by the template and consumer apps. Typography is Inter: native consumers load four static Inter weights via `@expo-google-fonts/inter`, web consumers load Inter from Google Fonts.
 
 This package is public for installability, reuse across MrMeg projects, and
 discoverability. It is a personal reusable Expo / React Native design-system
@@ -28,9 +28,9 @@ bun add @mrmeg/expo-ui
 ```
 
 Consumers must also install the native and Expo peer dependencies listed in
-`package.json`. The tested baseline is Expo SDK 56 with React 19.2, React
-Native 0.85, and React Native Web 0.21. UI animations and keyboard-aware
-sheet offsets use React Native Animated by default.
+`package.json`. The tested compatibility window is Expo SDK 56–57 with React
+19.2, React Native 0.85–0.86, and React Native Web 0.21. UI animations and
+keyboard-aware sheet offsets use React Native Animated by default.
 `@rn-primitives/*` packages are managed by `@mrmeg/expo-ui` because they are
 implementation details of the exported UI components. Native bottom sheet
 keyboard avoidance uses React Native keyboard events. i18n setup is optional;
@@ -254,7 +254,7 @@ Most compound components support both direct named imports and dot notation on t
 | `Card` | `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` |
 | `Collapsible` | `CollapsibleTrigger`, `CollapsibleContent` |
 | `Dialog` | `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogFooter`, `DialogTitle`, `DialogDescription`, `DialogClose` |
-| `Drawer` | `DrawerTrigger`, `DrawerContent`, `DrawerHeader`, `DrawerBody`, `DrawerFooter`, `DrawerClose` |
+| `Drawer` | `DrawerTrigger`, `DrawerContent`, `DrawerHeader`, `DrawerBody`, `DrawerFooter`, `DrawerClose`, `DrawerToggleCollapse` |
 | `DropdownMenu` | `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuGroup`, `DropdownMenuItem`, `DropdownMenuCheckboxItem`, `DropdownMenuRadioGroup`, `DropdownMenuRadioItem`, `DropdownMenuLabel`, `DropdownMenuSeparator`, `DropdownMenuShortcut`, `DropdownMenuPortal`, `DropdownMenuSub`, `DropdownMenuSubTrigger`, `DropdownMenuSubContent` |
 | `Popover` | `PopoverTrigger`, `PopoverContent`, `PopoverHeader`, `PopoverBody`, `PopoverFooter` |
 | `RadioGroup` | `RadioGroupItem` |
@@ -272,6 +272,20 @@ Text aliases are exported for common semantic typography: `SerifText`, `SansSeri
 Use `Button.preset`, not `variant`. `default` is the neutral primary action, `secondary` is a neutral secondary surface, `outline` is for lower-emphasis actions, `ghost` is for compact toolbars, `link` is for text-like commands, and `destructive` is for dangerous actions. Button visible heights are compact: `sm` 28px, `md` 32px, and `lg` 40px. Native Button targets preserve tap comfort with computed hit slop up to 44px. Nested `StyledText` children inherit the selected Button size, so use `size="sm"` for compact popover, tooltip, and toolbar triggers.
 
 Use `StyledText` or its aliases instead of raw `Text` whenever the text is part of app UI. Use `TextInput` for labeled fields because it already owns label, helper text, error text, clear buttons, password visibility, numeric filtering, and left/right elements.
+
+`Drawer.Header` accepts `icon`, `title`, and `action` slots for a compact app-brand row. Pass a string title to use the package typography, and place `Drawer.ToggleCollapse` in `action` for a trailing rail control:
+
+```tsx
+<Drawer.Header
+  icon={<Icon name="hexagon" color="accent" />}
+  title="Acme"
+  action={
+    <Drawer.ToggleCollapse>
+      <Icon name="sidebar" decorative />
+    </Drawer.ToggleCollapse>
+  }
+/>
+```
 
 Mount `UIProvider` once near the root before using `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, or package notifications. On native, `UIProvider` also wraps app content in the package keyboard-avoiding root by default, so ordinary screens and fixed footers stay above the soft keyboard without repeated app-local wrappers; pass `keyboardAvoiding={false}` to opt out, or use `KeyboardAvoidingView` directly for a subtree with custom behavior. Web skips the root keyboard wrapper unless `keyboardAvoiding` is explicitly enabled. `BottomSheet.Content` listens to React Native keyboard events when `avoidKeyboard` is enabled; it defaults to `true` and can be disabled per sheet. Trigger transient feedback with `notify`.
 
@@ -380,21 +394,21 @@ export default function RootLayout() {
 
 ## Fonts
 
-This package does not ship Lato `.ttf` files or other font binaries.
+Typography is Inter across every platform, in four static weights (`Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`, `Inter_700Bold`) from `@expo-google-fonts/inter` — a package dependency, so consumers get it automatically.
 
-On web, `useResources()` injects the Google Fonts Lato stylesheet after hydration if the app has not already added it. For better first paint in Expo Router web apps, add the links in app-owned `app/+html.tsx`:
+On native, `useResources()` loads the four static weights so `StyledText`'s `light`–`bold` range resolves to real font files instead of a faked OS bold. On web, `useResources()` injects a single Google Fonts Inter stylesheet (covering all four weights) after hydration if the app has not already added it; weight differentiation on web comes from a numeric `fontWeight` alongside the shared `"Inter"` CSS family. For better first paint in Expo Router web apps, add the links in app-owned `app/+html.tsx`:
 
 ```tsx
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 <link
-  id="mrmeg-expo-ui-lato"
+  id="mrmeg-expo-ui-inter"
   rel="stylesheet"
-  href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap"
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
 />
 ```
 
-On native, the package uses platform sans-serif fallbacks. `useResources()` still loads `Feather.font` from the package-managed `@expo/vector-icons` dependency for icon rendering.
+`useResources()` also loads `Feather.font` from the package-managed `@expo/vector-icons` dependency for icon rendering.
 
 ## Package Checks
 
@@ -413,6 +427,9 @@ a dry run.
 The release command requires a clean working tree by default. Commit current
 changes first, or pass `--allow-dirty` when you intentionally want to release
 from uncommitted local changes.
+
+Release validation includes `bun run packages:peer-check`; CI also installs and
+exports packed consumers against Expo 56 and 57.
 
 If npm login email is unavailable, publish through GitHub Actions trusted
 publishing instead:
@@ -445,6 +462,7 @@ reruns do not bump again.
 Manual package checks:
 
 ```sh
+bun run packages:peer-check
 bun run ui:typecheck
 bun run ui:test
 bun run ui:build

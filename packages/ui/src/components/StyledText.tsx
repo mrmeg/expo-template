@@ -1,19 +1,19 @@
 import { use, type Ref } from "react";
-import { Text as RNText, TextProps as RNTextProps, StyleProp, StyleSheet, TextStyle } from "react-native";
+import { Platform, Text as RNText, TextProps as RNTextProps, StyleProp, StyleSheet, TextStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { fontFamilies } from "../constants/fonts";
 import { translateText } from "../lib/i18n";
 import { TextColorContext, TextSelectabilityContext, TextStyleContext } from "./StyledText.context";
 
 /**
- * Font size variants following the DM Sans / DM Serif Display scale
+ * Font size variants for the type scale (Inter sans-serif / Georgia serif)
  */
 export type FontSize = "xs" | "sm" | "base" | "body" | "lg" | "xl" | "xxl" | "display";
 
 /**
  * Semantic text variants for different use cases
  */
-export type SemanticVariant = "title" | "heading" | "subheading" | "body" | "caption" | "label";
+export type SemanticVariant = "title" | "heading" | "subheading" | "body" | "caption" | "label" | "eyebrow";
 
 /**
  * Font weight options
@@ -47,11 +47,25 @@ const LINE_HEIGHTS: Record<FontSize, number> = {
   display: 40.8,
 };
 
-const LETTER_SPACING: Partial<Record<FontSize, number>> = {
-  sm: 0,
-  xxl: 0,
-  display: 0,
+// Per-size tracking (px), derived from em targets (em × fontSize, rounded to
+// 2 decimals): tight tracking on large headings, neutral through body text,
+// positive tracking on small/micro labels so they don't read cramped at size.
+// RN's `letterSpacing` is px, not em, hence the pre-multiplied values here.
+const LETTER_SPACING: Record<FontSize, number> = {
+  xs: 0.11,     // +0.01em × 11
+  sm: 0.06,     // +0.005em × 12
+  base: 0,
+  body: 0,
+  lg: -0.09,    // -0.005em × 18
+  xl: -0.22,    // -0.01em × 22
+  xxl: -0.42,   // -0.015em × 28
+  display: -0.68, // -0.02em × 34
 };
+
+// Eyebrow/overline tracking is deliberately wider than the "sm" default
+// above — it's a distinct uppercase-label treatment, not the same tracking
+// used for ordinary small text at that size. +0.08em × 12px (sm fontSize).
+const EYEBROW_LETTER_SPACING = 0.96;
 
 const SEMANTIC_CONFIGS: Record<SemanticVariant, { size: FontSize; weight: FontWeight }> = {
   title: { size: "xxl", weight: "semibold" },
@@ -60,22 +74,32 @@ const SEMANTIC_CONFIGS: Record<SemanticVariant, { size: FontSize; weight: FontWe
   body: { size: "body", weight: "regular" },
   caption: { size: "sm", weight: "regular" },
   label: { size: "base", weight: "medium" },
+  // Section-label idiom (uppercase, widely tracked) — see EYEBROW_LETTER_SPACING
+  // and the textTransform applied in StyledText below.
+  eyebrow: { size: "sm", weight: "semibold" },
 };
 
-// Map font weights to actual font family weight keys
-// DM Sans has: light, regular, medium, semibold
-// DM Serif Display has: regular only
-const getFontFamilyWeight = (weight?: FontWeight): "light" | "regular" | "medium" | "semibold" => {
-  if (!weight || weight === "regular") return "regular";
-  if (weight === "light") return "light";
-  if (weight === "medium") return "medium";
-  // semibold and bold both map to semibold (DM Sans's heaviest weight)
-  return "semibold";
+// Font family weight keys now map 1:1 onto FontWeight — every weight has a
+// real family entry (native: a distinct static Inter file; web: shared
+// "Inter" family + numeric fontWeight, see WEB_FONT_WEIGHTS). Defaults to
+// "regular" when no weight is requested.
+const getFontFamilyWeight = (weight?: FontWeight): FontWeight => weight ?? "regular";
+
+// Web-only: the numeric fontWeight that picks the right @font-face variant
+// out of the single shared "Inter" CSS family. "light" has no loaded 300
+// weight (mirrors the native light->regular mapping in constants/fonts.ts),
+// so it renders at 400 like "regular".
+const WEB_FONT_WEIGHTS: Record<FontWeight, NonNullable<TextStyle["fontWeight"]>> = {
+  light: "400",
+  regular: "400",
+  medium: "500",
+  semibold: "600",
+  bold: "700",
 };
 
 export type TextProps = RNTextProps & {
   /**
-   * Font variant - serif (DM Serif Display) or sans-serif (DM Sans)
+   * Font variant - serif (Georgia) or sans-serif (Inter)
    */
   variant?: "serif" | "sansSerif";
   /**
@@ -120,9 +144,12 @@ export type TextProps = RNTextProps & {
  *
  * Features:
  * - Size variants (xs, sm, base, body, lg, xl, xxl, display)
- * - Semantic variants (title, heading, subheading, body, caption, label)
+ * - Semantic variants (title, heading, subheading, body, caption, label, eyebrow)
  * - Text alignment prop
- * - Font weight options (light, regular, medium, semibold, bold)
+ * - Font weight options (light, regular, medium, semibold, bold) — resolves to
+ *   real Inter font files on native, and family + numeric fontWeight on web
+ * - Per-size letter-spacing scale (tight on large headings, positive on micro
+ *   labels); explicit `style` letterSpacing always wins
  * - Text selection enabled by default; pass `selectable={false}` for control
  *   chrome such as button labels, tabs, badges, and field labels
  * - numberOfLines and ellipsizeMode support from RN TextProps
@@ -162,15 +189,22 @@ export function StyledText(props: TextProps) {
 
   // Get font family based on variant and weight
   const fontFamilyWeight = getFontFamilyWeight(finalFontWeight);
-  // DM Serif Display only has regular — use it regardless of requested weight
+  // Georgia (serif) only has one weight — use it regardless of requested weight
   const fontFamily = variant === "serif"
     ? fontFamilies.serif.regular
     : fontFamilies.sansSerif[fontFamilyWeight] ?? fontFamilies.sansSerif.regular;
 
+  // Web ships one Inter family for every weight, so a numeric fontWeight picks
+  // the right @font-face variant. Native ships a discrete static font file per
+  // weight (see constants/fonts.ts) — the family name alone carries the
+  // weight there, and adding a numeric fontWeight on top would faux-bold an
+  // already-bold file, so this stays web-only.
+  const resolvedFontWeight = Platform.OS === "web" ? WEB_FONT_WEIGHTS[finalFontWeight] : undefined;
+
   // Get fontSize and lineHeight from size variant
   const fontSize = FONT_SIZES[finalSize];
   const lineHeight = LINE_HEIGHTS[finalSize];
-  const letterSpacing = LETTER_SPACING[finalSize];
+  const letterSpacing = semantic === "eyebrow" ? EYEBROW_LETTER_SPACING : LETTER_SPACING[finalSize];
 
   // If style overrides fontSize without lineHeight, drop the preset lineHeight
   // so RN uses its default (avoids clipping text with a mismatched lineHeight)
@@ -197,10 +231,12 @@ export function StyledText(props: TextProps) {
           color,
           fontFamily,
           fontSize,
+          ...(resolvedFontWeight !== undefined && { fontWeight: resolvedFontWeight }),
           ...(resolvedLineHeight !== undefined && { lineHeight: resolvedLineHeight }),
           userSelect: resolvedSelectable ? "auto" : "none",
           ...(letterSpacing !== undefined && { letterSpacing }),
           ...(align && { textAlign: align }),
+          ...(semantic === "eyebrow" && { textTransform: "uppercase" }),
         },
         resolvedContextTextStyle,
         style,
@@ -215,7 +251,7 @@ export function StyledText(props: TextProps) {
 
 /**
  * Serif Text Component
- * Uses serif font family (DM Serif Display)
+ * Uses the serif font family (Georgia)
  */
 export function SerifText(props: TextProps) {
   return <StyledText {...props} variant="serif" />;
@@ -223,7 +259,7 @@ export function SerifText(props: TextProps) {
 
 /**
  * Sans-Serif Text Component
- * Uses sans-serif font family (DM Sans)
+ * Uses the sans-serif font family (Inter)
  */
 export function SansSerifText(props: TextProps) {
   return <StyledText {...props} variant="sansSerif" />;
@@ -231,7 +267,7 @@ export function SansSerifText(props: TextProps) {
 
 /**
  * Serif Bold Text Component
- * Uses serif font family — DM Serif Display only has regular weight
+ * Uses the serif font family — Georgia's only shipped weight is regular
  */
 export function SerifBoldText(props: TextProps) {
   return <StyledText {...props} variant="serif" fontWeight="regular" />;
@@ -239,7 +275,7 @@ export function SerifBoldText(props: TextProps) {
 
 /**
  * Sans-Serif Bold Text Component
- * Uses sans-serif font family with semibold weight (DM Sans 600)
+ * Uses the sans-serif font family at semibold weight (Inter 600)
  */
 export function SansSerifBoldText(props: TextProps) {
   return <StyledText {...props} variant="sansSerif" fontWeight="semibold" />;
@@ -247,7 +283,8 @@ export function SansSerifBoldText(props: TextProps) {
 
 /**
  * Display Text Component
- * Uses DM Serif Display at display size — for hero text and splash screens
+ * Uses the serif font family (Georgia) at display size — for hero text and
+ * splash screens
  */
 export function DisplayText(props: TextProps) {
   return <StyledText {...props} variant="serif" size="display" />;
@@ -295,4 +332,13 @@ export function CaptionText(props: TextProps) {
  */
 export function LabelText(props: TextProps) {
   return <StyledText {...props} semantic="label" />;
+}
+
+/**
+ * Eyebrow Text - Small, semibold, uppercase section label with wide positive
+ * tracking (the overline idiom above a heading). Consumed by the SectionHeader
+ * primitive (separate spec).
+ */
+export function EyebrowText(props: TextProps) {
+  return <StyledText {...props} semantic="eyebrow" />;
 }

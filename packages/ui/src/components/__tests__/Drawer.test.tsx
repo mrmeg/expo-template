@@ -83,6 +83,26 @@ jest.mock("react-native-screens", () => ({
   FullWindowOverlay: ({ children }: any) => <>{children}</>,
 }));
 
+function findRenderedStyle(node: any, predicate: (style: any) => boolean): any {
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = findRenderedStyle(child, predicate);
+      if (found) return found;
+    }
+    return undefined;
+  }
+  if (!node || typeof node === "string") {
+    return undefined;
+  }
+
+  const style = StyleSheet.flatten(node.props?.style);
+  if (style && predicate(style)) {
+    return style;
+  }
+
+  return findRenderedStyle(node.children, predicate);
+}
+
 describe("Drawer overlay variant", () => {
   it("opens via the trigger", async () => {
     const onOpenChange = jest.fn();
@@ -147,6 +167,53 @@ describe("Drawer overlay variant", () => {
 });
 
 describe("Drawer rail variant", () => {
+  it("lays out a brand icon and title with a trailing collapse action", async () => {
+    const onExpandedChange = jest.fn();
+    const { toJSON } = await render(
+      <Drawer
+        variant="rail"
+        expanded
+        onExpandedChange={onExpandedChange}
+      >
+        <Drawer.Content>
+          <Drawer.Header
+            testID="drawer-header"
+            icon={<Text>Brand icon</Text>}
+            title="Acme"
+            action={
+              <Drawer.ToggleCollapse>
+                <Text>Sidebar icon</Text>
+              </Drawer.ToggleCollapse>
+            }
+          />
+        </Drawer.Content>
+      </Drawer>
+    );
+
+    expect(screen.getByText("Brand icon")).toBeTruthy();
+    expect(screen.getByText("Acme")).toBeTruthy();
+    expect(screen.getByText("Sidebar icon")).toBeTruthy();
+    expect(
+      StyleSheet.flatten(screen.getByTestId("drawer-header").props.style)
+    ).toMatchObject({
+      minHeight: 56,
+      flexDirection: "row",
+      alignItems: "center",
+      overflow: "hidden",
+    });
+    const structuredRowStyle = findRenderedStyle(
+      toJSON(),
+      (style) => style.width === 208
+    );
+    expect(structuredRowStyle).toMatchObject({
+      width: 208,
+      flexShrink: 0,
+    });
+
+    fireEvent.press(screen.getByLabelText("Collapse sidebar"));
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+  });
+
   it("renders a docked collapsed strip that stays mounted", async () => {
     await render(
       <Drawer variant="rail" collapsedWidth={72} expandedWidth={220}>

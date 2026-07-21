@@ -67,7 +67,7 @@ function PlaceholderCard({ text, theme }: { text: string; theme: Theme }) {
   const styles = useMemo(() => createStyles(theme), [theme]);
   return (
     <View style={styles.placeholderCard}>
-      <SansSerifText style={styles.placeholderText}>{text}</SansSerifText>
+      <SansSerifText size="base" style={styles.placeholderText}>{text}</SansSerifText>
     </View>
   );
 }
@@ -131,8 +131,6 @@ const createStyles = (theme: Theme) =>
       justifyContent: "center",
     },
     placeholderText: {
-      fontSize: 14,
-      lineHeight: 20,
       color: theme.colors.mutedForeground,
     },
   });

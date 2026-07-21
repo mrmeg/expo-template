@@ -30,6 +30,9 @@ import { ForgotPasswordForm } from "@/client/features/auth/components/ForgotPass
 import { ResetPasswordForm } from "@/client/features/auth/components/ResetPasswordForm";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Skeleton, SkeletonText, SkeletonAvatar, SkeletonCard } from "@mrmeg/expo-ui/components/Skeleton";
+import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
+import { StatCard } from "@mrmeg/expo-ui/components/StatCard";
+import { Item, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from "@mrmeg/expo-ui/components/Item";
 import { BottomSheet } from "@mrmeg/expo-ui/components/BottomSheet";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Section, SubSection, ThemeToggle } from "@/client/showcase";
@@ -533,24 +536,37 @@ function useShowcaseScreenContent() {
               >
                 <Drawer variant="rail" collapsedWidth={72} expandedWidth={220}>
                   <Drawer.Content>
-                    <Drawer.Header>
-                      {/* Toggle lives at the top: tap the icon to expand/collapse
-                          (native); the brand name appears once expanded. */}
-                      <Drawer.ToggleCollapse asChild>
-                        <Pressable
-                          style={Platform.OS === "web" ? { cursor: "pointer" as any } : undefined}
-                        >
-                          <View style={{ flexDirection: "row", alignItems: "center", height: 32 }}>
-                            <View style={{ width: 40, alignItems: "center" }}>
-                              <Icon name="sidebar" size={22} color="accent" />
-                            </View>
-                            <StyledText numberOfLines={1} style={[styles.boldText, { fontSize: 16 }]}>
-                              Acme
-                            </StyledText>
-                          </View>
-                        </Pressable>
-                      </Drawer.ToggleCollapse>
-                    </Drawer.Header>
+                    <Drawer.Header
+                      icon={
+                        /* The leading brand icon doubles as the native expand
+                           control while the trailing action is clipped. */
+                        <Drawer.ToggleCollapse asChild>
+                          <Pressable
+                            hitSlop={10}
+                            style={Platform.OS === "web" ? { cursor: "pointer" } : undefined}
+                          >
+                            <Icon name="hexagon" size={24} color="accent" />
+                          </Pressable>
+                        </Drawer.ToggleCollapse>
+                      }
+                      title="Acme"
+                      action={
+                        <Drawer.ToggleCollapse asChild>
+                          <Pressable
+                            hitSlop={8}
+                            style={{
+                              width: 28,
+                              height: 28,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              ...(Platform.OS === "web" ? { cursor: "pointer" as const } : {}),
+                            }}
+                          >
+                            <Icon name="sidebar" size={15} color="mutedForeground" />
+                          </Pressable>
+                        </Drawer.ToggleCollapse>
+                      }
+                    />
                     <Drawer.Body>
                       <View style={{ gap: spacing.lg }}>
                         {([
@@ -825,6 +841,62 @@ function useShowcaseScreenContent() {
 
           <InputOTPSection />
 
+          <Section title="Item">
+            <SubSection label="Basic list">
+              <View style={styles.demoCard}>
+                <Item separator>
+                  <ItemMedia icon="bell" />
+                  <ItemContent>
+                    <ItemTitle>Notifications</ItemTitle>
+                    <ItemDescription>Push, email, and SMS alerts</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <Icon name="chevron-right" size={18} color="mutedForeground" />
+                  </ItemActions>
+                </Item>
+                <Item separator>
+                  <ItemMedia icon="globe" />
+                  <ItemContent>
+                    <ItemTitle>Language</ItemTitle>
+                    <ItemDescription>English (US)</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <Icon name="chevron-right" size={18} color="mutedForeground" />
+                  </ItemActions>
+                </Item>
+                <Item>
+                  <ItemMedia icon="shield" />
+                  <ItemContent>
+                    <ItemTitle>Privacy</ItemTitle>
+                    <ItemDescription>Control what others can see</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <Switch checked={showBookmarks} onCheckedChange={(value) => dispatchControls({ type: "showBookmarksChanged", showBookmarks: value })} />
+                  </ItemActions>
+                </Item>
+              </View>
+            </SubSection>
+
+            <SubSection label="Pressable row">
+              <View style={styles.demoCard}>
+                <Item
+                  onPress={() => notify.info("Item pressed", { messages: ["You tapped a list row."] })}
+                >
+                  <ItemMedia>
+                    <SansSerifBoldText style={{ color: theme.colors.foreground }}>JD</SansSerifBoldText>
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemTitle>Jane Doe</ItemTitle>
+                    <ItemDescription>jane@example.com</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <SansSerifText style={{ color: theme.colors.mutedForeground }}>Admin</SansSerifText>
+                  </ItemActions>
+                </Item>
+              </View>
+            </SubSection>
+          </Section>
+
           <Section title="Label">
             <SubSection label="Basic">
               <Label nativeID="demo-label">Email address</Label>
@@ -1028,6 +1100,31 @@ function useShowcaseScreenContent() {
 
           <RadioGroupSection />
 
+          <Section title="SectionHeader">
+            <SubSection label="Leading (default)">
+              <SectionHeader
+                eyebrow="Pricing"
+                title="Simple, transparent plans"
+                description="Pick the plan that fits your team. Upgrade or cancel anytime."
+              />
+            </SubSection>
+
+            <SubSection label="Centered">
+              <View style={{ alignItems: "center" }}>
+                <SectionHeader
+                  align="center"
+                  eyebrow="Changelog"
+                  title="What's new"
+                  description="A running log of features, fixes, and improvements shipped to the app."
+                />
+              </View>
+            </SubSection>
+
+            <SubSection label="Title only">
+              <SectionHeader title="No eyebrow or description" />
+            </SubSection>
+          </Section>
+
           <SegmentedControlSection />
 
           <SelectSection />
@@ -1099,6 +1196,26 @@ function useShowcaseScreenContent() {
           </Section>
 
           <SkeletonSection styles={styles} theme={theme} />
+
+          <Section title="StatCard">
+            <SubSection label="Basic">
+              <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}>
+                <StatCard label="Revenue" value="48.2" unit="k" change={{ value: "+12.5%", direction: "up" }} icon="dollar-sign" />
+                <StatCard label="Refunds" value="182" change={{ value: "-4.1%", direction: "down" }} icon="credit-card" />
+                <StatCard label="Active Users" value="1,204" change={{ value: "No change", direction: "neutral" }} icon="users" />
+              </View>
+            </SubSection>
+
+            <SubSection label="Pressable">
+              <StatCard
+                label="Orders"
+                value="342"
+                change={{ value: "+8 today", direction: "up" }}
+                icon="shopping-bag"
+                onPress={() => notify.info("StatCard pressed", { messages: ["You tapped the Orders stat."] })}
+              />
+            </SubSection>
+          </Section>
 
           <SliderSection styles={styles} />
 

@@ -126,3 +126,55 @@ describe("BottomSheet.Handle", () => {
     );
   });
 });
+
+describe("BottomSheet.Body", () => {
+  it("keeps scrollability measurement updates stable", async () => {
+    await render(
+      <BottomSheet open snapPoints={["50%"]}>
+        <BottomSheet.Content>
+          <BottomSheet.Body testID="sheet-body">
+            <Text>Scrollable content</Text>
+          </BottomSheet.Body>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+
+    const body = screen.getByTestId("sheet-body");
+
+    await fireEvent(body, "layout", {
+      nativeEvent: { layout: { height: 100 } },
+    });
+    await fireEvent(body, "contentSizeChange", 320, 200);
+
+    expect(screen.getByLabelText("Close")).toBeTruthy();
+
+    await fireEvent(body, "layout", {
+      nativeEvent: { layout: { height: 100 } },
+    });
+    await fireEvent(body, "contentSizeChange", 320, 200);
+
+    expect(screen.getByLabelText("Close")).toBeTruthy();
+  });
+
+  it("registers header and footer without update loops", async () => {
+    await render(
+      <BottomSheet open snapPoints={["50%"]}>
+        <BottomSheet.Content>
+          <BottomSheet.Header>
+            <Text>Header</Text>
+          </BottomSheet.Header>
+          <BottomSheet.Body testID="sheet-body">
+            <Text>Body</Text>
+          </BottomSheet.Body>
+          <BottomSheet.Footer>
+            <Text>Footer</Text>
+          </BottomSheet.Footer>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+
+    expect(screen.getByText("Header")).toBeTruthy();
+    expect(screen.getByText("Body")).toBeTruthy();
+    expect(screen.getByText("Footer")).toBeTruthy();
+  });
+});

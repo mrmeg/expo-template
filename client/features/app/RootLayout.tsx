@@ -24,6 +24,7 @@ import Config from "@/client/config";
 import { validateClientEnv } from "@/client/lib/validateEnv";
 import { captureException, setupSentry } from "@/client/lib/sentry";
 import { useAppStartup, OnboardingGate } from "@/client/features/app";
+import { AuthProviderGate } from "@/client/features/auth/provider/AuthProviderGate";
 import { useOnboardingStore } from "@/client/features/onboarding/onboardingStore";
 
 // Surface partial-feature env config (e.g. only one Cognito var set) at
@@ -130,43 +131,45 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider>
-        <ThemeProvider value={{
-          dark: colors[scheme ?? "light"].dark,
-          colors: colors[scheme ?? "light"].navigation,
-          fonts: colors[scheme ?? "light"].fonts,
-        }}>
-          <KeyboardProvider>
-            <UIProvider>
-              <KeyboardDismissBoundary style={styles.keyboardDismissScope}>
-                <ErrorBoundary
-                  catchErrors={Config.catchErrors}
-                  FallbackComponent={ErrorScreen}
-                  onError={reportBoundaryError}
-                >
-                  {hasSeenOnboarding ? (
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        // Theme-aware backdrop so the white default doesn't
-                        // flash through on screen transitions.
-                        contentStyle: { backgroundColor: colors[scheme ?? "light"].colors.background },
-                      }}
-                    >
-                      <Stack.Screen name="(main)" />
-                      <Stack.Screen name="+not-found" />
-                    </Stack>
-                  ) : (
-                    <OnboardingGate />
-                  )}
-                </ErrorBoundary>
-              </KeyboardDismissBoundary>
-            </UIProvider>
-          </KeyboardProvider>
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </QueryClientProvider>
+    <AuthProviderGate>
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <ThemeProvider value={{
+            dark: colors[scheme ?? "light"].dark,
+            colors: colors[scheme ?? "light"].navigation,
+            fonts: colors[scheme ?? "light"].fonts,
+          }}>
+            <KeyboardProvider>
+              <UIProvider>
+                <KeyboardDismissBoundary style={styles.keyboardDismissScope}>
+                  <ErrorBoundary
+                    catchErrors={Config.catchErrors}
+                    FallbackComponent={ErrorScreen}
+                    onError={reportBoundaryError}
+                  >
+                    {hasSeenOnboarding ? (
+                      <Stack
+                        screenOptions={{
+                          headerShown: false,
+                          // Theme-aware backdrop so the white default doesn't
+                          // flash through on screen transitions.
+                          contentStyle: { backgroundColor: colors[scheme ?? "light"].colors.background },
+                        }}
+                      >
+                        <Stack.Screen name="(main)" />
+                        <Stack.Screen name="+not-found" />
+                      </Stack>
+                    ) : (
+                      <OnboardingGate />
+                    )}
+                  </ErrorBoundary>
+                </KeyboardDismissBoundary>
+              </UIProvider>
+            </KeyboardProvider>
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </QueryClientProvider>
+    </AuthProviderGate>
   );
 }
 

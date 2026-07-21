@@ -62,6 +62,8 @@ function validate(rules: EnvRule[], label: string): void {
 export function validateClientEnv(): void {
   const userPoolId = process.env.EXPO_PUBLIC_USER_POOL_ID;
   const userPoolClientId = process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID;
+  const clerkKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const authProvider = process.env.EXPO_PUBLIC_AUTH_PROVIDER;
   const billingEnabled = process.env.EXPO_PUBLIC_BILLING_ENABLED;
   const appUrl = process.env.EXPO_PUBLIC_APP_URL;
 
@@ -80,6 +82,38 @@ export function validateClientEnv(): void {
       : "EXPO_PUBLIC_USER_POOL_ID";
     console.warn(
       `⚠️ Partial Cognito config: ${present} is set but ${missing} is missing. Auth will stay disabled until both are configured.`,
+    );
+  }
+
+  // Explicit provider selection must point at a configured provider.
+  if (authProvider === "clerk" && isMissing(clerkKey)) {
+    console.warn(
+      "⚠️ EXPO_PUBLIC_AUTH_PROVIDER=clerk but EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is missing. Auth will stay disabled.",
+    );
+  } else if (authProvider === "cognito" && (poolMissing || clientMissing)) {
+    console.warn(
+      "⚠️ EXPO_PUBLIC_AUTH_PROVIDER=cognito but the Cognito user-pool vars are incomplete. Auth will stay disabled.",
+    );
+  } else if (
+    !isMissing(authProvider) &&
+    authProvider !== "clerk" &&
+    authProvider !== "cognito"
+  ) {
+    console.warn(
+      `⚠️ Unknown EXPO_PUBLIC_AUTH_PROVIDER "${authProvider}". Expected "clerk" or "cognito".`,
+    );
+  }
+
+  // Both providers fully configured without an explicit choice — Clerk wins,
+  // but flag it so the selection is deliberate.
+  if (
+    isMissing(authProvider) &&
+    !isMissing(clerkKey) &&
+    !poolMissing &&
+    !clientMissing
+  ) {
+    console.warn(
+      "⚠️ Both Clerk and Cognito are configured; defaulting to Clerk. Set EXPO_PUBLIC_AUTH_PROVIDER to choose explicitly.",
     );
   }
 

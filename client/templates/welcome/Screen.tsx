@@ -11,7 +11,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { useStaggeredEntrance, STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Separator } from "@mrmeg/expo-ui/components/Separator";
@@ -66,7 +67,6 @@ export function WelcomeScreen({
   // Staggered entrance animations
   const logoEntrance = useStaggeredEntrance({ type: "scale", delay: 0 });
   const titleEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY });
-  const subtitleEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY * 2 });
   const actionsEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY * 3 });
 
   return (
@@ -89,13 +89,8 @@ export function WelcomeScreen({
         )}
 
         <Animated.View style={titleEntrance}>
-          <SansSerifBoldText style={styles.title}>{title}</SansSerifBoldText>
+          <SectionHeader align="center" title={title} description={subtitle} />
         </Animated.View>
-        {subtitle && (
-          <Animated.View style={subtitleEntrance}>
-            <SansSerifText style={styles.subtitle}>{subtitle}</SansSerifText>
-          </Animated.View>
-        )}
       </View>
 
       {/* Bottom actions */}
@@ -126,7 +121,7 @@ export function WelcomeScreen({
 
             <View style={styles.separatorRow}>
               <Separator style={styles.separatorLine} margin={0} />
-              <SansSerifText style={styles.separatorText}>or</SansSerifText>
+              <SansSerifText size="sm" style={styles.separatorText}>or</SansSerifText>
               <Separator style={styles.separatorLine} margin={0} />
             </View>
           </>
@@ -156,7 +151,7 @@ export function WelcomeScreen({
 
         {/* Footer text */}
         {footerText && (
-          <SansSerifText style={styles.footerText}>{footerText}</SansSerifText>
+          <SansSerifText size="xs" style={styles.footerText}>{footerText}</SansSerifText>
         )}
       </Animated.View>
     </View>
@@ -191,21 +186,6 @@ const createStyles = (theme: Theme) =>
       justifyContent: "center",
       marginBottom: spacing.lg,
     },
-    title: {
-      fontSize: 32,
-      lineHeight: 40,
-      letterSpacing: -0.75,
-      color: theme.colors.foreground,
-      textAlign: "center",
-    },
-    subtitle: {
-      fontSize: 16,
-      lineHeight: 24,
-      color: theme.colors.mutedForeground,
-      textAlign: "center",
-      marginTop: spacing.sm,
-      paddingHorizontal: spacing.lg,
-    },
     actions: {
       gap: spacing.sm,
       paddingBottom: spacing.lg,
@@ -224,14 +204,11 @@ const createStyles = (theme: Theme) =>
       height: 1,
     },
     separatorText: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
     },
     footerText: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
       textAlign: "center",
-      lineHeight: 18,
       marginTop: spacing.sm,
     },
   });

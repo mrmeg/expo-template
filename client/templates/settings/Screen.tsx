@@ -2,9 +2,7 @@ import React, { useMemo, ReactNode } from "react";
 import {
   View,
   ScrollView,
-  Pressable,
   StyleSheet,
-  Platform,
   StyleProp,
   ViewStyle,
 } from "react-native";
@@ -12,9 +10,10 @@ import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { SansSerifText, EyebrowText } from "@mrmeg/expo-ui/components/StyledText";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Switch } from "@mrmeg/expo-ui/components/Switch";
+import { Item, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from "@mrmeg/expo-ui/components/Item";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -79,53 +78,36 @@ export interface SettingsScreenProps {
 // ---------------------------------------------------------------------------
 
 export function SettingsScreen({ sections, header, style: styleOverride }: SettingsScreenProps) {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme, getShadowStyle, withAlpha } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const renderItem = (item: SettingsItem, isLast: boolean) => {
     switch (item.type) {
     case "navigate":
       return (
-        <View key={item.label}>
-          <Pressable
-            onPress={item.onPress}
-            style={Platform.OS === "web" ? { ...styles.row, cursor: "pointer" as any } : styles.row}
-          >
-            <View style={styles.rowLeft}>
-              {item.icon && (
-                <View style={styles.iconContainer}>
-                  <Icon name={item.icon} color={theme.colors.primary} size={20} />
-                </View>
-              )}
-              <SansSerifText style={styles.label}>{item.label}</SansSerifText>
-            </View>
-            <View style={styles.rowRight}>
-              {item.value && (
-                <SansSerifText style={styles.value}>{item.value}</SansSerifText>
-              )}
-              <Icon name="chevron-right" color={theme.colors.mutedForeground} size={20} />
-            </View>
-          </Pressable>
-          {!isLast && <View style={item.icon ? styles.dividerInset : styles.divider} />}
-        </View>
+        <Item key={item.label} onPress={item.onPress} separator={!isLast}>
+          {item.icon && <ItemMedia icon={item.icon} iconColor="primary" />}
+          <ItemContent>
+            <ItemTitle>{item.label}</ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            {item.value && <ItemDescription>{item.value}</ItemDescription>}
+            <Icon name="chevron-right" color={theme.colors.mutedForeground} size={20} />
+          </ItemActions>
+        </Item>
       );
 
     case "toggle":
       return (
-        <View key={item.label}>
-          <View style={styles.row}>
-            <View style={styles.rowLeft}>
-              {item.icon && (
-                <View style={styles.iconContainer}>
-                  <Icon name={item.icon} color={theme.colors.primary} size={20} />
-                </View>
-              )}
-              <SansSerifText style={styles.label}>{item.label}</SansSerifText>
-            </View>
+        <Item key={item.label} separator={!isLast}>
+          {item.icon && <ItemMedia icon={item.icon} iconColor="primary" />}
+          <ItemContent>
+            <ItemTitle>{item.label}</ItemTitle>
+          </ItemContent>
+          <ItemActions>
             <Switch checked={item.value} onCheckedChange={item.onValueChange} />
-          </View>
-          {!isLast && <View style={item.icon ? styles.dividerInset : styles.divider} />}
-        </View>
+          </ItemActions>
+        </Item>
       );
 
     case "select":
@@ -135,26 +117,27 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
             const isSelected = option.value === item.selectedValue;
             const isLastOpt = optIndex === item.options.length - 1;
             return (
-              <View key={option.value}>
-                <Pressable
-                  onPress={() => item.onSelect(option.value)}
-                  style={Platform.OS === "web" ? { ...styles.row, cursor: "pointer" as any } : styles.row}
-                >
-                  <View style={styles.rowLeft}>
-                    {item.icon && optIndex === 0 && (
-                      <View style={styles.iconContainer}>
-                        <Icon name={item.icon} color={theme.colors.primary} size={20} />
-                      </View>
-                    )}
-                    {item.icon && optIndex > 0 && <View style={styles.iconSpacer} />}
-                    <SansSerifText style={styles.label}>{option.label}</SansSerifText>
-                  </View>
+              <Item
+                key={option.value}
+                onPress={() => item.onSelect(option.value)}
+                separator={!(isLastOpt && isLast)}
+              >
+                {item.icon && (
+                  <ItemMedia
+                    icon={optIndex === 0 ? item.icon : undefined}
+                    iconColor="primary"
+                    style={optIndex > 0 && styles.iconSpacer}
+                  />
+                )}
+                <ItemContent>
+                  <ItemTitle>{option.label}</ItemTitle>
+                </ItemContent>
+                <ItemActions>
                   <View style={[styles.radio, isSelected && styles.radioSelected]}>
                     {isSelected && <View style={styles.radioInner} />}
                   </View>
-                </Pressable>
-                {!(isLastOpt && isLast) && <View style={item.icon ? styles.dividerInset : styles.divider} />}
-              </View>
+                </ItemActions>
+              </Item>
             );
           })}
         </View>
@@ -162,42 +145,31 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
 
     case "info":
       return (
-        <View key={item.label}>
-          <View style={styles.row}>
-            <View style={styles.rowLeft}>
-              {item.icon && (
-                <View style={styles.iconContainer}>
-                  <Icon name={item.icon} color={theme.colors.primary} size={20} />
-                </View>
-              )}
-              <SansSerifText style={styles.label}>{item.label}</SansSerifText>
-            </View>
-            <SansSerifText style={styles.value}>{item.value}</SansSerifText>
-          </View>
-          {!isLast && <View style={item.icon ? styles.dividerInset : styles.divider} />}
-        </View>
+        <Item key={item.label} separator={!isLast}>
+          {item.icon && <ItemMedia icon={item.icon} iconColor="primary" />}
+          <ItemContent>
+            <ItemTitle>{item.label}</ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <ItemDescription>{item.value}</ItemDescription>
+          </ItemActions>
+        </Item>
       );
 
     case "destructive":
       return (
-        <View key={item.label}>
-          <Pressable
-            onPress={item.onPress}
-            style={Platform.OS === "web" ? { ...styles.row, cursor: "pointer" as any } : styles.row}
-          >
-            <View style={styles.rowLeft}>
-              {item.icon && (
-                <View style={[styles.iconContainer, { backgroundColor: theme.colors.destructive + "20" }]}>
-                  <Icon name={item.icon} color={theme.colors.destructive} size={20} />
-                </View>
-              )}
-              <SansSerifText style={[styles.label, { color: theme.colors.destructive }]}>
-                {item.label}
-              </SansSerifText>
-            </View>
-          </Pressable>
-          {!isLast && <View style={styles.divider} />}
-        </View>
+        <Item key={item.label} onPress={item.onPress} separator={!isLast}>
+          {item.icon && (
+            <ItemMedia
+              icon={item.icon}
+              iconColor="destructive"
+              style={{ backgroundColor: withAlpha(theme.colors.destructive, 0.12) }}
+            />
+          )}
+          <ItemContent>
+            <ItemTitle style={{ color: theme.colors.destructive }}>{item.label}</ItemTitle>
+          </ItemContent>
+        </Item>
       );
     }
   };
@@ -210,9 +182,9 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
         {sections.map((section, sectionIndex) => (
           <AnimatedView key={section.title} type="fadeSlideUp" delay={STAGGER_DELAY * (sectionIndex + 1)}>
             <View style={styles.section}>
-              <SansSerifText style={styles.sectionTitle}>
+              <EyebrowText style={[styles.sectionTitle, { color: theme.colors.mutedForeground }]}>
                 {section.title}
-              </SansSerifText>
+              </EyebrowText>
 
               <View style={[styles.card, getShadowStyle("subtle")]}>
                 {section.items.map((item, index) =>
@@ -221,7 +193,7 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
               </View>
 
               {section.footer && (
-                <SansSerifText style={styles.footer}>{section.footer}</SansSerifText>
+                <SansSerifText size="sm" style={styles.footer}>{section.footer}</SansSerifText>
               )}
             </View>
           </AnimatedView>
@@ -250,10 +222,6 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.xl,
     },
     sectionTitle: {
-      fontSize: 13,
-      color: theme.colors.mutedForeground,
-      textTransform: "uppercase",
-      letterSpacing: 0.8,
       marginBottom: spacing.sm + 2,
       marginLeft: spacing.xxs,
     },
@@ -264,57 +232,16 @@ const createStyles = (theme: Theme) =>
       borderColor: theme.colors.border,
       overflow: "hidden",
     },
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.md,
-    },
-    rowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      flex: 1,
-    },
-    rowRight: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    iconContainer: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      backgroundColor: theme.colors.muted,
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: spacing.md,
-    },
+    // Transparent placeholder matching ItemMedia's default footprint, so a
+    // select row with no icon still aligns its label under the first row's
+    // icon column instead of ItemMedia's muted background showing through.
     iconSpacer: {
-      width: 34,
-      marginRight: spacing.md,
-    },
-    label: {
-      fontSize: 16,
-      color: theme.colors.foreground,
-    },
-    value: {
-      fontSize: 14,
-      color: theme.colors.mutedForeground,
-    },
-    divider: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: theme.colors.border,
-    },
-    dividerInset: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: theme.colors.border,
-      marginLeft: spacing.md + 34 + spacing.md,
+      backgroundColor: "transparent",
     },
     radio: {
       width: 22,
       height: 22,
-      borderRadius: 11,
+      borderRadius: spacing.radiusFull,
       borderWidth: 2,
       borderColor: theme.colors.border,
       alignItems: "center",
@@ -326,14 +253,12 @@ const createStyles = (theme: Theme) =>
     radioInner: {
       width: 12,
       height: 12,
-      borderRadius: 6,
+      borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.primary,
     },
     footer: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
       marginTop: spacing.sm,
       marginLeft: spacing.xxs,
-      lineHeight: 18,
     },
   });

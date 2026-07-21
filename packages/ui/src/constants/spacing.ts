@@ -32,14 +32,14 @@ export const spacing = {
   listItemSpacing: 8,     // Space between list items
   touchTarget: 44,        // Minimum comfortable native touch target
 
-  // Border radius — shadcn-inspired scale (radiusMd = 6px default)
+  // Border radius — shadcn-inspired scale (radiusMd = 12px default)
   radiusNone: 0,
-  radiusXs: 2,
-  radiusSm: 4,
-  radiusMd: 6,
-  radiusLg: 8,
-  radiusXl: 12,
-  radius2xl: 16,
+  radiusXs: 4,
+  radiusSm: 8,
+  radiusMd: 12,
+  radiusLg: 14,
+  radiusXl: 18,
+  radius2xl: 24,
   radiusFull: 9999,      // For circular elements
 
   // Icon sizes

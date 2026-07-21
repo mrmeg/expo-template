@@ -44,6 +44,7 @@ Defaults:
   - publish: false
 
 The command updates packages/ui/package.json and bun.lock, then runs:
+  bun run packages:peer-check
   bun run ui:typecheck
   bun run ui:test
   bun run ui:build
@@ -136,6 +137,7 @@ await writeFile(packageJsonPath, `${JSON.stringify(uiPackage, null, 2)}\n`);
 console.log(`Updated ${uiPackage.name}: ${currentVersion} -> ${nextVersion}`);
 
 run("bun", ["install", "--lockfile-only"]);
+run("bun", ["run", "packages:peer-check"]);
 run("bun", ["run", "ui:typecheck"]);
 run("bun", ["run", "ui:test"]);
 run("bun", ["run", "ui:build"]);

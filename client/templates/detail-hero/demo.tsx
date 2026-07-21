@@ -25,12 +25,12 @@ export default function DetailHeroDemo() {
           title: "About",
           content: (
             <>
-              <SansSerifText style={{ fontSize: 14, lineHeight: 22, color: theme.colors.mutedForeground, marginBottom: spacing.sm }}>
+              <SansSerifText size="base" style={{ color: theme.colors.mutedForeground, marginBottom: spacing.sm }}>
                 A production-ready Expo template with authentication, themed UI components,
                 internationalization, and a professional project structure. Built with
                 TypeScript, Expo Router, and a carefully crafted design system.
               </SansSerifText>
-              <SansSerifText style={{ fontSize: 14, lineHeight: 22, color: theme.colors.mutedForeground }}>
+              <SansSerifText size="base" style={{ color: theme.colors.mutedForeground }}>
                 Includes 20+ reusable components, dark mode support, form validation,
                 and navigation patterns, everything you need to ship faster.
               </SansSerifText>

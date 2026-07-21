@@ -1,0 +1,53 @@
+name: Package Compatibility
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/media/**"
+      - "packages/ui/**"
+      - "scripts/check-package-consumer-profile.mjs"
+      - "scripts/check-package-peer-compatibility.mjs"
+      - "scripts/package-compatibility-profiles.mjs"
+      - "package.json"
+      - "bun.lock"
+  workflow_dispatch:
+
+jobs:
+  compatibility:
+    name: ${{ matrix.package }} / Expo ${{ matrix.sdk }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: media
+            sdk: 55
+          - package: media
+            sdk: 56
+          - package: media
+            sdk: 57
+          - package: ui
+            sdk: 56
+          - package: ui
+            sdk: 57
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install workspace dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check peer declarations
+        run: bun run packages:peer-check
+
+      - name: Test packed consumer
+        run: >-
+          bun run packages:compatibility --
+          --package ${{ matrix.package }}
+          --sdk ${{ matrix.sdk }}

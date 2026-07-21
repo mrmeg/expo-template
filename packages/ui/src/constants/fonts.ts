@@ -44,18 +44,35 @@ const serifFamilies = isWebRuntime
   ? { regular: "Georgia, 'Times New Roman', serif", bold: "Georgia, 'Times New Roman', serif" }
   : { regular: "Georgia", bold: "Georgia" };
 
+// Web ships one Inter CSS family for every weight — weight differentiation
+// comes from a numeric `fontWeight` set alongside this family (see
+// StyledText's getFontFamilyWeight). Native ships four discrete Inter static
+// font files (loaded by useResources via @expo-google-fonts/inter), each a
+// real weight, so the family name alone carries the weight — do NOT also set
+// `fontWeight` on native or it faux-bolds on top of an already-bold file.
+// `light` maps to the regular file on native: a 5th (300) static weight isn't
+// worth shipping for how rarely `light` is used.
 const sansSerifFamilies = isWebRuntime
   ? {
-    regular: `"Lato", ${WEB_FONT_STACK}`,
-    bold: `"Lato", ${WEB_FONT_STACK}`,
+    light: `"Inter", ${WEB_FONT_STACK}`,
+    regular: `"Inter", ${WEB_FONT_STACK}`,
+    medium: `"Inter", ${WEB_FONT_STACK}`,
+    semibold: `"Inter", ${WEB_FONT_STACK}`,
+    bold: `"Inter", ${WEB_FONT_STACK}`,
   }
   : isReactNativeRuntime
     ? {
-      regular: "System",
-      bold: "System",
+      light: "Inter_400Regular",
+      regular: "Inter_400Regular",
+      medium: "Inter_500Medium",
+      semibold: "Inter_600SemiBold",
+      bold: "Inter_700Bold",
     }
     : {
+      light: "sans-serif",
       regular: "sans-serif",
+      medium: "sans-serif",
+      semibold: "sans-serif",
       bold: "sans-serif",
     };
 
@@ -82,17 +99,19 @@ export const typography: Record<TypographySize, { fontSize: number; lineHeight: 
   "4xl": { fontSize: 36, lineHeight: 40 },
 };
 
+// Web: single "Inter" family per weight slot, numeric fontWeight picks the
+// right @font-face variant from the multi-weight stylesheet (see useResources).
 const webNavigationFonts: NavigationFonts = {
   regular: {
     fontFamily: fontFamilies.sansSerif.regular || WEB_FONT_STACK,
     fontWeight: "400",
   },
   medium: {
-    fontFamily: fontFamilies.sansSerif.regular || WEB_FONT_STACK,
+    fontFamily: fontFamilies.sansSerif.medium || WEB_FONT_STACK,
     fontWeight: "500",
   },
   bold: {
-    fontFamily: fontFamilies.sansSerif.bold || WEB_FONT_STACK,
+    fontFamily: fontFamilies.sansSerif.semibold || WEB_FONT_STACK,
     fontWeight: "600",
   },
   heavy: {
@@ -101,22 +120,26 @@ const webNavigationFonts: NavigationFonts = {
   },
 };
 
+// Native: each slot points at its own real Inter static file, so the family
+// name alone carries the weight. No numeric fontWeight here — pairing one
+// with an already-weighted static file triggers faux-bold on top of a real
+// weight file (same rule as StyledText's getFontFamilyWeight).
 const nativeNavigationFonts: NavigationFonts = {
   regular: {
     fontFamily: fontFamilies.sansSerif.regular || "System",
-    fontWeight: "400",
+    fontWeight: "normal",
   },
   medium: {
-    fontFamily: fontFamilies.sansSerif.regular || "System",
-    fontWeight: "500",
+    fontFamily: fontFamilies.sansSerif.medium || "System",
+    fontWeight: "normal",
   },
   bold: {
-    fontFamily: fontFamilies.sansSerif.bold || "System",
-    fontWeight: "600",
+    fontFamily: fontFamilies.sansSerif.semibold || "System",
+    fontWeight: "normal",
   },
   heavy: {
     fontFamily: fontFamilies.sansSerif.bold || "System",
-    fontWeight: "700",
+    fontWeight: "normal",
   },
 };
 
