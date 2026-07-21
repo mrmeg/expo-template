@@ -1,90 +1,61 @@
-import { useCallback, useState } from "react";
-import { Platform, View } from "react-native";
-import { Tabs } from "expo-router";
+import { Platform } from "react-native";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
+import Feather from "@expo/vector-icons/Feather";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
-import { useDimensions } from "@mrmeg/expo-ui/hooks";
-import { Icon } from "@mrmeg/expo-ui/components/Icon";
-import { spacing } from "@mrmeg/expo-ui/constants";
 import { NAV_DESTINATIONS } from "@/client/features/navigation/navDestinations";
-import { ResponsiveTabBar } from "@/client/features/navigation/ResponsiveTabBar";
-import { ResponsiveRail } from "@/client/features/navigation/ResponsiveRail";
-import { ContentHeader } from "@/client/features/navigation/ContentHeader";
-import {
-  RailNavStateContext,
-  type RailNavState,
-} from "@/client/features/navigation/RailNavStateContext";
 
 /**
- * Responsive shell for the main app destinations.
+ * Primary navigation for the main app destinations.
  *
- * One `<Tabs>` navigator owns route state. On narrow screens (`<768`) it shows
- * the standard bottom tab bar; on wide screens (`>=768`) the bottom bar is
- * suppressed and a docked rail renders as an in-flow row sibling, pushing the
- * scene. The rail mirrors and drives the same navigator via `RailNavStateContext`,
- * which the custom tab bar populates. See `client/features/navigation/`.
+ * A single `<NativeTabs>` navigator renders the platform-native tab bar
+ * (`UITabBar` on iOS, `BottomNavigationView` on Android, a CSS fallback on web).
+ * Destinations come from the shared `NAV_DESTINATIONS` list and, on native, reuse
+ * the app's Feather icon family via `NativeTabs.Trigger.VectorIcon`. The web
+ * fallback is labels-only (see the `isWeb` note below).
+ *
+ * Colors are derived from `useTheme()` inside this component so they re-render on
+ * theme toggle — important because `babel-plugin-react-compiler` (via
+ * `babel-preset-expo`) can otherwise memoize and freeze the tab bar's colors.
  */
 export default function TabLayout() {
   const { theme } = useTheme();
-  const { isSmallScreen } = useDimensions();
 
-  // Live navigator state bridged out of the tab bar so the sibling rail can read
-  // the active route and navigate. Null until the tab bar first publishes.
-  const [navState, setNavState] = useState<RailNavState | null>(null);
-  const handleNavState = useCallback((next: RailNavState) => setNavState(next), []);
-
-  // Wide screens suppress the stack header (see MainLayout) so the rail can run
-  // full height; the active destination's label drives the in-content header.
-  const activeName = navState?.state.routes[navState.state.index]?.name;
-  const activeTitle =
-    NAV_DESTINATIONS.find((d) => d.name === activeName)?.label ?? "Explore";
+  // The web tab-bar fallback never renders icons, but Native Tabs still resolves
+  // a `VectorIcon` through `expo-font.renderToImageAsync`, which throws on web
+  // (`UnavailabilityError`). Omit the icon child on web — labels still render.
+  const isWeb = Platform.OS === "web";
 
   return (
-    <RailNavStateContext.Provider value={navState}>
-      <View style={{ flex: 1, flexDirection: "row" }}>
-        {!isSmallScreen && <ResponsiveRail />}
-        <View style={{ flex: 1 }}>
-          {!isSmallScreen && <ContentHeader title={activeTitle} />}
-          <Tabs
-            tabBar={(props) => (
-              <ResponsiveTabBar {...props} onNavState={handleNavState} />
-            )}
-            screenOptions={{
-              headerShown: false,
-              // Painted underneath each tab's scene. Without this the navigator's
-              // scene container defaults to white and shows through during the
-              // tab-switch transition (most visible in dark mode).
-              sceneStyle: { backgroundColor: theme.colors.background },
-              tabBarActiveTintColor: theme.colors.accent,
-              tabBarInactiveTintColor: theme.colors.mutedForeground,
-              tabBarStyle: {
-                backgroundColor: theme.colors.card,
-                borderTopColor: theme.colors.border,
-                paddingTop: spacing.xs,
-                ...(Platform.OS === "ios"
-                  ? { height: 85 }
-                  : { paddingBottom: spacing.sm }),
-              },
-              tabBarLabelStyle: {
-                fontSize: 12,
-                fontWeight: "500",
-              },
-            }}
-          >
-            {NAV_DESTINATIONS.map((destination) => (
-              <Tabs.Screen
-                key={destination.name}
-                name={destination.name}
-                options={{
-                  title: destination.label,
-                  tabBarIcon: ({ color, size }) => (
-                    <Icon name={destination.icon} color={color as string} size={size} />
-                  ),
-                }}
-              />
-            ))}
-          </Tabs>
-        </View>
-      </View>
-    </RailNavStateContext.Provider>
+    <NativeTabs
+      iconColor={{
+        default: theme.colors.mutedForeground,
+        selected: theme.colors.accent,
+      }}
+      labelStyle={{
+        default: { color: theme.colors.mutedForeground },
+        selected: { color: theme.colors.accent },
+      }}
+      backgroundColor={theme.colors.card}
+      // Android active-tab indicator; ignored on other platforms.
+      {...(Platform.OS === "android"
+        ? { indicatorColor: theme.colors.accent }
+        : null)}
+    >
+      {NAV_DESTINATIONS.map((destination) => (
+        <NativeTabs.Trigger key={destination.name} name={destination.name}>
+          <NativeTabs.Trigger.Label>{destination.label}</NativeTabs.Trigger.Label>
+          {!isWeb && (
+            <NativeTabs.Trigger.Icon
+              src={
+                <NativeTabs.Trigger.VectorIcon
+                  family={Feather}
+                  name={destination.icon}
+                />
+              }
+            />
+          )}
+        </NativeTabs.Trigger>
+      ))}
+    </NativeTabs>
   );
 }
