@@ -10,11 +10,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { useTheme, useDimensions } from "@mrmeg/expo-ui/hooks";
 import { shouldUseNativeDriver } from "@mrmeg/expo-ui/lib";
-import { spacing } from "@mrmeg/expo-ui/constants";
+import { spacing, palette } from "@mrmeg/expo-ui/constants";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -75,11 +76,11 @@ export function DetailHeroScreen({
   style: styleOverride,
 }: DetailHeroScreenProps) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, withAlpha } = useTheme();
   const { height: windowHeight } = useDimensions();
   const styles = useMemo(
-    () => createStyles(theme, insets.top, heroHeight, windowHeight),
-    [theme, insets.top, heroHeight, windowHeight]
+    () => createStyles(theme, insets.top, heroHeight, windowHeight, withAlpha),
+    [theme, insets.top, heroHeight, windowHeight, withAlpha]
   );
   const heroBg = heroBackgroundColor || theme.colors.accent;
 
@@ -131,10 +132,14 @@ export function DetailHeroScreen({
               {heroIcon && (
                 <Icon name={heroIcon} size={56} color={theme.colors.accentForeground} />
               )}
-              <SansSerifBoldText style={styles.heroTitle}>{title}</SansSerifBoldText>
-              {subtitle && (
-                <SansSerifText style={styles.heroSubtitle}>{subtitle}</SansSerifText>
-              )}
+              <SectionHeader
+                align="center"
+                title={title}
+                description={subtitle}
+                style={styles.heroSectionHeader}
+                titleProps={{ style: styles.heroTitle }}
+                descriptionProps={{ style: styles.heroSubtitle }}
+              />
             </>
           )}
         </View>
@@ -161,8 +166,8 @@ export function DetailHeroScreen({
                 {stats.map((stat) => (
                   <View key={stat.label} style={styles.statItem}>
                     <Icon name={stat.icon} size={20} color={theme.colors.accent} />
-                    <SansSerifBoldText style={styles.statValue}>{stat.value}</SansSerifBoldText>
-                    <SansSerifText style={styles.statLabel}>{stat.label}</SansSerifText>
+                    <SansSerifBoldText size="xl" style={styles.statValue}>{stat.value}</SansSerifBoldText>
+                    <SansSerifText size="sm" style={styles.statLabel}>{stat.label}</SansSerifText>
                   </View>
                 ))}
               </View>
@@ -173,7 +178,7 @@ export function DetailHeroScreen({
           {/* Sections */}
           {sections?.map((section) => (
             <View key={section.title} style={styles.section}>
-              <SansSerifBoldText style={styles.sectionTitle}>{section.title}</SansSerifBoldText>
+              <SansSerifBoldText size="lg" style={styles.sectionTitle}>{section.title}</SansSerifBoldText>
               {section.content}
             </View>
           ))}
@@ -181,11 +186,11 @@ export function DetailHeroScreen({
           {/* Features checklist */}
           {features && features.length > 0 && (
             <View style={styles.section}>
-              <SansSerifBoldText style={styles.sectionTitle}>Features</SansSerifBoldText>
+              <SansSerifBoldText size="lg" style={styles.sectionTitle}>Features</SansSerifBoldText>
               {features.map((feature) => (
                 <View key={feature} style={styles.featureRow}>
                   <Icon name="check" size={16} color={theme.colors.accent} />
-                  <SansSerifText style={styles.featureText}>{feature}</SansSerifText>
+                  <SansSerifText size="base" style={styles.featureText}>{feature}</SansSerifText>
                 </View>
               ))}
             </View>
@@ -224,7 +229,7 @@ export function DetailHeroScreen({
           ) : (
             <View style={{ width: 24 }} />
           )}
-          <SansSerifBoldText style={styles.stickyTitle}>{title}</SansSerifBoldText>
+          <SansSerifBoldText size="base" style={styles.stickyTitle}>{title}</SansSerifBoldText>
           <View style={{ width: 24 }} />
         </View>
       </Animated.View>
@@ -253,7 +258,13 @@ export function DetailHeroScreen({
 // Styles
 // ---------------------------------------------------------------------------
 
-const createStyles = (theme: Theme, topInset: number, heroHeight: number, windowHeight: number) =>
+const createStyles = (
+  theme: Theme,
+  topInset: number,
+  heroHeight: number,
+  windowHeight: number,
+  withAlpha: (color: string, alpha: number) => string
+) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -273,19 +284,16 @@ const createStyles = (theme: Theme, topInset: number, heroHeight: number, window
       justifyContent: "center",
       paddingTop: topInset,
     },
-    heroTitle: {
-      fontSize: 28,
-      lineHeight: 34,
-      letterSpacing: -0.5,
-      color: theme.colors.accentForeground,
+    heroSectionHeader: {
+      paddingHorizontal: spacing.lg,
       marginTop: spacing.sm,
     },
+    heroTitle: {
+      color: theme.colors.accentForeground,
+    },
     heroSubtitle: {
-      fontSize: 16,
-      lineHeight: 24,
       color: theme.colors.accentForeground,
       opacity: 0.8,
-      marginTop: spacing.xxs,
     },
     scrollContent: {
       paddingBottom: spacing.xxl,
@@ -308,13 +316,9 @@ const createStyles = (theme: Theme, topInset: number, heroHeight: number, window
       gap: spacing.xxs,
     },
     statValue: {
-      fontSize: 20,
-      lineHeight: 28,
-      letterSpacing: -0.3,
       color: theme.colors.foreground,
     },
     statLabel: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     divider: {
@@ -326,9 +330,6 @@ const createStyles = (theme: Theme, topInset: number, heroHeight: number, window
       marginBottom: spacing.lg,
     },
     sectionTitle: {
-      fontSize: 18,
-      lineHeight: 24,
-      letterSpacing: -0.3,
       color: theme.colors.foreground,
       marginBottom: spacing.sm,
     },
@@ -339,8 +340,6 @@ const createStyles = (theme: Theme, topInset: number, heroHeight: number, window
       paddingVertical: spacing.xs,
     },
     featureText: {
-      fontSize: 14,
-      lineHeight: 20,
       color: theme.colors.foreground,
     },
     actionsRow: {
@@ -366,7 +365,6 @@ const createStyles = (theme: Theme, topInset: number, heroHeight: number, window
       height: 48,
     },
     stickyTitle: {
-      fontSize: 16,
       color: theme.colors.foreground,
     },
     backButtonContainer: {
@@ -378,8 +376,8 @@ const createStyles = (theme: Theme, topInset: number, heroHeight: number, window
     backButton: {
       width: 40,
       height: 40,
-      borderRadius: 20,
-      backgroundColor: "rgba(0,0,0,0.2)",
+      borderRadius: spacing.radiusFull,
+      backgroundColor: withAlpha(palette.black, 0.2),
       alignItems: "center",
       justifyContent: "center",
     },

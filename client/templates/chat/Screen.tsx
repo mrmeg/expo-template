@@ -12,7 +12,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { fontFamilies } from "@mrmeg/expo-ui/constants";
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
@@ -188,7 +187,7 @@ function StatusText({ status, theme }: { status?: MessageStatus; theme: Theme })
 
   switch (status) {
   case "sending":
-    return <SansSerifText style={styles.statusText}>Sending…</SansSerifText>;
+    return <SansSerifText size="xs" style={styles.statusText}>Sending…</SansSerifText>;
   case "sent":
     return (
       <View style={styles.statusRow}>
@@ -311,7 +310,7 @@ export function ChatScreen({
           {showDay && (
             <View style={styles.daySeparatorRow}>
               <View style={styles.daySeparatorPill}>
-                <SansSerifText style={styles.daySeparatorText}>
+                <SansSerifText size="sm" style={styles.daySeparatorText}>
                   {formatDayLabel(item.timestamp)}
                 </SansSerifText>
               </View>
@@ -320,7 +319,7 @@ export function ChatScreen({
 
           {/* Timestamp label */}
           {showTimestamp && !showDay && (
-            <SansSerifText style={styles.timestampLabel}>
+            <SansSerifText size="xs" style={styles.timestampLabel}>
               {formatTime(item.timestamp)}
             </SansSerifText>
           )}
@@ -339,6 +338,7 @@ export function ChatScreen({
               ]}
             >
               <SansSerifText
+                size="body"
                 style={item.isMine ? styles.sentText : styles.receivedText}
               >
                 {item.text}
@@ -401,7 +401,7 @@ export function ChatScreen({
             maxLength={maxInputLength}
             multiline
             variant="filled"
-            size="md"
+            size="lg"
             style={styles.input}
             wrapperStyle={styles.inputFlex}
             onSubmitEditing={Platform.OS === "web" ? handleSend : undefined}
@@ -479,21 +479,21 @@ const createStyles = (theme: Theme) =>
       borderBottomLeftRadius: BUBBLE_TAIL_RADIUS,
     },
 
-    // Bubble text
+    // Bubble text — explicit lineHeight (tighter than the "body" token's
+    // 24.75) is intentional for dense chat message text; wins over the
+    // size-driven default since StyledText lets an explicit style lineHeight
+    // override the token when fontSize itself comes from the `size` prop.
     sentText: {
-      fontSize: 15,
       lineHeight: 21,
       color: theme.colors.primaryForeground,
     },
     receivedText: {
-      fontSize: 15,
       lineHeight: 21,
       color: theme.colors.foreground,
     },
 
     // Timestamp
     timestampLabel: {
-      fontSize: 11,
       color: theme.colors.mutedForeground,
       textAlign: "center",
       marginVertical: spacing.sm,
@@ -511,7 +511,6 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusFull,
     },
     daySeparatorText: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
 
@@ -522,7 +521,6 @@ const createStyles = (theme: Theme) =>
       paddingRight: spacing.xs,
     },
     statusText: {
-      fontSize: 11,
       color: theme.colors.mutedForeground,
     },
     statusRow: {
@@ -558,8 +556,6 @@ const createStyles = (theme: Theme) =>
     input: {
       maxHeight: 100,
       borderRadius: spacing.radiusXl,
-      fontFamily: fontFamilies.sansSerif.regular,
-      fontSize: 15,
     },
     sendButton: {
       width: SEND_BUTTON_SIZE,

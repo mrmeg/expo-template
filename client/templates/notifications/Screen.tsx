@@ -13,10 +13,11 @@ import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { SansSerifText, SansSerifBoldText, EyebrowText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Skeleton } from "@mrmeg/expo-ui/components/Skeleton";
+import { ItemMedia, ItemContent, ItemTitle, ItemDescription } from "@mrmeg/expo-ui/components/Item";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -207,11 +208,11 @@ export function NotificationListScreen({
       <View style={styles.emptyIconContainer}>
         <Icon name={emptyIcon} size={48} color={theme.colors.mutedForeground} />
       </View>
-      <SansSerifBoldText style={styles.emptyTitle}>
+      <SansSerifBoldText size="lg" style={styles.emptyTitle}>
         {emptyTitle}
       </SansSerifBoldText>
       {emptyDescription && (
-        <SansSerifText style={styles.emptyDescription}>
+        <SansSerifText size="base" style={styles.emptyDescription}>
           {emptyDescription}
         </SansSerifText>
       )}
@@ -228,7 +229,9 @@ export function NotificationListScreen({
     section: NotificationSection;
   }) => (
     <View style={styles.sectionHeader}>
-      <SansSerifText style={styles.sectionTitle}>{section.title}</SansSerifText>
+      <EyebrowText style={{ color: theme.colors.mutedForeground }}>
+        {section.title}
+      </EyebrowText>
     </View>
   );
 
@@ -258,26 +261,22 @@ export function NotificationListScreen({
             : StyleSheet.flatten([styles.row, !item.read && styles.rowUnread])
         }
       >
-        <View style={styles.iconCircle}>
-          <Icon name={item.icon} size={18} color={theme.colors.foreground} />
-        </View>
+        <ItemMedia icon={item.icon} iconColor="foreground" />
 
-        <View style={styles.rowContent}>
+        <ItemContent style={styles.rowContent}>
           <View style={styles.rowTitleLine}>
-            <SansSerifText
+            <ItemTitle
               style={[styles.rowTitle, !item.read && styles.rowTitleUnread]}
               numberOfLines={1}
             >
               {item.title}
-            </SansSerifText>
-            <SansSerifText style={styles.rowTime}>
+            </ItemTitle>
+            <SansSerifText size="sm" style={styles.rowTime}>
               {formatRelativeTime(item.timestamp)}
             </SansSerifText>
           </View>
-          <SansSerifText style={styles.rowBody} numberOfLines={2}>
-            {item.body}
-          </SansSerifText>
-        </View>
+          <ItemDescription numberOfLines={2}>{item.body}</ItemDescription>
+        </ItemContent>
 
         {!item.read && <View style={styles.unreadDot} />}
       </Pressable>
@@ -351,13 +350,6 @@ const createStyles = (theme: Theme) =>
       paddingBottom: spacing.xs,
       backgroundColor: theme.colors.background,
     },
-    sectionTitle: {
-      fontSize: 13,
-      color: theme.colors.mutedForeground,
-      textTransform: "uppercase",
-      letterSpacing: 0.8,
-    },
-
     // Notification row
     row: {
       flexDirection: "row",
@@ -369,16 +361,7 @@ const createStyles = (theme: Theme) =>
     rowUnread: {
       backgroundColor: theme.colors.card,
     },
-    iconCircle: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: theme.colors.muted,
-      alignItems: "center",
-      justifyContent: "center",
-    },
     rowContent: {
-      flex: 1,
       gap: spacing.xxs,
     },
     rowTitleLine: {
@@ -388,26 +371,18 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
     },
     rowTitle: {
-      fontSize: 15,
-      color: theme.colors.foreground,
       flex: 1,
     },
     rowTitleUnread: {
       fontWeight: "600",
     },
     rowTime: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
-    },
-    rowBody: {
-      fontSize: 13,
-      color: theme.colors.mutedForeground,
-      lineHeight: 18,
     },
     unreadDot: {
       width: 8,
       height: 8,
-      borderRadius: 4,
+      borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.accent,
     },
 
@@ -422,23 +397,19 @@ const createStyles = (theme: Theme) =>
     emptyIconContainer: {
       width: 80,
       height: 80,
-      borderRadius: 40,
+      borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.muted,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.lg,
     },
     emptyTitle: {
-      fontSize: 18,
-      letterSpacing: -0.3,
       color: theme.colors.foreground,
       marginBottom: spacing.xs,
     },
     emptyDescription: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
       textAlign: "center",
-      lineHeight: 20,
     },
 
     // Skeleton

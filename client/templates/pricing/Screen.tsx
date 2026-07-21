@@ -11,6 +11,7 @@ import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
@@ -100,10 +101,7 @@ export function PricingScreen({
         {/* Header */}
         <AnimatedView type="fadeSlideUp" delay={0}>
           <View style={styles.header}>
-            <SansSerifBoldText style={styles.title}>{title}</SansSerifBoldText>
-            {subtitle && (
-              <SansSerifText style={styles.subtitle}>{subtitle}</SansSerifText>
-            )}
+            <SectionHeader align="center" title={title} description={subtitle} />
           </View>
         </AnimatedView>
 
@@ -120,7 +118,7 @@ export function PricingScreen({
             >
               {periodToggle.options.map((option) => (
                 <ToggleGroupItem key={option.value} value={option.value}>
-                  <SansSerifText style={styles.toggleLabel}>
+                  <SansSerifText size="sm" fontWeight="medium">
                     {option.label}
                   </SansSerifText>
                 </ToggleGroupItem>
@@ -147,7 +145,7 @@ export function PricingScreen({
                 {/* Plan header */}
                 <View style={styles.planHeader}>
                   <View style={styles.planNameRow}>
-                    <SansSerifBoldText style={styles.planName}>{plan.name}</SansSerifBoldText>
+                    <SansSerifBoldText size="lg" style={styles.planName}>{plan.name}</SansSerifBoldText>
                     {plan.badge && (
                       <Badge variant={plan.highlighted ? "default" : "outline"}>
                         {plan.badge}
@@ -155,9 +153,9 @@ export function PricingScreen({
                     )}
                   </View>
                   <View style={styles.priceRow}>
-                    <SansSerifBoldText style={styles.price}>{plan.price}</SansSerifBoldText>
+                    <SansSerifBoldText size="display" style={styles.price}>{plan.price}</SansSerifBoldText>
                     {plan.period && (
-                      <SansSerifText style={styles.period}>/{plan.period}</SansSerifText>
+                      <SansSerifText size="base" style={styles.period}>/{plan.period}</SansSerifText>
                     )}
                   </View>
                 </View>
@@ -176,6 +174,7 @@ export function PricingScreen({
                         }
                       />
                       <SansSerifText
+                        size="base"
                         style={[
                           styles.featureLabel,
                           !feature.included && styles.featureDisabled,
@@ -207,7 +206,7 @@ export function PricingScreen({
                   }
                 />
                 {plan.disabledReason && !plan.isCurrent && (
-                  <SansSerifText style={styles.disabledReason}>
+                  <SansSerifText size="sm" style={styles.disabledReason}>
                     {plan.disabledReason}
                   </SansSerifText>
                 )}
@@ -245,27 +244,9 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.md,
     },
-    title: {
-      fontSize: 28,
-      lineHeight: 34,
-      letterSpacing: -0.5,
-      color: theme.colors.foreground,
-      textAlign: "center",
-    },
-    subtitle: {
-      fontSize: 16,
-      color: theme.colors.mutedForeground,
-      textAlign: "center",
-      marginTop: spacing.xs,
-      lineHeight: 22,
-    },
     toggleContainer: {
       alignItems: "center",
       paddingVertical: spacing.md,
-    },
-    toggleLabel: {
-      fontSize: 13,
-      fontWeight: "500",
     },
     plansContainer: {
       paddingHorizontal: spacing.lg,
@@ -292,8 +273,6 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.xs,
     },
     planName: {
-      fontSize: 18,
-      letterSpacing: -0.3,
       color: theme.colors.foreground,
     },
     priceRow: {
@@ -301,13 +280,9 @@ const createStyles = (theme: Theme) =>
       alignItems: "baseline",
     },
     price: {
-      fontSize: 36,
-      lineHeight: 44,
-      letterSpacing: -0.75,
       color: theme.colors.foreground,
     },
     period: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
       marginLeft: spacing.xxs,
     },
@@ -321,15 +296,12 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
     },
     featureLabel: {
-      fontSize: 14,
       color: theme.colors.foreground,
-      lineHeight: 20,
     },
     featureDisabled: {
       color: theme.colors.mutedForeground,
     },
     disabledReason: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
       textAlign: "center",
       marginTop: spacing.sm,

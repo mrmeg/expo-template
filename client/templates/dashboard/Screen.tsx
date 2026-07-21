@@ -15,6 +15,7 @@ import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
+import { StatCard, type StatChangeDirection } from "@mrmeg/expo-ui/components/StatCard";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -76,17 +77,13 @@ export interface DashboardScreenProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const TREND_ICON: Record<MetricCard["trend"], IconName> = {
-  up: "trending-up",
-  down: "trending-down",
-  flat: "minus",
+// StatCard's "up"/"down" map straight across; "flat" (this template's
+// no-change state) maps to StatCard's "neutral" (text-only, no trend icon).
+const TREND_DIRECTION: Record<MetricCard["trend"], StatChangeDirection> = {
+  up: "up",
+  down: "down",
+  flat: "neutral",
 };
-
-function getTrendColor(trend: MetricCard["trend"], theme: Theme): string {
-  if (trend === "up") return theme.colors.accent;
-  if (trend === "down") return theme.colors.destructive;
-  return theme.colors.mutedForeground;
-}
 
 // ---------------------------------------------------------------------------
 // Skeleton helpers
@@ -122,9 +119,8 @@ function SkeletonBox({
 
 function SkeletonMetricCard({ theme, styles }: { theme: Theme; styles: ReturnType<typeof createStyles> }) {
   return (
-    <View style={styles.metricCard}>
-      <SkeletonBox width={20} height={20} radius={spacing.radiusSm} theme={theme} />
-      <SkeletonBox width={80} height={13} theme={theme} style={{ marginTop: spacing.sm }} />
+    <View style={[styles.metricCard, styles.skeletonMetricCard]}>
+      <SkeletonBox width={80} height={13} theme={theme} />
       <SkeletonBox width={60} height={24} theme={theme} style={{ marginTop: spacing.xs }} />
       <SkeletonBox width={50} height={12} theme={theme} style={{ marginTop: spacing.xs }} />
     </View>
@@ -207,7 +203,7 @@ export function DashboardScreen({
         {/* Title */}
         {title && (
           <AnimatedView type="fadeSlideUp" delay={STAGGER_DELAY * staggerIndex++}>
-            <SansSerifBoldText style={styles.title}>{title}</SansSerifBoldText>
+            <SansSerifBoldText size="xxl" style={styles.title}>{title}</SansSerifBoldText>
           </AnimatedView>
         )}
 
@@ -232,27 +228,17 @@ export function DashboardScreen({
               const delay = STAGGER_DELAY * staggerIndex++;
               return (
                 <AnimatedView key={metric.label} type="fadeSlideUp" delay={delay}>
-                  <View style={[styles.metricCard, getShadowStyle("subtle")]}>
-                    {metric.icon && (
-                      <Icon name={metric.icon} size={20} color={theme.colors.mutedForeground} />
-                    )}
-                    <SansSerifText style={styles.metricLabel}>{metric.label}</SansSerifText>
-                    <SansSerifBoldText style={styles.metricValue}>{metric.value}</SansSerifBoldText>
-                    <View style={styles.trendRow}>
-                      <Icon
-                        name={TREND_ICON[metric.trend]}
-                        size={14}
-                        color={getTrendColor(metric.trend, theme)}
-                      />
-                      {metric.trendValue && (
-                        <SansSerifText
-                          style={[styles.trendText, { color: getTrendColor(metric.trend, theme) }]}
-                        >
-                          {metric.trendValue}
-                        </SansSerifText>
-                      )}
-                    </View>
-                  </View>
+                  <StatCard
+                    label={metric.label}
+                    value={metric.value}
+                    icon={metric.icon}
+                    change={
+                      metric.trendValue
+                        ? { value: metric.trendValue, direction: TREND_DIRECTION[metric.trend] }
+                        : undefined
+                    }
+                    style={styles.metricCard}
+                  />
                 </AnimatedView>
               );
             })}
@@ -273,7 +259,7 @@ export function DashboardScreen({
               >
                 {dateRange.options.map((option) => (
                   <ToggleGroupItem key={option.value} value={option.value}>
-                    <SansSerifText style={styles.toggleLabel}>
+                    <SansSerifText size="sm" fontWeight="medium">
                       {option.label}
                     </SansSerifText>
                   </ToggleGroupItem>
@@ -295,13 +281,13 @@ export function DashboardScreen({
                 <View style={styles.section}>
                   {chart.title && (
                     <View style={styles.sectionHeader}>
-                      <SansSerifBoldText style={styles.sectionTitle}>
+                      <SansSerifBoldText size="lg" style={styles.sectionTitle}>
                         {chart.title}
                       </SansSerifBoldText>
                     </View>
                   )}
                   <View style={[styles.chartPlaceholder, { height: chart.height ?? 180 }]}>
-                    <SansSerifText style={styles.chartPlaceholderText}>Chart</SansSerifText>
+                    <SansSerifText size="base" style={styles.chartPlaceholderText}>Chart</SansSerifText>
                   </View>
                 </View>
               </AnimatedView>
@@ -324,7 +310,7 @@ export function DashboardScreen({
                 <AnimatedView key={section.title} type="fadeSlideUp" delay={delay}>
                   <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                      <SansSerifBoldText style={styles.sectionTitle}>
+                      <SansSerifBoldText size="lg" style={styles.sectionTitle}>
                         {section.title}
                       </SansSerifBoldText>
                       {section.viewAllLabel && section.onViewAll && (
@@ -332,7 +318,7 @@ export function DashboardScreen({
                           onPress={section.onViewAll}
                           style={Platform.OS === "web" ? { cursor: "pointer" as any } : undefined}
                         >
-                          <SansSerifText style={styles.viewAllText}>
+                          <SansSerifText size="base" fontWeight="medium" style={styles.viewAllText}>
                             {section.viewAllLabel}
                           </SansSerifText>
                         </Pressable>
@@ -349,7 +335,7 @@ export function DashboardScreen({
         {/* Activity feed */}
         {loading ? (
           <View style={styles.activityContainer}>
-            <SansSerifBoldText style={styles.sectionTitle}>{activityTitle}</SansSerifBoldText>
+            <SansSerifBoldText size="lg" style={styles.sectionTitle}>{activityTitle}</SansSerifBoldText>
             <View style={[styles.activityCard, getShadowStyle("subtle")]}>
               {[0, 1, 2].map((i) => (
                 <View key={i}>
@@ -362,7 +348,7 @@ export function DashboardScreen({
         ) : activityFeed && activityFeed.length > 0 ? (
           <AnimatedView type="fadeSlideUp" delay={STAGGER_DELAY * staggerIndex++}>
             <View style={styles.activityContainer}>
-              <SansSerifBoldText style={styles.sectionTitle}>{activityTitle}</SansSerifBoldText>
+              <SansSerifBoldText size="lg" style={styles.sectionTitle}>{activityTitle}</SansSerifBoldText>
               <View style={[styles.activityCard, getShadowStyle("subtle")]}>
                 {activityFeed.map((item, index) => (
                   <View key={item.id}>
@@ -378,14 +364,14 @@ export function DashboardScreen({
                         <Icon name={item.icon} size={16} color={theme.colors.foreground} />
                       </View>
                       <View style={styles.activityContent}>
-                        <SansSerifText style={styles.activityTitle}>{item.title}</SansSerifText>
+                        <SansSerifText size="base" style={styles.activityTitle}>{item.title}</SansSerifText>
                         {item.description && (
-                          <SansSerifText style={styles.activityDescription}>
+                          <SansSerifText size="sm" style={styles.activityDescription}>
                             {item.description}
                           </SansSerifText>
                         )}
                       </View>
-                      <SansSerifText style={styles.activityTimestamp}>{item.timestamp}</SansSerifText>
+                      <SansSerifText size="sm" style={styles.activityTimestamp}>{item.timestamp}</SansSerifText>
                     </Pressable>
                     {index < activityFeed.length - 1 && <View style={styles.activityDivider} />}
                   </View>
@@ -416,9 +402,6 @@ const createStyles = (theme: Theme) =>
       paddingBottom: spacing.xxl,
     },
     title: {
-      fontSize: 28,
-      lineHeight: 34,
-      letterSpacing: -0.5,
       color: theme.colors.foreground,
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg,
@@ -432,43 +415,22 @@ const createStyles = (theme: Theme) =>
       paddingBottom: spacing.md,
     },
     metricCard: {
+      minWidth: 140,
+    },
+    // StatCard is a Card (bg/border/radius/shadow built in) — the skeleton
+    // needs its own surface + padding since it renders a raw View instead.
+    skeletonMetricCard: {
       backgroundColor: theme.colors.card,
       borderRadius: spacing.radiusLg,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      padding: spacing.md,
-      minWidth: 140,
-    },
-    metricLabel: {
-      fontSize: 13,
-      color: theme.colors.mutedForeground,
-      marginTop: spacing.sm,
-    },
-    metricValue: {
-      fontSize: 24,
-      letterSpacing: -0.3,
-      color: theme.colors.foreground,
-      marginTop: spacing.xxs,
-    },
-    trendRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.xxs,
-      marginTop: spacing.xs,
-    },
-    trendText: {
-      fontSize: 12,
-      fontWeight: "500",
+      padding: spacing.lg,
     },
 
     // Date range toggle
     dateRangeContainer: {
       alignItems: "center",
       paddingVertical: spacing.md,
-    },
-    toggleLabel: {
-      fontSize: 13,
-      fontWeight: "500",
     },
 
     // Chart sections
@@ -485,7 +447,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.card,
     },
     chartPlaceholderText: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
     },
 
@@ -504,14 +465,10 @@ const createStyles = (theme: Theme) =>
       justifyContent: "space-between",
     },
     sectionTitle: {
-      fontSize: 18,
-      letterSpacing: -0.3,
       color: theme.colors.foreground,
     },
     viewAllText: {
-      fontSize: 14,
       color: theme.colors.accent,
-      fontWeight: "500",
     },
 
     // Activity feed
@@ -536,7 +493,7 @@ const createStyles = (theme: Theme) =>
     activityIcon: {
       width: 32,
       height: 32,
-      borderRadius: 16,
+      borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.muted,
       alignItems: "center",
       justifyContent: "center",
@@ -547,16 +504,13 @@ const createStyles = (theme: Theme) =>
       marginRight: spacing.sm,
     },
     activityTitle: {
-      fontSize: 14,
       color: theme.colors.foreground,
     },
     activityDescription: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
       marginTop: spacing.xxs,
     },
     activityTimestamp: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     activityDivider: {

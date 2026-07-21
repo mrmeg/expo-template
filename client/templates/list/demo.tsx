@@ -27,17 +27,17 @@ const ALL_CONTACTS: Contact[] = [
   { id: "8", name: "Ethan Brown", role: "Mobile Developer", icon: "user", status: "online" },
 ];
 
-const STATUS_COLORS: Record<string, string> = {
-  online: "#22c55e",
-  away: "#eab308",
-  offline: "#94a3b8",
-};
-
 export default function ScreenListDemo() {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme, withAlpha } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [contacts, setContacts] = useState(ALL_CONTACTS);
   const [refreshing, setRefreshing] = useState(false);
+
+  const statusColors: Record<Contact["status"], string> = {
+    online: theme.colors.success,
+    away: theme.colors.warning,
+    offline: theme.colors.mutedForeground,
+  };
 
   const handleSearch = useCallback((query: string) => {
     if (!query) {
@@ -65,15 +65,15 @@ export default function ScreenListDemo() {
       style={Platform.OS === "web" ? { ...styles.contactRow, cursor: "pointer" as any } : styles.contactRow}
     >
       <View style={styles.avatarContainer}>
-        <View style={styles.avatar}>
+        <View style={[styles.avatar, { backgroundColor: withAlpha(theme.colors.primary, 0.15) }]}>
           <Icon name={item.icon} size={20} color={theme.colors.primary} />
         </View>
-        <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[item.status] }]} />
+        <View style={[styles.statusDot, { backgroundColor: statusColors[item.status] }]} />
       </View>
 
       <View style={styles.contactInfo}>
-        <SansSerifBoldText style={styles.contactName}>{item.name}</SansSerifBoldText>
-        <SansSerifText style={styles.contactRole}>{item.role}</SansSerifText>
+        <SansSerifBoldText size="body" style={styles.contactName}>{item.name}</SansSerifBoldText>
+        <SansSerifText size="sm" style={styles.contactRole}>{item.role}</SansSerifText>
       </View>
 
       <Badge variant={item.status === "online" ? "outline" : "secondary"}>
@@ -116,8 +116,7 @@ const createStyles = (theme: Theme) =>
     avatar: {
       width: 44,
       height: 44,
-      borderRadius: 22,
-      backgroundColor: theme.colors.primary + "15",
+      borderRadius: spacing.radiusFull,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -127,7 +126,7 @@ const createStyles = (theme: Theme) =>
       right: 0,
       width: 12,
       height: 12,
-      borderRadius: 6,
+      borderRadius: spacing.radiusFull,
       borderWidth: 2,
       borderColor: theme.colors.background,
     },
@@ -135,12 +134,10 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     contactName: {
-      fontSize: 16,
       color: theme.colors.foreground,
     },
     contactRole: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
-      marginTop: 2,
+      marginTop: spacing.xxs,
     },
   });

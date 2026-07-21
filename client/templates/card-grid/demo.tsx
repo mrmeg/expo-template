@@ -52,10 +52,10 @@ export default function ScreenCardGridDemo() {
         <Icon name="package" size={28} color={theme.colors.mutedForeground} />
       </View>
       <View style={styles.cardBody}>
-        <SansSerifText style={styles.cardTitle} numberOfLines={1}>
+        <SansSerifText size="base" style={styles.cardTitle} numberOfLines={1}>
           {item.title}
         </SansSerifText>
-        <SansSerifBoldText style={styles.cardPrice}>
+        <SansSerifBoldText size="body" style={styles.cardPrice}>
           {item.price}
         </SansSerifBoldText>
       </View>
@@ -98,11 +98,9 @@ const createStyles = (theme: Theme) =>
       gap: spacing.xxs,
     },
     cardTitle: {
-      fontSize: 14,
       color: theme.colors.foreground,
     },
     cardPrice: {
-      fontSize: 15,
       color: theme.colors.foreground,
     },
   });
