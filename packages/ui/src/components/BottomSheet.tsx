@@ -9,6 +9,7 @@ import {
   ScrollView,
   ScrollViewProps,
   Platform,
+  Animated,
   useWindowDimensions,
 } from "react-native";
 import { BottomSheet as NativeBottomSheet } from "@expo/ui/community/bottom-sheet";
@@ -16,6 +17,7 @@ import { KeyboardController } from "react-native-keyboard-controller";
 import { useSafeAreaInsets, initialWindowMetrics } from "react-native-safe-area-context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { useScalePress } from "../hooks/useScalePress";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { Icon } from "./Icon";
 import {
@@ -343,34 +345,39 @@ function useShowClose() {
 function SheetCloseButton({ style }: { style?: StyleProp<ViewStyle> }) {
   const { onOpenChange } = useBottomSheetContext();
   const { theme } = useTheme();
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    scaleTo: 0.96,
+  });
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Close"
-      onPress={() => onOpenChange(false)}
-      hitSlop={spacing.sm}
-      style={({ pressed }) => [
-        {
-          width: spacing.xl,
-          height: spacing.xl,
-          borderRadius: spacing.xl / 2,
-          alignItems: "center",
-          justifyContent: "center",
-          // Higher-contrast than `muted`: a solid `secondary` fill with a
-          // bordered edge so the control reads clearly against the card, and a
-          // full-strength `foreground` glyph instead of the faint muted one.
-          backgroundColor: theme.colors.secondary,
-          borderWidth: 1,
-          borderColor: theme.colors.border,
-          opacity: pressed ? 0.7 : 1,
-        },
-        Platform.OS === "web" && { cursor: "pointer" as any },
-        style,
-      ]}
-    >
-      <Icon name="x" size={22} color="text" />
-    </Pressable>
+    <Animated.View style={[style, scaleStyle]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        onPress={() => onOpenChange(false)}
+        onPressIn={pressHandlers.onPressIn}
+        onPressOut={pressHandlers.onPressOut}
+        hitSlop={spacing.sm}
+        style={[
+          {
+            width: spacing.xl,
+            height: spacing.xl,
+            borderRadius: spacing.xl / 2,
+            alignItems: "center",
+            justifyContent: "center",
+            // Higher-contrast than `muted`: a solid `secondary` fill with a
+            // bordered edge so the control reads clearly against the card, and a
+            // full-strength `foreground` glyph instead of the faint muted one.
+            backgroundColor: theme.colors.secondary,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+          },
+          Platform.OS === "web" && { cursor: "pointer" as any },
+        ]}
+      >
+        <Icon name="x" size={22} color="text" />
+      </Pressable>
+    </Animated.View>
   );
 }
 

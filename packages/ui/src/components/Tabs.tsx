@@ -1,11 +1,12 @@
 import * as React from "react";
-import { Animated, Platform, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { Animated, Platform, PressableProps, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import * as TabsPrimitive from "@rn-primitives/tabs";
 import { StyledText } from "./StyledText";
 import { TextClassContext, TextColorContext } from "./StyledText.context";
 import { Icon, type IconName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
+import { useScalePress } from "../hooks/useScalePress";
 import { spacing } from "../constants/spacing";
 
 // ============================================================================
@@ -120,7 +121,7 @@ export interface TabsTriggerProps extends TabsPrimitive.TriggerProps {
 }
 
 function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTriggerProps) {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme, getShadowStyle, getFocusRingStyle } = useTheme();
   const { variant, size } = useTabsContext();
   const sizeConfig = SIZE_CONFIGS[size];
   const reduceMotion = useReducedMotion();
@@ -145,6 +146,36 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
     : isSelected
       ? theme.colors.foreground
       : theme.colors.mutedForeground;
+
+  const focusRingStyle = getFocusRingStyle();
+  const [focused, setFocused] = React.useState(false);
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: isDisabled,
+    scaleTo: 0.97,
+    haptic: false,
+  });
+
+  const showFocusRing: PressableProps["onFocus"] = (event) => {
+    let ringVisible = true;
+    if (Platform.OS === "web") {
+      const target = event?.nativeEvent?.target as unknown as
+        | { matches?: (selector: string) => boolean }
+        | null
+        | undefined;
+      if (target && typeof target.matches === "function") {
+        try {
+          ringVisible = target.matches(":focus-visible");
+        } catch {
+          ringVisible = true;
+        }
+      }
+    }
+    setFocused(ringVisible);
+  };
+
+  const hideFocusRing: PressableProps["onBlur"] = () => {
+    setFocused(false);
+  };
 
   const triggerBaseStyle: ViewStyle = {
     flex: 1,
@@ -171,10 +202,20 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
   return (
     <TextColorContext.Provider value={textColor}>
       <TextClassContext.Provider value="">
+        <Animated.View style={[{ flex: 1, minWidth: 0 }, scaleStyle]}>
         <TabsPrimitive.Trigger
           value={value}
-          style={StyleSheet.flatten([triggerBaseStyle, pillActiveStyle, style])}
           {...props}
+          onPressIn={pressHandlers.onPressIn}
+          onPressOut={pressHandlers.onPressOut}
+          onFocus={showFocusRing}
+          onBlur={hideFocusRing}
+          style={StyleSheet.flatten([
+            triggerBaseStyle,
+            pillActiveStyle,
+            focused && !isDisabled && focusRingStyle,
+            style,
+          ])}
         >
           <View style={triggerContentStyles.container}>
             {icon && (
@@ -206,6 +247,7 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
             />
           )}
         </TabsPrimitive.Trigger>
+        </Animated.View>
       </TextClassContext.Provider>
     </TextColorContext.Provider>
   );

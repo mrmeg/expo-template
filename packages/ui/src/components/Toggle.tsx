@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Icon } from "./Icon";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { useScalePress } from "../hooks/useScalePress";
 import * as TogglePrimitive from "@rn-primitives/toggle";
-import { Platform, StyleSheet, ViewStyle, ActivityIndicator, StyleProp } from "react-native";
+import { Platform, PressableProps, StyleSheet, ViewStyle, ActivityIndicator, StyleProp, Animated } from "react-native";
 import type { IconName } from "./Icon";
 import { palette } from "../constants/colors";
 
@@ -128,8 +129,10 @@ function Toggle({
   style: styleOverride,
   ...props
 }: ToggleProps) {
-  const { theme, getContrastingColor, withAlpha } = useTheme();
+  const { theme, getContrastingColor, getFocusRingStyle, withAlpha } = useTheme();
   const sizeConfig = TOGGLE_SIZES[size];
+  const focusRingStyle = getFocusRingStyle();
+  const [focused, setFocused] = useState(false);
 
   // Calculate text color based on state and variant
   const getTextColor = () => {
@@ -164,12 +167,45 @@ function Toggle({
   const isDisabled = props.disabled || loading;
   const children = props.children;
 
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!isDisabled,
+    scaleTo: 0.92,
+    haptic: false,
+  });
+
+  const showFocusRing: PressableProps["onFocus"] = (event) => {
+    let ringVisible = true;
+    if (Platform.OS === "web") {
+      const target = event?.nativeEvent?.target as unknown as
+        | { matches?: (selector: string) => boolean }
+        | null
+        | undefined;
+      if (target && typeof target.matches === "function") {
+        try {
+          ringVisible = target.matches(":focus-visible");
+        } catch {
+          ringVisible = true;
+        }
+      }
+    }
+    setFocused(ringVisible);
+  };
+
+  const hideFocusRing: PressableProps["onBlur"] = () => {
+    setFocused(false);
+  };
+
   return (
     <TextColorContext.Provider value={textColor}>
       <TextClassContext.Provider value="">
+        <Animated.View style={scaleStyle}>
         <TogglePrimitive.Root
           {...props}
           disabled={isDisabled}
+          onPressIn={pressHandlers.onPressIn}
+          onPressOut={pressHandlers.onPressOut}
+          onFocus={showFocusRing}
+          onBlur={hideFocusRing}
           style={{
             ...styles.root,
             height: sizeConfig.height,
@@ -202,6 +238,7 @@ function Toggle({
               transition: "all 150ms",
               userSelect: "none" as any,
             }),
+            ...(focused && !isDisabled ? focusRingStyle : null),
             // Apply custom style override
             ...(flattenedStyle || {}),
           }}
@@ -229,6 +266,7 @@ function Toggle({
             </TextSelectabilityContext.Provider>
           )}
         </TogglePrimitive.Root>
+        </Animated.View>
       </TextClassContext.Provider>
     </TextColorContext.Provider>
   );

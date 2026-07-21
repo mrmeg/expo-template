@@ -1,10 +1,11 @@
 import * as React from "react";
-import { Platform, StyleSheet, type TextStyle, View } from "react-native";
+import { Animated, Platform, PressableProps, StyleSheet, type TextStyle, View } from "react-native";
 import { Icon } from "./Icon";
 import { AnimatedView } from "./AnimatedView";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { useScalePress } from "../hooks/useScalePress";
 import * as SelectPrimitive from "@rn-primitives/select";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -66,41 +67,77 @@ function SelectTrigger({
   disabled,
   ...props
 }: SelectTriggerProps) {
-  const { theme } = useTheme();
+  const { theme, getFocusRingStyle } = useTheme();
   const sizeConfig = SIZE_CONFIGS[size];
+  const focusRingStyle = getFocusRingStyle();
+  const [focused, setFocused] = React.useState(false);
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!disabled,
+    scaleTo: 0.97,
+    haptic: false,
+  });
+
+  const showFocusRing: PressableProps["onFocus"] = (event) => {
+    let ringVisible = true;
+    if (Platform.OS === "web") {
+      const target = event?.nativeEvent?.target as unknown as
+        | { matches?: (selector: string) => boolean }
+        | null
+        | undefined;
+      if (target && typeof target.matches === "function") {
+        try {
+          ringVisible = target.matches(":focus-visible");
+        } catch {
+          ringVisible = true;
+        }
+      }
+    }
+    setFocused(ringVisible);
+  };
+
+  const hideFocusRing: PressableProps["onBlur"] = () => {
+    setFocused(false);
+  };
 
   return (
-    <SelectPrimitive.Trigger
-      disabled={disabled}
-      {...props}
-      style={{
-        ...styles.trigger,
-        height: sizeConfig.height,
-        paddingHorizontal: sizeConfig.paddingHorizontal,
-        borderColor: error ? theme.colors.destructive : theme.colors.border,
-        backgroundColor: theme.colors.background,
-        ...(Platform.OS === "web" && {
-          cursor: disabled ? "not-allowed" : ("pointer" as any),
-          outlineStyle: "none" as any,
-          userSelect: "none" as any,
-        }),
-        ...(disabled && { opacity: 0.5 }),
-        ...(styleOverride && typeof styleOverride !== "function"
-          ? StyleSheet.flatten(styleOverride)
-          : {}),
-      }}
-    >
-      <TextColorContext.Provider value={theme.colors.text}>
-        <TextSelectabilityContext.Provider value={false}>
-          {typeof children === "function" ? null : children}
-          <Icon
-            name="chevron-down"
-            size={16}
-            color={theme.colors.mutedForeground}
-          />
-        </TextSelectabilityContext.Provider>
-      </TextColorContext.Provider>
-    </SelectPrimitive.Trigger>
+    <Animated.View style={scaleStyle}>
+      <SelectPrimitive.Trigger
+        disabled={disabled}
+        {...props}
+        onPressIn={pressHandlers.onPressIn}
+        onPressOut={pressHandlers.onPressOut}
+        onFocus={showFocusRing}
+        onBlur={hideFocusRing}
+        style={{
+          ...styles.trigger,
+          height: sizeConfig.height,
+          paddingHorizontal: sizeConfig.paddingHorizontal,
+          borderColor: error ? theme.colors.destructive : theme.colors.border,
+          backgroundColor: theme.colors.background,
+          ...(Platform.OS === "web" && {
+            cursor: disabled ? "not-allowed" : ("pointer" as any),
+            outlineStyle: "none" as any,
+            userSelect: "none" as any,
+          }),
+          ...(disabled && { opacity: 0.5 }),
+          ...(focused && !disabled ? focusRingStyle : null),
+          ...(styleOverride && typeof styleOverride !== "function"
+            ? StyleSheet.flatten(styleOverride)
+            : {}),
+        }}
+      >
+        <TextColorContext.Provider value={theme.colors.text}>
+          <TextSelectabilityContext.Provider value={false}>
+            {typeof children === "function" ? null : children}
+            <Icon
+              name="chevron-down"
+              size={16}
+              color={theme.colors.mutedForeground}
+            />
+          </TextSelectabilityContext.Provider>
+        </TextColorContext.Provider>
+      </SelectPrimitive.Trigger>
+    </Animated.View>
   );
 }
 
@@ -226,11 +263,19 @@ function SelectItem({
   // "is this a renderable node?" keeps the API explicit without switching on the
   // primitive type of children.
   const hasCustomChildren = React.isValidElement(children) || Array.isArray(children);
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!props.disabled,
+    scaleTo: 0.97,
+    haptic: false,
+  });
 
   return (
     <TextClassContext.Provider value="">
+      <Animated.View style={scaleStyle}>
       <SelectPrimitive.Item
         {...props}
+        onPressIn={pressHandlers.onPressIn}
+        onPressOut={pressHandlers.onPressOut}
         style={{
           ...styles.item,
           ...(Platform.OS === "web" && {
@@ -277,6 +322,7 @@ function SelectItem({
           )}
         </TextSelectabilityContext.Provider>
       </SelectPrimitive.Item>
+      </Animated.View>
     </TextClassContext.Provider>
   );
 }

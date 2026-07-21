@@ -128,8 +128,11 @@ describe("Switch", () => {
       throw new Error("Expected a single switch tree");
     }
 
-    const track = tree.children?.[0] as any;
-    const thumbWrapper = tree.children?.[1] as any;
+    // The root node is now the press-scale Animated.View wrapper; the switch
+    // Pressable (and its track/thumb children) is one level in.
+    const switchRoot = tree.children?.[0] as any;
+    const track = switchRoot?.children?.[0] as any;
+    const thumbWrapper = switchRoot?.children?.[1] as any;
     const thumbInner = thumbWrapper?.children?.[0] as any;
     const thumbStyle = StyleSheet.flatten(thumbInner?.props.style);
 
@@ -156,7 +159,8 @@ describe("Switch", () => {
       throw new Error("Expected a single switch tree");
     }
 
-    const track = tree.children?.[0] as any;
+    const switchRoot = tree.children?.[0] as any;
+    const track = switchRoot?.children?.[0] as any;
 
     expect(track?.props.style.backgroundColor).toBe("#14B8A6");
     expect(track?.props.style.borderColor).toBe("rgba(20, 184, 166, 0.42)");
@@ -181,10 +185,11 @@ describe("Switch", () => {
       throw new Error("Expected a single switch tree");
     }
 
-    const labelOn = tree.children?.[1] as any;
-    const thumbWrapper = tree.children?.[2] as any;
+    const switchRoot = tree.children?.[0] as any;
+    const labelOn = switchRoot?.children?.[1] as any;
+    const thumbWrapper = switchRoot?.children?.[2] as any;
     const thumbInner = thumbWrapper?.children?.[0] as any;
-    const labelOff = tree.children?.[3] as any;
+    const labelOff = switchRoot?.children?.[3] as any;
     const thumbStyle = StyleSheet.flatten(thumbInner?.props.style);
 
     expect(thumbStyle).toEqual(

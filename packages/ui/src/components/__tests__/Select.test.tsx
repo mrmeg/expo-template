@@ -29,6 +29,7 @@ jest.mock("../../hooks/useTheme", () => ({
       },
     },
     getShadowStyle: () => ({}),
+    getFocusRingStyle: () => ({}),
     getContrastingColor: (_bg: string, fg: string) => fg,
   }),
 }));

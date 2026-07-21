@@ -1,10 +1,11 @@
-import React, { createContext, use, useEffect, useRef } from "react";
-import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform, Animated } from "react-native";
+import React, { createContext, use, useEffect, useRef, useState } from "react";
+import { View, StyleSheet, StyleProp, ViewStyle, Pressable, PressableProps, Platform, Animated } from "react-native";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { hapticLight } from "../lib/haptics";
 import { useReducedMotion } from "../hooks/useReduceMotion";
+import { useScalePress } from "../hooks/useScalePress";
 import * as RadioGroupPrimitive from "@rn-primitives/radio-group";
 
 const DEFAULT_HIT_SLOP = 8;
@@ -142,10 +143,39 @@ function RadioGroupItem({
   disabled,
   ...props
 }: RadioGroupItemProps) {
-  const { theme, getContrastingColor } = useTheme();
+  const { theme, getContrastingColor, getFocusRingStyle } = useTheme();
   const reduceMotion = useReducedMotion();
   const { size, error, value: groupValue, onValueChange } = useRadioGroupContext();
   const sizeConfig = SIZE_CONFIGS[size];
+  const focusRingStyle = getFocusRingStyle();
+  const [focused, setFocused] = useState(false);
+  const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
+    disabled: !!disabled,
+    scaleTo: 0.92,
+    haptic: false,
+  });
+
+  const showFocusRing: PressableProps["onFocus"] = (event) => {
+    let ringVisible = true;
+    if (Platform.OS === "web") {
+      const target = event?.nativeEvent?.target as unknown as
+        | { matches?: (selector: string) => boolean }
+        | null
+        | undefined;
+      if (target && typeof target.matches === "function") {
+        try {
+          ringVisible = target.matches(":focus-visible");
+        } catch {
+          ringVisible = true;
+        }
+      }
+    }
+    setFocused(ringVisible);
+  };
+
+  const hideFocusRing: PressableProps["onBlur"] = () => {
+    setFocused(false);
+  };
 
   const isChecked = groupValue === itemValue;
 
@@ -174,41 +204,48 @@ function RadioGroupItem({
   const flattenedStyle = styleOverride ? StyleSheet.flatten(styleOverride) : undefined;
 
   const radioElement = (
-    <RadioGroupPrimitive.Item
-      {...props}
-      value={itemValue}
-      disabled={disabled}
-      onPress={handleRadioPress}
-      style={{
-        ...styles.radio,
-        borderColor,
-        backgroundColor: theme.colors.background,
-        borderRadius: sizeConfig.outer / 2,
-        borderWidth: sizeConfig.borderWidth,
-        width: sizeConfig.outer,
-        height: sizeConfig.outer,
-        opacity: disabled ? 0.5 : 1,
-        ...(Platform.OS === "web" && { cursor: disabled ? "not-allowed" : ("pointer" as any) }),
-        ...(flattenedStyle || {}),
-      }}
-      hitSlop={DEFAULT_HIT_SLOP}
-      accessibilityLabel={label}
-    >
-      {/* Render the dot outside the Indicator so animation works on both
-          mount and unmount. The primitive Item already handles aria-checked
-          and accessibility state for screen readers. */}
-      <Animated.View
-        style={[
-          { transform: [{ scale: dotScale }] },
-          {
-            width: sizeConfig.inner,
-            height: sizeConfig.inner,
-            borderRadius: sizeConfig.inner / 2,
-            backgroundColor: theme.colors.primary,
-          },
-        ]}
-      />
-    </RadioGroupPrimitive.Item>
+    <Animated.View style={scaleStyle}>
+      <RadioGroupPrimitive.Item
+        {...props}
+        value={itemValue}
+        disabled={disabled}
+        onPress={handleRadioPress}
+        onPressIn={pressHandlers.onPressIn}
+        onPressOut={pressHandlers.onPressOut}
+        onFocus={showFocusRing}
+        onBlur={hideFocusRing}
+        style={{
+          ...styles.radio,
+          borderColor,
+          backgroundColor: theme.colors.background,
+          borderRadius: sizeConfig.outer / 2,
+          borderWidth: sizeConfig.borderWidth,
+          width: sizeConfig.outer,
+          height: sizeConfig.outer,
+          opacity: disabled ? 0.5 : 1,
+          ...(Platform.OS === "web" && { cursor: disabled ? "not-allowed" : ("pointer" as any) }),
+          ...(focused && !disabled ? focusRingStyle : null),
+          ...(flattenedStyle || {}),
+        }}
+        hitSlop={DEFAULT_HIT_SLOP}
+        accessibilityLabel={label}
+      >
+        {/* Render the dot outside the Indicator so animation works on both
+            mount and unmount. The primitive Item already handles aria-checked
+            and accessibility state for screen readers. */}
+        <Animated.View
+          style={[
+            { transform: [{ scale: dotScale }] },
+            {
+              width: sizeConfig.inner,
+              height: sizeConfig.inner,
+              borderRadius: sizeConfig.inner / 2,
+              backgroundColor: theme.colors.primary,
+            },
+          ]}
+        />
+      </RadioGroupPrimitive.Item>
+    </Animated.View>
   );
 
   // If no label, return just the radio button
