@@ -7,14 +7,15 @@ import type { IconName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { spacing } from "../constants/spacing";
+import { durations } from "../constants/motion";
 import { StyledText } from "./StyledText";
 import { palette } from "../constants/colors";
 import type { Theme } from "../constants/colors";
 import { translateText } from "../lib/i18n";
 import { globalUIStore } from "../state/globalUIStore";
 
-const timingIn = { duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: true };
-const timingOut = { duration: 100, easing: Easing.in(Easing.quad), useNativeDriver: true };
+const timingIn = { duration: durations.fast, easing: Easing.out(Easing.quad), useNativeDriver: true };
+const timingOut = { duration: durations.instant, easing: Easing.in(Easing.quad), useNativeDriver: true };
 
 /**
  * Notification

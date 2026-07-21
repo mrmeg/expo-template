@@ -199,7 +199,10 @@ function Checkbox({
 
 const styles = StyleSheet.create({
   box: {
-    borderRadius: spacing.radiusSm,
+    // radiusXs (not radiusSm) — at the checkbox's 16-24px sizes, radiusSm
+    // post-rebase (8px) reads as over-rounded; radiusXs keeps the same
+    // proportion the box had before the radius rebase.
+    borderRadius: spacing.radiusXs,
     borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
