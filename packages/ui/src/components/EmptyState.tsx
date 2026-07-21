@@ -26,6 +26,12 @@ export interface EmptyStateProps {
   style?: StyleProp<ViewStyle>;
   /** Custom children below description / above action */
   children?: React.ReactNode;
+  /**
+   * Wraps the state in a dashed-border container with generous padding —
+   * the "empty slot" pattern. @default false (preserves existing call
+   * sites, which render without a border).
+   */
+  bordered?: boolean;
 }
 
 /**
@@ -47,7 +53,7 @@ export interface EmptyStateProps {
  */
 export function EmptyState({
   icon,
-  iconSize = 48,
+  iconSize = spacing.iconMd,
   title,
   description,
   actionLabel,
@@ -55,12 +61,13 @@ export function EmptyState({
   actionPreset = "default",
   style,
   children,
+  bordered = false,
 }: EmptyStateProps) {
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, bordered && styles.bordered, style]}>
       {!!icon && (
         <View style={styles.iconWrapper}>
           <Icon name={icon} size={iconSize} color={theme.colors.mutedForeground} />
@@ -87,6 +94,8 @@ export function EmptyState({
   );
 }
 
+const MEDIA_SIZE = 56;
+
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
@@ -95,7 +104,22 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing.xxl,
       paddingHorizontal: spacing.lg,
     },
+    bordered: {
+      borderWidth: 1,
+      borderStyle: "dashed",
+      borderColor: theme.colors.border,
+      borderRadius: spacing.radiusLg,
+      padding: spacing.xl,
+    },
     iconWrapper: {
+      width: MEDIA_SIZE,
+      height: MEDIA_SIZE,
+      // radiusMd here — the tokens/radius-rebase spec (which would bump this
+      // to radiusLg) hasn't landed on this branch.
+      borderRadius: spacing.radiusMd,
+      backgroundColor: theme.colors.muted,
+      alignItems: "center",
+      justifyContent: "center",
       marginBottom: spacing.md,
     },
     title: {

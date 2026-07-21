@@ -7,6 +7,7 @@
 import "@/test/mockTheme";
 
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 
 import { EmptyState } from "../EmptyState";
@@ -59,5 +60,32 @@ describe("EmptyState", () => {
   it("does not render an action button when only actionLabel is provided (action requires onAction too)", async () => {
     await render(<EmptyState title="No items" actionLabel="Add one" />);
     expect(screen.queryByText("Add one")).toBeNull();
+  });
+
+  it("does not apply the dashed border by default", async () => {
+    const { toJSON } = await render(<EmptyState title="Nothing here" />);
+    const container = toJSON() as unknown as { props: { style: unknown } };
+    const flatStyle = StyleSheet.flatten(container.props.style) as Record<string, unknown>;
+    expect(flatStyle.borderStyle).toBeUndefined();
+  });
+
+  it("wraps in a dashed-border container when bordered is true", async () => {
+    const { toJSON } = await render(<EmptyState title="Nothing here" bordered />);
+    const container = toJSON() as unknown as { props: { style: unknown } };
+    const flatStyle = StyleSheet.flatten(container.props.style) as Record<string, unknown>;
+    expect(flatStyle).toMatchObject({
+      borderWidth: 1,
+      borderStyle: "dashed",
+    });
+  });
+
+  it("renders the icon inside a fixed-size media slot", async () => {
+    await render(<EmptyState title="No inbox" icon="inbox" />);
+    const icon = screen.getByTestId("icon-Feather");
+    const wrapperStyle = StyleSheet.flatten(icon.parent?.props.style) as Record<string, unknown>;
+    expect(wrapperStyle).toMatchObject({
+      width: 56,
+      height: 56,
+    });
   });
 });
