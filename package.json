@@ -135,5 +135,6 @@
   "overrides": {
     "baseline-browser-mapping": "^2.10.27"
   },
+  "license": "MIT",
   "private": true
 }
