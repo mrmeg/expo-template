@@ -2,6 +2,7 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
 import { getAppIdentity } from "./app.identity";
 
 const withNativeBuildSettings = require("./plugins/withNativeBuildSettings");
+const withIosSceneLifecycle = require("./plugins/withIosSceneLifecycle");
 
 const CHANNEL_BY_PROFILE: Record<string, string> = {
   development: "development",
@@ -165,6 +166,10 @@ export default function appConfig(_: ConfigContext): ExpoConfig {
     iosNodeOptions: buildNodeOptions,
     androidNodeArgs: ["node", buildNodeOptions],
   });
+
+  // Backports Expo's UIScene life-cycle adoption (required by the iOS 27 SDK)
+  // until it ships in a stable SDK release; self-disables after that.
+  config = withIosSceneLifecycle(config);
 
   return config;
 }
