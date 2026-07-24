@@ -3,6 +3,13 @@
 All notable changes to `@mrmeg/expo-media` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1]
+
+### Changed
+
+- Updated `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` to
+  `^3.1094.0`.
+
 ## [0.2.0]
 
 ### Changed

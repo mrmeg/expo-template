@@ -15,21 +15,21 @@
  * consumer code (useMediaLibrary) platform-safe.
  */
 export class FFmpegWorkerUnavailableError extends Error {
-  url;
-  status;
-  constructor(url, status, message) {
-    super(message ?? `FFmpeg worker not available at ${url}`);
-    this.name = "FFmpegWorkerUnavailableError";
-    this.url = url;
-    this.status = status;
-  }
+    url;
+    status;
+    constructor(url, status, message) {
+        super(message ?? `FFmpeg worker not available at ${url}`);
+        this.name = "FFmpegWorkerUnavailableError";
+        this.url = url;
+        this.status = status;
+    }
 }
 /**
  * Convert video - NOT SUPPORTED on native
  * @throws Error always - native conversion not available
  */
 export async function convertVideo(_uri, _originalMimeType, _options) {
-  throw new Error("Client-side video conversion is not supported on native platforms. " +
+    throw new Error("Client-side video conversion is not supported on native platforms. " +
         "Videos will be uploaded in their original format. " +
         "Consider using server-side conversion for incompatible formats.");
 }
@@ -37,11 +37,11 @@ export async function convertVideo(_uri, _originalMimeType, _options) {
  * Check if FFmpeg is loaded - always false on native
  */
 export function isFFmpegLoaded() {
-  return false;
+    return false;
 }
 /**
  * Preload FFmpeg - no-op on native
  */
 export async function preloadFFmpeg() {
-  // No-op on native
+    // No-op on native
 }

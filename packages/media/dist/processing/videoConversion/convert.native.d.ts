@@ -16,9 +16,9 @@ import type { VideoConversionOptions, VideoConversionResult } from "./types";
  * consumer code (useMediaLibrary) platform-safe.
  */
 export declare class FFmpegWorkerUnavailableError extends Error {
-  readonly url: string;
-  readonly status?: number;
-  constructor(url: string, status?: number, message?: string);
+    readonly url: string;
+    readonly status?: number;
+    constructor(url: string, status?: number, message?: string);
 }
 /**
  * Convert video - NOT SUPPORTED on native

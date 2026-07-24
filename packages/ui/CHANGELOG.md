@@ -3,6 +3,29 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0]
+
+### Added
+
+- **New composition primitives: `SectionHeader`, `StatCard`, and `Item`.**
+  `EmptyState` was also upgraded with richer layout options as part of the
+  same pass.
+- **Typography system.** The package now loads Inter with real weights and a
+  letter-spacing scale via `useResources`, replacing synthetic bolding.
+- Motion tokens, dual-layer shadow tokens, and softer radii in the design
+  tokens.
+
+### Changed
+
+- Interaction sweep across components: press feedback, focus rings, and
+  shadow adoption.
+- Updated all `@rn-primitives/*` dependencies from `~1.4.0` to `~1.5.2`,
+  picking up upstream's native accessibility overhaul: menus, popovers, and
+  dialogs are now usable with VoiceOver/TalkBack (focus moves into opened
+  content, escape gestures dismiss), toggles and switches announce the
+  correct state, and `nativeID` plumbing that broke Reanimated exiting
+  animations was removed.
+
 ## [0.14.0]
 
 ### Changed
