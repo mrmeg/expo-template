@@ -24,6 +24,7 @@ import Config from "@/client/config";
 import { validateClientEnv } from "@/client/lib/validateEnv";
 import { captureException, setupSentry } from "@/client/lib/sentry";
 import { useAppStartup, OnboardingGate } from "@/client/features/app";
+import { SsrStyleFlush } from "@/client/features/app/SsrStyleFlush";
 import { AuthProviderGate } from "@/client/features/auth/provider/AuthProviderGate";
 import { useOnboardingStore } from "@/client/features/onboarding/onboardingStore";
 
@@ -168,6 +169,9 @@ export default function RootLayout() {
             </KeyboardProvider>
           </ThemeProvider>
         </SafeAreaProvider>
+        {/* Must stay the LAST child so it renders after the app subtree and
+            captures every RNW rule registered during this render pass. */}
+        <SsrStyleFlush />
       </QueryClientProvider>
     </AuthProviderGate>
   );

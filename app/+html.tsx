@@ -1,4 +1,4 @@
-import { type PropsWithChildren } from "react";
+import { Children, isValidElement, type PropsWithChildren, type ReactElement } from "react";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { ScrollViewStyleReset, useServerDocumentContext } from "expo-router/html";
 
@@ -154,6 +154,25 @@ export default function Root({ children }: PropsWithChildren) {
   const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
   const cssStyles = getRootCssStyles();
 
+  // Drop the framework's react-native-stylesheet snapshot from headNodes.
+  // It's captured BEFORE route modules load, so it's incomplete (missing any
+  // rule registered at route-module scope), and SsrStyleFlush already emits
+  // the complete sheet as a hoisted style resource. Keeping both is worse
+  // than redundant: React hoists the flush ABOVE this snapshot, and the
+  // snapshot's later-in-cascade base rules (e.g. `.css-text-146c3p1
+  // { font: 14px … }`) override the flush's atomic font-size rules at equal
+  // specificity until the client sheet takes over — text pops from 14px to
+  // its real size mid-load. The flush sheet is a strict superset, so the
+  // snapshot can go. If SsrStyleFlush is ever removed, restore this node.
+  const filteredHeadNodes = Children.toArray(headNodes).filter(
+    (node) =>
+      !(
+        isValidElement(node) &&
+        node.type === "style" &&
+        (node as ReactElement<{ id?: string }>).props.id === "react-native-stylesheet"
+      )
+  );
+
   return (
     <html lang="en" {...htmlAttributes}>
       <head>
@@ -161,10 +180,11 @@ export default function Root({ children }: PropsWithChildren) {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
-        {/* Framework SSR resources: RNW <style>, expo-font preload <link>s,
-            route metadata. Placed early so styles are available before the
-            browser parses any element that uses them. */}
-        {headNodes}
+        {/* Framework SSR resources: expo-font preload <link>s, route
+            metadata. Placed early so styles are available before the browser
+            parses any element that uses them. The RNW stylesheet snapshot is
+            filtered out above — SsrStyleFlush ships the complete sheet. */}
+        {filteredHeadNodes}
 
         {/* Inter is loaded by @mrmeg/expo-ui's useResources after mount, but
             preloading here means it starts downloading on byte 1 instead of

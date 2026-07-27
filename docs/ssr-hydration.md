@@ -173,6 +173,56 @@ If you remove either the script or the CSS rule, the flash returns. Keep the
 store's web read deferred — eagerly reading `localStorage` at module load (the
 old behavior) trades the flash for a hydration mismatch on returning users.
 
+### 7. Theme-dependent styles — register at module scope, not render time
+
+The streaming SSR renderer snapshots react-native-web's stylesheet for the
+`<style id="react-native-stylesheet">` head node **before route modules load**
+(`@expo/router-server`'s `getStreamingContent` builds `headNodes` up front,
+then streams the app). RNW only inserts a rule into its sheet when the style is
+first resolved, so **where** a style is created decides whether its CSS ships
+in the head:
+
+- Module-scope `StyleSheet.create(...)` → registered at import → in the head. ✅
+- `useMemo(() => createStyles(theme), [theme])` → registered **during render**,
+  after the head snapshot → the SSR HTML references classes with no rules →
+  fully unstyled first paint until hydration re-inserts them. ❌
+
+The server-side sheet is a module singleton, so the bug is cold-start-shaped:
+in dev it reproduces on **every** request; in production only the **first**
+render after a cold start is broken (request 1 warms the sheet for request 2+),
+which makes it easy to miss in testing and guaranteed for the first real user.
+
+**How it's handled here (two layers):**
+
+1. **`createThemedStyles`** (`@mrmeg/expo-ui/lib`) wraps a `(theme) => styles`
+   factory and eagerly evaluates it for both base themes at module load, so the
+   rules exist before any head flush. Use it instead of the `useMemo` idiom:
+
+   ```ts
+   const createStyles = (theme: Theme) => StyleSheet.create({ ... });
+   const themedStyles = createThemedStyles(createStyles);
+   // in the component:
+   const styles = themedStyles(theme);
+   ```
+
+   Factories with non-theme parameters either precompute the enum combinations
+   (`Button` per size, `TextInput` per variant×size) or move the dynamic value
+   to an inline style at the call site (`style={[styles.header, { paddingTop:
+   insets.top }]}`) — inline styles are emitted as `style="…"` attributes and
+   always ship in the HTML.
+
+2. **`SsrStyleFlush`** (`client/features/app/SsrStyleFlush.tsx`), rendered as
+   the **last** child in `RootLayout`, re-emits the full RNW sheet as a React 19
+   hoistable style resource after the app subtree has rendered. It backstops
+   anything that still creates styles during render (third-party components,
+   a missed conversion) so the page never ships class names without rules. It
+   renders `null` on the client — no hydration mismatch.
+
+Keep using `StyleSheet.create` / `createThemedStyles` for static styles rather
+than leaning on the flush: rules that only exist in the flush node disappear
+from `document.styleSheets` bookkeeping RNW does at hydration, and the flush
+duplicates whatever the head already carries.
+
 ## How to verify an SSR fix — do NOT rely on Jest/tsc alone
 
 Jest mocks `expo-font` and `react-i18next`, and `tsc` doesn't model Metro/SSR,
@@ -187,6 +237,24 @@ grep -c 'expo-generated-fonts' /tmp/ssr.html              # font <style>   → =
 grep -c 'class="css-text-146c3p1"></div>' /tmp/ssr.html   # empty icons    → == 0
 grep -oc 'someNamespace\.someKey' /tmp/ssr.html           # leaked i18n key → == 0
 ```
+
+For §7 (missing style rules), diff the classes the body *uses* against the
+rules the document *defines* — zero classes should be undefined:
+
+```bash
+python3 - <<'EOF'
+import re
+html = open('/tmp/ssr.html').read()
+defined = set(re.findall(r'\.((?:r-|css-)[\w-]+)\s*[{,]', html))
+body = html[html.find('<body'):]
+used = {c for m in re.findall(r'class="([^"]*)"', body)
+        for c in m.split() if c.startswith(('r-', 'css-'))}
+print("undefined classes:", sorted(used - defined) or "none ✅")
+EOF
+```
+
+In production (`bun run build` + `bun run start`), check the **first** request
+after server boot — the cold-start render is the one that regresses.
 
 Then open the route in a browser with the console open and confirm **zero**
 hydration warnings. Reproduce **both** a cold reload **and** navigation from
