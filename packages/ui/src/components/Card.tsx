@@ -4,6 +4,7 @@ import { StyledText, TextProps } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { useScalePress } from "../hooks/useScalePress";
 import { spacing } from "../constants/spacing";
+import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
 
 /**
@@ -33,11 +34,11 @@ const CardContext = createContext<{ theme: Theme; styles: ReturnType<typeof crea
 
 function useCardContext() {
   const ctx = use(CardContext);
-  // useTheme must run unconditionally (Rules of Hooks); createCardStyles is a
+  // useTheme must run unconditionally (Rules of Hooks); themedStyles is a
   // plain function, so the `??` keeps the fallback styles lazy.
   const { theme } = useTheme();
   // Fallback for standalone usage without a Card parent.
-  return ctx ?? { theme, styles: createCardStyles(theme) };
+  return ctx ?? { theme, styles: themedStyles(theme) };
 }
 
 export interface CardProps {
@@ -55,7 +56,7 @@ export interface CardProps {
 
 function Card({ children, style: styleOverride, variant = "default", onPress, disabled }: CardProps) {
   const { theme, getShadowStyle } = useTheme();
-  const styles = createCardStyles(theme);
+  const styles = themedStyles(theme);
   const shadowStyle = getShadowStyle("subtle");
   const ctx = { theme, styles };
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
@@ -231,5 +232,7 @@ const createCardStyles = (theme: Theme) =>
       lineHeight: 20,
     } as TextStyle,
   });
+
+const themedStyles = createThemedStyles(createCardStyles);
 
 export { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription };

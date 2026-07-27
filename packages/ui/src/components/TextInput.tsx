@@ -32,6 +32,7 @@ import { fontFamilies } from "../constants/fonts";
 import { StyledText } from "./StyledText";
 import { Icon } from "./Icon";
 import { hapticLight } from "../lib/haptics";
+import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
 import { palette } from "../constants/colors";
 import {
@@ -250,7 +251,7 @@ function WebTextInput({
   ...rest
 }: TextInputCustomProps) {
   const { theme, getContrastingColor, getFocusRingStyle } = useTheme();
-  const styles = useMemo(() => createStyles(theme, variant, size), [theme, variant, size]);
+  const styles = themedStyles(theme)[variant][size];
   const [focused, setFocused] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -517,7 +518,7 @@ function NativeTextInput({
   ...rest
 }: TextInputCustomProps) {
   const { theme, getContrastingColor } = useTheme();
-  const styles = useMemo(() => createStyles(theme, variant, size), [theme, variant, size]);
+  const styles = themedStyles(theme)[variant][size];
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   const hasError = error || !!errorText;
@@ -875,3 +876,15 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       zIndex: 1,
     },
   });
+
+const VARIANT_KEYS: TextInputVariant[] = ["outline", "filled", "underlined"];
+const SIZE_KEYS: TextInputSize[] = ["sm", "md", "lg"];
+
+const themedStyles = createThemedStyles((theme: Theme) =>
+  Object.fromEntries(
+    VARIANT_KEYS.map((variant) => [
+      variant,
+      Object.fromEntries(SIZE_KEYS.map((size) => [size, createStyles(theme, variant, size)])),
+    ])
+  ) as Record<TextInputVariant, Record<TextInputSize, ReturnType<typeof createStyles>>>
+);

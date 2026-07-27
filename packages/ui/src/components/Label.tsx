@@ -1,10 +1,10 @@
-import { useMemo } from "react";
 import { StyleSheet, StyleProp, TextStyle, Platform } from "react-native";
 import * as LabelPrimitive from "@rn-primitives/label";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { fontFamilies } from "../constants/fonts";
 import { StyledText } from "./StyledText";
+import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
 
 export interface LabelProps {
@@ -84,7 +84,7 @@ export function Label({
   onPress,
 }: LabelProps) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const sizeConfig = SIZE_CONFIGS[size];
   const textStyle = StyleSheet.flatten([
     styles.label,
@@ -141,3 +141,5 @@ const createStyles = (theme: Theme) =>
       opacity: 0.6,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

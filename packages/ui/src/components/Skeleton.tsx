@@ -3,6 +3,7 @@ import { View, StyleSheet, StyleProp, ViewStyle, Animated } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { spacing } from "../constants/spacing";
+import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
 
 // ============================================================================
@@ -173,7 +174,7 @@ export function SkeletonCard({
   style,
 }: SkeletonCardProps) {
   const { theme, getShadowStyle } = useTheme();
-  const styles = createCardStyles(theme);
+  const styles = themedStyles(theme);
 
   return (
     <View style={[styles.card, getShadowStyle("subtle"), style]}>
@@ -225,3 +226,5 @@ const createCardStyles = (theme: Theme) =>
       gap: spacing.xs,
     },
   });
+
+const themedStyles = createThemedStyles(createCardStyles);

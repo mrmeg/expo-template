@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import {
   View,
   TextInput as RNTextInput,
@@ -12,6 +12,7 @@ import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { fontFamilies } from "../constants/fonts";
 import { StyledText } from "./StyledText";
+import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
 
 export interface InputOTPProps {
@@ -106,7 +107,7 @@ function InputOTP({
   const { theme } = useTheme();
   const inputRef = useRef<RNTextInput>(null);
   const [focused, setFocused] = useState(false);
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const hasError = error || !!errorText;
 
   // Active cell index: next empty cell, or last cell when full
@@ -317,5 +318,7 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing.xs,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);
 
 export { InputOTP };

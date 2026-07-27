@@ -1,4 +1,4 @@
-import React, { ComponentType, use, useCallback, useMemo, useState } from "react";
+import React, { ComponentType, use, useCallback, useState } from "react";
 import {
   Pressable,
   PressableProps,
@@ -23,6 +23,7 @@ import type { Theme } from "../constants/colors";
 import { palette } from "../constants/colors";
 import { useTheme } from "../hooks/useTheme";
 import { useScalePress } from "../hooks/useScalePress";
+import { createThemedStyles } from "../lib/themedStyles";
 
 /**
  * Button variants
@@ -221,7 +222,7 @@ function ButtonRoot(props: ButtonProps) {
   } = props;
 
   const { theme, getContrastingColor, getFocusRingStyle, getShadowStyle } = useTheme();
-  const styles = useMemo(() => createStyles(theme, size), [theme, size]);
+  const styles = themedStyles(theme)[size];
   const shadowStyle = getShadowStyle("subtle");
   const sizeConfig = SIZE_CONFIGS[size];
   // Filled (`default`) buttons float by default; ghost/outline/link stay flat
@@ -548,6 +549,12 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
     } as ViewStyle,
   });
 };
+
+const themedStyles = createThemedStyles((theme: Theme) => ({
+  sm: createStyles(theme, "sm"),
+  md: createStyles(theme, "md"),
+  lg: createStyles(theme, "lg"),
+}));
 
 /**
  * Button with explicit subcomponents.

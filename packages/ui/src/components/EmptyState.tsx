@@ -1,10 +1,11 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { SansSerifBoldText, SansSerifText } from "./StyledText";
 import { Button, type ButtonProps } from "./Button";
 import { Icon, type IconName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
 
 export interface EmptyStateProps {
@@ -64,7 +65,7 @@ export function EmptyState({
   bordered = false,
 }: EmptyStateProps) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   return (
     <View style={[styles.container, bordered && styles.bordered, style]}>
@@ -142,3 +143,5 @@ const createStyles = (theme: Theme) =>
       alignSelf: "center",
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

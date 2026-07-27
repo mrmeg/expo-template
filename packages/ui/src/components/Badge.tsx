@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { StyledText } from "./StyledText";
+import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
 
 export type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
@@ -29,7 +30,7 @@ export interface BadgeProps {
  */
 function Badge({ children, text, variant = "default", style: styleOverride }: BadgeProps) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const badgeContent = text ?? children;
   const textStyle = [
     styles.text,
@@ -101,5 +102,7 @@ const createStyles = (theme: Theme) =>
       userSelect: "none",
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);
 
 export { Badge };

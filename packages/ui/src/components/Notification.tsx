@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, use, useEffect, useEffectEvent, useRef } from "react";
+import React, { useCallback, use, useEffect, useEffectEvent, useRef } from "react";
 import { Animated, Easing, StyleSheet, View, ActivityIndicator, Pressable, Platform } from "react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { Icon } from "./Icon";
@@ -11,6 +11,7 @@ import { StyledText } from "./StyledText";
 import { palette } from "../constants/colors";
 import type { Theme } from "../constants/colors";
 import { translateText } from "../lib/i18n";
+import { createThemedStyles } from "../lib/themedStyles";
 import { globalUIStore } from "../state/globalUIStore";
 
 const timingIn = { duration: durations.fast, easing: Easing.out(Easing.quad), useNativeDriver: true };
@@ -39,7 +40,7 @@ export const Notification = () => {
   const reduceMotion = useReducedMotion();
   const insets = use(SafeAreaInsetsContext);
   const { alert, hide } = globalUIStore();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   const position = alert?.position ?? "top";
   const isBottom = position === "bottom";
@@ -402,3 +403,5 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     ...(Platform.OS === "web" && { cursor: "pointer" as any }),
   },
 });
+
+const themedStyles = createThemedStyles(createStyles);
