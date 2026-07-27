@@ -39,6 +39,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Exported `FontFamilyMap`, `FontFamilyWeight`, `FontOverrides`,
   `FontWeightStrategy`, and `defaultWebWeightStrategy` from `constants/fonts`.
 
+- **`createThemedStyles` — SSR-safe themed style registration**, exported from
+  `lib`. Wraps a `(theme: Theme) => styles` factory so both base themes are
+  registered with react-native-web at module scope — before expo-router
+  snapshots the server-side stylesheet — instead of lazily during render via
+  `useMemo`, which left SSR HTML referencing class names with no rules
+  (unstyled first paint until hydration). Override themes are cached per theme
+  object identity. The package's own components (Badge, Button, Card,
+  EmptyState, InputOTP, Label, Notification, Skeleton, TextInput) now use it.
+
 ### Why
 
 `fontFamilies` was a module-level `const` with no injection point, so the only
