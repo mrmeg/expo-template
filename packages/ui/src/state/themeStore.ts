@@ -3,6 +3,7 @@ import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { ThemeColors } from "../constants/colors";
+import type { FontOverrides } from "../constants/fonts";
 
 const THEME_KEY = "user-theme-preference";
 
@@ -37,6 +38,12 @@ export type ThemeStore = {
    * behaves exactly as before this field existed (fully backward compatible).
    */
   colorOverrides: ColorOverrides;
+  /**
+   * App-injected font overrides, applied by `StyledText` on top of the package
+   * defaults. Empty by default — zero override means the package behaves
+   * exactly as before this field existed (fully backward compatible).
+   */
+  fontOverrides: FontOverrides;
   setTheme: (theme: ThemePreference) => void;
   setSystemTheme: (theme: ResolvedTheme) => void;
   /**
@@ -44,6 +51,16 @@ export type ThemeStore = {
    * clear overrides and fall back to the package defaults.
    */
   setColors: (overrides: ColorOverrides) => void;
+  /**
+   * Replace the active font overrides. Pass `{}` to clear them and fall back
+   * to the package's bundled faces.
+   *
+   * Call this once at startup, after the app's fonts have been registered
+   * (e.g. alongside `setColors` in a theme-sync component). Apps loading
+   * per-weight faces via `expo-font` should also pass
+   * `webWeightStrategy: "family"` — see `FontWeightStrategy`.
+   */
+  setFonts: (overrides: FontOverrides) => void;
   loadTheme: () => void;
 };
 
@@ -72,8 +89,16 @@ export const useThemeStore = create<ThemeStore>((set) => ({
   // until a host app calls `setColors`.
   colorOverrides: {},
 
+  // Same contract as `colorOverrides`: the package renders with its bundled
+  // faces until a host app calls `setFonts`.
+  fontOverrides: {},
+
   setColors: (overrides) => {
     set({ colorOverrides: overrides ?? {} });
+  },
+
+  setFonts: (overrides) => {
+    set({ fontOverrides: overrides ?? {} });
   },
 
   setTheme: (theme) => {

@@ -3,6 +3,55 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`setFonts` — font injection, mirroring `setColors`.** A host app can now
+  forward its own bundled faces to the package:
+
+  ```ts
+  useThemeStore.getState().setFonts({
+    families: { sansSerif: { light: "…", regular: "…", medium: "…",
+                             semibold: "…", bold: "…" } },
+    webWeightStrategy: "family",
+  });
+  ```
+
+  Overrides are partial and per-group — pass `sansSerif` alone and `serif`
+  keeps the package default. `setFonts({})` clears back to the defaults.
+  `StyledText` subscribes to the store, so a call after mount re-renders
+  rather than leaving stale families on screen.
+
+- **`webWeightStrategy` — `"numeric" | "family"`.** Declares how a family map
+  expresses weight. `"numeric"` (the package default on web) assumes one
+  multi-weight CSS family where a numeric `fontWeight` selects the
+  `@font-face` variant. `"family"` means each weight is its own
+  separately-registered single-face family, so the family name alone carries
+  the weight and `StyledText` suppresses the numeric `fontWeight`. Native is
+  always `"family"`, unchanged.
+
+  Apps loading per-weight faces through `expo-font` need `"family"` on web:
+  `expo-font` registers each file as its own family there too, so the previous
+  always-numeric behaviour synthesised a second layer of bold on top of an
+  already-bold face.
+
+- Exported `FontFamilyMap`, `FontFamilyWeight`, `FontOverrides`,
+  `FontWeightStrategy`, and `defaultWebWeightStrategy` from `constants/fonts`.
+
+### Why
+
+`fontFamilies` was a module-level `const` with no injection point, so the only
+way for a consumer to use its own type was to patch `dist/` inside
+`node_modules`. Bun keys `patchedDependencies` on an exact `name@version`, so
+those patches stop applying — silently, with no warning — the moment the
+package version is bumped. Two consumer apps hit exactly that and shipped
+fallback fonts without noticing. Colors already had `setColors` for this
+reason; fonts now match.
+
+Fully backward compatible: with no `setFonts` call, font resolution is
+identical to 0.15.0.
+
 ## [0.15.0]
 
 ### Added

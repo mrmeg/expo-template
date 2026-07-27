@@ -163,6 +163,50 @@ import { ThemeColorScope } from "@mrmeg/expo-ui/state";
 </ThemeColorScope>
 ```
 
+### Font overrides
+
+The package bundles Inter (sans) and Georgia (serif). Most apps ship their own
+faces — forward them with `setFonts`, the font counterpart to `setColors`.
+Call it once at startup, after your fonts are registered:
+
+```tsx
+import { useThemeStore } from "@mrmeg/expo-ui/state";
+
+useThemeStore.getState().setFonts({
+  families: {
+    sansSerif: {
+      light: "HankenGrotesk_300Light",
+      regular: "HankenGrotesk_400Regular",
+      medium: "HankenGrotesk_500Medium",
+      semibold: "HankenGrotesk_600SemiBold",
+      bold: "HankenGrotesk_700Bold",
+    },
+  },
+  webWeightStrategy: "family",
+});
+```
+
+Overrides are partial and per-group: pass `sansSerif` alone and `serif` keeps
+the package default. `setFonts({})` clears back to the defaults.
+
+**Pick the right `webWeightStrategy`** — this is the one non-obvious part:
+
+| Strategy | Use when | Effect |
+|---|---|---|
+| `"numeric"` (default) | You ship **one multi-weight CSS family** (a variable font, or Google Fonts' single `"Inter"` family) | A numeric `fontWeight` selects the `@font-face` variant |
+| `"family"` | You load **per-weight faces via `expo-font`** | The family name alone carries the weight; the numeric `fontWeight` is suppressed |
+
+If you load fonts through `expo-font` / `@expo-google-fonts`, choose
+`"family"`. `expo-font` registers each weight as its own single-face family on
+web as well as native, so emitting a numeric weight on top makes the browser
+synthesise a *second* layer of bold over an already-bold face.
+
+Native always behaves as `"family"` regardless of this setting.
+
+> Prefer `setFonts` over patching `node_modules`. Bun keys
+> `patchedDependencies` to an exact `name@version`, so a font patch silently
+> stops applying the next time you bump the package — with no warning.
+
 Use `StyledText` for theme-aware text:
 
 ```tsx

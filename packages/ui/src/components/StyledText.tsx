@@ -1,7 +1,8 @@
 import { use, type Ref } from "react";
 import { Platform, Text as RNText, TextProps as RNTextProps, StyleProp, StyleSheet, TextStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
-import { fontFamilies } from "../constants/fonts";
+import { fontFamilies, defaultWebWeightStrategy } from "../constants/fonts";
+import { useThemeStore } from "../state/themeStore";
 import { translateText } from "../lib/i18n";
 import { TextColorContext, TextSelectabilityContext, TextStyleContext } from "./StyledText.context";
 
@@ -172,6 +173,9 @@ export function StyledText(props: TextProps) {
   } = props;
 
   const { theme } = useTheme();
+  // Subscribed, not read via getState(), so a `setFonts` call after mount
+  // re-renders text instead of leaving stale families on screen.
+  const fontOverrides = useThemeStore((s) => s.fontOverrides);
 
   // Check if there's a color override from parent context (e.g., Button)
   const contextColor = use(TextColorContext);
@@ -187,19 +191,32 @@ export function StyledText(props: TextProps) {
   const finalSize = semanticConfig?.size ?? size ?? "body";
   const finalFontWeight = semanticConfig?.weight ?? fontWeight ?? "regular";
 
-  // Get font family based on variant and weight
+  // Get font family based on variant and weight. Host apps can replace the
+  // package's bundled faces via `setFonts` (see constants/fonts.ts); merging
+  // per-group means an app overriding only `sansSerif` keeps the default serif.
   const fontFamilyWeight = getFontFamilyWeight(finalFontWeight);
-  // Georgia (serif) only has one weight — use it regardless of requested weight
+  const overriddenFamilies = fontOverrides.families;
+  const serifFamilies = overriddenFamilies?.serif ?? fontFamilies.serif;
+  const sansSerifFamilies = overriddenFamilies?.sansSerif ?? fontFamilies.sansSerif;
+  // The serif slot has a single usable weight — use it regardless of the
+  // requested weight.
   const fontFamily = variant === "serif"
-    ? fontFamilies.serif.regular
-    : fontFamilies.sansSerif[fontFamilyWeight] ?? fontFamilies.sansSerif.regular;
+    ? serifFamilies.regular
+    : sansSerifFamilies[fontFamilyWeight] ?? sansSerifFamilies.regular;
 
-  // Web ships one Inter family for every weight, so a numeric fontWeight picks
-  // the right @font-face variant. Native ships a discrete static font file per
-  // weight (see constants/fonts.ts) — the family name alone carries the
-  // weight there, and adding a numeric fontWeight on top would faux-bold an
-  // already-bold file, so this stays web-only.
-  const resolvedFontWeight = Platform.OS === "web" ? WEB_FONT_WEIGHTS[finalFontWeight] : undefined;
+  // Weight is carried either by a numeric `fontWeight` (one multi-weight CSS
+  // family) or by the family name itself (discrete per-weight faces). Native
+  // is always the latter: adding a numeric weight on top of an already-bold
+  // file faux-bolds it. Web defaults to numeric for the package's own single
+  // "Inter" family, but an app loading per-weight faces through `expo-font`
+  // gets its own family per weight on web too, and must declare
+  // `webWeightStrategy: "family"` to avoid a second synthesised layer of bold.
+  const weightStrategy = Platform.OS === "web"
+    ? fontOverrides.webWeightStrategy ?? defaultWebWeightStrategy
+    : "family";
+  const resolvedFontWeight = weightStrategy === "numeric"
+    ? WEB_FONT_WEIGHTS[finalFontWeight]
+    : undefined;
 
   // Get fontSize and lineHeight from size variant
   const fontSize = FONT_SIZES[finalSize];

@@ -76,10 +76,60 @@ const sansSerifFamilies = isWebRuntime
       bold: "sans-serif",
     };
 
-export const fontFamilies = {
+/** Weight slots every sans-serif family map must provide. */
+export type FontFamilyWeight = "light" | "regular" | "medium" | "semibold" | "bold";
+
+/**
+ * How a platform expresses weight for a given family map.
+ *
+ * - `"numeric"` — one multi-weight CSS family (the package's own web default:
+ *   a single `"Inter"` family where a numeric `fontWeight` selects the
+ *   `@font-face` variant).
+ * - `"family"` — each weight is its own separately-registered single-face
+ *   family, so the family name alone carries the weight. Emitting a numeric
+ *   `fontWeight` on top of one makes the renderer synthesise a second layer of
+ *   bold, so `StyledText` suppresses it.
+ *
+ * Native is always `"family"` (discrete static font files). Web is `"numeric"`
+ * by default, but apps that load per-weight faces through `expo-font` — which
+ * registers each file as its own family on web too — must declare `"family"`.
+ */
+export type FontWeightStrategy = "numeric" | "family";
+
+export type FontFamilyMap = {
+  serif: { regular: string; bold: string };
+  sansSerif: Record<FontFamilyWeight, string>;
+};
+
+/**
+ * Font overrides a host app can inject to brand the package.
+ *
+ * Mirrors `setColors`: the package ships neutral defaults, but a consuming app
+ * almost always bundles its own faces. Without an injection point, package
+ * components render the package's fonts while app-authored siblings render the
+ * app's — and the only remaining lever is patching `node_modules`, which is
+ * keyed to an exact version and silently stops applying on the next bump.
+ *
+ * Partial by design: override `sansSerif` alone and `serif` keeps its default.
+ */
+export type FontOverrides = {
+  families?: Partial<FontFamilyMap>;
+  /** Defaults to the package's own per-platform behaviour when omitted. */
+  webWeightStrategy?: FontWeightStrategy;
+};
+
+/** The package's built-in families. Override per-app via `setFonts`. */
+export const fontFamilies: FontFamilyMap = {
   serif: serifFamilies,
   sansSerif: sansSerifFamilies,
 };
+
+/**
+ * The package's own web weight strategy: one multi-weight "Inter" family, so
+ * weight comes from a numeric `fontWeight`. Native always behaves as
+ * `"family"` regardless of this value.
+ */
+export const defaultWebWeightStrategy: FontWeightStrategy = "numeric";
 
 // Navigation theme fonts configuration
 /**
