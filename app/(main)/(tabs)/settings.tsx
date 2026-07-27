@@ -37,8 +37,11 @@ export default function SettingsRoute() {
   ];
 
   return (
-    <View style={styles.container}>
+    <>
       <Seo title="Settings - Expo Template" description="Settings screen with theme, language, and preferences." />
+      {/* Keep the ScrollView as the screen's first native child — the native
+          tab bar finds it via first-subview traversal to drive
+          minimizeBehavior and scroll edge effects on iOS 26. */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Appearance section */}
         <View style={styles.section}>
@@ -168,18 +171,15 @@ export default function SettingsRoute() {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </>
   );
 }
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
     content: {
       flex: 1,
+      backgroundColor: theme.colors.background,
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg,
     },

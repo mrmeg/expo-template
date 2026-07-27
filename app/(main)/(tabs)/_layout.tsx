@@ -25,20 +25,36 @@ export default function TabLayout() {
   // (`UnavailabilityError`). Omit the icon child on web — labels still render.
   const isWeb = Platform.OS === "web";
 
+  // On Android the selected icon is drawn on top of the accent indicator
+  // pill, so it must use the accent's *contrast* color — accent-on-accent
+  // renders the icon invisible. iOS has no pill; accent is correct there.
+  const selectedIconColor =
+    Platform.OS === "android"
+      ? theme.colors.accentForeground
+      : theme.colors.accent;
+
   return (
     <NativeTabs
+      // iOS 26+: collapse the tab bar while scrolling down, re-expand on
+      // scroll up. No-op on Android/web, where native tabs stay static.
+      minimizeBehavior="onScrollDown"
       iconColor={{
         default: theme.colors.mutedForeground,
-        selected: theme.colors.accent,
+        selected: selectedIconColor,
       }}
       labelStyle={{
         default: { color: theme.colors.mutedForeground },
         selected: { color: theme.colors.accent },
       }}
       backgroundColor={theme.colors.card}
-      // Android active-tab indicator; ignored on other platforms.
+      // Android: accent indicator pill + always-visible labels (Material's
+      // default "auto" hides unselected labels at 4+ tabs, which reads as
+      // missing icons/uneven spacing). Both ignored on other platforms.
       {...(Platform.OS === "android"
-        ? { indicatorColor: theme.colors.accent }
+        ? {
+          indicatorColor: theme.colors.accent,
+          labelVisibilityMode: "labeled" as const,
+        }
         : null)}
     >
       {NAV_DESTINATIONS.map((destination) => (

@@ -108,8 +108,11 @@ function ProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <>
       <Seo title="Profile - Expo Template" description="User profile screen with avatar, stats, and editable sections." />
+      {/* Keep the ScrollView as the screen's first native child — the native
+          tab bar finds it via first-subview traversal to drive
+          minimizeBehavior and scroll edge effects on iOS 26. */}
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           {/* Profile Header */}
@@ -264,7 +267,7 @@ function ProfileScreen() {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </>
   );
 }
 
@@ -486,12 +489,9 @@ function formatPeriodEnd(
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
     scrollView: {
       flex: 1,
+      backgroundColor: theme.colors.background,
     },
     content: {
       flex: 1,

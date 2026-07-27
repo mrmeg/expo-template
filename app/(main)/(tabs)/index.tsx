@@ -30,8 +30,11 @@ export default function ExploreScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <>
       <Seo title="Explore - Expo Template" description="Browse UI components, screen templates, and interactive demos built with Expo and React Native." />
+      {/* The ScrollView must be the screen's first native child: the native tab
+          bar (and stack header) locate it by walking first subviews, and that
+          hookup drives minimizeBehavior + scroll edge effects on iOS 26. */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -134,18 +137,15 @@ export default function ExploreScreen() {
           </View>
         </AnimatedView>
       </ScrollView>
-    </View>
+    </>
   );
 }
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
     scroll: {
       flex: 1,
+      backgroundColor: theme.colors.background,
     },
     scrollContent: {
       paddingHorizontal: spacing.lg,
