@@ -16,7 +16,7 @@ import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { Skeleton } from "@mrmeg/expo-ui/components/Skeleton";
-import { shouldUseNativeDriver } from "@mrmeg/expo-ui/lib";
+import { createThemedStyles, shouldUseNativeDriver } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -165,7 +165,7 @@ function TypingDot({ delay, theme }: { delay: number; theme: Theme }) {
 }
 
 function TypingIndicator({ theme }: { theme: Theme }) {
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   return (
     <View style={styles.receivedRow}>
       <View style={[styles.bubble, styles.receivedBubble, styles.typingBubble]}>
@@ -182,7 +182,7 @@ function TypingIndicator({ theme }: { theme: Theme }) {
 // ---------------------------------------------------------------------------
 
 function StatusText({ status, theme }: { status?: MessageStatus; theme: Theme }) {
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   if (!status) return null;
 
   switch (status) {
@@ -239,7 +239,7 @@ const loadingSkeletonRows = [
 ] as const;
 
 function LoadingSkeleton({ theme }: { theme: Theme }) {
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   return (
     <View style={styles.skeletonContainer}>
@@ -278,7 +278,7 @@ export function ChatScreen({
 }: ChatScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const [inputText, setInputText] = React.useState("");
   const canSend = inputText.trim().length > 0;
 
@@ -578,3 +578,5 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

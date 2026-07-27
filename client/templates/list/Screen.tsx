@@ -15,6 +15,7 @@ import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Skeleton } from "@mrmeg/expo-ui/components/Skeleton";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -68,7 +69,7 @@ export function ListScreen<T>({
   style: styleOverride,
 }: ListScreenProps<T>) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearch = useCallback(
@@ -224,3 +225,5 @@ const createStyles = (theme: Theme) =>
       gap: spacing.xs,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

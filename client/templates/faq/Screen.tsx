@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { View, ScrollView, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
@@ -6,6 +6,7 @@ import { BodyText } from "@mrmeg/expo-ui/components/StyledText";
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@mrmeg/expo-ui/components/Accordion";
 import { Button } from "@mrmeg/expo-ui/components/Button";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -66,7 +67,7 @@ export function FaqScreen({
   style: styleOverride,
 }: FaqScreenProps) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   return (
     <View style={[styles.container, styleOverride]}>
@@ -146,3 +147,5 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing.lg,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { View, StyleSheet, Pressable, Platform, ScrollView } from "react-native";
 import { Link } from "expo-router";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
@@ -8,6 +7,7 @@ import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { Seo } from "@/client/components/Seo";
 import { blurActiveElementOnWeb } from "@/client/features/navigation/blurActiveElementOnWeb";
 import {
@@ -20,7 +20,7 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 
 export default function ExploreScreen() {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const componentCount = getComponentCount();
 
   // Pair templates into rows of 2 for grid layout
@@ -294,3 +294,5 @@ const createStyles = (theme: Theme) =>
       marginLeft: spacing.md + 30 + spacing.sm + 2,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

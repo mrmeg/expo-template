@@ -17,6 +17,7 @@ import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/Styl
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { StatCard, type StatChangeDirection } from "@mrmeg/expo-ui/components/StatCard";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -174,7 +175,7 @@ export function DashboardScreen({
   style: styleOverride,
 }: DashboardScreenProps) {
   const { theme, getShadowStyle } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   // Memoize the refresh control so the ScrollView doesn't get a fresh element
   // every render.
@@ -519,3 +520,5 @@ const createStyles = (theme: Theme) =>
       marginLeft: spacing.md + 32 + spacing.md,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

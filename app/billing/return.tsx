@@ -14,7 +14,7 @@
  * the source of truth, and this screen never mutates state based on it.
  */
 
-import { useMemo, useEffect } from "react";
+import { useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
@@ -24,13 +24,14 @@ import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
 import { billingSummaryQueryKey } from "@/client/features/billing";
 
 export default function BillingReturnScreen() {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const queryClient = useQueryClient();
   const { status } = useLocalSearchParams<{ status?: string }>();
   const userId = useAuthStore((s) => s.user?.userId ?? null);
@@ -147,3 +148,5 @@ const createStyles = (theme: Theme) =>
       minWidth: 200,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   ScrollView,
@@ -15,6 +15,7 @@ import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import type { UseFormReturn } from "react-hook-form";
 
@@ -54,7 +55,7 @@ function StepIndicator({
   currentStep: number;
   theme: Theme;
 }) {
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   return (
     <View style={styles.stepRow}>
@@ -120,7 +121,7 @@ export function FormScreen({
 }: FormScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -319,3 +320,5 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

@@ -107,6 +107,19 @@ const rateLimitBuckets = new Map<string, RateLimitBucket>();
 const expoRequestHandler = createRequestHandler({ build: SERVER_BUILD_DIR });
 const ffmpegWorkerAsset = loadFfmpegWorker(process.cwd());
 
+// Warm the SSR render once at boot. The streaming renderer snapshots the
+// react-native-web stylesheet for <head> before lazy route chunks load, so the
+// first render after a cold start ships HTML whose theme-dependent classes
+// have no CSS rules — an unstyled first paint for whoever hits the server
+// first. One throwaway render populates the module cache (and the RNW sheet)
+// so real requests get complete styles. Draining the body matters: suspended
+// chunks only render (and register their styles) as the stream is consumed.
+void expoRequestHandler(new Request("http://localhost/"))
+  .then((response) => response.text())
+  .catch((error) => {
+    console.warn("SSR warm-up render failed (first request may paint unstyled):", error);
+  });
+
 function allowedOrigins(): string[] {
   return process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(",").flatMap((origin) => {

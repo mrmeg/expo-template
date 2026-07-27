@@ -1,4 +1,4 @@
-import React, { useMemo, ReactNode } from "react";
+import React, { ReactNode } from "react";
 import {
   View,
   ScrollView,
@@ -16,6 +16,7 @@ import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Item, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from "@mrmeg/expo-ui/components/Item";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -73,7 +74,7 @@ export function ProfileScreen({
   style: styleOverride,
 }: ProfileScreenProps) {
   const { theme, getShadowStyle } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   // Staggered entrance animations
   const avatarEntrance = useStaggeredEntrance({ type: "scale", delay: 0 });
@@ -272,3 +273,5 @@ const createStyles = (theme: Theme) =>
       overflow: "hidden",
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

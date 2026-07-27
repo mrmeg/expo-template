@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   View,
   StyleSheet,
@@ -13,6 +13,7 @@ import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -94,7 +95,7 @@ export function ErrorScreen({
 }: ErrorScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   const defaults = VARIANT_DEFAULTS[variant];
   const resolvedIcon = icon ?? defaults.icon;
@@ -173,3 +174,5 @@ function createStyles(theme: Theme) {
     },
   });
 }
+
+const themedStyles = createThemedStyles(createStyles);

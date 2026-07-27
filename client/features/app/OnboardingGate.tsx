@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -7,6 +7,7 @@ import {
 } from "@/client/features/onboarding/OnboardingFlow";
 import { useOnboardingStore } from "@/client/features/onboarding/onboardingStore";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 const PAGES: OnboardingPage[] = [
@@ -41,7 +42,7 @@ const PAGES: OnboardingPage[] = [
 export function OnboardingGate() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const setHasSeenOnboarding = useOnboardingStore((s) => s.setHasSeenOnboarding);
 
   const handleComplete = () => setHasSeenOnboarding(true);
@@ -68,3 +69,5 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

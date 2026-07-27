@@ -1,4 +1,4 @@
-import { useMemo, useReducer, useCallback } from "react";
+import { useReducer, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -16,6 +16,7 @@ import {
 } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import Config from "@/client/config";
 import { getAllKeys, load, clear } from "@/client/lib/storage";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -69,7 +70,7 @@ function storageReducer(state: StorageState, action: StorageAction): StorageStat
 export default function DeveloperScreen() {
   const { theme, scheme, getShadowStyle } = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   // Storage state
   const [storage, dispatchStorage] = useReducer(
@@ -463,3 +464,5 @@ const createStyles = (theme: Theme) =>
       lineHeight: 18,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useReducer } from "react";
+import React, { useEffect, useReducer } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
@@ -14,6 +14,7 @@ import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGr
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { useThemeStore } from "@mrmeg/expo-ui/state";
 import { spacing, fontFamilies } from "@mrmeg/expo-ui/constants";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme, ThemeColors } from "@mrmeg/expo-ui/constants";
 import { Section, SubSection, ThemeToggle } from "@/client/showcase";
 
@@ -162,7 +163,7 @@ function showcaseReducer(
 export default function ThemedShowcaseScreen() {
   const { theme, scheme } = useTheme();
   const setColors = useThemeStore((s) => s.setColors);
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   const [state, dispatch] = useReducer(
     showcaseReducer,
@@ -431,3 +432,5 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.mutedForeground,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

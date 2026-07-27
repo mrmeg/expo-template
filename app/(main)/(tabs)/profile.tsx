@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { router } from "expo-router";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
@@ -22,6 +22,7 @@ import {
 } from "@/client/features/billing";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import { palette } from "@mrmeg/expo-ui/constants";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { Seo } from "@/client/components/Seo";
 
 /**
@@ -37,7 +38,7 @@ export default function ProfileRoute() {
 
 function ProfileScreen() {
   const { theme, getShadowStyle } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const { signOut } = useAuth();
   const { user, state: authState } = useAuthStore();
   const billingQuery = useBillingSummary();
@@ -653,6 +654,8 @@ const createStyles = (theme: Theme) =>
       lineHeight: 18,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);
 
 function messagesForProblem(problem: BillingProblem): string[] {
   switch (problem.kind) {

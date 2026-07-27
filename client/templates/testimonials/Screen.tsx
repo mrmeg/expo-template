@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { View, ScrollView, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { useTheme, useDimensions } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -6,6 +6,7 @@ import { BodyText, SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/compo
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Card } from "@mrmeg/expo-ui/components/Card";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -70,7 +71,7 @@ export function TestimonialsScreen({
 }: TestimonialsScreenProps) {
   const { theme } = useTheme();
   const { width: windowWidth } = useDimensions();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const cardWidth = Math.round(windowWidth * 0.8);
 
   return (
@@ -178,3 +179,5 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.textDim,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

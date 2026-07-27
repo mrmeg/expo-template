@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { View, Pressable, StyleSheet, Alert, Platform } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { ErrorScreen, type ErrorVariant } from "./Screen";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -24,7 +25,7 @@ function showAlert(msg: string) {
 
 export default function ScreenErrorDemo() {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const [variant, setVariant] = useState<ErrorVariant>("generic");
 
   return (
@@ -98,3 +99,5 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

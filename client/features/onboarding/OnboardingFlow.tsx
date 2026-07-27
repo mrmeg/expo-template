@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import {
   View,
   FlatList,
@@ -11,6 +11,7 @@ import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/Styl
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { useTheme, useDimensions } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -82,7 +83,7 @@ export function OnboardingFlow({
   skipLabel = "Skip",
 }: OnboardingFlowProps) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   // SSR-aware: react-native's useWindowDimensions returns width:0 on server,
   // which collapses each FlatList page to a 0-width column (one word per
   // line). useDimensions seeds from SsrViewportContext so the initial render
@@ -303,3 +304,5 @@ const createStyles = (theme: Theme) =>
       // Button already has proper padding from preset
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

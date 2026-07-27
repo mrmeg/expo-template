@@ -1,10 +1,11 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { View, Pressable, StyleSheet, Platform } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { ListScreen } from "./Screen";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -29,7 +30,7 @@ const ALL_CONTACTS: Contact[] = [
 
 export default function ScreenListDemo() {
   const { theme, withAlpha } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const [contacts, setContacts] = useState(ALL_CONTACTS);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -141,3 +142,5 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing.xxs,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

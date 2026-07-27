@@ -17,6 +17,7 @@ import { Button } from "@mrmeg/expo-ui/components/Button";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 import { Checkbox } from "@mrmeg/expo-ui/components/Checkbox";
 import { notify } from "@mrmeg/expo-ui/state";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // Form field types
@@ -57,7 +58,7 @@ const validatePassword = (password: string): string[] => {
  */
 export default function FormDemoScreen() {
   const { theme, getShadowStyle } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   // Form state
   const [formData, setFormData] = useState<FormData>({
@@ -560,3 +561,5 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.mutedForeground,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

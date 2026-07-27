@@ -18,6 +18,7 @@ import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Skeleton } from "@mrmeg/expo-ui/components/Skeleton";
 import { ItemMedia, ItemContent, ItemTitle, ItemDescription } from "@mrmeg/expo-ui/components/Item";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -141,7 +142,7 @@ export function NotificationListScreen({
   style: styleOverride,
 }: NotificationListScreenProps) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   const sections = useMemo(
     () => groupNotifications(notifications),
@@ -429,3 +430,5 @@ const createStyles = (theme: Theme) =>
       gap: spacing.xs,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

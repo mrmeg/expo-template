@@ -1,4 +1,4 @@
-import React, { useMemo, ErrorInfo } from "react";
+import React, { ErrorInfo } from "react";
 import {
   View,
   ScrollView,
@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
@@ -47,7 +48,7 @@ export interface ErrorScreenProps {
  */
 export function ErrorScreen({ error, errorInfo, resetError }: ErrorScreenProps) {
   const { theme, getShadowStyle } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const [showDetails, setShowDetails] = React.useState(__DEV__);
 
   return (
@@ -217,3 +218,5 @@ const createStyles = (theme: Theme) =>
       lineHeight: 16,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

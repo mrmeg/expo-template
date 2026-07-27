@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -16,6 +16,7 @@ import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { spacing, type Theme } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 
 interface ImagePreviewProps {
   uri: string;
@@ -33,7 +34,7 @@ export function ImagePreview({
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const topInset = insets.top || initialWindowMetrics?.insets.top || 0;
-  const styles = useMemo(() => createStyles(theme, topInset), [theme, topInset]);
+  const styles = themedStyles(theme);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -48,7 +49,7 @@ export function ImagePreview({
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="black" />
 
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: topInset }]}>
           <View style={styles.headerContent}>
             {title && (
               <SansSerifText style={styles.title} numberOfLines={1}>
@@ -111,7 +112,7 @@ export function ImagePreview({
   );
 }
 
-const createStyles = (theme: Theme, topInset: number) =>
+const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -122,7 +123,6 @@ const createStyles = (theme: Theme, topInset: number) =>
       alignItems: "center",
       justifyContent: "space-between",
       paddingHorizontal: spacing.md,
-      paddingTop: topInset,
       paddingBottom: spacing.sm,
       backgroundColor: "rgba(0, 0, 0, 0.8)",
       position: "absolute",
@@ -190,3 +190,5 @@ const createStyles = (theme: Theme, topInset: number) =>
       fontWeight: "500",
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

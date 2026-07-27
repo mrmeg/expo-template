@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useReducer } from "react";
+import { useCallback, useReducer } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router, useLoaderData } from "expo-router";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Button } from "@mrmeg/expo-ui/components/Button";
@@ -70,7 +71,7 @@ export default function ServerAlphaDemo() {
   const catalog = useLoaderData<typeof serverAlphaLoader>();
   const { status, examples } = catalog;
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const [apiDemo, dispatchApiDemo] = useReducer(
     apiDemoReducer,
     INITIAL_API_DEMO_STATE
@@ -282,7 +283,7 @@ export default function ServerAlphaDemo() {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   return (
     <View style={styles.row}>
@@ -403,3 +404,5 @@ const createStyles = (theme: Theme) =>
       lineHeight: 20,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

@@ -1,8 +1,9 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useEffect } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useAuthStore } from "../stores/authStore";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { AuthScreen } from "./AuthScreen";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -20,7 +21,7 @@ export function AuthWrapper({
   showLoading = true,
 }: AuthWrapperProps) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const { state } = useAuthStore();
   const { checkAuthState } = useAuth();
 
@@ -53,5 +54,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);
 
 export default AuthWrapper;

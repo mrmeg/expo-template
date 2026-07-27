@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { Image, type ImageSource } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -6,6 +6,7 @@ import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Button } from "@mrmeg/expo-ui/components/Button";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -79,7 +80,7 @@ export function HeroScreen({
 }: HeroScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, withAlpha } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   const actions = (primaryAction || secondaryAction) && (
     <View style={styles.actions}>
@@ -171,3 +172,5 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing.md,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

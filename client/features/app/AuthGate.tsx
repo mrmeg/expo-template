@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
 import { AuthScreen } from "@/client/features/auth/components/AuthScreen";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import { isAuthEnabled } from "./isAuthEnabled";
 
@@ -25,7 +26,7 @@ interface AuthGateProps {
 
 export function AuthGate({ children }: AuthGateProps) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const state = useAuthStore((s) => s.state);
 
   if (!isAuthEnabled()) {
@@ -56,3 +57,5 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

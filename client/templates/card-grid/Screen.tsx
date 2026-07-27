@@ -17,6 +17,7 @@ import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/Styl
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { SkeletonCard } from "@mrmeg/expo-ui/components/Skeleton";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -92,7 +93,7 @@ export function CardGridScreen<T>({
   style: styleOverride,
 }: CardGridScreenProps<T>) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme, cardSpacing), [theme, cardSpacing]);
+  const styles = themedStyles(theme);
 
   // Hoist per-column flex objects so renderItem hands stable style references to
   // each row instead of allocating fresh ones every render.
@@ -209,6 +210,8 @@ export function CardGridScreen<T>({
     [columns, cardSpacing]
   );
 
+  const cardGapStyle = useMemo<ViewStyle>(() => ({ gap: cardSpacing }), [cardSpacing]);
+
   // Pass a component (not an element) so FlatList builds the header JSX lazily —
   // never during an early-return render. renderCategoryTabs / renderSortRow are
   // memoized, so this callback identity is stable across unrelated renders.
@@ -245,7 +248,7 @@ export function CardGridScreen<T>({
         {header}
         {renderCategoryTabs()}
         {renderSortRow()}
-        <View style={styles.skeletonGrid}>
+        <View style={[styles.skeletonGrid, cardGapStyle]}>
           {Array.from({ length: skeletonCount }).map((_, i) => (
             <View key={i} style={{ flex: 1 / columns }}>
               <SkeletonCard showAvatar={false} imageHeight={120} textLines={2} />
@@ -289,7 +292,9 @@ export function CardGridScreen<T>({
         renderItem={renderItem}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={data.length === 0 ? styles.emptyFlatList : styles.gridContent}
+        contentContainerStyle={
+          data.length === 0 ? styles.emptyFlatList : [styles.gridContent, cardGapStyle]
+        }
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
       />
@@ -301,7 +306,7 @@ export function CardGridScreen<T>({
 // Styles
 // ---------------------------------------------------------------------------
 
-const createStyles = (theme: Theme, cardSpacing: number) =>
+const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -347,7 +352,6 @@ const createStyles = (theme: Theme, cardSpacing: number) =>
     gridContent: {
       paddingHorizontal: spacing.lg,
       paddingBottom: spacing.xxl,
-      gap: cardSpacing,
     },
 
     // Skeleton loading
@@ -355,7 +359,6 @@ const createStyles = (theme: Theme, cardSpacing: number) =>
       flexDirection: "row",
       flexWrap: "wrap",
       paddingHorizontal: spacing.lg,
-      gap: cardSpacing,
     },
 
     // Empty state
@@ -390,3 +393,5 @@ const createStyles = (theme: Theme, cardSpacing: number) =>
       marginTop: spacing.lg,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

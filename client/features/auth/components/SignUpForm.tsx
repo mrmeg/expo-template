@@ -1,7 +1,8 @@
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useRef } from "react";
 import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import {
   Card,
@@ -47,7 +48,7 @@ export function SignUpForm({
 }: SignUpFormProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   const resolvedTitle = title ?? t("auth.signUpTitle");
   const resolvedDescription = description ?? t("auth.signUpDescription");
@@ -369,5 +370,7 @@ const createStyles = (theme: Theme) =>
       fontSize: 14,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);
 
 export default SignUpForm;

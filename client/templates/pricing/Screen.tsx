@@ -1,4 +1,4 @@
-import React, { useMemo, ReactNode } from "react";
+import React, { ReactNode } from "react";
 import {
   View,
   ScrollView,
@@ -16,6 +16,7 @@ import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -89,7 +90,7 @@ export function PricingScreen({
   style: styleOverride,
 }: PricingScreenProps) {
   const { theme, getShadowStyle } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   return (
     <View style={[styles.container, styleOverride]}>
@@ -312,3 +313,5 @@ const createStyles = (theme: Theme) =>
       alignItems: "center",
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

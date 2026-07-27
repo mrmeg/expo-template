@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useReducer, useState } from "react";
+import React, { memo, useReducer, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
 import { KeyboardAwareScrollView } from "@/client/features/keyboard/platform";
@@ -52,6 +52,7 @@ import { notify } from "@mrmeg/expo-ui/state";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { fontFamilies } from "@mrmeg/expo-ui/constants";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { blurActiveElementOnWeb } from "@/client/features/navigation/blurActiveElementOnWeb";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -107,7 +108,7 @@ export default function ShowcaseScreen() {
 
 function useShowcaseScreenContent() {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   // Navigation state
   const [controls, dispatchControls] = useReducer(
@@ -2543,3 +2544,5 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.md,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

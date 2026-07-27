@@ -1,9 +1,10 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { View, StyleSheet } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { CardGridScreen, type CardGridCategory } from "./Screen";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -34,7 +35,7 @@ const CATEGORIES: CardGridCategory[] = [
 
 export default function ScreenCardGridDemo() {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const filteredProducts =
@@ -104,3 +105,5 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.foreground,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

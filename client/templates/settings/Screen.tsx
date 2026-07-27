@@ -1,4 +1,4 @@
-import React, { useMemo, ReactNode } from "react";
+import React, { ReactNode } from "react";
 import {
   View,
   ScrollView,
@@ -14,6 +14,7 @@ import { SansSerifText, EyebrowText } from "@mrmeg/expo-ui/components/StyledText
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Switch } from "@mrmeg/expo-ui/components/Switch";
 import { Item, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from "@mrmeg/expo-ui/components/Item";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -79,7 +80,7 @@ export interface SettingsScreenProps {
 
 export function SettingsScreen({ sections, header, style: styleOverride }: SettingsScreenProps) {
   const { theme, getShadowStyle, withAlpha } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   const renderItem = (item: SettingsItem, isLast: boolean) => {
     switch (item.type) {
@@ -262,3 +263,5 @@ const createStyles = (theme: Theme) =>
       marginLeft: spacing.xxs,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

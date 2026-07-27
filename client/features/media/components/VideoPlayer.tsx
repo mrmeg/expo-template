@@ -14,7 +14,7 @@
  * ```
  */
 
-import React, { useMemo, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useEvent } from "expo";
 import {
   View,
@@ -27,6 +27,7 @@ import {
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
@@ -60,7 +61,7 @@ export function VideoPlayer({
   const insets = useSafeAreaInsets();
   // Use initialWindowMetrics as fallback since Modal may not have SafeAreaProvider context
   const topInset = insets.top || initialWindowMetrics?.insets.top || 0;
-  const styles = useMemo(() => createStyles(theme, topInset), [theme, topInset]);
+  const styles = themedStyles(theme);
 
   // Create video player instance with the source
   const player = useVideoPlayer(uri, (player) => {
@@ -111,7 +112,7 @@ export function VideoPlayer({
         <StatusBar barStyle="light-content" backgroundColor="black" />
 
         {/* Header with close button */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: topInset }]}>
           <View style={styles.headerContent}>
             {title && (
               <SansSerifText style={styles.title} numberOfLines={1}>
@@ -165,7 +166,7 @@ export function VideoPlayer({
   );
 }
 
-const createStyles = (theme: Theme, topInset: number) =>
+const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -176,7 +177,6 @@ const createStyles = (theme: Theme, topInset: number) =>
       alignItems: "center",
       justifyContent: "space-between",
       paddingHorizontal: spacing.md,
-      paddingTop: topInset,
       paddingBottom: spacing.sm,
       backgroundColor: "rgba(0, 0, 0, 0.8)",
       position: "absolute",
@@ -244,5 +244,7 @@ const createStyles = (theme: Theme, topInset: number) =>
       fontWeight: "500",
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);
 
 export default VideoPlayer;

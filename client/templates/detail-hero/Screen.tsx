@@ -1,4 +1,4 @@
-import React, { useMemo, ReactNode, useRef } from "react";
+import React, { ReactNode, useRef } from "react";
 import {
   View,
   Animated,
@@ -14,8 +14,8 @@ import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { useTheme, useDimensions } from "@mrmeg/expo-ui/hooks";
-import { shouldUseNativeDriver } from "@mrmeg/expo-ui/lib";
-import { spacing, palette } from "@mrmeg/expo-ui/constants";
+import { createThemedStyles, shouldUseNativeDriver } from "@mrmeg/expo-ui/lib";
+import { spacing } from "@mrmeg/expo-ui/constants";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -76,12 +76,9 @@ export function DetailHeroScreen({
   style: styleOverride,
 }: DetailHeroScreenProps) {
   const insets = useSafeAreaInsets();
-  const { theme, withAlpha } = useTheme();
+  const { theme } = useTheme();
   const { height: windowHeight } = useDimensions();
-  const styles = useMemo(
-    () => createStyles(theme, insets.top, heroHeight, windowHeight, withAlpha),
-    [theme, insets.top, heroHeight, windowHeight, withAlpha]
-  );
+  const styles = themedStyles(theme);
   const heroBg = heroBackgroundColor || theme.colors.accent;
 
   // Lazy ref init: allocate the Animated.Value once, not on every render.
@@ -120,13 +117,14 @@ export function DetailHeroScreen({
         style={[
           styles.hero,
           {
+            height: heroHeight,
             backgroundColor: heroBg,
             transform: [{ translateY: headerTranslateY }],
             opacity: headerOpacity,
           },
         ]}
       >
-        <View style={styles.heroContent}>
+        <View style={[styles.heroContent, { paddingTop: insets.top }]}>
           {heroContent || (
             <>
               {heroIcon && (
@@ -158,7 +156,7 @@ export function DetailHeroScreen({
       >
         <View style={{ height: heroHeight - OVERLAP }} />
 
-        <View style={styles.contentCard}>
+        <View style={[styles.contentCard, { minHeight: windowHeight }]}>
           {/* Stats row */}
           {stats && stats.length > 0 && (
             <>
@@ -216,7 +214,10 @@ export function DetailHeroScreen({
 
       {/* Sticky header overlay */}
       <Animated.View
-        style={[styles.stickyHeader, { opacity: navBarOpacity, pointerEvents: "box-none" }]}
+        style={[
+          styles.stickyHeader,
+          { paddingTop: insets.top, opacity: navBarOpacity, pointerEvents: "box-none" },
+        ]}
       >
         <View style={styles.stickyHeaderInner}>
           {onBack ? (
@@ -237,7 +238,14 @@ export function DetailHeroScreen({
       {/* Floating back button */}
       {onBack && (
         <Animated.View
-          style={[styles.backButtonContainer, { opacity: backButtonOpacity, pointerEvents: "box-none" }]}
+          style={[
+            styles.backButtonContainer,
+            {
+              top: insets.top + spacing.sm,
+              opacity: backButtonOpacity,
+              pointerEvents: "box-none",
+            },
+          ]}
         >
           <Pressable
             onPress={onBack}
@@ -258,13 +266,7 @@ export function DetailHeroScreen({
 // Styles
 // ---------------------------------------------------------------------------
 
-const createStyles = (
-  theme: Theme,
-  topInset: number,
-  heroHeight: number,
-  windowHeight: number,
-  withAlpha: (color: string, alpha: number) => string
-) =>
+const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -275,14 +277,12 @@ const createStyles = (
       top: 0,
       left: 0,
       right: 0,
-      height: heroHeight,
       zIndex: 0,
     },
     heroContent: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingTop: topInset,
     },
     heroSectionHeader: {
       paddingHorizontal: spacing.lg,
@@ -302,7 +302,6 @@ const createStyles = (
       backgroundColor: theme.colors.background,
       borderTopLeftRadius: spacing.radius2xl,
       borderTopRightRadius: spacing.radius2xl,
-      minHeight: windowHeight,
       paddingTop: spacing.lg,
       paddingHorizontal: spacing.md,
     },
@@ -354,7 +353,6 @@ const createStyles = (
       backgroundColor: theme.colors.background,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
-      paddingTop: topInset,
       zIndex: 10,
     },
     stickyHeaderInner: {
@@ -369,7 +367,6 @@ const createStyles = (
     },
     backButtonContainer: {
       position: "absolute",
-      top: topInset + spacing.sm,
       left: spacing.md,
       zIndex: 10,
     },
@@ -377,8 +374,10 @@ const createStyles = (
       width: 40,
       height: 40,
       borderRadius: spacing.radiusFull,
-      backgroundColor: withAlpha(palette.black, 0.2),
+      backgroundColor: "rgba(0, 0, 0, 0.2)",
       alignItems: "center",
       justifyContent: "center",
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

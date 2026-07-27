@@ -44,6 +44,7 @@ import {
   resolveMediaUploadPolicy,
 } from "@/client/features/media/mediaSettings";
 import { notify } from "@mrmeg/expo-ui/state";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { logDev } from "@/client/lib/devtools";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import { Seo } from "@/client/components/Seo";
@@ -110,7 +111,7 @@ export default function MediaScreen() {
 
 function useMediaScreenContent() {
   const { theme, getShadowStyle } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const [filter, setFilter] = useState<FilterType>("all");
   const [isUploadingBatch, setIsUploadingBatch] = useState(false);
   const [selectedKeyCandidates, setSelectedKeyCandidates] = useState<Set<string>>(
@@ -1143,3 +1144,5 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusSm,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

@@ -1,7 +1,7 @@
-import { useMemo } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useLoaderData } from "expo-router";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import {
@@ -22,7 +22,7 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 export default function ServerAlphaExampleScreen() {
   const { example, requestedExample, status } = useLoaderData<typeof serverAlphaExampleLoader>();
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const title = example?.label ?? "Unknown Server Pattern";
 
   return (
@@ -103,7 +103,7 @@ export default function ServerAlphaExampleScreen() {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   return (
     <View style={styles.row}>
@@ -178,3 +178,5 @@ const createStyles = (theme: Theme) =>
       lineHeight: 20,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

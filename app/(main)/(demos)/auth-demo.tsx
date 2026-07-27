@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { View, StyleSheet, ScrollView, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthWrapper } from "@/client/features/auth/components/AuthWrapper";
@@ -10,6 +10,7 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@mrme
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { spacing } from "@mrmeg/expo-ui/constants";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 
@@ -53,7 +54,7 @@ function AuthStateBadge({ state }: { state: AuthState }) {
 // Protected content section
 function ProtectedSection() {
   const { theme } = useTheme();
-  const dynamicStyles = useMemo(() => createStyles(theme), [theme]);
+  const dynamicStyles = themedStyles(theme);
 
   return (
     <Card style={dynamicStyles.card}>
@@ -87,7 +88,7 @@ function ProtectedSection() {
 // User info section
 function UserInfoSection() {
   const { theme } = useTheme();
-  const dynamicStyles = useMemo(() => createStyles(theme), [theme]);
+  const dynamicStyles = themedStyles(theme);
   const { user } = useAuthStore();
   const { signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
@@ -168,7 +169,7 @@ function UserInfoSection() {
 // Auth state monitor section
 function AuthStateMonitor() {
   const { theme } = useTheme();
-  const dynamicStyles = useMemo(() => createStyles(theme), [theme]);
+  const dynamicStyles = themedStyles(theme);
   const { state, pendingVerificationEmail, error } = useAuthStore();
   const { checkAuthState } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
@@ -283,7 +284,7 @@ function AuthStateMonitor() {
 // How It Works section
 function HowItWorksSection() {
   const { theme } = useTheme();
-  const dynamicStyles = useMemo(() => createStyles(theme), [theme]);
+  const dynamicStyles = themedStyles(theme);
 
   return (
     <Card style={dynamicStyles.card}>
@@ -346,7 +347,7 @@ function HowItWorksSection() {
 function AuthenticatedContent() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const dynamicStyles = useMemo(() => createStyles(theme), [theme]);
+  const dynamicStyles = themedStyles(theme);
 
   return (
     <ScrollView
@@ -559,3 +560,5 @@ const createStyles = (theme: Theme) =>
       lineHeight: 18,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

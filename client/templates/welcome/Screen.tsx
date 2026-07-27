@@ -1,4 +1,4 @@
-import React, { useMemo, ReactNode } from "react";
+import React, { ReactNode } from "react";
 import {
   View,
   StyleSheet,
@@ -16,6 +16,7 @@ import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Separator } from "@mrmeg/expo-ui/components/Separator";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -62,7 +63,7 @@ export function WelcomeScreen({
 }: WelcomeScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
 
   // Staggered entrance animations
   const logoEntrance = useStaggeredEntrance({ type: "scale", delay: 0 });
@@ -212,3 +213,5 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing.sm,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);

@@ -1,4 +1,4 @@
-import React, { useMemo, useReducer } from "react";
+import React, { useReducer } from "react";
 import { View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -13,6 +13,7 @@ import { useAuth } from "../hooks/useAuth";
 import { isAuthError } from "../provider";
 import { useAuthStore } from "../stores/authStore";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import { getAppName } from "@/client/lib/identity";
@@ -92,7 +93,7 @@ function useAuthScreenContent({
   onAuthenticated,
 }: AuthScreenProps) {
   const { theme } = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = themedStyles(theme);
   const appName = getAppName();
   const { signIn, signUp, confirmSignUp, resendCode, forgotPassword, resetPassword } = useAuth();
 
@@ -589,5 +590,7 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.sm,
     },
   });
+
+const themedStyles = createThemedStyles(createStyles);
 
 export default AuthScreen;
