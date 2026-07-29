@@ -1,8 +1,8 @@
 import { StyleSheet, StyleProp, TextStyle, Platform } from "react-native";
 import * as LabelPrimitive from "@rn-primitives/label";
 import { useTheme } from "../hooks/useTheme";
+import { useFontStyle } from "../hooks/useFontStyle";
 import { spacing } from "../constants/spacing";
-import { fontFamilies } from "../constants/fonts";
 import { StyledText } from "./StyledText";
 import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
@@ -86,8 +86,12 @@ export function Label({
   const { theme } = useTheme();
   const styles = themedStyles(theme);
   const sizeConfig = SIZE_CONFIGS[size];
+  // Resolved through the theme store so `setFonts` overrides apply; identical
+  // to the old hardcoded medium family when no override is set.
+  const labelFont = useFontStyle("medium");
   const textStyle = StyleSheet.flatten([
     styles.label,
+    labelFont,
     { fontSize: sizeConfig.fontSize },
     error && styles.errorLabel,
     disabled && styles.disabledLabel,
@@ -107,7 +111,7 @@ export function Label({
         style={textStyle}
       >
         {children}
-        {required && <StyledText selectable={false} style={styles.required}> *</StyledText>}
+        {required && <StyledText selectable={false} fontWeight="bold" style={styles.required}> *</StyledText>}
       </LabelPrimitive.Text>
     </LabelPrimitive.Root>
   );
@@ -119,19 +123,16 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.xs,
     },
     label: {
-      // Medium weight: the family carries it on native (a real static
-      // Inter_500Medium file); web shares one "Inter" family across weights,
-      // so it needs the numeric fontWeight to pick the right @font-face
-      // variant. Setting fontWeight on native would faux-bold on top of the
-      // already-medium file (same rule as StyledText's WEB_FONT_WEIGHTS).
-      fontFamily: fontFamilies.sansSerif.medium,
-      ...(Platform.OS === "web" && { fontWeight: "500" as const }),
+      // Medium weight — the fontFamily (+ numeric fontWeight on web) is
+      // resolved per-render through the theme store (`useFontStyle("medium")`
+      // in Label) so `setFonts` overrides apply here too.
       color: theme.colors.text,
       userSelect: "none",
     },
     required: {
+      // Bold weight comes from the StyledText `fontWeight="bold"` prop, which
+      // resolves the family through the theme store.
       color: theme.colors.destructive,
-      fontFamily: fontFamilies.sansSerif.bold,
       userSelect: "none",
     },
     errorLabel: {

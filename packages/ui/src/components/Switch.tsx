@@ -1,5 +1,4 @@
 import { palette } from "../constants/colors";
-import { fontFamilies } from "../constants/fonts";
 import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
 import { hapticLight } from "../lib/haptics";
@@ -215,8 +214,8 @@ function Switch({
         >
           <StyledText
             selectable={false}
+            fontWeight="bold"
             style={{
-              fontFamily: fontFamilies.sansSerif.bold,
               fontSize: labelFontSize,
               color: labelOnColor,
               userSelect: "none",
@@ -267,8 +266,8 @@ function Switch({
         >
           <StyledText
             selectable={false}
+            fontWeight="bold"
             style={{
-              fontFamily: fontFamilies.sansSerif.bold,
               fontSize: labelFontSize,
               color: theme.colors.text,
               userSelect: "none",

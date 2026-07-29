@@ -15,7 +15,7 @@ import "./forceWebPlatform";
 import React from "react";
 import { StyleSheet } from "react-native";
 import { render, screen } from "@testing-library/react-native";
-import { StyledText, SerifText, type FontWeight } from "../StyledText";
+import { StyledText, SerifText, MonoText, type FontWeight } from "../StyledText";
 import { useThemeStore } from "../../state/themeStore";
 
 jest.mock("../../hooks/useTheme", () => ({
@@ -129,6 +129,62 @@ describe("StyledText font overrides", () => {
 
     expect(flattenTextStyle("warm moment").fontFamily).toBe("Cormorant_400Regular");
     expect(flattenTextStyle("body copy").fontFamily).toContain("Inter");
+  });
+
+  it("falls back within a partial override group, never to the package face", async () => {
+    // An app registering only Regular + Medium (the common minimal set) must
+    // get its own Regular for the missing weights — an Inter face leaking in
+    // for `bold` would silently break the brand.
+    useThemeStore.getState().setFonts({
+      families: { sansSerif: { regular: "Brand_Regular", medium: "Brand_Medium" } },
+      webWeightStrategy: "family",
+    });
+
+    await render(<StyledText fontWeight="bold">missing weight</StyledText>);
+
+    expect(flattenTextStyle("missing weight").fontFamily).toBe("Brand_Regular");
+  });
+
+  it("resolves serif overrides per weight", async () => {
+    useThemeStore.getState().setFonts({
+      families: {
+        serif: { regular: "Newsreader_400Regular", semibold: "Newsreader_600SemiBold" },
+      },
+      webWeightStrategy: "family",
+    });
+
+    await render(<SerifText fontWeight="semibold">serif heading</SerifText>);
+
+    expect(flattenTextStyle("serif heading").fontFamily).toBe("Newsreader_600SemiBold");
+  });
+
+  it("renders the mono variant with the system stack by default and the injected family when overridden", async () => {
+    await render(<MonoText>plain mono</MonoText>);
+    expect(flattenTextStyle("plain mono").fontFamily).toContain("monospace");
+
+    useThemeStore.getState().setFonts({
+      families: { mono: { regular: "JetBrainsMono_400Regular" } },
+      webWeightStrategy: "family",
+    });
+
+    await render(<MonoText>branded mono</MonoText>);
+    expect(flattenTextStyle("branded mono").fontFamily).toBe("JetBrainsMono_400Regular");
+  });
+
+  it("overriding mono alone leaves sans-serif and serif defaults intact", async () => {
+    useThemeStore.getState().setFonts({
+      families: { mono: { regular: "JetBrainsMono_400Regular" } },
+    });
+
+    await render(
+      <>
+        <StyledText>sans line</StyledText>
+        <SerifText>serif line</SerifText>
+      </>,
+    );
+
+    expect(flattenTextStyle("sans line").fontFamily).toContain("Inter");
+    expect(flattenTextStyle("serif line").fontFamily).toContain("Georgia");
   });
 
   it("clears back to package defaults when passed an empty object", async () => {

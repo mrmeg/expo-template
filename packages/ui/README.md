@@ -165,9 +165,10 @@ import { ThemeColorScope } from "@mrmeg/expo-ui/state";
 
 ### Font overrides
 
-The package bundles Inter (sans) and Georgia (serif). Most apps ship their own
-faces — forward them with `setFonts`, the font counterpart to `setColors`.
-Call it once at startup, after your fonts are registered:
+The package bundles Inter (sans), Georgia (serif), and the platform's system
+monospace (mono). Most apps ship their own faces — forward them with
+`setFonts`, the font counterpart to `setColors`. Call it once at startup,
+after your fonts are registered:
 
 ```tsx
 import { useThemeStore } from "@mrmeg/expo-ui/state";
@@ -175,19 +176,40 @@ import { useThemeStore } from "@mrmeg/expo-ui/state";
 useThemeStore.getState().setFonts({
   families: {
     sansSerif: {
-      light: "HankenGrotesk_300Light",
       regular: "HankenGrotesk_400Regular",
       medium: "HankenGrotesk_500Medium",
       semibold: "HankenGrotesk_600SemiBold",
       bold: "HankenGrotesk_700Bold",
+    },
+    serif: {
+      regular: "Newsreader_400Regular",
+      semibold: "Newsreader_600SemiBold",
+    },
+    mono: {
+      regular: "JetBrainsMono_400Regular",
+      medium: "JetBrainsMono_500Medium",
     },
   },
   webWeightStrategy: "family",
 });
 ```
 
-Overrides are partial and per-group: pass `sansSerif` alone and `serif` keeps
-the package default. `setFonts({})` clears back to the defaults.
+Overrides are partial at both levels:
+
+- **Per group** — pass `sansSerif` alone and `serif`/`mono` keep the package
+  defaults.
+- **Per weight** — within an overridden group, weights you don't provide fall
+  back to that group's `regular` (never to a package face), so registering
+  only Regular + Medium is enough.
+
+`setFonts({})` clears back to the defaults.
+
+When `sansSerif` is overridden, `useResources` skips downloading the packaged
+Inter faces entirely (native `.ttf`s and the web Google-Fonts stylesheet) —
+your app owns loading its own families, and nothing would reference Inter.
+For the skip to apply, call `setFonts` before the hook mounts (module scope,
+or ahead of rendering the root); a later call still re-skins all text, it
+just doesn't prevent the Inter download. The Feather icon font always loads.
 
 **Pick the right `webWeightStrategy`** — this is the one non-obvious part:
 
@@ -207,6 +229,26 @@ Native always behaves as `"family"` regardless of this setting.
 > `patchedDependencies` to an exact `name@version`, so a font patch silently
 > stops applying the next time you bump the package — with no warning.
 
+### Shape overrides
+
+`setShape` is the geometry counterpart to `setColors`/`setFonts`, grouped per
+component. It currently covers Button:
+
+```tsx
+import { useThemeStore } from "@mrmeg/expo-ui/state";
+
+useThemeStore.getState().setShape({
+  button: {
+    borderRadius: 9999, // pill buttons everywhere; package default is 12
+    withShadow: false,  // flatten the `default` preset; package default is true
+  },
+});
+```
+
+Precedence is unchanged and caller-wins: a per-instance `style={{ borderRadius }}`
+or `withShadow` prop still beats the global override, which beats the package
+default. `setShape({})` clears back to the defaults.
+
 Use `StyledText` for theme-aware text:
 
 ```tsx
@@ -223,7 +265,8 @@ Useful `StyledText` props:
 - `semantic`: `title`, `heading`, `subheading`, `body`, `caption`, `label`
 - `size`: `xs`, `sm`, `base`, `body`, `lg`, `xl`, `xxl`, `display`
 - `fontWeight`: `light`, `regular`, `medium`, `semibold`, `bold`
-- `variant`: `sansSerif`, `serif`
+- `variant`: `sansSerif`, `serif`, `mono` (or the `MonoText` alias for code,
+  IDs, and tabular figures)
 - `align`, `tx`, `txOptions`
 - `selectable`: defaults to `true` for readable copy; package controls disable
   selection for labels and other interactive chrome where accidental drag

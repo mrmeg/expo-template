@@ -1,7 +1,7 @@
 import { use, type Ref } from "react";
-import { Platform, Text as RNText, TextProps as RNTextProps, StyleProp, StyleSheet, TextStyle } from "react-native";
+import { Text as RNText, TextProps as RNTextProps, StyleSheet } from "react-native";
 import { useTheme } from "../hooks/useTheme";
-import { fontFamilies, defaultWebWeightStrategy } from "../constants/fonts";
+import { resolveFontStyle, type FontVariant } from "../constants/fonts";
 import { useThemeStore } from "../state/themeStore";
 import { translateText } from "../lib/i18n";
 import { TextColorContext, TextSelectabilityContext, TextStyleContext } from "./StyledText.context";
@@ -80,29 +80,12 @@ const SEMANTIC_CONFIGS: Record<SemanticVariant, { size: FontSize; weight: FontWe
   eyebrow: { size: "sm", weight: "semibold" },
 };
 
-// Font family weight keys now map 1:1 onto FontWeight — every weight has a
-// real family entry (native: a distinct static Inter file; web: shared
-// "Inter" family + numeric fontWeight, see WEB_FONT_WEIGHTS). Defaults to
-// "regular" when no weight is requested.
-const getFontFamilyWeight = (weight?: FontWeight): FontWeight => weight ?? "regular";
-
-// Web-only: the numeric fontWeight that picks the right @font-face variant
-// out of the single shared "Inter" CSS family. "light" has no loaded 300
-// weight (mirrors the native light->regular mapping in constants/fonts.ts),
-// so it renders at 400 like "regular".
-const WEB_FONT_WEIGHTS: Record<FontWeight, NonNullable<TextStyle["fontWeight"]>> = {
-  light: "400",
-  regular: "400",
-  medium: "500",
-  semibold: "600",
-  bold: "700",
-};
-
 export type TextProps = RNTextProps & {
   /**
-   * Font variant - serif (Georgia) or sans-serif (Inter)
+   * Font variant - serif (Georgia), sans-serif (Inter), or mono (the
+   * platform's system monospace). Host apps swap the families via `setFonts`.
    */
-  variant?: "serif" | "sansSerif";
+  variant?: FontVariant;
   /**
    * Font weight - light, regular, medium, semibold, bold
    */
@@ -191,32 +174,16 @@ export function StyledText(props: TextProps) {
   const finalSize = semanticConfig?.size ?? size ?? "body";
   const finalFontWeight = semanticConfig?.weight ?? fontWeight ?? "regular";
 
-  // Get font family based on variant and weight. Host apps can replace the
-  // package's bundled faces via `setFonts` (see constants/fonts.ts); merging
-  // per-group means an app overriding only `sansSerif` keeps the default serif.
-  const fontFamilyWeight = getFontFamilyWeight(finalFontWeight);
-  const overriddenFamilies = fontOverrides.families;
-  const serifFamilies = overriddenFamilies?.serif ?? fontFamilies.serif;
-  const sansSerifFamilies = overriddenFamilies?.sansSerif ?? fontFamilies.sansSerif;
-  // The serif slot has a single usable weight — use it regardless of the
-  // requested weight.
-  const fontFamily = variant === "serif"
-    ? serifFamilies.regular
-    : sansSerifFamilies[fontFamilyWeight] ?? sansSerifFamilies.regular;
-
-  // Weight is carried either by a numeric `fontWeight` (one multi-weight CSS
-  // family) or by the family name itself (discrete per-weight faces). Native
-  // is always the latter: adding a numeric weight on top of an already-bold
-  // file faux-bolds it. Web defaults to numeric for the package's own single
-  // "Inter" family, but an app loading per-weight faces through `expo-font`
-  // gets its own family per weight on web too, and must declare
-  // `webWeightStrategy: "family"` to avoid a second synthesised layer of bold.
-  const weightStrategy = Platform.OS === "web"
-    ? fontOverrides.webWeightStrategy ?? defaultWebWeightStrategy
-    : "family";
-  const resolvedFontWeight = weightStrategy === "numeric"
-    ? WEB_FONT_WEIGHTS[finalFontWeight]
-    : undefined;
+  // Get font family (+ numeric fontWeight under the web "numeric" strategy)
+  // based on variant and weight. Host apps replace the package's bundled
+  // faces via `setFonts`; resolution — including the per-group merge and the
+  // numeric-vs-family weight strategy — lives in `resolveFontStyle`
+  // (constants/fonts.ts), shared with the control components' `useFontStyle`.
+  const { fontFamily, fontWeight: resolvedFontWeight } = resolveFontStyle(
+    fontOverrides,
+    variant,
+    finalFontWeight,
+  );
 
   // Get fontSize and lineHeight from size variant
   const fontSize = FONT_SIZES[finalSize];
@@ -280,6 +247,16 @@ export function SerifText(props: TextProps) {
  */
 export function SansSerifText(props: TextProps) {
   return <StyledText {...props} variant="sansSerif" />;
+}
+
+/**
+ * Mono Text Component
+ * Uses the monospace font family (the platform's system monospace by
+ * default; host apps swap in their own via `setFonts`) — for code, IDs,
+ * and tabular figures
+ */
+export function MonoText(props: TextProps) {
+  return <StyledText {...props} variant="mono" />;
 }
 
 /**

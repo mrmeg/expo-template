@@ -28,7 +28,7 @@ import {
 } from "@expo/ui";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
-import { fontFamilies } from "../constants/fonts";
+import { useFontStyle } from "../hooks/useFontStyle";
 import { StyledText } from "./StyledText";
 import { Icon } from "./Icon";
 import { hapticLight } from "../lib/haptics";
@@ -252,6 +252,7 @@ function WebTextInput({
 }: TextInputCustomProps) {
   const { theme, getContrastingColor, getFocusRingStyle } = useTheme();
   const styles = themedStyles(theme)[variant][size];
+  const inputFont = useFontStyle("regular");
   const [focused, setFocused] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -363,6 +364,9 @@ function WebTextInput({
           placeholderTextColor={theme.colors.textDim}
           style={[
             styles.input,
+            // Resolved through the theme store so `setFonts` overrides apply;
+            // identical to the old hardcoded regular family by default.
+            inputFont,
             {
               backgroundColor,
               borderColor,
@@ -519,6 +523,7 @@ function NativeTextInput({
 }: TextInputCustomProps) {
   const { theme, getContrastingColor } = useTheme();
   const styles = themedStyles(theme)[variant][size];
+  const inputFont = useFontStyle("regular");
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   const hasError = error || !!errorText;
@@ -668,11 +673,13 @@ function NativeTextInput({
   // @expo/ui passes the family verbatim to SwiftUI's Font.custom / Compose,
   // where no such font exists — the fallback ignores fontSize and renders at
   // the 17pt default, blowing up text and secure-entry dots. Omit the family
-  // so the native side uses the system font at our requested size.
+  // so the native side uses the system font at our requested size. The family
+  // itself resolves through the theme store (`useFontStyle` above) so
+  // `setFonts` overrides reach the native field too.
   const nativeFontFamily =
-    fontFamilies.sansSerif.regular === "System"
+    inputFont.fontFamily === "System"
       ? undefined
-      : fontFamilies.sansSerif.regular;
+      : inputFont.fontFamily;
 
   const textStyle: ExpoTextInputProps["textStyle"] = {
     color: textColor,
@@ -785,7 +792,8 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       justifyContent: "center",
     },
     input: {
-      fontFamily: fontFamilies.sansSerif.regular,
+      // fontFamily is resolved per-render through the theme store (see
+      // `useFontStyle("regular")` in WebTextInput) so `setFonts` applies.
       borderRadius: spacing.radiusMd,
       borderWidth: 1,
       ...(Platform.OS === "web" && { outlineStyle: "none" as any }),

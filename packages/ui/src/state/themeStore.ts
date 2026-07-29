@@ -29,6 +29,28 @@ export type ColorOverrides = {
   dark?: Partial<ThemeColors>;
 };
 
+/**
+ * Shape overrides a host app can inject, grouped per component so future
+ * shape knobs (card radius, input radius, …) slot in without reshaping the
+ * API. Every field is optional; omitted fields keep the package default.
+ */
+export type ShapeOverrides = {
+  button?: {
+    /**
+     * Border radius applied to every Button preset. Package default:
+     * `spacing.radiusMd` (12). Use 9999 for pill buttons. A caller `style`
+     * still wins over this, as it always has.
+     */
+    borderRadius?: number;
+    /**
+     * Whether the `default` preset renders its shadow. Package default: true.
+     * Other presets stay flat regardless; the per-instance `withShadow` prop
+     * still wins over this.
+     */
+    withShadow?: boolean;
+  };
+};
+
 export type ThemeStore = {
   userTheme: ThemePreference;
   systemTheme: ResolvedTheme;
@@ -44,6 +66,12 @@ export type ThemeStore = {
    * exactly as before this field existed (fully backward compatible).
    */
   fontOverrides: FontOverrides;
+  /**
+   * App-injected shape overrides (button radius, default-preset shadow).
+   * Same contract as the other override slots: empty by default, fully
+   * backward compatible when unset.
+   */
+  shapeOverrides: ShapeOverrides;
   setTheme: (theme: ThemePreference) => void;
   setSystemTheme: (theme: ResolvedTheme) => void;
   /**
@@ -61,6 +89,11 @@ export type ThemeStore = {
    * `webWeightStrategy: "family"` — see `FontWeightStrategy`.
    */
   setFonts: (overrides: FontOverrides) => void;
+  /**
+   * Replace the active shape overrides. Pass `{}` to clear them and fall back
+   * to the package defaults (button radius 12, default-preset shadow on).
+   */
+  setShape: (overrides: ShapeOverrides) => void;
   loadTheme: () => void;
 };
 
@@ -93,12 +126,19 @@ export const useThemeStore = create<ThemeStore>((set) => ({
   // faces until a host app calls `setFonts`.
   fontOverrides: {},
 
+  // And again for shape: package geometry until a host app calls `setShape`.
+  shapeOverrides: {},
+
   setColors: (overrides) => {
     set({ colorOverrides: overrides ?? {} });
   },
 
   setFonts: (overrides) => {
     set({ fontOverrides: overrides ?? {} });
+  },
+
+  setShape: (overrides) => {
+    set({ shapeOverrides: overrides ?? {} });
   },
 
   setTheme: (theme) => {

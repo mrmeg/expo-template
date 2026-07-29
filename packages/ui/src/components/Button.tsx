@@ -1,4 +1,4 @@
-import React, { ComponentType, use, useCallback, useState } from "react";
+import React, { ComponentType, use, useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   PressableProps,
@@ -18,11 +18,12 @@ import { spacing } from "../constants/spacing";
 import { StyledText, TextProps } from "./StyledText";
 import { Icon, type IconProps } from "./Icon";
 import { TextColorContext, TextSelectabilityContext, TextStyleContext } from "./StyledText.context";
-import { fontFamilies } from "../constants/fonts";
 import type { Theme } from "../constants/colors";
 import { palette } from "../constants/colors";
 import { useTheme } from "../hooks/useTheme";
+import { useFontStyle } from "../hooks/useFontStyle";
 import { useScalePress } from "../hooks/useScalePress";
+import { useThemeStore } from "../state/themeStore";
 import { createThemedStyles } from "../lib/themedStyles";
 
 /**
@@ -225,11 +226,25 @@ function ButtonRoot(props: ButtonProps) {
   const styles = themedStyles(theme)[size];
   const shadowStyle = getShadowStyle("subtle");
   const sizeConfig = SIZE_CONFIGS[size];
+  // Host-app shape overrides (radius, default-preset shadow) — see `setShape`.
+  const buttonShape = useThemeStore((s) => s.shapeOverrides.button);
   // Filled (`default`) buttons float by default; ghost/outline/link stay flat
   // (transparent background reads oddly with a shadow), and destructive/secondary
-  // keep the old opt-in behavior. Callers can still override via `withShadow`.
-  const withShadow = withShadowProp ?? preset === "default";
+  // keep the old opt-in behavior. Precedence: the per-instance `withShadow`
+  // prop, then the host app's `setShape` flag, then the preset default.
+  const withShadow = withShadowProp
+    ?? (preset === "default" ? buttonShape?.withShadow ?? true : false);
   const focusRingStyle = getFocusRingStyle();
+
+  // Label typography resolves through the theme store so `setFonts` re-skins
+  // button labels along with everything else. Provided via TextStyleContext
+  // (after the static size styles) so nested Button.Text / StyledText children
+  // inherit it too, exactly like the previous hardcoded family did.
+  const labelFontStyle = useFontStyle("medium");
+  const labelTextStyle = useMemo(
+    () => [styles.text, { fontFamily: labelFontStyle.fontFamily, fontWeight: labelFontStyle.fontWeight } as TextStyle],
+    [styles.text, labelFontStyle.fontFamily, labelFontStyle.fontWeight],
+  );
 
   // Pre-compute background color for contrast calculation
   // Always flatten to handle both array styles (from Slot) and RegisteredStyle
@@ -331,7 +346,7 @@ function ButtonRoot(props: ButtonProps) {
   return (
     <TextColorContext.Provider value={textColor}>
       <TextSelectabilityContext.Provider value={false}>
-        <TextStyleContext.Provider value={styles.text}>
+        <TextStyleContext.Provider value={labelTextStyle}>
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ disabled: !!isDisabled, busy: loading }}
@@ -349,6 +364,10 @@ function ButtonRoot(props: ButtonProps) {
                 <View
                   style={[
                     styles.button,
+                    // Host-app radius override (see `setShape`). Sits right
+                    // after the static radius so presets, state styles, and —
+                    // critically — the caller `style` spread below still win.
+                    buttonShape?.borderRadius !== undefined && { borderRadius: buttonShape.borderRadius },
                     preset === "default" && styles.buttonDefault,
                     preset === "outline" && styles.buttonOutline,
                     preset === "ghost" && styles.buttonGhost,
@@ -394,7 +413,7 @@ function ButtonRoot(props: ButtonProps) {
                         text={text}
                         txOptions={txOptions}
                         style={[
-                          styles.text,
+                          labelTextStyle,
                           state.pressed && styles.pressedText,
                           state.pressed && pressedTextStyleOverride,
                           isDisabled && disabledTextStyleOverride,
@@ -510,15 +529,11 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       width: "100%",
     } as ViewStyle,
     text: {
-      // Button labels render at medium weight. On native, the family itself
-      // carries the weight (a real static Inter_500Medium file) — pairing it
-      // with a numeric fontWeight would faux-bold on top of that file. Web
-      // shares one "Inter" family across weights, so it needs the numeric
-      // fontWeight to pick the right @font-face variant. (Same rule as
-      // StyledText's getFontFamilyWeight / WEB_FONT_WEIGHTS.)
-      fontFamily: fontFamilies.sansSerif.medium,
+      // Button labels render at medium weight. The fontFamily (+ numeric
+      // fontWeight on web) is NOT set here: it's resolved per-render through
+      // the theme store (`useFontStyle("medium")` in ButtonRoot) and layered
+      // right after this style, so `setFonts` overrides reach button labels.
       fontSize: sizeConfig.fontSize,
-      ...(Platform.OS === "web" && { fontWeight: "500" as const }),
       textAlign: "center",
       lineHeight: sizeConfig.fontSize * 1.4,
       flexShrink: 0,

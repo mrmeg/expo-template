@@ -76,6 +76,16 @@ describe("StyledText typography", () => {
       const style = flattenTextStyle("Serif heading");
       expect(style.fontFamily).toBe("Georgia");
     });
+
+    it("uses the system monospace for the mono variant", async () => {
+      await render(<StyledText variant="mono">const x = 1;</StyledText>);
+
+      const style = flattenTextStyle("const x = 1;");
+      // iOS in the jest RN preset — Menlo is the resolvable system monospace
+      // there ("monospace" only resolves on Android).
+      expect(style.fontFamily).toBe("Menlo");
+      expect(style.fontWeight).toBeUndefined();
+    });
   });
 
   describe("semantic variant weight mapping", () => {

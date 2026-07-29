@@ -164,6 +164,15 @@ React context, scoped keys win over the global brand inside it, and nested
 scopes merge (inner wins, outer fills in). With no override at either layer,
 `useTheme()` returns the base theme by reference.
 
+Fonts and shape have matching global injection points. `setFonts({ families:
+{ sansSerif?, serif?, mono? }, webWeightStrategy? })` replaces the bundled
+faces (Inter/Georgia/system-mono) everywhere text renders; groups and weights
+are partial, missing weights fall back to the group's `regular`, and an
+overridden `sansSerif` makes `useResources` skip downloading Inter (call
+`setFonts` before mount for the skip). `setShape({ button: { borderRadius?,
+withShadow? } })` re-shapes Buttons globally (e.g. pill radius 9999, shadow
+off). Per-instance props and caller `style` always win over both.
+
 ## Component Use-Case Index
 
 Use this table before creating a new app-local primitive.

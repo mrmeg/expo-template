@@ -9,6 +9,8 @@ import {
 } from "@expo-google-fonts/inter";
 import { Platform } from "react-native";
 
+import { useThemeStore } from "../state/themeStore";
+
 // Eager, module-scope load so expo-font registers Feather in its SSR
 // serverContext. When the server renders the HTML document, expo-font emits
 // an @font-face <style> into the head — without this kickoff, server-rendered
@@ -74,6 +76,13 @@ function ensureWebFontStylesheet(): Promise<void> {
  * @expo-google-fonts/inter) so StyledText's weight range resolves to real
  * font files. Web loads Inter from Google Fonts as a single CSS family;
  * weight differentiation there comes from a numeric fontWeight instead.
+ *
+ * A host app that overrides the sans-serif families via `setFonts` owns
+ * loading its own faces (typically through `expo-font`), so the Inter fetch
+ * is skipped entirely — nothing would reference those files. For the skip to
+ * apply, call `setFonts` before this hook mounts (module scope or ahead of
+ * rendering the root); a later call still re-skins text, it just doesn't
+ * un-download Inter. The Feather icon font always loads.
  */
 export const useResources = (): LoadResourcesResult => {
   const [loaded, setLoaded] = useState(false);
@@ -82,12 +91,17 @@ export const useResources = (): LoadResourcesResult => {
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
+    // Read once at mount, not subscribed: font loading is a one-shot startup
+    // effect and cannot be undone by a later override.
+    const sansSerifOverridden =
+      !!useThemeStore.getState().fontOverrides.families?.sansSerif;
+
     async function loadResourcesAndDataAsync() {
       try {
         const fontPromise = Promise.all([
           Font.loadAsync(Feather.font),
-          loadNativeInterFonts(),
-          ensureWebFontStylesheet(),
+          sansSerifOverridden ? Promise.resolve() : loadNativeInterFonts(),
+          sansSerifOverridden ? Promise.resolve() : ensureWebFontStylesheet(),
         ]);
 
         // Timeout after 5 seconds — proceed with system fallback fonts

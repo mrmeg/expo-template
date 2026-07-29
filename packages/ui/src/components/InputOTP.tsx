@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
-import { fontFamilies } from "../constants/fonts";
 import { StyledText } from "./StyledText";
 import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
@@ -72,7 +71,6 @@ export interface InputOTPProps {
 const CELL_WIDTH = 36;
 const CELL_HEIGHT = 40;
 const CELL_FONT_SIZE = 20;
-const CELL_FONT_WEIGHT = "600" as const;
 const BULLET = "\u2022";
 
 /**
@@ -275,14 +273,9 @@ function OTPCell({
       >
         <StyledText
           selectable={false}
+          fontWeight="semibold"
           style={{
             fontSize: CELL_FONT_SIZE,
-            // Semibold weight: the family carries it on native (a real static
-            // Inter_600SemiBold file); web shares one "Inter" family across
-            // weights, so it needs the numeric fontWeight to pick the right
-            // @font-face variant (same rule as StyledText's WEB_FONT_WEIGHTS).
-            ...(Platform.OS === "web" && { fontWeight: CELL_FONT_WEIGHT }),
-            fontFamily: fontFamilies.sansSerif.semibold,
             color: theme.colors.text,
             textAlign: "center",
             lineHeight: CELL_FONT_SIZE * 1.2,
@@ -312,8 +305,9 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
     },
     errorText: {
+      // Regular weight — StyledText's default resolves the family through the
+      // theme store, so no hardcoded fontFamily here.
       fontSize: 12,
-      fontFamily: fontFamilies.sansSerif.regular,
       color: theme.colors.destructive,
       marginTop: spacing.xs,
     },

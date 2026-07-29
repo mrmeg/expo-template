@@ -3,6 +3,66 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0]
+
+### Added
+
+- **`mono` font variant.** `StyledText` accepts `variant="mono"` (plus a
+  `MonoText` convenience alias) for code, IDs, and tabular figures. Defaults
+  to the platform's system monospace (Menlo on iOS, `monospace` on Android, a
+  `ui-monospace` stack on web); host apps swap in their own faces via the new
+  `mono` group in `setFonts`.
+
+- **Per-weight-partial font override groups.** `setFonts` families are now
+  partial at both levels: per group (`sansSerif` alone leaves `serif`/`mono`
+  at their defaults, as before) and per weight — weights missing from an
+  overridden group fall back to that group's `regular`, never to a package
+  face. Registering only Regular + Medium is enough. `serif` also gained the
+  full weight range (previously `regular`/`bold` only, and `SerifText`
+  ignored the requested weight; it now resolves per weight).
+
+- **`useResources` skips the Inter download when `sansSerif` is overridden.**
+  A host app that forwards its own sans faces owns loading them; nothing
+  would reference the packaged Inter, so the native `.ttf` fetch and the web
+  Google-Fonts stylesheet are skipped. Call `setFonts` before the hook mounts
+  for the skip to apply; the Feather icon font always loads. Without
+  overrides, loading is unchanged.
+
+- **`setShape` — shape injection, completing the `setColors`/`setFonts`
+  trio.** Grouped per component for future growth; currently covers Button:
+
+  ```ts
+  useThemeStore.getState().setShape({
+    button: { borderRadius: 9999, withShadow: false },
+  });
+  ```
+
+  `borderRadius` applies to every Button preset (package default stays 12);
+  `withShadow` controls the `default` preset's resting shadow (default stays
+  on). Precedence is caller-wins throughout: the per-instance `withShadow`
+  prop and caller `style` beat the global override, which beats the package
+  default. `setShape({})` clears back to the defaults.
+
+- **Every text-rendering component now resolves families through the theme
+  store.** Button labels, Label, Switch track labels, InputOTP cells, and
+  TextInput previously hardcoded Inter family constants in their static
+  styles, so `setFonts` re-skinned `StyledText` but left control chrome on
+  Inter. They now share one resolver (`resolveFontStyle`, surfaced to
+  components as the `useFontStyle` hook, both exported), so a `setFonts` call
+  re-skins the whole package at once.
+
+- Exported `FontVariant`, `FontFamilyOverride`, `ResolvedFontStyle`,
+  `resolveFontStyle` (from `constants`), `useFontStyle` (from `hooks`),
+  `ShapeOverrides` (from `state`), and `MonoText` (from `components`).
+
+### Why
+
+A consuming app rethemed to a new design language (custom sans/serif/mono
+faces, pill buttons, flat surfaces) and hit the package's remaining hardcoded
+Inter references, the fixed button radius, and the always-on default-preset
+shadow — none of which were themable. Fully backward compatible: with no
+`setFonts`/`setShape` call, fonts, radii, and shadows are identical to 0.16.0.
+
 ## [0.16.0]
 
 ### Added

@@ -15,6 +15,7 @@ import type { TestInstance } from "test-renderer";
 import { Button, type ButtonAccessoryProps } from "../Button";
 import { Icon } from "../Icon";
 import { StyledText } from "../StyledText";
+import { useThemeStore } from "../../state/themeStore";
 
 const mockScalePressIn = jest.fn();
 const mockScalePressOut = jest.fn();
@@ -509,6 +510,69 @@ describe("Button", () => {
       expect(screen.getByText("Left")).toBeTruthy();
       expect(screen.getByText("Right")).toBeTruthy();
       expect(hiddenContentStyle).toEqual(expect.objectContaining({ opacity: 0 }));
+    });
+  });
+
+  describe("Theming (setShape / setFonts)", () => {
+    afterEach(() => {
+      useThemeStore.getState().setShape({});
+      useThemeStore.getState().setFonts({});
+    });
+
+    it("applies the setShape button borderRadius to every preset", async () => {
+      useThemeStore.getState().setShape({ button: { borderRadius: 9999 } });
+
+      for (const preset of ["default", "outline", "ghost", "secondary"] as const) {
+        const { unmount } = await render(<Button preset={preset} text="Pill" />);
+
+        const pillSurface = getAllHostNodes()
+          .map((node) => StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined)
+          .find((style) => style?.borderRadius === 9999);
+
+        expect(pillSurface).toBeTruthy();
+        await unmount();
+      }
+    });
+
+    it("keeps caller style wins over the setShape radius", async () => {
+      useThemeStore.getState().setShape({ button: { borderRadius: 9999 } });
+
+      await render(<Button text="Square" style={{ borderRadius: 4 }} />);
+
+      const surface = findFlattenedStyleByBackground(getAllHostNodes(), "#18181B");
+      expect(surface).toEqual(expect.objectContaining({ borderRadius: 4 }));
+    });
+
+    it("lets setShape withShadow:false flatten the default preset", async () => {
+      useThemeStore.getState().setShape({ button: { withShadow: false } });
+
+      await render(<Button preset="default" text="Flat" />);
+
+      const shadowedNode = getAllHostNodes()
+        .map((node) => StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined)
+        .find((style) => style?.shadowPresetTag === "subtle");
+
+      expect(shadowedNode).toBeUndefined();
+    });
+
+    it("lets the withShadow prop win over the setShape flag", async () => {
+      useThemeStore.getState().setShape({ button: { withShadow: false } });
+
+      await render(<Button preset="default" text="Floats" withShadow />);
+
+      const surface = findFlattenedStyleByBackground(getAllHostNodes(), "#18181B");
+      expect(surface).toEqual(expect.objectContaining({ shadowPresetTag: "subtle" }));
+    });
+
+    it("resolves the label family through setFonts", async () => {
+      useThemeStore.getState().setFonts({
+        families: { sansSerif: { regular: "Brand_Regular", medium: "Brand_Medium" } },
+      });
+
+      await render(<Button text="Branded" />);
+
+      const textStyle = StyleSheet.flatten(screen.getByText("Branded").props.style) as Record<string, unknown>;
+      expect(textStyle.fontFamily).toBe("Brand_Medium");
     });
   });
 });

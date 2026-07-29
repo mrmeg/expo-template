@@ -8,7 +8,7 @@ import { resolveThemePreference, useThemeStore } from "../themeStore";
 
 // Reset store between tests
 beforeEach(() => {
-  useThemeStore.setState({ userTheme: "system", systemTheme: "light", colorOverrides: {} });
+  useThemeStore.setState({ userTheme: "system", systemTheme: "light", colorOverrides: {}, shapeOverrides: {} });
 });
 
 describe("themeStore", () => {
@@ -82,6 +82,30 @@ describe("themeStore", () => {
 
       expect(useThemeStore.getState().userTheme).toBe("dark");
       expect(useThemeStore.getState().systemTheme).toBe("dark");
+    });
+  });
+
+  describe("shapeOverrides", () => {
+    it("defaults to an empty override map", () => {
+      expect(useThemeStore.getState().shapeOverrides).toEqual({});
+    });
+
+    it("setShape stores per-component overrides", () => {
+      useThemeStore.getState().setShape({
+        button: { borderRadius: 9999, withShadow: false },
+      });
+
+      expect(useThemeStore.getState().shapeOverrides.button).toEqual({
+        borderRadius: 9999,
+        withShadow: false,
+      });
+    });
+
+    it("setShape with an empty object clears overrides", () => {
+      useThemeStore.getState().setShape({ button: { borderRadius: 0 } });
+      useThemeStore.getState().setShape({});
+
+      expect(useThemeStore.getState().shapeOverrides).toEqual({});
     });
   });
 });
