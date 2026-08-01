@@ -51,7 +51,8 @@
     "lint": "expo lint",
     "verify": "node scripts/verify.mjs",
     "prepare": "lefthook install",
-    "generate": "npx tsx scripts/generate.ts"
+    "generate": "npx tsx scripts/generate.ts",
+    "init": "npx tsx scripts/init.ts"
   },
   "dependencies": {
     "@aws-amplify/react-native": "^1.3.3",
