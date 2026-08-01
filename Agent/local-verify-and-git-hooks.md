@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/28
 ---
 
 # Local verify command, git hooks, and package script dedup
