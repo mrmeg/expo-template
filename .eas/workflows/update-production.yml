@@ -1,0 +1,28 @@
+# Publish an EAS Update on every push to main.
+#
+# `params.branch` uses the branch the run was triggered from, so the update
+# lands on the EAS Update branch of the same name and is served to whichever
+# channel points at it. Map the `production` channel (see eas.json) to `main`
+# once with:
+#   eas channel:edit production --branch main
+#
+# The job is gated on the EAS_PROJECT_ID environment variable: an `if` that
+# evaluates to a falsey value skips the job instead of failing it, so a
+# template checkout that has not run `eas init` yet no-ops here rather than
+# erroring out.
+name: Update production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish_update:
+    name: Publish EAS Update
+    type: update
+    environment: production
+    if: ${{ env.EAS_PROJECT_ID }}
+    params:
+      # Omitting `message` makes the update use the commit message.
+      branch: ${{ github.ref_name }}

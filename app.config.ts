@@ -124,6 +124,7 @@ export default function appConfig(_: ConfigContext): ExpoConfig {
   const updatesChannel = resolveUpdatesChannel();
   const buildNodeHeapMb = resolveBuildNodeHeapMb();
   const buildNodeOptions = `--max-old-space-size=${buildNodeHeapMb}`;
+  const easProjectId = readOptionalEnv("EAS_PROJECT_ID");
 
   let config: ExpoConfig = {
     name: identity.name,
@@ -161,6 +162,25 @@ export default function appConfig(_: ConfigContext): ExpoConfig {
       appScheme: identity.scheme,
     },
   };
+
+  // EAS Update stays inert until the template is linked to an EAS project.
+  // `eas init` writes the project id; export it as EAS_PROJECT_ID (or set it in
+  // EAS environment variables) to switch OTA updates on. Without it we omit
+  // `extra.eas`, `updates`, and `runtimeVersion` entirely so `expo config` and
+  // local builds keep working on a blank `.env`.
+  if (easProjectId) {
+    config.extra = {
+      ...config.extra,
+      eas: { projectId: easProjectId },
+    };
+    config.updates = {
+      url: `https://u.expo.dev/${easProjectId}`,
+    };
+    // Fingerprint policy keeps the runtime version tied to the native
+    // dependency graph, so an OTA update can never land on an incompatible
+    // build. It requires expo-updates, which is installed.
+    config.runtimeVersion = { policy: "fingerprint" };
+  }
 
   config = withNativeBuildSettings(config, {
     iosNodeOptions: buildNodeOptions,
