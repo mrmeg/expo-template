@@ -12,7 +12,7 @@ import "@/test/mockTheme";
 
 import React from "react";
 import { Text, View } from "react-native";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 
 import { ErrorScreen } from "../error/Screen";
 import { FaqScreen } from "../faq/Screen";
@@ -21,6 +21,36 @@ import { ListScreen } from "../list/Screen";
 import { StatsScreen } from "../stats/Screen";
 import { TestimonialsScreen } from "../testimonials/Screen";
 import { WelcomeScreen } from "../welcome/Screen";
+
+/**
+ * Legend List absolutely positions its item containers, so it renders no rows
+ * until it has measured a viewport. Jest never lays anything out, so tests that
+ * assert on row content have to deliver that measurement by hand — this fires
+ * the scroll container's `onLayout` with a realistic phone-sized viewport.
+ */
+async function layoutList(
+  root: Awaited<ReturnType<typeof render>>["root"],
+  size = { width: 400, height: 900 },
+) {
+  const nodes: any[] = [];
+  const walk = (node: any) => {
+    if (!node || typeof node !== "object") return;
+    nodes.push(node);
+    for (const child of node.children ?? []) walk(child);
+  };
+  walk(root);
+
+  const scroller = nodes.find(
+    (node) => typeof node?.props?.onLayout === "function",
+  );
+  if (!scroller) throw new Error("no layout-capable list container found");
+
+  await act(async () => {
+    fireEvent(scroller, "layout", {
+      nativeEvent: { layout: { x: 0, y: 0, ...size } },
+    });
+  });
+}
 
 describe("WelcomeScreen", () => {
   it("renders title, subtitle, primary action, and footer", async () => {
@@ -85,7 +115,7 @@ describe("ListScreen", () => {
       { id: "1", label: "Alpha" },
       { id: "2", label: "Bravo" },
     ];
-    await render(
+    const { root } = await render(
       <ListScreen
         data={data}
         keyExtractor={(item) => item.id}
@@ -96,6 +126,7 @@ describe("ListScreen", () => {
         )}
       />,
     );
+    await layoutList(root);
     expect(screen.getByText("Alpha")).toBeTruthy();
     expect(screen.getByText("Bravo")).toBeTruthy();
   });

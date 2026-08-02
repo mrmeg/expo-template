@@ -1,7 +1,6 @@
 import React, { useMemo, ReactNode, useState, useCallback } from "react";
 import {
   View,
-  FlatList,
   RefreshControl,
   ScrollView,
   Pressable,
@@ -9,6 +8,7 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
+import { LegendList } from "@legendapp/list/react-native";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
@@ -71,6 +71,15 @@ export interface SearchResultsScreenProps<T> {
   header?: ReactNode;
   style?: StyleProp<ViewStyle>;
 }
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Avatar (40) + vertical padding of a typical list row. */
+const ESTIMATED_ROW_SIZE = 72;
+/** Card image (120) + two text lines + gaps of a typical grid cell. */
+const ESTIMATED_GRID_SIZE = 180;
 
 // ---------------------------------------------------------------------------
 // Component
@@ -192,7 +201,7 @@ export function SearchResultsScreen<T>({
     [isGrid, renderGridItem, renderItem, styles]
   );
 
-  // Pass a component (not an element) so FlatList builds the header JSX lazily —
+  // Pass a component (not an element) so the list builds the header JSX lazily —
   // never during an early-return render. The helper closures read
   // query/filter/sort/viewMode state; depend on those values, not the helper
   // identities, so the callback identity is stable across unrelated renders.
@@ -295,15 +304,35 @@ export function SearchResultsScreen<T>({
 
   return (
     <View style={[styles.container, styleOverride]}>
-      <FlatList
+      {/*
+        `key={viewMode}` remounts the list when toggling list/grid so the
+        column layout is rebuilt from scratch.
+
+        v3's ColumnWrapperStyle accepts gap keys only, so the grid row's
+        horizontal padding moves to the content container (styles.gridContent);
+        the header carries its own padding already, so it cancels the container
+        inset with ListHeaderComponentStyle.
+      */}
+      <LegendList
         key={viewMode}
         data={data}
         keyExtractor={keyExtractor}
         numColumns={isGrid ? gridColumns : 1}
         renderItem={renderRow}
+        estimatedItemSize={isGrid ? ESTIMATED_GRID_SIZE : ESTIMATED_ROW_SIZE}
+        recycleItems={false}
         ListHeaderComponent={ListHeader}
+        ListHeaderComponentStyle={
+          isGrid && data.length > 0 ? styles.gridHeaderOutset : undefined
+        }
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={data.length === 0 ? styles.emptyFlatList : styles.listContent}
+        contentContainerStyle={
+          data.length === 0
+            ? styles.emptyList
+            : isGrid
+              ? styles.gridContent
+              : styles.listContent
+        }
         columnWrapperStyle={isGrid && data.length > 0 ? styles.gridRow : undefined}
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
@@ -548,14 +577,23 @@ const createStyles = (theme: Theme) =>
     listContent: {
       paddingBottom: spacing.xxl,
     },
-    emptyFlatList: {
+    emptyList: {
       flexGrow: 1,
     },
 
-    // Grid
-    gridRow: {
+    // Grid — the row's horizontal padding lives on the content container
+    // because LegendList's columnWrapperStyle only accepts gap keys.
+    gridContent: {
       paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.xxl,
+    },
+    gridRow: {
       gap: spacing.sm,
+    },
+    // Cancels gridContent's horizontal padding for the header, which already
+    // pads its own children (search bar, filters, toolbar).
+    gridHeaderOutset: {
+      marginHorizontal: -spacing.lg,
     },
     gridItemWrapper: {
       flex: 1,

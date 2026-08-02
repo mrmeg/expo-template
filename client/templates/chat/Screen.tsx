@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useCallback, useMemo } from "react";
 import {
   View,
-  FlatList,
   Pressable,
   Animated,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   ViewStyle,
   Platform,
 } from "react-native";
+import { LegendList } from "@legendapp/list/react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -34,6 +34,16 @@ export interface ChatMessage {
   data?: Record<string, unknown>;
 }
 
+/**
+ * A message plus the grouping flags derived from the message above it.
+ * Internal to this screen — callers still pass and receive `ChatMessage`.
+ */
+interface ChatRow {
+  message: ChatMessage;
+  showTimestamp: boolean;
+  showDay: boolean;
+}
+
 export interface ChatScreenProps {
   messages: ChatMessage[];
   onSend: (text: string) => void;
@@ -55,6 +65,8 @@ const BUBBLE_TAIL_RADIUS = 4;
 const MAX_BUBBLE_WIDTH = "80%";
 const SEND_BUTTON_SIZE = 36;
 const TYPING_DOT_SIZE = 6;
+/** One- to two-line bubble plus its row margin — the common case. */
+const ESTIMATED_MESSAGE_SIZE = 56;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -109,9 +121,9 @@ function shouldShowTimestamp(
 }
 
 /**
- * Determine whether to show a day separator before this message.
- * Because the FlatList is inverted, "previous" is the message below
- * (i.e. the one that comes later chronologically).
+ * Determine whether to show a day separator above this message.
+ * "previous" is the chronologically-earlier message, i.e. the row rendered
+ * directly above this one.
  */
 function shouldShowDaySeparator(
   current: ChatMessage,
@@ -289,20 +301,52 @@ export function ChatScreen({
     setInputText("");
   }, [inputText, onSend]);
 
-  // Sorted newest-first for inverted FlatList
+  // Chronological (oldest-first): LegendList has no `inverted`, so the list
+  // renders top-to-bottom and stays pinned to the newest message at the bottom
+  // via alignItemsAtEnd + maintainScrollAtEnd.
   const sortedMessages = useMemo(
-    () => [...messages].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
+    () => [...messages].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()),
     [messages]
   );
 
+  /**
+   * Rows carry their own separator/timestamp flags.
+   *
+   * Whether a message opens a new day (or needs a timestamp) depends on the
+   * message *above* it, not on the message itself — so this cannot be computed
+   * inside `renderItem`. LegendList keeps a row mounted while its item compares
+   * equal, so a row whose neighbor changed would otherwise keep a stale "first
+   * of the day" separator (visible as a duplicate day pill after a message is
+   * inserted above it). Folding the flags into the row data makes them part of
+   * what `itemsAreEqual` compares, so affected rows re-render and untouched
+   * ones still don't.
+   */
+  const rows = useMemo<ChatRow[]>(
+    () =>
+      sortedMessages.map((message, index) => {
+        // Index 0 is the oldest message, so the chronologically-previous
+        // message (the row directly above this one) is at index - 1.
+        const previous = index > 0 ? sortedMessages[index - 1] : undefined;
+        return {
+          message,
+          showTimestamp: shouldShowTimestamp(message, previous),
+          showDay: shouldShowDaySeparator(message, previous),
+        };
+      }),
+    [sortedMessages]
+  );
+
+  const rowsAreEqual = useCallback(
+    (previous: ChatRow, next: ChatRow) =>
+      previous.message === next.message &&
+      previous.showTimestamp === next.showTimestamp &&
+      previous.showDay === next.showDay,
+    []
+  );
+
   const renderItem = useCallback(
-    ({ item, index }: { item: ChatMessage; index: number }) => {
-      // In an inverted list index 0 is the newest message.
-      // "previous" means the message that appeared before this one in
-      // chronological order, which is the next index in the inverted array.
-      const prevMessage = sortedMessages[index + 1];
-      const showTimestamp = shouldShowTimestamp(item, prevMessage);
-      const showDay = shouldShowDaySeparator(item, prevMessage);
+    ({ item: row }: { item: ChatRow }) => {
+      const { message, showTimestamp, showDay } = row;
 
       return (
         <View>
@@ -311,7 +355,7 @@ export function ChatScreen({
             <View style={styles.daySeparatorRow}>
               <View style={styles.daySeparatorPill}>
                 <SansSerifText size="sm" style={styles.daySeparatorText}>
-                  {formatDayLabel(item.timestamp)}
+                  {formatDayLabel(message.timestamp)}
                 </SansSerifText>
               </View>
             </View>
@@ -320,45 +364,45 @@ export function ChatScreen({
           {/* Timestamp label */}
           {showTimestamp && !showDay && (
             <SansSerifText size="xs" style={styles.timestampLabel}>
-              {formatTime(item.timestamp)}
+              {formatTime(message.timestamp)}
             </SansSerifText>
           )}
 
           {/* Bubble */}
           <Pressable
-            onPress={onMessagePress ? () => onMessagePress(item) : undefined}
-            style={item.isMine ? styles.sentRow : styles.receivedRow}
+            onPress={onMessagePress ? () => onMessagePress(message) : undefined}
+            style={message.isMine ? styles.sentRow : styles.receivedRow}
             accessibilityRole="text"
-            accessibilityLabel={`${item.isMine ? "You" : "Received"}: ${item.text}`}
+            accessibilityLabel={`${message.isMine ? "You" : "Received"}: ${message.text}`}
           >
             <View
               style={[
                 styles.bubble,
-                item.isMine ? styles.sentBubble : styles.receivedBubble,
+                message.isMine ? styles.sentBubble : styles.receivedBubble,
               ]}
             >
               <SansSerifText
                 size="body"
-                style={item.isMine ? styles.sentText : styles.receivedText}
+                style={message.isMine ? styles.sentText : styles.receivedText}
               >
-                {item.text}
+                {message.text}
               </SansSerifText>
             </View>
           </Pressable>
 
           {/* Status indicator for sent messages */}
-          {item.isMine && item.status && (
+          {message.isMine && message.status && (
             <View style={styles.statusContainer}>
-              <StatusText status={item.status} theme={theme} />
+              <StatusText status={message.status} theme={theme} />
             </View>
           )}
         </View>
       );
     },
-    [sortedMessages, onMessagePress, theme, styles]
+    [onMessagePress, theme, styles]
   );
 
-  const keyExtractor = useCallback((item: ChatMessage) => item.id, []);
+  const keyExtractor = useCallback((row: ChatRow) => row.message.id, []);
 
   // Loading state
   if (loading) {
@@ -371,19 +415,28 @@ export function ChatScreen({
 
   return (
     <View style={[styles.container, styleOverride]}>
-      {/* Message list */}
-      <FlatList
-        data={sortedMessages}
+      {/* Message list — chronological, pinned to the newest message. */}
+      <LegendList
+        data={rows}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        inverted
+        itemsAreEqual={rowsAreEqual}
+        estimatedItemSize={ESTIMATED_MESSAGE_SIZE}
+        recycleItems={false}
+        // Open on the newest message. `maintainScrollAtEnd` only keeps an
+        // already-at-the-bottom list pinned as messages arrive; without this the
+        // list would mount at the oldest message.
+        initialScrollAtEnd
+        alignItemsAtEnd
+        maintainScrollAtEnd
+        maintainScrollAtEndThreshold={0.2}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: insets.top > 0 ? spacing.sm : spacing.md },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={isTyping ? <TypingIndicator theme={theme} /> : null}
+        ListFooterComponent={isTyping ? <TypingIndicator theme={theme} /> : null}
       />
 
       {/* Input bar */}

@@ -1,7 +1,6 @@
 import React, { useMemo, ReactNode, useCallback } from "react";
 import {
   View,
-  FlatList,
   ScrollView,
   Pressable,
   RefreshControl,
@@ -9,6 +8,7 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
+import { LegendList, type ColumnWrapperStyle } from "@legendapp/list/react-native";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
@@ -63,6 +63,13 @@ export interface CardGridScreenProps<T> {
   header?: ReactNode;
   style?: StyleProp<ViewStyle>;
 }
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Card image (120) + title/description lines + padding of a typical card. */
+const ESTIMATED_CARD_SIZE = 200;
 
 // ---------------------------------------------------------------------------
 // Component
@@ -205,14 +212,32 @@ export function CardGridScreen<T>({
     [onCardPress, renderCard, columnFlexStyle, fullFlexStyle]
   );
 
-  const columnWrapperStyle = useMemo<ViewStyle | undefined>(
-    () => (columns > 1 ? { gap: cardSpacing } : undefined),
+  // LegendList applies these gaps as padding on each item container, so this
+  // covers both the row gutter (columnGap) and the space between rows (rowGap)
+  // that `contentContainerStyle`'s gap used to provide under FlatList.
+  const columnWrapperStyle = useMemo<ColumnWrapperStyle>(
+    () => (columns > 1 ? { gap: cardSpacing } : { rowGap: cardSpacing }),
     [columns, cardSpacing]
+  );
+
+  // With multiple columns LegendList over-extends the item layer by the column
+  // gap (negative margin) and re-adds half of it as per-item padding, so cards
+  // would bleed `cardSpacing / 2` past the content padding on each edge. Pad
+  // the content box by that much — and pull the header back out — so cards keep
+  // the same width and edge alignment they had under FlatList.
+  const gridEdgeBleed = columns > 1 ? cardSpacing / 2 : 0;
+  const gridPaddingStyle = useMemo<ViewStyle>(
+    () => ({ paddingHorizontal: spacing.lg + gridEdgeBleed }),
+    [gridEdgeBleed]
+  );
+  const headerOutsetStyle = useMemo<ViewStyle | undefined>(
+    () => (gridEdgeBleed > 0 ? { marginHorizontal: -gridEdgeBleed } : undefined),
+    [gridEdgeBleed]
   );
 
   const cardGapStyle = useMemo<ViewStyle>(() => ({ gap: cardSpacing }), [cardSpacing]);
 
-  // Pass a component (not an element) so FlatList builds the header JSX lazily —
+  // Pass a component (not an element) so the list builds the header JSX lazily —
   // never during an early-return render. renderCategoryTabs / renderSortRow are
   // memoized, so this callback identity is stable across unrelated renders.
   const ListHeader = useCallback(
@@ -284,16 +309,19 @@ export function CardGridScreen<T>({
 
   return (
     <View style={[styles.container, styleOverride]}>
-      <FlatList
+      <LegendList
         data={data}
         keyExtractor={keyExtractor}
         numColumns={columns}
         columnWrapperStyle={columnWrapperStyle}
         renderItem={renderItem}
+        estimatedItemSize={ESTIMATED_CARD_SIZE}
+        recycleItems={false}
         ListHeaderComponent={ListHeader}
+        ListHeaderComponentStyle={data.length === 0 ? undefined : headerOutsetStyle}
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={
-          data.length === 0 ? styles.emptyFlatList : [styles.gridContent, cardGapStyle]
+          data.length === 0 ? styles.emptyList : [styles.gridContent, gridPaddingStyle]
         }
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
@@ -348,9 +376,9 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.mutedForeground,
     },
 
-    // Grid
+    // Grid — horizontal padding is applied at the call site (gridPaddingStyle)
+    // because it depends on the column gap.
     gridContent: {
-      paddingHorizontal: spacing.lg,
       paddingBottom: spacing.xxl,
     },
 
@@ -362,7 +390,7 @@ const createStyles = (theme: Theme) =>
     },
 
     // Empty state
-    emptyFlatList: {
+    emptyList: {
       flexGrow: 1,
     },
     emptyContainer: {

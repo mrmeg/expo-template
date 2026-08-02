@@ -1,12 +1,12 @@
 import React, { useMemo, ReactNode, useState, useCallback } from "react";
 import {
   View,
-  FlatList,
   RefreshControl,
   StyleSheet,
   StyleProp,
   ViewStyle,
 } from "react-native";
+import { LegendList } from "@legendapp/list/react-native";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
@@ -45,6 +45,21 @@ export interface ListScreenProps<T> {
   header?: ReactNode;
   style?: StyleProp<ViewStyle>;
 }
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Avatar (40) + vertical padding of a typical row rendered by `renderItem`. */
+const ESTIMATED_ITEM_SIZE = 72;
+
+/**
+ * First-render size hint. LegendList starts from a zero-height viewport until
+ * `onLayout` reports the real one, and there is no layout pass during web SSR —
+ * so without this the server would ship an empty list and only fill it after
+ * hydration. The measured size replaces it as soon as layout runs.
+ */
+const ESTIMATED_LIST_SIZE = { height: 900, width: 400 };
 
 // ---------------------------------------------------------------------------
 // Component
@@ -94,7 +109,7 @@ export function ListScreen<T>({
   );
 
   // Pass a component (not an element) to ListHeaderComponent so the JSX is
-  // built lazily by FlatList — never during an early-return render — and the
+  // built lazily by the list — never during an early-return render — and the
   // callback identity stays stable across renders.
   const ListHeader = useCallback(
     () => (
@@ -172,13 +187,21 @@ export function ListScreen<T>({
 
   return (
     <View style={[styles.container, styleOverride]}>
-      <FlatList
+      {/*
+        `recycleItems` stays off: rows are wrapped in AnimatedView, whose
+        entrance animation is keyed off the row index, so a recycled view would
+        replay (and briefly hide) itself when it takes a new index.
+      */}
+      <LegendList
         data={data}
         keyExtractor={keyExtractor}
         renderItem={renderRow}
+        estimatedItemSize={ESTIMATED_ITEM_SIZE}
+        estimatedListSize={ESTIMATED_LIST_SIZE}
+        recycleItems={false}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={data.length === 0 ? styles.emptyFlatList : styles.listContent}
+        contentContainerStyle={data.length === 0 ? styles.emptyList : styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
       />
@@ -204,7 +227,7 @@ const createStyles = (theme: Theme) =>
     listContent: {
       paddingBottom: spacing.xxl,
     },
-    emptyFlatList: {
+    emptyList: {
       flexGrow: 1,
     },
     emptyContainer: {

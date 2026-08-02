@@ -1,7 +1,6 @@
 import React, { ReactNode, useCallback, useMemo } from "react";
 import {
   View,
-  SectionList,
   RefreshControl,
   Pressable,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
+import { SectionList } from "@legendapp/list/section-list";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
@@ -56,6 +56,13 @@ export interface NotificationListScreenProps {
   header?: ReactNode;
   style?: StyleProp<ViewStyle>;
 }
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Icon (36) + two text lines + vertical padding of a notification row. */
+const ESTIMATED_ITEM_SIZE = 84;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -306,6 +313,8 @@ export function NotificationListScreen({
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         renderSectionHeader={renderSectionHeader}
+        estimatedItemSize={ESTIMATED_ITEM_SIZE}
+        recycleItems={false}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={
