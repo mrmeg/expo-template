@@ -9,6 +9,12 @@
  *   - null reads (nothing persisted) leave state alone instead of crashing
  *   - storage failures don't throw — onboarding must not block startup
  *
+ * Since the SSR cookie gate (docs/ssr-hydration.md §6) the web writes are a
+ * DUAL write — localStorage plus a `has-seen-onboarding` cookie the server
+ * reads to decide whether to render the gate. Those assertions matter because
+ * a missing cookie write silently reverts every returning visitor to a
+ * server-rendered onboarding gate, which no client-side test would notice.
+ *
  * Platform switching: we mutate Platform.OS on the live react-native module
  * instead of re-mocking it, because re-mocking pulls in TurboModule shims
  * (DevMenu, VirtualizedList) that jest-expo has not wired up. window and
@@ -25,6 +31,36 @@ import { useOnboardingStore } from "../onboardingStore";
 const ONBOARDING_KEY = "has-seen-onboarding";
 
 type WindowShim = { localStorage: typeof localStorage };
+
+// `document.cookie` is a setter that appends in a real browser; jsdom is not
+// guaranteed to be the environment here (jest-expo defaults to a native-ish
+// one), so we install a minimal recorder and read back what was written.
+function installDocumentCookie(initial = "") {
+  const writes: string[] = [];
+  let value = initial;
+  const doc = {
+    get cookie() {
+      return value;
+    },
+    set cookie(next: string) {
+      writes.push(next);
+      const [pair] = next.split(";");
+      const [name, raw = ""] = pair.split("=");
+      const maxAgeMatch = next.match(/max-age=(-?\d+)/i);
+      const expired = maxAgeMatch ? Number(maxAgeMatch[1]) <= 0 : false;
+      const others = value
+        .split(";")
+        .map((c) => c.trim())
+        .filter((c) => c && c.split("=")[0] !== name);
+      value = expired ? others.join("; ") : [...others, `${name}=${raw}`].join("; ");
+    },
+  };
+  (globalThis as unknown as { document: typeof doc }).document = doc;
+  return {
+    writes,
+    current: () => value,
+  };
+}
 
 function installLocalStorage(stored: Record<string, string> = {}) {
   const shim = {
@@ -49,10 +85,11 @@ function installLocalStorage(stored: Record<string, string> = {}) {
 
 describe("useOnboardingStore", () => {
   const originalOS = Platform.OS;
+  const originalDocument = (globalThis as unknown as { document?: unknown }).document;
 
   beforeEach(async () => {
     await AsyncStorage.clear();
-    useOnboardingStore.setState({ hasSeenOnboarding: false });
+    useOnboardingStore.setState({ hasSeenOnboarding: false, hasLoadedOnboarding: false });
     (Platform as { OS: string }).OS = "ios";
   });
 
@@ -60,6 +97,11 @@ describe("useOnboardingStore", () => {
     (Platform as { OS: string }).OS = originalOS;
     delete (globalThis as unknown as { window?: unknown }).window;
     delete (globalThis as unknown as { localStorage?: unknown }).localStorage;
+    if (originalDocument === undefined) {
+      delete (globalThis as unknown as { document?: unknown }).document;
+    } else {
+      (globalThis as unknown as { document: unknown }).document = originalDocument;
+    }
   });
 
   it("starts with hasSeenOnboarding = false", () => {
@@ -94,6 +136,80 @@ describe("useOnboardingStore", () => {
     useOnboardingStore.getState().setHasSeenOnboarding(true);
 
     expect(setItemSpy).toHaveBeenCalledWith(ONBOARDING_KEY, "true");
+  });
+
+  it("dual-writes the SSR cookie on web so the server can skip the gate", () => {
+    (Platform as { OS: string }).OS = "web";
+    installLocalStorage();
+    const cookies = installDocumentCookie();
+
+    useOnboardingStore.getState().setHasSeenOnboarding(true);
+
+    expect(cookies.writes).toHaveLength(1);
+    expect(cookies.writes[0]).toContain(`${ONBOARDING_KEY}=1`);
+    expect(cookies.writes[0]).toContain("path=/");
+    expect(cookies.writes[0]).toContain("SameSite=Lax");
+    expect(cookies.writes[0]).toMatch(/max-age=31536000/);
+    expect(cookies.writes[0]).not.toContain("domain=");
+    expect(cookies.current()).toContain(`${ONBOARDING_KEY}=1`);
+  });
+
+  it("expires the SSR cookie when the flag is set back to false", () => {
+    (Platform as { OS: string }).OS = "web";
+    installLocalStorage();
+    const cookies = installDocumentCookie(`${ONBOARDING_KEY}=1`);
+
+    useOnboardingStore.getState().setHasSeenOnboarding(false);
+
+    expect(cookies.writes[0]).toContain("max-age=0");
+    expect(cookies.current()).not.toContain(`${ONBOARDING_KEY}=1`);
+  });
+
+  it("does not write a cookie on native", async () => {
+    const cookies = installDocumentCookie();
+
+    useOnboardingStore.getState().setHasSeenOnboarding(true);
+    await Promise.resolve();
+
+    expect(cookies.writes).toHaveLength(0);
+  });
+
+  it("loadOnboarding repairs a cookie that drifted from localStorage on web", () => {
+    (Platform as { OS: string }).OS = "web";
+    installLocalStorage({ [ONBOARDING_KEY]: "true" });
+    const cookies = installDocumentCookie();
+
+    useOnboardingStore.getState().loadOnboarding();
+
+    expect(cookies.current()).toContain(`${ONBOARDING_KEY}=1`);
+  });
+
+  it("loadOnboarding clears a stale cookie when localStorage is empty", () => {
+    (Platform as { OS: string }).OS = "web";
+    installLocalStorage();
+    const cookies = installDocumentCookie(`${ONBOARDING_KEY}=1`);
+
+    // Site data cleared: localStorage wins, so the cookie must not keep the
+    // server rendering the app shell for a user who should see onboarding.
+    useOnboardingStore.getState().loadOnboarding();
+
+    expect(useOnboardingStore.getState().hasSeenOnboarding).toBe(false);
+    expect(cookies.current()).not.toContain(`${ONBOARDING_KEY}=1`);
+  });
+
+  it("marks onboarding loaded once loadOnboarding resolves on web", () => {
+    (Platform as { OS: string }).OS = "web";
+    installLocalStorage();
+    installDocumentCookie();
+
+    expect(useOnboardingStore.getState().hasLoadedOnboarding).toBe(false);
+    useOnboardingStore.getState().loadOnboarding();
+    expect(useOnboardingStore.getState().hasLoadedOnboarding).toBe(true);
+  });
+
+  it("marks onboarding loaded once loadOnboarding resolves on native", async () => {
+    await useOnboardingStore.getState().loadOnboarding();
+    expect(useOnboardingStore.getState().hasLoadedOnboarding).toBe(true);
   });
 
   it("loadOnboarding hydrates from AsyncStorage on native", async () => {

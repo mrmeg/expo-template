@@ -26,7 +26,7 @@ import { captureException, setupSentry } from "@/client/lib/sentry";
 import { useAppStartup, OnboardingGate } from "@/client/features/app";
 import { SsrStyleFlush } from "@/client/features/app/SsrStyleFlush";
 import { AuthProviderGate } from "@/client/features/auth/provider/AuthProviderGate";
-import { useOnboardingStore } from "@/client/features/onboarding/onboardingStore";
+import { useHasSeenOnboarding } from "@/client/features/onboarding/onboardingStore";
 
 // Surface partial-feature env config (e.g. only one Cognito var set) at
 // startup. Always warns, never throws — the template stays runnable when
@@ -81,7 +81,12 @@ export default function RootLayout() {
   const { scheme } = useTheme();
   const { loaded: fontsLoaded } = useResources();
   const [i18nReady, setI18nReady] = useState(false);
-  const hasSeenOnboarding = useOnboardingStore((s) => s.hasSeenOnboarding);
+  // On web the first render (server AND client) resolves from the
+  // `has-seen-onboarding` cookie, so returning visitors get gate-free HTML and
+  // hydration matches; localStorage takes over after mount. On native it's just
+  // store state. See client/features/onboarding/onboardingStore.ts and
+  // docs/ssr-hydration.md §6.
+  const hasSeenOnboarding = useHasSeenOnboarding();
   const { ready } = useAppStartup({ fontsLoaded, i18nReady });
 
   // Initialize i18n
@@ -103,18 +108,6 @@ export default function RootLayout() {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
     document.documentElement.classList.remove("theme-loading");
   }, []);
-
-  // Drop the `onboarding-seen` shield (added pre-paint by +html.tsx) once the
-  // persisted state has resolved to "seen" and we're rendering the app. Gating
-  // removal on the resolved-true value — rather than removing on mount — keeps
-  // the gate hidden through the swap so returning users never see it, while
-  // still letting a runtime onboarding reset (flag back to false) show the gate.
-  useEffect(() => {
-    if (Platform.OS !== "web" || typeof document === "undefined") return;
-    if (hasSeenOnboarding) {
-      document.documentElement.classList.remove("onboarding-seen");
-    }
-  }, [hasSeenOnboarding]);
 
   // Hide splash screen once the full startup gate has resolved — fonts, i18n,
   // onboarding persistence, and (when configured) auth bootstrap.
