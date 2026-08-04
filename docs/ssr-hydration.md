@@ -355,6 +355,92 @@ That returns the real `(main)` markup — confirm translated strings appear (e.g
 existed, the §3 i18n fix was verified by temporarily short-circuiting the gate
 with `{true || hasSeenOnboarding ? …}` and restarting the server.)
 
+### `(main)`-route SSR must return real markup, not a blank 200
+
+Every `(main)` route server-renders the Radix Tabs tree. `MainLayout` sets
+`initialRouteName: "(tabs)"`, and `app/(main)/(tabs)/_layout.tsx` renders
+`NativeTabs`, whose web implementation
+(`expo-router/build/native-tabs/NativeTabsView.web.js`) is built on
+`@radix-ui/react-tabs`. So the tabs subtree renders during SSR of *every*
+`(main)` route, `(demos)/*` included.
+
+**A throw in that subtree does not produce a 500.**
+`@expo/router-server`'s `renderStreamingContent.js` handles the stream's
+`onError` with nothing but `console.error("SSR streaming render error:", …)`, so
+the response stays a **200** with a blank or truncated body. Status codes and
+`wc -c` both look fine — the shell, `<head>`, and hydration scripts always
+render — so check for **route-specific text** and watch the server's stdout:
+
+```bash
+# Server on a port you own (PORT=3000 by default).
+bun run build && PORT=3000 bun run start
+
+for route in "" screen-faq settings profile media; do
+  body=$(curl -s -H 'Cookie: has-seen-onboarding=1' "localhost:3000/$route")
+  printf '%-12s bytes=%s\n' "/${route}" "$(printf '%s' "$body" | wc -c)"
+done
+```
+
+Then grep each response for a string only that route renders — e.g.
+`Component Library` (`/`), `Is there a free plan` (`/screen-faq`),
+`Appearance` (`/settings`), `Edit Profile` (`/profile`), `Total Size`
+(`/media`) — and confirm the server log shows **zero**
+`SSR streaming render error:` lines.
+
+Run the sweep **twice**, and once more against a freshly restarted server with
+the route under test as the *first* request: per §7 the server-side RNW
+stylesheet is a module singleton, so some SSR faults are cold-start-only.
+
+Note `/screen-faq` streams its screen inside a Suspense boundary (a trailing
+`$RC("B:2","S:2")` in the HTML). Its own content arrives after the tabs shell,
+which is why grepping for FAQ text — not just body length — is the real check.
+
+**Duplicate Radix modules are the mechanism to suspect** if this ever does go
+blank: two copies of a Radix context/collection package means a consumer reads
+the other copy's empty context. As of this writing the `(main)` routes render
+clean — the blank body does not reproduce on a healthy install.
+
+### Duplicate `react-slot` breaks `asChild` — `React.Children.only`
+
+A *browser* pass on `/showcase` did catch a real crash from that same family:
+clicking the AlertDialog trigger ("Delete Account") threw
+
+```
+Error: React.Children.only expected to receive a single React element child.
+```
+
+and tripped the error boundary. The plain `Dialog` demo on the same page was
+fine, which is the tell — the fault is per-component, not global.
+
+Why: `react-slot`'s `isSlottable(child)` tests
+`child.type.__radixId === SLOTTABLE_IDENTIFIER`, and that identifier is
+`Symbol("radix.slottable")` — **not** `Symbol.for(...)`. It is therefore unique
+per *physical copy* of the package. `AlertDialogContent` built its `Slottable`
+from its own nested copy while the matching `Slot` came through
+`react-primitive`'s copy, so `isSlottable` returned false, the real child fell
+through to `SlotClone` alongside a sibling, and
+`React.Children.count(children) > 1` hit `React.Children.only(null)`.
+
+Fixed with `package.json` `overrides`:
+
+```json
+"@radix-ui/react-slot": "1.2.4",
+"@radix-ui/react-primitive": "2.1.4"
+```
+
+(the higher of each pair — both splits were one patch apart). Use `overrides`,
+not Metro's `dedupePackages` (`metro.config.js`): that rewrites only the
+**Metro** bundle, while SSR runs the exported server bundle, so `overrides` is
+the lever that reaches both. Confirm with one copy each on disk:
+
+```bash
+find node_modules -path '*@radix-ui/react-slot/package.json' | wc -l       # → 1
+find node_modules -path '*@radix-ui/react-primitive/package.json' | wc -l  # → 1
+```
+
+`__tests__/radixSingleton.guardrail.test.ts` pins the lockfile against this
+drift, so a re-split fails CI instead of a demo.
+
 ## Guardrail
 
 `__tests__/ssrHydration.guardrail.test.ts` holds source/behavior assertions so a
@@ -369,3 +455,11 @@ fork can't silently drop these:
 
 These are cheap backstops, not a substitute for the real-server `curl` check
 above (Jest mocks `react-i18next`, so it can't model the SSR render on its own).
+
+`__tests__/radixSingleton.guardrail.test.ts` covers the `(main)`-route Radix
+dependency graph in the same spirit: the packages the SSR Tabs tree renders
+through (`react-tabs`, `react-direction`, `react-context`,
+`react-roving-focus`, `react-collection`, `react-presence`, `react-id`) must
+each resolve to exactly one version in `bun.lock`, `react-slot` and
+`react-primitive` must stay unified at the versions the `overrides` pin, and
+`package.json` must still declare those overrides.
