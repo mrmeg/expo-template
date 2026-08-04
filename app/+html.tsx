@@ -107,30 +107,17 @@ function getRootCssStyles() {
     html.theme-loading #root {
       visibility: hidden;
     }
-
-    /* Returning web visitors: ONBOARDING_SEEN_SCRIPT reads the persisted flag
-       before paint and adds the onboarding-seen class, so the gate the server
-       rendered (it can't read localStorage, so it always emits the gate) never
-       flashes before hydration swaps in the app. RootLayout drops the class
-       once the real state resolves, so a runtime onboarding reset still shows
-       the gate. New visitors have no class, so the SSR onboarding paints. */
-    html.onboarding-seen #root [data-testid="onboarding-gate"] {
-      display: none !important;
-    }
   `;
 }
 
 const DEFAULT_DOCUMENT_TITLE = "Expo Template";
 const COLOR_SCHEME_SCRIPT =
   "(function(){try{var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";var root=document.documentElement;root.dataset.theme=resolved;root.style.colorScheme=resolved;if(resolved===\"dark\"){root.classList.add(\"theme-loading\");setTimeout(function(){root.classList.remove(\"theme-loading\");},500);}}catch(e){}})()";
-// Blocking script that resolves whether the visitor has completed onboarding
-// before the gate the server rendered is painted. The server has no
-// localStorage, so it always emits the onboarding gate; without this a
-// returning user sees that gate for one frame on every reload before hydration
-// swaps in the app. Adds `onboarding-seen` to <html> when the flag is truthy;
-// the CSS rule above then hides the gate until RootLayout drops the class.
-const ONBOARDING_SEEN_SCRIPT =
-  "(function(){try{if(JSON.parse(localStorage.getItem(\"has-seen-onboarding\")))document.documentElement.classList.add(\"onboarding-seen\");}catch(e){}})()";
+// NOTE: onboarding needs no shield script. The server reads the
+// `has-seen-onboarding` cookie from the request and renders the correct tree
+// outright, so there is no gate to hide for returning visitors. See
+// server/lib/ssrOnboarding.ts and docs/ssr-hydration.md §6. (Theme still needs
+// its script below — no cookie is written for the color scheme.)
 const REACT_SCAN_SCRIPT = `
   (function () {
     var scanHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
@@ -222,12 +209,6 @@ export default function Root({ children }: PropsWithChildren) {
             white flash. The 500ms failsafe drops the class if hydration is
             slow or never runs. */}
         <script>{COLOR_SCHEME_SCRIPT}</script>
-
-        {/* Blocking script that hides the server-rendered onboarding gate for
-            visitors who've already completed onboarding, so they don't flash
-            the gate for one frame on reload before hydration swaps in the app.
-            See ONBOARDING_SEEN_SCRIPT and the `onboarding-seen` CSS rule. */}
-        <script>{ONBOARDING_SEEN_SCRIPT}</script>
 
         {/* React Scan render highlighting for web.
             Add ?scan to any local web URL to inject the CDN script for that page. */}

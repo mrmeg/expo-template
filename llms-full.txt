@@ -1782,10 +1782,10 @@ The problem this solves: if `app/_layout.tsx` initializes i18n **only** inside a
 the server, so i18next is uninitialized during SSR. Any `t("a.b")` on a
 server-rendered screen emits the **raw key** server-side and the **translation**
 client-side → a hydration mismatch. The bundled screens that use `t()` (e.g.
-`settings.tsx`) live inside `(main)`, and the onboarding gate replaces the whole
-Stack during SSR (the persisted `hasSeenOnboarding` flag reads false on the
-server), so the bundled routes mask it — but it bites the moment any
-SSR-reachable route calls `t()`.
+`settings.tsx`) live inside `(main)`, which the onboarding gate replaces during
+SSR for a visitor with no `has-seen-onboarding` cookie (§6) — so a cookie-less
+request masks the bug, but it bites the moment any SSR-reachable route calls
+`t()`. Send the cookie to see through the gate.
 
 **How it's wired here:**
 
@@ -1844,39 +1844,74 @@ body background is correct on first paint. Any component that reads theme/window
 for render output should resolve to a stable default on the first render (gate
 on a `useHydrated()`-style flag) and switch after mount.
 
-### 6. Onboarding gate — a personalization flash, masked like the theme
+### 6. Onboarding gate — resolved server-side from a cookie
 
-The server can't read `localStorage`, so `useOnboardingStore` resolves
-`hasSeenOnboarding: false` during SSR and `RootLayout` emits the **OnboardingGate**
-into the HTML. A returning visitor's browser paints that gate for one frame on
-every reload before hydration reads the persisted flag and swaps in the app —
-the split-second onboarding flash. (This is the same data the "onboarding gate
-masks `(main)` routes" gotcha below describes, seen from the user's side.)
+Onboarding is **personalization**, and the fix for personalization under SSR is
+to give the server the signal rather than mask a wrong render. The flag is
+mirrored into a cookie, the server reads it off the request, and returning
+visitors get gate-free HTML — no shield script, no hidden gate in the DOM, and
+`(main)` routes actually server-render for them.
 
-It's masked exactly like the theme white-flash (§5), in four parts:
+`localStorage` remains the client's source of truth. The cookie is only a
+render hint, so it can be stale (cleared cookies, an older visitor) without
+trapping anyone: the client reconciles against `localStorage` after mount and
+localStorage wins.
 
-1. **`onboardingStore.ts`** auto-loads from storage on **native only** — on web
-   the read is deferred to a `useEffect` so the first client render matches the
-   server's `false` (no hydration mismatch). Mirrors `themeStore`. `loadOnboarding()`
-   returns a `Promise` so the startup gate can actually await the real read.
-2. **`app/+html.tsx`** ships a blocking `ONBOARDING_SEEN_SCRIPT` that reads
-   `localStorage["has-seen-onboarding"]` before paint and adds `onboarding-seen`
-   to `<html>` when truthy. A CSS rule (`html.onboarding-seen #root
-   [data-testid="onboarding-gate"] { display: none }`) then hides the gate, so a
-   returning visitor sees the themed background — not onboarding — until hydration.
-3. **`RootLayout.tsx`** drops the `onboarding-seen` class once `hasSeenOnboarding`
-   resolves to `true`, so the gate is unhidden only *after* the Stack renders, and
-   a runtime onboarding reset (flag back to `false`) still shows the gate.
-4. **New visitors** have no persisted flag → no class → the SSR onboarding
-   paints normally, fully styled by the react-native-web `<style>` element the
-   server ships in `headNodes` (§1). Don't add per-element "critical CSS" for
-   it in `+html.tsx`: `#root [data-testid=…]` selectors outrank RNW's generated
-   classes by specificity and keep overriding them *after* hydration (this once
-   collapsed the Get Started button's `fullWidth` inner view to text width).
+Three parts:
 
-If you remove either the script or the CSS rule, the flash returns. Keep the
-store's web read deferred — eagerly reading `localStorage` at module load (the
-old behavior) trades the flash for a hydration mismatch on returning users.
+1. **`onboardingStore.ts` dual-writes on web.** `setHasSeenOnboarding(seen)`
+   writes `localStorage["has-seen-onboarding"]` **and** a
+   `has-seen-onboarding=1` cookie (`path=/; max-age≈1y; SameSite=Lax`).
+   Setting the flag back to `false` expires the cookie (`max-age=0`), so a
+   runtime onboarding reset server-renders the gate again on the next request.
+   `loadOnboarding()` also repairs cookie/localStorage drift in both
+   directions. Native persistence is unchanged: AsyncStorage, eagerly hydrated
+   at module load, no cookie.
+2. **`server/lib/ssrOnboarding.ts` reads it.** `parseOnboardingSeenCookie()`
+   does the parse; `detectOnboardingSeenFromRequestScope()` gets the header
+   from `expo-server`'s `requestHeaders()` — **inside a try/catch that falls
+   back to `false`**. The catch is load-bearing, not defensive noise: the same
+   module ships in the client bundle, where `requestHeaders()` throws because
+   there is no request scope. `detectOnboardingSeen(request)` is the explicit
+   loader-friendly form, mirroring `detectSsrViewportWidth(request)`.
+
+   Why the ambient request scope rather than a loader: the gate lives in the
+   **root layout**, and layouts can't export loaders —
+   `@expo/router-server`'s server manifest only carries leaf html routes
+   (`dist/server/_expo/routes.json` has zero `loader` fields on layouts). A
+   `withOnboardingSeen(loader)` wrapper + provider would work but would have to
+   be repeated on all 31 leaf routes.
+3. **`useHasSeenOnboarding()` keeps hydration exact.** It follows the
+   `useDimensions` shape (§4): a lazy `useState` initializer seeds the first
+   render from the cookie — the one signal *both* the server and the browser
+   have (`document.cookie` client-side, request scope server-side) — so the
+   server HTML and the hydrated tree agree. After mount, `loadOnboarding()`
+   (via `useAppStartup`) reads `localStorage` and flips `hasLoadedOnboarding`,
+   at which point store state takes over. `RootLayout` calls this hook, not
+   `useOnboardingStore((s) => s.hasSeenOnboarding)`.
+
+**Never read `localStorage` during render** to decide this. That's the original
+mismatch: the server can't see it, so the two first renders diverge. The cookie
+exists precisely so both sides read the same bytes.
+
+New visitors have no cookie → the server renders onboarding, fully styled by
+the react-native-web `<style>` element in `headNodes` (§1). Don't add
+per-element "critical CSS" for it in `+html.tsx`: `#root [data-testid=…]`
+selectors outrank RNW's generated classes by specificity and keep overriding
+them *after* hydration (this once collapsed the Get Started button's
+`fullWidth` inner view to text width).
+
+Verify both cookie states against the real server, not just Jest:
+
+```bash
+curl -s localhost:3000/ | grep -c onboarding-gate                               # new visitor    → > 0
+curl -s -H 'Cookie: has-seen-onboarding=1' localhost:3000/ | grep -c onboarding-gate  # returning → == 0
+```
+
+> Follow-up, not done here: the theme preference could move to the same
+> cookie mechanism and retire the `theme-loading` shield too. It's a separate
+> decision — the theme script also handles the OS `prefers-color-scheme`
+> fallback, which no cookie can supply on a first visit.
 
 ### 7. Theme-dependent styles — register at module scope, not render time
 
@@ -1966,16 +2001,21 @@ hydration warnings. Reproduce **both** a cold reload **and** navigation from
 another page — warm font/i18n caches change which side renders "loaded", so a
 bug can hide on one path and appear on the other.
 
-**Gotcha — the onboarding gate masks `(main)` routes on the server.** During SSR
-the persisted `hasSeenOnboarding` flag is false, so `app/_layout.tsx` renders
-`OnboardingGate` in place of the whole Stack. A `curl /settings` therefore
-returns the onboarding markup, not the settings screen — so it shows *neither*
-translated strings nor leaked keys, which can read as a false pass. To prove the
-i18n fix against a real `(main)` screen, temporarily short-circuit the gate
-(`{true || hasSeenOnboarding ? …}`), restart the dev server (CI mode disables
-reloads), curl, confirm translated strings appear (e.g. `Appearance`,
-`Language`) with no raw `settings.` keys, then revert. This is exactly how the
-§3 fix was verified.
+**Gotcha — the onboarding gate masks `(main)` routes for cookie-less requests.**
+A bare `curl /settings` looks like a brand-new visitor, so the server renders
+`OnboardingGate` in place of the whole Stack and you get onboarding markup, not
+the settings screen — *neither* translated strings nor leaked keys, which reads
+as a false pass. Since §6, you no longer have to patch the source to get past
+it: send the cookie.
+
+```bash
+curl -s -H 'Cookie: has-seen-onboarding=1' localhost:3000/settings > /tmp/ssr.html
+```
+
+That returns the real `(main)` markup — confirm translated strings appear (e.g.
+`Appearance`, `Language`) with no raw `settings.` keys. (Before the cookie
+existed, the §3 i18n fix was verified by temporarily short-circuiting the gate
+with `{true || hasSeenOnboarding ? …}` and restarting the server.)
 
 ## Guardrail
 
