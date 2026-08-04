@@ -31,6 +31,10 @@ script. The `pre-commit` hook (`lefthook.yml`) runs only the fast gates —
 about five seconds total. There is deliberately **no pre-push hook**: pushing a
 work-in-progress branch should never wait on the test suite.
 
+Outside a git work tree the `prepare` script exits 0 without installing hooks, so
+`bun install` works on an unzipped copy of the template before `git init`; run
+`bunx lefthook install` once the repo is initialized.
+
 - Full CI-parity pass, including tests: `bun run verify`
 - Skip hooks once: `git commit --no-verify` or `LEFTHOOK=0 git commit ...`
 - Reinstall after changing `lefthook.yml`'s hook list: `bunx lefthook install`

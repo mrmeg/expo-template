@@ -51,7 +51,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "verify": "node scripts/verify.mjs",
-    "prepare": "lefthook install",
+    "prepare": "git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0; lefthook install",
     "generate": "npx tsx scripts/generate.ts",
     "init": "npx tsx scripts/init.ts"
   },
