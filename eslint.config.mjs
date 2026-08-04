@@ -1,4 +1,5 @@
 import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import globals from "globals";
 import tsParser from "@typescript-eslint/parser";
@@ -30,6 +31,11 @@ export default [
     "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
   ),
+  // React Compiler is enabled (app.config.ts `experiments.reactCompiler`), so
+  // Rules-of-React violations now decide whether a component gets memoized.
+  // `recommended-latest` bundles the compiler diagnostics with the classic
+  // hooks rules; keep it ahead of the local block so overrides below win.
+  reactHooks.configs.flat["recommended-latest"],
   {
     plugins: {
       react,

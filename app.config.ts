@@ -153,6 +153,7 @@ export default function appConfig(_: ConfigContext): ExpoConfig {
     plugins: basePlugins(),
     experiments: {
       typedRoutes: true,
+      reactCompiler: true,
     },
     extra: {
       updatesChannel,

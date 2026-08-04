@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useReducer, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useReducer, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -50,7 +50,6 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 import { Seo } from "@/client/components/Seo";
 
 type FilterType = "all" | keyof typeof MEDIA_PATHS;
-type MediaType = keyof typeof MEDIA_PATHS;
 type MediaViewerState =
   | { type: "video"; url: string; title: string }
   | { type: "image"; url: string; title: string }
@@ -60,13 +59,6 @@ type MediaViewerAction =
   | { type: "playVideo"; url: string; title: string }
   | { type: "previewImage"; url: string; title: string }
   | { type: "close" };
-
-const LIST_MEDIA_TYPES = [
-  "avatars",
-  "videos",
-  "thumbnails",
-  "uploads",
-] as const satisfies readonly MediaType[];
 
 const MEDIA_FILTERS: { key: FilterType; label: string }[] = [
   { key: "all", label: "All" },
@@ -122,31 +114,78 @@ function useMediaScreenContent() {
     null
   );
 
-  const mediaListQueries = {
-    avatars: useMediaList({
-      mediaType: "avatars",
-      enabled: filter === "all" || filter === "avatars",
-    }),
-    videos: useMediaList({
-      mediaType: "videos",
-      enabled: filter === "all" || filter === "videos",
-    }),
-    thumbnails: useMediaList({
-      mediaType: "thumbnails",
-      enabled: filter === "all" || filter === "thumbnails",
-    }),
-    uploads: useMediaList({
-      mediaType: "uploads",
-      enabled: filter === "all" || filter === "uploads",
-    }),
-  };
-  const avatarsData = mediaListQueries.avatars.data;
-  const videosData = mediaListQueries.videos.data;
-  const thumbnailsData = mediaListQueries.thumbnails.data;
-  const uploadsData = mediaListQueries.uploads.data;
-  const activeMediaListQueries = filter === "all"
-    ? LIST_MEDIA_TYPES.map((mediaType) => mediaListQueries[mediaType])
-    : [mediaListQueries[filter]];
+  // Each query's fields are destructured immediately rather than kept in a
+  // keyed object or array of query objects. React Compiler widens the mutable
+  // range of anything a captured object reaches, so collecting the query objects
+  // would mark every value derived from them as mutable and skip memoizing the
+  // whole screen (react-hooks/preserve-manual-memoization).
+  const avatarsQuery = useMediaList({
+    mediaType: "avatars",
+    enabled: filter === "all" || filter === "avatars",
+  });
+  const videosQuery = useMediaList({
+    mediaType: "videos",
+    enabled: filter === "all" || filter === "videos",
+  });
+  const thumbnailsQuery = useMediaList({
+    mediaType: "thumbnails",
+    enabled: filter === "all" || filter === "thumbnails",
+  });
+  const uploadsQuery = useMediaList({
+    mediaType: "uploads",
+    enabled: filter === "all" || filter === "uploads",
+  });
+
+  const avatarsData = avatarsQuery.data;
+  const videosData = videosQuery.data;
+  const thumbnailsData = thumbnailsQuery.data;
+  const uploadsData = uploadsQuery.data;
+
+  const isAvatarsActive = filter === "all" || filter === "avatars";
+  const isVideosActive = filter === "all" || filter === "videos";
+  const isThumbnailsActive = filter === "all" || filter === "thumbnails";
+  const isUploadsActive = filter === "all" || filter === "uploads";
+
+  const isLoading =
+    (isAvatarsActive && avatarsQuery.isLoading) ||
+    (isVideosActive && videosQuery.isLoading) ||
+    (isThumbnailsActive && thumbnailsQuery.isLoading) ||
+    (isUploadsActive && uploadsQuery.isLoading);
+  const isRefetching =
+    (isAvatarsActive && avatarsQuery.isRefetching) ||
+    (isVideosActive && videosQuery.isRefetching) ||
+    (isThumbnailsActive && thumbnailsQuery.isRefetching) ||
+    (isUploadsActive && uploadsQuery.isRefetching);
+  const error =
+    (isAvatarsActive ? avatarsQuery.error : null) ??
+    (isVideosActive ? videosQuery.error : null) ??
+    (isThumbnailsActive ? thumbnailsQuery.error : null) ??
+    (isUploadsActive ? uploadsQuery.error : null) ??
+    null;
+
+  // React Query keeps each refetch referentially stable, so depending on the
+  // functions (not the query objects) keeps refetch — and the memoized
+  // RefreshControl built from it — stable across renders.
+  const refetchAvatars = avatarsQuery.refetch;
+  const refetchVideos = videosQuery.refetch;
+  const refetchThumbnails = thumbnailsQuery.refetch;
+  const refetchUploads = uploadsQuery.refetch;
+  const refetch = useCallback(() => {
+    if (isAvatarsActive) void refetchAvatars();
+    if (isVideosActive) void refetchVideos();
+    if (isThumbnailsActive) void refetchThumbnails();
+    if (isUploadsActive) void refetchUploads();
+  }, [
+    isAvatarsActive,
+    isVideosActive,
+    isThumbnailsActive,
+    isUploadsActive,
+    refetchAvatars,
+    refetchVideos,
+    refetchThumbnails,
+    refetchUploads,
+  ]);
+
   const data = useMemo(() => {
     if (filter !== "all") {
       switch (filter) {
@@ -180,20 +219,6 @@ function useMediaScreenContent() {
     thumbnailsData,
     uploadsData,
   ]);
-  const isLoading = activeMediaListQueries.some((query) => query.isLoading);
-  const isRefetching = activeMediaListQueries.some((query) => query.isRefetching);
-  const error = activeMediaListQueries.find((query) => query.error)?.error ?? null;
-
-  // activeMediaListQueries is rebuilt every render; stash the latest in a ref so
-  // refetch can stay referentially stable (and the memoized RefreshControl with
-  // it) without going stale.
-  const activeQueriesRef = useRef(activeMediaListQueries);
-  activeQueriesRef.current = activeMediaListQueries;
-  const refetch = useCallback(() => {
-    for (const query of activeQueriesRef.current) {
-      void query.refetch();
-    }
-  }, []);
   const mediaDisabled = isMediaError(error) && error.problem.kind === "disabled";
   const mediaAccessError =
     isMediaError(error) &&

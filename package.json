@@ -126,6 +126,7 @@
     "cors": "^2.8.6",
     "eslint": "^10.7.0",
     "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "expo-atlas": "^0.4.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.0",
