@@ -1,0 +1,29 @@
+# Manual internal-distribution builds for QA.
+#
+# Run it with:
+#   eas workflow:run .eas/workflows/build-preview.yml
+#
+# Both jobs use the `preview` profile from eas.json (distribution: internal,
+# channel: preview), so the resulting builds pick up EAS Updates published to
+# the `preview` channel.
+name: Build preview
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build_ios:
+    name: Build iOS preview
+    type: build
+    params:
+      platform: ios
+      profile: preview
+      message: Preview build from ${{ github.ref_name }}
+
+  build_android:
+    name: Build Android preview
+    type: build
+    params:
+      platform: android
+      profile: preview
+      message: Preview build from ${{ github.ref_name }}

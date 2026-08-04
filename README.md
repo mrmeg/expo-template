@@ -351,6 +351,75 @@ To reproduce CI locally: `bun install --frozen-lockfile` then run the
 same commands. Tests mock the AWS / Stripe surfaces, so a blank `.env`
 is enough.
 
+## Deployment
+
+`eas.json` ships build profiles and `.eas/workflows/` ships two starter
+pipelines. The template is intentionally **not** linked to an EAS project, so
+wire it to yours first:
+
+```bash
+npm install -g eas-cli
+eas login
+eas init          # creates the EAS project, prints its id
+```
+
+Then put the id in your `.env` (or as an EAS environment variable) so
+`app.config.ts` turns EAS Update on:
+
+```bash
+EAS_PROJECT_ID=00000000-0000-0000-0000-000000000000
+```
+
+While `EAS_PROJECT_ID` is blank, `app.config.ts` omits `extra.eas.projectId`,
+`updates.url`, and `runtimeVersion` entirely — cloud builds still work, only OTA
+updates are off. This keeps a fresh clone valid with a blank `.env`.
+
+### Build profiles
+
+| Profile | Distribution | Update channel | Notes |
+|---------|--------------|----------------|-------|
+| `development` | `internal` | — | Dev client build (`expo-dev-client`); loads JS from `expo start` |
+| `development-simulator` | `internal` | — | Extends `development`, adds `ios.simulator: true` |
+| `preview` | `internal` | `preview` | Internal QA builds |
+| `production` | `store` | `production` | Store-ready, `autoIncrement: true` |
+
+```bash
+eas build --profile development --platform ios
+eas build --profile preview --platform all
+eas build --profile production --platform all
+```
+
+`cli.appVersionSource` is `remote`, so EAS owns the build number / version code.
+The dev profiles deliberately set no `channel` — a dev client pulls JS from the
+local dev server, not from EAS Update.
+
+Profile names are load-bearing beyond `eas.json`: `CHANNEL_BY_PROFILE` in
+`app.config.ts` maps `EAS_BUILD_PROFILE` to `extra.updatesChannel`, so renaming
+a profile means updating that map and the profile's `channel` together.
+
+### Workflows
+
+| File | Trigger | Does |
+|------|---------|------|
+| `.eas/workflows/build-preview.yml` | Manual (`workflow_dispatch`) | iOS + Android `preview` builds in parallel |
+| `.eas/workflows/update-production.yml` | Push to `main` | Publishes an EAS Update to the branch of the same name |
+
+```bash
+eas workflow:run .eas/workflows/build-preview.yml
+```
+
+`update-production.yml` is gated on `if: ${{ env.EAS_PROJECT_ID }}`, so it is
+skipped (not failed) on a checkout that has not run `eas init`. Point the
+`production` channel at the `main` branch once, so updates published by that
+workflow reach production builds:
+
+```bash
+eas channel:edit production --branch main
+```
+
+Store submission (`eas submit`), Apple/Google credentials, and migrating the
+GitHub Actions CI to EAS Workflows are not configured here.
+
 ## Tech Stack
 
 - Expo SDK 57, React 19.2, React Native 0.86, React Native Web 0.21 (exact pins in `package.json`)
