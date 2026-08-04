@@ -32,7 +32,8 @@ import {
   useMediaLibrary,
   type ProcessedAsset,
 } from "@/client/features/media/hooks/useMediaLibrary";
-import { isMediaError } from "@/client/features/media/lib/problem";
+import { isMediaError, MediaError } from "@/client/features/media/lib/problem";
+import { isMediaOriginUnconfigured } from "@/client/features/media/mediaClient";
 import {
   MEDIA_PATHS,
   isVideoKey,
@@ -59,6 +60,16 @@ type MediaViewerAction =
   | { type: "playVideo"; url: string; title: string }
   | { type: "previewImage"; url: string; title: string }
   | { type: "close" };
+
+/**
+ * Stand-in for the server's 503 `media-disabled` problem, used when native has
+ * no API origin configured. Built once at module scope so the screen's memoized
+ * derivations see a stable reference.
+ */
+const UNCONFIGURED_MEDIA_ERROR = new MediaError({
+  kind: "disabled",
+  missing: ["EXPO_PUBLIC_API_URL"],
+});
 
 const MEDIA_FILTERS: { key: FilterType; label: string }[] = [
   { key: "all", label: "All" },
@@ -121,19 +132,19 @@ function useMediaScreenContent() {
   // whole screen (react-hooks/preserve-manual-memoization).
   const avatarsQuery = useMediaList({
     mediaType: "avatars",
-    enabled: filter === "all" || filter === "avatars",
+    enabled: (filter === "all" || filter === "avatars") && !isMediaOriginUnconfigured,
   });
   const videosQuery = useMediaList({
     mediaType: "videos",
-    enabled: filter === "all" || filter === "videos",
+    enabled: (filter === "all" || filter === "videos") && !isMediaOriginUnconfigured,
   });
   const thumbnailsQuery = useMediaList({
     mediaType: "thumbnails",
-    enabled: filter === "all" || filter === "thumbnails",
+    enabled: (filter === "all" || filter === "thumbnails") && !isMediaOriginUnconfigured,
   });
   const uploadsQuery = useMediaList({
     mediaType: "uploads",
-    enabled: filter === "all" || filter === "uploads",
+    enabled: (filter === "all" || filter === "uploads") && !isMediaOriginUnconfigured,
   });
 
   const avatarsData = avatarsQuery.data;
@@ -156,8 +167,14 @@ function useMediaScreenContent() {
     (isVideosActive && videosQuery.isRefetching) ||
     (isThumbnailsActive && thumbnailsQuery.isRefetching) ||
     (isUploadsActive && uploadsQuery.isRefetching);
-  const error =
-    (isAvatarsActive ? avatarsQuery.error : null) ??
+  // With no media origin configured (native + blank EXPO_PUBLIC_API_URL) every
+  // query above stays disabled, so React Query never produces an error. Feed the
+  // screen a synthesized disabled problem instead so the state logic below —
+  // mediaDisabled, missingEnvVars, uploadDisabled, and the branch order in the
+  // render — keeps working without forking.
+  const error = isMediaOriginUnconfigured
+    ? UNCONFIGURED_MEDIA_ERROR
+    : (isAvatarsActive ? avatarsQuery.error : null) ??
     (isVideosActive ? videosQuery.error : null) ??
     (isThumbnailsActive ? thumbnailsQuery.error : null) ??
     (isUploadsActive ? uploadsQuery.error : null) ??
@@ -531,7 +548,7 @@ function useMediaScreenContent() {
   const { data: signedUrlData } = useSignedUrls({
     mediaKeys,
     // No path - keys are full paths like "media/videos/abc.mp4"
-    enabled: mediaKeys.length > 0,
+    enabled: mediaKeys.length > 0 && !isMediaOriginUnconfigured,
   });
 
   // Get signed URLs for video thumbnails. flatMap filters videos, derives the
@@ -547,7 +564,7 @@ function useMediaScreenContent() {
   const { data: thumbnailUrlData } = useSignedUrls({
     mediaKeys: videoKeys,
     path: MEDIA_PATHS.thumbnails,
-    enabled: videoKeys.length > 0,
+    enabled: videoKeys.length > 0 && !isMediaOriginUnconfigured,
   });
 
   const handlePlayVideo = useCallback((filename: string, signedUrl: string) => {
