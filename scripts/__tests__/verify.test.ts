@@ -122,8 +122,29 @@ describe("lefthook pre-commit hook", () => {
   });
 
   it("is installed for every contributor by bun install", () => {
-    expect(packageJson.scripts.prepare).toBe("lefthook install");
+    expect(packageJson.scripts.prepare).toBe(
+      "git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0; lefthook install",
+    );
     expect(packageJson.devDependencies.lefthook).toBeDefined();
+  });
+
+  it("no-ops outside a git work tree instead of failing bun install", () => {
+    // An unzipped copy of the template has no `.git` yet, so `lefthook install`
+    // would exit 128 and take `bun install` down with it.
+    expect(packageJson.scripts.prepare).toMatch(
+      /^git rev-parse --is-inside-work-tree \S+ \S+ \|\| exit 0;/,
+    );
+  });
+
+  it("still surfaces a real lefthook install failure inside a repo", () => {
+    // `git rev-parse ... && lefthook install || exit 0` would also swallow a
+    // failing `lefthook install`; the guard must short-circuit with `||` first
+    // and then sequence with `;` so lefthook's exit code propagates.
+    const prepare: string = packageJson.scripts.prepare;
+
+    expect(prepare).not.toContain("&&");
+    expect(prepare).not.toContain("|| true");
+    expect(prepare.slice(prepare.indexOf("exit 0;"))).toBe("exit 0; lefthook install");
   });
 
   it("runs only the cheap gates", () => {
