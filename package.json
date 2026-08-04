@@ -47,6 +47,7 @@
     "packages:compatibility": "node scripts/check-package-consumer-profile.mjs",
     "test": "jest --watchAll",
     "test:ci": "jest --ci --coverage --forceExit",
+    "e2e": "maestro test .maestro",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "verify": "node scripts/verify.mjs",

@@ -36,6 +36,7 @@ export default function ExploreScreen() {
           bar (and stack header) locate it by walking first subviews, and that
           hookup drives minimizeBehavior + scroll edge effects on iOS 26. */}
       <ScrollView
+        testID="explore-screen"
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}

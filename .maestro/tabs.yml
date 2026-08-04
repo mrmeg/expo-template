@@ -1,0 +1,63 @@
+# Tab navigation smoke.
+#
+# The four destinations come from `NAV_DESTINATIONS`
+# (client/features/navigation/navDestinations.ts) and render through
+# `NativeTabs` (expo-router/unstable-native-tabs), so the tab bar items are real
+# native views — they are selected by their visible label, not by a testID.
+#
+# Each tab asserts one stable element so a broken navigator or a screen that
+# crashes on mount fails here rather than silently.
+#
+# Media is asserted on its *fails-closed* branch rather than one specific id.
+# `media-disabled` needs the server to report `kind: "disabled"`, but a native
+# build with no API origin configured can't even form the request URL, so it
+# lands on `media-error` instead. Both are correct blank-env outcomes — what
+# matters for a smoke test is that the screen mounts and degrades instead of
+# crashing, so the assertion accepts any of the three branches.
+appId: ${APP_ID}
+env:
+  APP_ID: com.mrmeg.template
+---
+- launchApp:
+    clearState: true
+
+# Get past the onboarding gate — it replaces the whole (main) Stack, tabs
+# included, until the persisted flag flips.
+- assertVisible:
+    id: "onboarding-gate"
+- tapOn:
+    id: "onboarding-skip-button"
+
+# Explore (the initial tab).
+- assertVisible:
+    id: "explore-screen"
+- assertVisible: "Screen Templates"
+
+# Media — mounts and degrades gracefully with blank env.
+- tapOn: "Media"
+- assertVisible:
+    id: "media-(disabled|error|auth-required)"
+
+# Profile — auth is disabled with blank env, so AuthGate passes through.
+- tapOn: "Profile"
+- assertVisible:
+    id: "profile-screen"
+- assertVisible: "Account Info"
+
+# Settings.
+- tapOn: "Settings"
+- assertVisible:
+    id: "settings-screen"
+
+# Back to Explore to prove the tab bar still routes after a full cycle.
+#
+# "Explore" must be scoped to the tab bar: the `(main)` stack header is titled
+# "Explore" on every tab (MainLayout gives the whole `(tabs)` group that one
+# title), so an unscoped `tapOn: "Explore"` matches the header first and taps
+# nothing. Media/Profile/Settings need no scoping — those labels are unique.
+- tapOn:
+    text: "Explore"
+    childOf:
+      text: "Tab Bar"
+- assertVisible:
+    id: "explore-screen"
