@@ -14,7 +14,7 @@ This project uses **bun**. Always use `bun install` and `bun add <package>` — 
 
 - **Double quotes**, **always semicolons** (enforced by ESLint)
 - 2-space indentation
-- Run `bun run lint` before committing
+- `bun run lint` runs automatically on commit (see Git Hooks)
 
 ## Git Workflow
 
@@ -23,12 +23,21 @@ This project uses **bun**. Always use `bun install` and `bun add <package>` — 
 - Keep commits small and focused
 - Open PRs against `dev`, not `main`
 
+## Git Hooks
+
+`bun install` installs [lefthook](https://lefthook.dev) via the `prepare`
+script. The `pre-commit` hook (`lefthook.yml`) runs only the fast gates —
+`typecheck`, `lint`, `gen:templates:check`, `docs:llms:check` — in parallel,
+about five seconds total. There is deliberately **no pre-push hook**: pushing a
+work-in-progress branch should never wait on the test suite.
+
+- Full CI-parity pass, including tests: `bun run verify`
+- Skip hooks once: `git commit --no-verify` or `LEFTHOOK=0 git commit ...`
+- Reinstall after changing `lefthook.yml`'s hook list: `bunx lefthook install`
+
 ## PR Checklist
 
-- [ ] `bun run lint` passes
-- [ ] `bun run typecheck` passes
-- [ ] `bun run check:features` passes (cross-feature import contract)
-- [ ] `bun run test:ci` — all tests pass
+- [ ] `bun run verify` passes (peer check, typecheck, lint, feature isolation, template registry + LLM docs freshness, tests — the same gates as CI's `validate` job)
 - [ ] Web tested (`bun run web`)
 - [ ] iOS/Android tested if touching native code
 - [ ] New components include showcase demos
@@ -40,7 +49,7 @@ This project uses **bun**. Always use `bun install` and `bun add <package>` — 
 - Tests live next to source files in `__tests__/` directories or as `*.test.ts(x)` siblings
 - Run interactively: `bun jest --watchAll`
 - Run a single file: `bun jest --testPathPattern=path/to/test`
-- CI-style with coverage: `bun run test:ci`
+- CI-style with coverage: `bun run test:ci` (`bun run verify` runs the same suite without coverage)
 - Coverage is collected from `client/**`, `app/api/**`, `server/**`, and `shared/**` so route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing) stay observable — not just UI code
 - For component tests that just need a stable theme without mounting providers, `import "@/test/mockTheme";` at the top of the file mocks `useTheme` with a fixed light-scheme palette so colour assertions stay deterministic
 - Coverage focus on reusable surfaces: design-system primitives (Card, Badge, EmptyState, Skeleton, RadioGroup, …), the form primitive trio (`FormProvider` + `FormTextInput` + `FormCheckbox`), and screen templates (Welcome, Error, List, …) keep the regression surface honest. Avoid snapshot-only tests — assert visible behaviour or interaction outcomes

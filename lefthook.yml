@@ -1,0 +1,34 @@
+# Git hooks, installed by `bun install` via the `prepare` script.
+# Reference: https://lefthook.dev/configuration/
+#
+# Scope is deliberately narrow: pre-commit runs only the gates that finish in a
+# few seconds. The full CI-parity pass is opt-in via `bun run verify`, and there
+# is intentionally NO pre-push hook — pushing a work-in-progress branch should
+# never block on the test suite.
+#
+# Escape hatches:
+#   LEFTHOOK=0 git commit ...   skip all hooks for one command
+#   git commit --no-verify      same, via git
+#   bun run verify              the full pass, including tests
+
+pre-commit:
+  parallel: true
+  jobs:
+    # Repo-wide rather than {staged_files}: `tsc --noEmit` is project-wide by
+    # nature, and at ~6s repo-wide there is nothing to win by narrowing it.
+    - name: typecheck
+      run: bun run typecheck
+
+    # `expo lint` does forward file args, but repo-wide is ~2s with its cache,
+    # and a staged-files run misses breakage in files that import the edited one.
+    - name: lint
+      run: bun run lint
+
+    # client/templates/registry.generated.ts is committed codegen — a new
+    # template folder without `bun run gen:templates` fails here.
+    - name: gen:templates:check
+      run: bun run gen:templates:check
+
+    # llms-full.txt / llms-examples.txt are generated from the docs source list.
+    - name: docs:llms:check
+      run: bun run docs:llms:check
