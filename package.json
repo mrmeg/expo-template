@@ -142,7 +142,9 @@
     "typescript": "~6.0.3"
   },
   "overrides": {
-    "baseline-browser-mapping": "^2.10.27"
+    "baseline-browser-mapping": "^2.10.27",
+    "@radix-ui/react-slot": "1.2.4",
+    "@radix-ui/react-primitive": "2.1.4"
   },
   "license": "MIT",
   "private": true
