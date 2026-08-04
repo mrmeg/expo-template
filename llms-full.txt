@@ -1759,13 +1759,47 @@ failure modes result:
 > project forked from an older copy of this template. The contract is documented
 > in `node_modules/expo-router/build/server/ServerDocument.js`.
 
-### 2. Fonts — load via an SSR-aware path, not a bare effect
+### 2. Fonts — register during render, per request
 
-Fonts must be registered **during render** so expo-font's `serverContext` is
+Fonts must be registered **during render** so expo-font's server store is
 populated server-side and the `@font-face` ships in the HTML. This template
-loads fonts through `@mrmeg/expo-ui`'s `useResources`, which does an eager,
-module-scope `Font.loadAsync(Feather.font)` (plus a hook-level load) — so icon
-fonts register during SSR and the effect becomes a no-op once loaded.
+loads fonts through `@mrmeg/expo-ui`'s `useResources`, which calls an
+idempotent `ensureIconFontRegistered()` **in its render body** (the same shape
+as `ensureI18nInitialized()` in §3):
+
+```ts
+export function ensureIconFontRegistered(): void {
+  if (Platform.OS !== "web" || typeof window !== "undefined") return;
+  if (Font.isLoaded("feather")) return;      // per-request store; cheap
+  Font.loadAsync(Feather.font);              // synchronous on server-web
+}
+```
+
+Three non-obvious details:
+
+- **The family key is lowercase `"feather"`.** `@expo/vector-icons` builds the
+  set with `createIconSet(glyphMap, 'feather', font)`, so `Feather.font` is
+  `{ feather: … }` and the loaded-check is `Font.isLoaded("feather")`.
+- **On server-web `Font.loadAsync` is synchronous** (it routes to
+  `registerStaticFont`), so there's nothing to await and no `void` — let a
+  throw propagate. A throw means the call ran outside a request scope, which
+  must be loud. Call the public `Font.loadAsync`; don't reach into
+  `expo-font/build/server`.
+- **Module scope is NOT sufficient for SSR.** expo-font's server store is an
+  `AsyncLocalStorage` entered *per request* by `Font.withServerContext()`, and
+  Metro's `inlineRequires` defers a module's evaluation until it is first
+  required during a render. So a module-scope `Font.loadAsync(Feather.font)`
+  registers the font for whichever request warmed the module cache and for no
+  other — the same cold-start-shaped failure §7 describes for the RNW sheet.
+  Symptom: request 1 looks fine, requests 2+ ship zero `@font-face`, icons
+  render as bare `<Text/>` server-side while the client's first render sees the
+  font as loaded → React #418. Always curl the **2nd and 3rd** requests.
+
+`useResources` still keeps a module-scope `Font.loadAsync(Feather.font)`, but
+guarded to `typeof window !== "undefined"`: on the client that call
+synchronously injects the `@font-face` rule before hydration, which is what
+makes the client's `isLoaded` check read true. Invariant: **server store
+populated per request, client rule injected pre-hydration.**
 
 **Anti-pattern:** a bare `Font.loadAsync(...)` (or a custom `useResources`) that
 only loads inside `useEffect`. That runs client-only, after first render, so the
@@ -1977,6 +2011,15 @@ grep -c 'expo-generated-fonts' /tmp/ssr.html              # font <style>   → =
 grep -c 'class="css-text-146c3p1"></div>' /tmp/ssr.html   # empty icons    → == 0
 grep -oc 'someNamespace\.someKey' /tmp/ssr.html           # leaked i18n key → == 0
 ```
+
+**Class-name naming differs between dev and production builds.** RNW's
+`createIdentifier` prefixes the hash with the style-group debug label only when
+`NODE_ENV !== "production"`. The Text reset rule is therefore
+`css-text-146c3p1` against the dev server (`localhost:8081`, as above) and
+`css-146c3p1` in a production build (`bun run build` + `bun run start` on
+`localhost:3000`) — same hash, different prefix. Use `css-\(text-\)\?146c3p1`
+if you want one grep that works on both. (The `app/+html.tsx:149` comment names
+the dev form for the same reason.)
 
 For §7 (missing style rules), diff the classes the body *uses* against the
 rules the document *defines* — zero classes should be undefined:
