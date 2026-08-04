@@ -1,4 +1,7 @@
 export { useMediaList, formatBytes } from "./hooks/useMediaList";
+export { isMediaOriginUnconfigured } from "./mediaClient";
+export { resolveMediaBasePath, MEDIA_BASE_PATH } from "./mediaOrigin";
+export type { MediaBasePathResolution } from "./mediaOrigin";
 export { useMediaUpload } from "./hooks/useMediaUpload";
 export { useMediaDelete, useMediaDeleteBatch } from "./hooks/useMediaDelete";
 export { useSignedUrls } from "./hooks/useSignedUrls";

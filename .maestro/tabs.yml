@@ -9,11 +9,13 @@
 # crashes on mount fails here rather than silently.
 #
 # Media is asserted on its *fails-closed* branch rather than one specific id.
-# `media-disabled` needs the server to report `kind: "disabled"`, but a native
-# build with no API origin configured can't even form the request URL, so it
-# lands on `media-error` instead. Both are correct blank-env outcomes — what
-# matters for a smoke test is that the screen mounts and degrades instead of
-# crashing, so the assertion accepts any of the three branches.
+# A native build with no `EXPO_PUBLIC_API_URL` has no absolute origin to call, so
+# it skips the request entirely and lands on `media-disabled` locally; with an
+# origin configured the same id comes from the server's own 503 `media-disabled`
+# response, and a signed-in build with denied access lands on
+# `media-auth-required`. All are correct blank-env outcomes — what matters for a
+# smoke test is that the screen mounts and degrades instead of crashing, so the
+# assertion accepts any of the three branches.
 appId: ${APP_ID}
 env:
   APP_ID: com.mrmeg.template
