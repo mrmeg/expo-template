@@ -53,6 +53,30 @@ describe("SSR hydration guardrails", () => {
     });
   });
 
+  // §2 — the icon font must be registered during render, because expo-font's
+  // SSR store is per-request AsyncLocalStorage. A module-scope-only
+  // registration lands in at most one request's store, so requests 2+ ship no
+  // @font-face and render icons as empty <Text/> → React #418.
+  describe("the icon font registers during render for SSR", () => {
+    const src = read("packages/ui/src/hooks/useResources.ts");
+
+    it("exports ensureIconFontRegistered() keyed on the lowercase 'feather' family", () => {
+      expect(src).toContain("export function ensureIconFontRegistered()");
+      // @expo/vector-icons builds the set as createIconSet(glyphMap, 'feather',
+      // font), so the server-side loaded-check key is lowercase.
+      expect(src).toContain('Font.isLoaded("feather")');
+    });
+
+    it("useResources calls it in the render body, not only an effect", () => {
+      const renderBody = src.slice(src.indexOf("export const useResources"));
+      const callIndex = renderBody.indexOf("ensureIconFontRegistered()");
+      const firstEffectIndex = renderBody.indexOf("useEffect(");
+      expect(callIndex).toBeGreaterThanOrEqual(0);
+      expect(firstEffectIndex).toBeGreaterThanOrEqual(0);
+      expect(callIndex).toBeLessThan(firstEffectIndex);
+    });
+  });
+
   // §3 — i18n must initialize synchronously during render (incl. SSR), not only
   // in an effect, or SSR-reachable t() leaks raw keys server-side.
   describe("i18n initializes synchronously for SSR", () => {
