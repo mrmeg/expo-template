@@ -34,8 +34,25 @@ This project uses **bun** as the package manager. The lockfile is `bun.lock`.
 git clone <repo-url> my-app
 cd my-app
 bun install
+bun run init            # Optional: name the project, pick auth, prune templates
 npx expo start          # Press i / a / w for iOS / Android / Web
 ```
+
+`bun run init` is the one-command path from a fresh clone to a named project.
+It writes `.env` from `.env.example` with the five `EXPO_PUBLIC_APP_*` identity
+vars filled in (validated before it writes), sets `EXPO_PUBLIC_AUTH_PROVIDER`
+for the provider you pick, optionally deletes the screen templates you don't
+want, and offers to re-run `bunx expo prebuild --clean`. Agents and CI can drive
+it non-interactively:
+
+```bash
+bun run init --name "Acme" --auth clerk --templates list,pricing --yes
+```
+
+It refuses to overwrite an existing `.env` without `--force`, and it keeps (with
+a warning) any template that app code still imports, so pruning can't leave the
+project failing `tsc`. Init is entirely optional — skip it and a fresh clone
+with no `.env` still boots.
 
 The `.env.example` file enumerates every optional feature flag — copy it to
 `.env` and fill in only the credentials you need. A blank `.env` boots the
@@ -69,6 +86,7 @@ Android projects with the new bundle ids.
 
 | Script | Description |
 |--------|-------------|
+| `bun run init` | Name the project, pick an auth provider, prune screen templates |
 | `npx expo start` | Expo dev server (interactive) |
 | `bun run web` | Start the Expo web dev server |
 | `bun run web:scan` | Start the Expo web dev server for React Scan inspection |
