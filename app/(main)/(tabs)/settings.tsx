@@ -42,7 +42,7 @@ export default function SettingsRoute() {
       {/* Keep the ScrollView as the screen's first native child — the native
           tab bar finds it via first-subview traversal to drive
           minimizeBehavior and scroll edge effects on iOS 26. */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView testID="settings-screen" style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Appearance section */}
         <View style={styles.section}>
           <SansSerifBoldText style={styles.sectionTitle}>

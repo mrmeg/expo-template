@@ -114,7 +114,7 @@ function ProfileScreen() {
       {/* Keep the ScrollView as the screen's first native child — the native
           tab bar finds it via first-subview traversal to drive
           minimizeBehavior and scroll edge effects on iOS 26. */}
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView testID="profile-screen" style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           {/* Profile Header */}
           <View style={styles.headerSection}>

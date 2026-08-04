@@ -1,0 +1,57 @@
+# Onboarding completion, both exits.
+#
+# Onboarding is not a route — `RootLayout` renders `<OnboardingGate />` in place
+# of the `(main)` Stack while the persisted `has-seen-onboarding` flag is false.
+# Completing the pager flips that flag, which swaps the shell over to the Stack
+# and lands on the Explore tab. This flow exercises both exits from the gate:
+#
+#   1. Paging all the way through (Next, Next, Get Started).
+#   2. Skip from page 1 (`onSkip` and `onComplete` are the same handler).
+#
+# Each pass re-launches with `clearState: true` so the second pass starts from a
+# fresh, unseen-onboarding state rather than depending on the first.
+appId: ${APP_ID}
+env:
+  APP_ID: com.mrmeg.template
+---
+# ── Path 1: page through all three pages ────────────────────────────────
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "onboarding-gate"
+- assertVisible: "Explore Templates"
+
+# Page 1 -> 2
+- tapOn:
+    id: "onboarding-next-button"
+- assertVisible: "Built-In Components"
+
+# Page 2 -> 3. The last page swaps the button label to "Get Started".
+- tapOn:
+    id: "onboarding-next-button"
+- assertVisible: "Ship Faster"
+- assertVisible: "Get Started"
+
+# Complete -> the shell swaps to the (main) Stack and the Explore tab renders.
+- tapOn:
+    id: "onboarding-next-button"
+- assertNotVisible:
+    id: "onboarding-gate"
+- assertVisible:
+    id: "explore-screen"
+- assertVisible: "Screen Templates"
+
+# ── Path 2: skip from page 1 ────────────────────────────────────────────
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "onboarding-gate"
+- assertVisible: "Explore Templates"
+
+- tapOn:
+    id: "onboarding-skip-button"
+- assertNotVisible:
+    id: "onboarding-gate"
+- assertVisible:
+    id: "explore-screen"
+- assertVisible: "Screen Templates"

@@ -1,0 +1,28 @@
+# Cold launch smoke.
+#
+# Proves the native startup gate resolves: `RootLayout` returns `null` until
+# `useAppStartup` finishes fonts + i18n + onboarding persistence + auth
+# bootstrap, then hides the splash screen. If any provider throws or the gate
+# never resolves, this flow times out on the first assertion — which is the
+# whole point of having it.
+#
+# `clearState: true` wipes AsyncStorage, including the `has-seen-onboarding`
+# key, so a fresh install always lands on the onboarding gate. That makes this
+# flow idempotent: run it twice in a row and run 2 sees onboarding again.
+appId: ${APP_ID}
+env:
+  APP_ID: com.mrmeg.template
+---
+- launchApp:
+    clearState: true
+
+# Startup gate resolved and the onboarding branch of the shell rendered.
+- assertVisible:
+    id: "onboarding-gate"
+- assertVisible:
+    id: "onboarding-flow"
+
+# First page of the three-page pager.
+- assertVisible: "Explore Templates"
+- assertVisible:
+    id: "onboarding-next-button"
