@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Components — @mrmeg/expo-ui</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme="dark"] {
+    --bg: #09090B; --surface: #101013; --card: #131317; --raised: #1a1a1f;
+    --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.14);
+    --text: #fafafa; --dim: #a1a1aa; --faint: #52525b;
+    --accent: #2dd4bf; --accent-soft: rgba(45,212,191,.12);
+    --ok: #4ade80; --err: #f87171;
+  }
+  [data-theme="light"] {
+    --bg: #ffffff; --surface: #fafafa; --card: #ffffff; --raised: #f4f4f5;
+    --border: #e4e4e7; --border-strong: #d4d4d8;
+    --text: #18181b; --dim: #71717a; --faint: #a1a1aa;
+    --accent: #0d9488; --accent-soft: rgba(13,148,136,.10);
+    --ok: #16a34a; --err: #dc2626;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 400 15px/1.6 "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+  .nav-inner { display: flex; align-items: center; gap: 28px; height: 56px; }
+  .wordmark { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .wordmark .dot { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+  .nav-links { display: flex; gap: 4px; font-size: 13.5px; color: var(--dim); }
+  .nav-links a { padding: 6px 10px; border-radius: 8px; }
+  .nav-links a:hover { color: var(--text); background: var(--raised); }
+  .nav-links a.active { color: var(--text); }
+  .nav-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+  .kbd { display: flex; gap: 8px; font-size: 12.5px; color: var(--faint); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; }
+  .kbd b { font-weight: 500; color: var(--dim); font-family: ui-monospace, monospace; font-size: 11px; }
+  .theme-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--dim); cursor: pointer; }
+
+  .layout { display: grid; grid-template-columns: 200px 1fr; gap: 40px; padding: 40px 0 80px; }
+
+  /* category rail */
+  aside { position: sticky; top: 88px; align-self: start; }
+  .rail-title { font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 12px; }
+  .rail a { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; color: var(--dim); padding: 6px 10px; border-radius: 8px; border-left: 2px solid transparent; }
+  .rail a:hover { color: var(--text); background: var(--raised); }
+  .rail a.on { color: var(--text); border-left-color: var(--accent); background: var(--raised); border-radius: 0 8px 8px 0; }
+  .rail a i { font-style: normal; font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--faint); }
+  .rail-sep { height: 1px; background: var(--border); margin: 14px 0; }
+  .rail .planned { opacity: .55; }
+  .rail .planned em { font-style: normal; font-family: ui-monospace, monospace; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+
+  /* header row */
+  .page-head h1 { font-size: 30px; font-weight: 600; letter-spacing: -.025em; }
+  .page-head p { color: var(--dim); font-size: 14.5px; margin-top: 6px; max-width: 60ch; }
+  .toolbar { display: flex; align-items: center; gap: 10px; margin: 22px 0 26px; }
+  .platforms { display: flex; background: var(--raised); border-radius: 9px; padding: 3px; font-size: 12px; }
+  .platforms button { border: none; background: none; color: var(--dim); padding: 5px 14px; border-radius: 7px; cursor: pointer; font: inherit; }
+  .platforms button.on { background: var(--card); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+  .count { margin-left: auto; font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--faint); }
+
+  h2.cat { font-size: 15px; font-weight: 600; margin: 34px 0 4px; display: flex; align-items: baseline; gap: 10px; scroll-margin-top: 90px; }
+  h2.cat i { font-style: normal; font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--faint); }
+  p.cat-desc { font-size: 13px; color: var(--dim); margin-bottom: 14px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: border-color .15s, transform .15s; }
+  .card:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+  .pv { height: 110px; display: grid; place-items: center; background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px; }
+  .meta { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .meta b { font-size: 13px; font-weight: 500; }
+  .plats { display: flex; gap: 4px; }
+  .plats i { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+  .plats i.web-only { background: var(--faint); }
+
+  /* ---- mini live renderings ---- */
+  .p-btn { background: var(--text); color: var(--bg); font-size: 12px; font-weight: 600; border-radius: 8px; padding: 7px 16px; }
+  .p-check { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--dim); }
+  .p-check i { width: 18px; height: 18px; border-radius: 6px; background: var(--accent); display: grid; place-items: center; color: #fff; font-style: normal; font-size: 11px; }
+  .p-otp { display: flex; gap: 6px; } .p-otp i { width: 26px; height: 32px; border: 1px solid var(--border-strong); border-radius: 8px; display: grid; place-items: center; font-style: normal; font-family: ui-monospace, monospace; font-size: 13px; }
+  .p-otp i.on { border-color: var(--accent); color: var(--accent); }
+  .p-label { font-size: 12px; } .p-label b { display: block; font-weight: 500; margin-bottom: 5px; }
+  .p-label i { display: block; width: 130px; height: 28px; border: 1px solid var(--border-strong); border-radius: 8px; }
+  .p-radio { display: grid; gap: 7px; font-size: 12px; color: var(--dim); }
+  .p-radio span { display: flex; gap: 8px; align-items: center; }
+  .p-radio i { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--border-strong); }
+  .p-radio .on i { border-color: var(--accent); box-shadow: inset 0 0 0 3.5px var(--bg), inset 0 0 0 10px var(--accent); }
+  .p-select { display: flex; justify-content: space-between; align-items: center; width: 140px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 11px; font-size: 12px; color: var(--dim); }
+  .p-slider { width: 70%; height: 4px; border-radius: 2px; background: var(--raised); position: relative; }
+  .p-slider::before { content: ""; position: absolute; inset: 0 38% 0 0; border-radius: 2px; background: var(--accent); }
+  .p-slider::after { content: ""; position: absolute; left: 62%; top: -6px; width: 16px; height: 16px; border-radius: 50%; background: var(--text); box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+  .p-switch { width: 42px; height: 24px; border-radius: 999px; background: var(--accent); position: relative; }
+  .p-switch::after { content: ""; position: absolute; right: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+  .p-input { width: 150px; } .p-input i { display: block; border: 1px solid var(--accent); border-radius: 8px; padding: 6px 11px; font-style: normal; font-size: 12px; color: var(--dim); }
+  .p-input i::after { content: "|"; color: var(--accent); }
+  .p-toggle { display: flex; gap: 6px; }
+  .p-toggle i { font-style: normal; font-size: 12px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 5px 11px; color: var(--dim); }
+  .p-toggle i.on { background: var(--raised); color: var(--text); border-color: var(--border-strong); }
+  .p-alert { display: flex; gap: 10px; border: 1px solid var(--border-strong); border-radius: 10px; padding: 10px 12px; width: 85%; }
+  .p-alert i { font-style: normal; color: var(--accent); }
+  .p-alert div b { display: block; font-size: 11.5px; font-weight: 600; }
+  .p-alert div span { font-size: 10.5px; color: var(--dim); }
+  .p-badge { display: flex; gap: 8px; } .p-badge i { font-style: normal; font-family: ui-monospace, monospace; font-size: 11px; border-radius: 999px; padding: 3px 10px; }
+  .p-badge .b1 { background: var(--accent-soft); color: var(--accent); } .p-badge .b2 { background: var(--raised); color: var(--dim); } .p-badge .b3 { background: rgba(248,113,113,.12); color: var(--err); }
+  .p-empty { text-align: center; } .p-empty i { display: block; width: 30px; height: 30px; border-radius: 50%; border: 1.5px dashed var(--border-strong); margin: 0 auto 7px; }
+  .p-empty b { font-size: 11.5px; font-weight: 500; display: block; } .p-empty span { font-size: 10.5px; color: var(--faint); }
+  .p-progress { width: 70%; height: 6px; border-radius: 3px; background: var(--raised); overflow: hidden; }
+  .p-progress i { display: block; height: 100%; width: 68%; background: var(--accent); border-radius: 3px; }
+  .p-skel { width: 75%; display: flex; gap: 10px; align-items: center; }
+  .p-skel u { width: 30px; height: 30px; border-radius: 50%; flex: none; text-decoration: none; }
+  .p-skel div { flex: 1; } .p-skel i { display: block; height: 7px; border-radius: 4px; margin-bottom: 7px; }
+  .p-skel i:last-child { width: 60%; margin-bottom: 0; }
+  .p-skel u, .p-skel i { background: linear-gradient(90deg, var(--raised) 25%, var(--border-strong) 50%, var(--raised) 75%); background-size: 200% 100%; animation: shimmer 1.6s infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) { .p-skel u, .p-skel i { animation: none; } }
+  .p-accordion { width: 85%; font-size: 12px; }
+  .p-accordion div { border-bottom: 1px solid var(--border); padding: 7px 2px; display: flex; justify-content: space-between; color: var(--dim); }
+  .p-accordion div.open { color: var(--text); }
+  .p-accordion div i { font-style: normal; color: var(--faint); }
+  .p-tabs { display: flex; background: var(--raised); border-radius: 9px; padding: 3px; font-size: 11.5px; }
+  .p-tabs i { font-style: normal; padding: 4px 12px; border-radius: 7px; color: var(--dim); }
+  .p-tabs i.on { background: var(--card); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+  .p-sheet { width: 70%; height: 74px; align-self: end; border-radius: 14px 14px 0 0; border: 1px solid var(--border-strong); border-bottom: none; background: var(--card); padding: 8px 12px 0; margin-top: 36px; }
+  .p-sheet u { display: block; width: 32px; height: 4px; border-radius: 2px; background: var(--border-strong); margin: 0 auto 10px; text-decoration: none; }
+  .p-sheet i { display: block; height: 7px; border-radius: 4px; background: var(--raised); margin-bottom: 7px; }
+  .p-sheet i:last-child { width: 60%; }
+  .p-dialog { width: 78%; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--card); padding: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.35); }
+  .p-dialog b { font-size: 12px; font-weight: 600; display: block; margin-bottom: 3px; }
+  .p-dialog span { font-size: 10.5px; color: var(--dim); display: block; margin-bottom: 10px; }
+  .p-dialog div { display: flex; gap: 6px; justify-content: flex-end; }
+  .p-dialog i { font-style: normal; font-size: 10.5px; font-weight: 600; border-radius: 7px; padding: 4px 10px; }
+  .p-dialog .a { background: var(--text); color: var(--bg); } .p-dialog .b { border: 1px solid var(--border-strong); color: var(--dim); }
+  .p-menu { width: 130px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--card); padding: 5px; box-shadow: 0 12px 32px rgba(0,0,0,.35); font-size: 11.5px; }
+  .p-menu i { font-style: normal; display: block; padding: 5px 9px; border-radius: 6px; color: var(--dim); }
+  .p-menu i.on { background: var(--raised); color: var(--text); }
+  .p-menu u { display: block; height: 1px; background: var(--border); margin: 4px 0; }
+  .p-tooltip { position: relative; font-size: 12px; color: var(--dim); border: 1px dashed var(--border-strong); border-radius: 8px; padding: 6px 14px; }
+  .p-tooltip i { font-style: normal; position: absolute; left: 50%; transform: translateX(-50%); top: -30px; background: var(--text); color: var(--bg); font-size: 10px; font-weight: 500; padding: 3px 9px; border-radius: 6px; white-space: nowrap; }
+  .p-card { width: 80%; border: 1px solid var(--border-strong); border-radius: 12px; padding: 11px 13px; }
+  .p-card b { font-size: 12px; display: block; } .p-card span { font-size: 10.5px; color: var(--dim); display: block; margin-bottom: 8px; }
+  .p-card i { display: block; height: 6px; border-radius: 3px; background: var(--raised); margin-bottom: 5px; }
+  .p-card i:last-child { width: 60%; }
+  .p-item { width: 85%; display: flex; gap: 10px; align-items: center; }
+  .p-item u { width: 34px; height: 34px; border-radius: 10px; background: var(--accent-soft); border: 1px solid var(--accent); flex: none; text-decoration: none; }
+  .p-item div { flex: 1; } .p-item b { display: block; font-size: 12px; } .p-item span { font-size: 10.5px; color: var(--dim); }
+  .p-item em { font-style: normal; color: var(--faint); }
+  .p-stat { width: 70%; border: 1px solid var(--border-strong); border-radius: 12px; padding: 10px 13px; }
+  .p-stat span { font-size: 10.5px; color: var(--dim); display: block; }
+  .p-stat b { font-family: ui-monospace, monospace; font-size: 18px; font-weight: 600; }
+  .p-stat i { font-style: normal; font-family: ui-monospace, monospace; font-size: 10px; color: var(--ok); margin-left: 7px; }
+  .p-sep { width: 70%; text-align: center; }
+  .p-sep i { display: block; height: 1px; background: var(--border-strong); margin: 9px 0; }
+  .p-sep span { font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: .1em; }
+  .p-secthead { width: 85%; display: flex; justify-content: space-between; align-items: baseline; }
+  .p-secthead b { font-size: 13px; } .p-secthead span { font-size: 11px; color: var(--accent); }
+  .p-icons { display: flex; gap: 14px; color: var(--dim); font-size: 16px; }
+  .p-type div { font-size: 15px; } .p-type .serif { font-family: Georgia, serif; } .p-type .monoline { font-family: ui-monospace, monospace; font-size: 12px; color: var(--dim); }
+  .p-seg { display: flex; border: 1px solid var(--border-strong); border-radius: 9px; overflow: hidden; font-size: 11.5px; }
+  .p-seg i { font-style: normal; padding: 5px 13px; color: var(--dim); border-right: 1px solid var(--border-strong); }
+  .p-seg i:last-child { border-right: none; } .p-seg i.on { background: var(--raised); color: var(--text); }
+  .p-anim { display: flex; gap: 8px; } .p-anim i { width: 14px; height: 14px; border-radius: 4px; background: var(--accent); opacity: .25; }
+  .p-anim i:nth-child(2) { opacity: .55; } .p-anim i:nth-child(3) { opacity: 1; }
+  .p-drawer { width: 85%; height: 84px; display: flex; border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; }
+  .p-drawer aside { width: 38%; background: var(--card); border-right: 1px solid var(--border-strong); padding: 8px; position: static; }
+  .p-drawer aside i { display: block; height: 6px; border-radius: 3px; background: var(--raised); margin-bottom: 7px; }
+  .p-drawer aside i.on { background: var(--accent-soft); }
+  .p-drawer section { flex: 1; background: color-mix(in srgb, var(--bg) 55%, transparent); }
+  .p-collapse { width: 80%; font-size: 12px; }
+  .p-collapse > div:first-child { display: flex; justify-content: space-between; color: var(--text); padding-bottom: 7px; }
+  .p-collapse .body { border-left: 2px solid var(--accent); padding-left: 10px; }
+  .p-collapse .body i { display: block; height: 6px; background: var(--raised); border-radius: 3px; margin-bottom: 6px; width: 90%; }
+  .p-collapse .body i:last-child { width: 65%; }
+  .p-popover { position: relative; padding-top: 8px; }
+  .p-popover span { font-size: 12px; color: var(--dim); border: 1px solid var(--border-strong); border-radius: 8px; padding: 5px 12px; }
+  .p-popover div { position: absolute; bottom: 34px; left: -18px; width: 130px; background: var(--card); border: 1px solid var(--border-strong); border-radius: 10px; padding: 9px; box-shadow: 0 12px 32px rgba(0,0,0,.35); }
+  .p-popover div i { display: block; height: 6px; border-radius: 3px; background: var(--raised); margin-bottom: 6px; }
+  .p-popover div i:last-child { width: 60%; margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a class="wordmark" href="01-home.html"><span class="dot"></span>@mrmeg/expo-ui</a>
+    <div class="nav-links">
+      <a href="01-home.html">Overview</a>
+      <a class="active" href="02-components.html">Components</a>
+      <a href="03-blocks.html">Blocks</a>
+      <a href="04-templates.html">Templates</a>
+    </div>
+    <div class="nav-right">
+      <div class="kbd">Search components… <b>⌘K</b></div>
+      <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">◐</button>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap layout">
+  <aside>
+    <div class="rail-title">Categories</div>
+    <div class="rail">
+      <a class="on" href="#form">Form <i>11</i></a>
+      <a href="#feedback">Feedback <i>5</i></a>
+      <a href="#navigation">Navigation <i>3</i></a>
+      <a href="#overlay">Overlay <i>6</i></a>
+      <a href="#layout">Layout <i>6</i></a>
+      <a href="#typography">Typography <i>2</i></a>
+      <a href="#infrastructure">Infrastructure <i>1</i></a>
+    </div>
+    <div class="rail-sep"></div>
+    <div class="rail-title">Planned</div>
+    <div class="rail planned">
+      <a href="#">Avatar <em>spec</em></a>
+      <a href="#">Table <em>spec</em></a>
+      <a href="#">Carousel <em>spec</em></a>
+      <a href="#">Command <em>spec</em></a>
+      <a href="#">Stepper <em>spec</em></a>
+    </div>
+  </aside>
+
+  <main>
+    <div class="page-head">
+      <h1>Components</h1>
+      <p>Every primitive in the library, rendered live in the current theme. Tap a card for variants, props, and a copyable snippet. The platform dots confirm iOS, Android, and web support.</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="platforms" role="group" aria-label="Preview platform">
+        <button class="on">All</button><button>iOS</button><button>Android</button><button>Web</button>
+      </div>
+      <span class="count">34 components · theme: zinc / teal</span>
+    </div>
+
+    <h2 class="cat" id="form">Form <i>11</i></h2>
+    <p class="cat-desc">Inputs, choices, and actions. All controlled, all keyboard-aware.</p>
+    <div class="grid">
+      <a class="card" href="#"><div class="pv"><span class="p-btn">Continue</span></div><div class="meta"><b>Button</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-check"><i>✓</i>Remember me</span></div><div class="meta"><b>Checkbox</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-otp"><i class="on">4</i><i class="on">2</i><i></i><i></i></span></div><div class="meta"><b>InputOTP</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-label"><b>Email</b><i></i></span></div><div class="meta"><b>Label</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-radio"><span class="on"><i></i>Monthly</span><span><i></i>Yearly</span></span></div><div class="meta"><b>RadioGroup</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-select">Select a plan <span>▾</span></span></div><div class="meta"><b>Select</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-slider"></span></div><div class="meta"><b>Slider</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-switch"></span></div><div class="meta"><b>Switch</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-input"><i>hello@terlo.app</i></span></div><div class="meta"><b>TextInput</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-toggle"><i class="on">B</i><i>I</i><i>U</i></span></div><div class="meta"><b>Toggle</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-toggle"><i class="on">Left</i><i>Center</i><i>Right</i></span></div><div class="meta"><b>ToggleGroup</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+    </div>
+
+    <h2 class="cat" id="feedback">Feedback <i>5</i></h2>
+    <p class="cat-desc">Status, progress, and loading states.</p>
+    <div class="grid">
+      <a class="card" href="#"><div class="pv"><span class="p-alert"><i>ⓘ</i><div><b>Update available</b><span>Version 2.4 is ready to install.</span></div></span></div><div class="meta"><b>Alert</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-badge"><i class="b1">Active</i><i class="b2">Draft</i><i class="b3">Failed</i></span></div><div class="meta"><b>Badge</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-empty"><i></i><b>No results yet</b><span>Try a different search.</span></span></div><div class="meta"><b>EmptyState</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-progress"><i></i></span></div><div class="meta"><b>Progress</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-skel"><u></u><div><i></i><i></i></div></span></div><div class="meta"><b>Skeleton</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+    </div>
+
+    <h2 class="cat" id="navigation">Navigation <i>3</i></h2>
+    <p class="cat-desc">Disclosure and view switching.</p>
+    <div class="grid">
+      <a class="card" href="#"><div class="pv"><span class="p-accordion"><div class="open">How does billing work? <i>−</i></div><div>Can I cancel anytime? <i>+</i></div><div>Is there a free tier? <i>+</i></div></span></div><div class="meta"><b>Accordion</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-collapse"><div>Advanced options <i>▴</i></div><div class="body"><i></i><i></i></div></span></div><div class="meta"><b>Collapsible</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-tabs"><i class="on">Day</i><i>Week</i><i>Month</i></span></div><div class="meta"><b>Tabs</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+    </div>
+
+    <h2 class="cat" id="overlay">Overlay <i>6</i></h2>
+    <p class="cat-desc">Sheets, dialogs, and floating surfaces — native-feeling on every platform.</p>
+    <div class="grid">
+      <a class="card" href="#"><div class="pv" style="align-items:end;padding-bottom:0"><span class="p-sheet"><u></u><i></i><i></i></span></div><div class="meta"><b>BottomSheet</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-dialog"><b>Delete project?</b><span>This can't be undone.</span><div><i class="b">Cancel</i><i class="a">Delete</i></div></span></div><div class="meta"><b>Dialog</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-drawer"><aside><i class="on"></i><i></i><i></i></aside><section></section></span></div><div class="meta"><b>Drawer</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-menu"><i class="on">Duplicate</i><i>Rename</i><u></u><i>Delete</i></span></div><div class="meta"><b>DropdownMenu</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-popover"><div><i></i><i></i></div><span>Filters</span></span></div><div class="meta"><b>Popover</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv" style="padding-top:34px"><span class="p-tooltip"><i>Copy to clipboard</i>Hover me</span></div><div class="meta"><b>Tooltip</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+    </div>
+
+    <h2 class="cat" id="layout">Layout <i>6</i></h2>
+    <p class="cat-desc">Structure for lists, cards, and metrics.</p>
+    <div class="grid">
+      <a class="card" href="#"><div class="pv"><span class="p-anim"><i></i><i></i><i></i></span></div><div class="meta"><b>AnimatedView</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-card"><b>Weekly report</b><span>Updated 2h ago</span><i></i><i></i></span></div><div class="meta"><b>Card</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-item"><u></u><div><b>Design review</b><span>Tomorrow · 10:00</span></div><em>›</em></span></div><div class="meta"><b>Item</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-secthead"><b>Recent activity</b><span>See all</span></span></div><div class="meta"><b>SectionHeader</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-sep"><i></i><span>or</span><i></i></span></div><div class="meta"><b>Separator</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-stat"><span>Active users</span><b>2,481<i>▲ 8.2%</i></b></span></div><div class="meta"><b>StatCard</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+    </div>
+
+    <h2 class="cat" id="typography">Typography <i>2</i></h2>
+    <p class="cat-desc">Text and iconography, themed and font-overridable per host app.</p>
+    <div class="grid">
+      <a class="card" href="#"><div class="pv"><span class="p-icons">◇ ♡ ✳ ◷ ✉</span></div><div class="meta"><b>Icon</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+      <a class="card" href="#"><div class="pv"><span class="p-type"><div>Inter Sans 600</div><div class="serif">Georgia Serif</div><div class="monoline">Menlo Mono 12</div></span></div><div class="meta"><b>StyledText</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+    </div>
+
+    <h2 class="cat" id="infrastructure">Infrastructure <i>1</i></h2>
+    <p class="cat-desc">Registered but previously hidden from the showcase — surfaced here so nothing in the package is invisible.</p>
+    <div class="grid">
+      <a class="card" href="#"><div class="pv"><span class="p-seg"><i class="on">List</i><i>Grid</i><i>Map</i></span></div><div class="meta"><b>SegmentedControl</b><span class="plats"><i></i><i></i><i></i></span></div></a>
+    </div>
+  </main>
+</div>
+
+<script>
+  function toggleTheme() {
+    const el = document.documentElement;
+    el.dataset.theme = el.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem("mock-theme", el.dataset.theme); } catch {}
+  }
+  try { const t = localStorage.getItem("mock-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+</script>
+</body>
+</html>

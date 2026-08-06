@@ -5,6 +5,7 @@ import {
   Animated,
   StyleSheet,
   Platform,
+  Pressable,
   ViewToken,
 } from "react-native";
 import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
@@ -93,13 +94,11 @@ export function OnboardingFlow({
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Dot indicator animation values — lazy ref init so the Animated.Value array
-  // is allocated once on mount instead of on every render.
-  const dotWidthsRef = useRef<Animated.Value[] | null>(null);
-  if (dotWidthsRef.current === null) {
-    dotWidthsRef.current = pages.map((_, i) => new Animated.Value(i === 0 ? 24 : 8));
-  }
-  const dotWidths = dotWidthsRef.current;
+  // Lazy state keeps the Animated.Value array stable without reading a ref
+  // during render, which lets React Compiler optimize this component.
+  const [dotWidths] = useState(() =>
+    pages.map((_, i) => new Animated.Value(i === 0 ? 24 : 8))
+  );
 
   const isLastPage = currentIndex === pages.length - 1;
 
@@ -141,6 +140,10 @@ export function OnboardingFlow({
     } else {
       onComplete();
     }
+  };
+
+  const handleStepPress = (index: number) => {
+    flatListRef.current?.scrollToIndex({ index, animated: true });
   };
 
   const renderPage = ({ item }: { item: OnboardingPage }) => (
@@ -194,20 +197,29 @@ export function OnboardingFlow({
         {/* Dot indicators */}
         <View testID="onboarding-dots" style={styles.dotsContainer}>
           {pages.map((page, index) => (
-            <Animated.View
+            <Pressable
               key={getOnboardingPageKey(page)}
-              testID="onboarding-dot"
-              style={[
-                styles.dot,
-                {
-                  width: dotWidths[index],
-                  backgroundColor:
-                    index === currentIndex
-                      ? theme.colors.accent
-                      : theme.colors.muted,
-                },
-              ]}
-            />
+              testID={`onboarding-step-${index}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Go to step ${index + 1} of ${pages.length}: ${page.title}`}
+              accessibilityState={{ selected: index === currentIndex }}
+              onPress={() => handleStepPress(index)}
+              style={styles.dotButton}
+            >
+              <Animated.View
+                testID="onboarding-dot"
+                style={[
+                  styles.dot,
+                  {
+                    width: dotWidths[index],
+                    backgroundColor:
+                      index === currentIndex
+                        ? theme.colors.accent
+                        : theme.colors.muted,
+                  },
+                ]}
+              />
+            </Pressable>
           ))}
         </View>
 
@@ -294,7 +306,12 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       justifyContent: "center",
       alignItems: "center",
-      gap: spacing.xs,
+    },
+    dotButton: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
     },
     dot: {
       height: 8,

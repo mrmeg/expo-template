@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Templates — @mrmeg/expo-ui</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme="dark"] {
+    --bg: #09090B; --surface: #101013; --card: #131317; --raised: #1a1a1f;
+    --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.14);
+    --text: #fafafa; --dim: #a1a1aa; --faint: #52525b;
+    --accent: #2dd4bf; --accent-soft: rgba(45,212,191,.12);
+    --ok: #4ade80; --err: #f87171;
+    --shadow: 0 18px 44px rgba(0,0,0,.42);
+  }
+  [data-theme="light"] {
+    --bg: #ffffff; --surface: #fafafa; --card: #ffffff; --raised: #f4f4f5;
+    --border: #e4e4e7; --border-strong: #d4d4d8;
+    --text: #18181b; --dim: #71717a; --faint: #a1a1aa;
+    --accent: #0d9488; --accent-soft: rgba(13,148,136,.10);
+    --ok: #16a34a; --err: #dc2626;
+    --shadow: 0 18px 44px rgba(24,24,27,.10);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 400 15px/1.6 "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+  .nav-inner { display: flex; align-items: center; gap: 28px; height: 56px; }
+  .wordmark { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .wordmark .dot { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+  .nav-links { display: flex; gap: 4px; font-size: 13.5px; color: var(--dim); }
+  .nav-links a { padding: 6px 10px; border-radius: 8px; }
+  .nav-links a:hover { color: var(--text); background: var(--raised); }
+  .nav-links a.active { color: var(--text); }
+  .nav-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+  .kbd { display: flex; gap: 8px; font-size: 12.5px; color: var(--faint); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; }
+  .kbd b { font-weight: 500; color: var(--dim); font-family: ui-monospace, monospace; font-size: 11px; }
+  .theme-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--dim); cursor: pointer; }
+
+  .page-head { padding: 48px 0 8px; max-width: 640px; }
+  .eyebrow { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  h1 { font-size: 30px; font-weight: 600; letter-spacing: -.025em; margin-bottom: 8px; }
+  .page-head p { color: var(--dim); font-size: 14.5px; }
+  .page-head p .mono { font-size: 12.5px; background: var(--raised); border-radius: 5px; padding: 1px 6px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; padding: 22px 0 36px; }
+  .chip { font-size: 12.5px; color: var(--dim); border: 1px solid var(--border-strong); border-radius: 999px; padding: 5px 14px; cursor: pointer; background: none; font-family: inherit; }
+  .chip.on { background: var(--text); color: var(--bg); border-color: transparent; font-weight: 500; }
+  .chip:hover:not(.on) { color: var(--text); }
+
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px 18px; padding-bottom: 64px; }
+  .tcard { display: block; }
+  .tcard:hover .phone { border-color: var(--border-strong); transform: translateY(-3px); }
+  .phone { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 9px; box-shadow: var(--shadow); transition: transform .18s, border-color .18s; margin-bottom: 12px; }
+  .notch { width: 50px; height: 13px; border-radius: 999px; background: var(--raised); margin: 2px auto 9px; }
+  .screen { border-radius: 15px; background: var(--surface); border: 1px solid var(--border); padding: 10px; height: 234px; overflow: hidden; position: relative; }
+  .tmeta { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px; }
+  .tmeta b { font-size: 13px; font-weight: 500; display: block; }
+  .tmeta small { font-size: 11.5px; color: var(--faint); display: block; }
+  .tmeta .id { font-family: ui-monospace, monospace; font-size: 10px; color: var(--faint); }
+
+  /* wireframe primitives */
+  .ln { height: 7px; border-radius: 4px; background: var(--raised); margin-bottom: 7px; }
+  .w80 { width: 80%; } .w60 { width: 60%; } .w40 { width: 40%; } .w30 { width: 30%; }
+  .hl { background: var(--accent-soft); }
+  .pill { height: 22px; border-radius: 999px; background: var(--raised); }
+  .btn-wire { height: 24px; border-radius: 8px; background: var(--text); margin-top: 10px; }
+  .btn-wire.ghost { background: none; border: 1px solid var(--border-strong); }
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 9px; }
+  .av { width: 20px; height: 20px; border-radius: 50%; background: var(--raised); flex: none; }
+  .sq { width: 20px; height: 20px; border-radius: 7px; background: var(--raised); flex: none; }
+  .fill { flex: 1; }
+  .search { height: 24px; border-radius: 8px; border: 1px solid var(--border-strong); margin-bottom: 10px; display: flex; align-items: center; padding: 0 8px; color: var(--faint); font-size: 10px; }
+  .cardw { border: 1px solid var(--border); background: var(--card); border-radius: 10px; padding: 8px; }
+  .toggle { width: 26px; height: 15px; border-radius: 999px; background: var(--accent); position: relative; flex: none; }
+  .toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 11px; height: 11px; border-radius: 50%; background: #fff; }
+  .toggle.off { background: var(--raised); } .toggle.off::after { right: auto; left: 2px; background: var(--faint); }
+  .dot-on { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
+  .stats2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 10px; }
+  .stat { border: 1px solid var(--border); background: var(--card); border-radius: 9px; height: 42px; padding: 7px; }
+  .stat i { display: block; height: 5px; width: 60%; background: var(--accent-soft); border-radius: 3px; margin-bottom: 7px; }
+  .stat b { display: block; height: 9px; width: 45%; background: var(--raised); border-radius: 3px; }
+  .stat.hot { border-color: var(--accent); }
+  .bubble { max-width: 72%; border-radius: 10px; padding: 7px; margin-bottom: 7px; background: var(--raised); }
+  .bubble.me { margin-left: auto; background: var(--accent-soft); border: 1px solid var(--accent); }
+  .bubble i { display: block; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text) 22%, transparent); }
+  .bubble i + i { margin-top: 4px; width: 65%; }
+  .heroimg { height: 84px; border-radius: 10px; background: linear-gradient(135deg, var(--accent-soft), var(--raised)); margin: -10px -10px 10px; border-bottom: 1px solid var(--border); }
+  .plan { border: 1px solid var(--border); border-radius: 9px; padding: 7px; margin-bottom: 7px; display: flex; flex-direction: column; gap: 6px; }
+  .plan i { display: block; height: 6px; width: 40%; background: var(--raised); border-radius: 3px; }
+  .plan b { display: block; height: 9px; width: 30%; background: var(--raised); border-radius: 3px; }
+  .plan.hot { border-color: var(--accent); } .plan.hot b { background: var(--accent); }
+  .center { text-align: center; }
+  .logo { width: 32px; height: 32px; border-radius: 10px; background: var(--accent-soft); border: 1px solid var(--accent); margin: 20px auto 12px; }
+  .socials { display: grid; gap: 7px; margin-top: 18px; }
+  .socials i { display: block; height: 24px; border-radius: 8px; border: 1px solid var(--border-strong); }
+  .socials i.dark { background: var(--text); border: none; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .gcard { border: 1px solid var(--border); background: var(--card); border-radius: 9px; padding: 6px; }
+  .gcard u { display: block; height: 38px; border-radius: 6px; background: var(--raised); margin-bottom: 6px; text-decoration: none; }
+  .gcard i { display: block; height: 6px; width: 80%; background: var(--raised); border-radius: 3px; }
+  .steps { display: flex; gap: 5px; align-items: center; margin-bottom: 12px; }
+  .steps i { flex: 1; height: 3px; border-radius: 2px; background: var(--raised); }
+  .steps i.done { background: var(--accent); }
+  .field { margin-bottom: 9px; }
+  .field i { display: block; height: 5px; width: 34%; background: var(--raised); border-radius: 3px; margin-bottom: 5px; }
+  .field b { display: block; height: 22px; border: 1px solid var(--border-strong); border-radius: 7px; }
+  .field.focus b { border-color: var(--accent); }
+  .qrow { border-bottom: 1px solid var(--border); padding: 8px 2px; display: flex; justify-content: space-between; align-items: center; }
+  .qrow i { display: block; height: 6px; border-radius: 3px; background: var(--raised); width: 75%; }
+  .qrow em { font-style: normal; color: var(--faint); font-size: 10px; }
+  .erricon { width: 34px; height: 34px; border-radius: 50%; border: 1.5px dashed var(--err); margin: 34px auto 14px; display: grid; place-items: center; color: var(--err); font-size: 14px; }
+  .sechead { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 8px; }
+  .sechead i { display: block; height: 6px; width: 38%; background: var(--raised); border-radius: 3px; }
+  .sechead em { font-style: normal; display: block; height: 5px; width: 16%; background: var(--accent-soft); border-radius: 3px; }
+  .quote-scroll { display: flex; gap: 8px; margin-top: 8px; }
+  .qcard { flex: none; width: 78%; border: 1px solid var(--border); background: var(--card); border-radius: 10px; padding: 9px; }
+  .qcard .stars { color: #fbbf24; font-size: 8px; letter-spacing: 2px; margin-bottom: 6px; }
+  .qcard i { display: block; height: 5px; background: var(--raised); border-radius: 3px; margin-bottom: 5px; }
+  .qcard i.s { width: 60%; }
+  .chipsw { display: flex; gap: 5px; margin-bottom: 10px; }
+  .chipsw i { height: 16px; border-radius: 999px; background: var(--raised); flex: 1; }
+  .chipsw i.on { background: var(--accent-soft); border: 1px solid var(--accent); }
+  .profile-head { text-align: center; margin-bottom: 10px; }
+  .profile-head .pav { width: 40px; height: 40px; border-radius: 50%; background: var(--accent-soft); border: 1px solid var(--accent); margin: 6px auto 8px; }
+  .pstats { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+  .pstats i { width: 34px; height: 22px; border-radius: 7px; background: var(--raised); }
+  .notif-group i { display: block; height: 5px; width: 26%; background: var(--raised); border-radius: 3px; margin: 8px 0 7px; }
+
+  footer.page { border-top: 1px solid var(--border); padding: 28px 0 48px; color: var(--faint); font-size: 12.5px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  @media (max-width: 980px) { .grid { grid-template-columns: repeat(3, 1fr); } .nav-links { display: none; } }
+  @media (max-width: 700px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a class="wordmark" href="01-home.html"><span class="dot"></span>@mrmeg/expo-ui</a>
+    <div class="nav-links">
+      <a href="01-home.html">Overview</a>
+      <a href="02-components.html">Components</a>
+      <a href="03-blocks.html">Blocks</a>
+      <a class="active" href="04-templates.html">Templates</a>
+    </div>
+    <div class="nav-right">
+      <div class="kbd">Search templates… <b>⌘K</b></div>
+      <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">◐</button>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <header class="page-head">
+    <div class="eyebrow">Scale 03 · complete screens</div>
+    <h1>Templates</h1>
+    <p>17 finished screens with routing, state, and theming wired. Copy a folder from <span class="mono">client/templates/&lt;id&gt;/</span>, run <span class="mono">bun run gen:templates</span>, and it's registered. Tap a phone to open the live screen.</p>
+  </header>
+
+  <div class="chips" role="group" aria-label="Filter templates">
+    <button class="chip on">All 17</button>
+    <button class="chip">Marketing</button>
+    <button class="chip">Data</button>
+    <button class="chip">Content</button>
+    <button class="chip">Forms &amp; auth</button>
+    <button class="chip">States</button>
+  </div>
+
+  <div class="grid">
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="ln w60"></div><div class="ln w40"></div>
+      <div class="stats2"><div class="stat hot"><i></i><b></b></div><div class="stat"><i></i><b></b></div><div class="stat"><i></i><b></b></div><div class="stat"><i></i><b></b></div></div>
+      <div class="sechead"><i></i><em></em></div>
+      <div class="row"><span class="av"></span><span class="ln fill" style="margin:0"></span></div>
+      <div class="row"><span class="av"></span><span class="ln fill" style="margin:0"></span></div>
+      <div class="row"><span class="av"></span><span class="ln fill" style="margin:0"></span></div>
+    </div></div><div class="tmeta"><span><b>Dashboard</b><small>Metrics &amp; activity feed</small></span><span class="id">dashboard</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="ln w40"></div>
+      <div class="bubble"><i></i><i></i></div>
+      <div class="bubble me"><i></i></div>
+      <div class="bubble"><i></i><i></i></div>
+      <div class="bubble me"><i></i><i></i></div>
+      <div class="search" style="position:absolute;left:10px;right:10px;bottom:10px;margin:0">Message…</div>
+    </div></div><div class="tmeta"><span><b>Chat</b><small>Messaging conversation</small></span><span class="id">chat</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="heroimg"></div>
+      <div class="ln w80" style="height:10px"></div><div class="ln w40"></div>
+      <div class="ln" style="margin-top:10px"></div><div class="ln"></div><div class="ln w60"></div>
+      <div class="btn-wire"></div>
+    </div></div><div class="tmeta"><span><b>Detail hero</b><small>Hero image detail view</small></span><span class="id">detail-hero</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="ln w40"></div>
+      <div class="grid2">
+        <div class="gcard"><u></u><i></i></div><div class="gcard"><u></u><i></i></div>
+        <div class="gcard"><u></u><i></i></div><div class="gcard"><u></u><i></i></div>
+      </div>
+    </div></div><div class="tmeta"><span><b>Card grid</b><small>Filterable card layout</small></span><span class="id">card-grid</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="center" style="padding-top:6px">
+        <div class="ln w60" style="margin:20px auto 8px;height:9px"></div>
+        <div class="ln w80" style="margin:0 auto 6px"></div>
+        <div class="ln w60" style="margin:0 auto 16px"></div>
+        <div class="btn-wire" style="width:70%;margin:0 auto"></div>
+        <div class="btn-wire ghost" style="width:70%;margin:8px auto 0"></div>
+      </div>
+    </div></div><div class="tmeta"><span><b>Hero</b><small>Landing hero: centered &amp; full-bleed</small></span><span class="id">hero</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="steps"><i class="done"></i><i class="done"></i><i></i><i></i></div>
+      <div class="field"><i></i><b></b></div>
+      <div class="field focus"><i></i><b></b></div>
+      <div class="field"><i></i><b></b></div>
+      <div class="btn-wire"></div>
+    </div></div><div class="tmeta"><span><b>Form</b><small>Multi-step wizard</small></span><span class="id">form</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="search">Search…</div>
+      <div class="row"><span class="sq"></span><span class="ln fill" style="margin:0"></span></div>
+      <div class="row"><span class="sq"></span><span class="ln fill" style="margin:0"></span></div>
+      <div class="row"><span class="sq"></span><span class="ln fill" style="margin:0"></span></div>
+      <div class="row"><span class="sq"></span><span class="ln fill" style="margin:0"></span></div>
+      <div class="row"><span class="sq"></span><span class="ln fill" style="margin:0"></span></div>
+    </div></div><div class="tmeta"><span><b>List</b><small>Search &amp; pull to refresh</small></span><span class="id">list</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="search">Search…</div>
+      <div class="chipsw"><i class="on"></i><i></i><i></i></div>
+      <div class="cardw" style="margin-bottom:7px"><div class="row" style="margin:0"><span class="av"></span><span class="ln fill" style="margin:0"></span></div></div>
+      <div class="cardw" style="margin-bottom:7px"><div class="row" style="margin:0"><span class="av"></span><span class="ln fill" style="margin:0"></span></div></div>
+      <div class="cardw"><div class="row" style="margin:0"><span class="av"></span><span class="ln fill" style="margin:0"></span></div></div>
+    </div></div><div class="tmeta"><span><b>Search</b><small>Filtered search results</small></span><span class="id">search</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="ln w60"></div><div class="ln w40" style="margin-bottom:12px"></div>
+      <div class="plan"><i></i><b></b></div>
+      <div class="plan hot"><i></i><b></b></div>
+      <div class="plan"><i></i><b></b></div>
+    </div></div><div class="tmeta"><span><b>Pricing</b><small>Plans &amp; comparison</small></span><span class="id">pricing</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="profile-head"><div class="pav"></div><div class="ln w40" style="margin:0 auto 5px"></div><div class="ln w30" style="margin:0 auto"></div>
+        <div class="pstats"><i></i><i></i><i></i></div></div>
+      <div class="sechead"><i></i><em></em></div>
+      <div class="row"><span class="sq"></span><span class="ln fill" style="margin:0"></span></div>
+      <div class="row"><span class="sq"></span><span class="ln fill" style="margin:0"></span></div>
+    </div></div><div class="tmeta"><span><b>Profile</b><small>Avatar, stats, sections</small></span><span class="id">profile</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="ln w40"></div>
+      <div class="row"><span class="sq"></span><span class="ln fill" style="margin:0"></span><span class="toggle"></span></div>
+      <div class="row"><span class="sq"></span><span class="ln fill" style="margin:0"></span><span class="toggle off"></span></div>
+      <div class="sechead" style="margin-top:12px"><i></i></div>
+      <div class="row"><span class="sq"></span><span class="ln fill" style="margin:0"></span><span class="toggle"></span></div>
+      <div class="row"><span class="sq"></span><span class="ln fill" style="margin:0"></span></div>
+    </div></div><div class="tmeta"><span><b>Settings</b><small>Grouped lists &amp; toggles</small></span><span class="id">settings</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="ln w40"></div>
+      <div class="notif-group"><i></i></div>
+      <div class="row"><span class="dot-on"></span><span class="av"></span><span class="ln fill" style="margin:0"></span></div>
+      <div class="row"><span class="dot-on"></span><span class="av"></span><span class="ln fill" style="margin:0"></span></div>
+      <div class="notif-group"><i></i></div>
+      <div class="row" style="opacity:.6"><span style="width:6px"></span><span class="av"></span><span class="ln fill" style="margin:0"></span></div>
+      <div class="row" style="opacity:.6"><span style="width:6px"></span><span class="av"></span><span class="ln fill" style="margin:0"></span></div>
+    </div></div><div class="tmeta"><span><b>Notifications</b><small>Grouped notification list</small></span><span class="id">notifications</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="ln w60"></div><div class="ln w40" style="margin-bottom:10px"></div>
+      <div class="stats2">
+        <div class="stat hot"><i></i><b></b></div><div class="stat"><i></i><b></b></div>
+        <div class="stat"><i></i><b></b></div><div class="stat hot"><i></i><b></b></div>
+        <div class="stat"><i></i><b></b></div><div class="stat"><i></i><b></b></div>
+      </div>
+    </div></div><div class="tmeta"><span><b>Stats</b><small>Metric grid with change indicators</small></span><span class="id">stats</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="ln w60"></div><div class="ln w40"></div>
+      <div class="quote-scroll">
+        <div class="qcard"><div class="stars">★★★★★</div><i></i><i></i><i class="s"></i><div class="row" style="margin:8px 0 0"><span class="av" style="width:16px;height:16px"></span><span class="ln fill" style="margin:0;height:5px"></span></div></div>
+        <div class="qcard"><div class="stars">★★★★★</div><i></i><i></i><i class="s"></i></div>
+      </div>
+      <div class="chipsw" style="width:30%;margin:12px auto 0"><i class="on"></i><i></i><i></i></div>
+    </div></div><div class="tmeta"><span><b>Testimonials</b><small>Snap-scrolling quote cards</small></span><span class="id">testimonials</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="ln w60" style="margin-bottom:12px"></div>
+      <div class="qrow"><i></i><em>−</em></div>
+      <div style="padding:7px 2px"><div class="ln"></div><div class="ln w60" style="margin:0"></div></div>
+      <div class="qrow"><i></i><em>+</em></div>
+      <div class="qrow"><i></i><em>+</em></div>
+      <div class="qrow"><i></i><em>+</em></div>
+    </div></div><div class="tmeta"><span><b>FAQ</b><small>Accordion of questions &amp; answers</small></span><span class="id">faq</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="erricon">✕</div>
+      <div class="center">
+        <div class="ln w60" style="margin:0 auto 6px;height:8px"></div>
+        <div class="ln w80" style="margin:0 auto 16px"></div>
+        <div class="btn-wire ghost" style="width:60%;margin:0 auto"></div>
+      </div>
+    </div></div><div class="tmeta"><span><b>Error</b><small>Error state variants</small></span><span class="id">error</span></div></a>
+
+    <a class="tcard" href="#"><div class="phone"><div class="notch"></div><div class="screen">
+      <div class="logo"></div>
+      <div class="center">
+        <div class="ln w60" style="margin:0 auto 6px;height:9px"></div>
+        <div class="ln w40" style="margin:0 auto"></div>
+      </div>
+      <div class="socials"><i class="dark"></i><i></i><i></i></div>
+    </div></div><div class="tmeta"><span><b>Welcome</b><small>Landing &amp; social login</small></span><span class="id">welcome</span></div></a>
+
+  </div>
+</div>
+
+<footer class="page">
+  <div class="wrap" style="display:flex;justify-content:space-between">
+    <span>17 templates · previews are stylized wireframes; the in-app gallery renders live screens</span>
+    <span class="mono" style="font-size:11px">mockup 04 · template gallery</span>
+  </div>
+</footer>
+
+<script>
+  function toggleTheme() {
+    const el = document.documentElement;
+    el.dataset.theme = el.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem("mock-theme", el.dataset.theme); } catch {}
+  }
+  try { const t = localStorage.getItem("mock-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+</script>
+</body>
+</html>

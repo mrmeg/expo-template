@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blocks — @mrmeg/expo-ui</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme="dark"] {
+    --bg: #09090B; --surface: #101013; --card: #131317; --raised: #1a1a1f;
+    --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.14);
+    --text: #fafafa; --dim: #a1a1aa; --faint: #52525b;
+    --accent: #2dd4bf; --accent-soft: rgba(45,212,191,.12);
+    --ok: #4ade80; --warn: #fbbf24;
+  }
+  [data-theme="light"] {
+    --bg: #ffffff; --surface: #fafafa; --card: #ffffff; --raised: #f4f4f5;
+    --border: #e4e4e7; --border-strong: #d4d4d8;
+    --text: #18181b; --dim: #71717a; --faint: #a1a1aa;
+    --accent: #0d9488; --accent-soft: rgba(13,148,136,.10);
+    --ok: #16a34a; --warn: #d97706;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 400 15px/1.6 "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+  .nav-inner { display: flex; align-items: center; gap: 28px; height: 56px; }
+  .wordmark { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .wordmark .dot { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+  .nav-links { display: flex; gap: 4px; font-size: 13.5px; color: var(--dim); }
+  .nav-links a { padding: 6px 10px; border-radius: 8px; }
+  .nav-links a:hover { color: var(--text); background: var(--raised); }
+  .nav-links a.active { color: var(--text); }
+  .nav-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+  .kbd { display: flex; gap: 8px; font-size: 12.5px; color: var(--faint); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; }
+  .kbd b { font-weight: 500; color: var(--dim); font-family: ui-monospace, monospace; font-size: 11px; }
+  .theme-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--dim); cursor: pointer; }
+
+  .page-head { padding: 48px 0 8px; max-width: 640px; }
+  .eyebrow { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  h1 { font-size: 30px; font-weight: 600; letter-spacing: -.025em; margin-bottom: 8px; }
+  .page-head p { color: var(--dim); font-size: 14.5px; }
+  .page-head p .mono { font-size: 12.5px; background: var(--raised); border-radius: 5px; padding: 1px 6px; }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; padding: 22px 0 34px; }
+  .chip { font-size: 12.5px; color: var(--dim); border: 1px solid var(--border-strong); border-radius: 999px; padding: 5px 14px; cursor: pointer; background: none; font-family: inherit; }
+  .chip.on { background: var(--text); color: var(--bg); border-color: transparent; font-weight: 500; }
+  .chip:hover:not(.on) { color: var(--text); }
+
+  /* block frame: preview stage + recipe strip */
+  .block { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 24px; background: var(--card); }
+  .block:hover { border-color: var(--border-strong); }
+  .block-head { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+  .block-head b { font-size: 14px; font-weight: 600; }
+  .block-head .cat { font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); background: var(--raised); border-radius: 999px; padding: 3px 10px; }
+  .block-head .right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .widths { display: flex; background: var(--raised); border-radius: 8px; padding: 2px; }
+  .widths button { border: none; background: none; color: var(--dim); font: 500 11px/1 "Inter", sans-serif; padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+  .widths button.on { background: var(--card); color: var(--text); }
+  .copy { font-family: ui-monospace, monospace; font-size: 11px; color: var(--accent); background: var(--accent-soft); border: none; border-radius: 7px; padding: 5px 11px; cursor: pointer; }
+  .stage { background: var(--surface); padding: 44px 32px; display: grid; place-items: center; min-height: 220px;
+    background-image: radial-gradient(color-mix(in srgb, var(--text) 6%, transparent) 1px, transparent 1px); background-size: 20px 20px; }
+  .recipe { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-top: 1px solid var(--border); font-family: ui-monospace, monospace; font-size: 11px; color: var(--faint); flex-wrap: wrap; }
+  .recipe span { color: var(--dim); background: var(--raised); border-radius: 6px; padding: 2px 8px; }
+  .recipe i { font-style: normal; }
+
+  /* mobile frame inside stage */
+  .m-frame { width: 320px; max-width: 100%; }
+
+  /* ---- hero block ---- */
+  .bk-hero { text-align: center; max-width: 460px; }
+  .bk-hero .eb { font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .bk-hero h3 { font-size: 30px; font-weight: 600; letter-spacing: -.025em; line-height: 1.15; margin-bottom: 12px; }
+  .bk-hero p { font-size: 13.5px; color: var(--dim); margin-bottom: 20px; max-width: 40ch; margin-inline: auto; }
+  .bk-hero .btns { display: flex; gap: 10px; justify-content: center; }
+  .bk-hero .btns i { font-style: normal; font-size: 12.5px; font-weight: 600; border-radius: 9px; padding: 8px 18px; }
+  .bk-hero .btns .a { background: var(--text); color: var(--bg); }
+  .bk-hero .btns .b { border: 1px solid var(--border-strong); }
+
+  /* ---- feature grid block ---- */
+  .bk-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 620px; max-width: 100%; }
+  .bk-feature { border: 1px solid var(--border-strong); background: var(--card); border-radius: 12px; padding: 16px; }
+  .bk-feature .ic { width: 30px; height: 30px; border-radius: 9px; background: var(--accent-soft); border: 1px solid var(--accent); display: grid; place-items: center; color: var(--accent); font-size: 13px; margin-bottom: 10px; }
+  .bk-feature b { font-size: 13px; display: block; margin-bottom: 3px; }
+  .bk-feature span { font-size: 11.5px; color: var(--dim); line-height: 1.45; display: block; }
+
+  /* ---- stat row block ---- */
+  .bk-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; width: 640px; max-width: 100%; }
+  .bk-stat { border: 1px solid var(--border-strong); background: var(--card); border-radius: 12px; padding: 14px 16px; }
+  .bk-stat span { font-size: 11px; color: var(--dim); display: block; margin-bottom: 2px; }
+  .bk-stat b { font-family: ui-monospace, monospace; font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+  .bk-stat i { display: block; font-style: normal; font-family: ui-monospace, monospace; font-size: 10px; margin-top: 4px; color: var(--ok); }
+  .bk-stat i.down { color: var(--warn); }
+
+  /* ---- cta banner block ---- */
+  .bk-cta { width: 640px; max-width: 100%; border: 1px solid var(--accent); background: linear-gradient(135deg, var(--accent-soft), transparent 60%); border-radius: 14px; padding: 22px 24px; display: flex; align-items: center; gap: 20px; }
+  .bk-cta div b { font-size: 15px; display: block; }
+  .bk-cta div span { font-size: 12.5px; color: var(--dim); }
+  .bk-cta i { font-style: normal; margin-left: auto; background: var(--text); color: var(--bg); font-size: 12.5px; font-weight: 600; border-radius: 9px; padding: 8px 18px; white-space: nowrap; }
+
+  /* ---- testimonial block ---- */
+  .bk-quotes { display: flex; gap: 12px; width: 660px; max-width: 100%; }
+  .bk-quote { flex: 1; border: 1px solid var(--border-strong); background: var(--card); border-radius: 12px; padding: 16px; }
+  .bk-quote p { font-size: 12px; color: var(--dim); line-height: 1.55; margin-bottom: 12px; }
+  .bk-quote .who { display: flex; align-items: center; gap: 9px; }
+  .bk-quote .av { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); border: 1px solid var(--accent); }
+  .bk-quote b { font-size: 11.5px; display: block; }
+  .bk-quote span { font-size: 10.5px; color: var(--faint); }
+  .bk-quote .stars { color: var(--warn); font-size: 10px; letter-spacing: 2px; margin-bottom: 8px; }
+
+  /* ---- auth block ---- */
+  .bk-auth { width: 300px; border: 1px solid var(--border-strong); background: var(--card); border-radius: 14px; padding: 22px; }
+  .bk-auth h4 { font-size: 16px; font-weight: 600; text-align: center; margin-bottom: 4px; }
+  .bk-auth .sub { font-size: 11.5px; color: var(--dim); text-align: center; margin-bottom: 16px; }
+  .bk-auth label { font-size: 11px; font-weight: 500; display: block; margin-bottom: 5px; }
+  .bk-auth .in { border: 1px solid var(--border-strong); border-radius: 8px; padding: 7px 11px; font-size: 12px; color: var(--faint); margin-bottom: 12px; }
+  .bk-auth .go { background: var(--text); color: var(--bg); border-radius: 9px; text-align: center; font-size: 12.5px; font-weight: 600; padding: 8px; margin-top: 2px; }
+  .bk-auth .or { display: flex; align-items: center; gap: 10px; color: var(--faint); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; margin: 14px 0; }
+  .bk-auth .or::before, .bk-auth .or::after { content: ""; flex: 1; height: 1px; background: var(--border-strong); }
+  .bk-auth .social { border: 1px solid var(--border-strong); border-radius: 9px; text-align: center; font-size: 12px; font-weight: 500; padding: 7px; margin-bottom: 8px; }
+
+  /* ---- faq block ---- */
+  .bk-faq { width: 480px; max-width: 100%; }
+  .bk-faq h4 { font-size: 18px; font-weight: 600; letter-spacing: -.02em; margin-bottom: 14px; text-align: center; }
+  .bk-faq .q { border-bottom: 1px solid var(--border-strong); padding: 11px 4px; font-size: 13px; display: flex; justify-content: space-between; color: var(--dim); }
+  .bk-faq .q.open { color: var(--text); }
+  .bk-faq .a { font-size: 12px; color: var(--dim); padding: 2px 4px 12px; border-bottom: 1px solid var(--border-strong); }
+  .bk-faq .q i { font-style: normal; color: var(--faint); }
+
+  /* ---- footer block ---- */
+  .bk-footer { width: 660px; max-width: 100%; border-top: 1px solid var(--border-strong); padding-top: 20px; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 18px; }
+  .bk-footer .brand b { font-size: 13px; display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+  .bk-footer .brand b u { width: 7px; height: 7px; border-radius: 2px; background: var(--accent); text-decoration: none; }
+  .bk-footer .brand span { font-size: 11px; color: var(--faint); }
+  .bk-footer .col b { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); display: block; margin-bottom: 8px; font-family: ui-monospace, monospace; }
+  .bk-footer .col i { font-style: normal; display: block; font-size: 12px; color: var(--dim); margin-bottom: 6px; }
+
+  .proposed-note { display: flex; gap: 10px; align-items: center; border: 1px dashed var(--border-strong); border-radius: 12px; padding: 12px 16px; font-size: 13px; color: var(--dim); margin-bottom: 28px; }
+  .proposed-note b { color: var(--accent); font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+
+  footer.page { border-top: 1px solid var(--border); padding: 28px 0 48px; color: var(--faint); font-size: 12.5px; margin-top: 40px; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  @media (max-width: 760px) {
+    .nav-links { display: none; }
+    .bk-features, .bk-stats { grid-template-columns: 1fr 1fr; width: 100%; }
+    .bk-quotes { flex-direction: column; width: 100%; }
+    .bk-footer { grid-template-columns: 1fr 1fr; }
+    .bk-cta { flex-direction: column; align-items: flex-start; }
+    .bk-cta i { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a class="wordmark" href="01-home.html"><span class="dot"></span>@mrmeg/expo-ui</a>
+    <div class="nav-links">
+      <a href="01-home.html">Overview</a>
+      <a href="02-components.html">Components</a>
+      <a class="active" href="03-blocks.html">Blocks</a>
+      <a href="04-templates.html">Templates</a>
+    </div>
+    <div class="nav-right">
+      <div class="kbd">Search blocks… <b>⌘K</b></div>
+      <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">◐</button>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <header class="page-head">
+    <div class="eyebrow">Scale 02 · between component and template</div>
+    <h1>Blocks</h1>
+    <p>Composed sections you drop into any screen. Each block lives in <span class="mono">client/blocks/&lt;id&gt;/</span> with a meta file, registers via <span class="mono">bun run gen:blocks</span>, and lists its component recipe below the preview.</p>
+  </header>
+
+  <div class="chips" role="group" aria-label="Filter by category">
+    <button class="chip on">All</button>
+    <button class="chip">Marketing</button>
+    <button class="chip">Data</button>
+    <button class="chip">Social proof</button>
+    <button class="chip">Auth</button>
+    <button class="chip">Content</button>
+  </div>
+
+  <div class="proposed-note"><b>Proposed tier</b> Nothing on this page exists yet — every block below is extracted from patterns already living inside the 17 templates, promoted to a reusable unit.</div>
+
+  <!-- HERO -->
+  <article class="block">
+    <div class="block-head">
+      <b>Hero</b><span class="cat">Marketing</span>
+      <div class="right">
+        <div class="widths"><button>Mobile</button><button class="on">Web</button></div>
+        <button class="copy">Copy JSX</button>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="bk-hero">
+        <div class="eb">Launch week</div>
+        <h3>Ship your next screen in an afternoon</h3>
+        <p>Eyebrow, headline, supporting copy, and paired actions. Extracted from the hero template's centered variant.</p>
+        <div class="btns"><i class="a">Get started</i><i class="b">See the docs</i></div>
+      </div>
+    </div>
+    <div class="recipe"><i>Recipe</i> <span>StyledText</span> <span>Button ×2</span> <span>MaxWidthContainer</span></div>
+  </article>
+
+  <!-- FEATURE GRID -->
+  <article class="block">
+    <div class="block-head">
+      <b>Feature grid</b><span class="cat">Marketing</span>
+      <div class="right">
+        <div class="widths"><button>Mobile</button><button class="on">Web</button></div>
+        <button class="copy">Copy JSX</button>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="bk-features">
+        <div class="bk-feature"><div class="ic">✦</div><b>Themed by default</b><span>Every block reads the active theme — swap palettes without touching a block.</span></div>
+        <div class="bk-feature"><div class="ic">⌗</div><b>Native + web</b><span>One source renders to iOS, Android, and SSR-safe web output.</span></div>
+        <div class="bk-feature"><div class="ic">◫</div><b>Recipe included</b><span>Each block documents the components it composes, so it teaches as it ships.</span></div>
+        <div class="bk-feature"><div class="ic">↯</div><b>Copy, don't import</b><span>Blocks are open code — copy the folder and make it yours.</span></div>
+        <div class="bk-feature"><div class="ic">⊞</div><b>Registry-driven</b><span>gen:blocks scans meta files and writes the registry; no hand-editing.</span></div>
+        <div class="bk-feature"><div class="ic">⌘</div><b>Searchable</b><span>Blocks surface in the same ⌘K index as components and templates.</span></div>
+      </div>
+    </div>
+    <div class="recipe"><i>Recipe</i> <span>Card</span> <span>Icon</span> <span>StyledText</span></div>
+  </article>
+
+  <!-- STAT ROW -->
+  <article class="block">
+    <div class="block-head">
+      <b>Stat row</b><span class="cat">Data</span>
+      <div class="right">
+        <div class="widths"><button>Mobile</button><button class="on">Web</button></div>
+        <button class="copy">Copy JSX</button>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="bk-stats">
+        <div class="bk-stat"><span>Revenue</span><b>$48.2k</b><i>▲ 12.4%</i></div>
+        <div class="bk-stat"><span>Active users</span><b>2,481</b><i>▲ 8.2%</i></div>
+        <div class="bk-stat"><span>Churn</span><b>1.9%</b><i class="down">▼ 0.3%</i></div>
+        <div class="bk-stat"><span>NPS</span><b>62</b><i>▲ 4</i></div>
+      </div>
+    </div>
+    <div class="recipe"><i>Recipe</i> <span>StatCard ×4</span> <span>SectionHeader</span> — shared with the dashboard and stats templates</div>
+  </article>
+
+  <!-- CTA BANNER -->
+  <article class="block">
+    <div class="block-head">
+      <b>CTA banner</b><span class="cat">Marketing</span>
+      <div class="right">
+        <div class="widths"><button>Mobile</button><button class="on">Web</button></div>
+        <button class="copy">Copy JSX</button>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="bk-cta">
+        <div><b>Ready when you are</b><span>Start from a template or compose your own from blocks.</span></div>
+        <i>Create a screen</i>
+      </div>
+    </div>
+    <div class="recipe"><i>Recipe</i> <span>Card</span> <span>Button</span> <span>StyledText</span></div>
+  </article>
+
+  <!-- TESTIMONIALS -->
+  <article class="block">
+    <div class="block-head">
+      <b>Testimonial strip</b><span class="cat">Social proof</span>
+      <div class="right">
+        <div class="widths"><button>Mobile</button><button class="on">Web</button></div>
+        <button class="copy">Copy JSX</button>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="bk-quotes">
+        <div class="bk-quote"><div class="stars">★★★★★</div><p>"Copied the dashboard template Monday, shipped our beta Thursday. The blocks did most of the work."</p><div class="who"><div class="av"></div><div><b>Ana Reyes</b><span>Founder, Fieldnote</span></div></div></div>
+        <div class="bk-quote"><div class="stars">★★★★★</div><p>"The recipe footers taught my team the component API faster than any docs page."</p><div class="who"><div class="av"></div><div><b>Devon Park</b><span>Design engineer</span></div></div></div>
+        <div class="bk-quote"><div class="stars">★★★★★</div><p>"Same code on iOS and web, and the theming survived our rebrand untouched."</p><div class="who"><div class="av"></div><div><b>Mira Chen</b><span>CTO, Halide Labs</span></div></div></div>
+      </div>
+    </div>
+    <div class="recipe"><i>Recipe</i> <span>Card</span> <span>Item</span> <span>StyledText</span> — snap-scrolls on mobile, three-up on web</div>
+  </article>
+
+  <!-- AUTH -->
+  <article class="block">
+    <div class="block-head">
+      <b>Sign-in form</b><span class="cat">Auth</span>
+      <div class="right">
+        <div class="widths"><button class="on">Mobile</button><button>Web</button></div>
+        <button class="copy">Copy JSX</button>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="bk-auth">
+        <h4>Welcome back</h4>
+        <div class="sub">Sign in to continue to your workspace.</div>
+        <label>Email</label><div class="in">you@example.com</div>
+        <label>Password</label><div class="in">••••••••</div>
+        <div class="go">Sign in</div>
+        <div class="or">or</div>
+        <div class="social"> Continue with Apple</div>
+        <div class="social">G&nbsp; Continue with Google</div>
+      </div>
+    </div>
+    <div class="recipe"><i>Recipe</i> <span>Card</span> <span>Label</span> <span>TextInput ×2</span> <span>Button ×3</span> <span>Separator</span></div>
+  </article>
+
+  <!-- FAQ -->
+  <article class="block">
+    <div class="block-head">
+      <b>FAQ section</b><span class="cat">Content</span>
+      <div class="right">
+        <div class="widths"><button class="on">Mobile</button><button>Web</button></div>
+        <button class="copy">Copy JSX</button>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="bk-faq">
+        <h4>Common questions</h4>
+        <div class="q open">What's the difference between a block and a template? <i>−</i></div>
+        <div class="a">A template is a full screen with routing and state. A block is one section of a screen — a template is mostly blocks in a column.</div>
+        <div class="q">Can I use blocks outside the template app? <i>+</i></div>
+        <div class="q">Do blocks work on web? <i>+</i></div>
+      </div>
+    </div>
+    <div class="recipe"><i>Recipe</i> <span>Accordion</span> <span>SectionHeader</span> — extracted from the faq template</div>
+  </article>
+
+  <!-- FOOTER -->
+  <article class="block">
+    <div class="block-head">
+      <b>Footer</b><span class="cat">Marketing</span>
+      <div class="right">
+        <div class="widths"><button>Mobile</button><button class="on">Web</button></div>
+        <button class="copy">Copy JSX</button>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="bk-footer">
+        <div class="brand"><b><u></u>@mrmeg/expo-ui</b><span>Components, blocks, and templates for universal apps.</span></div>
+        <div class="col"><b>Library</b><i>Components</i><i>Blocks</i><i>Templates</i></div>
+        <div class="col"><b>Docs</b><i>Theming</i><i>Fonts</i><i>SSR</i></div>
+        <div class="col"><b>Project</b><i>Changelog</i><i>GitHub</i><i>npm</i></div>
+      </div>
+    </div>
+    <div class="recipe"><i>Recipe</i> <span>Separator</span> <span>StyledText</span> <span>Icon</span> — web-leaning; collapses to stacked columns on mobile</div>
+  </article>
+</div>
+
+<footer class="page">
+  <div class="wrap" style="display:flex;justify-content:space-between">
+    <span>8 launch blocks shown · marketing, data, social proof, auth, content</span>
+    <span class="mono" style="font-size:11px">mockup 03 · blocks gallery</span>
+  </div>
+</footer>
+
+<script>
+  function toggleTheme() {
+    const el = document.documentElement;
+    el.dataset.theme = el.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem("mock-theme", el.dataset.theme); } catch {}
+  }
+  try { const t = localStorage.getItem("mock-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+</script>
+</body>
+</html>

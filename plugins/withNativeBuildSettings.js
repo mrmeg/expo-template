@@ -81,6 +81,40 @@ function upsertGradleProperty(properties, { key, value, comment }) {
   return properties;
 }
 
+// Pin the Gradle daemon to JDK 17 via the daemon JVM criteria file. The criteria
+// file outranks every other JVM selection mechanism — JAVA_HOME,
+// org.gradle.java.home, and crucially Android Studio's "Gradle JDK" setting
+// (which defaults to its bundled JetBrains Runtime, currently JDK 25). On
+// JDK 24+ the JVM prints a JEP-472 native-access warning on stderr when AGP's
+// prefab tool runs, and AGP treats any prefab stderr as fatal — every
+// configureCMake* task fails. Always writing the pin keeps terminal and
+// Android Studio builds on the same working JDK. Requires a local JDK 17
+// (no toolchainUrl entries: generating them needs the foojay resolver, and a
+// missing-JDK failure is a clear actionable error).
+const DAEMON_JVM_VERSION = "17";
+
+const withDaemonJvmVersion = (config) => {
+  return withDangerousMod(config, [
+    "android",
+    async (config) => {
+      const criteriaPath = path.join(
+        config.modRequest.platformProjectRoot,
+        "gradle",
+        "gradle-daemon-jvm.properties",
+      );
+      await fs.mkdir(path.dirname(criteriaPath), { recursive: true });
+      await fs.writeFile(
+        criteriaPath,
+        "# Written by plugins/withNativeBuildSettings.js — pins the Gradle daemon JVM\n" +
+          `# (including Android Studio builds) to JDK ${DAEMON_JVM_VERSION}. JDK 24+ JEP-472 stderr\n` +
+          `# warnings break AGP's prefab step. Requires a local JDK ${DAEMON_JVM_VERSION}.\n` +
+          `toolchainVersion=${DAEMON_JVM_VERSION}\n`,
+      );
+      return config;
+    },
+  ]);
+};
+
 const withNativeBuildSettings = (config, props) => {
   config = withGradleProperties(config, (config) => {
     for (const property of ANDROID_RELEASE_GRADLE_PROPERTIES) {
@@ -88,6 +122,8 @@ const withNativeBuildSettings = (config, props) => {
     }
     return config;
   });
+
+  config = withDaemonJvmVersion(config);
 
   config = withAppBuildGradle(config, (config) => {
     config.modResults.contents = updateAndroidBuildGradle(

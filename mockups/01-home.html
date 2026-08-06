@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>@mrmeg/expo-ui — One system, three scales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- tokens (mirrors packages/ui/src/constants) ---------- */
+  :root, [data-theme="dark"] {
+    --bg: #09090B; --surface: #101013; --card: #131317; --raised: #1a1a1f;
+    --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.14);
+    --text: #fafafa; --dim: #a1a1aa; --faint: #52525b;
+    --accent: #2dd4bf; --accent-ink: #0a1512; --accent-soft: rgba(45,212,191,.12);
+    --ok: #4ade80; --warn: #fbbf24;
+    --shadow: 0 24px 60px rgba(0,0,0,.5);
+  }
+  [data-theme="light"] {
+    --bg: #ffffff; --surface: #fafafa; --card: #ffffff; --raised: #f4f4f5;
+    --border: #e4e4e7; --border-strong: #d4d4d8;
+    --text: #18181b; --dim: #71717a; --faint: #a1a1aa;
+    --accent: #0d9488; --accent-ink: #ffffff; --accent-soft: rgba(13,148,136,.10);
+    --ok: #16a34a; --warn: #d97706;
+    --shadow: 0 24px 60px rgba(24,24,27,.12);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 400 15px/1.6 "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
+  }
+  .nav-inner { display: flex; align-items: center; gap: 28px; height: 56px; }
+  .wordmark { font-weight: 600; font-size: 14px; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
+  .wordmark .dot { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+  .nav-links { display: flex; gap: 4px; font-size: 13.5px; color: var(--dim); }
+  .nav-links a { padding: 6px 10px; border-radius: 8px; }
+  .nav-links a:hover { color: var(--text); background: var(--raised); }
+  .nav-links a.active { color: var(--text); }
+  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .kbd {
+    display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--faint);
+    border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; cursor: pointer;
+  }
+  .kbd b { font-weight: 500; color: var(--dim); font-family: ui-monospace, monospace; font-size: 11px; }
+  .theme-btn {
+    width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border);
+    background: none; color: var(--dim); cursor: pointer; font-size: 13px;
+  }
+  .theme-btn:hover { color: var(--text); border-color: var(--border-strong); }
+
+  /* ---------- hero ---------- */
+  .hero { display: grid; grid-template-columns: minmax(0,5fr) minmax(0,6fr); gap: 56px; align-items: center; padding: 88px 0 72px; }
+  .eyebrow {
+    font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 18px;
+  }
+  h1 { font-size: 46px; line-height: 1.08; letter-spacing: -.032em; font-weight: 600; margin-bottom: 18px; }
+  h1 em { font-style: normal; color: var(--dim); }
+  .lede { color: var(--dim); font-size: 16px; max-width: 42ch; margin-bottom: 28px; }
+  .cta-row { display: flex; gap: 12px; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 500;
+    padding: 9px 16px; border-radius: 10px; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--text); color: var(--bg); }
+  .btn-ghost { border-color: var(--border-strong); color: var(--text); }
+  .btn:hover { opacity: .88; }
+  .hero-counts { display: flex; gap: 24px; margin-top: 36px; font-size: 13px; color: var(--dim); }
+  .hero-counts b { display: block; font-family: ui-monospace, monospace; font-size: 20px; font-weight: 500; color: var(--text); }
+
+  /* ---------- composition diagram (signature) ---------- */
+  .compose { position: relative; display: flex; align-items: center; justify-content: center; }
+  .tier-label {
+    position: absolute; top: -30px; font-family: ui-monospace, monospace;
+    font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint);
+  }
+  .stage { position: relative; padding-top: 8px; }
+  .link-line { flex: none; width: 24px; height: 1px; background: linear-gradient(90deg, var(--border-strong), var(--accent)); position: relative; }
+  .link-line::after { content: ""; position: absolute; right: -1px; top: -2.5px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+  .atoms { display: flex; flex-direction: column; gap: 10px; }
+  .atom {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 8px 12px; font-size: 12px; color: var(--dim); display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.14);
+  }
+  .atom .sw { width: 26px; height: 15px; border-radius: 999px; background: var(--accent); position: relative; flex: none; }
+  .atom .sw::after { content:""; position:absolute; right:2px; top:2px; width:11px; height:11px; border-radius:50%; background:#fff; }
+  .atom .bd { flex:none; font-family: ui-monospace, monospace; font-size:10px; background: var(--accent-soft); color: var(--accent); border-radius:999px; padding:1px 7px; }
+  .atom .btnmini { flex:none; background: var(--text); color: var(--bg); font-size:10px; font-weight:600; border-radius:6px; padding:2px 8px; }
+
+  .block-card {
+    width: 198px; background: var(--card); border: 1px solid var(--border-strong);
+    border-radius: 14px; padding: 14px; box-shadow: var(--shadow);
+  }
+  .block-card .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .block-card .t { font-size: 12px; color: var(--dim); }
+  .block-card .v { font-size: 24px; font-weight: 600; letter-spacing: -.02em; font-family: ui-monospace, monospace; }
+  .block-card .delta { font-size: 11px; color: var(--ok); font-family: ui-monospace, monospace; }
+  .spark { display: flex; align-items: flex-end; gap: 3px; height: 34px; margin-top: 12px; }
+  .spark i { flex: 1; background: var(--accent-soft); border-radius: 2px; }
+  .spark i:nth-child(6), .spark i:nth-child(9) { background: var(--accent); }
+
+  .phone {
+    flex: none; width: 152px; background: var(--card); border: 1px solid var(--border-strong);
+    border-radius: 26px; padding: 9px; box-shadow: var(--shadow);
+  }
+  .phone .notch { width: 54px; height: 14px; border-radius: 999px; background: var(--raised); margin: 2px auto 10px; }
+  .phone .screen { border-radius: 16px; background: var(--surface); border: 1px solid var(--border); padding: 10px; min-height: 240px; }
+  .ph-line { height: 7px; border-radius: 4px; background: var(--raised); margin-bottom: 7px; }
+  .ph-line.w60 { width: 60%; } .ph-line.w40 { width: 40%; }
+  .ph-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 10px 0; }
+  .ph-stat { border: 1px solid var(--border); background: var(--card); border-radius: 8px; height: 40px; padding: 6px; }
+  .ph-stat i { display: block; height: 5px; width: 60%; background: var(--accent-soft); border-radius: 3px; margin-bottom: 6px; }
+  .ph-stat b { display: block; height: 8px; width: 40%; background: var(--raised); border-radius: 3px; }
+  .ph-stat.hot { border-color: var(--accent); }
+  .ph-item { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .ph-item .av { width: 18px; height: 18px; border-radius: 50%; background: var(--raised); flex: none; }
+  .ph-item .ln { height: 6px; border-radius: 3px; background: var(--raised); flex: 1; }
+
+  /* ---------- tier sections ---------- */
+  section { padding: 56px 0; border-top: 1px solid var(--border); }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 28px; }
+  .sec-head h2 { font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+  .sec-head .scale { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); display: block; margin-bottom: 6px; }
+  .sec-head a { font-size: 13px; color: var(--accent); }
+  .sec-head p { color: var(--dim); font-size: 14px; max-width: 52ch; margin-top: 6px; }
+
+  .comp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .comp-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: border-color .15s; }
+  .comp-card:hover { border-color: var(--border-strong); }
+  .comp-preview { height: 96px; display: grid; place-items: center; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .comp-meta { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .comp-meta b { font-size: 13px; font-weight: 500; }
+  .comp-meta span { font-family: ui-monospace, monospace; font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: .08em; }
+  /* mini renderings */
+  .p-btn { background: var(--text); color: var(--bg); font-size: 12px; font-weight: 600; border-radius: 8px; padding: 7px 16px; }
+  .p-switch { width: 42px; height: 24px; border-radius: 999px; background: var(--accent); position: relative; }
+  .p-switch::after { content:""; position:absolute; right:3px; top:3px; width:18px; height:18px; border-radius:50%; background:#fff; }
+  .p-slider { width: 70%; height: 4px; border-radius: 2px; background: var(--raised); position: relative; }
+  .p-slider::before { content:""; position:absolute; left:0; top:0; height:4px; width:62%; border-radius:2px; background: var(--accent); }
+  .p-slider::after { content:""; position:absolute; left:62%; top:-6px; width:16px; height:16px; border-radius:50%; background:var(--text); box-shadow:0 2px 6px rgba(0,0,0,.3); }
+  .p-badge { display:flex; gap:8px; } .p-badge i { font-style:normal; font-family:ui-monospace,monospace; font-size:11px; border-radius:999px; padding:3px 10px; }
+  .p-badge .b1 { background: var(--accent-soft); color: var(--accent); } .p-badge .b2 { background: var(--raised); color: var(--dim); }
+  .p-otp { display:flex; gap:6px; } .p-otp i { width:26px; height:32px; border:1px solid var(--border-strong); border-radius:8px; display:grid; place-items:center; font-style:normal; font-family:ui-monospace,monospace; font-size:13px; }
+  .p-otp i.on { border-color: var(--accent); color: var(--accent); }
+  .p-progress { width:70%; height:6px; border-radius:3px; background:var(--raised); overflow:hidden; }
+  .p-progress i { display:block; height:100%; width:68%; background:var(--accent); border-radius:3px; }
+  .p-tabs { display:flex; background:var(--raised); border-radius:9px; padding:3px; font-size:11.5px; }
+  .p-tabs i { font-style:normal; padding:4px 12px; border-radius:7px; color:var(--dim); }
+  .p-tabs i.on { background:var(--card); color:var(--text); box-shadow:0 1px 4px rgba(0,0,0,.2); }
+  .p-skel { width:70%; } .p-skel i { display:block; height:8px; border-radius:4px; margin-bottom:8px;
+    background: linear-gradient(90deg, var(--raised) 25%, var(--border-strong) 50%, var(--raised) 75%); background-size: 200% 100%; animation: shimmer 1.6s infinite; }
+  .p-skel i:last-child { width:60%; margin-bottom:0; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) { .p-skel i { animation: none; } }
+
+  .blocks-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .block-tile { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .block-tile:hover { border-color: var(--border-strong); }
+  .block-tile .stagearea { padding: 28px; background: var(--surface); border-bottom: 1px solid var(--border); min-height: 170px; display: grid; place-items: center; }
+  .block-tile .meta { padding: 12px 16px; display: flex; justify-content: space-between; align-items: baseline; }
+  .block-tile .meta b { font-size: 13.5px; font-weight: 500; }
+  .block-tile .meta span { font-size: 11.5px; color: var(--faint); font-family: ui-monospace, monospace; }
+  .new-tag { font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 3px 10px; margin-left: 10px; vertical-align: 3px; }
+  /* hero block preview */
+  .bp-hero { text-align: center; max-width: 320px; }
+  .bp-hero .eb { font-family: ui-monospace, monospace; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  .bp-hero h4 { font-size: 19px; font-weight: 600; letter-spacing: -.02em; line-height: 1.2; margin-bottom: 8px; }
+  .bp-hero p { font-size: 11.5px; color: var(--dim); margin-bottom: 14px; }
+  .bp-hero .btns { display: flex; gap: 8px; justify-content: center; }
+  .bp-hero .btns i { font-style: normal; font-size: 11px; font-weight: 600; border-radius: 8px; padding: 6px 14px; }
+  .bp-hero .btns .a { background: var(--text); color: var(--bg); } .bp-hero .btns .b { border: 1px solid var(--border-strong); }
+  /* pricing block preview */
+  .bp-pricing { display: flex; gap: 10px; }
+  .bp-plan { width: 108px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); padding: 12px; }
+  .bp-plan.hot { border-color: var(--accent); }
+  .bp-plan .nm { font-size: 10.5px; color: var(--dim); margin-bottom: 4px; }
+  .bp-plan .pr { font-family: ui-monospace, monospace; font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+  .bp-plan .ft { height: 5px; border-radius: 3px; background: var(--raised); margin-bottom: 5px; }
+  .bp-plan .ft.s { width: 70%; }
+  .bp-plan .go { margin-top: 9px; height: 20px; border-radius: 6px; background: var(--raised); }
+  .bp-plan.hot .go { background: var(--accent); }
+
+  .tmpl-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .tmpl-card { display: block; text-align: center; }
+  .tmpl-card .phone { width: 100%; margin-bottom: 12px; }
+  .tmpl-card .phone .screen { height: 210px; overflow: hidden; }
+  .tmpl-card b { font-size: 13px; font-weight: 500; display: block; }
+  .tmpl-card span { font-size: 12px; color: var(--faint); }
+  /* chat wireframe */
+  .ph-bubble { max-width: 75%; border-radius: 10px; padding: 7px; margin-bottom: 7px; background: var(--raised); }
+  .ph-bubble.me { margin-left: auto; background: var(--accent-soft); border: 1px solid var(--accent); }
+  .ph-bubble i { display: block; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text) 20%, transparent); }
+  .ph-bubble i + i { margin-top: 4px; width: 65%; }
+  /* pricing wireframe */
+  .ph-plans { display: grid; gap: 7px; }
+  .ph-plan { border: 1px solid var(--border); border-radius: 9px; height: 44px; padding: 7px; display: flex; flex-direction: column; justify-content: space-between; }
+  .ph-plan i { display: block; height: 6px; width: 40%; background: var(--raised); border-radius: 3px; }
+  .ph-plan b { display: block; height: 9px; width: 28%; background: var(--raised); border-radius: 3px; }
+  .ph-plan.hot { border-color: var(--accent); } .ph-plan.hot b { background: var(--accent); }
+  /* welcome wireframe */
+  .ph-logo { width: 34px; height: 34px; border-radius: 10px; background: var(--accent-soft); border: 1px solid var(--accent); margin: 14px auto 12px; }
+  .ph-center { text-align: center; }
+  .ph-center i { display: inline-block; height: 8px; width: 70%; background: var(--raised); border-radius: 4px; margin-bottom: 7px; }
+  .ph-center i.s { width: 50%; height: 6px; }
+  .ph-social { display: grid; gap: 7px; margin-top: 22px; }
+  .ph-social i { height: 26px; border-radius: 8px; border: 1px solid var(--border-strong); }
+  .ph-social i.dark { background: var(--text); border: none; }
+
+  footer { border-top: 1px solid var(--border); padding: 28px 0 48px; color: var(--faint); font-size: 12.5px; display: flex; justify-content: space-between; }
+  footer .mono { font-size: 11px; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; padding-top: 56px; }
+    .compose { transform: scale(.85); transform-origin: left top; }
+    .comp-grid { grid-template-columns: repeat(2, 1fr); }
+    .blocks-row { grid-template-columns: 1fr; }
+    .tmpl-row { grid-template-columns: repeat(2, 1fr); }
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a class="wordmark" href="01-home.html"><span class="dot"></span>@mrmeg/expo-ui</a>
+    <div class="nav-links">
+      <a class="active" href="01-home.html">Overview</a>
+      <a href="02-components.html">Components</a>
+      <a href="03-blocks.html">Blocks</a>
+      <a href="04-templates.html">Templates</a>
+    </div>
+    <div class="nav-right">
+      <div class="kbd">Search components… <b>⌘K</b></div>
+      <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">◐</button>
+    </div>
+  </div>
+</nav>
+
+<header class="wrap hero">
+  <div>
+    <div class="eyebrow">Native + web · one codebase</div>
+    <h1>One system,<br>three scales.</h1>
+    <p class="lede">Themed components compose into blocks. Blocks assemble into ready screen templates. Every scale ships to iOS, Android, and the web from the same source.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="04-templates.html">Browse templates</a>
+      <a class="btn btn-ghost mono" href="02-components.html" style="font-size:12.5px">bun add @mrmeg/expo-ui</a>
+    </div>
+    <div class="hero-counts">
+      <div><b>34</b>components</div>
+      <div><b>12</b>blocks</div>
+      <div><b>17</b>templates</div>
+      <div><b>3</b>platforms</div>
+    </div>
+  </div>
+
+  <!-- signature: composition diagram — component → block → template -->
+  <div class="compose" aria-label="Components compose into blocks; blocks assemble into templates">
+    <div class="stage">
+      <span class="tier-label">Component</span>
+      <div class="atoms">
+        <div class="atom"><span class="sw"></span>Switch</div>
+        <div class="atom"><span class="bd">+12%</span>Badge</div>
+        <div class="atom"><span class="btnmini">Save</span>Button</div>
+      </div>
+    </div>
+    <div class="link-line"></div>
+    <div class="stage">
+      <span class="tier-label">Block</span>
+      <div class="block-card">
+        <div class="row"><span class="t">Monthly revenue</span><span class="delta">▲ 12.4%</span></div>
+        <div class="v">$48,210</div>
+        <div class="spark"><i style="height:30%"></i><i style="height:45%"></i><i style="height:38%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:72%"></i><i style="height:60%"></i><i style="height:66%"></i><i style="height:92%"></i><i style="height:80%"></i></div>
+      </div>
+    </div>
+    <div class="link-line"></div>
+    <div class="stage">
+      <span class="tier-label">Template</span>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="ph-line w60"></div>
+          <div class="ph-line w40"></div>
+          <div class="ph-stats">
+            <div class="ph-stat hot"><i></i><b></b></div>
+            <div class="ph-stat"><i></i><b></b></div>
+            <div class="ph-stat"><i></i><b></b></div>
+            <div class="ph-stat"><i></i><b></b></div>
+          </div>
+          <div class="ph-item"><span class="av"></span><span class="ln"></span></div>
+          <div class="ph-item"><span class="av"></span><span class="ln"></span></div>
+          <div class="ph-item"><span class="av"></span><span class="ln"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="scale">Scale 01</span>
+        <h2>Components</h2>
+        <p>34 themed primitives across form, feedback, navigation, overlay, layout, and typography. Every preview below is live-rendered from the library, not a screenshot.</p>
+      </div>
+      <a href="02-components.html">All components →</a>
+    </div>
+    <div class="comp-grid">
+      <a class="comp-card" href="02-components.html"><div class="comp-preview"><span class="p-btn">Continue</span></div><div class="comp-meta"><b>Button</b><span>form</span></div></a>
+      <a class="comp-card" href="02-components.html"><div class="comp-preview"><span class="p-switch"></span></div><div class="comp-meta"><b>Switch</b><span>form</span></div></a>
+      <a class="comp-card" href="02-components.html"><div class="comp-preview"><span class="p-otp"><i class="on">4</i><i class="on">2</i><i></i><i></i></span></div><div class="comp-meta"><b>InputOTP</b><span>form</span></div></a>
+      <a class="comp-card" href="02-components.html"><div class="comp-preview"><span class="p-slider"></span></div><div class="comp-meta"><b>Slider</b><span>form</span></div></a>
+      <a class="comp-card" href="02-components.html"><div class="comp-preview"><span class="p-badge"><i class="b1">Active</i><i class="b2">Draft</i></span></div><div class="comp-meta"><b>Badge</b><span>feedback</span></div></a>
+      <a class="comp-card" href="02-components.html"><div class="comp-preview"><span class="p-tabs"><i class="on">Day</i><i>Week</i><i>Month</i></span></div><div class="comp-meta"><b>Tabs</b><span>navigation</span></div></a>
+      <a class="comp-card" href="02-components.html"><div class="comp-preview"><span class="p-progress"><i></i></span></div><div class="comp-meta"><b>Progress</b><span>feedback</span></div></a>
+      <a class="comp-card" href="02-components.html"><div class="comp-preview"><span class="p-skel"><i></i><i></i></span></div><div class="comp-meta"><b>Skeleton</b><span>feedback</span></div></a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="scale">Scale 02</span>
+        <h2>Blocks<span class="new-tag">New tier</span></h2>
+        <p>Composed sections ready to drop into any screen — each block lists the components it's built from, so it doubles as a recipe.</p>
+      </div>
+      <a href="03-blocks.html">All blocks →</a>
+    </div>
+    <div class="blocks-row">
+      <a class="block-tile" href="03-blocks.html">
+        <div class="stagearea">
+          <div class="bp-hero">
+            <div class="eb">Launch week</div>
+            <h4>Ship your next screen in an afternoon</h4>
+            <p>Eyebrow, headline, supporting copy, and paired actions — the block behind the hero template.</p>
+            <div class="btns"><i class="a">Get started</i><i class="b">See docs</i></div>
+          </div>
+        </div>
+        <div class="meta"><b>Hero</b><span>StyledText + Button ×2</span></div>
+      </a>
+      <a class="block-tile" href="03-blocks.html">
+        <div class="stagearea">
+          <div class="bp-pricing">
+            <div class="bp-plan"><div class="nm">Starter</div><div class="pr">$0</div><div class="ft"></div><div class="ft s"></div><div class="go"></div></div>
+            <div class="bp-plan hot"><div class="nm">Pro</div><div class="pr">$19</div><div class="ft"></div><div class="ft s"></div><div class="go"></div></div>
+            <div class="bp-plan"><div class="nm">Team</div><div class="pr">$49</div><div class="ft"></div><div class="ft s"></div><div class="go"></div></div>
+          </div>
+        </div>
+        <div class="meta"><b>Pricing tiers</b><span>Card + Badge + Button</span></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="scale">Scale 03</span>
+        <h2>Templates</h2>
+        <p>17 complete screens with routing, state, and theming wired. Copy the folder, run <span class="mono" style="font-size:12px">bun run gen:templates</span>, and the screen is registered.</p>
+      </div>
+      <a href="04-templates.html">All templates →</a>
+    </div>
+    <div class="tmpl-row">
+      <a class="tmpl-card" href="04-templates.html">
+        <div class="phone"><div class="notch"></div><div class="screen">
+          <div class="ph-line w60"></div><div class="ph-line w40"></div>
+          <div class="ph-stats"><div class="ph-stat hot"><i></i><b></b></div><div class="ph-stat"><i></i><b></b></div><div class="ph-stat"><i></i><b></b></div><div class="ph-stat"><i></i><b></b></div></div>
+          <div class="ph-item"><span class="av"></span><span class="ln"></span></div>
+          <div class="ph-item"><span class="av"></span><span class="ln"></span></div>
+        </div></div>
+        <b>Dashboard</b><span>Metrics &amp; activity feed</span>
+      </a>
+      <a class="tmpl-card" href="04-templates.html">
+        <div class="phone"><div class="notch"></div><div class="screen">
+          <div class="ph-bubble"><i></i><i></i></div>
+          <div class="ph-bubble me"><i></i></div>
+          <div class="ph-bubble"><i></i><i></i></div>
+          <div class="ph-bubble me"><i></i><i></i></div>
+          <div class="ph-line" style="margin-top:14px"></div>
+        </div></div>
+        <b>Chat</b><span>Messaging conversation</span>
+      </a>
+      <a class="tmpl-card" href="04-templates.html">
+        <div class="phone"><div class="notch"></div><div class="screen">
+          <div class="ph-line w60"></div><div class="ph-line w40" style="margin-bottom:12px"></div>
+          <div class="ph-plans"><div class="ph-plan"><i></i><b></b></div><div class="ph-plan hot"><i></i><b></b></div><div class="ph-plan"><i></i><b></b></div></div>
+        </div></div>
+        <b>Pricing</b><span>Plans &amp; comparison</span>
+      </a>
+      <a class="tmpl-card" href="04-templates.html">
+        <div class="phone"><div class="notch"></div><div class="screen">
+          <div class="ph-logo"></div>
+          <div class="ph-center"><i></i><i class="s"></i></div>
+          <div class="ph-social"><i class="dark"></i><i></i><i></i></div>
+        </div></div>
+        <b>Welcome</b><span>Landing &amp; social login</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap" style="display:flex;justify-content:space-between;width:100%">
+    <span>@mrmeg/expo-ui — the foundation of every screen in this template.</span>
+    <span class="mono">mockup 01 · explore home</span>
+  </div>
+</footer>
+
+<script>
+  function toggleTheme() {
+    const el = document.documentElement;
+    el.dataset.theme = el.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem("mock-theme", el.dataset.theme); } catch {}
+  }
+  try { const t = localStorage.getItem("mock-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+</script>
+</body>
+</html>
