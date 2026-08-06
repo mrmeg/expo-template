@@ -676,6 +676,11 @@ On native, `BottomSheet.Content` avoids the soft keyboard by default with
 React Native keyboard events. Pass `avoidKeyboard={false}` to opt out for a
 specific sheet.
 
+`BottomSheet.Content` themes the native sheet surface with the card color.
+Pass `backgroundStyle={{ backgroundColor: "transparent" }}` (with a `style`
+that clears the content column's card fill) when custom chrome such as a
+glass backdrop should show through; omitting it keeps the card background.
+
 i18n is optional. Do not add app-level i18n setup just to use this package.
 Plain children and `text` props work without `i18next` or `react-i18next`.
 `tx` props render fallback text when provided and otherwise render the key

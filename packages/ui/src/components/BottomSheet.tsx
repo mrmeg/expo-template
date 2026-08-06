@@ -154,6 +154,14 @@ interface BottomSheetContentProps extends ViewProps {
   avoidKeyboard?: boolean;
   /** Accepted for call-site ergonomics; ignored (platform owns keyboard). */
   dismissKeyboardOnDrag?: boolean;
+  /**
+   * Style for the native sheet surface behind the RN content — the web (vaul)
+   * panel, Android `containerColor`, iOS `presentationBackground`. Merged over
+   * the themed card default, so `{ backgroundColor: "transparent" }` lets a
+   * custom chrome (e.g. a glass backdrop) show through. The RN content column
+   * paints its own card fill too; clear that via `style`.
+   */
+  backgroundStyle?: StyleProp<ViewStyle>;
   style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
 }
@@ -578,6 +586,7 @@ function BottomSheetContent({
   swipeEnabled: _swipeEnabled,
   avoidKeyboard: _avoidKeyboard,
   dismissKeyboardOnDrag: _dismissKeyboardOnDrag,
+  backgroundStyle: backgroundStyleOverride,
   style: styleOverride,
   children,
 }: BottomSheetContentProps) {
@@ -633,8 +642,13 @@ function BottomSheetContent({
       onClose={() => {
         if (open) onOpenChange(false);
       }}
-      // Themes the scrim/background on web (vaul) and Android (containerColor).
-      backgroundStyle={{ backgroundColor: theme.colors.card }}
+      // Themes the scrim/background on web (vaul), Android (containerColor),
+      // and iOS (presentationBackground). Flattened so native readers that
+      // expect a plain object (not a style array) keep working.
+      backgroundStyle={StyleSheet.flatten([
+        { backgroundColor: theme.colors.card },
+        backgroundStyleOverride,
+      ])}
     >
       <TextColorContext.Provider value={theme.colors.foreground}>
         <TextClassContext.Provider value="">

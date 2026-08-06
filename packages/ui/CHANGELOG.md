@@ -3,6 +3,19 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0]
+
+### Added
+
+- **`BottomSheet.Content` `backgroundStyle` pass-through.** The native sheet
+  surface (web vaul panel, Android `containerColor`, iOS
+  `presentationBackground`) previously hardcoded the themed card color.
+  `BottomSheet.Content` now accepts an optional `backgroundStyle` merged over
+  that default, so hosts can pass `{ backgroundColor: "transparent" }` to let
+  custom chrome (e.g. a Liquid Glass backdrop) show through. Omitting the prop
+  preserves the existing card background. The RN content column still paints
+  its own card fill; clear that via `style` when going transparent.
+
 ## [0.17.0]
 
 ### Added
