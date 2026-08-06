@@ -6,6 +6,19 @@
 // Extended matchers are auto-imported in newer versions
 // If using older version, uncomment: import "@testing-library/react-native/extend-expect";
 
+// expo-image 57.0.2+ wires an optional expo-observe integration at import time.
+// jest-expo's native-module proxy is truthy but lacks getIntegrations(), so the
+// init call throws. Resolve the optional module to null, matching a runtime
+// without expo-observe installed.
+jest.mock("expo", () => {
+  const actual = jest.requireActual("expo");
+  return {
+    ...actual,
+    requireOptionalNativeModule: (name: string) =>
+      name === "ExpoObserve" ? null : actual.requireOptionalNativeModule(name),
+  };
+});
+
 // Mock expo-font (provide Font.isLoaded used by @expo/vector-icons)
 jest.mock("expo-font", () => ({
   useFonts: () => [true, null],

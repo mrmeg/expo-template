@@ -9,6 +9,7 @@ dist/
 !packages/media/dist/
 !packages/media/dist/**
 web-build/
+.build/
 expo-env.d.ts
 
 # Native
