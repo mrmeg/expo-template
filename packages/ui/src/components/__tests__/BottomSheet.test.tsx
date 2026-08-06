@@ -22,11 +22,12 @@ jest.mock("@expo/ui/community/bottom-sheet", () => {
   const { View } = require("react-native");
 
   return {
-    BottomSheet: ({ children, index, handleComponent }: any) => (
+    BottomSheet: ({ children, index, handleComponent, backgroundStyle }: any) => (
       <View
         testID="native-bottom-sheet"
         accessibilityLabel={handleComponent === null ? "custom-handle" : "native-handle"}
         accessibilityValue={{ now: index }}
+        backgroundStyle={backgroundStyle}
       >
         {children}
       </View>
@@ -176,5 +177,35 @@ describe("BottomSheet.Body", () => {
     expect(screen.getByText("Header")).toBeTruthy();
     expect(screen.getByText("Body")).toBeTruthy();
     expect(screen.getByText("Footer")).toBeTruthy();
+  });
+});
+
+describe("BottomSheet.Content backgroundStyle", () => {
+  it("themes the native sheet surface with the card color by default", async () => {
+    await render(
+      <BottomSheet open>
+        <BottomSheet.Content>
+          <Text>Sheet content</Text>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+
+    expect(screen.getByTestId("native-bottom-sheet").props.backgroundStyle).toEqual({
+      backgroundColor: "#FFFFFF",
+    });
+  });
+
+  it("merges a backgroundStyle override over the card default", async () => {
+    await render(
+      <BottomSheet open>
+        <BottomSheet.Content backgroundStyle={{ backgroundColor: "transparent" }}>
+          <Text>Sheet content</Text>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+
+    expect(screen.getByTestId("native-bottom-sheet").props.backgroundStyle).toEqual({
+      backgroundColor: "transparent",
+    });
   });
 });
