@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#09090B">
+<title>Mobile views — @mrmeg/expo-ui</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme="dark"] {
+    --bg: #09090B; --surface: #101013; --card: #131317; --raised: #1a1a1f;
+    --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.14);
+    --text: #fafafa; --dim: #a1a1aa; --faint: #52525b;
+    --accent: #2dd4bf; --accent-soft: rgba(45,212,191,.12);
+    --ok: #4ade80; --shadow: 0 24px 60px rgba(0,0,0,.5);
+  }
+  [data-theme="light"] {
+    --bg: #ffffff; --surface: #fafafa; --card: #ffffff; --raised: #f4f4f5;
+    --border: #e4e4e7; --border-strong: #d4d4d8;
+    --text: #18181b; --dim: #71717a; --faint: #a1a1aa;
+    --accent: #0d9488; --accent-soft: rgba(13,148,136,.10);
+    --ok: #16a34a; --shadow: 0 24px 60px rgba(24,24,27,.12);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { background: var(--bg); color-scheme: dark; }
+  html[data-theme="light"] { color-scheme: light; }
+  body { background: var(--bg); color: var(--text); font: 400 15px/1.6 "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- drawer nav (Drawer component: rail on desktop, overlay on mobile) ---------- */
+  .shell { display: flex; min-height: 100vh; }
+  .drawer {
+    width: 248px; flex: none; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 16px 12px; z-index: 40;
+  }
+  .wordmark { font-weight: 600; font-size: 14px; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; padding: 4px 10px 0; }
+  .wordmark .dot { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+  .kbd {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--faint);
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; margin: 16px 4px 6px; cursor: pointer; background: var(--card);
+  }
+  .kbd b { font-weight: 500; color: var(--dim); font-family: ui-monospace, monospace; font-size: 11px; }
+  .d-title { font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin: 16px 10px 8px; }
+  .d-nav a { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; color: var(--dim); padding: 7px 10px; border-radius: 8px; border-left: 2px solid transparent; }
+  .d-nav a:hover { color: var(--text); background: var(--raised); }
+  .d-nav a.active { color: var(--text); background: var(--raised); border-left-color: var(--accent); border-radius: 0 8px 8px 0; }
+  .d-nav a i { font-style: normal; font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--faint); }
+  .d-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding: 10px 10px 2px; font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--faint); }
+  .theme-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--dim); cursor: pointer; }
+  .theme-btn:hover { color: var(--text); border-color: var(--border-strong); }
+  .main { flex: 1; min-width: 0; }
+  .topbar { display: none; }
+  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 30; }
+  @media (max-width: 900px) {
+    .drawer { position: fixed; left: 0; bottom: 0; height: auto; transform: translateX(-100%); transition: transform .25s; box-shadow: 0 0 60px rgba(0,0,0,.5); }
+    .drawer.open { transform: none; }
+    .scrim.on { opacity: 1; pointer-events: auto; }
+    .topbar {
+      display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 20; height: 52px; padding: 0 16px;
+      background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
+    }
+    .topbar .wordmark { padding: 0; }
+    .menu-btn { border: 1px solid var(--border); background: none; color: var(--dim); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .drawer, .scrim { transition: none; } }
+
+  .page-head { padding: 48px 0 8px; max-width: 680px; }
+  .eyebrow { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  h1 { font-size: 30px; font-weight: 600; letter-spacing: -.025em; margin-bottom: 8px; }
+  .page-head p { color: var(--dim); font-size: 14.5px; }
+
+  .frames { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 44px 28px; padding: 40px 0 72px; }
+  .frame-card { max-width: 300px; margin: 0 auto; }
+  .caption { margin-top: 16px; padding: 0 6px; }
+  .caption .plat { font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 4px; }
+  .caption b { font-size: 13.5px; font-weight: 600; display: block; }
+  .caption span { font-size: 12.5px; color: var(--dim); }
+
+  /* ---------- device frame ---------- */
+  .device { border: 1px solid var(--border-strong); background: var(--card); border-radius: 42px; padding: 10px; box-shadow: var(--shadow); }
+  .dscreen { position: relative; border-radius: 32px; background: var(--bg); border: 1px solid var(--border); height: 600px; overflow: hidden; display: flex; flex-direction: column; }
+  .status { display: flex; justify-content: space-between; align-items: center; padding: 12px 22px 6px; font-size: 11px; font-weight: 600; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 74px; height: 20px; border-radius: 999px; background: #000; border: 1px solid var(--border); }
+  .status .sig { font-family: ui-monospace, monospace; font-size: 9px; color: var(--dim); letter-spacing: 1px; }
+  .app-body { flex: 1; overflow: hidden; padding: 6px 16px 0; position: relative; }
+  .home-bar { height: 4px; width: 96px; border-radius: 2px; background: var(--border-strong); margin: 6px auto 8px; flex: none; }
+
+  /* tab bar */
+  .tabbar { flex: none; display: flex; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 92%, transparent); padding: 8px 6px 2px; }
+  .tab { flex: 1; text-align: center; font-size: 9.5px; color: var(--faint); }
+  .tab .ti { display: block; font-size: 15px; margin-bottom: 2px; }
+  .tab.on { color: var(--accent); }
+
+  /* app content bits */
+  .big-title { font-size: 24px; font-weight: 700; letter-spacing: -.02em; padding: 8px 0 2px; display: flex; justify-content: space-between; align-items: center; }
+  .big-title .tt { width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--border-strong); display: grid; place-items: center; font-size: 12px; color: var(--dim); }
+  .m-search { height: 32px; border-radius: 10px; background: var(--raised); display: flex; align-items: center; padding: 0 11px; color: var(--faint); font-size: 12px; margin: 8px 0 4px; }
+  .m-sec { display: flex; justify-content: space-between; align-items: baseline; margin: 14px 0 8px; }
+  .m-sec b { font-size: 14px; font-weight: 600; }
+  .m-sec span { font-size: 11px; color: var(--accent); }
+  .m-sec .new { font-family: ui-monospace, monospace; font-size: 8.5px; letter-spacing: .1em; text-transform: uppercase; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 7px; margin-left: 6px; vertical-align: 2px; }
+  .hscroll { display: flex; gap: 8px; overflow: hidden; }
+  .mini-card { flex: none; width: 96px; border: 1px solid var(--border); background: var(--card); border-radius: 12px; overflow: hidden; }
+  .mini-card .mpv { height: 52px; display: grid; place-items: center; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .mini-card .mnm { font-size: 10px; font-weight: 500; padding: 5px 8px; }
+  .m-btn { background: var(--text); color: var(--bg); font-size: 9px; font-weight: 600; border-radius: 6px; padding: 4px 10px; }
+  .m-switch { width: 30px; height: 17px; border-radius: 999px; background: var(--accent); position: relative; }
+  .m-switch::after { content: ""; position: absolute; right: 2px; top: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; }
+  .m-badge { font-family: ui-monospace, monospace; font-size: 9px; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 8px; }
+  .m-block { border: 1px solid var(--border); background: var(--card); border-radius: 12px; padding: 10px 12px; }
+  .m-block .r { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .m-block .r span { font-size: 10px; color: var(--dim); }
+  .m-block .r i { font-style: normal; font-family: ui-monospace, monospace; font-size: 9px; color: var(--ok); }
+  .m-block .v { font-family: ui-monospace, monospace; font-size: 18px; font-weight: 600; }
+  .m-block .recipe { font-family: ui-monospace, monospace; font-size: 8.5px; color: var(--faint); margin-top: 7px; }
+  .tgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tthumb { border: 1px solid var(--border); background: var(--card); border-radius: 12px; padding: 8px; }
+  .tthumb .sc { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; height: 64px; padding: 6px; margin-bottom: 6px; }
+  .tthumb .sc i { display: block; height: 5px; border-radius: 3px; background: var(--raised); margin-bottom: 5px; }
+  .tthumb .sc i.a { background: var(--accent-soft); width: 55%; }
+  .tthumb b { font-size: 10.5px; font-weight: 500; display: block; }
+  .tthumb span { font-size: 9px; color: var(--faint); }
+
+  .chip-row { display: flex; gap: 6px; overflow: hidden; margin: 8px 0 10px; }
+  .m-chip { flex: none; font-size: 10.5px; color: var(--dim); border: 1px solid var(--border-strong); border-radius: 999px; padding: 3px 11px; }
+  .m-chip.on { background: var(--text); color: var(--bg); border-color: transparent; font-weight: 500; }
+  .cgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ccard { border: 1px solid var(--border); background: var(--card); border-radius: 12px; overflow: hidden; }
+  .ccard .cpv { height: 58px; display: grid; place-items: center; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .ccard .cnm { display: flex; justify-content: space-between; align-items: center; padding: 6px 9px; font-size: 10.5px; font-weight: 500; }
+  .ccard .cnm i { font-style: normal; font-family: ui-monospace, monospace; font-size: 8px; color: var(--faint); text-transform: uppercase; }
+  .m-otp { display: flex; gap: 4px; } .m-otp i { width: 16px; height: 20px; border: 1px solid var(--border-strong); border-radius: 5px; display: grid; place-items: center; font-style: normal; font-family: ui-monospace, monospace; font-size: 9px; }
+  .m-otp i.on { border-color: var(--accent); color: var(--accent); }
+  .m-tabs { display: flex; background: var(--raised); border-radius: 7px; padding: 2px; font-size: 8.5px; }
+  .m-tabs i { font-style: normal; padding: 3px 8px; border-radius: 5px; color: var(--dim); }
+  .m-tabs i.on { background: var(--card); color: var(--text); }
+  .m-prog { width: 60%; height: 4px; border-radius: 2px; background: var(--raised); overflow: hidden; }
+  .m-prog i { display: block; height: 100%; width: 66%; background: var(--accent); }
+  .m-slider { width: 60%; height: 3px; border-radius: 2px; background: var(--raised); position: relative; }
+  .m-slider::before { content: ""; position: absolute; inset: 0 40% 0 0; background: var(--accent); border-radius: 2px; }
+  .m-slider::after { content: ""; position: absolute; left: 58%; top: -5px; width: 12px; height: 12px; border-radius: 50%; background: var(--text); }
+
+  /* bottom sheet frame */
+  .dimmed { filter: brightness(.45); pointer-events: none; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--card); border: 1px solid var(--border-strong); border-bottom: none; border-radius: 22px 22px 0 0; padding: 8px 16px 14px; box-shadow: 0 -18px 50px rgba(0,0,0,.5); }
+  .grabber { width: 36px; height: 4px; border-radius: 2px; background: var(--border-strong); margin: 2px auto 12px; }
+  .sheet h4 { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .sheet .sub { font-size: 11px; color: var(--dim); margin-bottom: 12px; }
+  .variant-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+  .v-btn { font-size: 10.5px; font-weight: 600; border-radius: 8px; padding: 6px 12px; }
+  .v-btn.pri { background: var(--text); color: var(--bg); }
+  .v-btn.out { border: 1px solid var(--border-strong); }
+  .v-btn.gho { color: var(--dim); }
+  .v-btn.des { background: rgba(248,113,113,.14); color: #f87171; }
+  .code { background: #0c0c0f; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: ui-monospace, monospace; font-size: 9.5px; line-height: 1.7; color: var(--dim); margin-bottom: 12px; }
+  [data-theme="light"] .code { background: #18181b; }
+  .code .tag { color: var(--accent); } .code .attr { color: #93c5fd; } .code .str { color: #fbbf24; }
+  .sheet .cta { background: var(--text); color: var(--bg); border-radius: 10px; text-align: center; font-size: 12px; font-weight: 600; padding: 9px; }
+
+  /* mobile web frames */
+  .urlbar { flex: none; display: flex; align-items: center; gap: 8px; padding: 10px 14px 8px; }
+  .urlbar .pill { flex: 1; height: 30px; border-radius: 10px; background: var(--raised); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; color: var(--dim); }
+  .urlbar .pill em { font-style: normal; color: var(--faint); font-size: 9px; }
+  .web-top { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--border); }
+  .web-top .burger { width: 26px; height: 26px; border: 1px solid var(--border-strong); border-radius: 7px; display: grid; place-items: center; font-size: 11px; color: var(--dim); }
+  .web-top .wm { font-size: 11.5px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .web-top .wm u { width: 6px; height: 6px; border-radius: 2px; background: var(--accent); text-decoration: none; }
+  .web-drawer { position: absolute; top: 0; bottom: 0; left: 0; width: 76%; z-index: 6; background: var(--surface); border-right: 1px solid var(--border-strong); padding: 14px 10px; box-shadow: 24px 0 60px rgba(0,0,0,.55); }
+  .web-scrim { position: absolute; inset: 0; z-index: 5; background: rgba(0,0,0,.55); }
+  .wd-title { font-family: ui-monospace, monospace; font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 12px 8px 6px; }
+  .wd-nav a { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--dim); padding: 6px 8px; border-radius: 7px; border-left: 2px solid transparent; }
+  .wd-nav a.active { color: var(--text); background: var(--raised); border-left-color: var(--accent); border-radius: 0 7px 7px 0; }
+  .wd-nav a i { font-style: normal; font-family: ui-monospace, monospace; font-size: 8.5px; color: var(--faint); }
+  .wd-search { height: 26px; border-radius: 7px; border: 1px solid var(--border); background: var(--card); display: flex; align-items: center; padding: 0 9px; font-size: 10px; color: var(--faint); margin: 10px 4px 0; }
+  .wm-sm { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; padding: 2px 8px; }
+  .wm-sm u { width: 6px; height: 6px; border-radius: 2px; background: var(--accent); text-decoration: none; }
+
+  .m-blockcard { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 10px; background: var(--card); }
+  .m-blockcard .bhead { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-bottom: 1px solid var(--border); font-size: 10.5px; font-weight: 600; }
+  .m-blockcard .bhead i { font-style: normal; font-family: ui-monospace, monospace; font-size: 8px; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 2px 7px; }
+  .m-blockcard .bstage { background: var(--surface); padding: 14px; display: grid; place-items: center; background-image: radial-gradient(color-mix(in srgb, var(--text) 6%, transparent) 1px, transparent 1px); background-size: 12px 12px; }
+  .m-blockcard .brecipe { font-family: ui-monospace, monospace; font-size: 8px; color: var(--faint); padding: 6px 10px; border-top: 1px solid var(--border); }
+  .m-hero-blk { text-align: center; }
+  .m-hero-blk .e { font-family: ui-monospace, monospace; font-size: 7.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; }
+  .m-hero-blk h5 { font-size: 13px; font-weight: 600; line-height: 1.25; margin-bottom: 5px; }
+  .m-hero-blk p { font-size: 9px; color: var(--dim); margin-bottom: 8px; }
+  .m-hero-blk .bb { display: flex; gap: 5px; justify-content: center; }
+  .m-hero-blk .bb i { font-style: normal; font-size: 8.5px; font-weight: 600; border-radius: 6px; padding: 4px 9px; }
+  .m-hero-blk .bb .a { background: var(--text); color: var(--bg); }
+  .m-hero-blk .bb .b { border: 1px solid var(--border-strong); }
+  .m-stats-blk { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+  .m-stats-blk div { border: 1px solid var(--border-strong); background: var(--card); border-radius: 8px; padding: 7px 9px; }
+  .m-stats-blk span { font-size: 8px; color: var(--dim); display: block; }
+  .m-stats-blk b { font-family: ui-monospace, monospace; font-size: 12px; }
+  .m-stats-blk i { font-style: normal; font-family: ui-monospace, monospace; font-size: 7.5px; color: var(--ok); margin-left: 4px; }
+
+  /* dashboard template preview frame */
+  .tp-head { display: flex; align-items: center; gap: 8px; padding: 8px 0 4px; }
+  .tp-head .back { font-size: 13px; color: var(--accent); }
+  .tp-head b { font-size: 14px; font-weight: 600; }
+  .tp-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+  .tp-stat { border: 1px solid var(--border); background: var(--card); border-radius: 11px; padding: 9px 11px; }
+  .tp-stat span { font-size: 9.5px; color: var(--dim); display: block; }
+  .tp-stat b { font-family: ui-monospace, monospace; font-size: 15px; font-weight: 600; }
+  .tp-stat i { font-style: normal; font-family: ui-monospace, monospace; font-size: 8.5px; color: var(--ok); margin-left: 4px; }
+  .tp-stat.hot { border-color: var(--accent); }
+  .tp-item { display: flex; gap: 9px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .tp-item .a { width: 26px; height: 26px; border-radius: 9px; background: var(--accent-soft); border: 1px solid var(--accent); flex: none; }
+  .tp-item b { font-size: 11px; font-weight: 500; display: block; }
+  .tp-item span { font-size: 9.5px; color: var(--faint); display: block; }
+  .use-bar { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 4; background: var(--text); color: var(--bg); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; padding: 9px 14px; font-size: 11px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  .use-bar i { font-style: normal; font-family: ui-monospace, monospace; font-weight: 400; font-size: 9px; opacity: .65; }
+
+  footer.page { border-top: 1px solid var(--border); padding: 28px 0 48px; color: var(--faint); font-size: 12.5px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+<aside class="drawer" id="drawer">
+  <a class="wordmark" href="01-home.html"><span class="dot"></span>@mrmeg/expo-ui</a>
+  <div class="kbd">Search… <b>⌘K</b></div>
+  <div class="d-title">Library</div>
+  <div class="d-nav">
+    <a href="01-home.html">Overview</a>
+    <a href="02-components.html">Components <i>34</i></a>
+    <a href="03-blocks.html">Blocks <i>12</i></a>
+    <a href="04-templates.html">Templates <i>17</i></a>
+    <a class="active" href="05-mobile.html">Mobile app &amp; web</a>
+  </div>
+  <div class="d-title">Surfaces</div>
+  <div class="d-nav">
+    <a href="#">Native app <i>tabs</i></a>
+    <a href="#">Mobile web <i>drawer</i></a>
+    <a href="#">Desktop web <i>rail</i></a>
+  </div>
+  <div class="d-foot">
+    <span>zinc / teal · v0.18</span>
+    <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">◐</button>
+  </div>
+</aside>
+<div class="scrim" id="scrim" onclick="toggleDrawer()"></div>
+<div class="main">
+<div class="topbar">
+  <button class="menu-btn" onclick="toggleDrawer()" aria-label="Open navigation">☰</button>
+  <span class="wordmark"><span class="dot"></span>@mrmeg/expo-ui</span>
+</div>
+
+<div class="wrap">
+  <header class="page-head">
+    <div class="eyebrow">One registry · three surfaces</div>
+    <h1>Mobile app &amp; mobile web</h1>
+    <p>The same showcase adapts per surface: native tabs in the app, the Drawer as an overlay on mobile web, and the Drawer as a persistent rail on desktop. Nothing is a separate build — it's the same registry rendered responsively.</p>
+  </header>
+
+  <div class="frames">
+
+    <!-- 1: native explore tab -->
+    <div class="frame-card">
+      <div class="device"><div class="dscreen">
+        <div class="island"></div>
+        <div class="status"><span>9:41</span><span class="sig">●●● ▲ ▉</span></div>
+        <div class="app-body">
+          <div class="big-title">Explore <span class="tt">◐</span></div>
+          <div class="m-search">Search components, blocks, templates…</div>
+          <div class="m-sec"><b>Components</b><span>34 →</span></div>
+          <div class="hscroll">
+            <div class="mini-card"><div class="mpv"><span class="m-btn">Save</span></div><div class="mnm">Button</div></div>
+            <div class="mini-card"><div class="mpv"><span class="m-switch"></span></div><div class="mnm">Switch</div></div>
+            <div class="mini-card"><div class="mpv"><span class="m-badge">Active</span></div><div class="mnm">Badge</div></div>
+          </div>
+          <div class="m-sec"><b>Blocks<span class="new">New</span></b><span>12 →</span></div>
+          <div class="m-block">
+            <div class="r"><span>Monthly revenue</span><i>▲ 12.4%</i></div>
+            <div class="v">$48,210</div>
+            <div class="recipe">StatCard + SectionHeader</div>
+          </div>
+          <div class="m-sec"><b>Templates</b><span>17 →</span></div>
+          <div class="tgrid">
+            <div class="tthumb"><div class="sc"><i class="a"></i><i></i><i style="width:70%"></i></div><b>Dashboard</b><span>Metrics &amp; feed</span></div>
+            <div class="tthumb"><div class="sc"><i style="width:75%"></i><i class="a" style="margin-left:auto"></i><i style="width:70%"></i></div><b>Chat</b><span>Conversation</span></div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab on"><span class="ti">◈</span>Explore</div>
+          <div class="tab"><span class="ti">⌗</span>Library</div>
+          <div class="tab"><span class="ti">◐</span>Demos</div>
+          <div class="tab"><span class="ti">⚙</span>Settings</div>
+        </div>
+        <div class="home-bar"></div>
+      </div></div>
+      <div class="caption"><span class="plat">Native app · iOS</span><b>Explore tab</b><span>Three-scale home: component rail, block spotlight, template grid.</span></div>
+    </div>
+
+    <!-- 2: native components list -->
+    <div class="frame-card">
+      <div class="device"><div class="dscreen">
+        <div class="island"></div>
+        <div class="status"><span>9:41</span><span class="sig">●●● ▲ ▉</span></div>
+        <div class="app-body">
+          <div class="big-title">Components <span class="tt">◐</span></div>
+          <div class="chip-row">
+            <span class="m-chip on">All</span><span class="m-chip">Form</span><span class="m-chip">Feedback</span><span class="m-chip">Overlay</span><span class="m-chip">Lay…</span>
+          </div>
+          <div class="cgrid">
+            <div class="ccard"><div class="cpv"><span class="m-btn">Continue</span></div><div class="cnm">Button<i>form</i></div></div>
+            <div class="ccard"><div class="cpv"><span class="m-switch"></span></div><div class="cnm">Switch<i>form</i></div></div>
+            <div class="ccard"><div class="cpv"><span class="m-otp"><i class="on">4</i><i class="on">2</i><i></i><i></i></span></div><div class="cnm">InputOTP<i>form</i></div></div>
+            <div class="ccard"><div class="cpv"><span class="m-slider"></span></div><div class="cnm">Slider<i>form</i></div></div>
+            <div class="ccard"><div class="cpv"><span class="m-badge">Active</span></div><div class="cnm">Badge<i>fdbk</i></div></div>
+            <div class="ccard"><div class="cpv"><span class="m-tabs"><i class="on">Day</i><i>Wk</i><i>Mo</i></span></div><div class="cnm">Tabs<i>nav</i></div></div>
+            <div class="ccard"><div class="cpv"><span class="m-prog"><i></i></span></div><div class="cnm">Progress<i>fdbk</i></div></div>
+            <div class="ccard"><div class="cpv"><span class="m-badge" style="background:var(--raised);color:var(--dim)">Draft</span></div><div class="cnm">Skeleton<i>fdbk</i></div></div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><span class="ti">◈</span>Explore</div>
+          <div class="tab on"><span class="ti">⌗</span>Library</div>
+          <div class="tab"><span class="ti">◐</span>Demos</div>
+          <div class="tab"><span class="ti">⚙</span>Settings</div>
+        </div>
+        <div class="home-bar"></div>
+      </div></div>
+      <div class="caption"><span class="plat">Native app · iOS</span><b>Component gallery</b><span>Category chips replace the desktop rail; two-up preview cards.</span></div>
+    </div>
+
+    <!-- 3: native component detail sheet -->
+    <div class="frame-card">
+      <div class="device"><div class="dscreen">
+        <div class="island"></div>
+        <div class="status dimmed"><span>9:41</span><span class="sig">●●● ▲ ▉</span></div>
+        <div class="app-body dimmed">
+          <div class="big-title">Components <span class="tt">◐</span></div>
+          <div class="chip-row"><span class="m-chip on">All</span><span class="m-chip">Form</span><span class="m-chip">Feedback</span></div>
+          <div class="cgrid">
+            <div class="ccard"><div class="cpv"><span class="m-btn">Continue</span></div><div class="cnm">Button<i>form</i></div></div>
+            <div class="ccard"><div class="cpv"><span class="m-switch"></span></div><div class="cnm">Switch<i>form</i></div></div>
+          </div>
+        </div>
+        <div class="sheet">
+          <div class="grabber"></div>
+          <h4>Button</h4>
+          <div class="sub">form · iOS / Android / web</div>
+          <div class="variant-row">
+            <span class="v-btn pri">Primary</span><span class="v-btn out">Outline</span><span class="v-btn gho">Ghost</span><span class="v-btn des">Destructive</span>
+          </div>
+          <div class="code">
+            <span class="tag">&lt;Button</span> <span class="attr">variant</span>=<span class="str">"primary"</span><br>
+            &nbsp;&nbsp;<span class="attr">onPress</span>={handleSave}<span class="tag">&gt;</span><br>
+            &nbsp;&nbsp;Save changes<br>
+            <span class="tag">&lt;/Button&gt;</span>
+          </div>
+          <div class="cta">Open full demo</div>
+        </div>
+        <div class="tabbar dimmed">
+          <div class="tab"><span class="ti">◈</span>Explore</div>
+          <div class="tab on"><span class="ti">⌗</span>Library</div>
+          <div class="tab"><span class="ti">◐</span>Demos</div>
+          <div class="tab"><span class="ti">⚙</span>Settings</div>
+        </div>
+        <div class="home-bar"></div>
+      </div></div>
+      <div class="caption"><span class="plat">Native app · iOS</span><b>Component detail — BottomSheet</b><span>Variants, live snippet, and a jump to the full demo screen.</span></div>
+    </div>
+
+    <!-- 4: native template preview -->
+    <div class="frame-card">
+      <div class="device"><div class="dscreen">
+        <div class="island"></div>
+        <div class="status"><span>9:41</span><span class="sig">●●● ▲ ▉</span></div>
+        <div class="app-body">
+          <div class="tp-head"><span class="back">‹ Templates</span></div>
+          <div class="big-title" style="font-size:20px;padding-top:2px">Dashboard</div>
+          <div class="tp-stats">
+            <div class="tp-stat hot"><span>Revenue</span><b>$48.2k<i>▲ 12%</i></b></div>
+            <div class="tp-stat"><span>Users</span><b>2,481<i>▲ 8%</i></b></div>
+            <div class="tp-stat"><span>Churn</span><b>1.9%</b></div>
+            <div class="tp-stat"><span>NPS</span><b>62<i>▲ 4</i></b></div>
+          </div>
+          <div class="m-sec" style="margin-top:4px"><b>Recent activity</b><span>See all</span></div>
+          <div class="tp-item"><span class="a"></span><div><b>Design review</b><span>Tomorrow · 10:00</span></div></div>
+          <div class="tp-item"><span class="a"></span><div><b>Invoice #204 paid</b><span>2h ago</span></div></div>
+          <div class="tp-item"><span class="a"></span><div><b>New signup — Fieldnote</b><span>5h ago</span></div></div>
+          <div class="use-bar">Use this template <i>templates/dashboard</i></div>
+        </div>
+        <div class="home-bar"></div>
+      </div></div>
+      <div class="caption"><span class="plat">Native app · iOS</span><b>Template preview</b><span>The real screen running live, with a floating "use" affordance.</span></div>
+    </div>
+
+    <!-- 5: mobile web drawer open -->
+    <div class="frame-card">
+      <div class="device"><div class="dscreen">
+        <div class="island"></div>
+        <div class="status"><span>9:41</span><span class="sig">●●● ▲ ▉</span></div>
+        <div class="urlbar"><div class="pill"><em>🔒</em> ui.terlo.app</div></div>
+        <div class="web-top dimmed"><span class="burger">☰</span><span class="wm"><u></u>@mrmeg/expo-ui</span></div>
+        <div class="app-body dimmed">
+          <div class="big-title" style="font-size:19px">Components</div>
+          <div class="chip-row"><span class="m-chip on">All</span><span class="m-chip">Form</span><span class="m-chip">Feedback</span></div>
+          <div class="cgrid">
+            <div class="ccard"><div class="cpv"><span class="m-btn">Continue</span></div><div class="cnm">Button<i>form</i></div></div>
+            <div class="ccard"><div class="cpv"><span class="m-switch"></span></div><div class="cnm">Switch<i>form</i></div></div>
+            <div class="ccard"><div class="cpv"><span class="m-prog"><i></i></span></div><div class="cnm">Progress<i>fdbk</i></div></div>
+            <div class="ccard"><div class="cpv"><span class="m-badge">Active</span></div><div class="cnm">Badge<i>fdbk</i></div></div>
+          </div>
+        </div>
+        <div class="web-scrim"></div>
+        <div class="web-drawer">
+          <div class="wm-sm"><u></u>@mrmeg/expo-ui</div>
+          <div class="wd-search">Search… ⌘K</div>
+          <div class="wd-title">Library</div>
+          <div class="wd-nav">
+            <a href="#">Overview</a>
+            <a class="active" href="#">Components <i>34</i></a>
+            <a href="#">Blocks <i>12</i></a>
+            <a href="#">Templates <i>17</i></a>
+          </div>
+          <div class="wd-title">Categories</div>
+          <div class="wd-nav">
+            <a href="#">Form <i>11</i></a>
+            <a href="#">Feedback <i>5</i></a>
+            <a href="#">Navigation <i>3</i></a>
+            <a href="#">Overlay <i>6</i></a>
+          </div>
+        </div>
+        <div class="home-bar"></div>
+      </div></div>
+      <div class="caption"><span class="plat">Mobile web · Safari</span><b>Drawer — overlay mode</b><span>The same Drawer component as desktop, sliding over a scrim.</span></div>
+    </div>
+
+    <!-- 6: mobile web blocks -->
+    <div class="frame-card">
+      <div class="device"><div class="dscreen">
+        <div class="island"></div>
+        <div class="status"><span>9:41</span><span class="sig">●●● ▲ ▉</span></div>
+        <div class="urlbar"><div class="pill"><em>🔒</em> ui.terlo.app/blocks</div></div>
+        <div class="web-top"><span class="burger">☰</span><span class="wm"><u></u>@mrmeg/expo-ui</span></div>
+        <div class="app-body">
+          <div class="big-title" style="font-size:19px">Blocks</div>
+          <div class="chip-row"><span class="m-chip on">All</span><span class="m-chip">Marketing</span><span class="m-chip">Data</span><span class="m-chip">Auth</span></div>
+          <div class="m-blockcard">
+            <div class="bhead">Hero <i>Copy JSX</i></div>
+            <div class="bstage">
+              <div class="m-hero-blk">
+                <div class="e">Launch week</div>
+                <h5>Ship your next screen in an afternoon</h5>
+                <p>Eyebrow, headline, copy, paired actions.</p>
+                <div class="bb"><i class="a">Get started</i><i class="b">Docs</i></div>
+              </div>
+            </div>
+            <div class="brecipe">StyledText + Button ×2</div>
+          </div>
+          <div class="m-blockcard">
+            <div class="bhead">Stat row <i>Copy JSX</i></div>
+            <div class="bstage">
+              <div class="m-stats-blk">
+                <div><span>Revenue</span><b>$48.2k</b><i>▲ 12%</i></div>
+                <div><span>Users</span><b>2,481</b><i>▲ 8%</i></div>
+              </div>
+            </div>
+            <div class="brecipe">StatCard ×4 + SectionHeader</div>
+          </div>
+        </div>
+        <div class="home-bar"></div>
+      </div></div>
+      <div class="caption"><span class="plat">Mobile web · Safari</span><b>Blocks gallery</b><span>Full-width stages stack; the recipe strip stays under each block.</span></div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="page">
+  <div class="wrap" style="display:flex;justify-content:space-between">
+    <span>Resize this page below 900px to feel the drawer overlay live — same behavior mocked in frame 5.</span>
+    <span class="mono" style="font-size:11px">mockup 05 · mobile surfaces</span>
+  </div>
+</footer>
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+  function toggleDrawer() {
+    document.getElementById("drawer").classList.toggle("open");
+    document.getElementById("scrim").classList.toggle("on");
+  }
+  const THEME_BG = { dark: "#09090B", light: "#ffffff" };
+  function syncThemeColor() {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = THEME_BG[document.documentElement.dataset.theme] || THEME_BG.dark;
+  }
+  function toggleTheme() {
+    const el = document.documentElement;
+    el.dataset.theme = el.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem("mock-theme", el.dataset.theme); } catch {}
+    syncThemeColor();
+  }
+  try { const t = localStorage.getItem("mock-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  syncThemeColor();
+</script>
+</body>
+</html>

@@ -2,7 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#09090B">
 <title>Blocks — @mrmeg/expo-ui</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -22,22 +23,49 @@
     --ok: #16a34a; --warn: #d97706;
   }
   * { box-sizing: border-box; margin: 0; }
+  html { background: var(--bg); color-scheme: dark; }
+  html[data-theme="light"] { color-scheme: light; }
   body { background: var(--bg); color: var(--text); font: 400 15px/1.6 "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
   a { color: inherit; text-decoration: none; }
   .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
   .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-  nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
-  .nav-inner { display: flex; align-items: center; gap: 28px; height: 56px; }
-  .wordmark { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  /* ---------- drawer nav (Drawer component: rail on desktop, overlay on mobile) ---------- */
+  .shell { display: flex; min-height: 100vh; }
+  .drawer {
+    width: 248px; flex: none; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 16px 12px; z-index: 40;
+  }
+  .wordmark { font-weight: 600; font-size: 14px; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; padding: 4px 10px 0; }
   .wordmark .dot { width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
-  .nav-links { display: flex; gap: 4px; font-size: 13.5px; color: var(--dim); }
-  .nav-links a { padding: 6px 10px; border-radius: 8px; }
-  .nav-links a:hover { color: var(--text); background: var(--raised); }
-  .nav-links a.active { color: var(--text); }
-  .nav-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
-  .kbd { display: flex; gap: 8px; font-size: 12.5px; color: var(--faint); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; }
+  .kbd {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--faint);
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; margin: 16px 4px 6px; cursor: pointer; background: var(--card);
+  }
   .kbd b { font-weight: 500; color: var(--dim); font-family: ui-monospace, monospace; font-size: 11px; }
+  .d-title { font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin: 16px 10px 8px; }
+  .d-nav a { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; color: var(--dim); padding: 7px 10px; border-radius: 8px; border-left: 2px solid transparent; }
+  .d-nav a:hover { color: var(--text); background: var(--raised); }
+  .d-nav a.active { color: var(--text); background: var(--raised); border-left-color: var(--accent); border-radius: 0 8px 8px 0; }
+  .d-nav a i { font-style: normal; font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--faint); }
+  .d-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding: 10px 10px 2px; font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--faint); }
   .theme-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--dim); cursor: pointer; }
+  .theme-btn:hover { color: var(--text); border-color: var(--border-strong); }
+  .main { flex: 1; min-width: 0; }
+  .topbar { display: none; }
+  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 30; }
+  @media (max-width: 900px) {
+    .drawer { position: fixed; left: 0; bottom: 0; height: auto; transform: translateX(-100%); transition: transform .25s; box-shadow: 0 0 60px rgba(0,0,0,.5); }
+    .drawer.open { transform: none; }
+    .scrim.on { opacity: 1; pointer-events: auto; }
+    .topbar {
+      display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 20; height: 52px; padding: 0 16px;
+      background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
+    }
+    .topbar .wordmark { padding: 0; }
+    .menu-btn { border: 1px solid var(--border); background: none; color: var(--dim); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .drawer, .scrim { transition: none; } }
 
   .page-head { padding: 48px 0 8px; max-width: 640px; }
   .eyebrow { font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
@@ -145,7 +173,6 @@
 
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
   @media (max-width: 760px) {
-    .nav-links { display: none; }
     .bk-features, .bk-stats { grid-template-columns: 1fr 1fr; width: 100%; }
     .bk-quotes { flex-direction: column; width: 100%; }
     .bk-footer { grid-template-columns: 1fr 1fr; }
@@ -156,21 +183,37 @@
 </head>
 <body>
 
-<nav>
-  <div class="wrap nav-inner">
-    <a class="wordmark" href="01-home.html"><span class="dot"></span>@mrmeg/expo-ui</a>
-    <div class="nav-links">
-      <a href="01-home.html">Overview</a>
-      <a href="02-components.html">Components</a>
-      <a class="active" href="03-blocks.html">Blocks</a>
-      <a href="04-templates.html">Templates</a>
-    </div>
-    <div class="nav-right">
-      <div class="kbd">Search blocks… <b>⌘K</b></div>
-      <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">◐</button>
-    </div>
+<div class="shell">
+<aside class="drawer" id="drawer">
+  <a class="wordmark" href="01-home.html"><span class="dot"></span>@mrmeg/expo-ui</a>
+  <div class="kbd">Search… <b>⌘K</b></div>
+  <div class="d-title">Library</div>
+  <div class="d-nav">
+    <a href="01-home.html">Overview</a>
+    <a href="02-components.html">Components <i>34</i></a>
+    <a class="active" href="03-blocks.html">Blocks <i>12</i></a>
+    <a href="04-templates.html">Templates <i>17</i></a>
+    <a href="05-mobile.html">Mobile app &amp; web</a>
   </div>
-</nav>
+  <div class="d-title">Block categories</div>
+  <div class="d-nav">
+    <a href="#">Marketing <i>4</i></a>
+    <a href="#">Data <i>1</i></a>
+    <a href="#">Social proof <i>1</i></a>
+    <a href="#">Auth <i>1</i></a>
+    <a href="#">Content <i>1</i></a>
+  </div>
+  <div class="d-foot">
+    <span>zinc / teal · v0.18</span>
+    <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">◐</button>
+  </div>
+</aside>
+<div class="scrim" id="scrim" onclick="toggleDrawer()"></div>
+<div class="main">
+<div class="topbar">
+  <button class="menu-btn" onclick="toggleDrawer()" aria-label="Open navigation">☰</button>
+  <span class="wordmark"><span class="dot"></span>@mrmeg/expo-ui</span>
+</div>
 
 <div class="wrap">
   <header class="page-head">
@@ -361,14 +404,27 @@
     <span class="mono" style="font-size:11px">mockup 03 · blocks gallery</span>
   </div>
 </footer>
+</div><!-- /main -->
+</div><!-- /shell -->
 
 <script>
+  function toggleDrawer() {
+    document.getElementById("drawer").classList.toggle("open");
+    document.getElementById("scrim").classList.toggle("on");
+  }
+  const THEME_BG = { dark: "#09090B", light: "#ffffff" };
+  function syncThemeColor() {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = THEME_BG[document.documentElement.dataset.theme] || THEME_BG.dark;
+  }
   function toggleTheme() {
     const el = document.documentElement;
     el.dataset.theme = el.dataset.theme === "dark" ? "light" : "dark";
     try { localStorage.setItem("mock-theme", el.dataset.theme); } catch {}
+    syncThemeColor();
   }
   try { const t = localStorage.getItem("mock-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  syncThemeColor();
 </script>
 </body>
 </html>
