@@ -2,6 +2,13 @@ import { Children, isValidElement, type PropsWithChildren, type ReactElement } f
 import { colors } from "@mrmeg/expo-ui/constants";
 import { ScrollViewStyleReset, useServerDocumentContext } from "expo-router/html";
 
+import {
+  SSR_SYSTEM_SCHEME_ATTRIBUTE,
+  THEME_CLIENT_HINT_ACCEPT_CH,
+  detectSsrThemeSeedFromRequestScope,
+  resolveSsrScheme,
+} from "@/server/lib/ssrTheme";
+
 // This file is web-only and used to configure the root HTML for every
 // web page during server rendering.
 // The contents of this function only run in Node.js environments and
@@ -111,13 +118,21 @@ function getRootCssStyles() {
 }
 
 const DEFAULT_DOCUMENT_TITLE = "Expo Template";
+// First-visit-only failsafe. Since the theme cookie (docs/ssr-hydration.md §5)
+// the server already renders the visitor's real theme and stamps `data-theme`
+// on <html> below, so this script is a no-op for anyone who has ever set a
+// preference. It still matters for the one case no cookie can cover: a brand
+// new visitor whose OS is dark and whose browser sent no
+// `Sec-CH-Prefers-Color-Scheme` hint. There the server rendered light, so the
+// script hides #root for up to 500ms rather than flash a light tree. Do not
+// widen that window — the cookie path is what fixes the common case.
 const COLOR_SCHEME_SCRIPT =
-  "(function(){try{var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";var root=document.documentElement;root.dataset.theme=resolved;root.style.colorScheme=resolved;if(resolved===\"dark\"){root.classList.add(\"theme-loading\");setTimeout(function(){root.classList.remove(\"theme-loading\");},500);}}catch(e){}})()";
-// NOTE: onboarding needs no shield script. The server reads the
-// `has-seen-onboarding` cookie from the request and renders the correct tree
-// outright, so there is no gate to hide for returning visitors. See
-// server/lib/ssrOnboarding.ts and docs/ssr-hydration.md §6. (Theme still needs
-// its script below — no cookie is written for the color scheme.)
+  "(function(){try{var root=document.documentElement;if(root.dataset.theme){return;}var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;if(resolved===\"dark\"){root.classList.add(\"theme-loading\");setTimeout(function(){root.classList.remove(\"theme-loading\");},500);}}catch(e){}})()";
+// NOTE: neither onboarding nor the theme preference needs a shield in the
+// common case any more. The server reads the `has-seen-onboarding` and
+// `user-theme-preference` cookies off the request and renders the correct,
+// correctly-themed tree outright. See server/lib/ssrOnboarding.ts,
+// server/lib/ssrTheme.ts, and docs/ssr-hydration.md §5–§6.
 const REACT_SCAN_SCRIPT = `
   (function () {
     var scanHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
@@ -141,6 +156,17 @@ export default function Root({ children }: PropsWithChildren) {
   const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
   const cssStyles = getRootCssStyles();
 
+  // Per-request theme, read from the `user-theme-preference` cookie (plus the
+  // `Sec-CH-Prefers-Color-Scheme` hint for `system` visitors). Rendering
+  // `data-theme` here means the CSS above paints the right body background on
+  // byte 1 — no blocking script needed — and it also short-circuits the
+  // COLOR_SCHEME_SCRIPT failsafe below. `data-ssr-system-scheme` carries the
+  // system scheme the server used so the client's first render can agree with
+  // it (the hint is a request header, invisible to browser JS). See
+  // server/lib/ssrTheme.ts and docs/ssr-hydration.md §5.
+  const ssrThemeSeed = detectSsrThemeSeedFromRequestScope();
+  const ssrScheme = resolveSsrScheme(ssrThemeSeed);
+
   // Drop the framework's react-native-stylesheet snapshot from headNodes.
   // It's captured BEFORE route modules load, so it's incomplete (missing any
   // rule registered at route-module scope), and SsrStyleFlush already emits
@@ -161,11 +187,24 @@ export default function Root({ children }: PropsWithChildren) {
   );
 
   return (
-    <html lang="en" {...htmlAttributes}>
+    <html
+      lang="en"
+      {...htmlAttributes}
+      data-theme={ssrScheme}
+      {...{ [SSR_SYSTEM_SCHEME_ATTRIBUTE]: ssrThemeSeed.systemTheme }}
+      style={{ colorScheme: ssrScheme }}
+    >
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+        {/* Ask the browser to send `Sec-CH-Prefers-Color-Scheme` on subsequent
+            requests. It's the only way the server can resolve a `system`
+            preference (or a brand-new visitor's OS setting) before rendering.
+            Document-level opt-in so it lives in one place and survives a
+            static export. See server/lib/ssrTheme.ts. */}
+        <meta httpEquiv="Accept-CH" content={THEME_CLIENT_HINT_ACCEPT_CH} />
 
         {/* Framework SSR resources: expo-font preload <link>s, route
             metadata. Placed early so styles are available before the browser

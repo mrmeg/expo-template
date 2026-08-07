@@ -77,6 +77,64 @@ describe("SSR hydration guardrails", () => {
     });
   });
 
+  // §5 — the theme must be resolved server-side from the cookie. Without this
+  // wiring every SSR render ships a LIGHT React tree and dark-mode visitors
+  // watch the whole page recolor after hydration.
+  describe("the theme is seeded from the request", () => {
+    const html = read("app/+html.tsx");
+
+    it("+html.tsx renders data-theme from the per-request read", () => {
+      expect(html).toContain("detectSsrThemeSeedFromRequestScope");
+      expect(html).toContain("data-theme={ssrScheme}");
+    });
+
+    it("+html.tsx stamps the resolved system scheme for the client to read back", () => {
+      // The `Sec-CH-Prefers-Color-Scheme` hint is a request header; browser JS
+      // can't see it, so the server must put its resolved value in the HTML or
+      // the client's first render has to guess and will diverge.
+      expect(html).toContain("SSR_SYSTEM_SCHEME_ATTRIBUTE");
+      expect(html).toContain("THEME_CLIENT_HINT_ACCEPT_CH");
+    });
+
+    it("the theme-loading shield stays a first-visit-only failsafe", () => {
+      const script = html.slice(html.indexOf("const COLOR_SCHEME_SCRIPT"));
+      // Bails out when the server already rendered a theme, so it only ever
+      // runs for a hint-less first visit.
+      expect(script).toContain("if(root.dataset.theme){return;}");
+      // And its window must not grow past the documented 500ms.
+      expect(script).toContain("},500);");
+    });
+
+    it("the root layout provides SsrThemeProvider above its own useTheme()", () => {
+      const { src } = resolveRootLayoutSource();
+      expect(src).toContain("SsrThemeProvider");
+
+      // A component cannot consume a context it renders itself, so the default
+      // export must only mount the provider and delegate the theme-reading
+      // body to a child component.
+      const entry = src.slice(src.indexOf("export default function RootLayout"));
+      const providerIndex = entry.indexOf("<SsrThemeProvider>");
+      const useThemeIndex = entry.indexOf("useTheme()");
+      expect(providerIndex).toBeGreaterThanOrEqual(0);
+      expect(useThemeIndex === -1 || providerIndex < useThemeIndex).toBe(true);
+    });
+
+    it("packages/ui does not import expo-server for the seed", () => {
+      // The package runs outside this server and `check:forbidden-imports`
+      // would fail; the parse has to live in the app's server layer.
+      expect(read("packages/ui/src/state/ssrTheme.ts")).not.toContain("expo-server");
+      expect(read("packages/ui/src/state/themeStore.ts")).not.toContain("expo-server");
+    });
+
+    it("the theme store dual-writes the cookie the server reads", () => {
+      const store = read("packages/ui/src/state/themeStore.ts");
+      expect(store).toContain("writeThemeCookie");
+      expect(store).toContain("SameSite=Lax");
+      // Same name for the cookie and the localStorage key.
+      expect(store).toContain('export const THEME_COOKIE_NAME = THEME_KEY;');
+    });
+  });
+
   // §3 — i18n must initialize synchronously during render (incl. SSR), not only
   // in an effect, or SSR-reachable t() leaks raw keys server-side.
   describe("i18n initializes synchronously for SSR", () => {
