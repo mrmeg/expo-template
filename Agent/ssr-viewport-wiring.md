@@ -1,5 +1,5 @@
 ---
-status: draft
+status: ready
 mode: AFK
 base-branch: dev
 blocked-by: -
@@ -22,13 +22,13 @@ Verified 2026-08-06:
 ## Work
 1. Deliver the SSR viewport to `RootLayout` and pass it to `SafeAreaProvider`:
    `initialMetrics={{ frame: { x: 0, y: 0, width: ssrWidth, height: ssrHeight }, insets: { top: 0, right: 0, bottom: 0, left: 0 } }}` at `client/features/app/RootLayout.tsx:130` (web SSR only — native keeps `initialWindowMetrics` behavior it has today; guard so native and client-only web renders are unchanged).
-2. Wire `withSsrViewport` + `SsrViewportProvider` for the SSR-visible route surface. Given the layouts-can't-load constraint, follow how `ssrOnboarding` gets request data to the root gate; if that channel doesn't generalize, add `export const loader = withSsrViewport(...)` per route group covering at minimum onboarding and the `(main)` routes, and record the coverage decision in the PR.
+2. Get the width to `RootLayout` via the ambient request scope, mirroring the onboarding gate: add a `detectSsrViewportFromRequestScope()` to `server/lib/ssrViewport.ts` using `requestHeaders()` from `expo-server` (pattern: `detectOnboardingSeenFromRequestScope`, `server/lib/ssrOnboarding.ts:66-77`, consumed at `client/features/onboarding/onboardingStore.ts:42`) — `ssrViewport.ts` currently exports only the explicit `detectSsrViewportWidth(request)` form. This makes per-route `withSsrViewport` loaders optional; keep `SsrViewportProvider` for routes that also want the value in loader data.
 3. Confirm expo-router's Header no longer computes negative `max-width` server-side once `SafeAreaProvider` has a real frame; if Header reads its width from a different source (`useWindowDimensions` → RNW `Dimensions`), extend the same seeding to that source (RNW `Dimensions.set()` is per-process — same per-request leak caution as the theme store: must not bleed across concurrent requests).
 4. Tests: extend the SSR render test to assert the rendered HTML for a cookie/UA-derived width contains no `max-width:-` and no `width:0px` on the header subtree; unit-test the metrics plumbing (provider present → SafeAreaProvider receives frame width).
 
 ## Validation
 - `bun run typecheck && bun run lint && bun run test:ci`
-- Manual, production-mode server: `curl` `/showcase` (and the onboarding route) and grep the HTML — zero `max-width:-`, header/centered containers carry real widths.
+- Manual, production-mode server (`bun run build && bun run start-local`): `curl` `/showcase` (and the onboarding route) and grep the HTML — zero `max-width:-`, header/centered containers carry real widths.
 - Browser: cold load in a normal desktop window — onboarding content visually centered from the first frame (no left-hugging), no React #418 in the console, no layout jump at hydration.
 
 ## Out of scope

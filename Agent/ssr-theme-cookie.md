@@ -1,5 +1,5 @@
 ---
-status: draft
+status: ready
 mode: AFK
 base-branch: dev
 blocked-by: -
@@ -23,7 +23,7 @@ Verified 2026-08-06:
 
 ## Work
 1. `packages/ui/src/state/themeStore.ts`: on web, write the preference to a cookie (e.g. `user-theme-preference`, path=/, long max-age, SameSite=Lax) wherever `localStorage` is written (`setTheme`), and backfill the cookie from `localStorage` during `syncThemeFromEnvironment`/`loadTheme` so existing users are migrated on their next visit. Add a way to seed the store's initial `userTheme`/`systemTheme` for SSR.
-2. **Per-request safety constraint:** the zustand store is a module singleton shared across concurrent SSR requests. The seeding mechanism must not leak one request's theme into another — prefer a React-context path read by `useTheme()` during SSR (the `ThemeColorScope` pattern shows how context can layer over the store), or prove the render path is serial before mutating the singleton per request.
+2. **Per-request safety constraint:** the zustand store is a module singleton shared across concurrent SSR requests — never mutate it per request. Use the proven in-repo channel instead: `requestHeaders()` from `expo-server` gives ambient per-request scope, exactly how the onboarding gate reads its cookie during SSR without loaders (`server/lib/ssrOnboarding.ts:66-77` → consumed at `client/features/onboarding/onboardingStore.ts:42`). The app layer reads the theme cookie there and hands it into the UI package via a context/seed API — `packages/ui` must NOT import `expo-server` (it fails `check:forbidden-imports` and the package runs outside this server); the `ThemeColorScope` pattern (`packages/ui/src/state/themeColorScope.tsx`) shows how context layers over the store.
 3. New `server/lib/ssrTheme.ts` mirroring `ssrOnboarding.ts`: parse the cookie (anchored, reject invalid values, return `"system" | "light" | "dark" | null`). Resolve `system`/absent to a scheme — a `Sec-CH-Prefers-Color-Scheme` client hint if present, else light (send `Accept-CH: Sec-CH-Prefers-Color-Scheme` so subsequent first-visit requests can resolve; optional, note in PR if skipped).
 4. Wire the seeded theme into the render so `useTheme()`/`useStyles()` consumers and the `ThemeProvider` value in `RootLayout.tsx` render the correct scheme server-side. Keep `syncThemeFromEnvironment()` as the client source of truth after mount.
 5. Keep the `+html.tsx` `theme-loading` shield as the first-visit-only failsafe; do not extend its 500ms window.
@@ -32,7 +32,7 @@ Verified 2026-08-06:
 
 ## Validation
 - `bun run typecheck && bun run lint && bun run test:ci && bun run ui:test`
-- Manual, against a **production-mode** server (dev SSR ships no app content, so it can't demonstrate this): request `/` and `/showcase` with `Cookie: user-theme-preference=dark` and confirm the HTML carries dark background colors (`rgba(9,9,11,…)` class of values) instead of light; without the cookie, unchanged light output.
+- Manual, against a **production-mode** server (dev SSR ships no app content, so it can't demonstrate this): `bun run build && bun run start-local`, then request `/` and `/showcase` with `Cookie: user-theme-preference=dark` and confirm the HTML carries dark background colors (`rgba(9,9,11,…)` class of values) instead of light; without the cookie, unchanged light output.
 - Browser: set dark in the app, reload — no light flash frame; React error #418 must not regress (it is addressed separately by `ssr-viewport-wiring`).
 
 ## Out of scope
