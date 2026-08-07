@@ -152,16 +152,59 @@ request masks the bug, but it bites the moment any SSR-reachable route calls
 i18next v26 note: the synchronous-init flag is `initAsync: false` (it was
 `initImmediate` in older majors). This template is on i18next v26.
 
-### 4. Viewport-dependent layout — seed width from SSR context
+### 4. Viewport-dependent layout — seed the whole frame, not just a context
 
 Branching layout on `useWindowDimensions().width` (`isCompact = width < 760`,
 etc.) diverges the server (width 0 → "compact") from the client (real width).
 This can shift **sibling order** (e.g. a skipped `{!isCompact && <Nav/>}`
 block), not just styles — a structural mismatch.
 
-This template handles it with `client/components/SsrViewportProvider.tsx`
-(seeded from `@mrmeg/expo-ui/state`'s SSR viewport context, set at the root) +
-`useDimensions()`. Use `useDimensions()` for responsive width, **not** raw
+Width 0 is not a corner case on web SSR, it's the default. Three separate
+places hardcode it, and each one has to be seeded independently:
+
+| Source | Server-side value | Who reads it |
+|---|---|---|
+| react-native-web `Dimensions.get('window')` | `{width: 0, height: 0}` (`update()` early-returns with no DOM) | `SafeAreaProvider`'s frame fallback |
+| `SafeAreaProvider` with no `initialMetrics` | falls back to the above | `useSafeAreaFrame`, layout below the root |
+| expo-router `SafeAreaProviderCompat.initialMetrics.frame` | **module constant**, `{width: 0, height: 0}` on web | `useFrameSize` → the stack `Header` |
+
+Left unseeded, the SSR HTML ships `max-width:-68px` on the header title
+container (`layout.width - 68`), collapsed centered containers, and content
+hugging the left edge.
+
+**How it's wired here:**
+
+1. **`server/lib/ssrViewport.ts`** resolves a width from the request:
+   `mrmeg-vw` cookie (precise, written by `useDimensions` after the first
+   mount) → User-Agent heuristic → desktop default. Same three read surfaces
+   as `ssrOnboarding.ts` (§6): `detectSsrViewportFromRequestScope()` for the
+   root layout, `resolveSsrViewportWidth(cookie, ua)` as the shared pure core,
+   and `detectSsrViewportWidth(request)` / `withSsrViewport(loader)` for routes
+   that also want it in loader data.
+2. **`client/features/app/ssrViewportMetrics.ts`** turns that into
+   `SafeAreaProvider`'s `initialMetrics` (zero insets — the browser can't know
+   real insets before its probe element mounts, so anything else is a
+   guaranteed mismatch). `RootLayout` passes it and provides the same width to
+   `SsrViewportContext` so `useDimensions` agrees with the frame. Native gets
+   `undefined` and keeps its real measurement path.
+3. **`MainLayout` passes `layout={{width, height}}`** in `screenOptions`,
+   because the `Header` reads expo-router's module-scope frame constant, which
+   `initialMetrics` does not reach.
+
+The invariant that makes all of this hydration-safe: **the browser resolves the
+width from `document.cookie` / `navigator.userAgent`, not from
+`window.innerWidth`.** Both sides derive the same number from the same bytes,
+exactly like the onboarding cookie in §6. Reading the real width during render
+would be *more* accurate and *guaranteed* to mismatch; `useDimensions` picks it
+up in a post-mount effect instead, and refreshes the cookie for next time.
+
+> **Per-request leak caution.** Resolve these values *during render* (a lazy
+> `useState` initializer) and never cache them in module scope. The server
+> module scope is shared across concurrent requests, so a hoisted frame — or a
+> `Dimensions.set()` / store mutation — lets a phone request's width bleed into
+> a desktop request's layout. Same hazard as the RNW stylesheet in §7.
+
+Use `useDimensions()` for responsive width, **not** raw
 `useWindowDimensions()`, in anything that renders on web.
 
 ### 5. Theme / `typeof window` branches — resolve to a fixed first-render default
