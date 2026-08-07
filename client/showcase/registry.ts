@@ -78,6 +78,7 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "Accordion", importPath: "@mrmeg/expo-ui/components/Accordion", category: "navigation" },
   { id: "Alert", importPath: "@mrmeg/expo-ui/components/Alert", category: "feedback" },
   { id: "AnimatedView", importPath: "@mrmeg/expo-ui/components/AnimatedView", category: "layout" },
+  { id: "Avatar", importPath: "@mrmeg/expo-ui/components/Avatar", category: "layout" },
   { id: "Badge", importPath: "@mrmeg/expo-ui/components/Badge", category: "feedback" },
   { id: "BottomSheet", importPath: "@mrmeg/expo-ui/components/BottomSheet", category: "overlay" },
   { id: "Button", importPath: "@mrmeg/expo-ui/components/Button", category: "form" },

@@ -48,6 +48,7 @@ import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@mrmeg/expo-ui/components/Card";
 import { Label } from "@mrmeg/expo-ui/components/Label";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
+import { Avatar, AvatarGroup } from "@mrmeg/expo-ui/components/Avatar";
 import { notify } from "@mrmeg/expo-ui/state";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -252,6 +253,8 @@ function useShowcaseScreenContent() {
           <AnimatedViewSection theme={theme} />
 
           <AuthFormsSection styles={styles} />
+
+          <AvatarSection styles={styles} />
 
           <Section title="Badge">
             <SubSection label="Variants">
@@ -1687,6 +1690,116 @@ const AuthFormsSection = memo(function AuthFormsSection({
   );
 });
 
+// A URL that resolves DNS but never returns an image, so the fallback chain is
+// demonstrable at runtime rather than only described in the docs.
+const BROKEN_AVATAR_URL = "https://example.com/this-image-does-not-exist.png";
+const SAMPLE_AVATAR = require("@/assets/images/icon.png");
+
+const AvatarSection = memo(function AvatarSection({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
+  const [teamSize, setTeamSize] = useState(5);
+  const team = [
+    "Ada Lovelace",
+    "Grace Hopper",
+    "Katherine Johnson",
+    "Mary Jackson",
+    "Dorothy Vaughan",
+    "Annie Easley",
+    "Radia Perlman",
+  ].slice(0, teamSize);
+
+  return (
+    <Section title="Avatar">
+      <SubSection label="Sizes">
+        <View style={styles.avatarRow}>
+          <Avatar name="Ada Lovelace" size="sm" />
+          <Avatar name="Ada Lovelace" size="md" />
+          <Avatar name="Ada Lovelace" size="lg" />
+          <Avatar name="Ada Lovelace" size={72} />
+        </View>
+      </SubSection>
+
+      <SubSection label="Image">
+        <View style={styles.avatarRow}>
+          <Avatar source={SAMPLE_AVATAR} name="Expo Template" size="lg" />
+          <Avatar source={SAMPLE_AVATAR} name="Expo Template" size="lg" shape="square" />
+        </View>
+      </SubSection>
+
+      <SubSection label="Fallbacks (image → initials → icon)">
+        <View style={styles.avatarRow}>
+          <Avatar source={{ uri: BROKEN_AVATAR_URL }} name="Broken Image" size="lg" />
+          <Avatar name="Grace Hopper" size="lg" />
+          <Avatar name="Cher" size="lg" />
+          <Avatar size="lg" />
+          <Avatar icon="camera" size="lg" />
+        </View>
+        <StyledText style={styles.labelText}>
+          The first avatar points at a dead URL and degrades to initials on load failure.
+        </StyledText>
+      </SubSection>
+
+      <SubSection label="Shapes">
+        <View style={styles.avatarRow}>
+          <Avatar name="Ada Lovelace" size="lg" />
+          <Avatar name="Ada Lovelace" size="lg" shape="square" />
+          <Avatar icon="folder" size="lg" shape="square" />
+        </View>
+      </SubSection>
+
+      <SubSection label="Group with overflow">
+        <View style={{ gap: spacing.md }}>
+          <AvatarGroup max={4} size="lg">
+            {team.map((name) => (
+              <Avatar key={name} name={name} />
+            ))}
+          </AvatarGroup>
+          <View style={styles.avatarRow}>
+            <Button
+              preset="outline"
+              text="Remove"
+              disabled={teamSize <= 1}
+              onPress={() => setTeamSize((n) => Math.max(1, n - 1))}
+            />
+            <Button
+              preset="outline"
+              text="Add"
+              disabled={teamSize >= 7}
+              onPress={() => setTeamSize((n) => Math.min(7, n + 1))}
+            />
+          </View>
+        </View>
+      </SubSection>
+
+      <SubSection label="Group sizes">
+        <View style={{ gap: spacing.md }}>
+          <AvatarGroup size="sm" max={3}>
+            <Avatar name="Ada Lovelace" />
+            <Avatar name="Grace Hopper" />
+            <Avatar name="Katherine Johnson" />
+            <Avatar name="Mary Jackson" />
+          </AvatarGroup>
+          <AvatarGroup max={3}>
+            <Avatar name="Ada Lovelace" />
+            <Avatar name="Grace Hopper" />
+            <Avatar name="Katherine Johnson" />
+            <Avatar name="Mary Jackson" />
+          </AvatarGroup>
+          <AvatarGroup size="lg" shape="square" max={3}>
+            <Avatar name="Ada Lovelace" />
+            <Avatar name="Grace Hopper" />
+            <Avatar name="Katherine Johnson" />
+            <Avatar name="Mary Jackson" />
+          </AvatarGroup>
+        </View>
+      </SubSection>
+    </Section>
+  );
+});
+
 const SkeletonSection = memo(function SkeletonSection({
   styles,
   theme,
@@ -2433,6 +2546,12 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       gap: spacing.sm,
       alignItems: "center",
+    },
+    avatarRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      alignItems: "center",
+      flexWrap: "wrap",
     },
     realCard: {
       backgroundColor: theme.colors.card,

@@ -1,6 +1,7 @@
 export * from "./Accordion";
 export * from "./Alert";
 export * from "./AnimatedView";
+export * from "./Avatar";
 export * from "./Badge";
 export * from "./BottomSheet";
 export * from "./Button";

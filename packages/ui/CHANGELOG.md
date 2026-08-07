@@ -3,6 +3,29 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0]
+
+### Added
+
+- **`Avatar` and `AvatarGroup`.** The package had `SkeletonAvatar` (a loading
+  placeholder) but no real avatar, so consumers hand-rolled circles. `Avatar`
+  renders an image with a graceful fallback chain — image → initials → icon —
+  and downgrades to initials at runtime when the image fails to load, so a
+  dead URL never leaves an empty hole. Accepts `source`, `name` (supplies 1–2
+  initials and the default accessibility label), `icon` (Feather, defaults to
+  `user`), `size` (`"sm" | "md" | "lg"` = 32/40/48, or an explicit pixel
+  diameter), and `shape` (`"circle" | "square"`). Initials derivation is
+  grapheme-aware: a decomposed accented character keeps its mark and an emoji
+  is not sliced into a lone surrogate.
+
+  `AvatarGroup` stacks children with a ring in the theme `background` color so
+  the stack reads on any surface, collapses anything past `max` into a `+N`
+  tile, propagates its `size` and `shape` to children that don't set their own,
+  and announces the total count (including the collapsed overflow) to screen
+  readers.
+
+  Uses React Native's own `Image`, so there is no new peer dependency.
+
 ## [0.18.0]
 
 ### Added
