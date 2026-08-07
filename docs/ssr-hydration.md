@@ -302,7 +302,9 @@ create its client sheet with `head.insertBefore(element, head.firstChild)`
 0 — **before** the flush — and lose those ties. The flush's classic base resets
 (`.css-g5y9jx { padding: 0px; margin: 0px; … }`, one per View/Text/TextInput)
 would then override any atomic that exists **only** in the client sheet, e.g. a
-`.r-fd4yh7 { padding-top: 32px }` registered after the flush was serialized.
+`{ padding-top: 32px }` atomic registered after the flush was serialized
+(`.r-fd4yh7` in the build where this was diagnosed — atomic hashes vary per
+build).
 Most late rules self-heal because the client re-inserts them into a sheet that
 wins on its own; the ones that don't get silently zeroed.
 
@@ -406,8 +408,10 @@ another page — warm font/i18n caches change which side renders "loaded", so a
 bug can hide on one path and appear on the other.
 
 Cascade regressions need a **computed-style** check, which no `curl` can do:
-in DevTools confirm a client-only atomic still applies (on `/form-demo` the
-element carrying `.r-fd4yh7` computes `padding-top: 32px`, not `0px`), Button
+in DevTools confirm a client-only atomic still applies: on `/form-demo`, find
+the single-class `padding-top: 32px` rule in `style#react-native-stylesheet`
+(atomic hashes are build-dependent — locate the rule by its declaration, not a
+hardcoded class name) and confirm its element computes `32px`, not `0px`; Button
 padding is unchanged, and the pre-hydration frame on `/showcase` is still styled
 (throttle the network and watch the first paint).
 
