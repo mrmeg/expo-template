@@ -1,5 +1,5 @@
 ---
-status: draft
+status: ready
 mode: AFK
 base-branch: dev
 blocked-by: -
@@ -16,7 +16,7 @@ Verified 2026-08-07:
 
 - `packages/ui/src/components/` has no `Avatar.tsx`; consumers hand-roll circles (e.g. profile template).
 - Component conventions in this package: one file per component, exported from `packages/ui/src/components/index.ts`, imported by consumers as `@mrmeg/expo-ui/components/<Name>`; themed via `useTheme` + `createThemedStyles`; sizes/radii from `packages/ui/src/constants/spacing.ts` (radiusFull 9999; icon sizes 12/16/24/32/48).
-- Images: the app uses `expo-image` elsewhere; check whether `packages/ui` already depends on it — if not, use RN `Image` to avoid a new peer dependency (the package publishes to npm; see `Agent`-adjacent release flow: minor bump + CHANGELOG).
+- Images: `packages/ui` has no `expo-image` dependency and currently renders no images anywhere — use RN `Image` (no new peer dep; the package publishes to npm: minor bump + CHANGELOG).
 - The showcase registry (`client/showcase/registry.ts:77-111`) will need an entry; category `layout` fits existing groupings.
 
 ## Work
@@ -38,4 +38,4 @@ Verified 2026-08-07:
 - Replacing hand-rolled circles in existing templates (follow-up).
 
 ## Open questions
-- None blocking. `expo-image` vs RN `Image` is the implementer's call based on the package's existing dependency surface (do not add a new peer dep for this).
+- None. Image primitive resolved: RN `Image` (see Context).

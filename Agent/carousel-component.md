@@ -1,5 +1,5 @@
 ---
-status: draft
+status: ready
 mode: AFK
 base-branch: dev
 blocked-by: -
@@ -14,7 +14,7 @@ The testimonials template hand-rolls snap-scrolling quote cards; the blocks tier
 ## Context
 Verified 2026-08-07:
 
-- No `Carousel.tsx` in `packages/ui/src/components/`; `client/templates/testimonials/Screen.tsx` implements snap-scrolling inline.
+- No `Carousel.tsx` in `packages/ui/src/components/`; `client/templates/testimonials/Screen.tsx:75-88` implements it inline: horizontal `ScrollView` with `snapToInterval={cardWidth + spacing.md}`, `decelerationRate="fast"`, `snapToAlignment="start"`, `cardWidth = 0.8 × window width` — the reference behavior for the extracted component.
 - Hard constraint: **Reanimated is banned in this repo** (drawer/bottom-sheet animation work was done with RN `Animated` for this reason). The carousel must use `ScrollView`/`FlatList` snap props (`pagingEnabled`/`snapToInterval`, `onMomentumScrollEnd`) and RN `Animated` at most — no new animation deps.
 - SSR constraint: measurement-driven lists render no rows server-side (why LegendList was declined; FlatList stays). Prefer a `ScrollView`-based implementation so items are in the SSR tree, and register styles at module scope via `createThemedStyles` (`docs/ssr-hydration.md`).
 - Component conventions: one file per component, exported from `packages/ui/src/components/index.ts`, themed via `useTheme`, registered in `client/showcase/registry.ts:77-111`.

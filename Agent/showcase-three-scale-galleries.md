@@ -1,8 +1,8 @@
 ---
-status: draft
+status: blocked
 mode: AFK
 base-branch: dev
-blocked-by: blocks-tier-foundation merged (needs BLOCKS registry)
+blocked-by: merge blocks-tier-foundation.md first (this spec imports the BLOCKS registry it creates), then set ready
 pr: -
 ---
 
@@ -16,7 +16,7 @@ Verified 2026-08-07:
 
 - Explore tab UI lives in `app/(main)/(tabs)/index.tsx`, driven by `client/showcase/registry.ts`: `SCREEN_TEMPLATES` (generated), `DEMOS` (lines 58-65), `COMPONENTS` (77-111) with `ComponentCategory`, `getComponentCount()`.
 - The component showcase is a single kitchen-sink screen `app/(main)/(demos)/showcase/index.tsx` with `Section`/`SubSection` helpers from `client/showcase/`.
-- Template routes are one file each at `app/(main)/(demos)/screen-<id>.tsx`; template folders carry `demo.tsx` and `meta.ts` (label/description/icon/order).
+- Template routes are one file each at `app/(main)/(demos)/screen-<id>.tsx` — except `detail-hero.tsx`. Always navigate via each entry's `route` field from `meta.ts` (label/description/icon/order/route), never a constructed `screen-<id>` path.
 - `SegmentedControl` is exported from `packages/ui/src/components/index.ts` but missing from `COMPONENTS` — nothing in the package should be invisible to the showcase.
 - Blocks registry (`BLOCKS`, categories, `recipe: string[]`) lands via `blocks-tier-foundation.md` — this spec consumes it.
 - SSR constraint: new screens must register themed styles at module scope via `createThemedStyles` (`docs/ssr-hydration.md`).

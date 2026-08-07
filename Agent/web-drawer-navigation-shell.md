@@ -1,8 +1,8 @@
 ---
-status: draft
+status: blocked
 mode: AFK
 base-branch: dev
-blocked-by: showcase-three-scale-galleries merged (navigates its routes)
+blocked-by: merge showcase-three-scale-galleries.md first (the shell's nav items target its gallery routes), then set ready
 pr: -
 ---
 
@@ -14,15 +14,15 @@ On web, replace tab-style navigation with the library's `Drawer`: a persistent l
 ## Context
 Verified 2026-08-07:
 
-- `Drawer` exists at `packages/ui/src/components/Drawer.tsx` (overlay entrance animates via RN `Animated`; known open issues: swipe-to-close and rail-width gaps — see repo memory `reanimated-drawer-bottomsheet-deferred`). This spec exercises/extends its persistent-rail mode on web.
+- `Drawer` exists at `packages/ui/src/components/Drawer.tsx` (overlay entrance animates via RN `Animated`; known open issues: swipe-to-close and rail-width gaps). Rail mode is already built: `variant="rail"`, `collapsedWidth` 72 / `expandedWidth` 240, `expandOnHover` (web), controlled `expanded`, `DrawerToggleCollapse`. This spec integrates it, not builds it.
 - Tab layout lives at `app/(main)/(tabs)/_layout.tsx`; galleries and demos under `app/(main)/(demos)/`.
 - The drawer content per the mockups: wordmark, search affordance, "Library" nav (Overview/Components/Blocks/Templates with counts from the registries), page-contextual section (component categories on the components gallery), footer with theme label + toggle.
-- Breakpoint: mockups use 900px; the repo has responsive helpers/`MaxWidthContainer` — reuse whatever width hook exists rather than adding a new one.
+- Breakpoint: no 900px token exists. Use `useDimensions()` (`packages/ui/src/hooks/useDimensions.ts`, already SSR-aware via `SsrViewportContext` + `mrmeg-vw` cookie): rail when `isLargeScreen` (> `SCREEN_SIZES.MEDIUM` = 1000, the closest existing token to the 900px mockup), overlay otherwise. Do not add a new constant.
 - Reanimated remains banned; any new animation is RN `Animated`.
-- SSR constraint: the shell renders server-side — module-scope `createThemedStyles`, and the rail/overlay choice must not flash on hydration (resolve breakpoint from the SSR viewport wiring if `ssr-viewport-wiring` has landed; otherwise default to rail-hidden and note it in the PR).
+- SSR constraint: the shell renders server-side — module-scope `createThemedStyles`; `useDimensions` already resolves the SSR viewport (see Breakpoint above), so the rail/overlay choice should not flash on hydration.
 
 ## Work
-1. Web-only shell layout (platform split at the route-group `_layout` level, e.g. `_layout.web.tsx` alongside the existing tabs layout) rendering `Drawer` as a persistent rail ≥900px and overlay+scrim below; native `_layout.tsx` untouched.
+1. Web-only shell layout (platform split at the route-group `_layout` level, e.g. `_layout.web.tsx` alongside the existing tabs layout) rendering `Drawer` as a persistent rail on large screens and overlay+scrim below (breakpoint per Context); native `_layout.tsx` untouched.
 2. Drawer content component (`client/features/app/` or `client/showcase/`): nav items with active-route highlighting (accent left edge per mockups), counts from `getComponentCount()`/`getBlockCount()`/`SCREEN_TEMPLATES.length`, theme toggle in the footer.
 3. Fix `Drawer` rail-width gaps in `packages/ui` if the rail mode exhibits the known gap issue in this integration; if fixed, minor version bump + CHANGELOG (if not exhibited, note that in the PR).
 4. Ensure `theme-color`/`color-scheme` head output matches the active theme so Safari chrome (status bar / toolbar) tints correctly — coordinate with `ssr-theme-cookie.md` rather than duplicating; if that spec has landed, wire into its mechanism.
@@ -30,7 +30,7 @@ Verified 2026-08-07:
 
 ## Validation
 - `bun run typecheck && bun run lint && bun run test:ci && bun run ui:test`
-- Manual on web: ≥900px shows the rail with working nav + counts; narrow window shows top bar + hamburger, overlay slides with scrim, tap-scrim dismisses; navigation works from both modes; native app unchanged (tabs). Compare against `mockups/02-components.html` at both widths.
+- Manual on web: wide window (>1000px) shows the rail with working nav + counts; narrow window shows top bar + hamburger, overlay slides with scrim, tap-scrim dismisses; navigation works from both modes; native app unchanged (tabs). Compare against `mockups/02-components.html` at both widths.
 - Mobile Safari: status bar and toolbar tint match the theme.
 
 ## Out of scope
@@ -39,4 +39,4 @@ Verified 2026-08-07:
 - Native navigation changes.
 
 ## Open questions
-- None blocking. Exact breakpoint (900px vs existing token) is the implementer's choice — reuse an existing constant if one exists.
+- None. Breakpoint resolved: `useDimensions().isLargeScreen` (see Context).
