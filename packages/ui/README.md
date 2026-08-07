@@ -299,6 +299,7 @@ All components are exported from `@mrmeg/expo-ui/components`; direct imports suc
 | `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets | Action pickers, mobile filters, keyboard-aware quick edit forms, contextual details |
 | `Button` | Commands and CTAs | Pressable plus custom text styling | Submit, save, cancel, delete, navigation CTAs, icon-accessory buttons; loading state preserves resting width |
 | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Framed content groups | Ad hoc bordered panels | List items, pricing plans, settings sections, summaries, dashboards |
+| `Carousel` | Horizontally snapping slide rows with dot indicators | Hand-rolled snap `ScrollView` plus manual offset math | Testimonial strips, onboarding pages, feature highlights, image galleries; `itemWidth` below 1 is a fraction of the carousel width so the next slide peeks |
 | `Checkbox` | Boolean selection | Custom checkmark controls | Terms consent, checklist items, multi-select filters, notification opt-ins |
 | `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | One-off disclosure | Local animated height wrappers | Advanced settings, hidden helper text, optional details |
 | `Dialog`, `AlertDialog` | Modal decisions and custom modal content | Custom modal overlays | Confirm delete, edit profile, invite user, blocking warnings |
