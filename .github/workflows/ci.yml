@@ -45,6 +45,9 @@ jobs:
       - name: Template registry freshness check
         run: bun run gen:templates:check
 
+      - name: Block registry freshness check
+        run: bun run gen:blocks:check
+
       - name: LLM docs freshness check
         run: bun run docs:llms:check
 

@@ -20,7 +20,15 @@ import { Platform, StyleSheet } from "react-native";
  * the server-only render does not cause a hydration mismatch; RNW's own
  * runtime sheet takes over after hydration.
  *
- * See docs/ssr-hydration.md.
+ * Cascade note: hoisting puts this node in the head *preamble*, ahead of
+ * everything `app/+html.tsx` renders — including the empty
+ * `<style id="react-native-stylesheet">` that RNW adopts as its client sheet.
+ * That order is deliberate. Both sheets use single-class selectors, so ties go
+ * to whichever comes last, and the client sheet must win: this snapshot carries
+ * classic base resets (`.css-g5y9jx { padding: 0px; … }`) that would otherwise
+ * zero out atomics registered after it was serialized. Keep the resets in here
+ * though — pre-hydration they are defined nowhere else. See
+ * docs/ssr-hydration.md §7a.
  */
 export function SsrStyleFlush() {
   if (Platform.OS !== "web" || typeof document !== "undefined") {
