@@ -3,6 +3,43 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0]
+
+### Added
+
+- **`surfaceSunken` semantic token.** The app-chrome tier below `background`,
+  so sidebars, rails, and side panels read as a layer *beneath* the content
+  pane instead of the same surface. Dark `#050506` (below zinc-950), light
+  `#FAFAFA` (zinc-50). Elevation is now a surface-tier ladder rather than a
+  shadow scale: `surfaceSunken` < `background` < `card`/`popover` < `muted`.
+
+- **`borderStrong` semantic token.** A hairline for elements sitting on a
+  filled surface — chips on `muted`, raised panels — one visible step above
+  the fill, where `border` shares `muted`'s hex and disappears. Dark
+  `#3F3F46` (zinc-700), light `#D4D4D8` (zinc-300). `border` stays the
+  hairline for elements on `background`/`card`.
+
+### Changed
+
+- **Dim text is more readable in both schemes (visual change).**
+  `textDim`/`mutedForeground` moved from `#A1A1AA` → `#B0B0B8` in dark
+  (~9.2:1 on `background`, ~6.9:1 on `muted`, up from ~7.8:1/~5.9:1) and from
+  zinc-500 `#71717A` → zinc-600 `#52525B` in light (~7.7:1 on white, up from
+  ~4.8:1). Captions, timestamps, meta rows, and neutral `StatCard` changes all
+  render a step brighter (dark) or darker (light) than before; both stay
+  clearly dimmer than `text`, so hierarchy is preserved. A new package test
+  enforces the floors (≥7:1 on `background`/`card`/`popover`, ≥6:1 on
+  `muted`/`secondary`), so these tokens cannot be dimmed back down silently.
+  Apps that hardcoded the old hexes, or asserted them in tests, need to update
+  those literals; apps using the tokens get the change for free.
+
+- **`Drawer` chrome paints `surfaceSunken`.** Both the overlay drawer panel and
+  the in-flow rail switched from `background` to `surfaceSunken`, so navigation
+  chrome is visibly darker than the content it sits beside (dark) or a faint
+  step off white (light). Override via the existing `style` props, or re-skin
+  `surfaceSunken` through `setColors`/`ThemeColorScope`, to restore the old
+  flat look.
+
 ## [0.19.0]
 
 ### Added

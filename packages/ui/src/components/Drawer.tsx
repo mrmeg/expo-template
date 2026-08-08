@@ -638,7 +638,9 @@ function DrawerOverlayContent({
     bottom: 0,
     width,
     [side]: 0,
-    backgroundColor: theme.colors.background,
+    // App chrome sits on the sunken tier so it reads as a layer beneath the
+    // content pane rather than the same surface.
+    backgroundColor: theme.colors.surfaceSunken,
     borderColor: theme.colors.border,
     ...(side === "left"
       ? { borderRightWidth: 1 }
@@ -801,7 +803,8 @@ function DrawerRailContent({
   const panelStyle: Animated.WithAnimatedObject<ViewStyle> = {
     width: Platform.OS === "web" ? targetWidth : widthAnim,
     overflow: "hidden",
-    backgroundColor: theme.colors.background,
+    // Rail chrome sits on the sunken tier, one step below the content pane.
+    backgroundColor: theme.colors.surfaceSunken,
     borderColor: theme.colors.border,
     ...(side === "left" ? { borderRightWidth: 1 } : { borderLeftWidth: 1 }),
     paddingTop: insets.top,

@@ -107,11 +107,13 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 Useful theme tokens include:
 
 ```tsx
+theme.colors.surfaceSunken;
 theme.colors.background;
 theme.colors.foreground;
 theme.colors.card;
 theme.colors.popover;
 theme.colors.border;
+theme.colors.borderStrong;
 theme.colors.input;
 theme.colors.ring;
 theme.colors.primary;
@@ -131,6 +133,13 @@ Token intent:
 - `input`: form-control border color
 - `ring`: focus outline color
 - `popover`: elevated overlay surface
+- `surfaceSunken`: app-chrome surface one tier below `background`
+- `borderStrong`: hairline for elements on filled surfaces, where `border` would blend in
+
+Elevation is a surface-tier ladder, not shadow depth:
+`surfaceSunken` (chrome) < `background` (content) < `card`/`popover` (raised)
+< `muted` (chips, insets). Border a raised or filled element with
+`borderStrong`; `border` is for hairlines on `background`/`card`.
 
 Use `getShadowStyle()` for package surfaces that need elevation. It supports
 `base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`,
