@@ -335,6 +335,59 @@ than leaning on the flush: rules that only exist in the flush node disappear
 from `document.styleSheets` bookkeeping RNW does at hydration, and the flush
 duplicates whatever the head already carries.
 
+#### 7a. The flush must lose cascade ties — the adoption anchor
+
+Both sheets use single-class selectors, so **document order breaks every tie**,
+and the flush is emitted as a hoisted resource: React writes it into the head
+*preamble*, ahead of everything `+html.tsx` renders. Left alone, RNW would then
+create its client sheet with `head.insertBefore(element, head.firstChild)`
+(`react-native-web/dist/exports/StyleSheet/dom/createCSSStyleSheet.js`) at index
+0 — **before** the flush — and lose those ties. The flush's classic base resets
+(`.css-g5y9jx { padding: 0px; margin: 0px; … }`, one per View/Text/TextInput)
+would then override any atomic that exists **only** in the client sheet, e.g. a
+`{ padding-top: 32px }` atomic registered after the flush was serialized
+(`.r-fd4yh7` in the build where this was diagnosed — atomic hashes vary per
+build).
+Most late rules self-heal because the client re-inserts them into a sheet that
+wins on its own; the ones that don't get silently zeroed.
+
+The fix is one line in `app/+html.tsx`:
+
+```tsx
+<style id="react-native-stylesheet" />
+```
+
+`createCSSStyleSheet` does `root.getElementById(id)` **first** and only creates
+an element when that misses, so RNW **adopts** this node — placing the client
+sheet where the anchor sits (after the flush) and leaving exactly one sheet
+instead of two competing ones.
+
+Three constraints, each load-bearing:
+
+- **The anchor must stay empty.** `createOrderedCSSStyleSheet` hydrates its
+  group records by walking the adopted element's existing rules and indexes them
+  by the most recent `[stylesheet-group="N"]{}` marker. A rule that isn't
+  preceded by its marker throws `undefined is not an object (evaluating
+  'groups[group].rules')` at module scope — before hydration, so the page dies.
+  That rules out inlining the flushed CSS here.
+- **It must stay ahead of the bootstrap `<script>`s.** RNW calls `createSheet()`
+  at module scope, so the anchor has to already be in the DOM when the entry
+  bundle runs, or `getElementById` misses and the competing sheet comes back.
+- **The `headNodes` filter must keep dropping the framework snapshot** (same
+  file, §1) — it carries this same id, and a duplicate makes adoption
+  order-dependent.
+
+Do **not** "fix" this by stripping the `.css-*` resets from the flush instead.
+The filter removes the framework snapshot and the client sheet doesn't exist
+until JS runs, so the flush is the **only** pre-hydration source of those
+resets: without them every `View` falls back to `display: block`,
+`flex-direction: row`, `box-sizing: content-box` — i.e. the unstyled first paint
+the flush exists to prevent.
+
+Pinned by `__tests__/ssrStyleCascade.test.tsx` (head ordering, single id, resets
+retained) and `__tests__/rnwSheetAdoption.test.ts` (the two RNW dist behaviors
+adoption depends on, so an upgrade breaks a test instead of production).
+
 ## How to verify an SSR fix — do NOT rely on Jest/tsc alone
 
 Jest mocks `expo-font` and `react-i18next`, and `tsc` doesn't model Metro/SSR,
@@ -377,10 +430,33 @@ EOF
 In production (`bun run build` + `bun run start`), check the **first** request
 after server boot — the cold-start render is the one that regresses.
 
+For §7a (cascade order), confirm the adoption anchor is present exactly once,
+empty, and positioned after the flush but before the first script:
+
+```bash
+python3 - <<'EOF'
+html = open('/tmp/ssr.html').read()
+anchor = html.find('<style id="react-native-stylesheet">')
+flush  = html.find('data-precedence="rnw-ssr"')
+print("anchor count:", html.count('id="react-native-stylesheet"'), "(want 1)")
+print("anchor empty:", '<style id="react-native-stylesheet"></style>' in html)
+print("anchor after flush:", anchor > flush > -1)
+print("anchor before scripts:", -1 < anchor < html.find('<script'))
+EOF
+```
+
 Then open the route in a browser with the console open and confirm **zero**
 hydration warnings. Reproduce **both** a cold reload **and** navigation from
 another page — warm font/i18n caches change which side renders "loaded", so a
 bug can hide on one path and appear on the other.
+
+Cascade regressions need a **computed-style** check, which no `curl` can do:
+in DevTools confirm a client-only atomic still applies: on `/form-demo`, find
+the single-class `padding-top: 32px` rule in `style#react-native-stylesheet`
+(atomic hashes are build-dependent — locate the rule by its declaration, not a
+hardcoded class name) and confirm its element computes `32px`, not `0px`; Button
+padding is unchanged, and the pre-hydration frame on `/showcase` is still styled
+(throttle the network and watch the first paint).
 
 **Gotcha — the onboarding gate masks `(main)` routes for cookie-less requests.**
 A bare `curl /settings` looks like a brand-new visitor, so the server renders
@@ -506,3 +582,15 @@ through (`react-tabs`, `react-direction`, `react-context`,
 each resolve to exactly one version in `bun.lock`, `react-slot` and
 `react-primitive` must stay unified at the versions the `overrides` pin, and
 `package.json` must still declare those overrides.
+
+`__tests__/ssrStyleCascade.test.tsx` renders `app/+html.tsx` with a mocked
+server-document context and pins §7a: exactly one
+`<style id="react-native-stylesheet">`, empty, after the hoisted flush and
+before the first `<script>`; the flush still carries `href`/`precedence`; and its
+`.css-*` base resets are still present.
+`__tests__/rnwSheetAdoption.test.ts` pins the two react-native-web dist
+behaviors that adoption depends on (id lookup reuses an existing element;
+group-marker hydration throws on a pre-populated sheet), so an RNW upgrade that
+changes either fails CI instead of silently zeroing padding. Neither test can
+model the cascade itself — jsdom doesn't resolve cross-stylesheet ties the way
+browsers do, so the computed-style check above stays manual.

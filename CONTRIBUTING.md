@@ -27,7 +27,8 @@ This project uses **bun**. Always use `bun install` and `bun add <package>` — 
 
 `bun install` installs [lefthook](https://lefthook.dev) via the `prepare`
 script. The `pre-commit` hook (`lefthook.yml`) runs only the fast gates —
-`typecheck`, `lint`, `gen:templates:check`, `docs:llms:check` — in parallel,
+`typecheck`, `lint`, `gen:templates:check`, `gen:blocks:check`,
+`docs:llms:check` — in parallel,
 about five seconds total. There is deliberately **no pre-push hook**: pushing a
 work-in-progress branch should never wait on the test suite.
 
@@ -41,7 +42,7 @@ Outside a git work tree the `prepare` script exits 0 without installing hooks, s
 
 ## PR Checklist
 
-- [ ] `bun run verify` passes (peer check, typecheck, lint, feature isolation, template registry + LLM docs freshness, tests — the same gates as CI's `validate` job)
+- [ ] `bun run verify` passes (peer check, typecheck, lint, feature isolation, template + block registry and LLM docs freshness, tests — the same gates as CI's `validate` job)
 - [ ] Web tested (`bun run web`)
 - [ ] iOS/Android tested if touching native code
 - [ ] New components include showcase demos

@@ -34,6 +34,7 @@ const GATES = [
   { name: "lint", command: ["bun", "run", "lint"] },
   { name: "check:features", command: ["bun", "run", "check:features"] },
   { name: "gen:templates:check", command: ["bun", "run", "gen:templates:check"] },
+  { name: "gen:blocks:check", command: ["bun", "run", "gen:blocks:check"] },
   { name: "docs:llms:check", command: ["bun", "run", "docs:llms:check"] },
   { name: "docs:versions:check", command: ["bun", "run", "docs:versions:check"] },
   // Not `bun run test:ci`: local runs skip coverage and --forceExit.

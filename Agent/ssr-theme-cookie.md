@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/42
 ---
 
 # Seed SSR with the persisted theme via cookie (kill the light→dark flash)
