@@ -151,6 +151,11 @@ export default function Root({ children }: PropsWithChildren) {
   // specificity until the client sheet takes over — text pops from 14px to
   // its real size mid-load. The flush sheet is a strict superset, so the
   // snapshot can go. If SsrStyleFlush is ever removed, restore this node.
+  //
+  // This ALSO keeps the id unique. The empty `<style
+  // id="react-native-stylesheet">` anchor rendered below owns that id now, and
+  // RNW resolves it with `getElementById` — a duplicate would leave adoption
+  // picking whichever came first in the document.
   const filteredHeadNodes = Children.toArray(headNodes).filter(
     (node) =>
       !(
@@ -172,6 +177,29 @@ export default function Root({ children }: PropsWithChildren) {
             parses any element that uses them. The RNW stylesheet snapshot is
             filtered out above — SsrStyleFlush ships the complete sheet. */}
         {filteredHeadNodes}
+
+        {/* Empty anchor that react-native-web ADOPTS as its client stylesheet.
+            RNW's createCSSStyleSheet does `getElementById(id)` first and only
+            falls back to creating an element (inserted at head.firstChild,
+            i.e. cascade position 0) when the lookup misses. Handing it this
+            node instead puts the client sheet HERE — after SsrStyleFlush,
+            which React hoists into the head preamble above.
+
+            That ordering is the point. Both sheets carry single-class
+            selectors, so ties are broken by document order. Without the
+            anchor the client sheet lands first and LOSES, letting the flush's
+            base resets (`.css-g5y9jx { padding: 0px; margin: 0px; … }`) zero
+            out any atomic that exists only in the client sheet — e.g. a
+            `.r-fd4yh7 { padding-top: 32px }` registered after the flush was
+            serialized. Adoption also means one sheet, not two, so RNW's
+            group-marker bookkeeping keeps matching the DOM.
+
+            Must stay empty: RNW hydrates its group records from this element's
+            existing rules, and any rule that isn't preceded by a
+            `[stylesheet-group="N"]{}` marker throws during that walk. It must
+            also stay ahead of the bootstrap <script>s below, since RNW calls
+            createSheet() at module scope, before hydration. */}
+        <style id="react-native-stylesheet" />
 
         {/* Inter is loaded by @mrmeg/expo-ui's useResources after mount, but
             preloading here means it starts downloading on byte 1 instead of

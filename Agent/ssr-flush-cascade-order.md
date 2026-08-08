@@ -1,9 +1,9 @@
 ---
-status: ready
+status: done
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/43
 ---
 
 # Stop the SSR style flush from out-cascading the client stylesheet

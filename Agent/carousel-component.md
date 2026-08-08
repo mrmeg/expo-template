@@ -1,9 +1,9 @@
 ---
-status: ready
+status: done
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/44
 ---
 
 # Carousel component in @mrmeg/expo-ui

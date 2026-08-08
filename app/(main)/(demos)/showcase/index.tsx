@@ -46,6 +46,7 @@ import { SegmentedControl } from "@mrmeg/expo-ui/components/SegmentedControl";
 import { InputOTP } from "@mrmeg/expo-ui/components/InputOTP";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@mrmeg/expo-ui/components/Card";
+import { Carousel } from "@mrmeg/expo-ui/components/Carousel";
 import { Label } from "@mrmeg/expo-ui/components/Label";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { Avatar, AvatarGroup } from "@mrmeg/expo-ui/components/Avatar";
@@ -392,6 +393,8 @@ function useShowcaseScreenContent() {
               </Card>
             </SubSection>
           </Section>
+
+          <CarouselSection styles={styles} theme={theme} />
 
           <CheckboxSection styles={styles} />
 
@@ -1442,6 +1445,71 @@ const SwitchSection = memo(function SwitchSection({
   );
 });
 
+const CAROUSEL_SLIDES = ["Alpha", "Bravo", "Charlie", "Delta", "Echo"];
+
+const CarouselSection = memo(function CarouselSection({
+  styles,
+  theme,
+}: {
+  styles: ShowcaseStyles;
+  theme: Theme;
+}) {
+  const [page, setPage] = useState(0);
+
+  // One slide body reused across the sub-sections so the differences between
+  // them are the props, not the content.
+  const renderSlides = (labels: string[] = CAROUSEL_SLIDES) =>
+    labels.map((label, index) => (
+      <View key={label} style={styles.carouselSlide}>
+        <SansSerifBoldText style={styles.carouselSlideTitle}>{label}</SansSerifBoldText>
+        <SansSerifText style={styles.carouselSlideMeta}>
+          {`Slide ${index + 1} of ${labels.length}`}
+        </SansSerifText>
+      </View>
+    ));
+
+  return (
+    <Section title="Carousel">
+      <SubSection label="Default (itemWidth 0.85 — next slide peeks)">
+        <Carousel>{renderSlides()}</Carousel>
+      </SubSection>
+
+      <SubSection label="Full-width pages (itemWidth 1, no content padding)">
+        <Carousel itemWidth={1} gap={0} contentPadding={0}>
+          {renderSlides(["One", "Two", "Three"])}
+        </Carousel>
+      </SubSection>
+
+      <SubSection label="Absolute item width (220px)">
+        <Carousel itemWidth={220} gap={spacing.sm}>
+          {renderSlides()}
+        </Carousel>
+      </SubSection>
+
+      <SubSection label="No dots">
+        <Carousel showDots={false}>{renderSlides(["Alpha", "Bravo", "Charlie"])}</Carousel>
+      </SubSection>
+
+      <SubSection label="Starts on slide 3 (initialIndex 2)">
+        <Carousel initialIndex={2}>{renderSlides()}</Carousel>
+      </SubSection>
+
+      <SubSection label="Free scroll (snap disabled)">
+        <Carousel snap={false} itemWidth={0.6}>
+          {renderSlides()}
+        </Carousel>
+      </SubSection>
+
+      <SubSection label="onIndexChange">
+        <Carousel onIndexChange={setPage}>{renderSlides()}</Carousel>
+        <SansSerifText style={[styles.carouselReadout, { color: theme.colors.mutedForeground }]}>
+          {`Active slide: ${CAROUSEL_SLIDES[page]} (index ${page})`}
+        </SansSerifText>
+      </SubSection>
+    </Section>
+  );
+});
+
 const CheckboxSection = memo(function CheckboxSection({
   styles,
 }: {
@@ -2482,6 +2550,34 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusMd,
       padding: spacing.md,
       marginBottom: spacing.sm,
+    },
+
+    // Carousel
+    carouselSlide: {
+      // Fills the slide wrapper Carousel puts around each child so every card
+      // is the same height regardless of its text length.
+      flex: 1,
+      minHeight: 96,
+      justifyContent: "center",
+      gap: spacing.xxs,
+      padding: spacing.md,
+      borderRadius: spacing.radiusLg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.muted,
+    },
+    carouselSlideTitle: {
+      fontSize: 16,
+      color: theme.colors.foreground,
+    },
+    carouselSlideMeta: {
+      fontSize: 12,
+      color: theme.colors.mutedForeground,
+    },
+    carouselReadout: {
+      fontSize: 12,
+      marginTop: spacing.sm,
+      textAlign: "center",
     },
 
     // Feedback

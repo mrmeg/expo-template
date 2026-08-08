@@ -80,6 +80,7 @@ describe("bun run verify mirrors the CI validate job", () => {
       "lint",
       "check:features",
       "gen:templates:check",
+      "gen:blocks:check",
       "docs:llms:check",
       "test:ci",
     ];
@@ -102,17 +103,22 @@ describe("bun run verify mirrors the CI validate job", () => {
   });
 });
 
-describe("ci.yml guards the generated template registry", () => {
+describe("ci.yml guards the generated registries", () => {
   const workflow = read(".github/workflows/ci.yml");
 
   it("runs gen:templates:check", () => {
     expect(workflow).toContain("bun run gen:templates:check");
   });
 
-  it("runs it before the LLM docs freshness check", () => {
-    expect(workflow.indexOf("bun run gen:templates:check")).toBeLessThan(
-      workflow.indexOf("bun run docs:llms:check"),
-    );
+  it("runs gen:blocks:check", () => {
+    expect(workflow).toContain("bun run gen:blocks:check");
+  });
+
+  it("runs them before the LLM docs freshness check", () => {
+    const docsIndex = workflow.indexOf("bun run docs:llms:check");
+
+    expect(workflow.indexOf("bun run gen:templates:check")).toBeLessThan(docsIndex);
+    expect(workflow.indexOf("bun run gen:blocks:check")).toBeLessThan(docsIndex);
   });
 });
 
@@ -152,6 +158,7 @@ describe("lefthook pre-commit hook", () => {
       "bun run typecheck",
       "bun run lint",
       "bun run gen:templates:check",
+      "bun run gen:blocks:check",
       "bun run docs:llms:check",
     ]);
   });

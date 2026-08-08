@@ -109,6 +109,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/BottomSheet.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/BottomSheet.tsx
 - packages/ui/src/components/Button.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Button.tsx
 - packages/ui/src/components/Card.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Card.tsx
+- packages/ui/src/components/Carousel.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Carousel.tsx
 - packages/ui/src/components/Checkbox.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Checkbox.tsx
 - packages/ui/src/components/Collapsible.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Collapsible.tsx
 - packages/ui/src/components/Dialog.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Dialog.tsx

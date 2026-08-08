@@ -12,7 +12,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { useResources } from "@mrmeg/expo-ui/hooks";
-import { syncThemeFromEnvironment } from "@mrmeg/expo-ui/state";
+import { syncThemeFromEnvironment, SsrViewportContext } from "@mrmeg/expo-ui/state";
 import { UIProvider } from "@mrmeg/expo-ui/components/UIProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -25,6 +25,10 @@ import { validateClientEnv } from "@/client/lib/validateEnv";
 import { captureException, setupSentry } from "@/client/lib/sentry";
 import { useAppStartup, OnboardingGate } from "@/client/features/app";
 import { SsrStyleFlush } from "@/client/features/app/SsrStyleFlush";
+import {
+  resolveSsrInitialMetrics,
+  resolveSsrViewportWidthForRender,
+} from "@/client/features/app/ssrViewportMetrics";
 import { AuthProviderGate } from "@/client/features/auth/provider/AuthProviderGate";
 import { useHasSeenOnboarding } from "@/client/features/onboarding/onboardingStore";
 
@@ -89,6 +93,18 @@ export default function RootLayout() {
   const hasSeenOnboarding = useHasSeenOnboarding();
   const { ready } = useAppStartup({ fontsLoaded, i18nReady });
 
+  // Seed web SSR with a real viewport instead of letting SafeAreaProvider fall
+  // back to react-native-web's server-side Dimensions ({width: 0, height: 0}).
+  // At width 0 the SSR HTML ships negative header max-widths and collapsed
+  // centered containers, then jumps at hydration (React #418). Both values are
+  // derived from the cookie/UA — the one signal the server and the browser both
+  // have — so the first renders agree. Lazy state, so the resolve happens once
+  // per mount during render and is never recomputed into a mismatch; a
+  // module-scope constant would leak one request's width into another's layout.
+  // See client/features/app/ssrViewportMetrics.ts + docs/ssr-hydration.md §4.
+  const [ssrInitialMetrics] = useState(resolveSsrInitialMetrics);
+  const [ssrViewportWidth] = useState(resolveSsrViewportWidthForRender);
+
   // Initialize i18n
   useEffect(() => {
     initI18n().then(() => setI18nReady(true));
@@ -127,40 +143,45 @@ export default function RootLayout() {
   return (
     <AuthProviderGate>
       <QueryClientProvider client={queryClient}>
-        <SafeAreaProvider>
-          <ThemeProvider value={{
-            dark: colors[scheme ?? "light"].dark,
-            colors: colors[scheme ?? "light"].navigation,
-            fonts: colors[scheme ?? "light"].fonts,
-          }}>
-            <KeyboardProvider>
-              <UIProvider>
-                <KeyboardDismissBoundary style={styles.keyboardDismissScope}>
-                  <ErrorBoundary
-                    catchErrors={Config.catchErrors}
-                    FallbackComponent={ErrorScreen}
-                    onError={reportBoundaryError}
-                  >
-                    {hasSeenOnboarding ? (
-                      <Stack
-                        screenOptions={{
-                          headerShown: false,
-                          // Theme-aware backdrop so the white default doesn't
-                          // flash through on screen transitions.
-                          contentStyle: { backgroundColor: colors[scheme ?? "light"].colors.background },
-                        }}
-                      >
-                        <Stack.Screen name="(main)" />
-                        <Stack.Screen name="+not-found" />
-                      </Stack>
-                    ) : (
-                      <OnboardingGate />
-                    )}
-                  </ErrorBoundary>
-                </KeyboardDismissBoundary>
-              </UIProvider>
-            </KeyboardProvider>
-          </ThemeProvider>
+        <SafeAreaProvider initialMetrics={ssrInitialMetrics}>
+          {/* Same width the frame above was built from, so useDimensions'
+              responsive branches agree with the safe-area layout instead of
+              falling back to the package's 1280 default. */}
+          <SsrViewportContext.Provider value={ssrViewportWidth}>
+            <ThemeProvider value={{
+              dark: colors[scheme ?? "light"].dark,
+              colors: colors[scheme ?? "light"].navigation,
+              fonts: colors[scheme ?? "light"].fonts,
+            }}>
+              <KeyboardProvider>
+                <UIProvider>
+                  <KeyboardDismissBoundary style={styles.keyboardDismissScope}>
+                    <ErrorBoundary
+                      catchErrors={Config.catchErrors}
+                      FallbackComponent={ErrorScreen}
+                      onError={reportBoundaryError}
+                    >
+                      {hasSeenOnboarding ? (
+                        <Stack
+                          screenOptions={{
+                            headerShown: false,
+                            // Theme-aware backdrop so the white default doesn't
+                            // flash through on screen transitions.
+                            contentStyle: { backgroundColor: colors[scheme ?? "light"].colors.background },
+                          }}
+                        >
+                          <Stack.Screen name="(main)" />
+                          <Stack.Screen name="+not-found" />
+                        </Stack>
+                      ) : (
+                        <OnboardingGate />
+                      )}
+                    </ErrorBoundary>
+                  </KeyboardDismissBoundary>
+                </UIProvider>
+              </KeyboardProvider>
+            </ThemeProvider>
+          </SsrViewportContext.Provider>
         </SafeAreaProvider>
         {/* Must stay the LAST child so it renders after the app subtree and
             captures every RNW rule registered during this render pass. */}

@@ -13,11 +13,14 @@
 
 import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 
+import { BLOCKS } from "@/client/blocks/registry.generated";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export type { ScreenTemplateEntry } from "@/client/templates/types";
+export type { BlockEntry, BlockCategory } from "@/client/blocks/types";
 
 export interface DemoEntry {
   id: string;
@@ -52,6 +55,16 @@ export type ComponentCategory =
 export { SCREEN_TEMPLATES } from "@/client/templates/registry.generated";
 
 // ---------------------------------------------------------------------------
+// Blocks — composed sections between a component and a full screen template
+// ---------------------------------------------------------------------------
+
+// Generated from `client/blocks/*/meta.ts` by `bun run gen:blocks`.
+// Add or remove a block folder and regenerate — no edit here.
+// Imported rather than re-exported straight through because `getBlockCount()`
+// below needs a local binding.
+export { BLOCKS };
+
+// ---------------------------------------------------------------------------
 // Demos & tools — drive the Explore "Demos & Tools" section
 // ---------------------------------------------------------------------------
 
@@ -83,6 +96,7 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "BottomSheet", importPath: "@mrmeg/expo-ui/components/BottomSheet", category: "overlay" },
   { id: "Button", importPath: "@mrmeg/expo-ui/components/Button", category: "form" },
   { id: "Card", importPath: "@mrmeg/expo-ui/components/Card", category: "layout" },
+  { id: "Carousel", importPath: "@mrmeg/expo-ui/components/Carousel", category: "layout" },
   { id: "Checkbox", importPath: "@mrmeg/expo-ui/components/Checkbox", category: "form" },
   { id: "Collapsible", importPath: "@mrmeg/expo-ui/components/Collapsible", category: "navigation" },
   { id: "Dialog", importPath: "@mrmeg/expo-ui/components/Dialog", category: "overlay" },
@@ -117,4 +131,8 @@ export const COMPONENTS: ComponentEntry[] = [
 
 export function getComponentCount(): number {
   return COMPONENTS.length;
+}
+
+export function getBlockCount(): number {
+  return BLOCKS.length;
 }
