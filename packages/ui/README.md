@@ -295,6 +295,7 @@ All components are exported from `@mrmeg/expo-ui/components`; direct imports suc
 | `Accordion`, `AccordionItem`, `AccordionTrigger`, `AccordionContent` | Multi-section disclosure | Custom FAQ/settings expanders | FAQ lists, grouped settings, help sections, dense detail pages |
 | `Alert` | Cross-platform imperative alerts | Direct `window.alert` or duplicated RN/web branching | Confirm destructive actions, native alert dialogs, simple blocking messages |
 | `AnimatedView` | Entrance and visibility animation | Hand-rolled one-off Animated wrappers | Staggered list rows, revealed panels, animated empty states |
+| `Avatar`, `AvatarGroup` | Profile images with initials/icon fallback | Hand-rolled circles with a nested `Image` and initials `Text` | Account menu, comment authors, assignee pickers, testimonial cards, overlapping team/collaborator stacks |
 | `Badge` | Short status labels | Custom pill `View` + `Text` | Draft/active states, counts, plan labels, role tags |
 | `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets | Action pickers, mobile filters, keyboard-aware quick edit forms, contextual details |
 | `Button` | Commands and CTAs | Pressable plus custom text styling | Submit, save, cancel, delete, navigation CTAs, icon-accessory buttons; loading state preserves resting width |
@@ -380,6 +381,8 @@ Mount `UIProvider` once near the root before using `Dialog`, `AlertDialog`, `Bot
 Use `Skeleton` components for loading content with stable dimensions, `EmptyState` for no-data/recoverable errors, `Alert` for blocking confirm/alert dialogs, and `Notification` for transient global feedback.
 
 Use `Toggle` for one pressed state, `ToggleGroup` for a related set of pressed states, `Switch` for binary settings, `RadioGroup` for small mutually exclusive choices, and `Select` for longer option sets.
+
+Pass `Avatar` both a `source` and a `name` whenever you have them: `name` supplies the initials shown while the image is missing or after it fails, and the default accessibility label. `SkeletonAvatar` is the loading placeholder, not a substitute. Inside `AvatarGroup`, child avatars inherit the group's `size` and `shape` and gain the ring, so set those on the group rather than per child.
 
 ### Quick Examples
 
