@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/41
 ---
 
 # Wire SSR viewport metrics so first paint isn't laid out at width 0
