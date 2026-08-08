@@ -1,10 +1,11 @@
 import React from "react";
-import { View, ScrollView, StyleSheet, StyleProp, ViewStyle } from "react-native";
-import { useTheme, useDimensions } from "@mrmeg/expo-ui/hooks";
+import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { BodyText, SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Card } from "@mrmeg/expo-ui/components/Card";
+import { Carousel } from "@mrmeg/expo-ui/components/Carousel";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -70,24 +71,22 @@ export function TestimonialsScreen({
   style: styleOverride,
 }: TestimonialsScreenProps) {
   const { theme } = useTheme();
-  const { width: windowWidth } = useDimensions();
   const styles = themedStyles(theme);
-  const cardWidth = Math.round(windowWidth * 0.8);
 
   return (
     <View style={[styles.container, styleOverride]}>
       <SectionHeader eyebrow={eyebrow} title={title} description={description} style={styles.header} />
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={cardWidth + spacing.md}
-        decelerationRate="fast"
-        snapToAlignment="start"
-        contentContainerStyle={styles.scrollContent}
-      >
+      {/*
+        itemWidth 0.8 + the default gap/padding reproduce the hand-rolled snap
+        row this template used to own; Carousel adds the dot indicators. `flex:
+        1` on the carousel and the cards keeps the old full-height, uniform
+        cards — Carousel stretches each slide wrapper to the scroller height,
+        so the card only fills it if it opts in.
+      */}
+      <Carousel itemWidth={0.8} style={styles.carousel} testID="testimonials-carousel">
         {testimonials.map((testimonial) => (
-          <Card key={testimonial.name + testimonial.quote} style={[styles.card, { width: cardWidth }]}>
+          <Card key={testimonial.name + testimonial.quote} style={styles.card}>
             {!!testimonial.rating && (
               <View style={styles.starsRow}>
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -119,7 +118,7 @@ export function TestimonialsScreen({
             </View>
           </Card>
         ))}
-      </ScrollView>
+      </Carousel>
     </View>
   );
 }
@@ -141,11 +140,11 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing.lg,
       marginBottom: spacing.lg,
     },
-    scrollContent: {
-      paddingHorizontal: spacing.lg,
-      gap: spacing.md,
+    carousel: {
+      flex: 1,
     },
     card: {
+      flex: 1,
       padding: spacing.lg,
       gap: spacing.md,
     },

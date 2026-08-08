@@ -197,15 +197,17 @@ describe("StatsScreen", () => {
 });
 
 describe("TestimonialsScreen", () => {
+  const TESTIMONIALS = [
+    { quote: "This cut our setup time from days to hours.", name: "Jamie Lee", role: "CTO, Acme", rating: 5 },
+    { quote: "Our team shipped an MVP in two weeks.", name: "Marcus Chen", role: "Founder, Loopwork" },
+  ];
+
   it("renders the section header and each testimonial's quote and author", async () => {
     await render(
       <TestimonialsScreen
         eyebrow="Testimonials"
         title="Loved by teams everywhere"
-        testimonials={[
-          { quote: "This cut our setup time from days to hours.", name: "Jamie Lee", role: "CTO, Acme", rating: 5 },
-          { quote: "Our team shipped an MVP in two weeks.", name: "Marcus Chen", role: "Founder, Loopwork" },
-        ]}
+        testimonials={TESTIMONIALS}
       />,
     );
 
@@ -215,6 +217,18 @@ describe("TestimonialsScreen", () => {
     expect(screen.getByText("CTO, Acme")).toBeTruthy();
     expect(screen.getByText(/Our team shipped an MVP/)).toBeTruthy();
     expect(screen.getByText("Marcus Chen")).toBeTruthy();
+  });
+
+  it("pages the quotes through Carousel: one slide and one dot per testimonial", async () => {
+    await render(
+      <TestimonialsScreen title="Loved by teams everywhere" testimonials={TESTIMONIALS} />,
+    );
+
+    expect(screen.getByTestId("testimonials-carousel-item-0")).toBeTruthy();
+    expect(screen.getByTestId("testimonials-carousel-item-1")).toBeTruthy();
+    expect(screen.queryByTestId("testimonials-carousel-item-2")).toBeNull();
+    expect(screen.getByTestId("testimonials-carousel-dot-0")).toBeTruthy();
+    expect(screen.getByTestId("testimonials-carousel-dot-1")).toBeTruthy();
   });
 });
 

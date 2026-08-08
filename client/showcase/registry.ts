@@ -95,6 +95,7 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "BottomSheet", importPath: "@mrmeg/expo-ui/components/BottomSheet", category: "overlay" },
   { id: "Button", importPath: "@mrmeg/expo-ui/components/Button", category: "form" },
   { id: "Card", importPath: "@mrmeg/expo-ui/components/Card", category: "layout" },
+  { id: "Carousel", importPath: "@mrmeg/expo-ui/components/Carousel", category: "layout" },
   { id: "Checkbox", importPath: "@mrmeg/expo-ui/components/Checkbox", category: "form" },
   { id: "Collapsible", importPath: "@mrmeg/expo-ui/components/Collapsible", category: "navigation" },
   { id: "Dialog", importPath: "@mrmeg/expo-ui/components/Dialog", category: "overlay" },

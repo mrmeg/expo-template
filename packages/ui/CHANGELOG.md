@@ -3,6 +3,47 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0]
+
+### Added
+
+- **`Carousel` — horizontally snapping slide row with dot indicators.**
+  Children-based: each child becomes one slide at the resolved item width.
+
+  ```tsx
+  <Carousel itemWidth={0.8} onIndexChange={setPage}>
+    {testimonials.map((t) => (
+      <Card key={t.name}>
+        <BodyText>{t.quote}</BodyText>
+      </Card>
+    ))}
+  </Carousel>
+  ```
+
+  `itemWidth` (default `0.85`) is a fraction of the carousel's own width when
+  `<= 1` — leaving the next slide peeking — and absolute pixels when `> 1`.
+  `gap`, `contentPadding`, `showDots`, `initialIndex`, `onIndexChange`, and
+  `snap` cover the rest; dots are plain themed views (active uses `accent`)
+  and auto-hide for a single slide. `onIndexChange` fires once per settle.
+
+  Built on `ScrollView`, not a virtualized list, so every slide is in the
+  server-rendered tree — web SSR ships the real slide content instead of an
+  empty scroller that fills in after measurement. No animation library is
+  involved: native snapping uses `snapToInterval`, and because
+  react-native-web drops that prop, web gets equivalent CSS scroll-snap
+  (`scroll-snap-type`/`scroll-snap-align` plus a `scroll-padding-left` that
+  keeps page `i` at `i * (itemWidth + gap)` on both platforms). Wheel and
+  trackpad scrolling keep the dots live via throttled scroll ticks, since RNW
+  emits no momentum events.
+
+  Accessibility: the dot row is a `tablist` of `tab`s carrying
+  `selected` state and per-slide labels, plus a visually clipped
+  `aria-live="polite"` "N of M" page announcement.
+
+  `getCarouselIndex(offsetX, interval, count)` and
+  `resolveCarouselItemWidth(itemWidth, containerWidth)` are exported for hosts
+  building custom controls on the same math.
+
 ## [0.18.0]
 
 ### Added
