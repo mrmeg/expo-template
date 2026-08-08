@@ -1,8 +1,8 @@
 ---
-status: blocked
+status: ready
 mode: AFK
 base-branch: dev
-blocked-by: merge blocks-tier-foundation.md first (this spec imports the BLOCKS registry it creates), then set ready
+blocked-by: -
 pr: -
 ---
 
