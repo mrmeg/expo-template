@@ -7,6 +7,62 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`Avatar` and `AvatarGroup`.** The package had `SkeletonAvatar` (a loading
+  placeholder) but no real avatar, so consumers hand-rolled circles. `Avatar`
+  renders an image with a graceful fallback chain — image → initials → icon —
+  and downgrades to initials at runtime when the image fails to load, so a
+  dead URL never leaves an empty hole. Accepts `source`, `name` (supplies 1–2
+  initials and the default accessibility label), `icon` (Feather, defaults to
+  `user`), `size` (`"sm" | "md" | "lg"` = 32/40/48, or an explicit pixel
+  diameter), and `shape` (`"circle" | "square"`). Initials derivation is
+  grapheme-aware: a decomposed accented character keeps its mark and an emoji
+  is not sliced into a lone surrogate.
+
+  `AvatarGroup` stacks children with a ring in the theme `background` color so
+  the stack reads on any surface, collapses anything past `max` into a `+N`
+  tile, propagates its `size` and `shape` to children that don't set their own,
+  and announces the total count (including the collapsed overflow) to screen
+  readers.
+
+  Uses React Native's own `Image`, so there is no new peer dependency.
+
+- **`Carousel` — horizontally snapping slide row with dot indicators.**
+  Children-based: each child becomes one slide at the resolved item width.
+
+  ```tsx
+  <Carousel itemWidth={0.8} onIndexChange={setPage}>
+    {testimonials.map((t) => (
+      <Card key={t.name}>
+        <BodyText>{t.quote}</BodyText>
+      </Card>
+    ))}
+  </Carousel>
+  ```
+
+  `itemWidth` (default `0.85`) is a fraction of the carousel's own width when
+  `<= 1` — leaving the next slide peeking — and absolute pixels when `> 1`.
+  `gap`, `contentPadding`, `showDots`, `initialIndex`, `onIndexChange`, and
+  `snap` cover the rest; dots are plain themed views (active uses `accent`)
+  and auto-hide for a single slide. `onIndexChange` fires once per settle.
+
+  Built on `ScrollView`, not a virtualized list, so every slide is in the
+  server-rendered tree — web SSR ships the real slide content instead of an
+  empty scroller that fills in after measurement. No animation library is
+  involved: native snapping uses `snapToInterval`, and because
+  react-native-web drops that prop, web gets equivalent CSS scroll-snap
+  (`scroll-snap-type`/`scroll-snap-align` plus a `scroll-padding-left` that
+  keeps page `i` at `i * (itemWidth + gap)` on both platforms). Wheel and
+  trackpad scrolling keep the dots live via throttled scroll ticks, since RNW
+  emits no momentum events.
+
+  Accessibility: the dot row is a `tablist` of `tab`s carrying
+  `selected` state and per-slide labels, plus a visually clipped
+  `aria-live="polite"` "N of M" page announcement.
+
+  `getCarouselIndex(offsetX, interval, count)` and
+  `resolveCarouselItemWidth(itemWidth, containerWidth)` are exported for hosts
+  building custom controls on the same math.
+
 - **SSR theme seeding (`SsrThemeSeedContext`).** On a server-rendered web app,
   `useTheme`/`useStyles` had no way to know the visitor's theme during the
   server render, so every SSR page shipped a fully light-themed tree that
