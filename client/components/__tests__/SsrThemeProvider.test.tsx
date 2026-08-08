@@ -13,6 +13,15 @@
  *   - the seed is captured once per mount and is not recomputed on rerender
  *     (the post-mount reconcile lives in the store's `hasLoadedTheme`)
  *   - it is inert on native
+ *
+ * The no-signal cases matter most. `app/+html.tsx` omits `data-theme` and
+ * `data-ssr-system-scheme` when the request carried nothing, precisely so the
+ * inline color-scheme script and the `prefers-color-scheme` CSS fallback stay
+ * live for a dark-OS first-timer. The provider has to agree: it must resolve
+ * the shared light default from that document rather than reach for
+ * `window.matchMedia`, because the SERVER rendered light and the first client
+ * render has to match it. The script and the CSS own the visible paint until
+ * `hasLoadedTheme` flips; the React tree recolors after that, not before.
  */
 
 import React from "react";
@@ -97,6 +106,53 @@ describe("SsrThemeProvider", () => {
     await render(<SsrThemeProvider><Probe /></SsrThemeProvider>);
 
     expect(observed).toBe(SSR_THEME_SEED_DEFAULT);
+  });
+
+  it("provides the shared default on an un-stamped document even when the OS is dark", async () => {
+    // The regression case, from the client's side. No cookie, and `+html.tsx`
+    // deliberately shipped no `data-ssr-system-scheme` because the server had
+    // no signal either — so the seed must be the light default, matching the
+    // light tree the server rendered. Resolving dark here (from matchMedia)
+    // would be a hydration mismatch; the inline script and the CSS media query
+    // are what make the *paint* dark, and `hasLoadedTheme` is what recolors the
+    // tree afterwards.
+    installDocument("");
+    const matchMedia = jest.fn(() => ({ matches: true }));
+    (globalThis as unknown as { window: unknown }).window = { matchMedia };
+
+    await render(<SsrThemeProvider><Probe /></SsrThemeProvider>);
+
+    expect(observed).toBe(SSR_THEME_SEED_DEFAULT);
+    expect(observed).toEqual({ userTheme: "system", systemTheme: "light" });
+    expect(matchMedia).not.toHaveBeenCalled();
+
+    delete (globalThis as unknown as { window?: unknown }).window;
+  });
+
+  it("reads a `system` cookie's scheme back from the stamped attribute, not matchMedia", async () => {
+    // `system` + a real client hint IS a signal, so the server stamped both
+    // `data-theme` and `data-ssr-system-scheme`. The provider takes the
+    // server's answer.
+    installDocument("user-theme-preference=system", "dark");
+    const matchMedia = jest.fn(() => ({ matches: false }));
+    (globalThis as unknown as { window: unknown }).window = { matchMedia };
+
+    await render(<SsrThemeProvider><Probe /></SsrThemeProvider>);
+
+    expect(observed).toEqual({ userTheme: "system", systemTheme: "dark" });
+    expect(matchMedia).not.toHaveBeenCalled();
+
+    delete (globalThis as unknown as { window?: unknown }).window;
+  });
+
+  it("keeps a dark cookie's seed even when the server stamped no system scheme", async () => {
+    // An explicit preference doesn't need the hint at all: `resolveThemePreference`
+    // ignores `systemTheme` unless the preference is `system`.
+    installDocument("user-theme-preference=dark");
+
+    await render(<SsrThemeProvider><Probe /></SsrThemeProvider>);
+
+    expect(observed).toEqual({ userTheme: "dark", systemTheme: "light" });
   });
 
   it("ignores a cookie value the store would never write", async () => {

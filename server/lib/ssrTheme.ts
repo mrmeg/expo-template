@@ -12,15 +12,23 @@
 //
 // Two read surfaces, mirroring ssrOnboarding.ts:
 //
-//   1. `detectSsrThemeSeedFromRequestScope()` — reads Expo Server's ambient
+//   1. `detectSsrThemeFromRequestScope()` — reads Expo Server's ambient
 //      request scope. This is what the app uses, because the theme provider
 //      lives in the ROOT LAYOUT and layouts cannot export loaders
 //      (`@expo/router-server`'s server manifest only carries leaf html
 //      routes), so there is no loader to hang the value off.
 //
-//   2. `detectSsrThemeSeed(request)` — the explicit, loader-friendly form,
-//      matching `detectSsrViewportWidth(request)` and
-//      `detectOnboardingSeen(request)`.
+//   2. `detectSsrTheme(request)` — the explicit, loader-friendly form, matching
+//      `detectSsrViewportWidth(request)` and `detectOnboardingSeen(request)`.
+//
+// Each has a `…Seed` variant that returns just the seed, for callers (the
+// provider) that render the same thing whether or not a signal was present.
+//
+// IMPORTANT: absence of a signal is itself information. A detection with
+// `hasSignal: false` means the server is GUESSING light, and `app/+html.tsx`
+// must then leave `data-theme` off `<html>` so the inline color-scheme script
+// and the `prefers-color-scheme` CSS fallback stay live for a hint-less
+// dark-OS first-timer. Stamping a guess disables both.
 //
 // `system` resolution uses the `Sec-CH-Prefers-Color-Scheme` client hint when
 // the browser sends it. Browsers only send it after the document has asked,
@@ -110,8 +118,56 @@ export function parseColorSchemeClientHint(
 }
 
 /**
- * Build the seed `@mrmeg/expo-ui`'s `SsrThemeSeedContext` expects from raw
- * header values.
+ * What the request told us about the visitor's theme.
+ *
+ * `seed` is always renderable — it falls back to the same values the store
+ * boots with — but callers that write to the DOM need to know whether those
+ * values came from the visitor or from that fallback, so `hasSignal` reports it
+ * and `scheme` is `null` in the fallback case.
+ *
+ * `app/+html.tsx` is the caller that cares. Stamping `data-theme` on a *guess*
+ * would be actively harmful: the `COLOR_SCHEME_SCRIPT` bails out when
+ * `data-theme` is already set, and the `@media (prefers-color-scheme: dark)
+ * html:not([data-theme])` CSS fallback stops matching. A hint-less first-time
+ * visitor on a dark OS would then get a guessed-light paint with both of its
+ * safety nets disabled. So: stamp only what we actually know.
+ */
+export type SsrThemeDetection = {
+  /** The per-request seed for `SsrThemeSeedContext`. Always safe to render. */
+  seed: SsrThemeSeed;
+  /**
+   * True when the request carried a theme signal at all — a
+   * `user-theme-preference` cookie, a `Sec-CH-Prefers-Color-Scheme` hint, or
+   * both. False means every value in `seed` is the SSR-safe default, so there
+   * is nothing worth writing into the served HTML.
+   */
+  hasSignal: boolean;
+  /**
+   * The resolved scheme when the server actually KNOWS it, and `null` when the
+   * value it rendered with was a fallback guess.
+   *
+   * Known means: an explicit `light`/`dark` cookie, or a real
+   * `Sec-CH-Prefers-Color-Scheme` hint. It is deliberately `null` for a
+   * `system` cookie with no hint — `hasSignal` is true there (we know the
+   * preference) but the scheme it resolves to is still the light fallback, and
+   * stamping that would silence the very failsafes that can get it right.
+   *
+   * `null` is therefore the instruction to leave `data-theme` and
+   * `color-scheme` off `<html>` so the inline script and the CSS media-query
+   * fallback keep owning the case, exactly as they did before the cookie.
+   */
+  scheme: ResolvedTheme | null;
+};
+
+/** The no-signal answer: default seed, nothing to stamp. */
+export const SSR_THEME_DETECTION_DEFAULT: SsrThemeDetection = {
+  seed: SSR_THEME_SEED_DEFAULT,
+  hasSignal: false,
+  scheme: null,
+};
+
+/**
+ * Resolve the detection from raw header values.
  *
  * `systemTheme` resolves from the client hint when present and otherwise falls
  * back to light — the server genuinely cannot know the OS preference on a
@@ -119,55 +175,95 @@ export function parseColorSchemeClientHint(
  * with. An explicit `light`/`dark` preference makes `systemTheme` irrelevant
  * (`resolveThemePreference` ignores it), but it is still filled in so a
  * post-mount switch to `system` has a sane starting point.
+ *
+ * `scheme` is only filled in when that resolution rested on something real:
+ * a `light`/`dark` cookie, or a hint. `system` with no hint keeps
+ * `hasSignal: true` (the preference IS known, and the seed carries it so the
+ * server render and the client's cookie read agree) but leaves `scheme` null,
+ * because the light it resolves to is the guess — the same guess the inline
+ * script and the CSS media query can improve on in the browser.
+ */
+export function resolveSsrThemeDetection(
+  cookieHeader: string | null | undefined,
+  colorSchemeHint?: string | null
+): SsrThemeDetection {
+  const userTheme = parseThemePreferenceCookie(cookieHeader);
+  const systemTheme = parseColorSchemeClientHint(colorSchemeHint);
+
+  if (!userTheme && !systemTheme) {
+    // No signal at all: hand back the shared default so consumers can compare
+    // by reference and skip provider work entirely.
+    return SSR_THEME_DETECTION_DEFAULT;
+  }
+
+  const seed: SsrThemeSeed = {
+    userTheme: userTheme ?? SSR_THEME_SEED_DEFAULT.userTheme,
+    systemTheme: systemTheme ?? SSR_THEME_SEED_DEFAULT.systemTheme,
+  };
+
+  // A `system` preference is only resolvable with a hint; without one the
+  // scheme stays unknown even though the preference itself is known.
+  const schemeIsKnown = seed.userTheme !== "system" || systemTheme !== null;
+
+  return {
+    seed,
+    hasSignal: true,
+    scheme: schemeIsKnown ? resolveSsrScheme(seed) : null,
+  };
+}
+
+/**
+ * Build the seed `@mrmeg/expo-ui`'s `SsrThemeSeedContext` expects from raw
+ * header values. Seed-only view of {@link resolveSsrThemeDetection}, for the
+ * provider — which renders the same seed either way and so has no branch to
+ * make on `hasSignal`.
  */
 export function resolveSsrThemeSeed(
   cookieHeader: string | null | undefined,
   colorSchemeHint?: string | null
 ): SsrThemeSeed {
-  const userTheme = parseThemePreferenceCookie(cookieHeader);
-  const systemTheme = parseColorSchemeClientHint(colorSchemeHint);
-
-  if (!userTheme && !systemTheme) {
-    // No signal at all: hand back the shared default object so consumers can
-    // compare by reference and skip provider work entirely.
-    return SSR_THEME_SEED_DEFAULT;
-  }
-
-  return {
-    userTheme: userTheme ?? SSR_THEME_SEED_DEFAULT.userTheme,
-    systemTheme: systemTheme ?? SSR_THEME_SEED_DEFAULT.systemTheme,
-  };
+  return resolveSsrThemeDetection(cookieHeader, colorSchemeHint).seed;
 }
 
 /**
- * Detect the theme seed from an explicit request object. Suitable for use
- * directly inside a route loader.
+ * Detect the theme from an explicit request object. Suitable for use directly
+ * inside a route loader.
  */
-export function detectSsrThemeSeed(request: HeaderSource): SsrThemeSeed {
-  if (!request) return SSR_THEME_SEED_DEFAULT;
-  return resolveSsrThemeSeed(
+export function detectSsrTheme(request: HeaderSource): SsrThemeDetection {
+  if (!request) return SSR_THEME_DETECTION_DEFAULT;
+  return resolveSsrThemeDetection(
     request.headers.get("cookie"),
     request.headers.get(CLIENT_HINT_HEADER)
   );
 }
 
+/** Seed-only view of {@link detectSsrTheme}. */
+export function detectSsrThemeSeed(request: HeaderSource): SsrThemeSeed {
+  return detectSsrTheme(request).seed;
+}
+
 /**
- * Detect the theme seed from Expo Server's ambient request scope.
+ * Detect the theme from Expo Server's ambient request scope.
  *
  * The try/catch is mandatory, not defensive politeness: this module is
  * reachable from the client bundle (the root layout imports it), and
  * `requestHeaders()` throws whenever there is no active request scope — in the
  * browser, during static export, and in unit tests. Every one of those cases
- * must resolve to the default seed, which is also the correct answer for a
+ * must resolve to the no-signal default, which is also the correct answer for a
  * visitor with no cookie.
  */
-export function detectSsrThemeSeedFromRequestScope(): SsrThemeSeed {
+export function detectSsrThemeFromRequestScope(): SsrThemeDetection {
   try {
     const headers = requestHeaders();
-    return resolveSsrThemeSeed(headers.get("cookie"), headers.get(CLIENT_HINT_HEADER));
+    return resolveSsrThemeDetection(headers.get("cookie"), headers.get(CLIENT_HINT_HEADER));
   } catch {
-    return SSR_THEME_SEED_DEFAULT;
+    return SSR_THEME_DETECTION_DEFAULT;
   }
+}
+
+/** Seed-only view of {@link detectSsrThemeFromRequestScope}. */
+export function detectSsrThemeSeedFromRequestScope(): SsrThemeSeed {
+  return detectSsrThemeFromRequestScope().seed;
 }
 
 /**

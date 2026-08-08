@@ -73,6 +73,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   server and browser read identically (a cookie), and `useTheme` resolves from
   it on web until persistence has loaded.
 
+  `SSR_THEME_SEED_DEFAULT` is `system`/light, i.e. what the store boots with —
+  so a host that receives no signal renders exactly as it did before the seed
+  existed. Note that this default is a *fallback*, not a reading: a host that
+  also writes the resolved scheme into its served HTML (`<html data-theme>`, a
+  blocking script's early-return, a `prefers-color-scheme` CSS fallback) must
+  distinguish "seed came from the visitor" from "seed is the default" and skip
+  the write in the latter case, or it will pin a dark-OS first-time visitor to
+  light with its own failsafes disabled.
+
 - **`user-theme-preference` cookie mirror.** On web, `setTheme` now dual-writes
   `localStorage` **and** a `user-theme-preference` cookie (`path=/;
   max-age≈1y; SameSite=Lax`, exported as `THEME_COOKIE_NAME`), and `loadTheme`

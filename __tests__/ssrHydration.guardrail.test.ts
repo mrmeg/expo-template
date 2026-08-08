@@ -84,8 +84,25 @@ describe("SSR hydration guardrails", () => {
     const html = read("app/+html.tsx");
 
     it("+html.tsx renders data-theme from the per-request read", () => {
-      expect(html).toContain("detectSsrThemeSeedFromRequestScope");
-      expect(html).toContain("data-theme={ssrScheme}");
+      expect(html).toContain("detectSsrThemeFromRequestScope");
+      expect(html).toContain("data-theme");
+    });
+
+    it("+html.tsx stamps data-theme ONLY when the request carried a real signal", () => {
+      // Stamping unconditionally would make the inline COLOR_SCHEME_SCRIPT a
+      // permanent no-op (it bails on `root.dataset.theme`) and permanently
+      // un-match the `html:not([data-theme])` dark media query — so a dark-OS
+      // first-timer with no cookie and no client hint would get a light paint
+      // with both failsafes disabled. The attribute must be behind the
+      // detection's null `scheme`.
+      expect(html).toContain("if (ssrScheme)");
+      expect(html).not.toContain("data-theme={ssrScheme}");
+    });
+
+    it("+html.tsx merges htmlAttributes.style instead of clobbering it", () => {
+      // `style={{ colorScheme }}` after `{...htmlAttributes}` would silently
+      // drop any framework-supplied <html> style.
+      expect(html).toContain("...htmlAttributes?.style");
     });
 
     it("+html.tsx stamps the resolved system scheme for the client to read back", () => {
@@ -99,10 +116,29 @@ describe("SSR hydration guardrails", () => {
     it("the theme-loading shield stays a first-visit-only failsafe", () => {
       const script = html.slice(html.indexOf("const COLOR_SCHEME_SCRIPT"));
       // Bails out when the server already rendered a theme, so it only ever
-      // runs for a hint-less first visit.
+      // runs for a hint-less first visit. This pairs with the conditional
+      // stamp above: no signal → no data-theme → the script actually runs.
       expect(script).toContain("if(root.dataset.theme){return;}");
+      // It must still be able to resolve a dark OS on its own for that case.
+      expect(script).toContain("prefers-color-scheme:dark");
       // And its window must not grow past the documented 500ms.
       expect(script).toContain("},500);");
+    });
+
+    it("the CSS dark fallback for un-stamped documents survives", () => {
+      // The other half of the no-signal path: the body must go dark from the
+      // media query before the script (or React) has run at all.
+      expect(html).toContain("@media (prefers-color-scheme: dark)");
+      expect(html).toContain("html:not([data-theme]) body");
+    });
+
+    it("the server exposes signal-vs-guess so the shell can branch", () => {
+      const server = read("server/lib/ssrTheme.ts");
+      expect(server).toContain("hasSignal");
+      // A `system` cookie with no hint is a known preference but an UNKNOWN
+      // scheme; conflating the two is how the regression happened.
+      expect(server).toContain("SsrThemeDetection");
+      expect(server).toContain("schemeIsKnown");
     });
 
     it("the root layout provides SsrThemeProvider above its own useTheme()", () => {

@@ -25,6 +25,14 @@ import {
  *     `window.matchMedia` here instead would diverge on every request where
  *     the browser sent no hint (the server would say light, the browser dark).
  *
+ * When the request carried no signal at all, `+html.tsx` stamps neither
+ * attribute — deliberately, so the blocking script and the
+ * `prefers-color-scheme` CSS fallback stay live for a dark-OS first-timer. This
+ * read then lands on `SSR_THEME_SEED_DEFAULT`, which is the *correct* answer
+ * here even on a dark OS: the server rendered light, so the first client render
+ * must too. The script and the CSS own the visible paint in that window; the
+ * React tree recolors when `hasLoadedTheme` flips, not before.
+ *
  * After mount `syncThemeFromEnvironment()` reads real persistence and starts
  * the live OS listener, flipping `hasLoadedTheme`; from then on the store is
  * the source of truth and this seed is ignored. A stale cookie can therefore
