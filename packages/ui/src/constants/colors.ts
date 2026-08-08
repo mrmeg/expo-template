@@ -28,11 +28,15 @@ const palette = {
   black: "#000000",
 
   // Dark mode surfaces — zinc-based
+  // `dark950` sits below zinc-950 as the app-chrome tier; `dark350` is a
+  // zinc-350 midpoint used for dim text that stays comfortably readable.
+  dark950: "#050506",
   dark900: "#09090B",
   dark800: "#18181B",
   dark700: "#27272A",
   dark600: "#3F3F46",
   dark400: "#A1A1AA",
+  dark350: "#B0B0B8",
   dark300: "#D4D4D8",
   dark100: "#F4F4F5",
 
@@ -50,6 +54,10 @@ const palette = {
  */
 export interface ThemeColors {
   // Core surfaces
+  // Elevation reads as layered tiers, not shadows:
+  // `surfaceSunken` (app chrome) < `background` (content) < `card`/`popover`
+  // (raised panels) < `muted` (chips, insets).
+  surfaceSunken: string;
   background: string;
   foreground: string;
   card: string;
@@ -81,6 +89,10 @@ export interface ThemeColors {
 
   // Utility
   border: string;
+  // Hairline for elements sitting on a filled surface (chips on `muted`,
+  // raised panels) — one visible step above the fill, where `border` would
+  // disappear into it.
+  borderStrong: string;
   input: string;
   ring: string;
   overlay: string;
@@ -111,6 +123,7 @@ const lightTheme: Theme = {
   dark: false,
   fonts: navigationFonts,
   colors: {
+    surfaceSunken: palette.gray50,
     background: palette.white,
     foreground: palette.gray950,
     card: palette.white,
@@ -119,14 +132,14 @@ const lightTheme: Theme = {
     popoverForeground: palette.gray950,
 
     text: palette.gray950,
-    textDim: palette.gray500,
+    textDim: palette.gray600,
 
     primary: palette.gray900,
     primaryForeground: palette.gray50,
     secondary: palette.gray100,
     secondaryForeground: palette.gray900,
     muted: palette.gray100,
-    mutedForeground: palette.gray500,
+    mutedForeground: palette.gray600,
 
     accent: palette.teal500,
     accentForeground: palette.white,
@@ -137,6 +150,7 @@ const lightTheme: Theme = {
     warning: palette.amber500,
 
     border: palette.gray200,
+    borderStrong: palette.gray300,
     input: palette.gray200,
     ring: palette.gray400,
     overlay: "rgba(0, 0, 0, 0.5)",
@@ -155,6 +169,7 @@ const darkTheme: Theme = {
   dark: true,
   fonts: navigationFonts,
   colors: {
+    surfaceSunken: palette.dark950,
     background: palette.dark900,
     foreground: palette.dark100,
     card: palette.dark800,
@@ -163,14 +178,14 @@ const darkTheme: Theme = {
     popoverForeground: palette.dark100,
 
     text: palette.dark100,
-    textDim: palette.dark400,
+    textDim: palette.dark350,
 
     primary: palette.gray50,
     primaryForeground: palette.gray900,
     secondary: palette.gray800,
     secondaryForeground: palette.gray50,
     muted: palette.dark700,
-    mutedForeground: palette.dark400,
+    mutedForeground: palette.dark350,
 
     accent: palette.teal400,
     accentForeground: palette.gray900,
@@ -181,6 +196,7 @@ const darkTheme: Theme = {
     warning: palette.amber400,
 
     border: palette.dark700,
+    borderStrong: palette.dark600,
     input: palette.dark700,
     ring: palette.dark400,
     overlay: "rgba(0, 0, 0, 0.7)",

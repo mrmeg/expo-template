@@ -51,9 +51,14 @@ package `tx` props translated by its app-owned i18n instance.
 ## Theme Rules
 
 Use `useTheme()` and `useStyles()` from `@mrmeg/expo-ui/hooks`. Use semantic
-tokens such as `background`, `foreground`, `card`, `popover`, `border`,
-`input`, `ring`, `primary`, `secondary`, `accent`, `mutedForeground`,
-`destructive`, `success`, and `warning`.
+tokens such as `surfaceSunken`, `background`, `foreground`, `card`, `popover`,
+`border`, `borderStrong`, `input`, `ring`, `primary`, `secondary`, `accent`,
+`mutedForeground`, `destructive`, `success`, and `warning`.
+
+Surfaces form a tier ladder rather than a shadow scale: `surfaceSunken` (app
+chrome such as the Drawer rail) < `background` (content) < `card`/`popover`
+(raised) < `muted` (chips, insets). Use `borderStrong` for hairlines on filled
+or raised elements, where `border` would blend into the fill.
 
 Use `StyledText` and semantic text aliases instead of raw `Text` for app UI.
 Use package controls instead of hardcoded Pressable/View/Text combinations.
