@@ -29,6 +29,11 @@ pre-commit:
     - name: gen:templates:check
       run: bun run gen:templates:check
 
+    # client/blocks/registry.generated.ts is the same deal one tier down — a new
+    # block folder without `bun run gen:blocks` fails here.
+    - name: gen:blocks:check
+      run: bun run gen:blocks:check
+
     # llms-full.txt / llms-examples.txt are generated from the docs source list.
     - name: docs:llms:check
       run: bun run docs:llms:check
