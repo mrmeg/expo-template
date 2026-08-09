@@ -207,14 +207,144 @@ up in a post-mount effect instead, and refreshes the cookie for next time.
 Use `useDimensions()` for responsive width, **not** raw
 `useWindowDimensions()`, in anything that renders on web.
 
-### 5. Theme / `typeof window` branches — resolve to a fixed first-render default
+### 5. Theme — resolved server-side from a cookie
 
-`app/+html.tsx` ships a blocking `themeScript` that sets `data-theme` on `<html>`
-before hydration and hides `#root` for dark-mode visitors (the `theme-loading`
-class) to mask the flash. The CSS uses `html[data-theme=…]` selectors so the
-body background is correct on first paint. Any component that reads theme/window
-for render output should resolve to a stable default on the first render (gate
-on a `useHydrated()`-style flag) and switch after mount.
+Theme is **personalization**, so it gets the same treatment as onboarding (§6):
+give the server the signal instead of masking a wrong render.
+
+Before this, the server had no way to know the visitor's theme, so every SSR
+render shipped a fully **light** React tree — light surface classes and light
+foregrounds throughout — and a dark-mode user watched the whole page recolor
+after hydration (dark blank → light tree → dark tree). The blocking script could
+only set the `<body>` background; it cannot recolor a React tree.
+
+Four parts:
+
+1. **`themeStore` dual-writes on web.** `setTheme(pref)` writes
+   `localStorage["user-theme-preference"]` **and** a
+   `user-theme-preference=<pref>` cookie (`path=/; max-age≈1y; SameSite=Lax`) —
+   same name for both, so there's one string to grep and the `+html.tsx` script
+   already reads it. `loadTheme()` backfills/repairs the cookie from
+   `localStorage` (and writes `system` when nothing is persisted), so existing
+   users are migrated on their next visit. Native persistence is unchanged:
+   AsyncStorage, eagerly hydrated at module load, no cookie.
+
+2. **`server/lib/ssrTheme.ts` reads it.** `parseThemePreferenceCookie()` does
+   the parse (anchored to a cookie boundary; unknown values → `null`);
+   `detectSsrThemeSeedFromRequestScope()` gets the header from `expo-server`'s
+   `requestHeaders()` — **inside a try/catch that falls back to the default
+   seed**, because the same module ships in the client bundle where
+   `requestHeaders()` throws. `detectSsrThemeSeed(request)` is the explicit
+   loader-friendly form, mirroring `detectOnboardingSeen(request)`.
+
+   A `system` preference (or a first-time visitor) resolves through the
+   `Sec-CH-Prefers-Color-Scheme` client hint when the browser sends one.
+   `app/+html.tsx` opts in with `<meta http-equiv="Accept-CH">`, so the hint
+   arrives from the second navigation onwards on browsers that implement it;
+   absent a hint the server falls back to light, which is what the store has
+   always booted with.
+
+3. **`SsrThemeSeedContext` carries it per request.** `useThemeStore` is a module
+   singleton shared by every concurrent SSR request, so a per-request theme can
+   **never** be written into it. `@mrmeg/expo-ui/state`'s `SsrThemeSeedContext`
+   is the per-request channel instead, and `client/components/SsrThemeProvider.tsx`
+   provides it: a lazy `useState` initializer reads the request scope on the
+   server and `document.cookie` in the browser. `packages/ui` must not import
+   `expo-server` (`check:forbidden-imports`), which is why the parse lives in
+   the app's `server/` layer and only the context lives in the package.
+
+   `RootLayout` is split for this: the default export renders only
+   `<SsrThemeProvider>`, and `RootLayoutContent` (which calls `useTheme()` for
+   the navigation `ThemeProvider` and the Stack backdrop) renders inside it — a
+   component can't consume a context it renders itself.
+
+4. **`useTheme` prefers the seed until persistence has loaded.** The store gained
+   `hasLoadedTheme`, flipped by `loadTheme()`. While it's false on web,
+   `useTheme`/`useStyles` resolve from the seed; after mount
+   `syncThemeFromEnvironment()` reads `localStorage`, starts the live OS
+   listener, and store state takes over for good. So `localStorage` always wins
+   on a mismatch and a stale cookie can't pin anyone to the wrong theme beyond
+   the first paint.
+
+`app/+html.tsx` renders `data-theme` on `<html>` from the same per-request read —
+**but only when that read found something.** `detectSsrThemeFromRequestScope()`
+returns `{ seed, hasSignal, scheme }`, and `scheme` is `null` unless the server
+genuinely knows the answer (an explicit `light`/`dark` cookie, or a real
+`Sec-CH-Prefers-Color-Scheme` hint). Two branches:
+
+- **Signal** → stamp `data-theme` and `color-scheme`, so the
+  `html[data-theme=…]` CSS paints the right body background on byte 1 with no
+  blocking script involved. `data-ssr-system-scheme` goes on too, carrying the
+  system scheme the server used: the client hint is a *request* header that
+  browser JS cannot read, so without that attribute the client's first render
+  would have to guess with `window.matchMedia` and would disagree with the
+  server on every hint-less request.
+
+- **No signal** → stamp **nothing**. The server rendered light because that's
+  the store's boot default, not because it knows anything, and a stamped guess
+  is worse than no attribute: `COLOR_SCHEME_SCRIPT` returns early on
+  `root.dataset.theme`, and `@media (prefers-color-scheme: dark)
+  html:not([data-theme])` stops matching. Both failsafes would be dead, and a
+  brand-new visitor on a dark OS whose browser sent no hint would get a light
+  flash with no way out. Omitting the attribute hands that case back to the
+  script and the media query, exactly as it worked before the cookie existed.
+
+A `system` cookie with **no** hint sits deliberately in the second branch:
+`hasSignal` is true (the preference is known, and the seed carries it so the
+server render and the client's own cookie read agree) but `scheme` is `null`,
+because the light it resolves to is still the guess.
+
+So the blocking `COLOR_SCHEME_SCRIPT` stays a **first-visit-only** failsafe that
+actually fires: its `data-theme` early-return is the handover, and the
+conditional stamp above is what keeps the handover real. Don't widen its 500ms
+`theme-loading` window; the cookie is what fixes the common case, and the script
+only has to cover the hint-less first paint.
+
+`{...htmlAttributes}` is spread first and the theme props merge over it —
+including `style`, which is spread into the `colorScheme` object rather than
+replacing it, so a framework-supplied `<html>` style survives.
+
+Any *other* component that reads theme/window for render output should still
+resolve to a stable default on the first render (gate on a `useHydrated()`-style
+flag) and switch after mount.
+
+Verify both cookie states against a **production** server — the dev server ships
+no app content, so it can't demonstrate this:
+
+```bash
+bun run build && PORT=3000 bun run start
+
+# The <html> attribute the blocking script and the CSS both key off.
+curl -s -H 'Cookie: user-theme-preference=dark' localhost:3000/showcase \
+  | grep -o 'data-theme="[^"]*"'            # data-theme="dark"
+
+# No cookie, no hint: NO data-theme at all. An empty result is the pass —
+# `data-theme="light"` here would be the regression (dead script + dead media
+# query for a dark-OS first-timer).
+curl -s localhost:3000/showcase | grep -o 'data-theme="[^"]*"'   # (nothing)
+```
+
+Don't grep the raw color out of the whole document: the RNW stylesheet snapshot
+registers **both** palettes on every response, so `rgba(9,9,11,1.00)` is present
+either way. What changes is which class the *tree* references. Resolve the class
+from the stylesheet, then count its uses in the markup:
+
+```bash
+page=$(curl -s -H 'Cookie: user-theme-preference=dark' localhost:3000/showcase)
+cls=$(printf '%s' "$page" \
+  | grep -o '[a-z0-9-]*{background-color:rgba(9,9,11,1.00)' | head -1 | cut -d'{' -f1)
+
+printf '%s' "$page" | grep -c "class=\"[^\"]*$cls"          # 1 — dark tree
+curl -s localhost:3000/showcase | grep -c "class=\"[^\"]*$cls"   # 0 — light tree
+```
+
+`system` resolves through the client hint, which curl can send explicitly:
+
+```bash
+curl -s -H 'Cookie: user-theme-preference=system' \
+     -H 'Sec-CH-Prefers-Color-Scheme: dark' localhost:3000/ \
+  | grep -o 'data-ssr-system-scheme="[^"]*"'   # data-ssr-system-scheme="dark"
+```
 
 ### 6. Onboarding gate — resolved server-side from a cookie
 
@@ -280,10 +410,11 @@ curl -s localhost:3000/ | grep -c onboarding-gate                               
 curl -s -H 'Cookie: has-seen-onboarding=1' localhost:3000/ | grep -c onboarding-gate  # returning → == 0
 ```
 
-> Follow-up, not done here: the theme preference could move to the same
-> cookie mechanism and retire the `theme-loading` shield too. It's a separate
-> decision — the theme script also handles the OS `prefers-color-scheme`
-> fallback, which no cookie can supply on a first visit.
+> The theme preference now uses this same mechanism — see §5. The
+> `theme-loading` shield survives only as a first-visit failsafe, because the
+> OS `prefers-color-scheme` fallback is the one signal no cookie can supply on
+> a first visit (the `Sec-CH-Prefers-Color-Scheme` client hint covers it from
+> the second request onwards).
 
 ### 7. Theme-dependent styles — register at module scope, not render time
 

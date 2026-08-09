@@ -31,6 +31,7 @@ import {
 } from "@/client/features/app/ssrViewportMetrics";
 import { AuthProviderGate } from "@/client/features/auth/provider/AuthProviderGate";
 import { useHasSeenOnboarding } from "@/client/features/onboarding/onboardingStore";
+import { SsrThemeProvider } from "@/client/components/SsrThemeProvider";
 
 // Surface partial-feature env config (e.g. only one Cognito var set) at
 // startup. Always warns, never throws — the template stays runnable when
@@ -74,7 +75,25 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Root entry. Its only job is to install `SsrThemeProvider` ABOVE everything
+ * that reads the theme — including this file's own `useTheme()` call, which
+ * feeds the navigation `ThemeProvider` and the Stack's backdrop color. A
+ * component can't consume a context it renders itself, hence the split.
+ *
+ * The provider seeds the server render and the client's first render from the
+ * `user-theme-preference` cookie, so a dark-mode visitor's first paint is dark.
+ * See client/components/SsrThemeProvider.tsx and docs/ssr-hydration.md §5.
+ */
 export default function RootLayout() {
+  return (
+    <SsrThemeProvider>
+      <RootLayoutContent />
+    </SsrThemeProvider>
+  );
+}
+
+function RootLayoutContent() {
   // Initialize English synchronously, during render, so i18next is ready on the
   // server (effects don't run during SSR). Without this, an SSR-reachable
   // screen's `t()` emits raw keys server-side and translations client-side →

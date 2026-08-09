@@ -2,13 +2,82 @@
  * themeStore tests
  *
  * Tests default state, setTheme, and persistence behavior.
+ *
+ * Since the SSR theme cookie (docs/ssr-hydration.md §5) the web writes are a
+ * DUAL write — localStorage plus a `user-theme-preference` cookie the server
+ * reads to decide which scheme to render. Those assertions matter because a
+ * missing cookie write silently reverts every dark-mode visitor to a
+ * light-themed server render that recolors after hydration, which no
+ * client-side test would notice.
+ *
+ * Platform switching mirrors the onboarding store's tests: mutate `Platform.OS`
+ * on the live react-native module rather than re-mocking it, and shim both
+ * `window` and `globalThis.localStorage` because the source uses
+ * `window.localStorage` only for the typeof check but reads/writes via the
+ * bare global.
  */
 
-import { resolveThemePreference, useThemeStore } from "../themeStore";
+import { Platform } from "react-native";
+
+import { THEME_COOKIE_NAME, resolveThemePreference, useThemeStore } from "../themeStore";
+
+type WindowShim = { localStorage: typeof localStorage };
+
+// `document.cookie` is a setter that appends in a real browser; jest-expo's
+// environment is not guaranteed to be jsdom, so install a minimal recorder and
+// read back what was written.
+function installDocumentCookie(initial = "") {
+  const writes: string[] = [];
+  let value = initial;
+  const doc = {
+    get cookie() {
+      return value;
+    },
+    set cookie(next: string) {
+      writes.push(next);
+      const [pair] = next.split(";");
+      const [name, raw = ""] = pair.split("=");
+      const others = value
+        .split(";")
+        .map((c) => c.trim())
+        .filter((c) => c && c.split("=")[0] !== name);
+      value = [...others, `${name}=${raw}`].join("; ");
+    },
+  };
+  (globalThis as unknown as { document: typeof doc }).document = doc;
+  return { writes, current: () => value };
+}
+
+function installLocalStorage(stored: Record<string, string> = {}) {
+  const shim = {
+    setItem: (k: string, v: string) => {
+      stored[k] = v;
+    },
+    getItem: (k: string) => stored[k] ?? null,
+    removeItem: (k: string) => {
+      delete stored[k];
+    },
+    clear: () => {
+      for (const k of Object.keys(stored)) delete stored[k];
+    },
+    length: 0,
+    key: () => null,
+  } as unknown as Storage;
+
+  (globalThis as unknown as { window: WindowShim }).window = { localStorage: shim };
+  (globalThis as unknown as { localStorage: Storage }).localStorage = shim;
+  return shim;
+}
 
 // Reset store between tests
 beforeEach(() => {
-  useThemeStore.setState({ userTheme: "system", systemTheme: "light", colorOverrides: {}, shapeOverrides: {} });
+  useThemeStore.setState({
+    userTheme: "system",
+    systemTheme: "light",
+    hasLoadedTheme: false,
+    colorOverrides: {},
+    shapeOverrides: {},
+  });
 });
 
 describe("themeStore", () => {
@@ -82,6 +151,145 @@ describe("themeStore", () => {
 
       expect(useThemeStore.getState().userTheme).toBe("dark");
       expect(useThemeStore.getState().systemTheme).toBe("dark");
+    });
+  });
+
+  describe("SSR theme cookie (web)", () => {
+    const originalOS = Platform.OS;
+    const originalDocument = (globalThis as unknown as { document?: unknown }).document;
+
+    beforeEach(() => {
+      (Platform as { OS: string }).OS = "web";
+    });
+
+    afterEach(() => {
+      (Platform as { OS: string }).OS = originalOS;
+      delete (globalThis as unknown as { window?: unknown }).window;
+      delete (globalThis as unknown as { localStorage?: unknown }).localStorage;
+      if (originalDocument === undefined) {
+        delete (globalThis as unknown as { document?: unknown }).document;
+      } else {
+        (globalThis as unknown as { document: unknown }).document = originalDocument;
+      }
+    });
+
+    it("uses the same name as the localStorage key", () => {
+      expect(THEME_COOKIE_NAME).toBe("user-theme-preference");
+    });
+
+    it("setTheme dual-writes localStorage and the SSR cookie", () => {
+      installLocalStorage();
+      const cookies = installDocumentCookie();
+      const setItemSpy = jest.spyOn(globalThis.localStorage, "setItem");
+
+      useThemeStore.getState().setTheme("dark");
+
+      expect(setItemSpy).toHaveBeenCalledWith(THEME_COOKIE_NAME, "dark");
+      expect(cookies.writes).toHaveLength(1);
+      expect(cookies.writes[0]).toContain(`${THEME_COOKIE_NAME}=dark`);
+      expect(cookies.writes[0]).toContain("path=/");
+      expect(cookies.writes[0]).toContain("SameSite=Lax");
+      expect(cookies.writes[0]).toMatch(/max-age=31536000/);
+      expect(cookies.writes[0]).not.toContain("domain=");
+      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=dark`);
+    });
+
+    it("setTheme writes every preference value the server can parse", () => {
+      installLocalStorage();
+      const cookies = installDocumentCookie();
+
+      useThemeStore.getState().setTheme("light");
+      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=light`);
+
+      useThemeStore.getState().setTheme("system");
+      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=system`);
+    });
+
+    it("setTheme marks the theme loaded so renders stop trusting the SSR seed", () => {
+      installLocalStorage();
+      installDocumentCookie();
+
+      expect(useThemeStore.getState().hasLoadedTheme).toBe(false);
+      useThemeStore.getState().setTheme("dark");
+      expect(useThemeStore.getState().hasLoadedTheme).toBe(true);
+    });
+
+    it("loadTheme backfills the cookie from localStorage for pre-existing users", () => {
+      installLocalStorage({ [THEME_COOKIE_NAME]: "dark" });
+      const cookies = installDocumentCookie();
+
+      useThemeStore.getState().loadTheme();
+
+      expect(useThemeStore.getState().userTheme).toBe("dark");
+      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=dark`);
+    });
+
+    it("loadTheme overwrites a cookie that drifted from localStorage", () => {
+      installLocalStorage({ [THEME_COOKIE_NAME]: "light" });
+      const cookies = installDocumentCookie(`${THEME_COOKIE_NAME}=dark`);
+
+      // localStorage is the source of truth; the cookie is only a render hint.
+      useThemeStore.getState().loadTheme();
+
+      expect(useThemeStore.getState().userTheme).toBe("light");
+      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=light`);
+      expect(cookies.current()).not.toContain(`${THEME_COOKIE_NAME}=dark`);
+    });
+
+    it("loadTheme clears a stale cookie when nothing is persisted", () => {
+      installLocalStorage();
+      const cookies = installDocumentCookie(`${THEME_COOKIE_NAME}=dark`);
+
+      useThemeStore.getState().loadTheme();
+
+      expect(useThemeStore.getState().userTheme).toBe("system");
+      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=system`);
+    });
+
+    it("loadTheme ignores a persisted value the store would never write", () => {
+      installLocalStorage({ [THEME_COOKIE_NAME]: "sepia" });
+      installDocumentCookie();
+
+      useThemeStore.getState().loadTheme();
+
+      expect(useThemeStore.getState().userTheme).toBe("system");
+    });
+
+    it("loadTheme marks the theme loaded on web", () => {
+      installLocalStorage();
+      installDocumentCookie();
+
+      expect(useThemeStore.getState().hasLoadedTheme).toBe(false);
+      useThemeStore.getState().loadTheme();
+      expect(useThemeStore.getState().hasLoadedTheme).toBe(true);
+    });
+  });
+
+  describe("SSR theme cookie (native)", () => {
+    const originalDocument = (globalThis as unknown as { document?: unknown }).document;
+
+    afterEach(() => {
+      if (originalDocument === undefined) {
+        delete (globalThis as unknown as { document?: unknown }).document;
+      } else {
+        (globalThis as unknown as { document: unknown }).document = originalDocument;
+      }
+    });
+
+    it("does not write a cookie on native", async () => {
+      const cookies = installDocumentCookie();
+
+      useThemeStore.getState().setTheme("dark");
+      await Promise.resolve();
+
+      expect(cookies.writes).toHaveLength(0);
+    });
+
+    it("marks the theme loaded once loadTheme resolves on native", async () => {
+      useThemeStore.getState().loadTheme();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(useThemeStore.getState().hasLoadedTheme).toBe(true);
     });
   });
 
