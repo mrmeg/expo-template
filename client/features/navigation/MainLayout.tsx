@@ -1,12 +1,6 @@
-import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import { useTheme, useDimensions } from "@mrmeg/expo-ui/hooks";
-import { WebBackButton } from "@/client/features/navigation/WebBackButton";
-
-const isWeb = Platform.OS === "web";
-const webHeaderLeft = isWeb
-  ? { headerLeft: () => <WebBackButton /> }
-  : {};
+import { MAIN_STACK_SCREENS } from "@/client/features/navigation/mainStackScreens";
 
 export default function MainLayout() {
   const { theme } = useTheme();
@@ -43,36 +37,9 @@ export default function MainLayout() {
         ...({ layout: { width, height } } as object),
       }}
     >
-      {/* The `(tabs)` group uses a native tab bar (see (tabs)/_layout.tsx), so the
-          stack header is the only top chrome and shows at every width. */}
-      <Stack.Screen name="(tabs)" options={{ headerShown: true, title: "Explore", headerBackTitle: " " }} />
-      {/* Three-scale galleries. `components/[id]` sets its own title from the
-          component's registry id, so it only declares the web back button. */}
-      <Stack.Screen name="(demos)/components/index" options={{ title: "Components", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/components/[id]" options={{ ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/blocks/index" options={{ title: "Blocks", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/templates/index" options={{ title: "Screen Templates", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/showcase/index" options={{ title: "UI Components", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/themed-showcase" options={{ title: "Themed Showcase", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/developer" options={{ title: "Developer Tools", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/server-alpha" options={{ title: "Server Alpha", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/server-alpha/[example]" options={{ title: "Server Pattern", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/form-demo" options={{ title: "Form Validation", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/auth-demo" options={{ title: "Auth Demo", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/onboarding" options={{ headerShown: false }} />
-      <Stack.Screen name="(demos)/detail-hero" options={{ headerShown: false }} />
-      <Stack.Screen name="(demos)/screen-settings" options={{ title: "Settings Screen", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/screen-profile" options={{ title: "Profile Screen", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/screen-list" options={{ title: "List Screen", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/screen-pricing" options={{ title: "Pricing Screen", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/screen-welcome" options={{ headerShown: false }} />
-      <Stack.Screen name="(demos)/screen-card-grid" options={{ title: "Card Grid Screen", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/screen-chat" options={{ title: "Chat Screen", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/screen-dashboard" options={{ title: "Dashboard Screen", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/screen-form" options={{ title: "Form Screen", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/screen-notifications" options={{ title: "Notifications Screen", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/screen-search" options={{ title: "Search Results Screen", ...webHeaderLeft }} />
-      <Stack.Screen name="(demos)/screen-error" options={{ title: "Error Screen", ...webHeaderLeft }} />
+      {MAIN_STACK_SCREENS.map(({ name, options }) => (
+        <Stack.Screen key={name} name={name} options={options} />
+      ))}
     </Stack>
   );
 }
