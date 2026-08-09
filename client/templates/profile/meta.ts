@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Avatar, stats, sections",
   icon: "user",
   order: 20,
+  category: "forms-auth",
 };

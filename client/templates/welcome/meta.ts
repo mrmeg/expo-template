@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Landing & social login",
   icon: "log-in",
   order: 50,
+  category: "marketing",
 };

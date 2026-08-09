@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Multi-step wizard",
   icon: "edit-3",
   order: 90,
+  category: "forms-auth",
 };

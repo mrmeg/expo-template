@@ -21,9 +21,10 @@ Treat these files as the source of truth before editing another project:
 | Bundle budget and analysis workflow | `docs/bundle-analysis.md` |
 | Sentry runtime and native upload setup | `docs/error-tracking.md` |
 | UI component exports | `packages/ui/src/components/index.ts` |
-| Screen and demo registry | `client/showcase/registry.ts` |
+| Component, block, screen-template, and demo registry | `client/showcase/registry.ts` |
 | Demo routes | `app/(main)/(demos)/` |
-| Reusable screen implementations | `client/screens/` |
+| Reusable screen implementations | `client/templates/<id>/` |
+| Reusable composed sections | `client/blocks/<id>/` |
 
 When code and docs disagree, inspect the source files and update the docs in
 the same change.
@@ -59,16 +60,36 @@ belong in `packages/media`.
 - Respect SSR first-render constraints on web. Read `docs/ssr-hydration.md`
   before changing `app/+html.tsx`, root startup, theme startup, i18n startup,
   onboarding, viewport logic, or font loading.
-- Add showcase coverage when adding a reusable component or screen template.
-  Update `client/showcase/registry.ts` so the Explore tab remains the adoption
-  surface.
+- Add showcase coverage when adding a reusable component, block, or screen
+  template. Components are listed by hand in `client/showcase/registry.ts`;
+  blocks and screen templates are generated from their `meta.ts` by
+  `bun run gen:blocks` / `bun run gen:templates`. Explore and the three
+  galleries derive every count and card from those registries, so a new asset
+  shows up without touching a screen.
 - Use exact local scripts from `package.json`; do not substitute generic Expo
   or npm commands when a Bun script exists.
 
+## Three Scales
+
+The showcase is organised by how much of a screen an asset covers. Pick the
+largest scale that fits before dropping to the one below.
+
+| Scale | Lives in | Browse at | Use for |
+|-------|----------|-----------|---------|
+| 01 Components | `packages/ui/src/components/` | `app/(main)/(demos)/components/` (card grid + per-component detail) | A single primitive: a button, an input, a sheet |
+| 02 Blocks | `client/blocks/<id>/` | `app/(main)/(demos)/blocks/` (live stage + component recipe) | A composed section of a screen: hero, feature grid, stat row |
+| 03 Screen templates | `client/templates/<id>/` | `app/(main)/(demos)/templates/` (card grid → the live screen) | A complete screen you adapt rather than compose |
+
+The Explore tab (`app/(main)/(tabs)/index.tsx`) is the entry point: a search
+field that filters all three registries at once, then one section per scale.
+`app/(main)/(demos)/showcase/index.tsx` is still the exhaustive per-component
+kitchen sink and is linked from the components gallery header.
+
 ## Component Selection
 
-Start with `packages/ui/src/components/index.ts` and the showcase route
-`app/(main)/(demos)/showcase/index.tsx`.
+Start with `packages/ui/src/components/index.ts` and the components gallery
+`app/(main)/(demos)/components/index.tsx` (or the exhaustive
+`app/(main)/(demos)/showcase/index.tsx`).
 
 | Use case | Prefer |
 |----------|--------|
@@ -91,27 +112,53 @@ and the field wrappers in `client/lib/form/`. Keep field state local to the
 smallest useful component, especially inside showcase demos and high-churn
 forms.
 
+## Blocks
+
+Blocks live in `client/blocks/<id>/` as a `Block.tsx` plus a `meta.ts`, and are
+registered by `bun run gen:blocks`. Each `meta.ts` carries a `recipe` — the
+component ids the block composes — which the gallery renders as links into the
+component detail, so a block documents its own construction.
+
+| Block | Category | Use for |
+|-------|----------|---------|
+| Hero | marketing | Landing headline, subcopy, and primary/secondary actions |
+| Feature Grid | marketing | Three-up capability grid with icons |
+| Stat Row | data | A row of metrics with change indicators |
+| CTA Banner | marketing | A single mid-page conversion prompt |
+| FAQ Section | content | Accordion of common questions |
+| Sign-In Form | auth | Email/password entry with social options |
+
+Reach for a block before hand-composing a section out of primitives, and before
+copying a whole screen template you only need one band of.
+
 ## Screen Templates
 
-The reusable screen templates live in `client/screens/`. Demo routes under
-`app/(main)/(demos)/` show concrete usage and are registered in
-`client/showcase/registry.ts`.
+Screen templates live in `client/templates/<id>/` as a `Screen.tsx` (the
+reusable implementation), a `demo.tsx` (the route's sample data), and a
+`meta.ts` (id, label, description, icon, `route`, `order`, `category`).
+`bun run gen:templates` turns those metas into
+`client/templates/registry.generated.ts`; navigate by an entry's `route`, never
+a path built from its id.
 
-| Template | Source | Use for |
-|----------|--------|---------|
-| Settings | `client/screens/SettingsScreen.tsx` | Grouped settings, toggles, account actions |
-| Profile | `client/screens/ProfileScreen.tsx` | User profile, avatar, stats, sectioned details |
-| List | `client/screens/ListScreen.tsx` | Searchable lists, refresh, loading and empty states |
-| Pricing | `client/screens/PricingScreen.tsx` | Plans, billing intervals, comparison states |
-| Welcome | `client/screens/WelcomeScreen.tsx` | First-run welcome and authentication entry |
-| Card Grid | `client/screens/CardGridScreen.tsx` | Filterable card collections |
-| Chat | `client/screens/ChatScreen.tsx` | Message timelines and composer layout |
-| Dashboard | `client/screens/DashboardScreen.tsx` | Metrics, charts, activity feeds |
-| Form | `client/screens/FormScreen.tsx` | Multi-step forms with validation and review |
-| Notifications | `client/screens/NotificationListScreen.tsx` | Grouped notification feeds |
-| Search Results | `client/screens/SearchResultsScreen.tsx` | Query results, filters, empty states |
-| Error | `client/screens/ErrorScreen.tsx` | Setup, retry, auth, access, and fatal states |
-| Detail Hero | `client/screens/DetailHeroScreen.tsx` | Object detail pages with prominent media |
+| Template | Category | Use for |
+|----------|----------|---------|
+| Welcome | marketing | First-run welcome and authentication entry |
+| Hero | marketing | Landing page: centered and full-bleed variants |
+| Pricing | marketing | Plans, billing intervals, comparison states |
+| Testimonials | marketing | Snap-scrolling social proof |
+| Dashboard | data | Metrics, charts, activity feeds |
+| Stats | data | Metric grid with change indicators |
+| List | content | Searchable lists, refresh, loading and empty states |
+| Card Grid | content | Filterable card collections |
+| Detail / Hero | content | Object detail pages with prominent media |
+| Chat | content | Message timelines and composer layout |
+| Notifications | content | Grouped notification feeds |
+| FAQ | content | Accordion of questions and answers |
+| Settings | forms-auth | Grouped settings, toggles, account actions |
+| Profile | forms-auth | User profile, avatar, stats, sectioned details |
+| Form | forms-auth | Multi-step forms with validation and review |
+| Search | states | Query results, filters, empty states |
+| Error | states | Setup, retry, auth, access, and fatal states |
 
 Use these as starting points, not as containers for unrelated product logic.
 Domain behavior should sit in a feature folder, then pass data and callbacks
@@ -142,7 +189,9 @@ Use this order when moving an existing project toward this template:
 3. Establish the route shell: root providers, tabs, grouped demo routes,
    error boundary, safe area, keyboard provider, and startup gate.
 4. Replace one-off UI with `@mrmeg/expo-ui` components and tokens. Port
-   screens by matching the closest template in `client/screens/`.
+   screens from the largest matching scale down: a screen template in
+   `client/templates/<id>/`, then a block in `client/blocks/<id>/`, then
+   individual components.
 5. Normalize forms through `react-hook-form`, `zod`, and `client/lib/form`
    wrappers.
 6. Move server state to React Query and client state to small Zustand stores.

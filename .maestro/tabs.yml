@@ -33,7 +33,7 @@ env:
 # Explore (the initial tab).
 - assertVisible:
     id: "explore-screen"
-- assertVisible: "Screen Templates"
+- assertVisible: "Templates"
 
 # Media — mounts and degrades gracefully with blank env.
 - tapOn: "Media"

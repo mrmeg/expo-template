@@ -14,6 +14,9 @@ detail. Screen templates live in self-contained folders under
 Working in-app examples for every component and screen template; the best reference for real composition.
 
 - app/(main)/(demos)/auth-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/auth-demo.tsx
+- app/(main)/(demos)/blocks/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/blocks/index.tsx
+- app/(main)/(demos)/components/[id].tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/components/%5Bid%5D.tsx
+- app/(main)/(demos)/components/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/components/index.tsx
 - app/(main)/(demos)/detail-hero.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/detail-hero.tsx
 - app/(main)/(demos)/developer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/developer.tsx
 - app/(main)/(demos)/form-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/form-demo.tsx
@@ -37,6 +40,7 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/server-alpha.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha.tsx
 - app/(main)/(demos)/server-alpha/[example].tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha/%5Bexample%5D.tsx
 - app/(main)/(demos)/showcase/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/showcase/index.tsx
+- app/(main)/(demos)/templates/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/templates/index.tsx
 - app/(main)/(demos)/themed-showcase.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/themed-showcase.tsx
 
 ## Screen Templates (`client/templates/`)

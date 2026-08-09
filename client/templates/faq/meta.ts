@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Accordion of questions & answers",
   icon: "help-circle",
   order: 170,
+  category: "content",
 };

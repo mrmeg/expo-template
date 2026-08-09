@@ -46,6 +46,12 @@ export default function MainLayout() {
       {/* The `(tabs)` group uses a native tab bar (see (tabs)/_layout.tsx), so the
           stack header is the only top chrome and shows at every width. */}
       <Stack.Screen name="(tabs)" options={{ headerShown: true, title: "Explore", headerBackTitle: " " }} />
+      {/* Three-scale galleries. `components/[id]` sets its own title from the
+          component's registry id, so it only declares the web back button. */}
+      <Stack.Screen name="(demos)/components/index" options={{ title: "Components", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/components/[id]" options={{ ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/blocks/index" options={{ title: "Blocks", ...webHeaderLeft }} />
+      <Stack.Screen name="(demos)/templates/index" options={{ title: "Screen Templates", ...webHeaderLeft }} />
       <Stack.Screen name="(demos)/showcase/index" options={{ title: "UI Components", ...webHeaderLeft }} />
       <Stack.Screen name="(demos)/themed-showcase" options={{ title: "Themed Showcase", ...webHeaderLeft }} />
       <Stack.Screen name="(demos)/developer" options={{ title: "Developer Tools", ...webHeaderLeft }} />

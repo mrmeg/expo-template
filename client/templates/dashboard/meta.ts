@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Metrics & activity feed",
   icon: "bar-chart-2",
   order: 80,
+  category: "data",
 };

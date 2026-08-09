@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Filtered search results",
   icon: "search",
   order: 110,
+  category: "states",
 };

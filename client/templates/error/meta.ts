@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Error state variants",
   icon: "alert-triangle",
   order: 120,
+  category: "states",
 };

@@ -39,7 +39,7 @@ env:
     id: "onboarding-gate"
 - assertVisible:
     id: "explore-screen"
-- assertVisible: "Screen Templates"
+- assertVisible: "Templates"
 
 # ── Path 2: skip from page 1 ────────────────────────────────────────────
 - launchApp:
@@ -54,4 +54,4 @@ env:
     id: "onboarding-gate"
 - assertVisible:
     id: "explore-screen"
-- assertVisible: "Screen Templates"
+- assertVisible: "Templates"

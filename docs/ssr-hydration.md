@@ -691,6 +691,48 @@ find node_modules -path '*@radix-ui/react-primitive/package.json' | wc -l  # →
 `__tests__/radixSingleton.guardrail.test.ts` pins the lockfile against this
 drift, so a re-split fails CI instead of a demo.
 
+### `<Link asChild>` children must take a flattened style object
+
+Same `Slot`, different failure. A browser pass found every showcase gallery dead
+on web — the route unmounted to the error boundary on hydration with
+
+```
+TypeError: Failed to set an indexed property [0] on 'CSSStyleDeclaration'
+```
+
+Why: `<Link asChild>` renders through `expo-router`'s `Slot` (Radix's, under a
+shim), and Radix's `mergeProps` has exactly one rule for `style`:
+
+```js
+overrideProps.style = { ...slotPropValue, ...childPropValue };
+```
+
+Spreading an **array** index-keys it, so `style={[styles.card, cond ? {…} : null]}`
+becomes `{ 0: {…}, 1: null }`. The SSR HTML serializes that as
+`style="0:[object Object];1:[object Object]"`, and hydration throws when RNW
+tries to assign key `"0"` on a `CSSStyleDeclaration`. When it doesn't throw it
+just loses the paint — a `backgroundColor` sitting in entry `0` never lands,
+which is how a primary CTA rendered with no fill. A function-form style is the
+same trap from the other side: spreading a function yields `{}`.
+
+`expo-router`'s Slot shim flattens *its own* `style` and dev-throws for an
+array-styled child, but nothing flattens the child for you. Every `Link asChild`
+child in this template goes through
+`client/features/navigation/linkPressableStyle.ts`, which returns one flat object
+(and appends the web pointer cursor):
+
+```tsx
+<Link href={href} asChild>
+  <Pressable style={linkPressableStyle(styles.card, { flexBasis: "47%" })}>
+</Link>
+```
+
+Note this is invisible to a route test whose `expo-router` mock stubs `Link` as a
+string element — the pre-fix galleries passed 46/46 while every one was broken in
+a browser. `client/showcase/__tests__/galleries.test.tsx` mocks `Link` with the
+**real** `Slot` and records each `asChild` child's raw `style`, so a new `[...]`
+literal fails regardless of where it renders.
+
 ## Guardrail
 
 `__tests__/ssrHydration.guardrail.test.ts` holds source/behavior assertions so a

@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Landing hero: centered & full-bleed",
   icon: "zap",
   order: 140,
+  category: "marketing",
 };

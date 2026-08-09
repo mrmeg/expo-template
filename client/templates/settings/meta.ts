@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Grouped lists & toggles",
   icon: "sliders",
   order: 10,
+  category: "forms-auth",
 };
