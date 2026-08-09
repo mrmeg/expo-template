@@ -3,6 +3,79 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0]
+
+### Added
+
+- **`surfaceSunken` semantic token.** The app-chrome tier below `background`,
+  so sidebars, rails, and side panels read as a layer *beneath* the content
+  pane instead of the same surface. Dark `#050506` (below zinc-950), light
+  `#FAFAFA` (zinc-50). Elevation is now a surface-tier ladder rather than a
+  shadow scale: `surfaceSunken` < `background` < `card`/`popover` < `muted`.
+
+- **`borderStrong` semantic token.** A hairline for elements sitting on a
+  filled surface — chips on `muted`, raised panels — one visible step above
+  the fill, where `border` shares `muted`'s hex and disappears. Dark
+  `#3F3F46` (zinc-700), light `#D4D4D8` (zinc-300). `border` stays the
+  hairline for elements on `background`/`card`.
+
+- **SSR theme seeding (`SsrThemeSeedContext`).** On a server-rendered web app,
+  `useTheme`/`useStyles` had no way to know the visitor's theme during the
+  server render, so every SSR page shipped a fully light-themed tree that
+  recolored after hydration. The store can't carry a per-request value — it's a
+  module singleton shared by concurrent SSR requests — so the new
+  `SsrThemeSeedContext` (with `SsrThemeSeed`, `SSR_THEME_SEED_DEFAULT`, and
+  `useSsrThemeSeed`) is the per-request channel. Provide it from a signal the
+  server and browser read identically (a cookie), and `useTheme` resolves from
+  it on web until persistence has loaded.
+
+  `SSR_THEME_SEED_DEFAULT` is `system`/light, i.e. what the store boots with —
+  so a host that receives no signal renders exactly as it did before the seed
+  existed. Note that this default is a *fallback*, not a reading: a host that
+  also writes the resolved scheme into its served HTML (`<html data-theme>`, a
+  blocking script's early-return, a `prefers-color-scheme` CSS fallback) must
+  distinguish "seed came from the visitor" from "seed is the default" and skip
+  the write in the latter case, or it will pin a dark-OS first-time visitor to
+  light with its own failsafes disabled.
+
+- **`user-theme-preference` cookie mirror.** On web, `setTheme` now dual-writes
+  `localStorage` **and** a `user-theme-preference` cookie (`path=/;
+  max-age≈1y; SameSite=Lax`, exported as `THEME_COOKIE_NAME`), and `loadTheme`
+  backfills/repairs it from `localStorage`, so a server-rendered host can read
+  the visitor's theme off the request. `localStorage` remains the source of
+  truth; the cookie is a render hint only. Native persistence is unchanged.
+
+- **`hasLoadedTheme` on the theme store.** False until `loadTheme()` has read
+  persistence (or `setTheme` was called). While it's false on web, `useTheme`
+  resolves from the SSR seed instead of store state; after that, store state
+  wins for good. Mirrors the `hasLoadedOnboarding` pattern.
+
+### Changed
+
+- **Dim text is more readable in both schemes (visual change).**
+  `textDim`/`mutedForeground` moved from `#A1A1AA` → `#B0B0B8` in dark
+  (~9.2:1 on `background`, ~6.9:1 on `muted`, up from ~7.8:1/~5.9:1) and from
+  zinc-500 `#71717A` → zinc-600 `#52525B` in light (~7.7:1 on white, up from
+  ~4.8:1). Captions, timestamps, meta rows, and neutral `StatCard` changes all
+  render a step brighter (dark) or darker (light) than before; both stay
+  clearly dimmer than `text`, so hierarchy is preserved. A new package test
+  enforces the floors (≥7:1 on `background`/`card`/`popover`, ≥6:1 on
+  `muted`/`secondary`), so these tokens cannot be dimmed back down silently.
+  Apps that hardcoded the old hexes, or asserted them in tests, need to update
+  those literals; apps using the tokens get the change for free.
+
+- **`Drawer` chrome paints `surfaceSunken`.** Both the overlay drawer panel and
+  the in-flow rail switched from `background` to `surfaceSunken`, so navigation
+  chrome is visibly darker than the content it sits beside (dark) or a faint
+  step off white (light). Override via the existing `style` props, or re-skin
+  `surfaceSunken` through `setColors`/`ThemeColorScope`, to restore the old
+  flat look.
+
+- **`syncThemeFromEnvironment()` starts the OS listener before reading
+  persistence.** `loadTheme()` is what flips `hasLoadedTheme` (the moment web
+  renders stop trusting the SSR seed), so the real OS scheme is now read first
+  and a `system` user never sees a frame of the boot-default light.
+
 ## [0.19.0]
 
 ### Added
@@ -62,44 +135,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `getCarouselIndex(offsetX, interval, count)` and
   `resolveCarouselItemWidth(itemWidth, containerWidth)` are exported for hosts
   building custom controls on the same math.
-
-- **SSR theme seeding (`SsrThemeSeedContext`).** On a server-rendered web app,
-  `useTheme`/`useStyles` had no way to know the visitor's theme during the
-  server render, so every SSR page shipped a fully light-themed tree that
-  recolored after hydration. The store can't carry a per-request value — it's a
-  module singleton shared by concurrent SSR requests — so the new
-  `SsrThemeSeedContext` (with `SsrThemeSeed`, `SSR_THEME_SEED_DEFAULT`, and
-  `useSsrThemeSeed`) is the per-request channel. Provide it from a signal the
-  server and browser read identically (a cookie), and `useTheme` resolves from
-  it on web until persistence has loaded.
-
-  `SSR_THEME_SEED_DEFAULT` is `system`/light, i.e. what the store boots with —
-  so a host that receives no signal renders exactly as it did before the seed
-  existed. Note that this default is a *fallback*, not a reading: a host that
-  also writes the resolved scheme into its served HTML (`<html data-theme>`, a
-  blocking script's early-return, a `prefers-color-scheme` CSS fallback) must
-  distinguish "seed came from the visitor" from "seed is the default" and skip
-  the write in the latter case, or it will pin a dark-OS first-time visitor to
-  light with its own failsafes disabled.
-
-- **`user-theme-preference` cookie mirror.** On web, `setTheme` now dual-writes
-  `localStorage` **and** a `user-theme-preference` cookie (`path=/;
-  max-age≈1y; SameSite=Lax`, exported as `THEME_COOKIE_NAME`), and `loadTheme`
-  backfills/repairs it from `localStorage`, so a server-rendered host can read
-  the visitor's theme off the request. `localStorage` remains the source of
-  truth; the cookie is a render hint only. Native persistence is unchanged.
-
-- **`hasLoadedTheme` on the theme store.** False until `loadTheme()` has read
-  persistence (or `setTheme` was called). While it's false on web, `useTheme`
-  resolves from the SSR seed instead of store state; after that, store state
-  wins for good. Mirrors the `hasLoadedOnboarding` pattern.
-
-### Changed
-
-- **`syncThemeFromEnvironment()` starts the OS listener before reading
-  persistence.** `loadTheme()` is what flips `hasLoadedTheme` (the moment web
-  renders stop trusting the SSR seed), so the real OS scheme is now read first
-  and a `system` user never sees a frame of the boot-default light.
 
 ## [0.18.0]
 

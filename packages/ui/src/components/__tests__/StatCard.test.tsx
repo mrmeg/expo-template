@@ -65,7 +65,7 @@ describe("StatCard", () => {
       <StatCard label="Active Users" value="1,204" change={{ value: "No change", direction: "neutral" }} />,
     );
 
-    expect(flattenStyle("No change").color).toBe("#71717A");
+    expect(flattenStyle("No change").color).toBe("#52525B");
     expect(screen.queryByTestId("icon-Feather", { includeHiddenElements: true })).toBeNull();
   });
 

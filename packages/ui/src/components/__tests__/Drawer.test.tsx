@@ -53,11 +53,14 @@ afterAll(() => {
 });
 
 // Mock useTheme — must expose getShadowStyle, which the rail uses for elevation.
+// `surfaceSunken` is the chrome tier both drawer surfaces paint; keep it
+// distinct from `background` so the tier assertion below is meaningful.
 jest.mock("../../hooks/useTheme", () => ({
   useTheme: () => ({
     theme: {
       colors: {
         foreground: "#0F172A",
+        surfaceSunken: "#FAFAFA",
         background: "#FFFFFF",
         border: "#E2E8F0",
         overlay: "rgba(0,0,0,0.5)",
@@ -164,6 +167,24 @@ describe("Drawer overlay variant", () => {
     fireEvent.press(screen.getByLabelText("Close drawer", { includeHiddenElements: true }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it("paints the panel on the sunken chrome tier, not the content background", async () => {
+    const { toJSON } = await render(
+      <Drawer open onOpenChange={jest.fn()}>
+        <Drawer.Content>
+          <Drawer.Body>
+            <Text>Menu body</Text>
+          </Drawer.Body>
+        </Drawer.Content>
+      </Drawer>
+    );
+
+    const panel = findRenderedStyle(
+      toJSON(),
+      (style) => style?.backgroundColor === "#FAFAFA" && style?.position === "absolute"
+    );
+    expect(panel).toBeTruthy();
+  });
 });
 
 describe("Drawer rail variant", () => {
@@ -235,6 +256,23 @@ describe("Drawer rail variant", () => {
     expect(screen.getByText("Home")).toBeTruthy();
     // Collapsed → toggle advertises "Expand".
     expect(screen.getByLabelText("Expand sidebar")).toBeTruthy();
+  });
+
+  it("paints the rail on the sunken chrome tier, not the content background", async () => {
+    await render(
+      <Drawer variant="rail" collapsedWidth={72} expandedWidth={220}>
+        <Drawer.Content testID="rail-panel">
+          <Drawer.Body>
+            <Text>Home</Text>
+          </Drawer.Body>
+        </Drawer.Content>
+      </Drawer>
+    );
+
+    const style = StyleSheet.flatten(
+      screen.getByTestId("rail-panel").props.style
+    ) as { backgroundColor?: string };
+    expect(style.backgroundColor).toBe("#FAFAFA");
   });
 
   it("toggles expanded state via Drawer.ToggleCollapse", async () => {
