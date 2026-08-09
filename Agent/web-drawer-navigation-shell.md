@@ -1,8 +1,8 @@
 ---
-status: blocked
+status: ready
 mode: AFK
 base-branch: dev
-blocked-by: merge showcase-three-scale-galleries.md first (the shell's nav items target its gallery routes), then set ready
+blocked-by: -
 pr: -
 ---
 
