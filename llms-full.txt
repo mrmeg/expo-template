@@ -2066,6 +2066,18 @@ A `system` cookie with **no** hint sits deliberately in the second branch:
 server render and the client's own cookie read agree) but `scheme` is `null`,
 because the light it resolves to is still the guess.
 
+The `<meta name="theme-color">` (Safari status-bar/toolbar and Android Chrome
+chrome tinting) follows the same two branches: a signal renders **one
+unqualified meta** pinned to the resolved scheme's `background` (unqualified
+because an explicit dark cookie must beat a light OS — a media-gated meta
+would follow the OS instead), and no signal renders a
+**`prefers-color-scheme`-gated pair**, the meta equivalent of the CSS
+fallback — OS-correct without pinning the guess. After hydration
+`useSafariThemeColorSync()` (client/features/app/safariThemeColor.ts) removes
+the gated pair and keeps a single meta tracking the theme store, so in-app
+toggles re-tint the browser chrome. Both branches are pinned by
+`__tests__/ssrThemeStamp.test.tsx`.
+
 So the blocking `COLOR_SCHEME_SCRIPT` stays a **first-visit-only** failsafe that
 actually fires: its `data-theme` early-return is the handover, and the
 conditional stamp above is what keeps the handover real. Don't widen its 500ms

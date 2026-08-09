@@ -23,6 +23,7 @@
  */
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { colors } from "@mrmeg/expo-ui/constants";
 
 // `requestHeaders()` is Expo Server's ambient per-request scope. There is no
 // scope under jest, so drive it directly: `null` means "no active scope" and
@@ -169,6 +170,51 @@ describe("app/+html.tsx <html> theme stamping — with no signal", () => {
     const markup = renderWith({});
 
     expect(markup).toContain("html:not([data-theme]) body");
+  });
+});
+
+describe("app/+html.tsx theme-color meta — Safari chrome tinting", () => {
+  const lightBackground = colors.light.colors.background;
+  const darkBackground = colors.dark.colors.background;
+
+  it("pins one unqualified meta to the signalled scheme", () => {
+    const markup = renderWith({ cookie: "user-theme-preference=dark" });
+
+    expect(markup).toContain(`<meta name="theme-color" content="${darkBackground}"/>`);
+    // The media-gated fallbacks are the no-signal form only — alongside a
+    // signal they could disagree with the visitor's explicit choice.
+    expect(markup).not.toContain('name="theme-color" media=');
+  });
+
+  it("pins the visitor's explicit choice even against an opposing OS hint", () => {
+    const markup = renderWith({
+      cookie: "user-theme-preference=dark",
+      "sec-ch-prefers-color-scheme": "light",
+    });
+
+    expect(markup).toContain(`<meta name="theme-color" content="${darkBackground}"/>`);
+  });
+
+  it("renders the prefers-color-scheme pair when the request carried no signal", () => {
+    const markup = renderWith({});
+
+    // The pair mirrors the CSS media-query failsafe: OS-correct chrome tint
+    // without pinning the server's light guess.
+    expect(markup).toContain(
+      `<meta name="theme-color" media="(prefers-color-scheme: light)" content="${lightBackground}"/>`
+    );
+    expect(markup).toContain(
+      `<meta name="theme-color" media="(prefers-color-scheme: dark)" content="${darkBackground}"/>`
+    );
+    // No unqualified meta — that would BE the stamped guess.
+    expect(markup).not.toContain(`<meta name="theme-color" content=`);
+  });
+
+  it("treats a `system` cookie with no hint as no signal for the chrome tint", () => {
+    const markup = renderWith({ cookie: "user-theme-preference=system" });
+
+    expect(markup).toContain('media="(prefers-color-scheme: dark)"');
+    expect(markup).not.toContain(`<meta name="theme-color" content=`);
   });
 });
 
