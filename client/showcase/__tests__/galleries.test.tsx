@@ -28,11 +28,14 @@ import {
 } from "../registry";
 import { COMPONENT_DETAILS } from "../details";
 import {
+  BLOCK_CATEGORIES,
   COMPONENT_CATEGORIES,
   COMPONENT_CATEGORY_DESCRIPTIONS,
   EXPLORE_RAIL_IDS,
   EXPLORE_TEMPLATE_PREVIEW_COUNT,
+  countByCategory,
 } from "../filters";
+import { buildCategoryChips } from "../GalleryChips";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -386,6 +389,70 @@ describe("blocks gallery", () => {
 
     expect(screen.getByTestId("block-card-sign-in-form")).toBeTruthy();
     expect(screen.queryByTestId("block-card-hero")).toBeNull();
+  });
+
+  // "Social proof 0" shipped as a tappable chip whose only effect was to empty
+  // the gallery. Asserted against the live registry rather than a hardcoded id:
+  // whichever category is empty is the one that must not offer a chip.
+  it("offers no chip for a category with no blocks", async () => {
+    await render(<BlocksGalleryScreen />);
+
+    const counts = countByCategory(BLOCKS, BLOCK_CATEGORIES);
+    const empty = BLOCK_CATEGORIES.filter((category) => counts[category] === 0);
+    expect(empty).toContain("social-proof");
+
+    for (const category of empty) {
+      expect(screen.queryByTestId(`blocks-chips-${category}`)).toBeNull();
+    }
+    for (const category of BLOCK_CATEGORIES.filter((c) => counts[c] > 0)) {
+      expect(screen.getByTestId(`blocks-chips-${category}`)).toBeTruthy();
+    }
+    expect(screen.getByTestId("blocks-chips-all")).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Chip building
+// ---------------------------------------------------------------------------
+
+describe("buildCategoryChips", () => {
+  const LABELS = { form: "Form", overlay: "Overlay" } as const;
+
+  it("drops zero-count categories so no chip selects an empty gallery", () => {
+    const chips = buildCategoryChips(
+      ["form", "overlay"],
+      LABELS,
+      { form: 2, overlay: 0 },
+      "All",
+      2,
+    );
+    expect(chips.map((chip) => chip.value)).toEqual(["all", "form"]);
+  });
+
+  it("keeps the All chip even when every category is empty", () => {
+    const chips = buildCategoryChips(
+      ["form", "overlay"],
+      LABELS,
+      { form: 0, overlay: 0 },
+      "All",
+      0,
+    );
+    expect(chips.map((chip) => chip.value)).toEqual(["all"]);
+  });
+
+  it("preserves the declared category order and counts", () => {
+    const chips = buildCategoryChips(
+      ["form", "overlay"],
+      LABELS,
+      { form: 1, overlay: 3 },
+      "All",
+      4,
+    );
+    expect(chips).toEqual([
+      { value: "all", label: "All", count: 4 },
+      { value: "form", label: "Form", count: 1 },
+      { value: "overlay", label: "Overlay", count: 3 },
+    ]);
   });
 });
 

@@ -95,8 +95,10 @@ export function GalleryChips<C extends string>({
 
 /**
  * Chip list for a category table: the "All" chip, then one chip per category
- * that has a label. Counts come from `countByCategory`, so a category with no
- * entries still renders (showing 0) rather than shifting the row.
+ * that has entries. Counts come from `countByCategory`, which keeps zero-count
+ * categories so the section badges stay stable — but a chip reading "Social
+ * proof 0" only offers to empty the gallery, so it's dropped here. "All" always
+ * survives, even when every category is empty.
  */
 export function buildCategoryChips<C extends string>(
   categories: readonly C[],
@@ -107,11 +109,13 @@ export function buildCategoryChips<C extends string>(
 ): GalleryChip<C>[] {
   return [
     { value: ALL_CATEGORIES, label: allLabel, count: allCount },
-    ...categories.map((category) => ({
-      value: category,
-      label: labels[category],
-      count: counts[category],
-    })),
+    ...categories
+      .filter((category) => counts[category] > 0)
+      .map((category) => ({
+        value: category,
+        label: labels[category],
+        count: counts[category],
+      })),
   ];
 }
 

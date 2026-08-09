@@ -95,6 +95,8 @@ export default function ExploreScreen() {
             placeholder="Search components, blocks, templates…"
             variant="filled"
             size="md"
+            wrapperStyle={styles.searchField}
+            style={styles.searchFieldInput}
             autoCorrect={false}
             autoCapitalize="none"
             returnKeyType="search"
@@ -397,6 +399,26 @@ const createStyles = (theme: Theme) =>
     // ── Search ─────────────────────────────────────────────
     searchWrapper: {
       marginBottom: spacing.xs,
+    },
+    // The `filled` field paints `card`, and in light mode `card` *is*
+    // `background` — so on its own the field reads as bare placeholder text with
+    // no container. Mockup 01's search field (`.kbd`) is a card surface with a
+    // 1px border, and that border is what carries it in light mode; dark keeps
+    // its existing filled look. No `overflow: "hidden"`: on web the field's
+    // focus ring is a `boxShadow` on the view inside this one, which clipping
+    // would swallow.
+    searchField: {
+      backgroundColor: theme.colors.card,
+      borderRadius: spacing.radiusMd,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    // Web only — the native field drops `style`. The surface now lives on the
+    // wrapper above, so the `filled` variant's own fill and 2px underline would
+    // double up inside the border.
+    searchFieldInput: {
+      backgroundColor: "transparent",
+      borderBottomWidth: 0,
     },
 
     // ── Section scaffolding ────────────────────────────────
