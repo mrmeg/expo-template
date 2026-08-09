@@ -24,6 +24,7 @@ import Config from "@/client/config";
 import { validateClientEnv } from "@/client/lib/validateEnv";
 import { captureException, setupSentry } from "@/client/lib/sentry";
 import { useAppStartup, OnboardingGate } from "@/client/features/app";
+import { useSafariThemeColorSync } from "@/client/features/app/safariThemeColor";
 import { SsrStyleFlush } from "@/client/features/app/SsrStyleFlush";
 import {
   resolveSsrInitialMetrics,
@@ -103,6 +104,9 @@ function RootLayoutContent() {
 
   const { scheme } = useTheme();
   const { loaded: fontsLoaded } = useResources();
+  // Web-only inside (no-op elsewhere): keeps <meta name="theme-color"> — the
+  // Safari/Chrome chrome tint — tracking the active theme after hydration.
+  useSafariThemeColorSync();
   const [i18nReady, setI18nReady] = useState(false);
   // On web the first render (server AND client) resolves from the
   // `has-seen-onboarding` cookie, so returning visitors get gate-free HTML and

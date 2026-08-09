@@ -245,6 +245,33 @@ export default function Root({ children }: PropsWithChildren) {
             static export. See server/lib/ssrTheme.ts. */}
         <meta httpEquiv="Accept-CH" content={THEME_CLIENT_HINT_ACCEPT_CH} />
 
+        {/* Safari chrome tinting (status bar / toolbar), same contract as the
+            `data-theme` stamp below: only pin a scheme the request actually
+            carried. With a signal, one unqualified meta tints byte-1 chrome to
+            the visitor's real theme (which may disagree with their OS — an
+            explicit dark cookie on a light OS must win, so the meta can't be
+            media-gated). With no signal, a `prefers-color-scheme`-gated pair
+            mirrors the CSS fallback exactly — OS-correct without stamping the
+            server's light guess over a dark-OS first-timer. After hydration,
+            useSafariThemeColorSync (client/features/app/safariThemeColor.ts)
+            replaces whichever form rendered with a single store-driven meta. */}
+        {ssrScheme ? (
+          <meta name="theme-color" content={colors[ssrScheme].colors.background} />
+        ) : (
+          <>
+            <meta
+              name="theme-color"
+              media="(prefers-color-scheme: light)"
+              content={colors.light.colors.background}
+            />
+            <meta
+              name="theme-color"
+              media="(prefers-color-scheme: dark)"
+              content={colors.dark.colors.background}
+            />
+          </>
+        )}
+
         {/* Framework SSR resources: expo-font preload <link>s, route
             metadata. Placed early so styles are available before the browser
             parses any element that uses them. The RNW stylesheet snapshot is
