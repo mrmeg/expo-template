@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Messaging conversation",
   icon: "message-circle",
   order: 70,
+  category: "content",
 };

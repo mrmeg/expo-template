@@ -13,6 +13,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import { TEMPLATE_CATEGORIES } from "../filters";
 import {
   COMPONENTS,
   DEMOS,
@@ -88,6 +89,38 @@ describe("template registry — each template is a self-contained folder", () =>
       (a, b) => a.order - b.order || a.id.localeCompare(b.id),
     );
     expect(SCREEN_TEMPLATES.map((t) => t.id)).toEqual(sorted.map((t) => t.id));
+  });
+});
+
+describe("template registry — categories survive codegen", () => {
+  it("every shipped template declares a category the gallery can chip", () => {
+    const uncategorised = SCREEN_TEMPLATES.filter((t) => !t.category);
+    expect(uncategorised.map((t) => t.id)).toEqual([]);
+  });
+
+  it("every category is a member of TEMPLATE_CATEGORIES", () => {
+    for (const template of SCREEN_TEMPLATES) {
+      expect(TEMPLATE_CATEGORIES).toContain(template.category);
+    }
+  });
+
+  it("the category on each entry matches the category in its meta.ts source", () => {
+    // The generated registry re-exports meta objects, so this is the
+    // round-trip assertion: what a folder declares is what the gallery filters.
+    for (const template of SCREEN_TEMPLATES) {
+      const source = fs.readFileSync(
+        path.join(REPO_ROOT, "client", "templates", template.id, "meta.ts"),
+        "utf8",
+      );
+      expect(source).toContain(`category: "${template.category}"`);
+    }
+  });
+
+  it("every category chip has at least one template behind it", () => {
+    const used = new Set(SCREEN_TEMPLATES.map((t) => t.category));
+    for (const category of TEMPLATE_CATEGORIES) {
+      expect(used).toContain(category);
+    }
   });
 });
 

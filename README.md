@@ -165,10 +165,11 @@ UI system.
 /app                          # Expo Router routes (file-based)
   ├── _layout.tsx             # Root layout: providers, splash, error boundary
   ├── (main)/(tabs)/          # Tab nav: home, profile, settings, media
-  ├── (main)/(demos)/         # Showcase + screen-template demo routes
+  ├── (main)/(demos)/         # Component / block / template galleries + demo routes
   └── api/                    # Expo Server routes (media, billing, etc.)
 
 /client
+  ├── blocks/                 # Scale 02: composed screen sections (generated registry)
   ├── components/             # App-local shared components
   ├── config/                 # Base / dev / prod app config (merged at runtime)
   ├── features/               # Self-contained feature folders
@@ -187,7 +188,8 @@ UI system.
   │   ├── form/               #   FormProvider, FormTextInput, FormCheckbox, …
   │   ├── storage/            #   Cross-platform AsyncStorage wrapper
   │   └── devtools/           #   Reactotron config
-  ├── screens/                # 13+ pre-built screen templates
+  ├── showcase/               # Gallery data: registry, filters, previews, details
+  ├── templates/              # Scale 03: pre-built screens (generated registry)
   └── state/                  # App-local Zustand stores
 
 /packages/ui                  # @mrmeg/expo-ui npm package source

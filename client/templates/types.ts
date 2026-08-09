@@ -1,6 +1,21 @@
 import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 
 /**
+ * Loose grouping used by the templates gallery's filter chips.
+ *
+ * Deliberately optional on `ScreenTemplateEntry`: the codegen only collects
+ * `meta` objects, so a template folder copied in from elsewhere without a
+ * category still registers and still renders — it just lands outside every
+ * category chip (the "All" chip always includes it).
+ */
+export type ScreenTemplateCategory =
+  | "marketing"
+  | "data"
+  | "content"
+  | "forms-auth"
+  | "states";
+
+/**
  * Metadata for a screen template.
  *
  * Each template folder under `client/templates/<id>/` exports a `meta` of this
@@ -22,4 +37,9 @@ export interface ScreenTemplateEntry {
   icon: IconName;
   /** Position in the Explore grid; lower sorts first. */
   order: number;
+  /**
+   * Optional grouping for the templates gallery's filter chips. Entries
+   * without one still render under "All" — see `ScreenTemplateCategory`.
+   */
+  category?: ScreenTemplateCategory;
 }

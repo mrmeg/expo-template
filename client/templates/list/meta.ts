@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Search & pull to refresh",
   icon: "list",
   order: 30,
+  category: "content",
 };

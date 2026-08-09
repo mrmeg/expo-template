@@ -212,3 +212,61 @@ describe("the committed registries match a fresh render", () => {
     );
   });
 });
+
+describe("meta fields round-trip without touching the codegen", () => {
+  /**
+   * The templates gallery needed a new `category` on `ScreenTemplateEntry`.
+   * The codegen must not care: it collects `meta` objects wholesale, so a new
+   * field has to reach `SCREEN_TEMPLATES` with no generator change and no
+   * change to the committed output. These tests pin that property, so the next
+   * field added to a meta doesn't send anyone editing the generator.
+   */
+
+  /** One entry folder named `alpha`, whose meta.ts holds `body`. */
+  function metaFixture(body: string): string {
+    const dir = makeFixture([]);
+    fs.mkdirSync(path.join(dir, "alpha"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "alpha", "meta.ts"), body);
+    return dir;
+  }
+
+  it("renders identical output regardless of what the meta files contain", () => {
+    const withField = metaFixture('export const meta = { id: "alpha", category: "marketing" };\n');
+    const withoutField = metaFixture('export const meta = { id: "alpha" };\n');
+
+    // Same ids in, same bytes out — the generator reads folder names, not metas.
+    expect(renderRegistry(TEMPLATE_REGISTRY, findEntryIds(withField))).toBe(
+      renderRegistry(TEMPLATE_REGISTRY, findEntryIds(withoutField)),
+    );
+  });
+
+  it("registers a template folder whose meta omits the optional category", () => {
+    const dir = makeFixture([]);
+    fs.mkdirSync(path.join(dir, "categorised"), { recursive: true });
+    fs.mkdirSync(path.join(dir, "plain"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "categorised", "meta.ts"),
+      'export const meta = { id: "categorised", category: "data" };\n',
+    );
+    fs.writeFileSync(
+      path.join(dir, "plain", "meta.ts"),
+      'export const meta = { id: "plain" };\n',
+    );
+
+    const output = renderRegistry(TEMPLATE_REGISTRY, findEntryIds(dir));
+
+    expect(output).toContain('import { meta as categorised } from "./categorised/meta";');
+    expect(output).toContain('import { meta as plain } from "./plain/meta";');
+    expect(output).toContain(
+      "export const SCREEN_TEMPLATES: ScreenTemplateEntry[] = [\n  categorised,\n  plain,\n]",
+    );
+  });
+
+  it("keeps the generated registry free of meta field names", () => {
+    // If `category` ever leaks into the generated file, the codegen has started
+    // duplicating meta content and the round-trip guarantee above is gone.
+    const committed = fs.readFileSync(TEMPLATE_REGISTRY.outputFile, "utf8");
+    expect(committed).not.toContain("category");
+    expect(committed).not.toContain("order:");
+  });
+});

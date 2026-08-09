@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Snap-scrolling quote cards",
   icon: "message-square",
   order: 160,
+  category: "marketing",
 };

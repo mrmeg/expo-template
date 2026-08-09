@@ -1,14 +1,18 @@
 /**
  * Template registry.
  *
- * Single source of truth for the screen templates, demos, and design-system
- * components the template ships with. Used by the Explore tab to drive
- * grid + list rendering and the component-count badge so adding or
+ * Single source of truth for the screen templates, blocks, demos, and
+ * design-system components the template ships with. Explore and the three
+ * galleries derive every count, card, and filter from here, so adding or
  * removing an asset is a one-place change instead of a multi-file edit.
  *
- * Keep entries small and typed — this is data, not UI. UI lives in
- * `app/(main)/(tabs)/index.tsx` (Explore) and
- * `app/(main)/(demos)/showcase/index.tsx` (component showcase).
+ * Keep entries small, typed, and serializable — this is data, not UI, and a
+ * script or a server route has to be able to read it. UI lives in
+ * `app/(main)/(tabs)/index.tsx` (Explore), the galleries under
+ * `app/(main)/(demos)/{components,blocks,templates}/`, and
+ * `app/(main)/(demos)/showcase/index.tsx` (the exhaustive kitchen sink).
+ * Anything that renders JSX per id lives beside it in `client/showcase/`
+ * (`previews.tsx`, `blockStages.tsx`, `details.tsx`), keyed by the same id.
  */
 
 import type { IconName } from "@mrmeg/expo-ui/components/Icon";
@@ -19,7 +23,10 @@ import { BLOCKS } from "@/client/blocks/registry.generated";
 // Types
 // ---------------------------------------------------------------------------
 
-export type { ScreenTemplateEntry } from "@/client/templates/types";
+export type {
+  ScreenTemplateEntry,
+  ScreenTemplateCategory,
+} from "@/client/templates/types";
 export type { BlockEntry, BlockCategory } from "@/client/blocks/types";
 
 export interface DemoEntry {
@@ -78,7 +85,7 @@ export const DEMOS: DemoEntry[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Components — drive the Explore featured-card badge count
+// Components — drive the components gallery and the Explore rail
 // ---------------------------------------------------------------------------
 
 /**
@@ -111,6 +118,9 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "Progress", importPath: "@mrmeg/expo-ui/components/Progress", category: "feedback" },
   { id: "RadioGroup", importPath: "@mrmeg/expo-ui/components/RadioGroup", category: "form" },
   { id: "SectionHeader", importPath: "@mrmeg/expo-ui/components/SectionHeader", category: "layout" },
+  // Categorised as navigation, not form: it switches which view you're looking
+  // at (List / Grid / Map) rather than collecting a value to submit.
+  { id: "SegmentedControl", importPath: "@mrmeg/expo-ui/components/SegmentedControl", category: "navigation" },
   { id: "Select", importPath: "@mrmeg/expo-ui/components/Select", category: "form" },
   { id: "Separator", importPath: "@mrmeg/expo-ui/components/Separator", category: "layout" },
   { id: "Skeleton", importPath: "@mrmeg/expo-ui/components/Skeleton", category: "feedback" },

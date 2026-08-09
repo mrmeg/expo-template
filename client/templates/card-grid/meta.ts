@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Filterable card layout",
   icon: "grid",
   order: 60,
+  category: "content",
 };
