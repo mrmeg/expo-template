@@ -2345,6 +2345,97 @@ both in this template:
    Inspector, then Mac Safari → Develop → the device → the tab) or evaluate
    `localStorage.getItem("blank-screen-recovery:last")`.
 
+### 9. Deferring expensive work — branch on ROUTE IDENTITY, never on a commit count, `Platform`, or `window`
+
+Sometimes a screen wants to render *less* than the server did, because rendering
+all of it at once is what makes a client-side navigation feel broken. The
+showcase galleries are the case in this template: `/components` mounts 36 live
+component instances (most of `@mrmeg/expo-ui`) and `/blocks` mounts 6 live page
+sections. On a direct URL load that's fine — it's server work, and the HTML must
+stay gallery-complete. On a client transition it was seconds of synchronous
+render with the content pane blank.
+
+The discriminator that is safe to branch a render on is **"did the visitor arrive
+on this route, or navigate to it?"** — `client/lib/clientNavigation.ts`:
+
+```ts
+// client/lib/clientNavigation.ts — module scope, no store, no state
+let initialPathname: string | null = null;   // the pathname this app load started on
+let hasNavigated = false;                    // latched once the app moves off it
+
+export function recordPathname(pathname) { /* first write wins; later differing write latches */ }
+
+export function isClientNavigatedScreen(pathname) {
+  if (typeof window === "undefined") return false;      // server: always render everything
+  if (hasNavigated) return true;                        // been elsewhere; entry HTML is gone
+  if (initialPathname === null) return false;           // nothing recorded yet → full
+  return pathname !== initialPathname;
+}
+```
+
+`recordPathname()` is called from `RouteIdentityObserver` in
+`client/features/app/RootLayout.tsx` — **in its render body** (idempotent,
+first-wins) *and* from an effect keyed on `usePathname()`. The render-body call is
+the load-bearing one; the effect only latches the "we have navigated away" half.
+It is its own childless component because `usePathname()` subscribes to the route
+store, and calling it in `RootLayoutContent` would re-render every provider in
+that file (including `ThemeProvider`'s inline `value` object) on every navigation.
+
+| When | `isClientNavigatedScreen(pathname)` | Renders |
+|------|-------------------------------------|---------|
+| Server render (no `window`) | `false` | everything — complete HTML |
+| Client's hydration render of that HTML, **including a late leaf pass** | `false` (pathname == entry) | everything — **matches the server** |
+| Screen mounted by a client navigation | `true` (pathname != entry) | free to defer; no server HTML to match |
+| Back on the entry route after navigating away | `true` (`hasNavigated` latched) | free to defer; that HTML is long gone |
+
+Native has a `window`, never hydrates, and mounts its first screen before any
+navigation, so the first screen renders full and every post-navigation screen
+gets the deferral as a straight win.
+
+**Why not "has React committed once?" — the bug this replaced.** The first version
+flipped a module flag from a `RootLayout` mount effect and assumed a leaf still
+rendering the hydration pass would see `false`. **It doesn't.** React hydrates
+selectively: the root layout can commit — running its effects — *before* a leaf
+route's own hydration render. Measured on the production build, direct loads of
+`/components` and `/blocks` flashed skeletons ~364–462ms after load and threw
+React #418 in 3 of 3 trials, because the gallery's `useState` initializer ran
+*after* the root's effect had already fired. **Commit ordering between a layout
+and its leaves is not a contract.** Route identity is, and it needs no effect to
+have run.
+
+Three rules for consuming it:
+
+1. **Read it in a `useState` initializer, never in the render body.** The value
+   must be fixed for the life of the mount; a component that re-read it would
+   change its own output mid-life, which during hydration is exactly the mismatch
+   this exists to avoid. `client/showcase/useProgressivePreviewCount.ts` does
+   `const [defer] = useState(() => isClientNavigatedScreen(pathname))`.
+2. **Never trust the module state on the server.** A browser gets a fresh module
+   scope per page load; a server process is long-lived and serves many requests,
+   so `initialPathname` there belongs to whichever request arrived first. Hence
+   the unconditional `typeof window === "undefined"` → full render.
+3. **Batch with `requestAnimationFrame`, not `requestIdleCallback`** (not on
+   native) and not Reanimated (banned here). One batch per frame is what bounds
+   each frame's work.
+
+What this is **not**: scroll-window virtualization. `LegendList`/`FlashList` gate
+rows behind an `onLayout`-driven flag that never fires on the server, so web SSR
+would ship zero rows (PR #30 was declined for exactly this). RNW `FlatList` does
+SSR its `initialNumToRender` window, but adopting it in a gallery would drop
+every below-fold card from the HTML. Virtualize the **mount schedule**, not the
+scroll window.
+
+Pinned by `client/lib/__tests__/clientNavigation.test.ts` (the discriminator
+itself, server guard included),
+`client/showcase/__tests__/useProgressivePreviewCount.test.ts` (the hook's two
+modes) and `client/showcase/__tests__/galleriesProgressive.test.tsx` (the deferred
+gallery render — it simulates a navigation by recording an entry pathname that
+differs from the one the screens render for). `client/showcase/__tests__/galleries.test.tsx`
+records no entry pathname at all, so it keeps exercising the full-mount path —
+that suite passing unmodified *is* the arrival-path assertion. Jest suites all
+start with the module reset (`test/setup.ts`), because module scope survives
+`clearMocks`.
+
 ## How to verify an SSR fix — do NOT rely on Jest/tsc alone
 
 Jest mocks `expo-font` and `react-i18next`, and `tsc` doesn't model Metro/SSR,
@@ -2476,6 +2567,34 @@ blank: two copies of a Radix context/collection package means a consumer reads
 the other copy's empty context. As of this writing the `(main)` routes render
 clean — the blank body does not reproduce on a healthy install.
 
+### The galleries must SSR complete, skeleton-free — §9's regression check
+
+§9 lets the galleries defer previews on a screen the visitor *navigated to*. The
+failure mode if that gate is ever loosened into a plain `Platform`/`typeof window`
+check is silent: the SSR HTML ships skeletons, and the page reads as a broken
+gallery to anything without JS (crawlers included). One command distinguishes
+them — `grep -c` for both testIDs on a direct load:
+
+```bash
+bun run build && PORT=3000 bun run start
+curl -s -H 'Cookie: has-seen-onboarding=1' localhost:3000/components > /tmp/gallery.html
+
+grep -o 'component-card-[A-Za-z]*"' /tmp/gallery.html | sort -u | wc -l  # == COMPONENTS.length
+grep -c 'component-card-skeleton-' /tmp/gallery.html                     # == 0
+```
+
+The counts must be "every registered component, zero skeletons". Same shape for
+`/blocks` (`block-card-` present, `block-card-skeleton-` absent).
+
+**Correct HTML is only half the check.** The regression §9's route-identity
+rewrite fixed was invisible to both curl and Jest: the HTML was perfect, but the
+*client's* hydration render of the leaf deferred anyway, so skeletons flashed in
+~400ms after load and the console threw React #418. So on a **direct load** of
+`/components` and `/blocks`, watch the browser: no skeleton must ever appear, and
+the console must stay clean. Then check the *client transition* (navigate in from
+the rail or a link): card chrome should paint promptly, previews fill in over the
+next few frames, and the pane is never blank.
+
 ### Duplicate `react-slot` breaks `asChild` — `React.Children.only`
 
 A *browser* pass on `/showcase` did catch a real crash from that same family:
@@ -2587,6 +2706,18 @@ covers the cookied tree and drains bodies, the HTML path awaits it while
 `/api/*` does not, and `app/+html.tsx` still renders the watchdog script in
 `<head>`. `__tests__/blankRecovery.test.ts` drives the watchdog script itself
 in a sandbox: reload-once on a dead root, loop-guard, error replay.
+
+§9's suites live with the code they cover rather than in `__tests__/`:
+`client/lib/__tests__/clientNavigation.test.ts` pins the discriminator itself
+(entry route vs navigated-to, the `hasNavigated` latch, and the server guard),
+`client/showcase/__tests__/useProgressivePreviewCount.test.ts` pins the hook's two
+modes (full-immediate on the route the visitor arrived on, per-frame batches after
+a navigation, with unmount cancellation), and
+`client/showcase/__tests__/galleriesProgressive.test.tsx` pins the rendered result
+on both paths. None of them replaces the curl above — Jest can't tell you what the
+server actually serialized — and none replaces a browser: the #418 regression that
+motivated the route-identity rewrite had correct HTML and green Jest suites, and
+was only visible as a skeleton flash on a real direct load.
 
 `__tests__/ssrStyleCascade.test.tsx` renders `app/+html.tsx` with a mocked
 server-document context and pins §7a: exactly one
