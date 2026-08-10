@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/54
 ---
 
 # Avatar: render non-uri image sources; fix AvatarGroup a11y and max clamp
