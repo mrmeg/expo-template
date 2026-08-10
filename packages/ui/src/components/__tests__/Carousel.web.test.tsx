@@ -8,6 +8,11 @@
  * `contentPadding` so page `i` still lands on `i * (itemWidth + gap)` — the
  * same offset `getCarouselIndex` decodes.
  *
+ * They also pin the web half of the index wiring: RNW emits no momentum
+ * events, so throttled `onScroll` ticks are the only channel that can keep the
+ * dots live for wheel/trackpad scrolling (native uses momentum/drag end
+ * instead — see `Carousel.test.tsx`).
+ *
  * `./forceWebPlatform` must be the first import so `Platform.OS` is already
  * "web" when Carousel (and its transitive constants) resolve.
  */
@@ -15,7 +20,7 @@ import "./forceWebPlatform";
 
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { Carousel } from "../Carousel";
 
@@ -52,6 +57,20 @@ function slides(count: number) {
   ));
 }
 
+function scrollEvent(x: number, layoutWidth = 400) {
+  return {
+    nativeEvent: {
+      contentOffset: { x, y: 0 },
+      contentSize: { width: layoutWidth * 4, height: 200 },
+      layoutMeasurement: { width: layoutWidth, height: 200 },
+    },
+  };
+}
+
+function layoutEvent(width: number) {
+  return { nativeEvent: { layout: { x: 0, y: 0, width, height: 200 } } };
+}
+
 describe("Carousel (web)", () => {
   it("puts CSS scroll-snap on the scroller and each slide", async () => {
     await render(<Carousel contentPadding={24}>{slides(3)}</Carousel>);
@@ -81,5 +100,52 @@ describe("Carousel (web)", () => {
     for (let i = 1; i <= 4; i++) {
       expect(screen.getByText(`Slide ${i}`)).toBeTruthy();
     }
+  });
+
+  it("tracks the index from throttled scroll ticks, not momentum events", async () => {
+    const onIndexChange = jest.fn();
+    await render(
+      <Carousel itemWidth={280} gap={20} onIndexChange={onIndexChange}>
+        {slides(4)}
+      </Carousel>,
+    );
+
+    await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
+    const scroll = screen.getByTestId("carousel-scroll");
+
+    // RNW delivers a single event unless the throttle is > 0.
+    expect(scroll.props.scrollEventThrottle).toBe(16);
+    expect(scroll.props.onMomentumScrollEnd).toBeUndefined();
+    expect(scroll.props.onScrollEndDrag).toBeUndefined();
+
+    // pitch = 300
+    await fireEvent(scroll, "scroll", scrollEvent(300));
+
+    expect(onIndexChange).toHaveBeenCalledWith(1);
+    // Host-level only: jest renders through RN's mocks even under a forced
+    // web Platform, and RN normalizes `aria-selected` into accessibilityState
+    // on the host. Whether the attribute reaches the real DOM is only
+    // observable in a browser (react-native-web maps the aria-* prop, never
+    // accessibilityState).
+    expect(screen.getByTestId("carousel-dot-1").props.accessibilityState.selected).toBe(true);
+  });
+
+  it("reports one page change per page, not per scroll tick", async () => {
+    const onIndexChange = jest.fn();
+    await render(
+      <Carousel itemWidth={280} gap={20} onIndexChange={onIndexChange}>
+        {slides(4)}
+      </Carousel>,
+    );
+
+    await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
+    const scroll = screen.getByTestId("carousel-scroll");
+
+    for (const x of [40, 120, 220, 280, 300]) {
+      await fireEvent(scroll, "scroll", scrollEvent(x));
+    }
+
+    expect(onIndexChange).toHaveBeenCalledTimes(1);
+    expect(onIndexChange).toHaveBeenCalledWith(1);
   });
 });

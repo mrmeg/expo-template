@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,6 +28,14 @@ export interface CarouselProps {
    * Slide width. Values `<= 1` are a fraction of the carousel's own width —
    * the default `0.85` leaves the next slide peeking. Values `> 1` are
    * absolute pixels.
+   *
+   * Caveat for fractional values: "the carousel's own width" is only known
+   * after the first `onLayout`. Until then it is seeded from the viewport
+   * width, so a carousel inside a horizontally constrained parent (a padded
+   * column, a `MaxWidthContainer`, a sidebar pane) renders its first frame —
+   * and the server-rendered HTML — with slides sized to the *window* and
+   * corrects on layout. Pass an absolute `itemWidth` (`> 1`) when the parent
+   * is narrower than the viewport and that first frame matters.
    * @default 0.85
    */
   itemWidth?: number;
@@ -34,11 +43,25 @@ export interface CarouselProps {
   gap?: number;
   /** Horizontal inset before the first and after the last slide. @default spacing.lg */
   contentPadding?: number;
-  /** Render the dot indicators. Auto-hidden for a single slide. @default true */
+  /**
+   * Render the dot indicators. Auto-hidden for a single slide. Dots are
+   * pressable and scroll to their slide.
+   * @default true
+   */
   showDots?: boolean;
   /** Slide shown on mount. @default 0 */
   initialIndex?: number;
-  /** Called with the new active index whenever it changes. */
+  /**
+   * Called with the new active index whenever it changes.
+   *
+   * On native this is once per settle: momentum end, or drag end for a release
+   * that stops at rest. On web it is once per page *crossed*, because
+   * react-native-web emits no momentum events and throttled scroll ticks are
+   * the only channel — a wheel scroll spanning three pages reports all three.
+   * Consecutive duplicate indices are always suppressed. Also fires on a dot
+   * press, and when `children` shrink below the active index and it has to be
+   * re-clamped.
+   */
   onIndexChange?: (index: number) => void;
   /** Snap to slide boundaries. @default true */
   snap?: boolean;
@@ -48,7 +71,8 @@ export interface CarouselProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
   /**
    * testID prefix. Emits `<testID>`, `-scroll`, `-item-<i>`, `-dots`,
-   * `-dot-<i>`, and `-status`.
+   * `-dot-<i>` (the pressable), `-dot-<i>-indicator` (the visible dot), and
+   * `-status`.
    * @default "carousel"
    */
   testID?: string;
@@ -107,6 +131,9 @@ function clampIndex(index: number, count: number): number {
  * platform scroller (`snapToInterval` on native, CSS scroll-snap on web); no
  * animation library is involved.
  *
+ * Slides sized by a fractional `itemWidth` measure against the viewport until
+ * the first `onLayout` lands — see the `itemWidth` caveat on `CarouselProps`.
+ *
  * @example
  * ```tsx
  * <Carousel itemWidth={0.8} onIndexChange={setPage}>
@@ -148,7 +175,8 @@ export function Carousel({
 
   const [activeIndex, setActiveIndex] = useState(() => clampIndex(initialIndex, count));
   // Mirrors activeIndex so the scroll handler can dedupe without re-reading
-  // state: one settle emits many scroll events, onIndexChange must fire once.
+  // state: web's throttled ticks report the same page many times over, and
+  // onIndexChange must fire once per page.
   const activeIndexRef = useRef(activeIndex);
   const scrollRef = useRef<ScrollView | null>(null);
   const hasScrolledToInitial = useRef(false);
@@ -163,11 +191,34 @@ export function Carousel({
     [onIndexChange]
   );
 
+  const isWeb = Platform.OS === "web";
+
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       commitIndex(getCarouselIndex(event.nativeEvent.contentOffset.x, interval, count));
     },
     [commitIndex, count, interval]
+  );
+
+  // Native fallback for a drag that releases with the content at rest: no
+  // momentum follows, so `onMomentumScrollEnd` never arrives and the settle
+  // would go unreported.
+  //
+  // Gated on velocity because an ungated drag-end handler is exactly the
+  // double-fire this replaced: a flick past a slide midpoint that snaps back
+  // reports the midpoint page on release and the original page on settle. A
+  // release that *will* glide reports a non-zero velocity (points/ms on iOS,
+  // density-scaled px/s on Android — either way, orders of magnitude above
+  // this epsilon), and momentum end is left to speak for it. A release at rest
+  // reports 0, and there `getCarouselIndex`'s round-to-nearest already agrees
+  // with where `snapToInterval` would land, so the two paths can't disagree.
+  const handleScrollEndDrag = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const velocityX = event.nativeEvent.velocity?.x ?? 0;
+      if (Math.abs(velocityX) > 0.01) return;
+      handleScroll(event);
+    },
+    [handleScroll]
   );
 
   const handleLayout = useCallback((event: { nativeEvent: { layout: { width: number } } }) => {
@@ -189,7 +240,30 @@ export function Carousel({
     scrollRef.current?.scrollTo({ x: targetIndex * interval, animated: false });
   }, [interval, measuredWidth, targetIndex]);
 
-  const isWeb = Platform.OS === "web";
+  // Re-clamp when children shrink. Without this the status line reads "5 of 3"
+  // with no active dot until the next scroll, because activeIndex is only
+  // seeded once and the scroller — already past the new content width — emits
+  // nothing on its own. Scrolling back is what makes the offset agree with the
+  // reported page again.
+  useEffect(() => {
+    if (count <= 0 || activeIndexRef.current < count) return;
+    const clamped = count - 1;
+    commitIndex(clamped);
+    if (interval > 0) {
+      scrollRef.current?.scrollTo({ x: clamped * interval, animated: false });
+    }
+  }, [commitIndex, count, interval]);
+
+  const handleDotPress = useCallback(
+    (index: number) => {
+      commitIndex(index);
+      if (interval > 0) {
+        scrollRef.current?.scrollTo({ x: index * interval, animated: true });
+      }
+    },
+    [commitIndex, interval]
+  );
+
   const useCssSnap = isWeb && snap;
   const dotsVisible = showDots && count > 1;
 
@@ -205,12 +279,21 @@ export function Carousel({
         snapToInterval={snap && interval > 0 ? interval : undefined}
         snapToAlignment="start"
         decelerationRate={snap ? "fast" : "normal"}
-        // react-native-web only emits scroll ticks when the throttle is > 0 and
-        // never emits momentum events — this is what keeps the dots live for
-        // wheel/trackpad scrolling.
-        scrollEventThrottle={16}
-        onScroll={handleScroll}
-        onMomentumScrollEnd={handleScroll}
+        // Index source, split by platform:
+        //
+        // Web — react-native-web emits no momentum events at all, so throttled
+        // scroll ticks are the only channel that keeps the dots live for
+        // wheel/trackpad scrolling. `scrollEventThrottle` must be > 0 there or
+        // RNW delivers a single event.
+        //
+        // Native — momentum end is the settle, with a velocity-gated
+        // `onScrollEndDrag` covering the drag that releases at rest (no
+        // momentum-end event follows). Subscribing to `onScroll` as well would
+        // cost a JS callback every frame of every drag to compute a page the
+        // settle reports anyway.
+        {...(isWeb
+          ? { scrollEventThrottle: 16, onScroll: handleScroll }
+          : { onMomentumScrollEnd: handleScroll, onScrollEndDrag: handleScrollEndDrag })}
         style={
           useCssSnap
             ? [webStyles.scroller, { scrollPaddingLeft: contentPadding } as ViewStyle]
@@ -242,16 +325,34 @@ export function Carousel({
       )}
 
       {dotsVisible && (
+        // The `tab`/`tablist` roles are honest because the dots really are
+        // activatable: each one is a Pressable that scrolls to its slide. The
+        // press target is the wrapper (DOT_HIT_SIZE) plus DOT_HIT_SLOP, not the
+        // 8px dot, so the visual scale stays a dot while the touch target
+        // clears the platform minimum.
         <View testID={`${testID}-dots`} style={styles.dots} accessibilityRole="tablist">
           {items.map((_, index) => (
-            <View
+            <Pressable
               key={index}
               testID={`${testID}-dot-${index}`}
               accessibilityRole="tab"
               accessibilityState={{ selected: index === activeIndex }}
+              // react-native-web (0.21) never maps accessibilityState to the
+              // DOM — only the aria-* props reach createDOMProps — so without
+              // this the web tree exposes five tabs with no selected one.
+              // Native maps aria-selected back into accessibilityState, so the
+              // two props agree rather than conflict.
+              aria-selected={index === activeIndex}
               accessibilityLabel={`Slide ${index + 1} of ${count}`}
-              style={[styles.dot, index === activeIndex ? styles.dotActive : styles.dotInactive]}
-            />
+              hitSlop={DOT_HIT_SLOP}
+              onPress={() => handleDotPress(index)}
+              style={styles.dotButton}
+            >
+              <View
+                testID={`${testID}-dot-${index}-indicator`}
+                style={[styles.dot, index === activeIndex ? styles.dotActive : styles.dotInactive]}
+              />
+            </Pressable>
           ))}
         </View>
       )}
@@ -264,6 +365,20 @@ export function Carousel({
 // ============================================================================
 
 const DOT_SIZE = 8;
+
+// Press target around each 8px dot. The square is what separates the dots
+// visually (the row itself has no gap, so neighboring targets are flush — no
+// dead strip between them), and `DOT_HIT_SLOP` extends it vertically to
+// `spacing.touchTarget` (24 + 2 x 10 = 44). The slop is vertical-only on
+// purpose: horizontal slop would overlap the neighboring dot's target and make
+// which dot a tap lands on ambiguous.
+const DOT_HIT_SIZE = 24;
+const DOT_HIT_SLOP = {
+  top: (spacing.touchTarget - DOT_HIT_SIZE) / 2,
+  bottom: (spacing.touchTarget - DOT_HIT_SIZE) / 2,
+  left: 0,
+  right: 0,
+};
 
 // Web-only CSS scroll-snap. `scrollPaddingLeft` is applied inline at the call
 // site (it tracks the contentPadding prop) so the leading inset survives the
@@ -295,8 +410,17 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      gap: spacing.xs,
-      marginTop: spacing.md,
+      // No `gap`: the DOT_HIT_SIZE squares carry the visual spacing, and a gap
+      // would open an unpressable strip between adjacent targets. marginTop
+      // absorbs the wrapper's own vertical padding so the row sits where the
+      // pre-Pressable dots did.
+      marginTop: spacing.md - (DOT_HIT_SIZE - DOT_SIZE) / 2,
+    },
+    dotButton: {
+      width: DOT_HIT_SIZE,
+      height: DOT_HIT_SIZE,
+      alignItems: "center",
+      justifyContent: "center",
     },
     dot: {
       width: DOT_SIZE,
