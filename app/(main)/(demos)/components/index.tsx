@@ -14,7 +14,7 @@
 
 import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { Link } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
@@ -43,11 +43,47 @@ import {
 import { renderPreview } from "@/client/showcase/previews";
 import { COMPONENTS, type ComponentCategory, type ComponentEntry } from "@/client/showcase/registry";
 
+/** Narrows an arbitrary `?category=` value to a chip the gallery can select. */
+function parseCategoryParam(value: unknown): CategoryFilter<ComponentCategory> | null {
+  if (typeof value !== "string") return null;
+  if (value === ALL_CATEGORIES) return ALL_CATEGORIES;
+  return (COMPONENT_CATEGORIES as readonly string[]).includes(value)
+    ? (value as ComponentCategory)
+    : null;
+}
+
 export default function ComponentsGalleryScreen() {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
   const { isSmallScreen } = useDimensions();
-  const [category, setCategory] = useState<CategoryFilter<ComponentCategory>>(ALL_CATEGORIES);
+  const router = useRouter();
+
+  // The selected chip is mirrored to the `category` search param so the
+  // drawer shell's contextual "Categories" section can both drive it (its
+  // items navigate with the param) and highlight the active one. The param
+  // seeds the initial state — identically on the server and the first client
+  // render — and the effect below follows later drawer navigations. Chip taps
+  // stay the in-page source of truth and write the param back via setParams.
+  const params = useLocalSearchParams<{ category?: string }>();
+  const paramCategory = parseCategoryParam(params.category);
+  const [category, setCategory] = useState<CategoryFilter<ComponentCategory>>(
+    paramCategory ?? ALL_CATEGORIES,
+  );
+
+  // Follow later drawer navigations (param changes) with the render-time
+  // previous-value pattern rather than an effect — no post-commit re-render
+  // cascade, and the first render after a param change already shows the
+  // right sections.
+  const [prevParamCategory, setPrevParamCategory] = useState(paramCategory);
+  if (paramCategory !== prevParamCategory) {
+    setPrevParamCategory(paramCategory);
+    if (paramCategory) setCategory(paramCategory);
+  }
+
+  const selectCategory = (next: CategoryFilter<ComponentCategory>) => {
+    setCategory(next);
+    router.setParams({ category: next });
+  };
 
   const counts = useMemo(
     () => countByCategory(COMPONENTS, COMPONENT_CATEGORIES),
@@ -121,7 +157,7 @@ export default function ComponentsGalleryScreen() {
           <GalleryChips
             chips={chips}
             selected={category}
-            onSelect={setCategory}
+            onSelect={selectCategory}
             label="Filter components by category"
             testID="components-chips"
           />
