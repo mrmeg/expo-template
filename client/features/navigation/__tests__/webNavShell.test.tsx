@@ -140,6 +140,7 @@ jest.mock("expo-router", () => {
       setParams: jest.fn(),
     }),
     useLocalSearchParams: () => route.params,
+    useGlobalSearchParams: () => route.params,
     useSegments: () => [],
     usePathname: () => route.pathname,
     Link,

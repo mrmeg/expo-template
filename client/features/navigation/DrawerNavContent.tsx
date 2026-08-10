@@ -1,6 +1,6 @@
 import React from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import { Link, usePathname, useLocalSearchParams } from "expo-router";
+import { Link, usePathname, useGlobalSearchParams } from "expo-router";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { spacing, type Theme } from "@mrmeg/expo-ui/constants";
@@ -83,7 +83,10 @@ export function DrawerNavContent({ onNavigate }: DrawerNavContentProps) {
   const { theme, toggleTheme, currentTheme, scheme } = useTheme();
   const styles = themedStyles(theme);
   const pathname = usePathname();
-  const params = useLocalSearchParams<{ category?: string }>();
+  // Global, not local: this renders inside the (main) LAYOUT, whose local
+  // params never include a leaf route's ?category — local params in a layout
+  // are scoped to the layout's own segment.
+  const params = useGlobalSearchParams<{ category?: string }>();
 
   const onComponentsGallery = pathname.startsWith("/components");
   const categoryCounts = countByCategory(COMPONENTS, COMPONENT_CATEGORIES);
