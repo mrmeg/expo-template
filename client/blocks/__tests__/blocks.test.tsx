@@ -24,6 +24,7 @@ import * as path from "node:path";
 
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import type { TestInstance } from "test-renderer";
 import { useThemeStore } from "@mrmeg/expo-ui/state";
 
 import { CtaBannerBlock } from "../cta-banner/Block";
@@ -269,7 +270,59 @@ describe("SignInFormBlock", () => {
     expect(screen.getByText("Sign in")).toBeTruthy();
     expect(screen.queryByText("Continue with Apple")).toBeNull();
   });
+
+  it("gives every label and input its own id, so no two elements collide", async () => {
+    // The `Label` + `TextInput` pairing needs two DISTINCT ids: `nativeID` names
+    // the label, `htmlFor` points at the input's `nativeID`. Reusing one value
+    // for both — the pattern this block originally shipped — renders two
+    // elements with the same id on web and associates nothing.
+    await render(<SignInFormBlock />);
+
+    const ids = collectElementIds(screen.root);
+    expect(ids.length).toBeGreaterThan(0);
+    expect([...new Set(ids)]).toEqual(ids);
+  });
+
+  it("points each label's htmlFor at its own input, not at itself", async () => {
+    await render(<SignInFormBlock />);
+
+    for (const field of ["email", "password"] as const) {
+      const input = screen.getByTestId(`block-sign-in-${field}`);
+      const inputId = input.props.nativeID as string | undefined;
+      expect(inputId).toBeTruthy();
+
+      const label = screen.getByText(field === "email" ? "Email" : "Password");
+      // The label's own id is on its pressable wrapper, above the text node.
+      const labelId = findAncestorId(label);
+      expect(labelId).toBeTruthy();
+      expect(labelId).not.toBe(inputId);
+    }
+  });
 });
+
+/** Every `nativeID`/`id` present on a host element in the rendered tree. */
+function collectElementIds(node: TestInstance | null): string[] {
+  const ids: string[] = [];
+  const walk = (instance: TestInstance | string) => {
+    if (typeof instance === "string") return;
+    const props = instance.props as { nativeID?: string; id?: string };
+    if (props.nativeID) ids.push(props.nativeID);
+    if (props.id) ids.push(props.id);
+    for (const child of instance.children) walk(child);
+  };
+  if (node) walk(node);
+  return ids;
+}
+
+/** Nearest `nativeID`/`id` at or above `node`. */
+function findAncestorId(node: TestInstance | null): string | undefined {
+  for (let current = node; current; current = current.parent) {
+    const props = current.props as { nativeID?: string; id?: string };
+    if (props.nativeID) return props.nativeID;
+    if (props.id) return props.id;
+  }
+  return undefined;
+}
 
 // ---------------------------------------------------------------------------
 // Source-level invariants — the SSR and copy-paste contract

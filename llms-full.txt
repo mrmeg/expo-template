@@ -891,6 +891,7 @@ Use this table before creating a new app-local primitive.
 - Use `EmptyState` for no-data or recoverable error regions.
 - Use `Skeleton` for loading content with stable layout.
 - Use `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent or fails, plus the default accessibility label. Never hand-roll a circle with a nested `Image` and initials `Text`. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring.
+- Pair a standalone `Label` with its control using two DISTINCT ids: `nativeID` is the label's own id, `htmlFor` is the input's id (`<Label nativeID="email-label" htmlFor="email-input">` + `<TextInput nativeID="email-input" />`). Putting the same id on both renders duplicate ids on web and associates nothing. Prefer `TextInput`'s own `label` prop when you don't need a separate label element.
 - Use `Progress` for real progress or indeterminate long-running work.
 - Use `Drawer.Header` with `icon`, `title`, and `action` for a compact app-brand row; place `Drawer.ToggleCollapse` in `action` for a trailing rail control.
 
