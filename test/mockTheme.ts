@@ -16,6 +16,7 @@ const theme = {
   scheme: "light",
   dark: false,
   colors: {
+    surfaceSunken: "#F8F9FB",
     background: "#FFFFFF",
     foreground: "#0F172A",
     card: "#F8FAFC",
@@ -35,6 +36,7 @@ const theme = {
     success: "#22C55E",
     warning: "#F59E0B",
     border: "#E2E8F0",
+    borderStrong: "#CBD5E1",
     input: "#FFFFFF",
     ring: "#0F172A",
     overlay: "rgba(0, 0, 0, 0.5)",

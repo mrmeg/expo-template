@@ -107,11 +107,13 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 Useful theme tokens include:
 
 ```tsx
+theme.colors.surfaceSunken;
 theme.colors.background;
 theme.colors.foreground;
 theme.colors.card;
 theme.colors.popover;
 theme.colors.border;
+theme.colors.borderStrong;
 theme.colors.input;
 theme.colors.ring;
 theme.colors.primary;
@@ -131,6 +133,13 @@ Token intent:
 - `input`: form-control border color
 - `ring`: focus outline color
 - `popover`: elevated overlay surface
+- `surfaceSunken`: app-chrome surface one tier below `background`
+- `borderStrong`: hairline for elements on filled surfaces, where `border` would blend in
+
+Elevation is a surface-tier ladder, not shadow depth:
+`surfaceSunken` (chrome) < `background` (content) < `card`/`popover` (raised)
+< `muted` (chips, insets). Border a raised or filled element with
+`borderStrong`; `border` is for hairlines on `background`/`card`.
 
 Use `getShadowStyle()` for package surfaces that need elevation. It supports
 `base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`,
@@ -187,10 +196,12 @@ Use this table before creating a new app-local primitive.
 | `Accordion`, `AccordionItem`, `AccordionTrigger`, `AccordionContent` | Multi-section disclosure | Custom FAQ/settings expanders | FAQ lists, grouped settings, help sections |
 | `Alert` | Cross-platform imperative alerts | Direct `window.alert` or duplicated RN/web branching | Confirm destructive actions, native alert dialogs |
 | `AnimatedView` | Entrance and visibility animation | Hand-rolled one-off Animated wrappers | Staggered list rows, revealed panels, animated empty states |
+| `Avatar`, `AvatarGroup` | Profile images with initials/icon fallback | Hand-rolled circles with a nested `Image` and initials `Text` | Account menu, comment authors, assignee pickers, overlapping team stacks |
 | `Badge` | Short status labels | Custom pill `View` + `Text` | Draft/active states, counts, plan labels, role tags |
 | `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets | Action pickers, mobile filters, keyboard-aware quick edit forms |
 | `Button` | Commands and CTAs | Pressable plus custom text styling | Submit, save, cancel, delete, navigation CTAs |
 | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Framed content groups | Ad hoc bordered panels | List items, pricing plans, settings sections, summaries |
+| `Carousel` | Horizontally snapping slide rows with dot indicators | Hand-rolled snap `ScrollView` plus manual offset math | Testimonial strips, onboarding pages, feature highlights, image galleries |
 | `Checkbox` | Boolean selection | Custom checkmark controls | Terms consent, checklist items, multi-select filters |
 | `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | One-off disclosure | Local animated height wrappers | Advanced settings, hidden helper text |
 | `Dialog`, `AlertDialog` | Modal decisions and custom modal content | Custom modal overlays | Confirm delete, edit profile, invite user |
@@ -227,8 +238,10 @@ Use this table before creating a new app-local primitive.
 - Use `RadioGroup` for small mutually exclusive choices and `Select` for longer option sets.
 - Use `Dialog` for blocking decisions, `Popover` for contextual controls, `Tooltip` for short explanations, and `DropdownMenu` for action lists.
 - Use `Card` for individual repeated or framed items, not as a wrapper around full page sections.
+- Use `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive server rendering; reach for `FlatList` when the data set is large or unbounded.
 - Use `EmptyState` for no-data or recoverable error regions.
 - Use `Skeleton` for loading content with stable layout.
+- Use `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent or fails, plus the default accessibility label. Never hand-roll a circle with a nested `Image` and initials `Text`. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring.
 - Use `Progress` for real progress or indeterminate long-running work.
 - Use `Drawer.Header` with `icon`, `title`, and `action` for a compact app-brand row; place `Drawer.ToggleCollapse` in `action` for a trailing rail control.
 

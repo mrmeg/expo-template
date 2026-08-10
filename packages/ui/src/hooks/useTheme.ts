@@ -3,6 +3,7 @@ import { Colors, colors } from "../constants/colors";
 import { ViewStyle, Platform, StyleSheet } from "react-native";
 import { resolveThemePreference, useThemeStore } from "../state/themeStore";
 import { useThemeColorScope } from "../state/themeColorScope";
+import { useSsrThemeSeed } from "../state/ssrTheme";
 import { spacing as spacingConstants } from "../constants/spacing";
 
 type ShadowType =
@@ -76,11 +77,25 @@ export function useTheme(): ExtendedColorScheme & {
   setTheme: (theme: "system" | "light" | "dark") => void;
   currentTheme: "system" | "light" | "dark";
   } {
-  const userTheme = useThemeStore((s) => s.userTheme);
-  const systemTheme = useThemeStore((s) => s.systemTheme);
+  const storeUserTheme = useThemeStore((s) => s.userTheme);
+  const storeSystemTheme = useThemeStore((s) => s.systemTheme);
+  const hasLoadedTheme = useThemeStore((s) => s.hasLoadedTheme);
   const setTheme = useThemeStore((s) => s.setTheme);
   const colorOverrides = useThemeStore((s) => s.colorOverrides);
   const scoped = useThemeColorScope();
+  const seed = useSsrThemeSeed();
+
+  // Before persistence has been read, a web render must resolve from the
+  // per-request SSR seed instead of store state. The store is a module
+  // singleton shared across concurrent SSR requests, so it can only ever hold
+  // the SSR-safe boot defaults ("system"/light); the seed is cookie-derived,
+  // which is the one signal the server and the browser read identically —
+  // that's what keeps the hydrated tree matching the server HTML. After mount
+  // `syncThemeFromEnvironment()` flips `hasLoadedTheme` and store state (real
+  // localStorage/AsyncStorage + live OS listener) takes over for good.
+  const useSeed = Platform.OS === "web" && !hasLoadedTheme;
+  const userTheme = useSeed ? seed.userTheme : storeUserTheme;
+  const systemTheme = useSeed ? seed.systemTheme : storeSystemTheme;
 
   // Determine which theme to use (user preference or system)
   const effectiveScheme = resolveThemePreference(userTheme, systemTheme);

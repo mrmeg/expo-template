@@ -46,8 +46,10 @@ import { SegmentedControl } from "@mrmeg/expo-ui/components/SegmentedControl";
 import { InputOTP } from "@mrmeg/expo-ui/components/InputOTP";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@mrmeg/expo-ui/components/Card";
+import { Carousel } from "@mrmeg/expo-ui/components/Carousel";
 import { Label } from "@mrmeg/expo-ui/components/Label";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
+import { Avatar, AvatarGroup } from "@mrmeg/expo-ui/components/Avatar";
 import { notify } from "@mrmeg/expo-ui/state";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -253,6 +255,8 @@ function useShowcaseScreenContent() {
 
           <AuthFormsSection styles={styles} />
 
+          <AvatarSection styles={styles} />
+
           <Section title="Badge">
             <SubSection label="Variants">
               <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
@@ -389,6 +393,8 @@ function useShowcaseScreenContent() {
               </Card>
             </SubSection>
           </Section>
+
+          <CarouselSection styles={styles} theme={theme} />
 
           <CheckboxSection styles={styles} />
 
@@ -1439,6 +1445,71 @@ const SwitchSection = memo(function SwitchSection({
   );
 });
 
+const CAROUSEL_SLIDES = ["Alpha", "Bravo", "Charlie", "Delta", "Echo"];
+
+const CarouselSection = memo(function CarouselSection({
+  styles,
+  theme,
+}: {
+  styles: ShowcaseStyles;
+  theme: Theme;
+}) {
+  const [page, setPage] = useState(0);
+
+  // One slide body reused across the sub-sections so the differences between
+  // them are the props, not the content.
+  const renderSlides = (labels: string[] = CAROUSEL_SLIDES) =>
+    labels.map((label, index) => (
+      <View key={label} style={styles.carouselSlide}>
+        <SansSerifBoldText style={styles.carouselSlideTitle}>{label}</SansSerifBoldText>
+        <SansSerifText style={styles.carouselSlideMeta}>
+          {`Slide ${index + 1} of ${labels.length}`}
+        </SansSerifText>
+      </View>
+    ));
+
+  return (
+    <Section title="Carousel">
+      <SubSection label="Default (itemWidth 0.85 — next slide peeks)">
+        <Carousel>{renderSlides()}</Carousel>
+      </SubSection>
+
+      <SubSection label="Full-width pages (itemWidth 1, no content padding)">
+        <Carousel itemWidth={1} gap={0} contentPadding={0}>
+          {renderSlides(["One", "Two", "Three"])}
+        </Carousel>
+      </SubSection>
+
+      <SubSection label="Absolute item width (220px)">
+        <Carousel itemWidth={220} gap={spacing.sm}>
+          {renderSlides()}
+        </Carousel>
+      </SubSection>
+
+      <SubSection label="No dots">
+        <Carousel showDots={false}>{renderSlides(["Alpha", "Bravo", "Charlie"])}</Carousel>
+      </SubSection>
+
+      <SubSection label="Starts on slide 3 (initialIndex 2)">
+        <Carousel initialIndex={2}>{renderSlides()}</Carousel>
+      </SubSection>
+
+      <SubSection label="Free scroll (snap disabled)">
+        <Carousel snap={false} itemWidth={0.6}>
+          {renderSlides()}
+        </Carousel>
+      </SubSection>
+
+      <SubSection label="onIndexChange">
+        <Carousel onIndexChange={setPage}>{renderSlides()}</Carousel>
+        <SansSerifText style={[styles.carouselReadout, { color: theme.colors.mutedForeground }]}>
+          {`Active slide: ${CAROUSEL_SLIDES[page]} (index ${page})`}
+        </SansSerifText>
+      </SubSection>
+    </Section>
+  );
+});
+
 const CheckboxSection = memo(function CheckboxSection({
   styles,
 }: {
@@ -1683,6 +1754,116 @@ const AuthFormsSection = memo(function AuthFormsSection({
           success={resetPasswordSuccess}
         />
       )}
+    </Section>
+  );
+});
+
+// A URL that resolves DNS but never returns an image, so the fallback chain is
+// demonstrable at runtime rather than only described in the docs.
+const BROKEN_AVATAR_URL = "https://example.com/this-image-does-not-exist.png";
+const SAMPLE_AVATAR = require("@/assets/images/icon.png");
+
+const AvatarSection = memo(function AvatarSection({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
+  const [teamSize, setTeamSize] = useState(5);
+  const team = [
+    "Ada Lovelace",
+    "Grace Hopper",
+    "Katherine Johnson",
+    "Mary Jackson",
+    "Dorothy Vaughan",
+    "Annie Easley",
+    "Radia Perlman",
+  ].slice(0, teamSize);
+
+  return (
+    <Section title="Avatar">
+      <SubSection label="Sizes">
+        <View style={styles.avatarRow}>
+          <Avatar name="Ada Lovelace" size="sm" />
+          <Avatar name="Ada Lovelace" size="md" />
+          <Avatar name="Ada Lovelace" size="lg" />
+          <Avatar name="Ada Lovelace" size={72} />
+        </View>
+      </SubSection>
+
+      <SubSection label="Image">
+        <View style={styles.avatarRow}>
+          <Avatar source={SAMPLE_AVATAR} name="Expo Template" size="lg" />
+          <Avatar source={SAMPLE_AVATAR} name="Expo Template" size="lg" shape="square" />
+        </View>
+      </SubSection>
+
+      <SubSection label="Fallbacks (image → initials → icon)">
+        <View style={styles.avatarRow}>
+          <Avatar source={{ uri: BROKEN_AVATAR_URL }} name="Broken Image" size="lg" />
+          <Avatar name="Grace Hopper" size="lg" />
+          <Avatar name="Cher" size="lg" />
+          <Avatar size="lg" />
+          <Avatar icon="camera" size="lg" />
+        </View>
+        <StyledText style={styles.labelText}>
+          The first avatar points at a dead URL and degrades to initials on load failure.
+        </StyledText>
+      </SubSection>
+
+      <SubSection label="Shapes">
+        <View style={styles.avatarRow}>
+          <Avatar name="Ada Lovelace" size="lg" />
+          <Avatar name="Ada Lovelace" size="lg" shape="square" />
+          <Avatar icon="folder" size="lg" shape="square" />
+        </View>
+      </SubSection>
+
+      <SubSection label="Group with overflow">
+        <View style={{ gap: spacing.md }}>
+          <AvatarGroup max={4} size="lg">
+            {team.map((name) => (
+              <Avatar key={name} name={name} />
+            ))}
+          </AvatarGroup>
+          <View style={styles.avatarRow}>
+            <Button
+              preset="outline"
+              text="Remove"
+              disabled={teamSize <= 1}
+              onPress={() => setTeamSize((n) => Math.max(1, n - 1))}
+            />
+            <Button
+              preset="outline"
+              text="Add"
+              disabled={teamSize >= 7}
+              onPress={() => setTeamSize((n) => Math.min(7, n + 1))}
+            />
+          </View>
+        </View>
+      </SubSection>
+
+      <SubSection label="Group sizes">
+        <View style={{ gap: spacing.md }}>
+          <AvatarGroup size="sm" max={3}>
+            <Avatar name="Ada Lovelace" />
+            <Avatar name="Grace Hopper" />
+            <Avatar name="Katherine Johnson" />
+            <Avatar name="Mary Jackson" />
+          </AvatarGroup>
+          <AvatarGroup max={3}>
+            <Avatar name="Ada Lovelace" />
+            <Avatar name="Grace Hopper" />
+            <Avatar name="Katherine Johnson" />
+            <Avatar name="Mary Jackson" />
+          </AvatarGroup>
+          <AvatarGroup size="lg" shape="square" max={3}>
+            <Avatar name="Ada Lovelace" />
+            <Avatar name="Grace Hopper" />
+            <Avatar name="Katherine Johnson" />
+            <Avatar name="Mary Jackson" />
+          </AvatarGroup>
+        </View>
+      </SubSection>
     </Section>
   );
 });
@@ -2371,6 +2552,34 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.sm,
     },
 
+    // Carousel
+    carouselSlide: {
+      // Fills the slide wrapper Carousel puts around each child so every card
+      // is the same height regardless of its text length.
+      flex: 1,
+      minHeight: 96,
+      justifyContent: "center",
+      gap: spacing.xxs,
+      padding: spacing.md,
+      borderRadius: spacing.radiusLg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.muted,
+    },
+    carouselSlideTitle: {
+      fontSize: 16,
+      color: theme.colors.foreground,
+    },
+    carouselSlideMeta: {
+      fontSize: 12,
+      color: theme.colors.mutedForeground,
+    },
+    carouselReadout: {
+      fontSize: 12,
+      marginTop: spacing.sm,
+      textAlign: "center",
+    },
+
     // Feedback
     tooltipRow: {
       flexDirection: "row",
@@ -2433,6 +2642,12 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       gap: spacing.sm,
       alignItems: "center",
+    },
+    avatarRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      alignItems: "center",
+      flexWrap: "wrap",
     },
     realCard: {
       backgroundColor: theme.colors.card,

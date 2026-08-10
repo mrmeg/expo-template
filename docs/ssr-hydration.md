@@ -152,26 +152,211 @@ request masks the bug, but it bites the moment any SSR-reachable route calls
 i18next v26 note: the synchronous-init flag is `initAsync: false` (it was
 `initImmediate` in older majors). This template is on i18next v26.
 
-### 4. Viewport-dependent layout — seed width from SSR context
+### 4. Viewport-dependent layout — seed the whole frame, not just a context
 
 Branching layout on `useWindowDimensions().width` (`isCompact = width < 760`,
 etc.) diverges the server (width 0 → "compact") from the client (real width).
 This can shift **sibling order** (e.g. a skipped `{!isCompact && <Nav/>}`
 block), not just styles — a structural mismatch.
 
-This template handles it with `client/components/SsrViewportProvider.tsx`
-(seeded from `@mrmeg/expo-ui/state`'s SSR viewport context, set at the root) +
-`useDimensions()`. Use `useDimensions()` for responsive width, **not** raw
+Width 0 is not a corner case on web SSR, it's the default. Three separate
+places hardcode it, and each one has to be seeded independently:
+
+| Source | Server-side value | Who reads it |
+|---|---|---|
+| react-native-web `Dimensions.get('window')` | `{width: 0, height: 0}` (`update()` early-returns with no DOM) | `SafeAreaProvider`'s frame fallback |
+| `SafeAreaProvider` with no `initialMetrics` | falls back to the above | `useSafeAreaFrame`, layout below the root |
+| expo-router `SafeAreaProviderCompat.initialMetrics.frame` | **module constant**, `{width: 0, height: 0}` on web | `useFrameSize` → the stack `Header` |
+
+Left unseeded, the SSR HTML ships `max-width:-68px` on the header title
+container (`layout.width - 68`), collapsed centered containers, and content
+hugging the left edge.
+
+**How it's wired here:**
+
+1. **`server/lib/ssrViewport.ts`** resolves a width from the request:
+   `mrmeg-vw` cookie (precise, written by `useDimensions` after the first
+   mount) → User-Agent heuristic → desktop default. Same three read surfaces
+   as `ssrOnboarding.ts` (§6): `detectSsrViewportFromRequestScope()` for the
+   root layout, `resolveSsrViewportWidth(cookie, ua)` as the shared pure core,
+   and `detectSsrViewportWidth(request)` / `withSsrViewport(loader)` for routes
+   that also want it in loader data.
+2. **`client/features/app/ssrViewportMetrics.ts`** turns that into
+   `SafeAreaProvider`'s `initialMetrics` (zero insets — the browser can't know
+   real insets before its probe element mounts, so anything else is a
+   guaranteed mismatch). `RootLayout` passes it and provides the same width to
+   `SsrViewportContext` so `useDimensions` agrees with the frame. Native gets
+   `undefined` and keeps its real measurement path.
+3. **`MainLayout` passes `layout={{width, height}}`** in `screenOptions`,
+   because the `Header` reads expo-router's module-scope frame constant, which
+   `initialMetrics` does not reach.
+
+The invariant that makes all of this hydration-safe: **the browser resolves the
+width from `document.cookie` / `navigator.userAgent`, not from
+`window.innerWidth`.** Both sides derive the same number from the same bytes,
+exactly like the onboarding cookie in §6. Reading the real width during render
+would be *more* accurate and *guaranteed* to mismatch; `useDimensions` picks it
+up in a post-mount effect instead, and refreshes the cookie for next time.
+
+> **Per-request leak caution.** Resolve these values *during render* (a lazy
+> `useState` initializer) and never cache them in module scope. The server
+> module scope is shared across concurrent requests, so a hoisted frame — or a
+> `Dimensions.set()` / store mutation — lets a phone request's width bleed into
+> a desktop request's layout. Same hazard as the RNW stylesheet in §7.
+
+Use `useDimensions()` for responsive width, **not** raw
 `useWindowDimensions()`, in anything that renders on web.
 
-### 5. Theme / `typeof window` branches — resolve to a fixed first-render default
+### 5. Theme — resolved server-side from a cookie
 
-`app/+html.tsx` ships a blocking `themeScript` that sets `data-theme` on `<html>`
-before hydration and hides `#root` for dark-mode visitors (the `theme-loading`
-class) to mask the flash. The CSS uses `html[data-theme=…]` selectors so the
-body background is correct on first paint. Any component that reads theme/window
-for render output should resolve to a stable default on the first render (gate
-on a `useHydrated()`-style flag) and switch after mount.
+Theme is **personalization**, so it gets the same treatment as onboarding (§6):
+give the server the signal instead of masking a wrong render.
+
+Before this, the server had no way to know the visitor's theme, so every SSR
+render shipped a fully **light** React tree — light surface classes and light
+foregrounds throughout — and a dark-mode user watched the whole page recolor
+after hydration (dark blank → light tree → dark tree). The blocking script could
+only set the `<body>` background; it cannot recolor a React tree.
+
+Four parts:
+
+1. **`themeStore` dual-writes on web.** `setTheme(pref)` writes
+   `localStorage["user-theme-preference"]` **and** a
+   `user-theme-preference=<pref>` cookie (`path=/; max-age≈1y; SameSite=Lax`) —
+   same name for both, so there's one string to grep and the `+html.tsx` script
+   already reads it. `loadTheme()` backfills/repairs the cookie from
+   `localStorage` (and writes `system` when nothing is persisted), so existing
+   users are migrated on their next visit. Native persistence is unchanged:
+   AsyncStorage, eagerly hydrated at module load, no cookie.
+
+2. **`server/lib/ssrTheme.ts` reads it.** `parseThemePreferenceCookie()` does
+   the parse (anchored to a cookie boundary; unknown values → `null`);
+   `detectSsrThemeSeedFromRequestScope()` gets the header from `expo-server`'s
+   `requestHeaders()` — **inside a try/catch that falls back to the default
+   seed**, because the same module ships in the client bundle where
+   `requestHeaders()` throws. `detectSsrThemeSeed(request)` is the explicit
+   loader-friendly form, mirroring `detectOnboardingSeen(request)`.
+
+   A `system` preference (or a first-time visitor) resolves through the
+   `Sec-CH-Prefers-Color-Scheme` client hint when the browser sends one.
+   `app/+html.tsx` opts in with `<meta http-equiv="Accept-CH">`, so the hint
+   arrives from the second navigation onwards on browsers that implement it;
+   absent a hint the server falls back to light, which is what the store has
+   always booted with.
+
+3. **`SsrThemeSeedContext` carries it per request.** `useThemeStore` is a module
+   singleton shared by every concurrent SSR request, so a per-request theme can
+   **never** be written into it. `@mrmeg/expo-ui/state`'s `SsrThemeSeedContext`
+   is the per-request channel instead, and `client/components/SsrThemeProvider.tsx`
+   provides it: a lazy `useState` initializer reads the request scope on the
+   server and `document.cookie` in the browser. `packages/ui` must not import
+   `expo-server` (`check:forbidden-imports`), which is why the parse lives in
+   the app's `server/` layer and only the context lives in the package.
+
+   `RootLayout` is split for this: the default export renders only
+   `<SsrThemeProvider>`, and `RootLayoutContent` (which calls `useTheme()` for
+   the navigation `ThemeProvider` and the Stack backdrop) renders inside it — a
+   component can't consume a context it renders itself.
+
+4. **`useTheme` prefers the seed until persistence has loaded.** The store gained
+   `hasLoadedTheme`, flipped by `loadTheme()`. While it's false on web,
+   `useTheme`/`useStyles` resolve from the seed; after mount
+   `syncThemeFromEnvironment()` reads `localStorage`, starts the live OS
+   listener, and store state takes over for good. So `localStorage` always wins
+   on a mismatch and a stale cookie can't pin anyone to the wrong theme beyond
+   the first paint.
+
+`app/+html.tsx` renders `data-theme` on `<html>` from the same per-request read —
+**but only when that read found something.** `detectSsrThemeFromRequestScope()`
+returns `{ seed, hasSignal, scheme }`, and `scheme` is `null` unless the server
+genuinely knows the answer (an explicit `light`/`dark` cookie, or a real
+`Sec-CH-Prefers-Color-Scheme` hint). Two branches:
+
+- **Signal** → stamp `data-theme` and `color-scheme`, so the
+  `html[data-theme=…]` CSS paints the right body background on byte 1 with no
+  blocking script involved. `data-ssr-system-scheme` goes on too, carrying the
+  system scheme the server used: the client hint is a *request* header that
+  browser JS cannot read, so without that attribute the client's first render
+  would have to guess with `window.matchMedia` and would disagree with the
+  server on every hint-less request.
+
+- **No signal** → stamp **nothing**. The server rendered light because that's
+  the store's boot default, not because it knows anything, and a stamped guess
+  is worse than no attribute: `COLOR_SCHEME_SCRIPT` returns early on
+  `root.dataset.theme`, and `@media (prefers-color-scheme: dark)
+  html:not([data-theme])` stops matching. Both failsafes would be dead, and a
+  brand-new visitor on a dark OS whose browser sent no hint would get a light
+  flash with no way out. Omitting the attribute hands that case back to the
+  script and the media query, exactly as it worked before the cookie existed.
+
+A `system` cookie with **no** hint sits deliberately in the second branch:
+`hasSignal` is true (the preference is known, and the seed carries it so the
+server render and the client's own cookie read agree) but `scheme` is `null`,
+because the light it resolves to is still the guess.
+
+The `<meta name="theme-color">` (Safari status-bar/toolbar and Android Chrome
+chrome tinting) follows the same two branches: a signal renders **one
+unqualified meta** pinned to the resolved scheme's `background` (unqualified
+because an explicit dark cookie must beat a light OS — a media-gated meta
+would follow the OS instead), and no signal renders a
+**`prefers-color-scheme`-gated pair**, the meta equivalent of the CSS
+fallback — OS-correct without pinning the guess. After hydration
+`useSafariThemeColorSync()` (client/features/app/safariThemeColor.ts) removes
+the gated pair and keeps a single meta tracking the theme store, so in-app
+toggles re-tint the browser chrome. Both branches are pinned by
+`__tests__/ssrThemeStamp.test.tsx`.
+
+So the blocking `COLOR_SCHEME_SCRIPT` stays a **first-visit-only** failsafe that
+actually fires: its `data-theme` early-return is the handover, and the
+conditional stamp above is what keeps the handover real. Don't widen its 500ms
+`theme-loading` window; the cookie is what fixes the common case, and the script
+only has to cover the hint-less first paint.
+
+`{...htmlAttributes}` is spread first and the theme props merge over it —
+including `style`, which is spread into the `colorScheme` object rather than
+replacing it, so a framework-supplied `<html>` style survives.
+
+Any *other* component that reads theme/window for render output should still
+resolve to a stable default on the first render (gate on a `useHydrated()`-style
+flag) and switch after mount.
+
+Verify both cookie states against a **production** server — the dev server ships
+no app content, so it can't demonstrate this:
+
+```bash
+bun run build && PORT=3000 bun run start
+
+# The <html> attribute the blocking script and the CSS both key off.
+curl -s -H 'Cookie: user-theme-preference=dark' localhost:3000/showcase \
+  | grep -o 'data-theme="[^"]*"'            # data-theme="dark"
+
+# No cookie, no hint: NO data-theme at all. An empty result is the pass —
+# `data-theme="light"` here would be the regression (dead script + dead media
+# query for a dark-OS first-timer).
+curl -s localhost:3000/showcase | grep -o 'data-theme="[^"]*"'   # (nothing)
+```
+
+Don't grep the raw color out of the whole document: the RNW stylesheet snapshot
+registers **both** palettes on every response, so `rgba(9,9,11,1.00)` is present
+either way. What changes is which class the *tree* references. Resolve the class
+from the stylesheet, then count its uses in the markup:
+
+```bash
+page=$(curl -s -H 'Cookie: user-theme-preference=dark' localhost:3000/showcase)
+cls=$(printf '%s' "$page" \
+  | grep -o '[a-z0-9-]*{background-color:rgba(9,9,11,1.00)' | head -1 | cut -d'{' -f1)
+
+printf '%s' "$page" | grep -c "class=\"[^\"]*$cls"          # 1 — dark tree
+curl -s localhost:3000/showcase | grep -c "class=\"[^\"]*$cls"   # 0 — light tree
+```
+
+`system` resolves through the client hint, which curl can send explicitly:
+
+```bash
+curl -s -H 'Cookie: user-theme-preference=system' \
+     -H 'Sec-CH-Prefers-Color-Scheme: dark' localhost:3000/ \
+  | grep -o 'data-ssr-system-scheme="[^"]*"'   # data-ssr-system-scheme="dark"
+```
 
 ### 6. Onboarding gate — resolved server-side from a cookie
 
@@ -237,10 +422,11 @@ curl -s localhost:3000/ | grep -c onboarding-gate                               
 curl -s -H 'Cookie: has-seen-onboarding=1' localhost:3000/ | grep -c onboarding-gate  # returning → == 0
 ```
 
-> Follow-up, not done here: the theme preference could move to the same
-> cookie mechanism and retire the `theme-loading` shield too. It's a separate
-> decision — the theme script also handles the OS `prefers-color-scheme`
-> fallback, which no cookie can supply on a first visit.
+> The theme preference now uses this same mechanism — see §5. The
+> `theme-loading` shield survives only as a first-visit failsafe, because the
+> OS `prefers-color-scheme` fallback is the one signal no cookie can supply on
+> a first visit (the `Sec-CH-Prefers-Color-Scheme` client hint covers it from
+> the second request onwards).
 
 ### 7. Theme-dependent styles — register at module scope, not render time
 
@@ -292,6 +478,101 @@ than leaning on the flush: rules that only exist in the flush node disappear
 from `document.styleSheets` bookkeeping RNW does at hydration, and the flush
 duplicates whatever the head already carries.
 
+#### 7a. The flush must lose cascade ties — the adoption anchor
+
+Both sheets use single-class selectors, so **document order breaks every tie**,
+and the flush is emitted as a hoisted resource: React writes it into the head
+*preamble*, ahead of everything `+html.tsx` renders. Left alone, RNW would then
+create its client sheet with `head.insertBefore(element, head.firstChild)`
+(`react-native-web/dist/exports/StyleSheet/dom/createCSSStyleSheet.js`) at index
+0 — **before** the flush — and lose those ties. The flush's classic base resets
+(`.css-g5y9jx { padding: 0px; margin: 0px; … }`, one per View/Text/TextInput)
+would then override any atomic that exists **only** in the client sheet, e.g. a
+`{ padding-top: 32px }` atomic registered after the flush was serialized
+(`.r-fd4yh7` in the build where this was diagnosed — atomic hashes vary per
+build).
+Most late rules self-heal because the client re-inserts them into a sheet that
+wins on its own; the ones that don't get silently zeroed.
+
+The fix is one line in `app/+html.tsx`:
+
+```tsx
+<style id="react-native-stylesheet" />
+```
+
+`createCSSStyleSheet` does `root.getElementById(id)` **first** and only creates
+an element when that misses, so RNW **adopts** this node — placing the client
+sheet where the anchor sits (after the flush) and leaving exactly one sheet
+instead of two competing ones.
+
+Three constraints, each load-bearing:
+
+- **The anchor must stay empty.** `createOrderedCSSStyleSheet` hydrates its
+  group records by walking the adopted element's existing rules and indexes them
+  by the most recent `[stylesheet-group="N"]{}` marker. A rule that isn't
+  preceded by its marker throws `undefined is not an object (evaluating
+  'groups[group].rules')` at module scope — before hydration, so the page dies.
+  That rules out inlining the flushed CSS here.
+- **It must stay ahead of the bootstrap `<script>`s.** RNW calls `createSheet()`
+  at module scope, so the anchor has to already be in the DOM when the entry
+  bundle runs, or `getElementById` misses and the competing sheet comes back.
+- **The `headNodes` filter must keep dropping the framework snapshot** (same
+  file, §1) — it carries this same id, and a duplicate makes adoption
+  order-dependent.
+
+Do **not** "fix" this by stripping the `.css-*` resets from the flush instead.
+The filter removes the framework snapshot and the client sheet doesn't exist
+until JS runs, so the flush is the **only** pre-hydration source of those
+resets: without them every `View` falls back to `display: block`,
+`flex-direction: row`, `box-sizing: content-box` — i.e. the unstyled first paint
+the flush exists to prevent.
+
+Pinned by `__tests__/ssrStyleCascade.test.tsx` (head ordering, single id, resets
+retained) and `__tests__/rnwSheetAdoption.test.ts` (the two RNW dist behaviors
+adoption depends on, so an upgrade breaks a test instead of production).
+
+### 8. Cold starts must not reach visitors — warm-up gate + blank-screen watchdog
+
+The first SSR render after a server boot imports the whole `dist/server`
+bundle and resolves every lazy route chunk — seconds of work. Two defenses,
+both in this template:
+
+1. **The warm-up gate** (`server.bun.ts`). At boot the server renders `/`
+   twice — once bare (onboarding gate tree) and once with
+   `Cookie: has-seen-onboarding=1` (the returning-visitor tree; the two
+   lazy-load different route subtrees) — draining each body, since suspended
+   chunks only render as the stream is consumed. HTML and loader requests
+   `await` that warm-up; static files and `/api/*` are never gated, so health
+   checks respond immediately. Without the gate, a visitor who raced the
+   fire-and-forget warm-up ate the cold render personally: ~9s
+   time-to-first-byte against a server still loading modules — observed as the
+   trigger window for intermittent blank-on-load reports. A warm-up failure
+   logs `SSR warm-up render failed` and serving continues (requests then pay
+   the cold render, the old behavior).
+
+2. **The blank-screen recovery watchdog**
+   (`client/features/app/blankRecoveryScript.ts`, rendered as an inline
+   `<head>` script by `app/+html.tsx`). If hydration dies after the server
+   HTML was discarded — React 19 drops the server DOM on a hydration error,
+   and a failed client re-render then leaves `#root` empty — the user is
+   stranded on a themed blank page that only a manual refresh fixes. The
+   watchdog buffers the first window `error`/`unhandledrejection` messages,
+   checks `#root` for rendered text 4s after `load` (15s fallback), and on a
+   provably dead root reloads **once** (sessionStorage-guarded, so it can
+   never loop), replaying the captured errors as a console warning on the
+   next healthy load. `innerText` is the aliveness probe deliberately: it
+   ignores `<template>` segments and hidden nodes, so a pending Suspense
+   boundary or the ErrorScreen never count as dead. If a fork's entry route
+   legitimately renders zero text at rest, relax the check — don't delete it.
+   When debugging a user report, ask for the `[blank-screen-recovery]`
+   console output: it contains the pre-reload errors that are otherwise lost
+   to the refresh. Every dead detection also overwrites
+   `localStorage["blank-screen-recovery:last"]` and leaves it there — on a
+   phone, where nobody has a console open while it happens, read it later via
+   remote Web Inspector (iPhone: Settings → Safari → Advanced → Web
+   Inspector, then Mac Safari → Develop → the device → the tab) or evaluate
+   `localStorage.getItem("blank-screen-recovery:last")`.
+
 ## How to verify an SSR fix — do NOT rely on Jest/tsc alone
 
 Jest mocks `expo-font` and `react-i18next`, and `tsc` doesn't model Metro/SSR,
@@ -334,10 +615,33 @@ EOF
 In production (`bun run build` + `bun run start`), check the **first** request
 after server boot — the cold-start render is the one that regresses.
 
+For §7a (cascade order), confirm the adoption anchor is present exactly once,
+empty, and positioned after the flush but before the first script:
+
+```bash
+python3 - <<'EOF'
+html = open('/tmp/ssr.html').read()
+anchor = html.find('<style id="react-native-stylesheet">')
+flush  = html.find('data-precedence="rnw-ssr"')
+print("anchor count:", html.count('id="react-native-stylesheet"'), "(want 1)")
+print("anchor empty:", '<style id="react-native-stylesheet"></style>' in html)
+print("anchor after flush:", anchor > flush > -1)
+print("anchor before scripts:", -1 < anchor < html.find('<script'))
+EOF
+```
+
 Then open the route in a browser with the console open and confirm **zero**
 hydration warnings. Reproduce **both** a cold reload **and** navigation from
 another page — warm font/i18n caches change which side renders "loaded", so a
 bug can hide on one path and appear on the other.
+
+Cascade regressions need a **computed-style** check, which no `curl` can do:
+in DevTools confirm a client-only atomic still applies: on `/form-demo`, find
+the single-class `padding-top: 32px` rule in `style#react-native-stylesheet`
+(atomic hashes are build-dependent — locate the rule by its declaration, not a
+hardcoded class name) and confirm its element computes `32px`, not `0px`; Button
+padding is unchanged, and the pre-hydration frame on `/showcase` is still styled
+(throttle the network and watch the first paint).
 
 **Gotcha — the onboarding gate masks `(main)` routes for cookie-less requests.**
 A bare `curl /settings` looks like a brand-new visitor, so the server renders
@@ -441,6 +745,48 @@ find node_modules -path '*@radix-ui/react-primitive/package.json' | wc -l  # →
 `__tests__/radixSingleton.guardrail.test.ts` pins the lockfile against this
 drift, so a re-split fails CI instead of a demo.
 
+### `<Link asChild>` children must take a flattened style object
+
+Same `Slot`, different failure. A browser pass found every showcase gallery dead
+on web — the route unmounted to the error boundary on hydration with
+
+```
+TypeError: Failed to set an indexed property [0] on 'CSSStyleDeclaration'
+```
+
+Why: `<Link asChild>` renders through `expo-router`'s `Slot` (Radix's, under a
+shim), and Radix's `mergeProps` has exactly one rule for `style`:
+
+```js
+overrideProps.style = { ...slotPropValue, ...childPropValue };
+```
+
+Spreading an **array** index-keys it, so `style={[styles.card, cond ? {…} : null]}`
+becomes `{ 0: {…}, 1: null }`. The SSR HTML serializes that as
+`style="0:[object Object];1:[object Object]"`, and hydration throws when RNW
+tries to assign key `"0"` on a `CSSStyleDeclaration`. When it doesn't throw it
+just loses the paint — a `backgroundColor` sitting in entry `0` never lands,
+which is how a primary CTA rendered with no fill. A function-form style is the
+same trap from the other side: spreading a function yields `{}`.
+
+`expo-router`'s Slot shim flattens *its own* `style` and dev-throws for an
+array-styled child, but nothing flattens the child for you. Every `Link asChild`
+child in this template goes through
+`client/features/navigation/linkPressableStyle.ts`, which returns one flat object
+(and appends the web pointer cursor):
+
+```tsx
+<Link href={href} asChild>
+  <Pressable style={linkPressableStyle(styles.card, { flexBasis: "47%" })}>
+</Link>
+```
+
+Note this is invisible to a route test whose `expo-router` mock stubs `Link` as a
+string element — the pre-fix galleries passed 46/46 while every one was broken in
+a browser. `client/showcase/__tests__/galleries.test.tsx` mocks `Link` with the
+**real** `Slot` and records each `asChild` child's raw `style`, so a new `[...]`
+literal fails regardless of where it renders.
+
 ## Guardrail
 
 `__tests__/ssrHydration.guardrail.test.ts` holds source/behavior assertions so a
@@ -463,3 +809,21 @@ through (`react-tabs`, `react-direction`, `react-context`,
 each resolve to exactly one version in `bun.lock`, `react-slot` and
 `react-primitive` must stay unified at the versions the `overrides` pin, and
 `package.json` must still declare those overrides.
+
+`__tests__/ssrWarmup.guardrail.test.ts` pins §8's wiring: the boot warm-up
+covers the cookied tree and drains bodies, the HTML path awaits it while
+`/api/*` does not, and `app/+html.tsx` still renders the watchdog script in
+`<head>`. `__tests__/blankRecovery.test.ts` drives the watchdog script itself
+in a sandbox: reload-once on a dead root, loop-guard, error replay.
+
+`__tests__/ssrStyleCascade.test.tsx` renders `app/+html.tsx` with a mocked
+server-document context and pins §7a: exactly one
+`<style id="react-native-stylesheet">`, empty, after the hoisted flush and
+before the first `<script>`; the flush still carries `href`/`precedence`; and its
+`.css-*` base resets are still present.
+`__tests__/rnwSheetAdoption.test.ts` pins the two react-native-web dist
+behaviors that adoption depends on (id lookup reuses an existing element;
+group-marker hydration throws on a pre-populated sheet), so an RNW upgrade that
+changes either fails CI instead of silently zeroing padding. Neither test can
+model the cascade itself — jsdom doesn't resolve cross-stylesheet ties the way
+browsers do, so the computed-style check above stays manual.

@@ -1,9 +1,9 @@
 ---
-status: blocked
+status: done
 mode: AFK
 base-branch: dev
-blocked-by: merge blocks-tier-foundation.md first (this spec imports the BLOCKS registry it creates), then set ready
-pr: -
+blocked-by: -
+pr: https://github.com/mrmeg/expo-template/pull/48
 ---
 
 # Showcase redesign: three-scale Explore + component/blocks/templates galleries

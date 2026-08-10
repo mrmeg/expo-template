@@ -18,7 +18,7 @@ zero secrets.
 | [`.maestro/launch.yml`](../.maestro/launch.yml) | Cold launch resolves `useAppStartup` (fonts, i18n, onboarding persistence, auth bootstrap), the splash hides, and the onboarding gate renders. A provider crash or a gate that never resolves fails here. |
 | [`.maestro/onboarding.yml`](../.maestro/onboarding.yml) | Both exits from the onboarding gate — paging through all three pages, and Skip from page 1 — flip the persisted flag and swap the shell over to the `(main)` Stack. |
 | [`.maestro/tabs.yml`](../.maestro/tabs.yml) | All four `NAV_DESTINATIONS` tabs mount and render: Explore, Media (fails closed), Profile, Settings. |
-| [`.maestro/templates.yml`](../.maestro/templates.yml) | Tapping a screen-template card on Explore reaches the rendered template, validating `client/templates/registry.generated` end to end. Also opens the component showcase. |
+| [`.maestro/templates.yml`](../.maestro/templates.yml) | Tapping a screen-template card on Explore reaches the rendered template, validating `client/templates/registry.generated` end to end. Also walks Explore → components gallery → a component detail, and proves the kitchen-sink showcase is still reachable from the gallery header. |
 
 Every flow is independent and launches with `clearState: true`, which wipes
 AsyncStorage — including the `has-seen-onboarding` key. That makes the suite

@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Plans & comparison",
   icon: "credit-card",
   order: 40,
+  category: "marketing",
 };

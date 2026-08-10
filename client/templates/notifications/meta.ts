@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Grouped notification list",
   icon: "bell",
   order: 100,
+  category: "content",
 };

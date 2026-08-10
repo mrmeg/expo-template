@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Hero image detail view",
   icon: "layout",
   order: 130,
+  category: "content",
 };

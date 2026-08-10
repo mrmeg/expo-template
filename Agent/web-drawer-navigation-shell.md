@@ -1,9 +1,9 @@
 ---
-status: blocked
+status: done
 mode: AFK
 base-branch: dev
-blocked-by: merge showcase-three-scale-galleries.md first (the shell's nav items target its gallery routes), then set ready
-pr: -
+blocked-by: -
+pr: https://github.com/mrmeg/expo-template/pull/49
 ---
 
 # Web navigation shell: Drawer rail on desktop, Drawer overlay on mobile web

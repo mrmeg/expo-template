@@ -7,4 +7,5 @@ export const meta: ScreenTemplateEntry = {
   description: "Metric grid with change indicators",
   icon: "bar-chart-2",
   order: 150,
+  category: "data",
 };
