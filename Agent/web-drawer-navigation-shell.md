@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/49
 ---
 
 # Web navigation shell: Drawer rail on desktop, Drawer overlay on mobile web
