@@ -107,18 +107,35 @@ const rateLimitBuckets = new Map<string, RateLimitBucket>();
 const expoRequestHandler = createRequestHandler({ build: SERVER_BUILD_DIR });
 const ffmpegWorkerAsset = loadFfmpegWorker(process.cwd());
 
-// Warm the SSR render once at boot. The streaming renderer snapshots the
-// react-native-web stylesheet for <head> before lazy route chunks load, so the
-// first render after a cold start ships HTML whose theme-dependent classes
-// have no CSS rules — an unstyled first paint for whoever hits the server
-// first. One throwaway render populates the module cache (and the RNW sheet)
-// so real requests get complete styles. Draining the body matters: suspended
+// Warm the SSR render once at boot, and hold HTML requests until it settles
+// (see `appResponse`). The first render after a cold start imports the whole
+// server bundle and resolves every lazy route chunk, which takes seconds —
+// a request that raced the old fire-and-forget warm-up ate that cold render
+// itself (~9s time-to-first-byte) and hydrated against a server still loading
+// modules. It also warms the react-native-web stylesheet the renderer
+// snapshots for <head>, so the first real render ships complete styles.
+//
+// Two serial passes cover both trees a visitor can be served: the onboarding
+// gate (no cookie) and the returning-visitor tree (onboarding cookie), which
+// lazy-load different route subtrees. Draining the body matters: suspended
 // chunks only render (and register their styles) as the stream is consumed.
-void expoRequestHandler(new Request("http://localhost/"))
-  .then((response) => response.text())
-  .catch((error) => {
-    console.warn("SSR warm-up render failed (first request may paint unstyled):", error);
-  });
+//
+// A warm-up failure logs loudly but never blocks serving — requests then pay
+// the cold render themselves, which is exactly the pre-gating behavior.
+const ssrWarmup: Promise<void> = (async () => {
+  const startedAt = performance.now();
+  const warmupRequests = [
+    new Request("http://localhost/"),
+    new Request("http://localhost/", { headers: { Cookie: "has-seen-onboarding=1" } }),
+  ];
+  for (const warmupRequest of warmupRequests) {
+    const response = await expoRequestHandler(warmupRequest);
+    await response.text();
+  }
+  console.log(`SSR warm-up complete in ${(performance.now() - startedAt).toFixed(0)} ms`);
+})().catch((error) => {
+  console.error("SSR warm-up render failed (live requests will hit cold renders):", error);
+});
 
 function allowedOrigins(): string[] {
   return process.env.ALLOWED_ORIGINS
@@ -464,6 +481,14 @@ async function appResponse(request: Request, server: BunServer): Promise<Respons
   const ffmpegResponse = await serveFfmpegWorker(request, url.pathname);
   if (ffmpegResponse) {
     return ffmpegResponse;
+  }
+
+  // Hold SSR HTML (and loader) requests until the boot warm-up settles so no
+  // visitor races the cold render. Static files and health checks returned
+  // above, and API routes don't touch the SSR module graph — only the render
+  // path waits. Once warm, this await is a resolved-promise microtask.
+  if (!routeMatches(url.pathname, "/api")) {
+    await ssrWarmup;
   }
 
   return expoRequestHandler(loaderNormalizedRequest(request));

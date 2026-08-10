@@ -531,6 +531,48 @@ Pinned by `__tests__/ssrStyleCascade.test.tsx` (head ordering, single id, resets
 retained) and `__tests__/rnwSheetAdoption.test.ts` (the two RNW dist behaviors
 adoption depends on, so an upgrade breaks a test instead of production).
 
+### 8. Cold starts must not reach visitors — warm-up gate + blank-screen watchdog
+
+The first SSR render after a server boot imports the whole `dist/server`
+bundle and resolves every lazy route chunk — seconds of work. Two defenses,
+both in this template:
+
+1. **The warm-up gate** (`server.bun.ts`). At boot the server renders `/`
+   twice — once bare (onboarding gate tree) and once with
+   `Cookie: has-seen-onboarding=1` (the returning-visitor tree; the two
+   lazy-load different route subtrees) — draining each body, since suspended
+   chunks only render as the stream is consumed. HTML and loader requests
+   `await` that warm-up; static files and `/api/*` are never gated, so health
+   checks respond immediately. Without the gate, a visitor who raced the
+   fire-and-forget warm-up ate the cold render personally: ~9s
+   time-to-first-byte against a server still loading modules — observed as the
+   trigger window for intermittent blank-on-load reports. A warm-up failure
+   logs `SSR warm-up render failed` and serving continues (requests then pay
+   the cold render, the old behavior).
+
+2. **The blank-screen recovery watchdog**
+   (`client/features/app/blankRecoveryScript.ts`, rendered as an inline
+   `<head>` script by `app/+html.tsx`). If hydration dies after the server
+   HTML was discarded — React 19 drops the server DOM on a hydration error,
+   and a failed client re-render then leaves `#root` empty — the user is
+   stranded on a themed blank page that only a manual refresh fixes. The
+   watchdog buffers the first window `error`/`unhandledrejection` messages,
+   checks `#root` for rendered text 4s after `load` (15s fallback), and on a
+   provably dead root reloads **once** (sessionStorage-guarded, so it can
+   never loop), replaying the captured errors as a console warning on the
+   next healthy load. `innerText` is the aliveness probe deliberately: it
+   ignores `<template>` segments and hidden nodes, so a pending Suspense
+   boundary or the ErrorScreen never count as dead. If a fork's entry route
+   legitimately renders zero text at rest, relax the check — don't delete it.
+   When debugging a user report, ask for the `[blank-screen-recovery]`
+   console output: it contains the pre-reload errors that are otherwise lost
+   to the refresh. Every dead detection also overwrites
+   `localStorage["blank-screen-recovery:last"]` and leaves it there — on a
+   phone, where nobody has a console open while it happens, read it later via
+   remote Web Inspector (iPhone: Settings → Safari → Advanced → Web
+   Inspector, then Mac Safari → Develop → the device → the tab) or evaluate
+   `localStorage.getItem("blank-screen-recovery:last")`.
+
 ## How to verify an SSR fix — do NOT rely on Jest/tsc alone
 
 Jest mocks `expo-font` and `react-i18next`, and `tsc` doesn't model Metro/SSR,
@@ -767,6 +809,12 @@ through (`react-tabs`, `react-direction`, `react-context`,
 each resolve to exactly one version in `bun.lock`, `react-slot` and
 `react-primitive` must stay unified at the versions the `overrides` pin, and
 `package.json` must still declare those overrides.
+
+`__tests__/ssrWarmup.guardrail.test.ts` pins §8's wiring: the boot warm-up
+covers the cookied tree and drains bodies, the HTML path awaits it while
+`/api/*` does not, and `app/+html.tsx` still renders the watchdog script in
+`<head>`. `__tests__/blankRecovery.test.ts` drives the watchdog script itself
+in a sandbox: reload-once on a dead root, loop-guard, error replay.
 
 `__tests__/ssrStyleCascade.test.tsx` renders `app/+html.tsx` with a mocked
 server-document context and pins §7a: exactly one

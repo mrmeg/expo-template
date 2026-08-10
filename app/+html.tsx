@@ -7,6 +7,7 @@ import {
   THEME_CLIENT_HINT_ACCEPT_CH,
   detectSsrThemeFromRequestScope,
 } from "@/server/lib/ssrTheme";
+import { BLANK_RECOVERY_SCRIPT } from "@/client/features/app/blankRecoveryScript";
 
 // This file is web-only and used to configure the root HTML for every
 // web page during server rendering.
@@ -337,6 +338,14 @@ export default function Root({ children }: PropsWithChildren) {
             white flash. The 500ms failsafe drops the class if hydration is
             slow or never runs. */}
         <script>{COLOR_SCHEME_SCRIPT}</script>
+
+        {/* Blank-screen watchdog: buffers early window errors, and if #root
+            still has no rendered text 4s after `load`, auto-reloads ONCE
+            (sessionStorage-guarded) and replays the captured errors on the
+            next load. Must sit in <head>, before the app scripts, so it
+            observes module-eval and hydration failures. See
+            client/features/app/blankRecoveryScript.ts for the contract. */}
+        <script>{BLANK_RECOVERY_SCRIPT}</script>
 
         {/* React Scan render highlighting for web.
             Add ?scan to any local web URL to inject the CDN script for that page. */}
