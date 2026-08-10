@@ -1,5 +1,5 @@
 ---
-status: draft
+status: ready
 mode: AFK
 base-branch: dev
 blocked-by: -
@@ -40,16 +40,16 @@ Delete outright (with their tests):
 - `client/features/app/ssrViewportMetrics.ts` + `client/features/app/__tests__/ssrViewportMetrics.test.tsx`
 - `client/features/app/SsrStyleFlush.tsx`, `client/features/app/blankRecoveryScript.ts`
 - `packages/ui/src/state/ssrTheme.ts`, `packages/ui/src/state/SsrViewportContext.ts`
-- `__tests__/ssrStyleCascade.test.tsx`, `__tests__/rnwSheetAdoption.test.ts`, `__tests__/blankRecovery.test.ts`, `__tests__/ssrWarmup.guardrail.test.ts`, `__tests__/ssrHydration.guardrail.test.ts`, and any `ssrThemeStamp`-style renderToStaticMarkup tests
-- `docs/ssr-hydration.md` (then `bun run docs:llms` to regenerate `llms-full.txt`; fix references in `llms.txt`, `AGENTS.md:24,52`, `docs/migration-guide.md`, `scripts/build-llms-full.mjs:43`)
+- `__tests__/ssrStyleCascade.test.tsx`, `__tests__/rnwSheetAdoption.test.ts`, `__tests__/blankRecovery.test.ts`, `__tests__/ssrWarmup.guardrail.test.ts`, `__tests__/ssrHydration.guardrail.test.ts`, `__tests__/ssrThemeStamp.test.tsx`
+- `docs/ssr-hydration.md` (then `bun run docs:llms` to regenerate `llms-full.txt`; fix references at `llms.txt:22`, `AGENTS.md:24,52`, `docs/migration-guide.md:119`, `scripts/build-llms-full.mjs:43`)
 
 Keep `__tests__/radixSingleton.guardrail.test.ts` if it still passes without SSR (it guards the client-side crash too); trim its SSR-specific assertions.
 
 Simplify in place (remove SSR branches only):
 
 - `app/+html.tsx`: reduce to a plain client-rendered document (~80-100 lines): meta viewport, global CSS, `ScrollViewStyleReset`, title/description, font preload, color-scheme script. Remove `useServerDocumentContext`, the headNodes filter, the RNW adoption anchor, `Accept-CH`, `data-theme`/`data-ssr-system-scheme` stamps, the dual theme-color metas, and the inline blank-recovery script.
-- `server.bun.ts`: remove the SSR warm-up gate and its await in request handling. Everything else (static serving, rate limits, CORS, security headers, ffmpeg worker) stays. Same for any warm-up echo in `server/index.ts`.
-- `client/app` root layout (`RootLayout`): remove `SsrThemeProvider`, `SsrStyleFlush`, viewport-metrics seeding.
+- `server.bun.ts`: remove the SSR warm-up gate and its await in request handling. Everything else (static serving, rate limits, CORS, security headers, ffmpeg worker) stays. `server/index.ts` has no warm-up code — no changes needed there.
+- `client/features/app/RootLayout.tsx`: remove `SsrThemeProvider`, `SsrStyleFlush`, viewport-metrics seeding.
 - `packages/ui/src/state/themeStore.ts`: remove `writeThemeCookie` dual-write/backfill and `hasLoadedTheme` SSR gating (keep the persisted preference itself).
 - `client/features/onboarding/onboardingStore.ts`: remove `writeOnboardingSeenCookie` and cookie-first reads; localStorage remains the source of truth.
 - `packages/ui/src/hooks/useDimensions.ts`: remove the `mrmeg-vw` cookie write and `SsrViewportContext` seeding.
@@ -67,7 +67,7 @@ Re-verify after removal:
 ## Validation
 
 - `bun run typecheck && bun run lint`
-- `bunx jest --ci --forceExit` (root) and `bun run ui:test`
+- `bun run test:ci` (root) and `bun run ui:test`
 - `bun run build` then confirm `dist/server/_expo/routes.json` htmlRoutes no longer use `rendering.mode: "ssr"` and API routes are still listed
 - `bun run start-local` against the build: `/`, `/showcase`, `/settings` load and render client-side (no blank, theme toggle works, icons render); an API route (e.g. any `app/api/*+api.ts`) returns correctly; the loader demo route works
 - Verify in a real browser on web (ui-verifier surface): first load of `/showcase` in light and dark system scheme — a brief client-render loading state is expected and acceptable; a persistent blank page is not
