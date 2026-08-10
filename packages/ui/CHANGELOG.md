@@ -3,6 +3,42 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0]
+
+### Added
+
+- **`system-color-scheme` cookie (`SYSTEM_SCHEME_COOKIE_NAME`).** The
+  `user-theme-preference` cookie carries only the *preference*, and its default is
+  `system` — which a server cannot resolve on its own. The
+  `Sec-CH-Prefers-Color-Scheme` client hint was the only server-visible channel
+  for the OS scheme, and it is Chromium-only and arrives from the second request
+  onwards, so a host app's SSR render fell back to **light** for every `system`
+  visitor on Safari and Firefox, on every single load, forever.
+
+  The store now mirrors the resolved OS scheme (`light`/`dark` only, never
+  `system`) into a second cookie with the same attributes as the preference one
+  (`path=/; max-age≈1y; SameSite=Lax`). `setSystemTheme` writes it — that's the
+  funnel for the boot sync and the live `matchMedia` listener, so it refreshes on
+  every load and every OS flip — and `setTheme("system")` writes it too, because
+  that branch re-derives `systemTheme` without going through `setSystemTheme`.
+  Web-only and `document`-guarded: `setSystemTheme` is also reached from the
+  native `Appearance` listener, and a store update can run with no `document`.
+
+  Purely additive — nothing reads the cookie inside the package. A host server can
+  now treat `system` + last-known-scheme as a real signal and render a dark tree on
+  byte 1. Two caveats for hosts that do:
+
+  1. The value is the **previous** load's reading, so it can be stale (the visitor
+     flipped their OS theme between visits). Prefer a same-request client hint
+     over it, and have your blocking script re-check a cookie-derived
+     `<html data-theme>` stamp against `matchMedia` — a stamp also un-matches any
+     `html:not([data-theme])` CSS failsafe, so the script becomes the only
+     remaining correction.
+  2. Seed your first client render from the **HTML** (e.g. a
+     `data-ssr-system-scheme` attribute), not from this cookie. A fresher hint may
+     have beaten the cookie server-side, so a client-side cookie read would
+     diverge from the markup that was actually rendered.
+
 ## [0.20.0]
 
 ### Added

@@ -4,7 +4,9 @@ import { ScrollViewStyleReset, useServerDocumentContext } from "expo-router/html
 
 import {
   SSR_SYSTEM_SCHEME_ATTRIBUTE,
+  SYSTEM_SCHEME_COOKIE_NAME,
   THEME_CLIENT_HINT_ACCEPT_CH,
+  THEME_COOKIE_NAME,
   detectSsrThemeFromRequestScope,
 } from "@/server/lib/ssrTheme";
 import { BLANK_RECOVERY_SCRIPT } from "@/client/features/app/blankRecoveryScript";
@@ -60,7 +62,11 @@ function getRootCssStyles() {
       transition: background-color 5000s ease-in-out 0s;
     }
 
-    /* OS dark mode fallback (before JS hydrates) */
+    /* OS dark mode fallback, for documents the server left un-stamped (before
+       JS hydrates). Note this rule is dead for any request where the server
+       COULD resolve a scheme -- including one resolved from the
+       system-color-scheme cookie, which may be stale. The blocking script's
+       restamp is what covers that case instead; see COLOR_SCHEME_SCRIPT. */
     @media (prefers-color-scheme: dark) {
       html:not([data-theme]) body {
         background-color: ${colors.dark.colors.background};
@@ -118,28 +124,72 @@ function getRootCssStyles() {
 }
 
 const DEFAULT_DOCUMENT_TITLE = "Expo Template";
-// First-visit-only failsafe, and it stays a REAL one.
+// First-visit-or-stale-scheme failsafe, and it stays a REAL one.
 //
-// Since the theme cookie (docs/ssr-hydration.md §5) the server renders the
+// Since the theme cookies (docs/ssr-hydration.md §5) the server renders the
 // visitor's actual theme whenever the request carried a signal, and only then
-// stamps `data-theme` on <html> below. This script's `if(root.dataset.theme)`
-// bail-out is therefore the handover: signal → the server already got it right
-// and the script does nothing; no signal → no `data-theme` was stamped, the
-// script runs, and it is the ONLY thing that can resolve a hint-less visitor's
-// dark OS before paint.
+// stamps `data-theme` on <html> below. This script covers the two cases the
+// server could not:
 //
-// That last case is the reason the conditional stamp matters. Stamping a
-// guessed `data-theme="light"` unconditionally would silence this script AND
-// kill the `@media (prefers-color-scheme: dark) html:not([data-theme])` rules
-// above — a brand-new dark-OS visitor whose browser sent no
-// `Sec-CH-Prefers-Color-Scheme` hint would get a light flash with both safety
-// nets disabled. Do not widen the 500ms window either; the cookie path is what
-// fixes the common case.
+//   1. NO STAMP — the request carried no resolvable scheme, so `data-theme` is
+//      absent and the server's light is a guess. The script resolves the scheme
+//      itself (localStorage preference, else `matchMedia`) and is the ONLY thing
+//      that can get a dark OS right before paint.
+//
+//   2. STALE STAMP — the server resolved the scheme from the
+//      `system-color-scheme` cookie, which records the *previous* load's
+//      `matchMedia` result. A visitor who flipped their OS theme since then gets
+//      a stamp that is wrong, and a stamped `data-theme` also un-matches the
+//      `html:not([data-theme])` media query, so nothing else would fix it. The
+//      script re-checks the cookie against `matchMedia` and restamps.
+//
+// The staleness check reads COOKIES, not localStorage: cookies are the exact
+// bytes the server resolved from, and localStorage can be evicted while an
+// explicit preference cookie survives — a document whose only remaining
+// evidence is a `dark` cookie must not be treated as a `system` visitor.
+//
+// Restamp is light→dark ONLY. A stale-DARK stamp stays dark: the body is already
+// dark, so recoloring the tree to light after mount is a far smaller insult than
+// a light body flashing under a dark React tree. Never touch
+// `data-ssr-system-scheme` here either — the client's hydration seed reads that
+// attribute and must keep matching the server-rendered HTML, or React #418. The
+// React tree recolors post-mount via `syncThemeFromEnvironment()`.
+//
+// Case 1 is why the conditional stamp below still matters. Stamping a guessed
+// `data-theme="light"` unconditionally would kill the `@media
+// (prefers-color-scheme: dark) html:not([data-theme])` rules above with no
+// cookie behind the stamp for this script to correct against — a brand-new
+// dark-OS visitor whose browser sent no `Sec-CH-Prefers-Color-Scheme` hint would
+// get a light flash and no recovery. Do not widen the 500ms window either; the
+// cookies are what fix the common case.
 const COLOR_SCHEME_SCRIPT =
-  "(function(){try{var root=document.documentElement;if(root.dataset.theme){return;}var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;if(resolved===\"dark\"){root.classList.add(\"theme-loading\");setTimeout(function(){root.classList.remove(\"theme-loading\");},500);}}catch(e){}})()";
-// NOTE: neither onboarding nor the theme preference needs a shield in the
-// common case any more. The server reads the `has-seen-onboarding` and
-// `user-theme-preference` cookies off the request and renders the correct,
+  "(function(){try{var root=document.documentElement;" +
+  "var os=(window.matchMedia&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches)" +
+  "?\"dark\":\"light\";" +
+  // Anchored to a cookie boundary and trimmed, mirroring
+  // parseThemePreferenceCookie / parseSystemSchemeCookie in
+  // server/lib/ssrTheme.ts — both sides must read the same bytes the same way.
+  "var ck=function(n){var m=document.cookie.match(" +
+  "new RegExp(\"(?:^|;)\\\\s*\"+n+\"=([^;]*)\"));return m?m[1].trim():\"\";};" +
+  "var stamped=root.dataset.theme;" +
+  "var hide=function(){root.classList.add(\"theme-loading\");" +
+  "setTimeout(function(){root.classList.remove(\"theme-loading\");},500);};" +
+  "if(stamped){" +
+  `var pref=ck("${THEME_COOKIE_NAME}");var last=ck("${SYSTEM_SCHEME_COOKIE_NAME}");` +
+  // Restamp only a light stamp the cookies prove stale: `system`-or-absent
+  // preference, a persisted scheme that disagrees with the live OS, and dark as
+  // the direction. A stale-dark stamp is deliberately left alone.
+  "if(stamped===\"light\"&&(!pref||pref===\"system\")" +
+  "&&(last===\"light\"||last===\"dark\")&&last!==os&&os===\"dark\"){" +
+  "root.dataset.theme=\"dark\";root.style.colorScheme=\"dark\";hide();}" +
+  "return;}" +
+  `var t=localStorage.getItem("${THEME_COOKIE_NAME}");` +
+  "var resolved=(t===\"dark\"||(t!==\"light\"&&os===\"dark\"))?\"dark\":\"light\";" +
+  "root.dataset.theme=resolved;root.style.colorScheme=resolved;" +
+  "if(resolved===\"dark\"){hide();}}catch(e){}})()";
+// NOTE: neither onboarding nor the theme needs a shield in the common case any
+// more. The server reads the `has-seen-onboarding`, `user-theme-preference`, and
+// `system-color-scheme` cookies off the request and renders the correct,
 // correctly-themed tree outright. See server/lib/ssrOnboarding.ts,
 // server/lib/ssrTheme.ts, and docs/ssr-hydration.md §5–§6.
 const REACT_SCAN_SCRIPT = `
@@ -165,18 +215,20 @@ export default function Root({ children }: PropsWithChildren) {
   const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
   const cssStyles = getRootCssStyles();
 
-  // Per-request theme, read from the `user-theme-preference` cookie (plus the
-  // `Sec-CH-Prefers-Color-Scheme` hint for `system` visitors). When there IS a
-  // signal, `ssrScheme` is non-null and `data-theme` below paints the right
-  // body background on byte 1 — no blocking script needed — and it
-  // short-circuits the COLOR_SCHEME_SCRIPT failsafe.
+  // Per-request theme, read from the `user-theme-preference` cookie plus, for
+  // `system` visitors, the `Sec-CH-Prefers-Color-Scheme` hint or the
+  // `system-color-scheme` cookie. When there IS a signal, `ssrScheme` is
+  // non-null and `data-theme` below paints the right body background on byte 1 —
+  // no blocking script needed. The COLOR_SCHEME_SCRIPT then only re-checks
+  // whether a cookie-derived stamp went stale.
   //
   // When there is NO signal, `ssrScheme` is null and `data-theme` is omitted
   // deliberately. The server's fallback is a guess (light), and a stamped guess
-  // would both silence the script and stop the CSS `html:not([data-theme])`
-  // dark fallback from matching, leaving a dark-OS first-timer with a light
-  // flash and no recovery. Omitting it hands the case back to the script and
-  // the media query, which is exactly how it worked before the cookie existed.
+  // would stop the CSS `html:not([data-theme])` dark fallback from matching with
+  // no cookie behind it for the script to correct against, leaving a dark-OS
+  // first-timer with a light flash and no recovery. Omitting it hands the case
+  // back to the script and the media query, which is exactly how it worked
+  // before the cookies existed.
   //
   // `data-ssr-system-scheme` carries the system scheme the server used so the
   // client's first render can agree with it (the hint is a request header,
@@ -214,6 +266,13 @@ export default function Root({ children }: PropsWithChildren) {
   // `data-theme="light"` in the markup — and the inline script plus the
   // `html:not([data-theme])` media query stay in charge.
   //
+  // A stamp resolved from the `system-color-scheme` cookie is *known* but not
+  // necessarily *current* (it is the previous load's reading), and stamping it
+  // does un-match the media query. That trade is deliberate: the script's
+  // staleness restamp covers it, and a byte-1 dark tree for every `system`
+  // visitor on Safari/Firefox is worth more than a media query that only ever
+  // fixed the body background anyway.
+  //
   // `htmlAttributes.style` is merged rather than replaced — the framework may
   // supply its own `<html>` style, and a bare `style={{ colorScheme }}` after
   // the spread would silently drop whatever it set.
@@ -240,10 +299,12 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
         {/* Ask the browser to send `Sec-CH-Prefers-Color-Scheme` on subsequent
-            requests. It's the only way the server can resolve a `system`
-            preference (or a brand-new visitor's OS setting) before rendering.
-            Document-level opt-in so it lives in one place and survives a
-            static export. See server/lib/ssrTheme.ts. */}
+            requests. It is the FRESHEST way the server can resolve a `system`
+            preference (or a brand-new visitor's OS setting) before rendering —
+            same-request, so it wins over the `system-color-scheme` cookie, which
+            reports the previous load. Chromium-only though, which is why the
+            cookie exists at all. Document-level opt-in so it lives in one place
+            and survives a static export. See server/lib/ssrTheme.ts. */}
         <meta httpEquiv="Accept-CH" content={THEME_CLIENT_HINT_ACCEPT_CH} />
 
         {/* Safari chrome tinting (status bar / toolbar), same contract as the
@@ -332,11 +393,13 @@ export default function Root({ children }: PropsWithChildren) {
         <style>{cssStyles}</style>
 
         {/* Blocking script that resolves the user's preferred color scheme
-            before React hydrates. Sets data-theme on <html> (CSS rules above
-            then apply the right body background) and hides #root with the
-            `theme-loading` class for dark-mode visitors so they don't see a
-            white flash. The 500ms failsafe drops the class if hydration is
-            slow or never runs. */}
+            before React hydrates. With no `data-theme` stamped it sets one (CSS
+            rules above then apply the right body background); with a stamp the
+            `system-color-scheme` cookie proves stale it upgrades light→dark.
+            Either way a dark result hides #root with the `theme-loading` class
+            so dark-mode visitors don't see a white flash, and the 500ms failsafe
+            drops the class if hydration is slow or never runs. It never touches
+            `data-ssr-system-scheme` — the client's hydration seed reads that. */}
         <script>{COLOR_SCHEME_SCRIPT}</script>
 
         {/* Blank-screen watchdog: buffers early window errors, and if #root

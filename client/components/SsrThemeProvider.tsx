@@ -18,12 +18,18 @@ import {
  *     reads it off Expo Server's ambient request scope, the browser off
  *     `document.cookie`. Never `localStorage` — the server can't see it, and
  *     that asymmetry is exactly the hydration mismatch this replaces.
- *   - `systemTheme` comes from the `Sec-CH-Prefers-Color-Scheme` client hint,
- *     which only the server can read. So the server writes whatever it
- *     resolved onto `<html data-ssr-system-scheme>` (see `app/+html.tsx`) and
- *     the browser reads it back out of the served HTML. Using
- *     `window.matchMedia` here instead would diverge on every request where
- *     the browser sent no hint (the server would say light, the browser dark).
+ *   - `systemTheme` comes from whichever scheme channel won on the server: the
+ *     `Sec-CH-Prefers-Color-Scheme` client hint (same-request, so it wins) or
+ *     the `system-color-scheme` cookie (the previous load's reading). The server
+ *     writes whatever it resolved onto `<html data-ssr-system-scheme>` (see
+ *     `app/+html.tsx`) and the browser reads it back out of the served HTML.
+ *
+ *     That attribute is the ONLY channel, deliberately — do NOT read the
+ *     `system-color-scheme` cookie here even though browser JS can. The hint may
+ *     have beaten a disagreeing cookie on the server, so a cookie read would
+ *     diverge from the rendered HTML on exactly the requests that matter. Using
+ *     `window.matchMedia` has the same problem for hint-less requests (the
+ *     server would say light, the browser dark). Read what the server said.
  *
  * When the request carried no signal at all, `+html.tsx` stamps neither
  * attribute — deliberately, so the blocking script and the

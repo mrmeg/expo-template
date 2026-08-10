@@ -207,7 +207,7 @@ up in a post-mount effect instead, and refreshes the cookie for next time.
 Use `useDimensions()` for responsive width, **not** raw
 `useWindowDimensions()`, in anything that renders on web.
 
-### 5. Theme — resolved server-side from a cookie
+### 5. Theme — resolved server-side from cookies
 
 Theme is **personalization**, so it gets the same treatment as onboarding (§6):
 give the server the signal instead of masking a wrong render.
@@ -218,6 +218,12 @@ foregrounds throughout — and a dark-mode user watched the whole page recolor
 after hydration (dark blank → light tree → dark tree). The blocking script could
 only set the `<body>` background; it cannot recolor a React tree.
 
+Two cookies carry the signal, and the split matters: `user-theme-preference`
+holds the **preference** (`system`/`light`/`dark`), `system-color-scheme` holds
+the **resolved OS scheme** (`light`/`dark`). The preference alone isn't enough,
+because its default is `system` — which most visitors never change — and a server
+cannot resolve `system` on its own.
+
 Four parts:
 
 1. **`themeStore` dual-writes on web.** `setTheme(pref)` writes
@@ -226,32 +232,72 @@ Four parts:
    same name for both, so there's one string to grep and the `+html.tsx` script
    already reads it. `loadTheme()` backfills/repairs the cookie from
    `localStorage` (and writes `system` when nothing is persisted), so existing
-   users are migrated on their next visit. Native persistence is unchanged:
-   AsyncStorage, eagerly hydrated at module load, no cookie.
+   users are migrated on their next visit.
 
-2. **`server/lib/ssrTheme.ts` reads it.** `parseThemePreferenceCookie()` does
-   the parse (anchored to a cookie boundary; unknown values → `null`);
+   `setSystemTheme(scheme)` separately writes `system-color-scheme=<scheme>`
+   (same attributes, `light`/`dark` only). Every web system-scheme update funnels
+   through it — the boot `syncSystemTheme()` and the live `matchMedia` listener —
+   so the value refreshes on every load and on every OS flip. `setTheme("system")`
+   duplicates the write because its branch re-derives `systemTheme` with a direct
+   `set()` rather than going through `setSystemTheme`. Both writers are guarded
+   `Platform.OS === "web" && typeof document !== "undefined"`: `setSystemTheme` is
+   also reached from the native `Appearance` listener, and a store update can run
+   with no `document` at all.
+
+   Native persistence is unchanged for both: AsyncStorage, eagerly hydrated at
+   module load, no cookies.
+
+2. **`server/lib/ssrTheme.ts` reads them.** `parseThemePreferenceCookie()` and
+   `parseSystemSchemeCookie()` do the parses (both anchored to a cookie boundary,
+   both off the same `Cookie` header; unknown values → `null`, and `system` is
+   invalid for the scheme cookie since that slot holds a *resolved* value).
    `detectSsrThemeSeedFromRequestScope()` gets the header from `expo-server`'s
    `requestHeaders()` — **inside a try/catch that falls back to the default
    seed**, because the same module ships in the client bundle where
    `requestHeaders()` throws. `detectSsrThemeSeed(request)` is the explicit
    loader-friendly form, mirroring `detectOnboardingSeen(request)`.
 
-   A `system` preference (or a first-time visitor) resolves through the
-   `Sec-CH-Prefers-Color-Scheme` client hint when the browser sends one.
-   `app/+html.tsx` opts in with `<meta http-equiv="Accept-CH">`, so the hint
-   arrives from the second navigation onwards on browsers that implement it;
-   absent a hint the server falls back to light, which is what the store has
-   always booted with.
+   A `system` preference (or a first-time visitor) resolves `systemTheme` in this
+   precedence: **client hint > `system-color-scheme` cookie > light**.
+
+   - The `Sec-CH-Prefers-Color-Scheme` client hint is the freshest — it describes
+     *this* request. `app/+html.tsx` opts in with `<meta http-equiv="Accept-CH">`,
+     so it arrives from the second navigation onwards, and only on browsers that
+     implement client hints (Chromium). That was the whole story before the scheme
+     cookie, which meant a `system` visitor on **Safari or Firefox got a light
+     server render on every single load, forever** — no amount of return visits
+     helped.
+   - The `system-color-scheme` cookie works everywhere, at the cost of reporting
+     the **previous** load's `matchMedia` result. It is therefore stale for a
+     visitor who flipped their OS theme between visits, which is exactly why the
+     hint wins when both are present, and why the blocking script re-checks a
+     cookie-derived stamp (see below).
+   - Light is the last resort: a literal first visit on a hint-less browser, where
+     the server genuinely cannot know. Takes effect from the second visit after
+     ship, since the first visit is what writes the cookie.
+
+   The cookie also counts as a signal on its own — no preference cookie means the
+   implicit `system` default, so `system-color-scheme=dark` alone resolves to a
+   dark render.
 
 3. **`SsrThemeSeedContext` carries it per request.** `useThemeStore` is a module
    singleton shared by every concurrent SSR request, so a per-request theme can
    **never** be written into it. `@mrmeg/expo-ui/state`'s `SsrThemeSeedContext`
    is the per-request channel instead, and `client/components/SsrThemeProvider.tsx`
    provides it: a lazy `useState` initializer reads the request scope on the
-   server and `document.cookie` in the browser. `packages/ui` must not import
-   `expo-server` (`check:forbidden-imports`), which is why the parse lives in
-   the app's `server/` layer and only the context lives in the package.
+   server and, in the browser, `document.cookie` for the preference plus the
+   `data-ssr-system-scheme` attribute for the scheme. `packages/ui` must not
+   import `expo-server` (`check:forbidden-imports`), which is why the parse lives
+   in the app's `server/` layer and only the context lives in the package.
+
+   **The provider must not read `system-color-scheme`**, even though browser JS
+   can. That cookie may have *lost* to a fresher same-request client hint on the
+   server, so reading it client-side would diverge from the HTML that was actually
+   rendered — a hydration mismatch on exactly the requests where the two disagree.
+   The attribute is the single channel: whatever the server resolved is what it
+   stamps, and the client reads the stamp. That is also what keeps every signal
+   combination byte-identical across the two sides (preference only, scheme only,
+   both, neither, and hint-disagrees-with-cookie).
 
    `RootLayout` is split for this: the default export renders only
    `<SsrThemeProvider>`, and `RootLayoutContent` (which calls `useTheme()` for
@@ -269,8 +315,9 @@ Four parts:
 `app/+html.tsx` renders `data-theme` on `<html>` from the same per-request read —
 **but only when that read found something.** `detectSsrThemeFromRequestScope()`
 returns `{ seed, hasSignal, scheme }`, and `scheme` is `null` unless the server
-genuinely knows the answer (an explicit `light`/`dark` cookie, or a real
-`Sec-CH-Prefers-Color-Scheme` hint). Two branches:
+genuinely knows the answer (an explicit `light`/`dark` preference cookie, a real
+`Sec-CH-Prefers-Color-Scheme` hint, or a `system-color-scheme` cookie). Two
+branches:
 
 - **Signal** → stamp `data-theme` and `color-scheme`, so the
   `html[data-theme=…]` CSS paints the right body background on byte 1 with no
@@ -282,17 +329,18 @@ genuinely knows the answer (an explicit `light`/`dark` cookie, or a real
 
 - **No signal** → stamp **nothing**. The server rendered light because that's
   the store's boot default, not because it knows anything, and a stamped guess
-  is worse than no attribute: `COLOR_SCHEME_SCRIPT` returns early on
-  `root.dataset.theme`, and `@media (prefers-color-scheme: dark)
-  html:not([data-theme])` stops matching. Both failsafes would be dead, and a
-  brand-new visitor on a dark OS whose browser sent no hint would get a light
-  flash with no way out. Omitting the attribute hands that case back to the
-  script and the media query, exactly as it worked before the cookie existed.
+  is worse than no attribute: `@media (prefers-color-scheme: dark)
+  html:not([data-theme])` stops matching, and `COLOR_SCHEME_SCRIPT` has nothing
+  to correct against (its restamp requires a `system-color-scheme` cookie behind
+  the stamp, which a guess by definition lacks). Both failsafes would be dead,
+  and a brand-new visitor on a dark OS whose browser sent no hint would get a
+  light flash with no way out. Omitting the attribute hands that case back to the
+  script and the media query, exactly as it worked before the cookies existed.
 
-A `system` cookie with **no** hint sits deliberately in the second branch:
-`hasSignal` is true (the preference is known, and the seed carries it so the
-server render and the client's own cookie read agree) but `scheme` is `null`,
-because the light it resolves to is still the guess.
+A `system` preference with **neither** scheme channel sits deliberately in the
+second branch: `hasSignal` is true (the preference is known, and the seed carries
+it so the server render and the client's own cookie read agree) but `scheme` is
+`null`, because the light it resolves to is still the guess.
 
 The `<meta name="theme-color">` (Safari status-bar/toolbar and Android Chrome
 chrome tinting) follows the same two branches: a signal renders **one
@@ -300,17 +348,50 @@ unqualified meta** pinned to the resolved scheme's `background` (unqualified
 because an explicit dark cookie must beat a light OS — a media-gated meta
 would follow the OS instead), and no signal renders a
 **`prefers-color-scheme`-gated pair**, the meta equivalent of the CSS
-fallback — OS-correct without pinning the guess. After hydration
+fallback — OS-correct without pinning the guess. Since the scheme cookie,
+`system` visitors land in the *first* branch, so they get the unqualified form —
+correct, because their tree really is dark, but it means a stale cookie mis-tints
+the chrome for one paint, the same trade as the stamp itself. After hydration
 `useSafariThemeColorSync()` (client/features/app/safariThemeColor.ts) removes
 the gated pair and keeps a single meta tracking the theme store, so in-app
 toggles re-tint the browser chrome. Both branches are pinned by
 `__tests__/ssrThemeStamp.test.tsx`.
 
-So the blocking `COLOR_SCHEME_SCRIPT` stays a **first-visit-only** failsafe that
-actually fires: its `data-theme` early-return is the handover, and the
-conditional stamp above is what keeps the handover real. Don't widen its 500ms
-`theme-loading` window; the cookie is what fixes the common case, and the script
-only has to cover the hint-less first paint.
+**The `html:not([data-theme])` failsafe is now conditional — read this before
+changing the stamp.** The invariant used to be "a stamp is never stale, so the
+early-return in `COLOR_SCHEME_SCRIPT` is a safe handover." That is no longer true:
+a stamp resolved from `system-color-scheme` is the *previous* load's reading, and
+stamping it kills the `@media (prefers-color-scheme: dark) html:not([data-theme])`
+rules for that request. **Accepted trade** — a byte-1 dark tree for every `system`
+visitor on Safari and Firefox is worth far more than a media query whose entire
+reach was the `<body>` background. The script's restamp replaces it:
+
+- **No stamp** → resolve the scheme here (localStorage preference, else
+  `matchMedia`), stamp it, and shield `#root` with `theme-loading` if dark. The
+  hint-less first visit, unchanged.
+- **Stamp present** → return, **unless** the cookies prove it stale: `data-theme`
+  is `light`, `user-theme-preference` is `system`-or-absent, and a
+  `system-color-scheme` cookie exists and disagrees with `matchMedia`. Then
+  restamp to dark and shield, exactly like the no-stamp dark path.
+
+Three constraints on that restamp, each load-bearing:
+
+1. **Cookies, not `localStorage`.** Cookies are the exact bytes the server
+   resolved from. `localStorage` can be evicted while an explicit preference
+   cookie survives, which would let a `dark`-preference visitor be misread as a
+   `system` one.
+2. **Light→dark only.** A stale-*dark* stamp deliberately stays dark: a
+   consistent dark page that recolors post-mount beats a light `<body>` flashing
+   under a dark React tree.
+3. **Never touch `data-ssr-system-scheme`.** The client's hydration seed reads
+   that attribute and must keep matching the server-rendered HTML — rewriting it
+   is React #418. The DOM paints dark immediately; the React tree recolors after
+   mount via `syncThemeFromEnvironment()`.
+
+Explicit-preference and hint-derived stamps behave exactly as before: an explicit
+cookie fails the `system`-or-absent check, and a hint is same-request fresh (its
+theoretical stale window is accepted). Don't widen the 500ms `theme-loading`
+window either; the cookies are what fix the common case.
 
 `{...htmlAttributes}` is spread first and the theme props merge over it —
 including `style`, which is spread into the `colorScheme` object rather than
@@ -350,13 +431,35 @@ printf '%s' "$page" | grep -c "class=\"[^\"]*$cls"          # 1 — dark tree
 curl -s localhost:3000/showcase | grep -c "class=\"[^\"]*$cls"   # 0 — light tree
 ```
 
-`system` resolves through the client hint, which curl can send explicitly:
+`system` resolves through either scheme channel, both of which curl can send:
 
 ```bash
+# The client hint (Chromium's channel).
 curl -s -H 'Cookie: user-theme-preference=system' \
      -H 'Sec-CH-Prefers-Color-Scheme: dark' localhost:3000/ \
   | grep -o 'data-ssr-system-scheme="[^"]*"'   # data-ssr-system-scheme="dark"
+
+# The persisted scheme cookie (every browser's channel). This is the one that
+# makes `system` work on Safari and Firefox, so it must stamp data-theme too.
+curl -s -H 'Cookie: user-theme-preference=system; system-color-scheme=dark' \
+     localhost:3000/ | grep -o 'data-theme="[^"]*"'   # data-theme="dark"
+
+# Hint beats a disagreeing cookie — it describes THIS request, the cookie the
+# previous one.
+curl -s -H 'Cookie: user-theme-preference=system; system-color-scheme=light' \
+     -H 'Sec-CH-Prefers-Color-Scheme: dark' localhost:3000/ \
+  | grep -o 'data-theme="[^"]*"'               # data-theme="dark"
 ```
+
+Two things only a real browser can confirm, so check them there:
+
+- **No-hint dark on byte 1.** Safari (or Chromium with the hint header stripped),
+  OS dark, preference `system`. Visit once to write the cookie, then reload and
+  read view-source: `data-theme="dark"` present, no light flash.
+- **The stale-cookie restamp.** Force `system-color-scheme=light` with a dark OS.
+  The `<body>` must paint dark pre-hydration (the script's restamp), the tree
+  recolors after mount, and the console must show **no React #418** — that error
+  would mean the restamp touched `data-ssr-system-scheme` and broke the seed.
 
 ### 6. Onboarding gate — resolved server-side from a cookie
 

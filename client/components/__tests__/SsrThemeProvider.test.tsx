@@ -7,7 +7,10 @@
  *     can't see that, and the asymmetry is the hydration mismatch this fixes)
  *   - it recovers the server's resolved system scheme from the
  *     `data-ssr-system-scheme` attribute, because the client hint is a request
- *     header browser JS cannot read
+ *     header browser JS cannot read — and it must NOT read the
+ *     `system-color-scheme` cookie, even though that one IS readable here: the
+ *     hint may have beaten a disagreeing cookie on the server, so a cookie read
+ *     would diverge from the served HTML on exactly those requests
  *   - with no signal it provides the shared default, so `useTheme` behaves
  *     exactly as it did before the seed existed
  *   - the seed is captured once per mount and is not recomputed on rerender
@@ -28,6 +31,8 @@ import React from "react";
 import { Platform } from "react-native";
 import { render } from "@testing-library/react-native";
 import { SSR_THEME_SEED_DEFAULT, useSsrThemeSeed, type SsrThemeSeed } from "@mrmeg/expo-ui/state";
+
+import { resolveSsrThemeDetection } from "@/server/lib/ssrTheme";
 
 import { SsrThemeProvider } from "../SsrThemeProvider";
 
@@ -143,6 +148,48 @@ describe("SsrThemeProvider", () => {
     expect(matchMedia).not.toHaveBeenCalled();
 
     delete (globalThis as unknown as { window?: unknown }).window;
+  });
+
+  it("agrees with a server render that resolved from the system-color-scheme cookie", async () => {
+    // The attribute round-trip that keeps the new cookie hydration-safe: the
+    // server resolved dark from `system-color-scheme` and stamped it, and the
+    // client has to reach the identical seed from the served bytes.
+    const cookie = "user-theme-preference=system; system-color-scheme=dark";
+    const server = resolveSsrThemeDetection(cookie);
+    expect(server.seed).toEqual({ userTheme: "system", systemTheme: "dark" });
+
+    installDocument(cookie, server.seed.systemTheme);
+
+    await render(<SsrThemeProvider><Probe /></SsrThemeProvider>);
+
+    expect(observed).toEqual(server.seed);
+  });
+
+  it("takes the stamped attribute even when the scheme cookie disagrees with it", async () => {
+    // A fresher same-request client hint beat the cookie on the server, so the
+    // cookie is NOT the value that was rendered. Reading the cookie here — which
+    // browser JS can do — would be a hydration mismatch; the attribute wins.
+    const cookie = "user-theme-preference=system; system-color-scheme=light";
+    const server = resolveSsrThemeDetection(cookie, "dark");
+    expect(server.seed.systemTheme).toBe("dark");
+
+    installDocument(cookie, server.seed.systemTheme);
+
+    await render(<SsrThemeProvider><Probe /></SsrThemeProvider>);
+
+    expect(observed).toEqual({ userTheme: "system", systemTheme: "dark" });
+  });
+
+  it("ignores the scheme cookie entirely when the document carries no attribute", async () => {
+    // Bytes that DID reach this document say dark, and the provider still has to
+    // say light — because the served HTML has no attribute, so whatever produced
+    // it (a static export, a cached response, a build predating the cookie)
+    // rendered light. Only the markup gets a vote.
+    installDocument("system-color-scheme=dark");
+
+    await render(<SsrThemeProvider><Probe /></SsrThemeProvider>);
+
+    expect(observed).toBe(SSR_THEME_SEED_DEFAULT);
   });
 
   it("keeps a dark cookie's seed even when the server stamped no system scheme", async () => {

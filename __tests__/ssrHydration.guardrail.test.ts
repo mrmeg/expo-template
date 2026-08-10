@@ -89,12 +89,13 @@ describe("SSR hydration guardrails", () => {
     });
 
     it("+html.tsx stamps data-theme ONLY when the request carried a real signal", () => {
-      // Stamping unconditionally would make the inline COLOR_SCHEME_SCRIPT a
-      // permanent no-op (it bails on `root.dataset.theme`) and permanently
-      // un-match the `html:not([data-theme])` dark media query — so a dark-OS
-      // first-timer with no cookie and no client hint would get a light paint
-      // with both failsafes disabled. The attribute must be behind the
-      // detection's null `scheme`.
+      // Stamping unconditionally would permanently un-match the
+      // `html:not([data-theme])` dark media query AND leave the inline
+      // COLOR_SCHEME_SCRIPT nothing to correct against (its restamp needs a
+      // `system-color-scheme` cookie behind the stamp, which a guess has no
+      // reason to have) — so a dark-OS first-timer with no cookie and no client
+      // hint would get a light paint with both failsafes disabled. The attribute
+      // must be behind the detection's null `scheme`.
       expect(html).toContain("if (ssrScheme)");
       expect(html).not.toContain("data-theme={ssrScheme}");
     });
@@ -113,16 +114,67 @@ describe("SSR hydration guardrails", () => {
       expect(html).toContain("THEME_CLIENT_HINT_ACCEPT_CH");
     });
 
-    it("the theme-loading shield stays a first-visit-only failsafe", () => {
-      const script = html.slice(html.indexOf("const COLOR_SCHEME_SCRIPT"));
-      // Bails out when the server already rendered a theme, so it only ever
-      // runs for a hint-less first visit. This pairs with the conditional
-      // stamp above: no signal → no data-theme → the script actually runs.
-      expect(script).toContain("if(root.dataset.theme){return;}");
+    // The script is assembled from double-quoted JS strings, so the *source*
+    // carries `\"` where the emitted script has `"`. Unescape so these
+    // assertions can be written the way the script actually reads.
+    const colorSchemeScriptSource = () =>
+      html
+        .slice(html.indexOf("const COLOR_SCHEME_SCRIPT"), html.indexOf("const REACT_SCAN_SCRIPT"))
+        .replace(/\\"/g, "\"");
+
+    it("the theme-loading shield stays a first-visit-or-stale-scheme failsafe", () => {
+      const script = colorSchemeScriptSource();
+
+      // Two paths, and both have to survive.
+      //
+      // 1. No stamp → resolve the scheme here. This is the hint-less first visit
+      //    and the only thing that can get a dark OS right before paint.
+      expect(script).toContain("if(stamped){");
+      expect(script).toContain("root.dataset.theme=resolved");
       // It must still be able to resolve a dark OS on its own for that case.
       expect(script).toContain("prefers-color-scheme:dark");
+
+      // 2. Stamp present → return, UNLESS the cookies prove it stale. The old
+      //    unconditional `if(root.dataset.theme){return;}` can't come back: a
+      //    `system-color-scheme`-derived stamp is the previous load's reading and
+      //    also un-matches the `html:not([data-theme])` media query, so this
+      //    restamp is the only remaining correction.
+      expect(script).not.toContain("if(root.dataset.theme){return;}");
+      expect(script).toContain("stamped===\"light\"");
+      expect(script).toContain("pref===\"system\"");
+      expect(script).toContain("last!==os");
+      expect(script).toContain("os===\"dark\"");
+
+      // Light→dark ONLY: a stale-dark stamp stays dark rather than flashing a
+      // light body under a dark tree.
+      expect(script).not.toContain("root.dataset.theme=\"light\"");
+
+      // The restamp must NOT touch the attribute the client's hydration seed
+      // reads, or the first client render stops matching the served HTML.
+      expect(script).not.toContain("data-ssr-system-scheme");
+      expect(script).not.toContain("SSR_SYSTEM_SCHEME_ATTRIBUTE");
+
+      // Cookie names come from the shared constants, not fresh literals.
+      expect(script).toContain("${THEME_COOKIE_NAME}");
+      expect(script).toContain("${SYSTEM_SCHEME_COOKIE_NAME}");
+
       // And its window must not grow past the documented 500ms.
       expect(script).toContain("},500);");
+    });
+
+    it("the staleness check reads cookies, not localStorage", () => {
+      const script = colorSchemeScriptSource();
+      const stampedBranch = script.slice(
+        script.indexOf("if(stamped){"),
+        script.indexOf("localStorage.getItem")
+      );
+
+      // Cookies are the exact bytes the server resolved from, and localStorage
+      // can be evicted while an explicit preference cookie survives — reading it
+      // here would let a `dark`-cookie visitor be mistaken for a `system` one.
+      expect(script).toContain("document.cookie.match");
+      expect(stampedBranch).toContain("ck(");
+      expect(stampedBranch).not.toContain("localStorage");
     });
 
     it("the CSS dark fallback for un-stamped documents survives", () => {

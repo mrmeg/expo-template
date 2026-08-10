@@ -20,6 +20,26 @@ export type ResolvedTheme = "light" | "dark";
  * `localStorage` stays the source of truth; the cookie is a render hint only.
  */
 export const THEME_COOKIE_NAME = THEME_KEY;
+
+/**
+ * Cookie name the web build mirrors the *resolved* OS color scheme into
+ * (`light`/`dark` only — never `system`).
+ *
+ * `THEME_COOKIE_NAME` carries the visitor's PREFERENCE, and the default
+ * preference is `system`, which a server cannot resolve on its own: the
+ * `Sec-CH-Prefers-Color-Scheme` client hint is the only server-visible channel
+ * for the OS scheme and it exists on Chromium only, from the second request
+ * onwards. So a `system` visitor on Safari or Firefox got a light server render
+ * on *every* load no matter how many times they had been to the site.
+ *
+ * This cookie closes that hole by persisting what the browser actually resolved,
+ * so the next request carries a real (if potentially stale) scheme. It is a
+ * render hint, exactly like the preference cookie: `matchMedia` remains the
+ * client's source of truth, the live listener overwrites this value on every
+ * load, and a host's blocking script re-checks it against `matchMedia` before
+ * trusting a stamp derived from it.
+ */
+export const SYSTEM_SCHEME_COOKIE_NAME = "system-color-scheme";
 const THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 function isThemePreference(value: string): value is ThemePreference {
@@ -30,6 +50,24 @@ function writeThemeCookie(theme: ThemePreference): void {
   if (Platform.OS !== "web" || typeof document === "undefined") return;
   document.cookie =
     `${THEME_COOKIE_NAME}=${theme}; path=/; max-age=${THEME_COOKIE_MAX_AGE}; SameSite=Lax`;
+}
+
+/**
+ * Mirror the resolved OS scheme into `SYSTEM_SCHEME_COOKIE_NAME`.
+ *
+ * The `typeof document` guard is load-bearing, not politeness: the writers below
+ * are reached from the native `Appearance` listener and (on web) can run while
+ * `document` does not exist yet — a store update during a server render must not
+ * throw.
+ */
+function writeSystemSchemeCookie(scheme: ResolvedTheme): void {
+  if (Platform.OS !== "web" || typeof document === "undefined") return;
+  // A server that reads this cookie stamps `data-theme` from it, so only the two
+  // values it can act on are ever written — an untyped JS caller must not be
+  // able to persist `system` (or anything else) into a resolved-scheme slot.
+  if (scheme !== "light" && scheme !== "dark") return;
+  document.cookie =
+    `${SYSTEM_SCHEME_COOKIE_NAME}=${scheme}; path=/; max-age=${THEME_COOKIE_MAX_AGE}; SameSite=Lax`;
 }
 
 /**
@@ -179,10 +217,11 @@ export const useThemeStore = create<ThemeStore>((set) => ({
   },
 
   setTheme: (theme) => {
+    const systemTheme = theme === "system" ? getSystemTheme() : null;
     set({
       userTheme: theme,
       hasLoadedTheme: true,
-      ...(theme === "system" ? { systemTheme: getSystemTheme() } : {}),
+      ...(systemTheme ? { systemTheme } : {}),
     });
     // Save directly when setting theme
     if (Platform.OS !== "web") {
@@ -197,10 +236,19 @@ export const useThemeStore = create<ThemeStore>((set) => ({
     // Dual-write: localStorage for the client, cookie for the next SSR render
     // (so the server paints the right theme on the visitor's next request).
     writeThemeCookie(theme);
+    // This branch re-derives `systemTheme` with a direct `set()` rather than
+    // going through `setSystemTheme`, so the scheme cookie has to be written
+    // here too or switching back to `system` would leave the server reading a
+    // scheme resolved before the switch.
+    if (systemTheme) writeSystemSchemeCookie(systemTheme);
   },
 
   setSystemTheme: (theme) => {
     set({ systemTheme: theme });
+    // Every web system-scheme update funnels through here (boot sync + the live
+    // `matchMedia` listener), so this is where the resolved scheme becomes
+    // available to the *next* server render. See SYSTEM_SCHEME_COOKIE_NAME.
+    writeSystemSchemeCookie(theme);
   },
 
   loadTheme: () => {

@@ -10,6 +10,12 @@
  * light-themed server render that recolors after hydration, which no
  * client-side test would notice.
  *
+ * The same applies to `system-color-scheme`, which persists the *resolved* OS
+ * scheme. It is the only server-visible scheme channel on Safari and Firefox
+ * (they never send `Sec-CH-Prefers-Color-Scheme`), so a missing write there
+ * silently returns every `system` visitor — i.e. the default — to a light server
+ * render on those browsers.
+ *
  * Platform switching mirrors the onboarding store's tests: mutate `Platform.OS`
  * on the live react-native module rather than re-mocking it, and shim both
  * `window` and `globalThis.localStorage` because the source uses
@@ -19,7 +25,12 @@
 
 import { Platform } from "react-native";
 
-import { THEME_COOKIE_NAME, resolveThemePreference, useThemeStore } from "../themeStore";
+import {
+  SYSTEM_SCHEME_COOKIE_NAME,
+  THEME_COOKIE_NAME,
+  resolveThemePreference,
+  useThemeStore,
+} from "../themeStore";
 
 type WindowShim = { localStorage: typeof localStorage };
 
@@ -67,6 +78,20 @@ function installLocalStorage(stored: Record<string, string> = {}) {
   (globalThis as unknown as { window: WindowShim }).window = { localStorage: shim };
   (globalThis as unknown as { localStorage: Storage }).localStorage = shim;
   return shim;
+}
+
+/**
+ * Give the existing `window` shim a `matchMedia`, so `getSystemTheme()` takes its
+ * web branch. Without this it falls through to `Appearance`, and
+ * `setTheme("system")` would resolve whatever the native mock reports rather than
+ * the scheme under test.
+ */
+function installMatchMedia(prefersDark: boolean) {
+  const matchMedia = jest.fn(() => ({ matches: prefersDark }));
+  const win = (globalThis as unknown as { window?: Record<string, unknown> }).window ?? {};
+  win.matchMedia = matchMedia;
+  (globalThis as unknown as { window: Record<string, unknown> }).window = win;
+  return matchMedia;
 }
 
 // Reset store between tests
@@ -265,6 +290,108 @@ describe("themeStore", () => {
     });
   });
 
+  describe("SSR resolved-scheme cookie (web)", () => {
+    const originalOS = Platform.OS;
+    const originalDocument = (globalThis as unknown as { document?: unknown }).document;
+
+    beforeEach(() => {
+      (Platform as { OS: string }).OS = "web";
+    });
+
+    afterEach(() => {
+      (Platform as { OS: string }).OS = originalOS;
+      delete (globalThis as unknown as { window?: unknown }).window;
+      delete (globalThis as unknown as { localStorage?: unknown }).localStorage;
+      if (originalDocument === undefined) {
+        delete (globalThis as unknown as { document?: unknown }).document;
+      } else {
+        (globalThis as unknown as { document: unknown }).document = originalDocument;
+      }
+    });
+
+    it("uses a name distinct from the preference cookie", () => {
+      // server/lib/ssrTheme.ts declares the same literal independently (the
+      // package can't import from the app's server layer) and pins the equality.
+      expect(SYSTEM_SCHEME_COOKIE_NAME).toBe("system-color-scheme");
+      expect(SYSTEM_SCHEME_COOKIE_NAME).not.toBe(THEME_COOKIE_NAME);
+    });
+
+    it("setSystemTheme writes the resolved scheme with the same cookie attributes", () => {
+      const cookies = installDocumentCookie();
+
+      useThemeStore.getState().setSystemTheme("dark");
+
+      expect(cookies.writes).toHaveLength(1);
+      expect(cookies.writes[0]).toContain(`${SYSTEM_SCHEME_COOKIE_NAME}=dark`);
+      expect(cookies.writes[0]).toContain("path=/");
+      expect(cookies.writes[0]).toContain("SameSite=Lax");
+      expect(cookies.writes[0]).toMatch(/max-age=31536000/);
+      expect(cookies.writes[0]).not.toContain("domain=");
+      expect(cookies.current()).toContain(`${SYSTEM_SCHEME_COOKIE_NAME}=dark`);
+    });
+
+    it("setSystemTheme writes both resolved values", () => {
+      const cookies = installDocumentCookie();
+
+      useThemeStore.getState().setSystemTheme("light");
+      expect(cookies.current()).toContain(`${SYSTEM_SCHEME_COOKIE_NAME}=light`);
+
+      // The live matchMedia listener funnels here, so an OS flip has to overwrite.
+      useThemeStore.getState().setSystemTheme("dark");
+      expect(cookies.current()).toContain(`${SYSTEM_SCHEME_COOKIE_NAME}=dark`);
+      expect(cookies.current()).not.toContain(`${SYSTEM_SCHEME_COOKIE_NAME}=light`);
+    });
+
+    it("setSystemTheme never writes a value the server would reject", () => {
+      const cookies = installDocumentCookie();
+
+      // An untyped JS caller must not be able to persist a preference value into
+      // a resolved-scheme slot — the server stamps this straight into <html>.
+      (useThemeStore.getState().setSystemTheme as (v: string) => void)("system");
+
+      expect(cookies.writes).toHaveLength(0);
+    });
+
+    it("setTheme(\"system\") writes the cookie too, despite bypassing setSystemTheme", () => {
+      // This branch re-derives systemTheme with a direct `set()`, so the write has
+      // to be duplicated there or switching back to `system` leaves the server
+      // reading a scheme resolved before the switch.
+      installLocalStorage();
+      const cookies = installDocumentCookie();
+      const matchMedia = installMatchMedia(true);
+
+      useThemeStore.getState().setTheme("system");
+
+      expect(matchMedia).toHaveBeenCalled();
+      expect(useThemeStore.getState().systemTheme).toBe("dark");
+      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=system`);
+      expect(cookies.current()).toContain(`${SYSTEM_SCHEME_COOKIE_NAME}=dark`);
+    });
+
+    it("setTheme(\"system\") records a light OS as light", () => {
+      installLocalStorage();
+      const cookies = installDocumentCookie();
+      installMatchMedia(false);
+
+      useThemeStore.getState().setTheme("system");
+
+      expect(cookies.current()).toContain(`${SYSTEM_SCHEME_COOKIE_NAME}=light`);
+    });
+
+    it("an explicit setTheme does not touch the resolved-scheme cookie", () => {
+      // `light`/`dark` are preferences, not OS readings — overwriting the resolved
+      // scheme here would corrupt the value a later switch back to `system` needs.
+      installLocalStorage();
+      const cookies = installDocumentCookie(`${SYSTEM_SCHEME_COOKIE_NAME}=dark`);
+      installMatchMedia(true);
+
+      useThemeStore.getState().setTheme("light");
+
+      expect(cookies.current()).toContain(`${SYSTEM_SCHEME_COOKIE_NAME}=dark`);
+      expect(cookies.writes.every((w) => !w.startsWith(SYSTEM_SCHEME_COOKIE_NAME))).toBe(true);
+    });
+  });
+
   describe("SSR theme cookie (native)", () => {
     const originalDocument = (globalThis as unknown as { document?: unknown }).document;
 
@@ -281,6 +408,25 @@ describe("themeStore", () => {
 
       useThemeStore.getState().setTheme("dark");
       await Promise.resolve();
+
+      expect(cookies.writes).toHaveLength(0);
+    });
+
+    it("does not write the resolved-scheme cookie on native", () => {
+      // `setSystemTheme` is reached from the native `Appearance` listener on every
+      // OS theme change, so the platform guard is what keeps this web-only.
+      const cookies = installDocumentCookie();
+
+      useThemeStore.getState().setSystemTheme("dark");
+
+      expect(useThemeStore.getState().systemTheme).toBe("dark");
+      expect(cookies.writes).toHaveLength(0);
+    });
+
+    it("does not write the resolved-scheme cookie from setTheme(\"system\") on native", () => {
+      const cookies = installDocumentCookie();
+
+      useThemeStore.getState().setTheme("system");
 
       expect(cookies.writes).toHaveLength(0);
     });
