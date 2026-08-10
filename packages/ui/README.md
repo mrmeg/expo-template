@@ -384,7 +384,7 @@ Use `Skeleton` components for loading content with stable dimensions, `EmptyStat
 
 Use `Toggle` for one pressed state, `ToggleGroup` for a related set of pressed states, `Switch` for binary settings, `RadioGroup` for small mutually exclusive choices, and `Select` for longer option sets.
 
-Pass `Avatar` both a `source` and a `name` whenever you have them: `name` supplies the initials shown while the image is missing or after it fails, and the default accessibility label. `SkeletonAvatar` is the loading placeholder, not a substitute. Inside `AvatarGroup`, child avatars inherit the group's `size` and `shape` and gain the ring, so set those on the group rather than per child.
+Pass `Avatar` both a `source` and a `name` whenever you have them: `name` supplies the initials shown while the image is missing, still loading, or after it fails, and the default accessibility label. `SkeletonAvatar` is the loading placeholder, not a substitute. Inside `AvatarGroup`, child avatars inherit the group's `size` and `shape` and gain the ring, so set those on the group rather than per child. `AvatarGroup` announces its count as a hidden summary and leaves each member individually announceable, so don't wrap it in an `accessible` container of your own.
 
 ### Quick Examples
 

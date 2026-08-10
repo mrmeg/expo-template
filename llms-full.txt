@@ -890,7 +890,7 @@ Use this table before creating a new app-local primitive.
 - Use `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive server rendering; reach for `FlatList` when the data set is large or unbounded.
 - Use `EmptyState` for no-data or recoverable error regions.
 - Use `Skeleton` for loading content with stable layout.
-- Use `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent or fails, plus the default accessibility label. Never hand-roll a circle with a nested `Image` and initials `Text`. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring.
+- Use `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent, still loading, or failed, plus the default accessibility label. Never hand-roll a circle with a nested `Image` and initials `Text`. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring; the group's count is a hidden summary node, so each member stays individually announceable and the group needs no `accessible` wrapper.
 - Use `Progress` for real progress or indeterminate long-running work.
 - Use `Drawer.Header` with `icon`, `title`, and `action` for a compact app-brand row; place `Drawer.ToggleCollapse` in `action` for a trailing rail control.
 

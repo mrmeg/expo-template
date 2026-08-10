@@ -3,6 +3,47 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0]
+
+### Fixed
+
+- **`Avatar` renders image sources that carry no `uri`.** The internal source
+  key — which exists so a failure flag survives the fresh `{ uri }` object that
+  an inline literal allocates every render — returned `null` for any object
+  without a truthy `uri`, and `null` means "no image at all". An iOS
+  `{ bundle }` source, or a resolved asset object, therefore silently degraded
+  to initials and the image was never attempted. Every shape React Native
+  accepts is now keyed (numbers as `asset:<n>`, uri strings as themselves,
+  anything else by a stable serialization of its fields); `null` is reserved
+  for a missing, empty-object, or empty-array source. Retry-on-change and
+  keep-the-failure-on-re-render behavior now applies to those shapes too.
+
+- **`AvatarGroup` members are announceable again (accessibility change).** The
+  group wrapper was `accessible` with `accessibilityRole="image"` and an
+  `"<n> avatars"` label, which is a leaf role on the web and swallows
+  descendants on iOS — so no member's name could be reached inside a group. The
+  wrapper is now a plain container with no accessibility semantics of its own,
+  and the count rides along as a visually clipped text node ahead of the
+  members, so a screen reader reads the summary and then each avatar. Passing
+  `accessibilityLabel` still replaces the count text. Apps that asserted on the
+  group by its accessibility label (`getByLabelText("3 avatars")`) should query
+  the text instead (`getByText("3 avatars")`).
+
+- **`AvatarGroup`'s `max` is clamped to a whole count ≥ 0.** A negative `max`
+  reached `slice(0, max)`, which reads a negative end as an offset from the end
+  — `max={-3}` on three children rendered all of them, silently disabling the
+  clamp — and a fractional `max` truncated arbitrarily. `max` is now
+  `Math.max(0, Math.floor(max))`, so `max={0}` renders only the `+N` tile.
+
+- **`Avatar` shows its initials/icon fallback while the image loads.** A slow
+  or large image left a bare `muted` tile for the whole request. The fallback
+  now stays mounted until the image reports `onLoad`, with the image layered
+  over it, so an avatar is never a blank circle in flight.
+
+- **`Avatar`'s image carries its own corner radius.** Rounding relied solely on
+  the wrapper's `overflow: "hidden"`, which Android drops for a child image in
+  several cases, leaving square corners on a circular avatar.
+
 ## [0.20.0]
 
 ### Added
