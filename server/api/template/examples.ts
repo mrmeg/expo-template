@@ -28,10 +28,10 @@ const EXAMPLES: TemplateServerExample[] = [
     route: "/server-alpha",
     apiPath: "/api/template/examples",
     loaderPath: "/_expo/loaders/server-alpha",
-    pattern: "Route loader hydrates an SSR page, while an API route exposes the same catalog for client refreshes.",
-    useCase: "Landing pages, dashboards, account summaries, and content pages that should render useful data before hydration.",
+    pattern: "Route loader feeds the page its initial data, while an API route exposes the same catalog for client refreshes.",
+    useCase: "Landing pages, dashboards, account summaries, and content pages that should show useful data on first load.",
     codePointers: [
-      "app/(main)/(demos)/server-alpha.tsx",
+      "app/(main)/(demos)/server-alpha/index.tsx",
       "app/api/template/examples+api.ts",
       "server/api/template/examples.ts",
     ],
