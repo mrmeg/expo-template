@@ -853,7 +853,7 @@ Use this table before creating a new app-local primitive.
 | `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets | Action pickers, mobile filters, keyboard-aware quick edit forms |
 | `Button` | Commands and CTAs | Pressable plus custom text styling | Submit, save, cancel, delete, navigation CTAs |
 | `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Framed content groups | Ad hoc bordered panels | List items, pricing plans, settings sections, summaries |
-| `Carousel` | Horizontally snapping slide rows with dot indicators | Hand-rolled snap `ScrollView` plus manual offset math | Testimonial strips, onboarding pages, feature highlights, image galleries |
+| `Carousel` | Horizontally snapping slide rows with pressable dot indicators | Hand-rolled snap `ScrollView` plus manual offset math | Testimonial strips, onboarding pages, feature highlights, image galleries |
 | `Checkbox` | Boolean selection | Custom checkmark controls | Terms consent, checklist items, multi-select filters |
 | `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | One-off disclosure | Local animated height wrappers | Advanced settings, hidden helper text |
 | `Dialog`, `AlertDialog` | Modal decisions and custom modal content | Custom modal overlays | Confirm delete, edit profile, invite user |
@@ -890,10 +890,11 @@ Use this table before creating a new app-local primitive.
 - Use `RadioGroup` for small mutually exclusive choices and `Select` for longer option sets.
 - Use `Dialog` for blocking decisions, `Popover` for contextual controls, `Tooltip` for short explanations, and `DropdownMenu` for action lists.
 - Use `Card` for individual repeated or framed items, not as a wrapper around full page sections.
-- Use `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive server rendering; reach for `FlatList` when the data set is large or unbounded.
+- Use `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive into the exported HTML shell and the first client frame; reach for `FlatList` when the data set is large or unbounded. Its dots are pressable and jump to their slide. A fractional `itemWidth` measures the viewport until the first layout, so pass absolute pixels (`> 1`) when the parent is narrower than the window and the first frame matters.
 - Use `EmptyState` for no-data or recoverable error regions.
 - Use `Skeleton` for loading content with stable layout.
-- Use `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent or fails, plus the default accessibility label. Never hand-roll a circle with a nested `Image` and initials `Text`. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring.
+- Use `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent, still loading, or failed, plus the default accessibility label. Never hand-roll a circle with a nested `Image` and initials `Text`. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring; the group's count is a hidden summary node, so each member stays individually announceable and the group needs no `accessible` wrapper.
+- Pair a standalone `Label` with its control using two DISTINCT ids: `nativeID` is the label's own id, `htmlFor` is the input's id (`<Label nativeID="email-label" htmlFor="email-input">` + `<TextInput nativeID="email-input" />`). Putting the same id on both renders duplicate ids on web and associates nothing. Prefer `TextInput`'s own `label` prop when you don't need a separate label element.
 - Use `Progress` for real progress or indeterminate long-running work.
 - Use `Drawer.Header` with `icon`, `title`, and `action` for a compact app-brand row; place `Drawer.ToggleCollapse` in `action` for a trailing rail control.
 
