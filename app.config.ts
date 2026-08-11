@@ -73,6 +73,11 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
         // off — see docs/server-guide.md.
         unstable_useServerMiddleware: true,
         unstable_useServerDataLoaders: true,
+        // Split route code into per-route chunks on web production exports so
+        // the entry bundle stops statically containing every route (and its
+        // route-only dependencies). Omitting `ios`/`android`/`default` keeps
+        // dev servers and native builds on synchronous routes.
+        asyncRoutes: { web: "production" },
       },
     ],
     [

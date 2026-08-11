@@ -28,8 +28,13 @@ Compares the total client JS bundle size in `dist/client` against the baseline
 in `scripts/bundle-baseline.json`. Exits with code 1 if the bundle grew more
 than 10% from the baseline.
 
-The current checked-in baseline is 5,995,827 bytes of client JS from the latest
+The current checked-in baseline is 5,122,572 bytes of client JS from the latest
 local web export.
+
+Note that the metric sums *every* client chunk, so it barely moves when code is
+split out of the entry — it guards against new dependency weight, not against
+poor splitting. Compare individual chunk sizes (and the `<script>` set in a
+route's exported HTML) when you care about what a single route downloads.
 
 ### Setting the Baseline
 
@@ -53,6 +58,18 @@ bun run bundle-size
 ```
 
 The command exits with code 1 if the bundle grows more than 10%.
+
+## Route Code Splitting (web)
+
+`app.config.ts` passes `asyncRoutes: { web: "production" }` to the `expo-router`
+plugin, so a production web export splits each route into its own chunk instead
+of inlining every route into the entry. A route's exported HTML eagerly loads
+the metro runtime, its layout chunks, its own route chunk, the shared
+`__common-*` chunk, and `entry-*`; everything else (other routes and their
+route-only dependencies, e.g. `zod` and `react-hook-form`) loads on navigation.
+
+Dev servers and native builds are unaffected — `"production"` is web-only, and
+the other platforms are deliberately left out of the option object.
 
 ## Adjusting the Threshold
 
