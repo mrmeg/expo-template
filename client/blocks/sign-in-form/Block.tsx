@@ -99,8 +99,15 @@ export function SignInFormBlock({
             )}
           </View>
 
+          {/*
+            Label/input association takes TWO distinct ids: `nativeID` is the
+            label's own id, `htmlFor` is the input's. Reusing one value for both
+            renders duplicate ids on web and associates nothing.
+          */}
           <View style={styles.field}>
-            <Label nativeID="block-sign-in-email">Email</Label>
+            <Label nativeID="block-sign-in-email-label" htmlFor="block-sign-in-email">
+              Email
+            </Label>
             <TextInput
               nativeID="block-sign-in-email"
               testID="block-sign-in-email"
@@ -115,7 +122,9 @@ export function SignInFormBlock({
           </View>
 
           <View style={styles.field}>
-            <Label nativeID="block-sign-in-password">Password</Label>
+            <Label nativeID="block-sign-in-password-label" htmlFor="block-sign-in-password">
+              Password
+            </Label>
             <TextInput
               nativeID="block-sign-in-password"
               testID="block-sign-in-password"

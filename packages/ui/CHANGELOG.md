@@ -5,7 +5,79 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.21.0]
 
+### Added
+
+- **`Carousel` dots are pressable and scroll to their slide.** Each dot is a
+  `Pressable` that jumps the scroller to its page (animated) and reports the
+  new index through `onIndexChange`. The `tablist`/`tab` roles and `selected`
+  state the dots already carried are now honest: a screen reader that
+  announced N activatable tabs can finally focus and activate them, and on web
+  each dot is a keyboard tab-stop.
+
+  The visible dot stays 8px. The press target is a 24px wrapper plus vertical
+  `hitSlop` (44px total), and the row's `gap` moved into that wrapper so
+  neighboring targets sit flush with no dead strip between them. The slop is
+  vertical-only so a tap can't be ambiguous between two dots.
+
+  The selected dot also sets `aria-selected` explicitly: react-native-web
+  never maps `accessibilityState` to the DOM, so on web the tabs previously
+  exposed no selected state at all. Native maps `aria-selected` back into
+  `accessibilityState`, so the two props agree.
+
+- **`Label` accepts `htmlFor`.** `@rn-primitives/label`'s web build only emits a
+  real `<label for="…">` — the thing that actually associates a label with an
+  input and makes clicking the label focus it — when `htmlFor` is passed, and
+  `Label` never forwarded it. No consumer could produce an associated label.
+  `htmlFor` now reaches the primitive's `Text`, which is where the prop is
+  declared and where the web build consumes it. Native ignores it, matching the
+  primitive.
+
+  Association takes **two distinct ids**:
+
+  ```tsx
+  <Label nativeID="email-label" htmlFor="email-input">Email</Label>
+  <TextInput nativeID="email-input" />
+  ```
+
+  `nativeID` is the label's own id (react-native-web maps it to `id`; on native
+  it's what a control's `accessibilityLabelledBy` points at). `htmlFor` is the
+  input's id.
+
+### Changed
+
+- **`Carousel` re-clamps its active index when `children` shrink.** The index
+  was seeded once, so removing slides while a late page was active left the
+  page announcement reading e.g. "5 of 3" with no active dot until the next
+  scroll. It now clamps to the last slide, reports the clamped value through
+  `onIndexChange`, and scrolls back to that page — the scroller was sitting
+  past the new content width.
+
+- **`Carousel` index tracking is split by platform.** Native subscribes to
+  `onMomentumScrollEnd` — plus a velocity-gated `onScrollEndDrag`, for a drag
+  that releases at rest and so is never followed by a momentum event — and no
+  longer subscribes to `onScroll` at all, so a drag costs no per-frame JS
+  callback to compute a page the settle reports anyway. A drag past a slide
+  midpoint that snaps back to the starting page now reports nothing instead of
+  firing the intermediate page and then the original. Web keeps the throttled
+  `onScroll` path, which remains the only channel there — react-native-web
+  emits no momentum events.
+
+  The `onIndexChange` doc no longer claims "once per settle" unconditionally.
+  That now holds on native; on web (wheel/trackpad) it still fires once per
+  page *crossed*, and only consecutive duplicate indices are suppressed.
+
+- **New `Carousel` testID: `<testID>-dot-<i>-indicator`.** `-dot-<i>` is now
+  the pressable wrapper; the visible dot — and therefore its
+  `backgroundColor` — is the `-indicator` node inside it. Tests asserting on a
+  dot's color need the new suffix.
+
 ### Fixed
+
+- **`Label`'s documented pairing pattern produced duplicate DOM ids.** The usage
+  docs recommended the *same* `nativeID` on the `Label` and its `TextInput`.
+  react-native-web maps `nativeID` to `id`, so that renders two elements sharing
+  one id — invalid HTML, and no association either way. The docs now show the
+  two-id pattern above.
 
 - **`Avatar` renders image sources that carry no `uri`.** The internal source
   key — which exists so a failure flag survives the fresh `{ uri }` object that
@@ -43,6 +115,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`Avatar`'s image carries its own corner radius.** Rounding relied solely on
   the wrapper's `overflow: "hidden"`, which Android drops for a child image in
   several cases, leaving square corners on a circular avatar.
+
+### Documentation
+
+- **`Carousel`'s `itemWidth` caveat.** A fractional `itemWidth` measures
+  against the viewport until the first `onLayout`, so a carousel inside a
+  horizontally constrained parent (a padded column, a `MaxWidthContainer`, a
+  sidebar pane) renders its first frame — and the server-rendered HTML — with
+  slides sized to the window. Documented on the prop, with the workaround:
+  pass an absolute `itemWidth` (`> 1`) when the parent is narrower than the
+  viewport and that first frame matters.
 
 ## [0.20.0]
 
