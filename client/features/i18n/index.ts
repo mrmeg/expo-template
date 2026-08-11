@@ -75,13 +75,14 @@ async function loadLocale(lang: string): Promise<Record<string, any> | null> {
 
 /**
  * Synchronous, idempotent English bootstrap — safe to call during render,
- * including on the server.
+ * including during the export-time prerender.
  *
- * Web runs in Expo Router `server` output mode, so screens are server-rendered
- * before hydration. `initI18n()` is async and only runs in a `useEffect`, which
- * never fires on the server — so without this, i18next is uninitialized during
- * SSR and any `t("a.b")` emits the raw key server-side but the translation
- * client-side → a hydration mismatch (see docs/ssr-hydration.md §3).
+ * `expo export` renders every web route once in Node to produce its HTML shell.
+ * `initI18n()` is async and only runs in a `useEffect`, which never fires during
+ * that prerender — so without this, i18next is uninitialized while the shell
+ * renders and any `t("a.b")` bakes the raw key into the HTML while the client's
+ * first render produces the translation → a hydration mismatch. See "Enable
+ * Server Output" in `docs/server-guide.md`.
  *
  * Inline resources + `initAsync: false` make `init()` resolve synchronously, so
  * `t()` works on the very first render. `initI18n()` still runs post-hydration
@@ -120,8 +121,8 @@ export function ensureI18nInitialized(): void {
 
 // Best-effort at module load so a bare import initializes English. The render
 // body of app/_layout.tsx also calls this — Metro's inlineRequires can defer a
-// pure module-load side effect so it never runs on the server, and the render
-// call guarantees it runs during SSR before any screen.
+// pure module-load side effect so it never runs during the prerender, and the
+// render call guarantees it runs there before any screen.
 ensureI18nInitialized();
 
 /**
@@ -130,9 +131,9 @@ ensureI18nInitialized();
  */
 export async function initI18n(): Promise<typeof i18n> {
   // English is already initialized synchronously by ensureI18nInitialized()
-  // at module load (and again in the root layout's render body for SSR). This
-  // call's job is the post-hydration upgrade: load and switch to a
-  // detected/persisted non-English locale, if there is one.
+  // at module load (and again in the root layout's render body, which is what
+  // covers the prerender). This call's job is the post-hydration upgrade: load
+  // and switch to a detected/persisted non-English locale, if there is one.
   ensureI18nInitialized();
 
   // Check for a persisted language preference

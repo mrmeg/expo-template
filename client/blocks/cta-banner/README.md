@@ -23,4 +23,4 @@ import { CtaBannerBlock } from "@/client/blocks/cta-banner/Block";
 
 Every prop has a default, so `<CtaBannerBlock />` previews without configuration.
 
-The row/column decision comes from `useDimensions()` (SSR-seeded), not raw `useWindowDimensions()`, so the server render and the client's first render agree — see `docs/ssr-hydration.md` §4.
+The row/column decision comes from `useDimensions()` (seeded for the export-time prerender), not raw `useWindowDimensions()`, so the exported HTML shell and the client's first render agree — see "Enable Server Output" in `docs/server-guide.md`.
