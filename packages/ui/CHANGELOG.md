@@ -3,6 +3,37 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0]
+
+### Removed
+
+- **Server-rendering support surface.** The template that hosts this package
+  no longer server-renders web routes (routes are client-rendered from an
+  HTML shell), so the per-request plumbing that existed only to make a server
+  render and the browser's first render agree is gone:
+
+  - `SsrThemeSeedContext`, `SsrThemeSeed`, `SSR_THEME_SEED_DEFAULT`, and
+    `useSsrThemeSeed` (added in 0.20.0).
+  - `SsrViewportContext`, `SSR_VIEWPORT_DEFAULT_WIDTH`, and
+    `SSR_VIEWPORT_DEFAULT_HEIGHT`.
+  - `THEME_COOKIE_NAME`, and the `document.cookie` write `setTheme` performed
+    alongside its persisted write on web.
+
+  Hosts that server-render can keep doing so, but they now own the seeding
+  themselves; `useTheme` resolves from the store only.
+
+### Changed
+
+- **`useDimensions` seeds from a constant, not context.** The first web render
+  uses the new `DEFAULT_VIEWPORT_WIDTH` / `DEFAULT_VIEWPORT_HEIGHT` exports
+  (1280×800, the previous context defaults) and switches to real dimensions
+  after mount. The hook no longer reads a context or writes an `mrmeg-vw`
+  cookie.
+
+- **Theme persistence key is exported as `THEME_STORAGE_KEY`** (value
+  unchanged: `user-theme-preference`), replacing `THEME_COOKIE_NAME` as the
+  name callers reference.
+
 ## [0.20.0]
 
 ### Added
