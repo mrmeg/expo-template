@@ -114,7 +114,8 @@ export function FaqSectionBlock({
 // ---------------------------------------------------------------------------
 
 // Module scope, not render time: theme-dependent styles created during render
-// miss the SSR head snapshot and paint unstyled. See docs/ssr-hydration.md §7.
+// miss the stylesheet snapshot baked into the exported HTML, so the shell
+// paints unstyled until the client re-inserts the rules.
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {

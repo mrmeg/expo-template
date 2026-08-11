@@ -13,10 +13,10 @@
  * "renders without crashing" alone would pass on a block that dropped its
  * `onPress` wiring.
  *
- * Not covered here: the actual SSR head snapshot. Jest doesn't model the RNW
- * server sheet, so the module-scope style rule (docs/ssr-hydration.md §7) is
+ * Not covered here: the stylesheet snapshot baked into the exported HTML. Jest
+ * doesn't model the RNW server sheet, so the module-scope style rule is
  * enforced by the source assertions at the bottom of this file plus a manual
- * check against a real server render.
+ * check against a real `expo export` shell.
  */
 
 import * as fs from "node:fs";
@@ -344,15 +344,17 @@ describe("every block's source keeps the SSR + portability contract", () => {
   }));
 
   it.each(sources)("$id registers themed styles at module scope", ({ code }) => {
-    // docs/ssr-hydration.md §7: styles created during render miss the head
-    // snapshot and paint unstyled on the first SSR request after a cold start.
+    // Styles created during render miss the stylesheet snapshot baked into the
+    // exported HTML, so the shell paints unstyled until the client re-inserts
+    // the rules.
     expect(code).toContain("createThemedStyles(createStyles)");
     expect(code).not.toMatch(/useMemo\(\s*\(\)\s*=>\s*createStyles/);
   });
 
   it.each(sources)("$id branches on useDimensions, never useWindowDimensions", ({ code }) => {
-    // §4: raw useWindowDimensions has no SSR-seeded value, so server and client
-    // first render disagree on the breakpoint.
+    // Raw useWindowDimensions has no seeded value during the export-time
+    // prerender, so the exported HTML shell and the client's first render
+    // disagree on the breakpoint.
     expect(code).not.toContain("useWindowDimensions");
   });
 

@@ -34,9 +34,9 @@ export interface CtaBannerBlockProps {
  *
  * Accent-bordered `Card` with copy on one side and a single `Button` on the
  * other; stacks to a column on phones. The row/column decision comes from
- * `useDimensions()` (SSR-seeded) rather than raw `useWindowDimensions()`, so
- * the server and the client's first render agree — see
- * docs/ssr-hydration.md §4.
+ * `useDimensions()` (seeded for the export-time prerender) rather than raw
+ * `useWindowDimensions()`, so the exported HTML shell and the client's first
+ * render agree on the breakpoint.
  *
  * @example
  * ```tsx
@@ -84,7 +84,8 @@ export function CtaBannerBlock({
 // ---------------------------------------------------------------------------
 
 // Module scope, not render time: theme-dependent styles created during render
-// miss the SSR head snapshot and paint unstyled. See docs/ssr-hydration.md §7.
+// miss the stylesheet snapshot baked into the exported HTML, so the shell
+// paints unstyled until the client re-inserts the rules.
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {

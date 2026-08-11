@@ -37,14 +37,14 @@ regenerate fails before review.
 - **Themed styles at module scope.** End the file with
   `const themedStyles = createThemedStyles(createStyles);` and call
   `themedStyles(theme)` in the component. Creating styles during render
-  (`useMemo(() => createStyles(theme), [theme])`) misses the SSR head snapshot
-  and paints unstyled on the first request after a server cold start —
-  `docs/ssr-hydration.md` §7.
+  (`useMemo(() => createStyles(theme), [theme])`) misses the stylesheet snapshot
+  baked into the exported HTML, so the shell paints unstyled until the client
+  re-inserts the rules — see "Enable Server Output" in `docs/server-guide.md`.
 - **`useDimensions()`, never `useWindowDimensions()`,** for responsive
-  branching. Only the former is SSR-seeded, so only it makes the server and the
-  client's first render agree on the breakpoint — §4. Per-item widths that
-  depend on the breakpoint go in an *inline* style (`style={[styles.card, {
-  flexBasis }]}`), which always ships in the HTML.
+  branching. Only the former is seeded for the export-time prerender, so only it
+  makes the exported HTML shell and the client's first render agree on the
+  breakpoint. Per-item widths that depend on the breakpoint go in an *inline*
+  style (`style={[styles.card, { flexBasis }]}`), which always ships in the HTML.
 
 Both are asserted against every block's source in
 `client/blocks/__tests__/blocks.test.tsx`.
