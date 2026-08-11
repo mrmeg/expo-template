@@ -1,18 +1,22 @@
 /**
- * Carousel tests.
+ * Carousel tests — native platform.
  *
- * Three concerns:
+ * Five concerns:
  *   - `getCarouselIndex` / `resolveCarouselItemWidth`: the pure math that turns
  *     a scroll offset + measured width into an active page (clamping is what
  *     keeps overscroll from reporting a page that doesn't exist).
  *   - Render smoke with N children: every slide must be in the tree, because
  *     that's the SSR contract this component exists to preserve.
- *   - `onIndexChange` firing exactly once per settle from simulated
- *     scroll/momentum events.
+ *   - `onIndexChange` firing once per settle: on native the index comes from
+ *     `onMomentumScrollEnd`, with `onScrollEndDrag` as the no-momentum
+ *     fallback. There is deliberately no `onScroll` subscription here — that
+ *     path is web-only (see `Carousel.web.test.tsx`).
+ *   - Pressable dots: tapping a dot scrolls to that page and reports it.
+ *   - Re-clamping when `children` shrink below the active index.
  */
 
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { Carousel, getCarouselIndex, resolveCarouselItemWidth } from "../Carousel";
@@ -29,8 +33,10 @@ jest.mock("../../hooks/useTheme", () => ({
   }),
 }));
 
+// The dot's color lives on the inner indicator view; the outer `-dot-<i>`
+// node is the press target.
 function backgroundColorOf(testID: string) {
-  const value = flatten(screen.getByTestId(testID).props.style).backgroundColor;
+  const value = flatten(screen.getByTestId(`${testID}-indicator`).props.style).backgroundColor;
   return typeof value === "string" ? value.toLowerCase() : value;
 }
 
@@ -40,8 +46,16 @@ function scrollEvent(x: number, layoutWidth = 400) {
       contentOffset: { x, y: 0 },
       contentSize: { width: layoutWidth * 4, height: 200 },
       layoutMeasurement: { width: layoutWidth, height: 200 },
+      velocity: { x: 0, y: 0 },
     },
   };
+}
+
+/** A drag release that will keep gliding — momentum end has the real page. */
+function flickEndEvent(x: number, velocityX = 1.4) {
+  const event = scrollEvent(x);
+  event.nativeEvent.velocity = { x: velocityX, y: 0 };
+  return event;
 }
 
 function layoutEvent(width: number) {
@@ -227,7 +241,7 @@ describe("Carousel — render", () => {
   });
 });
 
-describe("Carousel — index tracking", () => {
+describe("Carousel — index tracking (native)", () => {
   it("fires onIndexChange on momentum end with the settled page", async () => {
     const onIndexChange = jest.fn();
     await render(
@@ -246,7 +260,7 @@ describe("Carousel — index tracking", () => {
     expect(screen.getByTestId("carousel-dot-2").props.accessibilityState.selected).toBe(true);
   });
 
-  it("updates the dots from plain scroll ticks (web wheel/trackpad has no momentum event)", async () => {
+  it("fires on drag end for a release that stops at rest (no momentum follows)", async () => {
     const onIndexChange = jest.fn();
     await render(
       <Carousel itemWidth={280} gap={20} onIndexChange={onIndexChange}>
@@ -255,13 +269,14 @@ describe("Carousel — index tracking", () => {
     );
 
     await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
-    await fireEvent(screen.getByTestId("carousel-scroll"), "scroll", scrollEvent(300));
+    await fireEvent(screen.getByTestId("carousel-scroll"), "scrollEndDrag", scrollEvent(300));
 
+    expect(onIndexChange).toHaveBeenCalledTimes(1);
     expect(onIndexChange).toHaveBeenCalledWith(1);
     expect(screen.getByTestId("carousel-dot-1").props.accessibilityState.selected).toBe(true);
   });
 
-  it("fires once per page, not once per scroll event", async () => {
+  it("leaves a flick release to momentum end rather than reporting mid-glide", async () => {
     const onIndexChange = jest.fn();
     await render(
       <Carousel itemWidth={280} gap={20} onIndexChange={onIndexChange}>
@@ -272,14 +287,74 @@ describe("Carousel — index tracking", () => {
     await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
     const scroll = screen.getByTestId("carousel-scroll");
 
-    // A single drag from page 0 to page 1: many ticks, one page change.
+    // Released at 220 with momentum left: rounds to page 1, but the snap will
+    // carry it to page 2. Reporting the release would fire 1 then 2.
+    await fireEvent(scroll, "scrollEndDrag", flickEndEvent(220));
+    expect(onIndexChange).not.toHaveBeenCalled();
+
+    await fireEvent(scroll, "momentumScrollEnd", scrollEvent(600));
+    expect(onIndexChange).toHaveBeenCalledTimes(1);
+    expect(onIndexChange).toHaveBeenCalledWith(2);
+  });
+
+  it("still reports the settle when the platform omits velocity", async () => {
+    const onIndexChange = jest.fn();
+    await render(
+      <Carousel itemWidth={280} gap={20} onIndexChange={onIndexChange}>
+        {slides(4)}
+      </Carousel>,
+    );
+
+    await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
+    const event = scrollEvent(300) as { nativeEvent: Record<string, unknown> };
+    delete event.nativeEvent.velocity;
+    await fireEvent(screen.getByTestId("carousel-scroll"), "scrollEndDrag", event);
+
+    expect(onIndexChange).toHaveBeenCalledWith(1);
+  });
+
+  it("does not subscribe to per-frame scroll ticks on native", async () => {
+    const onIndexChange = jest.fn();
+    await render(
+      <Carousel itemWidth={280} gap={20} onIndexChange={onIndexChange}>
+        {slides(4)}
+      </Carousel>,
+    );
+
+    await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
+    const scroll = screen.getByTestId("carousel-scroll");
+
+    expect(scroll.props.onScroll).toBeUndefined();
+    expect(scroll.props.scrollEventThrottle).toBeUndefined();
+
+    // Mid-drag ticks change nothing even if the platform sends them.
     for (const x of [40, 120, 220, 280, 300]) {
       await fireEvent(scroll, "scroll", scrollEvent(x));
     }
-    await fireEvent(scroll, "momentumScrollEnd", scrollEvent(300));
 
-    expect(onIndexChange).toHaveBeenCalledTimes(1);
-    expect(onIndexChange).toHaveBeenCalledWith(1);
+    expect(onIndexChange).not.toHaveBeenCalled();
+    expect(screen.getByText("1 of 4")).toBeTruthy();
+  });
+
+  it("reports nothing for a drag past the midpoint that settles back", async () => {
+    const onIndexChange = jest.fn();
+    await render(
+      <Carousel itemWidth={280} gap={20} onIndexChange={onIndexChange}>
+        {slides(4)}
+      </Carousel>,
+    );
+
+    await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
+    const scroll = screen.getByTestId("carousel-scroll");
+
+    // Dragged to 220 — page 1 by rounding — then flicked back so the snap
+    // returns to page 0. The old onScroll wiring fired 1 and then 0 here.
+    await fireEvent(scroll, "scroll", scrollEvent(220));
+    await fireEvent(scroll, "scrollEndDrag", flickEndEvent(220, -1.4));
+    await fireEvent(scroll, "momentumScrollEnd", scrollEvent(0));
+
+    expect(onIndexChange).not.toHaveBeenCalled();
+    expect(screen.getByText("1 of 4")).toBeTruthy();
   });
 
   it("does not report a page past the end when overscrolled", async () => {
@@ -291,13 +366,17 @@ describe("Carousel — index tracking", () => {
     );
 
     await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
-    await fireEvent(screen.getByTestId("carousel-scroll"), "scroll", scrollEvent(5000));
+    await fireEvent(
+      screen.getByTestId("carousel-scroll"),
+      "momentumScrollEnd",
+      scrollEvent(5000),
+    );
 
     expect(onIndexChange).toHaveBeenCalledWith(2);
     expect(screen.getByText("3 of 3")).toBeTruthy();
   });
 
-  it("does not fire when scrolling back to the page it started on", async () => {
+  it("does not fire when the settle lands on the page it started on", async () => {
     const onIndexChange = jest.fn();
     await render(
       <Carousel itemWidth={280} gap={20} onIndexChange={onIndexChange}>
@@ -306,8 +385,141 @@ describe("Carousel — index tracking", () => {
     );
 
     await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
-    await fireEvent(screen.getByTestId("carousel-scroll"), "scroll", scrollEvent(20));
+    await fireEvent(screen.getByTestId("carousel-scroll"), "momentumScrollEnd", scrollEvent(20));
 
     expect(onIndexChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("Carousel — pressable dots", () => {
+  it("scrolls to the tapped dot's slide and reports it", async () => {
+    const scrollTo = jest.spyOn(ScrollView.prototype, "scrollTo");
+    const onIndexChange = jest.fn();
+    await render(
+      <Carousel itemWidth={280} gap={20} onIndexChange={onIndexChange}>
+        {slides(4)}
+      </Carousel>,
+    );
+
+    await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
+    scrollTo.mockClear();
+
+    await fireEvent.press(screen.getByTestId("carousel-dot-2"));
+
+    // pitch = 300, so page 2 sits at 600.
+    expect(scrollTo).toHaveBeenCalledWith({ x: 600, animated: true });
+    expect(onIndexChange).toHaveBeenCalledTimes(1);
+    expect(onIndexChange).toHaveBeenCalledWith(2);
+    expect(screen.getByText("3 of 4")).toBeTruthy();
+    expect(screen.getByTestId("carousel-dot-2").props.accessibilityState.selected).toBe(true);
+  });
+
+  it("keeps tab semantics on a focusable, activatable control", async () => {
+    await render(<Carousel>{slides(3)}</Carousel>);
+
+    expect(screen.getByTestId("carousel-dots").props.accessibilityRole).toBe("tablist");
+    const dot = screen.getByTestId("carousel-dot-1");
+    expect(dot.props.accessibilityRole).toBe("tab");
+    expect(dot.props.accessibilityLabel).toBe("Slide 2 of 3");
+    // The roles are only honest if the node is reachable and activatable:
+    // Pressable projects these onto its host view (and a keyboard-reachable
+    // tabIndex on web), where the old plain View announced N tabs that could
+    // be neither focused nor activated.
+    expect(dot.props.accessible).toBe(true);
+    expect(dot.props.focusable).toBe(true);
+    expect(typeof dot.props.onResponderRelease).toBe("function");
+  });
+
+  it("gives each dot a press target far larger than the 8px dot", async () => {
+    await render(<Carousel>{slides(3)}</Carousel>);
+
+    const dot = screen.getByTestId("carousel-dot-0");
+    const style = flatten(dot.props.style);
+    const slop = dot.props.hitSlop as { top: number; bottom: number };
+
+    // The visible dot stays 8px; the target is the wrapper plus vertical slop.
+    expect(flatten(screen.getByTestId("carousel-dot-0-indicator").props.style).width).toBe(8);
+    expect(style.width).toBe(24);
+    expect(Number(style.height) + slop.top + slop.bottom).toBe(44);
+  });
+
+  it("does not re-report a tap on the already-active dot", async () => {
+    const onIndexChange = jest.fn();
+    await render(<Carousel onIndexChange={onIndexChange}>{slides(3)}</Carousel>);
+
+    await fireEvent.press(screen.getByTestId("carousel-dot-0"));
+
+    expect(onIndexChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("Carousel — re-clamps when children shrink", () => {
+  it("clamps the active index, reports it, and scrolls back", async () => {
+    const scrollTo = jest.spyOn(ScrollView.prototype, "scrollTo");
+    const onIndexChange = jest.fn();
+    const { rerender } = await render(
+      <Carousel itemWidth={280} gap={20} initialIndex={4} onIndexChange={onIndexChange}>
+        {slides(5)}
+      </Carousel>,
+    );
+
+    await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
+    expect(screen.getByText("5 of 5")).toBeTruthy();
+    scrollTo.mockClear();
+
+    await rerender(
+      <Carousel itemWidth={280} gap={20} initialIndex={4} onIndexChange={onIndexChange}>
+        {slides(3)}
+      </Carousel>,
+    );
+
+    // No "5 of 3", and the last surviving dot is the active one.
+    expect(screen.getByText("3 of 3")).toBeTruthy();
+    expect(screen.getByTestId("carousel-dot-2").props.accessibilityState.selected).toBe(true);
+    expect(onIndexChange).toHaveBeenCalledWith(2);
+    // pitch = 300, so page 2 sits at 600 — the scroller was past the new
+    // content width until this.
+    expect(scrollTo).toHaveBeenCalledWith({ x: 600, animated: false });
+  });
+
+  it("leaves an in-range active index alone when children shrink", async () => {
+    const onIndexChange = jest.fn();
+    const { rerender } = await render(
+      <Carousel itemWidth={280} gap={20} initialIndex={1} onIndexChange={onIndexChange}>
+        {slides(5)}
+      </Carousel>,
+    );
+
+    await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
+
+    await rerender(
+      <Carousel itemWidth={280} gap={20} initialIndex={1} onIndexChange={onIndexChange}>
+        {slides(3)}
+      </Carousel>,
+    );
+
+    expect(screen.getByText("2 of 3")).toBeTruthy();
+    expect(onIndexChange).not.toHaveBeenCalled();
+  });
+
+  it("survives children dropping to none", async () => {
+    const onIndexChange = jest.fn();
+    const { rerender } = await render(
+      <Carousel itemWidth={280} gap={20} initialIndex={2} onIndexChange={onIndexChange}>
+        {slides(3)}
+      </Carousel>,
+    );
+
+    await fireEvent(screen.getByTestId("carousel"), "layout", layoutEvent(400));
+
+    await rerender(
+      <Carousel itemWidth={280} gap={20} initialIndex={2} onIndexChange={onIndexChange}>
+        {null}
+      </Carousel>,
+    );
+
+    expect(screen.getByTestId("carousel")).toBeTruthy();
+    expect(screen.queryByTestId("carousel-status")).toBeNull();
+    expect(screen.queryByTestId("carousel-dots")).toBeNull();
   });
 });
