@@ -28,7 +28,7 @@ Compares the total client JS bundle size in `dist/client` against the baseline
 in `scripts/bundle-baseline.json`. Exits with code 1 if the bundle grew more
 than 10% from the baseline.
 
-The current checked-in baseline is 5,122,572 bytes of client JS from the latest
+The current checked-in baseline is 4,648,842 bytes of client JS from the latest
 local web export.
 
 Note that the metric sums *every* client chunk, so it barely moves when code is

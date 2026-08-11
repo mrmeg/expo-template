@@ -6,9 +6,7 @@ import {
   type ViewProps,
   type ViewStyle,
 } from "react-native";
-import {
-  KeyboardAvoidingView as NativeKeyboardAvoidingView,
-} from "react-native-keyboard-controller";
+import { NativeKeyboardAvoidingView } from "./keyboardController";
 
 type KeyboardAvoidingBehavior = "height" | "padding" | "position" | "translate-with-padding";
 
@@ -30,8 +28,10 @@ export function useKeyboardAvoidance() {
 /**
  * Package-level keyboard avoiding wrapper.
  *
- * Native uses `react-native-keyboard-controller` so screens can avoid the soft
- * keyboard with `automaticOffset`; web renders a plain `View`.
+ * Native uses `react-native-keyboard-controller` (through the platform-split
+ * `./keyboardController` module, which keeps the package out of the web bundle)
+ * so screens can avoid the soft keyboard with `automaticOffset`; web renders a
+ * plain `View`.
  */
 export function KeyboardAvoidingView({
   children,

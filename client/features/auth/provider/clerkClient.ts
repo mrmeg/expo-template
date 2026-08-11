@@ -15,8 +15,20 @@
  *                   created session, so autoSignedIn is always true.
  *   forgot/reset  → signIn.create({ strategy: "reset_password_email_code" })
  *                   + attemptFirstFactor with code and new password.
+ *
+ * Chunk ownership (web): this module is the single async entry point for the
+ * Clerk SDK. Nothing in the eager graph imports it — `provider/index.ts` and
+ * `AuthProviderGate` both reach it through `await import("./clerkClient")` —
+ * so `@clerk/clerk-expo` can be imported statically here and still ship as an
+ * async chunk. That is deliberate and load-bearing: Metro hoists any module
+ * two async chunks share into the eagerly `<script>`-loaded `__common` bundle,
+ * so a second reference (a nested `await import("@clerk/clerk-expo")` here, or
+ * a separate chunk importing the SDK) would put the whole ~280 kB Clerk
+ * cluster back on every page load. Re-exporting `ClerkProviderBoundary` keeps
+ * the React half in this same chunk for the same reason.
  */
 
+import { getClerkInstance } from "@clerk/clerk-expo";
 import { logDev } from "@/client/lib/devtools";
 import type { User } from "../stores/authStore";
 import {
@@ -29,7 +41,9 @@ import {
   type ForgotPasswordResult,
 } from "./types";
 
-type ClerkInstance = ReturnType<typeof import("@clerk/clerk-expo").getClerkInstance>;
+export { default as ClerkProviderBoundary } from "./ClerkProviderBoundary";
+
+type ClerkInstance = ReturnType<typeof getClerkInstance>;
 
 const ERROR_CODE_BY_CLERK_CODE: Record<string, AuthErrorCode> = {
   form_identifier_not_found: "userNotFound",
@@ -71,7 +85,6 @@ export function createClerkAuthClient(): AuthClient {
   let initPromise: Promise<ClerkInstance> | null = null;
 
   async function loadClerk(): Promise<ClerkInstance> {
-    const { getClerkInstance } = await import("@clerk/clerk-expo");
     const clerk = getClerkInstance();
 
     // ClerkProvider (RootLayout) owns loading; poll until the singleton has
