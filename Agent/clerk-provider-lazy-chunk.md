@@ -1,5 +1,5 @@
 ---
-status: draft
+status: ready
 mode: AFK
 base-branch: dev
 blocked-by: -
@@ -17,7 +17,7 @@ Verified against the exported bundle's module graph (2026-08-11):
 - `client/features/auth/provider/AuthProviderGate.tsx` is the only app-level importer of `@clerk/*` in entry. It deliberately uses `require("@clerk/clerk-expo")` (line ~31) "so the Clerk SDK only enters the module graph when Clerk is actually selected" — but Metro bundles static `require()` calls exactly like imports, so the intent doesn't hold. Only `import()` creates a split point.
 - The codebase already uses the working pattern: `client/features/auth/provider/index.ts:78` (`await import("./clerkClient")`) and `clerkClient.ts:74` (`await import("@clerk/clerk-expo")`) produce the existing lazy `clerkClient-*.js` chunk.
 - `AuthProviderGate` is mounted in `client/features/app/RootLayout.tsx:148`, wrapping the app. When `getAuthProvider() !== "clerk"` it renders children straight through.
-- `getAuthProvider()` (provider/index.ts:32) reads build-time `EXPO_PUBLIC_*` env. Template default env has no Clerk key, so the default build takes the pass-through path.
+- `getAuthProvider()` (provider/index.ts:32) reads build-time env: returns `"clerk"` when `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` is non-empty (or `EXPO_PUBLIC_AUTH_PROVIDER=clerk` with the key set); `"cognito"` needs `EXPO_PUBLIC_USER_POOL_ID` + `EXPO_PUBLIC_USER_POOL_CLIENT_ID`. The repo `.env` sets only the Cognito vars, so the default build takes the pass-through path — yet Clerk still bundles into entry because of the static `require()`.
 
 ## Work
 1. Create `client/features/auth/provider/ClerkProviderBoundary.tsx`: statically imports `ClerkProvider` from `@clerk/clerk-expo` and `tokenCache` from `@clerk/clerk-expo/token-cache`, renders `<ClerkProvider publishableKey={…} tokenCache={…}>{children}</ClerkProvider>` (move the existing prop wiring from `AuthProviderGate`).
@@ -35,7 +35,7 @@ Verified against the exported bundle's module graph (2026-08-11):
 - `bun run typecheck && bun run lint && bun run test:ci`.
 - Default env build: `bun run build-web`, then confirm no `@clerk/`, `swr`, or `expo-auth-session` sources in the entry map:
   `grep -c "@clerk/clerk-react" dist/client/_expo/static/js/web/entry-*.js.map` → 0.
-- Clerk-enabled build: `EXPO_PUBLIC_AUTH_PROVIDER`/key env set to select Clerk (see `client/lib/validateEnv.ts` / provider/index.ts for exact vars), export again: `@clerk/clerk-react` must appear only in an async chunk map, not entry. Export prerender must still succeed.
+- Clerk-enabled build: `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder EXPO_PUBLIC_AUTH_PROVIDER=clerk bun run build-web`, then: `@clerk/clerk-react` must appear only in an async chunk map, not the entry map. If export prerender fails on the placeholder key, that's a pre-existing Clerk-env limitation — fall back to the structural check on the default build and note it in the PR.
 - `node scripts/check-bundle-size.js` passes with the new baseline.
 - Note for the reviewer: full Clerk sign-in flows can't run on localhost web with prod keys (prod Clerk keys reject localhost); structural checks above plus existing jest coverage are the acceptance bar.
 

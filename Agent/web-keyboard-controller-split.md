@@ -1,5 +1,5 @@
 ---
-status: draft
+status: ready
 mode: AFK
 base-branch: dev
 blocked-by: -
@@ -22,12 +22,13 @@ Verified against `dist/client/_expo/static/js/web/entry-c5fb9205….js` module g
 - `UIProvider.tsx` mounts `KeyboardAvoidingView` at the app root, so this lands in entry, not a route chunk.
 - `packages/ui` has no `.native`/`.web` platform files today. Build is `tsc -p tsconfig.build.json` to `dist/` preserving per-file structure, so `.native.ts` compiles to `.native.js` in `dist/` and Metro platform resolution works for both local source (`EXPO_UI_LOCAL_SOURCE=1`) and published-package consumers.
 - The app already uses this exact pattern in `client/features/keyboard/platform/` (`index.ts` web, `index.native.ts` native).
-- `packages/ui` has a `check:forbidden-imports` build step — the new files must pass it.
+- `scripts/check-ui-forbidden-imports.mjs` (run by `ui:build`/`ui:test`) forbids only `react-native-reanimated` and `react-native-worklets` tokens in `packages/ui/{src,dist}` — importing `react-native-keyboard-controller` in the `.native.ts` file is fine; do not name reanimated in comments either.
+- Jest: `test/setup.ts:205` mocks `react-native-keyboard-controller` globally. Tests run under jest-expo (native platform), which resolves the `.native.ts` re-export, so the existing mock keeps working. Don't add a new mock.
 
 ## Work
 1. Add an indirection module in `packages/ui/src/lib/` (or `src/components/`, match package convention):
    - `keyboardController.native.ts` — re-export `KeyboardController`, `useKeyboardState`, `useKeyboardContext`, and `KeyboardAvoidingView as NativeKeyboardAvoidingView` from `react-native-keyboard-controller`.
-   - `keyboardController.ts` (web default) — same exported names as inert stubs: `KeyboardController.dismiss()` no-op; `useKeyboardState(selector)` returns the selector applied to a static "keyboard hidden" state; `useKeyboardContext()` returns a shape satisfying the `{ layout: { value } }` access in `DismissKeyboard.tsx:48-56`; `NativeKeyboardAvoidingView` = plain `View` passthrough. Keep hook stubs rules-of-hooks-safe (call `useMemo`/nothing conditional).
+   - `keyboardController.ts` (web default) — same exported names as inert stubs: `KeyboardController.dismiss()` no-op; `useKeyboardState(selector)` returns the selector applied to a static "keyboard hidden" state; `useKeyboardContext()` returns a shape satisfying the `{ layout: { value } }` access in `DismissKeyboard.tsx:48-56`; `NativeKeyboardAvoidingView` = plain `View` passthrough. Keep hook stubs rules-of-hooks-safe (no conditional hooks). Type the web stubs against `react-native-keyboard-controller`'s types via type-only imports (type-only imports don't bundle) so both variants are interchangeable to the type checker — TS resolves the `.ts` variant for consumers.
 2. Point the three components' imports at the indirection module instead of `react-native-keyboard-controller`. Do not change public component APIs or the existing `Platform.OS === "web"` runtime branches.
 3. Do not remove `react-native-keyboard-controller` from package peer/dev deps — native still uses it.
 4. Rebaseline: `bun run build && node scripts/check-bundle-size.js --update`, commit `scripts/bundle-baseline.json`.
@@ -36,7 +37,7 @@ Verified against `dist/client/_expo/static/js/web/entry-c5fb9205….js` module g
 - `bun run ui:typecheck && bun run ui:test` (packages/ui build must also pass: `bun run ui:build`, which runs the forbidden-imports check).
 - `bun run typecheck && bun run test:ci`.
 - `bun run build`, then confirm no web chunk contains Reanimated:
-  `grep -rlc "react-native-reanimated" dist/client/_expo/static/js/web/*.js.map` must match nothing (today the entry map matches).
+  `grep -l "react-native-reanimated/lib" dist/client/_expo/static/js/web/*.js.map` must match nothing (today the entry map matches).
 - `node scripts/check-bundle-size.js` passes with the new baseline.
 - Native behavior needs no re-verification beyond unit tests: the `.native.ts` file re-exports the same symbols, so native module resolution is unchanged.
 
