@@ -24,6 +24,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   exposed no selected state at all. Native maps `aria-selected` back into
   `accessibilityState`, so the two props agree.
 
+- **`Label` accepts `htmlFor`.** `@rn-primitives/label`'s web build only emits a
+  real `<label for="…">` — the thing that actually associates a label with an
+  input and makes clicking the label focus it — when `htmlFor` is passed, and
+  `Label` never forwarded it. No consumer could produce an associated label.
+  `htmlFor` now reaches the primitive's `Text`, which is where the prop is
+  declared and where the web build consumes it. Native ignores it, matching the
+  primitive.
+
+  Association takes **two distinct ids**:
+
+  ```tsx
+  <Label nativeID="email-label" htmlFor="email-input">Email</Label>
+  <TextInput nativeID="email-input" />
+  ```
+
+  `nativeID` is the label's own id (react-native-web maps it to `id`; on native
+  it's what a control's `accessibilityLabelledBy` points at). `htmlFor` is the
+  input's id.
+
 ### Changed
 
 - **`Carousel` re-clamps its active index when `children` shrink.** The index
@@ -51,6 +70,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the pressable wrapper; the visible dot — and therefore its
   `backgroundColor` — is the `-indicator` node inside it. Tests asserting on a
   dot's color need the new suffix.
+
+### Fixed
+
+- **`Label`'s documented pairing pattern produced duplicate DOM ids.** The usage
+  docs recommended the *same* `nativeID` on the `Label` and its `TextInput`.
+  react-native-web maps `nativeID` to `id`, so that renders two elements sharing
+  one id — invalid HTML, and no association either way. The docs now show the
+  two-id pattern above.
 
 ### Documentation
 

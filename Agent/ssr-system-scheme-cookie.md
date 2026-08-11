@@ -1,9 +1,9 @@
 ---
-status: ready
+status: declined
 mode: AFK
 base-branch: dev
-blocked-by: -
-pr: -
+blocked-by: superseded by remove-web-ssr-layer.md
+pr: https://github.com/mrmeg/expo-template/pull/52 (closed unmerged)
 ---
 
 # Persist the resolved system scheme so `system` users get a dark SSR tree

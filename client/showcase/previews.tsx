@@ -127,9 +127,12 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
 
   InputOTP: () => <InputOTP value="42" onChangeText={() => {}} length={4} />,
 
+  // Association needs two distinct ids: `nativeID` names the label, `htmlFor`
+  // points at the input's `nativeID`. One shared value would render duplicate
+  // ids on web and associate nothing.
   Label: () => (
     <Stack>
-      <Label nativeID="preview-email" required>Email</Label>
+      <Label nativeID="preview-email-label" htmlFor="preview-email" required>Email</Label>
       <TextInput nativeID="preview-email" size="sm" placeholder="you@example.com" editable={false} />
     </Stack>
   ),
