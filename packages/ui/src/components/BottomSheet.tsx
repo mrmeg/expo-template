@@ -13,7 +13,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { BottomSheet as NativeBottomSheet } from "@expo/ui/community/bottom-sheet";
-import { KeyboardController } from "react-native-keyboard-controller";
+import { KeyboardController } from "./keyboardController";
 import { useSafeAreaInsets, initialWindowMetrics } from "react-native-safe-area-context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
