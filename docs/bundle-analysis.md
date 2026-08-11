@@ -18,9 +18,9 @@ bun run build && bun run bundle-size --update
 ### `bun run analyze`
 
 Builds the web export with source maps and opens `source-map-explorer` against
-`dist/client/**/*.js`, showing a treemap of every hydrated client module. Use
-this to identify large dependencies and dead code without counting the SSR
-server renderer.
+`dist/client/**/*.js`, showing a treemap of every module the browser loads. Use
+this to identify large dependencies and dead code without counting the server
+output in `dist/server/`.
 
 ### `bun run bundle-size`
 

@@ -17,7 +17,6 @@ Treat these files as the source of truth before editing another project:
 | UI package setup, components, theming | `packages/ui/README.md` |
 | Media package setup, processing, server handlers | `packages/media/README.md` |
 | Server output, API routes, data loaders, middleware | `docs/server-guide.md` |
-| SSR hydration and web first-render constraints | `docs/ssr-hydration.md` |
 | Bundle budget and analysis workflow | `docs/bundle-analysis.md` |
 | Sentry runtime and native upload setup | `docs/error-tracking.md` |
 | UI component exports | `packages/ui/src/components/index.ts` |
@@ -31,8 +30,8 @@ the same change.
 
 ## Stack Baseline
 
-The template is a Bun-managed Expo app with Expo Router, server-rendered web
-output, TypeScript strict mode, React Query, Zustand, optional Cognito auth,
+The template is a Bun-managed Expo app with Expo Router, server-hosted
+client-rendered web output, TypeScript strict mode, React Query, Zustand, optional Cognito auth,
 optional Stripe billing, optional S3/R2 media, optional Sentry, and two
 workspace packages:
 
@@ -57,9 +56,11 @@ belong in `packages/media`.
   env names.
 - Keep optional systems fail-closed. A blank `.env` must leave the template
   explorable with auth, billing, media, and Sentry disabled.
-- Respect SSR first-render constraints on web. Read `docs/ssr-hydration.md`
-  before changing `app/+html.tsx`, root startup, theme startup, i18n startup,
-  onboarding, viewport logic, or font loading.
+- Web routes are client-rendered. Persisted browser state (localStorage,
+  `matchMedia`, dimensions) is only readable after mount, so changes to
+  `app/+html.tsx`, root startup, theme startup, i18n startup, onboarding,
+  viewport logic, or font loading must be verified in a browser against
+  `bun run build && bun run start`.
 - Add showcase coverage when adding a reusable component, block, or screen
   template. Components are listed by hand in `client/showcase/registry.ts`;
   blocks and screen templates are generated from their `meta.ts` by
@@ -198,7 +199,8 @@ Use this order when moving an existing project toward this template:
 7. Convert API calls to typed route contracts and typed problem handling.
 8. Add optional systems behind env gates. Missing auth, billing, media, or
    Sentry config should degrade to setup/disabled states, not runtime crashes.
-9. Verify SSR and hydration on web before optimizing for native-only behavior.
+9. Verify the web build in a browser before optimizing for native-only
+   behavior.
 10. Add tests at the boundary touched: package component tests, screen tests,
     route tests, feature isolation, typecheck, lint, and bundle-size checks.
 
@@ -220,8 +222,8 @@ bun run bundle-size
 ```
 
 For UI package changes, also use the showcase and React Scan workflow from
-`README.md`. For SSR-sensitive work, verify real server HTML as described in
-`docs/ssr-hydration.md`.
+`README.md`. For web-startup work, verify in a browser against
+`bun run build && bun run start` (see `docs/server-guide.md`).
 
 ## Anti-Patterns To Remove
 
@@ -234,7 +236,7 @@ For UI package changes, also use the showcase and React Scan workflow from
 - UI code branching on raw HTTP `Response` objects instead of typed problem
   objects.
 - Optional feature setup that crashes a blank `.env`.
-- Web startup logic that reads persisted browser state during the first render.
+- Web startup logic that blocks first paint on persisted browser state.
 - Showcase demos with high-churn state at the full-route level.
 
 ## Keeping This Guide Current
@@ -243,8 +245,8 @@ Update this file when:
 
 - A reusable component is added, removed, renamed, or moved.
 - A screen template is added, removed, renamed, or gets a new intended use.
-- The modernization order changes because of stack, routing, SSR, or package
-  boundary changes.
+- The modernization order changes because of stack, routing, web output, or
+  package boundary changes.
 - Verification scripts or feature gates change.
 
 Keep examples source-linked and concise. Prefer pointing to the canonical
