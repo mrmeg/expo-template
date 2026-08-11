@@ -2,6 +2,7 @@ import React, { use, useState } from "react";
 import {
   Image,
   StyleSheet,
+  Text,
   View,
   type ImageSourcePropType,
   type StyleProp,
@@ -52,6 +53,19 @@ function overlap(px: number): number {
 }
 
 /**
+ * Radius for the inner `Image`.
+ *
+ * The wrapper already clips with `overflow: "hidden"`, but Android drops that
+ * clip on a child image in several cases (elevation, some resize modes), so
+ * the image carries the radius itself as well.
+ */
+function imageRadius(px: number, shape: AvatarShape) {
+  if (shape === "circle") return geometry.imageCircle;
+  const token = SIZE_TOKEN_FOR_PX[px];
+  return token ? geometry[`${token}ImageSquare`] : { borderRadius: squareRadius(px) };
+}
+
+/**
  * Derive 1–2 initials from a display name.
  *
  * First + last word (middle names are skipped, as in most avatar stacks), one
@@ -82,18 +96,33 @@ export function getAvatarInitials(name?: string): string {
 /**
  * Identity of an image source by content, not object identity.
  *
- * `source={{ uri }}` allocates a new object on every render, so a failure
- * flag keyed on object identity would reset immediately and loop
- * image → error → image. Returns `null` when there is no usable image.
+ * `source={{ uri }}` allocates a new object on every render, so load/failure
+ * flags keyed on object identity would reset immediately and loop
+ * image → error → image.
+ *
+ * `null` means "no source" and nothing else: every shape React Native accepts
+ * gets a key, including the ones that carry no `uri` at all (iOS
+ * `{ bundle, name }`, a resolved asset object). Keying those as "no image"
+ * silently degraded a perfectly good source to initials.
  */
 function getSourceKey(source?: ImageSourcePropType): string | null {
   if (source == null) return null;
   if (typeof source === "number") return `asset:${source}`;
+
   if (Array.isArray(source)) {
-    const key = source.map((entry) => entry?.uri ?? "").filter(Boolean).join("|");
-    return key || null;
+    // An empty array carries no image; anything else does.
+    const keys = source.map((entry) => getSourceKey(entry) ?? "").filter(Boolean);
+    return keys.length > 0 ? keys.join("|") : null;
   }
-  return source.uri || null;
+
+  if (source.uri) return source.uri;
+
+  // Whatever is left is a descriptor object without a uri. Serialize it, with
+  // keys sorted so two equivalent literals written in a different order still
+  // key the same. `{}` is the one object that carries no image.
+  const fields = Object.keys(source).sort() as (keyof typeof source)[];
+  if (fields.length === 0) return null;
+  return fields.map((field) => `${field}=${JSON.stringify(source[field])}`).join("&");
 }
 
 type AvatarGroupContextValue = {
@@ -105,7 +134,11 @@ type AvatarGroupContextValue = {
 const AvatarGroupContext = React.createContext<AvatarGroupContextValue | null>(null);
 
 export interface AvatarProps {
-  /** Image to display. Falls back to initials (then the icon) if it fails to load. */
+  /**
+   * Image to display. Any source React Native accepts — a uri object, a
+   * `require()`d asset, a uri-less descriptor, a multi-resolution array. The
+   * initials (then the icon) show while it loads and if it fails.
+   */
   source?: ImageSourcePropType;
   /** Display name; supplies the fallback initials and the default accessibility label. */
   name?: string;
@@ -127,8 +160,9 @@ export interface AvatarProps {
  * Avatar Component
  *
  * A circular (or rounded-square) profile image with a graceful fallback chain:
- * image → initials → icon. A broken or slow-failing image downgrades to
- * initials at runtime, so a dead URL never leaves an empty hole.
+ * image → initials → icon. The fallback shows while the image is in flight and
+ * stays put if the image fails, so neither a slow network nor a dead URL ever
+ * leaves an empty hole.
  *
  * Usage:
  * ```tsx
@@ -154,10 +188,14 @@ function Avatar({
   const resolvedShape = shape ?? group?.shape ?? "circle";
 
   const sourceKey = getSourceKey(source);
-  // Keyed on the source's content, so a retry with a new URL clears the
-  // failure while a re-rendered identical URL keeps it.
+  // Both flags are keyed on the source's content, so a retry with a new URL
+  // clears them while a re-rendered identical URL keeps them.
   const [failedKey, setFailedKey] = useState<string | null>(null);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const showImage = sourceKey !== null && failedKey !== sourceKey;
+  // The fallback stays mounted under a still-loading image, so a slow network
+  // shows initials rather than an empty muted tile.
+  const showFallback = !showImage || loadedKey !== sourceKey;
 
   const initials = getAvatarInitials(name);
   const label = accessibilityLabel ?? name;
@@ -170,25 +208,31 @@ function Avatar({
       accessibilityLabel={label}
       style={[styles.fallback, styleOverride]}
     >
+      {showFallback ? (
+        initials ? (
+          <AvatarLabel px={px} style={styles.fallbackText}>
+            {initials}
+          </AvatarLabel>
+        ) : (
+          <Icon
+            name={icon ?? "user"}
+            size={contentSize(px).iconSize}
+            color="mutedForeground"
+            decorative
+          />
+        )
+      ) : null}
       {showImage ? (
+        // Absolute so it covers the fallback instead of stacking beside it in
+        // the centering flex row; last child, so it paints on top.
         <Image
           source={source as ImageSourcePropType}
           resizeMode="cover"
-          style={geometry.image}
+          style={[geometry.image, imageRadius(px, resolvedShape)]}
+          onLoad={() => setLoadedKey(sourceKey)}
           onError={() => setFailedKey(sourceKey)}
         />
-      ) : initials ? (
-        <AvatarLabel px={px} style={styles.fallbackText}>
-          {initials}
-        </AvatarLabel>
-      ) : (
-        <Icon
-          name={icon ?? "user"}
-          size={contentSize(px).iconSize}
-          color="mutedForeground"
-          decorative
-        />
-      )}
+      ) : null}
     </AvatarSurface>
   );
 }
@@ -265,13 +309,19 @@ function AvatarLabel({
 
 export interface AvatarGroupProps {
   children?: React.ReactNode;
-  /** Maximum number of avatars to render; the rest collapse into a `+N` tile. */
+  /**
+   * Maximum number of avatars to render; the rest collapse into a `+N` tile.
+   * Clamped to a whole count ≥ 0, so `max={0}` renders only the `+N` tile.
+   */
   max?: number;
   /** Size applied to child avatars that don't set their own. @default "md" */
   size?: AvatarSize;
   /** Shape applied to child avatars that don't set their own. @default "circle" */
   shape?: AvatarShape;
-  /** Defaults to `"<n> avatars"`, counting the collapsed overflow. */
+  /**
+   * Summary announced ahead of the members, as a visually hidden text node.
+   * Defaults to `"<n> avatars"`, counting the collapsed overflow.
+   */
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }
@@ -282,6 +332,9 @@ export interface AvatarGroupProps {
  * Overlapping stack of avatars, each ringed in the theme `background` color so
  * the stack reads on any surface. Earlier avatars sit on top; anything past
  * `max` collapses into a `+N` tile.
+ *
+ * The group is not an accessibility element itself — its member avatars each
+ * announce their own name, preceded by a hidden count summary.
  *
  * Usage:
  * ```tsx
@@ -304,7 +357,10 @@ function AvatarGroup({
   // toArray drops null/undefined/false children so a conditionally rendered
   // avatar doesn't inflate the count or the overflow tally.
   const items = React.Children.toArray(children);
-  const visible = max != null && max >= 0 ? items.slice(0, max) : items;
+  // A whole count, never negative: `slice` would otherwise read a negative max
+  // as "from the end" (rendering every child) and truncate a fractional one.
+  const limit = max != null ? Math.max(0, Math.floor(max)) : null;
+  const visible = limit != null ? items.slice(0, limit) : items;
   const overflowCount = items.length - visible.length;
 
   const px = resolveSize(size);
@@ -318,12 +374,21 @@ function AvatarGroup({
   );
 
   return (
-    <View
-      accessible
-      accessibilityRole="image"
-      accessibilityLabel={accessibilityLabel ?? `${items.length} avatars`}
-      style={[geometry.group, styleOverride]}
-    >
+    // Deliberately carries no `accessible`/`accessibilityRole` of its own: an
+    // `accessible` container swallows its descendants on iOS, and `role="img"`
+    // is a leaf role on the web, so a labeled wrapper made every member name
+    // unannounceable. The count rides along as a hidden summary instead.
+    <View style={[geometry.group, styleOverride]}>
+      {/* A real — visually clipped — text node rather than an
+          accessibilityLabel on the wrapper: a label on a container that isn't
+          `accessible` is ignored, and making it accessible is exactly what
+          swallowed the members. Clipped to 1x1 because screen readers skip
+          display:none / opacity:0 nodes. */}
+      <View style={geometry.summary}>
+        <Text style={geometry.summaryText}>
+          {accessibilityLabel ?? `${items.length} avatars`}
+        </Text>
+      </View>
       <AvatarGroupContext.Provider value={contextValue}>
         {visible.map((child, index) => (
           <View
@@ -368,9 +433,18 @@ const geometry = StyleSheet.create({
     overflow: "hidden",
   },
   image: {
+    // Absolutely positioned so the fallback underneath it keeps the tile's
+    // centered layout while the image is still loading. The explicit 100%
+    // size must stay alongside the inset: react-native-web does not resolve
+    // an Image's size from the inset box and falls back to the asset's
+    // natural pixels, blowing a 1024px image out of a 48px tile.
+    position: "absolute",
+    top: 0,
+    left: 0,
     width: "100%",
     height: "100%",
   },
+  imageCircle: { borderRadius: spacing.radiusFull },
   labelText: {
     // The tile is the touch/visual target; text must not add its own metrics.
     includeFontPadding: false,
@@ -384,6 +458,18 @@ const geometry = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  // Clipped to 1x1 rather than removed: screen readers skip
+  // display:none/opacity:0 nodes, and there is no visual affordance to show.
+  summary: {
+    position: "absolute",
+    width: 1,
+    height: 1,
+    overflow: "hidden",
+  },
+  summaryText: {
+    fontSize: 1,
+    color: "transparent",
+  },
   smCircle: { width: SIZE_TOKENS.sm, height: SIZE_TOKENS.sm, borderRadius: spacing.radiusFull },
   mdCircle: { width: SIZE_TOKENS.md, height: SIZE_TOKENS.md, borderRadius: spacing.radiusFull },
   lgCircle: { width: SIZE_TOKENS.lg, height: SIZE_TOKENS.lg, borderRadius: spacing.radiusFull },
@@ -393,6 +479,9 @@ const geometry = StyleSheet.create({
   smStack: { marginLeft: overlap(SIZE_TOKENS.sm) },
   mdStack: { marginLeft: overlap(SIZE_TOKENS.md) },
   lgStack: { marginLeft: overlap(SIZE_TOKENS.lg) },
+  smImageSquare: { borderRadius: squareRadius(SIZE_TOKENS.sm) },
+  mdImageSquare: { borderRadius: squareRadius(SIZE_TOKENS.md) },
+  lgImageSquare: { borderRadius: squareRadius(SIZE_TOKENS.lg) },
 });
 
 const createStyles = (theme: Theme) =>
