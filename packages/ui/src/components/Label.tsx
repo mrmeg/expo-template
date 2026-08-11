@@ -13,9 +13,20 @@ export interface LabelProps {
    */
   children: string;
   /**
-   * Native ID to associate with a form control
+   * The label's OWN id. On web react-native-web maps it to `id`; on native it
+   * is the `nativeID` a control's `accessibilityLabelledBy` can point at.
+   *
+   * Must differ from the paired input's id — see `htmlFor`.
    */
   nativeID?: string;
+  /**
+   * WEB ONLY — the id of the input this label describes (the input's
+   * `nativeID`). Passing it makes `@rn-primitives/label` render a real
+   * `<label for="…">`, which is what associates the two and makes clicking the
+   * label focus the input. No-op on native, where association goes the other
+   * way (the control points at the label's `nativeID`).
+   */
+  htmlFor?: string;
   /**
    * Whether the field is required (shows asterisk)
    */
@@ -52,23 +63,32 @@ const SIZE_CONFIGS = {
 /**
  * Label component for form fields using @rn-primitives/label
  *
- * Provides accessible labeling for form controls with automatic
- * association via nativeID.
+ * Accessible labeling for form controls. Association needs **two distinct
+ * ids**: `nativeID` is the label's own id, `htmlFor` is the input's id. Giving
+ * both the same value renders two elements with one id on web and associates
+ * nothing.
  *
  * Usage:
  * ```tsx
- * // Basic label
- * <Label nativeID="email-input">Email</Label>
+ * // Paired with an input. `htmlFor` (web) makes this a real <label for>, so
+ * // clicking it focuses the input; `nativeID` names the label itself, which is
+ * // what a control's `accessibilityLabelledBy` points at on native.
+ * <Label nativeID="email-label" htmlFor="email-input">Email</Label>
  * <TextInput nativeID="email-input" />
  *
  * // Required field
- * <Label nativeID="password" required>Password</Label>
+ * <Label nativeID="password-label" htmlFor="password-input" required>Password</Label>
+ * <TextInput nativeID="password-input" secureTextEntry />
  *
  * // With error state
- * <Label nativeID="username" error>Username</Label>
+ * <Label nativeID="username-label" htmlFor="username-input" error>Username</Label>
  *
- * // With press handler to focus input
- * <Label nativeID="search" onPress={() => inputRef.current?.focus()}>
+ * // Standalone caption with no control to associate — omit htmlFor
+ * <Label>Filters</Label>
+ *
+ * // With press handler to focus input (needed on native, where htmlFor is a
+ * // no-op and pressing the label does nothing on its own)
+ * <Label nativeID="search-label" htmlFor="search-input" onPress={() => inputRef.current?.focus()}>
  *   Search
  * </Label>
  * ```
@@ -76,6 +96,7 @@ const SIZE_CONFIGS = {
 export function Label({
   children,
   nativeID,
+  htmlFor,
   required,
   size = "md",
   error,
@@ -107,7 +128,14 @@ export function Label({
         ...(Platform.OS === "web" && onPress && { cursor: "pointer" as any }),
       }}
     >
+      {/*
+        `htmlFor` belongs on Text, not Root: it's declared on the primitive's
+        TextProps, and the web build is the piece that consumes it (it drops
+        Radix's `asChild` so a real <label for> element wraps the text). Root
+        keeps `nativeID` so the label's own id lands once, on the wrapper.
+      */}
       <LabelPrimitive.Text
+        htmlFor={htmlFor}
         style={textStyle}
       >
         {children}

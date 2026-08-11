@@ -109,7 +109,7 @@ Use this catalog before creating a new app-local primitive.
 | `Icon` | `@mrmeg/expo-ui/components` | Feather or custom icons with theme tokens | Avoid raw vector icons with hardcoded colors. |
 | `InputOTP` | `@mrmeg/expo-ui/components` | Verification code entry | Prefer over manually managed text input groups. |
 | `KeyboardAvoidingView` | `@mrmeg/expo-ui/components` | Native keyboard-aware layout roots, composer footers, and form-heavy subtrees | `UIProvider` already mounts one root by default; use this directly only for custom subtrees. |
-| `Label` | `@mrmeg/expo-ui/components` | Accessible form labels | Use with package form controls. |
+| `Label` | `@mrmeg/expo-ui/components` | Accessible form labels | Pair with two distinct ids: `nativeID` is the label's id, `htmlFor` is the input's `nativeID`. Never reuse one id for both. |
 | `MaxWidthContainer` | `@mrmeg/expo-ui/components` | Centered responsive width | Use for web and tablet constrained layouts. |
 | `Notification` | `@mrmeg/expo-ui/components` | Global toast surface | Trigger through `notify` (or `globalUIStore` for subscriptions/tests) with root `UIProvider`; optional actions dismiss after press. |
 | `Popover` | `@mrmeg/expo-ui/components` | Anchored contextual content | Requires root `UIProvider` portal setup. |
