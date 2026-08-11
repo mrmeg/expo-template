@@ -10,6 +10,14 @@
  * `client/showcase/previews.tsx` — a gallery of screenshots would go stale, and
  * a live one shows a regression the moment it lands. Counts come from the
  * registry so they can't drift from what's shipped.
+ *
+ * Those 36 live instances are most of `@mrmeg/expo-ui`, so on a client-side
+ * navigation they are mounted in per-frame batches
+ * (`useProgressivePreviewCount`) with a `Skeleton` standing in until a card's
+ * turn comes; mounting them all at once blanked the content pane for seconds.
+ * A direct URL load still renders every preview in one pass: the route-identity
+ * gate defers only on a client-side navigation, so nothing streams into a tree
+ * that has to match the prerendered HTML shell.
  */
 
 import React, { useMemo, useState } from "react";
@@ -17,6 +25,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { Skeleton } from "@mrmeg/expo-ui/components/Skeleton";
 import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { STAGGER_DELAY, useDimensions, useTheme } from "@mrmeg/expo-ui/hooks";
@@ -42,6 +51,15 @@ import {
 } from "@/client/showcase/filters";
 import { renderPreview } from "@/client/showcase/previews";
 import { COMPONENTS, type ComponentCategory, type ComponentEntry } from "@/client/showcase/registry";
+import {
+  COMPONENT_PREVIEW_SCHEDULE,
+  useProgressivePreviewCount,
+} from "@/client/showcase/useProgressivePreviewCount";
+
+/** Total cards across a run of category sections. */
+function countCards(sections: { entries: unknown[] }[]): number {
+  return sections.reduce((total, section) => total + section.entries.length, 0);
+}
 
 /** Narrows an arbitrary `?category=` value to a chip the gallery can select. */
 function parseCategoryParam(value: unknown): CategoryFilter<ComponentCategory> | null {
@@ -107,6 +125,20 @@ export default function ComponentsGalleryScreen() {
     if (category === ALL_CATEGORIES) return groupComponentsByCategory(COMPONENTS);
     return [{ category, entries: filterComponents(category) }];
   }, [category]);
+
+  // The mount budget is a per-SCREEN allowance, so the cards need one running
+  // index across the category sections — a per-section index would let every
+  // section mount its own first N and put all 36 previews back on the first
+  // frame. `cardOffsets[i]` is how many cards precede section `i`; written as a
+  // prefix sum rather than a `let` accumulator because the React Compiler
+  // (correctly) rejects reassigning a captured variable during render.
+  const cardOffsets = useMemo(
+    () => sections.map((_, index) => countCards(sections.slice(0, index))),
+    [sections],
+  );
+  const cardTotal = useMemo(() => countCards(sections), [sections]);
+
+  const livePreviews = useProgressivePreviewCount(cardTotal, COMPONENT_PREVIEW_SCHEDULE);
 
   // Two-up on a phone (mockup 05 frame 2), three-up above that (mockup 02).
   // `flexBasis` is a hair under 100/columns so the 14px gutter fits without
@@ -182,12 +214,13 @@ export default function ComponentsGalleryScreen() {
               {COMPONENT_CATEGORY_DESCRIPTIONS[section.category]}
             </SansSerifText>
             <View style={styles.grid}>
-              {section.entries.map((entry) => (
+              {section.entries.map((entry, cardIndex) => (
                 <ComponentCard
                   key={entry.id}
                   entry={entry}
                   basis={basis}
                   styles={styles}
+                  live={cardOffsets[index] + cardIndex < livePreviews}
                 />
               ))}
             </View>
@@ -210,18 +243,30 @@ type GalleryStyles = ReturnType<typeof createStyles>;
  * `Switch`, a `Dialog` trigger), and a tap on the card should open the detail
  * screen rather than half-operate the preview. The detail screen is where the
  * instances are live.
+ *
+ * Card chrome — link, name, category — renders whether or not the preview does,
+ * so a deferred card is a complete, tappable card with a placeholder in the
+ * preview well rather than a hole in the grid.
  */
 function ComponentCard({
   entry,
   basis,
   styles,
+  live,
 }: {
   entry: ComponentEntry;
   /** Flex basis per card, derived from the viewport's column count. */
   basis: `${number}%`;
   styles: GalleryStyles;
+  /** Whether this card's turn in the mount schedule has come up yet. */
+  live: boolean;
 }) {
-  const preview = renderPreview(entry.id);
+  // Memoized so the element reference survives the re-render that each streamed
+  // batch triggers: React bails out of a child whose element is identical, so an
+  // already-live preview costs nothing on later frames. Without this, frame N
+  // re-renders every preview mounted in frames 1..N-1 — the per-frame budget
+  // this whole path exists to bound.
+  const preview = useMemo(() => (live ? renderPreview(entry.id) : null), [live, entry.id]);
 
   return (
     <Link href={componentDetailRoute(entry.id) as never} asChild>
@@ -233,8 +278,18 @@ function ComponentCard({
         style={linkPressableStyle(styles.card, { flexBasis: basis })}
       >
         <View style={styles.cardPreview} pointerEvents="none">
-          {preview ?? (
-            <Icon name="box" size={22} color="mutedForeground" decorative />
+          {live ? (
+            preview ?? <Icon name="box" size={22} color="mutedForeground" decorative />
+          ) : (
+            // The testID lives on the wrapper because `Skeleton` renders only
+            // its documented props; the wrapper is also what centers the bar in
+            // the preview well the way a real preview centers itself.
+            <View
+              style={styles.cardPreviewSkeleton}
+              testID={`component-card-skeleton-${entry.id}`}
+            >
+              <Skeleton width="70%" height={40} />
+            </View>
           )}
         </View>
         <View style={styles.cardMeta}>
@@ -345,6 +400,13 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.surfaceSunken,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
+    },
+    // Placeholder well for a card whose preview hasn't been scheduled yet. Same
+    // box the preview would occupy, so nothing reflows when it arrives.
+    cardPreviewSkeleton: {
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
     },
     // `.meta`
     cardMeta: {

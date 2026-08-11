@@ -357,5 +357,16 @@ jest.mock("expo-file-system", () => ({
 //   console.warn = originalConsoleWarn;
 // });
 
+// The entry-pathname record in client/lib/clientNavigation.ts is module scope,
+// which `clearMocks`/`restoreMocks` do not touch. Without this reset, one test
+// simulating a navigation would silently move every later test in the same file
+// onto the deferred-preview path. Every suite therefore starts on the
+// "arrived here" (full-render) path unless it opts in. Required lazily so a suite
+// that mocks the module still gets its own reset.
+beforeEach(() => {
+  const { resetClientNavigationForTests } = require("@/client/lib/clientNavigation");
+  resetClientNavigationForTests();
+});
+
 // Global test timeout
 jest.setTimeout(10000);

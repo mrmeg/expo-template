@@ -10,7 +10,7 @@ template docs under `docs/`.
 ### Core
 - **Universal app** — iOS, Android, Web (React Native Web 0.21) on Expo SDK 57 / React 19.2 / RN 0.86 / TypeScript strict (exact pins live in `package.json`).
 - **Design system** — 35+ shadcn-inspired components on `@rn-primitives` with a zinc palette, teal accent, dark/light themes, and WCAG contrast helpers.
-- **File-based routing** — Expo Router with typed routes, async web routes, and a server-rendered web build.
+- **File-based routing** — Expo Router with typed routes and a server-hosted, client-rendered web build.
 - **State** — Zustand for client state, TanStack React Query for server state, persisted via `AsyncStorage` (native) or `localStorage` (web).
 - **i18n** — `i18next` + `expo-localization`, English/Spanish bundles, RTL support, type-safe translation keys.
 
@@ -21,7 +21,7 @@ template docs under `docs/`.
 - **Sentry** — `@sentry/react-native`, no-op when `EXPO_PUBLIC_SENTRY_DSN` is unset; native upload steps are skipped unless `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are all set.
 
 ### Developer experience
-- **Bun production server** — Expo Router SSR through `expo-server/adapter/bun`, static Brotli/gzip compression, CORS, rate limiting (a strict 10/min bucket on `/api/media/getUploadUrl` and the billing checkout/portal routes), security headers, request logging. The Express server remains available as a fallback.
+- **Bun production server** — Expo Router API routes, middleware, and data loaders through `expo-server/adapter/bun`, static Brotli/gzip compression, CORS, rate limiting (a strict 10/min bucket on `/api/media/getUploadUrl` and the billing checkout/portal routes), security headers, request logging. The Express server remains available as a fallback.
 - **Generator CLI** — `bun run generate component|screen|hook|form <Name>` — paths and imports match the rest of the template.
 - **Reactotron** — auto-connects in dev mode for native runs.
 - **Template docs** — LLM-facing modernization guidance in `docs/template-modernization-guide.md`.
@@ -92,7 +92,7 @@ Android projects with the new bundle ids.
 | `bun run web:scan` | Start the Expo web dev server for React Scan inspection |
 | `bun run scan:showcase` | Open React Scan against the local showcase route on port 8081 |
 | `bun run ios` / `bun run android` | Build + run on simulator / emulator |
-| `bun run build` | Production web export → `dist/` (client + SSR server) |
+| `bun run build` | Production web export → `dist/` (client bundle + server output) |
 | `bun run start` | Run the Bun production server (`server.bun.ts`) |
 | `bun run start-local` | Run the Bun production server with `.env` autoloaded |
 | `bun run start:express` | Run the fallback Express production server (`server/index.ts`) |
@@ -444,7 +444,7 @@ GitHub Actions CI to EAS Workflows are not configured here.
 
 - Expo SDK 57, React 19.2, React Native 0.86, React Native Web 0.21 (exact pins in `package.json`)
 - TypeScript 6 (strict), path alias `@/*` -> repo root
-- Expo Router 57 (typed, async web routes, server-rendered web build)
+- Expo Router 57 (typed routes, server-hosted client-rendered web build)
 - Zustand 5, TanStack React Query 5
 - Clerk or AWS Amplify 6 + Cognito (optional; env-selected, fail-closed to disabled)
 - Stripe 22 (server, hosted-external Checkout + Billing Portal)

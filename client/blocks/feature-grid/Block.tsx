@@ -67,9 +67,10 @@ const DEFAULT_ITEMS: FeatureGridItem[] = [
  *
  * Icon + title + copy cards in a responsive grid: one column on phones, two
  * on mid-width, three on wide viewports. Column count comes from
- * `useDimensions()` (SSR-seeded) rather than `useWindowDimensions()`, and the
- * per-card width is an inline `flexBasis` so the value always ships in the
- * server HTML — see docs/ssr-hydration.md §4 and §7.
+ * `useDimensions()` (seeded for the export-time prerender) rather than
+ * `useWindowDimensions()`, and the per-card width is an inline `flexBasis` so
+ * the value always ships in the exported HTML shell, which the client's first
+ * render must match.
  *
  * @example
  * ```tsx
@@ -116,7 +117,8 @@ export function FeatureGridBlock({ items = DEFAULT_ITEMS, style: styleOverride }
 const ICON_WRAP_SIZE = 32;
 
 // Module scope, not render time: theme-dependent styles created during render
-// miss the SSR head snapshot and paint unstyled. See docs/ssr-hydration.md §7.
+// miss the stylesheet snapshot baked into the exported HTML, so the shell
+// paints unstyled until the client re-inserts the rules.
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {

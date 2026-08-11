@@ -2,8 +2,8 @@
 
 This document is designed to travel. Drop it into any Expo app (or hand it to
 an agent working in one) and follow it to bring that app in line with
-[mrmeg/expo-template](https://github.com/mrmeg/expo-template): SSR web output,
-typed data loaders, `@mrmeg/expo-ui` components, reusable screen templates,
+[mrmeg/expo-template](https://github.com/mrmeg/expo-template): server web
+output, typed data loaders, `@mrmeg/expo-ui` components, reusable screen templates,
 and the template's verification gates.
 
 Unlike `docs/template-modernization-guide.md` (written for agents working
@@ -16,7 +16,7 @@ fetchable from the template's public GitHub.
 1. Run the **Self-Assessment** below to find your app's tier.
 2. Work the phases in order. Lower tiers skip phases they already satisfy.
 3. Migrate **one screen/feature as a pilot** before converting the rest —
-   validate it builds, hydrates, and passes checks, then repeat the pattern.
+   validate it builds, runs, and passes checks, then repeat the pattern.
 4. After each phase, run the **Verification** commands before moving on.
 
 ## Reference Materials (fetch as needed)
@@ -25,7 +25,7 @@ The template publishes an LLM consumption layer. From any repo, fetch:
 
 | Resource | URL |
 |----------|-----|
-| Full docs bundle (modernization guide, UI usage, media, server, SSR) | `https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-full.txt` |
+| Full docs bundle (modernization guide, UI usage, media, server) | `https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-full.txt` |
 | Example index (demo routes, screen templates, component source) | `https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-examples.txt` |
 | UI package usage rules | `https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/LLM_USAGE.md` |
 | Any individual file | `https://raw.githubusercontent.com/mrmeg/expo-template/main/<path>` |
@@ -78,7 +78,7 @@ Check your `package.json` and app config, then start at the matching tier:
    `"@/*"` pointing at the repo root.
 4. ESLint 10 flat config (`eslint.config.mjs`), lint via `bunx expo lint`.
 
-## Phase 2 — SSR Web Output
+## Phase 2 — Server Web Output
 
 In `app.config.ts` (or `app.json`):
 
@@ -93,34 +93,37 @@ plugins: [
     "expo-router",
     {
       origin: "",
-      unstable_useServerRendering: true,
       unstable_useServerMiddleware: true,
       unstable_useServerDataLoaders: true,
-      // Keep development web routes eager; async-route HMR can fail to
-      // resolve grouped tab chunks in dev.
-      asyncRoutes: { web: "production" },
     },
   ],
   // ...other plugins
 ],
 ```
 
+`output: "server"` gives you API routes, middleware, and data loaders on a
+Node/Bun server. Note there is deliberately no `unstable_useServerRendering`:
+routes are **client-rendered**, so each one gets an HTML shell written at
+export time and the app takes over in the browser.
+
 Then:
 
-1. Add `expo-server` (`~56.0.5`) as a dependency.
-2. Add an `app/+html.tsx` server document. Fetch the template's version
-   (`app/+html.tsx` via the raw URL above) — it injects theme CSS variables
-   server-side to prevent white-flash and splices SSR resources via
-   `useServerDocumentContext()`. Adapt fonts/scripts to your app.
+1. Add `expo-server` (`~57.0.0`) as a dependency.
+2. Add an `app/+html.tsx` document. Fetch the template's version
+   (`app/+html.tsx` via the raw URL above) — it wraps every route's HTML
+   shell with the viewport meta, global CSS, and a blocking script that
+   stamps the color scheme on `<html>` before first paint. Adapt
+   fonts/scripts to your app.
 3. Add a production server entry. The template ships two; copy the one you
    deploy with: `server.bun.ts` (Bun.serve, primary) or `server/index.ts`
-   (Express fallback). Both serve `dist/client/` statics and mount the SSR
-   handler from `dist/server/` via `expo-server` adapters.
-4. **SSR first-render rules** (full detail in `docs/ssr-hydration.md` inside
-   `llms-full.txt`): the first web render must not read persisted browser
-   state (localStorage, matchMedia, dimensions). Gate those reads behind
-   hydration; the template's `+html.tsx` blocking scripts handle color scheme
-   and onboarding state.
+   (Express fallback). Both serve `dist/client/` statics and mount the
+   request handler from `dist/server/` via `expo-server` adapters.
+4. **First-render rules.** Persisted browser state (localStorage,
+   `matchMedia`, dimensions) is only available after mount, so a route's
+   first render should not depend on it — read it in an effect and let the UI
+   settle, or accept the pre-hydration default. Anything that must be right
+   before paint belongs in a `+html.tsx` blocking script (the template stamps
+   the color scheme that way).
 
 ## Phase 3 — Data Loaders
 
@@ -313,10 +316,9 @@ Testing notes:
 - RNTL 14 APIs are async: `await render(...)`, `await renderHook(...)`,
   `await fireEvent(...)`, `await act(...)` — older sync-style tests must be
   migrated.
-- After `bun run build`, verify real SSR output: start the production server
-  and confirm the first-response HTML contains rendered content (not an
-  empty shell), then confirm hydration produces no console errors and no
-  white-flash on dark mode.
+- After `bun run build`, start the production server and load the app in a
+  browser: every route should render, API routes and loader-backed routes
+  should return data, and dark mode should not white-flash on first paint.
 
 ## Anti-Patterns to Remove While Migrating
 
@@ -327,7 +329,7 @@ Testing notes:
 - Top-level imports of server modules in files that reach the client bundle.
 - UI branching on raw HTTP `Response` objects.
 - Feature folders importing sibling feature internals.
-- Web startup logic reading persisted browser state during first render.
+- Web startup logic that blocks first paint on persisted browser state.
 - Optional integrations that crash on a blank `.env`.
 
 ## Appendix — Portfolio Tier Scan (June 2026)

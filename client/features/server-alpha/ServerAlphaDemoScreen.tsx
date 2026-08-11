@@ -148,7 +148,7 @@ export default function ServerAlphaDemo() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Seo
         title="Expo Router Server Alpha - Expo Template"
-        description="A template baseline for Expo Router server rendering, middleware, data loaders, and API routes."
+        description="A template baseline for Expo Router API routes, middleware, and data loaders."
       />
 
       <View style={styles.hero}>
@@ -160,7 +160,7 @@ export default function ServerAlphaDemo() {
             Expo Router Server Alpha
           </SansSerifBoldText>
           <SansSerifText style={styles.subtitle}>
-            SSR, API routes, data loaders, and middleware are enabled for new projects.
+            API routes, data loaders, and middleware are enabled for new projects.
           </SansSerifText>
         </View>
       </View>

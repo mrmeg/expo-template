@@ -28,23 +28,27 @@ const EXAMPLES: TemplateServerExample[] = [
     route: "/server-alpha",
     apiPath: "/api/template/examples",
     loaderPath: "/_expo/loaders/server-alpha",
-    pattern: "Route loader hydrates an SSR page, while an API route exposes the same catalog for client refreshes.",
-    useCase: "Landing pages, dashboards, account summaries, and content pages that should render useful data before hydration.",
+    pattern: "Route loader feeds the page its initial data, while an API route exposes the same catalog for client refreshes.",
+    useCase: "Landing pages, dashboards, account summaries, and content pages that should show useful data on first load.",
     codePointers: [
-      "app/(main)/(demos)/server-alpha.tsx",
+      "app/(main)/(demos)/server-alpha/index.tsx",
       "app/api/template/examples+api.ts",
       "server/api/template/examples.ts",
     ],
   },
   {
     id: "dynamic-loader",
-    label: "Dynamic Loader",
+    label: "Dynamic Route",
     route: "/server-alpha/dynamic-loader",
-    apiPath: null,
-    loaderPath: "/_expo/loaders/server-alpha/dynamic-loader",
-    pattern: "Dynamic route params flow into a typed loader and return JSON-serializable data for the page.",
+    apiPath: "/api/template/examples",
+    loaderPath: null,
+    pattern: "Route params drive a client fetch of the matching API route; a loader's payload is a build-time snapshot keyed by the route file, so it cannot answer a param'd request.",
     useCase: "Public profiles, docs articles, project detail pages, and shareable report pages.",
-    codePointers: ["app/(main)/(demos)/server-alpha/[example].tsx"],
+    codePointers: [
+      "app/(main)/(demos)/server-alpha/[example].tsx",
+      "client/features/server-alpha/ServerAlphaExampleScreen.tsx",
+      "app/api/template/examples+api.ts",
+    ],
   },
   {
     id: "api-route",
@@ -73,13 +77,6 @@ const EXAMPLES: TemplateServerExample[] = [
 
 export function listTemplateServerExamples(): TemplateServerExample[] {
   return EXAMPLES;
-}
-
-export function getTemplateServerExample(
-  id: string | string[] | null | undefined,
-): TemplateServerExample | null {
-  const normalizedId = Array.isArray(id) ? id[0] : id;
-  return EXAMPLES.find((example) => example.id === normalizedId) ?? null;
 }
 
 export function getTemplateServerCatalog(

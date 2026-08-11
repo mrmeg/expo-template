@@ -11,6 +11,12 @@
  * own `background` (they're screen sections, not floating widgets), so a
  * patterned stage would be entirely hidden. The bordered, clipped container is
  * what remains visible and it reads the same.
+ *
+ * Each stage is a whole page section rendered live, so — exactly as in the
+ * components gallery — client-side navigations mount them in per-frame batches
+ * (`useProgressivePreviewCount`) behind a `Skeleton`. A direct load mounts all
+ * six in one pass, so nothing streams into a tree that has to match the
+ * prerendered HTML shell.
  */
 
 import React, { useMemo, useState } from "react";
@@ -18,6 +24,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native"
 import { Link } from "expo-router";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
+import { Skeleton } from "@mrmeg/expo-ui/components/Skeleton";
 import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { STAGGER_DELAY, useTheme } from "@mrmeg/expo-ui/hooks";
@@ -44,6 +51,10 @@ import {
   type BlockCategory,
   type BlockEntry,
 } from "@/client/showcase/registry";
+import {
+  BLOCK_STAGE_SCHEDULE,
+  useProgressivePreviewCount,
+} from "@/client/showcase/useProgressivePreviewCount";
 
 export default function BlocksGalleryScreen() {
   const { theme } = useTheme();
@@ -63,6 +74,7 @@ export default function BlocksGalleryScreen() {
     [counts],
   );
   const blocks = useMemo(() => filterBlocks(category), [category]);
+  const liveStages = useProgressivePreviewCount(blocks.length, BLOCK_STAGE_SCHEDULE);
 
   return (
     <>
@@ -109,7 +121,7 @@ export default function BlocksGalleryScreen() {
               type="fadeSlideUp"
               delay={STAGGER_DELAY * (index + 2)}
             >
-              <BlockCard entry={entry} styles={styles} />
+              <BlockCard entry={entry} styles={styles} live={index < liveStages} />
             </AnimatedView>
           ))
         )}
@@ -124,8 +136,25 @@ export default function BlocksGalleryScreen() {
 
 type BlocksStyles = ReturnType<typeof createStyles>;
 
-function BlockCard({ entry, styles }: { entry: BlockEntry; styles: BlocksStyles }) {
-  const stage = renderBlockStage(entry.id);
+/**
+ * One block card. Header and recipe strip always render — a card whose stage
+ * hasn't been scheduled yet still names its block and links its recipe, so the
+ * gallery is navigable before the last stage mounts.
+ */
+function BlockCard({
+  entry,
+  styles,
+  live,
+}: {
+  entry: BlockEntry;
+  styles: BlocksStyles;
+  /** Whether this stage's turn in the mount schedule has come up yet. */
+  live: boolean;
+}) {
+  // Memoized so an already-mounted stage keeps its element identity across the
+  // re-render each streamed batch causes; otherwise frame N re-renders every
+  // stage from frames 1..N-1 and the per-frame budget stops meaning anything.
+  const stage = useMemo(() => (live ? renderBlockStage(entry.id) : null), [live, entry.id]);
 
   return (
     <View style={styles.block} testID={`block-card-${entry.id}`}>
@@ -139,10 +168,17 @@ function BlockCard({ entry, styles }: { entry: BlockEntry; styles: BlocksStyles 
       </View>
 
       <View style={styles.stage}>
-        {stage ?? (
-          <SansSerifText style={styles.stageMissing}>
-            {entry.description}
-          </SansSerifText>
+        {live ? (
+          stage ?? (
+            <SansSerifText style={styles.stageMissing}>
+              {entry.description}
+            </SansSerifText>
+          )
+        ) : (
+          // testID on the wrapper: `Skeleton` renders only its documented props.
+          <View style={styles.stageSkeleton} testID={`block-card-skeleton-${entry.id}`}>
+            <Skeleton width="100%" height={140} />
+          </View>
         )}
       </View>
 
@@ -268,6 +304,11 @@ const createStyles = (theme: Theme) =>
       padding: spacing.lg,
       textAlign: "center",
       color: theme.colors.mutedForeground,
+    },
+    // Placeholder for a stage that hasn't been scheduled yet. Roughly the height
+    // a real stage occupies, so the scroll position doesn't lurch as they land.
+    stageSkeleton: {
+      padding: spacing.lg,
     },
     // `.recipe`
     recipe: {

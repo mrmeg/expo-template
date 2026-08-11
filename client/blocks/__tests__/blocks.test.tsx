@@ -13,10 +13,10 @@
  * "renders without crashing" alone would pass on a block that dropped its
  * `onPress` wiring.
  *
- * Not covered here: the actual SSR head snapshot. Jest doesn't model the RNW
- * server sheet, so the module-scope style rule (docs/ssr-hydration.md §7) is
+ * Not covered here: the stylesheet snapshot baked into the exported HTML. Jest
+ * doesn't model the RNW server sheet, so the module-scope style rule is
  * enforced by the source assertions at the bottom of this file plus a manual
- * check against a real server render.
+ * check against a real `expo export` shell.
  */
 
 import * as fs from "node:fs";
@@ -24,6 +24,7 @@ import * as path from "node:path";
 
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import type { TestInstance } from "test-renderer";
 import { useThemeStore } from "@mrmeg/expo-ui/state";
 
 import { CtaBannerBlock } from "../cta-banner/Block";
@@ -269,7 +270,59 @@ describe("SignInFormBlock", () => {
     expect(screen.getByText("Sign in")).toBeTruthy();
     expect(screen.queryByText("Continue with Apple")).toBeNull();
   });
+
+  it("gives every label and input its own id, so no two elements collide", async () => {
+    // The `Label` + `TextInput` pairing needs two DISTINCT ids: `nativeID` names
+    // the label, `htmlFor` points at the input's `nativeID`. Reusing one value
+    // for both — the pattern this block originally shipped — renders two
+    // elements with the same id on web and associates nothing.
+    await render(<SignInFormBlock />);
+
+    const ids = collectElementIds(screen.root);
+    expect(ids.length).toBeGreaterThan(0);
+    expect([...new Set(ids)]).toEqual(ids);
+  });
+
+  it("points each label's htmlFor at its own input, not at itself", async () => {
+    await render(<SignInFormBlock />);
+
+    for (const field of ["email", "password"] as const) {
+      const input = screen.getByTestId(`block-sign-in-${field}`);
+      const inputId = input.props.nativeID as string | undefined;
+      expect(inputId).toBeTruthy();
+
+      const label = screen.getByText(field === "email" ? "Email" : "Password");
+      // The label's own id is on its pressable wrapper, above the text node.
+      const labelId = findAncestorId(label);
+      expect(labelId).toBeTruthy();
+      expect(labelId).not.toBe(inputId);
+    }
+  });
 });
+
+/** Every `nativeID`/`id` present on a host element in the rendered tree. */
+function collectElementIds(node: TestInstance | null): string[] {
+  const ids: string[] = [];
+  const walk = (instance: TestInstance | string) => {
+    if (typeof instance === "string") return;
+    const props = instance.props as { nativeID?: string; id?: string };
+    if (props.nativeID) ids.push(props.nativeID);
+    if (props.id) ids.push(props.id);
+    for (const child of instance.children) walk(child);
+  };
+  if (node) walk(node);
+  return ids;
+}
+
+/** Nearest `nativeID`/`id` at or above `node`. */
+function findAncestorId(node: TestInstance | null): string | undefined {
+  for (let current = node; current; current = current.parent) {
+    const props = current.props as { nativeID?: string; id?: string };
+    if (props.nativeID) return props.nativeID;
+    if (props.id) return props.id;
+  }
+  return undefined;
+}
 
 // ---------------------------------------------------------------------------
 // Source-level invariants — the SSR and copy-paste contract
@@ -291,15 +344,17 @@ describe("every block's source keeps the SSR + portability contract", () => {
   }));
 
   it.each(sources)("$id registers themed styles at module scope", ({ code }) => {
-    // docs/ssr-hydration.md §7: styles created during render miss the head
-    // snapshot and paint unstyled on the first SSR request after a cold start.
+    // Styles created during render miss the stylesheet snapshot baked into the
+    // exported HTML, so the shell paints unstyled until the client re-inserts
+    // the rules.
     expect(code).toContain("createThemedStyles(createStyles)");
     expect(code).not.toMatch(/useMemo\(\s*\(\)\s*=>\s*createStyles/);
   });
 
   it.each(sources)("$id branches on useDimensions, never useWindowDimensions", ({ code }) => {
-    // §4: raw useWindowDimensions has no SSR-seeded value, so server and client
-    // first render disagree on the breakpoint.
+    // Raw useWindowDimensions has no seeded value during the export-time
+    // prerender, so the exported HTML shell and the client's first render
+    // disagree on the breakpoint.
     expect(code).not.toContain("useWindowDimensions");
   });
 

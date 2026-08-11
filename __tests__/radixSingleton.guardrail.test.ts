@@ -1,16 +1,14 @@
 /**
- * Radix dependency-graph guardrails for `(main)`-route SSR.
+ * Radix dependency-graph guardrails for the `(main)` route tree.
  *
  * Why this file exists
  * -------------------
  * `app/(main)/(tabs)/_layout.tsx` renders `NativeTabs`, whose web
  * implementation (`expo-router/build/native-tabs/NativeTabsView.web.js`) is
  * built on `@radix-ui/react-tabs`. Because `MainLayout` sets
- * `initialRouteName: "(tabs)"`, that Radix tree renders during SSR of *every*
- * `(main)` route — including all `(demos)/*`. And because
- * `@expo/router-server`'s streaming renderer only `console.error`s an
- * `onError` (`renderStreamingContent.js`), a render-time throw there produces a
- * blank/truncated **200**, not a 500. A silent blank page is the failure mode.
+ * `initialRouteName: "(tabs)"`, that Radix tree renders on *every* `(main)`
+ * route — including all `(demos)/*` — both in the browser and in Node when
+ * `expo export` prerenders each route's HTML shell.
  *
  * The classic way to make a Radix tree throw is a duplicated Radix module:
  * two copies of a context provider means the consumer reads the *other* copy's
@@ -19,15 +17,8 @@
  *
  * What was actually found
  * ----------------------
- * A blank SSR body on `/screen-faq` was observed once during earlier work, but
- * that session had a corrupted half-install. Re-checked against a clean install
- * and a real production server (`bun run build && bun run start`), the blank
- * body does **not** reproduce: `/`, `/screen-faq`, `/settings`, `/profile`, and
- * `/media` all return real route markup, warm and cold, with zero
- * `SSR streaming render error:` lines.
- *
- * The browser pass did reproduce a *different*, real crash from the same
- * duplicate-module family: clicking the showcase **AlertDialog** trigger threw
+ * A browser pass reproduced a real crash from the duplicate-module family:
+ * clicking the showcase **AlertDialog** trigger threw
  * `React.Children.only expected to receive a single React element child` and
  * tripped the error boundary. Mechanism, confirmed by loading the copies side
  * by side:
@@ -49,12 +40,12 @@
  * one `SLOTTABLE_IDENTIFIER`.
  *
  * Note `overrides` is the right lever, not Metro's `dedupePackages`
- * (`metro.config.js`): that rewrites only the **Metro** bundle, while SSR here
- * runs the exported server bundle. `overrides` reaches both.
+ * (`metro.config.js`): that rewrites only what Metro bundles, while the
+ * export-time prerender runs the exported server bundle. `overrides` reaches
+ * both.
  *
  * Reading the lockfile is deliberate — it is the source of truth Bun installs
- * from, and this stays a cheap source check in the style of
- * `ssrHydration.guardrail.test.ts` (no heavy mocks, no install).
+ * from, so this stays a cheap source check (no heavy mocks, no install).
  */
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -86,10 +77,11 @@ function versionsOf(pkg: string): string[] {
   return [...new Set(all)].sort();
 }
 
-describe("Radix singleton guardrails for (main)-route SSR", () => {
-  // The modules the SSR-rendered Radix Tabs tree actually goes through. Each
-  // carries React context or a collection registry, so a second copy means a
-  // consumer reads an empty context and the (main) SSR body goes blank.
+describe("Radix singleton guardrails for the (main) route tree", () => {
+  // The modules the Radix Tabs tree actually goes through. Each carries React
+  // context or a collection registry, so a second copy means a consumer reads
+  // an empty context and the (main) tree throws — in the browser, and in Node
+  // while the route's HTML shell is being prerendered.
   describe.each([
     "@radix-ui/react-tabs",
     "@radix-ui/react-direction",
@@ -98,8 +90,8 @@ describe("Radix singleton guardrails for (main)-route SSR", () => {
     "@radix-ui/react-collection",
     "@radix-ui/react-presence",
     "@radix-ui/react-id",
-  ])("%s renders in the SSR Tabs tree", (pkg) => {
-    it("resolves to exactly one version (a split can blank (main) SSR)", () => {
+  ])("%s renders in the Tabs tree", (pkg) => {
+    it("resolves to exactly one version (a split can blank every (main) route)", () => {
       expect(versionsOf(pkg)).toHaveLength(1);
     });
 
@@ -127,7 +119,8 @@ describe("Radix singleton guardrails for (main)-route SSR", () => {
   });
 
   // The override is what holds the dedupe: Metro's dedupePackages only rewrites
-  // the Metro bundle, and SSR runs the exported server bundle.
+  // what Metro bundles, and the export-time prerender runs the exported server
+  // bundle.
   describe("package.json declares the overrides that keep them unified", () => {
     const pkgJson = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf8")) as {
       overrides?: Record<string, string>;

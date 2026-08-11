@@ -11,43 +11,16 @@ import { Platform } from "react-native";
 
 import { useThemeStore } from "../state/themeStore";
 
-// Eager, module-scope load that primes the Feather font on the *client* before
-// first render: on web it synchronously injects the @font-face rule, which is
-// what makes the client's `Font.isLoaded("feather")` check read true during
-// hydration; on native it just starts the fetch ahead of the effect below
-// (which then no-ops for the already-loaded font).
+// Eager, module-scope load that primes the Feather font before first render:
+// on web it synchronously injects the @font-face rule, so icons have their
+// glyphs on the first paint; on native it just starts the fetch ahead of the
+// effect below (which then no-ops for the already-loaded font).
 //
-// Deliberately guarded off server-web. expo-font's SSR store is per-request
-// AsyncLocalStorage, and Metro's inlineRequires defers this module's evaluation
-// until it is first required during a render — so on the server this line only
-// ever populated the store of whichever request happened to warm the module
-// cache. Requests 2+ then shipped HTML with no @font-face and empty icons while
-// the client rendered glyphs (React #418). Server registration happens
-// per-request in ensureIconFontRegistered() instead.
+// Guarded on `window` because web bundles are also evaluated in Node when
+// `expo export` renders the HTML shell, where there is no document to inject
+// into.
 if (typeof window !== "undefined") {
   void Font.loadAsync(Feather.font);
-}
-
-/**
- * Registers the Feather icon font in expo-font's per-request SSR store.
- *
- * Must be called from a **render body** on server-web (see `useResources`
- * below): expo-font enters an `AsyncLocalStorage` store per request, so a
- * module-scope registration lands in at most one request's store. Registering
- * during render means every request emits the `@font-face` rule into
- * `<style id="expo-generated-fonts">` and server-rendered `<Icon>`s agree with
- * the client's first render.
- *
- * No-op on native and on client web (both already covered: native by the
- * effect below, client web by the module-scope call above).
- */
-export function ensureIconFontRegistered(): void {
-  if (Platform.OS !== "web" || typeof window !== "undefined") return;
-  if (Font.isLoaded("feather")) return; // per-request store; cheap
-  // Synchronous on server-web (expo-font routes to registerStaticFont). No
-  // `void`/try-catch: a throw here means we're outside a request scope, which
-  // must be loud.
-  Font.loadAsync(Feather.font);
 }
 
 interface LoadResourcesResult {
@@ -114,11 +87,6 @@ function ensureWebFontStylesheet(): Promise<void> {
  * un-download Inter. The Feather icon font always loads.
  */
 export const useResources = (): LoadResourcesResult => {
-  // Render-body (not effect) so server-web registers the icon font in *this*
-  // request's expo-font store — effects never run on the server and a
-  // module-scope call only reaches one request. See ensureIconFontRegistered.
-  ensureIconFontRegistered();
-
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 

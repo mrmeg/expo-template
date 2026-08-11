@@ -12,15 +12,12 @@ import { useStyles, useTheme } from "../useTheme";
 import { colors } from "../../constants/colors";
 import { useThemeStore } from "../../state/themeStore";
 import { ThemeColorScope } from "../../state/themeColorScope";
-import { SSR_THEME_SEED_DEFAULT, SsrThemeSeedContext, type SsrThemeSeed } from "../../state/ssrTheme";
 
 beforeEach(() => {
   useThemeStore.setState({
     userTheme: "system",
     systemTheme: "light",
-    // `hasLoadedTheme: true` is the post-mount steady state, which is what most
-    // of these tests are about. The SSR-seed block below flips it back to false
-    // to exercise the first-render path.
+    // The post-mount steady state, which is what these tests are about.
     hasLoadedTheme: true,
     colorOverrides: {},
   });
@@ -233,91 +230,53 @@ describe("useTheme", () => {
     });
   });
 
-  // The SSR seed is what makes a dark-mode visitor's first web paint dark. The
-  // store can't carry it — it's a module singleton shared by every concurrent
-  // SSR request — so the seed arrives via context and `hasLoadedTheme` decides
-  // which of the two wins. See docs/ssr-hydration.md §5.
-  describe("SSR theme seed", () => {
+  // Web is client-rendered: there is no per-request seed to reconcile with, so
+  // store state is the only input on every platform, loaded or not.
+  describe("store state is the only source", () => {
     const originalOS = Platform.OS;
 
     function setPlatform(os: string) {
       Object.defineProperty(Platform, "OS", { configurable: true, value: os });
     }
 
-    function wrapSeed(seed: SsrThemeSeed) {
-      function Wrapper({ children }: { children: React.ReactNode }) {
-        return <SsrThemeSeedContext.Provider value={seed}>{children}</SsrThemeSeedContext.Provider>;
-      }
-      return Wrapper;
-    }
-
     afterEach(() => {
       setPlatform(originalOS);
     });
 
-    it("renders the seeded scheme on web before persistence has loaded", async () => {
+    it("resolves from store state on web before persistence has loaded", async () => {
       setPlatform("web");
-      useThemeStore.setState({ hasLoadedTheme: false });
+      useThemeStore.setState({ userTheme: "dark", hasLoadedTheme: false });
 
-      const { result } = await renderHook(() => useTheme(), {
-        wrapper: wrapSeed({ userTheme: "dark", systemTheme: "light" }),
-      });
+      const { result } = await renderHook(() => useTheme());
 
       expect(result.current.scheme).toBe("dark");
       expect(result.current.theme).toBe(colors.dark);
       expect(result.current.currentTheme).toBe("dark");
     });
 
-    it("resolves a seeded system preference through the seeded system scheme", async () => {
+    it("boots light on web with nothing loaded yet (matches the exported shell)", async () => {
       setPlatform("web");
-      useThemeStore.setState({ hasLoadedTheme: false });
-
-      const { result } = await renderHook(() => useTheme(), {
-        wrapper: wrapSeed({ userTheme: "system", systemTheme: "dark" }),
-      });
-
-      expect(result.current.scheme).toBe("dark");
-      expect(result.current.currentTheme).toBe("system");
-    });
-
-    it("hands over to store state once the theme has loaded", async () => {
-      setPlatform("web");
-      useThemeStore.setState({ hasLoadedTheme: false });
-
-      const { result } = await renderHook(() => useTheme(), {
-        wrapper: wrapSeed({ userTheme: "dark", systemTheme: "dark" }),
-      });
-
-      expect(result.current.scheme).toBe("dark");
-
-      // syncThemeFromEnvironment()'s loadTheme() found "light" persisted.
-      await act(() => {
-        useThemeStore.setState({ userTheme: "light", hasLoadedTheme: true });
-      });
-
-      expect(result.current.scheme).toBe("light");
-      expect(result.current.theme).toBe(colors.light);
-    });
-
-    it("ignores the seed on native, where there is no SSR to agree with", async () => {
-      setPlatform("ios");
-      useThemeStore.setState({ hasLoadedTheme: false });
-
-      const { result } = await renderHook(() => useTheme(), {
-        wrapper: wrapSeed({ userTheme: "dark", systemTheme: "dark" }),
-      });
-
-      expect(result.current.scheme).toBe("light");
-    });
-
-    it("defaults to light with no provider mounted (unchanged legacy behavior)", async () => {
-      setPlatform("web");
-      useThemeStore.setState({ hasLoadedTheme: false });
+      useThemeStore.setState({ userTheme: "system", systemTheme: "light", hasLoadedTheme: false });
 
       const { result } = await renderHook(() => useTheme());
 
-      expect(SSR_THEME_SEED_DEFAULT).toEqual({ userTheme: "system", systemTheme: "light" });
       expect(result.current.scheme).toBe("light");
+    });
+
+    it("follows the store once persistence resolves", async () => {
+      setPlatform("web");
+      useThemeStore.setState({ userTheme: "system", systemTheme: "light", hasLoadedTheme: false });
+
+      const { result } = await renderHook(() => useTheme());
+      expect(result.current.scheme).toBe("light");
+
+      // syncThemeFromEnvironment()'s loadTheme() found "dark" persisted.
+      await act(() => {
+        useThemeStore.setState({ userTheme: "dark", hasLoadedTheme: true });
+      });
+
+      expect(result.current.scheme).toBe("dark");
+      expect(result.current.theme).toBe(colors.dark);
     });
   });
 

@@ -1,9 +1,9 @@
 ---
-status: ready
+status: done
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/53
 ---
 
 # Carousel: interactive dots or honest roles, index re-clamp, leaner scroll wiring

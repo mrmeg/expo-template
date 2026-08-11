@@ -839,10 +839,17 @@ function useShowcaseScreenContent() {
                 <Label nativeID="demo-lg" size="lg">Large label</Label>
               </View>
             </SubSection>
+            {/*
+              The associated pattern: `htmlFor` carries the INPUT's id (so web
+              gets a real <label for> and clicking the label focuses the field),
+              while `nativeID` stays the label's own id. Two distinct values —
+              putting the same id on both renders duplicate ids and associates
+              nothing.
+            */}
             <SubSection label="With Input">
               <View style={{ gap: spacing.xs }}>
-                <Label nativeID="demo-input" required>Display name</Label>
-                <TextInput placeholder="Enter your name" />
+                <Label nativeID="demo-input-label" htmlFor="demo-input" required>Display name</Label>
+                <TextInput nativeID="demo-input" placeholder="Enter your name" />
               </View>
             </SubSection>
           </Section>
