@@ -1528,15 +1528,18 @@ pinned Expo version in `package.json` before copying patterns.
 | Rate-limit buckets | `server/rateLimits.js` |
 | Request middleware | `app/+middleware.ts` |
 | Data loaders (demo feature) | `client/features/server-alpha/loaders.ts` |
-| Loader-backed routes | `app/(main)/(demos)/server-alpha/index.tsx`, `app/(main)/(demos)/server-alpha/[example].tsx` |
-| Loader-consuming screens | `client/features/server-alpha/ServerAlphaDemoScreen.tsx`, `ServerAlphaExampleScreen.tsx` |
+| Loader-backed route | `app/(main)/(demos)/server-alpha/index.tsx` |
+| Param'd route, API-fetched | `app/(main)/(demos)/server-alpha/[example].tsx` |
+| Demo screens | `client/features/server-alpha/ServerAlphaDemoScreen.tsx`, `ServerAlphaExampleScreen.tsx` |
 | API routes | `app/api/**/+api.ts` |
 | Shared API helpers (CORS, errors, auth) | `server/api/shared/` |
 
 The Server Alpha demo at route `/server-alpha` walks four live patterns:
-`loader-overview` (loaders fetch page data on the server), `dynamic-loader`
-(route params flow into typed loaders), `api-route` (handlers own parsing and
-mutations), and `middleware` (request-scoped headers without business logic).
+`loader-overview` (a static route's loader supplies its page data),
+`dynamic-loader` (a param'd route fetches the matching API route, because a
+loader cannot answer a param'd request — see Data Loaders), `api-route`
+(handlers own parsing and mutations), and `middleware` (request-scoped headers
+without business logic).
 
 ## Enable Server Output
 
@@ -1648,11 +1651,14 @@ a production build, loader output is as fresh as the last deploy, and
 `method: "STATIC"`). Anything that must be request-scoped or fresh belongs in
 an API route, which does run per request in production.
 
-**Dynamic routes.** The snapshot is keyed by the route's file path, so a
+**Static routes only.** The snapshot is keyed by the route's file path, so a
 route like `[example].tsx` is exported as `_expo/loaders/.../[example]` while
-the browser asks for `_expo/loaders/.../dynamic-loader`. Loaders on
-param'd routes therefore resolve in dev and 404 in a production build — give
-those routes an API route instead.
+the browser asks for `_expo/loaders/.../dynamic-loader`. A loader on a param'd
+route therefore resolves in dev and 404s in a production build. Give param'd
+routes an API route and fetch it from the screen — that is what the demo's
+`[example].tsx` does (no `loader` export;
+`client/features/server-alpha/ServerAlphaExampleScreen.tsx` reads
+`useLocalSearchParams()` and fetches `/api/template/examples`).
 
 Define loaders in a feature folder, typed with `LoaderFunction<T>`, returning
 JSON-serializable data. Dynamically import server modules inside the loader
@@ -1675,17 +1681,6 @@ export const serverAlphaLoader: LoaderFunction<TemplateServerCatalog> = async (r
 };
 ```
 
-Dynamic-route loaders receive params as the second argument:
-
-```ts
-export const serverAlphaExampleLoader: LoaderFunction<ExampleLoaderData> = async (
-  request,
-  params,
-) => {
-  // params.example is string | string[] | undefined for app/.../[example].tsx
-};
-```
-
 Re-export from the route file under the name `loader`, next to the screen
 (`app/(main)/(demos)/server-alpha/index.tsx`):
 
@@ -1704,6 +1699,7 @@ const catalog = useLoaderData<typeof serverAlphaLoader>();
 
 Loader rules:
 
+- Loaders belong on static routes. Param'd routes fetch an API route.
 - Loaders are read-only. Mutations belong in API route handlers.
 - Wrap `setResponseHeaders` in try/catch; the export pass and unit tests run
   loaders without an active request scope.
@@ -1762,9 +1758,10 @@ Use this order when adding the server stack to another Expo Router project:
    CORS headers on every response.
 5. Add `app/+middleware.ts` with an explicit matcher, limited to headers and
    observability.
-6. Add loaders per feature folder, re-export as `loader` from route files,
-   consume with `useLoaderData<typeof loaderFn>()`, and pair each with an API
-   route for client refetch.
+6. Add loaders per feature folder for **static** routes, re-export as `loader`
+   from the route file, consume with `useLoaderData<typeof loaderFn>()`, and
+   pair each with an API route for client refetch. Param'd routes read their
+   params and fetch that API route.
 
 ## Validation
 
