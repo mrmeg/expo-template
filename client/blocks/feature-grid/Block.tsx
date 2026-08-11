@@ -34,7 +34,7 @@ const DEFAULT_ITEMS: FeatureGridItem[] = [
   {
     icon: "smartphone",
     title: "Native + web",
-    description: "One source renders to iOS, Android, and SSR-safe web output.",
+    description: "One source renders to iOS, Android, and the web.",
   },
   {
     icon: "list",

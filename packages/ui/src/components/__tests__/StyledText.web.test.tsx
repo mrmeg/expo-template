@@ -3,7 +3,8 @@
  *
  * `./forceWebPlatform` must be the first import: `constants/fonts.ts`
  * resolves its `fontFamilies` export once at module load (see the
- * SSR-safety comment there), so `Platform.OS` must already be "web" before
+ * export-time platform-keying comment there), so `Platform.OS` must already
+ * be "web" before
  * `StyledText` (and transitively `constants/fonts`) is imported. See
  * forceWebPlatform.ts for why a plain `Platform.OS = "web"` statement later
  * in this file — after those imports resolve — would be too late for

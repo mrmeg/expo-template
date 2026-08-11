@@ -7,7 +7,8 @@
  * order relative to each other. Importing this module first (before
  * `StyledText`/`constants/fonts`) means the `Platform.OS` mutation below
  * runs before `constants/fonts.ts` resolves its module-load-time
- * `fontFamilies` snapshot (see the SSR-safety comment there) — a plain
+ * `fontFamilies` snapshot (see the export-time platform-keying comment
+ * there) — a plain
  * `Platform.OS = "web"` statement inside the test body runs too late for
  * that module, even though it's early enough for StyledText's own render-time
  * `Platform.OS` check.

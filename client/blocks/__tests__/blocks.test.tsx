@@ -325,7 +325,7 @@ function findAncestorId(node: TestInstance | null): string | undefined {
 }
 
 // ---------------------------------------------------------------------------
-// Source-level invariants — the SSR and copy-paste contract
+// Source-level invariants — the prerender and copy-paste contract
 // ---------------------------------------------------------------------------
 
 /**
@@ -337,7 +337,7 @@ function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
 }
 
-describe("every block's source keeps the SSR + portability contract", () => {
+describe("every block's source keeps the prerender + portability contract", () => {
   const sources = BLOCKS.map((block) => ({
     id: block.id,
     code: stripComments(fs.readFileSync(path.join(BLOCKS_DIR, block.id, "Block.tsx"), "utf8")),
