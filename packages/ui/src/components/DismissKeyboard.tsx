@@ -12,7 +12,7 @@ import {
   KeyboardController,
   useKeyboardContext,
   useKeyboardState,
-} from "react-native-keyboard-controller";
+} from "./keyboardController";
 import { KeyboardAvoidingView, useKeyboardAvoidance } from "./KeyboardAvoidingView";
 import { isTouchInsideKeyboardFocusedInput } from "./keyboardFocusRegistry";
 
