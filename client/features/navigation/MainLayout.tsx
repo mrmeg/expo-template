@@ -6,13 +6,10 @@ export default function MainLayout() {
   const { theme } = useTheme();
   // The stack Header sizes its title container as `layout.width - <buttons>`,
   // and `layout` defaults to expo-router's frame — a MODULE-SCOPE constant
-  // pinned to {width: 0, height: 0} on web (SafeAreaProviderCompat), which is
-  // why SSR shipped `max-width:-68px`. Seeding that module constant per request
-  // would leak one request's width into another's layout, so we pass `layout`
-  // explicitly instead: render-scoped, and identical on the server and the
-  // browser's first render because useDimensions reads the shared cookie/UA
-  // signal (see client/features/app/ssrViewportMetrics.ts). After mount it
-  // tracks the real viewport, so resize keeps working.
+  // pinned to {width: 0, height: 0} on web (SafeAreaProviderCompat), which
+  // ships a `max-width:-68px` title container. Passing `layout` explicitly
+  // keeps it render-scoped: useDimensions starts from the default viewport and
+  // tracks the real one after mount, so resize keeps working.
   const { width, height } = useDimensions();
 
   return (

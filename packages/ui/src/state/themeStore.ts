@@ -11,25 +11,15 @@ export type ThemePreference = "system" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
 
 /**
- * Cookie name the web build mirrors the persisted preference into, so a
- * server-rendered host can seed its first render with the visitor's real
- * theme instead of shipping a light tree that recolors after hydration.
- *
- * Same name as the `localStorage` key on purpose: one string to grep, and the
- * blocking color-scheme script in a host's `+html.tsx` already reads it.
- * `localStorage` stays the source of truth; the cookie is a render hint only.
+ * Key the persisted preference lives under (`localStorage` on web,
+ * `AsyncStorage` on native). Exported so a host app's pre-boot script — e.g.
+ * the blocking color-scheme script in `app/+html.tsx` — can read the same
+ * value the store does.
  */
-export const THEME_COOKIE_NAME = THEME_KEY;
-const THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
+export const THEME_STORAGE_KEY = THEME_KEY;
 
 function isThemePreference(value: string): value is ThemePreference {
   return value === "system" || value === "light" || value === "dark";
-}
-
-function writeThemeCookie(theme: ThemePreference): void {
-  if (Platform.OS !== "web" || typeof document === "undefined") return;
-  document.cookie =
-    `${THEME_COOKIE_NAME}=${theme}; path=/; max-age=${THEME_COOKIE_MAX_AGE}; SameSite=Lax`;
 }
 
 /**
@@ -78,11 +68,10 @@ export type ThemeStore = {
   systemTheme: ResolvedTheme;
   /**
    * True once the persisted preference has actually been read (or explicitly
-   * set by the user). Until then, a web render must not trust `userTheme` /
-   * `systemTheme` — they still hold the SSR-safe boot defaults, and `useTheme`
-   * uses `SsrThemeSeedContext` (cookie-derived, identical on server and
-   * client) instead. Mirrors `hasLoadedOnboarding` in the host app's
-   * onboarding store.
+   * set by the user). Until then `userTheme` / `systemTheme` still hold the
+   * boot defaults ("system" / light), so a host app that needs to hold a
+   * paint until the real preference is known can wait on this. Mirrors
+   * `hasLoadedOnboarding` in the host app's onboarding store.
    */
   hasLoadedTheme: boolean;
   /**
@@ -145,14 +134,13 @@ function getSystemTheme(): ResolvedTheme {
 
 export const useThemeStore = create<ThemeStore>((set) => ({
   userTheme: "system",
-  // Always start with "light" so SSR and the first client render agree.
-  // Real values are populated by `syncThemeFromEnvironment()` after mount;
-  // until then a web render reads `SsrThemeSeedContext` (cookie-derived) so
-  // the server and the browser paint the visitor's actual theme.
+  // Always start with "light" so a web app's first render matches the HTML
+  // shell that was rendered in Node at export time (no `window`, no storage).
+  // Real values arrive from `syncThemeFromEnvironment()` after mount; a host
+  // app's pre-boot script paints the correct background in the meantime.
   systemTheme: "light",
 
-  // False until persistence has been read. `useTheme` uses this to decide
-  // whether to trust store state or the per-request SSR seed.
+  // False until persistence has been read.
   hasLoadedTheme: false,
 
   // No overrides by default: the package renders with its built-in palette
@@ -194,9 +182,6 @@ export const useThemeStore = create<ThemeStore>((set) => ({
     if (typeof window !== "undefined" && window.localStorage) {
       localStorage.setItem(THEME_KEY, theme);
     }
-    // Dual-write: localStorage for the client, cookie for the next SSR render
-    // (so the server paints the right theme on the visitor's next request).
-    writeThemeCookie(theme);
   },
 
   setSystemTheme: (theme) => {
@@ -220,14 +205,6 @@ export const useThemeStore = create<ThemeStore>((set) => ({
       const saved = localStorage.getItem(THEME_KEY);
       if (saved && isThemePreference(saved)) {
         set({ userTheme: saved });
-        // Backfill / repair the cookie so a visitor who set their preference
-        // before this mechanism existed (or who cleared cookies) gets a
-        // correctly themed server render on their very next request.
-        writeThemeCookie(saved);
-      } else {
-        // Nothing persisted: mirror the implicit "system" default so the
-        // server stops guessing from a stale cookie.
-        writeThemeCookie("system");
       }
     }
     set({ hasLoadedTheme: true });
@@ -287,19 +264,21 @@ export function startSystemThemeListener(): () => void {
 // call multiple times — `startSystemThemeListener` is idempotent — and
 // returns the unsubscribe so it can be used directly inside `useEffect`.
 //
-// The listener starts BEFORE `loadTheme()` on purpose: `loadTheme` is what
-// flips `hasLoadedTheme`, which is the moment web renders stop trusting the
-// SSR seed and start trusting store state. Reading the real OS scheme first
-// means a `system` user never sees a frame of the boot-default "light".
+// The listener starts BEFORE `loadTheme()` on purpose: reading the real OS
+// scheme first means a `system` user resolves straight from the boot-default
+// "light" to their actual scheme in one commit.
 export function syncThemeFromEnvironment(): () => void {
   const stop = startSystemThemeListener();
   useThemeStore.getState().loadTheme();
   return stop;
 }
 
-// Native has no SSR mismatch concern, so keep the historical auto-init
-// behavior there. On web the host app must call `syncThemeFromEnvironment()`
-// from a top-level `useEffect` to avoid hydration mismatches.
+// Native can read persistence at module load, so keep the historical
+// auto-init behavior there. On web the host app must call
+// `syncThemeFromEnvironment()` from a top-level `useEffect`: web bundles are
+// also evaluated in Node when `expo export` renders the HTML shell, where
+// `window`/`localStorage` don't exist, and reading them during the browser's
+// first render would disagree with the markup being hydrated.
 if (Platform.OS !== "web") {
   useThemeStore.getState().loadTheme();
   startSystemThemeListener();

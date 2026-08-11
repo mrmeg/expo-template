@@ -33,10 +33,11 @@ const WEB_FONT_STACK =
   "system-ui, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\"";
 
 // IMPORTANT: do NOT key these on `typeof document` / `typeof navigator`.
-// On a web bundle, Node SSR sees `undefined` for both and the client sees them,
-// producing different snapshot values at module load -> hydration mismatch on
-// every <StyledText>. `Platform.OS` (from react-native-web) returns "web" in
-// both environments, so the value is stable.
+// A web bundle is also evaluated in Node when a host app's HTML shell is
+// rendered at export time, where both are `undefined` while the browser sees
+// them — that produces different module-load snapshots and a hydration
+// mismatch on every <StyledText>. `Platform.OS` (from react-native-web)
+// returns "web" in both environments, so the value is stable.
 const isWebRuntime = Platform.OS === "web";
 const isReactNativeRuntime = Platform.OS !== "web";
 
