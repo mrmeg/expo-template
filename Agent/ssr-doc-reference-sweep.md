@@ -1,9 +1,9 @@
 ---
-status: ready
+status: done
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/57
 ---
 
 # Sweep stale `docs/ssr-hydration.md` references after SSR removal
