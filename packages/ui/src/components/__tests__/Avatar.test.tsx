@@ -1,11 +1,14 @@
 /**
  * Avatar / AvatarGroup tests.
  *
- * Covers the three things that are easy to get wrong and impossible to see
- * from a snapshot: initials derivation (including unicode, where a naive
- * `charAt(0)` splits an astral pair or drops a combining mark), the
- * image -> initials -> icon fallback order (and the runtime downgrade when an
- * image fails to load), and AvatarGroup's `max` / `+N` overflow arithmetic.
+ * Covers the things that are easy to get wrong and impossible to see from a
+ * snapshot: initials derivation (including unicode, where a naive `charAt(0)`
+ * splits an astral pair or drops a combining mark), the
+ * image -> initials -> icon fallback order (both while an image is in flight
+ * and after it fails), which source shapes are actually attempted (a valid
+ * non-uri source used to be silently dropped), and AvatarGroup's `max` / `+N`
+ * arithmetic plus its accessibility structure (members must stay
+ * individually announceable inside the group).
  *
  * Unicode literals are written as escapes so the assertions can't drift with
  * however an editor happens to normalize this file.
@@ -14,7 +17,7 @@
 import "@/test/mockTheme";
 
 import React from "react";
-import { StyleSheet, type ViewStyle } from "react-native";
+import { StyleSheet, View, type ViewStyle } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { TestInstance } from "test-renderer";
 
@@ -89,7 +92,72 @@ describe("Avatar", () => {
     await render(<Avatar source={REMOTE} name="Ada Lovelace" />);
 
     expect(images()).toHaveLength(1);
+  });
+
+  it("shows the initials until the image reports a successful load", async () => {
+    await render(<Avatar source={REMOTE} name="Ada Lovelace" />);
+
+    // A slow image must not leave a bare muted tile.
+    expect(screen.getByText("AL", HIDDEN)).toBeTruthy();
+
+    await fireEvent(images()[0], "load");
+
+    expect(images()).toHaveLength(1);
     expect(screen.queryByText("AL", HIDDEN)).toBeNull();
+  });
+
+  it("shows the icon while a nameless avatar's image is loading", async () => {
+    await render(<Avatar source={REMOTE} icon="camera" />);
+
+    expect(screen.getByTestId("icon-Feather", HIDDEN).props.name).toBe("camera");
+
+    await fireEvent(images()[0], "load");
+
+    expect(screen.queryByTestId("icon-Feather", HIDDEN)).toBeNull();
+  });
+
+  it("returns to the fallback when the source changes after a load", async () => {
+    await render(<Avatar source={REMOTE} name="Ada Lovelace" />);
+    await fireEvent(images()[0], "load");
+    expect(screen.queryByText("AL", HIDDEN)).toBeNull();
+
+    await screen.rerender(
+      <Avatar source={{ uri: "https://example.com/ada-2.png" }} name="Ada Lovelace" />,
+    );
+
+    expect(screen.getByText("AL", HIDDEN)).toBeTruthy();
+  });
+
+  it("rounds the image itself, not only the clipping wrapper", async () => {
+    // Android leaves square corners on a child image in several cases where
+    // the wrapper's overflow: "hidden" should have clipped it.
+    await render(
+      <View>
+        <Avatar source={REMOTE} name="Circle" />
+        <Avatar source={REMOTE} name="Square" shape="square" />
+      </View>,
+    );
+
+    const [circle, square] = images();
+    expect(numericStyle(circle, "borderRadius")).toBe(spacing.radiusFull);
+    const squared = numericStyle(square, "borderRadius");
+    expect(squared).toBeGreaterThan(0);
+    expect(squared).toBeLessThan(spacing.radiusFull);
+  });
+
+  it("sizes the overlaid image to the tile, not the asset", async () => {
+    // The image is absolutely positioned over the fallback, and the explicit
+    // 100% size must survive: react-native-web ignores the inset box for an
+    // Image's size and falls back to the asset's natural pixels — a 1024px
+    // photo blown out of (and clipped away by) a 48px tile.
+    await render(<Avatar source={REMOTE} name="Ada Lovelace" />);
+
+    const [image] = images();
+    expect(StyleSheet.flatten(image.props.style)).toMatchObject({
+      position: "absolute",
+      width: "100%",
+      height: "100%",
+    });
   });
 
   it("falls back to initials when the image fails to load", async () => {
@@ -123,6 +191,48 @@ describe("Avatar", () => {
 
     expect(images()).toHaveLength(0);
     expect(screen.getByText("AL", HIDDEN)).toBeTruthy();
+  });
+
+  it("attempts a non-uri object source instead of degrading to initials", async () => {
+    // An iOS asset-bundle source carries no `uri`. It is a valid source, so the
+    // avatar must hand it to Image rather than treat it as "no image".
+    await render(<Avatar source={{ bundle: "Avatars" }} name="Ada Lovelace" />);
+
+    expect(images()).toHaveLength(1);
+  });
+
+  it("attempts a require()'d asset source", async () => {
+    await render(<Avatar source={42} name="Ada Lovelace" />);
+
+    expect(images()).toHaveLength(1);
+  });
+
+  it("attempts a multi-resolution array source", async () => {
+    await render(
+      <Avatar
+        source={[
+          { uri: REMOTE.uri, width: 40, height: 40 },
+          { uri: "https://example.com/ada@2x.png", width: 80, height: 80 },
+        ]}
+        name="Ada Lovelace"
+      />,
+    );
+
+    expect(images()).toHaveLength(1);
+  });
+
+  it("keeps a failure per non-uri source and clears it when that source changes", async () => {
+    await render(<Avatar source={{ bundle: "Avatars" }} name="Ada Lovelace" />);
+    await fireEvent(images()[0], "error");
+    expect(images()).toHaveLength(0);
+
+    // Same content, new object identity: the failure must survive, or the
+    // avatar loops image -> error -> image.
+    await screen.rerender(<Avatar source={{ bundle: "Avatars" }} name="Ada Lovelace" />);
+    expect(images()).toHaveLength(0);
+
+    await screen.rerender(<Avatar source={{ bundle: "Portraits" }} name="Ada Lovelace" />);
+    expect(images()).toHaveLength(1);
   });
 
   it("renders initials when there is no source", async () => {
@@ -299,6 +409,49 @@ describe("AvatarGroup", () => {
     expect(zIndexes).toEqual([3, 2, 1]);
   });
 
+  it("renders only the overflow tile when max is 0", async () => {
+    await render(
+      <AvatarGroup max={0}>
+        <Avatar name="Ada Lovelace" />
+        <Avatar name="Grace Hopper" />
+      </AvatarGroup>,
+    );
+
+    expect(screen.queryByText("AL", HIDDEN)).toBeNull();
+    expect(screen.queryByText("GH", HIDDEN)).toBeNull();
+    expect(screen.getByText("+2", HIDDEN)).toBeTruthy();
+  });
+
+  it("treats a negative max as 0 instead of rendering everything", async () => {
+    // `slice(0, -1)` would drop only the last child; `slice(0, -3)` would
+    // return every child, silently disabling the clamp.
+    await render(
+      <AvatarGroup max={-3}>
+        <Avatar name="Ada Lovelace" />
+        <Avatar name="Grace Hopper" />
+      </AvatarGroup>,
+    );
+
+    expect(screen.queryByText("AL", HIDDEN)).toBeNull();
+    expect(screen.queryByText("GH", HIDDEN)).toBeNull();
+    expect(screen.getByText("+2", HIDDEN)).toBeTruthy();
+  });
+
+  it("floors a fractional max", async () => {
+    await render(
+      <AvatarGroup max={2.7}>
+        <Avatar name="Ada Lovelace" />
+        <Avatar name="Grace Hopper" />
+        <Avatar name="Katherine Johnson" />
+      </AvatarGroup>,
+    );
+
+    expect(screen.getByText("AL", HIDDEN)).toBeTruthy();
+    expect(screen.getByText("GH", HIDDEN)).toBeTruthy();
+    expect(screen.queryByText("KJ", HIDDEN)).toBeNull();
+    expect(screen.getByText("+1", HIDDEN)).toBeTruthy();
+  });
+
   it("announces the total count, including the hidden overflow", async () => {
     await render(
       <AvatarGroup max={2}>
@@ -309,7 +462,7 @@ describe("AvatarGroup", () => {
       </AvatarGroup>,
     );
 
-    expect(screen.getByLabelText("4 avatars")).toBeTruthy();
+    expect(screen.getByText("4 avatars")).toBeTruthy();
   });
 
   it("lets an explicit accessibilityLabel replace the count", async () => {
@@ -319,7 +472,55 @@ describe("AvatarGroup", () => {
       </AvatarGroup>,
     );
 
-    expect(screen.getByLabelText("Project collaborators")).toBeTruthy();
+    expect(screen.getByText("Project collaborators")).toBeTruthy();
+    expect(screen.queryByText("1 avatars")).toBeNull();
+  });
+
+  it("keeps every member individually announceable inside the group", async () => {
+    await render(
+      <AvatarGroup max={2}>
+        <Avatar name="Ada Lovelace" />
+        <Avatar name="Grace Hopper" />
+        <Avatar name="Katherine Johnson" />
+      </AvatarGroup>,
+    );
+
+    // An `accessible` container with role="image" swallowed these on iOS and
+    // made them unreachable behind a leaf `img` role on the web.
+    expect(screen.getByRole("img", { name: "Ada Lovelace" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Grace Hopper" })).toBeTruthy();
+    expect(screen.getAllByRole("img")).toHaveLength(2);
+  });
+
+  it("does not give the group container its own accessibility semantics", async () => {
+    await render(
+      <AvatarGroup>
+        <Avatar name="Ada Lovelace" />
+      </AvatarGroup>,
+    );
+
+    // The group wrapper is the outermost View; it must stay a plain container.
+    const container = screen.getByText("1 avatars").parent?.parent;
+    expect(container?.props.accessible).toBeUndefined();
+    expect(container?.props.accessibilityRole).toBeUndefined();
+    expect(container?.props.accessibilityLabel).toBeUndefined();
+  });
+
+  it("keeps the count summary out of the visible layout", async () => {
+    await render(
+      <AvatarGroup>
+        <Avatar name="Ada Lovelace" />
+      </AvatarGroup>,
+    );
+
+    // Clipped to 1x1 rather than hidden: display:none / opacity:0 nodes are
+    // skipped by screen readers, so the summary would never be announced.
+    const clip = flatStyle(screen.getByText("1 avatars").parent!);
+    expect(clip.position).toBe("absolute");
+    expect(clip.width).toBe(1);
+    expect(clip.height).toBe(1);
+    expect(clip.overflow).toBe("hidden");
+    expect(clip.display).not.toBe("none");
   });
 
   it("applies the group size to children that do not set one", async () => {
