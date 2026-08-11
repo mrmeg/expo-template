@@ -51,21 +51,26 @@ describe("template registry — uniqueness", () => {
 });
 
 describe("template registry — routes resolve to files on disk", () => {
-  function routeToFilePath(route: string): string {
-    // /(main)/(demos)/screen-settings → app/(main)/(demos)/screen-settings.tsx
+  /**
+   * A route resolves either as a leaf file or as a folder's index route —
+   * `/(main)/(demos)/server-alpha` is `server-alpha/index.tsx` because the
+   * folder also holds `[example].tsx`.
+   */
+  function routeExists(route: string): boolean {
     const stripped = route.replace(/^\//, "");
-    return path.join(REPO_ROOT, "app", `${stripped}.tsx`);
+    return (
+      fs.existsSync(path.join(REPO_ROOT, "app", `${stripped}.tsx`)) ||
+      fs.existsSync(path.join(REPO_ROOT, "app", stripped, "index.tsx"))
+    );
   }
 
   it("every screen template route points to a real .tsx file", () => {
-    const missing = SCREEN_TEMPLATES.filter(
-      (t) => !fs.existsSync(routeToFilePath(t.route)),
-    );
+    const missing = SCREEN_TEMPLATES.filter((t) => !routeExists(t.route));
     expect(missing.map((t) => t.route)).toEqual([]);
   });
 
   it("every demo route points to a real .tsx file", () => {
-    const missing = DEMOS.filter((d) => !fs.existsSync(routeToFilePath(d.route)));
+    const missing = DEMOS.filter((d) => !routeExists(d.route));
     expect(missing.map((d) => d.route)).toEqual([]);
   });
 });

@@ -19,7 +19,7 @@ const sources = [
     path: "docs/migration-guide.md",
     title: "External App Migration Guide",
     summary:
-      "self-contained guide for migrating an existing Expo app to this template's baseline: tier self-assessment, SSR config, loaders, ui package, screen templates, verification gates",
+      "self-contained guide for migrating an existing Expo app to this template's baseline: tier self-assessment, server output config, loaders, ui package, screen templates, verification gates",
   },
   {
     path: "packages/ui/LLM_USAGE.md",
@@ -38,11 +38,6 @@ const sources = [
     title: "Expo Server Guide",
     summary:
       "server output config, API routes, data loaders, middleware, server entries, replication checklist",
-  },
-  {
-    path: "docs/ssr-hydration.md",
-    title: "Web SSR Hydration Constraints",
-    summary: "first-render rules for the server-rendered web build",
   },
 ];
 

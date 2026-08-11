@@ -15,8 +15,9 @@
  * navigation they are mounted in per-frame batches
  * (`useProgressivePreviewCount`) with a `Skeleton` standing in until a card's
  * turn comes; mounting them all at once blanked the content pane for seconds.
- * A direct URL load still renders every preview — server and hydration render
- * agree — so the SSR HTML stays gallery-complete.
+ * A direct URL load still renders every preview in one pass: the route-identity
+ * gate defers only on a client-side navigation, so nothing streams into a tree
+ * that has to match the prerendered HTML shell.
  */
 
 import React, { useMemo, useState } from "react";

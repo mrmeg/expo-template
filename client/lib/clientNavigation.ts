@@ -2,12 +2,13 @@
  * "Did the visitor arrive on this route, or navigate to it?" — the discriminator
  * a screen may safely use to render LESS than the server did.
  *
- * Web SSR renders the full tree, so the client's first render of that HTML must
- * produce the same tree or React throws #418 and re-renders the subtree from
- * scratch. But a screen reached by a client-side navigation has no server HTML
- * to match, so it is free to defer expensive work (the showcase galleries stream
- * their live previews in — see `client/showcase/useProgressivePreviewCount.ts`).
- * Telling those two cases apart is this module's only job.
+ * `expo export` prerenders every web route's full tree into an HTML shell at
+ * build time, so the client's first render of that shell must produce the same
+ * tree or React throws #418 and re-renders the subtree from scratch. But a screen
+ * reached by a client-side navigation has no prerendered HTML to match, so it is
+ * free to defer expensive work (the showcase galleries stream their live previews
+ * in — see `client/showcase/useProgressivePreviewCount.ts`). Telling those two
+ * cases apart is this module's only job.
  *
  * The discriminator is ROUTE IDENTITY: the pathname the app was entered on
  * versus the pathname a screen is rendering for.
@@ -25,15 +26,18 @@
  * ordering between a layout and its leaves is not a contract. Route identity is,
  * and it needs no effect to have run.
  *
- * ## Why module scope, and why the server must never trust it
+ * ## Why module scope, and why a non-browser render must never trust it
  *
  * A browser gets a fresh module scope per full page load, which is exactly the
- * lifetime "this app load" means. A server process does NOT: it is long-lived and
- * serves many requests, so `initialPathname` there would be polluted by whichever
- * request arrived first. Hence `isClientNavigatedScreen()` returns `false` outright
- * when there is no `window` — the server render is always full, unconditionally.
+ * lifetime "this app load" means. The Node process that prerenders the shells does
+ * NOT: one process renders every route, so `initialPathname` there would be
+ * polluted by whichever route was exported first. Hence `isClientNavigatedScreen()`
+ * returns `false` outright when there is no `window` — a prerender is always full,
+ * unconditionally.
  *
- * See docs/ssr-hydration.md §9 for the full contract.
+ * Web routes are client-rendered off a build-time HTML shell; there is no
+ * per-request server rendering. See "Enable Server Output" in
+ * `docs/server-guide.md`.
  */
 
 /** The pathname this app load started on. First write wins. */
@@ -70,7 +74,7 @@ export function recordPathname(pathname: string | undefined | null): void {
 
 /**
  * `true` when `pathname` belongs to a screen the visitor navigated to rather than
- * arrived on — i.e. a screen with no server HTML to match.
+ * arrived on — i.e. a screen with no prerendered HTML to match.
  *
  * Read it in a `useState` initializer, never in a bare render expression: the
  * answer must be fixed for the life of the mount, or a screen would change its own
@@ -80,8 +84,9 @@ export function recordPathname(pathname: string | undefined | null): void {
  * pathname matches `initialPathname` again by then, but that HTML is long gone.
  */
 export function isClientNavigatedScreen(pathname: string | undefined | null): boolean {
-  // Server render: module scope is shared across requests, so nothing here can be
-  // trusted. Always render everything — the SSR HTML must be complete.
+  // Export-time prerender: module scope is shared across every route in the same
+  // Node process, so nothing here can be trusted. Always render everything — the
+  // HTML shell must be complete.
   if (typeof window === "undefined") return false;
 
   if (hasNavigated) return true;

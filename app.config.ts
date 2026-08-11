@@ -66,14 +66,13 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
       "expo-router",
       {
         origin: "",
-        unstable_useServerRendering: true,
+        // Web ships as a client-rendered app: `web.output: "server"` still
+        // builds the Bun/Express server for API routes, middleware, and data
+        // loaders, and each route gets a statically rendered HTML shell at
+        // export time. Per-request server rendering of routes is deliberately
+        // off — see docs/server-guide.md.
         unstable_useServerMiddleware: true,
         unstable_useServerDataLoaders: true,
-        asyncRoutes: {
-          // Keep development web routes eager; Expo Router's async-route HMR
-          // can resolve grouped tab chunks like "./media" from the repo root.
-          web: "production",
-        },
       },
     ],
     [

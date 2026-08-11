@@ -71,6 +71,33 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `backgroundColor` — is the `-indicator` node inside it. Tests asserting on a
   dot's color need the new suffix.
 
+- **`useDimensions` seeds from a constant, not context.** The first web render
+  uses the new `DEFAULT_VIEWPORT_WIDTH` / `DEFAULT_VIEWPORT_HEIGHT` exports
+  (1280×800, the previous context defaults) and switches to real dimensions
+  after mount. The hook no longer reads a context or writes an `mrmeg-vw`
+  cookie.
+
+- **Theme persistence key is exported as `THEME_STORAGE_KEY`** (value
+  unchanged: `user-theme-preference`), replacing `THEME_COOKIE_NAME` as the
+  name callers reference.
+
+### Removed
+
+- **Server-rendering support surface.** The template that hosts this package
+  no longer server-renders web routes (routes are client-rendered from an
+  HTML shell), so the per-request plumbing that existed only to make a server
+  render and the browser's first render agree is gone:
+
+  - `SsrThemeSeedContext`, `SsrThemeSeed`, `SSR_THEME_SEED_DEFAULT`, and
+    `useSsrThemeSeed` (added in 0.20.0).
+  - `SsrViewportContext`, `SSR_VIEWPORT_DEFAULT_WIDTH`, and
+    `SSR_VIEWPORT_DEFAULT_HEIGHT`.
+  - `THEME_COOKIE_NAME`, and the `document.cookie` write `setTheme` performed
+    alongside its persisted write on web.
+
+  Hosts that server-render can keep doing so, but they now own the seeding
+  themselves; `useTheme` resolves from the store only.
+
 ### Fixed
 
 - **`Label`'s documented pairing pattern produced duplicate DOM ids.** The usage
@@ -121,7 +148,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`Carousel`'s `itemWidth` caveat.** A fractional `itemWidth` measures
   against the viewport until the first `onLayout`, so a carousel inside a
   horizontally constrained parent (a padded column, a `MaxWidthContainer`, a
-  sidebar pane) renders its first frame — and the server-rendered HTML — with
+  sidebar pane) renders its first frame — and the exported HTML shell — with
   slides sized to the window. Documented on the prop, with the workaround:
   pass an absolute `itemWidth` (`> 1`) when the parent is narrower than the
   viewport and that first frame matters.

@@ -14,8 +14,9 @@
  *
  * Each stage is a whole page section rendered live, so — exactly as in the
  * components gallery — client-side navigations mount them in per-frame batches
- * (`useProgressivePreviewCount`) behind a `Skeleton`. SSR and the hydration
- * render still mount all six, so a direct load ships complete HTML.
+ * (`useProgressivePreviewCount`) behind a `Skeleton`. A direct load mounts all
+ * six in one pass, so nothing streams into a tree that has to match the
+ * prerendered HTML shell.
  */
 
 import React, { useMemo, useState } from "react";

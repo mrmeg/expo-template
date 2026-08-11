@@ -3,12 +3,10 @@
  *
  * Tests default state, setTheme, and persistence behavior.
  *
- * Since the SSR theme cookie (docs/ssr-hydration.md §5) the web writes are a
- * DUAL write — localStorage plus a `user-theme-preference` cookie the server
- * reads to decide which scheme to render. Those assertions matter because a
- * missing cookie write silently reverts every dark-mode visitor to a
- * light-themed server render that recolors after hydration, which no
- * client-side test would notice.
+ * Persistence is localStorage-only on web (`AsyncStorage` on native). The
+ * `document.cookie` recorder below is kept deliberately: the store used to
+ * mirror the preference into a `user-theme-preference` cookie for a
+ * server-rendered host, and nothing else would notice that write coming back.
  *
  * Platform switching mirrors the onboarding store's tests: mutate `Platform.OS`
  * on the live react-native module rather than re-mocking it, and shim both
@@ -19,7 +17,7 @@
 
 import { Platform } from "react-native";
 
-import { THEME_COOKIE_NAME, resolveThemePreference, useThemeStore } from "../themeStore";
+import { THEME_STORAGE_KEY, resolveThemePreference, useThemeStore } from "../themeStore";
 
 type WindowShim = { localStorage: typeof localStorage };
 
@@ -154,7 +152,7 @@ describe("themeStore", () => {
     });
   });
 
-  describe("SSR theme cookie (web)", () => {
+  describe("persistence (web)", () => {
     const originalOS = Platform.OS;
     const originalDocument = (globalThis as unknown as { document?: unknown }).document;
 
@@ -173,39 +171,22 @@ describe("themeStore", () => {
       }
     });
 
-    it("uses the same name as the localStorage key", () => {
-      expect(THEME_COOKIE_NAME).toBe("user-theme-preference");
+    it("exposes the storage key it reads and writes", () => {
+      expect(THEME_STORAGE_KEY).toBe("user-theme-preference");
     });
 
-    it("setTheme dual-writes localStorage and the SSR cookie", () => {
+    it("setTheme persists to localStorage and writes no cookie", () => {
       installLocalStorage();
       const cookies = installDocumentCookie();
       const setItemSpy = jest.spyOn(globalThis.localStorage, "setItem");
 
       useThemeStore.getState().setTheme("dark");
 
-      expect(setItemSpy).toHaveBeenCalledWith(THEME_COOKIE_NAME, "dark");
-      expect(cookies.writes).toHaveLength(1);
-      expect(cookies.writes[0]).toContain(`${THEME_COOKIE_NAME}=dark`);
-      expect(cookies.writes[0]).toContain("path=/");
-      expect(cookies.writes[0]).toContain("SameSite=Lax");
-      expect(cookies.writes[0]).toMatch(/max-age=31536000/);
-      expect(cookies.writes[0]).not.toContain("domain=");
-      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=dark`);
+      expect(setItemSpy).toHaveBeenCalledWith(THEME_STORAGE_KEY, "dark");
+      expect(cookies.writes).toHaveLength(0);
     });
 
-    it("setTheme writes every preference value the server can parse", () => {
-      installLocalStorage();
-      const cookies = installDocumentCookie();
-
-      useThemeStore.getState().setTheme("light");
-      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=light`);
-
-      useThemeStore.getState().setTheme("system");
-      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=system`);
-    });
-
-    it("setTheme marks the theme loaded so renders stop trusting the SSR seed", () => {
+    it("setTheme marks the theme loaded", () => {
       installLocalStorage();
       installDocumentCookie();
 
@@ -214,40 +195,18 @@ describe("themeStore", () => {
       expect(useThemeStore.getState().hasLoadedTheme).toBe(true);
     });
 
-    it("loadTheme backfills the cookie from localStorage for pre-existing users", () => {
-      installLocalStorage({ [THEME_COOKIE_NAME]: "dark" });
+    it("loadTheme restores the persisted preference", () => {
+      installLocalStorage({ [THEME_STORAGE_KEY]: "dark" });
       const cookies = installDocumentCookie();
 
       useThemeStore.getState().loadTheme();
 
       expect(useThemeStore.getState().userTheme).toBe("dark");
-      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=dark`);
-    });
-
-    it("loadTheme overwrites a cookie that drifted from localStorage", () => {
-      installLocalStorage({ [THEME_COOKIE_NAME]: "light" });
-      const cookies = installDocumentCookie(`${THEME_COOKIE_NAME}=dark`);
-
-      // localStorage is the source of truth; the cookie is only a render hint.
-      useThemeStore.getState().loadTheme();
-
-      expect(useThemeStore.getState().userTheme).toBe("light");
-      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=light`);
-      expect(cookies.current()).not.toContain(`${THEME_COOKIE_NAME}=dark`);
-    });
-
-    it("loadTheme clears a stale cookie when nothing is persisted", () => {
-      installLocalStorage();
-      const cookies = installDocumentCookie(`${THEME_COOKIE_NAME}=dark`);
-
-      useThemeStore.getState().loadTheme();
-
-      expect(useThemeStore.getState().userTheme).toBe("system");
-      expect(cookies.current()).toContain(`${THEME_COOKIE_NAME}=system`);
+      expect(cookies.writes).toHaveLength(0);
     });
 
     it("loadTheme ignores a persisted value the store would never write", () => {
-      installLocalStorage({ [THEME_COOKIE_NAME]: "sepia" });
+      installLocalStorage({ [THEME_STORAGE_KEY]: "sepia" });
       installDocumentCookie();
 
       useThemeStore.getState().loadTheme();
@@ -265,7 +224,7 @@ describe("themeStore", () => {
     });
   });
 
-  describe("SSR theme cookie (native)", () => {
+  describe("persistence (native)", () => {
     const originalDocument = (globalThis as unknown as { document?: unknown }).document;
 
     afterEach(() => {

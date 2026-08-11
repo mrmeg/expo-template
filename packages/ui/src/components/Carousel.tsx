@@ -33,7 +33,7 @@ export interface CarouselProps {
    * after the first `onLayout`. Until then it is seeded from the viewport
    * width, so a carousel inside a horizontally constrained parent (a padded
    * column, a `MaxWidthContainer`, a sidebar pane) renders its first frame —
-   * and the server-rendered HTML — with slides sized to the *window* and
+   * and the exported HTML shell — with slides sized to the *window* and
    * corrects on layout. Pass an absolute `itemWidth` (`> 1`) when the parent
    * is narrower than the viewport and that first frame matters.
    * @default 0.85
@@ -126,9 +126,9 @@ function clampIndex(index: number, count: number): number {
  * resolved item width.
  *
  * Built on `ScrollView` — not a virtualized list — on purpose: every slide is
- * in the server-rendered tree, so web SSR ships the real content instead of an
- * empty scroller that only fills in after measurement. Snapping uses the
- * platform scroller (`snapToInterval` on native, CSS scroll-snap on web); no
+ * in the prerendered tree, so a web build's HTML shell ships the real content
+ * instead of an empty scroller that only fills in after measurement. Snapping
+ * uses the platform scroller (`snapToInterval` on native, CSS scroll-snap on web); no
  * animation library is involved.
  *
  * Slides sized by a fractional `itemWidth` measure against the viewport until
@@ -164,9 +164,9 @@ export function Carousel({
   const count = items.length;
 
   // Width source of truth: the measured container after mount, seeded from the
-  // viewport so the server and the client's first render agree. `useDimensions`
-  // reads the SSR viewport context rather than `window`, which is what keeps
-  // that seed hydration-safe (docs/ssr-hydration.md §4).
+  // viewport so a prerendered HTML shell and the client's first render agree.
+  // `useDimensions` seeds from a constant default rather than `window` on that
+  // first render, which is what keeps the seed hydration-safe.
   const { width: viewportWidth } = useDimensions();
   const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
   const containerWidth = measuredWidth ?? viewportWidth;

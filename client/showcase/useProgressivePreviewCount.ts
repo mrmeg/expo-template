@@ -7,14 +7,15 @@
  * client-side navigation that burst blanked the content pane for seconds. This
  * hook virtualizes the MOUNT SCHEDULE — card chrome renders immediately, live
  * previews stream in a few per `requestAnimationFrame` — without touching the
- * scroll window, so nothing depends on a measurement that never happens on the
- * server (the reason FlatList/LegendList/FlashList are ruled out here).
+ * scroll window, so nothing depends on a measurement that never happens during
+ * the export-time prerender (the reason FlatList/LegendList/FlashList are ruled
+ * out here).
  *
  * Deferring is gated on ROUTE IDENTITY (`isClientNavigatedScreen`), which is what
- * keeps the SSR contract intact:
+ * keeps the prerender/hydration contract intact:
  *
- *  - Server render: no `window`, so always full. A direct URL load ships
- *    gallery-complete HTML that reads correctly with no JS.
+ *  - Export-time prerender: no `window`, so always full. A direct URL load ships
+ *    a gallery-complete HTML shell that reads correctly with no JS.
  *  - The client's hydration render — INCLUDING a late selective-hydration pass of
  *    this leaf — sees a pathname equal to the entry pathname, so also full.
  *    Identical trees, no React #418.
@@ -25,6 +26,10 @@
  *    `useState` initializer ran, so direct loads deferred and threw #418.
  *  - Native: `window` exists, the first screen matches the entry pathname → full;
  *    everything after a navigation defers, the same on-device win as before.
+ *
+ * Web routes are client-rendered off a build-time HTML shell; there is no
+ * per-request server rendering. See "Enable Server Output" in
+ * `docs/server-guide.md`.
  *
  * `requestAnimationFrame` rather than `requestIdleCallback` (not on native) or
  * Reanimated (banned in this template): one batch per frame keeps each frame's
@@ -71,9 +76,9 @@ export const BLOCK_STAGE_SCHEDULE: PreviewSchedule = {
  * How many of `total` previews may render live right now.
  *
  * Returns `total` unchanged — from the very first render, forever — for a screen
- * the visitor arrived on (SSR and the hydration render). For a screen reached by a
- * client-side navigation it starts at `initialBurst` and grows by `batchSize` per
- * animation frame until it reaches `total`.
+ * the visitor arrived on (the export-time prerender and the hydration render). For
+ * a screen reached by a client-side navigation it starts at `initialBurst` and
+ * grows by `batchSize` per animation frame until it reaches `total`.
  *
  * `total` may shrink and grow again as a category filter narrows the gallery;
  * the allowance already earned is kept, so re-selecting "All" resumes streaming
