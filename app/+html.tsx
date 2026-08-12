@@ -101,9 +101,12 @@ function getRootCssStyles() {
       transition: background-color 5000s ease-in-out 0s;
     }
 
-    /* Hide the React tree until the first themed commit for dark-mode
-       visitors, so the light HTML shell never flashes. Body stays dark via
-       the rules above, so users see a dark blank, not white. Uses visibility
+    /* Hide the React tree for dark-mode visitors until the first commit that
+       reflects their theme (RootLayout removes the class) — the exported
+       shell bakes light-theme colors that CSS cannot retheme. Body stays dark
+       via the rules above, so they see a dark blank, never the light shell.
+       Deliberately no timed reveal: if the bundle never boots, the page stays
+       a dark blank rather than exposing wrong-theme content. Uses visibility
        (not display) so layout and measurements are preserved. */
     html.theme-loading #root {
       visibility: hidden;
@@ -117,11 +120,12 @@ const DEFAULT_DOCUMENT_TITLE = "Expo Template";
 // bundle boots. The HTML shell is built once at export time, so this is the
 // only thing that can paint a dark-mode visitor's background correctly on the
 // first frame: it stamps `data-theme` on <html> (the CSS above then applies
-// the right body background) and hides #root behind `theme-loading` until the
-// app's first themed commit removes it (RootLayout), with a 500ms failsafe in
-// case hydration is slow or never happens.
+// the right body background) and, for dark visitors, hides #root behind
+// `theme-loading` until RootLayout removes it after the first commit that
+// actually renders the dark theme. There is no time-based fallback reveal —
+// the reveal is gated purely on that themed commit (see RootLayout).
 const COLOR_SCHEME_SCRIPT =
-  "(function(){try{var root=document.documentElement;var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;if(resolved===\"dark\"){root.classList.add(\"theme-loading\");setTimeout(function(){root.classList.remove(\"theme-loading\");},500);}}catch(e){}})()";
+  "(function(){try{var root=document.documentElement;var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;if(resolved===\"dark\"){root.classList.add(\"theme-loading\");}}catch(e){}})()";
 
 const REACT_SCAN_SCRIPT = `
   (function () {

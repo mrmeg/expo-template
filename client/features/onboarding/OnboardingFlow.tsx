@@ -7,6 +7,7 @@ import {
   Platform,
   Pressable,
   ViewToken,
+  type DimensionValue,
 } from "react-native";
 import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
@@ -85,10 +86,11 @@ export function OnboardingFlow({
 }: OnboardingFlowProps) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
-  // SSR-aware: react-native's useWindowDimensions returns width:0 on server,
-  // which collapses each FlatList page to a 0-width column (one word per
-  // line). useDimensions seeds from SsrViewportContext so the initial render
-  // matches the viewport — set at the root in app/_layout.tsx.
+  // Web pages are sized in CSS (styles.pageWeb, 100vw) so the HTML shell
+  // rendered at `expo export` time is laid out correctly at any real viewport
+  // — this JS width is a fictional default until a post-mount effect reads
+  // the window. It still drives FlatList scroll math on every platform, which
+  // is safe because scrolling can't happen before mount syncs it.
   const { width: screenWidth } = useDimensions();
 
   const flatListRef = useRef<FlatList>(null);
@@ -147,7 +149,10 @@ export function OnboardingFlow({
   };
 
   const renderPage = ({ item }: { item: OnboardingPage }) => (
-    <View testID="onboarding-page" style={[styles.page, { width: screenWidth }]}>
+    <View
+      testID="onboarding-page"
+      style={[styles.page, Platform.OS === "web" ? styles.pageWeb : { width: screenWidth }]}
+    >
       <View testID="onboarding-icon" style={styles.iconContainer}>
         <Icon name={item.icon} size={80} color={theme.colors.accent} />
       </View>
@@ -274,6 +279,13 @@ const createStyles = (theme: Theme) =>
       justifyContent: "center",
       paddingHorizontal: spacing.xl,
       paddingVertical: CONTROL_ZONE_SPACE,
+    },
+    pageWeb: {
+      // Viewport units aren't in RN's style types, but react-native-web
+      // passes the string through to CSS. Sizing pages off the viewport (not
+      // a JS-measured width) is what keeps the export-time HTML shell correct
+      // at any window size on first paint.
+      width: "100vw" as DimensionValue,
     },
     iconContainer: {
       marginBottom: spacing.xl,

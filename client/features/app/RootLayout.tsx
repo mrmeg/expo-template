@@ -6,7 +6,7 @@ if (__DEV__) {
 }
 
 import { useEffect, useState, type ErrorInfo } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { Stack, ThemeProvider, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { colors } from "@mrmeg/expo-ui/constants";
@@ -121,13 +121,20 @@ export default function RootLayout() {
     return syncThemeFromEnvironment();
   }, []);
 
-  // Drop the `theme-loading` shield that the blocking script in +html.tsx
-  // adds for dark-mode visitors. Once React has committed, the rendered tree
-  // is themed correctly and there's no white-flash risk to mitigate.
+  // Web: reveal #root only once the committed tree reflects the visitor's
+  // resolved theme. The blocking script in +html.tsx hides it behind
+  // `theme-loading` for dark-mode visitors (stamping the resolution on
+  // `data-theme`) because the exported shell bakes light-theme colors. On the
+  // first, still-light commit `scheme` won't match that stamp, so the shield
+  // stays; the sync effect above then applies the real theme and this re-runs
+  // on the dark commit. No timed fallback: if boot fails, dark visitors keep
+  // a dark blank instead of being shown the wrong-theme shell.
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
-    document.documentElement.classList.remove("theme-loading");
-  }, []);
+    const root = document.documentElement;
+    if (root.classList.contains("theme-loading") && root.dataset.theme !== scheme) return;
+    root.classList.remove("theme-loading");
+  }, [scheme]);
 
   // Hide splash screen once the full startup gate has resolved — fonts, i18n,
   // onboarding persistence, and (when configured) auth bootstrap.
