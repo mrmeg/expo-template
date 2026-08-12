@@ -23,6 +23,31 @@ if (typeof window !== "undefined") {
   void Font.loadAsync(Feather.font);
 }
 
+/**
+ * Registers the Feather icon font in expo-font's server store during
+ * export-time rendering (`expo export` renders every route's HTML shell in
+ * Node, where the module-scope client load above is guarded off).
+ *
+ * Must be called from a **render body** (see `useResources` below): expo-font
+ * scopes its server store per render context, so a module-scope registration
+ * lands in at most one route's shell. Registering during render means every
+ * exported shell emits the `@font-face` rule and renders `<Icon>` glyphs —
+ * without it the shell contains an EMPTY icon text node while the client's
+ * first render (font pre-loaded above) contains the glyph, and React throws
+ * hydration error #418 on every cold load and regenerates the tree.
+ *
+ * No-op on native and on client web (both already covered: native by the
+ * effect below, client web by the module-scope call above).
+ */
+export function ensureIconFontRegistered(): void {
+  if (Platform.OS !== "web" || typeof window !== "undefined") return;
+  if (Font.isLoaded("feather")) return;
+  // Synchronous on server-web (expo-font routes to registerStaticFont). No
+  // `void`/try-catch: a throw here means we're outside a render scope, which
+  // must be loud.
+  Font.loadAsync(Feather.font);
+}
+
 interface LoadResourcesResult {
   loaded: boolean;
   error: Error | null;
@@ -87,6 +112,10 @@ function ensureWebFontStylesheet(): Promise<void> {
  * un-download Inter. The Feather icon font always loads.
  */
 export const useResources = (): LoadResourcesResult => {
+  // Export-time renders need the icon font registered per render scope; the
+  // module-scope call only reaches the client. See ensureIconFontRegistered.
+  ensureIconFontRegistered();
+
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 

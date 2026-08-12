@@ -3,6 +3,20 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.1]
+
+### Fixed
+
+- **Exported web HTML renders icon glyphs, fixing React hydration error
+  #418 on every cold load.** `useResources` registers the Feather icon font
+  per render scope during `expo export`'s Node rendering
+  (`ensureIconFontRegistered`), so the static shell emits the glyph and its
+  font styles. Previously the shell contained an empty icon text node while
+  the client's first render (font pre-loaded at module scope) contained the
+  glyph — React 19 threw #418 and regenerated the tree on every cold load.
+  The same mechanism existed during the request-time SSR era and was removed
+  with it; static export needs it too.
+
 ## [0.21.0]
 
 ### Added
