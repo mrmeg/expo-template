@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, View, ActivityIndicator, Pressable, Platf
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { Icon } from "./Icon";
 import type { IconName } from "./Icon";
-import { useTheme } from "../hooks/useTheme";
+import { useTheme, withAlpha } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { spacing } from "../constants/spacing";
 import { durations } from "../constants/motion";
@@ -180,26 +180,26 @@ export const Notification = () => {
       return {
         icon: "alert-circle",
         color: theme.colors.destructive,
-        bgColor: theme.colors.destructive + "15",
+        bgColor: withAlpha(theme.colors.destructive, 0.08),
       };
     case "success":
       return {
         icon: "check-circle",
         color: theme.colors.success,
-        bgColor: theme.colors.success + "15",
+        bgColor: withAlpha(theme.colors.success, 0.08),
       };
     case "warning":
       return {
         icon: "alert-triangle",
         color: theme.colors.warning,
-        bgColor: theme.colors.warning + "15",
+        bgColor: withAlpha(theme.colors.warning, 0.08),
       };
     case "info":
     default:
       return {
         icon: "info",
         color: theme.colors.accent,
-        bgColor: theme.colors.accent + "15",
+        bgColor: withAlpha(theme.colors.accent, 0.08),
       };
     }
   };
@@ -293,8 +293,8 @@ export const Notification = () => {
             style={({ pressed }) => [
               styles.actionButton,
               {
-                borderColor: theme.colors.primary + "30",
-                backgroundColor: theme.colors.primary + "10",
+                borderColor: withAlpha(theme.colors.primary, 0.19),
+                backgroundColor: withAlpha(theme.colors.primary, 0.06),
               },
               pressed && styles.actionButtonPressed,
             ]}

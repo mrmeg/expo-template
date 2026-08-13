@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthWrapper } from "@/client/features/auth/components/AuthWrapper";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
 import { useAuthStore, AuthState } from "@/client/features/auth/stores/authStore";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@mrmeg/expo-ui/components/Card";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
@@ -23,19 +23,19 @@ function AuthStateBadge({ state }: { state: AuthState }) {
       icon: "loader",
       color: theme.colors.warning,
       label: "Loading",
-      bgColor: theme.colors.warning + "20",
+      bgColor: withAlpha(theme.colors.warning, 0.13),
     },
     authenticated: {
       icon: "shield",
       color: theme.colors.success,
       label: "Authenticated",
-      bgColor: theme.colors.success + "20",
+      bgColor: withAlpha(theme.colors.success, 0.13),
     },
     unauthenticated: {
       icon: "shield-off",
       color: theme.colors.destructive,
       label: "Unauthenticated",
-      bgColor: theme.colors.destructive + "20",
+      bgColor: withAlpha(theme.colors.destructive, 0.13),
     },
   };
 
@@ -451,11 +451,11 @@ const createStyles = (theme: Theme) =>
     successBox: {
       flexDirection: "row",
       alignItems: "flex-start",
-      backgroundColor: theme.colors.success + "15",
+      backgroundColor: withAlpha(theme.colors.success, 0.08),
       padding: spacing.md,
       borderRadius: spacing.radiusMd,
       borderWidth: 1,
-      borderColor: theme.colors.success + "30",
+      borderColor: withAlpha(theme.colors.success, 0.19),
     },
     successTextContainer: {
       flex: 1,
@@ -473,20 +473,20 @@ const createStyles = (theme: Theme) =>
     warningBox: {
       flexDirection: "row",
       alignItems: "flex-start",
-      backgroundColor: theme.colors.warning + "15",
+      backgroundColor: withAlpha(theme.colors.warning, 0.08),
       padding: spacing.sm,
       borderRadius: spacing.radiusSm,
       borderWidth: 1,
-      borderColor: theme.colors.warning + "30",
+      borderColor: withAlpha(theme.colors.warning, 0.19),
     },
     errorBox: {
       flexDirection: "row",
       alignItems: "flex-start",
-      backgroundColor: theme.colors.destructive + "15",
+      backgroundColor: withAlpha(theme.colors.destructive, 0.08),
       padding: spacing.sm,
       borderRadius: spacing.radiusSm,
       borderWidth: 1,
-      borderColor: theme.colors.destructive + "30",
+      borderColor: withAlpha(theme.colors.destructive, 0.19),
     },
     historyContainer: {
       backgroundColor: theme.colors.muted,
