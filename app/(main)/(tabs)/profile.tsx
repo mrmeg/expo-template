@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { router } from "expo-router";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
@@ -546,7 +546,7 @@ const createStyles = (theme: Theme) =>
       overflow: "hidden",
     },
     dangerCard: {
-      borderColor: theme.colors.destructive + "40",
+      borderColor: withAlpha(theme.colors.destructive, 0.25),
     },
     infoRow: {
       flexDirection: "row",

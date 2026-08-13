@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { resolveRawColor } from "@mrmeg/expo-ui/constants";
 
 /**
  * Owns the document's `<meta name="theme-color">` — Safari's status bar /
@@ -11,8 +12,10 @@ import { useTheme } from "@mrmeg/expo-ui/hooks";
  * DOM: create it once, then keep its content on the store's active background.
  */
 export function useSafariThemeColorSync(): void {
-  const { theme } = useTheme();
-  const background = theme.colors.background;
+  const { theme, scheme } = useTheme();
+  // The meta content must be a literal color — on web `theme.colors.*` are
+  // CSS var() references, which this sink cannot take.
+  const background = resolveRawColor(theme.colors.background, scheme);
 
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;

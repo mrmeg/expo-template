@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { Colors, colors } from "../constants/colors";
+import { Colors, colors, resolveRawColor } from "../constants/colors";
 import { ViewStyle, Platform, StyleSheet } from "react-native";
 import { resolveThemePreference, useThemeStore } from "../state/themeStore";
 import { useThemeColorScope } from "../state/themeColorScope";
@@ -212,10 +212,12 @@ export function useTheme(): ExtendedColorScheme & {
     } as ViewStyle;
   }, [theme.colors.background, theme.colors.ring]);
 
-  // Helper to calculate contrast ratio between two colors
+  // Helper to calculate contrast ratio between two colors.
+  // On web theme colors are `var(--c-*)` strings, which cannot be parsed —
+  // resolve them to the active scheme's literal value first.
   const getContrastRatio = useCallback((color1: string, color2: string): number => {
-    const rgb1 = parseColor(color1);
-    const rgb2 = parseColor(color2);
+    const rgb1 = parseColor(resolveRawColor(color1, effectiveScheme));
+    const rgb2 = parseColor(resolveRawColor(color2, effectiveScheme));
 
     if (!rgb1 || !rgb2) {
       console.error("Invalid colors for contrast ratio:", color1, color2);
@@ -226,20 +228,35 @@ export function useTheme(): ExtendedColorScheme & {
     const lum2 = calculateLuminance(rgb2[0], rgb2[1], rgb2[2]);
 
     return calculateContrastRatio(lum1, lum2);
-  }, []);
+  }, [effectiveScheme]);
 
   // Cached version of getContrastingColor for performance
-  // Uses module-level cache to prevent memory leak
+  // Uses module-level cache to prevent memory leak. `var(--c-*)` inputs are
+  // resolved per scheme BEFORE the cache so keys stay scheme-specific, and
+  // the winning candidate is returned as originally passed (a `var()` input
+  // stays a `var()` output, so the picked color keeps re-theming via CSS).
   const getCachedContrastingColor = useCallback((
     backgroundColor: string,
     color1?: string,
     color2?: string
   ): string => {
-    const cacheKey = `${backgroundColor}-${color1}-${color2}`;
-    return getCachedOrCompute(cacheKey, () =>
-      getBetterContrast(backgroundColor, color1, color2)
+    const bg = resolveRawColor(backgroundColor, effectiveScheme);
+    const c1 = color1 === undefined ? undefined : resolveRawColor(color1, effectiveScheme);
+    const c2 = color2 === undefined ? undefined : resolveRawColor(color2, effectiveScheme);
+    const cacheKey = `${bg}-${c1}-${c2}`;
+    const winner = getCachedOrCompute(cacheKey, () =>
+      getBetterContrast(bg, c1, c2)
     );
-  }, []);
+    if (color1 !== undefined && winner === c1) return color1;
+    if (color2 !== undefined && winner === c2) return color2;
+    return winner;
+  }, [effectiveScheme]);
+
+  const getResolvedTextColorForBackground = useCallback(
+    (backgroundColor: string): "light" | "dark" =>
+      getTextColorForBackground(resolveRawColor(backgroundColor, effectiveScheme)),
+    [effectiveScheme]
+  );
 
   return useMemo(() => ({
     theme,
@@ -250,13 +267,14 @@ export function useTheme(): ExtendedColorScheme & {
     setTheme,
     currentTheme: userTheme,
     getContrastingColor: getCachedContrastingColor,
-    getTextColorForBackground,
+    getTextColorForBackground: getResolvedTextColorForBackground,
     withAlpha,
     getContrastRatio,
   }), [
     getCachedContrastingColor,
     getContrastRatio,
     getFocusRingStyle,
+    getResolvedTextColorForBackground,
     getShadowStyle,
     setTheme,
     theme,
@@ -421,11 +439,27 @@ function getTextColorForBackground(backgroundColor: string): "light" | "dark" {
 
 /**
  * Generates an alpha-modified version of a color
- * @param color - The color to modify (hex or rgba)
- * @param alpha - Alpha value between 0 and 1
+ * @param color - The color to modify (hex, rgba, or a `var(--c-*)` theme color)
+ * @param alpha - Alpha value between 0 and 1 (replaces any existing alpha)
  * @returns rgba color string with the specified alpha
+ *
+ * On web, theme colors are `var(--c-*)` references. Those rewrite onto the
+ * companion `--c-*-rgb` triplet variable (see `getThemeCssVariables`), so the
+ * result is pure CSS that re-themes with the variable — usable from
+ * module-scope style factories, which run once for both schemes.
+ *
+ * The result is wrapped in `var(--c-unset, …)` — a custom property that is
+ * never defined, so browsers always use the fallback. react-native-web's
+ * style compiler only passes a color value through verbatim when it starts
+ * with `var(`; a bare `rgba(var(…))` fails its color parser and the
+ * declaration is silently dropped.
  */
-function withAlpha(color: string, alpha: number): string {
+export function withAlpha(color: string, alpha: number): string {
+  const varMatch = /^var\((--c-[a-z0-9-]+)\)$/.exec(color);
+  if (varMatch) {
+    return `var(--c-unset, rgba(var(${varMatch[1]}-rgb), ${alpha}))`;
+  }
+
   const rgb = parseColor(color);
   if (!rgb) {
     console.error("Invalid color for alpha:", color);

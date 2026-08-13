@@ -3,6 +3,44 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.0]
+
+### Added
+
+- **CSS-variable theming on web.** On web, every semantic theme color
+  (`theme.colors.*`) now resolves to a CSS custom property
+  (`var(--c-<kebab-token>)`) instead of a literal hex string, so styles built
+  from the theme — including the HTML shells baked at export time — re-theme
+  purely in CSS when `html[data-theme]` changes. Native platforms keep
+  literal values. New exports from `constants`:
+  - `getThemeCssVariables(overrides?)` — the `--c-*` (and companion
+    `--c-*-rgb` triplet) definitions per scheme, for embedding in an app's
+    `+html.tsx` global `<style>`. Accepts per-scheme brand-color overrides.
+  - `rawThemeColors.light/.dark` — the literal hex/rgba maps on every
+    platform, for sinks that cannot take `var()` (e.g.
+    `<meta name="theme-color">`).
+  - `resolveRawColor(color, scheme)` — maps a `var(--c-*)` theme color back
+    to the given scheme's literal value; literal inputs pass through.
+- **`withAlpha` is exported standalone** (in addition to the `useTheme`
+  return) so module-scope style factories can import it. It understands
+  `var(--c-*)` inputs and rewrites them onto the `--c-*-rgb` triplet
+  (`var(--c-unset, rgba(var(--c-x-rgb), a))` — the never-defined outer
+  variable makes react-native-web's compiler pass the value through), staying
+  pure CSS that re-themes with the variable. Hex-suffix alpha concatenation
+  (`theme.colors.x + "15"`) does not work with `var()` colors — use
+  `withAlpha(theme.colors.x, 0.08)`.
+
+### Changed
+
+- The contrast helpers from `useTheme` (`getContrastingColor`,
+  `getContrastRatio`, `getTextColorForBackground`) resolve `var(--c-*)`
+  inputs to the active scheme's literal value before parsing, and
+  `getContrastingColor` returns the winning candidate as originally passed
+  (a `var()` input stays a `var()` output).
+- The React Navigation theme maps (`colors.<scheme>.navigation`) stay
+  literal on web as well as native: @react-navigation internals parse their
+  theme colors with a color library, which cannot take `var()` references.
+
 ## [0.21.1]
 
 ### Fixed

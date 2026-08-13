@@ -1,5 +1,5 @@
 import { View, StyleSheet, Pressable, Platform, ScrollView } from "react-native";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { useThemeStore } from "@mrmeg/expo-ui/state";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
@@ -224,7 +224,7 @@ const createStyles = (theme: Theme) =>
       marginRight: spacing.md,
     },
     iconContainerActive: {
-      backgroundColor: theme.colors.primary + "20",
+      backgroundColor: withAlpha(theme.colors.primary, 0.13),
     },
     settingLabel: {
       fontSize: 16,

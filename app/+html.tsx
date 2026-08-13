@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { colors } from "@mrmeg/expo-ui/constants";
+import { getThemeCssVariables } from "@mrmeg/expo-ui/constants";
 import { ScrollViewStyleReset } from "expo-router/html";
 
 // This file is web-only and configures the root HTML document for every web
@@ -8,19 +8,21 @@ import { ScrollViewStyleReset } from "expo-router/html";
 // DOM, cookies, or request data — everything that depends on the visitor is
 // resolved client-side after the bundle boots.
 function getRootCssStyles() {
-  const lightText = colors.light.colors.foreground;
-  const lightBackground = colors.light.colors.card;
-  const darkText = colors.dark.colors.foreground;
-  const darkBackground = colors.dark.colors.card;
-
   /**
    * Global CSS styles for the application
    *
-   * Uses html[data-theme] attribute selectors so styles follow the app's
-   * runtime theme (set by the inline script below, then kept in sync by
-   * useTheme). Media query fallbacks handle the paint before that runs.
+   * `getThemeCssVariables()` defines every semantic theme color as a
+   * `--c-*` custom property per `html[data-theme]` (with a
+   * prefers-color-scheme fallback for the paint before the inline script
+   * below stamps `data-theme`). The app's styles reference those variables,
+   * so the exported HTML shell is theme-agnostic: a dark visitor's first
+   * frame paints fully dark from CSS alone, before any JS runs. Only
+   * `color-scheme` (a CSS keyword, not var()-able) still needs explicit
+   * per-theme rules here.
    */
   return `
+    ${getThemeCssVariables()}
+
     html,
     body,
     #root {
@@ -29,7 +31,7 @@ function getRootCssStyles() {
     }
 
     body {
-      background-color: ${colors.light.colors.background};
+      background-color: var(--c-background);
       color-scheme: light;
       margin: 0;
       overflow: hidden;
@@ -49,67 +51,25 @@ function getRootCssStyles() {
     input:-webkit-autofill:hover,
     input:-webkit-autofill:focus,
     input:-webkit-autofill:active {
-      -webkit-text-fill-color: ${lightText};
-      -webkit-box-shadow: 0 0 0px 1000px ${lightBackground} inset;
+      -webkit-text-fill-color: var(--c-foreground);
+      -webkit-box-shadow: 0 0 0px 1000px var(--c-card) inset;
       transition: background-color 5000s ease-in-out 0s;
     }
 
     /* OS dark mode fallback (before the script below runs) */
     @media (prefers-color-scheme: dark) {
       html:not([data-theme]) body {
-        background-color: ${colors.dark.colors.background};
         color-scheme: dark;
-      }
-
-      html:not([data-theme]) input:-webkit-autofill,
-      html:not([data-theme]) input:-webkit-autofill:hover,
-      html:not([data-theme]) input:-webkit-autofill:focus,
-      html:not([data-theme]) input:-webkit-autofill:active {
-        -webkit-text-fill-color: ${darkText};
-        -webkit-box-shadow: 0 0 0px 1000px ${darkBackground} inset;
-        transition: background-color 5000s ease-in-out 0s;
       }
     }
 
-    /* Runtime dark mode (set by JS on <html data-theme="dark">) */
+    /* Runtime theme (set by JS on <html data-theme>) */
     html[data-theme="dark"] body {
-      background-color: ${colors.dark.colors.background};
       color-scheme: dark;
     }
 
-    html[data-theme="dark"] input:-webkit-autofill,
-    html[data-theme="dark"] input:-webkit-autofill:hover,
-    html[data-theme="dark"] input:-webkit-autofill:focus,
-    html[data-theme="dark"] input:-webkit-autofill:active {
-      -webkit-text-fill-color: ${darkText};
-      -webkit-box-shadow: 0 0 0px 1000px ${darkBackground} inset;
-      transition: background-color 5000s ease-in-out 0s;
-    }
-
-    /* Runtime light mode (explicit override when OS is dark) */
     html[data-theme="light"] body {
-      background-color: ${colors.light.colors.background};
       color-scheme: light;
-    }
-
-    html[data-theme="light"] input:-webkit-autofill,
-    html[data-theme="light"] input:-webkit-autofill:hover,
-    html[data-theme="light"] input:-webkit-autofill:focus,
-    html[data-theme="light"] input:-webkit-autofill:active {
-      -webkit-text-fill-color: ${lightText};
-      -webkit-box-shadow: 0 0 0px 1000px ${lightBackground} inset;
-      transition: background-color 5000s ease-in-out 0s;
-    }
-
-    /* Hide the React tree for dark-mode visitors until the first commit that
-       reflects their theme (RootLayout removes the class) — the exported
-       shell bakes light-theme colors that CSS cannot retheme. Body stays dark
-       via the rules above, so they see a dark blank, never the light shell.
-       Deliberately no timed reveal: if the bundle never boots, the page stays
-       a dark blank rather than exposing wrong-theme content. Uses visibility
-       (not display) so layout and measurements are preserved. */
-    html.theme-loading #root {
-      visibility: hidden;
     }
   `;
 }
@@ -117,15 +77,12 @@ function getRootCssStyles() {
 const DEFAULT_DOCUMENT_TITLE = "Expo Template";
 
 // Blocking script that resolves the visitor's color scheme before the app
-// bundle boots. The HTML shell is built once at export time, so this is the
-// only thing that can paint a dark-mode visitor's background correctly on the
-// first frame: it stamps `data-theme` on <html> (the CSS above then applies
-// the right body background) and, for dark visitors, hides #root behind
-// `theme-loading` until RootLayout removes it after the first commit that
-// actually renders the dark theme. There is no time-based fallback reveal —
-// the reveal is gated purely on that themed commit (see RootLayout).
+// bundle boots: it stamps `data-theme` on <html>, which switches the `--c-*`
+// variables above so the whole static shell paints in the right theme on the
+// first frame. (Persisted in-app preference overrides the OS scheme, which
+// the prefers-color-scheme fallback alone cannot know about.)
 const COLOR_SCHEME_SCRIPT =
-  "(function(){try{var root=document.documentElement;var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;if(resolved===\"dark\"){root.classList.add(\"theme-loading\");}}catch(e){}})()";
+  "(function(){try{var root=document.documentElement;var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;}catch(e){}})()";
 
 const REACT_SCAN_SCRIPT = `
   (function () {

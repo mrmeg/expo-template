@@ -121,21 +121,6 @@ export default function RootLayout() {
     return syncThemeFromEnvironment();
   }, []);
 
-  // Web: reveal #root only once the committed tree reflects the visitor's
-  // resolved theme. The blocking script in +html.tsx hides it behind
-  // `theme-loading` for dark-mode visitors (stamping the resolution on
-  // `data-theme`) because the exported shell bakes light-theme colors. On the
-  // first, still-light commit `scheme` won't match that stamp, so the shield
-  // stays; the sync effect above then applies the real theme and this re-runs
-  // on the dark commit. No timed fallback: if boot fails, dark visitors keep
-  // a dark blank instead of being shown the wrong-theme shell.
-  useEffect(() => {
-    if (Platform.OS !== "web" || typeof document === "undefined") return;
-    const root = document.documentElement;
-    if (root.classList.contains("theme-loading") && root.dataset.theme !== scheme) return;
-    root.classList.remove("theme-loading");
-  }, [scheme]);
-
   // Hide splash screen once the full startup gate has resolved — fonts, i18n,
   // onboarding persistence, and (when configured) auth bootstrap.
   useEffect(() => {

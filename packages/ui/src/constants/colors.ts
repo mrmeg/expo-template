@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { navigationFonts } from "./fonts";
 
 /**
@@ -211,10 +212,114 @@ const darkTheme: Theme = {
   },
 };
 
-export const colors: Colors = {
-  light: lightTheme,
-  dark: darkTheme,
+/**
+ * Raw hex/rgba theme colors, always literal strings on every platform. Use
+ * these for sinks that cannot take CSS `var()` — e.g. `<meta name="theme-color">`,
+ * color parsing/math — and for generating the CSS variable definitions below.
+ */
+export const rawThemeColors: { light: ThemeColors; dark: ThemeColors } = {
+  light: lightTheme.colors,
+  dark: darkTheme.colors,
 };
+
+const themeColorTokens = Object.keys(lightTheme.colors) as (keyof ThemeColors)[];
+
+// `surfaceSunken` → `--c-surface-sunken`
+function cssVarName(token: keyof ThemeColors): string {
+  return `--c-${token.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
+}
+
+// Reverse lookup: "var(--c-surface-sunken)" → "surfaceSunken"
+const varToToken = new Map<string, keyof ThemeColors>(
+  themeColorTokens.map((token) => [`var(${cssVarName(token)})`, token])
+);
+
+/**
+ * Resolves a theme color value to a literal color string. On web, theme
+ * colors are `var(--c-*)` references; this maps one back to the given
+ * scheme's raw hex/rgba. Literal inputs (including app override colors)
+ * pass through unchanged.
+ */
+export function resolveRawColor(color: string, scheme: "light" | "dark"): string {
+  const token = varToToken.get(color);
+  return token ? rawThemeColors[scheme][token] : color;
+}
+
+// "R, G, B" from "#RRGGBB", "#RGB", or "rgb(a)(R, G, B[, A])" (alpha dropped).
+function toRgbTriplet(value: string): string | null {
+  const rgbaMatch = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (rgbaMatch) return `${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}`;
+  let hex = value.replace(/^#/, "");
+  if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  const match = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!match) return null;
+  return `${parseInt(match[1], 16)}, ${parseInt(match[2], 16)}, ${parseInt(match[3], 16)}`;
+}
+
+/**
+ * CSS custom-property definitions for every semantic theme color, for
+ * embedding in a web app's `+html.tsx` global `<style>`. Each token gets
+ * `--c-<kebab-token>` (the color value) and `--c-<kebab-token>-rgb` (a
+ * comma-separated RGB triplet, alpha stripped — `withAlpha` builds
+ * `rgba(var(--c-x-rgb), a)` from it).
+ *
+ * Light values are defined on `:root`; dark values apply under
+ * `html[data-theme="dark"]`, with a `prefers-color-scheme` fallback for the
+ * paint before any theme script stamps `data-theme`.
+ *
+ * Apps that override brand colors can pass those overrides so the emitted
+ * CSS matches their theme.
+ */
+export function getThemeCssVariables(overrides?: {
+  light?: Partial<ThemeColors>;
+  dark?: Partial<ThemeColors>;
+}): string {
+  const declarations = (scheme: "light" | "dark"): string =>
+    themeColorTokens
+      .map((token) => {
+        const value = overrides?.[scheme]?.[token] ?? rawThemeColors[scheme][token];
+        const name = cssVarName(token);
+        const rgb = toRgbTriplet(value);
+        return `${name}: ${value};${rgb ? ` ${name}-rgb: ${rgb};` : ""}`;
+      })
+      .join("\n      ");
+
+  return `
+    :root {
+      ${declarations("light")}
+    }
+
+    @media (prefers-color-scheme: dark) {
+      html:not([data-theme]) {
+        ${declarations("dark")}
+      }
+    }
+
+    html[data-theme="dark"] {
+      ${declarations("dark")}
+    }
+  `;
+}
+
+// On web, semantic theme colors resolve to CSS custom properties so the
+// build-time exported HTML is theme-agnostic: the first frame paints in the
+// visitor's scheme purely from CSS, before any JS runs. Native keeps literal
+// values (no CSS engine). The `navigation` maps stay literal on both
+// platforms: @react-navigation internals color-parse their theme values.
+const webVarColors = Object.fromEntries(
+  themeColorTokens.map((token) => [token, `var(${cssVarName(token)})`])
+) as unknown as ThemeColors;
+
+export const colors: Colors =
+  Platform.OS === "web"
+    ? {
+      light: { ...lightTheme, colors: { ...webVarColors } },
+      dark: { ...darkTheme, colors: { ...webVarColors } },
+    }
+    : {
+      light: lightTheme,
+      dark: darkTheme,
+    };
 
 // Export palette for rare one-off cases
 export { palette };

@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from "react";
 import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import {
@@ -278,7 +278,7 @@ const createStyles = (theme: Theme) =>
       width: "100%",
     },
     errorContainer: {
-      backgroundColor: theme.colors.destructive + "15",
+      backgroundColor: withAlpha(theme.colors.destructive, 0.08),
       borderRadius: spacing.radiusSm,
       padding: spacing.sm,
       borderWidth: 1,
