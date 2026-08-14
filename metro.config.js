@@ -76,12 +76,28 @@ config.resolver.extraNodeModules = {
   ...dedupePackages,
 };
 
+// In dev-server (node / react-server) bundles, Expo externalizes `react` and
+// `react-dom` (and `@radix-ui/*`) to runtime Node requires so the whole SSR
+// process shares one copy. Rewriting those names to absolute paths here would
+// bypass that matcher and bundle a second React, giving externalized packages
+// a null hooks dispatcher ("Cannot read properties of null (reading
+// 'useContext')" from Radix during dev SSR). Production export disables the
+// externals, so the rewrite stays active there.
+const serverExternalizedPackages = new Set(["react", "react-dom"]);
+
 const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const resolve = originalResolveRequest || context.resolveRequest;
+  const environment = context.customResolverOptions?.environment;
+  const isDevServerEnvironment =
+    (environment === "node" || environment === "react-server") &&
+    !context.customResolverOptions?.exporting;
 
   for (const [packageName, packagePath] of Object.entries(dedupePackages)) {
     if (moduleName === packageName || moduleName.startsWith(`${packageName}/`)) {
+      if (isDevServerEnvironment && serverExternalizedPackages.has(packageName)) {
+        break;
+      }
       return resolve(
         context,
         moduleName.replace(packageName, packagePath),
