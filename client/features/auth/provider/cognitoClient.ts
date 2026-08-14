@@ -4,8 +4,13 @@
  * Owns everything Amplify-specific: `Amplify.configure`, the Hub listener,
  * the post-confirmation `autoSignIn` dance, and mapping Amplify result
  * shapes / exception names onto the normalized contract in `types.ts`.
- * All `aws-amplify` imports are dynamic so the SDK loads only when Cognito
- * is the active provider.
+ * The SDK is never imported statically here: every access goes through
+ * `await import("./cognitoSdk")`, so Amplify loads only when Cognito is the
+ * active provider. The specifier is deliberately the same in all three places
+ * — on web, Metro hoists any module shared by two async chunks into the eager
+ * `__common` bundle, so importing `aws-amplify`, `aws-amplify/utils`, and
+ * `aws-amplify/auth` directly would put the shared Amplify internals on every
+ * page load. See `cognitoSdk.ts` for the full rationale.
  */
 
 import { logDev } from "@/client/lib/devtools";
@@ -20,6 +25,7 @@ import {
   type ForgotPasswordResult,
 } from "./types";
 
+// Type-only, so it is erased by the transform and creates no chunk of its own.
 type AmplifyAuthModule = typeof import("aws-amplify/auth");
 
 const ERROR_CODE_BY_NAME: Record<string, AuthErrorCode> = {
@@ -73,7 +79,7 @@ export function createCognitoAuthClient(): AuthClient {
       throw new Error(`Auth configuration failed — missing env vars: ${missing}`);
     }
 
-    const { Amplify } = await import("aws-amplify");
+    const { Amplify } = await import("./cognitoSdk");
     Amplify.configure({
       Auth: {
         Cognito: {
@@ -85,7 +91,7 @@ export function createCognitoAuthClient(): AuthClient {
 
     // The Hub listener lives for the process; consumers attach and detach
     // via onAuthChange without touching the underlying subscription.
-    const { Hub } = await import("aws-amplify/utils");
+    const { Hub } = await import("./cognitoSdk");
     Hub.listen("auth", ({ payload }) => {
       const { event } = payload;
       logDev("Hub auth event:", event);
@@ -108,7 +114,8 @@ export function createCognitoAuthClient(): AuthClient {
 
   async function auth(): Promise<AmplifyAuthModule> {
     await client.init();
-    return import("aws-amplify/auth");
+    const { amplifyAuth } = await import("./cognitoSdk");
+    return amplifyAuth;
   }
 
   const client: AuthClient = {
