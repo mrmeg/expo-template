@@ -1,4 +1,4 @@
-import React, { memo, useReducer, useState } from "react";
+import React, { lazy, memo, Suspense, useReducer, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
 import { KeyboardAwareScrollView } from "@/client/features/keyboard/platform";
@@ -23,11 +23,6 @@ import { Drawer } from "@mrmeg/expo-ui/components/Drawer";
 import { Alert } from "@mrmeg/expo-ui/components/Alert";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@mrmeg/expo-ui/components/Tooltip";
 import { Separator } from "@mrmeg/expo-ui/components/Separator";
-import { SignInForm } from "@/client/features/auth/components/SignInForm";
-import { SignUpForm } from "@/client/features/auth/components/SignUpForm";
-import { VerifyEmailForm } from "@/client/features/auth/components/VerifyEmailForm";
-import { ForgotPasswordForm } from "@/client/features/auth/components/ForgotPasswordForm";
-import { ResetPasswordForm } from "@/client/features/auth/components/ResetPasswordForm";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Skeleton, SkeletonText, SkeletonAvatar, SkeletonCard } from "@mrmeg/expo-ui/components/Skeleton";
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
@@ -1628,6 +1623,21 @@ const ToggleGroupSection = memo(function ToggleGroupSection({
   );
 });
 
+/**
+ * The auth forms are lazy so this gallery route doesn't pull ~57 kB of auth UI
+ * into the eager web download path. All five load from the same specifier as
+ * AuthGate and the auth-demo route (`@/client/features/auth/components`), which
+ * is what keeps them in one async chunk instead of hoisted into `__common` —
+ * see the barrel for the full rule.
+ */
+const loadAuthComponents = () => import("@/client/features/auth/components");
+
+const SignInForm = lazy(async () => ({ default: (await loadAuthComponents()).SignInForm }));
+const SignUpForm = lazy(async () => ({ default: (await loadAuthComponents()).SignUpForm }));
+const VerifyEmailForm = lazy(async () => ({ default: (await loadAuthComponents()).VerifyEmailForm }));
+const ForgotPasswordForm = lazy(async () => ({ default: (await loadAuthComponents()).ForgotPasswordForm }));
+const ResetPasswordForm = lazy(async () => ({ default: (await loadAuthComponents()).ResetPasswordForm }));
+
 const AuthFormsSection = memo(function AuthFormsSection({
   styles,
 }: {
@@ -1675,92 +1685,98 @@ const AuthFormsSection = memo(function AuthFormsSection({
         </ScrollView>
       </SubSection>
 
-      {authForm === "signin" && (
-        <SignInForm
-          embedded
-          onSignIn={async ({ email, password }) => {
-            console.log("Sign in:", email, password);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            notify.success("Success", {
-              messages: ["Signed in successfully!"],
-              duration: 2000,
-            });
-          }}
-          onForgotPassword={() => {
-            notify({ type: "info", messages: ["Forgot password clicked"], duration: 2000 });
-          }}
-          onSignUp={() => setAuthForm("signup")}
-          onSocialSignIn={(provider) => {
-            notify({ type: "info", messages: [`${provider} sign in clicked`], duration: 2000 });
-          }}
-        />
-      )}
+      {/* One Suspense for the whole set: only one form renders at a time, and
+          they all resolve from the same chunk, so the first selection pays the
+          fetch and every later switch is instant. A null fallback keeps the
+          gallery from jumping — the preview simply appears. */}
+      <Suspense fallback={null}>
+        {authForm === "signin" && (
+          <SignInForm
+            embedded
+            onSignIn={async ({ email, password }) => {
+              console.log("Sign in:", email, password);
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              notify.success("Success", {
+                messages: ["Signed in successfully!"],
+                duration: 2000,
+              });
+            }}
+            onForgotPassword={() => {
+              notify({ type: "info", messages: ["Forgot password clicked"], duration: 2000 });
+            }}
+            onSignUp={() => setAuthForm("signup")}
+            onSocialSignIn={(provider) => {
+              notify({ type: "info", messages: [`${provider} sign in clicked`], duration: 2000 });
+            }}
+          />
+        )}
 
-      {authForm === "signup" && (
-        <SignUpForm
-          embedded
-          onSignUp={async ({ name, email, password }) => {
-            console.log("Sign up:", name, email, password);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            notify.success("Success", {
-              messages: ["Account created successfully!"],
-              duration: 2000,
-            });
-            setAuthForm("verify");
-          }}
-          onSignIn={() => setAuthForm("signin")}
-          onSocialSignUp={(provider) => {
-            notify({ type: "info", messages: [`${provider} sign up clicked`], duration: 2000 });
-          }}
-        />
-      )}
+        {authForm === "signup" && (
+          <SignUpForm
+            embedded
+            onSignUp={async ({ name, email, password }) => {
+              console.log("Sign up:", name, email, password);
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              notify.success("Success", {
+                messages: ["Account created successfully!"],
+                duration: 2000,
+              });
+              setAuthForm("verify");
+            }}
+            onSignIn={() => setAuthForm("signin")}
+            onSocialSignUp={(provider) => {
+              notify({ type: "info", messages: [`${provider} sign up clicked`], duration: 2000 });
+            }}
+          />
+        )}
 
-      {authForm === "verify" && (
-        <VerifyEmailForm
-          email="user@example.com"
-          embedded
-          onVerify={async (code) => {
-            console.log("Verify code:", code);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            notify.success("Email Verified", {
-              messages: ["Your email has been verified successfully!"],
-              duration: 2000,
-            });
-          }}
-          onResendCode={async () => {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            notify({ type: "info", messages: ["Verification code resent"], duration: 2000 });
-          }}
-          onBack={() => setAuthForm("signin")}
-          onChangeEmail={() => setAuthForm("signup")}
-        />
-      )}
+        {authForm === "verify" && (
+          <VerifyEmailForm
+            email="user@example.com"
+            embedded
+            onVerify={async (code) => {
+              console.log("Verify code:", code);
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              notify.success("Email Verified", {
+                messages: ["Your email has been verified successfully!"],
+                duration: 2000,
+              });
+            }}
+            onResendCode={async () => {
+              await new Promise((resolve) => setTimeout(resolve, 500));
+              notify({ type: "info", messages: ["Verification code resent"], duration: 2000 });
+            }}
+            onBack={() => setAuthForm("signin")}
+            onChangeEmail={() => setAuthForm("signup")}
+          />
+        )}
 
-      {authForm === "forgot" && (
-        <ForgotPasswordForm
-          embedded
-          onSubmit={async (email) => {
-            console.log("Forgot password:", email);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            setForgotPasswordSuccess(true);
-          }}
-          onBack={() => setAuthForm("signin")}
-          success={forgotPasswordSuccess}
-        />
-      )}
+        {authForm === "forgot" && (
+          <ForgotPasswordForm
+            embedded
+            onSubmit={async (email) => {
+              console.log("Forgot password:", email);
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              setForgotPasswordSuccess(true);
+            }}
+            onBack={() => setAuthForm("signin")}
+            success={forgotPasswordSuccess}
+          />
+        )}
 
-      {authForm === "reset" && (
-        <ResetPasswordForm
-          embedded
-          onSubmit={async (password) => {
-            console.log("Reset password:", password);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            setResetPasswordSuccess(true);
-          }}
-          onBack={() => setAuthForm("signin")}
-          success={resetPasswordSuccess}
-        />
-      )}
+        {authForm === "reset" && (
+          <ResetPasswordForm
+            embedded
+            onSubmit={async (password) => {
+              console.log("Reset password:", password);
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              setResetPasswordSuccess(true);
+            }}
+            onBack={() => setAuthForm("signin")}
+            success={resetPasswordSuccess}
+          />
+        )}
+      </Suspense>
     </Section>
   );
 });

@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { View, StyleSheet, ScrollView, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AuthWrapper } from "@/client/features/auth/components/AuthWrapper";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
 import { useAuthStore, AuthState } from "@/client/features/auth/stores/authStore";
 import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
@@ -13,6 +12,21 @@ import { spacing } from "@mrmeg/expo-ui/constants";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import type { IconName } from "@mrmeg/expo-ui/components/Icon";
+
+/**
+ * AuthWrapper comes from a lazy `import()` of the auth components barrel so this
+ * demo route doesn't drag the auth screen and its five forms onto the eager web
+ * download path — see `@/client/features/auth/components` for why the specifier
+ * has to match the one used by AuthGate and the showcase gallery. `useAuth` and
+ * `useAuthStore` above stay static: they're small and every section here reads
+ * auth state directly.
+ *
+ * The fallback is `null` because AuthWrapper renders its own loading indicator
+ * as soon as it mounts; a second spinner would only flash between the two.
+ */
+const AuthWrapper = lazy(async () => ({
+  default: (await import("@/client/features/auth/components")).AuthWrapper,
+}));
 
 // Auth state badge component
 function AuthStateBadge({ state }: { state: AuthState }) {
@@ -369,9 +383,11 @@ function AuthenticatedContent() {
 
 export default function AuthDemoScreen() {
   return (
-    <AuthWrapper>
-      <AuthenticatedContent />
-    </AuthWrapper>
+    <Suspense fallback={null}>
+      <AuthWrapper>
+        <AuthenticatedContent />
+      </AuthWrapper>
+    </Suspense>
   );
 }
 

@@ -28,7 +28,7 @@ Compares the total client JS bundle size in `dist/client` against the baseline
 in `scripts/bundle-baseline.json`. Exits with code 1 if the bundle grew more
 than 10% from the baseline.
 
-The current checked-in baseline is 4,648,842 bytes of client JS from the latest
+The current checked-in baseline is 5,317,668 bytes of client JS from the latest
 local web export.
 
 Note that the metric sums *every* client chunk, so it barely moves when code is
@@ -70,6 +70,25 @@ route-only dependencies, e.g. `zod` and `react-hook-form`) loads on navigation.
 
 Dev servers and native builds are unaffected — `"production"` is web-only, and
 the other platforms are deliberately left out of the option object.
+
+## Manual Split Points (web)
+
+Route splitting alone doesn't help for code several routes share: Metro hoists
+any module reachable from two or more async chunks into the eagerly loaded
+`__common` chunk, so shared-but-optional UI only stays lazy behind exactly one
+split point. Two such boundaries exist today, and both work the same way —
+one barrel module, one `import()` specifier, every consumer using it:
+
+| Barrel | Consumers | Weight kept out of `__common` |
+|--------|-----------|-------------------------------|
+| `client/features/auth/provider/clerkClient` | `AuthProviderGate`, `getAuthClient()` | Clerk SDK + `swr` + `expo-auth-session` (~280 kB) |
+| `client/features/auth/components` | `AuthGate`, `(demos)/auth-demo`, `(demos)/showcase` | auth screen + 5 forms (~58 kB raw, ~16 kB gzip) |
+
+Adding a *static* import of one of those barrels — or a second `import()` with a
+different specifier for the same file — silently moves the whole graph back into
+`__common`; nothing fails at runtime. `client/features/auth/components/__tests__/authComponentsSplitPoint.test.ts`
+guards the auth-components invariant; to check a boundary by hand, look for its
+sources in the `__common-*.js.map` sourcemap after `bun run build-web`.
 
 ## Adjusting the Threshold
 
