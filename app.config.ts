@@ -66,11 +66,10 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
       "expo-router",
       {
         origin: "",
-        // Web ships as a client-rendered app: `web.output: "server"` still
-        // builds the Bun/Express server for API routes, middleware, and data
-        // loaders, and each route gets a statically rendered HTML shell at
-        // export time. Per-request server rendering of routes is deliberately
-        // off — see docs/server-guide.md.
+        // EXPERIMENT (spec web-ssr-experiment): render routes on the server
+        // per request instead of shipping the export-time HTML shell. This
+        // restores the pre-#56 configuration so the two can be compared.
+        unstable_useServerRendering: true,
         unstable_useServerMiddleware: true,
         unstable_useServerDataLoaders: true,
         // Split route code into per-route chunks on web production exports so

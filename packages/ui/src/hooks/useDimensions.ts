@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Platform, useWindowDimensions } from "react-native";
+import { SsrViewportContext } from "../state/SsrViewportContext";
 
 /**
  * Viewport the first web render is computed from, before the real window can
@@ -46,27 +47,45 @@ const calculateDimensionFlags = (width: number, height: number): WindowDimension
   };
 };
 
+// Persist the real viewport width as a cookie on first mount so subsequent
+// SSR requests can render at the user's actual layout (no reflow on repeat
+// visits). The server reads this cookie via resolveSsrViewportWidth in
+// server/lib/ssrViewport.ts.
+const SSR_VIEWPORT_COOKIE = "mrmeg-vw";
+const SSR_VIEWPORT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
+
+function writeViewportCookie(width: number): void {
+  if (typeof document === "undefined") return;
+  // Round to nearest 10 so resize-driven writes don't bust HTTP caching on
+  // every pixel of horizontal movement.
+  const rounded = Math.round(width / 10) * 10;
+  document.cookie = `${SSR_VIEWPORT_COOKIE}=${rounded}; path=/; max-age=${SSR_VIEWPORT_COOKIE_MAX_AGE}; SameSite=Lax`;
+}
+
 /**
 * Provides a consistent way to access window dimensions and screen size
 * information across mobile and web.
 *
-* On web the first render uses `DEFAULT_VIEWPORT_WIDTH` / `_HEIGHT` — the
-* window can't be read while the HTML shell is rendered in Node at export
-* time, and reading it during the browser's first render would disagree with
-* that markup. A post-mount effect swaps in the real viewport and follows
-* resize from there.
+* On web the first render can't read the window: server-side there is no DOM,
+* and reading it during the browser's first render would disagree with the
+* markup it hydrates. The width comes from `SsrViewportContext` when the host
+* provides a per-request value (server render + first client render must
+* provide the same one), falling back to `DEFAULT_VIEWPORT_WIDTH` / `_HEIGHT`.
+* A post-mount effect swaps in the real viewport and follows resize from
+* there.
 */
 export const useDimensions = (): WindowDimensions => {
   const isWeb = Platform.OS === "web";
+  const ssrWidth = use(SsrViewportContext);
 
   // Native reads come from useWindowDimensions, which subscribes to rotation /
   // split-screen / resize and tears the listener down for us — no manual
   // Dimensions.addEventListener to leak. On web we ignore it and drive layout
-  // from the default frame + the resize listener below.
+  // from the seeded frame + the resize listener below.
   const native = useWindowDimensions();
 
   const [dimensions, setDimensions] = useState<WindowDimensions>(() =>
-    calculateDimensionFlags(DEFAULT_VIEWPORT_WIDTH, DEFAULT_VIEWPORT_HEIGHT)
+    calculateDimensionFlags(ssrWidth ?? DEFAULT_VIEWPORT_WIDTH, DEFAULT_VIEWPORT_HEIGHT)
   );
 
   // Web: read the real viewport after mount and follow resize events. Keeping
@@ -77,6 +96,7 @@ export const useDimensions = (): WindowDimensions => {
 
     const syncFromWindow = () => {
       setDimensions(calculateDimensionFlags(window.innerWidth, window.innerHeight));
+      writeViewportCookie(window.innerWidth);
     };
 
     syncFromWindow();
