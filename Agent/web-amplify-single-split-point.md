@@ -1,9 +1,9 @@
 ---
-status: draft
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/66
 ---
 
 # Collapse Amplify into a single lazy chunk on web
@@ -23,7 +23,7 @@ Remove ~124 KB raw (~30 KB gzip) of AWS Amplify code from the eagerly loaded web
    - `Hub` from `aws-amplify/utils`
    - `import * as amplifyAuth from "aws-amplify/auth"` (covers `getCurrentUser`, `fetchAuthSession`, `signIn`, `signUp`, `confirmSignUp`, `autoSignIn`, `resendSignUpCode`, `resetPassword`, `confirmResetPassword`, `signOut`)
 2. In `cognitoClient.ts`, replace all three runtime `import("aws-amplify…")` calls with `import("./cognitoSdk")` — the identical specifier every time. The `auth()` helper returns the `amplifyAuth` namespace; the type alias `AmplifyAuthModule` can stay a type-only `typeof import("aws-amplify/auth")` (erased at runtime).
-3. Update `client/features/auth/__tests__/provider.test.ts` (and any other tests) if they mock the old specifiers.
+3. Tests: `client/features/auth/__tests__/provider.test.ts` deliberately never exercises the dynamic-import happy paths (see its scope note), so no mock updates are expected — just confirm the suite still passes.
 4. Run `node scripts/check-bundle-size.js --update` and commit the new baseline.
 
 ## Validation

@@ -1,9 +1,9 @@
 ---
-status: draft
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/65
 ---
 
 # Strip unused Sentry Session Replay from the web bundle
@@ -21,7 +21,7 @@ Shrink the ~848 KB raw (~226 KB gzip) lazy Sentry chunk on web by removing Sessi
 ## Work
 1. In `metro.config.js`:
    - `const { withSentryResolver } = require("@sentry/react-native/metro");`
-   - Change the export to `module.exports = wrapWithReanimatedMetroConfig(withSentryResolver(config, false));` — applied after the dedupe `resolveRequest` is installed so the Sentry resolver chains to it.
+   - Change the export to `module.exports = wrapWithReanimatedMetroConfig(withSentryResolver(config, false));` — applied after the dedupe `resolveRequest` is installed so the Sentry resolver chains to it. (Verified: `wrapWithReanimatedMetroConfig` only touches `symbolicator`, so there is no resolver conflict.)
 2. Run `node scripts/check-bundle-size.js --update` and commit the new baseline.
 
 ## Validation
