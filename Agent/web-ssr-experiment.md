@@ -1,5 +1,5 @@
 ---
-status: draft
+status: ready
 mode: AFK
 base-branch: dev
 blocked-by: -
@@ -19,7 +19,7 @@ Re-enable per-request web SSR on an experimental branch so it can be compared ag
   - The Feather font is registered during export-time render (`2068466`), keyboard-controller is platform-split (`74b11bc`), and the Clerk provider ships in a lazy chunk (`eac3f78`).
 - `packages/ui` is the workspace source for `@mrmeg/expo-ui`, so any restored SSR surface (viewport seeding at minimum) can live branch-local without publishing.
 - Known SSR landmines from the previous era, still true if reinstated:
-  - Dev-server node env externalizes `react`/`react-dom`/`@radix-ui`; the metro dedupe rewrite must skip those there or Radix crashes with null `useContext`.
+  - Dev-server node env externalizes `react`/`react-dom`/`@radix-ui`; the metro dedupe rewrite must skip those there or Radix crashes with null `useContext`. The skip guard was deleted with SSR — the dedupe in `metro.config.js` (~line 59) is now unconditional and must get the guard back.
   - Server-rendered styles must be registered at module scope (`createThemedStyles`) to land in the head snapshot; render-time `createStyles(theme)` misses it.
   - Under per-request SSR, data loaders run per request again — the Server Alpha param'd-route workaround (API fetch around the export-time snapshot, in `client/features/server-alpha/`) may be revertible.
 
@@ -35,7 +35,7 @@ Re-enable per-request web SSR on an experimental branch so it can be compared ag
 5. Open a draft PR against `dev` whose description is the comparison report: SSR HTML content vs current exported shells (SEO-visible content), first-paint theming, hydration warnings, TTFB/FCP impressions from `bun run build && bun run start`, and any async-routes finding.
 
 ## Validation
-- `bun run typecheck`, `bunx jest` (non-watch), `bun run lint` pass.
+- `bun run typecheck`, `bun run test:ci`, `bun run lint` pass.
 - `bun run build && bun run start`: `curl` of `/` and a content route returns HTML containing real route content, not an empty shell; browser load shows no hydration-mismatch warnings; dark-mode first paint is dark; onboarding gate still works.
 - The draft PR description contains the written comparison.
 
