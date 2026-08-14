@@ -4,6 +4,7 @@ const { getDefaultConfig } = require("expo/metro-config");
 const {
   wrapWithReanimatedMetroConfig,
 } = require("react-native-reanimated/metro-config");
+const { withSentryResolver } = require("@sentry/react-native/metro");
 const path = require("path");
 
 const config = getDefaultConfig(__dirname);
@@ -147,4 +148,11 @@ if (ffmpegWorkerAsset) {
 // END FFmpeg
 // ============================================================================
 
-module.exports = wrapWithReanimatedMetroConfig(config);
+// Strip Sentry Session Replay from every bundle. Sentry.init in
+// client/lib/sentry.ts never enables a replay integration, and the default
+// (flag undefined) only strips it on android/ios — passing `false` extends
+// that to web, dropping ~137 KB raw from the lazy Sentry chunk. The resolver
+// chains to the dedupe resolveRequest installed above.
+module.exports = wrapWithReanimatedMetroConfig(
+  withSentryResolver(config, false)
+);

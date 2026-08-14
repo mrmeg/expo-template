@@ -1,7 +1,6 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
-import { AuthScreen } from "@/client/features/auth/components/AuthScreen";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -19,7 +18,21 @@ import { isAuthEnabled } from "./isAuthEnabled";
  * This is intentionally thinner than client/features/auth/AuthWrapper because
  * startup-level auth initialization is owned by useAppStartup. AuthGate only
  * reads the already-resolved auth state.
+ *
+ * The AuthScreen is a lazy `import()` of the auth components barrel, not a
+ * static import: this gate is reachable from the profile tab, so a static
+ * import puts the screen and its five forms (~57 kB raw) on the first-render
+ * download path of every route — including for signed-in users who never see
+ * them. The specifier must stay `@/client/features/auth/components` (the barrel
+ * documents why) so this gate, the auth-demo route and the showcase gallery
+ * share one async chunk instead of getting hoisted into eager `__common`. The
+ * cost is a spinner on the first signed-out render, which is the same
+ * loading UI this gate already shows while auth state resolves.
  */
+const AuthScreen = React.lazy(async () => ({
+  default: (await import("@/client/features/auth/components")).AuthScreen,
+}));
+
 interface AuthGateProps {
   children: React.ReactNode;
 }
@@ -33,16 +46,22 @@ export function AuthGate({ children }: AuthGateProps) {
     return <>{children}</>;
   }
 
+  const loading = (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+    </View>
+  );
+
   if (state === "loading") {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
+    return loading;
   }
 
   if (state !== "authenticated") {
-    return <AuthScreen />;
+    return (
+      <Suspense fallback={loading}>
+        <AuthScreen />
+      </Suspense>
+    );
   }
 
   return <>{children}</>;
