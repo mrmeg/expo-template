@@ -1,5 +1,5 @@
 ---
-status: draft
+status: ready
 mode: AFK
 base-branch: dev
 blocked-by: -
@@ -26,7 +26,7 @@ Remove ~57 KB raw (~15 KB gzip) of auth UI from the eagerly loaded web `__common
 3. `app/(main)/(demos)/auth-demo.tsx`: same treatment for `AuthWrapper` (its own loading UI makes a plain fallback acceptable).
 4. `app/(main)/(demos)/showcase/index.tsx`: same treatment for the five form components (a null or skeleton fallback is fine for gallery previews).
 5. Keep `stores/authStore`, `hooks/useAuth`, and `provider/*` imports static — only the component graph moves behind the split point.
-6. Update affected tests (RNTL 14: `render`/`fireEvent` are async; lazy components need `await`/`findBy*`).
+6. Update affected tests (RNTL 14: `render`/`fireEvent` are async; lazy components need `await`/`findBy*`). Known case: `client/features/app/__tests__/AuthGate.test.tsx` mocks `@/client/features/auth/components/AuthScreen` by exact path (line 43) — the mock must target whatever module the lazy import actually resolves (the new barrel), or the stub silently stops applying.
 7. Run `node scripts/check-bundle-size.js --update` and commit the new baseline.
 
 ## Validation
