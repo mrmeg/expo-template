@@ -21,7 +21,7 @@ import { isAuthEnabled } from "./isAuthEnabled";
  *
  * The AuthScreen is a lazy `import()` of the auth components barrel, not a
  * static import: this gate is reachable from the profile tab, so a static
- * import puts the screen and its five forms (~57 kB raw) on the first-render
+ * import puts the screen and its five forms (~47 kB raw) on the first-render
  * download path of every route — including for signed-in users who never see
  * them. The specifier must stay `@/client/features/auth/components` (the barrel
  * documents why) so this gate, the auth-demo route and the showcase gallery

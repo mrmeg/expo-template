@@ -109,7 +109,7 @@ one barrel module, one `import()` specifier, every consumer using it:
 | Barrel | Consumers | Weight kept out of `__common` |
 |--------|-----------|-------------------------------|
 | `client/features/auth/provider/clerkClient` | `AuthProviderGate`, `getAuthClient()` | Clerk SDK + `swr` + `expo-auth-session` (~280 kB) |
-| `client/features/auth/components` | `AuthGate`, `(demos)/auth-demo`, `(demos)/showcase` | auth screen + 5 forms (~58 kB raw, ~16 kB gzip) |
+| `client/features/auth/components` | `AuthGate`, `(demos)/auth-demo`, `(demos)/showcase` | auth screen + 5 forms (~47 kB raw, ~14 kB gzip) |
 
 Adding a *static* import of one of those barrels — or a second `import()` with a
 different specifier for the same file — silently moves the whole graph back into
