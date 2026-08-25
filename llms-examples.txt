@@ -173,7 +173,6 @@ Key files for replicating server output, API routes, loaders, and middleware. Re
 
 - app.config.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app.config.ts
 - server.bun.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server.bun.ts
-- server/index.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/index.ts
 - server/rateLimits.js: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/rateLimits.js
 - app/+middleware.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/%2Bmiddleware.ts
 - client/features/server-alpha/loaders.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/loaders.ts

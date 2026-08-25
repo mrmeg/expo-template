@@ -1,10 +1,43 @@
+#!/usr/bin/env node
+/**
+ * Rewrite a built package's relative import specifiers so the ESM output is
+ * resolvable by Node and Metro (`./foo` -> `./foo.js`, `./bar` -> `./bar/index.js`).
+ *
+ * One script for every workspace package; the only per-package difference is
+ * whether platform-split modules exist, which is config-keyed below.
+ *
+ * Usage:
+ *   node scripts/fix-package-esm.mjs <ui|media>
+ */
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+/**
+ * `platformSuffixes` is empty for packages without platform-split modules, which
+ * skips the platform pass entirely instead of paying a stat per specifier.
+ */
+const PACKAGES = {
+  ui: { dist: "packages/ui/dist", platformSuffixes: ["native", "web", "ios", "android"] },
+  media: { dist: "packages/media/dist", platformSuffixes: [] },
+};
+
+const packageNames = Object.keys(PACKAGES).sort();
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const distRoot = join(root, "packages/ui/dist");
-const platformSuffixes = ["native", "web", "ios", "android"];
+
+const packageName = process.argv[2];
+const target = PACKAGES[packageName];
+
+if (!target) {
+  console.error(
+    `fix-package-esm: unknown package "${packageName ?? ""}". Expected one of: ${packageNames.join(", ")}`
+  );
+  console.error("Usage: node scripts/fix-package-esm.mjs <ui|media>");
+  process.exit(1);
+}
+
+const distRoot = join(root, target.dist);
+const platformSuffixes = target.platformSuffixes;
 
 async function pathExists(path) {
   try {

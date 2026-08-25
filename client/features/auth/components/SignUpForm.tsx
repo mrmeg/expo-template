@@ -1,21 +1,20 @@
 import React, { useCallback, useRef } from "react";
-import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import { View, Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
-import { createThemedStyles } from "@mrmeg/expo-ui/lib";
-import { spacing } from "@mrmeg/expo-ui/constants";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardFooter,
-  CardTitle,
-  CardDescription,
-} from "@mrmeg/expo-ui/components/Card";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
-import type { Theme } from "@mrmeg/expo-ui/constants";
 import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
+import { AuthFormCard } from "./AuthFormCard";
+import { authFormStyles } from "./authFormStyles";
+import {
+  getSocialLabel,
+  validateConfirmPassword,
+  validateEmail,
+  validatePassword,
+} from "./validators";
+
+const MIN_PASSWORD_LENGTH = 8;
 
 export interface SignUpFormProps {
   onSignUp?: (data: { name: string; email: string; password: string }) => void | Promise<void>;
@@ -48,17 +47,14 @@ export function SignUpForm({
 }: SignUpFormProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const styles = themedStyles(theme);
-
-  const resolvedTitle = title ?? t("auth.signUpTitle");
-  const resolvedDescription = description ?? t("auth.signUpDescription");
+  const shared = authFormStyles(theme);
 
   const nameRef = useRef<AuthTextFieldHandle>(null);
   const emailRef = useRef<AuthTextFieldHandle>(null);
   const passwordRef = useRef<AuthTextFieldHandle>(null);
   const confirmPasswordRef = useRef<AuthTextFieldHandle>(null);
 
-  const validateName = useCallback((value: string): string => {
+  const nameValidator = useCallback((value: string): string => {
     if (!requireName) {
       return "";
     }
@@ -71,36 +67,15 @@ export function SignUpForm({
     return "";
   }, [requireName, t]);
 
-  const validateEmail = useCallback((value: string): string => {
-    if (!value.trim()) {
-      return t("errors.emailRequired");
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(value)) {
-      return t("errors.invalidEmail");
-    }
-    return "";
-  }, [t]);
-
-  const validatePassword = useCallback((value: string): string => {
-    if (!value) {
-      return t("errors.passwordRequired");
-    }
-    if (value.length < 8) {
-      return t("errors.passwordMinLength", { count: 8 });
-    }
-    return "";
-  }, [t]);
-
-  const validateConfirmPassword = useCallback((value: string): string => {
-    if (!value) {
-      return t("errors.confirmPasswordRequired");
-    }
-    if (value !== passwordRef.current?.getValue()) {
-      return t("errors.passwordMismatch");
-    }
-    return "";
-  }, [t]);
+  const emailValidator = useCallback((value: string) => validateEmail(value, t), [t]);
+  const passwordValidator = useCallback(
+    (value: string) => validatePassword(value, t, MIN_PASSWORD_LENGTH),
+    [t],
+  );
+  const confirmPasswordValidator = useCallback(
+    (value: string) => validateConfirmPassword(value, t, passwordRef.current?.getValue()),
+    [t],
+  );
 
   const handleSubmit = useCallback(async () => {
     const isNameValid = !requireName || (nameRef.current?.validate() ?? false);
@@ -115,262 +90,145 @@ export function SignUpForm({
     }
   }, [onSignUp, requireName]);
 
-  const getSocialLabel = (provider: string): string => {
-    switch (provider) {
-    case "google":
-      return t("auth.continueWithGoogle");
-    case "apple":
-      return t("auth.continueWithApple");
-    case "github":
-      return t("auth.continueWithGithub");
-    default:
-      return t("auth.continueWith", { provider });
-    }
-  };
-
-  const formContent = (
-    <View style={styles.formWrapper}>
-      {logo && <View style={styles.logoContainer}>{logo}</View>}
-      <Card style={styles.card}>
-        <CardHeader>
-          <CardTitle>{resolvedTitle}</CardTitle>
-          <CardDescription>{resolvedDescription}</CardDescription>
-        </CardHeader>
-
-        <CardContent style={styles.content}>
-          {!!error && (
-            <View style={styles.errorContainer}>
-              <SansSerifText style={styles.errorText}>{error}</SansSerifText>
-            </View>
-          )}
-
-          {requireName && (
-            <View style={styles.inputGroup}>
-              <AuthTextField
-                ref={nameRef}
-                testID="sign-up-name-input"
-                label={t("auth.name")}
-                placeholder={t("auth.namePlaceholder")}
-                validateValue={validateName}
-                autoCapitalize="words"
-                autoComplete="name"
-                autoCorrect={false}
-                editable={!loading}
-                required
-                returnKeyType="next"
-                blurOnSubmit={false}
-                onSubmitEditing={() => emailRef.current?.focus()}
-              />
-            </View>
-          )}
-
-          <View style={styles.inputGroup}>
-            <AuthTextField
-              ref={emailRef}
-              testID="sign-up-email-input"
-              label={t("auth.email")}
-              placeholder={t("auth.emailPlaceholder")}
-              validateValue={validateEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect={false}
-              editable={!loading}
-              required
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => passwordRef.current?.focus()}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <AuthTextField
-              ref={passwordRef}
-              testID="sign-up-password-input"
-              label={t("auth.password")}
-              placeholder={t("auth.createPasswordPlaceholder")}
-              validateValue={validatePassword}
-              onValueChange={() => {
-                if (confirmPasswordRef.current?.getValue() && confirmPasswordRef.current.hasError()) {
-                  confirmPasswordRef.current.validate();
-                }
-              }}
-              secureTextEntry
-              showSecureEntryToggle
-              autoCapitalize="none"
-              autoComplete="new-password"
-              editable={!loading}
-              required
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <AuthTextField
-              ref={confirmPasswordRef}
-              testID="sign-up-confirm-password-input"
-              label={t("auth.confirmPassword")}
-              placeholder={t("auth.confirmPasswordPlaceholder")}
-              validateValue={validateConfirmPassword}
-              secureTextEntry
-              showSecureEntryToggle
-              autoCapitalize="none"
-              autoComplete="new-password"
-              editable={!loading}
-              required
-              returnKeyType="go"
-              onSubmitEditing={handleSubmit}
-            />
-          </View>
-
-          <Button
-            testID="sign-up-submit-button"
-            preset="default"
-            onPress={handleSubmit}
-            loading={loading}
-            disabled={loading}
-            fullWidth
-          >
-            <SansSerifBoldText>{t("auth.createAccountButton")}</SansSerifBoldText>
-          </Button>
-
-          {socialProviders.length > 0 && (
-            <>
-              <View style={styles.separatorContainer}>
-                <View style={styles.separatorLine} />
-                <SansSerifText style={styles.separatorText}>{t("auth.or")}</SansSerifText>
-                <View style={styles.separatorLine} />
-              </View>
-
-              <View style={styles.socialContainer}>
-                {socialProviders.map((provider) => (
-                  <Button
-                    key={provider}
-                    preset="outline"
-                    onPress={() => onSocialSignUp?.(provider)}
-                    disabled={loading}
-                    fullWidth
-                  >
-                    <SansSerifText>{getSocialLabel(provider)}</SansSerifText>
-                  </Button>
-                ))}
-              </View>
-            </>
-          )}
-        </CardContent>
-
-        {onSignIn && (
-          <CardFooter style={styles.footer}>
-            <SansSerifText style={styles.footerText}>
+  return (
+    <AuthFormCard
+      embedded={embedded}
+      error={error}
+      logo={logo}
+      title={title ?? t("auth.signUpTitle")}
+      description={description ?? t("auth.signUpDescription")}
+      footer={
+        onSignIn && (
+          <>
+            <SansSerifText style={shared.mutedText}>
               {t("auth.hasAccount")}{" "}
             </SansSerifText>
             <Pressable onPress={onSignIn} disabled={loading}>
-              <SansSerifBoldText style={styles.signInLink}>
+              <SansSerifBoldText style={shared.linkText}>
                 {t("auth.signIn")}
               </SansSerifBoldText>
             </Pressable>
-          </CardFooter>
-        )}
-      </Card>
-    </View>
-  );
-
-  if (embedded) {
-    return <View style={styles.embeddedContainer}>{formContent}</View>;
-  }
-
-  return (
-    <KeyboardAvoidingView
-      style={styles.keyboardAvoid}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+          </>
+        )
+      }
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      {requireName && (
+        <View style={shared.inputGroup}>
+          <AuthTextField
+            ref={nameRef}
+            testID="sign-up-name-input"
+            label={t("auth.name")}
+            placeholder={t("auth.namePlaceholder")}
+            validateValue={nameValidator}
+            autoCapitalize="words"
+            autoComplete="name"
+            autoCorrect={false}
+            editable={!loading}
+            required
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => emailRef.current?.focus()}
+          />
+        </View>
+      )}
+
+      <View style={shared.inputGroup}>
+        <AuthTextField
+          ref={emailRef}
+          testID="sign-up-email-input"
+          label={t("auth.email")}
+          placeholder={t("auth.emailPlaceholder")}
+          validateValue={emailValidator}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          autoCorrect={false}
+          editable={!loading}
+          required
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => passwordRef.current?.focus()}
+        />
+      </View>
+
+      <View style={shared.inputGroup}>
+        <AuthTextField
+          ref={passwordRef}
+          testID="sign-up-password-input"
+          label={t("auth.password")}
+          placeholder={t("auth.createPasswordPlaceholder")}
+          validateValue={passwordValidator}
+          onValueChange={() => {
+            if (confirmPasswordRef.current?.getValue() && confirmPasswordRef.current.hasError()) {
+              confirmPasswordRef.current.validate();
+            }
+          }}
+          secureTextEntry
+          showSecureEntryToggle
+          autoCapitalize="none"
+          autoComplete="new-password"
+          editable={!loading}
+          required
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+        />
+      </View>
+
+      <View style={shared.inputGroup}>
+        <AuthTextField
+          ref={confirmPasswordRef}
+          testID="sign-up-confirm-password-input"
+          label={t("auth.confirmPassword")}
+          placeholder={t("auth.confirmPasswordPlaceholder")}
+          validateValue={confirmPasswordValidator}
+          secureTextEntry
+          showSecureEntryToggle
+          autoCapitalize="none"
+          autoComplete="new-password"
+          editable={!loading}
+          required
+          returnKeyType="go"
+          onSubmitEditing={handleSubmit}
+        />
+      </View>
+
+      <Button
+        testID="sign-up-submit-button"
+        preset="default"
+        onPress={handleSubmit}
+        loading={loading}
+        disabled={loading}
+        fullWidth
       >
-        {formContent}
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <SansSerifBoldText>{t("auth.createAccountButton")}</SansSerifBoldText>
+      </Button>
+
+      {socialProviders.length > 0 && (
+        <>
+          <View style={shared.separatorRow}>
+            <View style={shared.separatorLine} />
+            <SansSerifText style={shared.hintText}>{t("auth.or")}</SansSerifText>
+            <View style={shared.separatorLine} />
+          </View>
+
+          <View style={shared.socialButtons}>
+            {socialProviders.map((provider) => (
+              <Button
+                key={provider}
+                preset="outline"
+                onPress={() => onSocialSignUp?.(provider)}
+                disabled={loading}
+                fullWidth
+              >
+                <SansSerifText>{getSocialLabel(provider, t)}</SansSerifText>
+              </Button>
+            ))}
+          </View>
+        </>
+      )}
+    </AuthFormCard>
   );
 }
-
-const createStyles = (theme: Theme) =>
-  StyleSheet.create({
-    keyboardAvoid: {
-      flex: 1,
-    },
-    embeddedContainer: {
-      width: "100%",
-    },
-    scrollContent: {
-      flexGrow: 1,
-      justifyContent: "center",
-      padding: spacing.md,
-    },
-    card: {
-      width: "100%",
-    },
-    formWrapper: {
-      width: "100%",
-      maxWidth: 400,
-      alignSelf: "center",
-    },
-    logoContainer: {
-      alignItems: "center",
-      marginBottom: spacing.lg,
-    },
-    content: {
-      gap: spacing.md,
-    },
-    inputGroup: {
-      width: "100%",
-    },
-    errorContainer: {
-      backgroundColor: withAlpha(theme.colors.destructive, 0.08),
-      borderRadius: spacing.radiusSm,
-      padding: spacing.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.destructive,
-    },
-    errorText: {
-      color: theme.colors.destructive,
-      fontSize: 14,
-      textAlign: "center",
-    },
-    separatorContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginVertical: spacing.sm,
-      gap: spacing.md,
-    },
-    separatorLine: {
-      flex: 1,
-      height: 1,
-      backgroundColor: theme.colors.border,
-    },
-    separatorText: {
-      color: theme.colors.textDim,
-      fontSize: 13,
-    },
-    socialContainer: {
-      gap: spacing.sm,
-    },
-    footer: {
-      justifyContent: "center",
-    },
-    footerText: {
-      color: theme.colors.textDim,
-      fontSize: 14,
-    },
-    signInLink: {
-      color: theme.colors.primary,
-      fontSize: 14,
-    },
-  });
-
-const themedStyles = createThemedStyles(createStyles);
 
 export default SignUpForm;

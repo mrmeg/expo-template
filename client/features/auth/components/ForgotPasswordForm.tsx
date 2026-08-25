@@ -1,21 +1,16 @@
 import React, { useCallback, useRef, useState } from "react";
-import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardFooter,
-  CardTitle,
-  CardDescription,
-} from "@mrmeg/expo-ui/components/Card";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
+import { AuthFormCard } from "./AuthFormCard";
+import { authFormStyles } from "./authFormStyles";
+import { validateEmail } from "./validators";
 
 export interface ForgotPasswordFormProps {
   onSubmit?: (email: string) => void | Promise<void>;
@@ -44,24 +39,13 @@ export function ForgotPasswordForm({
 }: ForgotPasswordFormProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const shared = authFormStyles(theme);
   const styles = themedStyles(theme);
-
-  const resolvedTitle = title ?? t("auth.forgotPasswordTitle");
-  const resolvedDescription = description ?? t("auth.forgotPasswordDescription");
 
   const emailRef = useRef<AuthTextFieldHandle>(null);
   const [submittedEmail, setSubmittedEmail] = useState("");
 
-  const validateEmail = useCallback((value: string): string => {
-    if (!value.trim()) {
-      return t("errors.emailRequired");
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(value)) {
-      return t("errors.invalidEmail");
-    }
-    return "";
-  }, [t]);
+  const emailValidator = useCallback((value: string) => validateEmail(value, t), [t]);
 
   const handleSubmit = useCallback(async () => {
     if (emailRef.current?.validate()) {
@@ -71,164 +55,85 @@ export function ForgotPasswordForm({
     }
   }, [onSubmit]);
 
-  const wrapContent = (content: React.ReactNode) => {
-    if (embedded) {
-      return <View style={styles.embeddedContainer}>{content}</View>;
-    }
-    return (
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {content}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    );
-  };
-
   if (success) {
-    return wrapContent(
-      <View style={styles.formWrapper}>
-        {logo && <View style={styles.logoContainer}>{logo}</View>}
-        <Card style={styles.card}>
-          <CardHeader>
-            <CardTitle>{t("auth.checkYourEmail")}</CardTitle>
-            <CardDescription>
-              {t("auth.resetLinkSentDescription", { email: submittedEmail })}
-            </CardDescription>
-          </CardHeader>
+    return (
+      <AuthFormCard
+        embedded={embedded}
+        logo={logo}
+        title={t("auth.checkYourEmail")}
+        description={t("auth.resetLinkSentDescription", { email: submittedEmail })}
+      >
+        <View style={styles.successContainer}>
+          <SansSerifText style={styles.successText}>
+            {t("auth.didntReceiveEmail")}
+          </SansSerifText>
+        </View>
 
-          <CardContent style={styles.content}>
-            <View style={styles.successContainer}>
-              <SansSerifText style={styles.successText}>
-                {t("auth.didntReceiveEmail")}
-              </SansSerifText>
-            </View>
-
-            <Button
-              preset="outline"
-              onPress={() => {
-                emailRef.current?.setValue("");
-                onBack?.();
-              }}
-              fullWidth
-            >
-              <SansSerifBoldText>{t("auth.backToSignIn")}</SansSerifBoldText>
-            </Button>
-          </CardContent>
-        </Card>
-      </View>
+        <Button
+          preset="outline"
+          onPress={() => {
+            emailRef.current?.setValue("");
+            onBack?.();
+          }}
+          fullWidth
+        >
+          <SansSerifBoldText>{t("auth.backToSignIn")}</SansSerifBoldText>
+        </Button>
+      </AuthFormCard>
     );
   }
 
-  return wrapContent(
-    <View style={styles.formWrapper}>
-      {logo && <View style={styles.logoContainer}>{logo}</View>}
-      <Card style={styles.card}>
-        <CardHeader>
-          <CardTitle>{resolvedTitle}</CardTitle>
-          <CardDescription>{resolvedDescription}</CardDescription>
-        </CardHeader>
+  return (
+    <AuthFormCard
+      embedded={embedded}
+      error={error}
+      logo={logo}
+      title={title ?? t("auth.forgotPasswordTitle")}
+      description={description ?? t("auth.forgotPasswordDescription")}
+      footer={
+        onBack && (
+          <Pressable onPress={onBack} disabled={loading}>
+            <SansSerifText style={shared.linkText}>
+              {t("auth.backToSignIn")}
+            </SansSerifText>
+          </Pressable>
+        )
+      }
+    >
+      <View style={shared.inputGroup}>
+        <AuthTextField
+          ref={emailRef}
+          testID="forgot-password-email-input"
+          label={t("auth.email")}
+          placeholder={t("auth.emailPlaceholder")}
+          validateValue={emailValidator}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          autoCorrect={false}
+          editable={!loading}
+          required
+          returnKeyType="go"
+          onSubmitEditing={handleSubmit}
+        />
+      </View>
 
-        <CardContent style={styles.content}>
-          {!!error && (
-            <View style={styles.errorContainer}>
-              <SansSerifText style={styles.errorText}>{error}</SansSerifText>
-            </View>
-          )}
-
-          <View style={styles.inputGroup}>
-            <AuthTextField
-              ref={emailRef}
-              testID="forgot-password-email-input"
-              label={t("auth.email")}
-              placeholder={t("auth.emailPlaceholder")}
-              validateValue={validateEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect={false}
-              editable={!loading}
-              required
-              returnKeyType="go"
-              onSubmitEditing={handleSubmit}
-            />
-          </View>
-
-          <Button
-            testID="forgot-password-submit-button"
-            preset="default"
-            onPress={handleSubmit}
-            loading={loading}
-            disabled={loading}
-            fullWidth
-          >
-            <SansSerifBoldText>{t("auth.sendResetLink")}</SansSerifBoldText>
-          </Button>
-        </CardContent>
-
-        {onBack && (
-          <CardFooter style={styles.footer}>
-            <Pressable onPress={onBack} disabled={loading}>
-              <SansSerifText style={styles.backLink}>
-                {t("auth.backToSignIn")}
-              </SansSerifText>
-            </Pressable>
-          </CardFooter>
-        )}
-      </Card>
-    </View>
+      <Button
+        testID="forgot-password-submit-button"
+        preset="default"
+        onPress={handleSubmit}
+        loading={loading}
+        disabled={loading}
+        fullWidth
+      >
+        <SansSerifBoldText>{t("auth.sendResetLink")}</SansSerifBoldText>
+      </Button>
+    </AuthFormCard>
   );
 }
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    keyboardAvoid: {
-      flex: 1,
-    },
-    embeddedContainer: {
-      width: "100%",
-    },
-    scrollContent: {
-      flexGrow: 1,
-      justifyContent: "center",
-      padding: spacing.md,
-    },
-    card: {
-      width: "100%",
-    },
-    formWrapper: {
-      width: "100%",
-      maxWidth: 400,
-      alignSelf: "center",
-    },
-    logoContainer: {
-      alignItems: "center",
-      marginBottom: spacing.lg,
-    },
-    content: {
-      gap: spacing.md,
-    },
-    inputGroup: {
-      width: "100%",
-    },
-    errorContainer: {
-      backgroundColor: withAlpha(theme.colors.destructive, 0.08),
-      borderRadius: spacing.radiusSm,
-      padding: spacing.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.destructive,
-    },
-    errorText: {
-      color: theme.colors.destructive,
-      fontSize: 14,
-      textAlign: "center",
-    },
     successContainer: {
       backgroundColor: withAlpha(theme.colors.success, 0.08),
       borderRadius: spacing.radiusSm,
@@ -240,13 +145,6 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.foreground,
       fontSize: 14,
       textAlign: "center",
-    },
-    footer: {
-      justifyContent: "center",
-    },
-    backLink: {
-      color: theme.colors.primary,
-      fontSize: 14,
     },
   });
 

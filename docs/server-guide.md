@@ -1,19 +1,22 @@
 # Expo Server Guide
 
 This guide is the LLM-facing reference for replicating this template's server
-stack — server-hosted web output, API routes, request middleware, and data
-loaders — in another Expo Router project. Data loaders and middleware are Expo
-Router alpha features behind `unstable_` flags (the demos call this surface
-"Server Alpha"); expect their APIs to move between SDK versions, and check the
-pinned Expo version in `package.json` before copying patterns.
+stack — server-rendered web output, API routes, request middleware, and data
+loaders — in another Expo Router project. Server rendering, data loaders, and
+middleware are Expo Router alpha features behind `unstable_` flags (the demos
+call this surface "Server Alpha"); expect their APIs to move between SDK
+versions, and check the pinned Expo version in `package.json` before copying
+patterns.
 
 ## Source Map
 
 | Concern | Source |
 |---------|--------|
 | Server output and router flags | `app.config.ts` |
-| Production server, default (Bun) | `server.bun.ts` |
-| Production server, fallback (Express) | `server/index.ts` |
+| HTML document (server-rendered per request) | `app/+html.tsx` |
+| SSR stylesheet flush | `client/features/app/SsrStyleFlush.tsx` |
+| SSR request-derived state | `server/lib/ssrViewport.ts`, `server/lib/ssrOnboarding.ts`, `client/features/app/ssrViewportMetrics.ts` |
+| Production server (Bun) | `server.bun.ts` |
 | Rate-limit buckets | `server/rateLimits.js` |
 | Request middleware | `app/+middleware.ts` |
 | Data loaders (demo feature) | `client/features/server-alpha/loaders.ts` |
@@ -25,8 +28,8 @@ pinned Expo version in `package.json` before copying patterns.
 
 The Server Alpha demo at route `/server-alpha` walks four live patterns:
 `loader-overview` (a static route's loader supplies its page data),
-`dynamic-loader` (a param'd route fetches the matching API route, because a
-loader cannot answer a param'd request — see Data Loaders), `api-route`
+`dynamic-loader` (a param'd route fetches the matching API route instead of
+declaring a loader — see Data Loaders), `api-route`
 (handlers own parsing and mutations), and `middleware` (request-scoped headers
 without business logic).
 
@@ -42,6 +45,7 @@ plugins: [
     "expo-router",
     {
       origin: "",
+      unstable_useServerRendering: true,
       unstable_useServerMiddleware: true,
       unstable_useServerDataLoaders: true,
     },
@@ -50,32 +54,66 @@ plugins: [
 ```
 
 - `output: "server"` makes `expo export -p web` emit `dist/client` (static
-  assets) plus `dist/server` (request handler, routes, loaders).
+  assets) plus `dist/server` (request handler, route manifest, API routes, and
+  — with server rendering on — the SSR render module).
+- `unstable_useServerRendering` renders each web route on the server per
+  request instead of writing an HTML shell at export time (see Server
+  Rendering below).
 - `unstable_useServerMiddleware` enables `app/+middleware.ts`.
 - `unstable_useServerDataLoaders` enables route `loader` exports and
   `useLoaderData`.
-- There is deliberately no `unstable_useServerRendering`. Web routes are
-  client-rendered: each one gets an HTML shell written at export time and the
-  app takes over after hydration. That keeps a single render path for native
-  and web, at the cost of crawlers seeing only the shell (see
-  `client/components/Seo.tsx`). Turning per-request rendering back on
-  reintroduces a whole class of first-render/hydration constraints.
+
+### Server Rendering
+
+With `unstable_useServerRendering` on, `expo export -p web` skips HTML
+prerendering entirely: it emits `dist/server/_expo/server/render.js` and marks
+`dist/server/_expo/routes.json` with `"rendering": { "mode": "ssr" }` (the
+export log prints "Server rendering is enabled"). At runtime `expo-server`
+streams that renderer per request, so every response carries the route's real
+markup — crawlers and the first paint see page content, not a shell (page-level
+meta still comes from `client/components/Seo.tsx`).
+
+Server rendering is not free: the first render happens in Node, with no DOM and
+no browser storage. Four things in this template exist only to satisfy that.
+
+- **Styles must be registered at module scope.** The framework's head snapshot
+  (`useServerDocumentContext()`) is taken *before* route modules load, so any
+  react-native-web rule registered later is missing from it and the HTML
+  references classes with no rules. `createThemedStyles` hoists rules to module
+  scope, and `client/features/app/SsrStyleFlush.tsx` renders last in the root
+  layout — after the whole subtree — to emit the complete
+  `StyleSheet.getSheet()` output as a React 19 style resource.
+- **`app/+html.tsx` filters the snapshot.** It drops the framework's
+  `<style id="react-native-stylesheet">` node from `headNodes` and renders an
+  empty element with that id for react-native-web to adopt as its client
+  sheet. Both sheets use single-class selectors, so keeping the incomplete
+  snapshot would let its base resets win the cascade over later atomics.
+- **First-render state comes off the request.** `server/lib/ssrViewport.ts`
+  derives a viewport width from a `mrmeg-vw` cookie, then a User-Agent
+  heuristic, then a desktop default (without it react-native-web lays out at
+  width 0). `server/lib/ssrOnboarding.ts` reads a `has-seen-onboarding`
+  cookie. Both are mirrors of client state, not sources of truth, and
+  `client/features/app/ssrViewportMetrics.ts` re-derives the same values from
+  the same bytes so hydration matches. A request with no cookies renders the
+  onboarding variant.
+- **Dev SSR shares one React copy.** Expo externalizes `react` and `react-dom`
+  in `node`/`react-server` dev bundles, so `metro.config.js` skips its dedupe
+  rewrite for those packages there; rewriting them would bundle a second React
+  and give externalized packages a null hooks dispatcher.
 
 ## Serve The Build
 
-Development: `bun run web` (Expo dev server runs loaders, middleware, and API
-routes in place).
+Development: `bun run web` (Expo dev server renders routes and runs loaders,
+middleware, and API routes in place).
 
-Production: `bun run build` exports `dist/`, then either entry serves it:
+Production: `bun run build` exports `dist/`, then `bun run start` serves it:
 
-- `bun run start` — `server.bun.ts`, the default. Wraps
+- `bun run start` — `server.bun.ts`, the only production entry. Wraps
   `createRequestHandler({ build: "dist/server" })` from
-  `expo-server/adapter/bun`.
-- `bun run start:express` — `server/index.ts`, Node fallback. Same behavior
-  via `expo-server/adapter/express` and `express-rate-limit`, `cors`,
-  `compression`, `morgan`.
+  `expo-server/adapter/bun` in `Bun.serve`.
+- `bun run start-local` — the same entry with `.env` autoloaded by Bun.
 
-Both entries own concerns that Expo's request handler does not:
+The entry owns concerns that Expo's request handler does not:
 
 - CORS origin allowlist from the `ALLOWED_ORIGINS` env var (comma-separated;
   localhost defaults otherwise), echoing only allowlisted origins and managing
@@ -86,8 +124,8 @@ Both entries own concerns that Expo's request handler does not:
   `Referrer-Policy`, `Permissions-Policy`, `X-Request-ID`, and HSTS in
   production.
 - Static caching and compression: 1-year cache for `/_expo/static/` and
-  `/assets/`, brotli/gzip for text-like bodies over 1KB (Bun entry caches
-  compressed bodies in memory).
+  `/assets/`, brotli/gzip for text-like bodies over 1KB, with compressed
+  bodies cached in memory.
 - Loader path normalization: strips `.web`/`.native` suffixes from
   `/_expo/loaders/*` requests so platform-specific loader files resolve.
 
@@ -195,25 +233,38 @@ size win comes only from routes sharing one file.
 Loaders let a web route declare its initial data as server code instead of a
 client `useEffect`. The pattern has three parts.
 
-**When loaders run.** Because routes are client-rendered (no
-`unstable_useServerRendering`), loader data is not embedded in the HTML shell:
-`useLoaderData` fetches `/_expo/loaders/<route>` after mount. The dev server
-answers that request by running the loader per request. `expo export`
-answers it with a **build-time snapshot** — it runs every loader once during
-the export and writes the result to `dist/client/_expo/loaders/<route>`. So in
-a production build, loader output is as fresh as the last deploy, and
-`request` is absent inside the loader (`getTemplateServerStatus` reports
-`method: "STATIC"`). Anything that must be request-scoped or fresh belongs in
-an API route, which does run per request in production.
+**When loaders run.** With server rendering on there is no build-time
+snapshot. For an HTML request, `expo-server` runs the matched route's loader
+**per request** — with the real request and parsed params — before rendering,
+hands the result to the render through Expo Router's server loader context so
+`useLoaderData()` returns it during the server render, and injects the same
+payload into the bootstrap script so hydration reuses it without a fetch.
+Client-side navigations (and loader invalidation) fetch
+`/_expo/loaders/<route>`, which the request handler answers by running the
+loader again, per request. So loader output is as fresh as the request, and
+`request` is present inside the loader.
 
-**Static routes only.** The snapshot is keyed by the route's file path, so a
-route like `[example].tsx` is exported as `_expo/loaders/.../[example]` while
-the browser asks for `_expo/loaders/.../dynamic-loader`. A loader on a param'd
-route therefore resolves in dev and 404s in a production build. Give param'd
-routes an API route and fetch it from the screen — that is what the demo's
-`[example].tsx` does (no `loader` export;
+**Production detection gap.** `expo export` decides which routes have loaders
+from a Babel pass over `app/` (`babel-preset-expo`'s
+`server-data-loaders-plugin`) that only recognizes a `loader` **declaration** in
+the route file. An export with specifiers — `export { serverAlphaLoader as
+loader } from "@/client/features/server-alpha/loaders"`, the shape the demo
+route uses below — is skipped, so no loader bundle is emitted and the route
+gets no `loader` entry in `dist/server/_expo/routes.json`. Development hides
+this, because the dev server marks every HTML route as having a loader.
+Verified against this repo's own export: `/_expo/loaders/server-alpha` returns
+404, and the server render falls through to `useLoaderData`'s client fetch
+path, which throws `TypeError: fetch() URL is invalid` inside the route's
+Suspense boundary. Until the plugin handles specifiers, a loader that must
+survive `expo export` has to be declared in the route file itself.
+
+**Param'd routes.** Loader requests are matched against the route manifest by
+the route's regex with params parsed out, so a param'd loader is addressable
+under server rendering (the older build-time snapshot, keyed by the literal
+file path, could not be). The demo still keeps the API-route split, which
+works on every rendering mode: `[example].tsx` exports no `loader`, and
 `client/features/server-alpha/ServerAlphaExampleScreen.tsx` reads
-`useLocalSearchParams()` and fetches `/api/template/examples`).
+`useLocalSearchParams()` and fetches `/api/template/examples`.
 
 Define loaders in a feature folder, typed with `LoaderFunction<T>`, returning
 JSON-serializable data. Dynamically import server modules inside the loader
@@ -228,8 +279,8 @@ export const serverAlphaLoader: LoaderFunction<TemplateServerCatalog> = async (r
   try {
     setResponseHeaders({ "Cache-Control": "no-store" });
   } catch {
-    // Static export and direct unit-test calls do not have an active
-    // Expo Server request scope.
+    // Unit tests and direct calls do not have an active Expo Server
+    // request scope.
   }
   const { getTemplateServerCatalog } = await import("@/server/api/template/examples");
   return getTemplateServerCatalog(request);
@@ -244,6 +295,10 @@ export { serverAlphaLoader as loader } from "@/client/features/server-alpha/load
 export { default } from "@/client/features/server-alpha/ServerAlphaDemoScreen";
 ```
 
+This keeps the route file thin and works in development, but it is the shape
+the export's loader detection misses — see the production detection gap above
+before relying on it in a build.
+
 Consume in the screen with `useLoaderData`, typed by the loader itself:
 
 ```ts
@@ -254,12 +309,12 @@ const catalog = useLoaderData<typeof serverAlphaLoader>();
 
 Loader rules:
 
-- Loaders belong on static routes. Param'd routes fetch an API route.
 - Loaders are read-only. Mutations belong in API route handlers.
-- Wrap `setResponseHeaders` in try/catch; the export pass and unit tests run
+- Wrap `setResponseHeaders` in try/catch; unit tests and direct calls run
   loaders without an active request scope.
-- Never derive auth or per-user data from a loader — its production output is
-  a single build-time snapshot served to everyone.
+- Keep authorization in API routes. A loader does see the request under server
+  rendering, but its data must stay fetchable from the client too (next rule),
+  so the API route is the single place that can own the check for both paths.
 - Pair each loader with an API route exposing the same data so the client can
   refetch live values (`serverAlphaLoader` pairs with
   `app/api/template/examples+api.ts`).
@@ -302,11 +357,14 @@ shapes your app actually serves.
 
 Use this order when adding the server stack to another Expo Router project:
 
-1. Set `web.output: "server"` and the two `unstable_` router flags in app
-   config; confirm the Expo SDK version supports them.
-2. Add a server entry (`server.bun.ts` or `server/index.ts` equivalent) that
-   wraps the `expo-server` adapter and owns CORS, rate limits, security
-   headers, and static caching.
+1. Set `web.output: "server"` and the three `unstable_` router flags in app
+   config; confirm the Expo SDK version supports them. Server rendering adds
+   the first-render constraints listed under Server Rendering — budget for the
+   stylesheet flush, the `+html.tsx` snapshot filter, and request-derived
+   viewport/persisted state before turning it on.
+2. Add a server entry (`server.bun.ts`, or the `expo-server` adapter for your
+   runtime) that wraps the request handler and owns CORS, rate limits,
+   security headers, and static caching.
 3. Create `server/api/shared/` with the CORS, error, and auth helpers; keep
    route files thin handler exports.
 4. Add API routes under `app/api/**/+api.ts` with `OPTIONS` preflight and
@@ -315,10 +373,11 @@ Use this order when adding the server stack to another Expo Router project:
    Consolidation above) — each `+api.ts` exports as its own bundle.
 5. Add `app/+middleware.ts` with an explicit matcher, limited to headers and
    observability.
-6. Add loaders per feature folder for **static** routes, re-export as `loader`
-   from the route file, consume with `useLoaderData<typeof loaderFn>()`, and
-   pair each with an API route for client refetch. Param'd routes read their
-   params and fetch that API route.
+6. Add loaders per feature folder, consume with
+   `useLoaderData<typeof loaderFn>()`, and pair each with an API route for
+   client refetch. Declare the `loader` export in the route file if it has to
+   survive `expo export` (see the production detection gap under Data
+   Loaders).
 
 ## Validation
 

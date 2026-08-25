@@ -1,5 +1,5 @@
 /**
- * Rate-limit configuration for the Express production server.
+ * Rate-limit configuration for the Bun production server (`server.bun.ts`).
  *
  * Kept as plain data so tests can assert the mapping between routes and
  * limiters without loading the full server (which binds a port).

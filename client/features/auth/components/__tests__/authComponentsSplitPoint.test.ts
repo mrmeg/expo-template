@@ -3,7 +3,7 @@
  *
  * Metro hoists any module reachable from two or more async chunks into the
  * eagerly `<script>`-loaded `__common` bundle, so the auth screen + five forms
- * (~57 kB raw) only stay off the first-render download path while *every*
+ * (~47 kB raw) only stay off the first-render download path while *every*
  * consumer reaches them through one dynamic `import()` of one specifier:
  * `@/client/features/auth/components`.
  *
