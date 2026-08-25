@@ -63,21 +63,11 @@ export function createCognitoAuthClient(): AuthClient {
   };
 
   async function configure(): Promise<void> {
-    const userPoolId = process.env.EXPO_PUBLIC_USER_POOL_ID;
-    const userPoolClientId = process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID;
-
-    if (!userPoolId || !userPoolClientId) {
-      const missing = [
-        !userPoolId && "EXPO_PUBLIC_USER_POOL_ID",
-        !userPoolClientId && "EXPO_PUBLIC_USER_POOL_CLIENT_ID",
-      ].filter(Boolean).join(", ");
-
-      if (__DEV__) {
-        console.warn(`⚠️ Auth disabled — missing env vars: ${missing}`);
-        return;
-      }
-      throw new Error(`Auth configuration failed — missing env vars: ${missing}`);
-    }
+    // Invariant: both vars are set. `getAuthClient` only constructs this client
+    // when `getAuthProvider()` selected "cognito", which requires both (see
+    // ./index.ts) — the missing-env case fails closed there, not here.
+    const userPoolId = process.env.EXPO_PUBLIC_USER_POOL_ID ?? "";
+    const userPoolClientId = process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID ?? "";
 
     const { Amplify } = await import("./cognitoSdk");
     Amplify.configure({
