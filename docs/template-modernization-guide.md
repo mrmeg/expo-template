@@ -30,8 +30,8 @@ the same change.
 
 ## Stack Baseline
 
-The template is a Bun-managed Expo app with Expo Router, server-hosted
-client-rendered web output, TypeScript strict mode, React Query, Zustand, optional Cognito auth,
+The template is a Bun-managed Expo app with Expo Router, server-rendered
+web output, TypeScript strict mode, React Query, Zustand, optional Cognito auth,
 optional Stripe billing, optional S3/R2 media, optional Sentry, and two
 workspace packages:
 
@@ -56,11 +56,13 @@ belong in `packages/media`.
   env names.
 - Keep optional systems fail-closed. A blank `.env` must leave the template
   explorable with auth, billing, media, and Sentry disabled.
-- Web routes are client-rendered. Persisted browser state (localStorage,
-  `matchMedia`, dimensions) is only readable after mount, so changes to
-  `app/+html.tsx`, root startup, theme startup, i18n startup, onboarding,
-  viewport logic, or font loading must be verified in a browser against
-  `bun run build && bun run start`.
+- Web routes are server-rendered per request. Persisted browser state
+  (localStorage, `matchMedia`, dimensions) is unavailable in that first render,
+  so it must either be derived from the request — the way
+  `server/lib/ssrViewport.ts` and `server/lib/ssrOnboarding.ts` read cookies —
+  or read after mount. Changes to `app/+html.tsx`, root startup, theme startup,
+  i18n startup, onboarding, viewport logic, or font loading must be verified in
+  a browser against `bun run build && bun run start`.
 - Add showcase coverage when adding a reusable component, block, or screen
   template. Components are listed by hand in `client/showcase/registry.ts`;
   blocks and screen templates are generated from their `meta.ts` by
