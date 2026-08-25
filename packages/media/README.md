@@ -224,13 +224,28 @@ export const mediaHandlers = createMediaHandlers({
 });
 ```
 
-Expo Router API route files stay thin:
+Expose the handlers through one consolidated Expo Router route file —
+`expo export` bundles every `+api.ts` separately, so per-action files would
+each duplicate the S3 + auth stack. A single `app/api/media/[action]+api.ts`
+keeps the URLs (`/api/media/list`, `/api/media/getUploadUrl`, ...) while
+emitting one bundle:
 
 ```ts
 import { mediaHandlers } from "@/server/media/handlers";
 
-export const OPTIONS = mediaHandlers.options;
-export const POST = mediaHandlers.getUploadUrl;
+const routes = {
+  list: { GET: mediaHandlers.list },
+  getUploadUrl: { POST: mediaHandlers.getUploadUrl },
+  getSignedUrls: { POST: mediaHandlers.getSignedUrls },
+  delete: { DELETE: mediaHandlers.deleteOne, POST: mediaHandlers.deleteMany },
+};
+
+export function POST(request: Request, { action }: { action: string }) {
+  const handler = routes[action]?.POST;
+  return handler ? handler(request) : notFoundResponse(request);
+}
+// GET / DELETE / OPTIONS dispatch the same way — see the template's
+// app/api/media/[action]+api.ts for the full file.
 ```
 
 Missing bucket credentials or invalid media config return a typed `503`

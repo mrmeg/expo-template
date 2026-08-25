@@ -293,7 +293,11 @@ Working composition examples for every template live under
   `export async function GET(request: Request): Promise<Response>`. Shared
   auth/CORS/error helpers live in `server/api/shared/` — keep route files
   thin. Return typed problem objects to the client, not raw `Response`
-  branching in UI code.
+  branching in UI code. Every `+api.ts` exports as its own self-contained
+  server bundle, so consolidate sibling actions that share heavy
+  dependencies behind one `app/api/<feature>/[action]+api.ts` dispatcher
+  (template reference: `app/api/media/[action]+api.ts`; see the server
+  guide's Route Consolidation section).
 - **Auth fetch:** a single `authenticatedFetch`/`api.*` wrapper injects the
   Bearer token; UI code never builds auth headers.
 - **Optional systems fail closed:** with a blank `.env`, auth, billing,

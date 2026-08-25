@@ -124,6 +124,72 @@ Shared helpers under `server/api/shared/`:
 Optional features must fail closed: missing env returns a typed disabled
 response (for example the media routes' `503 media-disabled`), never a crash.
 
+### Route Consolidation (Bundle Size)
+
+`expo export` emits every `+api.ts` file as its own **self-contained server
+bundle** — sibling routes duplicate every shared dependency. Before
+consolidation this repo shipped the S3 + auth stack four times (~808 KB × 4
+media routes) and the Stripe + auth stack three times (~510 KB × 3 billing
+routes). Group sibling actions that share heavy dependencies behind one
+dynamic-segment route file; the public URLs do not change:
+
+```
+app/api/media/[action]+api.ts      → /api/media/list, /api/media/getUploadUrl,
+                                      /api/media/getSignedUrls, /api/media/delete
+app/api/billing/[action]+api.ts    → /api/billing/summary, /api/billing/checkout-session,
+                                      /api/billing/portal-session
+app/api/billing/webhook+api.ts     → /api/billing/webhook (static — see below)
+```
+
+The dispatcher shape (from `app/api/media/[action]+api.ts`): map each action
+to its per-method handlers, return a typed `404 not-found` for unknown
+actions and `405 method-not-allowed` for a known action with the wrong
+method, matching what the router would have returned for separate files:
+
+```ts
+const routes: Record<string, Partial<Record<Method, RouteHandler>>> = {
+  list: { GET: mediaHandlers.list },
+  getUploadUrl: { POST: mediaHandlers.getUploadUrl },
+  getSignedUrls: { POST: mediaHandlers.getSignedUrls },
+  delete: { DELETE: mediaHandlers.deleteOne, POST: mediaHandlers.deleteMany },
+};
+
+export function GET(request: Request, params: { action: string }) {
+  return dispatch("GET", request, params);
+}
+```
+
+Rules of thumb:
+
+- Consolidate routes that share the same feature prefix, auth model, and
+  heavy dependencies. Keep the handler bodies in `server/` modules
+  (`server/media/handlers.ts`, `server/api/billing/handlers.ts`) so the
+  route file stays a thin dispatcher.
+- Keep a route **separate** when its auth model differs. The Stripe webhook
+  stays in static `webhook+api.ts` (signature over the raw body, no user
+  token); Expo Router matches static routes before dynamic siblings, so it
+  wins over `[action]+api.ts`.
+- Tiny routes with no shared heavy deps (the `app/api/template/*` demos)
+  aren't worth consolidating.
+- Don't fake sub-routes by dispatching on the request body or query params —
+  you lose per-endpoint status semantics and rate-limit/path alignment for
+  no additional size win over a dynamic segment.
+
+File-name → URL mapping, verified against both the dev server and the
+exported build:
+
+| File | Matches | Notes |
+|------|---------|-------|
+| `api/media/index+api.ts` | `/api/media` only | The folder URL itself; does NOT catch sub-paths |
+| `api/media/[action]+api.ts` | `/api/media/<one-segment>` | Param arrives as `params.action`; single segment only |
+| `api/billing/webhook+api.ts` | `/api/billing/webhook` | Static; wins over a dynamic sibling |
+
+All three can coexist in one folder (REST shape: `index` for the
+collection, `[id]`/`[action]` for items, static files for exceptions).
+Each file is still its own server bundle — an `index+api.ts` next to
+action files adds a bundle rather than consolidating anything, so the
+size win comes only from routes sharing one file.
+
 ## Data Loaders
 
 Loaders let a web route declare its initial data as server code instead of a
@@ -244,7 +310,9 @@ Use this order when adding the server stack to another Expo Router project:
 3. Create `server/api/shared/` with the CORS, error, and auth helpers; keep
    route files thin handler exports.
 4. Add API routes under `app/api/**/+api.ts` with `OPTIONS` preflight and
-   CORS headers on every response.
+   CORS headers on every response. Consolidate sibling actions that share
+   heavy dependencies behind a `[action]+api.ts` dispatcher (see Route
+   Consolidation above) — each `+api.ts` exports as its own bundle.
 5. Add `app/+middleware.ts` with an explicit matcher, limited to headers and
    observability.
 6. Add loaders per feature folder for **static** routes, re-export as `loader`

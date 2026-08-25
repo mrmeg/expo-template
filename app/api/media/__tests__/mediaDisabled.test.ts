@@ -63,6 +63,23 @@ function makeRequest(
   return new Request(url, { ...init, headers });
 }
 
+// The media routes are consolidated behind `[action]+api.ts`; bind the
+// action param here (requiring lazily so `jest.resetModules()` still
+// applies) to keep call sites in the old per-file handler shape.
+function mediaRoute(action: "list" | "delete" | "getUploadUrl" | "getSignedUrls") {
+  const route = require("../[action]+api");
+  const bind =
+    (method: "GET" | "POST" | "DELETE" | "OPTIONS") =>
+      (request: Request): Promise<Response> =>
+        route[method](request, { action });
+  return {
+    GET: bind("GET"),
+    POST: bind("POST"),
+    DELETE: bind("DELETE"),
+    OPTIONS: bind("OPTIONS"),
+  };
+}
+
 describe("media routes — disabled state", () => {
   const originalEnv: Partial<Record<string, string | undefined>> = {};
 
@@ -88,7 +105,7 @@ describe("media routes — disabled state", () => {
 
   describe("GET /api/media/list", () => {
     it("returns 503 media-disabled with all four missing env names", async () => {
-      const { GET } = require("../list+api");
+      const { GET } = mediaRoute("list");
       const res: Response = await GET(
         makeRequest("http://localhost/api/media/list", { method: "GET" })
       );
@@ -101,7 +118,7 @@ describe("media routes — disabled state", () => {
     });
 
     it("OPTIONS preflight succeeds even when storage is unconfigured", async () => {
-      const { OPTIONS } = require("../list+api");
+      const { OPTIONS } = mediaRoute("list");
       const res: Response = await OPTIONS(
         makeRequest("http://localhost/api/media/list", { method: "OPTIONS" })
       );
@@ -114,7 +131,7 @@ describe("media routes — disabled state", () => {
       process.env.R2_ACCESS_KEY_ID = "k";
       process.env.R2_SECRET_ACCESS_KEY = "s";
       // R2_BUCKET still missing
-      const { GET } = require("../list+api");
+      const { GET } = mediaRoute("list");
       const res: Response = await GET(
         makeRequest("http://localhost/api/media/list", { method: "GET" })
       );
@@ -128,7 +145,7 @@ describe("media routes — disabled state", () => {
       process.env.R2_ACCESS_KEY_ID = "k";
       process.env.R2_SECRET_ACCESS_KEY = "s";
       process.env.R2_BUCKET = "b";
-      const { GET } = require("../list+api");
+      const { GET } = mediaRoute("list");
       const res: Response = await GET(
         makeRequest("http://localhost/api/media/list", { method: "GET" })
       );
@@ -140,7 +157,7 @@ describe("media routes — disabled state", () => {
 
   describe("POST /api/media/getUploadUrl", () => {
     it("returns 503 media-disabled and never calls S3 / presigner", async () => {
-      const { POST } = require("../getUploadUrl+api");
+      const { POST } = mediaRoute("getUploadUrl");
       const res: Response = await POST(
         makeRequest("http://localhost/api/media/getUploadUrl", {
           method: "POST",
@@ -157,7 +174,7 @@ describe("media routes — disabled state", () => {
 
   describe("POST /api/media/getSignedUrls", () => {
     it("returns 503 media-disabled before parsing the body", async () => {
-      const { POST } = require("../getSignedUrls+api");
+      const { POST } = mediaRoute("getSignedUrls");
       const res: Response = await POST(
         makeRequest("http://localhost/api/media/getSignedUrls", {
           method: "POST",
@@ -173,7 +190,7 @@ describe("media routes — disabled state", () => {
 
   describe("DELETE / POST /api/media/delete", () => {
     it("DELETE returns 503 media-disabled", async () => {
-      const { DELETE } = require("../delete+api");
+      const { DELETE } = mediaRoute("delete");
       const res: Response = await DELETE(
         makeRequest("http://localhost/api/media/delete?key=foo", { method: "DELETE" })
       );
@@ -184,7 +201,7 @@ describe("media routes — disabled state", () => {
     });
 
     it("POST batch returns 503 media-disabled", async () => {
-      const { POST } = require("../delete+api");
+      const { POST } = mediaRoute("delete");
       const res: Response = await POST(
         makeRequest("http://localhost/api/media/delete", {
           method: "POST",
@@ -202,7 +219,7 @@ describe("media routes — disabled state", () => {
   it("never echoes credential values in the disabled response body", async () => {
     process.env.R2_ACCESS_KEY_ID = "super-secret-do-not-leak";
     process.env.R2_SECRET_ACCESS_KEY = "another-secret";
-    const { GET } = require("../list+api");
+    const { GET } = mediaRoute("list");
     const res: Response = await GET(
       makeRequest("http://localhost/api/media/list", { method: "GET" })
     );
