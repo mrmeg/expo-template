@@ -92,8 +92,8 @@ describe("media routes — disabled state", () => {
     originalEnv.ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS;
     process.env.ALLOWED_ORIGINS = ORIGIN;
     mockSend.mockReset();
-    const { _resetMediaStorageForTests } = require("@/server/api/media/storage");
-    _resetMediaStorageForTests();
+    const { resetMediaStorageForTests } = require("@/server/media/handlers");
+    resetMediaStorageForTests();
   });
 
   afterEach(() => {

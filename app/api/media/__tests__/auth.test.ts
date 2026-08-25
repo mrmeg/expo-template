@@ -94,8 +94,8 @@ describe("media route auth policy", () => {
     setEnv("NODE_ENV", "test");
     mockSend.mockReset();
     setTokenVerifier(null);
-    const { _resetMediaStorageForTests } = require("@/server/api/media/storage");
-    _resetMediaStorageForTests();
+    const { resetMediaStorageForTests } = require("@/server/media/handlers");
+    resetMediaStorageForTests();
   });
 
   afterEach(() => {

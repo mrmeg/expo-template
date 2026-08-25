@@ -106,8 +106,8 @@ describe("media delete route", () => {
     process.env.R2_SECRET_ACCESS_KEY = "test-secret-key";
     process.env.ALLOWED_ORIGINS = ORIGIN;
     process.env.EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA = "true";
-    const { _resetMediaStorageForTests } = require("@/server/api/media/storage");
-    _resetMediaStorageForTests();
+    const { resetMediaStorageForTests } = require("@/server/media/handlers");
+    resetMediaStorageForTests();
     // NODE_ENV stays at its Jest default ("test") so sanitizeErrorDetails
     // still returns a `details` field — that keeps the 500 test expressive.
   });

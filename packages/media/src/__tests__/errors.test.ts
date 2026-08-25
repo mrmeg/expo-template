@@ -4,10 +4,12 @@
  * The contract:
  *   - 503 with `code: "media-disabled"` becomes `{ kind: "disabled", missing }`
  *   - 401 becomes `{ kind: "unauthorized" }`
- *   - 400 becomes `{ kind: "bad-request", message }`
+ *   - 403 becomes `{ kind: "forbidden", message }`
+ *   - other 4xx become `{ kind: "bad-request", message }`
  *   - everything else becomes `{ kind: "unknown", status, message }`
  *   - the React Query retry callback never retries `disabled`/`bad-request`/
- *     `unauthorized` problems but still retries (twice) for unknown errors
+ *     `unauthorized`/`forbidden` problems but still retries (twice) for
+ *     unknown errors
  */
 
 import {
@@ -15,7 +17,7 @@ import {
   MediaError,
   shouldRetryMediaError,
   toMediaError,
-} from "../problem";
+} from "..";
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -62,6 +64,12 @@ describe("toMediaError", () => {
     const res = jsonResponse(401, {});
     const err = await toMediaError(res);
     expect(err.problem).toEqual({ kind: "unauthorized" });
+  });
+
+  it("maps 403 to forbidden and surfaces the message", async () => {
+    const res = jsonResponse(403, { message: "Not your object" });
+    const err = await toMediaError(res);
+    expect(err.problem).toEqual({ kind: "forbidden", message: "Not your object" });
   });
 
   it("maps 400 to bad-request and surfaces the message", async () => {
@@ -118,8 +126,11 @@ describe("shouldRetryMediaError", () => {
     expect(shouldRetryMediaError(5, new MediaError({ kind: "disabled" }))).toBe(false);
   });
 
-  it("never retries an unauthorized or bad-request problem", () => {
+  it("never retries an unauthorized, forbidden, or bad-request problem", () => {
     expect(shouldRetryMediaError(0, new MediaError({ kind: "unauthorized" }))).toBe(false);
+    expect(
+      shouldRetryMediaError(0, new MediaError({ kind: "forbidden", message: "x" })),
+    ).toBe(false);
     expect(
       shouldRetryMediaError(0, new MediaError({ kind: "bad-request", message: "x" })),
     ).toBe(false);
