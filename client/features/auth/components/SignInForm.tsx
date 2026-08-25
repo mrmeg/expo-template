@@ -1,21 +1,16 @@
 import React, { useCallback, useRef } from "react";
-import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
-import { createThemedStyles } from "@mrmeg/expo-ui/lib";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardFooter,
-  CardTitle,
-  CardDescription,
-} from "@mrmeg/expo-ui/components/Card";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
-import type { Theme } from "@mrmeg/expo-ui/constants";
 import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
+import { AuthFormCard } from "./AuthFormCard";
+import { authFormStyles } from "./authFormStyles";
+import { getSocialLabel, validateEmail, validatePassword } from "./validators";
+
+const MIN_PASSWORD_LENGTH = 6;
 
 export interface SignInFormProps {
   onSignIn?: (data: { email: string; password: string }) => void | Promise<void>;
@@ -48,34 +43,16 @@ export function SignInForm({
 }: SignInFormProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const styles = themedStyles(theme);
-
-  const resolvedTitle = title ?? t("auth.signInTitle");
-  const resolvedDescription = description ?? t("auth.signInDescription");
+  const shared = authFormStyles(theme);
 
   const emailRef = useRef<AuthTextFieldHandle>(null);
   const passwordRef = useRef<AuthTextFieldHandle>(null);
 
-  const validateEmail = useCallback((value: string): string => {
-    if (!value.trim()) {
-      return t("errors.emailRequired");
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(value)) {
-      return t("errors.invalidEmail");
-    }
-    return "";
-  }, [t]);
-
-  const validatePassword = useCallback((value: string): string => {
-    if (!value) {
-      return t("errors.passwordRequired");
-    }
-    if (value.length < 6) {
-      return t("errors.passwordMinLength", { count: 6 });
-    }
-    return "";
-  }, [t]);
+  const emailValidator = useCallback((value: string) => validateEmail(value, t), [t]);
+  const passwordValidator = useCallback(
+    (value: string) => validatePassword(value, t, MIN_PASSWORD_LENGTH),
+    [t],
+  );
 
   const handleSubmit = useCallback(async () => {
     const isEmailValid = emailRef.current?.validate() ?? false;
@@ -87,238 +64,121 @@ export function SignInForm({
     }
   }, [onSignIn]);
 
-  const getSocialLabel = (provider: string): string => {
-    switch (provider) {
-    case "google":
-      return t("auth.continueWithGoogle");
-    case "apple":
-      return t("auth.continueWithApple");
-    case "github":
-      return t("auth.continueWithGithub");
-    default:
-      return t("auth.continueWith", { provider });
-    }
-  };
-
-  const formContent = (
-    <View style={styles.formWrapper}>
-      {logo && <View style={styles.logoContainer}>{logo}</View>}
-      <Card style={styles.card}>
-        <CardHeader>
-          <CardTitle>{resolvedTitle}</CardTitle>
-          <CardDescription>{resolvedDescription}</CardDescription>
-        </CardHeader>
-
-        <CardContent style={styles.content}>
-          {!!error && (
-            <View style={styles.errorContainer}>
-              <SansSerifText style={styles.errorText}>{error}</SansSerifText>
-            </View>
-          )}
-
-          <View style={styles.inputGroup}>
-            <AuthTextField
-              ref={emailRef}
-              testID="sign-in-email-input"
-              label={t("auth.email")}
-              placeholder={t("auth.emailPlaceholder")}
-              validateValue={validateEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect={false}
-              editable={!loading}
-              required
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => passwordRef.current?.focus()}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <AuthTextField
-              ref={passwordRef}
-              testID="sign-in-password-input"
-              label={t("auth.password")}
-              placeholder={t("auth.passwordPlaceholder")}
-              validateValue={validatePassword}
-              secureTextEntry
-              showSecureEntryToggle
-              autoCapitalize="none"
-              autoComplete="password"
-              editable={!loading}
-              required
-              returnKeyType="go"
-              onSubmitEditing={handleSubmit}
-            />
-          </View>
-
-          {onForgotPassword && (
-            <Pressable
-              onPress={onForgotPassword}
-              disabled={loading}
-              style={styles.forgotPassword}
-            >
-              <SansSerifText style={styles.forgotPasswordText}>
-                {t("auth.forgotPassword")}
-              </SansSerifText>
-            </Pressable>
-          )}
-
-          <Button
-            testID="sign-in-submit-button"
-            preset="default"
-            onPress={handleSubmit}
-            loading={loading}
-            disabled={loading}
-            fullWidth
-          >
-            <SansSerifBoldText>{t("auth.signIn")}</SansSerifBoldText>
-          </Button>
-
-          {socialProviders.length > 0 && (
-            <>
-              <View style={styles.separatorContainer}>
-                <View style={styles.separatorLine} />
-                <SansSerifText style={styles.separatorText}>{t("auth.or")}</SansSerifText>
-                <View style={styles.separatorLine} />
-              </View>
-
-              <View style={styles.socialContainer}>
-                {socialProviders.map((provider) => (
-                  <Button
-                    key={provider}
-                    preset="outline"
-                    onPress={() => onSocialSignIn?.(provider)}
-                    disabled={loading}
-                    fullWidth
-                  >
-                    <SansSerifText>{getSocialLabel(provider)}</SansSerifText>
-                  </Button>
-                ))}
-              </View>
-            </>
-          )}
-        </CardContent>
-
-        {onSignUp && (
-          <CardFooter style={styles.footer}>
-            <SansSerifText style={styles.footerText}>
+  return (
+    <AuthFormCard
+      embedded={embedded}
+      error={error}
+      logo={logo}
+      title={title ?? t("auth.signInTitle")}
+      description={description ?? t("auth.signInDescription")}
+      footer={
+        onSignUp && (
+          <>
+            <SansSerifText style={shared.mutedText}>
               {t("auth.noAccount")}{" "}
             </SansSerifText>
             <Pressable onPress={onSignUp} disabled={loading}>
-              <SansSerifBoldText style={styles.signUpLink}>
+              <SansSerifBoldText style={shared.linkText}>
                 {t("auth.signUp")}
               </SansSerifBoldText>
             </Pressable>
-          </CardFooter>
-        )}
-      </Card>
-    </View>
-  );
-
-  if (embedded) {
-    return <View style={styles.embeddedContainer}>{formContent}</View>;
-  }
-
-  return (
-    <KeyboardAvoidingView
-      style={styles.keyboardAvoid}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+          </>
+        )
+      }
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <View style={shared.inputGroup}>
+        <AuthTextField
+          ref={emailRef}
+          testID="sign-in-email-input"
+          label={t("auth.email")}
+          placeholder={t("auth.emailPlaceholder")}
+          validateValue={emailValidator}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          autoCorrect={false}
+          editable={!loading}
+          required
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => passwordRef.current?.focus()}
+        />
+      </View>
+
+      <View style={shared.inputGroup}>
+        <AuthTextField
+          ref={passwordRef}
+          testID="sign-in-password-input"
+          label={t("auth.password")}
+          placeholder={t("auth.passwordPlaceholder")}
+          validateValue={passwordValidator}
+          secureTextEntry
+          showSecureEntryToggle
+          autoCapitalize="none"
+          autoComplete="password"
+          editable={!loading}
+          required
+          returnKeyType="go"
+          onSubmitEditing={handleSubmit}
+        />
+      </View>
+
+      {onForgotPassword && (
+        <Pressable
+          onPress={onForgotPassword}
+          disabled={loading}
+          style={styles.forgotPassword}
+        >
+          <SansSerifText style={shared.linkText}>
+            {t("auth.forgotPassword")}
+          </SansSerifText>
+        </Pressable>
+      )}
+
+      <Button
+        testID="sign-in-submit-button"
+        preset="default"
+        onPress={handleSubmit}
+        loading={loading}
+        disabled={loading}
+        fullWidth
       >
-        {formContent}
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <SansSerifBoldText>{t("auth.signIn")}</SansSerifBoldText>
+      </Button>
+
+      {socialProviders.length > 0 && (
+        <>
+          <View style={shared.separatorRow}>
+            <View style={shared.separatorLine} />
+            <SansSerifText style={shared.hintText}>{t("auth.or")}</SansSerifText>
+            <View style={shared.separatorLine} />
+          </View>
+
+          <View style={shared.socialButtons}>
+            {socialProviders.map((provider) => (
+              <Button
+                key={provider}
+                preset="outline"
+                onPress={() => onSocialSignIn?.(provider)}
+                disabled={loading}
+                fullWidth
+              >
+                <SansSerifText>{getSocialLabel(provider, t)}</SansSerifText>
+              </Button>
+            ))}
+          </View>
+        </>
+      )}
+    </AuthFormCard>
   );
 }
 
-const createStyles = (theme: Theme) =>
-  StyleSheet.create({
-    keyboardAvoid: {
-      flex: 1,
-    },
-    embeddedContainer: {
-      width: "100%",
-    },
-    scrollContent: {
-      flexGrow: 1,
-      justifyContent: "center",
-      padding: spacing.md,
-    },
-    card: {
-      width: "100%",
-    },
-    formWrapper: {
-      width: "100%",
-      maxWidth: 400,
-      alignSelf: "center",
-    },
-    logoContainer: {
-      alignItems: "center",
-      marginBottom: spacing.lg,
-    },
-    content: {
-      gap: spacing.md,
-    },
-    inputGroup: {
-      width: "100%",
-    },
-    errorContainer: {
-      backgroundColor: withAlpha(theme.colors.destructive, 0.08),
-      borderRadius: spacing.radiusSm,
-      padding: spacing.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.destructive,
-    },
-    errorText: {
-      color: theme.colors.destructive,
-      fontSize: 14,
-      textAlign: "center",
-    },
-    forgotPassword: {
-      alignSelf: "flex-end",
-      paddingVertical: spacing.xs,
-    },
-    forgotPasswordText: {
-      color: theme.colors.primary,
-      fontSize: 14,
-    },
-    separatorContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginVertical: spacing.sm,
-      gap: spacing.md,
-    },
-    separatorLine: {
-      flex: 1,
-      height: 1,
-      backgroundColor: theme.colors.border,
-    },
-    separatorText: {
-      color: theme.colors.textDim,
-      fontSize: 13,
-    },
-    socialContainer: {
-      gap: spacing.sm,
-    },
-    footer: {
-      justifyContent: "center",
-    },
-    footerText: {
-      color: theme.colors.textDim,
-      fontSize: 14,
-    },
-    signUpLink: {
-      color: theme.colors.primary,
-      fontSize: 14,
-    },
-  });
-
-const themedStyles = createThemedStyles(createStyles);
+/** Theme-independent, so a plain module-scope sheet is enough. */
+const styles = StyleSheet.create({
+  forgotPassword: {
+    alignSelf: "flex-end",
+    paddingVertical: spacing.xs,
+  },
+});
 
 export default SignInForm;

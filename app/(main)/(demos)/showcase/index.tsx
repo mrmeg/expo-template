@@ -1624,7 +1624,7 @@ const ToggleGroupSection = memo(function ToggleGroupSection({
 });
 
 /**
- * The auth forms are lazy so this gallery route doesn't pull ~57 kB of auth UI
+ * The auth forms are lazy so this gallery route doesn't pull ~47 kB of auth UI
  * into the eager web download path. All five load from the same specifier as
  * AuthGate and the auth-demo route (`@/client/features/auth/components`), which
  * is what keeps them in one async chunk instead of hoisted into `__common` —
