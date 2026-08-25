@@ -5,11 +5,13 @@
  * lazy-loads FFmpeg.wasm and proxies the worker through a same-origin URL to
  * satisfy the cross-origin worker-blob trick from GitHub issue #694.
  *
- * Two runtimes have to agree on this contract:
+ * Three runtimes have to agree on this contract:
  *   - metro.config.js serves the worker during `expo start` (dev)
- *   - server/index.ts serves the worker from the static Express build (prod)
+ *   - server.bun.ts serves it from the static build via `serveFfmpegWorker()`
+ *     (the default production server)
+ *   - server/index.ts serves it from the static Express build (fallback)
  *
- * Drift between those two sites has already caused one regression where the
+ * Drift between those sites has already caused one regression where the
  * worker path pointed at a folder that no longer existed, so the Express
  * route was silently never registered. Keep the path constant and lookup
  * logic here, in one CommonJS file that both runtimes can require.

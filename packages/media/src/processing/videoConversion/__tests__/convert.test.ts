@@ -10,8 +10,10 @@
  *
  * The end-to-end conversion path itself requires a real browser (script-tag
  * loading, worker threads) so it is not exercised here. What we pin down
- * instead is the error contract that the caller in useMediaLibrary depends
- * on to swap the toast copy.
+ * instead is the error contract that consumers (the template's
+ * useMediaLibrary hook) depend on to swap the toast copy. The native stub
+ * exports a shape-compatible class so these assertions hold on every
+ * platform.
  */
 
 import { FFmpegWorkerUnavailableError } from "../convert";

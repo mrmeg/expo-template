@@ -32,7 +32,7 @@ import {
   useMediaLibrary,
   type ProcessedAsset,
 } from "@/client/features/media/hooks/useMediaLibrary";
-import { isMediaError, MediaError } from "@/client/features/media/lib/problem";
+import { isMediaError, MediaError } from "@mrmeg/expo-media/client";
 import { isMediaOriginUnconfigured } from "@/client/features/media/mediaClient";
 import {
   MEDIA_PATHS,
