@@ -10,7 +10,7 @@ template docs under `docs/`.
 ### Core
 - **Universal app** — iOS, Android, Web (React Native Web 0.21) on Expo SDK 57 / React 19.2 / RN 0.86 / TypeScript strict (exact pins live in `package.json`).
 - **Design system** — 35+ shadcn-inspired components on `@rn-primitives` with a zinc palette, teal accent, dark/light themes, and WCAG contrast helpers.
-- **File-based routing** — Expo Router with typed routes and a server-hosted, client-rendered web build.
+- **File-based routing** — Expo Router with typed routes and a server-rendered web build (routes render per request on the Bun server).
 - **State** — Zustand for client state, TanStack React Query for server state, persisted via `AsyncStorage` (native) or `localStorage` (web).
 - **i18n** — `i18next` + `expo-localization`, English/Spanish bundles, RTL support, type-safe translation keys.
 
@@ -21,7 +21,7 @@ template docs under `docs/`.
 - **Sentry** — `@sentry/react-native`, no-op when `EXPO_PUBLIC_SENTRY_DSN` is unset; native upload steps are skipped unless `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are all set.
 
 ### Developer experience
-- **Bun production server** — Expo Router API routes, middleware, and data loaders through `expo-server/adapter/bun`, static Brotli/gzip compression, CORS, rate limiting (a strict 10/min bucket on `/api/media/getUploadUrl` and the billing checkout/portal routes), security headers, request logging. The Express server remains available as a fallback.
+- **Bun production server** — Expo Router API routes, middleware, and data loaders through `expo-server/adapter/bun`, static Brotli/gzip compression, CORS, rate limiting (a strict 10/min bucket on `/api/media/getUploadUrl` and the billing checkout/portal routes), security headers, request logging.
 - **Generator CLI** — `bun run generate component|screen|hook|form <Name>` — paths and imports match the rest of the template.
 - **Reactotron** — auto-connects in dev mode for native runs.
 - **Template docs** — LLM-facing modernization guidance in `docs/template-modernization-guide.md`.
@@ -95,8 +95,6 @@ Android projects with the new bundle ids.
 | `bun run build` | Production web export → `dist/` (client bundle + server output) |
 | `bun run start` | Run the Bun production server (`server.bun.ts`) |
 | `bun run start-local` | Run the Bun production server with `.env` autoloaded |
-| `bun run start:express` | Run the fallback Express production server (`server/index.ts`) |
-| `bun run start-local:express` | Run the fallback Express server with `.env` autoloaded by Bun |
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run lint` | `expo lint` (ESLint flat config) |
 | `bun run test:ci` | `jest --ci --coverage --forceExit` |
@@ -194,8 +192,8 @@ UI system.
 
 /packages/ui                  # @mrmeg/expo-ui npm package source
 
-/server.bun.ts                # Default Bun production server (compression, CORS, rate limits)
-/server                       # Express fallback server and shared server helpers
+/server.bun.ts                # Bun production server (compression, CORS, rate limits)
+/server                       # Shared server helpers (rate limits, API helpers, media handlers)
 /shared                       # Code shared between client & server (e.g. media path constants)
 /scripts                      # Generator CLI + bundle-size check
 /test                         # Jest setup
@@ -444,7 +442,7 @@ GitHub Actions CI to EAS Workflows are not configured here.
 
 - Expo SDK 57, React 19.2, React Native 0.86, React Native Web 0.21 (exact pins in `package.json`)
 - TypeScript 6 (strict), path alias `@/*` -> repo root
-- Expo Router 57 (typed routes, server-hosted client-rendered web build)
+- Expo Router 57 (typed routes, server-rendered web build)
 - Zustand 5, TanStack React Query 5
 - Clerk or AWS Amplify 6 + Cognito (optional; env-selected, fail-closed to disabled)
 - Stripe 22 (server, hosted-external Checkout + Billing Portal)
@@ -455,7 +453,7 @@ GitHub Actions CI to EAS Workflows are not configured here.
 - Lato on web via Google Fonts, system sans-serif on native
 - Jest 29 + jest-expo + RNTL 14
 - ESLint 10 flat config
-- Bun + Expo Server (production web server), with Express 5 fallback
+- Bun + Expo Server (production web server)
 - Bun (package manager + script runner)
 
 ## Template Docs

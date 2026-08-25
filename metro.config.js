@@ -134,8 +134,10 @@ config.transformer.getTransformOptions = async () => ({
 
 // ============================================================================
 // FFmpeg Video Conversion (OPTIONAL)
-// To remove: Delete from here to "END FFmpeg" and delete
-// client/features/media/lib/videoConversion/
+// To remove: Delete from here to "END FFmpeg". The worker itself ships with
+// the reusable media package
+// (packages/media/src/processing/videoConversion/ffmpeg-worker.js); this
+// block only serves it over the dev server.
 // ============================================================================
 const { loadFfmpegWorker } = require("./server/ffmpegWorker");
 

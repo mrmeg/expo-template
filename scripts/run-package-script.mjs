@@ -12,7 +12,7 @@
  *   bun run pkg --print media test          # print the resolved command, run nothing
  *
  * The twelve `ui:*`/`media:*` aliases still exist and now delegate here. They
- * are load-bearing and must not be removed: `scripts/release-*-package.mjs`
+ * are load-bearing and must not be removed: `scripts/release-package.mjs`
  * shells out to them by name, `.github/workflows/publish-*.yml` runs them as
  * steps, and the published package READMEs document them.
  */
@@ -29,16 +29,16 @@ const PACKAGES = {
  * think about shell quoting.
  *
  * `pack` maps to the package's own `publish:dry-run`; `consumer-smoke` and
- * `release` map to the per-package root scripts under `scripts/`, which are
- * genuinely different files rather than a parameterized one.
+ * `release` map to parameterized root scripts under `scripts/` that take the
+ * package name as their first argument, which this table supplies.
  */
 const TASKS = {
   typecheck: ({ dir }) => ["bun", "run", "--cwd", dir, "typecheck"],
   test: ({ dir }) => ["bun", "run", "--cwd", dir, "test"],
   build: ({ dir }) => ["bun", "run", "--cwd", dir, "build"],
   pack: ({ dir }) => ["bun", "run", "--cwd", dir, "publish:dry-run"],
-  "consumer-smoke": ({ slug }) => ["node", `scripts/check-${slug}-package-consumer.mjs`],
-  release: ({ slug }) => ["node", `scripts/release-${slug}-package.mjs`],
+  "consumer-smoke": ({ slug }) => ["node", "scripts/check-package-consumer.mjs", slug],
+  release: ({ slug }) => ["node", "scripts/release-package.mjs", slug],
 };
 
 const packageNames = Object.keys(PACKAGES).sort();

@@ -79,7 +79,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest --config ../../jest.config.js packages/media/src --runInBand --watchman=false",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-media-package-esm.mjs",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-package-esm.mjs media",
     "publish:dry-run": "bun pm pack --dry-run"
   },
   "dependencies": {
