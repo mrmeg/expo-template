@@ -10,7 +10,7 @@ template docs under `docs/`.
 ### Core
 - **Universal app** — iOS, Android, Web (React Native Web 0.21) on Expo SDK 57 / React 19.2 / RN 0.86 / TypeScript strict (exact pins live in `package.json`).
 - **Design system** — 35+ shadcn-inspired components on `@rn-primitives` with a zinc palette, teal accent, dark/light themes, and WCAG contrast helpers.
-- **File-based routing** — Expo Router with typed routes and a server-hosted, client-rendered web build.
+- **File-based routing** — Expo Router with typed routes and a server-rendered web build (routes render per request on the Bun server).
 - **State** — Zustand for client state, TanStack React Query for server state, persisted via `AsyncStorage` (native) or `localStorage` (web).
 - **i18n** — `i18next` + `expo-localization`, English/Spanish bundles, RTL support, type-safe translation keys.
 
@@ -444,7 +444,7 @@ GitHub Actions CI to EAS Workflows are not configured here.
 
 - Expo SDK 57, React 19.2, React Native 0.86, React Native Web 0.21 (exact pins in `package.json`)
 - TypeScript 6 (strict), path alias `@/*` -> repo root
-- Expo Router 57 (typed routes, server-hosted client-rendered web build)
+- Expo Router 57 (typed routes, server-rendered web build)
 - Zustand 5, TanStack React Query 5
 - Clerk or AWS Amplify 6 + Cognito (optional; env-selected, fail-closed to disabled)
 - Stripe 22 (server, hosted-external Checkout + Billing Portal)
