@@ -83,7 +83,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest --config ../../jest.config.js packages/ui/src --runInBand --watchman=false && bun run check:forbidden-imports",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-ui-package-esm.mjs && bun run check:forbidden-imports",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-package-esm.mjs ui && bun run check:forbidden-imports",
     "check:forbidden-imports": "node ../../scripts/check-ui-forbidden-imports.mjs",
     "publish:dry-run": "bun pm pack --dry-run"
   },
