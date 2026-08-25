@@ -23,7 +23,9 @@
  *
  * `stores/authStore`, `hooks/useAuth` and `provider/*` are deliberately not
  * re-exported here: they are small, hot, and used by screens that must not pay
- * a chunk fetch (see `@/client/features/auth` for the feature-wide barrel).
+ * a chunk fetch, so consumers deep-import those modules directly. There is no
+ * feature-wide `@/client/features/auth` barrel for the same reason — one would
+ * pull this component graph into every importer's chunk.
  */
 
 export { AuthScreen } from "./AuthScreen";

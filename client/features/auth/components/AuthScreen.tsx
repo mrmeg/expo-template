@@ -1,4 +1,4 @@
-import React, { useReducer } from "react";
+import React, { useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,6 +17,7 @@ import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import { getAppName } from "@/client/lib/identity";
+import { logDev } from "@/client/lib/devtools";
 
 type AuthView = "sign-in" | "sign-up" | "forgot-password" | "verify-email" | "reset-password";
 type PostVerifyDestination = "sign-in" | "forgot-password";
@@ -33,11 +34,6 @@ type AuthScreenState = {
   postVerifyDestination: PostVerifyDestination;
 };
 
-type AuthScreenAction = {
-  type: "stateChanged";
-  changes: Partial<AuthScreenState>;
-};
-
 function createInitialAuthScreenState(initialView: AuthView): AuthScreenState {
   return {
     view: initialView,
@@ -52,16 +48,6 @@ function createInitialAuthScreenState(initialView: AuthView): AuthScreenState {
   };
 }
 
-function authScreenReducer(
-  state: AuthScreenState,
-  action: AuthScreenAction
-): AuthScreenState {
-  switch (action.type) {
-  case "stateChanged":
-    return { ...state, ...action.changes };
-  }
-}
-
 interface AuthScreenProps {
   /** Initial view to show */
   initialView?: AuthView;
@@ -74,21 +60,13 @@ async function resendVerificationCode(
   email: string
 ) {
   try {
-    const resendResult = await resendCode(email);
-    console.log("Resend verification code result:", JSON.stringify(resendResult, null, 2));
+    await resendCode(email);
   } catch (resendErr: any) {
-    console.log("Resend verification code error:", resendErr.name, resendErr.message);
+    logDev("Resend verification code error:", resendErr.name, resendErr.message);
   }
 }
 
 export function AuthScreen({
-  initialView = "sign-in",
-  onAuthenticated,
-}: AuthScreenProps) {
-  return useAuthScreenContent({ initialView, onAuthenticated });
-}
-
-function useAuthScreenContent({
   initialView = "sign-in",
   onAuthenticated,
 }: AuthScreenProps) {
@@ -97,10 +75,8 @@ function useAuthScreenContent({
   const appName = getAppName();
   const { signIn, signUp, confirmSignUp, resendCode, forgotPassword, resetPassword } = useAuth();
 
-  const [authScreenState, dispatchAuthScreen] = useReducer(
-    authScreenReducer,
-    initialView,
-    createInitialAuthScreenState
+  const [authScreenState, setAuthScreenState] = useState<AuthScreenState>(() =>
+    createInitialAuthScreenState(initialView)
   );
   const {
     view,
@@ -114,29 +90,18 @@ function useAuthScreenContent({
     postVerifyDestination,
   } = authScreenState;
 
-  const setAuthScreenState = (changes: Partial<AuthScreenState>) => {
-    dispatchAuthScreen({ type: "stateChanged", changes });
+  /**
+   * Merge updater: every transition below moves several fields at once (view
+   * plus the pending email/password it has to carry), so patches merge into the
+   * latest state instead of replacing it.
+   */
+  const update = (changes: Partial<AuthScreenState>) => {
+    setAuthScreenState((current) => ({ ...current, ...changes }));
   };
-
-  const setView = (value: AuthView) => setAuthScreenState({ view: value });
-  const setLoading = (value: boolean) => setAuthScreenState({ loading: value });
-  const setError = (value: string) => setAuthScreenState({ error: value });
-  const setPendingEmail = (value: string) =>
-    setAuthScreenState({ pendingEmail: value });
-  const setPendingPassword = (value: string) =>
-    setAuthScreenState({ pendingPassword: value });
-  const setForgotPasswordSuccess = (value: boolean) =>
-    setAuthScreenState({ forgotPasswordSuccess: value });
-  const setResetPasswordSuccess = (value: boolean) =>
-    setAuthScreenState({ resetPasswordSuccess: value });
-  const setResending = (value: boolean) => setAuthScreenState({ resending: value });
-  const setPostVerifyDestination = (value: PostVerifyDestination) =>
-    setAuthScreenState({ postVerifyDestination: value });
 
   // Sign In
   const handleSignIn = async (data: { email: string; password: string }) => {
-    setLoading(true);
-    setError("");
+    update({ loading: true, error: "" });
 
     try {
       const result = await signIn(data);
@@ -144,42 +109,45 @@ function useAuthScreenContent({
       if (result.status === "complete") {
         onAuthenticated?.();
       } else if (result.status === "needsConfirmation") {
-        setPendingEmail(data.email);
-        setPendingPassword(data.password);
-        setPostVerifyDestination("sign-in");
+        update({
+          pendingEmail: data.email,
+          pendingPassword: data.password,
+          postVerifyDestination: "sign-in",
+        });
         await resendVerificationCode(resendCode, data.email);
-        setView("verify-email");
+        update({ view: "verify-email" });
       }
     } catch (err: any) {
       const code = isAuthError(err) ? err.code : "unknown";
 
       // Handle unverified user - resend code and redirect to verification screen
       if (code === "userNotConfirmed") {
-        setPendingEmail(data.email);
-        setPendingPassword(data.password);
-        setPostVerifyDestination("sign-in");
+        update({
+          pendingEmail: data.email,
+          pendingPassword: data.password,
+          postVerifyDestination: "sign-in",
+        });
         await resendVerificationCode(resendCode, data.email);
-        setView("verify-email");
+        update({ view: "verify-email" });
         return;
       }
 
       // Handle other common errors
       if (code === "incorrectCredentials") {
-        setError("Incorrect email or password.");
+        update({ error: "Incorrect email or password." });
       } else if (code === "userNotFound") {
-        setError("No account found with this email.");
+        update({ error: "No account found with this email." });
       } else {
-        setError(err.message || "Failed to sign in. Please try again.");
+        update({ error: err.message || "Failed to sign in. Please try again." });
       }
     } finally {
-      setLoading(false);
+      update({ loading: false });
     }
   };
 
   // Sign Up
   const handleSignUp = async (data: { name: string; email: string; password: string }) => {
-    setLoading(true);
-    setError("");
+    update({ loading: true, error: "" });
 
     try {
       const result = await signUp({ email: data.email, password: data.password });
@@ -191,201 +159,196 @@ function useAuthScreenContent({
         if (useAuthStore.getState().state === "authenticated") {
           onAuthenticated?.();
         } else {
-          setView("sign-in");
+          update({ view: "sign-in" });
         }
       } else if (result.status === "needsConfirmation") {
-        setPendingEmail(data.email);
-        setPostVerifyDestination("sign-in");
-        setView("verify-email");
+        update({
+          pendingEmail: data.email,
+          postVerifyDestination: "sign-in",
+          view: "verify-email",
+        });
       }
     } catch (err: any) {
       const code = isAuthError(err) ? err.code : "unknown";
       if (code === "userExists") {
-        setError("An account with this email already exists.");
+        update({ error: "An account with this email already exists." });
       } else if (code === "invalidPassword") {
-        setError("Password does not meet requirements.");
+        update({ error: "Password does not meet requirements." });
       } else {
-        setError(err.message || "Failed to create account. Please try again.");
+        update({ error: err.message || "Failed to create account. Please try again." });
       }
     } finally {
-      setLoading(false);
+      update({ loading: false });
     }
   };
 
   // Verify Email
   const handleVerify = async (code: string) => {
     if (!pendingEmail) {
-      setError("Email not found. Please sign up again.");
+      update({ error: "Email not found. Please sign up again." });
       return;
     }
 
-    setLoading(true);
-    setError("");
+    update({ loading: true, error: "" });
 
     try {
-      console.log("Verifying email:", pendingEmail);
+      logDev("Verifying email:", pendingEmail);
       const result = await confirmSignUp({ email: pendingEmail, code });
-      console.log("Verification result:", JSON.stringify(result, null, 2));
+      logDev("Verification result:", result);
 
       // Check if auto sign-in was successful (works for same-session verification)
       if (result.autoSignedIn) {
-        console.log("Auto sign-in successful, calling onAuthenticated...");
-        setPendingPassword(""); // Clear stored password
+        logDev("Auto sign-in successful, calling onAuthenticated...");
+        update({ pendingPassword: "" }); // Clear stored password
         onAuthenticated?.();
       } else if (pendingPassword) {
         // Auto sign-in failed but we have stored credentials from sign-in attempt
         // This happens when user tried to sign in while unverified, then verified
-        console.log("Auto sign-in not available, signing in with stored credentials...");
+        logDev("Auto sign-in not available, signing in with stored credentials...");
         try {
           const signInResult = await signIn({ email: pendingEmail, password: pendingPassword });
-          setPendingPassword(""); // Clear stored password
+          update({ pendingPassword: "" }); // Clear stored password
           if (signInResult.status === "complete") {
-            console.log("Manual sign-in successful after verification");
+            logDev("Manual sign-in successful after verification");
             onAuthenticated?.();
           } else {
-            setView("sign-in");
+            update({ view: "sign-in" });
           }
         } catch (signInErr) {
-          console.log("Sign-in after verification failed:", signInErr);
-          setPendingPassword(""); // Clear stored password
-          setView("sign-in");
+          logDev("Sign-in after verification failed:", signInErr);
+          update({ pendingPassword: "", view: "sign-in" }); // Clear stored password
         }
-      } else {
+      } else if (postVerifyDestination === "forgot-password") {
         // Redirect based on how the user got to verification
-        if (postVerifyDestination === "forgot-password") {
-          console.log("Verification complete, redirecting to forgot-password...");
-          setForgotPasswordSuccess(false);
-          setView("forgot-password");
-        } else {
-          console.log("Auto sign-in not available, redirecting to sign-in...");
-          setView("sign-in");
-        }
+        logDev("Verification complete, redirecting to forgot-password...");
+        update({ forgotPasswordSuccess: false, view: "forgot-password" });
+      } else {
+        logDev("Auto sign-in not available, redirecting to sign-in...");
+        update({ view: "sign-in" });
       }
-      setError("");
+      update({ error: "" });
     } catch (err: any) {
-      console.log("Verification error:", err);
+      logDev("Verification error:", err);
       const errCode = isAuthError(err) ? err.code : "unknown";
       if (errCode === "codeMismatch") {
-        setError("Invalid verification code. Please try again.");
+        update({ error: "Invalid verification code. Please try again." });
       } else if (errCode === "codeExpired") {
-        setError("Verification code has expired. Please request a new one.");
+        update({ error: "Verification code has expired. Please request a new one." });
       } else {
-        setError(err.message || "Verification failed. Please try again.");
+        update({ error: err.message || "Verification failed. Please try again." });
       }
     } finally {
-      setLoading(false);
+      update({ loading: false });
     }
   };
 
   const handleResendCode = async () => {
     if (!pendingEmail) return;
 
-    setResending(true);
-    setError("");
+    update({ resending: true, error: "" });
 
     try {
       await resendCode(pendingEmail);
     } catch (err: any) {
-      setError(err.message || "Failed to resend code. Please try again.");
+      update({ error: err.message || "Failed to resend code. Please try again." });
     } finally {
-      setResending(false);
+      update({ resending: false });
     }
   };
 
   // Forgot Password
   const handleForgotPassword = async (email: string) => {
-    setLoading(true);
-    setError("");
+    update({ loading: true, error: "" });
 
     try {
       const result = await forgotPassword(email);
 
-      console.log("ForgotPassword result:", result.status);
+      logDev("ForgotPassword result:", result.status);
       if (result.status === "codeSent") {
-        setPendingEmail(email);
-        setView("reset-password");
+        update({ pendingEmail: email, view: "reset-password" });
       } else {
-        console.log("ForgotPassword: no code expected, showing success screen");
-        setPendingEmail(email);
-        setForgotPasswordSuccess(true);
+        logDev("ForgotPassword: no code expected, showing success screen");
+        update({ pendingEmail: email, forgotPasswordSuccess: true });
       }
     } catch (err: any) {
-      console.log("ForgotPassword error:", err.name, err.message);
+      logDev("ForgotPassword error:", err.name, err.message);
       const code = isAuthError(err) ? err.code : "unknown";
       if (code === "userNotFound") {
         // Don't reveal if user exists
-        setPendingEmail(email);
-        setForgotPasswordSuccess(true);
+        update({ pendingEmail: email, forgotPasswordSuccess: true });
       } else if (code === "limitExceeded") {
-        setError("Too many attempts. Please try again later.");
+        update({ error: "Too many attempts. Please try again later." });
       } else {
-        setError(err.message || "Failed to send reset code. Please try again.");
+        update({ error: err.message || "Failed to send reset code. Please try again." });
       }
     } finally {
-      setLoading(false);
+      update({ loading: false });
     }
   };
 
   // Reset Password
   const handleResetPassword = async ({ code, newPassword }: { code: string; newPassword: string }) => {
     if (!pendingEmail) {
-      setError("Email not found. Please start the password reset process again.");
+      update({ error: "Email not found. Please start the password reset process again." });
       return;
     }
 
-    setLoading(true);
-    setError("");
+    update({ loading: true, error: "" });
 
     try {
       await resetPassword({ email: pendingEmail, code, newPassword });
-      setResetPasswordSuccess(true);
+      update({ resetPasswordSuccess: true });
     } catch (err: any) {
       const errCode = isAuthError(err) ? err.code : "unknown";
       if (errCode === "codeMismatch") {
-        setError("Invalid code. Please check your email and try again.");
+        update({ error: "Invalid code. Please check your email and try again." });
       } else if (errCode === "codeExpired") {
-        setError("Code has expired. Please request a new password reset.");
+        update({ error: "Code has expired. Please request a new password reset." });
       } else if (errCode === "invalidPassword") {
-        setError("Password does not meet requirements.");
+        update({ error: "Password does not meet requirements." });
       } else {
-        setError(err.message || "Failed to reset password. Please try again.");
+        update({ error: err.message || "Failed to reset password. Please try again." });
       }
     } finally {
-      setLoading(false);
+      update({ loading: false });
     }
   };
 
   // Navigation helpers
-  const goToSignIn = () => {
-    setError("");
-    setPendingPassword("");
-    setPostVerifyDestination("sign-in");
-    setForgotPasswordSuccess(false);
-    setResetPasswordSuccess(false);
-    setView("sign-in");
-  };
+  const goToSignIn = () =>
+    update({
+      error: "",
+      pendingPassword: "",
+      postVerifyDestination: "sign-in",
+      forgotPasswordSuccess: false,
+      resetPasswordSuccess: false,
+      view: "sign-in",
+    });
 
-  const goToSignUp = () => {
-    setError("");
-    setPendingPassword("");
-    setPostVerifyDestination("sign-in");
-    setView("sign-up");
-  };
+  const goToSignUp = () =>
+    update({
+      error: "",
+      pendingPassword: "",
+      postVerifyDestination: "sign-in",
+      view: "sign-up",
+    });
 
-  const goToForgotPassword = () => {
-    setError("");
-    setPendingPassword("");
-    setForgotPasswordSuccess(false);
-    setView("forgot-password");
-  };
+  const goToForgotPassword = () =>
+    update({
+      error: "",
+      pendingPassword: "",
+      forgotPasswordSuccess: false,
+      view: "forgot-password",
+    });
 
-  const goToChangeEmail = () => {
-    setError("");
-    setPendingEmail("");
-    setPendingPassword("");
-    setPostVerifyDestination("sign-in");
-    setView("sign-up");
-  };
+  const goToChangeEmail = () =>
+    update({
+      error: "",
+      pendingEmail: "",
+      pendingPassword: "",
+      postVerifyDestination: "sign-in",
+      view: "sign-up",
+    });
 
   return (
     <AuthScreenFrame styles={styles} theme={theme} appName={appName}>

@@ -96,7 +96,7 @@ export default function ScreenPricingDemo() {
     planId: string,
     action: "upgrade" | "manage",
   ): Promise<void> {
-    if (!isAuthEnabled) {
+    if (!isAuthEnabled()) {
       notify({
         type: "info",
         messages: ["Sign-in is not configured in this environment."],
