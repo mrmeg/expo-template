@@ -406,10 +406,11 @@ Then:
    shell with the viewport meta, global CSS, and a blocking script that
    stamps the color scheme on `<html>` before first paint. Adapt
    fonts/scripts to your app.
-3. Add a production server entry. The template ships two; copy the one you
-   deploy with: `server.bun.ts` (Bun.serve, primary) or `server/index.ts`
-   (Express fallback). Both serve `dist/client/` statics and mount the
-   request handler from `dist/server/` via `expo-server` adapters.
+3. Add a production server entry. The template ships one: `server.bun.ts`
+   (Bun.serve). It serves `dist/client/` statics and mounts the request
+   handler from `dist/server/` via `expo-server/adapter/bun`. On a non-Bun
+   host, swap in the matching `expo-server` adapter and reimplement the same
+   static/CORS/rate-limit/header layers.
 4. **First-render rules.** Persisted browser state (localStorage,
    `matchMedia`, dimensions) is only available after mount, so a route's
    first render should not depend on it — read it in an effect and let the UI
@@ -1543,8 +1544,7 @@ pinned Expo version in `package.json` before copying patterns.
 | Concern | Source |
 |---------|--------|
 | Server output and router flags | `app.config.ts` |
-| Production server, default (Bun) | `server.bun.ts` |
-| Production server, fallback (Express) | `server/index.ts` |
+| Production server (Bun) | `server.bun.ts` |
 | Rate-limit buckets | `server/rateLimits.js` |
 | Request middleware | `app/+middleware.ts` |
 | Data loaders (demo feature) | `client/features/server-alpha/loaders.ts` |
@@ -1597,16 +1597,14 @@ plugins: [
 Development: `bun run web` (Expo dev server runs loaders, middleware, and API
 routes in place).
 
-Production: `bun run build` exports `dist/`, then either entry serves it:
+Production: `bun run build` exports `dist/`, then `bun run start` serves it:
 
-- `bun run start` — `server.bun.ts`, the default. Wraps
+- `bun run start` — `server.bun.ts`, the only production entry. Wraps
   `createRequestHandler({ build: "dist/server" })` from
-  `expo-server/adapter/bun`.
-- `bun run start:express` — `server/index.ts`, Node fallback. Same behavior
-  via `expo-server/adapter/express` and `express-rate-limit`, `cors`,
-  `compression`, `morgan`.
+  `expo-server/adapter/bun` in `Bun.serve`.
+- `bun run start-local` — the same entry with `.env` autoloaded by Bun.
 
-Both entries own concerns that Expo's request handler does not:
+The entry owns concerns that Expo's request handler does not:
 
 - CORS origin allowlist from the `ALLOWED_ORIGINS` env var (comma-separated;
   localhost defaults otherwise), echoing only allowlisted origins and managing
@@ -1617,8 +1615,8 @@ Both entries own concerns that Expo's request handler does not:
   `Referrer-Policy`, `Permissions-Policy`, `X-Request-ID`, and HSTS in
   production.
 - Static caching and compression: 1-year cache for `/_expo/static/` and
-  `/assets/`, brotli/gzip for text-like bodies over 1KB (Bun entry caches
-  compressed bodies in memory).
+  `/assets/`, brotli/gzip for text-like bodies over 1KB, with compressed
+  bodies cached in memory.
 - Loader path normalization: strips `.web`/`.native` suffixes from
   `/_expo/loaders/*` requests so platform-specific loader files resolve.
 
@@ -1835,9 +1833,9 @@ Use this order when adding the server stack to another Expo Router project:
 
 1. Set `web.output: "server"` and the two `unstable_` router flags in app
    config; confirm the Expo SDK version supports them.
-2. Add a server entry (`server.bun.ts` or `server/index.ts` equivalent) that
-   wraps the `expo-server` adapter and owns CORS, rate limits, security
-   headers, and static caching.
+2. Add a server entry (`server.bun.ts`, or the `expo-server` adapter for your
+   runtime) that wraps the request handler and owns CORS, rate limits,
+   security headers, and static caching.
 3. Create `server/api/shared/` with the CORS, error, and auth helpers; keep
    route files thin handler exports.
 4. Add API routes under `app/api/**/+api.ts` with `OPTIONS` preflight and
@@ -2045,7 +2043,6 @@ Key files for replicating server output, API routes, loaders, and middleware. Re
 
 - app.config.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app.config.ts
 - server.bun.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server.bun.ts
-- server/index.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/index.ts
 - server/rateLimits.js: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/rateLimits.js
 - app/+middleware.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/%2Bmiddleware.ts
 - client/features/server-alpha/loaders.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/loaders.ts
