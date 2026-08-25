@@ -114,10 +114,11 @@ Then:
    shell with the viewport meta, global CSS, and a blocking script that
    stamps the color scheme on `<html>` before first paint. Adapt
    fonts/scripts to your app.
-3. Add a production server entry. The template ships two; copy the one you
-   deploy with: `server.bun.ts` (Bun.serve, primary) or `server/index.ts`
-   (Express fallback). Both serve `dist/client/` statics and mount the
-   request handler from `dist/server/` via `expo-server` adapters.
+3. Add a production server entry. The template ships one: `server.bun.ts`
+   (Bun.serve). It serves `dist/client/` statics and mounts the request
+   handler from `dist/server/` via `expo-server/adapter/bun`. On a non-Bun
+   host, swap in the matching `expo-server` adapter and reimplement the same
+   static/CORS/rate-limit/header layers.
 4. **First-render rules.** Persisted browser state (localStorage,
    `matchMedia`, dimensions) is only available after mount, so a route's
    first render should not depend on it — read it in an effect and let the UI

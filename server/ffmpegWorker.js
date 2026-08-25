@@ -7,10 +7,10 @@
  *
  * Two runtimes have to agree on this contract:
  *   - metro.config.js serves the worker during `expo start` (dev)
- *   - server/index.ts serves the worker from the static Express build (prod)
+ *   - server.bun.ts `serveFfmpegWorker()` serves it from the export (prod)
  *
  * Drift between those two sites has already caused one regression where the
- * worker path pointed at a folder that no longer existed, so the Express
+ * worker path pointed at a folder that no longer existed, so the production
  * route was silently never registered. Keep the path constant and lookup
  * logic here, in one CommonJS file that both runtimes can require.
  */
@@ -34,7 +34,7 @@ const FFMPEG_WORKER_RELATIVE_PATH =
 
 /**
  * Resolve the absolute worker path against a caller-supplied base directory.
- * Metro passes `__dirname`; the Express server passes `process.cwd()`.
+ * Metro passes `__dirname`; the production server passes `process.cwd()`.
  */
 function resolveFfmpegWorkerPath(baseDir) {
   return path.join(baseDir, FFMPEG_WORKER_RELATIVE_PATH);

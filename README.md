@@ -21,7 +21,7 @@ template docs under `docs/`.
 - **Sentry** — `@sentry/react-native`, no-op when `EXPO_PUBLIC_SENTRY_DSN` is unset; native upload steps are skipped unless `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are all set.
 
 ### Developer experience
-- **Bun production server** — Expo Router API routes, middleware, and data loaders through `expo-server/adapter/bun`, static Brotli/gzip compression, CORS, rate limiting (a strict 10/min bucket on `/api/media/getUploadUrl` and the billing checkout/portal routes), security headers, request logging. The Express server remains available as a fallback.
+- **Bun production server** — Expo Router API routes, middleware, and data loaders through `expo-server/adapter/bun`, static Brotli/gzip compression, CORS, rate limiting (a strict 10/min bucket on `/api/media/getUploadUrl` and the billing checkout/portal routes), security headers, request logging.
 - **Generator CLI** — `bun run generate component|screen|hook|form <Name>` — paths and imports match the rest of the template.
 - **Reactotron** — auto-connects in dev mode for native runs.
 - **Template docs** — LLM-facing modernization guidance in `docs/template-modernization-guide.md`.
@@ -95,8 +95,6 @@ Android projects with the new bundle ids.
 | `bun run build` | Production web export → `dist/` (client bundle + server output) |
 | `bun run start` | Run the Bun production server (`server.bun.ts`) |
 | `bun run start-local` | Run the Bun production server with `.env` autoloaded |
-| `bun run start:express` | Run the fallback Express production server (`server/index.ts`) |
-| `bun run start-local:express` | Run the fallback Express server with `.env` autoloaded by Bun |
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run lint` | `expo lint` (ESLint flat config) |
 | `bun run test:ci` | `jest --ci --coverage --forceExit` |
@@ -194,8 +192,8 @@ UI system.
 
 /packages/ui                  # @mrmeg/expo-ui npm package source
 
-/server.bun.ts                # Default Bun production server (compression, CORS, rate limits)
-/server                       # Express fallback server and shared server helpers
+/server.bun.ts                # Bun production server (compression, CORS, rate limits)
+/server                       # Shared server helpers (rate limits, API helpers, media handlers)
 /shared                       # Code shared between client & server (e.g. media path constants)
 /scripts                      # Generator CLI + bundle-size check
 /test                         # Jest setup
@@ -455,7 +453,7 @@ GitHub Actions CI to EAS Workflows are not configured here.
 - Lato on web via Google Fonts, system sans-serif on native
 - Jest 29 + jest-expo + RNTL 14
 - ESLint 10 flat config
-- Bun + Expo Server (production web server), with Express 5 fallback
+- Bun + Expo Server (production web server)
 - Bun (package manager + script runner)
 
 ## Template Docs
