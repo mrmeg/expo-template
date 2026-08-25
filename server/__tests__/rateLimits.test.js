@@ -1,7 +1,7 @@
 /**
  * Rate-limit configuration regression tests.
  *
- * These assert the mapping between the Express server's scoped limiters and
+ * These assert the mapping between the Bun server's scoped limiters and
  * the routes they cover. Drift here can silently downgrade a route to the
  * general 500/15-min limiter or accidentally move normal upload signing back
  * into the stricter side-effect budget.

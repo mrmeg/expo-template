@@ -16,8 +16,7 @@ patterns.
 | HTML document (server-rendered per request) | `app/+html.tsx` |
 | SSR stylesheet flush | `client/features/app/SsrStyleFlush.tsx` |
 | SSR request-derived state | `server/lib/ssrViewport.ts`, `server/lib/ssrOnboarding.ts`, `client/features/app/ssrViewportMetrics.ts` |
-| Production server, default (Bun) | `server.bun.ts` |
-| Production server, fallback (Express) | `server/index.ts` |
+| Production server (Bun) | `server.bun.ts` |
 | Rate-limit buckets | `server/rateLimits.js` |
 | Request middleware | `app/+middleware.ts` |
 | Data loaders (demo feature) | `client/features/server-alpha/loaders.ts` |
@@ -107,16 +106,14 @@ no browser storage. Four things in this template exist only to satisfy that.
 Development: `bun run web` (Expo dev server renders routes and runs loaders,
 middleware, and API routes in place).
 
-Production: `bun run build` exports `dist/`, then either entry serves it:
+Production: `bun run build` exports `dist/`, then `bun run start` serves it:
 
-- `bun run start` — `server.bun.ts`, the default. Wraps
+- `bun run start` — `server.bun.ts`, the only production entry. Wraps
   `createRequestHandler({ build: "dist/server" })` from
-  `expo-server/adapter/bun`.
-- `bun run start:express` — `server/index.ts`, Node fallback. Same behavior
-  via `expo-server/adapter/express` and `express-rate-limit`, `cors`,
-  `compression`, `morgan`.
+  `expo-server/adapter/bun` in `Bun.serve`.
+- `bun run start-local` — the same entry with `.env` autoloaded by Bun.
 
-Both entries own concerns that Expo's request handler does not:
+The entry owns concerns that Expo's request handler does not:
 
 - CORS origin allowlist from the `ALLOWED_ORIGINS` env var (comma-separated;
   localhost defaults otherwise), echoing only allowlisted origins and managing
@@ -127,8 +124,8 @@ Both entries own concerns that Expo's request handler does not:
   `Referrer-Policy`, `Permissions-Policy`, `X-Request-ID`, and HSTS in
   production.
 - Static caching and compression: 1-year cache for `/_expo/static/` and
-  `/assets/`, brotli/gzip for text-like bodies over 1KB (Bun entry caches
-  compressed bodies in memory).
+  `/assets/`, brotli/gzip for text-like bodies over 1KB, with compressed
+  bodies cached in memory.
 - Loader path normalization: strips `.web`/`.native` suffixes from
   `/_expo/loaders/*` requests so platform-specific loader files resolve.
 
@@ -365,9 +362,9 @@ Use this order when adding the server stack to another Expo Router project:
    the first-render constraints listed under Server Rendering — budget for the
    stylesheet flush, the `+html.tsx` snapshot filter, and request-derived
    viewport/persisted state before turning it on.
-2. Add a server entry (`server.bun.ts` or `server/index.ts` equivalent) that
-   wraps the `expo-server` adapter and owns CORS, rate limits, security
-   headers, and static caching.
+2. Add a server entry (`server.bun.ts`, or the `expo-server` adapter for your
+   runtime) that wraps the request handler and owns CORS, rate limits,
+   security headers, and static caching.
 3. Create `server/api/shared/` with the CORS, error, and auth helpers; keep
    route files thin handler exports.
 4. Add API routes under `app/api/**/+api.ts` with `OPTIONS` preflight and

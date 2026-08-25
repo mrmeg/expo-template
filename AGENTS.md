@@ -39,7 +39,7 @@ Do normal coding work directly unless the user explicitly asks for a plan.
 | State/data | Zustand 5, TanStack React Query 5 | Persisted client stores; query defaults live in app providers |
 | Auth | Clerk or AWS Amplify/Cognito | Optional; provider selected by env (Clerk publishable key, or both Cognito vars) behind a shared `AuthClient`/`TokenVerifier` abstraction |
 | Billing | Stripe hosted-external baseline | Optional; disabled unless Stripe/server env is configured |
-| Server | Bun server plus Express fallback | Expo Server adapter, compression, CORS, rate limits, security headers |
+| Server | Bun server (`server.bun.ts`) | Expo Server adapter, compression, CORS, rate limits, security headers |
 | Observability | Sentry React Native | Runtime DSN and native upload config are separately env-gated |
 | Testing | Jest 29, jest-expo, RNTL 13 | `bun run typecheck`, `lint`, `check:features`, `test:ci`, package gates |
 
