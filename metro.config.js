@@ -69,7 +69,14 @@ const dedupePackages = {
   "react-native-safe-area-context": resolveAppPackage(
     "react-native-safe-area-context"
   ),
+  "expo-web-browser": resolveAppPackage("expo-web-browser"),
   "pretty-format": resolvePackageFrom("pretty-format", "expo"),
+  // @clerk/clerk-expo and @clerk/clerk-react each nest their own copy of
+  // @clerk/shared 3.x, double-shipping it in the lazy Clerk chunk. Collapse
+  // onto clerk-react's copy — but only in client bundles (see
+  // clientOnlyDedupePackages): @clerk/backend, used by API routes in the node
+  // environment, depends on @clerk/shared 4.x and must keep its own copy.
+  "@clerk/shared": resolvePackageFrom("@clerk/shared", "@clerk/clerk-react"),
 };
 
 config.resolver.extraNodeModules = {
@@ -86,17 +93,25 @@ config.resolver.extraNodeModules = {
 // externals, so the rewrite stays active there.
 const serverExternalizedPackages = new Set(["react", "react-dom"]);
 
+// Packages whose dedupe rewrite must never apply to node / react-server
+// bundles — the server graph legitimately needs a different copy.
+const clientOnlyDedupePackages = new Set(["@clerk/shared"]);
+
 const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const resolve = originalResolveRequest || context.resolveRequest;
   const environment = context.customResolverOptions?.environment;
+  const isServerEnvironment =
+    environment === "node" || environment === "react-server";
   const isDevServerEnvironment =
-    (environment === "node" || environment === "react-server") &&
-    !context.customResolverOptions?.exporting;
+    isServerEnvironment && !context.customResolverOptions?.exporting;
 
   for (const [packageName, packagePath] of Object.entries(dedupePackages)) {
     if (moduleName === packageName || moduleName.startsWith(`${packageName}/`)) {
       if (isDevServerEnvironment && serverExternalizedPackages.has(packageName)) {
+        break;
+      }
+      if (isServerEnvironment && clientOnlyDedupePackages.has(packageName)) {
         break;
       }
       return resolve(

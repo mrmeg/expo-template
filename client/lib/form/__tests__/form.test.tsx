@@ -15,7 +15,7 @@ import "@/test/mockTheme";
 import React from "react";
 import { Pressable, Text } from "react-native";
 import { render, screen, fireEvent, act } from "@testing-library/react-native";
-import { z } from "zod";
+import * as z from "zod/mini";
 
 import {
   FormCheckbox,
@@ -26,8 +26,8 @@ import {
 } from "..";
 
 const schema = z.object({
-  name: z.string().min(1, "Name is required"),
-  newsletter: z.boolean().optional(),
+  name: z.string().check(z.minLength(1, "Name is required")),
+  newsletter: z.optional(z.boolean()),
 });
 
 type FormData = z.infer<typeof schema>;

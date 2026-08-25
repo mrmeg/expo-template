@@ -278,7 +278,7 @@ function formTemplate(name: string): string {
   const pascalName = toPascalCase(name);
   const camelName = toCamelCase(name);
   return `import { View, StyleSheet } from "react-native";
-import { z } from "zod";
+import * as z from "zod/mini";
 import {
   FormProvider,
   FormTextInput,
@@ -288,9 +288,10 @@ import {
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { spacing } from "@mrmeg/expo-ui/constants";
 
+// zod/mini tree-shakes far smaller than classic zod; keep form schemas on it.
 const ${camelName}Schema = z.object({
   // Replace with the real fields for this form.
-  example: z.string().min(1, "Required"),
+  example: z.string().check(z.minLength(1, "Required")),
 });
 
 export type ${pascalName}FormData = z.infer<typeof ${camelName}Schema>;
