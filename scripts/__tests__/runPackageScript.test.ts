@@ -4,7 +4,7 @@
  * `scripts/run-package-script.mjs` replaces twelve copy-pasted `ui:*`/`media:*`
  * scripts with one table, so adding a third workspace package is a one-line
  * change instead of six more scripts. The twelve aliases stay because they are
- * load-bearing: `scripts/release-{ui,media}-package.mjs` shell out to them,
+ * load-bearing: `scripts/release-package.mjs` shells out to them,
  * `.github/workflows/publish-{ui,media}.yml` run them as steps, and the
  * published package READMEs document them.
  *
@@ -42,6 +42,22 @@ function resolve(args: string[]): { status: number; stdout: string; stderr: stri
 
 const print = (args: string[]) => resolve(["--print", ...args]).stdout.trim();
 
+/** Every `<package>:<task>` root alias mentioned in a file or command output. */
+function aliasesIn(source: string): string[] {
+  return [...source.matchAll(/\b(ui|media):([a-z-]+(?::[a-z-]+)?)\b/g)]
+    .map((match) => `${match[1]}:${match[2]}`)
+    .filter((script) => !script.endsWith(":dry-run"));
+}
+
+/** The release script's own usage text for one package. */
+function releaseUsage(pkg: string): string {
+  return execFileSync("node", ["scripts/release-package.mjs", pkg, "--help"], {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
 /**
  * The pre-refactor command for each alias, copied from the `ui:*`/`media:*`
  * entries as they existed before `pkg` was introduced. These are the contract.
@@ -51,14 +67,14 @@ const EXPECTED: Record<string, string> = {
   "ui test": "bun run --cwd packages/ui test",
   "ui build": "bun run --cwd packages/ui build",
   "ui pack": "bun run --cwd packages/ui publish:dry-run",
-  "ui consumer-smoke": "node scripts/check-ui-package-consumer.mjs",
-  "ui release": "node scripts/release-ui-package.mjs",
+  "ui consumer-smoke": "node scripts/check-package-consumer.mjs ui",
+  "ui release": "node scripts/release-package.mjs ui",
   "media typecheck": "bun run --cwd packages/media typecheck",
   "media test": "bun run --cwd packages/media test",
   "media build": "bun run --cwd packages/media build",
   "media pack": "bun run --cwd packages/media publish:dry-run",
-  "media consumer-smoke": "node scripts/check-media-package-consumer.mjs",
-  "media release": "node scripts/release-media-package.mjs",
+  "media consumer-smoke": "node scripts/check-package-consumer.mjs media",
+  "media release": "node scripts/release-package.mjs media",
 };
 
 describe("run-package-script resolves the historical alias commands", () => {
@@ -68,7 +84,7 @@ describe("run-package-script resolves the historical alias commands", () => {
 
   it("forwards extra arguments to the resolved command", () => {
     expect(print(["ui", "release", "--patch", "--publish"])).toBe(
-      "node scripts/release-ui-package.mjs --patch --publish",
+      "node scripts/release-package.mjs ui --patch --publish",
     );
     expect(print(["media", "test", "--runTestsByPath", "src/foo.test.ts"])).toBe(
       "bun run --cwd packages/media test --runTestsByPath src/foo.test.ts",
@@ -76,13 +92,13 @@ describe("run-package-script resolves the historical alias commands", () => {
   });
 
   it("forwards trailing --help to the task instead of swallowing it", () => {
-    // `bun run ui:release -- --help` is documented in scripts/release-ui-package.mjs's
+    // `bun run ui:release -- --help` is documented in scripts/release-package.mjs's
     // own usage text. The runner must not intercept flags that come after the task.
     expect(print(["ui", "release", "--help"])).toBe(
-      "node scripts/release-ui-package.mjs --help",
+      "node scripts/release-package.mjs ui --help",
     );
     expect(print(["media", "release", "-h"])).toBe(
-      "node scripts/release-media-package.mjs -h",
+      "node scripts/release-package.mjs media -h",
     );
   });
 });
@@ -142,20 +158,30 @@ describe("package.json wiring", () => {
     }
   });
 
-  it("still exposes every alias the release scripts and publish workflows call", () => {
-    // scripts/release-{ui,media}-package.mjs and .github/workflows/publish-*.yml
-    // invoke these by name; dropping one breaks a publish mid-flight.
+  it("still exposes every alias the publish workflows call", () => {
+    // .github/workflows/publish-*.yml invoke these by name; dropping one breaks
+    // a publish mid-flight.
     for (const source of [
-      "scripts/release-ui-package.mjs",
-      "scripts/release-media-package.mjs",
       ".github/workflows/publish-ui.yml",
       ".github/workflows/publish-media.yml",
     ]) {
-      const referenced = [...read(source).matchAll(/\b(ui|media):([a-z-]+(?::[a-z-]+)?)\b/g)]
-        .map((match) => `${match[1]}:${match[2]}`)
-        .filter((script) => !script.endsWith(":dry-run"));
+      const referenced = aliasesIn(read(source));
 
       expect(referenced.length).toBeGreaterThan(0);
+      for (const script of new Set(referenced)) {
+        expect(packageJson.scripts[script]).toBeDefined();
+      }
+    }
+  });
+
+  it("still exposes every alias the release script shells out to", () => {
+    // scripts/release-package.mjs interpolates the package name into its gate
+    // list, so the aliases are read back out of its usage text — which is
+    // generated from the same list the script executes.
+    for (const pkg of ["ui", "media"]) {
+      const referenced = aliasesIn(releaseUsage(pkg));
+
+      expect(referenced).toContain(`${pkg}:consumer-smoke`);
       for (const script of new Set(referenced)) {
         expect(packageJson.scripts[script]).toBeDefined();
       }
