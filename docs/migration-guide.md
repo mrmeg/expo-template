@@ -141,13 +141,17 @@ Then:
 ## Phase 3 — Data Loaders
 
 Routes that need server data export a typed `loader` next to the screen. The
-route file stays thin — both the loader and the screen live in a feature
-folder:
+route file stays thin — both the loader and the screen live in a feature folder
+— but each export has to be a **declaration**, not a specifier re-export, or
+`expo export` misses it (see the convention notes below):
 
 ```ts
 // app/(main)/things/[id].tsx — the entire route file:
-export { thingLoader as loader } from "@/client/features/things/loaders";
-export { default } from "@/client/features/things/ThingDetailScreen";
+import { thingLoader } from "@/client/features/things/loaders";
+import ThingDetailScreen from "@/client/features/things/ThingDetailScreen";
+
+export const loader = thingLoader;
+export default ThingDetailScreen;
 ```
 
 ```ts
@@ -196,12 +200,15 @@ export default function ThingDetailScreen() {
 Conventions:
 
 - Wrap `setResponseHeaders` in try/catch — it throws outside a live request.
-- **Know the export's loader detection.** `expo export` finds loaders with a
-  Babel pass over `app/` that only recognizes a `loader` **declaration** in the
-  route file; the thin re-export above is not detected, so the route ships
-  without a loader in a production build while working fine in development
-  (details and symptoms in `docs/server-guide.md` → Data Loaders). Declare the
-  `loader` in the route file for any loader that must survive the export.
+- **Declare route exports, never re-export them by specifier.** `expo export`
+  finds loaders with a Babel pass over `app/` that only recognizes a `loader`
+  **declaration** (`export const loader = …`, `export function loader…`) in the
+  route file. `export { thingLoader as loader } from "…"` is skipped, so the
+  route ships without a loader in production while working fine in development.
+  The same pass strips a declared `export default` from the loader bundle but
+  leaves an `export { default } from "…"` line, which pulls the whole screen
+  graph into that server bundle (details and symptoms in
+  `docs/server-guide.md` → Data Loaders).
 - Import `@/server/**` modules **dynamically inside the loader body**, never
   at module top level.
 - Type loader data with `LoaderFunction<T>` and consume with
