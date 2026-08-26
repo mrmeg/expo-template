@@ -390,7 +390,7 @@ Behavior notes:
   resulting native image reference to a cache-file URI through
   `expo-image-manipulator`.
 - Apps must serve `FFMPEG_WORKER_URL` from the same origin in Metro and
-  production Express when using web video conversion.
+  the production server when using web video conversion.
 - Avoid the broad `/processing` barrel in settings, stores, and light screens.
   Import the exact processing subpath needed so heavy optional features stay
   eligible for bundler pruning and lazy loading.
