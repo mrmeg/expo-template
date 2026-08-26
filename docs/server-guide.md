@@ -244,19 +244,24 @@ Client-side navigations (and loader invalidation) fetch
 loader again, per request. So loader output is as fresh as the request, and
 `request` is present inside the loader.
 
-**Production detection gap.** `expo export` decides which routes have loaders
-from a Babel pass over `app/` (`babel-preset-expo`'s
+**Declare the loader in the route file.** `expo export` decides which routes
+have loaders from a Babel pass over `app/` (`babel-preset-expo`'s
 `server-data-loaders-plugin`) that only recognizes a `loader` **declaration** in
-the route file. An export with specifiers — `export { serverAlphaLoader as
-loader } from "@/client/features/server-alpha/loaders"`, the shape the demo
-route uses below — is skipped, so no loader bundle is emitted and the route
-gets no `loader` entry in `dist/server/_expo/routes.json`. Development hides
-this, because the dev server marks every HTML route as having a loader.
-Verified against this repo's own export: `/_expo/loaders/server-alpha` returns
-404, and the server render falls through to `useLoaderData`'s client fetch
-path, which throws `TypeError: fetch() URL is invalid` inside the route's
-Suspense boundary. Until the plugin handles specifiers, a loader that must
-survive `expo export` has to be declared in the route file itself.
+the route file: `export const loader = …` or `export function loader…`. Export
+specifiers are skipped, so `export { serverAlphaLoader as loader } from "…"`
+silently ships no loader — no loader bundle, no `loader` entry in
+`dist/server/_expo/routes.json`, `/_expo/loaders/<route>` 404s, and the server
+render falls through to `useLoaderData`'s client fetch, which throws
+`TypeError: fetch() URL is invalid` inside the route's Suspense boundary.
+Development hides it, because the dev server marks every HTML route as having a
+loader. `server/__tests__/loaderExportShape.test.ts` guards the shape.
+
+On a loader route, declare the screen's default export too. The plugin drops a
+route's `export default` declaration from the loader bundle, but an
+`export { default } from "…"` specifier line survives and drags the whole
+screen graph into that server bundle — 1.2 MB versus 15 KB for this demo.
+Loader-less routes keep the one-line `export { default } from "…"` convention;
+only routes that emit a loader bundle pay for it.
 
 **Param'd routes.** Loader requests are matched against the route manifest by
 the route's regex with params parsed out, so a param'd loader is addressable
@@ -287,17 +292,21 @@ export const serverAlphaLoader: LoaderFunction<TemplateServerCatalog> = async (r
 };
 ```
 
-Re-export from the route file under the name `loader`, next to the screen
-(`app/(main)/(demos)/server-alpha/index.tsx`):
+Declare both exports in the route file, next to each other
+(`app/(main)/(demos)/server-alpha/index.tsx` is the whole file):
 
 ```ts
-export { serverAlphaLoader as loader } from "@/client/features/server-alpha/loaders";
-export { default } from "@/client/features/server-alpha/ServerAlphaDemoScreen";
+import { serverAlphaLoader } from "@/client/features/server-alpha/loaders";
+import ServerAlphaDemoScreen from "@/client/features/server-alpha/ServerAlphaDemoScreen";
+
+export const loader = serverAlphaLoader;
+export default ServerAlphaDemoScreen;
 ```
 
-This keeps the route file thin and works in development, but it is the shape
-the export's loader detection misses — see the production detection gap above
-before relying on it in a build.
+The route file stays thin and both declarations are ones the export
+understands: it strips `loader` (and the loader-only module graph behind it)
+from the client bundle, and strips the screen from the loader bundle. Specifier
+re-exports for either export are silently dropped or silently fat — see above.
 
 Consume in the screen with `useLoaderData`, typed by the loader itself:
 
@@ -309,6 +318,8 @@ const catalog = useLoaderData<typeof serverAlphaLoader>();
 
 Loader rules:
 
+- Declare `loader` (and the screen's `default`) in the route file. Specifier
+  re-exports are invisible to the export's loader detection.
 - Loaders are read-only. Mutations belong in API route handlers.
 - Wrap `setResponseHeaders` in try/catch; unit tests and direct calls run
   loaders without an active request scope.
@@ -375,9 +386,8 @@ Use this order when adding the server stack to another Expo Router project:
    observability.
 6. Add loaders per feature folder, consume with
    `useLoaderData<typeof loaderFn>()`, and pair each with an API route for
-   client refetch. Declare the `loader` export in the route file if it has to
-   survive `expo export` (see the production detection gap under Data
-   Loaders).
+   client refetch. Declare the `loader` and `default` exports in the route
+   file, never as specifier re-exports (see Data Loaders).
 
 ## Validation
 
