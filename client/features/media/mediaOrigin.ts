@@ -9,11 +9,11 @@
  *
  * The origin is read from `process.env.EXPO_PUBLIC_API_URL` directly rather
  * than from `Config.apiUrl`, because `Config` can never express "unconfigured":
- * `client/config/config.dev.ts` hardcodes `http://localhost:3000/api` and
- * ignores the env var, and `config.prod.ts` falls back to a placeholder origin.
- * Both would make a blank `.env` look configured and defeat the fail-closed
- * rule. Consequence: on native, media does not piggyback on the dev
- * `localhost:3000` default — `EXPO_PUBLIC_API_URL` must be set explicitly.
+ * `client/config/config.dev.ts` derives a dev-server URL and ignores the env
+ * var, and `config.prod.ts` falls back to a placeholder origin. Both would
+ * make a blank `.env` look configured and defeat the fail-closed rule.
+ * Consequence: on native, media does not piggyback on the dev default —
+ * `EXPO_PUBLIC_API_URL` must be set explicitly.
  */
 import { Platform } from "react-native";
 
