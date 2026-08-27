@@ -1,21 +1,14 @@
 import React, { useCallback, useRef } from "react";
-import { View, StyleSheet, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
-import { createThemedStyles } from "@mrmeg/expo-ui/lib";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardFooter,
-  CardTitle,
-  CardDescription,
-} from "@mrmeg/expo-ui/components/Card";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
-import type { Theme } from "@mrmeg/expo-ui/constants";
 import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
+import { AuthFormCard } from "./AuthFormCard";
+import { authFormStyles } from "./authFormStyles";
+import { validateConfirmPassword, validatePassword } from "./validators";
 
 export interface ResetPasswordFormProps {
   onSubmit?: (params: { code: string; newPassword: string }) => void | Promise<void>;
@@ -46,10 +39,7 @@ export function ResetPasswordForm({
 }: ResetPasswordFormProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const styles = themedStyles(theme);
-
-  const resolvedTitle = title ?? t("auth.resetYourPassword");
-  const resolvedDescription = description ?? t("auth.resetYourPasswordDescription");
+  const shared = authFormStyles(theme);
 
   const codeRef = useRef<AuthTextFieldHandle>(null);
   const passwordRef = useRef<AuthTextFieldHandle>(null);
@@ -62,25 +52,14 @@ export function ResetPasswordForm({
     return "";
   }, [t]);
 
-  const validatePassword = useCallback((value: string): string => {
-    if (!value) {
-      return t("errors.passwordRequired");
-    }
-    if (value.length < minPasswordLength) {
-      return t("errors.passwordMinLength", { count: minPasswordLength });
-    }
-    return "";
-  }, [minPasswordLength, t]);
-
-  const validateConfirmPassword = useCallback((value: string): string => {
-    if (!value) {
-      return t("errors.confirmPasswordRequired");
-    }
-    if (value !== passwordRef.current?.getValue()) {
-      return t("errors.passwordMismatch");
-    }
-    return "";
-  }, [t]);
+  const passwordValidator = useCallback(
+    (value: string) => validatePassword(value, t, minPasswordLength),
+    [minPasswordLength, t],
+  );
+  const confirmPasswordValidator = useCallback(
+    (value: string) => validateConfirmPassword(value, t, passwordRef.current?.getValue()),
+    [t],
+  );
 
   const handleSubmit = useCallback(async () => {
     const isCodeValid = codeRef.current?.validate() ?? false;
@@ -93,218 +72,126 @@ export function ResetPasswordForm({
     }
   }, [onSubmit]);
 
-  const wrapContent = (content: React.ReactNode) => {
-    if (embedded) {
-      return <View style={styles.embeddedContainer}>{content}</View>;
-    }
-    return (
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {content}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    );
-  };
-
   if (success) {
-    return wrapContent(
-      <View style={styles.formWrapper}>
-        {logo && <View style={styles.logoContainer}>{logo}</View>}
-        <Card style={styles.card}>
-          <CardHeader>
-            <CardTitle>{t("auth.passwordResetSuccess")}</CardTitle>
-            <CardDescription>
-              {t("auth.passwordResetSuccessDescription")}
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent style={styles.content}>
-            <Button
-              preset="default"
-              onPress={onBack}
-              fullWidth
-            >
-              <SansSerifBoldText>{t("auth.signIn")}</SansSerifBoldText>
-            </Button>
-          </CardContent>
-        </Card>
-      </View>
+    return (
+      <AuthFormCard
+        embedded={embedded}
+        logo={logo}
+        title={t("auth.passwordResetSuccess")}
+        description={t("auth.passwordResetSuccessDescription")}
+      >
+        <Button
+          preset="default"
+          onPress={onBack}
+          fullWidth
+        >
+          <SansSerifBoldText>{t("auth.signIn")}</SansSerifBoldText>
+        </Button>
+      </AuthFormCard>
     );
   }
 
-  return wrapContent(
-    <View style={styles.formWrapper}>
-      {logo && <View style={styles.logoContainer}>{logo}</View>}
-      <Card style={styles.card}>
-        <CardHeader>
-          <CardTitle>{resolvedTitle}</CardTitle>
-          <CardDescription>{resolvedDescription}</CardDescription>
-        </CardHeader>
-
-        <CardContent style={styles.content}>
-          {!!error && (
-            <View style={styles.errorContainer}>
-              <SansSerifText style={styles.errorText}>{error}</SansSerifText>
-            </View>
-          )}
-
-          <View style={styles.inputGroup}>
-            <AuthTextField
-              ref={codeRef}
-              testID="reset-password-code-input"
-              label={t("auth.verificationCode")}
-              placeholder={t("auth.verificationCodePlaceholder")}
-              validateValue={validateCode}
-              autoCapitalize="none"
-              keyboardType="number-pad"
-              editable={!loading}
-              required
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => passwordRef.current?.focus()}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <AuthTextField
-              ref={passwordRef}
-              testID="reset-password-password-input"
-              label={t("auth.newPassword")}
-              placeholder={t("auth.newPasswordPlaceholder")}
-              validateValue={validatePassword}
-              onValueChange={() => {
-                if (confirmPasswordRef.current?.getValue() && confirmPasswordRef.current.hasError()) {
-                  confirmPasswordRef.current.validate();
-                }
-              }}
-              secureTextEntry
-              showSecureEntryToggle
-              autoCapitalize="none"
-              autoComplete="new-password"
-              editable={!loading}
-              required
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <AuthTextField
-              ref={confirmPasswordRef}
-              testID="reset-password-confirm-password-input"
-              label={t("auth.confirmNewPassword")}
-              placeholder={t("auth.confirmNewPasswordPlaceholder")}
-              validateValue={validateConfirmPassword}
-              secureTextEntry
-              showSecureEntryToggle
-              autoCapitalize="none"
-              autoComplete="new-password"
-              editable={!loading}
-              required
-              returnKeyType="go"
-              onSubmitEditing={handleSubmit}
-            />
-          </View>
-
-          <View style={styles.requirements}>
-            <SansSerifText style={styles.requirementsText}>
-              {t("auth.passwordMinLength", { count: minPasswordLength })}
+  return (
+    <AuthFormCard
+      embedded={embedded}
+      error={error}
+      logo={logo}
+      title={title ?? t("auth.resetYourPassword")}
+      description={description ?? t("auth.resetYourPasswordDescription")}
+      footer={
+        onBack && (
+          <Pressable onPress={onBack} disabled={loading}>
+            <SansSerifText style={shared.linkText}>
+              {t("auth.backToSignIn")}
             </SansSerifText>
-          </View>
+          </Pressable>
+        )
+      }
+    >
+      <View style={shared.inputGroup}>
+        <AuthTextField
+          ref={codeRef}
+          testID="reset-password-code-input"
+          label={t("auth.verificationCode")}
+          placeholder={t("auth.verificationCodePlaceholder")}
+          validateValue={validateCode}
+          autoCapitalize="none"
+          keyboardType="number-pad"
+          editable={!loading}
+          required
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => passwordRef.current?.focus()}
+        />
+      </View>
 
-          <Button
-            testID="reset-password-submit-button"
-            preset="default"
-            onPress={handleSubmit}
-            loading={loading}
-            disabled={loading}
-            fullWidth
-          >
-            <SansSerifBoldText>{t("auth.resetPasswordButton")}</SansSerifBoldText>
-          </Button>
-        </CardContent>
+      <View style={shared.inputGroup}>
+        <AuthTextField
+          ref={passwordRef}
+          testID="reset-password-password-input"
+          label={t("auth.newPassword")}
+          placeholder={t("auth.newPasswordPlaceholder")}
+          validateValue={passwordValidator}
+          onValueChange={() => {
+            if (confirmPasswordRef.current?.getValue() && confirmPasswordRef.current.hasError()) {
+              confirmPasswordRef.current.validate();
+            }
+          }}
+          secureTextEntry
+          showSecureEntryToggle
+          autoCapitalize="none"
+          autoComplete="new-password"
+          editable={!loading}
+          required
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+        />
+      </View>
 
-        {onBack && (
-          <CardFooter style={styles.footer}>
-            <Pressable onPress={onBack} disabled={loading}>
-              <SansSerifText style={styles.backLink}>
-                {t("auth.backToSignIn")}
-              </SansSerifText>
-            </Pressable>
-          </CardFooter>
-        )}
-      </Card>
-    </View>
+      <View style={shared.inputGroup}>
+        <AuthTextField
+          ref={confirmPasswordRef}
+          testID="reset-password-confirm-password-input"
+          label={t("auth.confirmNewPassword")}
+          placeholder={t("auth.confirmNewPasswordPlaceholder")}
+          validateValue={confirmPasswordValidator}
+          secureTextEntry
+          showSecureEntryToggle
+          autoCapitalize="none"
+          autoComplete="new-password"
+          editable={!loading}
+          required
+          returnKeyType="go"
+          onSubmitEditing={handleSubmit}
+        />
+      </View>
+
+      <View style={styles.requirements}>
+        <SansSerifText style={shared.hintText}>
+          {t("auth.passwordMinLength", { count: minPasswordLength })}
+        </SansSerifText>
+      </View>
+
+      <Button
+        testID="reset-password-submit-button"
+        preset="default"
+        onPress={handleSubmit}
+        loading={loading}
+        disabled={loading}
+        fullWidth
+      >
+        <SansSerifBoldText>{t("auth.resetPasswordButton")}</SansSerifBoldText>
+      </Button>
+    </AuthFormCard>
   );
 }
 
-const createStyles = (theme: Theme) =>
-  StyleSheet.create({
-    keyboardAvoid: {
-      flex: 1,
-    },
-    embeddedContainer: {
-      width: "100%",
-    },
-    scrollContent: {
-      flexGrow: 1,
-      justifyContent: "center",
-      padding: spacing.md,
-    },
-    card: {
-      width: "100%",
-    },
-    formWrapper: {
-      width: "100%",
-      maxWidth: 400,
-      alignSelf: "center",
-    },
-    logoContainer: {
-      alignItems: "center",
-      marginBottom: spacing.lg,
-    },
-    content: {
-      gap: spacing.md,
-    },
-    inputGroup: {
-      width: "100%",
-    },
-    errorContainer: {
-      backgroundColor: withAlpha(theme.colors.destructive, 0.08),
-      borderRadius: spacing.radiusSm,
-      padding: spacing.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.destructive,
-    },
-    errorText: {
-      color: theme.colors.destructive,
-      fontSize: 14,
-      textAlign: "center",
-    },
-    requirements: {
-      paddingHorizontal: spacing.xs,
-    },
-    requirementsText: {
-      color: theme.colors.textDim,
-      fontSize: 13,
-    },
-    footer: {
-      justifyContent: "center",
-    },
-    backLink: {
-      color: theme.colors.primary,
-      fontSize: 14,
-    },
-  });
-
-const themedStyles = createThemedStyles(createStyles);
+/** Theme-independent, so a plain module-scope sheet is enough. */
+const styles = StyleSheet.create({
+  requirements: {
+    paddingHorizontal: spacing.xs,
+  },
+});
 
 export default ResetPasswordForm;

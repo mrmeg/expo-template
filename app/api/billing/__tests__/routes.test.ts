@@ -19,10 +19,14 @@ import {
 import { resetBillingBootstrap } from "@/server/api/billing/bootstrap";
 import { createMemoryIdempotencyStore } from "@/server/api/billing/idempotency";
 
-import { GET as getSummary } from "../summary+api";
-import { POST as postCheckout } from "../checkout-session+api";
-import { POST as postPortal } from "../portal-session+api";
+import { GET as billingGet, POST as billingPost } from "../[action]+api";
 import { POST as postWebhook, setWebhookIdempotencyStore } from "../webhook+api";
+
+const getSummary = (request: Request) => billingGet(request, { action: "summary" });
+const postCheckout = (request: Request) =>
+  billingPost(request, { action: "checkout-session" });
+const postPortal = (request: Request) =>
+  billingPost(request, { action: "portal-session" });
 
 const user = { userId: "u_1", email: "u1@example.com" };
 
@@ -264,6 +268,28 @@ describe("POST /api/billing/portal-session", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.url).toBe("https://billing.stripe.com/portal");
+  });
+});
+
+describe("/api/billing/[action] dispatch", () => {
+  it("returns 404 not-found for unknown actions", async () => {
+    const response = await billingGet(
+      authedRequest("http://localhost/api/billing/nope"),
+      { action: "nope" },
+    );
+    expect(response.status).toBe(404);
+    const body = await response.json();
+    expect(body.code).toBe("not-found");
+  });
+
+  it("returns 405 method-not-allowed for a known action with the wrong method", async () => {
+    const response = await billingGet(
+      authedRequest("http://localhost/api/billing/checkout-session"),
+      { action: "checkout-session" },
+    );
+    expect(response.status).toBe(405);
+    const body = await response.json();
+    expect(body.code).toBe("method-not-allowed");
   });
 });
 

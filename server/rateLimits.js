@@ -1,5 +1,5 @@
 /**
- * Rate-limit configuration for the Express production server.
+ * Rate-limit configuration for the Bun production server (`server.bun.ts`).
  *
  * Kept as plain data so tests can assert the mapping between routes and
  * limiters without loading the full server (which binds a port).
@@ -28,8 +28,8 @@ const MEDIA_SIGNER_LIMIT = {
 /**
  * Paths that receive the media signer limiter.
  *
- * Note: `/api/media/getUploadUrl` matches the Expo Router API file
- * `app/api/media/getUploadUrl+api.ts` that the media hook actually calls.
+ * Note: `/api/media/getUploadUrl` is served by the consolidated
+ * `app/api/media/[action]+api.ts` route the media hook actually calls.
  * Misalignment between this list and the real route path silently downgrades
  * enforcement to the general 500/15-min bucket.
  */

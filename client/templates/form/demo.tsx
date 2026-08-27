@@ -1,16 +1,22 @@
 import React from "react";
 import { View, Alert, Platform, StyleSheet } from "react-native";
-import { z } from "zod";
+import * as z from "zod/mini";
 import { useForm, zodResolver, FormTextInput, FormCheckbox } from "@/client/lib/form";
 import { FormScreen, type FormStep } from "./Screen";
 import { spacing } from "@mrmeg/expo-ui/constants";
 
+// zod/mini's function-style API tree-shakes to a fraction of classic zod's
+// bundle weight; classic `import { z } from "zod"` pulls the full method-chain
+// build (~360 KB raw) into this route's chunk.
 const formSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().min(1, "Email is required").email("Enter a valid email"),
-  city: z.string().min(1, "City is required"),
-  country: z.string().min(1, "Country is required"),
-  newsletter: z.boolean().optional(),
+  name: z.string().check(z.minLength(1, "Name is required")),
+  email: z.string().check(
+    z.minLength(1, "Email is required"),
+    z.regex(z.regexes.email, "Enter a valid email")
+  ),
+  city: z.string().check(z.minLength(1, "City is required")),
+  country: z.string().check(z.minLength(1, "Country is required")),
+  newsletter: z.optional(z.boolean()),
 });
 
 type FormData = z.infer<typeof formSchema>;

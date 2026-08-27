@@ -72,7 +72,7 @@ Check your `package.json` and app config, then start at the matching tier:
 ## Phase 1 — Toolchain
 
 1. Adopt Bun if not already: delete other lockfiles, run `bun install`.
-2. Upgrade to Expo SDK 56: `bunx expo install expo@^56.0.0 --fix`, then
+2. Upgrade to Expo SDK 57: `bunx expo install expo@^57.0.0 --fix`, then
    `bunx expo-doctor` and resolve every finding. (Tier 3: one major at a time.)
 3. TypeScript ~6.0 with `"strict": true` in `tsconfig.json`. Path alias
    `"@/*"` pointing at the repo root.
@@ -93,6 +93,7 @@ plugins: [
     "expo-router",
     {
       origin: "",
+      unstable_useServerRendering: true,
       unstable_useServerMiddleware: true,
       unstable_useServerDataLoaders: true,
     },
@@ -102,39 +103,55 @@ plugins: [
 ```
 
 `output: "server"` gives you API routes, middleware, and data loaders on a
-Node/Bun server. Note there is deliberately no `unstable_useServerRendering`:
-routes are **client-rendered**, so each one gets an HTML shell written at
-export time and the app takes over in the browser.
+Node/Bun server. `unstable_useServerRendering` additionally renders each route
+**per request**, so the response carries real markup instead of an export-time
+HTML shell. That is what the template ships, and it is the flag with real
+migration cost: the first render runs in Node with no DOM. Budget for the
+first-render rules below, plus the stylesheet flush and `+html.tsx` snapshot
+filter described in `docs/server-guide.md`. Leaving the flag off is a valid
+smaller step — you get the same API routes, middleware, and loaders with
+export-time HTML shells.
 
 Then:
 
 1. Add `expo-server` (`~57.0.0`) as a dependency.
 2. Add an `app/+html.tsx` document. Fetch the template's version
-   (`app/+html.tsx` via the raw URL above) — it wraps every route's HTML
-   shell with the viewport meta, global CSS, and a blocking script that
-   stamps the color scheme on `<html>` before first paint. Adapt
+   (`app/+html.tsx` via the raw URL above) — it wraps every route's HTML with
+   the viewport meta, global CSS, and a blocking script that stamps the color
+   scheme on `<html>` before first paint, and (with server rendering on)
+   splats the framework's SSR head/body resources into the document. Adapt
    fonts/scripts to your app.
-3. Add a production server entry. The template ships two; copy the one you
-   deploy with: `server.bun.ts` (Bun.serve, primary) or `server/index.ts`
-   (Express fallback). Both serve `dist/client/` statics and mount the
-   request handler from `dist/server/` via `expo-server` adapters.
+3. Add a production server entry. The template ships one: `server.bun.ts`
+   (Bun.serve). It serves `dist/client/` statics and mounts the request
+   handler from `dist/server/` via `expo-server/adapter/bun`. On a non-Bun
+   host, swap in the matching `expo-server` adapter and reimplement the same
+   static/CORS/rate-limit/header layers.
 4. **First-render rules.** Persisted browser state (localStorage,
    `matchMedia`, dimensions) is only available after mount, so a route's
    first render should not depend on it — read it in an effect and let the UI
    settle, or accept the pre-hydration default. Anything that must be right
    before paint belongs in a `+html.tsx` blocking script (the template stamps
-   the color scheme that way).
+   the color scheme that way). Under server rendering that first render also
+   happens in Node, so a value the markup depends on has to come off the
+   request instead: the template mirrors viewport width and the onboarding flag
+   into cookies and re-derives the same value on both sides
+   (`server/lib/ssrViewport.ts`, `server/lib/ssrOnboarding.ts`,
+   `client/features/app/ssrViewportMetrics.ts`) so hydration matches.
 
 ## Phase 3 — Data Loaders
 
 Routes that need server data export a typed `loader` next to the screen. The
-route file stays thin — both the loader and the screen live in a feature
-folder:
+route file stays thin — both the loader and the screen live in a feature folder
+— but each export has to be a **declaration**, not a specifier re-export, or
+`expo export` misses it (see the convention notes below):
 
 ```ts
 // app/(main)/things/[id].tsx — the entire route file:
-export { thingLoader as loader } from "@/client/features/things/loaders";
-export { default } from "@/client/features/things/ThingDetailScreen";
+import { thingLoader } from "@/client/features/things/loaders";
+import ThingDetailScreen from "@/client/features/things/ThingDetailScreen";
+
+export const loader = thingLoader;
+export default ThingDetailScreen;
 ```
 
 ```ts
@@ -154,8 +171,7 @@ export const thingLoader: LoaderFunction<ThingLoaderData> = async (
   try {
     setResponseHeaders({ "Cache-Control": "no-store" });
   } catch {
-    // Static export and direct unit-test calls have no Expo Server
-    // request scope.
+    // Unit tests and direct calls have no Expo Server request scope.
   }
 
   // Server-only modules are dynamically imported so they never enter the
@@ -184,6 +200,15 @@ export default function ThingDetailScreen() {
 Conventions:
 
 - Wrap `setResponseHeaders` in try/catch — it throws outside a live request.
+- **Declare route exports, never re-export them by specifier.** `expo export`
+  finds loaders with a Babel pass over `app/` that only recognizes a `loader`
+  **declaration** (`export const loader = …`, `export function loader…`) in the
+  route file. `export { thingLoader as loader } from "…"` is skipped, so the
+  route ships without a loader in production while working fine in development.
+  The same pass strips a declared `export default` from the loader bundle but
+  leaves an `export { default } from "…"` line, which pulls the whole screen
+  graph into that server bundle (details and symptoms in
+  `docs/server-guide.md` → Data Loaders).
 - Import `@/server/**` modules **dynamically inside the loader body**, never
   at module top level.
 - Type loader data with `LoaderFunction<T>` and consume with
@@ -293,7 +318,11 @@ Working composition examples for every template live under
   `export async function GET(request: Request): Promise<Response>`. Shared
   auth/CORS/error helpers live in `server/api/shared/` — keep route files
   thin. Return typed problem objects to the client, not raw `Response`
-  branching in UI code.
+  branching in UI code. Every `+api.ts` exports as its own self-contained
+  server bundle, so consolidate sibling actions that share heavy
+  dependencies behind one `app/api/<feature>/[action]+api.ts` dispatcher
+  (template reference: `app/api/media/[action]+api.ts`; see the server
+  guide's Route Consolidation section).
 - **Auth fetch:** a single `authenticatedFetch`/`api.*` wrapper injects the
   Bearer token; UI code never builds auth headers.
 - **Optional systems fail closed:** with a blank `.env`, auth, billing,

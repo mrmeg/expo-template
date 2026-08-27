@@ -76,6 +76,23 @@ const STORAGE_KEYS = [
   "EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA",
 ] as const;
 
+// The media routes are consolidated behind `[action]+api.ts`; bind the
+// action param here (requiring lazily so `jest.resetModules()` still
+// applies) to keep call sites in the old per-file handler shape.
+function mediaRoute(action: "list" | "delete" | "getUploadUrl" | "getSignedUrls") {
+  const route = require("../[action]+api");
+  const bind =
+    (method: "GET" | "POST" | "DELETE" | "OPTIONS") =>
+      (request: Request): Promise<Response> =>
+        route[method](request, { action });
+  return {
+    GET: bind("GET"),
+    POST: bind("POST"),
+    DELETE: bind("DELETE"),
+    OPTIONS: bind("OPTIONS"),
+  };
+}
+
 describe("media delete route", () => {
   const originalEnv: Partial<Record<(typeof STORAGE_KEYS)[number], string | undefined>> = {};
 
@@ -89,8 +106,8 @@ describe("media delete route", () => {
     process.env.R2_SECRET_ACCESS_KEY = "test-secret-key";
     process.env.ALLOWED_ORIGINS = ORIGIN;
     process.env.EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA = "true";
-    const { _resetMediaStorageForTests } = require("@/server/api/media/storage");
-    _resetMediaStorageForTests();
+    const { resetMediaStorageForTests } = require("@/server/media/handlers");
+    resetMediaStorageForTests();
     // NODE_ENV stays at its Jest default ("test") so sanitizeErrorDetails
     // still returns a `details` field — that keeps the 500 test expressive.
   });
@@ -103,7 +120,7 @@ describe("media delete route", () => {
   });
 
   it("OPTIONS preflight echoes the allowed origin and advertises DELETE", async () => {
-    const { OPTIONS } = require("../delete+api");
+    const { OPTIONS } = mediaRoute("delete");
     const res: Response = await OPTIONS(
       makeRequest("http://localhost/api/media/delete", { method: "OPTIONS" })
     );
@@ -115,7 +132,7 @@ describe("media delete route", () => {
   });
 
   it("DELETE without a key returns 400 and never calls S3", async () => {
-    const { DELETE } = require("../delete+api");
+    const { DELETE } = mediaRoute("delete");
     const res: Response = await DELETE(
       makeRequest("http://localhost/api/media/delete", { method: "DELETE" })
     );
@@ -128,7 +145,7 @@ describe("media delete route", () => {
 
   it("DELETE with a key sends DeleteObjectCommand and echoes the origin", async () => {
     mockSend.mockResolvedValueOnce({});
-    const { DELETE } = require("../delete+api");
+    const { DELETE } = mediaRoute("delete");
     const res: Response = await DELETE(
       makeRequest("http://localhost/api/media/delete?key=uploads/u_1/photo.jpg", {
         method: "DELETE",
@@ -151,7 +168,7 @@ describe("media delete route", () => {
   it("DELETE surfaces S3 failures as 500 with CORS headers intact", async () => {
     const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     mockSend.mockRejectedValueOnce(new Error("access denied"));
-    const { DELETE } = require("../delete+api");
+    const { DELETE } = mediaRoute("delete");
     const res: Response = await DELETE(
       makeRequest("http://localhost/api/media/delete?key=uploads/u_1/photo.jpg", {
         method: "DELETE",
@@ -166,7 +183,7 @@ describe("media delete route", () => {
   });
 
   it("POST without a keys array returns 400", async () => {
-    const { POST } = require("../delete+api");
+    const { POST } = mediaRoute("delete");
     const res: Response = await POST(
       makeRequest("http://localhost/api/media/delete", {
         method: "POST",
@@ -182,7 +199,7 @@ describe("media delete route", () => {
   });
 
   it("POST rejects more than 1000 keys", async () => {
-    const { POST } = require("../delete+api");
+    const { POST } = mediaRoute("delete");
     const keys = Array.from({ length: 1001 }, (_, i) => `uploads/k${i}`);
     const res: Response = await POST(
       makeRequest("http://localhost/api/media/delete", {
@@ -203,7 +220,7 @@ describe("media delete route", () => {
       Deleted: [{ Key: "uploads/a" }, { Key: "uploads/b" }],
       Errors: [{ Key: "uploads/c", Message: "NoSuchKey" }],
     });
-    const { POST } = require("../delete+api");
+    const { POST } = mediaRoute("delete");
     const res: Response = await POST(
       makeRequest("http://localhost/api/media/delete", {
         method: "POST",

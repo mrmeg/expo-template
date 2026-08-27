@@ -1,13 +1,13 @@
 /**
  * Server Alpha dynamic-route screen.
  *
- * This route deliberately has **no** loader. Without server rendering, `expo
- * export` runs each loader once at build time and writes the payload to
- * `_expo/loaders/<file path>` — so a param'd route is exported as
- * `.../server-alpha/[example]` while the browser asks for
- * `.../server-alpha/dynamic-loader` and gets a 404. The screen reads its param
- * and fetches the matching API route instead, which is the pattern the demo is
- * supposed to teach; these tests pin that down so nobody "restores" the loader.
+ * This route deliberately has **no** loader. Server rendering could serve one
+ * (loader requests are matched by the route's regex, so params come through),
+ * but reading the param and fetching the paired API route is the single data
+ * path that works on every rendering mode — native, and a static web export
+ * where a param'd route has no addressable loader payload. That portability is
+ * the pattern the demo teaches; these tests pin it down so nobody "restores"
+ * the loader.
  */
 
 import React from "react";

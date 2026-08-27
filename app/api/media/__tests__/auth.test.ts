@@ -66,6 +66,23 @@ function setEnv(key: string, value: string | undefined): void {
   }
 }
 
+// The media routes are consolidated behind `[action]+api.ts`; bind the
+// action param here (requiring lazily so `jest.resetModules()` still
+// applies) to keep call sites in the old per-file handler shape.
+function mediaRoute(action: "list" | "delete" | "getUploadUrl" | "getSignedUrls") {
+  const route = require("../[action]+api");
+  const bind =
+    (method: "GET" | "POST" | "DELETE" | "OPTIONS") =>
+      (request: Request): Promise<Response> =>
+        route[method](request, { action });
+  return {
+    GET: bind("GET"),
+    POST: bind("POST"),
+    DELETE: bind("DELETE"),
+    OPTIONS: bind("OPTIONS"),
+  };
+}
+
 describe("media route auth policy", () => {
   const originalEnv: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>> = {};
 
@@ -77,8 +94,8 @@ describe("media route auth policy", () => {
     setEnv("NODE_ENV", "test");
     mockSend.mockReset();
     setTokenVerifier(null);
-    const { _resetMediaStorageForTests } = require("@/server/api/media/storage");
-    _resetMediaStorageForTests();
+    const { resetMediaStorageForTests } = require("@/server/media/handlers");
+    resetMediaStorageForTests();
   });
 
   afterEach(() => {
@@ -89,7 +106,7 @@ describe("media route auth policy", () => {
   });
 
   it("rejects upload signing without auth when storage is configured", async () => {
-    const { POST } = require("../getUploadUrl+api");
+    const { POST } = mediaRoute("getUploadUrl");
     const res: Response = await POST(
       makeRequest("http://localhost/api/media/getUploadUrl", {
         method: "POST",
@@ -108,7 +125,7 @@ describe("media route auth policy", () => {
   });
 
   it("rejects listing without auth when storage is configured", async () => {
-    const { GET } = require("../list+api");
+    const { GET } = mediaRoute("list");
     const res: Response = await GET(
       makeRequest("http://localhost/api/media/list?mediaType=uploads", {
         method: "GET",
@@ -121,7 +138,7 @@ describe("media route auth policy", () => {
   });
 
   it("rejects signed read URLs without auth when storage is configured", async () => {
-    const { POST } = require("../getSignedUrls+api");
+    const { POST } = mediaRoute("getSignedUrls");
     const res: Response = await POST(
       makeRequest("http://localhost/api/media/getSignedUrls", {
         method: "POST",
@@ -136,7 +153,7 @@ describe("media route auth policy", () => {
   });
 
   it("rejects deletion without auth when storage is configured", async () => {
-    const { DELETE } = require("../delete+api");
+    const { DELETE } = mediaRoute("delete");
     const res: Response = await DELETE(
       makeRequest("http://localhost/api/media/delete?key=uploads/a.jpg", {
         method: "DELETE",
@@ -151,7 +168,7 @@ describe("media route auth policy", () => {
   it("allows explicit public media access outside production", async () => {
     process.env.EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA = "true";
     mockSend.mockResolvedValueOnce({ Contents: [] });
-    const { GET } = require("../list+api");
+    const { GET } = mediaRoute("list");
 
     const res: Response = await GET(
       makeRequest("http://localhost/api/media/list?mediaType=uploads", {
@@ -166,7 +183,7 @@ describe("media route auth policy", () => {
   it("ignores the public media access flag in production", async () => {
     process.env.EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA = "true";
     setEnv("NODE_ENV", "production");
-    const { GET } = require("../list+api");
+    const { GET } = mediaRoute("list");
 
     const res: Response = await GET(
       makeRequest("http://localhost/api/media/list?mediaType=uploads", {
@@ -180,7 +197,7 @@ describe("media route auth policy", () => {
 
   it("returns media-disabled before auth when storage env is missing", async () => {
     delete process.env.R2_BUCKET;
-    const { GET } = require("../list+api");
+    const { GET } = mediaRoute("list");
 
     const res: Response = await GET(
       makeRequest("http://localhost/api/media/list?mediaType=uploads", {
