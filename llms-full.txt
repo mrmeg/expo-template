@@ -1062,7 +1062,8 @@ apps install only the features they use while retaining ownership of provider
 singletons and native-module versions. Native compression and thumbnail
 generation use `expo-file-system`, `expo-image-manipulator`, and `expo-video`;
 React Query hooks use `@tanstack/react-query`; browser HEIC conversion uses
-`heic2any`. Server signing dependencies are package-owned.
+`heic2any`. Server signing dependencies are package-owned: handlers sign S3/R2
+requests with `aws4fetch` over `fetch`, so consumers do not install the AWS SDK.
 
 Install optional peers with the consuming app's package manager. Use Expo CLI
 for Expo-owned modules so their versions match the app SDK:
@@ -1109,8 +1110,8 @@ import { extractVideoThumbnail } from "@mrmeg/expo-media/processing/video-thumbn
 ```
 
 Root imports are shared-contract only and do not load React Native, Expo native
-modules, or AWS SDK code. Use `/server` only in server route files. Prefer
-granular processing subpaths; the broad `/processing` export remains for
+modules, or storage signing code. Use `/server` only in server route files.
+Prefer granular processing subpaths; the broad `/processing` export remains for
 compatibility but can expose bundlers to every processing feature.
 
 Heavy processing dependencies are behind lazy boundaries. `heic2any` loads

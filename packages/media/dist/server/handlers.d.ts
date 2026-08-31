@@ -1,4 +1,5 @@
 import { type MediaConfig } from "../config";
+export { resetMediaStorageForTests } from "./storage";
 type MaybePromise<T> = T | Promise<T>;
 export interface MediaPolicyDecision {
     allowed: boolean;
@@ -71,6 +72,4 @@ export interface MediaHandlers {
     deleteOne: (request: Request) => Promise<Response>;
     deleteMany: (request: Request) => Promise<Response>;
 }
-export declare function resetMediaStorageForTests(): void;
 export declare function createMediaHandlers<TAuth = unknown>(options: CreateMediaHandlersOptions<TAuth>): MediaHandlers;
-export {};
