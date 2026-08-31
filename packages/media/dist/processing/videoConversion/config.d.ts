@@ -20,7 +20,7 @@ export declare const DEFAULT_PRESET: VideoConversionPreset;
 export declare const FFMPEG_CORE_VERSION = "0.12.6";
 export declare const FFMPEG_CDN_BASE_URL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm";
 /**
- * Local worker URL served by Metro/Express
+ * Local worker URL served by Metro in dev and the production server
  * Metro bundler doesn't properly import FFmpeg workers, so we serve it manually
  * Using bundled ESM worker that has dependencies inlined (no relative imports)
  */

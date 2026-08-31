@@ -4,58 +4,45 @@
  * The delete path is the one web browsers actually preflight (issue that
  * prompted the earlier CORS fix), so the regressions we care about:
  *   - OPTIONS preflight echoes the allowed origin and advertises DELETE
- *   - DELETE without a `key` query param returns 400 instead of reaching S3
- *   - DELETE with a key sends the right S3 DeleteObjectCommand and echoes
+ *   - DELETE without a `key` query param returns 400 instead of reaching R2
+ *   - DELETE with a key sends one signed DELETE to the object URL and echoes
  *     the allowed origin on success
  *   - POST with an empty / missing keys array short-circuits to 400
- *   - POST success returns the deleted keys reported by S3
+ *   - POST reports per-key outcomes: keys whose DELETE succeeds land in
+ *     `deleted`, keys whose DELETE answers non-2xx land in `errors`
  *
- * The `@aws-sdk/client-s3` client is fully mocked so we never hit R2.
+ * `@mrmeg/expo-media/server` signs S3/R2 requests with aws4fetch and issues
+ * them through `fetch`, so `global.fetch` is mocked here: no request leaves
+ * the process, and each assertion can inspect the signed request directly.
  */
 
-const mockSend = jest.fn();
-
-jest.mock("@aws-sdk/client-s3", () => {
-  class MockS3Client {
-    send = mockSend;
-  }
-  class MockDeleteObjectCommand {
-    input: unknown;
-    constructor(input: unknown) {
-      this.input = input;
-    }
-  }
-  class MockDeleteObjectsCommand {
-    input: unknown;
-    constructor(input: unknown) {
-      this.input = input;
-    }
-  }
-  return {
-    S3Client: MockS3Client,
-    DeleteObjectCommand: MockDeleteObjectCommand,
-    DeleteObjectsCommand: MockDeleteObjectsCommand,
-  };
-});
-
-// `@/server/media/handlers` also imports `getSignedUrl` from
-// @aws-sdk/s3-request-presigner, and the real presigner package pulls in the
-// real @aws-sdk/client-s3 transitively. Left unmocked, that real client can
-// win module resolution under the full parallel CI suite, bypassing the
-// client-s3 mock above so `.send()` hits the network and times out at 10s.
-// Mocking the presigner here (matching auth/mediaDisabled tests) keeps the
-// whole S3 surface stubbed regardless of test ordering.
-//
-// NOTE: these mocks intentionally OMIT `{ virtual: true }`. Both packages are
-// real, installed dependencies (of @mrmeg/expo-media), so Jest must key the
-// mock by the module's resolved path. Marking them virtual keys the mock by
-// the bare string instead, which lets a transitive require of the real client
-// slip past under parallel workers — the exact CI flake described above.
-jest.mock("@aws-sdk/s3-request-presigner", () => ({
-  getSignedUrl: jest.fn(async () => "https://signed.example/url"),
-}));
+const fetchMock = jest.fn<Promise<Response>, [unknown]>();
+const originalFetch = global.fetch;
 
 const ORIGIN = "http://localhost:8081";
+
+/** Path-style R2 bucket URL for the env configured in `beforeEach`. */
+const BUCKET_URL = "https://r2.example/test/test-bucket";
+
+function requestOf(input: unknown): Request {
+  return input as Request;
+}
+
+function fetchedRequest(index: number): Request {
+  return requestOf(fetchMock.mock.calls[index]![0]);
+}
+
+function fetchedUrls(): string[] {
+  return fetchMock.mock.calls.map((call) => requestOf(call[0]).url);
+}
+
+beforeAll(() => {
+  global.fetch = fetchMock as unknown as typeof fetch;
+});
+
+afterAll(() => {
+  global.fetch = originalFetch;
+});
 
 function makeRequest(
   url: string,
@@ -99,7 +86,8 @@ describe("media delete route", () => {
   beforeEach(() => {
     jest.resetModules();
     for (const key of STORAGE_KEYS) originalEnv[key] = process.env[key];
-    mockSend.mockReset();
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     process.env.R2_BUCKET = "test-bucket";
     process.env.R2_JURISDICTION_SPECIFIC_URL = "https://r2.example/test";
     process.env.R2_ACCESS_KEY_ID = "test-access-key";
@@ -131,7 +119,7 @@ describe("media delete route", () => {
     expect(res.headers.get("Access-Control-Max-Age")).toBe("86400");
   });
 
-  it("DELETE without a key returns 400 and never calls S3", async () => {
+  it("DELETE without a key returns 400 and never calls R2", async () => {
     const { DELETE } = mediaRoute("delete");
     const res: Response = await DELETE(
       makeRequest("http://localhost/api/media/delete", { method: "DELETE" })
@@ -140,11 +128,10 @@ describe("media delete route", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body).toMatchObject({ message: expect.stringContaining("Missing key") });
-    expect(mockSend).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("DELETE with a key sends DeleteObjectCommand and echoes the origin", async () => {
-    mockSend.mockResolvedValueOnce({});
+  it("DELETE with a key sends a signed DELETE for the object and echoes the origin", async () => {
     const { DELETE } = mediaRoute("delete");
     const res: Response = await DELETE(
       makeRequest("http://localhost/api/media/delete?key=uploads/u_1/photo.jpg", {
@@ -157,17 +144,18 @@ describe("media delete route", () => {
     expect(body).toEqual({ success: true, key: "uploads/u_1/photo.jpg" });
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
 
-    expect(mockSend).toHaveBeenCalledTimes(1);
-    const cmd = mockSend.mock.calls[0][0];
-    expect(cmd.input).toEqual({
-      Bucket: "test-bucket",
-      Key: "uploads/u_1/photo.jpg",
-    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const signed = fetchedRequest(0);
+    expect(signed.method).toBe("DELETE");
+    expect(signed.url).toBe(`${BUCKET_URL}/uploads/u_1/photo.jpg`);
+    expect(signed.headers.get("authorization")).toContain(
+      "AWS4-HMAC-SHA256 Credential=test-access-key/"
+    );
   });
 
   it("DELETE surfaces S3 failures as 500 with CORS headers intact", async () => {
     const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-    mockSend.mockRejectedValueOnce(new Error("access denied"));
+    fetchMock.mockRejectedValueOnce(new Error("access denied"));
     const { DELETE } = mediaRoute("delete");
     const res: Response = await DELETE(
       makeRequest("http://localhost/api/media/delete?key=uploads/u_1/photo.jpg", {
@@ -195,7 +183,7 @@ describe("media delete route", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.message).toContain("invalid keys array");
-    expect(mockSend).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("POST rejects more than 1000 keys", async () => {
@@ -212,13 +200,17 @@ describe("media delete route", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.message).toContain("Maximum 1000");
-    expect(mockSend).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("POST success returns the deleted keys and any S3-reported errors", async () => {
-    mockSend.mockResolvedValueOnce({
-      Deleted: [{ Key: "uploads/a" }, { Key: "uploads/b" }],
-      Errors: [{ Key: "uploads/c", Message: "NoSuchKey" }],
+  it("POST reports per-key results, splitting non-2xx deletes into errors", async () => {
+    // Batch delete is one signed DELETE per key, so a single missing object
+    // fails only its own request instead of the whole batch.
+    fetchMock.mockImplementation(async (input) => {
+      if (requestOf(input).url.endsWith("/uploads/c")) {
+        return new Response("<Error><Code>NoSuchKey</Code></Error>", { status: 404 });
+      }
+      return new Response(null, { status: 204 });
     });
     const { POST } = mediaRoute("delete");
     const res: Response = await POST(
@@ -233,19 +225,18 @@ describe("media delete route", () => {
     const body = await res.json();
     expect(body.success).toBe(false);
     expect(body.deleted).toEqual(["uploads/a", "uploads/b"]);
-    expect(body.errors).toEqual([{ key: "uploads/c", message: "NoSuchKey" }]);
+    expect(body.errors).toHaveLength(1);
+    expect(body.errors[0].key).toBe("uploads/c");
+    expect(body.errors[0].message).toContain("404");
+    expect(body.errors[0].message).toContain("NoSuchKey");
 
-    const cmd = mockSend.mock.calls[0][0];
-    expect(cmd.input).toEqual({
-      Bucket: "test-bucket",
-      Delete: {
-        Objects: [
-          { Key: "uploads/a" },
-          { Key: "uploads/b" },
-          { Key: "uploads/c" },
-        ],
-        Quiet: false,
-      },
-    });
+    // The batch runs concurrently, so compare the request set, not the order.
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchedRequest(0).method).toBe("DELETE");
+    expect(fetchedUrls().sort()).toEqual([
+      `${BUCKET_URL}/uploads/a`,
+      `${BUCKET_URL}/uploads/b`,
+      `${BUCKET_URL}/uploads/c`,
+    ]);
   });
 });

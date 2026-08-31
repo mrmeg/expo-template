@@ -1,13 +1,3 @@
-import {
-  DeleteObjectCommand,
-  DeleteObjectsCommand,
-  GetObjectCommand,
-  ListObjectsV2Command,
-  PutObjectCommand,
-  S3Client,
-  type S3ClientConfig,
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ulid } from "ulid";
 import {
   getBucketConfig,
@@ -25,6 +15,15 @@ import {
   mediaTypeForKey,
   resolveRequestedKey,
 } from "../keys";
+import {
+  deleteObject,
+  getBucketClientCacheKey,
+  listObjects,
+  presignGetUrl,
+  presignPutUrl,
+} from "./storage";
+
+export { resetMediaStorageForTests } from "./storage";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -119,11 +118,12 @@ interface DeleteBucketGroup {
   keys: string[];
 }
 
-const s3ClientCache = new Map<string, S3Client>();
-
-export function resetMediaStorageForTests(): void {
-  s3ClientCache.clear();
+interface DeleteTask {
+  bucket: MediaBucketConfig;
+  key: string;
 }
+
+const DELETE_CONCURRENCY = 10;
 
 export function createMediaHandlers<TAuth = unknown>(
   options: CreateMediaHandlersOptions<TAuth>,
@@ -223,12 +223,12 @@ export function createMediaHandlers<TAuth = unknown>(
 
     const expiresIn = mediaTypeConfig.uploadExpiresInSeconds ?? 300;
     try {
-      const command = new PutObjectCommand({
-        Bucket: bucket.bucket,
-        Key: key,
-        ContentType: body.contentType,
+      const uploadUrl = await presignPutUrl({
+        bucket,
+        key,
+        contentType: body.contentType,
+        expiresIn,
       });
-      const uploadUrl = await getSignedUrl(getS3Client(bucket), command, { expiresIn });
       await options.events?.onUploadSigned?.({
         request,
         auth,
@@ -294,8 +294,9 @@ export function createMediaHandlers<TAuth = unknown>(
           const bucket = getBucketConfig(config, mediaType);
           const mediaTypeConfig = getMediaTypeConfig(config, mediaType)!;
           if (!bucket) throw new Error(`Missing bucket for ${mediaType}`);
-          const command = new GetObjectCommand({ Bucket: bucket.bucket, Key: key });
-          const url = await getSignedUrl(getS3Client(bucket), command, {
+          const url = await presignGetUrl({
+            bucket,
+            key,
             expiresIn: mediaTypeConfig.readExpiresInSeconds ?? 86400,
           });
           return [keys[index]!, url] as const;
@@ -343,28 +344,16 @@ export function createMediaHandlers<TAuth = unknown>(
     if (!bucket) return problem(request, options.cors, 503, "media-disabled", "Media storage is not configured.");
 
     try {
-      const result = await getS3Client(bucket).send(
-        new ListObjectsV2Command({
-          Bucket: bucket.bucket,
-          Prefix: scope.prefix,
-          MaxKeys: limit,
-          ContinuationToken: cursor,
-        }),
-      );
-      const items = (result.Contents ?? []).flatMap((item) => {
-        const key = item.Key ?? "";
-        return key
-          ? [{
-            key,
-            size: item.Size ?? 0,
-            lastModified: item.LastModified?.toISOString() ?? "",
-          }]
-          : [];
+      const result = await listObjects({
+        bucket,
+        prefix: scope.prefix,
+        maxKeys: limit,
+        continuationToken: cursor,
       });
       return json(request, options.cors, 200, {
-        items,
-        totalCount: items.length,
-        nextCursor: result.NextContinuationToken,
+        items: result.items,
+        totalCount: result.items.length,
+        nextCursor: result.nextContinuationToken,
       });
     } catch (error) {
       return storageFailure(request, options.cors, "Failed to list media.", error);
@@ -433,56 +422,35 @@ export function createMediaHandlers<TAuth = unknown>(
       if (!batch) {
         const bucket = deleteGroups[0]?.bucket;
         if (!bucket) return problem(request, options.cors, 503, "media-disabled", "Media storage is not configured.");
-        await getS3Client(bucket).send(
-          new DeleteObjectCommand({ Bucket: bucket.bucket, Key: resolved.keys[0] }),
-        );
+        await deleteObject({ bucket, key: resolved.keys[0]! });
         await options.events?.onDeleted?.({ request, auth, keys: resolved.keys });
         return json(request, options.cors, 200, { success: true, key: resolved.keys[0] });
       }
 
-      const settled = await Promise.allSettled(
-        deleteGroups.map(async (group) => ({
-          group,
-          result: await getS3Client(group.bucket).send(
-            new DeleteObjectsCommand({
-              Bucket: group.bucket.bucket,
-              Delete: {
-                Objects: group.keys.map((key) => ({ Key: key })),
-                Quiet: false,
-              },
-            }),
-          ),
-        })),
+      const tasks: DeleteTask[] = deleteGroups.flatMap((group) =>
+        group.keys.map((key) => ({ bucket: group.bucket, key })),
+      );
+      const settled = await settleWithConcurrency(tasks, DELETE_CONCURRENCY, (task) =>
+        deleteObject({ bucket: task.bucket, key: task.key }),
       );
       const deleted: string[] = [];
       const errors: { key?: string; message?: string }[] = [];
 
       for (let index = 0; index < settled.length; index += 1) {
-        const groupResult = settled[index]!;
-        if (groupResult.status === "fulfilled") {
-          deleted.push(
-            ...(groupResult.value.result.Deleted?.flatMap((item) => (
-              item.Key ? [item.Key] : []
-            )) ?? []),
-          );
-          errors.push(
-            ...(groupResult.value.result.Errors?.map((error) => ({ key: error.Key, message: error.Message })) ?? []),
-          );
+        const taskResult = settled[index]!;
+        const key = tasks[index]!.key;
+        if (taskResult.status === "fulfilled") {
+          deleted.push(key);
           continue;
         }
-
-        const message = getErrorMessage(groupResult.reason);
-        const failedGroup = deleteGroups[index];
-        for (const key of failedGroup?.keys ?? []) {
-          errors.push({ key, message });
-        }
+        errors.push({ key, message: getErrorMessage(taskResult.reason) });
       }
 
       if (deleted.length > 0) {
         await options.events?.onDeleted?.({ request, auth, keys: deleted });
       }
       return json(request, options.cors, 200, {
-        success: settled.every((result) => result.status === "fulfilled") && errors.length === 0,
+        success: errors.length === 0,
         deleted,
         errors,
       });
@@ -646,32 +614,16 @@ function resolveKeys(
   return { keys: resolvedKeys, mediaTypes };
 }
 
-function getS3Client(bucket: MediaBucketConfig): S3Client {
-  const cacheKey = getBucketClientCacheKey(bucket);
-  const cached = s3ClientCache.get(cacheKey);
-  if (cached) return cached;
-
-  const config: S3ClientConfig = {
-    region: bucket.region,
-    endpoint: bucket.endpoint,
-    credentials: {
-      accessKeyId: bucket.credentials.accessKeyId!,
-      secretAccessKey: bucket.credentials.secretAccessKey!,
-    },
-    forcePathStyle: bucket.forcePathStyle ?? bucket.provider === "r2",
-  };
-  const client = new S3Client(config);
-  s3ClientCache.set(cacheKey, client);
-  return client;
-}
-
-function getBucketClientCacheKey(bucket: MediaBucketConfig): string {
-  return JSON.stringify({
-    endpoint: bucket.endpoint,
-    region: bucket.region,
-    bucket: bucket.bucket,
-    accessKeyId: bucket.credentials.accessKeyId,
-  });
+async function settleWithConcurrency<TItem, TResult>(
+  items: TItem[],
+  limit: number,
+  run: (item: TItem) => Promise<TResult>,
+): Promise<PromiseSettledResult<TResult>[]> {
+  const results: PromiseSettledResult<TResult>[] = [];
+  for (let start = 0; start < items.length; start += limit) {
+    results.push(...(await Promise.allSettled(items.slice(start, start + limit).map(run))));
+  }
+  return results;
 }
 
 function json(

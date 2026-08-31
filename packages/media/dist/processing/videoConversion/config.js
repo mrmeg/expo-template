@@ -35,7 +35,7 @@ export const DEFAULT_PRESET = "fast";
 export const FFMPEG_CORE_VERSION = "0.12.6";
 export const FFMPEG_CDN_BASE_URL = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/esm`;
 /**
- * Local worker URL served by Metro/Express
+ * Local worker URL served by Metro in dev and the production server
  * Metro bundler doesn't properly import FFmpeg workers, so we serve it manually
  * Using bundled ESM worker that has dependencies inlined (no relative imports)
  */
