@@ -5,7 +5,7 @@
  * Each handler reads `getMediaStorageEnv()` first; when any of the four
  * R2/S3 env vars is missing or whitespace-only, the handler returns a
  * structured error body the client uses to render the Media tab's
- * setup-state UI without ever constructing an S3 client.
+ * setup-state UI without ever signing a storage request.
  *
  * The contract we pin down here:
  *   - status is 503
@@ -13,37 +13,20 @@
  *   - body.missing lists only the env var *names* (never values)
  *   - CORS headers are still set so a browser can read the response
  *   - OPTIONS preflight succeeds even when storage is disabled
- *   - the AWS SDK is never called (mock asserts zero invocations)
+ *   - no storage request is ever signed or sent (the `fetch` mock asserts
+ *     zero invocations)
  */
 
-const mockSend = jest.fn();
+const fetchMock = jest.fn<Promise<Response>, [unknown]>();
+const originalFetch = global.fetch;
 
-jest.mock("@aws-sdk/client-s3", () => {
-  class MockS3Client {
-    send = mockSend;
-  }
-  class Cmd {
-    input: unknown;
-    constructor(input: unknown) {
-      this.input = input;
-    }
-  }
-  return {
-    S3Client: MockS3Client,
-    DeleteObjectCommand: Cmd,
-    DeleteObjectsCommand: Cmd,
-    ListObjectsV2Command: Cmd,
-    PutObjectCommand: Cmd,
-    GetObjectCommand: Cmd,
-  };
+beforeAll(() => {
+  global.fetch = fetchMock as unknown as typeof fetch;
 });
 
-// No `{ virtual: true }`: both @aws-sdk packages are real installed deps, so the
-// mock must key by resolved path or a transitive require of the real client can
-// win under parallel CI workers and hit the network. See delete.test.ts.
-jest.mock("@aws-sdk/s3-request-presigner", () => ({
-  getSignedUrl: jest.fn(async () => "https://signed.example/url"),
-}));
+afterAll(() => {
+  global.fetch = originalFetch;
+});
 
 const ORIGIN = "http://localhost:8081";
 const ALL_R2_KEYS = [
@@ -91,7 +74,7 @@ describe("media routes — disabled state", () => {
     }
     originalEnv.ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS;
     process.env.ALLOWED_ORIGINS = ORIGIN;
-    mockSend.mockReset();
+    fetchMock.mockReset();
     const { resetMediaStorageForTests } = require("@/server/media/handlers");
     resetMediaStorageForTests();
   });
@@ -114,7 +97,7 @@ describe("media routes — disabled state", () => {
       expect(body.code).toBe("media-disabled");
       expect(body.missing).toEqual(expect.arrayContaining([...ALL_R2_KEYS]));
       expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
-      expect(mockSend).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it("OPTIONS preflight succeeds even when storage is unconfigured", async () => {
@@ -156,7 +139,7 @@ describe("media routes — disabled state", () => {
   });
 
   describe("POST /api/media/getUploadUrl", () => {
-    it("returns 503 media-disabled and never calls S3 / presigner", async () => {
+    it("returns 503 media-disabled and never signs an upload URL", async () => {
       const { POST } = mediaRoute("getUploadUrl");
       const res: Response = await POST(
         makeRequest("http://localhost/api/media/getUploadUrl", {
@@ -168,7 +151,7 @@ describe("media routes — disabled state", () => {
       expect(res.status).toBe(503);
       const body = await res.json();
       expect(body.code).toBe("media-disabled");
-      expect(mockSend).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
     });
   });
 
@@ -197,7 +180,7 @@ describe("media routes — disabled state", () => {
       expect(res.status).toBe(503);
       const body = await res.json();
       expect(body.code).toBe("media-disabled");
-      expect(mockSend).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it("POST batch returns 503 media-disabled", async () => {
@@ -212,7 +195,7 @@ describe("media routes — disabled state", () => {
       expect(res.status).toBe(503);
       const body = await res.json();
       expect(body.code).toBe("media-disabled");
-      expect(mockSend).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
     });
   });
 

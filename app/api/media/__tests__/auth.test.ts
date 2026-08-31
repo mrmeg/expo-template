@@ -1,33 +1,24 @@
-const mockSend = jest.fn();
-
-jest.mock("@aws-sdk/client-s3", () => {
-  class MockS3Client {
-    send = mockSend;
-  }
-  class MockCommand {
-    input: unknown;
-    constructor(input: unknown) {
-      this.input = input;
-    }
-  }
-  return {
-    S3Client: MockS3Client,
-    DeleteObjectCommand: MockCommand,
-    DeleteObjectsCommand: MockCommand,
-    GetObjectCommand: MockCommand,
-    ListObjectsV2Command: MockCommand,
-    PutObjectCommand: MockCommand,
-  };
-});
-
-// No `{ virtual: true }`: both @aws-sdk packages are real installed deps, so the
-// mock must key by resolved path or a transitive require of the real client can
-// win under parallel CI workers and hit the network. See delete.test.ts.
-jest.mock("@aws-sdk/s3-request-presigner", () => ({
-  getSignedUrl: jest.fn(async () => "https://signed.example/url"),
-}));
+/**
+ * Tests for the auth policy on every `/api/media/*` route.
+ *
+ * `@mrmeg/expo-media/server` signs S3/R2 requests with aws4fetch and issues
+ * them through `fetch`, so `global.fetch` is mocked here: every "never reached
+ * storage" assertion is a zero-invocation check on that mock, and no request
+ * leaves the process.
+ */
 
 import { setTokenVerifier } from "@/server/api/shared/auth";
+
+const fetchMock = jest.fn<Promise<Response>, [unknown]>();
+const originalFetch = global.fetch;
+
+beforeAll(() => {
+  global.fetch = fetchMock as unknown as typeof fetch;
+});
+
+afterAll(() => {
+  global.fetch = originalFetch;
+});
 
 const ORIGIN = "http://localhost:8081";
 const ENV_KEYS = [
@@ -66,6 +57,16 @@ function setEnv(key: string, value: string | undefined): void {
   }
 }
 
+/** Minimal empty ListObjectsV2 body for the one authorized list case. */
+function emptyListXml(): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Name>test-bucket</Name>
+  <KeyCount>0</KeyCount>
+  <IsTruncated>false</IsTruncated>
+</ListBucketResult>`;
+}
+
 // The media routes are consolidated behind `[action]+api.ts`; bind the
 // action param here (requiring lazily so `jest.resetModules()` still
 // applies) to keep call sites in the old per-file handler shape.
@@ -92,7 +93,7 @@ describe("media route auth policy", () => {
     configureStorage();
     delete process.env.EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA;
     setEnv("NODE_ENV", "test");
-    mockSend.mockReset();
+    fetchMock.mockReset();
     setTokenVerifier(null);
     const { resetMediaStorageForTests } = require("@/server/media/handlers");
     resetMediaStorageForTests();
@@ -121,7 +122,7 @@ describe("media route auth policy", () => {
 
     expect(res.status).toBe(401);
     await expect(res.json()).resolves.toMatchObject({ code: "unauthorized" });
-    expect(mockSend).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects listing without auth when storage is configured", async () => {
@@ -134,7 +135,7 @@ describe("media route auth policy", () => {
 
     expect(res.status).toBe(401);
     await expect(res.json()).resolves.toMatchObject({ code: "unauthorized" });
-    expect(mockSend).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects signed read URLs without auth when storage is configured", async () => {
@@ -149,7 +150,7 @@ describe("media route auth policy", () => {
 
     expect(res.status).toBe(401);
     await expect(res.json()).resolves.toMatchObject({ code: "unauthorized" });
-    expect(mockSend).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects deletion without auth when storage is configured", async () => {
@@ -162,12 +163,17 @@ describe("media route auth policy", () => {
 
     expect(res.status).toBe(401);
     await expect(res.json()).resolves.toMatchObject({ code: "unauthorized" });
-    expect(mockSend).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("allows explicit public media access outside production", async () => {
     process.env.EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA = "true";
-    mockSend.mockResolvedValueOnce({ Contents: [] });
+    fetchMock.mockResolvedValueOnce(
+      new Response(emptyListXml(), {
+        status: 200,
+        headers: { "Content-Type": "application/xml" },
+      }),
+    );
     const { GET } = mediaRoute("list");
 
     const res: Response = await GET(
@@ -177,7 +183,10 @@ describe("media route auth policy", () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const listRequest = fetchMock.mock.calls[0]![0] as Request;
+    expect(listRequest.method).toBe("GET");
+    expect(new URL(listRequest.url).searchParams.get("list-type")).toBe("2");
   });
 
   it("ignores the public media access flag in production", async () => {
@@ -192,7 +201,7 @@ describe("media route auth policy", () => {
     );
 
     expect(res.status).toBe(401);
-    expect(mockSend).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("returns media-disabled before auth when storage env is missing", async () => {
@@ -210,6 +219,6 @@ describe("media route auth policy", () => {
       code: "media-disabled",
       missing: ["R2_BUCKET"],
     });
-    expect(mockSend).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
