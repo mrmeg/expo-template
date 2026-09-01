@@ -46,6 +46,9 @@
       ],
       "@mrmeg/expo-media/server": [
         "./packages/media/src/server/index.ts"
+      ],
+      "@mrmeg/expo-media/worker": [
+        "./packages/media/src/worker/index.ts"
       ]
     },
     "noImplicitAny": false,
@@ -69,5 +72,9 @@
   ],
   "exclude": [
     "node_modules",
+    // Deployable Cloudflare Workers are typechecked by their own standalone
+    // tsconfig (workerd lib + @cloudflare/workers-types), which is incompatible
+    // with this project's react-native/node type set.
+    "workers",
   ]
 }

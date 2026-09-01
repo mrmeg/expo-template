@@ -18,6 +18,7 @@ Public entrypoints:
 - @mrmeg/expo-media/processing/video-conversion
 - @mrmeg/expo-media/processing/video-thumbnails
 - @mrmeg/expo-media/server
+- @mrmeg/expo-media/worker
 
 Do not import server code from client entrypoints. Upload signing uses
 mediaType plus contentType, not extension-only signing.

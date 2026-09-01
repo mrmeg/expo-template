@@ -649,17 +649,28 @@ function problem(
   return json(request, cors, status, { code, message, ...(extra ?? {}) });
 }
 
+/**
+ * `process` does not exist on Cloudflare Workers without the `nodejs_compat`
+ * flag, so reading `process.env` directly would throw `ReferenceError` there.
+ * An undefined NODE_ENV means "log the failure and include error details",
+ * matching non-production Node behavior.
+ */
+function getNodeEnv(): string | undefined {
+  return typeof process !== "undefined" ? process.env?.NODE_ENV : undefined;
+}
+
 function storageFailure(
   request: Request,
   cors: MediaCorsCallbacks | undefined,
   message: string,
   error: unknown,
 ): Response {
-  if (process.env.NODE_ENV !== "test") {
+  const nodeEnv = getNodeEnv();
+  if (nodeEnv !== "test") {
     console.error(message, error);
   }
   return problem(request, cors, 500, "storage-failure", message, {
-    ...(process.env.NODE_ENV !== "production"
+    ...(nodeEnv !== "production"
       ? { details: error instanceof Error ? error.message : String(error) }
       : {}),
   });

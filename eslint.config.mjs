@@ -24,6 +24,9 @@ export default [
       "dist/**/*",
       "drizzle/**/*",
       "node_modules/**/*",
+      // Deployable Cloudflare Workers: workerd globals, no React, and their own
+      // tsconfig. This config's browser globals and React rules do not apply.
+      "workers/**/*",
     ],
   },
   ...compat.extends(

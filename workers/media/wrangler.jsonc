@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "media",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "observability": {
+    "enabled": true
+  },
+  // Path-scoped so anything else already serving cdn.mrmeg.com keeps working.
+  "routes": [
+    {
+      "pattern": "cdn.mrmeg.com/api/media/*",
+      "zone_name": "mrmeg.com"
+    }
+  ],
+  // Created during the deploy runbook:
+  //   wrangler kv namespace create MEDIA_AUTH
+  // then paste the printed id here.
+  "kv_namespaces": [
+    {
+      "binding": "MEDIA_AUTH",
+      "id": "REPLACE_WITH_MEDIA_AUTH_KV_NAMESPACE_ID"
+    }
+  ],
+  // Non-secret R2 coordinates. R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY are
+  // secrets — set them with `wrangler secret put`, never in this file.
+  "vars": {
+    "R2_BUCKET": "REPLACE_WITH_R2_BUCKET_NAME",
+    "R2_JURISDICTION_SPECIFIC_URL": "https://REPLACE_WITH_ACCOUNT_ID.r2.cloudflarestorage.com"
+  }
+}

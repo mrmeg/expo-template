@@ -3,7 +3,8 @@
   "main": "expo-router/entry",
   "version": "0.0.1",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "workers/*"
   ],
   "scripts": {
     "start": "bun ./server.bun.ts",

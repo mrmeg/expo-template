@@ -28,6 +28,7 @@ module.exports = {
       "<rootDir>/packages/media/src/processing/videoThumbnails.ts",
     "^@mrmeg/expo-media/processing$": "<rootDir>/packages/media/src/processing/index.ts",
     "^@mrmeg/expo-media/server$": "<rootDir>/packages/media/src/server/index.ts",
+    "^@mrmeg/expo-media/worker$": "<rootDir>/packages/media/src/worker/index.ts",
     "^@/(.*)$": "<rootDir>/$1",
   },
 
@@ -43,10 +44,15 @@ module.exports = {
   ],
 
   // Files to ignore during testing
+  //
+  // `workers/` holds deployable Cloudflare Workers whose only runtime is
+  // workerd. They have no jest-expo-compatible tests and their bundled
+  // dependencies (wrangler) must not be walked by the app suite.
   testPathIgnorePatterns: [
     "<rootDir>/node_modules/",
     "<rootDir>/ignite/",
     "<rootDir>/dist/",
+    "<rootDir>/workers/",
   ],
 
   // Coverage configuration

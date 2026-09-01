@@ -1,0 +1,9 @@
+# wrangler local state (dev sessions, build cache)
+.wrangler/
+
+# `wrangler deploy --dry-run --outdir=...` output
+dist-check/
+
+# local `wrangler dev` vars — real values live in `wrangler secret put`
+.dev.vars
+.dev.vars.*
