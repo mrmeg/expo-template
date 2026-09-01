@@ -1094,6 +1094,10 @@ import { createMediaClient } from "@mrmeg/expo-media/client";
 import { createMediaQueryHooks } from "@mrmeg/expo-media/react-query";
 import { createMediaHandlers } from "@mrmeg/expo-media/server";
 import {
+  createKvTokenAuthorizer,
+  createMediaWorker,
+} from "@mrmeg/expo-media/worker";
+import {
   compressImage,
   convertHeicToJpeg,
 } from "@mrmeg/expo-media/processing/image-compression";
@@ -1110,7 +1114,8 @@ import { extractVideoThumbnail } from "@mrmeg/expo-media/processing/video-thumbn
 ```
 
 Root imports are shared-contract only and do not load React Native, Expo native
-modules, or storage signing code. Use `/server` only in server route files.
+modules, or storage signing code. Use `/server` only in server route files, and
+`/worker` only in a Cloudflare Worker entry.
 Prefer granular processing subpaths; the broad `/processing` export remains for
 compatibility but can expose bundlers to every processing feature.
 
@@ -1301,6 +1306,84 @@ configured media type separately and merge the visible results client-side
 instead of listing the storage bucket root. Keep pagination per media type;
 the template's All view merges the current visible page from each configured
 type rather than creating a cross-type cursor.
+
+## Cloudflare Worker
+
+`@mrmeg/expo-media/worker` deploys the same handlers as a standalone Cloudflare
+Worker, so several apps can share one media endpoint instead of each mounting
+their own API routes. The runtime is `fetch` + Web Crypto only — no
+`nodejs_compat` flag required — and the subpath declares KV structurally, so the
+package never depends on `@cloudflare/workers-types`.
+
+```ts
+import { createMediaConfig } from "@mrmeg/expo-media";
+import {
+  createKvTokenAuthorizer,
+  createMediaWorker,
+  type MediaTokenAuth,
+} from "@mrmeg/expo-media/worker";
+
+interface Env {
+  MEDIA_AUTH: KVNamespace;
+  R2_BUCKET?: string;
+  R2_ENDPOINT?: string;
+  R2_ACCESS_KEY_ID?: string;
+  R2_SECRET_ACCESS_KEY?: string;
+}
+
+export default createMediaWorker<Env, MediaTokenAuth>({
+  basePath: "/api/media",
+  createOptions: (env) => ({
+    config: () => createMediaConfig({ /* buckets + mediaTypes from env */ }),
+    authorize: createKvTokenAuthorizer(env.MEDIA_AUTH),
+    cors: { getHeaders, getPreflightHeaders },
+    policy: {
+      canUpload: ({ auth }) => ({ allowed: Boolean(auth) }),
+    },
+  }),
+});
+```
+
+`createOptions` runs once per `env` object and its handlers are cached in a
+`WeakMap`, because a Worker only sees `env` inside `fetch()` while
+`createMediaHandlers` captures its options at creation time. Build config with
+the factory form (`config: () => ...`) so missing secrets still return
+`503 media-disabled`.
+
+Routing mirrors the Expo route table exactly, under `basePath` (default
+`/api/media`):
+
+| Route | Methods |
+|---|---|
+| `list` | `GET` |
+| `getUploadUrl` | `POST` |
+| `getSignedUrls` | `POST` |
+| `delete` | `DELETE` (`?key=`), `POST` (`{ keys }`) |
+
+`OPTIONS` on a known action returns the `cors.getPreflightHeaders` response.
+Unknown actions and paths outside `basePath` return `404 not-found`; a known
+action with an unsupported method returns `405 method-not-allowed`. Both carry
+`cors.getHeaders`.
+
+`createKvTokenAuthorizer(kv)` is a ready-made `authorize` for static per-app
+bearer tokens. It reads `Authorization: Bearer <token>`, looks up
+`token:<token>` in KV, and expects JSON metadata containing at least
+`{ "app": "<name>" }`:
+
+```sh
+wrangler kv key put --binding MEDIA_AUTH "token:$(openssl rand -hex 32)" '{"app":"my-app"}'
+```
+
+A missing header, malformed header, unknown token, or unusable metadata yields
+`null`, which the handlers turn into `401 unauthorized`. A successful lookup
+gives policy and event callbacks
+`auth: { token, app, metadata }` (`MediaTokenAuth`) — use `auth.app` for
+per-app scoping. `MediaTokenStore` is the KV shape the authorizer needs
+(`{ get(key: string): Promise<string | null> }`), which a real `KVNamespace`
+satisfies.
+
+This repo ships a deployable example at `workers/media/` with a wrangler
+config and deploy runbook.
 
 ## Client Setup
 

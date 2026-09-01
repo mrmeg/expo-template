@@ -1,0 +1,20 @@
+{
+  "name": "@mrmeg/media-worker",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Cloudflare Worker that serves the @mrmeg/expo-media API at cdn.mrmeg.com/api/media/*.",
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@mrmeg/expo-media": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260901.1",
+    "typescript": "~6.0.3",
+    "wrangler": "^4.127.1"
+  }
+}

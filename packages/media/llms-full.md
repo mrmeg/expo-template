@@ -32,6 +32,16 @@ The package derives extensions server-side, signs the approved content type,
 and rejects keys outside configured prefixes. Custom filenames require policy
 approval and are sanitized.
 
+Use `createMediaWorker()` from `/worker` to deploy the same handlers as a
+Cloudflare Worker. `createOptions(env)` runs once per `env` object (handlers are
+cached in a `WeakMap`) and returns the `createMediaHandlers` options; routing
+mirrors the Expo route table under `basePath` (default `/api/media`), with
+`404 not-found` for unknown actions and `405 method-not-allowed` for wrong
+methods. `createKvTokenAuthorizer(kv)` authorizes static per-app bearer tokens
+stored in KV as `token:<token>` → JSON with at least `{ "app": "<name>" }` and
+yields `MediaTokenAuth`. KV is typed structurally, so the package never depends
+on `@cloudflare/workers-types`.
+
 Use `createMediaClient()` from `/client` with the consuming app's fetcher.
 Use `createMediaQueryHooks()` from `/react-query` to get upload, list, signed
 URL, single delete, and batch delete hooks.

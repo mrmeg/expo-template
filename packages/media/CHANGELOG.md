@@ -3,6 +3,31 @@
 All notable changes to `@mrmeg/expo-media` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0]
+
+### Added
+
+- New `@mrmeg/expo-media/worker` subpath for Cloudflare Worker deployments.
+  `createMediaWorker({ createOptions, basePath })` returns a Worker-shaped
+  `{ fetch }` whose routing mirrors the template's `/api/media/*` route table
+  (`list` GET, `getUploadUrl` POST, `getSignedUrls` POST, `delete` DELETE/POST,
+  `OPTIONS` preflight, `404 not-found`, `405 method-not-allowed`). Handlers are
+  created once per `env` object and cached, since a Worker only receives `env`
+  inside `fetch()`.
+- `createKvTokenAuthorizer(kv)` `authorize` helper for static per-app bearer
+  tokens stored in Workers KV as `token:<token>` → JSON metadata containing at
+  least `{ "app": "<name>" }`, producing `MediaTokenAuth`
+  (`{ token, app, metadata }`). KV is typed structurally through
+  `MediaTokenStore`, so the package still has no `@cloudflare/workers-types`
+  dependency.
+
+### Fixed
+
+- Server handlers no longer read `process.env` unguarded. On Cloudflare Workers
+  without the `nodejs_compat` flag, a storage failure threw `ReferenceError`
+  instead of returning `500 storage-failure`. Node and Jest behavior is
+  unchanged.
+
 ## [0.3.0]
 
 ### Changed

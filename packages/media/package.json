@@ -1,6 +1,6 @@
 {
   "name": "@mrmeg/expo-media",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": false,
   "description": "Reusable Expo media contracts, storage handlers, client hooks, and processing helpers for MrMeg projects.",
   "keywords": [
@@ -9,7 +9,8 @@
     "media",
     "s3",
     "r2",
-    "presigned-url"
+    "presigned-url",
+    "cloudflare-workers"
   ],
   "author": "Matt Megenhardt",
   "license": "MIT",
@@ -74,6 +75,10 @@
     "./server": {
       "types": "./dist/server/index.d.ts",
       "default": "./dist/server/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker/index.d.ts",
+      "default": "./dist/worker/index.js"
     }
   },
   "scripts": {

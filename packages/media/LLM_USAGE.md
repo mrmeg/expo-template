@@ -13,8 +13,9 @@ Use this package for reusable Expo media infrastructure.
 - Video conversion: `@mrmeg/expo-media/processing/video-conversion`
 - Video thumbnails: `@mrmeg/expo-media/processing/video-thumbnails`
 - Server handlers only: `@mrmeg/expo-media/server`
+- Cloudflare Worker routing and KV auth: `@mrmeg/expo-media/worker`
 
-Never import `/server` from client code. Root imports must stay safe for Node
+Never import `/server` or `/worker` from client code. Root imports must stay safe for Node
 and tooling. Avoid the broad `/processing` barrel unless a screen genuinely
 needs every processing category; it exists for compatibility.
 
@@ -30,6 +31,25 @@ Use `createMediaHandlers()` to produce Fetch-compatible handlers:
 
 Upload signing requires `{ mediaType, contentType, size?, customFilename?,
 metadata? }`. Do not restore extension-only signing.
+
+## Cloudflare Worker Pattern
+
+Use `createMediaWorker({ createOptions, basePath })` for a Worker deployment;
+`export default` the result. `createOptions(env)` returns the same options as
+`createMediaHandlers` and is called once per `env` object, so read bindings there
+instead of at module scope. Keep `config` in factory form so missing secrets
+return `503 media-disabled`.
+
+Routing matches the Expo route table under `basePath` (default `/api/media`):
+`list` GET, `getUploadUrl` POST, `getSignedUrls` POST, `delete` DELETE with
+`?key=` and POST with `{ keys }`. Unknown action or off-base path is
+`404 not-found`; wrong method on a known action is `405 method-not-allowed`.
+
+Use `createKvTokenAuthorizer(kv)` as `authorize` for static per-app bearer
+tokens: KV key `token:<token>` holding JSON with at least `{ "app": "<name>" }`,
+producing `MediaTokenAuth` (`{ token, app, metadata }`). Anything missing or
+unparseable becomes `401 unauthorized`. KV is typed structurally
+(`MediaTokenStore`); never add `@cloudflare/workers-types` to this package.
 
 ## Client Pattern
 
