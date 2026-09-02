@@ -19,30 +19,35 @@ const ENV_KEYS = [
   "EXPO_PUBLIC_USER_POOL_ID",
   "EXPO_PUBLIC_USER_POOL_CLIENT_ID",
   "EXPO_PUBLIC_AUTH_PROVIDER",
+  "EXPO_PUBLIC_COGNITO_DOMAIN",
+  "EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS",
 ] as const;
 
+const original: Record<string, string | undefined> = {};
+
+beforeAll(() => {
+  for (const key of ENV_KEYS) original[key] = process.env[key];
+});
+
+beforeEach(() => {
+  jest.resetModules();
+  for (const key of ENV_KEYS) delete process.env[key];
+});
+
+afterAll(() => {
+  for (const key of ENV_KEYS) {
+    if (original[key] === undefined) delete process.env[key];
+    else process.env[key] = original[key];
+  }
+});
+
+function provider() {
+  return require("../provider") as typeof import("../provider");
+}
+
 describe("getAuthProvider", () => {
-  const original: Record<string, string | undefined> = {};
-
-  beforeAll(() => {
-    for (const key of ENV_KEYS) original[key] = process.env[key];
-  });
-
-  beforeEach(() => {
-    jest.resetModules();
-    for (const key of ENV_KEYS) delete process.env[key];
-  });
-
-  afterAll(() => {
-    for (const key of ENV_KEYS) {
-      if (original[key] === undefined) delete process.env[key];
-      else process.env[key] = original[key];
-    }
-  });
-
   function subject(): "cognito" | "clerk" | null {
-    const mod = require("../provider") as typeof import("../provider");
-    return mod.getAuthProvider();
+    return provider().getAuthProvider();
   }
 
   it("returns null with a blank env", () => {
@@ -90,5 +95,109 @@ describe("getAuthProvider", () => {
   it("ignores whitespace-only values", () => {
     process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "   ";
     expect(subject()).toBeNull();
+  });
+});
+
+/**
+ * Social buttons are the one auth surface whose prerequisites are entirely
+ * AWS-side (a Managed Login domain plus registered IdPs), so the env list is
+ * treated as a claim that they exist. Everything here is about failing closed:
+ * a rendered button that Cognito rejects is worse than no button.
+ */
+describe("getSocialAuthProviders", () => {
+  function cognitoEnv() {
+    process.env.EXPO_PUBLIC_USER_POOL_ID = "us-east-1_abc";
+    process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID = "client123";
+  }
+
+  function subject() {
+    return provider().getSocialAuthProviders();
+  }
+
+  it("returns nothing with a blank env", () => {
+    expect(subject()).toEqual([]);
+  });
+
+  it("returns the requested providers when Cognito and the domain are configured", () => {
+    cognitoEnv();
+    process.env.EXPO_PUBLIC_COGNITO_DOMAIN = "example.auth.us-east-1.amazoncognito.com";
+    process.env.EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS = "google,apple";
+
+    expect(subject()).toEqual(["google", "apple"]);
+  });
+
+  it("tolerates spacing and casing, and keeps a stable order", () => {
+    cognitoEnv();
+    process.env.EXPO_PUBLIC_COGNITO_DOMAIN = "auth.example.com";
+    process.env.EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS = " Apple , GOOGLE ";
+
+    expect(subject()).toEqual(["google", "apple"]);
+  });
+
+  it("honors a single provider", () => {
+    cognitoEnv();
+    process.env.EXPO_PUBLIC_COGNITO_DOMAIN = "auth.example.com";
+    process.env.EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS = "google";
+
+    expect(subject()).toEqual(["google"]);
+  });
+
+  it("drops unsupported entries instead of rendering a dead button", () => {
+    cognitoEnv();
+    process.env.EXPO_PUBLIC_COGNITO_DOMAIN = "auth.example.com";
+    process.env.EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS = "google,github,facebook";
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(subject()).toEqual(["google"]);
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    warn.mockRestore();
+  });
+
+  it("hides the buttons without a Managed Login domain, and says why", () => {
+    cognitoEnv();
+    process.env.EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS = "google,apple";
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(subject()).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("EXPO_PUBLIC_COGNITO_DOMAIN"));
+
+    warn.mockRestore();
+  });
+
+  it("hides the buttons on the Clerk path, which reports unsupported", () => {
+    process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_abc";
+    process.env.EXPO_PUBLIC_COGNITO_DOMAIN = "auth.example.com";
+    process.env.EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS = "google,apple";
+
+    expect(subject()).toEqual([]);
+  });
+
+  it("hides the buttons when auth itself is disabled", () => {
+    process.env.EXPO_PUBLIC_COGNITO_DOMAIN = "auth.example.com";
+    process.env.EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS = "google,apple";
+
+    expect(subject()).toEqual([]);
+  });
+
+  it("ignores whitespace-only values", () => {
+    cognitoEnv();
+    process.env.EXPO_PUBLIC_COGNITO_DOMAIN = "   ";
+    process.env.EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS = "google";
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(subject()).toEqual([]);
+
+    warn.mockRestore();
+  });
+
+  it("stays quiet when nothing was requested", () => {
+    cognitoEnv();
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(subject()).toEqual([]);
+    expect(warn).not.toHaveBeenCalled();
+
+    warn.mockRestore();
   });
 });

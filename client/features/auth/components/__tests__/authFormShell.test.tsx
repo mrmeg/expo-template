@@ -180,6 +180,22 @@ describe("VerifyEmailForm title", () => {
     expect(screen.getByText("auth.verifyEmailDescription")).toBeTruthy();
   });
 
+  it("falls back to the verify copy on the submit button", async () => {
+    await render(<VerifyEmailForm embedded email="ada@example.com" />);
+
+    expect(screen.getByText("auth.verifyEmailButton")).toBeTruthy();
+  });
+
+  it("honours a caller-provided submit label", async () => {
+    // The sign-in code flow reuses this form, where the code is the credential.
+    await render(
+      <VerifyEmailForm embedded email="ada@example.com" submitLabel="Sign in" />,
+    );
+
+    expect(screen.getByText("Sign in")).toBeTruthy();
+    expect(screen.queryByText("auth.verifyEmailButton")).toBeNull();
+  });
+
   it("still honours an explicit title and description", async () => {
     await render(
       <VerifyEmailForm

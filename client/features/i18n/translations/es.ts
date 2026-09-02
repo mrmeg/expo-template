@@ -38,6 +38,18 @@ const es = {
     signInDescription: "Ingresa tus credenciales para acceder a tu cuenta",
     signIn: "Iniciar sesi\u00f3n",
     signUp: "Registrarse",
+    emailMeACode: "Env\u00edame un c\u00f3digo",
+    usePasswordInstead: "Usar contrase\u00f1a",
+    useEmailCodeInstead: "Mejor env\u00edame un c\u00f3digo",
+    signInWithCodeDescription:
+      "Ingresa tu correo y te enviaremos un c\u00f3digo para iniciar sesi\u00f3n",
+    checkEmailForCode: "Revisa tu correo",
+    checkEmailForCodeDescription:
+      "Enviamos un c\u00f3digo de inicio de sesi\u00f3n a {{email}}",
+    signInWithCodeButton: "Iniciar sesi\u00f3n",
+    socialSignInPending: "Terminando el inicio de sesi\u00f3n en tu navegador...",
+    socialSignInFailed: "Ese inicio de sesi\u00f3n no se complet\u00f3. Int\u00e9ntalo de nuevo.",
+    socialSignInUnavailable: "Ese m\u00e9todo de inicio de sesi\u00f3n no est\u00e1 disponible.",
     or: "o",
     continueWith: "Continuar con {{provider}}",
     continueWithGoogle: "Continuar con Google",

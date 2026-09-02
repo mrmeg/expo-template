@@ -12,6 +12,13 @@ import type { User } from "../stores/authStore";
 
 export type AuthProviderName = "cognito" | "clerk";
 
+/**
+ * Federated identity providers the template can start a redirect sign-in with.
+ * Kept deliberately narrow: each name needs an identity provider registered on
+ * the provider side (see `scripts/create-cognito-pool.sh`).
+ */
+export type SocialAuthProviderName = "google" | "apple";
+
 /** Sign-in / sign-up either finish or require an emailed confirmation code. */
 export interface AuthFlowResult {
   status: "complete" | "needsConfirmation";
@@ -41,6 +48,8 @@ export type AuthErrorCode =
   | "codeMismatch"
   | "codeExpired"
   | "limitExceeded"
+  /** The active provider (or its env config) can't run this flow at all. */
+  | "unsupported"
   | "unknown";
 
 export class AuthError extends Error {
@@ -77,6 +86,30 @@ export interface AuthClient {
   getToken(): Promise<string | null>;
 
   signIn(params: { email: string; password: string }): Promise<AuthFlowResult>;
+
+  /**
+   * Start a passwordless sign-in: the provider emails a one-time code.
+   * `needsConfirmation` means "code sent, collect it and call
+   * `confirmSignInCode`"; `complete` means the provider already had a session.
+   */
+  signInWithEmailCode(params: { email: string }): Promise<AuthFlowResult>;
+
+  /**
+   * Finish the in-flight email-code sign-in. No email parameter: the pending
+   * challenge lives in the provider SDK, so this continues whatever
+   * `signInWithEmailCode` started in this process. If that state is gone (app
+   * restart), it rejects and the caller requests a fresh code.
+   */
+  confirmSignInCode(params: { code: string }): Promise<{ status: "complete" }>;
+
+  /**
+   * Launch a federated sign-in redirect. Resolves once the redirect is handed
+   * to the browser — the session itself arrives later through `onAuthChange`.
+   * Rejects with `AuthError("unsupported")` when the provider isn't configured
+   * for federated sign-in.
+   */
+  signInWithProvider(provider: SocialAuthProviderName): Promise<void>;
+
   signUp(params: { email: string; password: string }): Promise<AuthFlowResult>;
   confirmSignUp(params: { email: string; code: string }): Promise<ConfirmSignUpResult>;
   resendCode(email: string): Promise<void>;
