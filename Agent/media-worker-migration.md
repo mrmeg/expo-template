@@ -2,32 +2,66 @@
 status: blocked
 mode: HITL
 base-branch: dev
-blocked-by: media-worker-deploy merged and the Worker live + smoke-tested at cdn.mrmeg.com/api/media/*; user to supply the old worker's name/routes and the exact endpoints downrangedays and terlo currently call
+blocked-by: media Worker deployed live + smoke-tested at cdn.mrmeg.com/api/media/* — the `media` script is not on the account yet and workers/media/wrangler.jsonc still has placeholder KV-namespace and R2 values
 pr: -
 ---
 
-# Migrate consumers to the media Worker and retire the old worker (phase 3)
+# Migrate consumers to the media Worker and retire the old workers (phase 3)
 
 ## Goal
 
-Finish the media-worker plan: move downrangedays and terlo off the old
-cdn.mrmeg.com worker onto the new `/api/media/*` contract, then tear the old
-worker down. This repo's deliverables are a migration guide and the teardown
-checklist — the client-code changes happen in the external downrangedays and
-terlo repos and cannot be implemented from here.
+Finish the media-worker plan: move downrangedays and terlo onto the new
+`cdn.mrmeg.com/api/media/*` contract, then retire their bespoke media plumbing.
+This repo's deliverables are a migration guide and the teardown checklist — the
+client-code changes happen in the external downrangedays and terlo repos and
+cannot be implemented from here.
 
 ## Context
 
-- Phase 2 (`media-worker-deploy.md`) ships the new Worker route-scoped to
-  `cdn.mrmeg.com/api/media/*`, so the old worker keeps serving its existing
-  paths during the transition.
+- Phase 2 (`media-worker-deploy.md`, PR #78 merged) shipped the Worker code
+  route-scoped to `cdn.mrmeg.com/api/media/*`, but it is **not deployed**: the
+  account has no `media` script and `workers/media/wrangler.jsonc` still holds
+  `REPLACE_WITH_*` placeholders for the `MEDIA_AUTH` KV namespace id, R2 bucket,
+  and account id. `cdn.mrmeg.com` is currently a proxied CNAME to
+  `public.r2.dev` (R2 public bucket); the route-scoped Worker will coexist,
+  taking only `/api/media/*`.
 - Auth for the new contract is static per-app bearer tokens in the `MEDIA_AUTH`
   KV namespace (`token:<token>` → `{"app": "..."}`), provisioned via
   `wrangler kv key put`.
-- Unknown until the user supplies it: the old worker's name, its route
-  patterns, which endpoints downrangedays/terlo call today, and whether any
-  other consumer exists. Do not guess these — the teardown checklist must name
-  them explicitly.
+- **There is no old worker on cdn.mrmeg.com.** Verified 2026-09-02 via the
+  Cloudflare API (account `776658da55f21acb7c2b201bfa3096db`):
+  - Deployed scripts: `alchemy-state-store`, `downrangedays`,
+    `laura-hudson-review-form`, `mrmeg-web`, two `t3coderelay-*` workers,
+    `wagbi`. No shared media worker exists.
+  - **downrangedays** (deployed, custom domain `cdn.downrangedays.com`, bucket
+    `downrangedays`): object-level surface — `GET`/`PUT`/`DELETE` on `/<key>`
+    validated by an HS256 JWT `?token=` that the app's server mints
+    (`server/r2.ts`), plus HLS playlist/segment handling
+    (`handleHlsGet`, playlist rewriting). The app
+    (`~/Development/downrangedays`) also runs its own Expo API routes:
+    `/api/media/getUploadUrl`, `/api/media/getSignedUrls`, `/api/media/index`,
+    `/api/media/[id]`, `/api/media/file/[...key]`. Worker source:
+    `~/Development/serverless_functions/cloudflare/downrangedays`.
+  - **terlo**: no worker deployed and `cdn.terlo.app` has no DNS record — the
+    old worker source (`~/Development/serverless_functions/cloudflare/terlo`,
+    bucket `hautemap`) never shipped or was already retired. The app
+    (`~/Development/terlo/terlo`) already uses `@mrmeg/expo-media/server`
+    `createMediaHandlers` inside its own `/api/media/[action]+api.ts` against
+    R2 directly. It is already on the expo-media contract, self-hosted; its
+    "migration" is repointing config at the shared Worker (or deciding to stay
+    self-hosted).
+  - Other old worker sources in `~/Development/serverless_functions/cloudflare`
+    (`memoriam`, `mrmeg` → assets.mrmeg.com, `wagbi` →
+    media.whosagoodboyindustries.co) belong to other apps; only `wagbi` is
+    deployed. Out of scope here.
+  - The old wrangler configs keep R2 access keys and JWT secrets in plaintext
+    `[vars]` (committed to disk). Teardown must rotate the R2 API
+    tokens/keys and retire the JWT secrets, not just delete workers.
+- Migration-shape consequence: downrangedays is the real migration — its
+  bespoke JWT-serving worker and in-app routes get replaced by the shared
+  contract, and its public-URL + HLS serving path has no direct equivalent in
+  the new Worker (which only signs R2 URLs via `getSignedUrls`). That gap is
+  the likely candidate for the separate spec in Work item 3.
 
 ## Work
 
@@ -63,6 +97,9 @@ terlo repos and cannot be implemented from here.
 
 ## Open questions
 
-- Old worker name, route patterns, and current API surface consumed by
-  downrangedays/terlo — required before the mapping table and teardown steps can
-  be written. (This is the blocked-by.)
+- Does terlo move to the shared Worker or stay self-hosted on
+  `@mrmeg/expo-media/server`? (It already speaks the contract; the shared
+  Worker only buys it centralized ops.)
+- How does downrangedays' public-URL + HLS serving map onto the signed-URL-only
+  contract — extend the Worker (separate spec per Work item 3) or accept
+  presigned R2 URLs for playback?
