@@ -67,6 +67,12 @@ Verified current behavior:
   `EXPO_PUBLIC_USER_POOL_CLIENT_ID`). No Cognito domain var exists.
 - i18n: user-facing strings live in
   `client/features/i18n/translations/en.ts` / `es.ts` (`auth.*` keys).
+- Other `SignInForm` references: `client/blocks/sign-in-form/Block.tsx` is a
+  standalone showcase block with its own props — do NOT modify it. The
+  showcase (`app/(main)/(demos)/showcase/index.tsx`) lazily imports the real
+  `client/features/auth/components`, so it renders whatever these forms
+  become; keep all new form props optional so existing consumers compile
+  unchanged.
 - No pool-creation script exists in this repo (camera-app has
   `scripts/create-cognito-pool.sh`; the migration playbook §2/§7 defines the
   canonical settings).
@@ -106,6 +112,9 @@ callback URLs for the app scheme and web origins.
      `needsConfirmation`; `isSignedIn` → `complete`.
    - `confirmSignInCode`: `confirmSignIn({ challengeResponse: code })`;
      non-signed-in result → `AuthError("codeMismatch" | "unknown", …)`.
+     Amplify keeps the pending sign-in in memory: if the app restarts between
+     code request and entry, `confirmSignIn` fails — surface the error and
+     let the user request a new code (the OTP view's resend path).
    - `signInWithProvider`: `signInWithRedirect({ provider })` mapping
      `"google" → "Google"`, `"apple" → "Apple"` (Amplify's `AuthProvider`
      union is capitalized; confirmed in installed types). Requires the oauth
@@ -178,9 +187,13 @@ callback URLs for the app scheme and web origins.
 - `bun run check:features` (feature-isolation guard)
 - Web bundle guard: `node scripts/check-bundle-size.js` — the Amplify cluster
   must stay out of the eager bundle (cognitoSdk single-entry constraint).
-- Live checks (HITL, needs a §7-configured pool; defer if IdP creds absent —
-  note in PR): real email-OTP sign-in with SES delivery on the iOS simulator;
-  Google and Apple redirect round-trips; password sign-in regression.
+- Live checks (HITL): the template gets its own real pool named
+  `expo-template` (Essentials tier, EMAIL_OTP enabled; the operator creates
+  it via CloudShell per playbook §7 and fills `.env`). Against it: real
+  email-OTP sign-in on the iOS simulator; password sign-in regression; an
+  authed API call (this also unlocks testing the media features, which sit
+  behind auth). Google/Apple redirect round-trips defer until the IdP
+  registrations exist — note in the PR if skipped.
 
 ## Out of scope
 
