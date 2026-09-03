@@ -61,6 +61,11 @@ const es = {
     createPasswordPlaceholder: "Crea una contrase\u00f1a",
     confirmPasswordPlaceholder: "Vuelve a ingresar tu contrase\u00f1a",
     createAccountButton: "Crear cuenta",
+    signUpWithoutPassword: "Crear cuenta sin contrase\u00f1a",
+    signUpWithoutPasswordDescription:
+      "Ingresa tu correo y te enviaremos un c\u00f3digo para confirmarlo, sin contrase\u00f1a",
+    signUpWithoutPasswordInstead: "Mejor reg\u00edstrate sin contrase\u00f1a",
+    addAPassword: "Agregar una contrase\u00f1a",
     forgotPasswordTitle: "\u00bfOlvidaste tu contrase\u00f1a?",
     forgotPasswordDescription:
       "Ingresa tu correo electr\u00f3nico y te enviaremos un enlace para restablecer tu contrase\u00f1a",

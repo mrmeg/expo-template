@@ -74,6 +74,23 @@ async function requestEmailCode(email = EMAIL) {
   await fireEvent.press(screen.getByTestId("sign-in-email-code-button"));
 }
 
+/**
+ * Sign-up leads with the passwordless path too, so the password + confirm fields
+ * only exist after the "Add a password" toggle.
+ */
+async function submitPasswordSignUp(email = EMAIL, password = PASSWORD) {
+  await fireEvent.press(screen.getByTestId("sign-up-add-password-button"));
+  await fireEvent.changeText(screen.getByTestId("sign-up-email-input"), email);
+  await fireEvent.changeText(screen.getByTestId("sign-up-password-input"), password);
+  await fireEvent.changeText(screen.getByTestId("sign-up-confirm-password-input"), password);
+  await fireEvent.press(screen.getByTestId("sign-up-submit-button"));
+}
+
+async function submitPasswordlessSignUp(email = EMAIL) {
+  await fireEvent.changeText(screen.getByTestId("sign-up-email-input"), email);
+  await fireEvent.press(screen.getByTestId("sign-up-passwordless-button"));
+}
+
 describe("AuthScreen", () => {
   beforeEach(() => {
     resetAuthMocks();
@@ -85,13 +102,16 @@ describe("AuthScreen", () => {
 
     expect(screen.getByTestId("sign-in-email-code-button")).toBeTruthy();
     expect(screen.queryByTestId("sign-in-password-input")).toBeNull();
-    expect(screen.queryByTestId("sign-up-submit-button")).toBeNull();
+    expect(screen.queryByTestId("sign-up-passwordless-button")).toBeNull();
   });
 
   it("honors initialView", async () => {
     await render(<AuthScreen initialView="sign-up" />);
 
-    expect(screen.getByTestId("sign-up-submit-button")).toBeTruthy();
+    // Sign-up leads with the passwordless action; the password fields sit behind
+    // the "Add a password" toggle.
+    expect(screen.getByTestId("sign-up-passwordless-button")).toBeTruthy();
+    expect(screen.queryByTestId("sign-up-password-input")).toBeNull();
     expect(screen.queryByTestId("sign-in-email-code-button")).toBeNull();
   });
 
@@ -167,7 +187,7 @@ describe("AuthScreen", () => {
     await render(<AuthScreen />);
 
     await fireEvent.press(screen.getByText("auth.signUp"));
-    expect(screen.getByTestId("sign-up-submit-button")).toBeTruthy();
+    expect(screen.getByTestId("sign-up-passwordless-button")).toBeTruthy();
 
     await fireEvent.press(screen.getByText("auth.signIn"));
     expect(screen.getByTestId("sign-in-email-code-button")).toBeTruthy();
@@ -322,10 +342,7 @@ describe("AuthScreen", () => {
     const onAuthenticated = jest.fn();
 
     await render(<AuthScreen initialView="sign-up" onAuthenticated={onAuthenticated} />);
-    await fireEvent.changeText(screen.getByTestId("sign-up-email-input"), EMAIL);
-    await fireEvent.changeText(screen.getByTestId("sign-up-password-input"), PASSWORD);
-    await fireEvent.changeText(screen.getByTestId("sign-up-confirm-password-input"), PASSWORD);
-    await fireEvent.press(screen.getByTestId("sign-up-submit-button"));
+    await submitPasswordSignUp();
 
     expect(mockAuth.signUp).toHaveBeenCalledWith({ email: EMAIL, password: PASSWORD });
     expect(screen.getByTestId("verify-email-code-input")).toBeTruthy();
@@ -344,10 +361,7 @@ describe("AuthScreen", () => {
     const onAuthenticated = jest.fn();
 
     await render(<AuthScreen initialView="sign-up" onAuthenticated={onAuthenticated} />);
-    await fireEvent.changeText(screen.getByTestId("sign-up-email-input"), EMAIL);
-    await fireEvent.changeText(screen.getByTestId("sign-up-password-input"), PASSWORD);
-    await fireEvent.changeText(screen.getByTestId("sign-up-confirm-password-input"), PASSWORD);
-    await fireEvent.press(screen.getByTestId("sign-up-submit-button"));
+    await submitPasswordSignUp();
 
     expect(onAuthenticated).not.toHaveBeenCalled();
     expect(screen.getByTestId("sign-in-email-code-button")).toBeTruthy();
@@ -357,12 +371,97 @@ describe("AuthScreen", () => {
     mockAuth.signUp.mockRejectedValue(new AuthError("userExists", "raw message"));
 
     await render(<AuthScreen initialView="sign-up" />);
-    await fireEvent.changeText(screen.getByTestId("sign-up-email-input"), EMAIL);
-    await fireEvent.changeText(screen.getByTestId("sign-up-password-input"), PASSWORD);
-    await fireEvent.changeText(screen.getByTestId("sign-up-confirm-password-input"), PASSWORD);
-    await fireEvent.press(screen.getByTestId("sign-up-submit-button"));
+    await submitPasswordSignUp();
 
     expect(screen.getByText("An account with this email already exists.")).toBeTruthy();
+  });
+
+  describe("passwordless sign-up", () => {
+    it("creates the account with no password and verifies it by email code", async () => {
+      mockAuth.signUp.mockResolvedValue({ status: "needsConfirmation" });
+      mockAuth.confirmSignUp.mockResolvedValue({ status: "complete", autoSignedIn: true });
+      const onAuthenticated = jest.fn();
+
+      await render(<AuthScreen initialView="sign-up" onAuthenticated={onAuthenticated} />);
+      await submitPasswordlessSignUp();
+
+      // No password field was ever rendered, so none is sent.
+      expect(mockAuth.signUp).toHaveBeenCalledWith({ email: EMAIL });
+      expect(screen.getByTestId("verify-email-code-input")).toBeTruthy();
+
+      await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "654321");
+      await fireEvent.press(screen.getByTestId("verify-email-submit-button"));
+
+      expect(mockAuth.confirmSignUp).toHaveBeenCalledWith({ email: EMAIL, code: "654321" });
+      expect(onAuthenticated).toHaveBeenCalledTimes(1);
+      expect(mockAuth.signInWithEmailCode).not.toHaveBeenCalled();
+    });
+
+    it("falls back to email-code sign-in when auto sign-in did not happen", async () => {
+      mockAuth.signUp.mockResolvedValue({ status: "needsConfirmation" });
+      mockAuth.confirmSignUp.mockResolvedValue({ status: "complete", autoSignedIn: false });
+      mockAuth.signInWithEmailCode.mockResolvedValue({ status: "needsConfirmation" });
+      mockAuth.confirmSignInCode.mockResolvedValue({ status: "complete" });
+      const onAuthenticated = jest.fn();
+
+      await render(<AuthScreen initialView="sign-up" onAuthenticated={onAuthenticated} />);
+      await submitPasswordlessSignUp();
+      await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "654321");
+      await fireEvent.press(screen.getByTestId("verify-email-submit-button"));
+
+      // The account has no password, so the password sign-in view would be a dead
+      // end: a sign-in code goes out for the same address instead.
+      expect(mockAuth.signIn).not.toHaveBeenCalled();
+      expect(mockAuth.signInWithEmailCode).toHaveBeenCalledWith({ email: EMAIL });
+      expect(screen.getByText("auth.signInWithCodeButton")).toBeTruthy();
+
+      await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "123456");
+      await fireEvent.press(screen.getByTestId("verify-email-submit-button"));
+
+      expect(mockAuth.confirmSignInCode).toHaveBeenCalledWith({ code: "123456" });
+      expect(onAuthenticated).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps a failed code request visible on the sign-in code view", async () => {
+      mockAuth.signUp.mockResolvedValue({ status: "needsConfirmation" });
+      mockAuth.confirmSignUp.mockResolvedValue({ status: "complete", autoSignedIn: false });
+      mockAuth.signInWithEmailCode.mockRejectedValue(
+        new AuthError("limitExceeded", "raw message"),
+      );
+
+      await render(<AuthScreen initialView="sign-up" />);
+      await submitPasswordlessSignUp();
+      await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "654321");
+      await fireEvent.press(screen.getByTestId("verify-email-submit-button"));
+
+      expect(screen.getByText("Too many attempts. Please try again later.")).toBeTruthy();
+    });
+
+    it("requests a sign-in code when an auto-confirmed pool leaves no session", async () => {
+      mockAuth.signUp.mockResolvedValue({ status: "complete" });
+      mockAuth.signInWithEmailCode.mockResolvedValue({ status: "needsConfirmation" });
+
+      await render(<AuthScreen initialView="sign-up" />);
+      await submitPasswordlessSignUp();
+
+      expect(mockAuth.signInWithEmailCode).toHaveBeenCalledWith({ email: EMAIL });
+      expect(screen.getByText("auth.signInWithCodeButton")).toBeTruthy();
+    });
+
+    it("surfaces a pool that does not allow passwordless sign-up", async () => {
+      mockAuth.signUp.mockRejectedValue(
+        new AuthError("unsupported", "This pool needs EMAIL_OTP as a first auth factor."),
+      );
+
+      await render(<AuthScreen initialView="sign-up" />);
+      await submitPasswordlessSignUp();
+
+      expect(
+        screen.getByText("This pool needs EMAIL_OTP as a first auth factor."),
+      ).toBeTruthy();
+      // Still on the sign-up view, so the user can add a password instead.
+      expect(screen.getByTestId("sign-up-add-password-button")).toBeTruthy();
+    });
   });
 
   it("moves to the reset view with the pending email when a code is sent", async () => {

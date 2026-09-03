@@ -81,14 +81,18 @@ export function useAuth() {
   }, []);
 
   /**
-   * Sign up with email and password
+   * Sign up with an email address, optionally with a password.
+   *
+   * Omitting the password creates a passwordless account: the emailed
+   * confirmation code finishes sign-up, and `signInWithEmailCode` is how that
+   * account signs in from then on.
    */
   const handleSignUp = useCallback(async ({
     email,
     password,
   }: {
     email: string;
-    password: string;
+    password?: string;
   }) => {
     const client = await requireAuthClient();
     const result = await client.signUp({ email, password });

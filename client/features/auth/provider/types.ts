@@ -110,7 +110,15 @@ export interface AuthClient {
    */
   signInWithProvider(provider: SocialAuthProviderName): Promise<void>;
 
-  signUp(params: { email: string; password: string }): Promise<AuthFlowResult>;
+  /**
+   * Create an account. `password` is optional: omitting it asks the provider for
+   * a passwordless account, which the emailed confirmation code finishes
+   * (`confirmSignUp`) and which signs in through `signInWithEmailCode`
+   * thereafter — there is no password to offer, ever. Providers that can't
+   * create an account without a password reject with
+   * `AuthError("unsupported")`.
+   */
+  signUp(params: { email: string; password?: string }): Promise<AuthFlowResult>;
   confirmSignUp(params: { email: string; code: string }): Promise<ConfirmSignUpResult>;
   resendCode(email: string): Promise<void>;
   forgotPassword(email: string): Promise<ForgotPasswordResult>;

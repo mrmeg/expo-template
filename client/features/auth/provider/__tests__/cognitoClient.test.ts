@@ -181,6 +181,165 @@ describe("cognito email-code sign-in", () => {
   });
 });
 
+describe("cognito password-optional sign-up", () => {
+  const original: Record<string, string | undefined> = {};
+  let sdk: FakeSdk;
+
+  beforeAll(() => {
+    for (const key of POOL_ENV_KEYS) original[key] = process.env[key];
+  });
+
+  afterAll(() => {
+    for (const key of POOL_ENV_KEYS) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+  });
+
+  beforeEach(() => {
+    for (const key of POOL_ENV_KEYS) delete process.env[key];
+    process.env.EXPO_PUBLIC_USER_POOL_ID = "us-east-1_test";
+    process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID = "client123";
+    sdk = createFakeSdk();
+  });
+
+  /** The input object handed to Amplify's `signUp` on the last call. */
+  function signUpInput(): Record<string, unknown> {
+    return sdk.module.amplifyAuth.signUp.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+  }
+
+  it("sends no password and asks for USER_AUTH auto sign-in when none is given", async () => {
+    sdk.module.amplifyAuth.signUp.mockResolvedValue({
+      isSignUpComplete: false,
+      nextStep: { signUpStep: "CONFIRM_SIGN_UP" },
+    });
+
+    const result = await subject(sdk).signUp({ email: "ada@example.com" });
+
+    expect(result).toEqual({ status: "needsConfirmation" });
+    // No `password` key at all: Amplify only omits Password from the Cognito
+    // request when the field is absent, and USER_AUTH is how the just-confirmed
+    // account gets a session without one.
+    expect(signUpInput()).toEqual({
+      username: "ada@example.com",
+      options: {
+        userAttributes: { email: "ada@example.com" },
+        autoSignIn: { authFlowType: "USER_AUTH" },
+      },
+    });
+    expect("password" in signUpInput()).toBe(false);
+  });
+
+  it("keeps the password sign-up call unchanged", async () => {
+    sdk.module.amplifyAuth.signUp.mockResolvedValue({
+      isSignUpComplete: false,
+      nextStep: { signUpStep: "CONFIRM_SIGN_UP" },
+    });
+
+    const result = await subject(sdk).signUp({
+      email: "ada@example.com",
+      password: "hunter2222",
+    });
+
+    expect(result).toEqual({ status: "needsConfirmation" });
+    expect(signUpInput()).toEqual({
+      username: "ada@example.com",
+      password: "hunter2222",
+      options: {
+        userAttributes: { email: "ada@example.com" },
+        autoSignIn: true,
+      },
+    });
+  });
+
+  it("reports an auto-confirmed sign-up as complete", async () => {
+    sdk.module.amplifyAuth.signUp.mockResolvedValue({
+      isSignUpComplete: true,
+      nextStep: { signUpStep: "COMPLETE_AUTO_SIGN_IN" },
+    });
+
+    await expect(subject(sdk).signUp({ email: "ada@example.com" })).resolves.toEqual({
+      status: "complete",
+    });
+  });
+
+  it("reports the pool requirement when Cognito refuses a passwordless sign-up", async () => {
+    // A password-only pool rejects the Password-less SignUp request; the service
+    // only complains about the parameter, so the client names the real cause.
+    sdk.module.amplifyAuth.signUp.mockRejectedValue(
+      amplifyException("InvalidParameterException", "Password is required."),
+    );
+
+    const error = await subject(sdk)
+      .signUp({ email: "ada@example.com" })
+      .catch((thrown: unknown) => thrown);
+
+    expect(isAuthError(error)).toBe(true);
+    expect((error as AuthError).code).toBe("unsupported");
+    expect((error as AuthError).message).toContain("EMAIL_OTP");
+    expect((error as AuthError).message).toContain("Password is required.");
+  });
+
+  it("treats a password-policy rejection of a passwordless sign-up the same way", async () => {
+    sdk.module.amplifyAuth.signUp.mockRejectedValue(
+      amplifyException("InvalidPasswordException", "Password did not conform with policy"),
+    );
+
+    await expect(subject(sdk).signUp({ email: "ada@example.com" })).rejects.toMatchObject({
+      code: "unsupported",
+    });
+  });
+
+  it("leaves the password path's own password errors alone", async () => {
+    sdk.module.amplifyAuth.signUp.mockRejectedValue(
+      amplifyException("InvalidPasswordException", "Password did not conform with policy"),
+    );
+
+    await expect(
+      subject(sdk).signUp({ email: "ada@example.com", password: "short" }),
+    ).rejects.toMatchObject({ code: "invalidPassword" });
+  });
+
+  it("keeps normalizing non-pool sign-up failures on the passwordless path", async () => {
+    sdk.module.amplifyAuth.signUp.mockRejectedValue(
+      amplifyException("UsernameExistsException", "already exists"),
+    );
+
+    await expect(subject(sdk).signUp({ email: "ada@example.com" })).rejects.toMatchObject({
+      code: "userExists",
+    });
+  });
+
+  it("signs a passwordless account in through the confirmation's auto sign-in", async () => {
+    sdk.module.amplifyAuth.confirmSignUp.mockResolvedValue({
+      isSignUpComplete: true,
+      nextStep: { signUpStep: "COMPLETE_AUTO_SIGN_IN" },
+    });
+    sdk.module.amplifyAuth.autoSignIn.mockResolvedValue({ isSignedIn: true });
+
+    await expect(
+      subject(sdk).confirmSignUp({ email: "ada@example.com", code: "123456" }),
+    ).resolves.toEqual({ status: "complete", autoSignedIn: true });
+  });
+
+  it("still completes the confirmation when auto sign-in is gone", async () => {
+    // Restarting the app between sign-up and confirmation drops Amplify's
+    // in-memory auto sign-in state; the account is confirmed either way and the
+    // UI falls back to email-code sign-in.
+    sdk.module.amplifyAuth.confirmSignUp.mockResolvedValue({
+      isSignUpComplete: true,
+      nextStep: { signUpStep: "DONE" },
+    });
+    sdk.module.amplifyAuth.autoSignIn.mockRejectedValue(
+      amplifyException("AuthSignInException", "There is no auto sign-in in progress."),
+    );
+
+    await expect(
+      subject(sdk).confirmSignUp({ email: "ada@example.com", code: "123456" }),
+    ).resolves.toEqual({ status: "complete", autoSignedIn: false });
+  });
+});
+
 describe("cognito social sign-in", () => {
   const original: Record<string, string | undefined> = {};
   let sdk: FakeSdk;
