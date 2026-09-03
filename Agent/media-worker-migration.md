@@ -98,11 +98,16 @@ cannot be implemented from here.
   following the guide).
 - New Worker features; per-app policy scoping gets its own spec if needed.
 
+## Decisions (user, 2026-09-03)
+
+- **terlo stays self-hosted** on `@mrmeg/expo-media/server` in its own API
+  routes. The guide documents it as already-compliant; no code changes, no
+  token provisioning for terlo.
+- **downrangedays' public-URL + HLS serving defers to a separate spec** that
+  extends the shared Worker with a public serving path. Its
+  `cdn.downrangedays.com` worker keeps running until that lands; teardown
+  stays gated on it. The guide documents the gap and the interim state.
+
 ## Open questions
 
-- Does terlo move to the shared Worker or stay self-hosted on
-  `@mrmeg/expo-media/server`? (It already speaks the contract; the shared
-  Worker only buys it centralized ops.)
-- How does downrangedays' public-URL + HLS serving map onto the signed-URL-only
-  contract — extend the Worker (separate spec per Work item 3) or accept
-  presigned R2 URLs for playback?
+None.
