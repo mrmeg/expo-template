@@ -22,13 +22,21 @@ export interface ProcessAssetInput {
     /** The picker's declared type. Sniffed when blank or `application/octet-stream`. */
     contentType?: string | null;
     fileName?: string | null;
+    /**
+     * width/height are displayed (orientation-applied) dimensions, as returned by
+     * expo-image-picker and by probes.
+     */
     width?: number | null;
     height?: number | null;
     /** The picker's reported byte size, when it reports one. */
     size?: number | null;
     kind?: ProcessedUploadKind | null;
     durationSeconds?: number | null;
-    /** EXIF orientation, so ladder dims can be computed in displayed orientation. */
+    /**
+     * EXIF orientation tag, carried as metadata only. It never feeds dimension
+     * math: the pickers and the probes already report displayed dimensions, and
+     * the encoders bake the rotation into their output.
+     */
     exifOrientation?: number | null;
 }
 export interface ProcessedThumbnail {

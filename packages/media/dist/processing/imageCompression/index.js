@@ -43,4 +43,4 @@ export { convertHeicToJpeg, convertHeicToJpegIfNeeded, hasHeicExtension, isHeicB
 // Canvas ceilings (web)
 export { CANVAS_LIMIT_CHROMIUM, CANVAS_LIMIT_DEFAULT, CANVAS_LIMIT_FIREFOX, CANVAS_LIMIT_IOS, canvasLongEdgeLimitFor, clampLongEdgeToCanvasLimit, currentCanvasLongEdgeLimit, } from "./canvasLimits.js";
 // Pure helpers
-export { calculateDimensions, displayDimensions, formatFileSize, longEdgeOf, } from "./utils.js";
+export { calculateDimensions, formatFileSize, longEdgeOf } from "./utils.js";

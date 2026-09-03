@@ -1,9 +1,4 @@
-import {
-  calculateDimensions,
-  displayDimensions,
-  formatFileSize,
-  longEdgeOf,
-} from "../utils";
+import { calculateDimensions, formatFileSize, longEdgeOf } from "../utils";
 
 describe("image compression utilities", () => {
   describe("calculateDimensions", () => {
@@ -76,29 +71,6 @@ describe("image compression utilities", () => {
       expect(longEdgeOf(0, 0)).toBe(0);
       expect(longEdgeOf(-10, 0)).toBe(0);
       expect(longEdgeOf(-10, 800)).toBe(800);
-    });
-  });
-
-  describe("displayDimensions", () => {
-    it.each([1, 2, 3, 4])("keeps stored dimensions for orientation %i", (orientation) => {
-      expect(displayDimensions(4000, 3000, orientation)).toEqual({
-        width: 4000,
-        height: 3000,
-      });
-    });
-
-    it.each([5, 6, 7, 8])("transposes stored dimensions for orientation %i", (orientation) => {
-      // A phone portrait shot is stored landscape with orientation 6; capping the
-      // long edge on the stored axis would resize the wrong side.
-      expect(displayDimensions(4032, 3024, orientation)).toEqual({
-        width: 3024,
-        height: 4032,
-      });
-    });
-
-    it("defaults to no transposition when orientation is missing", () => {
-      expect(displayDimensions(800, 600)).toEqual({ width: 800, height: 600 });
-      expect(displayDimensions(800, 600, null)).toEqual({ width: 800, height: 600 });
     });
   });
 

@@ -45,8 +45,9 @@ assembled their own content type per branch need to move to `processAsset`.
   which is what stops an oversized canvas from silently producing a blank image.
 - `convertHeicToJpegIfNeeded()`, `isHeicBlob()`, `hasHeicExtension()`, and an
   injectable `HeicDecoder` argument on the conversion helpers.
-- `displayDimensions()` and `longEdgeOf()`, so ladder math runs on the
-  orientation the image is displayed in rather than the stored one.
+- `longEdgeOf()`. Ladder math takes displayed (orientation-applied)
+  dimensions as input — the contract `ProcessAssetInput` documents — since
+  pickers and probes already report them; `exifOrientation` is metadata only.
 - `resolveUploadSize()` is exported from `@mrmeg/expo-media/client`, with an
   injectable `NativeFileSizeStat`.
 

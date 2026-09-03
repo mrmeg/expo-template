@@ -28,7 +28,7 @@ import { compressImageWith } from "./imageCompression/compressImage";
 import { imagePlatformAdapter } from "./imageCompression/compress";
 import type { CompressionConfig } from "./imageCompression/config";
 import type { ImageSource } from "./imageCompression/types";
-import { displayDimensions, formatFileSize, longEdgeOf } from "./imageCompression/utils";
+import { formatFileSize, longEdgeOf } from "./imageCompression/utils";
 import {
   MAX_CLIENT_CONVERSION_SIZE,
   TARGET_MIME_TYPE,
@@ -53,13 +53,21 @@ export interface ProcessAssetInput {
   /** The picker's declared type. Sniffed when blank or `application/octet-stream`. */
   contentType?: string | null;
   fileName?: string | null;
+  /**
+   * width/height are displayed (orientation-applied) dimensions, as returned by
+   * expo-image-picker and by probes.
+   */
   width?: number | null;
   height?: number | null;
   /** The picker's reported byte size, when it reports one. */
   size?: number | null;
   kind?: ProcessedUploadKind | null;
   durationSeconds?: number | null;
-  /** EXIF orientation, so ladder dims can be computed in displayed orientation. */
+  /**
+   * EXIF orientation tag, carried as metadata only. It never feeds dimension
+   * math: the pickers and the probes already report displayed dimensions, and
+   * the encoders bake the rotation into their output.
+   */
   exifOrientation?: number | null;
 }
 
@@ -172,6 +180,13 @@ async function measureSource(
   }
 }
 
+/**
+ * Displayed dimensions for the asset. Both sources already report them that way:
+ * the pickers apply EXIF orientation before reporting width/height, and the
+ * probes read them back off an orientation-normalized bitmap (native) or
+ * `naturalWidth`/`naturalHeight` (web). Applying `exifOrientation` here would
+ * transpose a second time and stretch every rotated photo.
+ */
 async function resolveDimensions(
   asset: ProcessAssetInput,
   source: ImageSource,
@@ -181,13 +196,12 @@ async function resolveDimensions(
   const declaredHeight = asset.height ?? 0;
 
   if (declaredWidth > 0 && declaredHeight > 0) {
-    return displayDimensions(declaredWidth, declaredHeight, asset.exifOrientation);
+    return { width: declaredWidth, height: declaredHeight };
   }
 
   // HEIC assets come out of the pickers as 0x0, so this path runs after any
   // HEIC decode — probing undecodable bytes would throw.
-  const probed = await adapter.probeDimensions(source);
-  return displayDimensions(probed.width, probed.height, asset.exifOrientation);
+  return adapter.probeDimensions(source);
 }
 
 function transcodeOnlyConfig(longEdge: number): CompressionConfig {

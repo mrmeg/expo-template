@@ -534,16 +534,16 @@ describe("processAsset — format and geometry", () => {
     expect(encode.mock.calls[0][0].format).toBe("jpeg");
   });
 
-  it("runs the ladder on displayed dimensions for a rotated photo", async () => {
+  it("runs the ladder on the dimensions the picker reported for a rotated photo", async () => {
     const { adapter, encode } = makeAdapter({ encodedSize: () => 200_000 });
 
     await processAsset({
       asset: {
         uri: "file:///portrait.jpg",
         contentType: "image/jpeg",
-        // Stored landscape, displayed portrait (orientation 6).
-        width: 4032,
-        height: 3024,
+        // The picker already applied orientation 6: these are displayed dims.
+        width: 3024,
+        height: 4032,
         exifOrientation: 6,
         size: 4_000_000,
       },
@@ -553,6 +553,35 @@ describe("processAsset — format and geometry", () => {
     });
 
     expect(encode.mock.calls[0][0]).toMatchObject({ width: 3024, height: 4032 });
+  });
+
+  it("does not let exifOrientation alter dimension math", async () => {
+    const observed: { width: number; height: number }[] = [];
+
+    for (const exifOrientation of [null, 1, 3, 5, 6, 7, 8]) {
+      const { adapter, encode } = makeAdapter({ encodedSize: () => 200_000 });
+
+      await processAsset({
+        asset: {
+          uri: "file:///portrait.jpg",
+          contentType: "image/jpeg",
+          width: 3024,
+          height: 4032,
+          exifOrientation,
+          size: 4_000_000,
+        },
+        allowlist: ALLOWLIST,
+        adapter,
+        config: resolveCompressionConfig("gallery"),
+      });
+
+      const { width, height } = encode.mock.calls[0][0];
+      observed.push({ width, height });
+    }
+
+    for (const dimensions of observed) {
+      expect(dimensions).toEqual({ width: 3024, height: 4032 });
+    }
   });
 
   it("reports overBudget when even the smallest rung misses the budget", async () => {

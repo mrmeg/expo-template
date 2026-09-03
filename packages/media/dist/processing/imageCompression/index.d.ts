@@ -39,4 +39,4 @@ export { compressImageWith, resolveEncodeFormat, toImageSource, } from "./compre
 export { compressImage, imagePlatformAdapter } from "./compress";
 export { convertHeicToJpeg, convertHeicToJpegIfNeeded, hasHeicExtension, isHeicBlob, } from "./heicConvert";
 export { CANVAS_LIMIT_CHROMIUM, CANVAS_LIMIT_DEFAULT, CANVAS_LIMIT_FIREFOX, CANVAS_LIMIT_IOS, canvasLongEdgeLimitFor, clampLongEdgeToCanvasLimit, currentCanvasLongEdgeLimit, } from "./canvasLimits";
-export { calculateDimensions, displayDimensions, formatFileSize, longEdgeOf, } from "./utils";
+export { calculateDimensions, formatFileSize, longEdgeOf } from "./utils";

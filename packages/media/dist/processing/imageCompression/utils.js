@@ -34,18 +34,6 @@ export function longEdgeOf(width, height) {
     return Math.max(width > 0 ? width : 0, height > 0 ? height : 0);
 }
 /**
- * EXIF orientations 5-8 rotate the image 90°, so the stored pixel dimensions are
- * transposed relative to what a viewer sees. Both `expo-image-manipulator` and
- * canvas bake the rotation into their output, which means ladder math has to be
- * done on the *displayed* dimensions or portrait photos get capped on the wrong
- * axis.
- */
-export function displayDimensions(width, height, exifOrientation) {
-    const orientation = typeof exifOrientation === "number" ? exifOrientation : 1;
-    const transposed = orientation >= 5 && orientation <= 8;
-    return transposed ? { width: height, height: width } : { width, height };
-}
-/**
  * Format file size for logging.
  *
  * @param bytes - Size in bytes

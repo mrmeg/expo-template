@@ -69,7 +69,6 @@ export {
   compressImageWith,
   convertHeicToJpeg,
   convertHeicToJpegIfNeeded,
-  displayDimensions,
   formatFileSize,
   hasHeicExtension,
   imagePlatformAdapter,

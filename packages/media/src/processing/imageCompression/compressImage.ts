@@ -10,7 +10,6 @@ import type { ImagePlatformAdapter } from "../adapter";
 import { contentTypeForFormat, type UploadOutputFormat } from "../uploadPolicy";
 import { runDimensionLadder } from "./ladder";
 import type { CompressedImage, CompressImageOptions, ImageSource } from "./types";
-import { displayDimensions } from "./utils";
 
 export function toImageSource(source: ImageSource | string): ImageSource {
   return typeof source === "string" ? { uri: source } : source;
@@ -35,16 +34,12 @@ export async function compressImageWith(
   const format = resolveEncodeFormat(options);
   const { config } = options;
 
-  const probed =
+  // Both branches are already in displayed orientation: callers pass displayed
+  // dimensions, and the probes read them off an orientation-normalized bitmap.
+  const { width, height } =
     options.width > 0 && options.height > 0
       ? { width: options.width, height: options.height }
       : await adapter.probeDimensions(source);
-
-  const { width, height } = displayDimensions(
-    probed.width,
-    probed.height,
-    options.exifOrientation,
-  );
 
   const result = await runDimensionLadder({
     source,

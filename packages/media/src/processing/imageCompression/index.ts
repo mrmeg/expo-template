@@ -83,9 +83,4 @@ export {
 } from "./canvasLimits";
 
 // Pure helpers
-export {
-  calculateDimensions,
-  displayDimensions,
-  formatFileSize,
-  longEdgeOf,
-} from "./utils";
+export { calculateDimensions, formatFileSize, longEdgeOf } from "./utils";

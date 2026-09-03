@@ -7,7 +7,6 @@
  */
 import { contentTypeForFormat } from "../uploadPolicy.js";
 import { runDimensionLadder } from "./ladder.js";
-import { displayDimensions } from "./utils.js";
 export function toImageSource(source) {
     return typeof source === "string" ? { uri: source } : source;
 }
@@ -23,10 +22,11 @@ export async function compressImageWith(adapter, options) {
     const source = toImageSource(options.source);
     const format = resolveEncodeFormat(options);
     const { config } = options;
-    const probed = options.width > 0 && options.height > 0
+    // Both branches are already in displayed orientation: callers pass displayed
+    // dimensions, and the probes read them off an orientation-normalized bitmap.
+    const { width, height } = options.width > 0 && options.height > 0
         ? { width: options.width, height: options.height }
         : await adapter.probeDimensions(source);
-    const { width, height } = displayDimensions(probed.width, probed.height, options.exifOrientation);
     const result = await runDimensionLadder({
         source,
         width,

@@ -17,7 +17,7 @@ import { contentTypeFromFileName } from "./sniff.js";
 import { chooseUploadCandidate, isAllowlistedContentType, isUnknownContentType, normalizeContentType, resolveUploadFormatPolicy, } from "./uploadPolicy.js";
 import { compressImageWith } from "./imageCompression/compressImage.js";
 import { imagePlatformAdapter } from "./imageCompression/compress.js";
-import { displayDimensions, formatFileSize, longEdgeOf } from "./imageCompression/utils.js";
+import { formatFileSize, longEdgeOf } from "./imageCompression/utils.js";
 import { MAX_CLIENT_CONVERSION_SIZE, TARGET_MIME_TYPE, convertVideo, needsConversion, } from "./videoConversion/index.js";
 import { extractVideoThumbnail } from "./videoThumbnails.js";
 /** Quality used when an asset must be transcoded but no ladder was requested. */
@@ -60,16 +60,22 @@ async function measureSource(asset, source, adapter) {
         return 0;
     }
 }
+/**
+ * Displayed dimensions for the asset. Both sources already report them that way:
+ * the pickers apply EXIF orientation before reporting width/height, and the
+ * probes read them back off an orientation-normalized bitmap (native) or
+ * `naturalWidth`/`naturalHeight` (web). Applying `exifOrientation` here would
+ * transpose a second time and stretch every rotated photo.
+ */
 async function resolveDimensions(asset, source, adapter) {
     const declaredWidth = asset.width ?? 0;
     const declaredHeight = asset.height ?? 0;
     if (declaredWidth > 0 && declaredHeight > 0) {
-        return displayDimensions(declaredWidth, declaredHeight, asset.exifOrientation);
+        return { width: declaredWidth, height: declaredHeight };
     }
     // HEIC assets come out of the pickers as 0x0, so this path runs after any
     // HEIC decode — probing undecodable bytes would throw.
-    const probed = await adapter.probeDimensions(source);
-    return displayDimensions(probed.width, probed.height, asset.exifOrientation);
+    return adapter.probeDimensions(source);
 }
 function transcodeOnlyConfig(longEdge) {
     return {

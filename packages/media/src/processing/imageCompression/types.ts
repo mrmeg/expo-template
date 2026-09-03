@@ -68,17 +68,17 @@ export interface CompressedImage extends EncodedImage {
 export interface CompressImageOptions {
   /** Source image handle. A bare URI string is accepted for convenience. */
   source: ImageSource | string;
-  /** Source width in pixels. `0` asks the platform to probe it. */
+  /**
+   * Source width in pixels, in displayed (orientation-applied) orientation.
+   * `0` asks the platform to probe it.
+   */
   width: number;
-  /** Source height in pixels. `0` asks the platform to probe it. */
+  /**
+   * Source height in pixels, in displayed (orientation-applied) orientation.
+   * `0` asks the platform to probe it.
+   */
   height: number;
   config: CompressionConfig;
   /** Encode format. Defaults to `config.format ?? "jpeg"`. */
   format?: UploadOutputFormat;
-  /**
-   * EXIF orientation, when known. Orientations 5-8 transpose the stored
-   * dimensions, and both platform encoders bake the rotation into their output,
-   * so ladder math has to run on the displayed dimensions.
-   */
-  exifOrientation?: number | null;
 }
