@@ -1,19 +1,37 @@
 /**
  * Cognito (AWS Amplify) implementation of `AuthClient`.
  *
- * Owns everything Amplify-specific: `Amplify.configure`, the Hub listener,
- * the post-confirmation `autoSignIn` dance, and mapping Amplify result
- * shapes / exception names onto the normalized contract in `types.ts`.
+ * Owns everything Amplify-specific: `Amplify.configure` (user pool plus the
+ * optional managed-login oauth block), the Hub listener, the
+ * post-confirmation `autoSignIn` dance, and mapping Amplify result shapes /
+ * exception names onto the normalized contract in `types.ts`.
+ *
  * The SDK is never imported statically here: every access goes through
- * `await import("./cognitoSdk")`, so Amplify loads only when Cognito is the
- * active provider. The specifier is deliberately the same in all three places
- * — on web, Metro hoists any module shared by two async chunks into the eager
- * `__common` bundle, so importing `aws-amplify`, `aws-amplify/utils`, and
- * `aws-amplify/auth` directly would put the shared Amplify internals on every
- * page load. See `cognitoSdk.ts` for the full rationale.
+ * `loadSdk()`, whose default is the one `import("./cognitoSdk")` below, so
+ * Amplify loads only when Cognito is the active provider and only ever from
+ * that single split point — on web, Metro hoists any module shared by two async
+ * chunks into the eager `__common` bundle, so importing `aws-amplify`,
+ * `aws-amplify/utils`, and `aws-amplify/auth` directly would put the shared
+ * Amplify internals on every page load. See `cognitoSdk.ts` for the full
+ * rationale.
+ *
+ * Sign-in methods, and what each needs on the AWS side:
+ *   signIn              → password (`USER_SRP_AUTH`), always available.
+ *   signInWithEmailCode → choice-based `USER_AUTH` flow with the `EMAIL_OTP`
+ *                         factor: an Essentials-tier pool whose sign-in policy
+ *                         allows EMAIL_OTP and a client with ALLOW_USER_AUTH.
+ *   signInWithProvider  → Managed Login domain (`EXPO_PUBLIC_COGNITO_DOMAIN`)
+ *                         plus a registered Google/Apple identity provider.
+ *                         Fails closed with `AuthError("unsupported")` while
+ *                         the domain is unset. On native it also needs the
+ *                         autolinked `@aws-amplify/rtn-web-browser` module,
+ *                         i.e. a dev build — not Expo Go.
+ * `scripts/create-cognito-pool.sh` provisions all three.
  */
 
+import { Platform } from "react-native";
 import { logDev } from "@/client/lib/devtools";
+import { getAppScheme } from "@/client/lib/identity";
 import type { User } from "../stores/authStore";
 import {
   AuthError,
@@ -23,10 +41,29 @@ import {
   type AuthFlowResult,
   type ConfirmSignUpResult,
   type ForgotPasswordResult,
+  type SocialAuthProviderName,
 } from "./types";
 
 // Type-only, so it is erased by the transform and creates no chunk of its own.
 type AmplifyAuthModule = typeof import("aws-amplify/auth");
+
+/**
+ * How this module reaches the Amplify SDK. The default is the single dynamic
+ * import that owns the Amplify chunk; tests substitute a fake module because
+ * Jest can't execute a dynamic import (see ./__tests__/cognitoClient.test.ts).
+ * Nothing in the app passes a loader — do not add a second call site.
+ */
+export type CognitoSdkLoader = () => Promise<typeof import("./cognitoSdk")>;
+
+const loadCognitoSdk: CognitoSdkLoader = () => import("./cognitoSdk");
+
+/** Amplify's `AuthProvider` union is capitalized; our contract is not. */
+const AMPLIFY_PROVIDER: Record<SocialAuthProviderName, "Google" | "Apple"> = {
+  google: "Google",
+  apple: "Apple",
+};
+
+const OAUTH_SCOPES = ["openid", "email", "profile"];
 
 const ERROR_CODE_BY_NAME: Record<string, AuthErrorCode> = {
   UserNotConfirmedException: "userNotConfirmed",
@@ -54,7 +91,34 @@ async function withAuthErrors<T>(action: () => Promise<T>): Promise<T> {
   }
 }
 
-export function createCognitoAuthClient(): AuthClient {
+/**
+ * The Managed Login domain, or null when social sign-in is not configured.
+ * Operators paste this out of the console, so a pasted `https://…/` is
+ * normalized to the bare host Amplify expects.
+ */
+function getCognitoDomain(): string | null {
+  const raw = process.env.EXPO_PUBLIC_COGNITO_DOMAIN;
+  const domain = (raw ?? "").trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  return domain === "" ? null : domain;
+}
+
+/**
+ * Where Cognito sends the browser back to. Native uses the app's deep-link
+ * scheme; web uses the page origin, which does not exist while the route is
+ * server-rendered — no origin means no oauth block, and `signInWithProvider`
+ * only runs on the client anyway.
+ */
+function getRedirectUrls(): string[] {
+  if (Platform.OS === "web") {
+    const origin = typeof window === "undefined" ? "" : (window.location?.origin ?? "");
+    return origin === "" ? [] : [origin];
+  }
+  return [`${getAppScheme()}://`];
+}
+
+export function createCognitoAuthClient(
+  loadSdk: CognitoSdkLoader = loadCognitoSdk,
+): AuthClient {
   let initPromise: Promise<void> | null = null;
   const listeners = new Set<(event: AuthChangeEvent) => void>();
 
@@ -69,19 +133,39 @@ export function createCognitoAuthClient(): AuthClient {
     const userPoolId = process.env.EXPO_PUBLIC_USER_POOL_ID ?? "";
     const userPoolClientId = process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID ?? "";
 
-    const { Amplify } = await import("./cognitoSdk");
+    // Social sign-in is opt-in: without a Managed Login domain (or, on web,
+    // without a page origin to come back to) the oauth block is omitted
+    // entirely and `signInWithProvider` reports "unsupported".
+    const domain = getCognitoDomain();
+    const redirectUrls = domain ? getRedirectUrls() : [];
+    const loginWith =
+      domain && redirectUrls.length > 0
+        ? {
+          loginWith: {
+            oauth: {
+              domain,
+              scopes: OAUTH_SCOPES,
+              responseType: "code" as const,
+              redirectSignIn: redirectUrls,
+              redirectSignOut: redirectUrls,
+            },
+          },
+        }
+        : null;
+
+    const { Amplify, Hub } = await loadSdk();
     Amplify.configure({
       Auth: {
         Cognito: {
           userPoolId,
           userPoolClientId,
+          ...loginWith,
         },
       },
     });
 
     // The Hub listener lives for the process; consumers attach and detach
     // via onAuthChange without touching the underlying subscription.
-    const { Hub } = await import("./cognitoSdk");
     Hub.listen("auth", ({ payload }) => {
       const { event } = payload;
       logDev("Hub auth event:", event);
@@ -104,7 +188,7 @@ export function createCognitoAuthClient(): AuthClient {
 
   async function auth(): Promise<AmplifyAuthModule> {
     await client.init();
-    const { amplifyAuth } = await import("./cognitoSdk");
+    const { amplifyAuth } = await loadSdk();
     return amplifyAuth;
   }
 
@@ -150,6 +234,62 @@ export function createCognitoAuthClient(): AuthClient {
           "unknown",
           `Unsupported sign-in step: ${result.nextStep?.signInStep ?? "none"}`,
         );
+      });
+    },
+
+    async signInWithEmailCode({ email }): Promise<AuthFlowResult> {
+      return withAuthErrors(async () => {
+        const { signIn } = await auth();
+        // Choice-based auth: USER_AUTH lets the pool offer several first
+        // factors and `preferredChallenge` picks the emailed code, so no
+        // password is collected and no custom Lambda is involved.
+        const result = await signIn({
+          username: email,
+          options: { authFlowType: "USER_AUTH", preferredChallenge: "EMAIL_OTP" },
+        });
+        if (result.isSignedIn) return { status: "complete" };
+        if (result.nextStep?.signInStep === "CONFIRM_SIGN_IN_WITH_EMAIL_CODE") {
+          return { status: "needsConfirmation" };
+        }
+        throw new AuthError(
+          "unknown",
+          `Unsupported email-code sign-in step: ${result.nextStep?.signInStep ?? "none"}`,
+        );
+      });
+    },
+
+    async confirmSignInCode({ code }): Promise<{ status: "complete" }> {
+      return withAuthErrors(async () => {
+        const { confirmSignIn } = await auth();
+        const result = await confirmSignIn({ challengeResponse: code });
+        if (result.isSignedIn) return { status: "complete" };
+
+        // Cognito re-issues the same challenge on a wrong code instead of
+        // throwing; anything else means the flow moved somewhere we don't
+        // drive (and a lost in-memory challenge rejects above).
+        const step = result.nextStep?.signInStep;
+        throw new AuthError(
+          step === "CONFIRM_SIGN_IN_WITH_EMAIL_CODE" ? "codeMismatch" : "unknown",
+          step === "CONFIRM_SIGN_IN_WITH_EMAIL_CODE"
+            ? "That code didn't match. Request a new one and try again."
+            : `Unsupported sign-in step: ${step ?? "none"}`,
+        );
+      });
+    },
+
+    async signInWithProvider(provider: SocialAuthProviderName): Promise<void> {
+      if (!getCognitoDomain()) {
+        throw new AuthError(
+          "unsupported",
+          "Social sign-in needs a Cognito Managed Login domain. Set EXPO_PUBLIC_COGNITO_DOMAIN and register the identity provider on the user pool.",
+        );
+      }
+
+      await withAuthErrors(async () => {
+        const { signInWithRedirect } = await auth();
+        // Resolves once the browser has the redirect; the session arrives via
+        // the Hub listener above (`signInWithRedirect` → `signedIn`).
+        await signInWithRedirect({ provider: AMPLIFY_PROVIDER[provider] });
       });
     },
 

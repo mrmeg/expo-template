@@ -19,11 +19,14 @@ import "@/test/mockTheme";
 import fs from "fs";
 import path from "path";
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 
 const mockAuth = {
   checkAuthState: jest.fn(),
   signIn: jest.fn(),
+  signInWithEmailCode: jest.fn(),
+  confirmSignInCode: jest.fn(),
+  signInWithProvider: jest.fn(),
   signUp: jest.fn(),
   confirmSignUp: jest.fn(),
   resendCode: jest.fn(),
@@ -45,6 +48,9 @@ const PASSWORD = "password1";
 
 function resetAuthMocks() {
   mockAuth.signIn.mockReset();
+  mockAuth.signInWithEmailCode.mockReset();
+  mockAuth.confirmSignInCode.mockReset();
+  mockAuth.signInWithProvider.mockReset().mockResolvedValue(undefined);
   mockAuth.signUp.mockReset();
   mockAuth.confirmSignUp.mockReset();
   mockAuth.resendCode.mockReset().mockResolvedValue(undefined);
@@ -52,22 +58,33 @@ function resetAuthMocks() {
   mockAuth.resetPassword.mockReset().mockResolvedValue(undefined);
 }
 
+/**
+ * The sign-in view leads with the email-code path now, so the password field
+ * only exists after the "use password instead" toggle.
+ */
 async function submitSignIn(email = EMAIL, password = PASSWORD) {
+  await fireEvent.press(screen.getByTestId("sign-in-use-password-button"));
   await fireEvent.changeText(screen.getByTestId("sign-in-email-input"), email);
   await fireEvent.changeText(screen.getByTestId("sign-in-password-input"), password);
   await fireEvent.press(screen.getByTestId("sign-in-submit-button"));
 }
 
+async function requestEmailCode(email = EMAIL) {
+  await fireEvent.changeText(screen.getByTestId("sign-in-email-input"), email);
+  await fireEvent.press(screen.getByTestId("sign-in-email-code-button"));
+}
+
 describe("AuthScreen", () => {
   beforeEach(() => {
     resetAuthMocks();
-    useAuthStore.setState({ state: "unauthenticated", user: null } as never);
+    useAuthStore.setState({ state: "unauthenticated", user: null, error: null } as never);
   });
 
-  it("renders the sign-in view by default", async () => {
+  it("renders the code-first sign-in view by default", async () => {
     await render(<AuthScreen />);
 
-    expect(screen.getByTestId("sign-in-submit-button")).toBeTruthy();
+    expect(screen.getByTestId("sign-in-email-code-button")).toBeTruthy();
+    expect(screen.queryByTestId("sign-in-password-input")).toBeNull();
     expect(screen.queryByTestId("sign-up-submit-button")).toBeNull();
   });
 
@@ -75,7 +92,7 @@ describe("AuthScreen", () => {
     await render(<AuthScreen initialView="sign-up" />);
 
     expect(screen.getByTestId("sign-up-submit-button")).toBeTruthy();
-    expect(screen.queryByTestId("sign-in-submit-button")).toBeNull();
+    expect(screen.queryByTestId("sign-in-email-code-button")).toBeNull();
   });
 
   it("calls onAuthenticated when sign-in completes", async () => {
@@ -153,7 +170,150 @@ describe("AuthScreen", () => {
     expect(screen.getByTestId("sign-up-submit-button")).toBeTruthy();
 
     await fireEvent.press(screen.getByText("auth.signIn"));
-    expect(screen.getByTestId("sign-in-submit-button")).toBeTruthy();
+    expect(screen.getByTestId("sign-in-email-code-button")).toBeTruthy();
+  });
+
+  it("moves to the code view and signs in with the emailed code", async () => {
+    mockAuth.signInWithEmailCode.mockResolvedValue({ status: "needsConfirmation" });
+    mockAuth.confirmSignInCode.mockResolvedValue({ status: "complete" });
+    const onAuthenticated = jest.fn();
+
+    await render(<AuthScreen onAuthenticated={onAuthenticated} />);
+    await requestEmailCode();
+
+    expect(mockAuth.signInWithEmailCode).toHaveBeenCalledWith({ email: EMAIL });
+    expect(screen.getByTestId("verify-email-code-input")).toBeTruthy();
+    // The code *is* the credential here, so the submit copy differs from the
+    // sign-up confirmation reuse of the same form.
+    expect(screen.getByText("auth.signInWithCodeButton")).toBeTruthy();
+    // No sign-up code was resent: this flow issues its own.
+    expect(mockAuth.resendCode).not.toHaveBeenCalled();
+
+    await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "123456");
+    await fireEvent.press(screen.getByTestId("verify-email-submit-button"));
+
+    expect(mockAuth.confirmSignInCode).toHaveBeenCalledWith({ code: "123456" });
+    expect(onAuthenticated).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips the code view when the provider already has a session", async () => {
+    mockAuth.signInWithEmailCode.mockResolvedValue({ status: "complete" });
+    const onAuthenticated = jest.fn();
+
+    await render(<AuthScreen onAuthenticated={onAuthenticated} />);
+    await requestEmailCode();
+
+    expect(onAuthenticated).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("verify-email-code-input")).toBeNull();
+  });
+
+  it("resends a sign-in code by requesting a new one for the pending email", async () => {
+    mockAuth.signInWithEmailCode.mockResolvedValue({ status: "needsConfirmation" });
+
+    await render(<AuthScreen />);
+    await requestEmailCode();
+    expect(mockAuth.signInWithEmailCode).toHaveBeenCalledTimes(1);
+
+    await fireEvent.press(screen.getByText("auth.resendCodeLink"));
+
+    // The pending email survived the view switch, and the sign-up resend path
+    // stays untouched.
+    expect(mockAuth.signInWithEmailCode).toHaveBeenNthCalledWith(2, { email: EMAIL });
+    expect(mockAuth.resendCode).not.toHaveBeenCalled();
+  });
+
+  it("maps a rejected sign-in code to friendly copy", async () => {
+    mockAuth.signInWithEmailCode.mockResolvedValue({ status: "needsConfirmation" });
+    mockAuth.confirmSignInCode.mockRejectedValue(new AuthError("codeMismatch", "raw message"));
+
+    await render(<AuthScreen />);
+    await requestEmailCode();
+    await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "000000");
+    await fireEvent.press(screen.getByTestId("verify-email-submit-button"));
+
+    expect(screen.getByText("Invalid sign-in code. Please try again.")).toBeTruthy();
+    expect(screen.queryByText("raw message")).toBeNull();
+  });
+
+  it("returns to sign-in from the code view", async () => {
+    mockAuth.signInWithEmailCode.mockResolvedValue({ status: "needsConfirmation" });
+
+    await render(<AuthScreen />);
+    await requestEmailCode();
+
+    await fireEvent.press(screen.getByText("auth.backToSignIn"));
+
+    expect(screen.getByTestId("sign-in-email-code-button")).toBeTruthy();
+  });
+
+  describe("social sign-in", () => {
+    const SOCIAL_ENV = {
+      EXPO_PUBLIC_AUTH_PROVIDER: "cognito",
+      EXPO_PUBLIC_USER_POOL_ID: "us-east-1_abc",
+      EXPO_PUBLIC_USER_POOL_CLIENT_ID: "client123",
+      EXPO_PUBLIC_COGNITO_DOMAIN: "auth.example.com",
+      EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS: "google,apple",
+    } as const;
+    const original: Record<string, string | undefined> = {};
+
+    beforeEach(() => {
+      for (const [key, value] of Object.entries(SOCIAL_ENV)) {
+        original[key] = process.env[key];
+        process.env[key] = value;
+      }
+    });
+
+    afterEach(() => {
+      for (const key of Object.keys(SOCIAL_ENV)) {
+        if (original[key] === undefined) delete process.env[key];
+        else process.env[key] = original[key];
+      }
+    });
+
+    it("hides the buttons when the env lists no providers", async () => {
+      delete process.env.EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS;
+
+      await render(<AuthScreen />);
+
+      expect(screen.queryByTestId("sign-in-social-google-button")).toBeNull();
+    });
+
+    it("starts the redirect and shows a pending state", async () => {
+      // The redirect leaves the app; the session comes back through the store,
+      // so the promise resolving is not the same thing as being signed in.
+      await render(<AuthScreen />);
+
+      await fireEvent.press(screen.getByTestId("sign-in-social-google-button"));
+
+      expect(mockAuth.signInWithProvider).toHaveBeenCalledWith("google");
+      expect(screen.getByText("auth.socialSignInPending")).toBeTruthy();
+    });
+
+    it("surfaces a redirect that fails after leaving the app", async () => {
+      await render(<AuthScreen />);
+      await fireEvent.press(screen.getByTestId("sign-in-social-apple-button"));
+      expect(mockAuth.signInWithProvider).toHaveBeenCalledWith("apple");
+
+      // What a `signInWithRedirect_failure` Hub event turns into.
+      await act(async () => {
+        useAuthStore.setState({ error: "Session expired. Please sign in again." } as never);
+      });
+
+      expect(screen.getByText("Session expired. Please sign in again.")).toBeTruthy();
+      expect(screen.queryByText("auth.socialSignInPending")).toBeNull();
+    });
+
+    it("reports a redirect that never launched", async () => {
+      mockAuth.signInWithProvider.mockRejectedValue(
+        new AuthError("unsupported", "Set EXPO_PUBLIC_COGNITO_DOMAIN first."),
+      );
+
+      await render(<AuthScreen />);
+      await fireEvent.press(screen.getByTestId("sign-in-social-google-button"));
+
+      expect(screen.getByText("Set EXPO_PUBLIC_COGNITO_DOMAIN first.")).toBeTruthy();
+      expect(screen.queryByText("auth.socialSignInPending")).toBeNull();
+    });
   });
 
   it("sends a new sign-up to verification when confirmation is required", async () => {
@@ -190,7 +350,7 @@ describe("AuthScreen", () => {
     await fireEvent.press(screen.getByTestId("sign-up-submit-button"));
 
     expect(onAuthenticated).not.toHaveBeenCalled();
-    expect(screen.getByTestId("sign-in-submit-button")).toBeTruthy();
+    expect(screen.getByTestId("sign-in-email-code-button")).toBeTruthy();
   });
 
   it("maps sign-up error codes to friendly copy", async () => {

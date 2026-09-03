@@ -22,6 +22,11 @@ export interface VerifyEmailFormProps {
   codeLength?: number;
   title?: string;
   description?: string;
+  /**
+   * Submit-button copy. Defaults to "verify email"; the sign-in code flow
+   * passes "sign in", since the code *is* the credential there.
+   */
+  submitLabel?: string;
   resendCooldown?: number;
   /** Logo element rendered centered above the card */
   logo?: React.ReactNode;
@@ -42,6 +47,7 @@ export function VerifyEmailForm({
   // No default: `title` must stay undefined so the i18n fallback below applies.
   title,
   description,
+  submitLabel,
   resendCooldown = 60,
   logo,
   embedded = false,
@@ -131,7 +137,7 @@ export function VerifyEmailForm({
         disabled={loading}
         fullWidth
       >
-        <SansSerifBoldText>{t("auth.verifyEmailButton")}</SansSerifBoldText>
+        <SansSerifBoldText>{submitLabel ?? t("auth.verifyEmailButton")}</SansSerifBoldText>
       </Button>
 
       <View style={styles.resendRow}>

@@ -163,6 +163,34 @@ export function createClerkAuthClient(): AuthClient {
       });
     },
 
+    /**
+     * Passwordless and social sign-in are Cognito-only for now: the template's
+     * apps are migrating off Clerk, so these three stay `unsupported` rather
+     * than growing a second implementation. `getSocialAuthProviders()` keeps
+     * the buttons hidden on the Clerk path, so reaching these is a
+     * misconfiguration, not a user-visible dead end.
+     */
+    async signInWithEmailCode(): Promise<AuthFlowResult> {
+      throw new AuthError(
+        "unsupported",
+        "Email-code sign-in is not implemented for Clerk. Use password sign-in or switch EXPO_PUBLIC_AUTH_PROVIDER to cognito.",
+      );
+    },
+
+    async confirmSignInCode(): Promise<{ status: "complete" }> {
+      throw new AuthError(
+        "unsupported",
+        "Email-code sign-in is not implemented for Clerk. Use password sign-in or switch EXPO_PUBLIC_AUTH_PROVIDER to cognito.",
+      );
+    },
+
+    async signInWithProvider(): Promise<void> {
+      throw new AuthError(
+        "unsupported",
+        "Social sign-in is not implemented for Clerk. Use password sign-in or switch EXPO_PUBLIC_AUTH_PROVIDER to cognito.",
+      );
+    },
+
     async signUp({ email, password }): Promise<AuthFlowResult> {
       return withAuthErrors(async () => {
         const clerk = await clerkInstance();
