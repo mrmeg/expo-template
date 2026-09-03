@@ -1,42 +1,46 @@
 /**
- * Image compression utilities.
+ * Image compression: a descending long-edge ladder at fixed quality against a
+ * byte budget.
  *
- * Platform implementations:
- * - Web: Uses Canvas API (compress.ts)
- * - Native (iOS/Android): Uses expo-image-manipulator (compress.native.ts)
+ * The ladder loop (`ladder.ts`) is shared; only the encode primitive is
+ * platform-specific, and Metro picks it:
+ * - Web: Canvas API (`compress.ts`)
+ * - Native: expo-image-manipulator (`compress.native.ts`)
  *
- * Both implementations provide feature parity:
- * - Resize to max dimension maintaining aspect ratio
- * - Quality control for lossy formats (JPEG, WebP)
- * - Progressive quality reduction to hit target file size
- * - Support for JPEG, PNG, and WebP output formats
+ * Most apps should call `processAsset` from `@mrmeg/expo-media/processing`
+ * instead — it wraps this with the upload format policy, so its output is
+ * guaranteed to be a content type the server accepts.
  *
  * @example
  * ```tsx
- * import { compressImage, resolveCompressionConfig } from '@/client/lib/imageCompression';
+ * import {
+ *   compressImage,
+ *   resolveCompressionConfig,
+ * } from "@mrmeg/expo-media/processing/image-compression";
  *
- * const config = resolveCompressionConfig('gallery');
+ * const config = resolveCompressionConfig("gallery");
  * if (config) {
  *   const result = await compressImage({
- *     uri: imageUri,
+ *     source: imageUri,
  *     width: 4000,
  *     height: 3000,
  *     config,
  *   });
- *   console.log(`Compressed to ${result.size} bytes at ${result.uri}`);
+ *   console.log(`${result.size} bytes at ${result.rung}px (${result.uri})`);
  * }
  * ```
  */
-// Re-export config utilities
+// Presets and config resolution
 export { IMAGE_PRESETS, DEFAULT_PRESET, resolveCompressionConfig, } from "./config.js";
-// Re-export compression function
-// Metro bundler resolves to the correct platform file:
-// - compress.ts for web
-// - compress.native.ts for iOS/Android
-export { compressImage } from "./compress.js";
-// Re-export HEIC conversion (web only - no-op on native)
-export { convertHeicToJpeg } from "./heicConvert.js";
-// Re-export cleanup utility
-export { cleanupCompressedImages, revokeAllTrackedUrls, revokeCompressedImage, trackBlobUrl, } from "./cleanup.js";
-// Re-export utility functions (for testing and advanced use cases)
-export { calculateDimensions, getMimeType, formatFileSize, reduceQuality, shouldContinueCompression, shouldUseProcessedFile, shouldUseCompressedImage, } from "./utils.js";
+// The ladder, and the adapter-agnostic wrapper both platforms share
+export { resolveLadderRungs, runDimensionLadder } from "./ladder.js";
+export { compressImageWith, resolveEncodeFormat, toImageSource, } from "./compressImage.js";
+// Platform entry points. Metro resolves to compress.ts (web) or
+// compress.native.ts (iOS/Android).
+export { compressImage, imagePlatformAdapter } from "./compress.js";
+// HEIC decoding (web; native decodes HEIF inside the encoder)
+export { convertHeicToJpeg, convertHeicToJpegIfNeeded, hasHeicExtension, isHeicBlob, } from "./heicConvert.js";
+// Canvas ceilings (web)
+export { CANVAS_LIMIT_CHROMIUM, CANVAS_LIMIT_DEFAULT, CANVAS_LIMIT_FIREFOX, CANVAS_LIMIT_IOS, canvasLongEdgeLimitFor, clampLongEdgeToCanvasLimit, currentCanvasLongEdgeLimit, } from "./canvasLimits.js";
+// Pure helpers
+export { calculateDimensions, displayDimensions, formatFileSize, longEdgeOf, } from "./utils.js";

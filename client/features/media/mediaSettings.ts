@@ -11,13 +11,18 @@ type ImageCompressionSettings = {
 };
 
 type ProcessingSettings = {
-  keepOriginalIfLarger: boolean;
+  /**
+   * How many assets are processed at once.
+   *
+   * Each in-flight asset holds a full-resolution bitmap, so this is a memory
+   * ceiling, not a throughput knob: unbounded parallelism over a 20-photo
+   * selection janks the web tab and gets the native app killed.
+   */
+  concurrency: number;
 };
 
 type UploadSettings = {
   selectionLimit: number;
-  defaultImageMediaType: MediaType;
-  defaultVideoMediaType: MediaType;
   uploadVideoThumbnails: boolean;
   deleteVideoThumbnailWithVideo: boolean;
 };
@@ -34,7 +39,6 @@ export type MediaAppSettings = {
   uploadPolicies: {
     avatar: MediaUploadPolicy;
     generalImage: MediaUploadPolicy;
-    originalImage: MediaUploadPolicy;
     video: MediaUploadPolicy;
   };
 };
@@ -67,12 +71,10 @@ export const MEDIA_APP_SETTINGS: MediaAppSettings = {
     userOverrides: null,
   },
   processing: {
-    keepOriginalIfLarger: true,
+    concurrency: 3,
   },
   uploads: {
     selectionLimit: 20,
-    defaultImageMediaType: "uploads",
-    defaultVideoMediaType: "videos",
     uploadVideoThumbnails: true,
     deleteVideoThumbnailWithVideo: true,
   },
@@ -84,10 +86,6 @@ export const MEDIA_APP_SETTINGS: MediaAppSettings = {
     generalImage: {
       mediaType: "uploads",
       compression: "gallery",
-    },
-    originalImage: {
-      mediaType: "uploads",
-      compression: "none",
     },
     video: {
       mediaType: "videos",

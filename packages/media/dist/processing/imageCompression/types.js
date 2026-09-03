@@ -1,5 +1,5 @@
 /**
- * Shared types for image compression utilities.
- * Used by both web and native implementations.
+ * Shared types for image compression.
+ * Used by the ladder loop and both platform encoders.
  */
 export {};

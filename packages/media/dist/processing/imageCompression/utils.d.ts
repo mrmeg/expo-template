@@ -1,59 +1,33 @@
 /**
- * Shared utility functions for image compression.
- * Used by both web and native implementations.
+ * Pure geometry and formatting helpers shared by the ladder and both platform
+ * encoders.
  */
-import type { CompressionConfig } from "./config";
 /**
  * Calculate target dimensions maintaining aspect ratio.
- * If the image is smaller than maxDimension, returns original dimensions.
+ * If the image already fits `maxDimension`, the original dimensions are kept —
+ * the ladder never upscales.
  *
  * @param width - Original width in pixels
  * @param height - Original height in pixels
  * @param maxDimension - Maximum dimension (width or height) in pixels
- * @returns Target dimensions maintaining aspect ratio
  */
 export declare function calculateDimensions(width: number, height: number, maxDimension: number | null): {
     targetWidth: number;
     targetHeight: number;
 };
+/** Longer of the two edges. The ladder is expressed in long edges. */
+export declare function longEdgeOf(width: number, height: number): number;
 /**
- * Get MIME type from compression format.
- *
- * @param format - Compression format ('jpeg', 'png', 'webp', or null)
- * @returns MIME type string
+ * EXIF orientations 5-8 rotate the image 90°, so the stored pixel dimensions are
+ * transposed relative to what a viewer sees. Both `expo-image-manipulator` and
+ * canvas bake the rotation into their output, which means ladder math has to be
+ * done on the *displayed* dimensions or portrait photos get capped on the wrong
+ * axis.
  */
-export declare function getMimeType(format: CompressionConfig["format"]): string;
-/**
- * Calculate the next quality step for progressive compression.
- * Reduces quality by 0.05, rounded to 2 decimal places.
- *
- * @param currentQuality - Current quality value (0-1)
- * @returns Next quality value
- */
-export declare function reduceQuality(currentQuality: number): number;
-/**
- * Check if file size exceeds max size and quality can still be reduced.
- *
- * @param fileSize - Current file size in bytes
- * @param maxSizeKB - Maximum file size in KB (or null for no limit)
- * @param currentQuality - Current compression quality (0-1)
- * @param minQuality - Minimum quality threshold (0-1)
- * @returns true if compression should continue
- */
-export declare function shouldContinueCompression(fileSize: number, maxSizeKB: number | null, currentQuality: number, minQuality: number): boolean;
-/**
- * Check whether a processed file should replace its source asset.
- *
- * Unknown source sizes (0 or negative) are treated as acceptable because
- * native pickers may omit fileSize. When the source size is known, the
- * processed output must be strictly smaller; equal-size re-encodes do not
- * reduce upload cost.
- */
-export declare function shouldUseProcessedFile(sourceSize: number, processedSize: number): boolean;
-/**
- * Check whether a compressed image should replace the source asset.
- */
-export declare function shouldUseCompressedImage(sourceSize: number, compressedSize: number): boolean;
+export declare function displayDimensions(width: number, height: number, exifOrientation?: number | null): {
+    width: number;
+    height: number;
+};
 /**
  * Format file size for logging.
  *

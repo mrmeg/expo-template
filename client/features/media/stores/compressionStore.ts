@@ -83,17 +83,12 @@ export const useCompressionStore = create<CompressionStore>()((set, get) => ({
       return null;
     }
 
-    // Apply user overrides if present
+    // Apply user overrides if present. Merging goes back through
+    // resolveCompressionConfig so a partial override is normalized (rungs
+    // descending, quality and budgets in range) instead of being spread on top
+    // of a preset and possibly producing a config the ladder cannot run.
     if (state.userOverrides) {
-      return {
-        ...baseConfig,
-        ...state.userOverrides,
-        // Ensure minQuality doesn't exceed quality
-        minQuality: Math.min(
-          state.userOverrides.minQuality ?? baseConfig.minQuality,
-          state.userOverrides.quality ?? baseConfig.quality
-        ),
-      };
+      return resolveCompressionConfig({ ...baseConfig, ...state.userOverrides });
     }
 
     return baseConfig;
@@ -138,12 +133,14 @@ export function getPresetOptions(): Array<{
       return { key, ...labels };
     }
 
-    const sizeInfo = preset.maxSizeKB
-      ? preset.maxSizeKB >= 1000
-        ? `~${preset.maxSizeKB / 1000}MB`
-        : `~${preset.maxSizeKB}KB`
+    const budgetKB = Math.round(preset.byteBudget / 1024);
+    const sizeInfo = budgetKB > 0
+      ? budgetKB >= 1000
+        ? `~${(budgetKB / 1024).toFixed(1)}MB`
+        : `~${budgetKB}KB`
       : "";
-    const dimInfo = preset.maxDimension ? `${preset.maxDimension}px` : "";
+    // The first rung is the largest, and the one users recognise as "the size".
+    const dimInfo = preset.rungs.length > 0 ? `${preset.rungs[0]}px` : "";
     const specs = [dimInfo, sizeInfo].filter(Boolean).join(", ");
 
     return {
