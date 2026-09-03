@@ -59,6 +59,11 @@ const en = {
     createPasswordPlaceholder: "Create a password",
     confirmPasswordPlaceholder: "Re-enter your password",
     createAccountButton: "Create account",
+    signUpWithoutPassword: "Create account without a password",
+    signUpWithoutPasswordDescription:
+      "Enter your email and we'll send you a code to confirm it — no password needed",
+    signUpWithoutPasswordInstead: "Sign up without a password instead",
+    addAPassword: "Add a password",
     forgotPasswordTitle: "Forgot your password?",
     forgotPasswordDescription:
       "Enter your email address and we'll send you a link to reset your password",

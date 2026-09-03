@@ -1,9 +1,11 @@
 /**
  * Clerk client parity stubs.
  *
- * Email-code and social sign-in are Cognito-only (the template's apps are
- * migrating off Clerk), so `AuthClient` grew three methods Clerk does not
- * implement. They must fail as a *normalized* `AuthError("unsupported", …)` —
+ * Email-code sign-in, social sign-in, and password-optional sign-up are
+ * Cognito-only (the template's apps are migrating off Clerk), so `AuthClient`
+ * grew three methods Clerk does not implement plus an optional `password` its
+ * `signUp` still requires. All four must fail as a *normalized*
+ * `AuthError("unsupported", …)` —
  * `AuthScreen` keys its copy off the code, so a raw throw would surface as
  * "Failed to sign in" instead of an explanation — and they must fail without
  * touching the Clerk SDK, since reaching them means the env is misconfigured,
@@ -57,6 +59,18 @@ describe("createClerkAuthClient — unsupported flows", () => {
     });
   });
 
+  it("rejects a sign-up without a password as unsupported", async () => {
+    const client = createClerkAuthClient();
+
+    const error = await client
+      .signUp({ email: "ada@example.com" })
+      .catch((err) => err as unknown);
+
+    expect(isAuthError(error)).toBe(true);
+    expect((error as AuthError).code).toBe("unsupported");
+    expect((error as AuthError).message).toContain("password");
+  });
+
   it("points the operator at the provider switch", async () => {
     const client = createClerkAuthClient();
 
@@ -72,6 +86,7 @@ describe("createClerkAuthClient — unsupported flows", () => {
       client.signInWithEmailCode({ email: "ada@example.com" }),
       client.confirmSignInCode({ code: "123456" }),
       client.signInWithProvider("google"),
+      client.signUp({ email: "ada@example.com" }),
     ]);
 
     expect(mockGetClerkInstance).not.toHaveBeenCalled();

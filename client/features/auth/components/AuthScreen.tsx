@@ -35,6 +35,12 @@ type AuthScreenState = {
   error: string;
   pendingEmail: string;
   pendingPassword: string;
+  /**
+   * The account being confirmed was created without a password, so there is no
+   * password screen to fall back to once verification finishes — an email code
+   * is the only way in. Set by the passwordless sign-up path only.
+   */
+  passwordlessSignUp: boolean;
   forgotPasswordSuccess: boolean;
   resetPasswordSuccess: boolean;
   resending: boolean;
@@ -50,6 +56,7 @@ function createInitialAuthScreenState(initialView: AuthView): AuthScreenState {
     error: "",
     pendingEmail: "",
     pendingPassword: "",
+    passwordlessSignUp: false,
     forgotPasswordSuccess: false,
     resetPasswordSuccess: false,
     resending: false,
@@ -114,6 +121,7 @@ export function AuthScreen({
     error,
     pendingEmail,
     pendingPassword,
+    passwordlessSignUp,
     forgotPasswordSuccess,
     resetPasswordSuccess,
     resending,
@@ -277,9 +285,14 @@ export function AuthScreen({
     }
   };
 
-  // Sign Up
-  const handleSignUp = async (data: { name: string; email: string; password: string }) => {
-    update({ loading: true, error: "" });
+  /**
+   * Sign Up — password-optional. Omitting `password` creates a passwordless
+   * account: the emailed code confirms it and email-code sign-in is how it gets
+   * a session, so the flag rides along to `handleVerify`.
+   */
+  const submitSignUp = async (data: { email: string; password?: string }) => {
+    const passwordless = data.password === undefined;
+    update({ loading: true, error: "", passwordlessSignUp: passwordless });
 
     try {
       const result = await signUp({ email: data.email, password: data.password });
@@ -290,6 +303,10 @@ export function AuthScreen({
         // store, so its state tells us which happened.
         if (useAuthStore.getState().state === "authenticated") {
           onAuthenticated?.();
+        } else if (passwordless) {
+          // Confirmed with no session and no password to offer: the emailed
+          // sign-in code is the only way in.
+          await handleEmailCodeSignIn({ email: data.email });
         } else {
           update({ view: "sign-in" });
         }
@@ -307,12 +324,21 @@ export function AuthScreen({
       } else if (code === "invalidPassword") {
         update({ error: "Password does not meet requirements." });
       } else {
+        // Includes `unsupported`, which is how a pool that has no non-password
+        // first factor rejects a passwordless sign-up; its message names the
+        // requirement, and the form still offers "Add a password".
         update({ error: err.message || "Failed to create account. Please try again." });
       }
     } finally {
       update({ loading: false });
     }
   };
+
+  const handleSignUp = (data: { name: string; email: string; password: string }) =>
+    submitSignUp({ email: data.email, password: data.password });
+
+  const handlePasswordlessSignUp = (data: { name: string; email: string }) =>
+    submitSignUp({ email: data.email });
 
   // Verify Email
   const handleVerify = async (code: string) => {
@@ -350,6 +376,14 @@ export function AuthScreen({
           logDev("Sign-in after verification failed:", signInErr);
           update({ pendingPassword: "", view: "sign-in" }); // Clear stored password
         }
+      } else if (passwordlessSignUp) {
+        // The account has no password, so the sign-in view would be a dead end:
+        // request a sign-in code for the address just confirmed and collect it in
+        // the confirm-sign-in-code view. That handler owns loading and error from
+        // here, hence the early return.
+        logDev("Passwordless account confirmed; requesting a sign-in code...");
+        await handleEmailCodeSignIn({ email: pendingEmail });
+        return;
       } else if (postVerifyDestination === "forgot-password") {
         // Redirect based on how the user got to verification
         logDev("Verification complete, redirecting to forgot-password...");
@@ -451,6 +485,7 @@ export function AuthScreen({
     update({
       error: "",
       pendingPassword: "",
+      passwordlessSignUp: false,
       postVerifyDestination: "sign-in",
       forgotPasswordSuccess: false,
       resetPasswordSuccess: false,
@@ -462,6 +497,7 @@ export function AuthScreen({
     update({
       error: "",
       pendingPassword: "",
+      passwordlessSignUp: false,
       postVerifyDestination: "sign-in",
       view: "sign-up",
     });
@@ -470,6 +506,7 @@ export function AuthScreen({
     update({
       error: "",
       pendingPassword: "",
+      passwordlessSignUp: false,
       forgotPasswordSuccess: false,
       view: "forgot-password",
     });
@@ -479,6 +516,7 @@ export function AuthScreen({
       error: "",
       pendingEmail: "",
       pendingPassword: "",
+      passwordlessSignUp: false,
       postVerifyDestination: "sign-in",
       view: "sign-up",
     });
@@ -502,6 +540,7 @@ export function AuthScreen({
         onResendSignInCode={handleResendSignInCode}
         onSocialSignIn={handleSocialSignIn}
         onSignUp={handleSignUp}
+        onPasswordlessSignUp={handlePasswordlessSignUp}
         onVerify={handleVerify}
         onResendCode={handleResendCode}
         onForgotPassword={handleForgotPassword}
@@ -565,6 +604,7 @@ function AuthViewFields({
   onResendSignInCode,
   onSocialSignIn,
   onSignUp,
+  onPasswordlessSignUp,
   onVerify,
   onResendCode,
   onForgotPassword,
@@ -590,6 +630,7 @@ function AuthViewFields({
   onResendSignInCode: () => Promise<void>;
   onSocialSignIn: (provider: "google" | "apple" | "github") => Promise<void>;
   onSignUp: (data: { name: string; email: string; password: string }) => Promise<void>;
+  onPasswordlessSignUp: (data: { name: string; email: string }) => Promise<void>;
   onVerify: (code: string) => Promise<void>;
   onResendCode: () => Promise<void>;
   onForgotPassword: (email: string) => Promise<void>;
@@ -624,6 +665,7 @@ function AuthViewFields({
       {view === "sign-up" && (
         <SignUpForm
           onSignUp={onSignUp}
+          onPasswordlessSignUp={onPasswordlessSignUp}
           onSignIn={goToSignIn}
           onSocialSignUp={onSocialSignIn}
           loading={busy}

@@ -27,6 +27,13 @@
  *                         autolinked `@aws-amplify/rtn-web-browser` module,
  *                         i.e. a dev build — not Expo Go.
  * `scripts/create-cognito-pool.sh` provisions all three.
+ *
+ * Sign-up is password-optional. With a password the account behaves as before
+ * (auto sign-in replays it after confirmation); without one Cognito needs the
+ * same non-password first factor email-code sign-in does, and the account's only
+ * way in afterwards is `signInWithEmailCode`. A pool that lacks EMAIL_OTP
+ * rejects the request, which surfaces as `AuthError("unsupported")` naming the
+ * requirement — there is no env gate, since the pool is the source of truth.
  */
 
 import { Platform } from "react-native";
@@ -89,6 +96,29 @@ async function withAuthErrors<T>(action: () => Promise<T>): Promise<T> {
   } catch (error) {
     throw toAuthError(error);
   }
+}
+
+/**
+ * Cognito exception names that mean "this pool will not create an account
+ * without a password". The service only complains about the missing/invalid
+ * Password parameter, so the pool's sign-in policy is the real cause and only
+ * the passwordless call path may interpret them this way — on the password path
+ * the same names keep their normal meaning.
+ */
+const PASSWORDLESS_REJECTION_NAMES = new Set([
+  "InvalidParameterException",
+  "InvalidPasswordException",
+]);
+
+const PASSWORDLESS_POOL_REQUIREMENT =
+  "This user pool requires a password to sign up. Signing up without one needs a pool whose sign-in policy allows EMAIL_OTP as a first auth factor (see scripts/create-cognito-pool.sh) — add a password instead, or update the pool.";
+
+function toPasswordlessSignUpError(error: unknown): AuthError {
+  const name = error instanceof Error ? error.name : "";
+  if (!PASSWORDLESS_REJECTION_NAMES.has(name)) return toAuthError(error);
+
+  const message = error instanceof Error ? error.message : String(error);
+  return new AuthError("unsupported", `${PASSWORDLESS_POOL_REQUIREMENT} Cognito said: ${message}`);
 }
 
 /**
@@ -294,21 +324,30 @@ export function createCognitoAuthClient(
     },
 
     async signUp({ email, password }): Promise<AuthFlowResult> {
-      return withAuthErrors(async () => {
+      const passwordless = password === undefined;
+
+      try {
         const { signUp } = await auth();
         const result = await signUp({
           username: email,
-          password,
+          // Omitted entirely when passwordless: Amplify only sends a Password to
+          // Cognito when the field is present.
+          ...(passwordless ? null : { password }),
           options: {
             userAttributes: { email },
-            // Enable auto sign-in after email verification
-            autoSignIn: true,
+            // Auto sign-in after the email code is confirmed. A password account
+            // replays the password (`true`); a passwordless one has no
+            // credential to replay, so it asks for the choice-based USER_AUTH
+            // flow, which Amplify completes from the confirmation's session.
+            autoSignIn: passwordless ? { authFlowType: "USER_AUTH" } : true,
           },
         });
         return result.isSignUpComplete
           ? { status: "complete" }
           : { status: "needsConfirmation" };
-      });
+      } catch (error) {
+        throw passwordless ? toPasswordlessSignUpError(error) : toAuthError(error);
+      }
     },
 
     async confirmSignUp({ email, code }): Promise<ConfirmSignUpResult> {
@@ -327,7 +366,12 @@ export function createCognitoAuthClient(
         }
 
         // Attempt auto sign-in regardless of nextStep — some Cognito configs
-        // don't return COMPLETE_AUTO_SIGN_IN but still support it.
+        // don't return COMPLETE_AUTO_SIGN_IN but still support it. Amplify runs
+        // the USER_AUTH variant here for passwordless accounts, using the
+        // session this confirmation returned; when that state is gone (the app
+        // restarted mid-flow) it throws, and `autoSignedIn: false` sends the UI
+        // to email-code sign-in rather than a password screen the account has no
+        // password for.
         try {
           const signInResult = await autoSignIn();
           if (signInResult.isSignedIn) {
