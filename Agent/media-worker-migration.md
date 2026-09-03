@@ -1,8 +1,8 @@
 ---
-status: blocked
+status: ready
 mode: HITL
 base-branch: dev
-blocked-by: media Worker deployed live + smoke-tested at cdn.mrmeg.com/api/media/* — the `media` script is not on the account yet and workers/media/wrangler.jsonc still has placeholder KV-namespace and R2 values
+blocked-by: -
 pr: -
 ---
 
@@ -18,13 +18,16 @@ cannot be implemented from here.
 
 ## Context
 
-- Phase 2 (`media-worker-deploy.md`, PR #78 merged) shipped the Worker code
-  route-scoped to `cdn.mrmeg.com/api/media/*`, but it is **not deployed**: the
-  account has no `media` script and `workers/media/wrangler.jsonc` still holds
-  `REPLACE_WITH_*` placeholders for the `MEDIA_AUTH` KV namespace id, R2 bucket,
-  and account id. `cdn.mrmeg.com` is currently a proxied CNAME to
-  `public.r2.dev` (R2 public bucket); the route-scoped Worker will coexist,
-  taking only `/api/media/*`.
+- Phase 2 (`media-worker-deploy.md`, PR #78 merged) shipped the Worker code,
+  and it is **deployed and smoke-tested** (2026-09-03): script `media`, route
+  `cdn.mrmeg.com/api/media/*`, fronting R2 bucket `mrmeg` (whose R2 custom
+  domain is `cdn.mrmeg.com` — other paths keep serving the public bucket).
+  `MEDIA_AUTH` KV namespace `195923b605444522b01d6ff3f8565f62`; R2 secrets set
+  via `wrangler secret put` (reused from the old `mrmeg-media` config — rotate
+  during teardown since they lived in plaintext `[vars]`). Verified live:
+  401 without/with bad token, 404 unknown action, 405 wrong method, `list` 200,
+  and a full getUploadUrl → PUT → getSignedUrls → GET → delete round-trip. No
+  per-app tokens are provisioned yet; the smoke-test token was deleted.
 - Auth for the new contract is static per-app bearer tokens in the `MEDIA_AUTH`
   KV namespace (`token:<token>` → `{"app": "..."}`), provisioned via
   `wrangler kv key put`.

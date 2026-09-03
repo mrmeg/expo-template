@@ -19,13 +19,13 @@
   "kv_namespaces": [
     {
       "binding": "MEDIA_AUTH",
-      "id": "REPLACE_WITH_MEDIA_AUTH_KV_NAMESPACE_ID"
+      "id": "195923b605444522b01d6ff3f8565f62"
     }
   ],
   // Non-secret R2 coordinates. R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY are
   // secrets — set them with `wrangler secret put`, never in this file.
   "vars": {
-    "R2_BUCKET": "REPLACE_WITH_R2_BUCKET_NAME",
-    "R2_JURISDICTION_SPECIFIC_URL": "https://REPLACE_WITH_ACCOUNT_ID.r2.cloudflarestorage.com"
+    "R2_BUCKET": "mrmeg",
+    "R2_JURISDICTION_SPECIFIC_URL": "https://776658da55f21acb7c2b201bfa3096db.r2.cloudflarestorage.com"
   }
 }
