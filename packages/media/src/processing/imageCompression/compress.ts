@@ -1,129 +1,211 @@
 /**
- * Web image compression implementation using Canvas API.
- * This file is used on web platform only.
+ * Web image encoding (Canvas API). Metro resolves this file for web only.
+ *
+ * This is the encode *primitive* plus the platform adapter — one rung, one call.
+ * All ladder logic lives in `ladder.ts` so both platforms share it.
+ *
+ * Two web-specific hazards are handled here:
+ * - Canvas ceilings: a canvas above the engine's limit draws blank instead of
+ *   throwing, so target dimensions are clamped before drawing.
+ * - `toBlob` type substitution: Safari answers an unsupported request (WebP)
+ *   with PNG and says nothing, so the output's `Blob.type` is read back rather
+ *   than assumed. The client never requests WebP either way.
  */
 
+import type { ImagePlatformAdapter } from "../adapter";
+import { MediaProcessingError } from "../errors";
 import { logMediaDebug as logDev } from "../logger";
-import type { CompressionConfig } from "./config";
-import type { CompressedImage, CompressImageOptions } from "./types";
+import { SNIFF_BYTE_COUNT, sniffContentTypeFromBytes } from "../sniff";
+import { contentTypeForFormat } from "../uploadPolicy";
 import {
-  calculateDimensions,
-  getMimeType,
-  reduceQuality,
-  shouldContinueCompression,
-  formatFileSize,
-} from "./utils";
+  clampLongEdgeToCanvasLimit,
+  currentCanvasLongEdgeLimit,
+} from "./canvasLimits";
+import { compressImageWith } from "./compressImage";
+import { convertHeicToJpeg } from "./heicConvert";
+import type {
+  CompressedImage,
+  CompressImageOptions,
+  EncodedImage,
+  EncodeImageOptions,
+  ImageSource,
+} from "./types";
+import { calculateDimensions, formatFileSize } from "./utils";
 
-/**
- * Load an image from URI into an HTMLImageElement.
- */
-async function loadImage(uri: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.onload = () => resolve(image);
-    image.onerror = reject;
-    image.src = uri;
-  });
+async function blobFor(source: ImageSource): Promise<Blob> {
+  if (source.blob) return source.blob;
+  try {
+    const response = await fetch(source.uri);
+    return await response.blob();
+  } catch (error) {
+    throw new MediaProcessingError("decode-failed", "Could not read the selected image.", {
+      cause: error,
+    });
+  }
 }
 
 /**
- * Convert canvas to Blob with specified format and quality.
+ * Decode into an `HTMLImageElement`. Modern engines apply EXIF orientation while
+ * decoding (`image-orientation: from-image` is the CSS default), so
+ * `naturalWidth`/`naturalHeight` are already the displayed dimensions.
  */
+async function loadImage(source: ImageSource): Promise<{
+  image: HTMLImageElement;
+  release: () => void;
+}> {
+  const objectUrl = source.blob ? URL.createObjectURL(source.blob) : null;
+  const src = objectUrl ?? source.uri;
+  const release = () => {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  };
+
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image();
+      element.crossOrigin = "anonymous";
+      element.onload = () => resolve(element);
+      element.onerror = () => reject(new Error(`Image decode failed for ${source.uri}`));
+      element.src = src;
+    });
+    return { image, release };
+  } catch (error) {
+    release();
+    throw new MediaProcessingError("decode-failed", "This image could not be decoded.", {
+      cause: error,
+    });
+  }
+}
+
 function canvasToBlob(
   canvas: HTMLCanvasElement,
-  mimeType: string,
-  quality: number
+  contentType: string,
+  quality: number,
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error("Failed to create blob from canvas"));
+        if (blob && blob.size > 0) resolve(blob);
+        else reject(new MediaProcessingError("encode-failed", "The image encoder produced no data."));
       },
-      mimeType,
-      quality
+      contentType,
+      quality,
     );
   });
 }
 
-/**
- * Compress an image using the Canvas API.
- *
- * Features:
- * - Resize to max dimension while maintaining aspect ratio
- * - Adjustable quality for JPEG/WebP
- * - Progressive quality reduction to hit target file size
- * - Returns both URI (blob URL) and Blob for upload flexibility
- *
- * @param options - Compression options including URI, dimensions, and config
- * @returns Promise resolving to CompressedImage with blob URL and metadata
- */
-export async function compressImage(
-  options: CompressImageOptions
-): Promise<CompressedImage> {
-  const { uri, width, height, config } = options;
+/** One rung: decode, clamp, draw, encode, wrap. */
+export async function encodeImageWeb(options: EncodeImageOptions): Promise<EncodedImage> {
+  const { source, longEdge, quality, format } = options;
+  const { image, release } = await loadImage(source);
 
-  const { targetWidth, targetHeight } = calculateDimensions(
-    width,
-    height,
-    config.maxDimension
-  );
+  try {
+    const sourceWidth = image.naturalWidth || options.width;
+    const sourceHeight = image.naturalHeight || options.height;
 
-  const format = config.format || "jpeg";
+    const limit = currentCanvasLongEdgeLimit();
+    const cap = clampLongEdgeToCanvasLimit(longEdge, limit);
+    if (cap !== longEdge) {
+      logDev(`Clamped ${longEdge}px target to the ${limit}px canvas limit`);
+    }
 
-  logDev(
-    `[Web] Compressing image: ${width}x${height} -> ${targetWidth}x${targetHeight}, quality: ${config.quality}, format: ${format}`
-  );
-
-  // Load image
-  const img = await loadImage(uri);
-
-  // Create canvas and draw resized image
-  const canvas = document.createElement("canvas");
-  canvas.width = targetWidth;
-  canvas.height = targetHeight;
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("Failed to get canvas context");
-  }
-
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-  const mimeType = getMimeType(config.format);
-
-  let quality = config.quality;
-  let blob = await canvasToBlob(canvas, mimeType, quality);
-
-  // Progressive quality reduction to hit target size
-  while (
-    shouldContinueCompression(
-      blob.size,
-      config.maxSizeKB,
-      quality,
-      config.minQuality
-    )
-  ) {
-    quality = reduceQuality(quality);
-    logDev(
-      `Image still ${formatFileSize(blob.size)} > ${config.maxSizeKB}KB, reducing quality to ${quality}`
+    const { targetWidth, targetHeight } = calculateDimensions(
+      sourceWidth,
+      sourceHeight,
+      cap,
     );
-    blob = await canvasToBlob(canvas, mimeType, quality);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new MediaProcessingError("encode-failed", "Canvas 2D is unavailable.");
+    }
+
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+    const requested = contentTypeForFormat(format);
+    const blob = await canvasToBlob(canvas, requested, quality);
+    // Trust the output, not the request.
+    const contentType = blob.type || requested;
+
+    return {
+      uri: URL.createObjectURL(blob),
+      blob,
+      width: targetWidth,
+      height: targetHeight,
+      contentType,
+      size: blob.size,
+    };
+  } finally {
+    release();
   }
+}
 
-  const resultUri = URL.createObjectURL(blob);
+export function disposeEncodedImageWeb(image: { uri: string }): void {
+  if (image.uri.startsWith("blob:")) {
+    URL.revokeObjectURL(image.uri);
+  }
+}
 
-  logDev(`Compression complete: ${formatFileSize(blob.size)}, quality: ${quality}`);
+async function measureWeb(source: ImageSource): Promise<number> {
+  const blob = await blobFor(source);
+  if (!(blob.size > 0)) {
+    throw new MediaProcessingError("stat-failed", "The selected file is empty.");
+  }
+  return blob.size;
+}
 
-  return {
-    uri: resultUri,
-    blob,
-    width: targetWidth,
-    height: targetHeight,
-    mimeType,
-    size: blob.size,
-  };
+async function probeDimensionsWeb(
+  source: ImageSource,
+): Promise<{ width: number; height: number }> {
+  const { image, release } = await loadImage(source);
+  try {
+    return { width: image.naturalWidth, height: image.naturalHeight };
+  } finally {
+    release();
+  }
+}
+
+async function sniffContentTypeWeb(
+  source: ImageSource,
+  fileName?: string,
+): Promise<string | null> {
+  try {
+    const blob = await blobFor(source);
+    const bytes = new Uint8Array(await blob.slice(0, SNIFF_BYTE_COUNT).arrayBuffer());
+    return sniffContentTypeFromBytes(bytes);
+  } catch {
+    logDev(`Content-type sniff failed for ${fileName ?? source.uri}`);
+    return null;
+  }
+}
+
+async function decodeHeicWeb(source: ImageSource, fileName?: string): Promise<ImageSource> {
+  const blob = await blobFor(source);
+  const converted = await convertHeicToJpeg(blob, fileName);
+  logDev(`HEIC decoded for pipeline: ${formatFileSize(converted.size)}`);
+  return { uri: URL.createObjectURL(converted), blob: converted };
+}
+
+export const imagePlatformAdapter: ImagePlatformAdapter = {
+  encode: encodeImageWeb,
+  dispose: disposeEncodedImageWeb,
+  measure: measureWeb,
+  probeDimensions: probeDimensionsWeb,
+  sniffContentType: sniffContentTypeWeb,
+  decodeHeic: decodeHeicWeb,
+};
+
+/**
+ * Run the dimension ladder on this platform.
+ *
+ * @returns The winning rung, flagged `overBudget` when even the smallest rung
+ * missed the byte budget.
+ */
+export function compressImage(options: CompressImageOptions): Promise<CompressedImage> {
+  return compressImageWith(imagePlatformAdapter, options);
 }

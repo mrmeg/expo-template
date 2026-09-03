@@ -21,8 +21,12 @@ Public entrypoints:
 - @mrmeg/expo-media/worker
 
 Do not import server code from client entrypoints. Upload signing uses
-mediaType plus contentType, not extension-only signing.
+mediaType plus contentType, not extension-only signing, and should always carry
+size so the server's maxBytes check runs before the transfer.
 Client upload defaults are app-owned; keep them in one settings module and
-choose named upload policies from screens.
-Prefer granular processing entrypoints. The broad /processing barrel is for
-compatibility and can pull all processing features into a bundler graph.
+choose named upload policies from screens, resolved per asset before processing.
+processAsset from @mrmeg/expo-media/processing is the client pipeline entry
+point: its result is always a content type the allowlist accepts, or it throws
+MediaProcessingError. Config-only consumers should import
+/processing/image-compression/config so a settings screen does not pull the
+pipeline into a light bundle.

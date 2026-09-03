@@ -40,10 +40,7 @@ import {
   isImageKey,
   getVideoThumbnailKey,
 } from "@/shared/media";
-import {
-  MEDIA_APP_SETTINGS,
-  resolveMediaUploadPolicy,
-} from "@/client/features/media/mediaSettings";
+import { MEDIA_APP_SETTINGS } from "@/client/features/media/mediaSettings";
 import { notify } from "@mrmeg/expo-ui/state";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { logDev } from "@/client/lib/devtools";
@@ -92,6 +89,23 @@ function getDeletePayloadKeys(keys: string[]) {
   }
 
   return [...payload];
+}
+
+/**
+ * EXIF the pipeline parsed but deliberately stripped from the bytes.
+ *
+ * Returns `undefined` when there is nothing to send so the request body stays
+ * clean; the server treats `metadata` as opaque and hands it to the upload
+ * policy hook.
+ */
+function buildUploadMetadata(asset: ProcessedAsset) {
+  const metadata: Record<string, string> = {};
+
+  if (asset.exifTakenAt) metadata.takenAt = asset.exifTakenAt.toISOString();
+  if (asset.exifLat !== undefined) metadata.lat = String(asset.exifLat);
+  if (asset.exifLng !== undefined) metadata.lng = String(asset.exifLng);
+
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
 }
 
 function mediaViewerReducer(
@@ -411,14 +425,19 @@ function useMediaScreenContent() {
   };
 
   const uploadAsset = async (asset: ProcessedAsset) => {
-    const isVideo = asset.type === "video" || asset.mimeType?.startsWith("video/");
+    const isVideo = asset.type === "video";
     const file = asset.blob || asset.uri;
-    const uploadPolicy = resolveMediaUploadPolicy(asset, filter);
 
     const result = await uploadFile({
       file,
-      contentType: asset.mimeType || "application/octet-stream",
-      mediaType: uploadPolicy.policy.mediaType,
+      // The pipeline guarantees an allowlisted content type or rejects the
+      // asset, so there is nothing to fall back to here.
+      contentType: asset.mimeType,
+      // Resolved per asset while picking, so avatars land in the avatar prefix.
+      mediaType: asset.mediaType,
+      // Re-encoding strips EXIF from the bytes by design; capture time and
+      // location travel as upload metadata instead.
+      metadata: buildUploadMetadata(asset),
     });
 
     if (
@@ -452,13 +471,14 @@ function useMediaScreenContent() {
     setIsUploadingBatch(true);
 
     try {
-      // The picker processes images before per-asset upload resolution. Use
-      // the default image policy here; videos ignore image compression.
+      // The picker resolves the upload policy per asset from this filter, so a
+      // mixed selection gets avatar/gallery/video handling per file instead of
+      // one screen-wide preset.
       const assets = await pickMedia({
         mediaTypes: ["images", "videos"],
         allowsMultipleSelection: true,
         selectionLimit: MEDIA_APP_SETTINGS.uploads.selectionLimit,
-        compression: MEDIA_APP_SETTINGS.uploadPolicies.generalImage.compression,
+        filter,
       });
       if (!assets || assets.length === 0) return;
 
