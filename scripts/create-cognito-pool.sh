@@ -83,6 +83,10 @@ echo
 # what `signInWithEmailCode` asks for as its preferred challenge. Email is both
 # the username and an auto-verified attribute, so the code can be delivered to
 # the address the user typed.
+#
+# The password policy must never be stricter than the app's client-side
+# validation — SignUpForm checks length >= 8 and nothing else, so the pool
+# checks the same or users pass the form and then fail at Cognito.
 # ---------------------------------------------------------------------------
 EMAIL_CONFIG=(--email-configuration "EmailSendingAccount=COGNITO_DEFAULT")
 if [ -n "$SES_FROM_EMAIL" ] && [ -n "$SES_SOURCE_ARN" ]; then
@@ -102,13 +106,15 @@ POOL_ID="$(aws cognito-idp create-user-pool \
   --auto-verified-attributes email \
   --mfa-configuration OFF \
   --deletion-protection ACTIVE \
+  --username-configuration CaseSensitive=false \
+  --account-recovery-setting 'RecoveryMechanisms=[{Priority=1,Name=verified_email}]' \
   --admin-create-user-config "AllowAdminCreateUserOnly=false" \
   --policies '{
     "PasswordPolicy": {
       "MinimumLength": 8,
-      "RequireUppercase": true,
-      "RequireLowercase": true,
-      "RequireNumbers": true,
+      "RequireUppercase": false,
+      "RequireLowercase": false,
+      "RequireNumbers": false,
       "RequireSymbols": false
     },
     "SignInPolicy": {
@@ -145,7 +151,9 @@ fi
 #
 # ALLOW_USER_AUTH is the choice-based flow the email-code path uses;
 # ALLOW_USER_SRP_AUTH keeps password sign-in, ALLOW_REFRESH_TOKEN_AUTH keeps
-# sessions alive. No client secret: the app is a public client.
+# sessions alive. No client secret: the app is a public client. The 365-day
+# refresh token is deliberate — sessions that survive a year instead of
+# logging users out weekly.
 # ---------------------------------------------------------------------------
 echo "==> Creating app client..."
 CLIENT_ARGS=(
@@ -157,7 +165,7 @@ CLIENT_ARGS=(
   --supported-identity-providers COGNITO
   --prevent-user-existence-errors ENABLED
   --enable-token-revocation
-  --refresh-token-validity 30
+  --refresh-token-validity 365
   --access-token-validity 60
   --id-token-validity 60
   --token-validity-units "AccessToken=minutes,IdToken=minutes,RefreshToken=days"
