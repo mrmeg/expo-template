@@ -1,8 +1,8 @@
 ---
-status: blocked
+status: ready
 mode: AFK
 base-branch: dev
-blocked-by: PR #79 (agent/auth-passwordless-and-social) merged to dev — this spec edits the signUp path that PR reshapes and reuses its email-code sign-in fallback
+blocked-by: -
 pr: -
 ---
 
@@ -19,7 +19,7 @@ behind a toggle, mirroring the code-first sign-in layout PR #79 introduced.
 ## Context
 
 Verified against the installed `@aws-amplify/auth` (aws-amplify ^6.20.0) types
-and the `agent/auth-passwordless-and-social` branch:
+and dev (PR #79 merged):
 
 - `AuthSignUpInput.password?: string` — Amplify's `signUp` password is already
   optional (`node_modules/@aws-amplify/auth/dist/esm/types/inputs.d.ts:102`).
