@@ -124,3 +124,9 @@ bun run typecheck  # tsc --noEmit against @cloudflare/workers-types
 `wrangler dev` reads local values from `.dev.vars`, which this directory's
 `.gitignore` excludes. Production values only ever go through
 `bunx wrangler secret put`.
+
+## Consumer migration and teardown
+
+Consumer-app migration checklists (downrangedays, terlo), the old-endpoint →
+new-endpoint mapping, and the gated legacy-worker teardown checklist live in
+[`docs/media-worker-migration.md`](../../docs/media-worker-migration.md).
