@@ -91,9 +91,11 @@ assembled their own content type per branch need to move to `processAsset`.
 - `keepOriginalIfLarger` as a caller-supplied option, along with
   `shouldUseProcessedFile()` and `shouldUseCompressedImage()`. The never-larger
   decision is format-aware and now belongs to `chooseUploadCandidate()`:
-  reverting to the source requires the source type to be allowlisted, the format
-  to match, and the source size to be known. A format conversion always wins,
-  because a smaller file the server rejects is not a better upload.
+  reverting to the source requires the source type to be allowlisted and the
+  source size to be known. A conversion wins unconditionally only when the
+  source is not allowlisted (HEIC) or the caller marks the conversion required
+  for playback compatibility (WebM→MP4) — a smaller file the server rejects, or
+  one that will not play, is not a better upload.
 - `getMimeType()`. Its `null` → `image/jpeg` default is what silently converted
   PNGs and dropped their transparency.
 - `reduceQuality()` and `shouldContinueCompression()`, the quality-decay
