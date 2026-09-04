@@ -400,8 +400,9 @@ Use this order when adding the server stack to another Expo Router project:
 1. Set `web.output: "server"` and the three `unstable_` router flags in app
    config; confirm the Expo SDK version supports them. Server rendering adds
    the first-render constraints listed under Server Rendering — budget for the
-   stylesheet flush, the `+html.tsx` snapshot filter, and request-derived
-   viewport/persisted state before turning it on.
+   stylesheet flush, the `+html.tsx` snapshot filter, request-derived
+   viewport/persisted state, and the `@expo/router-server` bootstrap-order
+   patch before turning it on.
 2. Add a server entry (`server.bun.ts`, or the `expo-server` adapter for your
    runtime) that wraps the request handler and owns CORS, rate limits,
    security headers, and static caching.

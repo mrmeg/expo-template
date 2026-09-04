@@ -2199,8 +2199,9 @@ Use this order when adding the server stack to another Expo Router project:
 1. Set `web.output: "server"` and the three `unstable_` router flags in app
    config; confirm the Expo SDK version supports them. Server rendering adds
    the first-render constraints listed under Server Rendering — budget for the
-   stylesheet flush, the `+html.tsx` snapshot filter, and request-derived
-   viewport/persisted state before turning it on.
+   stylesheet flush, the `+html.tsx` snapshot filter, request-derived
+   viewport/persisted state, and the `@expo/router-server` bootstrap-order
+   patch before turning it on.
 2. Add a server entry (`server.bun.ts`, or the `expo-server` adapter for your
    runtime) that wraps the request handler and owns CORS, rate limits,
    security headers, and static caching.
@@ -2413,6 +2414,14 @@ Key files for replicating server output, API routes, loaders, and middleware. Re
 - server.bun.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server.bun.ts
 - server/rateLimits.js: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/rateLimits.js
 - app/+middleware.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/%2Bmiddleware.ts
+- app/+html.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/%2Bhtml.tsx
+- app/+not-found.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/%2Bnot-found.tsx
+- client/features/app/SsrStyleFlush.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/app/SsrStyleFlush.tsx
+- client/features/app/ssrViewportMetrics.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/app/ssrViewportMetrics.ts
+- server/lib/ssrViewport.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/lib/ssrViewport.ts
+- server/lib/ssrOnboarding.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/lib/ssrOnboarding.ts
+- patches/@expo%2Frouter-server@57.0.8.patch: https://raw.githubusercontent.com/mrmeg/expo-template/main/patches/%40expo%252Frouter-server%4057.0.8.patch
+- __tests__/ssrHydration.guardrail.test.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/__tests__/ssrHydration.guardrail.test.ts
 - client/features/server-alpha/loaders.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/loaders.ts
 - client/features/server-alpha/ServerAlphaDemoScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/ServerAlphaDemoScreen.tsx
 - client/features/server-alpha/ServerAlphaExampleScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/ServerAlphaExampleScreen.tsx
