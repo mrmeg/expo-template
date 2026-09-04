@@ -160,8 +160,10 @@ export default function Root({ children }: PropsWithChildren) {
             Must stay empty: RNW hydrates its group records from this element's
             existing rules, and any rule that isn't preceded by a
             `[stylesheet-group="N"]{}` marker throws during that walk. It must
-            also stay ahead of the bootstrap <script>s below, since RNW calls
-            createSheet() at module scope, before hydration. */}
+            also exist before the bundle executes — React emits the bootstrap
+            scripts after the shell, and the `@expo/router-server` patch runs
+            them in order — since RNW calls createSheet() at module scope,
+            before hydration. */}
         <style id="react-native-stylesheet" />
 
         {/* Inter is loaded by @mrmeg/expo-ui's useResources after mount, but

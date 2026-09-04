@@ -144,5 +144,8 @@
     "@radix-ui/react-primitive": "2.1.4"
   },
   "license": "MIT",
-  "private": true
+  "private": true,
+  "patchedDependencies": {
+    "@expo/router-server@57.0.8": "patches/@expo%2Frouter-server@57.0.8.patch"
+  }
 }

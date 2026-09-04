@@ -69,11 +69,14 @@ deploy.
    ```
 
 4. Provision a per-app token (repeat per consumer app; save the token in that
-   app's own secret store — it is not recoverable from KV):
+   app's own secret store — it is not recoverable from KV). `--remote` is
+   required: without it wrangler writes to the local KV emulator and the
+   deployed Worker never sees the token. Allow up to a minute of KV edge
+   propagation before the first request succeeds:
 
    ```sh
    TOKEN="$(openssl rand -hex 32)"
-   bunx wrangler kv key put --binding MEDIA_AUTH "token:$TOKEN" '{"app":"downrangedays"}'
+   bunx wrangler kv key put --binding MEDIA_AUTH "token:$TOKEN" '{"app":"downrangedays"}' --remote
    echo "$TOKEN"
    ```
 
