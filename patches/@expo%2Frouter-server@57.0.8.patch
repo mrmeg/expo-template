@@ -1,0 +1,69 @@
+diff --git a/build/server/renderStreamingContent.js b/build/server/renderStreamingContent.js
+index 1047b7e4183f183a1410ce22c7a3d3171be005fa..5d54523dba3c113ca7f5ba2be0155ec52c8da024 100644
+--- a/build/server/renderStreamingContent.js
++++ b/build/server/renderStreamingContent.js
+@@ -57,6 +57,7 @@ const server_2 = __importDefault(require("react-dom/server"));
+ const getRootComponent_1 = require("../static/getRootComponent");
+ const debug_1 = require("../utils/debug");
+ const react_1 = require("../utils/react");
++const html_1 = require("../utils/html");
+ const debug = (0, debug_1.createDebug)('expo:router:server:renderStreamingContent');
+ function resetReactNavigationContexts() {
+     // https://github.com/expo/router/discussions/588
+@@ -92,6 +93,25 @@ function prepareRenderContext(location, options) {
+         : null;
+     return { headContext, element, getStyleElement, loadedData };
+ }
++/**
++ * PATCH(expo-template): ordered bootstrap scripts.
++ *
++ * React emits `bootstrapScripts` as `<script async>`, so with async routes the
++ * runtime, common, entry, layout, and route chunks execute in download order. A
++ * route chunk that lands before the Metro prelude has no `__d` to register
++ * into; the runtime then re-fetches it on demand and hydration waits on that
++ * round trip. Inserting the same URLs from an inline script with
++ * `async = false` keeps them non-blocking but guarantees in-order execution.
++ * The preload links pushed into `headNodes` keep the downloads starting from
++ * the head, as React's own preloads did.
++ */
++function getOrderedBootstrapScriptContents(scripts) {
++    if (!scripts.length) {
++        return '';
++    }
++    const json = (0, html_1.escapeUnsafeCharacters)(JSON.stringify(scripts));
++    return `(function(){var s=${json},d=document,i=0;for(;i<s.length;i++){var e=d.createElement("script");e.src=s[i];e.async=false;d.body.appendChild(e);}})();`;
++}
+ function FontResources() {
+     // NOTE(@hassankhan): runs once during the shell pass; fonts loaded inside late-resolving
+     // Suspense boundaries register after this and won't be emitted.
+@@ -112,6 +132,9 @@ async function getStreamingContent(location, options) {
+         const faviconNode = options?.assets?.favicon
+             ? (0, react_1.createFaviconAsNode)(options?.assets?.favicon)
+             : undefined;
++        // PATCH(expo-template): ordered bootstrap scripts — see getOrderedBootstrapScriptContents.
++        const bootstrapScripts = options?.assets?.js ?? [];
++        const scriptPreloadNodes = bootstrapScripts.map((href) => ((0, jsx_runtime_1.jsx)("link", { rel: "preload", as: "script", href: href }, `js-preload-${href}`)));
+         const serverDocumentData = {
+             headNodes: [
+                 ...(options?.metadata?.headNodes ?? []),
+@@ -120,6 +143,7 @@ async function getStreamingContent(location, options) {
+                 ...(headCssNodes ?? []),
+                 ...(externalCssNodes ?? []),
+                 ...(inlineCssNodes ?? []),
++                ...scriptPreloadNodes,
+             ].filter(Boolean),
+             bodyNodes: [(0, jsx_runtime_1.jsx)(FontResources, {}, "font-resources")],
+         };
+@@ -127,8 +151,10 @@ async function getStreamingContent(location, options) {
+             // TODO(@hassankhan): Experiment and see if we can calculate a better default
+             // We're doubling the default here so non-JavaScript renders show some content
+             progressiveChunkSize: 12800 * 2,
+-            bootstrapScriptContent: (0, react_1.getBootstrapContents)({ hydrate: true, loadedData }),
+-            bootstrapScripts: options?.assets?.js,
++            bootstrapScriptContent: [
++                (0, react_1.getBootstrapContents)({ hydrate: true, loadedData }),
++                getOrderedBootstrapScriptContents(bootstrapScripts),
++            ].filter(Boolean).join('\n'),
+             signal: options?.request?.signal,
+             onError(error) {
+                 if (options?.request?.signal.aborted) {

@@ -1814,6 +1814,9 @@ patterns.
 | Server output and router flags | `app.config.ts` |
 | HTML document (server-rendered per request) | `app/+html.tsx` |
 | SSR stylesheet flush | `client/features/app/SsrStyleFlush.tsx` |
+| Ordered bootstrap scripts (patch) | `patches/@expo%2Frouter-server@*.patch`, pinned in `package.json` `patchedDependencies` |
+| Not-found route (served at 404) | `app/+not-found.tsx` |
+| SSR hydration guardrails | `__tests__/ssrHydration.guardrail.test.ts` |
 | SSR request-derived state | `server/lib/ssrViewport.ts`, `server/lib/ssrOnboarding.ts`, `client/features/app/ssrViewportMetrics.ts` |
 | Production server (Bun) | `server.bun.ts` |
 | Rate-limit buckets | `server/rateLimits.js` |
@@ -1873,7 +1876,7 @@ markup — crawlers and the first paint see page content, not a shell (page-leve
 meta still comes from `client/components/Seo.tsx`).
 
 Server rendering is not free: the first render happens in Node, with no DOM and
-no browser storage. Four things in this template exist only to satisfy that.
+no browser storage. Five things in this template exist only to satisfy that.
 
 - **Styles must be registered at module scope.** The framework's head snapshot
   (`useServerDocumentContext()`) is taken *before* route modules load, so any
@@ -1881,12 +1884,28 @@ no browser storage. Four things in this template exist only to satisfy that.
   references classes with no rules. `createThemedStyles` hoists rules to module
   scope, and `client/features/app/SsrStyleFlush.tsx` renders last in the root
   layout — after the whole subtree — to emit the complete
-  `StyleSheet.getSheet()` output as a React 19 style resource.
+  `StyleSheet.getSheet()` output as a React 19 style resource. The flush
+  doubles each atomic selector (`.r-x` → `.r-x.r-x`). The client sheet sits
+  later in the cascade so its ties win, and react-native-web fills it with
+  resets the moment the bundle boots while a route's atomics arrive only when
+  that route's async chunk executes; two-class specificity keeps the flushed
+  atomics in force across that gap. Classic `.css-*` resets stay single-class
+  so client atomics still beat them.
 - **`app/+html.tsx` filters the snapshot.** It drops the framework's
   `<style id="react-native-stylesheet">` node from `headNodes` and renders an
   empty element with that id for react-native-web to adopt as its client
   sheet. Both sheets use single-class selectors, so keeping the incomplete
   snapshot would let its base resets win the cascade over later atomics.
+- **Bootstrap scripts execute in order.** React emits `bootstrapScripts` as
+  `<script async>`, so the runtime, common, entry, layout, and route chunks
+  would execute in download order, and a route chunk that runs before the
+  Metro prelude is fetched again on demand. `patches/@expo%2Frouter-server@*.patch`
+  (applied by `bun install` through `patchedDependencies`) preloads the chunks
+  from the head and inserts them from one inline script with `async = false`.
+  When `@expo/router-server` changes version, re-create the patch with
+  `bun patch @expo/router-server`, re-apply the edit marked
+  `PATCH(expo-template)`, and `bun patch --commit`; the guardrail test fails
+  while the pinned version and the installed one disagree.
 - **First-render state comes off the request.** `server/lib/ssrViewport.ts`
   derives a viewport width from a `mrmeg-vw` cookie, then a User-Agent
   heuristic, then a desktop default (without it react-native-web lays out at
@@ -1899,6 +1918,16 @@ no browser storage. Four things in this template exist only to satisfy that.
   in `node`/`react-server` dev bundles, so `metro.config.js` skips its dedupe
   rewrite for those packages there; rewriting them would bundle a second React
   and give externalized packages a null hooks dispatcher.
+
+Two route-level rules follow from rendering per request. `expo-server` answers
+every unmatched `GET` with the `+not-found` route at status 404, so
+`app/+not-found.tsx` renders a real page (the error template's `not-found`
+variant with a "Go home" action) rather than redirecting; a 404 body that
+bounces to `/` reads as a soft redirect to crawlers. And each web path must map
+to exactly one route file: Expo Router's server-side matcher keeps "previous
+segments" in a process-wide store, so two files that match the same path flip
+between requests. Platform variants such as `_layout.web.tsx` are one file per
+platform and are fine.
 
 ## Serve The Build
 

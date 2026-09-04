@@ -23,11 +23,18 @@ import { Platform, StyleSheet } from "react-native";
  * Cascade note: hoisting puts this node in the head *preamble*, ahead of
  * everything `app/+html.tsx` renders — including the empty
  * `<style id="react-native-stylesheet">` that RNW adopts as its client sheet.
- * That order is deliberate. Both sheets use single-class selectors, so ties go
- * to whichever comes last, and the client sheet must win: this snapshot carries
- * classic base resets (`.css-g5y9jx { padding: 0px; … }`) that would otherwise
- * zero out atomics registered after it was serialized. Keep the resets in here
- * though — pre-hydration they are defined nowhere else.
+ * That order is deliberate: the client sheet must win ties, because this
+ * snapshot carries classic base resets (`.css-g5y9jx { padding: 0px; … }`)
+ * that would otherwise zero out atomics registered only on the client. Keep
+ * the resets in here though — pre-hydration they are defined nowhere else.
+ *
+ * The same order has a reverse edge, which `hardenFlushedSheet` closes: RNW
+ * inserts its resets into the client sheet at module scope, the moment the
+ * bundle boots, while the route's atomics reach that sheet only when the
+ * route chunk executes. With async routes on web that is a separate download,
+ * so on a cold cache there is a window where the client sheet holds resets
+ * and no atomics, and its single-class resets beat this sheet's single-class
+ * atomics by order — padding and margins snap to zero until the chunk lands.
  */
 export function SsrStyleFlush() {
   if (Platform.OS !== "web" || typeof document !== "undefined") {
@@ -41,7 +48,26 @@ export function SsrStyleFlush() {
 
   return (
     <style href="rnw-ssr-flush" precedence="rnw-ssr">
-      {sheet.textContent}
+      {hardenFlushedSheet(sheet.textContent)}
     </style>
   );
+}
+
+/**
+ * Doubles every atomic selector in the flushed sheet (`.r-1udh08x` →
+ * `.r-1udh08x.r-1udh08x`) so it carries two-class specificity and outranks any
+ * single-class reset in the client sheet regardless of document order.
+ *
+ * Only atomics are doubled. Classic resets (`.css-*`), element resets
+ * (`body`, `html`), group markers, and keyframes keep their specificity so
+ * client-registered atomics still beat the flushed resets by order. Doubling
+ * atomics cannot fight the client sheet either: the same class always maps
+ * to the same declarations, and an atomic RNW removes from an element stops
+ * applying whatever its specificity.
+ *
+ * RNW emits one rule per line with no indentation, so anchoring on line start
+ * is exact and leaves keyframe bodies (`0%{…}100%{…}`) untouched.
+ */
+export function hardenFlushedSheet(sheetText: string): string {
+  return sheetText.replace(/^\.(r-[\w-]+)/gm, ".$1.$1");
 }

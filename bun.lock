@@ -89,7 +89,7 @@
     },
     "packages/media": {
       "name": "@mrmeg/expo-media",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "aws4fetch": "^1.0.20",
         "ulid": "^3.0.2",
@@ -177,6 +177,9 @@
         "wrangler": "^4.127.1",
       },
     },
+  },
+  "patchedDependencies": {
+    "@expo/router-server@57.0.8": "patches/@expo%2Frouter-server@57.0.8.patch",
   },
   "overrides": {
     "@radix-ui/react-primitive": "2.1.4",
