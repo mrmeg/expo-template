@@ -105,6 +105,12 @@ assembled their own content type per branch need to move to `processAsset`.
 
 ### Fixed
 
+- An allowlisted WebP source is no longer force-transcoded to a larger JPEG:
+  `chooseUploadCandidate` runs the size contest across format changes and only
+  lets the conversion win unconditionally when the caller marks it required
+  for compatibility (`conversionRequired`, e.g. WebM→MP4) or the source is not
+  allowlisted (HEIC). WebP displays on every major platform (Safari/iOS 14+,
+  Firefox 65+, Edge 18+, Chrome, Android 4+, expo-image both platforms).
 - A HEIF photo from a phone no longer reaches the server with a content type the
   server refuses. Identification, transcoding, and the never-larger check all
   agree on one allowlist, and an asset that cannot be represented in it fails

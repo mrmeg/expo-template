@@ -202,14 +202,32 @@ describe("chooseUploadCandidate", () => {
     expect(choice.discarded).toBe(heifOriginal);
   });
 
-  it("keeps a format conversion regardless of size", () => {
+  it("keeps a required compatibility conversion regardless of size (WebM\u2192MP4)", () => {
     const choice = chooseUploadCandidate(
       { contentType: "video/webm", size: 1_000 },
       { contentType: "video/mp4", size: 9_000 },
       VIDEOS,
+      { conversionRequired: true },
     );
     expect(choice.picked).toBe("processed");
     expect(choice.reason).toBe("format-conversion");
+  });
+
+  it("keeps an allowlisted WebP original when the JPEG re-encode is larger", () => {
+    const original = { contentType: "image/webp", size: 339_000 };
+    const processed = { contentType: "image/jpeg", size: 379_000 };
+    const choice = chooseUploadCandidate(original, processed, IMAGES);
+    expect(choice.picked).toBe("original");
+    expect(choice.reason).toBe("not-smaller");
+    expect(choice.chosen).toBe(original);
+  });
+
+  it("takes the JPEG re-encode of a WebP when it is actually smaller", () => {
+    const original = { contentType: "image/webp", size: 500_000 };
+    const processed = { contentType: "image/jpeg", size: 200_000 };
+    const choice = chooseUploadCandidate(original, processed, IMAGES);
+    expect(choice.picked).toBe("processed");
+    expect(choice.reason).toBe("smaller");
   });
 
   it("keeps the original when a same-format re-encode is not smaller", () => {

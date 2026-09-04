@@ -415,6 +415,9 @@ async function processVideoAsset(
           size: converted.size,
         },
         allowlist.video,
+        // WebM is uploadable but not playable on iOS/Safari — the whole
+        // reason the conversion ran — so the MP4 wins even when larger.
+        { conversionRequired: true },
       );
 
       if (choice.picked === "processed") {

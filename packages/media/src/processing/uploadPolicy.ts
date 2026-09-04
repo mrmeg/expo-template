@@ -238,22 +238,33 @@ export interface UploadCandidateChoice<TCandidate extends UploadCandidate> {
  * processed file is larger" guard.
  *
  * Order matters:
- * 1. If the original's content type is not allowlisted, the processed result is
- *    the only uploadable representation — size is irrelevant.
- * 2. A format conversion (HEIF→JPEG, WebM→MP4) always wins for the same
- *    reason: the comparison is not like-for-like.
- * 3. Only for a same-format re-encode does size decide, and the processed file
- *    must be strictly smaller — an equal-size re-encode buys nothing. A source
- *    of unknown size (native pickers often omit `fileSize`) cannot lose that
- *    comparison, so the processed result wins by default.
+ * 1. If the original's content type is not allowlisted (HEIF, WebM, …), the
+ *    processed result is the only uploadable representation — size is
+ *    irrelevant and the conversion always wins.
+ * 2. Otherwise size decides, even across a format change (WebP→JPEG): both
+ *    candidates are servable, so uploading the bigger one buys nothing. WebP
+ *    displays everywhere that matters (Chrome, Firefox 65+, Edge 18+,
+ *    Safari/iOS 14+, Android 4+, expo-image on both platforms), so an
+ *    already-WebP source that re-encodes larger keeps its bytes. The
+ *    processed file must be strictly smaller — an equal-size re-encode buys
+ *    nothing. A source of unknown size (native pickers often omit
+ *    `fileSize`) cannot lose that comparison, so the processed result wins
+ *    by default.
  */
 export function chooseUploadCandidate<TCandidate extends UploadCandidate>(
   original: TCandidate,
   processed: TCandidate,
   allowlist: readonly string[],
+  options?: {
+    /**
+     * The processing step was a compatibility conversion (WebM→MP4): the
+     * original may be allowlisted for upload yet still unplayable on major
+     * platforms, so the converted result wins regardless of size.
+     */
+    conversionRequired?: boolean;
+  },
 ): UploadCandidateChoice<TCandidate> {
   const originalType = normalizeContentType(original.contentType);
-  const processedType = normalizeContentType(processed.contentType);
 
   if (!isAllowlistedContentType(originalType, allowlist)) {
     return {
@@ -264,7 +275,7 @@ export function chooseUploadCandidate<TCandidate extends UploadCandidate>(
     };
   }
 
-  if (originalType !== processedType) {
+  if (options?.conversionRequired) {
     return {
       chosen: processed,
       discarded: original,
