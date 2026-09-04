@@ -132,16 +132,21 @@ async function processImageAsset(options, adapter, contentType, notifyPhase) {
                 overBudget: false,
             });
         }
+        // Measure what would actually be uploaded, not what the picker handed over:
+        // a HEIC decode typically doubles or triples the byte count, so comparing
+        // the pre-decode size against the budget would wave through a file that
+        // busts it. `source` is the post-decode bytes whenever a decode ran.
+        const candidateSize = source.blob?.size ?? originalSize;
         const fastPathBudget = config?.passthroughBytes ?? 0;
         const largestRung = config ? Math.max(...config.rungs) : 0;
         const withinFastPath = sourceAllowlisted &&
             fastPathBudget > 0 &&
-            originalSize > 0 &&
-            originalSize <= fastPathBudget &&
+            candidateSize > 0 &&
+            candidateSize <= fastPathBudget &&
             longEdgeOf(width, height) <= largestRung;
         if (withinFastPath) {
             notifyPhase({ type: "passthrough" });
-            applied.push(`passthrough:${formatFileSize(originalSize)}`);
+            applied.push(`passthrough:${formatFileSize(candidateSize)}`);
             intermediate = null;
             return freeze({
                 kind: "image",

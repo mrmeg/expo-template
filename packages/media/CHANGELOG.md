@@ -105,6 +105,10 @@ assembled their own content type per branch need to move to `processAsset`.
 
 ### Fixed
 
+- The passthrough fast path is measured against post-decode bytes. A small HEIC
+  that balloons when decoded (38 KB in, 59 KB of JPEG out) no longer skips the
+  ladder against a budget the uploaded bytes exceed, and the reported
+  `passthrough:<size>` step names the size actually uploaded.
 - An allowlisted WebP source is no longer force-transcoded to a larger JPEG:
   `chooseUploadCandidate` runs the size contest across format changes and only
   lets the conversion win unconditionally when the caller marks it required

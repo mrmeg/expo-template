@@ -380,6 +380,63 @@ describe("processAsset — passthrough", () => {
     expect(result.contentType).toBe("image/jpeg");
   });
 
+  it("measures the fast path against post-decode bytes, not the HEIC source size", async () => {
+    // A small HEIC balloons when decoded: 200 KB in, 900 KB of JPEG out. The
+    // decoded bytes are what gets uploaded, so they are what the 300 KB gallery
+    // budget has to be compared against — otherwise the ladder is skipped and
+    // an over-budget file ships.
+    const { adapter, encode } = makeAdapter({
+      decodeHeic: async () => ({
+        uri: "blob:decoded",
+        blob: { size: 900_000, type: "image/jpeg" } as unknown as Blob,
+      }),
+    });
+
+    const result = await processAsset({
+      asset: {
+        uri: "file:///photo.heic",
+        contentType: "image/heic",
+        width: 1200,
+        height: 900,
+        size: 200_000,
+      },
+      allowlist: ALLOWLIST,
+      adapter,
+      config: resolveCompressionConfig("gallery"),
+    });
+
+    expect(encode).toHaveBeenCalled();
+    expect(result.applied).not.toContain("passthrough");
+    expect(result.applied.some((step) => step.startsWith("passthrough:"))).toBe(false);
+  });
+
+  it("keeps the fast path when the decoded bytes still fit the budget", async () => {
+    const { adapter, encode } = makeAdapter({
+      decodeHeic: async () => ({
+        uri: "blob:decoded",
+        blob: { size: 60_000, type: "image/jpeg" } as unknown as Blob,
+      }),
+    });
+
+    const result = await processAsset({
+      asset: {
+        uri: "file:///small.heic",
+        contentType: "image/heic",
+        width: 1200,
+        height: 900,
+        size: 38_000,
+      },
+      allowlist: ALLOWLIST,
+      adapter,
+      config: resolveCompressionConfig("gallery"),
+    });
+
+    expect(encode).not.toHaveBeenCalled();
+    // Reports the decoded size that is actually uploaded, not the 38 KB source.
+    expect(result.applied).toEqual(["heic-decode", "passthrough:59KB"]);
+    expect(result.contentType).toBe("image/jpeg");
+  });
+
   it("still runs the ladder for a small source whose dimensions are too large", async () => {
     const { adapter, encode } = makeAdapter({ encodedSize: () => 150_000 });
 
