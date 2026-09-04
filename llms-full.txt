@@ -1035,8 +1035,9 @@ Package-owned:
 - media config contracts and safe key helpers
 - client upload/list/read/delete API client factories
 - React Query hook factories
-- image compression, HEIC conversion, thumbnail, and optional web video
-  conversion helpers
+- the `processAsset` pipeline: content-type identification, the upload format
+  policy, image compression, HEIC conversion, thumbnails, and optional web video
+  conversion
 - Fetch-compatible server handlers for S3/R2 presigned URL workflows
 - typed media error mapping
 
@@ -1045,7 +1046,7 @@ App-owned:
 - auth and route mounting
 - bucket credentials and environment variable names
 - server policy decisions and database metadata
-- app-wide media settings
+- app-wide media settings, including the content-type allowlist both sides share
 - UI screens and media manager composition
 - FFmpeg worker serving for web
 - monitoring and analytics SDKs
@@ -1097,6 +1098,7 @@ import {
   createKvTokenAuthorizer,
   createMediaWorker,
 } from "@mrmeg/expo-media/worker";
+import { processAsset, mapWithConcurrency } from "@mrmeg/expo-media/processing";
 import {
   compressImage,
   convertHeicToJpeg,
@@ -1116,14 +1118,22 @@ import { extractVideoThumbnail } from "@mrmeg/expo-media/processing/video-thumbn
 Root imports are shared-contract only and do not load React Native, Expo native
 modules, or storage signing code. Use `/server` only in server route files, and
 `/worker` only in a Cloudflare Worker entry.
-Prefer granular processing subpaths; the broad `/processing` export remains for
-compatibility but can expose bundlers to every processing feature.
+`/processing` is the entry point for `processAsset` and the pipeline pieces it
+coordinates. Screens that only read config — a settings screen, a preference
+store — should import the granular subpath instead
+(`/processing/image-compression/config`) so they do not pull the whole pipeline
+into a light bundle.
 
 Heavy processing dependencies are behind lazy boundaries. `heic2any` loads
 inside `convertHeicToJpeg()`, native thumbnail extraction loads `expo-video`
-and `expo-image-manipulator` only on the native path, and FFmpeg assets load
-only when web `convertVideo()` runs. Bundlers that honor package side-effect
-metadata also see `"sideEffects": false`.
+and `expo-image-manipulator` only on the native path, `expo-file-system` loads
+only when a native file URI needs to be measured, and FFmpeg assets load only
+when web `convertVideo()` runs. Bundlers that honor package side-effect metadata
+also see `"sideEffects": false`.
+
+Each lazy dependency also has an injection seam so it can be replaced in tests
+without a bundler: `processAsset({ adapter })`, `convertHeicToJpeg(blob,
+fileName, decoder)`, and `resolveUploadSize(file, stat)`.
 
 ## Configuration Model
 
@@ -1157,23 +1167,53 @@ export const MEDIA_APP_SETTINGS = {
     userOverrides: null,
   },
   processing: {
-    keepOriginalIfLarger: true,
+    // Each in-flight asset holds a full-resolution bitmap, so this is a memory
+    // ceiling rather than a throughput knob.
+    concurrency: 3,
   },
   uploads: {
     selectionLimit: 20,
-    defaultImageMediaType: "uploads",
-    defaultVideoMediaType: "videos",
     uploadVideoThumbnails: true,
     deleteVideoThumbnailWithVideo: true,
   },
   uploadPolicies: {
     avatar: { mediaType: "avatars", compression: "avatar" },
     generalImage: { mediaType: "uploads", compression: "gallery" },
-    originalImage: { mediaType: "uploads", compression: "none" },
     video: { mediaType: "videos", compression: null },
   },
 } as const;
 ```
+
+There is no `keepOriginalIfLarger` setting. The never-larger decision is
+format-aware and belongs to the pipeline, not to app config — see
+`chooseUploadCandidate()` under [Processing](#processing).
+
+The app also owns the content-type allowlist, because the client's encode target
+and the server's `allowedContentTypes` have to be the same list:
+
+```ts
+export const IMAGE_CONTENT_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+] as const;
+
+export const VIDEO_CONTENT_TYPES = [
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
+] as const;
+
+export const MEDIA_CONTENT_TYPE_ALLOWLIST = {
+  image: IMAGE_CONTENT_TYPES,
+  video: VIDEO_CONTENT_TYPES,
+} as const;
+```
+
+Do not add `image/heic` to it. No browser renders HEIF, and accepting it would
+let an undisplayable file into storage while hiding client transcode failures.
 
 ## Server Setup
 
@@ -1207,14 +1247,17 @@ export const mediaConfig = createMediaConfig({
     uploads: {
       bucket: "media",
       prefix: "uploads",
+      // Same list the client processes toward. HEIC is never allowlisted; the
+      // client transcodes it to JPEG before signing.
       allowedContentTypes: [
         "image/jpeg",
+        "image/jpg",
         "image/png",
         "image/webp",
-        "image/heic",
+        "image/gif",
         "video/mp4",
         "video/quicktime",
-        "application/pdf",
+        "video/webm",
       ],
       maxBytes: 50 * 1024 * 1024,
       uploadExpiresInSeconds: 300,
@@ -1411,14 +1454,25 @@ Uploads use the content-type contract:
 await upload({
   file: blobOrNativeUri,
   mediaType: "avatars",
-  contentType: "image/jpeg",
-  size: blob.size,
+  contentType: processed.contentType,
+  size: processed.size,
+  metadata: { takenAt, lat, lng },
 });
 ```
 
 The old `{ extension, mediaType }` signing body is not the primary contract.
 The server derives the extension from the approved content type and signs the
 matching `Content-Type` header.
+
+`size` is optional but should always be sent: it is what the server's
+per-media-type `maxBytes` check reads, and a rejected signing request costs
+nothing while a rejected upload costs the whole transfer. When it is omitted,
+`upload()` measures the payload itself — including native file URIs, via
+`resolveUploadSize()`, which stats them with `expo-file-system`.
+
+`metadata` is forwarded to the signing request untouched and reaches
+`policy.canUpload` and `events.onUploadSigned`. Use it for app-owned facts about
+the asset (EXIF capture time, coordinates); the package never interprets it.
 
 ## App-Wide Defaults
 
@@ -1430,11 +1484,9 @@ hooks. Typical defaults:
 | compression enabled | `true` |
 | default preset | `gallery` |
 | user overrides | `null` |
-| keep original if processed output is larger | `true` |
+| processing concurrency | `3` |
 | picker quality | `1` |
 | multi-upload selection limit | `20` |
-| default image media type | `uploads` |
-| default video media type | `videos` |
 | upload video thumbnails | `true` |
 | delete generated thumbnail with video | `true` |
 
@@ -1443,16 +1495,154 @@ Override precedence:
 1. Package preset values from `IMAGE_PRESETS`
 2. App-wide defaults in the app's media settings file
 3. Runtime store overrides, if the app exposes user controls
-4. Per-flow `pickMedia({ compression })` overrides
+4. Per-asset upload policy (`compression`) resolved before processing
 
 ## Processing
+
+`processAsset()` is the entry point. One orchestrator runs every picked asset on
+both platforms and has exactly two outcomes: an immutable `ProcessedUpload`
+whose `contentType` is in the allowlist that was passed in, or a thrown
+`MediaProcessingError` reported against that asset. There is no
+`application/octet-stream` fallback — that fallback is what let a phone's HEIF
+photo reach the server with a content type the server refuses.
+
+```ts
+import {
+  processAsset,
+  mapWithConcurrency,
+  isMediaProcessingError,
+} from "@mrmeg/expo-media/processing";
+import { resolveCompressionConfig } from "@mrmeg/expo-media/processing/image-compression/config";
+
+const processed = await mapWithConcurrency(assets, 3, async (asset) => {
+  try {
+    return await processAsset({
+      asset,
+      allowlist: MEDIA_CONTENT_TYPE_ALLOWLIST,
+      config: resolveCompressionConfig("gallery"),
+      onPhase: (a, phase) => setStatus(a.uri, phase.type),
+    });
+  } catch (error) {
+    if (isMediaProcessingError(error)) return markFailed(asset, error.code);
+    throw error;
+  }
+});
+```
+
+`ProcessedUpload` carries `{ kind, uri, blob?, contentType, width, height, size,
+originalSize, overBudget, applied, durationSeconds?, thumbnail? }`. It is frozen,
+including `applied` — the ordered, human-readable trace of what the pipeline did
+(`["passthrough:176KB"]`, `["heic-decode", "resize:2048", "encode:image/jpeg"]`,
+`["resize:1024", "encode:image/jpeg", "over-budget"]`), which is the thing to log
+or show in a debug row.
+
+`onPhase` receives `identifying`, `decoding-heic`, `compressing`,
+`passthrough`, `converting-video`, `extracting-thumbnail`, and `complete`. The
+orchestrator itself renders nothing, so the app keeps owning its toasts and
+progress UI.
+
+Failures are typed. `MediaProcessingError.code` is one of
+`unsupported-format`, `heic-conversion-failed`, `decode-failed`,
+`encode-failed`, or `stat-failed`, with `contentType` set when the offending
+source was identified.
+
+### Image Presets
+
+Compression is a descending long-edge ladder at fixed quality against a byte
+budget: encode at the first rung, and if the result misses `byteBudget`, drop to
+the next rung and re-encode from the source. Quality never decays — dropping
+pixels beats adding artifacts, which is the model production messengers
+converged on.
+
+| Preset | rungs (long edge px) | quality | byteBudget | passthroughBytes |
+|---|---|---:|---:|---:|
+| `avatar` | 512 | 0.8 | 200 KB | 0 |
+| `thumbnail` | 256 | 0.7 | 100 KB | 0 |
+| `product` | 1024, 768 | 0.85 | 500 KB | 0 |
+| `gallery` | 2048, 1600, 1024 | 0.8 | 1000 KB | 300 KB |
+| `highQuality` | 4096, 3072, 2048 | 0.8 | 3000 KB | 300 KB |
+| `none` | `null` (no ladder) | — | — | — |
+
+- `passthroughBytes` is the source size at or below which an already-allowlisted
+  asset is uploaded untouched. It is `0` for the presets that exist to hit a
+  specific display size, so those always resize.
+- `format` is `null` on every preset, which means "the upload format policy
+  decides": PNG stays PNG, everything else encodes to JPEG. It no longer means
+  "silently JPEG", which is what used to flatten alpha channels.
+- The last rung is used even if it misses the budget; the result sets
+  `overBudget: true` so the app can warn instead of silently uploading a large
+  file.
+- `resolveCompressionConfig()` normalizes custom configs rather than trusting
+  them: rungs come back positive, deduped and descending, quality inside
+  `[MIN_QUALITY, 1]`, budgets non-negative. A caller that overrides one field
+  cannot produce a config the ladder is unable to run.
+
+```ts
+resolveCompressionConfig("avatar");
+resolveCompressionConfig("none"); // → null
+resolveCompressionConfig({ rungs: [1600, 1200], quality: 0.8, byteBudget: 750 * 1024 });
+```
+
+### Format Policy
+
+`resolveUploadFormatPolicy(sourceContentType, allowlist)` returns
+`passthrough`, `transcode` (with an `outputFormat`), or `reject`, plus the flags
+the pipeline needs (`requiresHeicDecode`, `flattensAnimation`,
+`sourceAllowlisted`). It is pure, so both platforms get the same answers from
+the same tests.
+
+`chooseUploadCandidate()` decides whether to keep the processed output or revert
+to the source. Reverting requires all of: the source type is allowlisted, the
+processed output is the *same* format, the source size is known, and the
+processed file is not smaller. A format conversion therefore always wins even
+when it is larger — a smaller HEIC the server rejects is not a better upload
+than a larger JPEG it accepts.
+
+### Behavior Notes
+
+- Pick the original asset first, then process it. Use `quality: 1` with
+  `expo-image-picker` so the picker does not pre-compress what the ladder is
+  about to encode.
+- Resolve the per-asset upload policy (and therefore its compression config)
+  *before* processing, not after. Processing to the wrong target and fixing it
+  later is what the single-orchestrator shape removes.
+- HEIC has no passthrough path. On web it is decoded with `heic2any` (lazy,
+  optional peer) before the ladder runs; on native the encoder decodes HEIF
+  directly. A failed decode fails the asset.
+- Web never emits WebP (canvas support is not portable) and clamps the requested
+  long edge to the browser's canvas ceiling before drawing (`canvasLimits.ts`:
+  4096 on iOS, 11180 on Firefox, 16384 on Chromium and desktop Safari).
+- Ladder dimensions are computed in *displayed* orientation, so an EXIF-rotated
+  portrait photo is not capped along the wrong axis.
+- Every losing rung is disposed as soon as it loses, including when a later rung
+  throws, so a multi-asset selection does not accumulate temp files.
+- Videos are not image-compressed. Web can optionally transcode unsupported
+  formats to MP4; a video whose content type is not in the video allowlist and
+  cannot be converted is rejected.
+- Native thumbnails use `expo-video.generateThumbnailsAsync()` and save the
+  resulting native image reference to a cache-file URI through
+  `expo-image-manipulator`. A thumbnail failure never fails the video.
+- Apps must serve `FFMPEG_WORKER_URL` from the same origin in Metro and the
+  production server when using web video conversion.
+- Use `mapWithConcurrency(items, limit, worker)` instead of `Promise.all` for
+  multi-asset selections. Each in-flight asset holds a full-resolution bitmap,
+  so an unbounded map over 20 photos janks the web tab and gets the native app
+  killed. Results stay in input order.
+- Import `/processing` where the pipeline actually runs. Settings screens,
+  stores, and other light consumers should import
+  `/processing/image-compression/config` instead, so reading a preset does not
+  pull the whole pipeline into their bundle.
+
+### Lower-Level Entry Points
+
+`processAsset` is the supported path. The pieces below it are exported for apps
+that need one step in isolation:
 
 ```ts
 import {
   compressImage,
-  convertHeicToJpeg,
-  shouldUseProcessedFile,
-  shouldUseCompressedImage,
+  convertHeicToJpegIfNeeded,
+  runDimensionLadder,
 } from "@mrmeg/expo-media/processing/image-compression";
 import {
   needsConversion,
@@ -1462,54 +1652,9 @@ import {
 import { extractVideoThumbnail } from "@mrmeg/expo-media/processing/video-thumbnails";
 ```
 
-Package image presets:
-
-| Preset | maxDimension | quality | maxSizeKB | minQuality | format |
-|---|---:|---:|---:|---:|---|
-| `avatar` | 512 | 0.8 | 200 | 0.6 | jpeg |
-| `thumbnail` | 256 | 0.7 | 100 | 0.5 | jpeg |
-| `product` | 1024 | 0.85 | 500 | 0.6 | jpeg |
-| `gallery` | 2048 | 0.85 | 1000 | 0.65 | jpeg |
-| `highQuality` | 3000 | 0.9 | 2000 | 0.7 | jpeg |
-| `none` | original | original | none | none | original |
-
-Behavior notes:
-
-- Pick the original asset first, then process it.
-- Use `quality: 1` with `expo-image-picker` if package compression is applied
-  after picking.
-- HEIC conversion runs before image compression on web.
-- Image compression lowers quality by `0.05` until `maxSizeKB` is reached or
-  `minQuality` is hit.
-- Use `shouldUseProcessedFile(sourceSize, processed.size)` before upload so
-  larger re-encodes or transcodes do not replace smaller originals.
-- Videos are not image-compressed. Web can optionally transcode unsupported
-  formats to MP4.
-- Native thumbnails use `expo-video.generateThumbnailsAsync()` and save the
-  resulting native image reference to a cache-file URI through
-  `expo-image-manipulator`.
-- Apps must serve `FFMPEG_WORKER_URL` from the same origin in Metro and
-  the production server when using web video conversion.
-- Avoid the broad `/processing` barrel in settings, stores, and light screens.
-  Import the exact processing subpath needed so heavy optional features stay
-  eligible for bundler pruning and lazy loading.
-
-Per-flow compression examples:
-
-```ts
-pickMedia({ compression: "avatar" });
-pickMedia({ compression: "gallery" });
-pickMedia({ compression: "none" });
-pickMedia({
-  compression: {
-    maxDimension: 1600,
-    quality: 0.8,
-    maxSizeKB: 750,
-    minQuality: 0.6,
-    format: "jpeg",
-  },
-});
-```
+`compressImage()` runs the ladder for the current platform and returns
+`{ uri, blob?, contentType, width, height, size, rung, attempts, overBudget }`.
+It does not consult the allowlist — that is what `processAsset` adds.
 
 ## File Paths And Keys
 
@@ -1551,6 +1696,12 @@ Server JSON error codes include `media-disabled`, `unauthorized`, `forbidden`,
 `invalid-media-type`, `invalid-content-type`, `oversized-file`, `bad-key`,
 and `storage-failure`.
 
+Client processing throws `MediaProcessingError` with a `code` of
+`unsupported-format`, `heic-conversion-failed`, `decode-failed`,
+`encode-failed`, or `stat-failed`. Use `isMediaProcessingError()` to narrow, and
+report it against the asset that caused it — a per-asset failure should not fail
+the rest of a multi-asset selection.
+
 Screens should branch on typed errors instead of parsing message text.
 
 ## Migration Checklist
@@ -1563,9 +1714,12 @@ Use this checklist when refactoring an app:
 4. Keep Expo Router route files as thin handler exports.
 5. Create a package-backed `mediaClient`.
 6. Replace custom React Query hooks with `createMediaQueryHooks()`.
-7. Add an app-wide media settings file.
-8. Replace inline quality/path decisions with named upload policies.
-9. Replace copied image processing helpers with `/processing` imports.
+7. Add an app-wide media settings file, including one shared content-type
+   allowlist used by both `createMediaConfig()` and `processAsset()`.
+8. Replace inline quality/path decisions with named upload policies, resolved
+   per asset before processing.
+9. Replace copied image processing helpers with one `processAsset()` call, and
+   the multi-asset `Promise.all` with `mapWithConcurrency()`.
 10. Reconcile app-owned metadata in handler events.
 11. Add a `media-disabled` setup state.
 12. Run validation.
@@ -1579,6 +1733,9 @@ Good deletion candidates:
 - copied image compression utilities
 - copied HEIC conversion utilities
 - copied video thumbnail extraction utilities
+- per-branch content-type juggling and `application/octet-stream` fallbacks
+- app-level "keep the original if it is smaller" checks
+- temp-file cleanup passes over compression output
 - copied media error mappers
 
 ## Validation

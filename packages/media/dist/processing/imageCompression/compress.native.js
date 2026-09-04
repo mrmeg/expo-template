@@ -1,94 +1,140 @@
 /**
- * Native image compression implementation using expo-image-manipulator.
- * This file is used on iOS and Android platforms only.
+ * Native image encoding (expo-image-manipulator). Metro resolves this file for
+ * iOS and Android.
+ *
+ * This is the encode *primitive* plus the platform adapter — one rung, one call.
+ * All ladder logic lives in `ladder.ts` so both platforms share it.
+ *
+ * Two native-specific hazards are handled here:
+ * - Handles: `manipulate()` and `renderAsync()` both allocate native bitmaps
+ *   that must be `release()`d, or a 20-photo batch holds 20 full-resolution
+ *   bitmaps and gets the app killed.
+ * - Stat: a failed `File.size` read is an error. Reporting `0` (as the previous
+ *   implementation did) makes every size comparison downstream wrong.
  */
-import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { File } from "expo-file-system";
-import { logMediaDebug as logDev } from "../logger.js";
-import { calculateDimensions, getMimeType, reduceQuality, shouldContinueCompression, formatFileSize, } from "./utils.js";
-/**
- * Map compression format config to expo-image-manipulator SaveFormat.
- */
-function getSaveFormat(format) {
-    switch (format) {
-        case "png":
-            return SaveFormat.PNG;
-        case "webp":
-            return SaveFormat.WEBP;
-        case "jpeg":
-        default:
-            return SaveFormat.JPEG;
-    }
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import { MediaProcessingError } from "../errors.js";
+import { contentTypeForFormat } from "../uploadPolicy.js";
+import { contentTypeFromFileName } from "../sniff.js";
+import { compressImageWith } from "./compressImage.js";
+import { calculateDimensions } from "./utils.js";
+function saveFormatFor(format) {
+    return format === "png" ? SaveFormat.PNG : SaveFormat.JPEG;
 }
 /**
- * Get file size from a URI using expo-file-system.
- * Returns 0 if the file doesn't exist or can't be read.
+ * Byte size of a file URI. Throws rather than returning `0`: an unmeasurable
+ * encode cannot be compared against the source or checked against the budget.
  */
-function getFileSize(uri) {
+export function statSize(uri) {
+    let size;
     try {
-        const file = new File(uri);
-        return file.size;
+        size = new File(uri).size;
+    }
+    catch (error) {
+        throw new MediaProcessingError("stat-failed", `Could not read the size of ${uri}.`, {
+            cause: error,
+        });
+    }
+    if (typeof size !== "number" || !Number.isFinite(size) || size <= 0) {
+        throw new MediaProcessingError("stat-failed", `Could not read the size of ${uri}.`);
+    }
+    return size;
+}
+/** One rung: manipulate, render, save, stat, release everything. */
+export async function encodeImageNative(options) {
+    const { source, longEdge, quality, format } = options;
+    const { targetWidth, targetHeight } = calculateDimensions(options.width, options.height, longEdge);
+    const context = ImageManipulator.manipulate(source.uri);
+    try {
+        if (targetWidth > 0 &&
+            targetHeight > 0 &&
+            (targetWidth !== options.width || targetHeight !== options.height)) {
+            context.resize({ width: targetWidth, height: targetHeight });
+        }
+        const rendered = await context.renderAsync();
+        try {
+            const saved = await rendered.saveAsync({
+                format: saveFormatFor(format),
+                compress: quality,
+            });
+            if (!saved?.uri) {
+                throw new MediaProcessingError("encode-failed", "The image encoder produced no file.");
+            }
+            return {
+                uri: saved.uri,
+                width: saved.width ?? targetWidth,
+                height: saved.height ?? targetHeight,
+                // The manipulator writes exactly the requested format, and there is no
+                // blob to read a type off, so the request is the authority here.
+                contentType: contentTypeForFormat(format),
+                size: statSize(saved.uri),
+            };
+        }
+        finally {
+            rendered.release();
+        }
+    }
+    finally {
+        context.release();
+    }
+}
+export function disposeEncodedImageNative(image) {
+    try {
+        const file = new File(image.uri);
+        if (file.exists)
+            file.delete();
     }
     catch {
-        return 0;
+        // A leftover cache file is harmless; the OS reclaims it. Failing the upload
+        // over a failed cleanup would not be.
+    }
+}
+async function measureNative(source) {
+    return statSize(source.uri);
+}
+async function probeDimensionsNative(source) {
+    const context = ImageManipulator.manipulate(source.uri);
+    try {
+        const rendered = await context.renderAsync();
+        try {
+            return { width: rendered.width, height: rendered.height };
+        }
+        finally {
+            rendered.release();
+        }
+    }
+    catch (error) {
+        throw new MediaProcessingError("decode-failed", "This image could not be decoded.", {
+            cause: error,
+        });
+    }
+    finally {
+        context.release();
     }
 }
 /**
- * Compress an image using expo-image-manipulator.
- *
- * Features:
- * - Resize to max dimension while maintaining aspect ratio
- * - Adjustable quality for JPEG/WebP
- * - Progressive quality reduction to hit target file size
- * - Native HEIC support (no conversion needed)
- * - Returns file URI for use with expo-file-system or fetch
- *
- * @param options - Compression options including URI, dimensions, and config
- * @returns Promise resolving to CompressedImage with file URI and metadata
+ * Native has no cheap byte read for arbitrary content URIs, and the pickers
+ * always provide a file name or a URI with an extension, so the extension is the
+ * evidence used here.
  */
-export async function compressImage(options) {
-    const { uri, width, height, config } = options;
-    const { targetWidth, targetHeight } = calculateDimensions(width, height, config.maxDimension);
-    const format = config.format || "jpeg";
-    const saveFormat = getSaveFormat(config.format);
-    logDev(`[Native] Compressing image: ${width}x${height} -> ${targetWidth}x${targetHeight}, quality: ${config.quality}, format: ${format}`);
-    let quality = config.quality;
-    // Perform initial compression
-    let result = await compressWithQuality(uri, targetWidth, targetHeight, width, height, saveFormat, quality);
-    let fileSize = getFileSize(result.uri);
-    // Progressive quality reduction to hit target size
-    while (shouldContinueCompression(fileSize, config.maxSizeKB, quality, config.minQuality)) {
-        quality = reduceQuality(quality);
-        logDev(`Image still ${formatFileSize(fileSize)} > ${config.maxSizeKB}KB, reducing quality to ${quality}`);
-        result = await compressWithQuality(uri, targetWidth, targetHeight, width, height, saveFormat, quality);
-        fileSize = getFileSize(result.uri);
-    }
-    logDev(`Compression complete: ${formatFileSize(fileSize)}, quality: ${quality}`);
-    return {
-        uri: result.uri,
-        width: result.width,
-        height: result.height,
-        mimeType: getMimeType(config.format),
-        size: fileSize,
-    };
+async function sniffContentTypeNative(source, fileName) {
+    return contentTypeFromFileName(fileName) ?? contentTypeFromFileName(source.uri);
 }
+export const imagePlatformAdapter = {
+    encode: encodeImageNative,
+    dispose: disposeEncodedImageNative,
+    measure: measureNative,
+    probeDimensions: probeDimensionsNative,
+    sniffContentType: sniffContentTypeNative,
+    // No `decodeHeic`: expo-image-manipulator decodes HEIF on both platforms.
+};
 /**
- * Internal helper to perform compression with specific quality.
+ * Run the dimension ladder on this platform.
+ *
+ * @returns The winning rung, flagged `overBudget` when even the smallest rung
+ * missed the byte budget.
  */
-async function compressWithQuality(sourceUri, targetWidth, targetHeight, originalWidth, originalHeight, saveFormat, quality) {
-    const context = ImageManipulator.manipulate(sourceUri);
-    // Only resize if dimensions changed
-    if (targetWidth !== originalWidth || targetHeight !== originalHeight) {
-        context.resize({ width: targetWidth, height: targetHeight });
-    }
-    const imageRef = await context.renderAsync();
-    const result = await imageRef.saveAsync({
-        format: saveFormat,
-        compress: quality,
-    });
-    return {
-        uri: result.uri,
-        width: result.width,
-        height: result.height,
-    };
+export function compressImage(options) {
+    return compressImageWith(imagePlatformAdapter, options);
 }

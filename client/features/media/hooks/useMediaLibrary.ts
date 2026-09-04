@@ -5,64 +5,59 @@ import * as Crypto from "expo-crypto";
 import { Alert } from "@mrmeg/expo-ui/components/Alert";
 import { logDev } from "@/client/lib/devtools";
 import {
-  compressImage,
-  convertHeicToJpeg,
-  formatFileSize,
-  revokeCompressedImage,
-  shouldUseProcessedFile,
-  shouldUseCompressedImage,
-  type CompressionConfig,
-  type ImagePreset,
-} from "@mrmeg/expo-media/processing/image-compression";
-import {
-  convertVideo,
-  FFmpegWorkerUnavailableError,
-  MAX_CLIENT_CONVERSION_SIZE,
-  needsConversion,
-  type VideoConversionResult,
-} from "@mrmeg/expo-media/processing/video-conversion";
-import { extractVideoThumbnail } from "@mrmeg/expo-media/processing/video-thumbnails";
+  isMediaProcessingError,
+  mapWithConcurrency,
+  processAsset,
+  type ProcessAssetInput,
+  type ProcessedUpload,
+  type ProcessingPhase,
+} from "@mrmeg/expo-media/processing";
+import type {
+  CompressionConfig,
+  ImagePreset,
+} from "@mrmeg/expo-media/processing/image-compression/config";
 import { notify } from "@mrmeg/expo-ui/state";
+import { MEDIA_CONTENT_TYPE_ALLOWLIST, type MediaType } from "@/shared/media";
 import { useCompressionStore } from "../stores/compressionStore";
-import { MEDIA_APP_SETTINGS } from "../mediaSettings";
+import {
+  MEDIA_APP_SETTINGS,
+  resolveMediaUploadPolicy,
+  type MediaUploadFilter,
+} from "../mediaSettings";
 
 /**
- * Get image dimensions from a blob by loading it as an HTMLImageElement.
- * Needed for HEIC images where picker returns 0x0 dimensions.
+ * A picked asset, processed and ready to upload.
+ *
+ * `mimeType` is guaranteed to be a content type the server accepts — the
+ * pipeline either produced one or rejected the asset, so there is no
+ * `application/octet-stream` case to handle here.
  */
-async function getImageDimensions(
-  blob: Blob
-): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Failed to load image for dimensions"));
-    };
-    img.src = url;
-  });
-}
-
-interface ProcessedAsset
-  extends Omit<ImagePicker.ImagePickerAsset, "base64" | "exif" | "cancelled"> {
+interface ProcessedAsset {
   id: string;
+  uri: string;
   blob?: Blob;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  width: number;
+  height: number;
+  type: "image" | "video";
+  /** Which upload policy (and therefore which storage prefix) this asset uses. */
+  mediaType: MediaType;
   // Video-specific fields
-  duration?: number; // Duration in seconds
-  thumbnailUri?: string; // Local thumbnail URI
-  thumbnailBlob?: Blob; // Thumbnail blob for web upload
-  // EXIF-derived metadata
-  exifTakenAt?: Date; // Date photo was taken (from EXIF DateTimeOriginal)
-  exifLat?: number; // GPS latitude (from EXIF GPSLatitude)
-  exifLng?: number; // GPS longitude (from EXIF GPSLongitude)
-  // Compression info
-  originalSize?: number; // Original file size before compression
-  compressionApplied?: boolean; // Whether compression was applied
+  duration?: number;
+  thumbnailUri?: string;
+  thumbnailBlob?: Blob;
+  // EXIF-derived metadata, forwarded as upload metadata because re-encoding
+  // deliberately strips EXIF from the bytes.
+  exifTakenAt?: Date;
+  exifLat?: number;
+  exifLng?: number;
+  // Processing info
+  originalSize: number;
+  compressionApplied: boolean;
+  /** Ordered trace of what the pipeline did. Useful in dev logs. */
+  applied: readonly string[];
 }
 
 /**
@@ -126,17 +121,30 @@ function parseExifDate(exif: Record<string, any> | undefined): Date | null {
   }
 }
 
+/** EXIF orientations 5-8 transpose the stored dimensions. */
+function parseExifOrientation(exif: Record<string, any> | undefined): number | null {
+  const value = exif?.Orientation;
+  return typeof value === "number" ? value : null;
+}
+
 interface PickMediaOptions {
   allowsMultipleSelection?: boolean;
   allowsEditing?: boolean;
   selectionLimit?: number;
   mediaTypes?: ("images" | "videos")[];
   /**
-   * Compression options for images.
+   * Which upload policy set applies. Resolved *per asset*, so a mixed
+   * image/video selection compresses images and leaves videos alone, and an
+   * avatar pick gets the avatar preset.
+   */
+  filter?: MediaUploadFilter;
+  /**
+   * Explicit compression override, applied to every image in the selection.
+   * Leave unset to use the per-asset policy from `MEDIA_APP_SETTINGS`.
    * - Preset name: 'avatar', 'thumbnail', 'product', 'gallery', 'highQuality', 'none'
-   * - Custom config: { maxDimension, quality, maxSizeKB, minQuality, format }
-   * - undefined: Uses store default (typically 'gallery')
-   * - null or 'none': Skip compression
+   * - Custom config: { rungs, quality, byteBudget, passthroughBytes, format }
+   * - null or 'none': Skip the ladder (the pipeline still transcodes when the
+   *   source content type is not uploadable, e.g. HEIC)
    */
   compression?: ImagePreset | Partial<CompressionConfig> | null;
 }
@@ -144,8 +152,8 @@ interface PickMediaOptions {
 interface ProcessingContext {
   index: number;
   total: number;
-  fileName?: string | null;
-  suppressCompressionNotification?: boolean;
+  fileName: string;
+  suppressCompressionNotification: boolean;
 }
 
 function isVideoAsset(asset: ImagePicker.ImagePickerAsset) {
@@ -154,448 +162,88 @@ function isVideoAsset(asset: ImagePicker.ImagePickerAsset) {
   );
 }
 
-function getProcessingTitle(action: string, context?: ProcessingContext) {
-  return context && context.total > 1
+function getProcessingTitle(action: string, context: ProcessingContext) {
+  return context.total > 1
     ? `${action} ${context.index} of ${context.total}`
     : action;
 }
 
-function getProcessingFileName(
-  asset: ImagePicker.ImagePickerAsset,
-  context?: ProcessingContext
-) {
-  return context?.fileName || asset.fileName || "selected file";
+/**
+ * Translate pipeline phases into this app's toasts.
+ *
+ * The package orchestrator is UI-free on purpose: the toast vocabulary belongs
+ * to the app, not to a publishable library.
+ */
+function notifyPhase(phase: ProcessingPhase, context: ProcessingContext) {
+  if (context.suppressCompressionNotification) return;
+
+  switch (phase.type) {
+  case "decoding-heic":
+    notify.loading(getProcessingTitle("Reading Photo", context), {
+      messages: [`Decoding ${context.fileName}...`],
+    });
+    return;
+  case "compressing":
+    notify.loading(getProcessingTitle("Optimizing Image", context), {
+      messages: [`Optimizing ${context.fileName}...`],
+    });
+    return;
+  case "converting-video":
+    notify.loading(getProcessingTitle("Converting Video", context), {
+      messages: [
+        phase.progress !== undefined
+          ? `Converting ${context.fileName} to MP4... ${phase.progress}%`
+          : `Loading converter for ${context.fileName}...`,
+      ],
+    });
+    return;
+  default:
+    return;
+  }
 }
 
-async function processAssetWeb(
-  asset: ImagePicker.ImagePickerAsset,
-  id: string,
-  isVideo: boolean,
-  compressionConfig: CompressionConfig | null,
-  metadata: {
-    gps: { lat: number; lng: number } | null;
-    takenAt: Date | null;
-  },
-  videoData: {
-    thumbnailUri?: string;
-    thumbnailBlob?: Blob;
-    duration?: number;
-  },
-  context?: ProcessingContext
-): Promise<ProcessedAsset> {
+/** The web pipeline works on bytes, and the upload needs the same Blob. */
+async function readAssetBlob(uri: string): Promise<Blob | undefined> {
+  if (Platform.OS !== "web") return undefined;
   try {
-    const response = await fetch(asset.uri);
-    let blob = await response.blob();
-    const originalSize = blob.size;
-
-    // Convert HEIC to JPEG if needed (for browser compatibility) - only for images
-    if (!isVideo) {
-      blob = await convertHeicToJpeg(blob, asset.fileName || undefined);
-    }
-
-    // Convert incompatible video formats (WebM, AVI, MKV) to MP4 for cross-platform playback
-    logDev(
-      `Video conversion check: isVideo=${isVideo}, mimeType=${asset.mimeType}, needsConversion=${needsConversion(asset.mimeType)}`
-    );
-    if (isVideo && needsConversion(asset.mimeType)) {
-      // Only convert on client if under size limit
-      if (blob.size <= MAX_CLIENT_CONVERSION_SIZE) {
-        notify.loading(getProcessingTitle("Converting Video", context), {
-          messages: [
-            `Loading converter for ${getProcessingFileName(asset, context)}...`,
-          ],
-        });
-
-        try {
-          const blobUri = URL.createObjectURL(blob);
-          let converted: VideoConversionResult;
-          try {
-            converted = await convertVideo(
-              blobUri,
-              asset.mimeType || "video/webm",
-              {
-                preset: "fast",
-                onProgress: (progress) => {
-                  notify.loading(getProcessingTitle("Converting Video", context), {
-                    messages: [
-                      `Converting ${getProcessingFileName(asset, context)} to MP4... ${progress}%`,
-                    ],
-                  });
-                },
-                onLoadingFFmpeg: () => {
-                  notify.loading(getProcessingTitle("Converting Video", context), {
-                    messages: [
-                      `Loading converter for ${getProcessingFileName(asset, context)}...`,
-                    ],
-                  });
-                },
-              }
-            );
-          } finally {
-            URL.revokeObjectURL(blobUri);
-          }
-
-          const reduction =
-            originalSize > 0
-              ? (((originalSize - converted.size) / originalSize) * 100).toFixed(0)
-              : "unknown";
-
-          if (
-            !MEDIA_APP_SETTINGS.processing.keepOriginalIfLarger ||
-            shouldUseProcessedFile(originalSize, converted.size)
-          ) {
-            // Use converted video
-            blob = converted.blob!;
-            revokeCompressedImage(converted.uri);
-
-            logDev(
-              `Video converted: ${converted.originalFormat} → MP4, ${(originalSize / 1024 / 1024).toFixed(1)}MB → ${(converted.size / 1024 / 1024).toFixed(1)}MB (${reduction}% reduction)`
-            );
-          } else {
-            revokeCompressedImage(converted.uri);
-            logDev(
-              `Video conversion skipped: result ${formatFileSize(converted.size)} was not smaller than source ${formatFileSize(originalSize)}`
-            );
-          }
-
-          notify.hide();
-        } catch (error) {
-          // Hide loading spinner before showing warning
-          notify.hide();
-          const isWorkerUnavailable =
-            error instanceof FFmpegWorkerUnavailableError;
-          notify.warning(
-            isWorkerUnavailable
-              ? "Video Converter Unavailable"
-              : "Conversion Skipped",
-            {
-              messages: [
-                isWorkerUnavailable
-                  ? "Uploading original format instead"
-                  : "Uploading original format",
-              ],
-              duration: 3000,
-            }
-          );
-          logDev(`Video conversion failed, using original: ${error}`);
-        }
-      } else {
-        logDev(
-          `Video too large for client conversion (${(blob.size / 1024 / 1024).toFixed(1)}MB > ${MAX_CLIENT_CONVERSION_SIZE / 1024 / 1024}MB limit)`
-        );
-      }
-    }
-
-    // Get actual dimensions - needed for HEIC where picker returns 0x0
-    let imageWidth = asset.width;
-    let imageHeight = asset.height;
-    if (!isVideo && (imageWidth === 0 || imageHeight === 0)) {
-      try {
-        const dims = await getImageDimensions(blob);
-        imageWidth = dims.width;
-        imageHeight = dims.height;
-        logDev(`Got image dimensions from blob: ${imageWidth}x${imageHeight}`);
-      } catch {
-        logDev("Failed to get image dimensions from blob");
-      }
-    }
-
-    // Apply compression for images (not videos)
-    let finalUri = asset.uri;
-    let finalBlob = blob;
-    let finalWidth = imageWidth;
-    let finalHeight = imageHeight;
-    let finalMimeType = blob.type;
-    let compressionApplied = false;
-    const shouldShowCompressionNotification =
-      !context?.suppressCompressionNotification;
-
-    if (!isVideo && compressionConfig && imageWidth > 0 && imageHeight > 0) {
-      if (shouldShowCompressionNotification) {
-        notify.loading(getProcessingTitle("Optimizing Image", context), {
-          messages: [`Optimizing ${getProcessingFileName(asset, context)}...`],
-        });
-      }
-
-      let sourceBlobUri: string | null = null;
-
-      try {
-        const sourceSize = blob.size;
-        sourceBlobUri = URL.createObjectURL(blob);
-        const compressed = await compressImage({
-          uri: sourceBlobUri,
-          width: imageWidth,
-          height: imageHeight,
-          config: compressionConfig,
-          originalSize: sourceSize,
-        });
-
-        if (
-          !MEDIA_APP_SETTINGS.processing.keepOriginalIfLarger ||
-          shouldUseCompressedImage(sourceSize, compressed.size)
-        ) {
-          URL.revokeObjectURL(sourceBlobUri);
-          sourceBlobUri = null;
-
-          finalUri = compressed.uri;
-          finalBlob = compressed.blob!;
-          finalWidth = compressed.width;
-          finalHeight = compressed.height;
-          finalMimeType = compressed.mimeType;
-          compressionApplied = true;
-
-          const reduction =
-            sourceSize > 0
-              ? (((sourceSize - compressed.size) / sourceSize) * 100).toFixed(0)
-              : "unknown";
-          logDev(
-            `Compression: ${(sourceSize / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB (${reduction}% reduction)`
-          );
-        } else {
-          revokeCompressedImage(compressed);
-          finalUri = sourceBlobUri;
-          finalBlob = blob;
-          finalWidth = imageWidth;
-          finalHeight = imageHeight;
-          finalMimeType = blob.type || asset.mimeType || "application/octet-stream";
-          compressionApplied = false;
-          logDev(
-            `Compression skipped: result ${formatFileSize(compressed.size)} was not smaller than source ${formatFileSize(sourceSize)}`
-          );
-        }
-
-        if (shouldShowCompressionNotification) {
-          notify.hide();
-        }
-      } catch (error) {
-        if (sourceBlobUri) {
-          URL.revokeObjectURL(sourceBlobUri);
-        }
-        if (shouldShowCompressionNotification) {
-          notify.error("Compression Failed", {
-            messages: ["Using original image"],
-            duration: 3000,
-          });
-        }
-        logDev(`Compression failed, using original: ${error}`);
-        finalUri = URL.createObjectURL(blob);
-      }
-    } else {
-      finalUri = URL.createObjectURL(blob);
-    }
-
-    const mediaType = isVideo ? "video" : "image";
-    logDev(
-      `Processed ${mediaType}: ${(finalBlob.size / 1024 / 1024).toFixed(2)}MB (${finalWidth}x${finalHeight})${videoData.duration ? ` ${videoData.duration}s` : ""}`
-    );
-
-    return {
-      id,
-      fileName: asset.fileName || `file-${id}`,
-      fileSize: finalBlob.size,
-      type:
-        asset.type ||
-        (finalBlob.type.split("/")[0] as ImagePicker.ImagePickerAsset["type"]),
-      mimeType: finalMimeType,
-      width: finalWidth,
-      height: finalHeight,
-      blob: finalBlob,
-      uri: finalUri,
-      duration: videoData.duration,
-      thumbnailUri: videoData.thumbnailUri,
-      thumbnailBlob: videoData.thumbnailBlob,
-      // EXIF-derived metadata
-      exifTakenAt: metadata.takenAt || undefined,
-      exifLat: metadata.gps?.lat,
-      exifLng: metadata.gps?.lng,
-      // Compression info
-      originalSize,
-      compressionApplied,
-    };
+    const response = await fetch(uri);
+    return await response.blob();
   } catch (error) {
-    console.error("Error processing asset:", error);
-    throw error;
+    logDev(`Could not read picked file bytes: ${error}`);
+    return undefined;
   }
 }
 
-async function processAssetNative(
-  asset: ImagePicker.ImagePickerAsset,
-  id: string,
-  isVideo: boolean,
-  compressionConfig: CompressionConfig | null,
-  metadata: {
-    gps: { lat: number; lng: number } | null;
-    takenAt: Date | null;
+function toProcessedAsset(
+  upload: ProcessedUpload,
+  input: {
+    id: string;
+    fileName: string;
+    mediaType: MediaType;
+    exif: { gps: { lat: number; lng: number } | null; takenAt: Date | null };
   },
-  videoData: {
-    thumbnailUri?: string;
-    thumbnailBlob?: Blob;
-    duration?: number;
-  },
-  context?: ProcessingContext
-): Promise<ProcessedAsset> {
-  const originalSize = asset.fileSize || 0;
-  let finalUri = asset.uri;
-  let finalWidth = asset.width;
-  let finalHeight = asset.height;
-  let finalSize = originalSize;
-  let finalMimeType = asset.mimeType || "application/octet-stream";
-  let compressionApplied = false;
-
-  // Apply compression for images (not videos)
-  if (!isVideo && compressionConfig) {
-    const shouldShowCompressionNotification =
-      !context?.suppressCompressionNotification;
-
-    if (shouldShowCompressionNotification) {
-      notify.loading(getProcessingTitle("Optimizing Image", context), {
-        messages: [`Optimizing ${getProcessingFileName(asset, context)}...`],
-      });
-    }
-
-    try {
-      const compressed = await compressImage({
-        uri: asset.uri,
-        width: asset.width,
-        height: asset.height,
-        config: compressionConfig,
-        originalSize,
-      });
-
-      if (
-        !MEDIA_APP_SETTINGS.processing.keepOriginalIfLarger ||
-        shouldUseCompressedImage(originalSize, compressed.size)
-      ) {
-        finalUri = compressed.uri;
-        finalWidth = compressed.width;
-        finalHeight = compressed.height;
-        finalSize = compressed.size;
-        finalMimeType = compressed.mimeType;
-        compressionApplied = true;
-
-        const reduction =
-          originalSize > 0
-            ? (((originalSize - compressed.size) / originalSize) * 100).toFixed(0)
-            : "unknown";
-        logDev(
-          `Compression: ${(originalSize / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB (${reduction}% reduction)`
-        );
-      } else {
-        revokeCompressedImage(compressed);
-        compressionApplied = false;
-        logDev(
-          `Compression skipped: result ${formatFileSize(compressed.size)} was not smaller than source ${formatFileSize(originalSize)}`
-        );
-      }
-
-      if (shouldShowCompressionNotification) {
-        notify.hide();
-      }
-    } catch (error) {
-      if (shouldShowCompressionNotification) {
-        notify.error("Compression Failed", {
-          messages: ["Using original image"],
-          duration: 3000,
-        });
-      }
-      logDev(`Compression failed, using original: ${error}`);
-    }
-  }
-
-  const mediaType = isVideo ? "video" : "image";
-  logDev(
-    `${mediaType} picked (native): ${(finalSize / 1024 / 1024).toFixed(2)}MB (${finalWidth}x${finalHeight})${videoData.duration ? ` ${videoData.duration}s` : ""}`
-  );
-
+): ProcessedAsset {
   return {
-    id,
-    fileName: asset.fileName || `file-${id}`,
-    fileSize: finalSize,
-    type: asset.type || undefined,
-    mimeType: finalMimeType,
-    width: finalWidth,
-    height: finalHeight,
-    uri: finalUri,
-    // No blob on native - useMediaUpload handles URI-based uploads
-    duration: videoData.duration,
-    thumbnailUri: videoData.thumbnailUri,
-    thumbnailBlob: videoData.thumbnailBlob,
-    // EXIF-derived metadata
-    exifTakenAt: metadata.takenAt || undefined,
-    exifLat: metadata.gps?.lat,
-    exifLng: metadata.gps?.lng,
-    // Compression info
-    originalSize,
-    compressionApplied,
+    id: input.id,
+    uri: upload.uri,
+    blob: upload.blob,
+    fileName: input.fileName,
+    fileSize: upload.size,
+    mimeType: upload.contentType,
+    width: upload.width,
+    height: upload.height,
+    type: upload.kind,
+    mediaType: input.mediaType,
+    duration: upload.durationSeconds,
+    thumbnailUri: upload.thumbnail?.uri,
+    thumbnailBlob: upload.thumbnail?.blob,
+    exifTakenAt: input.exif.takenAt || undefined,
+    exifLat: input.exif.gps?.lat,
+    exifLng: input.exif.gps?.lng,
+    originalSize: upload.originalSize,
+    compressionApplied: upload.applied.some((step) => step.startsWith("resize:")),
+    applied: upload.applied,
   };
-}
-
-async function processAsset(
-  asset: ImagePicker.ImagePickerAsset,
-  compressionConfig: CompressionConfig | null,
-  context?: ProcessingContext
-): Promise<ProcessedAsset> {
-  const id = Crypto.randomUUID();
-  const isVideo = isVideoAsset(asset);
-
-  // Extract EXIF metadata (GPS, date taken)
-  const exif = (asset as any).exif as Record<string, any> | undefined;
-  const gps = parseExifGps(exif);
-  const takenAt = parseExifDate(exif);
-
-  if (gps) {
-    logDev(`EXIF GPS: ${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)}`);
-  }
-  if (takenAt) {
-    logDev(`EXIF Date: ${takenAt.toISOString()}`);
-  }
-
-  // Extract thumbnail and duration for videos
-  let thumbnailUri: string | undefined;
-  let thumbnailBlob: Blob | undefined;
-  let duration: number | undefined;
-
-  if (isVideo) {
-    // Duration comes from ImagePicker (in milliseconds on some platforms, seconds on others)
-    // expo-image-picker returns duration in seconds
-    duration = asset.duration ? Math.round(asset.duration) : undefined;
-
-    // Extract thumbnail at 1 second mark
-    try {
-      const thumbnail = await extractVideoThumbnail(asset.uri, 1000);
-      if (thumbnail) {
-        thumbnailUri = thumbnail.uri;
-        thumbnailBlob = thumbnail.blob;
-        logDev(
-          `Video thumbnail extracted: ${thumbnail.width}x${thumbnail.height}`
-        );
-      }
-    } catch (error) {
-      logDev(`Failed to extract video thumbnail: ${error}`);
-    }
-  }
-
-  if (Platform.OS === "web") {
-    return processAssetWeb(
-      asset,
-      id,
-      isVideo,
-      compressionConfig,
-      { gps, takenAt },
-      { thumbnailUri, thumbnailBlob, duration },
-      context
-    );
-  } else {
-    return processAssetNative(
-      asset,
-      id,
-      isVideo,
-      compressionConfig,
-      { gps, takenAt },
-      { thumbnailUri, thumbnailBlob, duration },
-      context
-    );
-  }
 }
 
 export function useMediaLibrary() {
@@ -605,17 +253,12 @@ export function useMediaLibrary() {
   const [processing, setProcessing] = useState(false);
   const getCompressionConfig = useCompressionStore((state) => state.getConfig);
 
-
-
-
-
-
-
   const pickMedia = async ({
     allowsMultipleSelection = false,
     allowsEditing = false,
-    selectionLimit = 20,
+    selectionLimit = MEDIA_APP_SETTINGS.uploads.selectionLimit,
     mediaTypes = ["images"],
+    filter = "all",
     compression,
   }: PickMediaOptions = {}) => {
     let batchCompressionNotificationVisible = false;
@@ -633,9 +276,6 @@ export function useMediaLibrary() {
         return null;
       }
 
-      // Resolve compression config from options or store defaults
-      const compressionConfig = getCompressionConfig(compression);
-
       const result = await ImagePicker.launchImageLibraryAsync({
         base64: false,
         exif: true, // Extract EXIF metadata (GPS, date, etc.)
@@ -648,58 +288,132 @@ export function useMediaLibrary() {
       });
 
       if (
-        result &&
-        !result.canceled &&
-        result.assets &&
-        result.assets.length > 0
+        !result ||
+        result.canceled ||
+        !result.assets ||
+        result.assets.length === 0
       ) {
-        const processedAssets: ProcessedAsset[] = [];
-        const totalAssets = result.assets.length;
-        const imageAssetCount = result.assets.filter(
-          (asset) => !isVideoAsset(asset)
-        ).length;
-        const useBatchCompressionNotification =
-          Boolean(compressionConfig) && imageAssetCount > 1;
-
-        if (useBatchCompressionNotification) {
-          batchCompressionNotificationVisible = true;
-          notify.loading("Optimizing Images", {
-            messages: [`Optimizing ${imageAssetCount} images...`],
-          });
-        }
-
-        processedAssets.push(
-          ...(await Promise.all(
-            result.assets.map((asset, index) =>
-              processAsset(asset, compressionConfig, {
-                index: index + 1,
-                total: totalAssets,
-                fileName: asset.fileName,
-                suppressCompressionNotification: useBatchCompressionNotification,
-              })
-            )
-          ))
-        );
-
-        if (batchCompressionNotificationVisible) {
-          notify.hide();
-          batchCompressionNotificationVisible = false;
-        }
-
-        // Log final file sizes
-        processedAssets.forEach((asset, index) => {
-          const sizeInMB = ((asset.fileSize || 0) / 1024 / 1024).toFixed(2);
-          logDev(
-            `Asset ${index + 1}: ${asset.fileName} - ${sizeInMB}MB (${asset.width}x${asset.height})`
-          );
-        });
-
-        setSelectedAssets(
-          allowsMultipleSelection ? processedAssets : [processedAssets[0]]
-        );
-        return processedAssets;
+        return null;
       }
-      return null;
+
+      const totalAssets = result.assets.length;
+      const imageAssetCount = result.assets.filter(
+        (asset) => !isVideoAsset(asset)
+      ).length;
+      const useBatchCompressionNotification = imageAssetCount > 1;
+
+      if (useBatchCompressionNotification) {
+        batchCompressionNotificationVisible = true;
+        notify.loading("Optimizing Images", {
+          messages: [`Optimizing ${imageAssetCount} images...`],
+        });
+      }
+
+      // Bounded concurrency: each in-flight asset holds a full-resolution
+      // bitmap, so a 20-photo selection through Promise.all janks the web tab
+      // and gets the native app killed.
+      const outcomes = await mapWithConcurrency(
+        result.assets,
+        MEDIA_APP_SETTINGS.processing.concurrency,
+        async (asset, index) => {
+          const fileName = asset.fileName || `file-${index + 1}`;
+          const context: ProcessingContext = {
+            index: index + 1,
+            total: totalAssets,
+            fileName,
+            suppressCompressionNotification: useBatchCompressionNotification,
+          };
+
+          // The upload policy is resolved per asset and *before* processing, so
+          // an avatar is compressed with the avatar preset instead of the
+          // screen's default.
+          const uploadPolicy = resolveMediaUploadPolicy(asset, filter);
+          const config = getCompressionConfig(
+            compression !== undefined ? compression : uploadPolicy.policy.compression,
+          );
+
+          const exif = (asset as { exif?: Record<string, any> }).exif;
+          const gps = parseExifGps(exif);
+          const takenAt = parseExifDate(exif);
+
+          const input: ProcessAssetInput = {
+            uri: asset.uri,
+            blob: await readAssetBlob(asset.uri),
+            contentType: asset.mimeType,
+            fileName: asset.fileName,
+            width: asset.width,
+            height: asset.height,
+            size: asset.fileSize,
+            kind: isVideoAsset(asset) ? "video" : "image",
+            durationSeconds: asset.duration
+              ? Math.round(asset.duration)
+              : undefined,
+            exifOrientation: parseExifOrientation(exif),
+          };
+
+          try {
+            const upload = await processAsset({
+              asset: input,
+              allowlist: MEDIA_CONTENT_TYPE_ALLOWLIST,
+              config,
+              onPhase: (_asset, phase) => notifyPhase(phase, context),
+            });
+
+            return {
+              ok: true as const,
+              asset: toProcessedAsset(upload, {
+                id: Crypto.randomUUID(),
+                fileName,
+                mediaType: uploadPolicy.policy.mediaType,
+                exif: { gps, takenAt },
+              }),
+            };
+          } catch (error) {
+            const reason = isMediaProcessingError(error)
+              ? error.message
+              : "This file could not be processed.";
+            logDev(`Processing failed for ${fileName}: ${error}`);
+            return { ok: false as const, fileName, reason };
+          }
+        },
+      );
+
+      if (batchCompressionNotificationVisible) {
+        notify.hide();
+        batchCompressionNotificationVisible = false;
+      }
+
+      const processedAssets = outcomes.flatMap((outcome) =>
+        outcome.ok ? [outcome.asset] : []
+      );
+      const failures = outcomes.flatMap((outcome) =>
+        outcome.ok ? [] : [outcome]
+      );
+
+      if (failures.length > 0) {
+        notify.error(
+          failures.length === 1 ? "File Skipped" : `${failures.length} Files Skipped`,
+          {
+            messages: failures
+              .slice(0, 3)
+              .map((failure) => `${failure.fileName}: ${failure.reason}`),
+            duration: 6000,
+          }
+        );
+      }
+
+      processedAssets.forEach((asset, index) => {
+        logDev(
+          `Asset ${index + 1}: ${asset.fileName} - ${(asset.fileSize / 1024 / 1024).toFixed(2)}MB ${asset.mimeType} (${asset.width}x${asset.height}) [${asset.applied.join(", ")}]`
+        );
+      });
+
+      if (processedAssets.length === 0) return null;
+
+      setSelectedAssets(
+        allowsMultipleSelection ? processedAssets : [processedAssets[0]]
+      );
+      return processedAssets;
     } catch (error) {
       if (batchCompressionNotificationVisible) {
         notify.hide();

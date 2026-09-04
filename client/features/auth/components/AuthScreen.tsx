@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SignInForm } from "./SignInForm";
@@ -10,7 +11,7 @@ import { ResetPasswordForm } from "./ResetPasswordForm";
 import { DismissKeyboard } from "@mrmeg/expo-ui/components/DismissKeyboard";
 import { SerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { useAuth } from "../hooks/useAuth";
-import { isAuthError } from "../provider";
+import { getSocialAuthProviders, isAuthError, type SocialAuthProviderName } from "../provider";
 import { useAuthStore } from "../stores/authStore";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
@@ -19,7 +20,13 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 import { getAppName } from "@/client/lib/identity";
 import { logDev } from "@/client/lib/devtools";
 
-type AuthView = "sign-in" | "sign-up" | "forgot-password" | "verify-email" | "reset-password";
+type AuthView =
+  | "sign-in"
+  | "sign-up"
+  | "forgot-password"
+  | "verify-email"
+  | "confirm-sign-in-code"
+  | "reset-password";
 type PostVerifyDestination = "sign-in" | "forgot-password";
 
 type AuthScreenState = {
@@ -28,10 +35,18 @@ type AuthScreenState = {
   error: string;
   pendingEmail: string;
   pendingPassword: string;
+  /**
+   * The account being confirmed was created without a password, so there is no
+   * password screen to fall back to once verification finishes — an email code
+   * is the only way in. Set by the passwordless sign-up path only.
+   */
+  passwordlessSignUp: boolean;
   forgotPasswordSuccess: boolean;
   resetPasswordSuccess: boolean;
   resending: boolean;
   postVerifyDestination: PostVerifyDestination;
+  /** A federated redirect is in flight; the session arrives asynchronously. */
+  socialPending: boolean;
 };
 
 function createInitialAuthScreenState(initialView: AuthView): AuthScreenState {
@@ -41,10 +56,12 @@ function createInitialAuthScreenState(initialView: AuthView): AuthScreenState {
     error: "",
     pendingEmail: "",
     pendingPassword: "",
+    passwordlessSignUp: false,
     forgotPasswordSuccess: false,
     resetPasswordSuccess: false,
     resending: false,
     postVerifyDestination: "sign-in",
+    socialPending: false,
   };
 }
 
@@ -70,10 +87,30 @@ export function AuthScreen({
   initialView = "sign-in",
   onAuthenticated,
 }: AuthScreenProps) {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const styles = themedStyles(theme);
   const appName = getAppName();
-  const { signIn, signUp, confirmSignUp, resendCode, forgotPassword, resetPassword } = useAuth();
+  const {
+    signIn,
+    signInWithEmailCode,
+    confirmSignInCode,
+    signInWithProvider,
+    signUp,
+    confirmSignUp,
+    resendCode,
+    forgotPassword,
+    resetPassword,
+  } = useAuth();
+
+  /**
+   * Env-derived and constant for the process, so it is resolved once: an empty
+   * list hides the social buttons entirely (see `getSocialAuthProviders`).
+   */
+  const socialProviders = useMemo(() => getSocialAuthProviders(), []);
+  // A failed redirect surfaces as a provider session event, not as a rejected
+  // promise, so the store's error is the only signal the screen can react to.
+  const storeError = useAuthStore((state) => state.error);
 
   const [authScreenState, setAuthScreenState] = useState<AuthScreenState>(() =>
     createInitialAuthScreenState(initialView)
@@ -84,10 +121,12 @@ export function AuthScreen({
     error,
     pendingEmail,
     pendingPassword,
+    passwordlessSignUp,
     forgotPasswordSuccess,
     resetPasswordSuccess,
     resending,
     postVerifyDestination,
+    socialPending,
   } = authScreenState;
 
   /**
@@ -98,6 +137,22 @@ export function AuthScreen({
   const update = (changes: Partial<AuthScreenState>) => {
     setAuthScreenState((current) => ({ ...current, ...changes }));
   };
+
+  /**
+   * A redirect sign-in that fails after leaving the app comes back as a
+   * `sessionExpired` provider event, which the store turns into an error
+   * string. Adopt it as the form's error and stop the pending state; the
+   * success case is handled by the store flipping to `authenticated`, which
+   * unmounts this screen (see AuthGate).
+   */
+  useEffect(() => {
+    if (!storeError) return;
+    setAuthScreenState((current) =>
+      current.socialPending
+        ? { ...current, socialPending: false, error: storeError }
+        : current,
+    );
+  }, [storeError]);
 
   // Sign In
   const handleSignIn = async (data: { email: string; password: string }) => {
@@ -145,9 +200,99 @@ export function AuthScreen({
     }
   };
 
-  // Sign Up
-  const handleSignUp = async (data: { name: string; email: string; password: string }) => {
+  // Email-code (passwordless) sign-in — request the code
+  const handleEmailCodeSignIn = async ({ email }: { email: string }) => {
     update({ loading: true, error: "" });
+
+    try {
+      const result = await signInWithEmailCode({ email });
+
+      if (result.status === "complete") {
+        onAuthenticated?.();
+        return;
+      }
+      update({ pendingEmail: email, view: "confirm-sign-in-code" });
+    } catch (err: any) {
+      const code = isAuthError(err) ? err.code : "unknown";
+      if (code === "userNotFound") {
+        update({ error: "No account found with this email." });
+      } else if (code === "limitExceeded") {
+        update({ error: "Too many attempts. Please try again later." });
+      } else if (code === "unsupported") {
+        update({ error: err.message || "Email codes are not available here." });
+      } else {
+        update({ error: err.message || "Failed to send a sign-in code. Please try again." });
+      }
+    } finally {
+      update({ loading: false });
+    }
+  };
+
+  // Email-code (passwordless) sign-in — submit the code
+  const handleConfirmSignInCode = async (code: string) => {
+    update({ loading: true, error: "" });
+
+    try {
+      await confirmSignInCode({ code });
+      onAuthenticated?.();
+    } catch (err: any) {
+      const errCode = isAuthError(err) ? err.code : "unknown";
+      if (errCode === "codeMismatch") {
+        update({ error: "Invalid sign-in code. Please try again." });
+      } else if (errCode === "codeExpired") {
+        update({ error: "That code has expired. Request a new one." });
+      } else {
+        // Amplify keeps the pending challenge in memory only: after a reload
+        // there is nothing to confirm, and a new code is the way out.
+        update({ error: err.message || "Sign-in failed. Request a new code and try again." });
+      }
+    } finally {
+      update({ loading: false });
+    }
+  };
+
+  const handleResendSignInCode = async () => {
+    if (!pendingEmail) return;
+
+    update({ resending: true, error: "" });
+
+    try {
+      await signInWithEmailCode({ email: pendingEmail });
+    } catch (err: any) {
+      update({ error: err.message || "Failed to resend code. Please try again." });
+    } finally {
+      update({ resending: false });
+    }
+  };
+
+  // Social sign-in — hands off to the provider's hosted page and comes back
+  // through the auth store, so there is nothing to await for the session here.
+  const handleSocialSignIn = async (provider: "google" | "apple" | "github") => {
+    if (!socialProviders.includes(provider as SocialAuthProviderName)) {
+      update({ error: t("auth.socialSignInUnavailable") });
+      return;
+    }
+
+    update({ socialPending: true, error: "" });
+
+    try {
+      await signInWithProvider(provider as SocialAuthProviderName);
+    } catch (err: any) {
+      update({
+        socialPending: false,
+        error: err.message || t("auth.socialSignInFailed"),
+      });
+    }
+  };
+
+  /**
+   * Sign Up — password-optional. Omitting `password` creates a passwordless
+   * account: the emailed code confirms it and email-code sign-in is how it gets
+   * a session, so the flag rides along to `handleVerify`.
+   */
+  const submitSignUp = async (data: { email: string; password?: string }) => {
+    const passwordless = data.password === undefined;
+    update({ loading: true, error: "", passwordlessSignUp: passwordless });
 
     try {
       const result = await signUp({ email: data.email, password: data.password });
@@ -158,6 +303,10 @@ export function AuthScreen({
         // store, so its state tells us which happened.
         if (useAuthStore.getState().state === "authenticated") {
           onAuthenticated?.();
+        } else if (passwordless) {
+          // Confirmed with no session and no password to offer: the emailed
+          // sign-in code is the only way in.
+          await handleEmailCodeSignIn({ email: data.email });
         } else {
           update({ view: "sign-in" });
         }
@@ -175,12 +324,21 @@ export function AuthScreen({
       } else if (code === "invalidPassword") {
         update({ error: "Password does not meet requirements." });
       } else {
+        // Includes `unsupported`, which is how a pool that has no non-password
+        // first factor rejects a passwordless sign-up; its message names the
+        // requirement, and the form still offers "Add a password".
         update({ error: err.message || "Failed to create account. Please try again." });
       }
     } finally {
       update({ loading: false });
     }
   };
+
+  const handleSignUp = (data: { name: string; email: string; password: string }) =>
+    submitSignUp({ email: data.email, password: data.password });
+
+  const handlePasswordlessSignUp = (data: { name: string; email: string }) =>
+    submitSignUp({ email: data.email });
 
   // Verify Email
   const handleVerify = async (code: string) => {
@@ -218,6 +376,14 @@ export function AuthScreen({
           logDev("Sign-in after verification failed:", signInErr);
           update({ pendingPassword: "", view: "sign-in" }); // Clear stored password
         }
+      } else if (passwordlessSignUp) {
+        // The account has no password, so the sign-in view would be a dead end:
+        // request a sign-in code for the address just confirmed and collect it in
+        // the confirm-sign-in-code view. That handler owns loading and error from
+        // here, hence the early return.
+        logDev("Passwordless account confirmed; requesting a sign-in code...");
+        await handleEmailCodeSignIn({ email: pendingEmail });
+        return;
       } else if (postVerifyDestination === "forgot-password") {
         // Redirect based on how the user got to verification
         logDev("Verification complete, redirecting to forgot-password...");
@@ -319,9 +485,11 @@ export function AuthScreen({
     update({
       error: "",
       pendingPassword: "",
+      passwordlessSignUp: false,
       postVerifyDestination: "sign-in",
       forgotPasswordSuccess: false,
       resetPasswordSuccess: false,
+      socialPending: false,
       view: "sign-in",
     });
 
@@ -329,6 +497,7 @@ export function AuthScreen({
     update({
       error: "",
       pendingPassword: "",
+      passwordlessSignUp: false,
       postVerifyDestination: "sign-in",
       view: "sign-up",
     });
@@ -337,6 +506,7 @@ export function AuthScreen({
     update({
       error: "",
       pendingPassword: "",
+      passwordlessSignUp: false,
       forgotPasswordSuccess: false,
       view: "forgot-password",
     });
@@ -346,6 +516,7 @@ export function AuthScreen({
       error: "",
       pendingEmail: "",
       pendingPassword: "",
+      passwordlessSignUp: false,
       postVerifyDestination: "sign-in",
       view: "sign-up",
     });
@@ -361,8 +532,15 @@ export function AuthScreen({
         resetPasswordSuccess={resetPasswordSuccess}
         resending={resending}
         postVerifyDestination={postVerifyDestination}
+        socialPending={socialPending}
+        socialProviders={socialProviders}
         onSignIn={handleSignIn}
+        onEmailCodeSignIn={handleEmailCodeSignIn}
+        onConfirmSignInCode={handleConfirmSignInCode}
+        onResendSignInCode={handleResendSignInCode}
+        onSocialSignIn={handleSocialSignIn}
         onSignUp={handleSignUp}
+        onPasswordlessSignUp={handlePasswordlessSignUp}
         onVerify={handleVerify}
         onResendCode={handleResendCode}
         onForgotPassword={handleForgotPassword}
@@ -418,8 +596,15 @@ function AuthViewFields({
   resetPasswordSuccess,
   resending,
   postVerifyDestination,
+  socialPending,
+  socialProviders,
   onSignIn,
+  onEmailCodeSignIn,
+  onConfirmSignInCode,
+  onResendSignInCode,
+  onSocialSignIn,
   onSignUp,
+  onPasswordlessSignUp,
   onVerify,
   onResendCode,
   onForgotPassword,
@@ -437,8 +622,15 @@ function AuthViewFields({
   resetPasswordSuccess: boolean;
   resending: boolean;
   postVerifyDestination: PostVerifyDestination;
+  socialPending: boolean;
+  socialProviders: SocialAuthProviderName[];
   onSignIn: (data: { email: string; password: string }) => Promise<void>;
+  onEmailCodeSignIn: (data: { email: string }) => Promise<void>;
+  onConfirmSignInCode: (code: string) => Promise<void>;
+  onResendSignInCode: () => Promise<void>;
+  onSocialSignIn: (provider: "google" | "apple" | "github") => Promise<void>;
   onSignUp: (data: { name: string; email: string; password: string }) => Promise<void>;
+  onPasswordlessSignUp: (data: { name: string; email: string }) => Promise<void>;
   onVerify: (code: string) => Promise<void>;
   onResendCode: () => Promise<void>;
   onForgotPassword: (email: string) => Promise<void>;
@@ -448,16 +640,24 @@ function AuthViewFields({
   goToForgotPassword: () => void;
   goToChangeEmail: () => void;
 }) {
+  const { t } = useTranslation();
+  // A redirect that already left the app must not look interactive, so the
+  // forms take the same disabled/spinner treatment as an in-flight request.
+  const busy = loading || socialPending;
+
   return (
     <>
       {view === "sign-in" && (
         <SignInForm
           onSignIn={onSignIn}
+          onEmailCodeSignIn={onEmailCodeSignIn}
           onForgotPassword={goToForgotPassword}
           onSignUp={goToSignUp}
-          loading={loading}
+          onSocialSignIn={onSocialSignIn}
+          loading={busy}
           error={error}
-          socialProviders={[]}
+          description={socialPending ? t("auth.socialSignInPending") : undefined}
+          socialProviders={socialProviders}
           embedded
         />
       )}
@@ -465,11 +665,30 @@ function AuthViewFields({
       {view === "sign-up" && (
         <SignUpForm
           onSignUp={onSignUp}
+          onPasswordlessSignUp={onPasswordlessSignUp}
           onSignIn={goToSignIn}
-          loading={loading}
+          onSocialSignUp={onSocialSignIn}
+          loading={busy}
           error={error}
-          socialProviders={[]}
+          description={socialPending ? t("auth.socialSignInPending") : undefined}
+          socialProviders={socialProviders}
           requireName={false}
+          embedded
+        />
+      )}
+
+      {view === "confirm-sign-in-code" && (
+        <VerifyEmailForm
+          email={pendingEmail}
+          onVerify={onConfirmSignInCode}
+          onResendCode={onResendSignInCode}
+          onBack={goToSignIn}
+          loading={loading}
+          resending={resending}
+          error={error}
+          title={t("auth.checkEmailForCode")}
+          description={t("auth.checkEmailForCodeDescription", { email: pendingEmail })}
+          submitLabel={t("auth.signInWithCodeButton")}
           embedded
         />
       )}

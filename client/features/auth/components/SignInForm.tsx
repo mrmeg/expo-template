@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { View, StyleSheet, Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
@@ -14,6 +14,13 @@ const MIN_PASSWORD_LENGTH = 6;
 
 export interface SignInFormProps {
   onSignIn?: (data: { email: string; password: string }) => void | Promise<void>;
+  /**
+   * Passwordless path: send a one-time code to the address entered above.
+   * Providing it makes the form lead with the code layout and hide the password
+   * field behind a "use password instead" toggle; without it the form is
+   * password-only, which is what the showcase and template blocks render.
+   */
+  onEmailCodeSignIn?: (data: { email: string }) => void | Promise<void>;
   onForgotPassword?: () => void;
   onSignUp?: () => void;
   onSocialSignIn?: (provider: "google" | "apple" | "github") => void;
@@ -30,6 +37,7 @@ export interface SignInFormProps {
 
 export function SignInForm({
   onSignIn,
+  onEmailCodeSignIn,
   onForgotPassword,
   onSignUp,
   onSocialSignIn,
@@ -48,6 +56,14 @@ export function SignInForm({
   const emailRef = useRef<AuthTextFieldHandle>(null);
   const passwordRef = useRef<AuthTextFieldHandle>(null);
 
+  /**
+   * Which credential the form is collecting. Email-code is the default when the
+   * caller supports it — the code path needs no password rules and works for
+   * users who never set one — and the toggle below switches to the password
+   * field without leaving the screen.
+   */
+  const [usePassword, setUsePassword] = useState(!onEmailCodeSignIn);
+
   const emailValidator = useCallback((value: string) => validateEmail(value, t), [t]);
   const passwordValidator = useCallback(
     (value: string) => validatePassword(value, t, MIN_PASSWORD_LENGTH),
@@ -64,13 +80,24 @@ export function SignInForm({
     }
   }, [onSignIn]);
 
+  const handleEmailCodeSubmit = useCallback(async () => {
+    if (emailRef.current?.validate()) {
+      await onEmailCodeSignIn?.({ email: emailRef.current.getValue() });
+    }
+  }, [onEmailCodeSignIn]);
+
+  const showPasswordField = usePassword || !onEmailCodeSignIn;
+
   return (
     <AuthFormCard
       embedded={embedded}
       error={error}
       logo={logo}
       title={title ?? t("auth.signInTitle")}
-      description={description ?? t("auth.signInDescription")}
+      description={
+        description ??
+        (showPasswordField ? t("auth.signInDescription") : t("auth.signInWithCodeDescription"))
+      }
       footer={
         onSignUp && (
           <>
@@ -99,31 +126,35 @@ export function SignInForm({
           autoCorrect={false}
           editable={!loading}
           required
-          returnKeyType="next"
-          blurOnSubmit={false}
-          onSubmitEditing={() => passwordRef.current?.focus()}
+          returnKeyType={showPasswordField ? "next" : "go"}
+          blurOnSubmit={!showPasswordField}
+          onSubmitEditing={
+            showPasswordField ? () => passwordRef.current?.focus() : handleEmailCodeSubmit
+          }
         />
       </View>
 
-      <View style={shared.inputGroup}>
-        <AuthTextField
-          ref={passwordRef}
-          testID="sign-in-password-input"
-          label={t("auth.password")}
-          placeholder={t("auth.passwordPlaceholder")}
-          validateValue={passwordValidator}
-          secureTextEntry
-          showSecureEntryToggle
-          autoCapitalize="none"
-          autoComplete="password"
-          editable={!loading}
-          required
-          returnKeyType="go"
-          onSubmitEditing={handleSubmit}
-        />
-      </View>
+      {showPasswordField && (
+        <View style={shared.inputGroup}>
+          <AuthTextField
+            ref={passwordRef}
+            testID="sign-in-password-input"
+            label={t("auth.password")}
+            placeholder={t("auth.passwordPlaceholder")}
+            validateValue={passwordValidator}
+            secureTextEntry
+            showSecureEntryToggle
+            autoCapitalize="none"
+            autoComplete="password"
+            editable={!loading}
+            required
+            returnKeyType="go"
+            onSubmitEditing={handleSubmit}
+          />
+        </View>
+      )}
 
-      {onForgotPassword && (
+      {showPasswordField && onForgotPassword && (
         <Pressable
           onPress={onForgotPassword}
           disabled={loading}
@@ -135,16 +166,42 @@ export function SignInForm({
         </Pressable>
       )}
 
-      <Button
-        testID="sign-in-submit-button"
-        preset="default"
-        onPress={handleSubmit}
-        loading={loading}
-        disabled={loading}
-        fullWidth
-      >
-        <SansSerifBoldText>{t("auth.signIn")}</SansSerifBoldText>
-      </Button>
+      {showPasswordField ? (
+        <Button
+          testID="sign-in-submit-button"
+          preset="default"
+          onPress={handleSubmit}
+          loading={loading}
+          disabled={loading}
+          fullWidth
+        >
+          <SansSerifBoldText>{t("auth.signIn")}</SansSerifBoldText>
+        </Button>
+      ) : (
+        <Button
+          testID="sign-in-email-code-button"
+          preset="default"
+          onPress={handleEmailCodeSubmit}
+          loading={loading}
+          disabled={loading}
+          fullWidth
+        >
+          <SansSerifBoldText>{t("auth.emailMeACode")}</SansSerifBoldText>
+        </Button>
+      )}
+
+      {onEmailCodeSignIn && (
+        <Pressable
+          testID={usePassword ? "sign-in-use-code-button" : "sign-in-use-password-button"}
+          onPress={() => setUsePassword((current) => !current)}
+          disabled={loading}
+          style={styles.methodToggle}
+        >
+          <SansSerifText style={shared.linkText}>
+            {usePassword ? t("auth.useEmailCodeInstead") : t("auth.usePasswordInstead")}
+          </SansSerifText>
+        </Pressable>
+      )}
 
       {socialProviders.length > 0 && (
         <>
@@ -158,6 +215,7 @@ export function SignInForm({
             {socialProviders.map((provider) => (
               <Button
                 key={provider}
+                testID={`sign-in-social-${provider}-button`}
                 preset="outline"
                 onPress={() => onSocialSignIn?.(provider)}
                 disabled={loading}
@@ -177,6 +235,10 @@ export function SignInForm({
 const styles = StyleSheet.create({
   forgotPassword: {
     alignSelf: "flex-end",
+    paddingVertical: spacing.xs,
+  },
+  methodToggle: {
+    alignSelf: "center",
     paddingVertical: spacing.xs,
   },
 });

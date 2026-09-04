@@ -1,18 +1,28 @@
 /**
- * Web image compression implementation using Canvas API.
- * This file is used on web platform only.
+ * Web image encoding (Canvas API). Metro resolves this file for web only.
+ *
+ * This is the encode *primitive* plus the platform adapter — one rung, one call.
+ * All ladder logic lives in `ladder.ts` so both platforms share it.
+ *
+ * Two web-specific hazards are handled here:
+ * - Canvas ceilings: a canvas above the engine's limit draws blank instead of
+ *   throwing, so target dimensions are clamped before drawing.
+ * - `toBlob` type substitution: Safari answers an unsupported request (WebP)
+ *   with PNG and says nothing, so the output's `Blob.type` is read back rather
+ *   than assumed. The client never requests WebP either way.
  */
-import type { CompressedImage, CompressImageOptions } from "./types";
+import type { ImagePlatformAdapter } from "../adapter";
+import type { CompressedImage, CompressImageOptions, EncodedImage, EncodeImageOptions } from "./types";
+/** One rung: decode, clamp, draw, encode, wrap. */
+export declare function encodeImageWeb(options: EncodeImageOptions): Promise<EncodedImage>;
+export declare function disposeEncodedImageWeb(image: {
+    uri: string;
+}): void;
+export declare const imagePlatformAdapter: ImagePlatformAdapter;
 /**
- * Compress an image using the Canvas API.
+ * Run the dimension ladder on this platform.
  *
- * Features:
- * - Resize to max dimension while maintaining aspect ratio
- * - Adjustable quality for JPEG/WebP
- * - Progressive quality reduction to hit target file size
- * - Returns both URI (blob URL) and Blob for upload flexibility
- *
- * @param options - Compression options including URI, dimensions, and config
- * @returns Promise resolving to CompressedImage with blob URL and metadata
+ * @returns The winning rung, flagged `overBudget` when even the smallest rung
+ * missed the byte budget.
  */
 export declare function compressImage(options: CompressImageOptions): Promise<CompressedImage>;

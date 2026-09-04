@@ -1,4 +1,9 @@
 import { createMediaConfig } from "@mrmeg/expo-media";
+import {
+  IMAGE_CONTENT_TYPES,
+  MEDIA_PATHS,
+  VIDEO_CONTENT_TYPES,
+} from "@/shared/media";
 
 export const MEDIA_STORAGE_ENV_KEYS = [
   "R2_JURISDICTION_SPECIFIC_URL",
@@ -9,27 +14,12 @@ export const MEDIA_STORAGE_ENV_KEYS = [
 
 export type MediaStorageEnvKey = (typeof MEDIA_STORAGE_ENV_KEYS)[number];
 
-export const TEMPLATE_MEDIA_PATHS = {
-  avatars: "users/avatars",
-  videos: "videos",
-  thumbnails: "thumbnails",
-  uploads: "uploads",
-} as const;
-
-const IMAGE_CONTENT_TYPES = [
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/heic",
-] as const;
-
-const VIDEO_CONTENT_TYPES = [
-  "video/mp4",
-  "video/quicktime",
-  "video/webm",
-] as const;
+/**
+ * The storage prefixes. Identical to the shared `MEDIA_PATHS` by definition —
+ * the client and the server must agree on where objects live — so this is an
+ * alias rather than a second copy that can drift.
+ */
+export const TEMPLATE_MEDIA_PATHS = MEDIA_PATHS;
 
 function isMissing(value: string | undefined): boolean {
   return value === undefined || value.trim() === "";

@@ -1,12 +1,4 @@
-import {
-  calculateDimensions,
-  formatFileSize,
-  getMimeType,
-  reduceQuality,
-  shouldContinueCompression,
-  shouldUseProcessedFile,
-  shouldUseCompressedImage,
-} from "../utils";
+import { calculateDimensions, formatFileSize, longEdgeOf } from "../utils";
 
 describe("image compression utilities", () => {
   describe("calculateDimensions", () => {
@@ -68,87 +60,17 @@ describe("image compression utilities", () => {
     });
   });
 
-  describe("getMimeType", () => {
-    it("returns image/jpeg for jpeg format", () => {
-      expect(getMimeType("jpeg")).toBe("image/jpeg");
+  describe("longEdgeOf", () => {
+    it("returns the longer edge either way round", () => {
+      expect(longEdgeOf(4000, 3000)).toBe(4000);
+      expect(longEdgeOf(3000, 4000)).toBe(4000);
+      expect(longEdgeOf(1024, 1024)).toBe(1024);
     });
 
-    it("returns image/png for png format", () => {
-      expect(getMimeType("png")).toBe("image/png");
-    });
-
-    it("returns image/webp for webp format", () => {
-      expect(getMimeType("webp")).toBe("image/webp");
-    });
-
-    it("returns image/jpeg for null format (default)", () => {
-      expect(getMimeType(null)).toBe("image/jpeg");
-    });
-  });
-
-  describe("reduceQuality", () => {
-    it("reduces quality by 0.05", () => {
-      expect(reduceQuality(0.85)).toBe(0.8);
-      expect(reduceQuality(0.8)).toBe(0.75);
-      expect(reduceQuality(0.75)).toBe(0.7);
-    });
-
-    it("handles floating point precision correctly", () => {
-      // 0.9 - 0.05 = 0.85 (not 0.8500000000000001)
-      expect(reduceQuality(0.9)).toBe(0.85);
-      expect(reduceQuality(0.65)).toBe(0.6);
-    });
-
-    it("can go below 0 (caller should check minQuality)", () => {
-      expect(reduceQuality(0.03)).toBe(-0.02);
-    });
-  });
-
-  describe("shouldContinueCompression", () => {
-    it("stops when no max size is configured", () => {
-      expect(shouldContinueCompression(2_000, null, 0.8, 0.6)).toBe(false);
-      expect(shouldContinueCompression(1_000_000, null, 0.8, 0.5)).toBe(false);
-    });
-
-    it("stops when the file is already under the target size", () => {
-      expect(shouldContinueCompression(400 * 1024, 500, 0.8, 0.5)).toBe(false);
-    });
-
-    it("stops when quality reaches the configured floor", () => {
-      expect(shouldContinueCompression(2_000, 1, 0.6, 0.6)).toBe(false);
-      expect(shouldContinueCompression(600 * 1024, 500, 0.5, 0.5)).toBe(false);
-    });
-
-    it("continues while over the target and above the quality floor", () => {
-      expect(shouldContinueCompression(2_000, 1, 0.8, 0.6)).toBe(true);
-      expect(shouldContinueCompression(600 * 1024, 500, 0.8, 0.5)).toBe(true);
-    });
-
-    it("handles exact boundary conditions", () => {
-      // File size exactly equals max
-      expect(shouldContinueCompression(500 * 1024, 500, 0.8, 0.5)).toBe(false);
-
-      // Quality just above minimum
-      expect(shouldContinueCompression(600 * 1024, 500, 0.51, 0.5)).toBe(true);
-    });
-  });
-
-  describe("shouldUseProcessedFile", () => {
-    it("uses processed output when source size is unknown", () => {
-      expect(shouldUseProcessedFile(0, 10_000)).toBe(true);
-    });
-
-    it("uses processed output only when it is smaller than the source", () => {
-      expect(shouldUseProcessedFile(10_000, 9_999)).toBe(true);
-      expect(shouldUseProcessedFile(10_000, 10_000)).toBe(false);
-      expect(shouldUseProcessedFile(10_000, 12_000)).toBe(false);
-    });
-  });
-
-  describe("shouldUseCompressedImage", () => {
-    it("delegates to the generic processed-file guard", () => {
-      expect(shouldUseCompressedImage(10_000, 9_999)).toBe(true);
-      expect(shouldUseCompressedImage(10_000, 10_000)).toBe(false);
+    it("treats missing dimensions as zero rather than negative", () => {
+      expect(longEdgeOf(0, 0)).toBe(0);
+      expect(longEdgeOf(-10, 0)).toBe(0);
+      expect(longEdgeOf(-10, 800)).toBe(800);
     });
   });
 

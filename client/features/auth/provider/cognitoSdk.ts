@@ -24,9 +24,15 @@
 
 import { Amplify } from "aws-amplify";
 import { Hub } from "aws-amplify/utils";
-// The whole auth namespace: getCurrentUser, fetchAuthSession, signIn, signUp,
-// confirmSignUp, autoSignIn, resendSignUpCode, resetPassword,
-// confirmResetPassword, signOut.
+// The whole auth namespace: getCurrentUser, fetchAuthSession, signIn,
+// confirmSignIn, signInWithRedirect, signUp, confirmSignUp, autoSignIn,
+// resendSignUpCode, resetPassword, confirmResetPassword, signOut.
+//
+// A namespace import is what keeps that list from becoming a maintenance
+// burden: `confirmSignIn` (email-OTP challenge) and `signInWithRedirect`
+// (managed-login social sign-in) needed no import change here, only this
+// comment. Anything else `aws-amplify/auth` exports is already reachable —
+// resist adding a second `import("aws-amplify/…")` anywhere else.
 import * as amplifyAuth from "aws-amplify/auth";
 
 export { Amplify, Hub, amplifyAuth };

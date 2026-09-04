@@ -23,6 +23,7 @@ Do normal coding work directly unless the user explicitly asks for a plan.
 | Server Guide | [`docs/server-guide.md`](docs/server-guide.md) | Server output, server rendering, API routes, data loaders, middleware, replication checklist |
 | Bundle Analysis | [`docs/bundle-analysis.md`](docs/bundle-analysis.md) | Bundle-size guard usage and baseline update steps |
 | Error Tracking | [`docs/error-tracking.md`](docs/error-tracking.md) | Sentry runtime and native upload setup |
+| Media Worker Migration | [`docs/media-worker-migration.md`](docs/media-worker-migration.md) | Shared media Worker contract, consumer migration checklists, legacy-worker teardown |
 | UI Package | [`packages/ui/README.md`](packages/ui/README.md) | `@mrmeg/expo-ui` install, setup, components, theming, publishing |
 | Media Package | [`packages/media/README.md`](packages/media/README.md) | `@mrmeg/expo-media` install, setup, processing, server handlers |
 

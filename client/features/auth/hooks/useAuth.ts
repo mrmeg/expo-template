@@ -1,6 +1,11 @@
 import { useCallback } from "react";
 import { useAuthStore, initAuth } from "../stores/authStore";
-import { AuthError, getAuthClient, type AuthClient } from "../provider";
+import {
+  AuthError,
+  getAuthClient,
+  type AuthClient,
+  type SocialAuthProviderName,
+} from "../provider";
 
 async function requireAuthClient(): Promise<AuthClient> {
   const [client] = await Promise.all([getAuthClient(), initAuth()]);
@@ -36,14 +41,58 @@ export function useAuth() {
   }, [initialize]);
 
   /**
-   * Sign up with email and password
+   * Start a passwordless sign-in — the provider emails a one-time code.
+   * `needsConfirmation` means the caller should collect the code and call
+   * `confirmSignInCode`.
+   */
+  const handleSignInWithEmailCode = useCallback(async ({ email }: { email: string }) => {
+    const client = await requireAuthClient();
+    const result = await client.signInWithEmailCode({ email });
+
+    if (result.status === "complete") {
+      await initialize();
+    }
+
+    return result;
+  }, [initialize]);
+
+  /**
+   * Finish the in-flight email-code sign-in. The pending challenge lives in the
+   * provider SDK, so no email is passed; a rejection means the code was wrong or
+   * the challenge is gone and the caller should request a new one.
+   */
+  const handleConfirmSignInCode = useCallback(async ({ code }: { code: string }) => {
+    const client = await requireAuthClient();
+    const result = await client.confirmSignInCode({ code });
+
+    await initialize();
+
+    return result;
+  }, [initialize]);
+
+  /**
+   * Launch a federated sign-in redirect. Resolves once the browser has the
+   * redirect; the session lands later through the provider's change events, so
+   * callers show a pending state rather than treating this as "signed in".
+   */
+  const handleSignInWithProvider = useCallback(async (provider: SocialAuthProviderName) => {
+    const client = await requireAuthClient();
+    await client.signInWithProvider(provider);
+  }, []);
+
+  /**
+   * Sign up with an email address, optionally with a password.
+   *
+   * Omitting the password creates a passwordless account: the emailed
+   * confirmation code finishes sign-up, and `signInWithEmailCode` is how that
+   * account signs in from then on.
    */
   const handleSignUp = useCallback(async ({
     email,
     password,
   }: {
     email: string;
-    password: string;
+    password?: string;
   }) => {
     const client = await requireAuthClient();
     const result = await client.signUp({ email, password });
@@ -122,6 +171,9 @@ export function useAuth() {
   return {
     checkAuthState,
     signIn: handleSignIn,
+    signInWithEmailCode: handleSignInWithEmailCode,
+    confirmSignInCode: handleConfirmSignInCode,
+    signInWithProvider: handleSignInWithProvider,
     signUp: handleSignUp,
     confirmSignUp: handleConfirmSignUp,
     resendCode: handleResendCode,

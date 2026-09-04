@@ -27,7 +27,7 @@ export function createMediaClient({ basePath = "/api/media", fetcher = fetch, } 
         });
     }
     async function upload(options) {
-        const size = options.size ?? getUploadSize(options.file);
+        const size = options.size ?? (await resolveUploadSize(options.file));
         const signed = await getUploadUrl({
             contentType: options.contentType,
             mediaType: options.mediaType,
@@ -94,10 +94,36 @@ export function createMediaClient({ basePath = "/api/media", fetcher = fetch, } 
         deleteMany,
     };
 }
-function getUploadSize(file) {
-    if (typeof file === "string")
+const statNativeFileSize = async (uri) => {
+    // Lazy so `expo-file-system` stays out of the eager web bundle.
+    const { File: FileSystemFile } = await import("expo-file-system");
+    const size = new FileSystemFile(uri).size;
+    return typeof size === "number" && size > 0 ? size : undefined;
+};
+/**
+ * Byte size of an upload payload, for the server's per-media-type `maxBytes`
+ * check.
+ *
+ * Blobs know their own size. A native file URI does not, and returning
+ * `undefined` for it — as this used to — made the size check web-only: an
+ * oversized file from a phone was accepted, uploaded in full, and only then
+ * failed. `expo-file-system` can stat it, so it does.
+ *
+ * @param stat - Overrides the filesystem read. Present because the lazy
+ * `import()` only resolves inside a bundler.
+ */
+export async function resolveUploadSize(file, stat = statNativeFileSize) {
+    if (typeof file !== "string")
+        return file.size;
+    if (Platform.OS === "web")
         return undefined;
-    return file.size;
+    try {
+        return await stat(file);
+    }
+    catch {
+        // An unstattable URI still uploads; the server enforces the cap on receipt.
+        return undefined;
+    }
 }
 async function uploadNative(uploadUrl, fileUri, contentType) {
     const [{ File }, { fetch: expoFetch }] = await Promise.all([

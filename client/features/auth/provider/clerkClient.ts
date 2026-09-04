@@ -10,7 +10,9 @@
  * the existing screens):
  *   signIn        → clerk.client.signIn.create({ identifier, password })
  *   signUp        → clerk.client.signUp.create({ emailAddress, password })
- *                   + prepareEmailAddressVerification({ strategy: "email_code" })
+ *                   + prepareEmailAddressVerification({ strategy: "email_code" });
+ *                   the contract's optional password is required here, so a
+ *                   passwordless sign-up reports `unsupported`.
  *   confirmSignUp → signUp.attemptEmailAddressVerification; setActive on the
  *                   created session, so autoSignedIn is always true.
  *   forgot/reset  → signIn.create({ strategy: "reset_password_email_code" })
@@ -163,7 +165,46 @@ export function createClerkAuthClient(): AuthClient {
       });
     },
 
+    /**
+     * Passwordless sign-in/sign-up and social sign-in are Cognito-only for now:
+     * the template's apps are migrating off Clerk, so these stay `unsupported`
+     * rather than growing a second implementation. `getSocialAuthProviders()`
+     * keeps the social buttons hidden on the Clerk path; the passwordless
+     * actions are not env-gated (the Cognito side depends on pool settings this
+     * app can't read), so a Clerk deploy that offers them shows the normalized
+     * message below instead of a generic failure.
+     */
+    async signInWithEmailCode(): Promise<AuthFlowResult> {
+      throw new AuthError(
+        "unsupported",
+        "Email-code sign-in is not implemented for Clerk. Use password sign-in or switch EXPO_PUBLIC_AUTH_PROVIDER to cognito.",
+      );
+    },
+
+    async confirmSignInCode(): Promise<{ status: "complete" }> {
+      throw new AuthError(
+        "unsupported",
+        "Email-code sign-in is not implemented for Clerk. Use password sign-in or switch EXPO_PUBLIC_AUTH_PROVIDER to cognito.",
+      );
+    },
+
+    async signInWithProvider(): Promise<void> {
+      throw new AuthError(
+        "unsupported",
+        "Social sign-in is not implemented for Clerk. Use password sign-in or switch EXPO_PUBLIC_AUTH_PROVIDER to cognito.",
+      );
+    },
+
     async signUp({ email, password }): Promise<AuthFlowResult> {
+      // Password-optional sign-up is Cognito-only, for the reason above. Fail
+      // before touching the SDK so a caller can offer the password path instead.
+      if (password === undefined) {
+        throw new AuthError(
+          "unsupported",
+          "Signing up without a password is not implemented for Clerk. Provide a password or switch EXPO_PUBLIC_AUTH_PROVIDER to cognito.",
+        );
+      }
+
       return withAuthErrors(async () => {
         const clerk = await clerkInstance();
         const signUp = clerk.client?.signUp;
