@@ -87,6 +87,64 @@ is fully trusted (internal tooling).
 **Raw fetch** — the curl examples above translate directly; only
 `getUploadUrl` → `PUT` requires two steps.
 
+## Switching a project onto the Worker
+
+The end-to-end checklist for any app, in order. Steps 1 and 2 are independent
+of each other; both are usually wanted.
+
+**1. Upgrade the package to `@mrmeg/expo-media` >= 0.5.0.**
+
+```sh
+bun add @mrmeg/expo-media@^0.5.0
+```
+
+0.5.0 rebuilt the client image pipeline and is **breaking** for anything older
+(the apps on `^0.2.1` will not compile against it untouched). Removed:
+`keepOriginalIfLarger`, `getMimeType()`, `shouldUseProcessedFile()`,
+`shouldUseCompressedImage()`, `reduceQuality()`,
+`shouldContinueCompression()`, the cleanup subsystem, and
+`configureMediaDebugLogger()`. Changed: `CompressionConfig` is ladder-shaped
+(`{ rungs, quality, byteBudget, passthroughBytes, format }`), and
+`format: null` now means "the upload policy decides" (PNG stays PNG) rather
+than "default to JPEG". The migration is to call `processAsset()` from
+`@mrmeg/expo-media/processing` instead of calling `compressImage` and
+assembling a content type per branch — it returns one frozen `ProcessedUpload`
+whose `contentType` is guaranteed to be in the allowlist you passed, or it
+throws `MediaProcessingError`. Full list in
+[`packages/media/CHANGELOG.md`](../packages/media/CHANGELOG.md).
+
+Worth doing even for an app that stays self-hosted: this is what fixes HEIF
+uploads being rejected, PNG alpha loss, and rotated-photo distortion.
+
+**2. Check the storage precondition.** The Worker fronts the **`mrmeg` R2
+bucket only**, and every valid token currently sees that whole bucket. An app
+with its own bucket must either have its objects copied across
+(`rclone` / `wrangler r2 object`) or wait for per-app bucket/prefix scoping to
+be specced (`MediaTokenAuth.app` is the extension point). Do not point half an
+app at each bucket.
+
+**3. Provision a token** (from `workers/media/`; `--remote` is required or
+wrangler writes to the *local* KV emulator and the deployed Worker never sees
+the token):
+
+```sh
+TOKEN="$(openssl rand -hex 32)"
+bunx wrangler kv key put --binding MEDIA_AUTH "token:$TOKEN" '{"app":"myapp"}' --remote
+echo "$TOKEN"
+```
+
+Store it in that app's own server secret store — it is not recoverable from
+KV. Allow up to a minute of KV edge propagation before the first request
+succeeds.
+
+**4. Wire the client** as shown above, keeping the token server-side: replace
+the app's own `/api/media/*` route bodies with proxied calls to the Worker, so
+the bearer token never reaches the JS bundle.
+
+**5. Verify** before deleting anything: upload -> list -> signed read -> delete
+round-trip from the app, then confirm the objects appear under the expected
+`mediaType` prefix.
+
 ## Current consumers: actual state and mapping
 
 ### terlo — already compliant, stays self-hosted (decision 2026-09-03)
