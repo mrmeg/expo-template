@@ -6,7 +6,7 @@
  * the same env contract. Regressions we care about:
  *   - blank env → auth disabled (the template stays explorable)
  *   - each provider activates on its own vars
- *   - Clerk wins ties unless EXPO_PUBLIC_AUTH_PROVIDER says otherwise
+ *   - Cognito wins ties unless EXPO_PUBLIC_AUTH_PROVIDER says otherwise
  *   - an explicit provider choice without its config fails closed (null)
  *
  * Scope note: `getAuthClient()`'s happy paths dynamic-import the provider
@@ -70,19 +70,19 @@ describe("getAuthProvider", () => {
     expect(subject()).toBeNull();
   });
 
-  it("prefers clerk when both providers are configured", () => {
+  it("prefers cognito when both providers are configured", () => {
     process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_abc";
     process.env.EXPO_PUBLIC_USER_POOL_ID = "us-east-1_abc";
     process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID = "client123";
-    expect(subject()).toBe("clerk");
+    expect(subject()).toBe("cognito");
   });
 
-  it("honors EXPO_PUBLIC_AUTH_PROVIDER=cognito over the clerk default", () => {
+  it("honors EXPO_PUBLIC_AUTH_PROVIDER=clerk over the cognito default", () => {
     process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_abc";
     process.env.EXPO_PUBLIC_USER_POOL_ID = "us-east-1_abc";
     process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID = "client123";
-    process.env.EXPO_PUBLIC_AUTH_PROVIDER = "cognito";
-    expect(subject()).toBe("cognito");
+    process.env.EXPO_PUBLIC_AUTH_PROVIDER = "clerk";
+    expect(subject()).toBe("clerk");
   });
 
   it("fails closed when the explicit provider is not configured", () => {

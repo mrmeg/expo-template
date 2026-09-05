@@ -104,7 +104,7 @@ export function validateClientEnv(): void {
     );
   }
 
-  // Both providers fully configured without an explicit choice — Clerk wins,
+  // Both providers fully configured without an explicit choice — Cognito wins,
   // but flag it so the selection is deliberate.
   if (
     isMissing(authProvider) &&
@@ -113,7 +113,7 @@ export function validateClientEnv(): void {
     !clientMissing
   ) {
     console.warn(
-      "⚠️ Both Clerk and Cognito are configured; defaulting to Clerk. Set EXPO_PUBLIC_AUTH_PROVIDER to choose explicitly.",
+      "⚠️ Both Clerk and Cognito are configured; defaulting to Cognito. Set EXPO_PUBLIC_AUTH_PROVIDER to choose explicitly.",
     );
   }
 

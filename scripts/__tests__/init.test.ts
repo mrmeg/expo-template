@@ -238,10 +238,10 @@ describe("buildEnvUpdates", () => {
 
 describe("parseAuthChoice", () => {
   it("accepts menu numbers and provider names", () => {
-    expect(parseAuthChoice("1")).toBe("clerk");
-    expect(parseAuthChoice("clerk")).toBe("clerk");
-    expect(parseAuthChoice("2")).toBe("cognito");
+    expect(parseAuthChoice("1")).toBe("cognito");
     expect(parseAuthChoice("COGNITO")).toBe("cognito");
+    expect(parseAuthChoice("2")).toBe("clerk");
+    expect(parseAuthChoice("clerk")).toBe("clerk");
     expect(parseAuthChoice("3")).toBe("none");
     expect(parseAuthChoice("none")).toBe("none");
   });

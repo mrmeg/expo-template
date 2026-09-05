@@ -3,12 +3,12 @@
  *
  * The active provider is derived from env, mirroring the fail-closed policy
  * in `isAuthEnabled` and the server's `ensureAuthBootstrapped`:
- *   - `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` set          → Clerk
  *   - both Cognito user-pool vars set                  → Cognito
+ *   - `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` set          → Clerk
  *   - neither                                          → auth disabled (null)
  *
  * When both are configured, `EXPO_PUBLIC_AUTH_PROVIDER` ("clerk" | "cognito")
- * disambiguates; without it, Clerk wins and we warn once in dev.
+ * disambiguates; without it, Cognito wins and we warn once in dev.
  *
  * `getAuthClient()` lazily imports the selected implementation so the unused
  * SDK never enters the bundle path at runtime.
@@ -55,12 +55,12 @@ export function getAuthProvider(): AuthProviderName | null {
   if (clerkConfigured && cognitoConfigured && __DEV__ && !warnedAmbiguous) {
     warnedAmbiguous = true;
     console.warn(
-      "⚠️ Both Clerk and Cognito env vars are set; defaulting to Clerk. Set EXPO_PUBLIC_AUTH_PROVIDER to choose explicitly.",
+      "⚠️ Both Clerk and Cognito env vars are set; defaulting to Cognito. Set EXPO_PUBLIC_AUTH_PROVIDER to choose explicitly.",
     );
   }
 
-  if (clerkConfigured) return "clerk";
   if (cognitoConfigured) return "cognito";
+  if (clerkConfigured) return "clerk";
   return null;
 }
 

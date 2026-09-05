@@ -6,7 +6,7 @@
  *   bun run init
  *   bun run init --name "Acme" --slug acme --scheme acme \
  *     --bundle-id com.acme.app --android-package com.acme.app \
- *     --auth clerk --templates list,pricing --yes
+ *     --auth cognito --templates list,pricing --yes
  *
  * What it does:
  *   1. Writes `.env` from `.env.example` with the five `EXPO_PUBLIC_APP_*`
@@ -165,8 +165,8 @@ export type AuthChoice = "clerk" | "cognito" | "none";
 /** Accept the menu number or the provider name; `null` when unrecognized. */
 export function parseAuthChoice(input: string): AuthChoice | null {
   const value = input.trim().toLowerCase();
-  if (value === "1" || value === "clerk") return "clerk";
-  if (value === "2" || value === "cognito") return "cognito";
+  if (value === "1" || value === "cognito") return "cognito";
+  if (value === "2" || value === "clerk") return "clerk";
   if (value === "3" || value === "none" || value === "") return "none";
   return null;
 }
@@ -730,8 +730,8 @@ async function promptField(
 
 async function promptAuth(rl: Prompter): Promise<AuthChoice> {
   log("\nAuth provider", "blue");
-  log("  1) Clerk", "gray");
-  log("  2) Cognito", "gray");
+  log("  1) Cognito", "gray");
+  log("  2) Clerk", "gray");
   log("  3) None (auth stays disabled)", "gray");
   for (;;) {
     const answer = await ask(rl, "  Choose", "3");
@@ -813,7 +813,7 @@ function showHelp() {
   log("  --scheme <scheme>          Deep-link scheme (default: slug)");
   log("  --bundle-id <id>           iOS bundle identifier (default: com.<name>)");
   log("  --android-package <id>      Android package (default: com.<name>)");
-  log("  --auth clerk|cognito|none  Auth provider (default: none)");
+  log("  --auth cognito|clerk|none  Auth provider (default: none)");
   log("  --templates <ids>          Screen templates to KEEP, or \"none\"/\"all\"");
   log("  --prebuild                 Run `bunx expo prebuild --clean` afterwards");
   log("  --no-prebuild              Skip prebuild (prints the command instead)");
@@ -821,7 +821,7 @@ function showHelp() {
   log("  --yes, -y                  Non-interactive; accept defaults");
   log("\nExamples:", "yellow");
   log("  bun run init");
-  log("  bun run init --name \"Acme\" --auth clerk --templates list,pricing --yes");
+  log("  bun run init --name \"Acme\" --auth cognito --templates list,pricing --yes");
   log("");
 }
 
@@ -875,7 +875,7 @@ async function main() {
       identity = resolveIdentityFromOptions(options);
       const parsedAuth = parseAuthChoice(options.auth ?? "none");
       if (!parsedAuth) {
-        log(`Error: Unknown --auth value "${options.auth}". Use clerk, cognito, or none.`, "red");
+        log(`Error: Unknown --auth value "${options.auth}". Use cognito, clerk, or none.`, "red");
         process.exit(1);
       }
       auth = parsedAuth;

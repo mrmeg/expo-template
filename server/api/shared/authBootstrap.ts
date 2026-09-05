@@ -3,13 +3,13 @@
  *
  * Selects the auth provider from env, mirroring the client's
  * `getAuthProvider()` (client/features/auth/provider):
- *   - `CLERK_SECRET_KEY` set                → Clerk verifier
  *   - both Cognito user-pool vars set       → Cognito verifier
+ *   - `CLERK_SECRET_KEY` set                → Clerk verifier
  *   - neither                               → registry stays unset and
  *     `requireAuthenticatedUser` fails closed with 401 rather than
  *     accepting unverified tokens.
  * When both are configured, `EXPO_PUBLIC_AUTH_PROVIDER` disambiguates
- * (Clerk wins without it).
+ * (Cognito wins without it).
  *
  * The bootstrap is idempotent and lazy: every protected API route calls
  * `ensureAuthBootstrapped()` before running auth, so JWKs fetching is
@@ -53,8 +53,8 @@ export function ensureAuthBootstrapped(
   let provider: "clerk" | "cognito" | null;
   if (explicit === "clerk") provider = clerkConfigured ? "clerk" : null;
   else if (explicit === "cognito") provider = cognitoConfigured ? "cognito" : null;
-  else if (clerkConfigured) provider = "clerk";
   else if (cognitoConfigured) provider = "cognito";
+  else if (clerkConfigured) provider = "clerk";
   else provider = null;
 
   if (provider === "clerk") {

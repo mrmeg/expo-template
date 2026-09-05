@@ -168,7 +168,7 @@ describe("validateClientEnv", () => {
     process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID = "client-id-abc";
     load().validateClientEnv();
     expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(String(warnSpy.mock.calls[0][0])).toContain("defaulting to Clerk");
+    expect(String(warnSpy.mock.calls[0][0])).toContain("defaulting to Cognito");
   });
 
   it("does not warn when both providers are configured and one is chosen explicitly", () => {

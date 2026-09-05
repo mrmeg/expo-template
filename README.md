@@ -15,7 +15,7 @@ template docs under `docs/`.
 - **i18n** — `i18next` + `expo-localization`, English/Spanish bundles, RTL support, type-safe translation keys.
 
 ### Optional features (all default off, enabled by env)
-- **Auth** — Clerk or AWS Amplify / Cognito behind one shared `AuthClient`. The provider is picked from env: `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` selects Clerk, `EXPO_PUBLIC_USER_POOL_ID` + `EXPO_PUBLIC_USER_POOL_CLIENT_ID` select Cognito, Clerk wins when both are set, and `EXPO_PUBLIC_AUTH_PROVIDER` (`"clerk"` | `"cognito"`) forces one. With neither configured the auth shell stays disabled and the template remains explorable.
+- **Auth** — AWS Amplify / Cognito or Clerk behind one shared `AuthClient`. The provider is picked from env: `EXPO_PUBLIC_USER_POOL_ID` + `EXPO_PUBLIC_USER_POOL_CLIENT_ID` select Cognito, `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` selects Clerk, Cognito wins when both are set, and `EXPO_PUBLIC_AUTH_PROVIDER` (`"clerk"` | `"cognito"`) forces one. With neither configured the auth shell stays disabled and the template remains explorable.
   - **Sign-in methods (Cognito)** — email one-time code (the default layout, `USER_AUTH` + `EMAIL_OTP`, no Lambdas), password (behind a toggle), and Google/Apple via Managed Login. Email codes need the pool to allow `EMAIL_OTP` as a first auth factor and the client to allow `ALLOW_USER_AUTH`; social sign-in additionally needs `EXPO_PUBLIC_COGNITO_DOMAIN` plus `EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS="google,apple"`, registered identity providers, and a dev build on native (Expo Go can't autolink `@aws-amplify/rtn-web-browser`). `bash scripts/create-cognito-pool.sh` provisions a pool with those settings; without them the extra buttons stay hidden and password sign-in is unaffected. Clerk reports these flows as `unsupported`.
   - **Sign-up (Cognito)** — password-optional and email-first: the default action creates the account with no password at all (confirmed by the emailed code, then signed in with email codes from then on), and "Add a password" reveals the password + confirm fields for the classic flow. Passwordless sign-up needs the same pool setting email codes do — `EMAIL_OTP` allowed as a first auth factor — and a pool without it rejects the request with a surfaced error naming the requirement, leaving the password path usable. Clerk reports a sign-up without a password as `unsupported`.
 - **Billing** — Stripe Checkout + Billing Portal (`hosted-external`). Without `STRIPE_*` env vars every `/api/billing/*` route returns a typed `503 billing-disabled` and the UI hides purchase CTAs.
@@ -173,7 +173,7 @@ UI system.
   ├── components/             # App-local shared components
   ├── config/                 # Base / dev / prod app config (merged at runtime)
   ├── features/               # Self-contained feature folders
-  │   ├── auth/               #   Clerk or Cognito, env-selected (optional)
+  │   ├── auth/               #   Cognito or Clerk, env-selected (optional)
   │   ├── billing/            #   Stripe hosted-external (optional)
   │   ├── media/              #   R2/S3 uploads (optional)
   │   ├── i18n/               #   i18next + translations
@@ -241,7 +241,7 @@ if (result.kind === "ok") {
 api.setAuthToken(token); // optional manual token
 
 // 2. authenticatedFetch — pulls a token from the provider-agnostic
-//    getAuthClient() (Clerk or Cognito, whichever env selected; no token
+//    getAuthClient() (Cognito or Clerk, whichever env selected; no token
 //    when auth is disabled) and is the default for code that uses the
 //    bundled auth shell.
 import { api as authedApi } from "@/client/lib/api/authenticatedFetch";
@@ -446,7 +446,7 @@ GitHub Actions CI to EAS Workflows are not configured here.
 - TypeScript 6 (strict), path alias `@/*` -> repo root
 - Expo Router 57 (typed routes, server-rendered web build)
 - Zustand 5, TanStack React Query 5
-- Clerk or AWS Amplify 6 + Cognito (optional; env-selected, fail-closed to disabled)
+- AWS Amplify 6 + Cognito or Clerk (optional; env-selected, fail-closed to disabled)
 - Stripe 22 (server, hosted-external Checkout + Billing Portal)
 - AWS S3 client + presigner (R2-compatible)
 - react-hook-form 7 + Zod 4 + `@hookform/resolvers`
