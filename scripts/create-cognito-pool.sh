@@ -20,6 +20,7 @@
 #
 # Configure by env var:
 #   POOL_NAME       user pool name                     (default: expo-template)
+#   APP_NAME        display name in code emails        (default: <POOL_NAME>)
 #   CLIENT_NAME     app client name                    (default: <POOL_NAME>-app)
 #   REGION          AWS region                         (default: from your CLI config)
 #   DOMAIN_PREFIX   Managed Login prefix, globally unique in the region
@@ -38,6 +39,7 @@
 set -euo pipefail
 
 POOL_NAME="${POOL_NAME:-expo-template}"
+APP_NAME="${APP_NAME:-$POOL_NAME}"
 CLIENT_NAME="${CLIENT_NAME:-${POOL_NAME}-app}"
 APP_SCHEME="${APP_SCHEME:-myapp}"
 WEB_ORIGINS="${WEB_ORIGINS:-http://localhost:8081}"
@@ -71,6 +73,7 @@ done
 
 echo "==> Region:       $REGION"
 echo "==> Pool name:    $POOL_NAME"
+echo "==> App name:     $APP_NAME"
 echo "==> Client name:  $CLIENT_NAME"
 echo "==> Callback URLs: ${CALLBACK_URLS[*]}"
 echo
@@ -124,6 +127,23 @@ POOL_ID="$(aws cognito-idp create-user-pool \
   "${EMAIL_CONFIG[@]}" \
   --query 'UserPool.Id' --output text)"
 echo "    $POOL_ID"
+
+# ---------------------------------------------------------------------------
+# 1b. Branded code emails — scripts/cognito-email/*.html rendered with APP_NAME
+#
+# Needs the repo checkout and Node; when this script is pasted into CloudShell
+# instead, run `bun run auth:emails --pool <id> --app-name "<name>"` from the
+# repo afterwards. See scripts/cognito-email/README.md.
+# ---------------------------------------------------------------------------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/apply-cognito-email-templates.ts" ] && command -v npx >/dev/null 2>&1; then
+  echo "==> Applying email templates..."
+  (cd "$SCRIPT_DIR/.." && npx tsx scripts/apply-cognito-email-templates.ts \
+    --pool "$POOL_ID" --app-name "$APP_NAME" --region "$REGION")
+else
+  echo "!! Email templates not applied (repo files or npx missing). Run later:"
+  echo "   bun run auth:emails --pool $POOL_ID --app-name \"$APP_NAME\" --region $REGION"
+fi
 
 # ---------------------------------------------------------------------------
 # 2. Managed Login domain (required for social sign-in only)
