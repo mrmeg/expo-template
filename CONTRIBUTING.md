@@ -14,7 +14,6 @@ This project uses **bun**. Always use `bun install` and `bun add <package>` — 
 
 - **Double quotes**, **always semicolons** (enforced by ESLint)
 - 2-space indentation
-- `bun run lint` runs automatically on commit (see Git Hooks)
 
 ## Git Workflow
 
@@ -22,23 +21,6 @@ This project uses **bun**. Always use `bun install` and `bun add <package>` — 
 - Use Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `test:`
 - Keep commits small and focused
 - Open PRs against `dev`, not `main`
-
-## Git Hooks
-
-`bun install` installs [lefthook](https://lefthook.dev) via the `prepare`
-script. The `pre-commit` hook (`lefthook.yml`) runs only the fast gates —
-`typecheck`, `lint`, `gen:templates:check`, `gen:blocks:check`,
-`docs:llms:check` — in parallel,
-about five seconds total. There is deliberately **no pre-push hook**: pushing a
-work-in-progress branch should never wait on the test suite.
-
-Outside a git work tree the `prepare` script exits 0 without installing hooks, so
-`bun install` works on an unzipped copy of the template before `git init`; run
-`bunx lefthook install` once the repo is initialized.
-
-- Full CI-parity pass, including tests: `bun run verify`
-- Skip hooks once: `git commit --no-verify` or `LEFTHOOK=0 git commit ...`
-- Reinstall after changing `lefthook.yml`'s hook list: `bunx lefthook install`
 
 ## PR Checklist
 

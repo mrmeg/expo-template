@@ -6,12 +6,9 @@
  * fail when they drift — adding a CI step without adding it to `verify` (or
  * vice versa) is the exact regression that sends contributors back to
  * "push and wait for CI".
- *
- * The pre-commit hook is checked here too: it must stay cheap (no test run)
- * and there must be no default pre-push hook, so pushing stays fast.
  */
 import { execFileSync } from "child_process";
-import { existsSync, readFileSync } from "fs";
+import { readFileSync } from "fs";
 import { join } from "path";
 
 const root = join(__dirname, "..", "..");
@@ -45,25 +42,8 @@ function verifyGates(): { name: string; command: string }[] {
     });
 }
 
-/** Job names and `run:` commands under a top-level lefthook.yml hook key. */
-function lefthookJobs(hook: string): { names: string[]; runs: string[] } {
-  const config = read("lefthook.yml");
-  const hookStart = config.indexOf(`\n${hook}:`);
-  if (hookStart === -1) return { names: [], runs: [] };
-
-  const rest = config.slice(hookStart + 1);
-  const nextHook = rest.slice(hook.length + 1).search(/^\S/m);
-  const section = nextHook === -1 ? rest : rest.slice(0, hook.length + 1 + nextHook);
-
-  return {
-    names: [...section.matchAll(/^\s*-?\s*name:\s*(\S+)\s*$/gm)].map((match) => match[1]),
-    runs: [...section.matchAll(/^\s*run:\s*(.+?)\s*$/gm)].map((match) => match[1]),
-  };
-}
-
 const packageJson = JSON.parse(read("package.json")) as {
   scripts: Record<string, string>;
-  devDependencies: Record<string, string>;
 };
 
 describe("bun run verify mirrors the CI validate job", () => {
@@ -119,59 +99,5 @@ describe("ci.yml guards the generated registries", () => {
 
     expect(workflow.indexOf("bun run gen:templates:check")).toBeLessThan(docsIndex);
     expect(workflow.indexOf("bun run gen:blocks:check")).toBeLessThan(docsIndex);
-  });
-});
-
-describe("lefthook pre-commit hook", () => {
-  it("has a committed config", () => {
-    expect(existsSync(join(root, "lefthook.yml"))).toBe(true);
-  });
-
-  it("is installed for every contributor by bun install", () => {
-    expect(packageJson.scripts.prepare).toBe(
-      "git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0; lefthook install",
-    );
-    expect(packageJson.devDependencies.lefthook).toBeDefined();
-  });
-
-  it("no-ops outside a git work tree instead of failing bun install", () => {
-    // An unzipped copy of the template has no `.git` yet, so `lefthook install`
-    // would exit 128 and take `bun install` down with it.
-    expect(packageJson.scripts.prepare).toMatch(
-      /^git rev-parse --is-inside-work-tree \S+ \S+ \|\| exit 0;/,
-    );
-  });
-
-  it("still surfaces a real lefthook install failure inside a repo", () => {
-    // `git rev-parse ... && lefthook install || exit 0` would also swallow a
-    // failing `lefthook install`; the guard must short-circuit with `||` first
-    // and then sequence with `;` so lefthook's exit code propagates.
-    const prepare: string = packageJson.scripts.prepare;
-
-    expect(prepare).not.toContain("&&");
-    expect(prepare).not.toContain("|| true");
-    expect(prepare.slice(prepare.indexOf("exit 0;"))).toBe("exit 0; lefthook install");
-  });
-
-  it("runs only the cheap gates", () => {
-    expect(lefthookJobs("pre-commit").runs).toEqual([
-      "bun run typecheck",
-      "bun run lint",
-      "bun run gen:templates:check",
-      "bun run gen:blocks:check",
-      "bun run docs:llms:check",
-    ]);
-  });
-
-  it("never runs the test suite on commit", () => {
-    const runs = lefthookJobs("pre-commit").runs.join(" ");
-
-    expect(runs).not.toContain("jest");
-    expect(runs).not.toContain("test:ci");
-    expect(runs).not.toContain("bun run verify");
-  });
-
-  it("does not add a pre-push hook, so pushing stays fast", () => {
-    expect(read("lefthook.yml")).not.toMatch(/^pre-push:/m);
   });
 });

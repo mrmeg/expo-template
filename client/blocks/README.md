@@ -29,7 +29,7 @@ npm), so a copied block has no dependency on this repo.
 5. `bun run gen:blocks` and commit `registry.generated.ts`.
 
 `registry.generated.ts` is codegen — never hand-edit it. `gen:blocks:check`
-runs in CI, in `bun run verify`, and on pre-commit, so a new folder without a
+runs in CI and in `bun run verify`, so a new folder without a
 regenerate fails before review.
 
 ## Rules that aren't optional

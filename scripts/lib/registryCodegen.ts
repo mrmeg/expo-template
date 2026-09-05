@@ -80,7 +80,7 @@ ${entries}
 /**
  * Write (or, with `--check`, verify) the target's generated registry.
  *
- * `--check` is the CI/pre-commit drift guard: it exits 1 when the committed
+ * `--check` is the CI drift guard: it exits 1 when the committed
  * file doesn't match what a fresh scan would produce.
  */
 export function runRegistryCli(
