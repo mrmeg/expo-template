@@ -209,10 +209,10 @@ describe("AuthScreen", () => {
     // No sign-up code was resent: this flow issues its own.
     expect(mockAuth.resendCode).not.toHaveBeenCalled();
 
-    await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "123456");
+    await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "12345678");
     await fireEvent.press(screen.getByTestId("verify-email-submit-button"));
 
-    expect(mockAuth.confirmSignInCode).toHaveBeenCalledWith({ code: "123456" });
+    expect(mockAuth.confirmSignInCode).toHaveBeenCalledWith({ code: "12345678" });
     expect(onAuthenticated).toHaveBeenCalledTimes(1);
   });
 
@@ -415,10 +415,10 @@ describe("AuthScreen", () => {
       expect(mockAuth.signInWithEmailCode).toHaveBeenCalledWith({ email: EMAIL });
       expect(screen.getByText("auth.signInWithCodeButton")).toBeTruthy();
 
-      await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "123456");
+      await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "12345678");
       await fireEvent.press(screen.getByTestId("verify-email-submit-button"));
 
-      expect(mockAuth.confirmSignInCode).toHaveBeenCalledWith({ code: "123456" });
+      expect(mockAuth.confirmSignInCode).toHaveBeenCalledWith({ code: "12345678" });
       expect(onAuthenticated).toHaveBeenCalledTimes(1);
     });
 

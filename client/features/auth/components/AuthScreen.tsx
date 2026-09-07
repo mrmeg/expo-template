@@ -7,6 +7,10 @@ import { SignInForm } from "./SignInForm";
 import { SignUpForm } from "./SignUpForm";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { VerifyEmailForm } from "./VerifyEmailForm";
+
+// Cognito's email one-time sign-in code (USER_AUTH + EMAIL_OTP) is 8 digits; the
+// sign-up / password-reset confirmation codes keep VerifyEmailForm's 6-digit default.
+const EMAIL_OTP_CODE_LENGTH = 8;
 import { ResetPasswordForm } from "./ResetPasswordForm";
 import { DismissKeyboard } from "@mrmeg/expo-ui/components/DismissKeyboard";
 import { SerifText } from "@mrmeg/expo-ui/components/StyledText";
@@ -680,6 +684,7 @@ function AuthViewFields({
       {view === "confirm-sign-in-code" && (
         <VerifyEmailForm
           email={pendingEmail}
+          codeLength={EMAIL_OTP_CODE_LENGTH}
           onVerify={onConfirmSignInCode}
           onResendCode={onResendSignInCode}
           onBack={goToSignIn}
