@@ -33,3 +33,12 @@ export function KeyboardDismissBoundary({
 }) {
   return React.createElement(View, { style }, children);
 }
+
+/**
+ * Web has no software keyboard to track, so the tab bar never needs to hide.
+ * Keeping this a plain function (no hook calls) keeps it safe from any call
+ * site, and keeps react-native-keyboard-controller out of the web bundle.
+ */
+export function useKeyboardVisible(): boolean {
+  return false;
+}

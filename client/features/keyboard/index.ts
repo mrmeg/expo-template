@@ -6,4 +6,4 @@ export {
 } from "./KeyboardComponents";
 export { KeyboardController } from "./KeyboardController";
 export { KeyboardStickyFooter } from "./KeyboardStickyFooter";
-export { KeyboardProvider } from "./platform";
+export { KeyboardProvider, useKeyboardVisible } from "./platform";

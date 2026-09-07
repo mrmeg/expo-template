@@ -4,3 +4,4 @@
 export { KeyboardProvider, KeyboardAwareScrollView } from "react-native-keyboard-controller";
 export { DismissKeyboardOverlay } from "./DismissKeyboardOverlay.native";
 export { KeyboardDismissBoundary } from "./KeyboardDismissBoundary.native";
+export { useKeyboardVisible } from "./useKeyboardVisible.native";
