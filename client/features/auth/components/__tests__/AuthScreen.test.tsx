@@ -248,7 +248,7 @@ describe("AuthScreen", () => {
 
     await render(<AuthScreen />);
     await requestEmailCode();
-    await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "000000");
+    await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "00000078");
     await fireEvent.press(screen.getByTestId("verify-email-submit-button"));
 
     expect(screen.getByText("Invalid sign-in code. Please try again.")).toBeTruthy();
