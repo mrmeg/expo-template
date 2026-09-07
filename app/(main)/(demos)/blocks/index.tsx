@@ -241,7 +241,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
     scrollContent: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingTop: spacing.md,
       paddingBottom: spacing.xxl,
     },

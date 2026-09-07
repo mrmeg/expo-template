@@ -496,13 +496,13 @@ const createStyles = (theme: Theme) =>
     },
     content: {
       flex: 1,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
+      paddingTop: spacing.md,
       paddingBottom: spacing.xxl,
     },
     headerSection: {
       alignItems: "center",
-      marginBottom: spacing.xl,
+      marginBottom: spacing.sectionSpacing,
     },
     avatar: {
       width: 100,

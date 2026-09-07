@@ -251,15 +251,15 @@ const createStyles = (theme: Theme) =>
     actions: {
       flexDirection: "row",
       gap: spacing.sm,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       marginBottom: spacing.lg,
     },
     actionButton: {
       flex: 1,
     },
     section: {
-      marginBottom: spacing.xl,
-      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.sectionSpacing,
+      paddingHorizontal: spacing.screenPadding,
     },
     sectionTitle: {
       marginBottom: spacing.sm + 2,

@@ -216,11 +216,11 @@ const createStyles = (theme: Theme) =>
     },
     scroll: {
       flex: 1,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
+      paddingTop: spacing.md,
     },
     section: {
-      marginBottom: spacing.xl,
+      marginBottom: spacing.sectionSpacing,
     },
     sectionTitle: {
       marginBottom: spacing.sm + 2,

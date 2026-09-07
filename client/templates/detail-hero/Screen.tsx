@@ -285,7 +285,7 @@ const createStyles = (theme: Theme) =>
       justifyContent: "center",
     },
     heroSectionHeader: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       marginTop: spacing.sm,
     },
     heroTitle: {

@@ -1,10 +1,18 @@
-import { View, StyleSheet, Pressable, Platform, ScrollView } from "react-native";
+import { View, StyleSheet, Platform, ScrollView } from "react-native";
 import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { useThemeStore } from "@mrmeg/expo-ui/state";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import type { IconName } from "@mrmeg/expo-ui/components/Icon";
+import {
+  Item,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+} from "@mrmeg/expo-ui/components/Item";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { useTranslation } from "react-i18next";
 import { setLanguage } from "@/client/features/i18n";
@@ -55,32 +63,26 @@ export default function SettingsRoute() {
               const isLast = index === themeOptions.length - 1;
 
               return (
-                <View key={option.value}>
-                  <Pressable
-                    style={[
-                      styles.settingRow,
-                      Platform.OS === "web" && { cursor: "pointer" as any },
-                    ]}
-                    onPress={() => setTheme(option.value)}
-                  >
-                    <View style={styles.settingLeft}>
-                      <View style={[styles.iconContainer, isSelected && styles.iconContainerActive]}>
-                        <Icon
-                          name={option.icon}
-                          color={isSelected ? theme.colors.primary : theme.colors.foreground}
-                          size={20}
-                        />
-                      </View>
-                      <SansSerifText style={styles.settingLabel}>
-                        {option.label}
-                      </SansSerifText>
-                    </View>
+                <Item
+                  key={option.value}
+                  onPress={() => setTheme(option.value)}
+                  separator={!isLast}
+                >
+                  <ItemMedia
+                    size={36}
+                    icon={option.icon}
+                    iconColor={isSelected ? theme.colors.primary : theme.colors.foreground}
+                    style={isSelected && styles.mediaActive}
+                  />
+                  <ItemContent>
+                    <ItemTitle>{option.label}</ItemTitle>
+                  </ItemContent>
+                  <ItemActions>
                     <View style={[styles.radio, isSelected && styles.radioSelected]}>
                       {isSelected && <View style={styles.radioInner} />}
                     </View>
-                  </Pressable>
-                  {!isLast && <View style={styles.divider} />}
-                </View>
+                  </ItemActions>
+                </Item>
               );
             })}
           </View>
@@ -103,37 +105,23 @@ export default function SettingsRoute() {
               const isLast = index === LANGUAGES.length - 1;
 
               return (
-                <View key={lang.code}>
-                  <Pressable
-                    style={[
-                      styles.settingRow,
-                      Platform.OS === "web" && { cursor: "pointer" as any },
-                    ]}
-                    onPress={() => handleLanguageChange(lang.code)}
-                  >
-                    <View style={styles.settingLeft}>
-                      <View style={[styles.iconContainer, isSelected && styles.iconContainerActive]}>
-                        <Icon
-                          name="globe"
-                          color={isSelected ? theme.colors.primary : theme.colors.foreground}
-                          size={20}
-                        />
-                      </View>
-                      <View>
-                        <SansSerifText style={styles.settingLabel}>
-                          {lang.nativeLabel}
-                        </SansSerifText>
-                        <SansSerifText style={styles.settingSubLabel}>
-                          {lang.label}
-                        </SansSerifText>
-                      </View>
-                    </View>
-                    {isSelected && (
+                <Item key={lang.code} onPress={() => handleLanguageChange(lang.code)} separator={!isLast}>
+                  <ItemMedia
+                    size={36}
+                    icon="globe"
+                    iconColor={isSelected ? theme.colors.primary : theme.colors.foreground}
+                    style={isSelected && styles.mediaActive}
+                  />
+                  <ItemContent>
+                    <ItemTitle>{lang.nativeLabel}</ItemTitle>
+                    <ItemDescription>{lang.label}</ItemDescription>
+                  </ItemContent>
+                  {isSelected && (
+                    <ItemActions>
                       <Icon name="check" color={theme.colors.primary} size={20} />
-                    )}
-                  </Pressable>
-                  {!isLast && <View style={styles.dividerFull} />}
-                </View>
+                    </ItemActions>
+                  )}
+                </Item>
               );
             })}
           </View>
@@ -150,24 +138,36 @@ export default function SettingsRoute() {
           </SansSerifBoldText>
 
           <View style={[styles.card, getShadowStyle("subtle")]}>
-            <View style={styles.settingRow}>
-              <SansSerifText style={styles.settingLabel}>{t("settings.version")}</SansSerifText>
-              <SansSerifText style={styles.settingValue}>1.0.0</SansSerifText>
-            </View>
+            <Item>
+              <ItemContent>
+                <ItemTitle>{t("settings.version")}</ItemTitle>
+              </ItemContent>
+              <ItemActions>
+                <SansSerifText style={styles.settingValue}>1.0.0</SansSerifText>
+              </ItemActions>
+            </Item>
             <View style={styles.dividerFull} />
-            <View style={styles.settingRow}>
-              <SansSerifText style={styles.settingLabel}>{t("settings.environment")}</SansSerifText>
-              <SansSerifText style={styles.settingValue}>
-                {__DEV__ ? "Development" : "Production"}
-              </SansSerifText>
-            </View>
+            <Item>
+              <ItemContent>
+                <ItemTitle>{t("settings.environment")}</ItemTitle>
+              </ItemContent>
+              <ItemActions>
+                <SansSerifText style={styles.settingValue}>
+                  {__DEV__ ? "Development" : "Production"}
+                </SansSerifText>
+              </ItemActions>
+            </Item>
             <View style={styles.dividerFull} />
-            <View style={styles.settingRow}>
-              <SansSerifText style={styles.settingLabel}>{t("settings.apiUrl")}</SansSerifText>
-              <SansSerifText style={[styles.settingValue, styles.mono]} numberOfLines={1}>
-                {Config.apiUrl}
-              </SansSerifText>
-            </View>
+            <Item>
+              <ItemContent>
+                <ItemTitle>{t("settings.apiUrl")}</ItemTitle>
+              </ItemContent>
+              <ItemActions>
+                <SansSerifText style={[styles.settingValue, styles.mono]} numberOfLines={1}>
+                  {Config.apiUrl}
+                </SansSerifText>
+              </ItemActions>
+            </Item>
           </View>
         </View>
       </ScrollView>
@@ -180,11 +180,11 @@ const createStyles = (theme: Theme) =>
     content: {
       flex: 1,
       backgroundColor: theme.colors.background,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
+      paddingTop: spacing.md,
     },
     section: {
-      marginBottom: spacing.xl,
+      marginBottom: spacing.sectionSpacing,
     },
     sectionTitle: {
       fontSize: 14,
@@ -202,39 +202,8 @@ const createStyles = (theme: Theme) =>
       borderColor: theme.colors.border,
       overflow: "hidden",
     },
-    settingRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.md,
-    },
-    settingLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      flex: 1,
-    },
-    iconContainer: {
-      width: 36,
-      height: 36,
-      borderRadius: spacing.radiusSm,
-      backgroundColor: theme.colors.muted,
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: spacing.md,
-    },
-    iconContainerActive: {
+    mediaActive: {
       backgroundColor: withAlpha(theme.colors.primary, 0.13),
-    },
-    settingLabel: {
-      fontSize: 16,
-      color: theme.colors.foreground,
-    },
-    settingSubLabel: {
-      fontSize: 12,
-      color: theme.colors.foreground,
-      opacity: 0.5,
-      marginTop: 2,
     },
     settingValue: {
       fontSize: 14,
@@ -263,11 +232,6 @@ const createStyles = (theme: Theme) =>
       height: 12,
       borderRadius: 6,
       backgroundColor: theme.colors.primary,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: theme.colors.border,
-      marginLeft: spacing.md + 36 + spacing.md,
     },
     dividerFull: {
       height: 1,

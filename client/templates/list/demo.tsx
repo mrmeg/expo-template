@@ -106,7 +106,7 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.rowPaddingX,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
     },

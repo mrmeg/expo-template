@@ -340,13 +340,13 @@ const createStyles = (theme: Theme) =>
     markAllContainer: {
       flexDirection: "row",
       justifyContent: "flex-end",
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingTop: spacing.sm,
     },
 
     // Section headers
     sectionHeader: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingTop: spacing.lg,
       paddingBottom: spacing.xs,
       backgroundColor: theme.colors.background,
@@ -356,7 +356,7 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.rowPaddingX,
       gap: spacing.md,
     },
     rowUnread: {
@@ -415,7 +415,7 @@ const createStyles = (theme: Theme) =>
 
     // Skeleton
     skeletonList: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingTop: spacing.md,
       gap: spacing.md,
     },

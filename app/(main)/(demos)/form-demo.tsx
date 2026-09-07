@@ -464,7 +464,7 @@ const createStyles = (theme: Theme) =>
     },
     content: {
       flex: 1,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
     },
     header: {
       paddingVertical: spacing.lg,
@@ -481,7 +481,7 @@ const createStyles = (theme: Theme) =>
     form: {
       backgroundColor: theme.colors.card,
       borderRadius: spacing.radiusMd,
-      padding: spacing.lg,
+      padding: spacing.cardPadding,
       borderWidth: 1,
       borderColor: theme.colors.border,
     },

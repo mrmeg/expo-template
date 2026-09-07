@@ -201,7 +201,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
     scrollContent: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingTop: spacing.md,
       paddingBottom: spacing.xxl,
     },
@@ -209,7 +209,7 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       justifyContent: "center",
       gap: spacing.lg,
-      padding: spacing.lg,
+      padding: spacing.screenPadding,
       backgroundColor: theme.colors.background,
     },
 
@@ -272,7 +272,7 @@ const createStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       minHeight: 140,
-      padding: spacing.lg,
+      padding: spacing.cardPadding,
       borderRadius: spacing.radiusLg,
       borderWidth: 1,
       borderColor: theme.colors.border,

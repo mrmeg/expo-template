@@ -211,7 +211,7 @@ const createStyles = (theme: Theme) =>
     },
     content: {
       gap: spacing.md,
-      padding: spacing.lg,
+      padding: spacing.screenPadding,
       paddingBottom: spacing.xxl,
     },
     hero: {

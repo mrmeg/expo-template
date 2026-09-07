@@ -35,7 +35,7 @@ export function Section({ title, children }: SectionProps) {
 
 const styles = StyleSheet.create({
   section: {
-    padding: spacing.lg,
+    padding: spacing.cardPadding,
     borderRadius: spacing.radiusMd,
     borderWidth: 1,
     marginBottom: spacing.md,

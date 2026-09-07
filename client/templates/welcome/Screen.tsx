@@ -168,7 +168,7 @@ const createStyles = (theme: Theme) =>
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
     },
     spacer: {
       flex: 1,

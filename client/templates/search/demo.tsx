@@ -37,7 +37,7 @@ const INITIAL_FILTERS: SearchFilter[] = [
 
 const styles = StyleSheet.create({
   row: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.screenPadding,
   },
 });
 

@@ -404,14 +404,14 @@ const createStyles = (theme: Theme) =>
     },
     title: {
       color: theme.colors.foreground,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
+      paddingTop: spacing.md,
       paddingBottom: spacing.md,
     },
 
     // Metric cards
     metricsRow: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       gap: spacing.sm,
       paddingBottom: spacing.md,
     },
@@ -425,7 +425,7 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusLg,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      padding: spacing.lg,
+      padding: spacing.cardPadding,
     },
 
     // Date range toggle
@@ -436,7 +436,7 @@ const createStyles = (theme: Theme) =>
 
     // Chart sections
     chartSectionsContainer: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       gap: spacing.md,
     },
     chartPlaceholder: {
@@ -453,7 +453,7 @@ const createStyles = (theme: Theme) =>
 
     // Sections
     sectionsContainer: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       gap: spacing.lg,
       marginTop: spacing.md,
     },
@@ -474,7 +474,7 @@ const createStyles = (theme: Theme) =>
 
     // Activity feed
     activityContainer: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       marginTop: spacing.lg,
       gap: spacing.sm,
     },

@@ -17,7 +17,7 @@ import { spacing } from "../constants/spacing";
 // Default ItemMedia footprint (see ItemMedia's `size` prop) — used to inset
 // the optional separator past the media slot without needing a context.
 const DEFAULT_MEDIA_SIZE = 40;
-const SEPARATOR_INSET = spacing.md + DEFAULT_MEDIA_SIZE + spacing.md;
+const SEPARATOR_INSET = spacing.rowPaddingX + DEFAULT_MEDIA_SIZE + spacing.rowGap;
 
 export interface ItemProps {
   children?: React.ReactNode;
@@ -34,8 +34,9 @@ export interface ItemProps {
 /**
  * Item
  *
- * Grouped-list row container: `spacing.md` padding and gap, a comfortable
- * 44pt min height, and an optional pressable scale interaction. Compose
+ * Grouped-list row container: compact row padding (`spacing.rowPaddingY` /
+ * `spacing.rowPaddingX`) and gap, a 44pt min height on native (40 on web),
+ * and an optional pressable scale interaction. Compose
  * with `ItemMedia`, `ItemContent` (+ `ItemTitle`/`ItemDescription`), and
  * `ItemActions`.
  *
@@ -201,9 +202,10 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: spacing.touchTarget,
-    padding: spacing.md,
-    gap: spacing.md,
+    minHeight: Platform.select({ web: spacing.rowMinHeight, default: spacing.touchTarget }),
+    paddingVertical: spacing.rowPaddingY,
+    paddingHorizontal: spacing.rowPaddingX,
+    gap: spacing.rowGap,
   },
   content: {
     flex: 1,

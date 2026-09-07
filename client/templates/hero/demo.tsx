@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   label: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.screenPadding,
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
   },
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   },
   fullBleedWrapper: {
     height: HERO_PREVIEW_HEIGHT,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.sectionSpacing,
   },
   fullBleedScreen: {
     flex: 1,

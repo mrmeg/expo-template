@@ -102,7 +102,7 @@ const createStyles = (theme: Theme) =>
     container: {
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: spacing.xxl,
+      paddingVertical: spacing.xl,
       paddingHorizontal: spacing.lg,
     },
     bordered: {
@@ -110,7 +110,7 @@ const createStyles = (theme: Theme) =>
       borderStyle: "dashed",
       borderColor: theme.colors.border,
       borderRadius: spacing.radiusLg,
-      padding: spacing.xl,
+      padding: spacing.lg,
     },
     iconWrapper: {
       width: MEDIA_SIZE,

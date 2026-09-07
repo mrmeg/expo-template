@@ -310,7 +310,7 @@ const createStyles = (theme: Theme) =>
       left: 0,
       right: 0,
       bottom: 0,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingBottom: spacing.xxl,
       gap: spacing.lg,
     },

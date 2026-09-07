@@ -120,7 +120,7 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
       backgroundColor: theme.colors.background,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingVertical: spacing.xl,
     },
     header: {

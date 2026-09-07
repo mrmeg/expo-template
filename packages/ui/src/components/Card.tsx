@@ -207,24 +207,24 @@ const createCardStyles = (theme: Theme) =>
       backgroundColor: "transparent",
     } as ViewStyle,
     header: {
-      padding: spacing.lg,
+      padding: spacing.cardPadding,
       paddingBottom: spacing.xs,
       gap: spacing.xs,
     } as ViewStyle,
     content: {
-      paddingHorizontal: spacing.lg,
-      paddingBottom: spacing.lg,
+      paddingHorizontal: spacing.cardPadding,
+      paddingBottom: spacing.cardPadding,
     } as ViewStyle,
     footer: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: spacing.lg,
-      paddingBottom: spacing.lg,
+      paddingHorizontal: spacing.cardPadding,
+      paddingBottom: spacing.cardPadding,
       paddingTop: 0,
     } as ViewStyle,
     title: {
-      fontSize: 18,
-      lineHeight: 24,
+      fontSize: 16,
+      lineHeight: 22,
       letterSpacing: 0,
     } as TextStyle,
     description: {

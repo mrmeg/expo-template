@@ -173,7 +173,7 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
       backgroundColor: theme.colors.background,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingVertical: spacing.xl,
     },
     card: {
@@ -182,7 +182,7 @@ const createStyles = (theme: Theme) =>
       alignSelf: "center",
     },
     body: {
-      padding: spacing.lg,
+      padding: spacing.cardPadding,
       gap: spacing.md,
     },
     heading: {

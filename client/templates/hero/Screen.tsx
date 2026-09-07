@@ -137,7 +137,7 @@ const createStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: theme.colors.background,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingVertical: spacing.xxl,
       gap: spacing.lg,
     },
@@ -160,7 +160,7 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       gap: spacing.lg,
     },
 

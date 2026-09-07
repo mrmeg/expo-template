@@ -1,8 +1,10 @@
 /**
  * Spacing Constants
  *
- * A consistent spacing scale based on an 8px base unit.
- * Use these constants throughout the app for consistent spacing.
+ * A consistent spacing scale based on an 8px base unit, plus a small set of
+ * density tokens that components reach for when composing rows, surfaces, and
+ * screens. Tune the density tokens to shift the whole library's feel without
+ * touching the base scale.
  */
 
 export const spacing = {
@@ -13,7 +15,9 @@ export const spacing = {
   xxs: 2,   // 2px  - Minimal spacing
   xs: 4,    // 4px  - Extra small
   sm: 8,    // 8px  - Small (1 unit)
+  smd: 12,  // 12px - Between small and medium (1.5 units); compact gaps and row padding
   md: 16,   // 16px - Medium (2 units)
+  mdl: 20,  // 20px - Between medium and large (2.5 units); dialog and sheet padding
   lg: 24,   // 24px - Large (3 units)
   xl: 32,   // 32px - Extra large (4 units)
   xxl: 48,  // 48px - 2x extra large (6 units)
@@ -23,14 +27,22 @@ export const spacing = {
   gutter: 16,        // Standard horizontal gutter
   gutterVertical: 24, // Standard vertical spacing
   screenPadding: 16, // Default screen edge padding
+  sectionSpacing: 24, // Space between major sections / grouped lists
+
+  // Density tokens — rows, surfaces, overlays
+  rowPaddingY: 10,       // Vertical padding for list / settings rows
+  rowPaddingX: 16,       // Horizontal padding for list / settings rows
+  rowGap: 12,            // Gap between media, content, and actions in a row
+  rowMinHeight: 40,      // Visual min height for rows on pointer surfaces (web)
+  formRowMinHeight: 32,  // Visual min height for checkbox / radio rows on web
+  cardPadding: 16,       // Default card / stat card padding
+  dialogPadding: 20,     // Default dialog / alert dialog padding
+  touchTarget: 44,       // Minimum comfortable native touch target
 
   // Component-specific
   buttonPadding: 10,      // Default button padding
   inputPadding: 10,       // Default input padding
-  cardPadding: 16,        // Default card padding
-  sectionSpacing: 32,     // Space between major sections
   listItemSpacing: 8,     // Space between list items
-  touchTarget: 44,        // Minimum comfortable native touch target
 
   // Border radius — shadcn-inspired scale (radiusMd = 12px default)
   radiusNone: 0,
@@ -56,7 +68,9 @@ export const {
   xxs,
   xs,
   sm,
+  smd,
   md,
+  mdl,
   lg,
   xl,
   xxl,
@@ -64,12 +78,18 @@ export const {
   gutter,
   gutterVertical,
   screenPadding,
+  sectionSpacing,
+  rowPaddingY,
+  rowPaddingX,
+  rowGap,
+  rowMinHeight,
+  formRowMinHeight,
+  cardPadding,
+  dialogPadding,
+  touchTarget,
   buttonPadding,
   inputPadding,
-  cardPadding,
-  sectionSpacing,
   listItemSpacing,
-  touchTarget,
   radiusNone,
   radiusXs,
   radiusSm,

@@ -109,7 +109,7 @@ const createStyles = (theme: Theme) =>
     container: {
       alignItems: "center",
       backgroundColor: theme.colors.background,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingVertical: spacing.xxl,
       gap: spacing.lg,
     },

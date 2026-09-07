@@ -125,7 +125,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
       alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       gap: spacing.md,
     },
     iconWrap: {

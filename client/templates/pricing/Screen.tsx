@@ -242,7 +242,7 @@ const createStyles = (theme: Theme) =>
     header: {
       alignItems: "center",
       paddingTop: spacing.xl,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingBottom: spacing.md,
     },
     toggleContainer: {
@@ -250,7 +250,7 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing.md,
     },
     plansContainer: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       gap: spacing.md,
     },
     planCard: {
@@ -258,7 +258,7 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusLg,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      padding: spacing.lg,
+      padding: spacing.cardPadding,
     },
     planHighlighted: {
       borderColor: theme.colors.accent,
@@ -308,7 +308,7 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing.sm,
     },
     footerContainer: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingTop: spacing.lg,
       alignItems: "center",
     },

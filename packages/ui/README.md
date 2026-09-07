@@ -124,6 +124,24 @@ const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
 }));
 ```
 
+### Spacing and density
+
+`spacing` exposes an 8px base scale (`xxs` 2, `xs` 4, `sm` 8, `smd` 12, `md` 16, `mdl` 20, `lg` 24, `xl` 32, `xxl` 48, `xxxl` 64) plus semantic density tokens that package components read from. Reach for the semantic names in app code so a future density tune lands everywhere at once:
+
+| Token | Value | Use |
+|-------|-------|-----|
+| `screenPadding` | 16 | Horizontal gutter for screens, scroll content, and landing blocks |
+| `sectionSpacing` | 24 | Gap between grouped lists, cards, or settings groups |
+| `cardPadding` | 16 | `Card`, `StatCard`, and any bordered panel |
+| `dialogPadding` | 20 | `Dialog` and `AlertDialog` content |
+| `rowPaddingY` / `rowPaddingX` | 10 / 16 | `Item` rows and hand-rolled list rows |
+| `rowGap` | 12 | Gap between row media, content, and actions |
+| `rowMinHeight` | 40 | Visual row height on web; native rows keep `touchTarget` |
+| `formRowMinHeight` | 32 | Checkbox and radio rows on web; native keeps `touchTarget` |
+| `touchTarget` | 44 | Minimum native hit area; pair a smaller visual height with `hitSlop` |
+
+Controls (`Button`, `TextInput`, `Select`, `Tabs`, `Toggle`) size themselves from their own `size` prop (28/32/36/40) and do not read these tokens.
+
 ### Color overrides
 
 The package ships a neutral default palette. `useTheme()` resolves colors in

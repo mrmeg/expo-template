@@ -118,7 +118,7 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     scrollContent: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingTop: spacing.xl,
       paddingBottom: spacing.xxl,
     },

@@ -48,6 +48,15 @@ function DialogContent({
     <DialogPrimitive.Portal hostName={portalHost}>
       <FullWindowOverlay>
         <DialogPrimitive.Overlay
+          // On web the primitive wraps the overlay in a react-native-web
+          // Pressable whose click handler stops propagation unconditionally.
+          // With that Pressable between the overlay and the Radix content,
+          // outside presses (mouse and touch) and Escape never dismissed the
+          // dialog, so a dialog without a Close button was stuck. `asChild`
+          // makes the primitive clone our fade wrapper instead, removing the
+          // Pressable; Radix dismissal then works. Native keeps the Pressable,
+          // which is what implements closeOnPress there.
+          asChild={Platform.OS === "web"}
           style={StyleSheet.flatten([
             StyleSheet.absoluteFill,
             { backgroundColor: theme.colors.overlay },
@@ -66,7 +75,8 @@ function DialogContent({
                           borderColor: theme.colors.border,
                           borderWidth: 1,
                           borderRadius: spacing.radiusLg,
-                          padding: spacing.lg,
+                          padding: spacing.dialogPadding,
+                          gap: spacing.md,
                           width: "100%",
                           ...getShadowStyle("soft"),
                         },
@@ -89,7 +99,7 @@ function DialogContent({
 
 function DialogHeader({ children, style, ...props }: ViewProps) {
   return (
-    <View style={StyleSheet.flatten([{ gap: spacing.xs, marginBottom: spacing.md }, style])} {...props}>
+    <View style={StyleSheet.flatten([{ gap: spacing.xs }, style])} {...props}>
       {children}
     </View>
   );
@@ -103,7 +113,6 @@ function DialogFooter({ children, style, ...props }: ViewProps) {
           flexDirection: "row" as const,
           justifyContent: "flex-end" as const,
           gap: spacing.sm,
-          marginTop: spacing.lg,
         },
         style,
       ])}
@@ -233,7 +242,8 @@ function AlertDialogContent({
                           borderColor: theme.colors.border,
                           borderWidth: 1,
                           borderRadius: spacing.radiusLg,
-                          padding: spacing.lg,
+                          padding: spacing.dialogPadding,
+                          gap: spacing.md,
                           width: "100%",
                           ...getShadowStyle("soft"),
                         },

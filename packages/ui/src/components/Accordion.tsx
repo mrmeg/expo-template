@@ -272,7 +272,7 @@ function AccordionTrigger({
                     justifyContent: "space-between",
                     gap: spacing.md,
                     borderRadius: spacing.radiusMd,
-                    paddingVertical: spacing.md,
+                    paddingVertical: spacing.smd,
                     ...(Platform.OS === "web" && {
                       cursor: "pointer" as any,
                       userSelect: "none" as any,

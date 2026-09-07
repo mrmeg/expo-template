@@ -157,10 +157,17 @@ semantic colors without destructuring `withAlpha` outside the factory:
 const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
   card: {
     backgroundColor: withAlpha(theme.colors.primary, 0.08),
-    padding: spacing.md,
+    padding: spacing.cardPadding,
   },
 }));
 ```
+
+Layout spacing uses semantic density tokens rather than raw scale steps:
+`spacing.screenPadding` (16) for screen and block gutters, `spacing.cardPadding`
+(16) for bordered panels, `spacing.sectionSpacing` (24) between grouped lists,
+`spacing.dialogPadding` (20) for dialogs, and `spacing.rowPaddingY`/`rowPaddingX`
+(10/16) with `spacing.rowGap` (12) for list rows. `Item` already applies the row
+tokens and keeps a 44px hit area on native while rendering 40px on web.
 
 When the saved theme preference is `system`, the package theme store owns the
 OS color-scheme subscription, including web `prefers-color-scheme`. Do not add

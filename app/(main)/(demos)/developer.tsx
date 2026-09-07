@@ -354,8 +354,8 @@ const createStyles = (theme: Theme) =>
     },
     content: {
       flexGrow: 1,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
+      paddingTop: spacing.md,
     },
     section: {
       backgroundColor: theme.colors.card,
@@ -398,7 +398,7 @@ const createStyles = (theme: Theme) =>
       fontSize: 14,
     },
     emptyState: {
-      padding: spacing.lg,
+      padding: spacing.cardPadding,
       alignItems: "center",
     },
     emptyText: {

@@ -41,7 +41,7 @@ export function KeyboardStickyFooter({ children, style, ...props }: KeyboardStic
 
 const styles = StyleSheet.create({
   footer: {
-    padding: spacing.lg,
+    padding: spacing.cardPadding,
     borderTopWidth: 1,
   },
 });

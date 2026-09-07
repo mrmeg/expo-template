@@ -471,7 +471,7 @@ const createStyles = (theme: Theme) =>
 
     // Search
     searchContainer: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingTop: spacing.md,
       paddingBottom: spacing.sm,
     },
@@ -481,7 +481,7 @@ const createStyles = (theme: Theme) =>
       maxHeight: 44,
     },
     filtersContent: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       gap: spacing.sm,
     },
     filterChip: {
@@ -507,7 +507,7 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingVertical: spacing.sm,
     },
     resultCountText: {
@@ -554,7 +554,7 @@ const createStyles = (theme: Theme) =>
 
     // Grid
     gridRow: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       gap: spacing.sm,
     },
     gridItemWrapper: {
@@ -591,7 +591,7 @@ const createStyles = (theme: Theme) =>
 
     // Skeletons
     skeletonList: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       gap: spacing.md,
     },
     skeletonItem: {

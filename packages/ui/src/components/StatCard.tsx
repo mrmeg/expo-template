@@ -69,7 +69,7 @@ export function StatCard({ label, value, unit, change, icon, onPress, style }: S
 
   return (
     <Card onPress={onPress} style={style}>
-      <View style={{ padding: spacing.lg, gap: spacing.xs }}>
+      <View style={{ padding: spacing.cardPadding, gap: spacing.xs }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           {/* Tracking matches the EyebrowText overline treatment (+0.08em @ 12px). */}
           <CaptionText

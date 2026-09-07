@@ -3,6 +3,37 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0]
+
+### Added
+
+- **Density tokens.** `spacing` gains `smd` (12) and `mdl` (20) scale steps plus
+  semantic layout tokens: `screenPadding`, `sectionSpacing` (now 24),
+  `cardPadding`, `dialogPadding`, `rowPaddingY`/`rowPaddingX`, `rowGap`,
+  `rowMinHeight`, and `formRowMinHeight`. Components read these so a single
+  retune shifts the whole library's density.
+
+### Changed
+
+- **Compact surfaces and rows.** `Card` header/content/footer padding drops
+  from 24 to 16 with a 16px title. `Item` rows use 10/16 padding and a 12px
+  gap, with a 40px visual min height on web while native keeps the 44pt touch
+  target. `Checkbox` and `RadioGroup` rows are 32px on web (native unchanged).
+  `Dialog`/`AlertDialog` padding is 20, `StatCard` padding is 16,
+  `EmptyState` vertical padding is 32, and `Accordion` triggers use 12px
+  vertical padding.
+- **Dialog spacing is symmetric.** `DialogContent` and `AlertDialogContent`
+  space their children with a 16px gap instead of fixed header/footer
+  margins, so a header-only dialog no longer reads bottom-heavy.
+
+### Fixed
+
+- **Dialog could not be dismissed on web.** The web overlay primitive wrapped
+  the backdrop in a react-native-web `Pressable` whose click handler stopped
+  propagation, so outside presses (mouse and touch) and Escape never reached
+  Radix. `DialogContent` now renders the overlay `asChild` on web; native is
+  unchanged.
+
 ## [0.22.0]
 
 ### Added

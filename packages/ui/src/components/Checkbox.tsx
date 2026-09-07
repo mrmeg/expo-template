@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    minHeight: spacing.touchTarget,
+    minHeight: Platform.select({ web: spacing.formRowMinHeight, default: spacing.touchTarget }),
   },
   labelContainer: {
     flex: 1,

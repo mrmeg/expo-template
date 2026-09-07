@@ -137,7 +137,7 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing.xl,
     },
     header: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       marginBottom: spacing.lg,
     },
     carousel: {
@@ -145,7 +145,7 @@ const createStyles = (theme: Theme) =>
     },
     card: {
       flex: 1,
-      padding: spacing.lg,
+      padding: spacing.cardPadding,
       gap: spacing.md,
     },
     starsRow: {

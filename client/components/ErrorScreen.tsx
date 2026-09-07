@@ -142,7 +142,7 @@ const createStyles = (theme: Theme) =>
     },
     content: {
       flex: 1,
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingVertical: spacing.xl,
       alignItems: "center",
       justifyContent: "center",

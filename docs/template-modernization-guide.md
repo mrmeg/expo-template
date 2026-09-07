@@ -51,6 +51,11 @@ belong in `packages/media`.
   `@mrmeg/expo-ui/constants`.
 - Use `useTheme()` and token exports for color, spacing, radius, shadow,
   typography, and contrast decisions. Avoid new hard-coded palettes.
+- Use the semantic density tokens for layout: `spacing.screenPadding` for
+  screen and block gutters, `spacing.cardPadding` for bordered panels,
+  `spacing.sectionSpacing` between grouped lists, and `Item` (or
+  `spacing.rowPaddingY`/`rowPaddingX`) for list rows. Do not reach for raw
+  `spacing.lg` / `spacing.xl` for those roles.
 - Keep reusable package code app-agnostic. `packages/ui` must not import from
   `@/client/*`; `packages/media` must not depend on app route files or app
   env names.

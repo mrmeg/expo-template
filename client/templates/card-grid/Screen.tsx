@@ -318,7 +318,7 @@ const createStyles = (theme: Theme) =>
       flexGrow: 0,
     },
     categoryContainer: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingVertical: spacing.sm,
       gap: spacing.sm,
     },
@@ -336,7 +336,7 @@ const createStyles = (theme: Theme) =>
     sortRow: {
       flexDirection: "row",
       justifyContent: "flex-end",
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingBottom: spacing.sm,
     },
     sortButton: {
@@ -350,7 +350,7 @@ const createStyles = (theme: Theme) =>
 
     // Grid
     gridContent: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingBottom: spacing.xxl,
     },
 
@@ -358,7 +358,7 @@ const createStyles = (theme: Theme) =>
     skeletonGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
     },
 
     // Empty state

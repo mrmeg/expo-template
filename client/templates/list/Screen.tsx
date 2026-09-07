@@ -197,7 +197,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
     searchContainer: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingTop: spacing.md,
       paddingBottom: spacing.sm,
     },
@@ -211,7 +211,7 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     skeletonList: {
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       gap: spacing.md,
     },
     skeletonItem: {

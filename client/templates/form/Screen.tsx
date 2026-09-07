@@ -252,8 +252,8 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     scrollContent: {
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
+      paddingTop: spacing.md,
       paddingBottom: spacing.xl,
     },
 
@@ -262,7 +262,7 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: spacing.xl,
+      marginBottom: spacing.sectionSpacing,
     },
     stepCircle: {
       width: STEP_CIRCLE_SIZE,
@@ -309,7 +309,7 @@ const createStyles = (theme: Theme) =>
     nav: {
       flexDirection: "row",
       justifyContent: "space-between",
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
       paddingTop: spacing.md,
       paddingBottom: spacing.md,
       borderTopWidth: StyleSheet.hairlineWidth,

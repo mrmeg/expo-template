@@ -127,7 +127,7 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusLg,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      padding: spacing.lg,
+      padding: spacing.cardPadding,
       minHeight: 80,
       justifyContent: "center",
     },
