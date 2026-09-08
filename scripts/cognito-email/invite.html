@@ -4,56 +4,100 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
     <title>Your {{APP_NAME}} account</title>
+    <!--
+      Same shell as verification-code.html; keep the two in step. The details
+      panel is styled like an @mrmeg/expo-ui Item list: 10/16 row padding, a
+      hairline divider, 12px uppercase labels, monospace values.
+    -->
+    <style>
+      @media (prefers-color-scheme: dark) {
+        .body, .bg { background-color: #09090b !important; }
+        .card { background-color: #18181b !important; border-color: #27272a !important; }
+        .eyebrow { color: #a1a1aa !important; }
+        .title, .value { color: #f4f4f5 !important; }
+        .text { color: #b0b0b8 !important; }
+        .box { background-color: #27272a !important; border-color: #3f3f46 !important; }
+        .divider { border-color: #3f3f46 !important; }
+        .label, .hint { color: #a1a1aa !important; }
+        .footer { color: #71717a !important; }
+      }
+    </style>
   </head>
-  <body style="margin:0;padding:0;background-color:#f4f4f5;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f5;">
+  <body class="body" style="margin:0;padding:0;background-color:#fafafa;">
+    <!-- Preheader: shown in inbox previews, hidden in the body. -->
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+      Your {{APP_NAME}} account is ready. Sign in with the details inside.
+    </div>
+    <table role="presentation" class="bg" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fafafa;">
       <tr>
-        <td align="center" style="padding:32px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;background-color:#ffffff;border-radius:12px;border:1px solid #e4e4e7;">
+        <td align="center" style="padding:24px 16px;">
+          <table role="presentation" class="card" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:440px;background-color:#ffffff;border:1px solid #e4e4e7;border-radius:14px;">
             <tr>
-              <td style="padding:28px 32px 8px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;letter-spacing:0.02em;color:#52525b;text-transform:uppercase;">
-                {{APP_NAME}}
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:0 32px 8px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;font-weight:700;line-height:1.3;color:#18181b;">
-                Your account is ready
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:0 32px 20px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#3f3f46;">
-                An account was created for you in {{APP_NAME}}. Sign in with the details below; you'll be asked to choose your own password on first sign-in.
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:0 32px 20px 32px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f4f4f5;border-radius:10px;">
+              <td style="padding:20px 20px 0 20px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                   <tr>
-                    <td style="padding:14px 16px 4px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;letter-spacing:0.04em;color:#71717a;text-transform:uppercase;">Username</td>
+                    <td class="eyebrow" style="padding:0 0 8px 0;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;line-height:16px;letter-spacing:0.08em;text-transform:uppercase;color:#71717a;">
+                      {{APP_NAME}}
+                    </td>
                   </tr>
                   <tr>
-                    <td style="padding:0 16px 12px 16px;font-family:'SF Mono',SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;font-size:16px;color:#18181b;">{username}</td>
+                    <td class="title" style="padding:0 0 4px 0;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:20px;font-weight:600;line-height:26px;letter-spacing:-0.01em;color:#09090b;">
+                      Your account is ready
+                    </td>
                   </tr>
                   <tr>
-                    <td style="padding:0 16px 4px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;letter-spacing:0.04em;color:#71717a;text-transform:uppercase;">Temporary password</td>
+                    <td class="text" style="padding:0 0 16px 0;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:21px;color:#52525b;">
+                      An account was created for you in {{APP_NAME}}. Sign in with the details below. You'll choose your own password the first time you sign in.
+                    </td>
                   </tr>
                   <tr>
-                    <td style="padding:0 16px 14px 16px;font-family:'SF Mono',SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;font-size:16px;color:#18181b;">{####}</td>
+                    <td style="padding:0 0 16px 0;">
+                      <table role="presentation" class="box" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f5;border:1px solid #e4e4e7;border-radius:12px;">
+                        <tr>
+                          <td style="padding:10px 16px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                              <tr>
+                                <td class="label" style="padding:0 0 2px 0;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;line-height:16px;letter-spacing:0.04em;text-transform:uppercase;color:#71717a;">Username</td>
+                              </tr>
+                              <tr>
+                                <td class="value" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;font-size:15px;line-height:22px;color:#09090b;word-break:break-all;">{username}</td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="divider" style="padding:0 16px;border-top:1px solid #e4e4e7;font-size:0;line-height:0;">&nbsp;</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:10px 16px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                              <tr>
+                                <td class="label" style="padding:0 0 2px 0;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;line-height:16px;letter-spacing:0.04em;text-transform:uppercase;color:#71717a;">Temporary password</td>
+                              </tr>
+                              <tr>
+                                <td class="value" style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;font-size:15px;line-height:22px;color:#09090b;word-break:break-all;">{####}</td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="hint" style="padding:0 0 20px 0;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:19px;color:#71717a;">
+                      The temporary password expires in 7 days. If you weren't expecting this, you can ignore this email.
+                    </td>
                   </tr>
                 </table>
               </td>
             </tr>
-            <tr>
-              <td style="padding:0 32px 28px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:#71717a;">
-                The temporary password expires in 7 days. If you weren't expecting this, you can ignore this email.
-              </td>
-            </tr>
           </table>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:440px;">
             <tr>
-              <td style="padding:16px 8px 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;color:#a1a1aa;text-align:center;">
-                Sent by {{APP_NAME}}. This is an automated message; replies are not monitored.
+              <td class="footer" align="center" style="padding:16px 20px 0 20px;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:18px;color:#a1a1aa;">
+                Sent by {{APP_NAME}}. This is an automated message and replies are not monitored.
               </td>
             </tr>
           </table>

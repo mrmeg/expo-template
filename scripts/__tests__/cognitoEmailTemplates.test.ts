@@ -53,6 +53,16 @@ describe("renderEmailTemplates", () => {
   it("rejects an empty app name", () => {
     expect(() => renderEmailTemplates("   ", templatesDir)).toThrow(/App name is empty/);
   });
+
+  it("keeps both templates on the same card shell and dark-mode layer", () => {
+    const shell = (html: string) => ({
+      page: /background-color:#fafafa/.test(html),
+      card: /max-width:440px;background-color:#ffffff;border:1px solid #e4e4e7;border-radius:14px/.test(html),
+      dark: /@media \(prefers-color-scheme: dark\)/.test(html) && /\.card \{ background-color: #18181b !important/.test(html),
+    });
+    expect(shell(rendered.verification.html)).toEqual({ page: true, card: true, dark: true });
+    expect(shell(rendered.invite.html)).toEqual({ page: true, card: true, dark: true });
+  });
 });
 
 describe("validateRendered", () => {

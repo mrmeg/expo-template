@@ -29,8 +29,36 @@ bun run auth:emails --pool us-east-1_xxx --app-name "Acme"   # any pool, explici
 - Verification body must contain `{####}`; invite body must contain both `{username}`
   and `{####}`.
 - Body at most 20,000 characters; subject at most 140 characters, plain text.
-- Cognito sends the HTML as-is: inline styles only, table layout, no external CSS or
-  scripts. Images are fine but must be absolute `https` URLs.
+- Cognito sends the HTML as-is: inline styles for the light baseline, table layout, no
+  external CSS or scripts. The one `<style>` block in `<head>` is a
+  `prefers-color-scheme: dark` layer that clients honouring it apply on top; clients
+  that strip it still get the complete light email. Images are fine but must be
+  absolute `https` URLs.
+
+## Design
+
+The templates are the email-shaped version of the `@mrmeg/expo-ui` theme, so a code
+email reads as the same product as the sign-in card that asked for it. When the theme
+changes, update these values by hand (email HTML cannot import the tokens):
+
+| Email | Theme token | Light | Dark |
+|---|---|---|---|
+| Page background | `surfaceSunken` | `#fafafa` | `#09090b` |
+| Card fill / border | `card` / `border` | `#ffffff` / `#e4e4e7` | `#18181b` / `#27272a` |
+| Code and details panel | `muted` / `border` (`borderStrong` in dark) | `#f4f4f5` / `#e4e4e7` | `#27272a` / `#3f3f46` |
+| Title, code, values | `foreground` | `#09090b` | `#f4f4f5` |
+| Body copy | `textDim` | `#52525b` | `#b0b0b8` |
+| Eyebrow, labels, hint | `gray500` | `#71717a` | `#a1a1aa` |
+| Footer | `gray400` | `#a1a1aa` | `#71717a` |
+
+Spacing follows the density tokens: `sectionSpacing`/`screenPadding` (24/16) around
+the card, `dialogPadding` (20) inside it, `spacing.md` (16) between blocks,
+`rowPaddingY`/`rowPaddingX` (10/16) for the invite's detail rows. Radii are
+`radiusLg` (14) for the card and `radiusMd` (12) for the inset panel, matching `Card`
+and `TextInput`. Type is Inter with the system stack as fallback: 12px/600 uppercase
+eyebrow, 20px/600 title, 14px body, 13px hint, 12px footer; the code is 28px
+monospace with 0.2em tracking, which keeps an 8-digit code inside the card on a
+320px-wide screen.
 
 The rendered body is stored on the user pool (`VerificationMessageTemplate` and
 `AdminCreateUserConfig.InviteMessageTemplate`), not in SES. To vary copy per event or
