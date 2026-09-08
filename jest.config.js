@@ -50,7 +50,6 @@ module.exports = {
   // dependencies (wrangler) must not be walked by the app suite.
   testPathIgnorePatterns: [
     "<rootDir>/node_modules/",
-    "<rootDir>/ignite/",
     "<rootDir>/dist/",
     "<rootDir>/workers/",
   ],

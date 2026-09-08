@@ -459,11 +459,6 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
   ),
 };
 
-/** Whether a component has a live preview, i.e. whether a card can render one. */
-export function hasPreview(id: string): boolean {
-  return id in PREVIEWS;
-}
-
 /** The preview element for a component id, or `null` when it has none. */
 export function renderPreview(id: string): React.ReactElement | null {
   const factory = PREVIEWS[id];

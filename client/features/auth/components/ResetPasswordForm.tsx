@@ -193,5 +193,3 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
 });
-
-export default ResetPasswordForm;

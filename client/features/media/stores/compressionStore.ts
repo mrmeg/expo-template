@@ -95,17 +95,6 @@ export const useCompressionStore = create<CompressionStore>()((set, get) => ({
   },
 }));
 
-/**
- * Convenience hook for getting resolved compression config.
- * Use this in components that need to know the current settings.
- */
-export function useCompressionConfig(
-  options?: ImagePreset | Partial<CompressionConfig> | null
-) {
-  const getConfig = useCompressionStore((state) => state.getConfig);
-  return getConfig(options);
-}
-
 /** Human-readable labels for presets */
 const PRESET_LABELS: Record<ImagePreset, { label: string; description: string }> = {
   avatar: { label: "Avatar", description: "Profile pictures" },

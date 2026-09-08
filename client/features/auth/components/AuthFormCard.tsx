@@ -102,5 +102,3 @@ export function AuthFormCard({
     </KeyboardAvoidingView>
   );
 }
-
-export default AuthFormCard;

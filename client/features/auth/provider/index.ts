@@ -142,11 +142,3 @@ async function loadClient(): Promise<AuthClient | null> {
   }
   return null;
 }
-
-/** Test-only: drop the cached client so a new provider selection applies. */
-export function resetAuthClientForTesting(): void {
-  clientPromise = null;
-  warnedAmbiguous = false;
-  warnedSocialProviders = false;
-  warnedSocialDomain = false;
-}

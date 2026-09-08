@@ -10,24 +10,6 @@
  * still complete and features can fail gracefully at point of use.
  */
 
-interface EnvRule {
-  key: string;
-  required: boolean;
-  context: string;
-}
-
-const SERVER_ENV_RULES: EnvRule[] = [
-  { key: "R2_JURISDICTION_SPECIFIC_URL", required: true, context: "Media (R2)" },
-  { key: "R2_ACCESS_KEY_ID", required: true, context: "Media (R2)" },
-  { key: "R2_SECRET_ACCESS_KEY", required: true, context: "Media (R2)" },
-  { key: "R2_BUCKET", required: true, context: "Media (R2)" },
-];
-
-const SERVER_BILLING_ENV_KEYS = [
-  "STRIPE_SECRET_KEY",
-  "STRIPE_WEBHOOK_SECRET",
-] as const;
-
 function isMissing(value: string | undefined): boolean {
   return value === undefined || value.trim() === "";
 }
@@ -36,21 +18,6 @@ function isBillingFlagEnabled(value: string | undefined): boolean {
   if (!value) return false;
   const normalized = value.trim().toLowerCase();
   return normalized === "true" || normalized === "1";
-}
-
-function validate(rules: EnvRule[], label: string): void {
-  // Single pass: filter to missing required vars and format in one loop.
-  const missing: string[] = [];
-  for (const rule of rules) {
-    if (rule.required && isMissing(process.env[rule.key])) {
-      missing.push(`  - ${rule.key} (${rule.context})`);
-    }
-  }
-
-  if (missing.length === 0) return;
-
-  const message = `Missing required ${label} environment variables:\n${missing.join("\n")}`;
-  console.warn(`⚠️ ${message}`);
 }
 
 /**
@@ -122,24 +89,6 @@ export function validateClientEnv(): void {
   if (isBillingFlagEnabled(billingEnabled) && isMissing(appUrl)) {
     console.warn(
       "⚠️ EXPO_PUBLIC_BILLING_ENABLED=true but EXPO_PUBLIC_APP_URL is empty. Hosted-billing return URLs will fall back to the request origin.",
-    );
-  }
-}
-
-/**
- * Validate server-side environment variables (R2_*, etc.).
- * Call from API routes or server startup.
- */
-export function validateServerEnv(): void {
-  validate(SERVER_ENV_RULES, "server");
-
-  // Billing is opt-in. Warn if *some* but not *all* of the critical
-  // secrets are set — that usually means a broken webhook config.
-  const present = SERVER_BILLING_ENV_KEYS.filter((key) => !isMissing(process.env[key]));
-  if (present.length > 0 && present.length < SERVER_BILLING_ENV_KEYS.length) {
-    const missing = SERVER_BILLING_ENV_KEYS.filter((key) => isMissing(process.env[key]));
-    console.warn(
-      `⚠️ Partial Stripe billing config: missing ${missing.join(", ")}. Billing routes will return 503 until all required keys are set.`,
     );
   }
 }

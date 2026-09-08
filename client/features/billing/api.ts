@@ -89,5 +89,3 @@ export async function createPortalSession(
     return { kind: "error", problem: { kind: "network-error" } };
   }
 }
-
-export const __internal = { parse };

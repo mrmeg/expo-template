@@ -64,7 +64,7 @@ app with auth, billing, and media all disabled.
 ## Renaming the Template
 
 App identity (name, slug, native scheme, iOS bundle id, Android package)
-lives in **one** place: `app.identity.ts`. Both `app.config.ts` (the
+lives in **one** place: `app.identity.js` (typed by `app.identity.d.ts`). Both `app.config.ts` (the
 native build config) and `client/lib/identity.ts` (the runtime accessor
 the billing return URL uses) read from it.
 
@@ -92,7 +92,6 @@ Android projects with the new bundle ids.
 | `bun run init` | Name the project, pick an auth provider, prune screen templates |
 | `npx expo start` | Expo dev server (interactive) |
 | `bun run web` | Start the Expo web dev server |
-| `bun run web:scan` | Start the Expo web dev server for React Scan inspection |
 | `bun run scan:showcase` | Open React Scan against the local showcase route on port 8081 |
 | `bun run ios` / `bun run android` | Build + run on simulator / emulator |
 | `bun run build` | Production web export → `dist/` (client bundle + server output) |
@@ -111,7 +110,7 @@ The web document injects React Scan only when a local URL includes `?scan`.
 Start web, then open the showcase with the query string:
 
 ```bash
-bun run web:scan
+bun run web
 # open http://localhost:8081/showcase?scan
 ```
 
@@ -185,13 +184,12 @@ UI system.
   │   └── app/                #   Startup sequencing + auth gates
   ├── hooks/                  # App-local hooks
   ├── lib/                    # Shared utilities
-  │   ├── api/                #   apiClient + authenticatedFetch
+  │   ├── api/                #   authenticatedFetch
   │   ├── form/               #   FormProvider, FormTextInput, FormCheckbox, …
   │   ├── storage/            #   Cross-platform AsyncStorage wrapper
   │   └── devtools/           #   Reactotron config
   ├── showcase/               # Gallery data: registry, filters, previews, details
-  ├── templates/              # Scale 03: pre-built screens (generated registry)
-  └── state/                  # App-local Zustand stores
+  └── templates/              # Scale 03: pre-built screens (generated registry)
 
 /packages/ui                  # @mrmeg/expo-ui npm package source
 
@@ -213,12 +211,12 @@ import { useTranslation } from "react-i18next";
 
 function Greeting() {
   const { t } = useTranslation();
-  return <Text>{t("common.ok")}</Text>;
+  return <Text>{t("common.save")}</Text>;
 }
 
 // Or use the tx prop on the styled text components:
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
-<SansSerifText tx="common.ok" />;
+<SansSerifText tx="common.save" />;
 ```
 
 Translation bundles live in `client/features/i18n/translations/` (`en`,
@@ -227,24 +225,12 @@ it into `client/features/i18n/index.ts`.
 
 ## API Layer
 
-Two complementary clients live under `client/lib/api/`:
+`authenticatedFetch` lives under `client/lib/api/`. It pulls a token from the
+provider-agnostic `getAuthClient()` (Cognito or Clerk, whichever env selected;
+no token when auth is disabled) and is the default for code that uses the
+bundled auth shell.
 
 ```tsx
-// 1. apiClient — typed fetch wrapper with discriminated-union responses.
-import { api } from "@/client/lib/api/apiClient";
-
-const result = await api.get<User>("/users/me");
-if (result.kind === "ok") {
-  console.log(result.data);
-} else {
-  console.error(result.kind); // "timeout" | "unauthorized" | "bad-data" | …
-}
-api.setAuthToken(token); // optional manual token
-
-// 2. authenticatedFetch — pulls a token from the provider-agnostic
-//    getAuthClient() (Cognito or Clerk, whichever env selected; no token
-//    when auth is disabled) and is the default for code that uses the
-//    bundled auth shell.
 import { api as authedApi } from "@/client/lib/api/authenticatedFetch";
 
 await authedApi.post("/api/media/getUploadUrl", { extension: "jpg", mediaType: "uploads" });
@@ -258,7 +244,6 @@ import Config from "@/client/config";
 Config.apiUrl;          // External API base URL (or "" for local /api/* routes)
 Config.catchErrors;     // ErrorBoundary policy
 Config.billingEnabled;  // Stripe billing UI flag (mirrors EXPO_PUBLIC_BILLING_ENABLED)
-Config.appUrl;          // Absolute web origin used by hosted-billing return URLs
 ```
 
 Runtime merges `client/config/config.base.ts` with either `config.dev.ts`
@@ -293,7 +278,7 @@ through `@mrmeg/expo-ui/constants`. The reusable primitives, theme hooks,
 resource-loading hook, toast store, and UI helpers ship from the local
 workspace package `@mrmeg/expo-ui`.
 
-The package does not ship font files. Web loads Lato through Google Fonts from
+The package does not ship font files. Web loads Inter through Google Fonts from
 `app/+html.tsx` and `useResources()`; native platforms use system sans-serif
 fallbacks.
 
@@ -453,7 +438,7 @@ GitHub Actions CI to EAS Workflows are not configured here.
 - react-hook-form 7 + Zod 4 + `@hookform/resolvers`
 - React Native `Animated` for package UI motion
 - `@expo/vector-icons` (Feather icon set in `Icon`)
-- Lato on web via Google Fonts, system sans-serif on native
+- Inter on web via Google Fonts, system sans-serif on native
 - Jest 29 + jest-expo + RNTL 14
 - ESLint 10 flat config
 - Bun + Expo Server (production web server)

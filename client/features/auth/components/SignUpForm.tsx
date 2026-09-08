@@ -314,5 +314,3 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
 });
-
-export default SignUpForm;

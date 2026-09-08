@@ -41,22 +41,6 @@ export function getFormatFromMimeType(mimeType) {
     return format || "unknown";
 }
 /**
- * Get the input format flag for FFmpeg based on MIME type
- */
-export function getFFmpegInputFormat(mimeType) {
-    const format = getFormatFromMimeType(mimeType);
-    const formatMap = {
-        webm: "webm",
-        mkv: "matroska",
-        avi: "avi",
-        ogv: "ogg",
-        wmv: "asf",
-        flv: "flv",
-        "3gp": "3gp",
-    };
-    return formatMap[format];
-}
-/**
  * Estimate conversion time based on video duration and preset
  * Returns estimated seconds
  */

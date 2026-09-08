@@ -16,10 +16,6 @@ export declare function needsConversion(mimeType: string | undefined): boolean;
  */
 export declare function getFormatFromMimeType(mimeType: string): string;
 /**
- * Get the input format flag for FFmpeg based on MIME type
- */
-export declare function getFFmpegInputFormat(mimeType: string): string | undefined;
-/**
  * Estimate conversion time based on video duration and preset
  * Returns estimated seconds
  */

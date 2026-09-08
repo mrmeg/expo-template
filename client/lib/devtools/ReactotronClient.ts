@@ -38,29 +38,5 @@ export function setupReactotron() {
   // Clear on start for fresh debugging session
   reactotron.clear?.();
 
-  // Extend console with Reactotron logging
-  const originalConsole = { ...console };
-
-  // Optionally override console methods
-  // Uncomment to see console logs in Reactotron
-  // console.log = (...args: unknown[]) => {
-  //   originalConsole.log(...args);
-  //   reactotron.log?.(...args);
-  // };
-
   return reactotron;
 }
-
-/**
- * Reactotron instance for direct access.
- * Use for custom logging and debugging.
- *
- * @example
- * import { reactotron } from '@/client/lib/devtools/ReactotronClient';
- * reactotron.log?.('Custom message');
- * reactotron.warn?.('Warning message');
- * reactotron.display({ name: 'API_CALL', value: response });
- */
-export const reactotron = Reactotron;
-
-export default Reactotron;

@@ -779,5 +779,3 @@ const createStyles = (theme: Theme) =>
   });
 
 const themedStyles = createThemedStyles(createStyles);
-
-export default AuthScreen;

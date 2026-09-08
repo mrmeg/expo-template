@@ -179,9 +179,9 @@ into the screen template.
 | Root providers and startup gate | `client/features/app/RootLayout.tsx`, `client/features/app/useAppStartup.ts` | Coordinates resources, i18n, onboarding, optional auth, splash hiding |
 | Navigation shell | `app/(main)/`, `app/(main)/(tabs)/` | Main Stack, tabs, demos, route grouping |
 | API routes | `app/api/**/+api.ts`, `server/api/shared/` | Route files stay thin; shared auth, CORS, and errors live under `server/api/shared` |
-| API client | `client/lib/api/` | Use typed results or typed problem objects, not raw `Response` handling in UI |
+| API client | `client/lib/api/authenticatedFetch.ts` | Use the authenticated fetch helper; keep raw `Response` handling out of UI |
 | Feature folders | `client/features/<feature>/` | Keep features portable; obey feature isolation checks |
-| Persisted client state | Zustand stores under `client/features/**` or `client/state/` | Use cross-platform storage helpers where persistence is needed |
+| Persisted client state | Zustand stores under `client/features/**` | Use cross-platform storage helpers where persistence is needed |
 | Server state | TanStack React Query | Root defaults live in the provider stack |
 | Media feature | `client/features/media/`, `app/api/media/`, `packages/media/` | App routes own auth/env; package owns reusable media contracts |
 | Billing feature | `client/features/billing/`, `app/api/billing/`, `server/api/billing/` | Server owns plan catalog and Stripe mapping |

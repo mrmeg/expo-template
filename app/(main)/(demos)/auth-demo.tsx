@@ -411,9 +411,6 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    scrollView: {
-      flex: 1,
-    },
     scrollContent: {
       padding: spacing.md,
       paddingBottom: spacing.xxxl,

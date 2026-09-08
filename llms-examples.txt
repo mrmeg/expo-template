@@ -181,7 +181,7 @@ Key files for replicating server output, API routes, loaders, and middleware. Re
 - client/features/app/ssrViewportMetrics.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/app/ssrViewportMetrics.ts
 - server/lib/ssrViewport.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/lib/ssrViewport.ts
 - server/lib/ssrOnboarding.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/server/lib/ssrOnboarding.ts
-- patches/@expo%2Frouter-server@57.0.8.patch: https://raw.githubusercontent.com/mrmeg/expo-template/main/patches/%40expo%252Frouter-server%4057.0.8.patch
+- patches/@expo%2Frouter-server@57.0.9.patch: https://raw.githubusercontent.com/mrmeg/expo-template/main/patches/%40expo%252Frouter-server%4057.0.9.patch
 - __tests__/ssrHydration.guardrail.test.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/__tests__/ssrHydration.guardrail.test.ts
 - client/features/server-alpha/loaders.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/loaders.ts
 - client/features/server-alpha/ServerAlphaDemoScreen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/client/features/server-alpha/ServerAlphaDemoScreen.tsx

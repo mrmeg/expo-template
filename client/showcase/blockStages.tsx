@@ -39,11 +39,6 @@ export const BLOCK_STAGES: Record<string, (props: BlockStageProps) => React.Reac
   "sign-in-form": (props) => <SignInFormBlock {...props} />,
 };
 
-/** Whether a block id has a renderer — false only if a folder ships without one. */
-export function hasBlockStage(id: string): boolean {
-  return id in BLOCK_STAGES;
-}
-
 /** A live instance of the block, or `null` when the id has no renderer. */
 export function renderBlockStage(
   id: string,

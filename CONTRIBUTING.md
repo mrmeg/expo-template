@@ -49,10 +49,9 @@ See `docs/template-modernization-guide.md` for the modernization reference and `
 - `client/features/` — Self-contained feature modules (auth, billing, media, i18n, notifications, onboarding, keyboard, navigation, app)
 - `packages/ui/src/components/` — Design system primitives for `@mrmeg/expo-ui`
 - `client/screens/` — Pre-built screen templates
-- `client/lib/api/` — `apiClient` (typed fetch) + `authenticatedFetch` (Amplify-aware)
+- `client/lib/api/` — `authenticatedFetch` (provider-aware authenticated fetch helper)
 - `client/lib/form/` — Form primitives (`FormProvider`, `FormTextInput`, `FormCheckbox`, …) on top of react-hook-form + Zod
 - `client/lib/storage/` — Cross-platform AsyncStorage wrapper
-- `client/state/` — App-local Zustand stores; UI package stores own theme and global notification state
 - `server.bun.ts` — default Bun production server (static compression, CORS, rate limiting, security headers)
 - `server/` — Express fallback server and shared server helpers
 - `shared/` — Code shared between client and server (e.g. `shared/media.ts` path constants)

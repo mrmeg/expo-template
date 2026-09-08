@@ -410,7 +410,7 @@ function SheetCloseButton({ style }: { style?: StyleProp<ViewStyle> }) {
  *     dispatched across the `RNHostView` boundary on Android — only `Pressable`
  *     hit-testing (native `measure()`) works inside the host. So this is a
  *     transparent `Pressable` mounted ONLY while a field is focused, mirroring
- *     the app's `DismissKeyboardOverlay`. The tap blurs the focused field via
+ *     a tap-to-dismiss overlay in the app. The tap blurs the focused field via
  *     its own native ref (`dismissKeyboardFocusedInput`), which resigns the
  *     responder regardless of window; `KeyboardController.dismiss()` is a
  *     best-effort fallback for the (rare) case with no registered blur handle.

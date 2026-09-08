@@ -15,7 +15,6 @@ export const MEDIA_PATHS = {
 } as const;
 
 export type MediaType = keyof typeof MEDIA_PATHS;
-export type MediaPath = (typeof MEDIA_PATHS)[MediaType];
 
 /**
  * Content types the server accepts for images.
@@ -49,9 +48,6 @@ export const MEDIA_CONTENT_TYPE_ALLOWLIST = {
   image: IMAGE_CONTENT_TYPES,
   video: VIDEO_CONTENT_TYPES,
 } as const;
-
-export type ImageContentType = (typeof IMAGE_CONTENT_TYPES)[number];
-export type VideoContentType = (typeof VIDEO_CONTENT_TYPES)[number];
 
 /**
  * Get the thumbnail path for a video.

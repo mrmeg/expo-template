@@ -5,7 +5,6 @@
  * - Auto-detects device locale
  * - Falls back to English if locale not supported
  * - RTL support for languages like Arabic
- * - Type-safe translation keys
  * - Non-default locales loaded lazily to reduce initial bundle
  */
 
@@ -15,7 +14,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import "intl-pluralrules";
 
-import en, { type Translations } from "./translations/en";
+import en from "./translations/en";
 import { useLanguageStore } from "./stores/languageStore";
 
 // Default/fallback locale
@@ -46,11 +45,6 @@ function pickSupportedLocale(): Localization.Locale | undefined {
 
 // Get the best matching locale
 const locale = pickSupportedLocale();
-
-/**
- * Whether the app should use RTL layout
- */
-export const isRTL = locale?.textDirection === "rtl";
 
 // Configure RTL early (before React renders)
 if (locale?.textDirection === "rtl") {
@@ -158,13 +152,6 @@ export async function initI18n(): Promise<typeof i18n> {
 }
 
 /**
- * Get the current language code
- */
-export function getCurrentLanguage(): string {
-  return i18n.language || fallbackLocale;
-}
-
-/**
  * Change the app language and persist the preference
  */
 export async function setLanguage(languageCode: string): Promise<void> {
@@ -181,12 +168,3 @@ export async function setLanguage(languageCode: string): Promise<void> {
 
 // Re-export i18n instance
 export { i18n };
-
-// Type-safe translation key paths
-type RecursiveKeyOf<TObj extends object> = {
-  [TKey in keyof TObj & (string | number)]: TObj[TKey] extends object
-    ? `${TKey}` | `${TKey}.${RecursiveKeyOf<TObj[TKey]>}`
-    : `${TKey}`;
-}[keyof TObj & (string | number)];
-
-export type TxKeyPath = RecursiveKeyOf<Translations>;

@@ -10,12 +10,10 @@
  * ```
  */
 
-import { setupReactotron, reactotron } from "./ReactotronClient";
+import { setupReactotron } from "./ReactotronClient";
 
 // Only initialize in development
 if (__DEV__) {
   setupReactotron();
   console.log("Reactotron configured");
 }
-
-export { reactotron };

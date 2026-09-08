@@ -77,7 +77,7 @@ const serverFiles = [
   "client/features/app/ssrViewportMetrics.ts",
   "server/lib/ssrViewport.ts",
   "server/lib/ssrOnboarding.ts",
-  "patches/@expo%2Frouter-server@57.0.8.patch",
+  "patches/@expo%2Frouter-server@57.0.9.patch",
   "__tests__/ssrHydration.guardrail.test.ts",
   "client/features/server-alpha/loaders.ts",
   "client/features/server-alpha/ServerAlphaDemoScreen.tsx",

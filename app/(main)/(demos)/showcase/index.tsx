@@ -2510,15 +2510,6 @@ const createStyles = (theme: Theme) =>
       fontFamily: fontFamilies.sansSerif.bold,
       color: theme.colors.primary,
     },
-    ghostButtonText: {
-      fontFamily: fontFamilies.sansSerif.bold,
-      color: theme.colors.foreground,
-    },
-    linkButtonText: {
-      fontFamily: fontFamilies.sansSerif.bold,
-      color: theme.colors.primary,
-      textDecorationLine: "underline",
-    },
     labelText: {
       fontFamily: fontFamilies.sansSerif.regular,
     },
