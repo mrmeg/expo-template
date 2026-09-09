@@ -1,12 +1,11 @@
 # @mrmeg/expo-ui LLM Usage Guide
 
-This file ships in the npm package. In a consumer repo, read it from
-`node_modules/@mrmeg/expo-ui/LLM_USAGE.md` before building app UI.
+Read from `node_modules/@mrmeg/expo-ui/LLM_USAGE.md` before building app UI.
 
 ## First Rule
 
-Do not recreate primitives that this package already provides. Import from
-`@mrmeg/expo-ui` and compose the exported components in the app.
+Do not recreate primitives this package already provides. Import from
+`@mrmeg/expo-ui` and compose the exported components.
 
 ## Stable Import Paths
 
@@ -14,34 +13,31 @@ Do not recreate primitives that this package already provides. Import from
 import { Button, StyledText, UIProvider } from "@mrmeg/expo-ui/components";
 import { Button as ButtonDirect } from "@mrmeg/expo-ui/components/Button";
 import { colors, spacing, typography } from "@mrmeg/expo-ui/constants";
-import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
-import { globalUIStore, notify, useThemeStore } from "@mrmeg/expo-ui/state";
+import { useResources, useStyles, useTheme } from "@mrmeg/expo-ui/hooks";
+import { globalUIStore, notify, ThemeColorScope, useThemeStore } from "@mrmeg/expo-ui/state";
 import { configureExpoUiI18n, hapticLight } from "@mrmeg/expo-ui/lib";
+// The root barrel re-exports the whole public surface:
+import { Button, colors, UIProvider, useTheme } from "@mrmeg/expo-ui";
 ```
 
-The root barrel also exports the public surface:
+Importable paths: root, `components`, `components/*`, `constants`,
+`constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`. Never import from
+`@mrmeg/expo-ui/dist/*` or a source checkout path.
 
-```tsx
-import { Button, UIProvider, colors, useTheme } from "@mrmeg/expo-ui";
-```
-
-Use only exported package paths: root, `components`, `components/*`,
-`constants`, `constants/*`, `hooks`, `hooks/*`, `state`, and `lib`. Do not
-import from `@mrmeg/expo-ui/dist/*` or from a source checkout path.
-
-Supported hosts are Expo 56–57, React 19.2, React Native 0.85–0.86, and React
-Native Web 0.21. Install the peer versions recommended by the consuming app's
-Expo SDK.
+Hosts: Expo 56–57, React 19.2, React Native 0.85–0.86, React Native Web 0.21.
+Install the peer versions recommended by the consuming app's Expo SDK.
 
 ## Required App Setup
 
-Call `useResources()` once near the Expo app root. Mount `UIProvider` once
-near the root when the app uses package feedback or overlay components.
-`UIProvider` owns the package `Notification`, `StatusBar`, and default
-`@rn-primitives` portal host.
+Call `useResources()` once near the Expo app root. Mount `UIProvider` once near
+the root; it owns the package `Notification`, `StatusBar`, the default
+`@rn-primitives` portal host, and the native keyboard-avoiding root. It is
+required before `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`,
+`DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, or `notify`.
 
 ```tsx
 import { ThemeProvider } from "expo-router";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { UIProvider } from "@mrmeg/expo-ui/components";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
@@ -60,32 +56,38 @@ export function RootLayout() {
         fonts: colors[scheme ?? "light"].fonts,
       }}
     >
-      <UIProvider>
-        {/* App navigation goes here. */}
-      </UIProvider>
+      <KeyboardProvider>
+        <UIProvider>
+          {/* App navigation goes here. */}
+        </UIProvider>
+      </KeyboardProvider>
     </ThemeProvider>
   );
 }
 ```
 
-`UIProvider` mounts the default portal host required before using `Dialog`,
-`AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`,
-`SelectContent`, or `Tooltip`.
+`UIProvider` props, all opt-out: `notification`, `portalHost`, `statusBar`
+(default `true`), `keyboardAvoiding` (default `true` on native, `false` on web),
+and `keyboardAvoidingProps` forwarded to the root wrapper. Native keyboard
+avoidance is `react-native-keyboard-controller`, so mount its `KeyboardProvider`
+above `UIProvider`; use `KeyboardAvoidingView` directly only for a subtree with
+custom behavior.
 
-On native, `BottomSheet.Content` avoids the soft keyboard by default with
-React Native keyboard events. Pass `avoidKeyboard={false}` to opt out for a
-specific sheet.
+`BottomSheet` renders the platform's native sheet through `@expo/ui` (iOS
+SwiftUI `.sheet()`, Android Material3 `ModalBottomSheet`, web `vaul`). The
+platform owns gestures and keyboard avoidance: `swipeEnabled`, `avoidKeyboard`,
+and `dismissKeyboardOnDrag` are accepted for call-site ergonomics but have no
+effect. `Slider` and `SegmentedControl` are also `@expo/ui`-backed.
 
-`BottomSheet.Content` themes the native sheet surface with the card color.
-Pass `backgroundStyle={{ backgroundColor: "transparent" }}` (with a `style`
-that clears the content column's card fill) when custom chrome such as a
-glass backdrop should show through; omitting it keeps the card background.
+`BottomSheet.Content` themes the native sheet surface with the card color. Pass
+`backgroundStyle={{ backgroundColor: "transparent" }}`, plus a `style` clearing
+the content column's card fill, when custom chrome such as a glass backdrop must
+show through.
 
-i18n is optional. Do not add app-level i18n setup just to use this package.
-Plain children and `text` props work without `i18next` or `react-i18next`.
-`tx` props render fallback text when provided and otherwise render the key
-until the consumer opts in with a package-local translator. Package-owned
-defaults such as notification titles stay human-readable without app i18n:
+i18n is optional. Do not add app-level i18n setup just to use this package;
+plain children and `text` props work without `i18next` or `react-i18next`. `tx`
+props render their fallback text when provided, otherwise the key. Package-owned
+defaults such as notification titles stay human-readable without app i18n.
 
 ```tsx
 import { configureExpoUiI18n } from "@mrmeg/expo-ui/lib";
@@ -98,60 +100,47 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 
 - Use `useTheme()` and semantic tokens instead of hardcoded colors.
 - Use `StyledText` or its semantic aliases instead of raw `Text` for app UI.
-- Use `Button.preset`, not `variant`, for buttons.
-- Button visible heights are compact: `sm` 28px, `md` 32px, and `lg` 40px.
-- Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the selected Button size.
-- Use `notify` plus root-mounted `UIProvider` for transient global feedback. (`globalUIStore` remains available for reactive subscriptions and tests.)
+- Use `Button.preset`, not `variant`.
+- Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36).
+- Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the Button size.
+- Use `notify` plus a root `UIProvider` for transient global feedback. (`globalUIStore` stays available for reactive subscriptions and tests.)
 - Keep app monitoring, auth, API, and domain behavior outside this package.
 
-Useful theme tokens include:
-
-```tsx
-theme.colors.surfaceSunken;
-theme.colors.background;
-theme.colors.foreground;
-theme.colors.card;
-theme.colors.popover;
-theme.colors.border;
-theme.colors.borderStrong;
-theme.colors.input;
-theme.colors.ring;
-theme.colors.primary;
-theme.colors.secondary;
-theme.colors.accent;
-theme.colors.mutedForeground;
-theme.colors.destructive;
-theme.colors.success;
-theme.colors.warning;
-```
+Semantic color tokens on `theme.colors`: `surfaceSunken`, `background`,
+`foreground`, `card`, `popover`, `muted`, `mutedForeground`, `border`,
+`borderStrong`, `input`, `ring`, `primary`, `secondary`, `accent`,
+`destructive`, `success`, `warning`.
 
 Token intent:
 
-- `primary`: neutral action color
-- `secondary`: neutral secondary surface
+- `primary`: neutral action color; `secondary`: neutral secondary surface
 - `accent`: teal highlight color
-- `input`: form-control border color
-- `ring`: focus outline color
+- `input`: form-control border; `ring`: focus outline
 - `popover`: elevated overlay surface
 - `surfaceSunken`: app-chrome surface one tier below `background`
-- `borderStrong`: hairline for elements on filled surfaces, where `border` would blend in
+- `borderStrong`: hairline for elements on filled surfaces, where `border` blends in
 
-Elevation is a surface-tier ladder, not shadow depth:
-`surfaceSunken` (chrome) < `background` (content) < `card`/`popover` (raised)
-< `muted` (chips, insets). Border a raised or filled element with
-`borderStrong`; `border` is for hairlines on `background`/`card`.
+Elevation is a surface-tier ladder, not shadow depth: `surfaceSunken` (chrome) <
+`background` (content) < `card`/`popover` (raised) < `muted` (chips, insets).
 
-Use `getShadowStyle()` for package surfaces that need elevation. It supports
-`base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`,
-`cardHover`, and `cardSubtle`, returning a cross-platform `boxShadow` value
-(RN 0.85 + react-native-web 0.21 deprecate the legacy `shadow*` props). Use
-`getFocusRingStyle()` for web focus styling. Keep
-web controls compact, but preserve mobile tap comfort with package controls
-that already provide native hit slop or 44px touch rows.
+On web every `theme.colors.*` value is a CSS custom property (`var(--c-*)`), so
+themes swap in CSS when `html[data-theme]` changes; native keeps literals. Hex
+alpha concatenation (`theme.colors.x + "15"`) does **not** work — use
+`withAlpha(theme.colors.x, 0.08)`, exported standalone from `hooks` and from
+`useTheme()`. For sinks that cannot take `var()` (e.g. `<meta name="theme-color">`)
+use `rawThemeColors.light/.dark` or `resolveRawColor(color, scheme)`;
+`getThemeCssVariables(overrides?)` emits the `--c-*` definitions for an app's
+`+html.tsx`. All three come from `@mrmeg/expo-ui/constants`.
+
+Use `getShadowStyle(type)` for elevation — `base`, `soft`, `sharp`, `subtle`,
+`elevated`, `glow`, `glass`, `card`, `cardHover`, `cardSubtle` — returning a
+cross-platform `boxShadow` (RN 0.85 + react-native-web 0.21 deprecate the legacy
+`shadow*` props). Use `getFocusRingStyle(offset?)` for web focus styling. Keep
+web controls compact; package controls already provide native hit slop or 44px
+touch rows.
 
 Use `useStyles()` for memoized theme-aware local styles. Its factory receives
-`{ theme, spacing, withAlpha }`, so components can derive alpha-adjusted
-semantic colors without destructuring `withAlpha` outside the factory:
+`{ theme, spacing, withAlpha }`:
 
 ```tsx
 const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
@@ -162,21 +151,21 @@ const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
 }));
 ```
 
-Layout spacing uses semantic density tokens rather than raw scale steps:
+Layout spacing uses semantic density tokens, not raw scale steps:
 `spacing.screenPadding` (16) for screen and block gutters, `spacing.cardPadding`
 (16) for bordered panels, `spacing.sectionSpacing` (24) between grouped lists,
 `spacing.dialogPadding` (20) for dialogs, and `spacing.rowPaddingY`/`rowPaddingX`
 (10/16) with `spacing.rowGap` (12) for list rows. `Item` already applies the row
 tokens and keeps a 44px hit area on native while rendering 40px on web.
 
-When the saved theme preference is `system`, the package theme store owns the
-OS color-scheme subscription, including web `prefers-color-scheme`. Do not add
-app-local Appearance or `matchMedia` listeners for package components; import
-`useTheme()`, `useStyles()`, and `useThemeStore` from `@mrmeg/expo-ui`.
+When the saved theme preference is `system`, the package theme store owns the OS
+color-scheme subscription, including web `prefers-color-scheme`. Do not add
+app-local Appearance or `matchMedia` listeners. `THEME_STORAGE_KEY` (from
+`state`) is the persisted-preference key, for a pre-boot theme script.
 
 `useTheme()` resolves colors in three layers, last wins: package defaults →
-global brand (`useThemeStore.getState().setColors(overrides)`) → scoped
-override (`ThemeColorScope`). Each override is `{ light?, dark? }` of
+global brand (`useThemeStore.getState().setColors(overrides)`) → scoped override
+(`ThemeColorScope`). Each override is `{ light?, dark? }` of
 `Partial<ThemeColors>`; only the keys you pass are replaced. Call `setColors`
 once to forward the app's brand palette globally. Wrap a subtree in
 `<ThemeColorScope colors={{ light, dark }}>` for transient per-subtree theming
@@ -185,73 +174,83 @@ React context, scoped keys win over the global brand inside it, and nested
 scopes merge (inner wins, outer fills in). With no override at either layer,
 `useTheme()` returns the base theme by reference.
 
-Fonts and shape have matching global injection points. `setFonts({ families:
-{ sansSerif?, serif?, mono? }, webWeightStrategy? })` replaces the bundled
-faces (Inter/Georgia/system-mono) everywhere text renders; groups and weights
-are partial, missing weights fall back to the group's `regular`, and an
-overridden `sansSerif` makes `useResources` skip downloading Inter (call
-`setFonts` before mount for the skip). `setShape({ button: { borderRadius?,
-withShadow? } })` re-shapes Buttons globally (e.g. pill radius 9999, shadow
-off). Per-instance props and caller `style` always win over both.
+Fonts and shape have matching global injection points. `setFonts({ families: {
+sansSerif?, serif?, mono? }, webWeightStrategy? })` replaces the bundled faces
+(Inter / Georgia / system-mono) everywhere text renders; groups and weights are
+partial, missing weights fall back to that group's `regular`, and an overridden
+`sansSerif` makes `useResources` skip downloading Inter (call `setFonts` before
+mount for the skip). Use `webWeightStrategy: "family"` when loading per-weight
+faces through `expo-font` / `@expo-google-fonts`, `"numeric"` (default) for one
+multi-weight CSS family. `setShape({ button: { borderRadius?, withShadow? } })`
+re-shapes Buttons globally. Per-instance props and caller `style` always win.
 
 ## Component Use-Case Index
 
-Use this table before creating a new app-local primitive.
+Check this before creating a new app-local primitive. All components come from
+`@mrmeg/expo-ui/components`; `@mrmeg/expo-ui/components/<Name>` also works.
 
-| Component | Use For | Prefer It Instead Of | Common Example Use Cases |
-|-----------|---------|----------------------|--------------------------|
-| `Accordion`, `AccordionItem`, `AccordionTrigger`, `AccordionContent` | Multi-section disclosure | Custom FAQ/settings expanders | FAQ lists, grouped settings, help sections |
-| `Alert` | Cross-platform imperative alerts | Direct `window.alert` or duplicated RN/web branching | Confirm destructive actions, native alert dialogs |
-| `AnimatedView` | Entrance and visibility animation | Hand-rolled one-off Animated wrappers | Staggered list rows, revealed panels, animated empty states |
-| `Avatar`, `AvatarGroup` | Profile images with initials/icon fallback | Hand-rolled circles with a nested `Image` and initials `Text` | Account menu, comment authors, assignee pickers, overlapping team stacks |
-| `Badge` | Short status labels | Custom pill `View` + `Text` | Draft/active states, counts, plan labels, role tags |
-| `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets | Action pickers, mobile filters, keyboard-aware quick edit forms |
-| `Button` | Commands and CTAs | Pressable plus custom text styling | Submit, save, cancel, delete, navigation CTAs |
-| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Framed content groups | Ad hoc bordered panels | List items, pricing plans, settings sections, summaries |
-| `Carousel` | Horizontally snapping slide rows with pressable dot indicators | Hand-rolled snap `ScrollView` plus manual offset math | Testimonial strips, onboarding pages, feature highlights, image galleries |
-| `Checkbox` | Boolean selection | Custom checkmark controls | Terms consent, checklist items, multi-select filters |
-| `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | One-off disclosure | Local animated height wrappers | Advanced settings, hidden helper text |
-| `Dialog`, `AlertDialog` | Modal decisions and custom modal content | Custom modal overlays | Confirm delete, edit profile, invite user |
-| `DismissKeyboard` | Tap-away keyboard dismissal | Screen-level keyboard handling | Forms, search screens, sign-in screens |
-| `KeyboardAvoidingView` | Native keyboard-aware layout root | Repeated app-local keyboard wrappers | Screen roots, composer footers, form-heavy subtrees |
-| `Drawer` | Side panels and drawer navigation | Custom sliding panels | Filter drawer, app navigation drawer, inspector panel |
-| `DropdownMenu` | Menus and command lists | Homemade popover menus | Row actions, account menu, sort menu |
-| `EmptyState` | No-data or recoverable error regions | One-off empty placeholders | Empty inbox, no search results, failed list load |
-| `ErrorBoundary` | React render error fallback | Unhandled screen crashes | Route-level fallback, feature boundary |
-| `Icon` | Feather or custom icons with theme tokens | Raw vector icons with hardcoded colors | Button accessories, empty-state icons, menu icons |
-| `InputOTP` | Verification code entry | Multiple manually managed text inputs | Email codes, SMS codes, MFA, invite codes |
-| `Label` | Accessible form labels | Plain styled text labels | Required labels, disabled labels, field group labels |
-| `MaxWidthContainer` | Centered responsive width | Per-screen max-width wrappers | Web pages, tablet layouts, settings forms |
-| `Notification` | Global toast surface | Screen-local toast state | Saved/error/sync notifications, action toasts, bottom-position alerts |
-| `Popover` | Anchored contextual content | Custom anchored views | Inline help, quick previews, contextual controls |
-| `Progress` | Determinate or indeterminate progress | Layout-shifting spinners for progress regions | Upload progress, onboarding completion |
-| `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows | Plan interval, visibility choice, survey answer |
-| `Select` | Option menus | Custom dropdowns | Country picker, category selector, status selector |
-| `Separator` | Horizontal or vertical dividers | Border-only spacer views | Menu dividers, section dividers, card dividers |
-| `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Blank space or generic spinners | List loading, profile card loading, dashboard placeholders |
-| `Slider` | Numeric value selection | Custom pan gesture track | Volume, percentage, rating, threshold settings |
-| `StatusBar` | Theme-aware native status bar | Per-screen status-bar duplication | Root layout status styling |
-| `StyledText` and text aliases | Theme-aware typography | Raw `Text` with hardcoded styles | Titles, headings, labels, body copy, captions |
-| `Switch` | Binary settings | Custom toggle switches | Enable notifications, privacy setting, feature toggles |
-| `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | In-page tabbed views | Custom segmented/tab controls | Profile sections, report views, settings categories |
-| `TextInput` | Text entry | Raw `TextInput` with repeated label/error code | Email/password, search, numeric input, multiline notes |
-| `Toggle`, `ToggleIcon` | Pressed/unpressed control | Button with local selected styling | Favorite, mute, bold/italic, view mode button |
-| `ToggleGroup`, `ToggleGroupItem`, `ToggleGroupIcon` | Single or multi toggle groups | Custom segmented controls | Alignment, formatting toolbar, filter chips |
-| `Tooltip` | Short hover/focus help | Persistent helper text or custom hover cards | Icon button labels, field hints, disabled action explanations |
+| Component | Use for | Instead of |
+|-----------|---------|------------|
+| `Accordion`, `AccordionItem`, `AccordionTrigger`, `AccordionContent` | Multi-section disclosure | Custom FAQ/settings expanders |
+| `Alert` | Cross-platform imperative alerts | `window.alert` or duplicated RN/web branching |
+| `AnimatedView` | Entrance and visibility animation | Hand-rolled one-off Animated wrappers |
+| `Avatar`, `AvatarGroup` | Profile images with initials/icon fallback | Circles with a nested `Image` plus initials `Text` |
+| `Badge` | Short status labels | Custom pill `View` + `Text` |
+| `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets |
+| `Button` | Commands and CTAs | Pressable plus custom text styling |
+| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Framed content groups | Ad hoc bordered panels |
+| `Carousel` | Horizontally snapping slide row with pressable dots | Snap `ScrollView` plus manual offset math |
+| `Checkbox` | Boolean selection | Custom checkmark controls |
+| `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | One-off disclosure | Local animated height wrappers |
+| `Dialog`, `AlertDialog` | Modal decisions and custom modal content | Custom modal overlays |
+| `DismissKeyboard` | Tap-away keyboard dismissal | Screen-level keyboard handling |
+| `Drawer` | Side panels and drawer navigation | Custom sliding panels |
+| `DropdownMenu` | Menus and command lists | Homemade popover menus |
+| `EmptyState` | No-data or recoverable error regions | One-off empty placeholders |
+| `ErrorBoundary` | React render error fallback | Unhandled screen crashes |
+| `Icon` | Feather or custom icons with theme tokens | Raw vector icons with hardcoded colors |
+| `InputOTP` | Verification code entry | Several manually managed text inputs |
+| `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens | Hand-rolled row `View`s |
+| `KeyboardAvoidingView` | Native keyboard-aware layout root | Repeated app-local keyboard wrappers |
+| `Label` | Accessible form labels | Plain styled text labels |
+| `MaxWidthContainer` | Centered responsive width | Per-screen max-width wrappers |
+| `Notification` | Global toast surface | Screen-local toast state |
+| `Popover` | Anchored contextual content | Custom anchored views |
+| `Progress` | Determinate or indeterminate progress | Layout-shifting spinners |
+| `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows |
+| `SectionHeader` | Eyebrow / title / description section intro | Stacked ad hoc heading text |
+| `SegmentedControl` | Native segmented picker (`@expo/ui`) | Custom segmented views |
+| `Select` | Option menus | Custom dropdowns |
+| `Separator` | Horizontal or vertical dividers | Border-only spacer views |
+| `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Blank space or generic spinners |
+| `Slider` | Numeric value selection (`@expo/ui`) | Custom pan gesture track |
+| `StatCard` | Metric tile with label, value, unit, change | Hand-rolled dashboard cards |
+| `StatusBar` | Theme-aware native status bar | Per-screen status-bar duplication |
+| `StyledText` and text aliases | Theme-aware typography | Raw `Text` with hardcoded styles |
+| `Switch` | Binary settings | Custom toggle switches |
+| `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | In-page tabbed views | Custom segmented/tab controls |
+| `TextInput` | Text entry with label, helper/error text, clear, password reveal | Raw `TextInput` plus repeated label/error code |
+| `Toggle`, `ToggleIcon` | Pressed/unpressed control | Button with local selected styling |
+| `ToggleGroup`, `ToggleGroupItem`, `ToggleGroupIcon` | Single or multi toggle groups | Custom segmented controls |
+| `Tooltip` | Short hover/focus help | Persistent helper text or custom hover cards |
+
+`StyledText` props: `semantic` (`title`, `heading`, `subheading`, `body`,
+`caption`, `label`, `eyebrow`), `size` (`xs`, `sm`, `base`, `body`, `lg`, `xl`,
+`xxl`, `display`), `fontWeight` (`light`–`bold`), `variant` (`sansSerif`,
+`serif`, `mono`), `align`, `text`, `tx`, `txOptions`, `selectable` (default
+`true`). Aliases: `DisplayText`, `TitleText`, `HeadingText`, `SubheadingText`,
+`BodyText`, `CaptionText`, `LabelText`, `EyebrowText`, `MonoText`, `SerifText`,
+`SansSerifText`, `SerifBoldText`, `SansSerifBoldText`.
 
 ## Component Selection Rules
 
-- Use `Button` for commands, `Toggle` for one pressed state, `ToggleGroup` for related pressed states, and `Switch` for binary settings.
-- Use `RadioGroup` for small mutually exclusive choices and `Select` for longer option sets.
-- Use `Dialog` for blocking decisions, `Popover` for contextual controls, `Tooltip` for short explanations, and `DropdownMenu` for action lists.
-- Use `Card` for individual repeated or framed items, not as a wrapper around full page sections.
-- Use `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive into the exported HTML shell and the first client frame; reach for `FlatList` when the data set is large or unbounded. Its dots are pressable and jump to their slide. A fractional `itemWidth` measures the viewport until the first layout, so pass absolute pixels (`> 1`) when the parent is narrower than the window and the first frame matters.
-- Use `EmptyState` for no-data or recoverable error regions.
-- Use `Skeleton` for loading content with stable layout.
-- Use `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent, still loading, or failed, plus the default accessibility label. Never hand-roll a circle with a nested `Image` and initials `Text`. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring; the group's count is a hidden summary node, so each member stays individually announceable and the group needs no `accessible` wrapper.
-- Pair a standalone `Label` with its control using two DISTINCT ids: `nativeID` is the label's own id, `htmlFor` is the input's id (`<Label nativeID="email-label" htmlFor="email-input">` + `<TextInput nativeID="email-input" />`). Putting the same id on both renders duplicate ids on web and associates nothing. Prefer `TextInput`'s own `label` prop when you don't need a separate label element.
-- Use `Progress` for real progress or indeterminate long-running work.
-- Use `Drawer.Header` with `icon`, `title`, and `action` for a compact app-brand row; place `Drawer.ToggleCollapse` in `action` for a trailing rail control.
+- `Button` commands · `Toggle` one pressed state · `ToggleGroup` a related set · `Switch` binary settings · `RadioGroup` few exclusive choices · `Select` longer option sets.
+- `Dialog` blocking decisions · `Popover` contextual controls · `Tooltip` short explanations · `DropdownMenu` action lists.
+- `Card` individual repeated or framed items, never a wrapper around full page sections · `EmptyState` no-data or recoverable errors · `Skeleton` loading content with stable layout · `Progress` real or indeterminate progress.
+- `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive into the exported HTML shell and the first client frame; use `FlatList` for large or unbounded data. Dots are pressable and jump to their slide. A fractional `itemWidth` (default `0.85`) measures the viewport until the first layout, so pass absolute pixels (`> 1`) when the parent is narrower than the window and the first frame matters.
+- `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent, still loading, or failed, plus the default accessibility label. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring; the group's count is a hidden summary node, so each member stays individually announceable and the group needs no `accessible` wrapper.
+- Pair a standalone `Label` with its control using two DISTINCT ids: `nativeID` is the label's own id, `htmlFor` is the input's id (`<Label nativeID="email-label" htmlFor="email-input">` + `<TextInput nativeID="email-input" />`). One id on both renders duplicate ids on web and associates nothing. Prefer `TextInput`'s own `label` prop when no separate label element is needed.
+- `Drawer.Header` takes `icon`, `title`, and `action` slots for a compact app-brand row; put `Drawer.ToggleCollapse` in `action` for a trailing rail control. `Drawer.Content` owns safe-area top/bottom padding — do not duplicate it in children.
 
 ## Minimal Examples
 
@@ -311,13 +310,12 @@ import { notify } from "@mrmeg/expo-ui/state";
 <Progress value={65} variant="accent" />
 <EmptyState icon="inbox" title="No messages" description="New messages will appear here." />
 
-// Convenience helpers
 notify.success("Saved", { messages: ["Your changes were saved."] });
 notify.error("Upload failed");
 notify.warning("Connection slow");
 notify.info("Copied to clipboard");
 
-// Loading spinner — stays until replaced or hidden (no auto-dismiss)
+// Loading spinner — no auto-dismiss; stays until replaced or hidden
 notify.loading("Uploading…");
 notify.hide();
 
@@ -331,3 +329,7 @@ await notify.promise(saveProfile(), {
   error: "Could not save profile",   // or (err) => err.message
 });
 ```
+
+Notifications auto-dismiss after 4s (`DEFAULT_NOTIFICATION_DURATION`) unless a
+`duration` is passed; `duration: 0` keeps one up until dismissed. `position` is
+`"top"` (default) or `"bottom"`.

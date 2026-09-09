@@ -1,36 +1,38 @@
 # @mrmeg/expo-ui
 
-Docs for agents:
+Docs, in `node_modules/@mrmeg/expo-ui/`:
 
-- README.md: install, setup, imports, theme usage, components, publishing.
-- LLM_USAGE.md: concise component-selection and implementation rules.
-- llms-full.md: expanded package contract and component catalog.
+- README.md — install, setup, theme, component guide, release.
+- LLM_USAGE.md — concise component-selection and implementation rules.
+- llms-full.md — expanded contract, component catalog, notifications.
 
-Public entrypoints:
+Public entrypoints (nothing else is importable):
 
 - @mrmeg/expo-ui
-- @mrmeg/expo-ui/components
-- @mrmeg/expo-ui/components/*
-- @mrmeg/expo-ui/constants
-- @mrmeg/expo-ui/constants/*
-- @mrmeg/expo-ui/hooks
-- @mrmeg/expo-ui/hooks/*
-- @mrmeg/expo-ui/state
+- @mrmeg/expo-ui/components, /components/*
+- @mrmeg/expo-ui/constants, /constants/*
+- @mrmeg/expo-ui/hooks, /hooks/*
+- @mrmeg/expo-ui/state, /state/*
 - @mrmeg/expo-ui/lib
 
-Do not recreate primitives this package already provides. Import reusable UI
-from the package and compose it in the app.
+Never import from /dist/*, a source checkout, or an app-local copy.
+
+Do not recreate primitives this package provides; compose the exports.
 
 Call useResources() once near the Expo app root. Mount UIProvider once near the
-root before using package notifications or overlay primitives: Dialog,
-AlertDialog, BottomSheet, Drawer, DropdownMenu, Popover, SelectContent, or
-Tooltip.
-BottomSheet.Content uses React Native keyboard events for text inputs;
-avoidKeyboard defaults to true.
+root: it owns Notification, StatusBar, the @rn-primitives portal host, and the
+native keyboard-avoiding root. Required before Dialog, AlertDialog, BottomSheet,
+Drawer, DropdownMenu, Popover, SelectContent, Tooltip, and notify. On native,
+mount react-native-keyboard-controller's KeyboardProvider above UIProvider.
+
+BottomSheet renders the platform's native sheet via @expo/ui, which owns
+gestures and keyboard avoidance; swipeEnabled, avoidKeyboard, and
+dismissKeyboardOnDrag are accepted but ignored.
 
 Use useTheme(), useStyles(), semantic tokens, StyledText, and package controls.
-Do not add app-local Appearance or matchMedia listeners for package theme sync.
-Do not import from dist, source checkout paths, or app-local copies.
+Do not add app-local Appearance or matchMedia listeners for theme sync. On web
+theme colors are CSS variables: use withAlpha(color, alpha), never hex-suffix
+concatenation.
 
 i18n is optional. Plain children and text props work without app i18n. Use
-configureExpoUiI18n() only when the app wants package tx props translated.
+configureExpoUiI18n() only to translate package tx props.

@@ -1,37 +1,50 @@
 # Expo Template
 
-A production-ready starter for cross-platform Expo apps. Ships with a
-shadcn-inspired design system, optional auth/billing/media features that
-each fail closed when unconfigured, a Bun production server, and LLM-friendly
-template docs under `docs/`.
+Cross-platform Expo starter: shadcn-inspired design system, optional
+auth/billing/media features that fail closed when unconfigured, a Bun
+production server, and LLM-facing docs under `docs/`.
 
 ## Features
 
 ### Core
-- **Universal app** — iOS, Android, Web (React Native Web 0.21) on Expo SDK 57 / React 19.2 / RN 0.86 / TypeScript strict (exact pins live in `package.json`).
-- **Design system** — 35+ shadcn-inspired components on `@rn-primitives` with a zinc palette, teal accent, dark/light themes, and WCAG contrast helpers.
-- **File-based routing** — Expo Router with typed routes and a server-rendered web build (routes render per request on the Bun server).
+
+- **Universal app** — iOS, Android, and Web from one codebase; TypeScript strict. Versions under Tech Stack.
+- **Design system** — 35+ shadcn-inspired components on `@rn-primitives`: zinc palette, teal accent, dark/light themes, WCAG contrast helpers.
+- **Routing** — Expo Router typed routes; server-rendered web build (routes render per request on the Bun server).
 - **State** — Zustand for client state, TanStack React Query for server state, persisted via `AsyncStorage` (native) or `localStorage` (web).
 - **i18n** — `i18next` + `expo-localization`, English/Spanish bundles, RTL support, type-safe translation keys.
 
 ### Optional features (all default off, enabled by env)
-- **Auth** — AWS Amplify / Cognito or Clerk behind one shared `AuthClient`. The provider is picked from env: `EXPO_PUBLIC_USER_POOL_ID` + `EXPO_PUBLIC_USER_POOL_CLIENT_ID` select Cognito, `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` selects Clerk, Cognito wins when both are set, and `EXPO_PUBLIC_AUTH_PROVIDER` (`"clerk"` | `"cognito"`) forces one. With neither configured the auth shell stays disabled and the template remains explorable.
-  - **Sign-in methods (Cognito)** — email one-time code (the default layout, `USER_AUTH` + `EMAIL_OTP`, no Lambdas), password (behind a toggle), and Google/Apple via Managed Login. Email codes need the pool to allow `EMAIL_OTP` as a first auth factor and the client to allow `ALLOW_USER_AUTH`; social sign-in additionally needs `EXPO_PUBLIC_COGNITO_DOMAIN` plus `EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS="google,apple"`, registered identity providers, and a dev build on native (Expo Go can't autolink `@aws-amplify/rtn-web-browser`). `bash scripts/create-cognito-pool.sh` provisions a pool with those settings; without them the extra buttons stay hidden and password sign-in is unaffected. Clerk reports these flows as `unsupported`.
-  - **Auth emails (Cognito)** — every code email (sign-up confirmation, sign-in code, password reset, admin invite) is rendered from the HTML in `scripts/cognito-email/` with the app's name. Edit those files and run `bun run auth:emails` (add `--dry-run` to validate without touching AWS) to store them on the pool; `scripts/create-cognito-pool.sh` applies them when it creates a pool. `scripts/cognito-email/README.md` lists the placeholders and Cognito's limits, which `scripts/__tests__/cognitoEmailTemplates.test.ts` enforces.
-  - **Sign-up (Cognito)** — password-optional and email-first: the default action creates the account with no password at all (confirmed by the emailed code, then signed in with email codes from then on), and "Add a password" reveals the password + confirm fields for the classic flow. Passwordless sign-up needs the same pool setting email codes do — `EMAIL_OTP` allowed as a first auth factor — and a pool without it rejects the request with a surfaced error naming the requirement, leaving the password path usable. Clerk reports a sign-up without a password as `unsupported`.
-- **Billing** — Stripe Checkout + Billing Portal (`hosted-external`). Without `STRIPE_*` env vars every `/api/billing/*` route returns a typed `503 billing-disabled` and the UI hides purchase CTAs.
-- **Media** — R2/S3 uploads, signed URLs, browse, delete, client-side compression, video thumbnails. Without the four `R2_*` env vars every `/api/media/*` route returns a typed `503 media-disabled` and the Media tab renders a setup state. With real storage configured, media routes require auth by default; `EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA=true` is a local/demo-only bypass ignored in production.
-- **Sentry** — `@sentry/react-native` on native and `@sentry/react` on web (lazy, idle-deferred), no-op when `EXPO_PUBLIC_SENTRY_DSN` is unset; native upload steps are skipped unless `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are all set.
+
+**Auth** — AWS Amplify / Cognito or Clerk behind one shared `AuthClient`, selected by env:
+
+| Env | Provider |
+|-----|----------|
+| `EXPO_PUBLIC_USER_POOL_ID` + `EXPO_PUBLIC_USER_POOL_CLIENT_ID` | Cognito |
+| `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk |
+| both of the above | Cognito |
+| `EXPO_PUBLIC_AUTH_PROVIDER` = `"cognito"` \| `"clerk"` | forces that one |
+| neither | auth shell disabled; template stays explorable |
+
+- **Sign-in (Cognito)** — email one-time code (default; `USER_AUTH` + `EMAIL_OTP`, no Lambdas), password (behind a toggle), Google/Apple via Managed Login. Email codes require `EMAIL_OTP` as a pool first auth factor and `ALLOW_USER_AUTH` on the client. Social also requires `EXPO_PUBLIC_COGNITO_DOMAIN`, `EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS="google,apple"`, registered identity providers, and a dev build on native (Expo Go can't autolink `@aws-amplify/rtn-web-browser`). `bash scripts/create-cognito-pool.sh` provisions all of it; without it the extra buttons stay hidden and password sign-in still works. Clerk: `unsupported`.
+- **Sign-up (Cognito)** — email-first and password-optional: the default action creates the account with no password (confirmed by the emailed code, then signed in with email codes); "Add a password" reveals the password + confirm fields. Needs the same `EMAIL_OTP`-as-first-factor pool setting; a pool without it rejects the request with a surfaced error naming the requirement, leaving the password path usable. Clerk: `unsupported`.
+- **Auth emails (Cognito)** — sign-up confirmation, sign-in code, password reset, and admin invite render from the HTML in `scripts/cognito-email/` with the app's name. Edit those files, then `bun run auth:emails` (`--dry-run` validates without touching AWS) stores them on the pool; `scripts/create-cognito-pool.sh` applies them at pool creation. `scripts/cognito-email/README.md` lists the placeholders and Cognito's limits, enforced by `scripts/__tests__/cognitoEmailTemplates.test.ts`.
+
+**Billing** — Stripe Checkout + Billing Portal (`hosted-external`). Without `STRIPE_*` env vars every `/api/billing/*` route returns a typed `503 billing-disabled` and the UI hides purchase CTAs.
+
+**Media** — R2/S3 uploads, signed URLs, browse, delete, client-side compression, video thumbnails. Without the four `R2_*` env vars every `/api/media/*` route returns a typed `503 media-disabled` and the Media tab renders a setup state. With storage configured, media routes require auth; `EXPO_TEMPLATE_ALLOW_PUBLIC_MEDIA=true` is a local/demo-only bypass ignored in production.
+
+**Sentry** — `@sentry/react-native` on native, `@sentry/react` on web; no-op without `EXPO_PUBLIC_SENTRY_DSN`. See `docs/error-tracking.md`.
 
 ### Developer experience
-- **Bun production server** — Expo Router API routes, middleware, and data loaders through `expo-server/adapter/bun`, static Brotli/gzip compression, CORS, rate limiting (a strict 10/min bucket on `/api/media/getUploadUrl` and the billing checkout/portal routes), security headers, request logging.
-- **Generator CLI** — `bun run generate component|screen|hook|form <Name>` — paths and imports match the rest of the template.
+
+- **Bun production server** — Expo Router API routes, middleware, and data loaders through `expo-server/adapter/bun`; static Brotli/gzip compression, CORS, rate limiting (strict 10/min on `/api/media/getUploadUrl` and the billing checkout/portal routes), security headers, request logging.
+- **Generator CLI** — `bun run generate component|screen|hook|form <Name>`; paths and imports match the rest of the template.
 - **Reactotron** — auto-connects in dev mode for native runs.
-- **Template docs** — LLM-facing modernization guidance in `docs/template-modernization-guide.md`.
 
 ## Getting Started
 
-This project uses **bun** as the package manager. The lockfile is `bun.lock`.
+Package manager: **bun** (lockfile `bun.lock`).
 
 ```bash
 git clone <repo-url> my-app
@@ -41,35 +54,30 @@ bun run init            # Optional: name the project, pick auth, prune templates
 npx expo start          # Press i / a / w for iOS / Android / Web
 ```
 
-`bun run init` is the one-command path from a fresh clone to a named project.
-It writes `.env` from `.env.example` with the five `EXPO_PUBLIC_APP_*` identity
-vars filled in (validated before it writes), sets `EXPO_PUBLIC_AUTH_PROVIDER`
-for the provider you pick, optionally deletes the screen templates you don't
-want, and offers to re-run `bunx expo prebuild --clean`. Agents and CI can drive
-it non-interactively:
+`bun run init` writes `.env` from `.env.example` with the five
+`EXPO_PUBLIC_APP_*` identity vars filled in (validated before it writes), sets
+`EXPO_PUBLIC_AUTH_PROVIDER` for the provider you pick, optionally deletes the
+screen templates you don't want, and offers to re-run
+`bunx expo prebuild --clean`. Non-interactive form:
 
 ```bash
 bun run init --name "Acme" --auth clerk --templates list,pricing --yes
 ```
 
-It refuses to overwrite an existing `.env` without `--force`, and it keeps (with
-a warning) any template that app code still imports, so pruning can't leave the
-project failing `tsc`. Init is entirely optional — skip it and a fresh clone
-with no `.env` still boots.
-
-The `.env.example` file enumerates every optional feature flag — copy it to
-`.env` and fill in only the credentials you need. A blank `.env` boots the
-app with auth, billing, and media all disabled.
+It refuses to overwrite an existing `.env` without `--force`, and keeps (with a
+warning) any template that app code still imports, so pruning can't leave the
+project failing `tsc`. Init is optional: a fresh clone with no `.env` boots with
+auth, billing, and media disabled. `.env.example` enumerates every optional
+feature flag.
 
 ## Renaming the Template
 
-App identity (name, slug, native scheme, iOS bundle id, Android package)
-lives in **one** place: `app.identity.js` (typed by `app.identity.d.ts`). Both `app.config.ts` (the
-native build config) and `client/lib/identity.ts` (the runtime accessor
-the billing return URL uses) read from it.
+App identity (name, slug, native scheme, iOS bundle id, Android package) lives
+in `app.identity.js` (typed by `app.identity.d.ts`), read by `app.config.ts`
+(native build config) and `client/lib/identity.ts` (the runtime accessor the
+billing return URL uses).
 
-To rename without searching the tree, set these five env vars in `.env`
-(any subset can be overridden — the rest fall back to template defaults):
+Override any subset in `.env`; the rest fall back to template defaults:
 
 ```bash
 EXPO_PUBLIC_APP_NAME="Acme"
@@ -79,11 +87,9 @@ EXPO_PUBLIC_APP_IOS_BUNDLE_ID="com.acme.app"
 EXPO_PUBLIC_APP_ANDROID_PACKAGE="com.acme.app"
 ```
 
-`getAppIdentity()` validates each override at config-load time — a
-malformed scheme or non-reverse-DNS package throws before native build
-runs, so a typo can't quietly ship into TestFlight. After changing
-identity for native, re-run `expo prebuild` to regenerate the iOS /
-Android projects with the new bundle ids.
+`getAppIdentity()` validates each override at config-load time: a malformed
+scheme or non-reverse-DNS package throws before native build runs. Re-run
+`expo prebuild` after changing native identity.
 
 ## Scripts
 
@@ -91,48 +97,41 @@ Android projects with the new bundle ids.
 |--------|-------------|
 | `bun run init` | Name the project, pick an auth provider, prune screen templates |
 | `npx expo start` | Expo dev server (interactive) |
-| `bun run web` | Start the Expo web dev server |
-| `bun run scan:showcase` | Open React Scan against the local showcase route on port 8081 |
+| `bun run web` | Expo web dev server |
 | `bun run ios` / `bun run android` | Build + run on simulator / emulator |
+| `bun run scan:showcase` | Open React Scan against the local showcase route on port 8081 |
 | `bun run build` | Production web export → `dist/` (client bundle + server output) |
 | `bun run start` | Run the Bun production server (`server.bun.ts`) |
-| `bun run start-local` | Run the Bun production server with `.env` autoloaded |
+| `bun run start-local` | Same, with `.env` autoloaded |
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run lint` | `expo lint` (ESLint flat config) |
+| `bun run verify` | Every CI `validate` gate locally, in CI order |
 | `bun run test:ci` | `jest --ci --coverage --forceExit` |
+| `bun run e2e` | Maestro native smoke suite — see `docs/e2e.md` |
 | `bun run bundle-size` | Compare client JS against `scripts/bundle-baseline.json` |
 | `bun run analyze` | `source-map-explorer` treemap of the client bundle |
-| `bun run generate component\|screen\|hook\|form <Name>` | Scaffold a new module — see [Generator CLI](#generator-cli) |
+| `bun run generate component\|screen\|hook\|form <Name>` | Scaffold a module — see [Generator CLI](#generator-cli) |
 
 ## Render Performance Checks
 
-The web document injects React Scan only when a local URL includes `?scan`.
-Start web, then open the showcase with the query string:
+The web document injects React Scan only when a local URL includes `?scan`:
 
 ```bash
 bun run web
 # open http://localhost:8081/showcase?scan
+bun run scan:showcase   # same, against an already-running dev server
 ```
 
-You can also open the scan-enabled showcase against an already-running dev
-server:
-
-```bash
-bun run scan:showcase
-```
-
-If another Expo app is already using `8081`, start this repo on a specific
-port and pass that same port to the opener:
+If another Expo app holds `8081`, pass a port to both sides:
 
 ```bash
 EXPO_DEV_SERVER_PORT=8087 bunx expo start --web --port 8087
 EXPO_DEV_SERVER_PORT=8087 bun run scan:showcase
 ```
 
-Use this when editing `client/showcase` or reusable `packages/ui` components.
-For broad catalog pages, keep frequently updated demos in small local-state
-components so typing, sliders, OTP input, and toggles do not re-render the
-entire showcase route.
+Use it when editing `client/showcase` or `packages/ui`. Keep frequently updated
+demos in small local-state components so typing, sliders, OTP input, and
+toggles do not re-render the entire showcase route.
 
 ## Generator CLI
 
@@ -144,7 +143,7 @@ bun run generate form ContactInfo      # client/components/forms/ContactInfoForm
 ```
 
 The generator never overwrites existing files. PascalCase, kebab-case, and
-snake_case names are all accepted and normalized to PascalCase exports.
+snake_case names are accepted and normalized to PascalCase exports.
 
 ## Testing
 
@@ -154,10 +153,10 @@ bun jest --testPathPattern=<path>      # single suite
 bun run test:ci                        # CI-style with coverage
 ```
 
-Coverage is collected from `client/**`, `packages/ui/src/**`, `app/api/**`,
-`server/**`, and `shared/**` so CI flags drift in the route-level seams
-(CORS, rate limiting, auth bootstrap, media storage, billing) and the packaged
-UI system.
+Coverage spans `client/**`, `app/api/**`, `server/**`, `shared/**`,
+`packages/ui/src/**`, and `packages/media/src/**`, so CI flags drift in the
+route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing)
+and in the packaged UI.
 
 ## Architecture
 
@@ -177,10 +176,10 @@ UI system.
   │   ├── billing/            #   Stripe hosted-external (optional)
   │   ├── media/              #   R2/S3 uploads (optional)
   │   ├── i18n/               #   i18next + translations
-  │   ├── notifications/      #   Global toast/alert
   │   ├── onboarding/         #   First-run flow
   │   ├── keyboard/           #   Cross-platform keyboard handling
   │   ├── navigation/         #   Web back-button + back behavior
+  │   ├── server-alpha/       #   Server rendering / loader demos
   │   └── app/                #   Startup sequencing + auth gates
   ├── hooks/                  # App-local hooks
   ├── lib/                    # Shared utilities
@@ -188,21 +187,24 @@ UI system.
   │   ├── form/               #   FormProvider, FormTextInput, FormCheckbox, …
   │   ├── storage/            #   Cross-platform AsyncStorage wrapper
   │   └── devtools/           #   Reactotron config
-  ├── showcase/               # Gallery data: registry, filters, previews, details
+  ├── showcase/               # Gallery registry, filters, previews, details, and screen bodies
   └── templates/              # Scale 03: pre-built screens (generated registry)
 
 /packages/ui                  # @mrmeg/expo-ui npm package source
+/packages/media               # @mrmeg/expo-media npm package source
 
 /server.bun.ts                # Bun production server (compression, CORS, rate limits)
 /server                       # Shared server helpers (rate limits, API helpers, media handlers)
 /shared                       # Code shared between client & server (e.g. media path constants)
-/scripts                      # Generator CLI + bundle-size check
+/scripts                      # Generator CLI, registry codegen, docs and bundle checks
 /test                         # Jest setup
 ```
 
-For architecture, component, screen-template, and modernization guidance that
-other projects can link to, see `docs/template-modernization-guide.md`. For
-the current docs index, start at `AGENTS.md`.
+Five gallery routes — `showcase/index.tsx`, `themed-showcase.tsx`,
+`components/index.tsx`, `components/[id].tsx`, `blocks/index.tsx` under
+`app/(main)/(demos)` — are one-line lazy shells. Their bodies live in
+`client/showcase/*Screen.tsx` behind the single split point
+`client/showcase/gallery.tsx` / `lazyGallery.tsx`.
 
 ## Internationalization
 
@@ -219,16 +221,15 @@ import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 <SansSerifText tx="common.save" />;
 ```
 
-Translation bundles live in `client/features/i18n/translations/` (`en`,
-`es`). Add a language by dropping a new bundle in that folder and wiring
-it into `client/features/i18n/index.ts`.
+Bundles live in `client/features/i18n/translations/` (`en`, `es`). Add a
+language by dropping a new bundle there and wiring it into
+`client/features/i18n/index.ts`.
 
 ## API Layer
 
-`authenticatedFetch` lives under `client/lib/api/`. It pulls a token from the
-provider-agnostic `getAuthClient()` (Cognito or Clerk, whichever env selected;
-no token when auth is disabled) and is the default for code that uses the
-bundled auth shell.
+`authenticatedFetch` (`client/lib/api/`) pulls a token from the
+provider-agnostic `getAuthClient()` — Cognito or Clerk per env, no token when
+auth is disabled.
 
 ```tsx
 import { api as authedApi } from "@/client/lib/api/authenticatedFetch";
@@ -246,8 +247,8 @@ Config.catchErrors;     // ErrorBoundary policy
 Config.billingEnabled;  // Stripe billing UI flag (mirrors EXPO_PUBLIC_BILLING_ENABLED)
 ```
 
-Runtime merges `client/config/config.base.ts` with either `config.dev.ts`
-or `config.prod.ts` based on `__DEV__`.
+Runtime merges `client/config/config.base.ts` with `config.dev.ts` or
+`config.prod.ts` based on `__DEV__`.
 
 ## Theming
 
@@ -256,7 +257,8 @@ import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 
 function Card({ children }) {
-  const { theme, getShadowStyle, getContrastingColor } = useTheme();
+  // useTheme also returns getContrastingColor(bg, a?, b?)
+  const { theme, getShadowStyle } = useTheme();
   return (
     <View style={[
       {
@@ -273,14 +275,12 @@ function Card({ children }) {
 }
 ```
 
-Color tokens live in `packages/ui/src/constants/colors.ts` and are imported
-through `@mrmeg/expo-ui/constants`. The reusable primitives, theme hooks,
-resource-loading hook, toast store, and UI helpers ship from the local
-workspace package `@mrmeg/expo-ui`.
+Color tokens live in `packages/ui/src/constants/colors.ts`, imported through
+`@mrmeg/expo-ui/constants`. The primitives, theme hooks, resource-loading hook,
+toast store, and UI helpers ship from the workspace package `@mrmeg/expo-ui`.
 
-The package does not ship font files. Web loads Inter through Google Fonts from
-`app/+html.tsx` and `useResources()`; native platforms use system sans-serif
-fallbacks.
+The package ships no font files: web loads Inter through Google Fonts from
+`app/+html.tsx` and `useResources()`; native uses system sans-serif fallbacks.
 
 Package validation:
 
@@ -292,30 +292,28 @@ bun run ui:pack
 bun run ui:consumer-smoke
 ```
 
-To publish, authenticate through your developer or CI npm config and run the
-repo-root release helper:
+To publish, authenticate through your developer or CI npm config:
 
 ```sh
 bun run ui:release -- --patch --publish
 ```
 
-Use `--patch`, `--minor`, `--major`, or an exact version such as `0.2.0`. Without
-`--publish`, the command performs the same version bump and gates as a dry run.
-Do not commit `.npmrc` tokens or registry secrets. Consumer Expo apps install
-`@mrmeg/expo-ui` plus the native and Expo peer dependencies listed in
-`packages/ui/package.json`. Package implementation details such as
-`@rn-primitives/*` and `@expo/vector-icons` are managed by `@mrmeg/expo-ui`.
+Use `--patch`, `--minor`, `--major`, or an exact version such as `0.2.0`.
+Without `--publish` the command performs the same version bump and gates as a
+dry run. Do not commit `.npmrc` tokens or registry secrets. Consumer Expo apps
+install `@mrmeg/expo-ui` plus the native and Expo peer dependencies listed in
+`packages/ui/package.json`; implementation details such as `@rn-primitives/*`
+and `@expo/vector-icons` are managed by the package.
 
-If local npm login is blocked, use GitHub Actions trusted publishing instead.
-After one-time npm package setup, pushing a commit that changes
-`packages/ui/package.json` on `main` publishes the exact committed UI
-package version when npm does not already have it. The same `Publish UI Package`
-workflow can still be run manually with `version=patch` and `ref=main`; manual
-runs bump the UI package version, run the package gates, commit the version
-bump, and publish through npm OIDC without an npm token or local auth email.
+If local npm login is blocked, use GitHub Actions trusted publishing. After
+one-time npm package setup, pushing a commit that changes
+`packages/ui/package.json` on `main` publishes the exact committed version when
+npm does not already have it. The same `Publish UI Package` workflow also runs
+manually with `version=patch` and `ref=main`; manual runs bump the version, run
+the package gates, commit the bump, and publish through npm OIDC — no npm token
+or local auth email.
 
-For the full design system see `packages/ui/README.md` and
-`docs/template-modernization-guide.md`.
+Full design system: `packages/ui/README.md`.
 
 ## Billing (Stripe, hosted-external)
 
@@ -335,33 +333,27 @@ STRIPE_PRICE_ID_PRO_YEAR=price_...
 stripe listen --forward-to localhost:3000/api/billing/webhook
 ```
 
-Billing contracts and disabling behavior are covered in
-`docs/template-modernization-guide.md`. Without Stripe env vars,
-`/api/billing/*` returns `503 billing-disabled` and the UI hides purchase
-CTAs — no Stripe traffic is ever generated.
+Billing contracts and disabling behavior: `docs/template-modernization-guide.md`.
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every push and pull request to
-`main` / `dev`. Two parallel jobs (no app credentials required):
+`.github/workflows/ci.yml` runs on every push and pull request to `main`. Two
+parallel jobs, no app credentials required:
 
-- **Lint, Type Check, Test** — `bun install --frozen-lockfile` →
-  `bun run typecheck` → `bun run lint` → `bun run check:features` →
-  `bun run docs:llms:check` → `bun run docs:versions:check` →
-  `bun run test:ci`. Same gates as the local `bun run` commands.
-- **Web Build + Bundle Size** — `bun run build` → `bun run bundle-size`.
-  Fails the PR on >10% client bundle growth against
-  `scripts/bundle-baseline.json`.
+- **Lint, Type Check, Test** (`validate`) — `bun install --frozen-lockfile` →
+  `packages:peer-check` → `typecheck` → `lint` → `check:features` →
+  `gen:templates:check` → `gen:blocks:check` → `docs:llms:check` →
+  `docs:versions:check` → `test:ci`. `bun run verify` runs the same gates
+  locally in the same order (without coverage).
+- **Web Build + Bundle Size** — `bun run build` → `bun run bundle-size`. Fails
+  the PR on >10% client bundle growth against `scripts/bundle-baseline.json`.
 
-To reproduce CI locally: `bun install --frozen-lockfile` then run the
-same commands. Tests mock the AWS / Stripe surfaces, so a blank `.env`
-is enough.
+Tests mock the AWS / Stripe surfaces, so a blank `.env` is enough.
 
 ## Deployment
 
-`eas.json` ships build profiles and `.eas/workflows/` ships two starter
-pipelines. The template is intentionally **not** linked to an EAS project, so
-wire it to yours first:
+`eas.json` ships build profiles, `.eas/workflows/` two starter pipelines. The
+template is **not** linked to an EAS project — wire it to yours first:
 
 ```bash
 npm install -g eas-cli
@@ -369,8 +361,8 @@ eas login
 eas init          # creates the EAS project, prints its id
 ```
 
-Then put the id in your `.env` (or as an EAS environment variable) so
-`app.config.ts` turns EAS Update on:
+Put the id in `.env` (or an EAS environment variable) so `app.config.ts` turns
+EAS Update on:
 
 ```bash
 EAS_PROJECT_ID=00000000-0000-0000-0000-000000000000
@@ -378,7 +370,7 @@ EAS_PROJECT_ID=00000000-0000-0000-0000-000000000000
 
 While `EAS_PROJECT_ID` is blank, `app.config.ts` omits `extra.eas.projectId`,
 `updates.url`, and `runtimeVersion` entirely — cloud builds still work, only OTA
-updates are off. This keeps a fresh clone valid with a blank `.env`.
+updates are off, so a fresh clone stays valid with a blank `.env`.
 
 ### Build profiles
 
@@ -396,8 +388,8 @@ eas build --profile production --platform all
 ```
 
 `cli.appVersionSource` is `remote`, so EAS owns the build number / version code.
-The dev profiles deliberately set no `channel` — a dev client pulls JS from the
-local dev server, not from EAS Update.
+The dev profiles set no `channel` — a dev client pulls JS from the local dev
+server, not from EAS Update.
 
 Profile names are load-bearing beyond `eas.json`: `CHANNEL_BY_PROFILE` in
 `app.config.ts` maps `EAS_BUILD_PROFILE` to `extra.updatesChannel`, so renaming
@@ -438,21 +430,19 @@ GitHub Actions CI to EAS Workflows are not configured here.
 - react-hook-form 7 + Zod 4 + `@hookform/resolvers`
 - React Native `Animated` for package UI motion
 - `@expo/vector-icons` (Feather icon set in `Icon`)
-- Inter on web via Google Fonts, system sans-serif on native
 - Jest 29 + jest-expo + RNTL 14
 - ESLint 10 flat config
-- Bun + Expo Server (production web server)
-- Bun (package manager + script runner)
+- Bun + Expo Server (production web server), Bun as package manager + script runner
 
 ## Template Docs
 
-Start at `docs/template-modernization-guide.md` for LLM-facing component,
-screen-template, and modernization guidance. Start at `AGENTS.md` for compact
-repo guidance and the docs index.
+`docs/template-modernization-guide.md` is the LLM-facing component,
+screen-template, and modernization reference. `AGENTS.md` holds compact repo
+guidance and the docs index.
 
 To apply this template's components and patterns from another project, point
 your agent at the root `llms.txt` (index of fetchable docs) or `llms-full.txt`
-(every LLM-facing doc in one file). For example:
+(every LLM-facing doc in one file):
 
 > Read https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-full.txt
 > and use this template's components and best practices in this project.

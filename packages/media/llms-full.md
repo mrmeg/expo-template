@@ -1,111 +1,151 @@
 # @mrmeg/expo-media Full Contract
 
-`@mrmeg/expo-media` packages reusable media infrastructure for Expo apps while
-leaving product policy in the app.
+Package-owned: contracts, key safety, content-type validation, client API calls,
+React Query hook factories, processing helpers, S3/R2 handler factories.
+App-owned: auth, env names, credentials, route mounting, metadata persistence,
+UI, monitoring, FFmpeg worker serving, and the content-type allowlist the client
+encodes toward and the server allows. Every peer is optional; `.`, `/server`, and
+`/worker` run without React or Expo, signing S3/R2 with `aws4fetch` over `fetch`
+(no AWS SDK). Platform-split modules ship as `foo.js` / `foo.native.js` with
+extension-less specifiers, so Metro picks the native build on iOS/Android.
 
-The package owns contracts, key safety, content-type validation, client API
-calls, React Query hook factories, processing helpers, and S3/R2 handler
-factories. The app owns auth, environment names, credentials, route mounting,
-metadata persistence, UI composition, monitoring, and FFmpeg worker serving.
+Entrypoints: `.` (contracts, keys, `MediaError`), `/client`, `/react-query`,
+`/processing`, `/processing/image-compression`,
+`/processing/image-compression/config`, `/processing/video-conversion`,
+`/processing/video-thumbnails`, `/server`, `/worker`. Never import `/server` or
+`/worker` from client code; config-only consumers use the config subpath.
 
-Use `createMediaConfig()` to define buckets and media types. Media types point
-at bucket ids, prefixes, allowed MIME types, upload/read expiry, and optional
-max byte limits. Missing values produce `media-disabled`.
+## Server
 
-Use `createMediaHandlers()` from `/server` only in route/server code. It
-accepts `authorize`, `policy`, `events`, and optional CORS helpers. Returned
-handlers are Fetch-compatible and map to Expo Router route exports.
+`createMediaConfig({ buckets, mediaTypes })`. Bucket:
+`{ provider: "s3" | "r2", bucket, endpoint?, region, forcePathStyle?, credentials }`.
+Media type:
+`{ bucket, prefix, allowedContentTypes, maxBytes?, uploadExpiresInSeconds?, readExpiresInSeconds? }`
+(expiry defaults 300 / 86400). Missing values make the config invalid and every
+handler answer `503 media-disabled` without building an S3 client.
 
-Upload signing body:
+`createMediaHandlers({ config, authorize?, policy?, events?, cors?, idFactory? })`
+→ Fetch-compatible `{ getUploadUrl, getSignedUrls, list, deleteOne, deleteMany,
+options }` for Expo Router route exports. `config` may be a factory; a falsy
+`authorize` result is `401 unauthorized`. `policy.canUpload` / `canRead` /
+`canList` / `canDelete` return a boolean or
+`{ allowed, reason?, code?, allowCustomFilename? }`; `events.onUploadSigned` and
+`events.onDeleted` persist app-owned metadata.
 
-```ts
-{
-  mediaType: string;
-  contentType: string;
-  size?: number;
-  customFilename?: string;
-  metadata?: unknown;
-}
-```
+Upload signing body `{ mediaType, contentType, size?, customFilename?, metadata? }`
+→ `{ uploadUrl, key, expiresAt, headers: { "Content-Type" } }`. ULID keys are
+generated inside the configured prefix with the extension derived server-side from
+the approved content type, and that type is signed into the PUT. Custom filenames
+are sanitized and require `allowCustomFilename`, else
+`403 custom-filename-forbidden`. `metadata` reaches `policy.canUpload` and
+`events.onUploadSigned` untouched.
 
-The package derives extensions server-side, signs the approved content type,
-and rejects keys outside configured prefixes. Custom filenames require policy
-approval and are sanitized.
+`list` needs `mediaType` or a narrower path inside a configured prefix (`limit`
+default 100, capped 1000, plus `cursor`); neither is `400 bad-request`, and
+unknown, absolute, traversal, or cross-media-type prefixes are `400 bad-key`.
+`deleteOne` takes `?key=`, `deleteMany` up to 1000 keys grouped by each resolved
+media type's bucket, returning merged `deleted` plus per-key `errors`. All read,
+delete, and list keys must stay inside configured prefixes.
 
-Use `createMediaWorker()` from `/worker` to deploy the same handlers as a
-Cloudflare Worker. `createOptions(env)` runs once per `env` object (handlers are
-cached in a `WeakMap`) and returns the `createMediaHandlers` options; routing
-mirrors the Expo route table under `basePath` (default `/api/media`), with
-`404 not-found` for unknown actions and `405 method-not-allowed` for wrong
-methods. `createKvTokenAuthorizer(kv)` authorizes static per-app bearer tokens
-stored in KV as `token:<token>` → JSON with at least `{ "app": "<name>" }` and
-yields `MediaTokenAuth`. KV is typed structurally, so the package never depends
-on `@cloudflare/workers-types`.
+Error codes: `media-disabled`, `bad-request`, `unauthorized`, `forbidden`,
+`custom-filename-forbidden`, `invalid-media-type`, `invalid-content-type`,
+`oversized-file`, `bad-key`, `storage-failure`, plus any policy `code`.
 
-Use `createMediaClient()` from `/client` with the consuming app's fetcher.
-Use `createMediaQueryHooks()` from `/react-query` to get upload, list, signed
-URL, single delete, and batch delete hooks.
+## Worker
 
-`upload()` sends `size` and `metadata` with the signing request. When `size` is
-omitted it measures the payload, including native file URIs
-(`resolveUploadSize()` stats them with `expo-file-system`), so the server's
-`maxBytes` check is not web-only. `metadata` passes through untouched to
-`policy.canUpload` and `events.onUploadSigned`.
+`export default createMediaWorker({ createOptions, basePath })`.
+`createOptions(env)` returns the `createMediaHandlers` options and runs once per
+`env` object (handlers cached in a `WeakMap`), so read bindings there and keep
+`config` in factory form. Routing mirrors the Expo table under `basePath`
+(default `/api/media`): `list` GET, `getUploadUrl` POST, `getSignedUrls` POST,
+`delete` DELETE `?key=` / POST `{ keys }`. `OPTIONS` on a known action returns the
+preflight response; unknown action or off-base path is `404 not-found`, wrong
+method `405 method-not-allowed`, both with `cors.getHeaders`. Runtime is `fetch` +
+Web Crypto, no `nodejs_compat`.
 
-Client defaults are app-owned. A consuming app should keep one media settings
-module with default compression preset, optional compression overrides,
-processing concurrency, selection limit, thumbnail handling, the shared
-content-type allowlist, and named upload policies such as avatar, general image,
-and video. The package provides presets and processing helpers; the app decides
-which defaults apply to its product.
+`createKvTokenAuthorizer(kv)` authorizes `Authorization: Bearer <token>` against
+KV `token:<token>` → JSON with at least `{ "app": "<name>" }`, yielding
+`MediaTokenAuth` (`{ token, app, metadata }`); anything else is
+`401 unauthorized`. KV is typed structurally (`MediaTokenStore`:
+`{ get(key): Promise<string | null> }`), so the package never depends on
+`@cloudflare/workers-types`.
 
-`processAsset({ asset, allowlist, config?, adapter?, onPhase? })` from
-`/processing` is the client pipeline. It identifies the source content type,
-applies the upload format policy, decodes HEIC, runs the ladder or the
-passthrough fast path, converts video, extracts thumbnails, and returns one
-frozen `ProcessedUpload` whose `contentType` is in `allowlist` — or throws
+## Client
+
+`createMediaClient({ basePath = "/api/media", fetcher = fetch })` →
+`{ getUploadUrl, upload, list, getSignedUrls, deleteOne, deleteMany }`. `upload()`
+sends `size` and `metadata` with the signing request; when `size` is omitted it
+measures the payload, native file URIs included (`resolveUploadSize()` stats them
+with `expo-file-system`), so the `maxBytes` check is not web-only. Native PUTs use
+`expo/fetch` with an `expo-file-system` `File` body.
+
+`createMediaQueryHooks({ client, queryKeyNamespace = "media" })` → `useMediaList`,
+`useSignedMediaUrls` (alias `useSignedUrls`), `useMediaUpload`, `useMediaDelete`,
+`useMediaDeleteBatch`, `queryKeys`; mutations invalidate the list queries and
+queries retry via `shouldRetryMediaError`. Hooks throw `MediaError` with
+`problem.kind` `disabled`, `bad-request`, `unauthorized`, `forbidden`, or
+`unknown`. The app supplies the single `QueryClientProvider`.
+
+Client defaults are app-owned: one settings module holding default preset,
+overrides, concurrency, selection limit, thumbnail handling, the shared allowlist,
+and named upload policies resolved per asset before processing. Never allowlist
+`image/heic`; the client transcodes it. There is no `keepOriginalIfLarger`
+setting — `chooseUploadCandidate()` owns that decision.
+
+## Processing
+
+`processAsset({ asset, allowlist, config?, adapter?, onPhase? })` identifies the
+source content type, applies the upload format policy, decodes HEIC, runs the
+ladder or the passthrough fast path, converts video, extracts a thumbnail at
+1000 ms, and returns one frozen `ProcessedUpload` `{ kind, uri, blob?,
+contentType, width, height, size, originalSize, overBudget, applied,
+durationSeconds?, thumbnail? }` whose `contentType` is in `allowlist` — or throws
 `MediaProcessingError` (`unsupported-format`, `heic-conversion-failed`,
-`decode-failed`, `encode-failed`, `stat-failed`). There is no
-`application/octet-stream` fallback. It is UI-free; progress reaches the app
-through `onPhase`. Map multi-asset selections with
+`decode-failed`, `encode-failed`, `stat-failed`). No
+`application/octet-stream` fallback. It is UI-free; `onPhase` reports
+`identifying`, `decoding-heic`, `compressing`, `passthrough`,
+`converting-video`, `extracting-thumbnail`, `complete`. Map selections with
 `mapWithConcurrency(items, limit, worker)`, not `Promise.all`, because each
 in-flight asset holds a full-resolution bitmap.
 
-Compression is a descending long-edge ladder at fixed quality against a byte
-budget, not a quality-decay loop: the first rung inside `byteBudget` wins, the
-last rung is used anyway and reports `overBudget`. `CompressionConfig` is
-`{ rungs, quality, byteBudget, passthroughBytes, format }`. `format: null` means
-the upload format policy decides — PNG stays PNG, everything else becomes JPEG.
-Route user overrides through `resolveCompressionConfig()`, which normalizes them
-so a single-field override cannot produce an unrunnable ladder.
+`CompressionConfig` is `{ rungs, quality, byteBudget, passthroughBytes, format }`:
+a descending long-edge ladder at fixed quality against a byte budget, not a
+quality-decay loop — the first rung inside `byteBudget` wins, the last is used
+anyway and reports `overBudget`. `format: null` means the upload format policy
+decides: PNG stays PNG, everything else JPEG. `resolveCompressionConfig()`
+normalizes overrides (deduped descending rungs, quality in `[MIN_QUALITY, 1]`,
+non-negative budgets; unknown names → `null`). Presets: `avatar`
+`[512] @ 0.8 / 200 KB`, `thumbnail` `[256] @ 0.7 / 100 KB`, `product`
+`[1024, 768] @ 0.85 / 500 KB`, `gallery` `[2048, 1600, 1024] @ 0.8 / 1000 KB`,
+`highQuality` `[4096, 3072, 2048] @ 0.8 / 3000 KB`, `none` (no ladder);
+`passthroughBytes` is 300 KB for `gallery` and `highQuality`, 0 elsewhere. Pick at
+`quality: 1` from `expo-image-picker` and let the ladder encode.
 
-The never-larger decision belongs to `chooseUploadCandidate()`, not to app
-config: reverting to the source requires the source type to be allowlisted, the
-format to match, and the source size to be known, so a format conversion always
-wins. Never allowlist `image/heic`; the client transcodes it.
+`resolveUploadFormatPolicy()` returns `passthrough`, `transcode` (with
+`outputFormat`), or `reject`, plus `requiresHeicDecode`, `flattensAnimation`,
+`sourceAllowlisted`. Reverting to the source in `chooseUploadCandidate()` needs the
+source type allowlisted, the same format, and a known source size, so a format
+conversion always wins.
 
-Use `/processing` where the pipeline runs, and the granular entrypoints
-otherwise: `/processing/image-compression`,
-`/processing/image-compression/config`, `/processing/video-conversion`, and
-`/processing/video-thumbnails`. A settings screen or preference store should
-import the config subpath only. Apps must serve the FFmpeg worker same-origin
-when using web video conversion.
+Platform behavior: web clamps the long edge to the canvas ceiling (4096 iOS and
+unknown UA, 11180 Firefox, 16384 Chromium/desktop Safari) and never emits WebP;
+web decodes HEIC with `heic2any` while the native encoder decodes HEIF itself; web
+transcodes `webm`, `avi`, `mkv`, `ogv`, `wmv`, `flv`, `3gp` to MP4 up to 500 MB
+(`MAX_CLIENT_CONVERSION_SIZE`) and needs `FFMPEG_WORKER_URL`
+(`/_expo/static/js/web/ffmpeg-worker.js`) served same-origin, while
+`convertVideo()` throws on native; a failed conversion falls back to an
+allowlisted source and otherwise rejects the asset; thumbnails use `<video>` +
+canvas on web and `createVideoPlayer().generateThumbnailsAsync()` +
+`expo-image-manipulator` on native, and a thumbnail failure never fails the video.
 
-Heavy optional features are lazy. `heic2any` loads only during web HEIC
-conversion, native thumbnail extraction loads `expo-video` and
-`expo-image-manipulator` only on the native path, `expo-file-system` loads only
-to measure a native file URI, and FFmpeg loads only when web `convertVideo()`
-runs. Core and server entrypoints require no React or Expo peers. Each lazy
-dependency has an injection seam for tests: `processAsset({ adapter })`,
-`convertHeicToJpeg(blob, fileName, decoder)`, `resolveUploadSize(file, stat)`.
+Lazy loading: `heic2any` only in web HEIC conversion; `expo-video` and
+`expo-image-manipulator` only from the native-only thumbnail dependency loader, so
+nothing here reaches `expo-video` on web; `expo-file-system` only to measure or
+upload a native file URI; FFmpeg only in web `convertVideo()`. Test seams:
+`processAsset({ adapter })`, `convertHeicToJpeg(blob, fileName, decoder)`,
+`resolveUploadSize(file, stat)`.
 
-Image presets are `avatar` (`[512] @ 0.8 / 200 KB`), `thumbnail`
-(`[256] @ 0.7 / 100 KB`), `product` (`[1024, 768] @ 0.85 / 500 KB`), `gallery`
-(`[2048, 1600, 1024] @ 0.8 / 1000 KB`), `highQuality`
-(`[4096, 3072, 2048] @ 0.8 / 3000 KB`), and `none` (no ladder). Apps should pick
-at original quality from `expo-image-picker` and let the ladder do the encoding.
-
-Validation commands:
+## Validation
 
 ```sh
 bun run packages:peer-check

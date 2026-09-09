@@ -1,165 +1,135 @@
 # LLM Usage: @mrmeg/expo-media
 
-Use this package for reusable Expo media infrastructure.
+## Imports
 
-## Import Rules
+| Subpath | Contents |
+|---|---|
+| `@mrmeg/expo-media` | contracts, key helpers, `MediaError` |
+| `/client` | `createMediaClient`, `resolveUploadSize` |
+| `/react-query` | `createMediaQueryHooks` |
+| `/processing` | `processAsset`, `mapWithConcurrency`, upload format policy, content-type sniffing, re-exports of the modules below |
+| `/processing/image-compression` | ladder, encoder, HEIC decode, canvas limits |
+| `/processing/image-compression/config` | `IMAGE_PRESETS`, `DEFAULT_PRESET`, `MIN_QUALITY`, `resolveCompressionConfig`, `CompressionConfig`, `ImagePreset` |
+| `/processing/video-conversion` | `needsConversion`, `convertVideo`, `FFMPEG_WORKER_URL` |
+| `/processing/video-thumbnails` | `extractVideoThumbnail` |
+| `/server` | `createMediaHandlers` |
+| `/worker` | `createMediaWorker`, `createKvTokenAuthorizer` |
 
-- Shared contracts: `@mrmeg/expo-media`
-- Client API factory: `@mrmeg/expo-media/client`
-- React Query hooks: `@mrmeg/expo-media/react-query`
-- Asset pipeline (`processAsset`, `mapWithConcurrency`, upload format policy):
-  `@mrmeg/expo-media/processing`
-- Image compression: `@mrmeg/expo-media/processing/image-compression`
-- Image compression config only:
-  `@mrmeg/expo-media/processing/image-compression/config`
-- Video conversion: `@mrmeg/expo-media/processing/video-conversion`
-- Video thumbnails: `@mrmeg/expo-media/processing/video-thumbnails`
-- Server handlers only: `@mrmeg/expo-media/server`
-- Cloudflare Worker routing and KV auth: `@mrmeg/expo-media/worker`
+Never import `/server` or `/worker` from client code; the root must stay safe for
+Node and tooling. Import `/processing` where the pipeline runs and
+`/processing/image-compression/config` in config-only consumers (settings
+screens, preference stores) so light bundles skip the pipeline.
 
-Never import `/server` or `/worker` from client code. Root imports must stay safe
-for Node and tooling. Import `/processing` where the pipeline actually runs;
-config-only consumers (settings screens, preference stores) must use
-`/processing/image-compression/config` so they do not pull the pipeline into a
-light bundle.
+Every peer is optional: native needs `expo`, `expo-file-system`,
+`expo-image-manipulator`, `expo-video`; web HEIC needs `heic2any`; hooks need
+`@tanstack/react-query`. Platform-split modules ship as `foo.js` /
+`foo.native.js` with extension-less specifiers, so native builds need
+Metro-style platform resolution.
 
-## Server Pattern
+## Server
 
-Create app-owned config with `createMediaConfig()`. Apps provide bucket
-credentials, media type prefixes, allowed content types, size limits, auth,
-policy callbacks, metadata events, CORS helpers, and route wrappers.
+`createMediaConfig()` holds app-owned buckets, media type prefixes, allowed
+content types, and size limits. `createMediaHandlers({ config, authorize?,
+policy?, events?, cors? })` returns Fetch-compatible `getUploadUrl`,
+`getSignedUrls`, `list`, `deleteOne`, `deleteMany`, `options`.
 
-Use `createMediaHandlers()` to produce Fetch-compatible handlers:
-`getUploadUrl`, `getSignedUrls`, `list`, `deleteOne`, `deleteMany`, and
-`options`.
+Upload signing takes `{ mediaType, contentType, size?, customFilename?,
+metadata? }` and the server derives the extension from the approved content type;
+do not restore extension-only signing. `allowedContentTypes` must be the list the
+client processes toward. Never allowlist `image/heic`: nothing renders HEIF and it
+masks client transcode failures.
 
-Upload signing requires `{ mediaType, contentType, size?, customFilename?,
-metadata? }`. Do not restore extension-only signing.
+## Cloudflare Worker
 
-`allowedContentTypes` must be the same list the client processes toward. Never
-allowlist `image/heic`: nothing renders HEIF, and allowing it hides client
-transcode failures instead of surfacing them.
+`export default createMediaWorker({ createOptions, basePath })`.
+`createOptions(env)` returns the `createMediaHandlers` options and runs once per
+`env` object, so read bindings there, not at module scope, and keep `config` in
+factory form so missing secrets return `503 media-disabled`.
 
-## Cloudflare Worker Pattern
-
-Use `createMediaWorker({ createOptions, basePath })` for a Worker deployment;
-`export default` the result. `createOptions(env)` returns the same options as
-`createMediaHandlers` and is called once per `env` object, so read bindings there
-instead of at module scope. Keep `config` in factory form so missing secrets
-return `503 media-disabled`.
-
-Routing matches the Expo route table under `basePath` (default `/api/media`):
+Routing mirrors the Expo route table under `basePath` (default `/api/media`):
 `list` GET, `getUploadUrl` POST, `getSignedUrls` POST, `delete` DELETE with
 `?key=` and POST with `{ keys }`. Unknown action or off-base path is
 `404 not-found`; wrong method on a known action is `405 method-not-allowed`.
 
-Use `createKvTokenAuthorizer(kv)` as `authorize` for static per-app bearer
-tokens: KV key `token:<token>` holding JSON with at least `{ "app": "<name>" }`,
-producing `MediaTokenAuth` (`{ token, app, metadata }`). Anything missing or
-unparseable becomes `401 unauthorized`. KV is typed structurally
-(`MediaTokenStore`); never add `@cloudflare/workers-types` to this package.
+`createKvTokenAuthorizer(kv)` is an `authorize` for static per-app bearer tokens:
+KV key `token:<token>` holding JSON with at least `{ "app": "<name>" }` yields
+`MediaTokenAuth` (`{ token, app, metadata }`); anything missing or unparseable is
+`401 unauthorized`. KV is typed structurally (`MediaTokenStore`); never add
+`@cloudflare/workers-types` to this package.
 
-## Client Pattern
-
-Create a client with an app fetcher:
+## Client
 
 ```ts
 const mediaClient = createMediaClient({ basePath: "/api/media", fetcher });
 const hooks = createMediaQueryHooks({ client: mediaClient });
 ```
 
-The app must provide a single `@tanstack/react-query` `QueryClientProvider`;
-the package treats React Query as a peer so hooks share the app's query context.
+Hooks: `useMediaUpload` (web `Blob`/`File` and native URI uploads),
+`useMediaList`, `useSignedMediaUrls`, `useMediaDelete`, `useMediaDeleteBatch`.
+The app provides the single `QueryClientProvider` so hooks share its query
+context.
 
-Use `hooks.useMediaUpload()` for web `Blob`/`File` and native URI uploads.
-Use `useMediaList`, `useSignedMediaUrls`, `useMediaDelete`, and
-`useMediaDeleteBatch` for storage operations.
+Always send `size`; it is what the server's `maxBytes` check reads. Omitted,
+`upload()` measures the payload, native file URIs included (`resolveUploadSize`
+stats them with `expo-file-system`). Pass EXIF and other app-owned facts as
+`metadata`; the package forwards it untouched.
 
-Always send `size`; it is what the server's `maxBytes` check reads. `upload()`
-measures the payload when `size` is omitted, including native file URIs
-(`resolveUploadSize`, which stats them with `expo-file-system`). Forward EXIF and
-other app-owned facts as `metadata`; the package passes it through untouched.
+Keep app-wide behavior in one app-owned settings file: default preset, user
+overrides, processing concurrency, selection limit, thumbnail handling, the
+shared content-type allowlist, and named upload policies that screens pick and
+resolve per asset instead of hardcoding media types and quality inline. There is
+no `keepOriginalIfLarger` setting; the format-aware never-larger decision lives
+in `chooseUploadCandidate`.
 
-Keep app-wide client behavior in an app-owned settings file, not inside the
-package. Typical settings include default compression preset, user overrides,
-processing concurrency, selection limit, thumbnail handling, and the shared
-content-type allowlist. Screens should choose named upload policies instead of
-hardcoding media types and quality settings inline, and must resolve the policy
-before processing rather than after.
-
-There is no `keepOriginalIfLarger` app setting; the never-larger decision is
-format-aware and lives in `chooseUploadCandidate`.
-
-## Processing Pattern
+## Processing
 
 `processAsset({ asset, allowlist, config?, adapter?, onPhase? })` is the entry
-point on both platforms. It has two outcomes and no third: an immutable
+point on both platforms, with two outcomes and no third: an immutable
 `ProcessedUpload` whose `contentType` is in `allowlist`, or a thrown
 `MediaProcessingError` (`unsupported-format`, `heic-conversion-failed`,
 `decode-failed`, `encode-failed`, `stat-failed`). Never reintroduce an
-`application/octet-stream` fallback — that is what let HEIF photos reach the
-server with a type it refuses.
+`application/octet-stream` fallback.
 
-`processAsset` is UI-free. Report progress through `onPhase` (`identifying`,
+It is UI-free: report progress through `onPhase` (`identifying`,
 `decoding-heic`, `compressing`, `passthrough`, `converting-video`,
-`extracting-thumbnail`, `complete`) and keep toasts in the app.
-
-Map multi-asset selections with `mapWithConcurrency(items, limit, worker)`, not
-`Promise.all`. Each in-flight asset holds a full-resolution bitmap; the template
-uses a limit of 3. Catch `MediaProcessingError` per asset so one bad photo does
-not fail the batch.
+`extracting-thumbnail`, `complete`) and keep toasts in the app. Map selections
+with `mapWithConcurrency(items, limit, worker)` (template uses 3), not
+`Promise.all` — each in-flight asset holds a full-resolution bitmap. Catch
+`MediaProcessingError` per asset so one bad photo does not fail the batch.
 
 Compression is a descending long-edge ladder at fixed quality against a byte
-budget — never a quality-decay loop. `rungs` are tried in order, the first one
-inside `byteBudget` wins, the last one is used anyway and sets
-`overBudget: true`. `passthroughBytes` is the source size below which an
-already-allowlisted asset uploads untouched (`0` for presets with a hard
-dimension target). `format: null` means "the upload format policy decides": PNG
-stays PNG, everything else becomes JPEG. Do not treat `null` as JPEG.
+budget, never a quality-decay loop: `rungs` in order, first inside `byteBudget`
+wins, last used anyway with `overBudget: true`. `passthroughBytes` is the source
+size below which an already-allowlisted asset uploads untouched (`0` for presets
+with a hard dimension target). `format: null` means the upload format policy
+decides — PNG stays PNG, everything else becomes JPEG; `null` is not JPEG. Route
+overrides through `resolveCompressionConfig()`, which normalizes partial configs
+(rungs descending and deduped, quality clamped to `[MIN_QUALITY, 1]`, budgets
+non-negative). Presets: `avatar`, `thumbnail`, `product`, `gallery` (package
+default), `highQuality`, `none`; the app picks its own product default.
 
-`resolveCompressionConfig()` normalizes partial configs (rungs descending and
-deduped, quality clamped to `[MIN_QUALITY, 1]`, budgets non-negative), so route
-every user override through it instead of merging raw fields.
+Web video conversion needs `FFMPEG_WORKER_URL`
+(`/_expo/static/js/web/ffmpeg-worker.js`) served same-origin by Metro and
+production; it falls back to the original when unavailable and the source type is
+allowlisted, otherwise rejects the asset. `convertVideo()` throws on native.
 
-Use granular processing subpaths for config. Config-only stores should import
-`IMAGE_PRESETS`, `MIN_QUALITY`, `CompressionConfig`, `ImagePreset`, and
-`resolveCompressionConfig` from
-`@mrmeg/expo-media/processing/image-compression/config`.
-
-The app must mount `FFMPEG_WORKER_URL` in Metro/Express for web conversion.
-Conversion helpers should fall back to original media when optional conversion
-is unavailable and the source type is allowlisted; otherwise the asset is
-rejected.
-
-Heavy optional features are lazy: `heic2any` loads only during web HEIC
-conversion, `expo-video` and `expo-image-manipulator` load only in the native
-thumbnail path, `expo-file-system` loads only to measure a native file URI, and
-FFmpeg loads only when web video conversion runs. Core and server entrypoints do
-not require React or Expo peers. Each lazy dependency has an injection seam for
-tests: `processAsset({ adapter })`, `convertHeicToJpeg(blob, fileName, decoder)`,
+Heavy features load lazily: `heic2any` only in web HEIC conversion; `expo-video`
+and `expo-image-manipulator` only from the native-only thumbnail dependency
+loader, so nothing here reaches `expo-video` on web; `expo-file-system` only to
+measure or upload a native file URI; FFmpeg only in web conversion. Core and
+server entrypoints need no React or Expo peer. Test seams:
+`processAsset({ adapter })`, `convertHeicToJpeg(blob, fileName, decoder)`,
 `resolveUploadSize(file, stat)`.
 
-Default image presets are `avatar`, `thumbnail`, `product`, `gallery`,
-`highQuality`, and `none`. The package exports preset values and resolver
-helpers; the consuming app decides which preset is the default for its product.
-
-## Validation
+## Repo Validation And Publishing
 
 Run `packages:peer-check`, `media:typecheck`, `media:test`, `media:build`,
-`media:pack`, and `media:consumer-smoke` sequentially. The consumer smoke
-validates both a minimal core/server install and a fully provisioned packed
-package. CI covers Expo 55, 56, and 57 consumers.
-
-## Publishing Pattern
-
-Use `.github/workflows/publish-media.yml` for GitHub publishing. It mirrors the
-UI package trusted-publishing workflow, uses npm OIDC by default, supports
-`NPM_TOKEN` fallback, and runs the media gates before `npm publish`.
-
-If `@mrmeg/expo-media` does not exist on npm yet, push-based workflow runs skip
-without failing unless `NPM_TOKEN` is configured. First publish should be a
-manual workflow run with `NPM_TOKEN`; trusted publishing can be configured after
-the package exists.
-
-For a local release, use `bun run media:release -- --patch --publish`. Omit
-`--publish` for the same version bump and validation gates without npm publish.
+`media:pack`, `media:consumer-smoke` in order; the smoke covers a minimal
+core/server/worker install plus a fully provisioned packed package, and CI covers
+Expo 55, 56, and 57 consumers. Release with
+`bun run media:release -- --patch [--publish]`.
+`.github/workflows/publish-media.yml` reruns those gates then `npm publish` on
+pushes to `main` that change `packages/media/package.json`, or on
+`workflow_dispatch`, using trusted publishing with an `NPM_TOKEN` fallback. Before
+the package exists on npm, push runs skip unless `NPM_TOKEN` is set: make the
+first publish a manual run with `NPM_TOKEN`, then configure trusted publishing.

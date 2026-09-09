@@ -10,9 +10,9 @@ another project.
 Two ways to consume this repo:
 
 1. Published packages: run `bun add @mrmeg/expo-ui` (and optionally
-   `@mrmeg/expo-media`), then follow the "@mrmeg/expo-ui Usage" section
-   below. The same guide ships in the npm tarball at
-   `node_modules/@mrmeg/expo-ui/LLM_USAGE.md`.
+   `@mrmeg/expo-media`), then follow the "@mrmeg/expo-ui Usage" and
+   "@mrmeg/expo-media Usage" sections below. Each ships in its npm tarball as
+   `LLM_USAGE.md`, with the full contract in `llms-full.md`.
 2. Pattern reference: follow the "Template Modernization Guide" and "Expo
    Server Guide" sections below; fetch concrete example files through the
    "Examples Index" section, or clone https://github.com/mrmeg/expo-template.git for bulk access.
@@ -22,7 +22,7 @@ Sections, in order:
 1. Template Modernization Guide — repo map, component selection, screen templates, feature patterns, migration order, anti-patterns
 2. External App Migration Guide — self-contained guide for migrating an existing Expo app to this template's baseline: tier self-assessment, server output config, loaders, ui package, screen templates, verification gates
 3. @mrmeg/expo-ui Usage — import paths, required app setup, theme rules, component use-case index, examples
-4. @mrmeg/expo-media Reference — media contracts, client hooks, server handlers, processing presets
+4. @mrmeg/expo-media Usage — import paths, required app setup, media contracts, client hooks, server handlers, processing presets
 5. Expo Server Guide — server output config, API routes, data loaders, middleware, server entries, replication checklist
 6. Examples Index — fetchable raw URLs for demo routes, screen templates, component source, form wrappers, server stack
 
@@ -33,14 +33,13 @@ Sections, in order:
 
 # Template Modernization Guide
 
-This guide is the LLM-facing map for using this repo as a reference template.
-Use it when adapting another Expo app to this stack, selecting reusable
-components, choosing a screen template, or checking modernization work against
-the repo's current patterns.
+The LLM-facing map for using this repo as a reference template: adapting another
+Expo app to this stack, selecting reusable components, choosing a screen template,
+or checking modernization work against the repo's current patterns.
 
 ## Start Here
 
-Treat these files as the source of truth before editing another project:
+Source of truth before editing another project:
 
 | Need | Source |
 |------|--------|
@@ -58,24 +57,24 @@ Treat these files as the source of truth before editing another project:
 | Reusable screen implementations | `client/templates/<id>/` |
 | Reusable composed sections | `client/blocks/<id>/` |
 
-When code and docs disagree, inspect the source files and update the docs in
-the same change.
+When code and docs disagree, inspect the source files and update the docs in the
+same change.
 
 ## Stack Baseline
 
-The template is a Bun-managed Expo app with Expo Router, server-rendered
-web output, TypeScript strict mode, React Query, Zustand, optional Cognito auth,
-optional Stripe billing, optional S3/R2 media, optional Sentry, and two
-workspace packages:
+A Bun-managed Expo app: Expo Router, server-rendered web output, TypeScript strict
+mode, React Query, Zustand, optional Clerk or Cognito auth
+(`EXPO_PUBLIC_AUTH_PROVIDER` picks when both are configured), optional Stripe
+billing, optional S3/R2 media, optional Sentry, and two workspace packages:
 
 - `@mrmeg/expo-ui` from `packages/ui`: design tokens, theme state, reusable
-  components, animation/haptic helpers, and global UI state.
-- `@mrmeg/expo-media` from `packages/media`: media contracts, processing
-  helpers, React Query factories, and S3/R2 server handler factories.
+  components, animation/haptic helpers, global UI state.
+- `@mrmeg/expo-media` from `packages/media`: media contracts, processing helpers,
+  React Query factories, S3/R2 server handler factories.
 
 App-specific integration belongs in `app/`, `client/`, `server/`, or `shared/`.
-Reusable UI belongs in `packages/ui`. Reusable media contracts and processing
-belong in `packages/media`.
+Reusable UI belongs in `packages/ui`; reusable media contracts and processing in
+`packages/media`.
 
 ## LLM Use Rules
 
@@ -83,37 +82,34 @@ belong in `packages/media`.
   `@mrmeg/expo-ui/components`, `@mrmeg/expo-ui/hooks`, and
   `@mrmeg/expo-ui/constants`.
 - Use `useTheme()` and token exports for color, spacing, radius, shadow,
-  typography, and contrast decisions. Avoid new hard-coded palettes.
-- Use the semantic density tokens for layout: `spacing.screenPadding` for
-  screen and block gutters, `spacing.cardPadding` for bordered panels,
+  typography, and contrast. No new hard-coded palettes.
+- Use the semantic density tokens for layout: `spacing.screenPadding` for screen
+  and block gutters, `spacing.cardPadding` for bordered panels,
   `spacing.sectionSpacing` between grouped lists, and `Item` (or
-  `spacing.rowPaddingY`/`rowPaddingX`) for list rows. Do not reach for raw
-  `spacing.lg` / `spacing.xl` for those roles.
-- Keep reusable package code app-agnostic. `packages/ui` must not import from
-  `@/client/*`; `packages/media` must not depend on app route files or app
-  env names.
+  `spacing.rowPaddingY` / `rowPaddingX`) for list rows. Not raw `spacing.lg` /
+  `spacing.xl` for those roles.
+- Keep package code app-agnostic: `packages/ui` must not import from
+  `@/client/*`; `packages/media` must not depend on app route files or app env
+  names.
 - Keep optional systems fail-closed. A blank `.env` must leave the template
   explorable with auth, billing, media, and Sentry disabled.
-- Web routes are server-rendered per request. Persisted browser state
-  (localStorage, `matchMedia`, dimensions) is unavailable in that first render,
-  so it must either be derived from the request — the way
-  `server/lib/ssrViewport.ts` and `server/lib/ssrOnboarding.ts` read cookies —
-  or read after mount. Changes to `app/+html.tsx`, root startup, theme startup,
-  i18n startup, onboarding, viewport logic, or font loading must be verified in
-  a browser against `bun run build && bun run start`.
-- Add showcase coverage when adding a reusable component, block, or screen
-  template. Components are listed by hand in `client/showcase/registry.ts`;
-  blocks and screen templates are generated from their `meta.ts` by
-  `bun run gen:blocks` / `bun run gen:templates`. Explore and the three
-  galleries derive every count and card from those registries, so a new asset
-  shows up without touching a screen.
-- Use exact local scripts from `package.json`; do not substitute generic Expo
-  or npm commands when a Bun script exists.
+- Web routes are server-rendered per request, so persisted browser state
+  (localStorage, `matchMedia`, dimensions) is unavailable in that first render. It
+  must be derived from the request — the way `server/lib/ssrViewport.ts` and
+  `server/lib/ssrOnboarding.ts` read cookies — or read after mount. Changes to
+  `app/+html.tsx`, root/theme/i18n startup, onboarding, viewport logic, or font
+  loading must be verified in a browser against `bun run build && bun run start`.
+- Add showcase coverage for any new reusable component, block, or screen template.
+  Components are listed by hand in `client/showcase/registry.ts`; blocks and screen
+  templates are generated from their `meta.ts` by `bun run gen:blocks` /
+  `bun run gen:templates`. Explore and the three galleries derive every count and
+  card from those registries, so a new asset shows up without touching a screen.
+- Use exact local scripts from `package.json`; never substitute generic Expo or npm
+  commands.
 
 ## Three Scales
 
-The showcase is organised by how much of a screen an asset covers. Pick the
-largest scale that fits before dropping to the one below.
+Pick the largest scale that fits before dropping to the one below.
 
 | Scale | Lives in | Browse at | Use for |
 |-------|----------|-----------|---------|
@@ -121,18 +117,18 @@ largest scale that fits before dropping to the one below.
 | 02 Blocks | `client/blocks/<id>/` | `app/(main)/(demos)/blocks/` (live stage + component recipe) | A composed section of a screen: hero, feature grid, stat row |
 | 03 Screen templates | `client/templates/<id>/` | `app/(main)/(demos)/templates/` (card grid → the live screen) | A complete screen you adapt rather than compose |
 
-The Explore tab (`app/(main)/(tabs)/index.tsx`) is the entry point: a search
-field that filters all three registries at once, then one section per scale.
-`client/showcase/ShowcaseScreen.tsx` is still the exhaustive per-component
-kitchen sink and is linked from the components gallery header. The gallery
-route files under `app/(main)/(demos)` are one-line lazy shells; their bodies
-live in `client/showcase/*Screen.tsx` behind a single split point
-(`client/showcase/gallery.tsx`) so the previews stay out of every other
-route's first-render download — see `docs/bundle-analysis.md`.
+The Explore tab (`app/(main)/(tabs)/index.tsx`) is the entry point: a search field
+filtering all three registries at once, then one section per scale.
+`client/showcase/ShowcaseScreen.tsx` is the exhaustive per-component kitchen sink,
+linked from the components gallery header. The gallery route files under
+`app/(main)/(demos)` are one-line lazy shells; their bodies live in
+`client/showcase/*Screen.tsx` behind a single split point
+(`client/showcase/gallery.tsx`), keeping previews out of every other route's
+first-render download — see `docs/bundle-analysis.md`.
 
 ## Component Selection
 
-Start with `packages/ui/src/components/index.ts` and the components gallery
+Start with `packages/ui/src/components/index.ts` and
 `client/showcase/ComponentsGalleryScreen.tsx` (or the exhaustive
 `client/showcase/ShowcaseScreen.tsx`).
 
@@ -152,38 +148,35 @@ Start with `packages/ui/src/components/index.ts` and the components gallery
 | Icons | `Icon`, with names typed by `IconName` |
 | App shell infrastructure | `UIProvider`, `ErrorBoundary`, `StatusBar`, `Notification` |
 
-For forms, use `react-hook-form` through `client/lib/form/FormProvider.tsx`
-and the field wrappers in `client/lib/form/`. Keep field state local to the
-smallest useful component, especially inside showcase demos and high-churn
-forms.
+For forms, use `react-hook-form` through `client/lib/form/FormProvider.tsx` and the
+field wrappers in `client/lib/form/`. Keep field state local to the smallest useful
+component, especially inside showcase demos and high-churn forms.
 
 ## Blocks
 
-Blocks live in `client/blocks/<id>/` as a `Block.tsx` plus a `meta.ts`, and are
-registered by `bun run gen:blocks`. Each `meta.ts` carries a `recipe` — the
-component ids the block composes — which the gallery renders as links into the
-component detail, so a block documents its own construction.
+Blocks live in `client/blocks/<id>/` as a `Block.tsx` plus a `meta.ts`, registered
+by `bun run gen:blocks`. Each `meta.ts` carries a `recipe` — the component ids the
+block composes — which the gallery renders as links into the component detail.
 
 | Block | Category | Use for |
 |-------|----------|---------|
-| Hero | marketing | Landing headline, subcopy, and primary/secondary actions |
-| Feature Grid | marketing | Three-up capability grid with icons |
-| Stat Row | data | A row of metrics with change indicators |
-| CTA Banner | marketing | A single mid-page conversion prompt |
-| FAQ Section | content | Accordion of common questions |
-| Sign-In Form | auth | Email/password entry with social options |
+| Hero | marketing | Landing headline, subcopy, primary/secondary actions |
+| Feature grid | marketing | Three-up capability grid with icons |
+| Stat row | data | A row of metrics with change indicators |
+| CTA banner | marketing | A single mid-page conversion prompt |
+| FAQ section | content | Accordion of common questions |
+| Sign-in form | auth | Email/password entry with social options |
 
 Reach for a block before hand-composing a section out of primitives, and before
 copying a whole screen template you only need one band of.
 
 ## Screen Templates
 
-Screen templates live in `client/templates/<id>/` as a `Screen.tsx` (the
-reusable implementation), a `demo.tsx` (the route's sample data), and a
-`meta.ts` (id, label, description, icon, `route`, `order`, `category`).
-`bun run gen:templates` turns those metas into
-`client/templates/registry.generated.ts`; navigate by an entry's `route`, never
-a path built from its id.
+Screen templates live in `client/templates/<id>/` as a `Screen.tsx` (the reusable
+implementation), a `demo.tsx` (the route's sample data), and a `meta.ts` (id, label,
+description, icon, `route`, `order`, `category`). `bun run gen:templates` turns
+those metas into `client/templates/registry.generated.ts`; navigate by an entry's
+`route`, never a path built from its id.
 
 | Template | Category | Use for |
 |----------|----------|---------|
@@ -205,9 +198,9 @@ a path built from its id.
 | Search | states | Query results, filters, empty states |
 | Error | states | Setup, retry, auth, access, and fatal states |
 
-Use these as starting points, not as containers for unrelated product logic.
-Domain behavior should sit in a feature folder, then pass data and callbacks
-into the screen template.
+Use these as starting points, not as containers for unrelated product logic. Domain
+behavior sits in a feature folder and passes data and callbacks into the screen
+template.
 
 ## App And Feature Patterns
 
@@ -225,32 +218,29 @@ into the screen template.
 
 ## Modernization Path
 
-Use this order when moving an existing project toward this template:
+Order for moving an existing project onto this template:
 
-1. Baseline the toolchain: Bun lockfile, Expo SDK, React, React Native,
-   TypeScript strict, Expo Router, and local package scripts.
-2. Move app identity into the single identity surface used by `app.config.ts`
-   and runtime deep-link helpers.
-3. Establish the route shell: root providers, tabs, grouped demo routes,
-   error boundary, safe area, keyboard provider, and startup gate.
-4. Replace one-off UI with `@mrmeg/expo-ui` components and tokens. Port
-   screens from the largest matching scale down: a screen template in
-   `client/templates/<id>/`, then a block in `client/blocks/<id>/`, then
-   individual components.
-5. Normalize forms through `react-hook-form`, `zod`, and `client/lib/form`
-   wrappers.
+1. Baseline the toolchain: Bun lockfile, Expo SDK, React, React Native, TypeScript
+   strict, Expo Router, local package scripts.
+2. Move app identity into the single identity surface used by `app.config.ts` and
+   runtime deep-link helpers.
+3. Establish the route shell: root providers, tabs, grouped demo routes, error
+   boundary, safe area, keyboard provider, startup gate.
+4. Replace one-off UI with `@mrmeg/expo-ui` components and tokens. Port screens from
+   the largest matching scale down: a screen template in `client/templates/<id>/`,
+   then a block in `client/blocks/<id>/`, then individual components.
+5. Normalize forms through `react-hook-form`, `zod`, and `client/lib/form` wrappers.
 6. Move server state to React Query and client state to small Zustand stores.
 7. Convert API calls to typed route contracts and typed problem handling.
-8. Add optional systems behind env gates. Missing auth, billing, media, or
-   Sentry config should degrade to setup/disabled states, not runtime crashes.
-9. Verify the web build in a browser before optimizing for native-only
-   behavior.
-10. Add tests at the boundary touched: package component tests, screen tests,
-    route tests, feature isolation, typecheck, lint, and bundle-size checks.
+8. Add optional systems behind env gates. Missing auth, billing, media, or Sentry
+   config must degrade to setup/disabled states, not runtime crashes.
+9. Verify the web build in a browser before optimizing native-only behavior.
+10. Add tests at the boundary touched: package component tests, screen tests, route
+    tests, feature isolation, typecheck, lint, bundle-size.
 
 ## Modernization Checks
 
-Before calling a migration complete, run the relevant local scripts:
+Before calling a migration complete:
 
 ```bash
 bun run typecheck
@@ -265,20 +255,19 @@ bun run build
 bun run bundle-size
 ```
 
-For UI package changes, also use the showcase and React Scan workflow from
-`README.md`. For web-startup work, verify in a browser against
-`bun run build && bun run start` (see `docs/server-guide.md`).
+For UI package changes, also use the showcase and React Scan workflow
+(`bun run scan:showcase`) from `README.md`. For web-startup work, verify in a
+browser against `bun run build && bun run start` (see `docs/server-guide.md`).
 
 ## Anti-Patterns To Remove
 
 - App screens defining new button, input, menu, modal, card, or typography
   primitives when package components already exist.
 - Hard-coded colors, shadows, radius, and spacing in general-purpose UI.
-- Feature folders importing sibling feature internals outside documented
-  boundary exceptions.
+- Feature folders importing sibling feature internals outside documented boundary
+  exceptions.
 - Client code reading raw bucket, Stripe, Cognito, or server secret env vars.
-- UI code branching on raw HTTP `Response` objects instead of typed problem
-  objects.
+- UI code branching on raw HTTP `Response` objects instead of typed problem objects.
 - Optional feature setup that crashes a blank `.env`.
 - Web startup logic that blocks first paint on persisted browser state.
 - Showcase demos with high-churn state at the full-route level.
@@ -289,12 +278,12 @@ Update this file when:
 
 - A reusable component is added, removed, renamed, or moved.
 - A screen template is added, removed, renamed, or gets a new intended use.
-- The modernization order changes because of stack, routing, web output, or
-  package boundary changes.
+- The modernization order changes because of stack, routing, web output, or package
+  boundary changes.
 - Verification scripts or feature gates change.
 
-Keep examples source-linked and concise. Prefer pointing to the canonical
-implementation over copying code that will drift.
+Keep examples source-linked. Point to the canonical implementation rather than
+copying code that will drift.
 
 ---
 
@@ -303,83 +292,63 @@ implementation over copying code that will drift.
 
 # Migrating an Existing App to the expo-template Baseline
 
-This document is designed to travel. Drop it into any Expo app (or hand it to
-an agent working in one) and follow it to bring that app in line with
-[mrmeg/expo-template](https://github.com/mrmeg/expo-template): server web
-output, typed data loaders, `@mrmeg/expo-ui` components, reusable screen templates,
-and the template's verification gates.
-
-Unlike `docs/template-modernization-guide.md` (written for agents working
-inside the template repo), this guide is self-contained: every required
-config value, API shape, and code pattern is inlined, and everything else is
-fetchable from the template's public GitHub.
+Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](https://github.com/mrmeg/expo-template) baseline — server web output, typed data loaders, `@mrmeg/expo-ui` components, reusable screen templates, verification gates. Required config, API shapes, and patterns are inlined; anything else is fetchable from the template's GitHub.
 
 ## How to Use This Document
 
-1. Run the **Self-Assessment** below to find your app's tier.
-2. Work the phases in order. Lower tiers skip phases they already satisfy.
-3. Migrate **one screen/feature as a pilot** before converting the rest —
-   validate it builds, runs, and passes checks, then repeat the pattern.
-4. After each phase, run the **Verification** commands before moving on.
+1. Self-assess to find your tier and starting phase.
+2. Work the phases in order.
+3. Pilot one screen/feature, confirm it builds and passes checks, then repeat the pattern.
+4. Run the Phase 7 gates after each phase.
 
 ## Reference Materials (fetch as needed)
 
-The template publishes an LLM consumption layer. From any repo, fetch:
-
 | Resource | URL |
 |----------|-----|
-| Full docs bundle (modernization guide, UI usage, media, server) | `https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-full.txt` |
-| Example index (demo routes, screen templates, component source) | `https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-examples.txt` |
+| All template docs, concatenated | `https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-full.txt` |
+| Raw-URL index of demos, screen templates, component source | `https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-examples.txt` |
 | UI package usage rules | `https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/LLM_USAGE.md` |
 | Any individual file | `https://raw.githubusercontent.com/mrmeg/expo-template/main/<path>` |
 
-When this guide and `llms-full.txt` disagree, `llms-full.txt` is newer — trust it.
+`llms-full.txt` is generated from the repo; where it disagrees with this guide, trust it.
 
-## Target Baseline (as of July 2026)
+## Target Baseline (September 2026)
 
 | Package | Version |
 |---------|---------|
-| expo | ~57.0.4 |
-| expo-router | ~57.0.4 |
-| expo-server | ~57.0.0 |
-| react | 19.2.3 |
-| react-native | 0.86.0 |
+| expo | ~57.0.21 |
+| expo-router | ~57.0.20 |
+| expo-server | ~57.0.3 |
+| react / react-dom | 19.2.3 |
+| react-native | 0.86.3 |
 | react-native-web | ^0.21.2 |
-| @mrmeg/expo-ui | ^0.14.0 |
-| @mrmeg/expo-media (if using media) | ^0.2.0 |
-| zustand | ^5.0.14 |
-| @tanstack/react-query | ^5.101.2 |
-| react-hook-form | ^7.81.0 |
-| zod | ^4.4.3 |
-| typescript | ~6.0.3 (strict mode) |
-| jest-expo | ~57.0.1 |
+| @mrmeg/expo-ui | ^0.23.0 |
+| @mrmeg/expo-media (if using media) | ^0.5.0 |
+| zustand | ^5.0.15 |
+| @tanstack/react-query | ^5.102.8 |
+| react-hook-form | ^7.87.0 |
+| zod | ^4.5.4 |
+| typescript | ~6.0.3 (strict) |
+| jest-expo | ~57.0.5 |
 | @testing-library/react-native | ^14.0.1 |
 | eslint | ^10 (flat config) |
 
-Package manager: **Bun** (`bun.lock`, scripts run via `bun run <script>`).
+Package manager: **Bun** (`bun.lock`; scripts run as `bun run <script>`).
 
 ## Self-Assessment
 
-Check your `package.json` and app config, then start at the matching tier:
+Check `package.json` and the app config:
 
-- **Tier 1 — Close.** Already on Expo 56 + `web.output: "server"` +
-  `@mrmeg/expo-ui` ≥ 0.6. Start at **Phase 3** (loaders), then Phases 4–7.
-- **Tier 2 — One SDK behind.** Expo 55, `@mrmeg/expo-ui` 0.1–0.2. Start at
-  **Phase 1**. Budget real time for Phase 4 — the ui package API changed
-  substantially between 0.2 and 0.8.
-- **Tier 3 — Far.** Expo ≤ 54, no `@mrmeg/expo-ui`, possibly
-  `web.output: "single"` or `"static"`. Work every phase in order. Upgrade
-  Expo one SDK major at a time (52→53→54→55→56), getting the app booting at
-  each step before continuing.
+- **Tier 1** — Expo 56, `web.output: "server"`, `@mrmeg/expo-ui` ≥ 0.6. Start at Phase 3, then 4–7.
+- **Tier 2** — Expo 55, `@mrmeg/expo-ui` 0.1–0.2. Start at Phase 1; budget real time for Phase 4, since the ui API moved substantially between 0.2 and 0.23.
+- **Tier 3** — Expo ≤ 54, no `@mrmeg/expo-ui`, possibly `web.output: "single"` or `"static"`. Every phase, upgrading Expo one major at a time (52→53→54→55→56→57) and getting the app booting at each step.
 
 ## Phase 1 — Toolchain
 
-1. Adopt Bun if not already: delete other lockfiles, run `bun install`.
-2. Upgrade to Expo SDK 57: `bunx expo install expo@^57.0.0 --fix`, then
-   `bunx expo-doctor` and resolve every finding. (Tier 3: one major at a time.)
-3. TypeScript ~6.0 with `"strict": true` in `tsconfig.json`. Path alias
-   `"@/*"` pointing at the repo root.
-4. ESLint 10 flat config (`eslint.config.mjs`), lint via `bunx expo lint`.
+1. Adopt Bun: delete other lockfiles, run `bun install`.
+2. `bunx expo install expo@^57.0.0 --fix`, then `bunx expo-doctor`; resolve every finding. (Tier 3: one major at a time.)
+3. TypeScript ~6.0, `"strict": true`, `"@/*"` path alias pointing at the repo root.
+4. ESLint 10 flat config (`eslint.config.mjs`); lint via `bunx expo lint`.
 
 ## Phase 2 — Server Web Output
 
@@ -399,54 +368,28 @@ plugins: [
       unstable_useServerRendering: true,
       unstable_useServerMiddleware: true,
       unstable_useServerDataLoaders: true,
+      asyncRoutes: { web: "production" },
     },
   ],
   // ...other plugins
 ],
 ```
 
-`output: "server"` gives you API routes, middleware, and data loaders on a
-Node/Bun server. `unstable_useServerRendering` additionally renders each route
-**per request**, so the response carries real markup instead of an export-time
-HTML shell. That is what the template ships, and it is the flag with real
-migration cost: the first render runs in Node with no DOM. Budget for the
-first-render rules below, plus the stylesheet flush and `+html.tsx` snapshot
-filter described in `docs/server-guide.md`. Leaving the flag off is a valid
-smaller step — you get the same API routes, middleware, and loaders with
-export-time HTML shells.
+`output: "server"` gives API routes, middleware, and data loaders on a Node/Bun server. `unstable_useServerRendering` also renders each route **per request**, so the response carries real markup instead of an export-time shell; leaving that one flag off is a valid smaller step. It is the flag with real migration cost, because the first render then runs in Node with no DOM:
+
+- **Register react-native-web styles at module scope.** The framework's head snapshot is taken before route modules load, so rules registered later ship as classes with no CSS. Render a server-only component **last** in the root layout that emits `StyleSheet.getSheet()` as a React 19 style resource (`href` + `precedence`; template: `client/features/app/SsrStyleFlush.tsx`), with its atomic selectors doubled (`.r-x` → `.r-x.r-x`) so they outrank the client sheet's single-class resets until each route chunk lands.
+- **Filter the snapshot in `app/+html.tsx`.** Drop the framework's `<style id="react-native-stylesheet">` node from `headNodes`, and render one empty element with that id for react-native-web to adopt as its client sheet.
 
 Then:
 
-1. Add `expo-server` (`~57.0.0`) as a dependency.
-2. Add an `app/+html.tsx` document. Fetch the template's version
-   (`app/+html.tsx` via the raw URL above) — it wraps every route's HTML with
-   the viewport meta, global CSS, and a blocking script that stamps the color
-   scheme on `<html>` before first paint, and (with server rendering on)
-   splats the framework's SSR head/body resources into the document. Adapt
-   fonts/scripts to your app.
-3. Add a production server entry. The template ships one: `server.bun.ts`
-   (Bun.serve). It serves `dist/client/` statics and mounts the request
-   handler from `dist/server/` via `expo-server/adapter/bun`. On a non-Bun
-   host, swap in the matching `expo-server` adapter and reimplement the same
-   static/CORS/rate-limit/header layers.
-4. **First-render rules.** Persisted browser state (localStorage,
-   `matchMedia`, dimensions) is only available after mount, so a route's
-   first render should not depend on it — read it in an effect and let the UI
-   settle, or accept the pre-hydration default. Anything that must be right
-   before paint belongs in a `+html.tsx` blocking script (the template stamps
-   the color scheme that way). Under server rendering that first render also
-   happens in Node, so a value the markup depends on has to come off the
-   request instead: the template mirrors viewport width and the onboarding flag
-   into cookies and re-derives the same value on both sides
-   (`server/lib/ssrViewport.ts`, `server/lib/ssrOnboarding.ts`,
-   `client/features/app/ssrViewportMetrics.ts`) so hydration matches.
+1. Add `expo-server` (`~57.0.3`).
+2. Add `app/+html.tsx` (fetch the template's). It wraps every route's HTML with the viewport meta, global CSS, a blocking script that stamps the color scheme on `<html>` before first paint, and — under server rendering — the framework's SSR head/body resources. Adapt fonts and scripts.
+3. Add a production server entry. Template: `server.bun.ts` (`Bun.serve`) serves `dist/client/` statics and mounts the `dist/server/` handler through `expo-server/adapter/bun`. On a non-Bun host, use the matching `expo-server` adapter and reimplement the same static/CORS/rate-limit/header layers.
+4. **First-render rules.** Persisted browser state (localStorage, `matchMedia`, dimensions) exists only after mount, so a route's first render must not depend on it — read it in an effect or accept the pre-hydration default. Anything that must be correct before paint belongs in a `+html.tsx` blocking script (how the color scheme is stamped). Under server rendering, any value the markup depends on must come off the request: mirror it into a cookie and re-derive it from identical bytes on both sides so hydration matches (`server/lib/ssrViewport.ts`, `server/lib/ssrOnboarding.ts`, `client/features/app/ssrViewportMetrics.ts`). Without a viewport signal, react-native-web lays out the tree at width 0.
 
 ## Phase 3 — Data Loaders
 
-Routes that need server data export a typed `loader` next to the screen. The
-route file stays thin — both the loader and the screen live in a feature folder
-— but each export has to be a **declaration**, not a specifier re-export, or
-`expo export` misses it (see the convention notes below):
+Routes that need server data export a typed `loader` beside the screen. Keep the route file thin, but make each export a **declaration** — a specifier re-export is invisible to `expo export`:
 
 ```ts
 // app/(main)/things/[id].tsx — the entire route file:
@@ -477,14 +420,11 @@ export const thingLoader: LoaderFunction<ThingLoaderData> = async (
     // Unit tests and direct calls have no Expo Server request scope.
   }
 
-  // Server-only modules are dynamically imported so they never enter the
+  // Server-only modules are imported dynamically so they never enter the
   // client bundle.
   const { getThing } = await import("@/server/api/things");
 
-  return {
-    thing: getThing(params.id),
-    requestedId: params.id ?? null,
-  };
+  return { thing: getThing(params.id), requestedId: params.id ?? null };
 };
 ```
 
@@ -495,44 +435,28 @@ import type { thingLoader } from "./loaders";
 
 export default function ThingDetailScreen() {
   const { thing, requestedId } = useLoaderData<typeof thingLoader>();
-  // Data is available synchronously on first render — no loading spinner
-  // needed for loader-provided data.
+  // Available synchronously on first render — no spinner for loader data.
 }
 ```
 
 Conventions:
 
-- Wrap `setResponseHeaders` in try/catch — it throws outside a live request.
-- **Declare route exports, never re-export them by specifier.** `expo export`
-  finds loaders with a Babel pass over `app/` that only recognizes a `loader`
-  **declaration** (`export const loader = …`, `export function loader…`) in the
-  route file. `export { thingLoader as loader } from "…"` is skipped, so the
-  route ships without a loader in production while working fine in development.
-  The same pass strips a declared `export default` from the loader bundle but
-  leaves an `export { default } from "…"` line, which pulls the whole screen
-  graph into that server bundle (details and symptoms in
-  `docs/server-guide.md` → Data Loaders).
-- Import `@/server/**` modules **dynamically inside the loader body**, never
-  at module top level.
-- Type loader data with `LoaderFunction<T>` and consume with
-  `useLoaderData<typeof loader>()`.
-- Loaders replace "fetch on mount" for initial page data. Keep React Query
-  for client-side refetching, mutations, and data that changes after load.
+- `setResponseHeaders` throws outside a live request; wrap it in try/catch.
+- **Declare route exports; never re-export by specifier.** `expo export` finds loaders with a Babel pass over `app/` that recognizes only a `loader` **declaration** (`export const loader = …`, `export function loader…`). `export { thingLoader as loader } from "…"` is skipped, so the route works in development and ships with no loader. The same pass strips a declared `export default` from the loader bundle but leaves an `export { default } from "…"` line, pulling the whole screen graph into that server bundle. (Symptoms and guardrails: the template's `docs/server-guide.md`.)
+- Import `@/server/**` **dynamically inside the loader body**, never at module top level.
+- Type loader data with `LoaderFunction<T>`; consume with `useLoaderData<typeof loader>()`.
+- Loaders replace fetch-on-mount for initial page data. Keep React Query for refetching, mutations, and data that changes after load.
 
 ## Phase 4 — @mrmeg/expo-ui
 
-Upgrade to `@mrmeg/expo-ui@^0.8.0`. Peer requirements: Expo ~56, React
-≥ 19.2, RN ≥ 0.83, zustand ≥ 5.
+Upgrade to `@mrmeg/expo-ui@^0.23.0`. Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 58; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.87; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 2.33; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3.
 
-**Required app setup (once, at the root):**
+**Required root setup:**
 
-- Mount `UIProvider` once at the root — overlay and feedback components
-  (Notification, Dialog, BottomSheet, Tooltip) depend on it.
-- Call `useResources()` once near the root before rendering UI (font and
-  resource loading).
+- Mount `UIProvider` once (props `notification`, `portalHost`, `statusBar` are opt-out). It renders the `@rn-primitives` portal host that `Dialog`, `Drawer`, `DropdownMenu`, `Popover`, `Select`, and `Tooltip` need, plus `Notification` and `StatusBar`.
+- Call `const { loaded } = useResources()` once near the root and hold rendering until `loaded`.
 
-**Import only from public subpaths** — never from `dist/` or a source
-checkout:
+**Import only from public subpaths** (`.`, `/components`, `/hooks`, `/state`, `/constants`, `/lib`) — never `dist/` or a source checkout:
 
 ```ts
 import { Button, Card, StyledText, TextInput } from "@mrmeg/expo-ui/components";
@@ -541,16 +465,16 @@ import { notify } from "@mrmeg/expo-ui/state";
 import { spacing } from "@mrmeg/expo-ui/constants";
 ```
 
-**Notifications — use `notify`, not `globalUIStore.show()`** (new in 0.8):
+**Notifications — use `notify`**, not `globalUIStore.show()` (`globalUIStore` remains for reactive subscriptions and tests):
 
 ```ts
 notify.success("Saved", { messages: ["Your changes have been saved."] });
-notify.error("Upload failed");
-notify.warning("Almost out of space");
-notify.loading("Uploading…");   // persistent until replaced or hidden
+notify.error("Upload failed");   // .warning / .info take the same shape
+notify.loading("Uploading…");    // persists until replaced or hidden
 notify.hide();
+notify({ type: "success", title: "Saved", action: { label: "View", onPress: openSaved } });
 
-// Loading → success/error around any promise (rethrows on rejection):
+// Loading → success/error around a promise (rethrows on rejection):
 await notify.promise(saveProfile(), {
   loading: "Saving…",
   success: "Profile saved",
@@ -560,80 +484,54 @@ await notify.promise(saveProfile(), {
 
 **Theme rules:**
 
-- Use `useTheme()` (`{ colors, fonts, scheme, isDark }`) and semantic tokens —
-  no hard-coded palettes, shadows, radii, or spacing in general-purpose UI.
-- `primary` is neutral (dark gray in light mode, near-white in dark mode);
-  `colors.accent` (teal) is for highlights, active tabs, badges.
-- Cards are border-only (no shadow by default); shadows elsewhere are subtle.
+- `useTheme()` returns `{ theme, scheme, getShadowStyle, getFocusRingStyle, withAlpha, getContrastingColor, getTextColorForBackground, getContrastRatio }`; colors live at `theme.colors.*`. Use semantic tokens — no hard-coded palettes, shadows, radii, or spacing in general-purpose UI.
+- On web each `theme.colors.*` value is a CSS custom property, so hex-alpha concatenation (`theme.colors.x + "15"`) does not work. Use `withAlpha(theme.colors.x, 0.08)`.
+- `primary` is the neutral action color (dark gray in light mode, near-white in dark); `accent` (teal) is for highlights, active tabs, badges.
+- Use `getShadowStyle(type)` for elevation (`base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`, `cardHover`, `cardSubtle`) rather than the legacy `shadow*` props, which RN 0.85 and react-native-web 0.21 deprecate in favor of `boxShadow`. `Card`'s default variant already applies `getShadowStyle("subtle")`.
 
-**Component swaps.** Replace one-off primitives with package components:
-buttons, text inputs, switches/checkboxes, selects, tabs, dialogs, bottom
-sheets, dropdown menus, cards, badges, skeletons, empty states, icons. The
-full use-case index is in `packages/ui/LLM_USAGE.md` (see Reference
-Materials). Notable rules:
+**Component swaps.** Replace one-off primitives with package components: buttons, text inputs, switches/checkboxes, selects, tabs, dialogs, bottom sheets, dropdown menus, cards, badges, skeletons, empty states, icons. Full use-case index: `packages/ui/LLM_USAGE.md`.
 
-- `Button` uses `preset` (not `variant`); visible heights are compact
-  (sm 28 / md 32 / lg 40).
-- `DropdownMenu` item styles must be plain objects — flatten with
-  `StyleSheet.flatten`, never pass nested style arrays (crashes
-  React Native Web).
-- Always smoke-test web after UI migration; nested style arrays that work on
-  native crash RNW.
+- `Button` uses `preset`, not `variant`. Heights are compact: Button 28/32/40 (`sm`/`md`/`lg`), `TextInput`/`Select` 32/36/40, `Toggle` 32/36/40 (`sm`/`default`/`lg`), `Tabs` 32/36 (`sm`/`md`).
+- Smoke-test web after the UI migration; style shapes that work on native can break react-native-web.
 
 ## Phase 5 — Screen Templates
 
-The template ships 13 reusable screens under `client/screens/`. Copy the ones
-your app needs (raw URL: `client/screens/<Name>.tsx`), then refactor existing
-screens to compose them. Templates are **starting points, not containers**:
-domain logic lives in `client/features/<feature>/`, which passes data and
-callbacks into the template.
+17 self-contained screen templates live under `client/templates/<id>/`: `Screen.tsx` (the reusable screen, a named `<Name>Screen` export), `demo.tsx` (worked example with sample data), `meta.ts` (registry entry), `README.md`. `client/templates/registry.generated.ts` is produced by `bun run gen:templates` (verified by `gen:templates:check`) — rerun after adding or changing a folder. Demo routes at `app/(main)/(demos)/screen-<id>.tsx` re-export `demo.tsx` (`detail-hero.tsx` for `detail-hero`). Smaller composable sections follow the same pattern in `client/blocks/` with `bun run gen:blocks`.
 
-| Template | File | Use for |
-|----------|------|---------|
-| Settings | `SettingsScreen.tsx` | Grouped settings, toggles, account actions |
-| Profile | `ProfileScreen.tsx` | Avatar, stats, sectioned details |
-| List | `ListScreen.tsx` | Searchable lists, refresh, loading/empty states |
-| Pricing | `PricingScreen.tsx` | Plans, billing intervals, comparisons |
-| Welcome | `WelcomeScreen.tsx` | First-run welcome, auth entry |
-| Card Grid | `CardGridScreen.tsx` | Filterable card collections |
-| Chat | `ChatScreen.tsx` | Message timelines, composer |
-| Dashboard | `DashboardScreen.tsx` | Metrics, charts, activity feeds |
-| Form | `FormScreen.tsx` | Multi-step forms with validation and review |
-| Notifications | `NotificationListScreen.tsx` | Grouped notification feeds |
-| Search Results | `SearchResultsScreen.tsx` | Query results, filters, empty states |
-| Error | `ErrorScreen.tsx` | Setup, retry, auth, access, fatal states |
-| Detail Hero | `DetailHeroScreen.tsx` | Detail pages with prominent media |
+Copy the folders you need (raw path `client/templates/<id>/Screen.tsx`), then refactor your screens to compose them. Templates are **starting points, not containers**: domain logic stays in `client/features/<feature>/` and passes data and callbacks in.
 
-Working composition examples for every template live under
-`app/(main)/(demos)/` in the template (indexed in `llms-examples.txt`).
+| Template id | Use for |
+|-------------|---------|
+| `card-grid` | Filterable card layout |
+| `chat` | Messaging conversation |
+| `dashboard` | Metrics and activity feed |
+| `detail-hero` | Hero-image detail view |
+| `error` | Error states (`not-found`, `offline`, `maintenance`, `permission-denied`, `generic`) |
+| `faq` | Accordion of questions and answers |
+| `form` | Multi-step wizard with validation |
+| `hero` | Landing hero, centered and full-bleed |
+| `list` | Search and pull to refresh |
+| `notifications` | Grouped notification list |
+| `pricing` | Plans and comparison |
+| `profile` | Avatar, stats, sections |
+| `search` | Filtered search results |
+| `settings` | Grouped lists and toggles |
+| `stats` | Metric grid with change indicators |
+| `testimonials` | Snap-scrolling quote cards |
+| `welcome` | Landing and social login |
 
 ## Phase 6 — App Conventions
 
-- **Feature folders:** product code in `client/features/<feature>/`; features
-  must not import sibling feature internals. The template enforces this with
-  `scripts/check-feature-isolation.js` — copy it and its `check:features`
-  script if you want the gate.
-- **State:** React Query for server state; small Zustand stores for client
-  state. No giant global stores.
-- **Forms:** `react-hook-form` + `zod` resolvers, through form wrappers
-  (template reference: `client/lib/form/`).
-- **API routes:** `app/api/<feature>/<name>+api.ts` exporting
-  `export async function GET(request: Request): Promise<Response>`. Shared
-  auth/CORS/error helpers live in `server/api/shared/` — keep route files
-  thin. Return typed problem objects to the client, not raw `Response`
-  branching in UI code. Every `+api.ts` exports as its own self-contained
-  server bundle, so consolidate sibling actions that share heavy
-  dependencies behind one `app/api/<feature>/[action]+api.ts` dispatcher
-  (template reference: `app/api/media/[action]+api.ts`; see the server
-  guide's Route Consolidation section).
-- **Auth fetch:** a single `authenticatedFetch`/`api.*` wrapper injects the
-  Bearer token; UI code never builds auth headers.
-- **Optional systems fail closed:** with a blank `.env`, auth, billing,
-  media, and Sentry must degrade to disabled/setup states — never crash.
+- **Feature folders:** product code in `client/features/<feature>/`; no imports of sibling feature internals. The template gate is `scripts/check-feature-isolation.js` (`check:features`) — copy it to enforce this.
+- **State:** React Query for server state, small Zustand stores for client state. No giant global stores.
+- **Forms:** `react-hook-form` + `zod` resolvers behind form wrappers (template: `client/lib/form/`).
+- **API routes:** `app/api/<feature>/<name>+api.ts` exporting `export async function GET(request: Request): Promise<Response>`. Shared auth/CORS/error helpers in `server/api/shared/`; keep route files thin. Return typed problem objects, not raw `Response` branching in UI code. Each `+api.ts` exports as its own self-contained server bundle, so consolidate sibling actions that share heavy dependencies behind one `app/api/<feature>/[action]+api.ts` dispatcher (template: `app/api/media/[action]+api.ts`).
+- **Auth fetch:** one `authenticatedFetch`/`api.*` wrapper injects the Bearer token; UI code never builds auth headers.
+- **Optional systems fail closed:** with a blank `.env`, auth, billing, media, and Sentry degrade to disabled/setup states instead of crashing.
 
 ## Phase 7 — Verification
 
-Match the template's CI gates (add the scripts if missing):
+Match the template's gates (add the scripts if missing):
 
 ```bash
 bun run typecheck      # tsc --noEmit, strict
@@ -643,31 +541,16 @@ bun run check:features # feature isolation (if adopted)
 bun run build          # expo export → dist/client + dist/server
 ```
 
-Testing notes:
-
-- RNTL 14 APIs are async: `await render(...)`, `await renderHook(...)`,
-  `await fireEvent(...)`, `await act(...)` — older sync-style tests must be
-  migrated.
-- After `bun run build`, start the production server and load the app in a
-  browser: every route should render, API routes and loader-backed routes
-  should return data, and dark mode should not white-flash on first paint.
+- RNTL 14 APIs are async: `await render(...)`, `await renderHook(...)`, `await fireEvent(...)`, `await act(...)`. Sync-style tests must be migrated.
+- After `bun run build`, start the production server and load the app in a browser: every route renders, API and loader-backed routes return data, dark mode does not white-flash on first paint.
 
 ## Anti-Patterns to Remove While Migrating
 
-- App-local button/input/menu/modal/card/typography primitives that duplicate
-  `@mrmeg/expo-ui` components.
-- Hard-coded colors, shadows, radius, spacing in general-purpose UI.
-- Fetch-on-mount for initial route data that belongs in a loader.
-- Top-level imports of server modules in files that reach the client bundle.
-- UI branching on raw HTTP `Response` objects.
-- Feature folders importing sibling feature internals.
-- Web startup logic that blocks first paint on persisted browser state.
-- Optional integrations that crash on a blank `.env`.
+Sweep for and delete: app-local duplicates of `@mrmeg/expo-ui` primitives (buttons, inputs, menus, modals, cards, typography); hard-coded colors, shadows, radii, spacing in general-purpose UI; fetch-on-mount for initial route data; top-level server-module imports in client-reachable files; UI branching on raw `Response` objects; cross-feature internal imports; startup logic that blocks first paint on persisted browser state; integrations that crash on a blank `.env`.
 
 ## Appendix — Portfolio Tier Scan (June 2026)
 
-Snapshot of where each app stood when this guide was written. If your app is
-listed, start at that tier; re-verify against `package.json` first.
+Where each app stood when this guide was written; re-verify against `package.json` before trusting a row.
 
 | App | Expo | @mrmeg/expo-ui | Web output | Tier |
 |-----|------|----------------|-----------|------|
@@ -692,13 +575,12 @@ listed, start at that tier; re-verify against `package.json` first.
 
 # @mrmeg/expo-ui LLM Usage Guide
 
-This file ships in the npm package. In a consumer repo, read it from
-`node_modules/@mrmeg/expo-ui/LLM_USAGE.md` before building app UI.
+Read from `node_modules/@mrmeg/expo-ui/LLM_USAGE.md` before building app UI.
 
 ## First Rule
 
-Do not recreate primitives that this package already provides. Import from
-`@mrmeg/expo-ui` and compose the exported components in the app.
+Do not recreate primitives this package already provides. Import from
+`@mrmeg/expo-ui` and compose the exported components.
 
 ## Stable Import Paths
 
@@ -706,34 +588,31 @@ Do not recreate primitives that this package already provides. Import from
 import { Button, StyledText, UIProvider } from "@mrmeg/expo-ui/components";
 import { Button as ButtonDirect } from "@mrmeg/expo-ui/components/Button";
 import { colors, spacing, typography } from "@mrmeg/expo-ui/constants";
-import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
-import { globalUIStore, notify, useThemeStore } from "@mrmeg/expo-ui/state";
+import { useResources, useStyles, useTheme } from "@mrmeg/expo-ui/hooks";
+import { globalUIStore, notify, ThemeColorScope, useThemeStore } from "@mrmeg/expo-ui/state";
 import { configureExpoUiI18n, hapticLight } from "@mrmeg/expo-ui/lib";
+// The root barrel re-exports the whole public surface:
+import { Button, colors, UIProvider, useTheme } from "@mrmeg/expo-ui";
 ```
 
-The root barrel also exports the public surface:
+Importable paths: root, `components`, `components/*`, `constants`,
+`constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`. Never import from
+`@mrmeg/expo-ui/dist/*` or a source checkout path.
 
-```tsx
-import { Button, UIProvider, colors, useTheme } from "@mrmeg/expo-ui";
-```
-
-Use only exported package paths: root, `components`, `components/*`,
-`constants`, `constants/*`, `hooks`, `hooks/*`, `state`, and `lib`. Do not
-import from `@mrmeg/expo-ui/dist/*` or from a source checkout path.
-
-Supported hosts are Expo 56–57, React 19.2, React Native 0.85–0.86, and React
-Native Web 0.21. Install the peer versions recommended by the consuming app's
-Expo SDK.
+Hosts: Expo 56–57, React 19.2, React Native 0.85–0.86, React Native Web 0.21.
+Install the peer versions recommended by the consuming app's Expo SDK.
 
 ## Required App Setup
 
-Call `useResources()` once near the Expo app root. Mount `UIProvider` once
-near the root when the app uses package feedback or overlay components.
-`UIProvider` owns the package `Notification`, `StatusBar`, and default
-`@rn-primitives` portal host.
+Call `useResources()` once near the Expo app root. Mount `UIProvider` once near
+the root; it owns the package `Notification`, `StatusBar`, the default
+`@rn-primitives` portal host, and the native keyboard-avoiding root. It is
+required before `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`,
+`DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, or `notify`.
 
 ```tsx
 import { ThemeProvider } from "expo-router";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { UIProvider } from "@mrmeg/expo-ui/components";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
@@ -752,32 +631,38 @@ export function RootLayout() {
         fonts: colors[scheme ?? "light"].fonts,
       }}
     >
-      <UIProvider>
-        {/* App navigation goes here. */}
-      </UIProvider>
+      <KeyboardProvider>
+        <UIProvider>
+          {/* App navigation goes here. */}
+        </UIProvider>
+      </KeyboardProvider>
     </ThemeProvider>
   );
 }
 ```
 
-`UIProvider` mounts the default portal host required before using `Dialog`,
-`AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`,
-`SelectContent`, or `Tooltip`.
+`UIProvider` props, all opt-out: `notification`, `portalHost`, `statusBar`
+(default `true`), `keyboardAvoiding` (default `true` on native, `false` on web),
+and `keyboardAvoidingProps` forwarded to the root wrapper. Native keyboard
+avoidance is `react-native-keyboard-controller`, so mount its `KeyboardProvider`
+above `UIProvider`; use `KeyboardAvoidingView` directly only for a subtree with
+custom behavior.
 
-On native, `BottomSheet.Content` avoids the soft keyboard by default with
-React Native keyboard events. Pass `avoidKeyboard={false}` to opt out for a
-specific sheet.
+`BottomSheet` renders the platform's native sheet through `@expo/ui` (iOS
+SwiftUI `.sheet()`, Android Material3 `ModalBottomSheet`, web `vaul`). The
+platform owns gestures and keyboard avoidance: `swipeEnabled`, `avoidKeyboard`,
+and `dismissKeyboardOnDrag` are accepted for call-site ergonomics but have no
+effect. `Slider` and `SegmentedControl` are also `@expo/ui`-backed.
 
-`BottomSheet.Content` themes the native sheet surface with the card color.
-Pass `backgroundStyle={{ backgroundColor: "transparent" }}` (with a `style`
-that clears the content column's card fill) when custom chrome such as a
-glass backdrop should show through; omitting it keeps the card background.
+`BottomSheet.Content` themes the native sheet surface with the card color. Pass
+`backgroundStyle={{ backgroundColor: "transparent" }}`, plus a `style` clearing
+the content column's card fill, when custom chrome such as a glass backdrop must
+show through.
 
-i18n is optional. Do not add app-level i18n setup just to use this package.
-Plain children and `text` props work without `i18next` or `react-i18next`.
-`tx` props render fallback text when provided and otherwise render the key
-until the consumer opts in with a package-local translator. Package-owned
-defaults such as notification titles stay human-readable without app i18n:
+i18n is optional. Do not add app-level i18n setup just to use this package;
+plain children and `text` props work without `i18next` or `react-i18next`. `tx`
+props render their fallback text when provided, otherwise the key. Package-owned
+defaults such as notification titles stay human-readable without app i18n.
 
 ```tsx
 import { configureExpoUiI18n } from "@mrmeg/expo-ui/lib";
@@ -790,60 +675,47 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 
 - Use `useTheme()` and semantic tokens instead of hardcoded colors.
 - Use `StyledText` or its semantic aliases instead of raw `Text` for app UI.
-- Use `Button.preset`, not `variant`, for buttons.
-- Button visible heights are compact: `sm` 28px, `md` 32px, and `lg` 40px.
-- Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the selected Button size.
-- Use `notify` plus root-mounted `UIProvider` for transient global feedback. (`globalUIStore` remains available for reactive subscriptions and tests.)
+- Use `Button.preset`, not `variant`.
+- Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36).
+- Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the Button size.
+- Use `notify` plus a root `UIProvider` for transient global feedback. (`globalUIStore` stays available for reactive subscriptions and tests.)
 - Keep app monitoring, auth, API, and domain behavior outside this package.
 
-Useful theme tokens include:
-
-```tsx
-theme.colors.surfaceSunken;
-theme.colors.background;
-theme.colors.foreground;
-theme.colors.card;
-theme.colors.popover;
-theme.colors.border;
-theme.colors.borderStrong;
-theme.colors.input;
-theme.colors.ring;
-theme.colors.primary;
-theme.colors.secondary;
-theme.colors.accent;
-theme.colors.mutedForeground;
-theme.colors.destructive;
-theme.colors.success;
-theme.colors.warning;
-```
+Semantic color tokens on `theme.colors`: `surfaceSunken`, `background`,
+`foreground`, `card`, `popover`, `muted`, `mutedForeground`, `border`,
+`borderStrong`, `input`, `ring`, `primary`, `secondary`, `accent`,
+`destructive`, `success`, `warning`.
 
 Token intent:
 
-- `primary`: neutral action color
-- `secondary`: neutral secondary surface
+- `primary`: neutral action color; `secondary`: neutral secondary surface
 - `accent`: teal highlight color
-- `input`: form-control border color
-- `ring`: focus outline color
+- `input`: form-control border; `ring`: focus outline
 - `popover`: elevated overlay surface
 - `surfaceSunken`: app-chrome surface one tier below `background`
-- `borderStrong`: hairline for elements on filled surfaces, where `border` would blend in
+- `borderStrong`: hairline for elements on filled surfaces, where `border` blends in
 
-Elevation is a surface-tier ladder, not shadow depth:
-`surfaceSunken` (chrome) < `background` (content) < `card`/`popover` (raised)
-< `muted` (chips, insets). Border a raised or filled element with
-`borderStrong`; `border` is for hairlines on `background`/`card`.
+Elevation is a surface-tier ladder, not shadow depth: `surfaceSunken` (chrome) <
+`background` (content) < `card`/`popover` (raised) < `muted` (chips, insets).
 
-Use `getShadowStyle()` for package surfaces that need elevation. It supports
-`base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`,
-`cardHover`, and `cardSubtle`, returning a cross-platform `boxShadow` value
-(RN 0.85 + react-native-web 0.21 deprecate the legacy `shadow*` props). Use
-`getFocusRingStyle()` for web focus styling. Keep
-web controls compact, but preserve mobile tap comfort with package controls
-that already provide native hit slop or 44px touch rows.
+On web every `theme.colors.*` value is a CSS custom property (`var(--c-*)`), so
+themes swap in CSS when `html[data-theme]` changes; native keeps literals. Hex
+alpha concatenation (`theme.colors.x + "15"`) does **not** work — use
+`withAlpha(theme.colors.x, 0.08)`, exported standalone from `hooks` and from
+`useTheme()`. For sinks that cannot take `var()` (e.g. `<meta name="theme-color">`)
+use `rawThemeColors.light/.dark` or `resolveRawColor(color, scheme)`;
+`getThemeCssVariables(overrides?)` emits the `--c-*` definitions for an app's
+`+html.tsx`. All three come from `@mrmeg/expo-ui/constants`.
+
+Use `getShadowStyle(type)` for elevation — `base`, `soft`, `sharp`, `subtle`,
+`elevated`, `glow`, `glass`, `card`, `cardHover`, `cardSubtle` — returning a
+cross-platform `boxShadow` (RN 0.85 + react-native-web 0.21 deprecate the legacy
+`shadow*` props). Use `getFocusRingStyle(offset?)` for web focus styling. Keep
+web controls compact; package controls already provide native hit slop or 44px
+touch rows.
 
 Use `useStyles()` for memoized theme-aware local styles. Its factory receives
-`{ theme, spacing, withAlpha }`, so components can derive alpha-adjusted
-semantic colors without destructuring `withAlpha` outside the factory:
+`{ theme, spacing, withAlpha }`:
 
 ```tsx
 const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
@@ -854,21 +726,21 @@ const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
 }));
 ```
 
-Layout spacing uses semantic density tokens rather than raw scale steps:
+Layout spacing uses semantic density tokens, not raw scale steps:
 `spacing.screenPadding` (16) for screen and block gutters, `spacing.cardPadding`
 (16) for bordered panels, `spacing.sectionSpacing` (24) between grouped lists,
 `spacing.dialogPadding` (20) for dialogs, and `spacing.rowPaddingY`/`rowPaddingX`
 (10/16) with `spacing.rowGap` (12) for list rows. `Item` already applies the row
 tokens and keeps a 44px hit area on native while rendering 40px on web.
 
-When the saved theme preference is `system`, the package theme store owns the
-OS color-scheme subscription, including web `prefers-color-scheme`. Do not add
-app-local Appearance or `matchMedia` listeners for package components; import
-`useTheme()`, `useStyles()`, and `useThemeStore` from `@mrmeg/expo-ui`.
+When the saved theme preference is `system`, the package theme store owns the OS
+color-scheme subscription, including web `prefers-color-scheme`. Do not add
+app-local Appearance or `matchMedia` listeners. `THEME_STORAGE_KEY` (from
+`state`) is the persisted-preference key, for a pre-boot theme script.
 
 `useTheme()` resolves colors in three layers, last wins: package defaults →
-global brand (`useThemeStore.getState().setColors(overrides)`) → scoped
-override (`ThemeColorScope`). Each override is `{ light?, dark? }` of
+global brand (`useThemeStore.getState().setColors(overrides)`) → scoped override
+(`ThemeColorScope`). Each override is `{ light?, dark? }` of
 `Partial<ThemeColors>`; only the keys you pass are replaced. Call `setColors`
 once to forward the app's brand palette globally. Wrap a subtree in
 `<ThemeColorScope colors={{ light, dark }}>` for transient per-subtree theming
@@ -877,73 +749,83 @@ React context, scoped keys win over the global brand inside it, and nested
 scopes merge (inner wins, outer fills in). With no override at either layer,
 `useTheme()` returns the base theme by reference.
 
-Fonts and shape have matching global injection points. `setFonts({ families:
-{ sansSerif?, serif?, mono? }, webWeightStrategy? })` replaces the bundled
-faces (Inter/Georgia/system-mono) everywhere text renders; groups and weights
-are partial, missing weights fall back to the group's `regular`, and an
-overridden `sansSerif` makes `useResources` skip downloading Inter (call
-`setFonts` before mount for the skip). `setShape({ button: { borderRadius?,
-withShadow? } })` re-shapes Buttons globally (e.g. pill radius 9999, shadow
-off). Per-instance props and caller `style` always win over both.
+Fonts and shape have matching global injection points. `setFonts({ families: {
+sansSerif?, serif?, mono? }, webWeightStrategy? })` replaces the bundled faces
+(Inter / Georgia / system-mono) everywhere text renders; groups and weights are
+partial, missing weights fall back to that group's `regular`, and an overridden
+`sansSerif` makes `useResources` skip downloading Inter (call `setFonts` before
+mount for the skip). Use `webWeightStrategy: "family"` when loading per-weight
+faces through `expo-font` / `@expo-google-fonts`, `"numeric"` (default) for one
+multi-weight CSS family. `setShape({ button: { borderRadius?, withShadow? } })`
+re-shapes Buttons globally. Per-instance props and caller `style` always win.
 
 ## Component Use-Case Index
 
-Use this table before creating a new app-local primitive.
+Check this before creating a new app-local primitive. All components come from
+`@mrmeg/expo-ui/components`; `@mrmeg/expo-ui/components/<Name>` also works.
 
-| Component | Use For | Prefer It Instead Of | Common Example Use Cases |
-|-----------|---------|----------------------|--------------------------|
-| `Accordion`, `AccordionItem`, `AccordionTrigger`, `AccordionContent` | Multi-section disclosure | Custom FAQ/settings expanders | FAQ lists, grouped settings, help sections |
-| `Alert` | Cross-platform imperative alerts | Direct `window.alert` or duplicated RN/web branching | Confirm destructive actions, native alert dialogs |
-| `AnimatedView` | Entrance and visibility animation | Hand-rolled one-off Animated wrappers | Staggered list rows, revealed panels, animated empty states |
-| `Avatar`, `AvatarGroup` | Profile images with initials/icon fallback | Hand-rolled circles with a nested `Image` and initials `Text` | Account menu, comment authors, assignee pickers, overlapping team stacks |
-| `Badge` | Short status labels | Custom pill `View` + `Text` | Draft/active states, counts, plan labels, role tags |
-| `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets | Action pickers, mobile filters, keyboard-aware quick edit forms |
-| `Button` | Commands and CTAs | Pressable plus custom text styling | Submit, save, cancel, delete, navigation CTAs |
-| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Framed content groups | Ad hoc bordered panels | List items, pricing plans, settings sections, summaries |
-| `Carousel` | Horizontally snapping slide rows with pressable dot indicators | Hand-rolled snap `ScrollView` plus manual offset math | Testimonial strips, onboarding pages, feature highlights, image galleries |
-| `Checkbox` | Boolean selection | Custom checkmark controls | Terms consent, checklist items, multi-select filters |
-| `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | One-off disclosure | Local animated height wrappers | Advanced settings, hidden helper text |
-| `Dialog`, `AlertDialog` | Modal decisions and custom modal content | Custom modal overlays | Confirm delete, edit profile, invite user |
-| `DismissKeyboard` | Tap-away keyboard dismissal | Screen-level keyboard handling | Forms, search screens, sign-in screens |
-| `KeyboardAvoidingView` | Native keyboard-aware layout root | Repeated app-local keyboard wrappers | Screen roots, composer footers, form-heavy subtrees |
-| `Drawer` | Side panels and drawer navigation | Custom sliding panels | Filter drawer, app navigation drawer, inspector panel |
-| `DropdownMenu` | Menus and command lists | Homemade popover menus | Row actions, account menu, sort menu |
-| `EmptyState` | No-data or recoverable error regions | One-off empty placeholders | Empty inbox, no search results, failed list load |
-| `ErrorBoundary` | React render error fallback | Unhandled screen crashes | Route-level fallback, feature boundary |
-| `Icon` | Feather or custom icons with theme tokens | Raw vector icons with hardcoded colors | Button accessories, empty-state icons, menu icons |
-| `InputOTP` | Verification code entry | Multiple manually managed text inputs | Email codes, SMS codes, MFA, invite codes |
-| `Label` | Accessible form labels | Plain styled text labels | Required labels, disabled labels, field group labels |
-| `MaxWidthContainer` | Centered responsive width | Per-screen max-width wrappers | Web pages, tablet layouts, settings forms |
-| `Notification` | Global toast surface | Screen-local toast state | Saved/error/sync notifications, action toasts, bottom-position alerts |
-| `Popover` | Anchored contextual content | Custom anchored views | Inline help, quick previews, contextual controls |
-| `Progress` | Determinate or indeterminate progress | Layout-shifting spinners for progress regions | Upload progress, onboarding completion |
-| `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows | Plan interval, visibility choice, survey answer |
-| `Select` | Option menus | Custom dropdowns | Country picker, category selector, status selector |
-| `Separator` | Horizontal or vertical dividers | Border-only spacer views | Menu dividers, section dividers, card dividers |
-| `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Blank space or generic spinners | List loading, profile card loading, dashboard placeholders |
-| `Slider` | Numeric value selection | Custom pan gesture track | Volume, percentage, rating, threshold settings |
-| `StatusBar` | Theme-aware native status bar | Per-screen status-bar duplication | Root layout status styling |
-| `StyledText` and text aliases | Theme-aware typography | Raw `Text` with hardcoded styles | Titles, headings, labels, body copy, captions |
-| `Switch` | Binary settings | Custom toggle switches | Enable notifications, privacy setting, feature toggles |
-| `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | In-page tabbed views | Custom segmented/tab controls | Profile sections, report views, settings categories |
-| `TextInput` | Text entry | Raw `TextInput` with repeated label/error code | Email/password, search, numeric input, multiline notes |
-| `Toggle`, `ToggleIcon` | Pressed/unpressed control | Button with local selected styling | Favorite, mute, bold/italic, view mode button |
-| `ToggleGroup`, `ToggleGroupItem`, `ToggleGroupIcon` | Single or multi toggle groups | Custom segmented controls | Alignment, formatting toolbar, filter chips |
-| `Tooltip` | Short hover/focus help | Persistent helper text or custom hover cards | Icon button labels, field hints, disabled action explanations |
+| Component | Use for | Instead of |
+|-----------|---------|------------|
+| `Accordion`, `AccordionItem`, `AccordionTrigger`, `AccordionContent` | Multi-section disclosure | Custom FAQ/settings expanders |
+| `Alert` | Cross-platform imperative alerts | `window.alert` or duplicated RN/web branching |
+| `AnimatedView` | Entrance and visibility animation | Hand-rolled one-off Animated wrappers |
+| `Avatar`, `AvatarGroup` | Profile images with initials/icon fallback | Circles with a nested `Image` plus initials `Text` |
+| `Badge` | Short status labels | Custom pill `View` + `Text` |
+| `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets |
+| `Button` | Commands and CTAs | Pressable plus custom text styling |
+| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Framed content groups | Ad hoc bordered panels |
+| `Carousel` | Horizontally snapping slide row with pressable dots | Snap `ScrollView` plus manual offset math |
+| `Checkbox` | Boolean selection | Custom checkmark controls |
+| `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | One-off disclosure | Local animated height wrappers |
+| `Dialog`, `AlertDialog` | Modal decisions and custom modal content | Custom modal overlays |
+| `DismissKeyboard` | Tap-away keyboard dismissal | Screen-level keyboard handling |
+| `Drawer` | Side panels and drawer navigation | Custom sliding panels |
+| `DropdownMenu` | Menus and command lists | Homemade popover menus |
+| `EmptyState` | No-data or recoverable error regions | One-off empty placeholders |
+| `ErrorBoundary` | React render error fallback | Unhandled screen crashes |
+| `Icon` | Feather or custom icons with theme tokens | Raw vector icons with hardcoded colors |
+| `InputOTP` | Verification code entry | Several manually managed text inputs |
+| `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens | Hand-rolled row `View`s |
+| `KeyboardAvoidingView` | Native keyboard-aware layout root | Repeated app-local keyboard wrappers |
+| `Label` | Accessible form labels | Plain styled text labels |
+| `MaxWidthContainer` | Centered responsive width | Per-screen max-width wrappers |
+| `Notification` | Global toast surface | Screen-local toast state |
+| `Popover` | Anchored contextual content | Custom anchored views |
+| `Progress` | Determinate or indeterminate progress | Layout-shifting spinners |
+| `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows |
+| `SectionHeader` | Eyebrow / title / description section intro | Stacked ad hoc heading text |
+| `SegmentedControl` | Native segmented picker (`@expo/ui`) | Custom segmented views |
+| `Select` | Option menus | Custom dropdowns |
+| `Separator` | Horizontal or vertical dividers | Border-only spacer views |
+| `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Blank space or generic spinners |
+| `Slider` | Numeric value selection (`@expo/ui`) | Custom pan gesture track |
+| `StatCard` | Metric tile with label, value, unit, change | Hand-rolled dashboard cards |
+| `StatusBar` | Theme-aware native status bar | Per-screen status-bar duplication |
+| `StyledText` and text aliases | Theme-aware typography | Raw `Text` with hardcoded styles |
+| `Switch` | Binary settings | Custom toggle switches |
+| `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | In-page tabbed views | Custom segmented/tab controls |
+| `TextInput` | Text entry with label, helper/error text, clear, password reveal | Raw `TextInput` plus repeated label/error code |
+| `Toggle`, `ToggleIcon` | Pressed/unpressed control | Button with local selected styling |
+| `ToggleGroup`, `ToggleGroupItem`, `ToggleGroupIcon` | Single or multi toggle groups | Custom segmented controls |
+| `Tooltip` | Short hover/focus help | Persistent helper text or custom hover cards |
+
+`StyledText` props: `semantic` (`title`, `heading`, `subheading`, `body`,
+`caption`, `label`, `eyebrow`), `size` (`xs`, `sm`, `base`, `body`, `lg`, `xl`,
+`xxl`, `display`), `fontWeight` (`light`–`bold`), `variant` (`sansSerif`,
+`serif`, `mono`), `align`, `text`, `tx`, `txOptions`, `selectable` (default
+`true`). Aliases: `DisplayText`, `TitleText`, `HeadingText`, `SubheadingText`,
+`BodyText`, `CaptionText`, `LabelText`, `EyebrowText`, `MonoText`, `SerifText`,
+`SansSerifText`, `SerifBoldText`, `SansSerifBoldText`.
 
 ## Component Selection Rules
 
-- Use `Button` for commands, `Toggle` for one pressed state, `ToggleGroup` for related pressed states, and `Switch` for binary settings.
-- Use `RadioGroup` for small mutually exclusive choices and `Select` for longer option sets.
-- Use `Dialog` for blocking decisions, `Popover` for contextual controls, `Tooltip` for short explanations, and `DropdownMenu` for action lists.
-- Use `Card` for individual repeated or framed items, not as a wrapper around full page sections.
-- Use `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive into the exported HTML shell and the first client frame; reach for `FlatList` when the data set is large or unbounded. Its dots are pressable and jump to their slide. A fractional `itemWidth` measures the viewport until the first layout, so pass absolute pixels (`> 1`) when the parent is narrower than the window and the first frame matters.
-- Use `EmptyState` for no-data or recoverable error regions.
-- Use `Skeleton` for loading content with stable layout.
-- Use `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent, still loading, or failed, plus the default accessibility label. Never hand-roll a circle with a nested `Image` and initials `Text`. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring; the group's count is a hidden summary node, so each member stays individually announceable and the group needs no `accessible` wrapper.
-- Pair a standalone `Label` with its control using two DISTINCT ids: `nativeID` is the label's own id, `htmlFor` is the input's id (`<Label nativeID="email-label" htmlFor="email-input">` + `<TextInput nativeID="email-input" />`). Putting the same id on both renders duplicate ids on web and associates nothing. Prefer `TextInput`'s own `label` prop when you don't need a separate label element.
-- Use `Progress` for real progress or indeterminate long-running work.
-- Use `Drawer.Header` with `icon`, `title`, and `action` for a compact app-brand row; place `Drawer.ToggleCollapse` in `action` for a trailing rail control.
+- `Button` commands · `Toggle` one pressed state · `ToggleGroup` a related set · `Switch` binary settings · `RadioGroup` few exclusive choices · `Select` longer option sets.
+- `Dialog` blocking decisions · `Popover` contextual controls · `Tooltip` short explanations · `DropdownMenu` action lists.
+- `Card` individual repeated or framed items, never a wrapper around full page sections · `EmptyState` no-data or recoverable errors · `Skeleton` loading content with stable layout · `Progress` real or indeterminate progress.
+- `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive into the exported HTML shell and the first client frame; use `FlatList` for large or unbounded data. Dots are pressable and jump to their slide. A fractional `itemWidth` (default `0.85`) measures the viewport until the first layout, so pass absolute pixels (`> 1`) when the parent is narrower than the window and the first frame matters.
+- `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent, still loading, or failed, plus the default accessibility label. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring; the group's count is a hidden summary node, so each member stays individually announceable and the group needs no `accessible` wrapper.
+- Pair a standalone `Label` with its control using two DISTINCT ids: `nativeID` is the label's own id, `htmlFor` is the input's id (`<Label nativeID="email-label" htmlFor="email-input">` + `<TextInput nativeID="email-input" />`). One id on both renders duplicate ids on web and associates nothing. Prefer `TextInput`'s own `label` prop when no separate label element is needed.
+- `Drawer.Header` takes `icon`, `title`, and `action` slots for a compact app-brand row; put `Drawer.ToggleCollapse` in `action` for a trailing rail control. `Drawer.Content` owns safe-area top/bottom padding — do not duplicate it in children.
 
 ## Minimal Examples
 
@@ -1003,13 +885,12 @@ import { notify } from "@mrmeg/expo-ui/state";
 <Progress value={65} variant="accent" />
 <EmptyState icon="inbox" title="No messages" description="New messages will appear here." />
 
-// Convenience helpers
 notify.success("Saved", { messages: ["Your changes were saved."] });
 notify.error("Upload failed");
 notify.warning("Connection slow");
 notify.info("Copied to clipboard");
 
-// Loading spinner — stays until replaced or hidden (no auto-dismiss)
+// Loading spinner — no auto-dismiss; stays until replaced or hidden
 notify.loading("Uploading…");
 notify.hide();
 
@@ -1024,789 +905,150 @@ await notify.promise(saveProfile(), {
 });
 ```
 
+Notifications auto-dismiss after 4s (`DEFAULT_NOTIFICATION_DURATION`) unless a
+`duration` is passed; `duration: 0` keeps one up until dismissed. `position` is
+`"top"` (default) or `"bottom"`.
+
 ---
 
-<!-- Source: packages/media/README.md -->
-<!-- Raw: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/media/README.md -->
+<!-- Source: packages/media/LLM_USAGE.md -->
+<!-- Raw: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/media/LLM_USAGE.md -->
 
-# @mrmeg/expo-media
+# LLM Usage: @mrmeg/expo-media
 
-Reusable media contracts, API clients, React Query hooks, processing helpers,
-and server handler factories for MrMeg Expo apps.
+## Imports
 
-## Purpose
-
-This package exists so Expo apps can share the same media infrastructure
-instead of copying storage handlers, upload clients, signed URL hooks, image
-compression utilities, HEIC conversion, thumbnail generation, and media error
-handling into every app.
-
-The package owns primitives. The consuming app still owns auth, routes,
-storage credentials, app-wide defaults, upload policy, metadata, and UI.
-
-## Ownership Boundary
-
-Package-owned:
-
-- media config contracts and safe key helpers
-- client upload/list/read/delete API client factories
-- React Query hook factories
-- the `processAsset` pipeline: content-type identification, the upload format
-  policy, image compression, HEIC conversion, thumbnails, and optional web video
-  conversion
-- Fetch-compatible server handlers for S3/R2 presigned URL workflows
-- typed media error mapping
-
-App-owned:
-
-- auth and route mounting
-- bucket credentials and environment variable names
-- server policy decisions and database metadata
-- app-wide media settings, including the content-type allowlist both sides share
-- UI screens and media manager composition
-- FFmpeg worker serving for web
-- monitoring and analytics SDKs
-
-## Install
-
-```sh
-bun add @mrmeg/expo-media
-```
-
-Core contracts and server handlers require no React or Expo runtime. React
-Query, React Native, Expo native modules, and `heic2any` are optional peers so
-apps install only the features they use while retaining ownership of provider
-singletons and native-module versions. Native compression and thumbnail
-generation use `expo-file-system`, `expo-image-manipulator`, and `expo-video`;
-React Query hooks use `@tanstack/react-query`; browser HEIC conversion uses
-`heic2any`. Server signing dependencies are package-owned: handlers sign S3/R2
-requests with `aws4fetch` over `fetch`, so consumers do not install the AWS SDK.
-
-Install optional peers with the consuming app's package manager. Use Expo CLI
-for Expo-owned modules so their versions match the app SDK:
-
-```sh
-bunx expo install expo-file-system expo-image-manipulator expo-video
-bun add @tanstack/react-query heic2any
-```
-
-The package supports Expo 55–57 and React Native 0.83–0.86. A consumer only
-needs the peers required by the entrypoints and features it imports.
-
-In this monorepo, the app uses workspace resolution:
-
-```json
-{
-  "dependencies": {
-    "@mrmeg/expo-media": "workspace:*"
-  }
-}
-```
-
-## Public Imports
-
-```ts
-import { createMediaConfig } from "@mrmeg/expo-media";
-import { createMediaClient } from "@mrmeg/expo-media/client";
-import { createMediaQueryHooks } from "@mrmeg/expo-media/react-query";
-import { createMediaHandlers } from "@mrmeg/expo-media/server";
-import {
-  createKvTokenAuthorizer,
-  createMediaWorker,
-} from "@mrmeg/expo-media/worker";
-import { processAsset, mapWithConcurrency } from "@mrmeg/expo-media/processing";
-import {
-  compressImage,
-  convertHeicToJpeg,
-} from "@mrmeg/expo-media/processing/image-compression";
-import {
-  IMAGE_PRESETS,
-  resolveCompressionConfig,
-} from "@mrmeg/expo-media/processing/image-compression/config";
-import {
-  convertVideo,
-  FFMPEG_WORKER_URL,
-  needsConversion,
-} from "@mrmeg/expo-media/processing/video-conversion";
-import { extractVideoThumbnail } from "@mrmeg/expo-media/processing/video-thumbnails";
-```
-
-Root imports are shared-contract only and do not load React Native, Expo native
-modules, or storage signing code. Use `/server` only in server route files, and
-`/worker` only in a Cloudflare Worker entry.
-`/processing` is the entry point for `processAsset` and the pipeline pieces it
-coordinates. Screens that only read config — a settings screen, a preference
-store — should import the granular subpath instead
-(`/processing/image-compression/config`) so they do not pull the whole pipeline
-into a light bundle.
-
-Heavy processing dependencies are behind lazy boundaries. `heic2any` loads
-inside `convertHeicToJpeg()`, native thumbnail extraction loads `expo-video`
-and `expo-image-manipulator` only on the native path, `expo-file-system` loads
-only when a native file URI needs to be measured, and FFmpeg assets load only
-when web `convertVideo()` runs. Bundlers that honor package side-effect metadata
-also see `"sideEffects": false`.
-
-Each lazy dependency also has an injection seam so it can be replaced in tests
-without a bundler: `processAsset({ adapter })`, `convertHeicToJpeg(blob,
-fileName, decoder)`, and `resolveUploadSize(file, stat)`.
-
-## Configuration Model
-
-Use two config surfaces:
-
-1. Server storage policy through `createMediaConfig()`
-2. App-wide client defaults through an app-owned settings file
-
-The package intentionally does not own product defaults. Apps should define
-their own media settings once and make screens read those values.
-
-Recommended app-owned settings shape:
-
-```ts
-import type {
-  CompressionConfig,
-  ImagePreset,
-} from "@mrmeg/expo-media/processing/image-compression/config";
-
-type MediaType = "avatars" | "videos" | "thumbnails" | "uploads";
-
-export type MediaUploadPolicy = {
-  mediaType: MediaType;
-  compression?: ImagePreset | Partial<CompressionConfig> | null;
-};
-
-export const MEDIA_APP_SETTINGS = {
-  imageCompression: {
-    enabled: true,
-    defaultPreset: "gallery",
-    userOverrides: null,
-  },
-  processing: {
-    // Each in-flight asset holds a full-resolution bitmap, so this is a memory
-    // ceiling rather than a throughput knob.
-    concurrency: 3,
-  },
-  uploads: {
-    selectionLimit: 20,
-    uploadVideoThumbnails: true,
-    deleteVideoThumbnailWithVideo: true,
-  },
-  uploadPolicies: {
-    avatar: { mediaType: "avatars", compression: "avatar" },
-    generalImage: { mediaType: "uploads", compression: "gallery" },
-    video: { mediaType: "videos", compression: null },
-  },
-} as const;
-```
-
-There is no `keepOriginalIfLarger` setting. The never-larger decision is
-format-aware and belongs to the pipeline, not to app config — see
-`chooseUploadCandidate()` under [Processing](#processing).
-
-The app also owns the content-type allowlist, because the client's encode target
-and the server's `allowedContentTypes` have to be the same list:
-
-```ts
-export const IMAGE_CONTENT_TYPES = [
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-] as const;
-
-export const VIDEO_CONTENT_TYPES = [
-  "video/mp4",
-  "video/quicktime",
-  "video/webm",
-] as const;
-
-export const MEDIA_CONTENT_TYPE_ALLOWLIST = {
-  image: IMAGE_CONTENT_TYPES,
-  video: VIDEO_CONTENT_TYPES,
-} as const;
-```
-
-Do not add `image/heic` to it. No browser renders HEIF, and accepting it would
-let an undisplayable file into storage while hiding client transcode failures.
-
-## Server Setup
-
-```ts
-import { createMediaConfig } from "@mrmeg/expo-media";
-import { createMediaHandlers } from "@mrmeg/expo-media/server";
-
-export const mediaConfig = createMediaConfig({
-  buckets: {
-    media: {
-      provider: "r2",
-      bucket: process.env.MEDIA_BUCKET,
-      endpoint: process.env.MEDIA_ENDPOINT,
-      region: "auto",
-      forcePathStyle: true,
-      credentials: {
-        accessKeyId: process.env.MEDIA_ACCESS_KEY_ID,
-        secretAccessKey: process.env.MEDIA_SECRET_ACCESS_KEY,
-      },
-    },
-  },
-  mediaTypes: {
-    avatars: {
-      bucket: "media",
-      prefix: "users/avatars",
-      allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],
-      maxBytes: 5 * 1024 * 1024,
-      uploadExpiresInSeconds: 300,
-      readExpiresInSeconds: 86400,
-    },
-    uploads: {
-      bucket: "media",
-      prefix: "uploads",
-      // Same list the client processes toward. HEIC is never allowlisted; the
-      // client transcodes it to JPEG before signing.
-      allowedContentTypes: [
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "image/webp",
-        "image/gif",
-        "video/mp4",
-        "video/quicktime",
-        "video/webm",
-      ],
-      maxBytes: 50 * 1024 * 1024,
-      uploadExpiresInSeconds: 300,
-      readExpiresInSeconds: 86400,
-    },
-  },
-});
-
-export const mediaHandlers = createMediaHandlers({
-  config: mediaConfig,
-  authorize: async (request) => requireUser(request),
-  policy: {
-    canUpload: async ({ auth, mediaType, contentType, size }) => ({
-      allowed: true,
-    }),
-    canRead: async ({ auth, keys }) => ({ allowed: true }),
-    canList: async ({ auth, mediaType, prefix }) => ({ allowed: true }),
-    canDelete: async ({ auth, keys }) => ({ allowed: true }),
-  },
-  events: {
-    onUploadSigned: async ({ auth, key, mediaType }) => {
-      // Optional: create app-owned pending metadata.
-    },
-    onDeleted: async ({ auth, keys }) => {
-      // Optional: reconcile app-owned metadata.
-    },
-  },
-});
-```
-
-Expose the handlers through one consolidated Expo Router route file —
-`expo export` bundles every `+api.ts` separately, so per-action files would
-each duplicate the S3 + auth stack. A single `app/api/media/[action]+api.ts`
-keeps the URLs (`/api/media/list`, `/api/media/getUploadUrl`, ...) while
-emitting one bundle:
-
-```ts
-import { mediaHandlers } from "@/server/media/handlers";
-
-const routes = {
-  list: { GET: mediaHandlers.list },
-  getUploadUrl: { POST: mediaHandlers.getUploadUrl },
-  getSignedUrls: { POST: mediaHandlers.getSignedUrls },
-  delete: { DELETE: mediaHandlers.deleteOne, POST: mediaHandlers.deleteMany },
-};
-
-export function POST(request: Request, { action }: { action: string }) {
-  const handler = routes[action]?.POST;
-  return handler ? handler(request) : notFoundResponse(request);
-}
-// GET / DELETE / OPTIONS dispatch the same way — see the template's
-// app/api/media/[action]+api.ts for the full file.
-```
-
-Missing bucket credentials or invalid media config return a typed `503`
-`media-disabled` JSON response without constructing an S3 client.
-
-## Server Config Fields
-
-| Field | Purpose |
+| Subpath | Contents |
 |---|---|
-| `buckets.*.provider` | `s3` or `r2` |
-| `buckets.*.bucket` | physical bucket name |
-| `buckets.*.endpoint` | R2 or custom S3 endpoint |
-| `buckets.*.region` | S3 region or R2 `auto` |
-| `buckets.*.credentials` | storage credentials |
-| `mediaTypes.*.bucket` | bucket alias used by the media type |
-| `mediaTypes.*.prefix` | generated object key prefix |
-| `mediaTypes.*.allowedContentTypes` | accepted MIME allowlist |
-| `mediaTypes.*.maxBytes` | optional upload size limit |
-| `mediaTypes.*.uploadExpiresInSeconds` | signed upload URL lifetime |
-| `mediaTypes.*.readExpiresInSeconds` | signed read URL lifetime |
+| `@mrmeg/expo-media` | contracts, key helpers, `MediaError` |
+| `/client` | `createMediaClient`, `resolveUploadSize` |
+| `/react-query` | `createMediaQueryHooks` |
+| `/processing` | `processAsset`, `mapWithConcurrency`, upload format policy, content-type sniffing, re-exports of the modules below |
+| `/processing/image-compression` | ladder, encoder, HEIC decode, canvas limits |
+| `/processing/image-compression/config` | `IMAGE_PRESETS`, `DEFAULT_PRESET`, `MIN_QUALITY`, `resolveCompressionConfig`, `CompressionConfig`, `ImagePreset` |
+| `/processing/video-conversion` | `needsConversion`, `convertVideo`, `FFMPEG_WORKER_URL` |
+| `/processing/video-thumbnails` | `extractVideoThumbnail` |
+| `/server` | `createMediaHandlers` |
+| `/worker` | `createMediaWorker`, `createKvTokenAuthorizer` |
 
-Clients choose `mediaType`, not a raw bucket or path. The server derives keys
-inside configured prefixes and derives file extensions from approved content
-types.
+Never import `/server` or `/worker` from client code; the root must stay safe for
+Node and tooling. Import `/processing` where the pipeline runs and
+`/processing/image-compression/config` in config-only consumers (settings
+screens, preference stores) so light bundles skip the pipeline.
 
-Listing also stays scoped. Use `mediaType` for normal list requests:
+Every peer is optional: native needs `expo`, `expo-file-system`,
+`expo-image-manipulator`, `expo-video`; web HEIC needs `heic2any`; hooks need
+`@tanstack/react-query`. Platform-split modules ship as `foo.js` /
+`foo.native.js` with extension-less specifiers, so native builds need
+Metro-style platform resolution.
 
-```ts
-await client.list({ mediaType: "uploads" });
-```
+## Server
 
-Optional `prefix` values must be narrower paths inside a configured media type
-prefix. Requests without `mediaType` or a valid configured prefix return
-`400 bad-request`; unknown, absolute, traversal, or cross-media-type prefixes
-return `400 bad-key`. Apps that need an "all media" view should list each
-configured media type separately and merge the visible results client-side
-instead of listing the storage bucket root. Keep pagination per media type;
-the template's All view merges the current visible page from each configured
-type rather than creating a cross-type cursor.
+`createMediaConfig()` holds app-owned buckets, media type prefixes, allowed
+content types, and size limits. `createMediaHandlers({ config, authorize?,
+policy?, events?, cors? })` returns Fetch-compatible `getUploadUrl`,
+`getSignedUrls`, `list`, `deleteOne`, `deleteMany`, `options`.
+
+Upload signing takes `{ mediaType, contentType, size?, customFilename?,
+metadata? }` and the server derives the extension from the approved content type;
+do not restore extension-only signing. `allowedContentTypes` must be the list the
+client processes toward. Never allowlist `image/heic`: nothing renders HEIF and it
+masks client transcode failures.
 
 ## Cloudflare Worker
 
-`@mrmeg/expo-media/worker` deploys the same handlers as a standalone Cloudflare
-Worker, so several apps can share one media endpoint instead of each mounting
-their own API routes. The runtime is `fetch` + Web Crypto only — no
-`nodejs_compat` flag required — and the subpath declares KV structurally, so the
-package never depends on `@cloudflare/workers-types`.
+`export default createMediaWorker({ createOptions, basePath })`.
+`createOptions(env)` returns the `createMediaHandlers` options and runs once per
+`env` object, so read bindings there, not at module scope, and keep `config` in
+factory form so missing secrets return `503 media-disabled`.
+
+Routing mirrors the Expo route table under `basePath` (default `/api/media`):
+`list` GET, `getUploadUrl` POST, `getSignedUrls` POST, `delete` DELETE with
+`?key=` and POST with `{ keys }`. Unknown action or off-base path is
+`404 not-found`; wrong method on a known action is `405 method-not-allowed`.
+
+`createKvTokenAuthorizer(kv)` is an `authorize` for static per-app bearer tokens:
+KV key `token:<token>` holding JSON with at least `{ "app": "<name>" }` yields
+`MediaTokenAuth` (`{ token, app, metadata }`); anything missing or unparseable is
+`401 unauthorized`. KV is typed structurally (`MediaTokenStore`); never add
+`@cloudflare/workers-types` to this package.
+
+## Client
 
 ```ts
-import { createMediaConfig } from "@mrmeg/expo-media";
-import {
-  createKvTokenAuthorizer,
-  createMediaWorker,
-  type MediaTokenAuth,
-} from "@mrmeg/expo-media/worker";
-
-interface Env {
-  MEDIA_AUTH: KVNamespace;
-  R2_BUCKET?: string;
-  R2_ENDPOINT?: string;
-  R2_ACCESS_KEY_ID?: string;
-  R2_SECRET_ACCESS_KEY?: string;
-}
-
-export default createMediaWorker<Env, MediaTokenAuth>({
-  basePath: "/api/media",
-  createOptions: (env) => ({
-    config: () => createMediaConfig({ /* buckets + mediaTypes from env */ }),
-    authorize: createKvTokenAuthorizer(env.MEDIA_AUTH),
-    cors: { getHeaders, getPreflightHeaders },
-    policy: {
-      canUpload: ({ auth }) => ({ allowed: Boolean(auth) }),
-    },
-  }),
-});
+const mediaClient = createMediaClient({ basePath: "/api/media", fetcher });
+const hooks = createMediaQueryHooks({ client: mediaClient });
 ```
 
-`createOptions` runs once per `env` object and its handlers are cached in a
-`WeakMap`, because a Worker only sees `env` inside `fetch()` while
-`createMediaHandlers` captures its options at creation time. Build config with
-the factory form (`config: () => ...`) so missing secrets still return
-`503 media-disabled`.
+Hooks: `useMediaUpload` (web `Blob`/`File` and native URI uploads),
+`useMediaList`, `useSignedMediaUrls`, `useMediaDelete`, `useMediaDeleteBatch`.
+The app provides the single `QueryClientProvider` so hooks share its query
+context.
 
-Routing mirrors the Expo route table exactly, under `basePath` (default
-`/api/media`):
+Always send `size`; it is what the server's `maxBytes` check reads. Omitted,
+`upload()` measures the payload, native file URIs included (`resolveUploadSize`
+stats them with `expo-file-system`). Pass EXIF and other app-owned facts as
+`metadata`; the package forwards it untouched.
 
-| Route | Methods |
-|---|---|
-| `list` | `GET` |
-| `getUploadUrl` | `POST` |
-| `getSignedUrls` | `POST` |
-| `delete` | `DELETE` (`?key=`), `POST` (`{ keys }`) |
-
-`OPTIONS` on a known action returns the `cors.getPreflightHeaders` response.
-Unknown actions and paths outside `basePath` return `404 not-found`; a known
-action with an unsupported method returns `405 method-not-allowed`. Both carry
-`cors.getHeaders`.
-
-`createKvTokenAuthorizer(kv)` is a ready-made `authorize` for static per-app
-bearer tokens. It reads `Authorization: Bearer <token>`, looks up
-`token:<token>` in KV, and expects JSON metadata containing at least
-`{ "app": "<name>" }`:
-
-```sh
-wrangler kv key put --binding MEDIA_AUTH "token:$(openssl rand -hex 32)" '{"app":"my-app"}'
-```
-
-A missing header, malformed header, unknown token, or unusable metadata yields
-`null`, which the handlers turn into `401 unauthorized`. A successful lookup
-gives policy and event callbacks
-`auth: { token, app, metadata }` (`MediaTokenAuth`) — use `auth.app` for
-per-app scoping. `MediaTokenStore` is the KV shape the authorizer needs
-(`{ get(key: string): Promise<string | null> }`), which a real `KVNamespace`
-satisfies.
-
-This repo ships a deployable example at `workers/media/` with a wrangler
-config and deploy runbook.
-
-## Client Setup
-
-```ts
-import { createMediaClient } from "@mrmeg/expo-media/client";
-import { createMediaQueryHooks } from "@mrmeg/expo-media/react-query";
-
-export const mediaClient = createMediaClient({
-  basePath: "/api/media",
-  fetcher: authenticatedFetch,
-});
-
-export const {
-  useMediaUpload,
-  useMediaList,
-  useSignedMediaUrls,
-  useMediaDelete,
-  useMediaDeleteBatch,
-} = createMediaQueryHooks({ client: mediaClient });
-```
-
-Uploads use the content-type contract:
-
-```ts
-await upload({
-  file: blobOrNativeUri,
-  mediaType: "avatars",
-  contentType: processed.contentType,
-  size: processed.size,
-  metadata: { takenAt, lat, lng },
-});
-```
-
-The old `{ extension, mediaType }` signing body is not the primary contract.
-The server derives the extension from the approved content type and signs the
-matching `Content-Type` header.
-
-`size` is optional but should always be sent: it is what the server's
-per-media-type `maxBytes` check reads, and a rejected signing request costs
-nothing while a rejected upload costs the whole transfer. When it is omitted,
-`upload()` measures the payload itself — including native file URIs, via
-`resolveUploadSize()`, which stats them with `expo-file-system`.
-
-`metadata` is forwarded to the signing request untouched and reaches
-`policy.canUpload` and `events.onUploadSigned`. Use it for app-owned facts about
-the asset (EXIF capture time, coordinates); the package never interprets it.
-
-## App-Wide Defaults
-
-Default behavior should be configured by the app, then used by screens and
-hooks. Typical defaults:
-
-| Setting | Example |
-|---|---|
-| compression enabled | `true` |
-| default preset | `gallery` |
-| user overrides | `null` |
-| processing concurrency | `3` |
-| picker quality | `1` |
-| multi-upload selection limit | `20` |
-| upload video thumbnails | `true` |
-| delete generated thumbnail with video | `true` |
-
-Override precedence:
-
-1. Package preset values from `IMAGE_PRESETS`
-2. App-wide defaults in the app's media settings file
-3. Runtime store overrides, if the app exposes user controls
-4. Per-asset upload policy (`compression`) resolved before processing
+Keep app-wide behavior in one app-owned settings file: default preset, user
+overrides, processing concurrency, selection limit, thumbnail handling, the
+shared content-type allowlist, and named upload policies that screens pick and
+resolve per asset instead of hardcoding media types and quality inline. There is
+no `keepOriginalIfLarger` setting; the format-aware never-larger decision lives
+in `chooseUploadCandidate`.
 
 ## Processing
 
-`processAsset()` is the entry point. One orchestrator runs every picked asset on
-both platforms and has exactly two outcomes: an immutable `ProcessedUpload`
-whose `contentType` is in the allowlist that was passed in, or a thrown
-`MediaProcessingError` reported against that asset. There is no
-`application/octet-stream` fallback — that fallback is what let a phone's HEIF
-photo reach the server with a content type the server refuses.
+`processAsset({ asset, allowlist, config?, adapter?, onPhase? })` is the entry
+point on both platforms, with two outcomes and no third: an immutable
+`ProcessedUpload` whose `contentType` is in `allowlist`, or a thrown
+`MediaProcessingError` (`unsupported-format`, `heic-conversion-failed`,
+`decode-failed`, `encode-failed`, `stat-failed`). Never reintroduce an
+`application/octet-stream` fallback.
 
-```ts
-import {
-  processAsset,
-  mapWithConcurrency,
-  isMediaProcessingError,
-} from "@mrmeg/expo-media/processing";
-import { resolveCompressionConfig } from "@mrmeg/expo-media/processing/image-compression/config";
-
-const processed = await mapWithConcurrency(assets, 3, async (asset) => {
-  try {
-    return await processAsset({
-      asset,
-      allowlist: MEDIA_CONTENT_TYPE_ALLOWLIST,
-      config: resolveCompressionConfig("gallery"),
-      onPhase: (a, phase) => setStatus(a.uri, phase.type),
-    });
-  } catch (error) {
-    if (isMediaProcessingError(error)) return markFailed(asset, error.code);
-    throw error;
-  }
-});
-```
-
-`ProcessedUpload` carries `{ kind, uri, blob?, contentType, width, height, size,
-originalSize, overBudget, applied, durationSeconds?, thumbnail? }`. It is frozen,
-including `applied` — the ordered, human-readable trace of what the pipeline did
-(`["passthrough:176KB"]`, `["heic-decode", "resize:2048", "encode:image/jpeg"]`,
-`["resize:1024", "encode:image/jpeg", "over-budget"]`), which is the thing to log
-or show in a debug row.
-
-`onPhase` receives `identifying`, `decoding-heic`, `compressing`,
-`passthrough`, `converting-video`, `extracting-thumbnail`, and `complete`. The
-orchestrator itself renders nothing, so the app keeps owning its toasts and
-progress UI.
-
-Failures are typed. `MediaProcessingError.code` is one of
-`unsupported-format`, `heic-conversion-failed`, `decode-failed`,
-`encode-failed`, or `stat-failed`, with `contentType` set when the offending
-source was identified.
-
-### Image Presets
+It is UI-free: report progress through `onPhase` (`identifying`,
+`decoding-heic`, `compressing`, `passthrough`, `converting-video`,
+`extracting-thumbnail`, `complete`) and keep toasts in the app. Map selections
+with `mapWithConcurrency(items, limit, worker)` (template uses 3), not
+`Promise.all` — each in-flight asset holds a full-resolution bitmap. Catch
+`MediaProcessingError` per asset so one bad photo does not fail the batch.
 
 Compression is a descending long-edge ladder at fixed quality against a byte
-budget: encode at the first rung, and if the result misses `byteBudget`, drop to
-the next rung and re-encode from the source. Quality never decays — dropping
-pixels beats adding artifacts, which is the model production messengers
-converged on.
+budget, never a quality-decay loop: `rungs` in order, first inside `byteBudget`
+wins, last used anyway with `overBudget: true`. `passthroughBytes` is the source
+size below which an already-allowlisted asset uploads untouched (`0` for presets
+with a hard dimension target). `format: null` means the upload format policy
+decides — PNG stays PNG, everything else becomes JPEG; `null` is not JPEG. Route
+overrides through `resolveCompressionConfig()`, which normalizes partial configs
+(rungs descending and deduped, quality clamped to `[MIN_QUALITY, 1]`, budgets
+non-negative). Presets: `avatar`, `thumbnail`, `product`, `gallery` (package
+default), `highQuality`, `none`; the app picks its own product default.
 
-| Preset | rungs (long edge px) | quality | byteBudget | passthroughBytes |
-|---|---|---:|---:|---:|
-| `avatar` | 512 | 0.8 | 200 KB | 0 |
-| `thumbnail` | 256 | 0.7 | 100 KB | 0 |
-| `product` | 1024, 768 | 0.85 | 500 KB | 0 |
-| `gallery` | 2048, 1600, 1024 | 0.8 | 1000 KB | 300 KB |
-| `highQuality` | 4096, 3072, 2048 | 0.8 | 3000 KB | 300 KB |
-| `none` | `null` (no ladder) | — | — | — |
+Web video conversion needs `FFMPEG_WORKER_URL`
+(`/_expo/static/js/web/ffmpeg-worker.js`) served same-origin by Metro and
+production; it falls back to the original when unavailable and the source type is
+allowlisted, otherwise rejects the asset. `convertVideo()` throws on native.
 
-- `passthroughBytes` is the source size at or below which an already-allowlisted
-  asset is uploaded untouched. It is `0` for the presets that exist to hit a
-  specific display size, so those always resize.
-- `format` is `null` on every preset, which means "the upload format policy
-  decides": PNG stays PNG, everything else encodes to JPEG. It no longer means
-  "silently JPEG", which is what used to flatten alpha channels.
-- The last rung is used even if it misses the budget; the result sets
-  `overBudget: true` so the app can warn instead of silently uploading a large
-  file.
-- `resolveCompressionConfig()` normalizes custom configs rather than trusting
-  them: rungs come back positive, deduped and descending, quality inside
-  `[MIN_QUALITY, 1]`, budgets non-negative. A caller that overrides one field
-  cannot produce a config the ladder is unable to run.
+Heavy features load lazily: `heic2any` only in web HEIC conversion; `expo-video`
+and `expo-image-manipulator` only from the native-only thumbnail dependency
+loader, so nothing here reaches `expo-video` on web; `expo-file-system` only to
+measure or upload a native file URI; FFmpeg only in web conversion. Core and
+server entrypoints need no React or Expo peer. Test seams:
+`processAsset({ adapter })`, `convertHeicToJpeg(blob, fileName, decoder)`,
+`resolveUploadSize(file, stat)`.
 
-```ts
-resolveCompressionConfig("avatar");
-resolveCompressionConfig("none"); // → null
-resolveCompressionConfig({ rungs: [1600, 1200], quality: 0.8, byteBudget: 750 * 1024 });
-```
+## Repo Validation And Publishing
 
-### Format Policy
-
-`resolveUploadFormatPolicy(sourceContentType, allowlist)` returns
-`passthrough`, `transcode` (with an `outputFormat`), or `reject`, plus the flags
-the pipeline needs (`requiresHeicDecode`, `flattensAnimation`,
-`sourceAllowlisted`). It is pure, so both platforms get the same answers from
-the same tests.
-
-`chooseUploadCandidate()` decides whether to keep the processed output or revert
-to the source. Reverting requires all of: the source type is allowlisted, the
-processed output is the *same* format, the source size is known, and the
-processed file is not smaller. A format conversion therefore always wins even
-when it is larger — a smaller HEIC the server rejects is not a better upload
-than a larger JPEG it accepts.
-
-### Behavior Notes
-
-- Pick the original asset first, then process it. Use `quality: 1` with
-  `expo-image-picker` so the picker does not pre-compress what the ladder is
-  about to encode.
-- Resolve the per-asset upload policy (and therefore its compression config)
-  *before* processing, not after. Processing to the wrong target and fixing it
-  later is what the single-orchestrator shape removes.
-- HEIC has no passthrough path. On web it is decoded with `heic2any` (lazy,
-  optional peer) before the ladder runs; on native the encoder decodes HEIF
-  directly. A failed decode fails the asset.
-- Web never emits WebP (canvas support is not portable) and clamps the requested
-  long edge to the browser's canvas ceiling before drawing (`canvasLimits.ts`:
-  4096 on iOS, 11180 on Firefox, 16384 on Chromium and desktop Safari).
-- Ladder dimensions are computed in *displayed* orientation, so an EXIF-rotated
-  portrait photo is not capped along the wrong axis.
-- Every losing rung is disposed as soon as it loses, including when a later rung
-  throws, so a multi-asset selection does not accumulate temp files.
-- Videos are not image-compressed. Web can optionally transcode unsupported
-  formats to MP4; a video whose content type is not in the video allowlist and
-  cannot be converted is rejected.
-- Native thumbnails use `expo-video.generateThumbnailsAsync()` and save the
-  resulting native image reference to a cache-file URI through
-  `expo-image-manipulator`. A thumbnail failure never fails the video.
-- Apps must serve `FFMPEG_WORKER_URL` from the same origin in Metro and the
-  production server when using web video conversion.
-- Use `mapWithConcurrency(items, limit, worker)` instead of `Promise.all` for
-  multi-asset selections. Each in-flight asset holds a full-resolution bitmap,
-  so an unbounded map over 20 photos janks the web tab and gets the native app
-  killed. Results stay in input order.
-- Import `/processing` where the pipeline actually runs. Settings screens,
-  stores, and other light consumers should import
-  `/processing/image-compression/config` instead, so reading a preset does not
-  pull the whole pipeline into their bundle.
-
-### Lower-Level Entry Points
-
-`processAsset` is the supported path. The pieces below it are exported for apps
-that need one step in isolation:
-
-```ts
-import {
-  compressImage,
-  convertHeicToJpegIfNeeded,
-  runDimensionLadder,
-} from "@mrmeg/expo-media/processing/image-compression";
-import {
-  needsConversion,
-  convertVideo,
-  FFMPEG_WORKER_URL,
-} from "@mrmeg/expo-media/processing/video-conversion";
-import { extractVideoThumbnail } from "@mrmeg/expo-media/processing/video-thumbnails";
-```
-
-`compressImage()` runs the ladder for the current platform and returns
-`{ uri, blob?, contentType, width, height, size, rung, attempts, overBudget }`.
-It does not consult the allowlist — that is what `processAsset` adds.
-
-## File Paths And Keys
-
-`mediaTypes.*.prefix` defines where files are stored:
-
-```txt
-users/avatars/01KQT7....jpg
-uploads/01KQT7....jpg
-videos/01KQT7....mp4
-thumbnails/01KQT7....jpg
-```
-
-Rules:
-
-- clients send `mediaType`, not raw paths
-- clients cannot choose arbitrary prefixes
-- object keys are generated server-side unless policy allows a sanitized custom
-  filename
-- allowed content types and optional size limits are checked before signing
-- `Content-Type` is included in the signed `PutObjectCommand`
-- read/delete/list keys must stay inside configured prefixes
-- list requests must include `mediaType` or a valid narrower configured prefix
-- batch delete accepts up to 1000 keys
-- batch delete groups keys by the bucket configured for each resolved media
-  type, merges confirmed deletions, and reports per-key errors for partial
-  bucket failures
-
-## Error Handling
-
-Media client hooks throw `MediaError` with typed problems:
-
-- `disabled`
-- `bad-request`
-- `unauthorized`
-- `forbidden`
-- `unknown`
-
-Server JSON error codes include `media-disabled`, `unauthorized`, `forbidden`,
-`invalid-media-type`, `invalid-content-type`, `oversized-file`, `bad-key`,
-and `storage-failure`.
-
-Client processing throws `MediaProcessingError` with a `code` of
-`unsupported-format`, `heic-conversion-failed`, `decode-failed`,
-`encode-failed`, or `stat-failed`. Use `isMediaProcessingError()` to narrow, and
-report it against the asset that caused it — a per-asset failure should not fail
-the rest of a multi-asset selection.
-
-Screens should branch on typed errors instead of parsing message text.
-
-## Migration Checklist
-
-Use this checklist when refactoring an app:
-
-1. Install the package and peer dependencies.
-2. Move bucket definitions into `createMediaConfig()`.
-3. Replace custom route logic with `createMediaHandlers()`.
-4. Keep Expo Router route files as thin handler exports.
-5. Create a package-backed `mediaClient`.
-6. Replace custom React Query hooks with `createMediaQueryHooks()`.
-7. Add an app-wide media settings file, including one shared content-type
-   allowlist used by both `createMediaConfig()` and `processAsset()`.
-8. Replace inline quality/path decisions with named upload policies, resolved
-   per asset before processing.
-9. Replace copied image processing helpers with one `processAsset()` call, and
-   the multi-asset `Promise.all` with `mapWithConcurrency()`.
-10. Reconcile app-owned metadata in handler events.
-11. Add a `media-disabled` setup state.
-12. Run validation.
-
-Good deletion candidates:
-
-- copied S3/R2 presigner code
-- copied route body parsing and validation
-- copied signed URL batching
-- copied React Query media hooks
-- copied image compression utilities
-- copied HEIC conversion utilities
-- copied video thumbnail extraction utilities
-- per-branch content-type juggling and `application/octet-stream` fallbacks
-- app-level "keep the original if it is smaller" checks
-- temp-file cleanup passes over compression output
-- copied media error mappers
-
-## Validation
-
-Run package checks sequentially when debugging generated artifacts:
-
-```sh
-bun run packages:peer-check
-bun run media:typecheck
-bun run media:test
-bun run media:build
-bun run media:pack
-bun run media:consumer-smoke
-```
-
-`media:consumer-smoke` installs the packed tarball into a clean fixture,
-verifies that core/server entrypoints install without optional peers,
-type-checks documented entrypoints with all features installed, verifies
-export-map files, runs root runtime imports, and checks that installed-package
-docs are present. CI also installs packed media consumers against Expo 55, 56,
-and 57.
-
-## Package Release
-
-For a one-command local release from the repo root, use:
-
-```sh
-bun run media:release -- --patch --publish
-```
-
-Replace `--patch` with `--minor`, `--major`, or an exact version. Without
-`--publish`, the command performs the version bump and all release gates but
-does not publish. It requires a clean working tree unless `--allow-dirty` is
-passed intentionally.
-
-## GitHub Publishing
-
-Use the `Publish Media Package` GitHub Actions workflow to publish
-`@mrmeg/expo-media` from GitHub. Configure npm trusted publishing for:
-
-- owner/user: `mrmeg`
-- repository: `expo-template`
-- workflow filename: `publish-media.yml`
-
-If the package does not exist on npm yet, first publish needs a repository
-secret named `NPM_TOKEN` with publish access to the `@mrmeg` scope. Run the
-workflow manually once with that token, then configure trusted publishing from
-the new package settings page. Push-based runs skip cleanly when the package is
-missing and no token is configured so CI does not fail before the first publish.
-
-After bootstrap, the workflow uses npm trusted publishing by default and still
-supports `NPM_TOKEN` as a fallback publish credential. Pushes to `main` that
-change `packages/media/package.json` publish the committed version when npm does
-not already have it. Manual runs can bump `patch`, `minor`, `major`, or an exact
-version, then publish and commit the version bump back to the selected branch.
+Run `packages:peer-check`, `media:typecheck`, `media:test`, `media:build`,
+`media:pack`, `media:consumer-smoke` in order; the smoke covers a minimal
+core/server/worker install plus a fully provisioned packed package, and CI covers
+Expo 55, 56, and 57 consumers. Release with
+`bun run media:release -- --patch [--publish]`.
+`.github/workflows/publish-media.yml` reruns those gates then `npm publish` on
+pushes to `main` that change `packages/media/package.json`, or on
+`workflow_dispatch`, using trusted publishing with an `NPM_TOKEN` fallback. Before
+the package exists on npm, push runs skip unless `NPM_TOKEN` is set: make the
+first publish a manual run with `NPM_TOKEN`, then configure trusted publishing.
 
 ---
 
@@ -1815,13 +1057,7 @@ version, then publish and commit the version bump back to the selected branch.
 
 # Expo Server Guide
 
-This guide is the LLM-facing reference for replicating this template's server
-stack — server-rendered web output, API routes, request middleware, and data
-loaders — in another Expo Router project. Server rendering, data loaders, and
-middleware are Expo Router alpha features behind `unstable_` flags (the demos
-call this surface "Server Alpha"); expect their APIs to move between SDK
-versions, and check the pinned Expo version in `package.json` before copying
-patterns.
+Reference for replicating this template's server stack — server-rendered web output, API routes, request middleware, data loaders — in another Expo Router project. Server rendering, loaders, and middleware are Expo Router alpha features behind `unstable_` flags (the demos call this surface "Server Alpha"); their APIs move between SDK versions, so check the pinned Expo version in `package.json` before copying.
 
 ## Source Map
 
@@ -1830,30 +1066,22 @@ patterns.
 | Server output and router flags | `app.config.ts` |
 | HTML document (server-rendered per request) | `app/+html.tsx` |
 | SSR stylesheet flush | `client/features/app/SsrStyleFlush.tsx` |
-| Ordered bootstrap scripts (patch) | `patches/@expo%2Frouter-server@*.patch`, pinned in `package.json` `patchedDependencies` |
+| Ordered bootstrap scripts (patch) | `patches/@expo%2Frouter-server@57.0.9.patch`, pinned in `package.json` `patchedDependencies` |
 | Not-found route (served at 404) | `app/+not-found.tsx` |
 | SSR hydration guardrails | `__tests__/ssrHydration.guardrail.test.ts` |
 | SSR request-derived state | `server/lib/ssrViewport.ts`, `server/lib/ssrOnboarding.ts`, `client/features/app/ssrViewportMetrics.ts` |
 | Production server (Bun) | `server.bun.ts` |
 | Rate-limit buckets | `server/rateLimits.js` |
 | Request middleware | `app/+middleware.ts` |
-| Data loaders (demo feature) | `client/features/server-alpha/loaders.ts` |
-| Loader-backed route | `app/(main)/(demos)/server-alpha/index.tsx` |
-| Param'd route, API-fetched | `app/(main)/(demos)/server-alpha/[example].tsx` |
-| Demo screens | `client/features/server-alpha/ServerAlphaDemoScreen.tsx`, `ServerAlphaExampleScreen.tsx` |
+| Data loaders, demo screens, pattern data | `client/features/server-alpha/loaders.ts`, `ServerAlphaDemoScreen.tsx`, `ServerAlphaExampleScreen.tsx`, `server/api/template/examples.ts` |
+| Loader export-shape guardrail | `server/__tests__/loaderExportShape.test.ts` |
+| Loader-backed route / param'd route (API-fetched) | `app/(main)/(demos)/server-alpha/index.tsx`, `[example].tsx` |
 | API routes | `app/api/**/+api.ts` |
 | Shared API helpers (CORS, errors, auth) | `server/api/shared/` |
 
-The Server Alpha demo at route `/server-alpha` walks four live patterns:
-`loader-overview` (a static route's loader supplies its page data),
-`dynamic-loader` (a param'd route fetches the matching API route instead of
-declaring a loader — see Data Loaders), `api-route`
-(handlers own parsing and mutations), and `middleware` (request-scoped headers
-without business logic).
+Route `/server-alpha` demos four patterns: `loader-overview` (a static route's loader supplies its page data), `dynamic-loader` (a param'd route fetches its API route instead of declaring a loader), `api-route` (parsing and mutations), `middleware` (request-scoped headers only).
 
 ## Enable Server Output
-
-In `app.config.ts`, set the web output mode and the Expo Router plugin flags:
 
 ```ts
 web: { bundler: "metro", output: "server" },
@@ -1866,118 +1094,54 @@ plugins: [
       unstable_useServerRendering: true,
       unstable_useServerMiddleware: true,
       unstable_useServerDataLoaders: true,
+      asyncRoutes: { web: "production" },
     },
   ],
 ],
 ```
 
-- `output: "server"` makes `expo export -p web` emit `dist/client` (static
-  assets) plus `dist/server` (request handler, route manifest, API routes, and
-  — with server rendering on — the SSR render module).
-- `unstable_useServerRendering` renders each web route on the server per
-  request instead of writing an HTML shell at export time (see Server
-  Rendering below).
+- `output: "server"` makes `expo export -p web` emit `dist/client` (static assets) plus `dist/server` (request handler, route manifest, API routes, and — with server rendering on — the SSR render module).
+- `unstable_useServerRendering` renders each web route on the server per request instead of writing an HTML shell at export time.
 - `unstable_useServerMiddleware` enables `app/+middleware.ts`.
-- `unstable_useServerDataLoaders` enables route `loader` exports and
-  `useLoaderData`.
+- `unstable_useServerDataLoaders` enables route `loader` exports and `useLoaderData`.
+- `asyncRoutes: { web: "production" }` emits per-route chunks on web production exports; omitting `ios`/`android`/`default` keeps dev servers and native builds synchronous.
 
 ### Server Rendering
 
-With `unstable_useServerRendering` on, `expo export -p web` skips HTML
-prerendering entirely: it emits `dist/server/_expo/server/render.js` and marks
-`dist/server/_expo/routes.json` with `"rendering": { "mode": "ssr" }` (the
-export log prints "Server rendering is enabled"). At runtime `expo-server`
-streams that renderer per request, so every response carries the route's real
-markup — crawlers and the first paint see page content, not a shell (page-level
-meta still comes from `client/components/Seo.tsx`).
+Export skips HTML prerendering: it emits `dist/server/_expo/server/render.js` and marks `dist/server/_expo/routes.json` with `"rendering": { "mode": "ssr", "file": "_expo/server/render.js" }` (export log: "Server rendering is enabled"). `expo-server` streams that renderer per request, so every response carries the route's real markup. Page-level meta still comes from `client/components/Seo.tsx`.
 
-Server rendering is not free: the first render happens in Node, with no DOM and
-no browser storage. Five things in this template exist only to satisfy that.
+The first render runs in Node: no DOM, no browser storage. Six constraints follow.
 
-- **Styles must be registered at module scope.** The framework's head snapshot
-  (`useServerDocumentContext()`) is taken *before* route modules load, so any
-  react-native-web rule registered later is missing from it and the HTML
-  references classes with no rules. `createThemedStyles` hoists rules to module
-  scope, and `client/features/app/SsrStyleFlush.tsx` renders last in the root
-  layout — after the whole subtree — to emit the complete
-  `StyleSheet.getSheet()` output as a React 19 style resource. The flush
-  doubles each atomic selector (`.r-x` → `.r-x.r-x`). The client sheet sits
-  later in the cascade so its ties win, and react-native-web fills it with
-  resets the moment the bundle boots while a route's atomics arrive only when
-  that route's async chunk executes; two-class specificity keeps the flushed
-  atomics in force across that gap. Classic `.css-*` resets stay single-class
-  so client atomics still beat them.
-- **`app/+html.tsx` filters the snapshot.** It drops the framework's
-  `<style id="react-native-stylesheet">` node from `headNodes` and renders an
-  empty element with that id for react-native-web to adopt as its client
-  sheet. Both sheets use single-class selectors, so keeping the incomplete
-  snapshot would let its base resets win the cascade over later atomics.
-- **Bootstrap scripts execute in order.** React emits `bootstrapScripts` as
-  `<script async>`, so the runtime, common, entry, layout, and route chunks
-  would execute in download order, and a route chunk that runs before the
-  Metro prelude is fetched again on demand. `patches/@expo%2Frouter-server@*.patch`
-  (applied by `bun install` through `patchedDependencies`) preloads the chunks
-  from the head and inserts them from one inline script with `async = false`.
-  When `@expo/router-server` changes version, re-create the patch with
-  `bun patch @expo/router-server`, re-apply the edit marked
-  `PATCH(expo-template)`, and `bun patch --commit`; the guardrail test fails
-  while the pinned version and the installed one disagree.
-- **First-render state comes off the request.** `server/lib/ssrViewport.ts`
-  derives a viewport width from a `mrmeg-vw` cookie, then a User-Agent
-  heuristic, then a desktop default (without it react-native-web lays out at
-  width 0). `server/lib/ssrOnboarding.ts` reads a `has-seen-onboarding`
-  cookie. Both are mirrors of client state, not sources of truth, and
-  `client/features/app/ssrViewportMetrics.ts` re-derives the same values from
-  the same bytes so hydration matches. A request with no cookies renders the
-  onboarding variant.
-- **Dev SSR shares one React copy.** Expo externalizes `react` and `react-dom`
-  in `node`/`react-server` dev bundles, so `metro.config.js` skips its dedupe
-  rewrite for those packages there; rewriting them would bundle a second React
-  and give externalized packages a null hooks dispatcher.
+- **Register styles at module scope.** The framework's head snapshot (`useServerDocumentContext()` → the `<style id="react-native-stylesheet">` node) is taken before route modules load, so later-registered rules are missing and the HTML references classes with no rules — unstyled paint until hydration. It misses whenever the module cache is cold: every dev request, and the first request after a production cold start. `createThemedStyles` hoists rules to module scope. `client/features/app/SsrStyleFlush.tsx` renders last in the root layout, after the whole subtree, so `StyleSheet.getSheet()` sees every rule the page uses; it emits them as a React 19 style resource (`href` + `precedence`) and renders nothing on the client (resources dedupe by `href` outside the reconciled tree, so hydration still matches).
+- **The flush doubles atomic selectors** (`hardenFlushedSheet`: `.r-x` → `.r-x.r-x`). React hoists the flushed node into the head preamble, ahead of `app/+html.tsx`, so the client sheet wins ties — required, because the flush carries classic base resets that would zero out client-only atomics. react-native-web fills the client sheet with resets at bundle boot while a route's atomics arrive only with its async chunk; two-class specificity holds the flushed atomics across that gap. Classic `.css-*` resets, element rules, group markers, and keyframes stay single-class so client atomics beat them.
+- **`app/+html.tsx` filters the snapshot.** It drops the framework's `<style id="react-native-stylesheet">` node from `headNodes` and renders exactly one empty element with that id for react-native-web to adopt as its client sheet. Head order: filtered nodes, anchor, scripts. Both sheets are single-class, so keeping the snapshot would let its resets win over later atomics.
+- **Order the bootstrap scripts.** React emits `bootstrapScripts` as `<script async>`, so runtime, common, entry, layout, and route chunks execute in download order; a route chunk running before the Metro prelude has no `__d` and is refetched on demand. `patches/@expo%2Frouter-server@57.0.9.patch` (applied by `bun install` through `patchedDependencies`) preloads every chunk from the head and inserts them from one inline script with `async = false`. On a version change: `bun patch @expo/router-server`, re-apply the edit marked `PATCH(expo-template)`, `bun patch --commit`. The guardrail test fails while the pinned and installed versions disagree.
+- **Take first-render state off the request.** `server/lib/ssrViewport.ts` derives a viewport width from a `mrmeg-vw` cookie, then a User-Agent heuristic, then a desktop default (without it react-native-web lays out at width 0). `server/lib/ssrOnboarding.ts` reads a `has-seen-onboarding` cookie, where only `"1"` counts as seen. Each module exports a request form for loaders (`detectSsrViewportWidth`, `detectOnboardingSeen`) and an ambient form reading `expo-server`'s request scope (`detectSsrViewportFromRequestScope`, `detectOnboardingSeenFromRequestScope`). The app uses the ambient form: both values land in the root layout (`SafeAreaProvider`'s `initialMetrics`, the onboarding gate), and layouts cannot export loaders. `requestHeaders()` throws with no active scope, so both modules try/catch to their default (desktop, `false`). Never cache the viewport in module scope — concurrent requests at different widths would overwrite it. Both cookies mirror client state, not sources of truth: `client/features/app/ssrViewportMetrics.ts` re-derives the same values from the same bytes so hydration matches. A request with no cookies renders the onboarding variant.
+- **Dev SSR shares one React copy.** Expo externalizes `react` and `react-dom` in `node`/`react-server` dev bundles, so `metro.config.js` skips its dedupe rewrite for those packages there; rewriting them would bundle a second React and give externalized packages a null hooks dispatcher.
 
-Two route-level rules follow from rendering per request. `expo-server` answers
-every unmatched `GET` with the `+not-found` route at status 404, so
-`app/+not-found.tsx` renders a real page (the error template's `not-found`
-variant with a "Go home" action) rather than redirecting; a 404 body that
-bounces to `/` reads as a soft redirect to crawlers. And each web path must map
-to exactly one route file: Expo Router's server-side matcher keeps "previous
-segments" in a process-wide store, so two files that match the same path flip
-between requests. Platform variants such as `_layout.web.tsx` are one file per
-platform and are fine.
+Two route-level rules follow. `expo-server` answers every unmatched `GET` with `+not-found` at status 404, so `app/+not-found.tsx` must render a real page — `ErrorScreen` from `client/templates/error/Screen.tsx`, `variant="not-found"`, "Go home" action — not a redirect; a 404 body that bounces to `/` reads as a soft redirect to crawlers. And each web path must map to exactly one route file: the server-side matcher keeps "previous segments" in a process-wide store, so two files matching one path flip between requests. Platform variants like `_layout.web.tsx` are fine.
 
 ## Serve The Build
 
-Development: `bun run web` (Expo dev server renders routes and runs loaders,
-middleware, and API routes in place).
+| Command | Runs |
+|---------|------|
+| `bun run web` | `expo start --web` — dev server renders routes and runs loaders, middleware, and API routes in place |
+| `bun run build` | `expo export -p web --output-dir dist` with an 8 GB Node heap |
+| `bun run start` | `bun ./server.bun.ts`, the production entry |
+| `bun run start-local` | Same entry, `.env` autoloaded |
+| `bun run serve:ssr` | `expo serve` — local preview of `dist/` without the Bun entry's layers |
 
-Production: `bun run build` exports `dist/`, then `bun run start` serves it:
+`server.bun.ts` wraps `createRequestHandler({ build: "dist/server" })` from `expo-server/adapter/bun` in `Bun.serve` and serves `dist/client` statics. It owns what Expo's request handler does not:
 
-- `bun run start` — `server.bun.ts`, the only production entry. Wraps
-  `createRequestHandler({ build: "dist/server" })` from
-  `expo-server/adapter/bun` in `Bun.serve`.
-- `bun run start-local` — the same entry with `.env` autoloaded by Bun.
-
-The entry owns concerns that Expo's request handler does not:
-
-- CORS origin allowlist from the `ALLOWED_ORIGINS` env var (comma-separated;
-  localhost defaults otherwise), echoing only allowlisted origins and managing
-  `Vary: Origin`.
-- Per-IP rate-limit buckets defined in `server/rateLimits.js`: general
-  (500/15 min), media signing (60/min), strict (10/min).
-- Security headers: `X-Content-Type-Options`, `X-Frame-Options`,
-  `Referrer-Policy`, `Permissions-Policy`, `X-Request-ID`, and HSTS in
-  production.
-- Static caching and compression: 1-year cache for `/_expo/static/` and
-  `/assets/`, brotli/gzip for text-like bodies over 1KB, with compressed
-  bodies cached in memory.
-- Loader path normalization: strips `.web`/`.native` suffixes from
-  `/_expo/loaders/*` requests so platform-specific loader files resolve.
+- CORS origin allowlist from `ALLOWED_ORIGINS` (comma-separated; localhost defaults otherwise), echoing only allowlisted origins and managing `Vary: Origin`.
+- Per-IP rate-limit buckets from `server/rateLimits.js`: general 500/15 min (all `/api`), media signer 60/min (`/api/media/getUploadUrl`), strict 10/min (`/api/reports`, `/api/corrections`, both billing session routes; the Stripe webhook is excluded, since it bursts retries faster and its signature check gates abuse). A listed path that stops matching its real route silently downgrades to the general bucket.
+- Security headers: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Request-ID`, and HSTS in production.
+- Static caching and compression: 1-year immutable cache for `/_expo/static/` and `/assets/` (1 hour otherwise), brotli/gzip for text-like bodies of 1 KB or more, compressed bodies cached in memory.
+- Loader path normalization: strips `.web`/`.native` suffixes from `GET`/`HEAD` `/_expo/loaders/*` requests so platform-specific loader files resolve.
 
 ## API Routes
 
-Route files live at `app/api/**/<name>+api.ts` and export HTTP-method
-handlers. Keep them thin — parsing, validation, and domain logic live in
-`server/` modules. The canonical shape (from `app/api/template/status+api.ts`):
+Route files live at `app/api/**/<name>+api.ts` and export HTTP-method handlers. Keep them thin — parsing, validation, and domain logic live in `server/` modules. Canonical shape (`app/api/template/status+api.ts`):
 
 ```ts
 import { getCorsHeaders, getPreflightHeaders } from "@/server/api/shared/cors";
@@ -1998,22 +1162,16 @@ Shared helpers under `server/api/shared/`:
 
 | Helper | Purpose |
 |--------|---------|
-| `cors.ts` | `getCorsHeaders(request)`, `getPreflightHeaders(request)`, production error redaction |
+| `cors.ts` | `getCorsHeaders(request)`, `getPreflightHeaders(request)`, `sanitizeErrorDetails` (production error redaction) |
 | `errors.ts` | `jsonErrorResponse`, `unauthorizedResponse`, `forbiddenResponse`, `badRequestResponse` — typed `{ code, message }` bodies with CORS applied |
 | `auth.ts` | `requireAuthenticatedUser(request)` returns `{ ok: true, user } \| { ok: false, response }`; fails closed with 401 when no verifier is bootstrapped |
-| `authBootstrap.ts`, `cognitoTokenVerifier.ts` | Register a process-wide token verifier at startup; tests reset with `setTokenVerifier(null)` |
+| `authBootstrap.ts`, `cognitoTokenVerifier.ts`, `clerkTokenVerifier.ts` | `ensureAuthBootstrapped` registers a process-wide token verifier at startup; tests reset with `setTokenVerifier(null)` / `resetAuthBootstrap()` |
 
-Optional features must fail closed: missing env returns a typed disabled
-response (for example the media routes' `503 media-disabled`), never a crash.
+Optional features must fail closed: missing env returns a typed disabled response (the media routes' `503 media-disabled`), never a crash.
 
 ### Route Consolidation (Bundle Size)
 
-`expo export` emits every `+api.ts` file as its own **self-contained server
-bundle** — sibling routes duplicate every shared dependency. Before
-consolidation this repo shipped the S3 + auth stack four times (~808 KB × 4
-media routes) and the Stripe + auth stack three times (~510 KB × 3 billing
-routes). Group sibling actions that share heavy dependencies behind one
-dynamic-segment route file; the public URLs do not change:
+`expo export` emits every `+api.ts` file as its own **self-contained server bundle**, so sibling routes duplicate every shared dependency. Group siblings sharing heavy dependencies behind one dynamic-segment route file; the public URLs do not change. In `dist/server/_expo/functions/`, `api/media/[action]+api.js` is one 260 KB bundle for four actions, `api/billing/[action]+api.js` one 512 KB bundle for three.
 
 ```
 app/api/media/[action]+api.ts      → /api/media/list, /api/media/getUploadUrl,
@@ -2023,10 +1181,7 @@ app/api/billing/[action]+api.ts    → /api/billing/summary, /api/billing/checko
 app/api/billing/webhook+api.ts     → /api/billing/webhook (static — see below)
 ```
 
-The dispatcher shape (from `app/api/media/[action]+api.ts`): map each action
-to its per-method handlers, return a typed `404 not-found` for unknown
-actions and `405 method-not-allowed` for a known action with the wrong
-method, matching what the router would have returned for separate files:
+Dispatcher shape (`app/api/media/[action]+api.ts`): map each action to its per-method handlers, return a typed `404 not-found` for unknown actions and `405 method-not-allowed` for a known action with the wrong method — what the router would have returned for separate files.
 
 ```ts
 const routes: Record<string, Partial<Record<Method, RouteHandler>>> = {
@@ -2041,84 +1196,34 @@ export function GET(request: Request, params: { action: string }) {
 }
 ```
 
-Rules of thumb:
+- Consolidate routes sharing a feature prefix, auth model, and heavy dependencies. Keep handler bodies in `server/` modules (`server/media/handlers.ts`, `server/api/billing/handlers.ts`) so the route file stays a thin dispatcher.
+- Keep a route **separate** when its auth model differs. The Stripe webhook stays in static `webhook+api.ts` (signature over the raw body, no user token); Expo Router matches static routes before dynamic siblings, so it wins over `[action]+api.ts`.
+- Tiny routes with no shared heavy deps (the `app/api/template/*` demos) aren't worth consolidating.
+- Don't fake sub-routes by dispatching on request body or query params — you lose per-endpoint status semantics and rate-limit/path alignment for no size win over a dynamic segment.
 
-- Consolidate routes that share the same feature prefix, auth model, and
-  heavy dependencies. Keep the handler bodies in `server/` modules
-  (`server/media/handlers.ts`, `server/api/billing/handlers.ts`) so the
-  route file stays a thin dispatcher.
-- Keep a route **separate** when its auth model differs. The Stripe webhook
-  stays in static `webhook+api.ts` (signature over the raw body, no user
-  token); Expo Router matches static routes before dynamic siblings, so it
-  wins over `[action]+api.ts`.
-- Tiny routes with no shared heavy deps (the `app/api/template/*` demos)
-  aren't worth consolidating.
-- Don't fake sub-routes by dispatching on the request body or query params —
-  you lose per-endpoint status semantics and rate-limit/path alignment for
-  no additional size win over a dynamic segment.
+File-name → URL mapping:
 
-File-name → URL mapping, verified against both the dev server and the
-exported build:
+| File | Matches |
+|------|---------|
+| `api/<feature>/index+api.ts` | `/api/<feature>` only — the folder URL itself, never sub-paths |
+| `api/<feature>/[action]+api.ts` | `/api/<feature>/<one-segment>`; param arrives as `params.action` |
+| `api/<feature>/<name>+api.ts` | `/api/<feature>/<name>` — static, wins over a dynamic sibling |
 
-| File | Matches | Notes |
-|------|---------|-------|
-| `api/media/index+api.ts` | `/api/media` only | The folder URL itself; does NOT catch sub-paths |
-| `api/media/[action]+api.ts` | `/api/media/<one-segment>` | Param arrives as `params.action`; single segment only |
-| `api/billing/webhook+api.ts` | `/api/billing/webhook` | Static; wins over a dynamic sibling |
-
-All three can coexist in one folder (REST shape: `index` for the
-collection, `[id]`/`[action]` for items, static files for exceptions).
-Each file is still its own server bundle — an `index+api.ts` next to
-action files adds a bundle rather than consolidating anything, so the
-size win comes only from routes sharing one file.
+All three can coexist in one folder (`index` for the collection, `[id]`/`[action]` for items, static files for exceptions). Each file is still its own bundle — an `index+api.ts` beside action files adds one rather than consolidating, so the size win comes only from routes sharing a file.
 
 ## Data Loaders
 
-Loaders let a web route declare its initial data as server code instead of a
-client `useEffect`. The pattern has three parts.
+A loader declares a web route's initial data as server code instead of a client `useEffect`.
 
-**When loaders run.** With server rendering on there is no build-time
-snapshot. For an HTML request, `expo-server` runs the matched route's loader
-**per request** — with the real request and parsed params — before rendering,
-hands the result to the render through Expo Router's server loader context so
-`useLoaderData()` returns it during the server render, and injects the same
-payload into the bootstrap script so hydration reuses it without a fetch.
-Client-side navigations (and loader invalidation) fetch
-`/_expo/loaders/<route>`, which the request handler answers by running the
-loader again, per request. So loader output is as fresh as the request, and
-`request` is present inside the loader.
+**When loaders run.** There is no build-time snapshot. For an HTML request, `expo-server` runs the matched route's loader **per request** — with the real request and parsed params — before rendering, passes the result through Expo Router's server loader context so `useLoaderData()` returns it during the server render, and injects the same payload into the bootstrap script so hydration reuses it without a fetch. Client-side navigations and loader invalidation fetch `/_expo/loaders/<route>`, answered by running the loader again. Loader output is as fresh as the request, and `request` is present inside the loader.
 
-**Declare the loader in the route file.** `expo export` decides which routes
-have loaders from a Babel pass over `app/` (`babel-preset-expo`'s
-`server-data-loaders-plugin`) that only recognizes a `loader` **declaration** in
-the route file: `export const loader = …` or `export function loader…`. Export
-specifiers are skipped, so `export { serverAlphaLoader as loader } from "…"`
-silently ships no loader — no loader bundle, no `loader` entry in
-`dist/server/_expo/routes.json`, `/_expo/loaders/<route>` 404s, and the server
-render falls through to `useLoaderData`'s client fetch, which throws
-`TypeError: fetch() URL is invalid` inside the route's Suspense boundary.
-Development hides it, because the dev server marks every HTML route as having a
-loader. `server/__tests__/loaderExportShape.test.ts` guards the shape.
+**Declare the loader in the route file.** `expo export` decides which routes have loaders from a Babel pass over `app/` (`babel-preset-expo`'s `server-data-loaders-plugin`) recognizing only a `loader` **declaration** in the route file: `export const loader = …` or `export function loader…`. Export specifiers are skipped, so `export { serverAlphaLoader as loader } from "…"` silently ships no loader — no loader bundle, no `loader` entry in `dist/server/_expo/routes.json`, `/_expo/loaders/<route>` 404s, and the server render falls through to `useLoaderData`'s client fetch, which throws `TypeError: fetch() URL is invalid` inside the route's Suspense boundary. Development hides it: the dev server marks every HTML route as having a loader. `server/__tests__/loaderExportShape.test.ts` guards the shape.
 
-On a loader route, declare the screen's default export too. The plugin drops a
-route's `export default` declaration from the loader bundle, but an
-`export { default } from "…"` specifier line survives and drags the whole
-screen graph into that server bundle — 1.2 MB versus 15 KB for this demo.
-Loader-less routes keep the one-line `export { default } from "…"` convention;
-only routes that emit a loader bundle pay for it.
+Declare the screen's default export on a loader route too. The plugin drops a declared `export default` from the loader bundle, but an `export { default } from "…"` specifier line survives and drags the whole screen graph in — roughly 1.2 MB against the 15 KB this demo's loader bundle ships. Loader-less routes keep the one-line `export { default } from "…"` convention.
 
-**Param'd routes.** Loader requests are matched against the route manifest by
-the route's regex with params parsed out, so a param'd loader is addressable
-under server rendering (the older build-time snapshot, keyed by the literal
-file path, could not be). The demo still keeps the API-route split, which
-works on every rendering mode: `[example].tsx` exports no `loader`, and
-`client/features/server-alpha/ServerAlphaExampleScreen.tsx` reads
-`useLocalSearchParams()` and fetches `/api/template/examples`.
+**Param'd routes.** Loader requests are matched against the route manifest by the route's regex with params parsed out, so a param'd loader is addressable under server rendering. The demo still keeps the API-route split, the one data path working on every rendering mode including native and a static web export: `[example].tsx` exports no `loader`, and `client/features/server-alpha/ServerAlphaExampleScreen.tsx` reads `useLocalSearchParams()` and fetches `/api/template/examples`.
 
-Define loaders in a feature folder, typed with `LoaderFunction<T>`, returning
-JSON-serializable data. Dynamically import server modules inside the loader
-body so server-only code stays out of the client bundle
-(`client/features/server-alpha/loaders.ts`):
+Define loaders in a feature folder, typed with `LoaderFunction<T>`. Dynamically import server modules inside the loader body so server-only code stays out of the client bundle (`client/features/server-alpha/loaders.ts`):
 
 ```ts
 import { setResponseHeaders } from "expo-server";
@@ -2128,16 +1233,14 @@ export const serverAlphaLoader: LoaderFunction<TemplateServerCatalog> = async (r
   try {
     setResponseHeaders({ "Cache-Control": "no-store" });
   } catch {
-    // Unit tests and direct calls do not have an active Expo Server
-    // request scope.
+    // No active Expo Server request scope in unit tests or direct calls.
   }
   const { getTemplateServerCatalog } = await import("@/server/api/template/examples");
   return getTemplateServerCatalog(request);
 };
 ```
 
-Declare both exports in the route file, next to each other
-(`app/(main)/(demos)/server-alpha/index.tsx` is the whole file):
+With both exports declared, the export strips `loader` and its module graph from the client bundle and strips the screen from the loader bundle (`app/(main)/(demos)/server-alpha/index.tsx` in full):
 
 ```ts
 import { serverAlphaLoader } from "@/client/features/server-alpha/loaders";
@@ -2147,12 +1250,7 @@ export const loader = serverAlphaLoader;
 export default ServerAlphaDemoScreen;
 ```
 
-The route file stays thin and both declarations are ones the export
-understands: it strips `loader` (and the loader-only module graph behind it)
-from the client bundle, and strips the screen from the loader bundle. Specifier
-re-exports for either export are silently dropped or silently fat — see above.
-
-Consume in the screen with `useLoaderData`, typed by the loader itself:
+Consume in the screen, typed by the loader itself:
 
 ```ts
 import { useLoaderData } from "expo-router";
@@ -2162,25 +1260,16 @@ const catalog = useLoaderData<typeof serverAlphaLoader>();
 
 Loader rules:
 
-- Declare `loader` (and the screen's `default`) in the route file. Specifier
-  re-exports are invisible to the export's loader detection.
+- Declare `loader` and the screen's `default` in the route file. Specifier re-exports are invisible to loader detection.
 - Loaders are read-only. Mutations belong in API route handlers.
-- Wrap `setResponseHeaders` in try/catch; unit tests and direct calls run
-  loaders without an active request scope.
-- Keep authorization in API routes. A loader does see the request under server
-  rendering, but its data must stay fetchable from the client too (next rule),
-  so the API route is the single place that can own the check for both paths.
-- Pair each loader with an API route exposing the same data so the client can
-  refetch live values (`serverAlphaLoader` pairs with
-  `app/api/template/examples+api.ts`).
-- Return only JSON-serializable values; loader output crosses the
-  server/client boundary.
+- Wrap `setResponseHeaders` in try/catch; unit tests and direct calls run loaders without an active request scope.
+- Keep authorization in API routes. A loader does see the request, but its data must stay fetchable from the client too, so the API route is the single place owning the check for both paths.
+- Pair each loader with an API route exposing the same data so the client can refetch live values (`serverAlphaLoader` pairs with `app/api/template/examples+api.ts`).
+- Return only JSON-serializable values — loader output crosses the server/client boundary.
 
 ## Request Middleware
 
-`app/+middleware.ts` runs on matched server requests. Declare an explicit
-matcher and keep middleware to request-scoped headers and observability —
-auth decisions and mutations belong in route handlers:
+`app/+middleware.ts` runs on matched server requests. Declare an explicit matcher and keep middleware to request-scoped headers and observability — auth decisions and mutations belong in route handlers:
 
 ```ts
 import { setResponseHeaders } from "expo-server";
@@ -2197,56 +1286,34 @@ export const unstable_settings: MiddlewareSettings = {
 const middleware: MiddlewareFunction = (request) => {
   setResponseHeaders((headers) => {
     headers.set("X-Expo-Router-Middleware", "1");
-    // The repo version also appends Origin to Vary for CORS-cache safety.
+    // The repo version also appends Origin to Vary when the request carries an
+    // Origin header, for CORS-cache safety.
   });
 };
 
 export default middleware;
 ```
 
-Note the matcher lists both the public path (`/server-alpha`) and the grouped
-route path (`/(main)/(demos)/server-alpha`) in the repo file — match the route
-shapes your app actually serves.
+Match the route shapes your app serves: the repo file lists the grouped paths (`/(main)/(demos)/server-alpha`, `/(main)/(demos)/server-alpha/[example]`) alongside the public ones.
 
 ## Replication Checklist
 
-Use this order when adding the server stack to another Expo Router project:
-
-1. Set `web.output: "server"` and the three `unstable_` router flags in app
-   config; confirm the Expo SDK version supports them. Server rendering adds
-   the first-render constraints listed under Server Rendering — budget for the
-   stylesheet flush, the `+html.tsx` snapshot filter, request-derived
-   viewport/persisted state, and the `@expo/router-server` bootstrap-order
-   patch before turning it on.
-2. Add a server entry (`server.bun.ts`, or the `expo-server` adapter for your
-   runtime) that wraps the request handler and owns CORS, rate limits,
-   security headers, and static caching.
-3. Create `server/api/shared/` with the CORS, error, and auth helpers; keep
-   route files thin handler exports.
-4. Add API routes under `app/api/**/+api.ts` with `OPTIONS` preflight and
-   CORS headers on every response. Consolidate sibling actions that share
-   heavy dependencies behind a `[action]+api.ts` dispatcher (see Route
-   Consolidation above) — each `+api.ts` exports as its own bundle.
-5. Add `app/+middleware.ts` with an explicit matcher, limited to headers and
-   observability.
-6. Add loaders per feature folder, consume with
-   `useLoaderData<typeof loaderFn>()`, and pair each with an API route for
-   client refetch. Declare the `loader` and `default` exports in the route
-   file, never as specifier re-exports (see Data Loaders).
+1. Set `web.output: "server"` and the three `unstable_` router flags; confirm the SDK supports them. Budget for the Server Rendering constraints first — stylesheet flush, `+html.tsx` snapshot filter, request-derived viewport/persisted state, `@expo/router-server` bootstrap-order patch.
+2. Add a server entry (`server.bun.ts`, or the `expo-server` adapter for your runtime) owning CORS, rate limits, security headers, and static caching around the request handler.
+3. Create `server/api/shared/` with the CORS, error, and auth helpers; keep route files thin handler exports.
+4. Add API routes under `app/api/**/+api.ts` with `OPTIONS` preflight and CORS headers on every response. Consolidate sibling actions sharing heavy dependencies behind a `[action]+api.ts` dispatcher — each `+api.ts` exports as its own bundle.
+5. Add `app/+middleware.ts` with an explicit matcher, limited to headers and observability.
+6. Add loaders per feature folder, consume with `useLoaderData<typeof loaderFn>()`, and pair each with an API route for client refetch. Declare the `loader` and `default` exports in the route file, never as specifier re-exports.
 
 ## Validation
 
 ```bash
-bun run typecheck
-bun run lint
-bun run test:ci
+bun run verify   # peer-check, typecheck, lint, check:features, registry + docs checks, jest --ci
 bun run build
-bun run start   # then load a loader-backed route and curl an API route
+bun run start    # then load a loader-backed route and curl an API route
 ```
 
-For loader and API behavior, test the underlying server modules directly
-(see `app/api/template/__tests__/` and `server/api/shared/__tests__/`) and
-verify loader-backed pages render expected data in the running app.
+`bun run verify` skips the web build; individual gates are `bun run typecheck`, `lint`, `test:ci`, `check:features`. Test loader and API behavior through the server modules (`app/api/template/__tests__/`, `server/api/shared/__tests__/`), and confirm loader-backed pages render expected data in the running app.
 
 ---
 

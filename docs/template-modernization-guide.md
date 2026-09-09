@@ -1,13 +1,12 @@
 # Template Modernization Guide
 
-This guide is the LLM-facing map for using this repo as a reference template.
-Use it when adapting another Expo app to this stack, selecting reusable
-components, choosing a screen template, or checking modernization work against
-the repo's current patterns.
+The LLM-facing map for using this repo as a reference template: adapting another
+Expo app to this stack, selecting reusable components, choosing a screen template,
+or checking modernization work against the repo's current patterns.
 
 ## Start Here
 
-Treat these files as the source of truth before editing another project:
+Source of truth before editing another project:
 
 | Need | Source |
 |------|--------|
@@ -25,24 +24,24 @@ Treat these files as the source of truth before editing another project:
 | Reusable screen implementations | `client/templates/<id>/` |
 | Reusable composed sections | `client/blocks/<id>/` |
 
-When code and docs disagree, inspect the source files and update the docs in
-the same change.
+When code and docs disagree, inspect the source files and update the docs in the
+same change.
 
 ## Stack Baseline
 
-The template is a Bun-managed Expo app with Expo Router, server-rendered
-web output, TypeScript strict mode, React Query, Zustand, optional Cognito auth,
-optional Stripe billing, optional S3/R2 media, optional Sentry, and two
-workspace packages:
+A Bun-managed Expo app: Expo Router, server-rendered web output, TypeScript strict
+mode, React Query, Zustand, optional Clerk or Cognito auth
+(`EXPO_PUBLIC_AUTH_PROVIDER` picks when both are configured), optional Stripe
+billing, optional S3/R2 media, optional Sentry, and two workspace packages:
 
 - `@mrmeg/expo-ui` from `packages/ui`: design tokens, theme state, reusable
-  components, animation/haptic helpers, and global UI state.
-- `@mrmeg/expo-media` from `packages/media`: media contracts, processing
-  helpers, React Query factories, and S3/R2 server handler factories.
+  components, animation/haptic helpers, global UI state.
+- `@mrmeg/expo-media` from `packages/media`: media contracts, processing helpers,
+  React Query factories, S3/R2 server handler factories.
 
 App-specific integration belongs in `app/`, `client/`, `server/`, or `shared/`.
-Reusable UI belongs in `packages/ui`. Reusable media contracts and processing
-belong in `packages/media`.
+Reusable UI belongs in `packages/ui`; reusable media contracts and processing in
+`packages/media`.
 
 ## LLM Use Rules
 
@@ -50,37 +49,34 @@ belong in `packages/media`.
   `@mrmeg/expo-ui/components`, `@mrmeg/expo-ui/hooks`, and
   `@mrmeg/expo-ui/constants`.
 - Use `useTheme()` and token exports for color, spacing, radius, shadow,
-  typography, and contrast decisions. Avoid new hard-coded palettes.
-- Use the semantic density tokens for layout: `spacing.screenPadding` for
-  screen and block gutters, `spacing.cardPadding` for bordered panels,
+  typography, and contrast. No new hard-coded palettes.
+- Use the semantic density tokens for layout: `spacing.screenPadding` for screen
+  and block gutters, `spacing.cardPadding` for bordered panels,
   `spacing.sectionSpacing` between grouped lists, and `Item` (or
-  `spacing.rowPaddingY`/`rowPaddingX`) for list rows. Do not reach for raw
-  `spacing.lg` / `spacing.xl` for those roles.
-- Keep reusable package code app-agnostic. `packages/ui` must not import from
-  `@/client/*`; `packages/media` must not depend on app route files or app
-  env names.
+  `spacing.rowPaddingY` / `rowPaddingX`) for list rows. Not raw `spacing.lg` /
+  `spacing.xl` for those roles.
+- Keep package code app-agnostic: `packages/ui` must not import from
+  `@/client/*`; `packages/media` must not depend on app route files or app env
+  names.
 - Keep optional systems fail-closed. A blank `.env` must leave the template
   explorable with auth, billing, media, and Sentry disabled.
-- Web routes are server-rendered per request. Persisted browser state
-  (localStorage, `matchMedia`, dimensions) is unavailable in that first render,
-  so it must either be derived from the request — the way
-  `server/lib/ssrViewport.ts` and `server/lib/ssrOnboarding.ts` read cookies —
-  or read after mount. Changes to `app/+html.tsx`, root startup, theme startup,
-  i18n startup, onboarding, viewport logic, or font loading must be verified in
-  a browser against `bun run build && bun run start`.
-- Add showcase coverage when adding a reusable component, block, or screen
-  template. Components are listed by hand in `client/showcase/registry.ts`;
-  blocks and screen templates are generated from their `meta.ts` by
-  `bun run gen:blocks` / `bun run gen:templates`. Explore and the three
-  galleries derive every count and card from those registries, so a new asset
-  shows up without touching a screen.
-- Use exact local scripts from `package.json`; do not substitute generic Expo
-  or npm commands when a Bun script exists.
+- Web routes are server-rendered per request, so persisted browser state
+  (localStorage, `matchMedia`, dimensions) is unavailable in that first render. It
+  must be derived from the request — the way `server/lib/ssrViewport.ts` and
+  `server/lib/ssrOnboarding.ts` read cookies — or read after mount. Changes to
+  `app/+html.tsx`, root/theme/i18n startup, onboarding, viewport logic, or font
+  loading must be verified in a browser against `bun run build && bun run start`.
+- Add showcase coverage for any new reusable component, block, or screen template.
+  Components are listed by hand in `client/showcase/registry.ts`; blocks and screen
+  templates are generated from their `meta.ts` by `bun run gen:blocks` /
+  `bun run gen:templates`. Explore and the three galleries derive every count and
+  card from those registries, so a new asset shows up without touching a screen.
+- Use exact local scripts from `package.json`; never substitute generic Expo or npm
+  commands.
 
 ## Three Scales
 
-The showcase is organised by how much of a screen an asset covers. Pick the
-largest scale that fits before dropping to the one below.
+Pick the largest scale that fits before dropping to the one below.
 
 | Scale | Lives in | Browse at | Use for |
 |-------|----------|-----------|---------|
@@ -88,18 +84,18 @@ largest scale that fits before dropping to the one below.
 | 02 Blocks | `client/blocks/<id>/` | `app/(main)/(demos)/blocks/` (live stage + component recipe) | A composed section of a screen: hero, feature grid, stat row |
 | 03 Screen templates | `client/templates/<id>/` | `app/(main)/(demos)/templates/` (card grid → the live screen) | A complete screen you adapt rather than compose |
 
-The Explore tab (`app/(main)/(tabs)/index.tsx`) is the entry point: a search
-field that filters all three registries at once, then one section per scale.
-`client/showcase/ShowcaseScreen.tsx` is still the exhaustive per-component
-kitchen sink and is linked from the components gallery header. The gallery
-route files under `app/(main)/(demos)` are one-line lazy shells; their bodies
-live in `client/showcase/*Screen.tsx` behind a single split point
-(`client/showcase/gallery.tsx`) so the previews stay out of every other
-route's first-render download — see `docs/bundle-analysis.md`.
+The Explore tab (`app/(main)/(tabs)/index.tsx`) is the entry point: a search field
+filtering all three registries at once, then one section per scale.
+`client/showcase/ShowcaseScreen.tsx` is the exhaustive per-component kitchen sink,
+linked from the components gallery header. The gallery route files under
+`app/(main)/(demos)` are one-line lazy shells; their bodies live in
+`client/showcase/*Screen.tsx` behind a single split point
+(`client/showcase/gallery.tsx`), keeping previews out of every other route's
+first-render download — see `docs/bundle-analysis.md`.
 
 ## Component Selection
 
-Start with `packages/ui/src/components/index.ts` and the components gallery
+Start with `packages/ui/src/components/index.ts` and
 `client/showcase/ComponentsGalleryScreen.tsx` (or the exhaustive
 `client/showcase/ShowcaseScreen.tsx`).
 
@@ -119,38 +115,35 @@ Start with `packages/ui/src/components/index.ts` and the components gallery
 | Icons | `Icon`, with names typed by `IconName` |
 | App shell infrastructure | `UIProvider`, `ErrorBoundary`, `StatusBar`, `Notification` |
 
-For forms, use `react-hook-form` through `client/lib/form/FormProvider.tsx`
-and the field wrappers in `client/lib/form/`. Keep field state local to the
-smallest useful component, especially inside showcase demos and high-churn
-forms.
+For forms, use `react-hook-form` through `client/lib/form/FormProvider.tsx` and the
+field wrappers in `client/lib/form/`. Keep field state local to the smallest useful
+component, especially inside showcase demos and high-churn forms.
 
 ## Blocks
 
-Blocks live in `client/blocks/<id>/` as a `Block.tsx` plus a `meta.ts`, and are
-registered by `bun run gen:blocks`. Each `meta.ts` carries a `recipe` — the
-component ids the block composes — which the gallery renders as links into the
-component detail, so a block documents its own construction.
+Blocks live in `client/blocks/<id>/` as a `Block.tsx` plus a `meta.ts`, registered
+by `bun run gen:blocks`. Each `meta.ts` carries a `recipe` — the component ids the
+block composes — which the gallery renders as links into the component detail.
 
 | Block | Category | Use for |
 |-------|----------|---------|
-| Hero | marketing | Landing headline, subcopy, and primary/secondary actions |
-| Feature Grid | marketing | Three-up capability grid with icons |
-| Stat Row | data | A row of metrics with change indicators |
-| CTA Banner | marketing | A single mid-page conversion prompt |
-| FAQ Section | content | Accordion of common questions |
-| Sign-In Form | auth | Email/password entry with social options |
+| Hero | marketing | Landing headline, subcopy, primary/secondary actions |
+| Feature grid | marketing | Three-up capability grid with icons |
+| Stat row | data | A row of metrics with change indicators |
+| CTA banner | marketing | A single mid-page conversion prompt |
+| FAQ section | content | Accordion of common questions |
+| Sign-in form | auth | Email/password entry with social options |
 
 Reach for a block before hand-composing a section out of primitives, and before
 copying a whole screen template you only need one band of.
 
 ## Screen Templates
 
-Screen templates live in `client/templates/<id>/` as a `Screen.tsx` (the
-reusable implementation), a `demo.tsx` (the route's sample data), and a
-`meta.ts` (id, label, description, icon, `route`, `order`, `category`).
-`bun run gen:templates` turns those metas into
-`client/templates/registry.generated.ts`; navigate by an entry's `route`, never
-a path built from its id.
+Screen templates live in `client/templates/<id>/` as a `Screen.tsx` (the reusable
+implementation), a `demo.tsx` (the route's sample data), and a `meta.ts` (id, label,
+description, icon, `route`, `order`, `category`). `bun run gen:templates` turns
+those metas into `client/templates/registry.generated.ts`; navigate by an entry's
+`route`, never a path built from its id.
 
 | Template | Category | Use for |
 |----------|----------|---------|
@@ -172,9 +165,9 @@ a path built from its id.
 | Search | states | Query results, filters, empty states |
 | Error | states | Setup, retry, auth, access, and fatal states |
 
-Use these as starting points, not as containers for unrelated product logic.
-Domain behavior should sit in a feature folder, then pass data and callbacks
-into the screen template.
+Use these as starting points, not as containers for unrelated product logic. Domain
+behavior sits in a feature folder and passes data and callbacks into the screen
+template.
 
 ## App And Feature Patterns
 
@@ -192,32 +185,29 @@ into the screen template.
 
 ## Modernization Path
 
-Use this order when moving an existing project toward this template:
+Order for moving an existing project onto this template:
 
-1. Baseline the toolchain: Bun lockfile, Expo SDK, React, React Native,
-   TypeScript strict, Expo Router, and local package scripts.
-2. Move app identity into the single identity surface used by `app.config.ts`
-   and runtime deep-link helpers.
-3. Establish the route shell: root providers, tabs, grouped demo routes,
-   error boundary, safe area, keyboard provider, and startup gate.
-4. Replace one-off UI with `@mrmeg/expo-ui` components and tokens. Port
-   screens from the largest matching scale down: a screen template in
-   `client/templates/<id>/`, then a block in `client/blocks/<id>/`, then
-   individual components.
-5. Normalize forms through `react-hook-form`, `zod`, and `client/lib/form`
-   wrappers.
+1. Baseline the toolchain: Bun lockfile, Expo SDK, React, React Native, TypeScript
+   strict, Expo Router, local package scripts.
+2. Move app identity into the single identity surface used by `app.config.ts` and
+   runtime deep-link helpers.
+3. Establish the route shell: root providers, tabs, grouped demo routes, error
+   boundary, safe area, keyboard provider, startup gate.
+4. Replace one-off UI with `@mrmeg/expo-ui` components and tokens. Port screens from
+   the largest matching scale down: a screen template in `client/templates/<id>/`,
+   then a block in `client/blocks/<id>/`, then individual components.
+5. Normalize forms through `react-hook-form`, `zod`, and `client/lib/form` wrappers.
 6. Move server state to React Query and client state to small Zustand stores.
 7. Convert API calls to typed route contracts and typed problem handling.
-8. Add optional systems behind env gates. Missing auth, billing, media, or
-   Sentry config should degrade to setup/disabled states, not runtime crashes.
-9. Verify the web build in a browser before optimizing for native-only
-   behavior.
-10. Add tests at the boundary touched: package component tests, screen tests,
-    route tests, feature isolation, typecheck, lint, and bundle-size checks.
+8. Add optional systems behind env gates. Missing auth, billing, media, or Sentry
+   config must degrade to setup/disabled states, not runtime crashes.
+9. Verify the web build in a browser before optimizing native-only behavior.
+10. Add tests at the boundary touched: package component tests, screen tests, route
+    tests, feature isolation, typecheck, lint, bundle-size.
 
 ## Modernization Checks
 
-Before calling a migration complete, run the relevant local scripts:
+Before calling a migration complete:
 
 ```bash
 bun run typecheck
@@ -232,20 +222,19 @@ bun run build
 bun run bundle-size
 ```
 
-For UI package changes, also use the showcase and React Scan workflow from
-`README.md`. For web-startup work, verify in a browser against
-`bun run build && bun run start` (see `docs/server-guide.md`).
+For UI package changes, also use the showcase and React Scan workflow
+(`bun run scan:showcase`) from `README.md`. For web-startup work, verify in a
+browser against `bun run build && bun run start` (see `docs/server-guide.md`).
 
 ## Anti-Patterns To Remove
 
 - App screens defining new button, input, menu, modal, card, or typography
   primitives when package components already exist.
 - Hard-coded colors, shadows, radius, and spacing in general-purpose UI.
-- Feature folders importing sibling feature internals outside documented
-  boundary exceptions.
+- Feature folders importing sibling feature internals outside documented boundary
+  exceptions.
 - Client code reading raw bucket, Stripe, Cognito, or server secret env vars.
-- UI code branching on raw HTTP `Response` objects instead of typed problem
-  objects.
+- UI code branching on raw HTTP `Response` objects instead of typed problem objects.
 - Optional feature setup that crashes a blank `.env`.
 - Web startup logic that blocks first paint on persisted browser state.
 - Showcase demos with high-churn state at the full-route level.
@@ -256,9 +245,9 @@ Update this file when:
 
 - A reusable component is added, removed, renamed, or moved.
 - A screen template is added, removed, renamed, or gets a new intended use.
-- The modernization order changes because of stack, routing, web output, or
-  package boundary changes.
+- The modernization order changes because of stack, routing, web output, or package
+  boundary changes.
 - Verification scripts or feature gates change.
 
-Keep examples source-linked and concise. Prefer pointing to the canonical
-implementation over copying code that will drift.
+Keep examples source-linked. Point to the canonical implementation rather than
+copying code that will drift.

@@ -1,154 +1,172 @@
 # @mrmeg/expo-ui Full Contract
 
-`@mrmeg/expo-ui` packages reusable Expo and React Native UI primitives for
-MrMeg apps. It owns the shared design system, tokens, package theme store,
-resource hook, global notification store, overlay shell, and small interaction
-helpers. The consuming app owns routes, screens, feature state, auth, billing,
-media, monitoring, API calls, product copy, and app-specific layouts.
+The package owns the shared design system, tokens, theme store, resource hook,
+global notification store, overlay shell, and small interaction helpers. The
+consuming app owns routes, screens, feature state, auth, billing, media,
+monitoring, API calls, product copy, and app-specific layouts.
 
 ## Agent Rules
 
-Do not recreate primitives that this package already provides. Import from
+Do not recreate primitives this package already provides. Import from
 `@mrmeg/expo-ui` and compose package components in the app.
 
-Use only exported package paths:
+Importable paths, and nothing else:
 
 - `@mrmeg/expo-ui`
-- `@mrmeg/expo-ui/components`
-- `@mrmeg/expo-ui/components/*`
-- `@mrmeg/expo-ui/constants`
-- `@mrmeg/expo-ui/constants/*`
-- `@mrmeg/expo-ui/hooks`
-- `@mrmeg/expo-ui/hooks/*`
-- `@mrmeg/expo-ui/state`
+- `@mrmeg/expo-ui/components`, `@mrmeg/expo-ui/components/*`
+- `@mrmeg/expo-ui/constants`, `@mrmeg/expo-ui/constants/*`
+- `@mrmeg/expo-ui/hooks`, `@mrmeg/expo-ui/hooks/*`
+- `@mrmeg/expo-ui/state`, `@mrmeg/expo-ui/state/*`
 - `@mrmeg/expo-ui/lib`
 
-Do not import from `@mrmeg/expo-ui/dist/*`, `packages/ui/src/*`, or copied
+Never import from `@mrmeg/expo-ui/dist/*`, `packages/ui/src/*`, or copied
 app-local component files.
-
-## App Setup
-
-Call `useResources()` once near the Expo app root. Mount `UIProvider` once near
-the root when the app uses package feedback or overlay components.
-
-`UIProvider` owns the package `Notification`, `StatusBar`, default
-`@rn-primitives` portal host, and native keyboard-avoiding root. Mount it
-before using `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`, `DropdownMenu`,
-`Popover`, `SelectContent`, `Tooltip`, or `notify` / `globalUIStore`
-notifications. Pass `keyboardAvoiding={false}` to opt out of the native root
-keyboard avoidance, or use `KeyboardAvoidingView` directly for a subtree with
-custom behavior. Web skips the root keyboard wrapper unless `keyboardAvoiding`
-is explicitly enabled.
-
-On native, `BottomSheet.Content` composes its sheet transform with React Native
-keyboard event values. Pass `avoidKeyboard={false}` for sheets that should not
-move.
-
-i18n is optional. Plain children and `text` props work without `i18next` or
-`react-i18next`. Use `configureExpoUiI18n()` only when a consuming app wants
-package `tx` props translated by its app-owned i18n instance.
-
-## Theme Rules
-
-Use `useTheme()` and `useStyles()` from `@mrmeg/expo-ui/hooks`. Use semantic
-tokens such as `surfaceSunken`, `background`, `foreground`, `card`, `popover`,
-`border`, `borderStrong`, `input`, `ring`, `primary`, `secondary`, `accent`,
-`mutedForeground`, `destructive`, `success`, and `warning`.
-
-Surfaces form a tier ladder rather than a shadow scale: `surfaceSunken` (app
-chrome such as the Drawer rail) < `background` (content) < `card`/`popover`
-(raised) < `muted` (chips, insets). Use `borderStrong` for hairlines on filled
-or raised elements, where `border` would blend into the fill.
-
-Use `StyledText` and semantic text aliases instead of raw `Text` for app UI.
-Use package controls instead of hardcoded Pressable/View/Text combinations.
-
-When the saved theme preference is `system`, the package theme store owns OS
-color-scheme sync, including web `prefers-color-scheme`. Apps should not add
-their own `Appearance` or `matchMedia` listeners just to make package
-components follow system light/dark changes.
-
-## Import Examples
 
 ```tsx
 import { Button, StyledText, UIProvider } from "@mrmeg/expo-ui/components";
 import { Button as ButtonDirect } from "@mrmeg/expo-ui/components/Button";
 import { colors, spacing, typography } from "@mrmeg/expo-ui/constants";
-import { useResources, useTheme } from "@mrmeg/expo-ui/hooks";
-import { globalUIStore, notify, useThemeStore } from "@mrmeg/expo-ui/state";
+import { useResources, useStyles, useTheme } from "@mrmeg/expo-ui/hooks";
+import { globalUIStore, notify, ThemeColorScope, useThemeStore } from "@mrmeg/expo-ui/state";
 import { configureExpoUiI18n, hapticLight } from "@mrmeg/expo-ui/lib";
+// The root barrel re-exports the whole public surface:
+import { Button, colors, UIProvider, useTheme } from "@mrmeg/expo-ui";
 ```
 
-The root barrel also exports the public surface:
+## App Setup
 
-```tsx
-import { Button, UIProvider, colors, useTheme } from "@mrmeg/expo-ui";
-```
+Call `useResources()` once near the Expo app root; it resolves `{ loaded, error }`
+and loads the Feather icon font plus the four static Inter weights (web gets a
+single Google Fonts Inter stylesheet).
+
+Mount `UIProvider` once near the root. It owns the package `Notification`,
+`StatusBar`, default `@rn-primitives` portal host, and native keyboard-avoiding
+root, and is required before `Dialog`, `AlertDialog`, `BottomSheet`, `Drawer`,
+`DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, or `notify` /
+`globalUIStore` notifications.
+
+`UIProvider` props: `notification`, `portalHost`, `statusBar` (default `true`),
+`keyboardAvoiding` (default `true` on native, `false` on web), and
+`keyboardAvoidingProps` forwarded to the root wrapper. Native keyboard avoidance
+uses `react-native-keyboard-controller`, so mount its `KeyboardProvider` above
+`UIProvider`; use `KeyboardAvoidingView` directly for a subtree needing custom
+behavior.
+
+i18n is optional. Plain children and `text` props work without `i18next` or
+`react-i18next`. Use `configureExpoUiI18n()` only when the app wants package
+`tx` props translated by its own i18n instance.
+
+## Theme Rules
+
+Use `useTheme()` and `useStyles()` from `@mrmeg/expo-ui/hooks`. Semantic tokens
+on `theme.colors`: `surfaceSunken`, `background`, `foreground`, `card`,
+`cardForeground`, `popover`, `popoverForeground`, `text`, `textDim`, `muted`,
+`mutedForeground`, `border`, `borderStrong`, `input`, `ring`, `overlay`,
+`primary`, `secondary`, `accent`, their `*Foreground` pairs, `destructive`,
+`success`, `warning`.
+
+Surfaces form a tier ladder rather than a shadow scale: `surfaceSunken` (app
+chrome such as the Drawer rail) < `background` (content) < `card`/`popover`
+(raised) < `muted` (chips, insets). Use `borderStrong` for hairlines on filled or
+raised elements, where `border` would blend into the fill.
+
+On web every theme color resolves to a CSS custom property (`var(--c-*)`) so the
+app re-themes in CSS when `html[data-theme]` changes; native keeps literals.
+Consequence: hex-suffix alpha (`theme.colors.x + "15"`) does not work — use
+`withAlpha(color, alpha)`. `constants` also exports `rawThemeColors.light/.dark`
+and `resolveRawColor(color, scheme)` for sinks that cannot take `var()`, and
+`getThemeCssVariables(overrides?)` for an app's `+html.tsx`.
+
+Color overrides resolve in three layers, last wins: package defaults → global
+brand (`useThemeStore.getState().setColors({ light?, dark? })`) → subtree scope
+(`<ThemeColorScope colors={{ light, dark }}>`). Each is a `Partial<ThemeColors>`.
+`setFonts` and `setShape({ button: { borderRadius?, withShadow? } })` are the
+font and geometry counterparts; per-instance props always win.
+
+Use `StyledText` and semantic text aliases instead of raw `Text`, and package
+controls instead of hardcoded Pressable/View/Text combinations.
+
+When the saved theme preference is `system`, the package theme store owns OS
+color-scheme sync, including web `prefers-color-scheme`. Apps must not add their
+own `Appearance` or `matchMedia` listeners for package components.
 
 ## Component Catalog
 
-Use this catalog before creating a new app-local primitive.
+Every component is exported from `@mrmeg/expo-ui/components`, and from
+`@mrmeg/expo-ui/components/<Name>` for a direct import. Check this catalog
+before creating a new app-local primitive.
 
-| Component | Import | Use When | Gotchas |
-|-----------|--------|----------|---------|
-| `Accordion` | `@mrmeg/expo-ui/components` | Multi-section disclosure such as FAQ or grouped settings | Use compound parts instead of custom expanders. |
-| `Alert` | `@mrmeg/expo-ui/components` | Cross-platform imperative alerts | Avoid direct `window.alert` and duplicated native/web branching. |
-| `AnimatedView` | `@mrmeg/expo-ui/components` | Entrance and visibility animation | Keep simple reveal effects in the package wrapper. |
-| `Badge` | `@mrmeg/expo-ui/components` | Short status labels | Prefer over custom pill views. |
-| `BottomSheet` | `@mrmeg/expo-ui/components` | Mobile-first modal sheets | Requires root `UIProvider`; text-input sheets can disable `avoidKeyboard`. |
-| `Button` | `@mrmeg/expo-ui/components` | Commands and CTAs | Use `preset`, not `variant`; visible heights are compact. |
-| `Card` | `@mrmeg/expo-ui/components` | Individual framed content groups | Do not wrap whole page sections in cards. |
-| `Checkbox` | `@mrmeg/expo-ui/components` | Boolean selection in forms or lists | Prefer over custom checkmark controls. |
-| `Collapsible` | `@mrmeg/expo-ui/components` | One-off disclosure | Use for advanced settings or helper sections. |
-| `Dialog`, `AlertDialog` | `@mrmeg/expo-ui/components` | Blocking modal content or decisions | Requires root `UIProvider` portal setup. |
-| `DismissKeyboard` | `@mrmeg/expo-ui/components` | Tap-away keyboard dismissal | Prefer over screen-level keyboard wrappers. |
-| `Drawer` | `@mrmeg/expo-ui/components` | Side panels and drawer navigation | `Drawer.Content` owns safe-area top/bottom padding; do not duplicate it in children. |
-| `DropdownMenu` | `@mrmeg/expo-ui/components` | Menus and command lists | Requires root `UIProvider` portal setup. |
-| `EmptyState` | `@mrmeg/expo-ui/components` | No-data or recoverable error regions | Prefer over one-off empty placeholders. |
-| `ErrorBoundary` | `@mrmeg/expo-ui/components` | React render error fallback | Use for route or feature boundaries. |
-| `Icon` | `@mrmeg/expo-ui/components` | Feather or custom icons with theme tokens | Avoid raw vector icons with hardcoded colors. |
-| `InputOTP` | `@mrmeg/expo-ui/components` | Verification code entry | Prefer over manually managed text input groups. |
-| `KeyboardAvoidingView` | `@mrmeg/expo-ui/components` | Native keyboard-aware layout roots, composer footers, and form-heavy subtrees | `UIProvider` already mounts one root by default; use this directly only for custom subtrees. |
-| `Label` | `@mrmeg/expo-ui/components` | Accessible form labels | Pair with two distinct ids: `nativeID` is the label's id, `htmlFor` is the input's `nativeID`. Never reuse one id for both. |
-| `MaxWidthContainer` | `@mrmeg/expo-ui/components` | Centered responsive width | Use for web and tablet constrained layouts. |
-| `Notification` | `@mrmeg/expo-ui/components` | Global toast surface | Trigger through `notify` (or `globalUIStore` for subscriptions/tests) with root `UIProvider`; optional actions dismiss after press. |
-| `Popover` | `@mrmeg/expo-ui/components` | Anchored contextual content | Requires root `UIProvider` portal setup. |
-| `Progress` | `@mrmeg/expo-ui/components` | Determinate or indeterminate progress | Prefer over layout-shifting spinners for progress regions. |
-| `RadioGroup` | `@mrmeg/expo-ui/components` | Small mutually exclusive choices | Use `Select` for longer option sets. |
-| `Select` | `@mrmeg/expo-ui/components` | Option menus | `SelectContent` requires root `UIProvider` portal setup. |
-| `Separator` | `@mrmeg/expo-ui/components` | Horizontal or vertical dividers | Prefer over border-only spacer views. |
-| `Skeleton` | `@mrmeg/expo-ui/components` | Loading placeholders | Use stable dimensions to avoid layout shift. |
-| `Slider` | `@mrmeg/expo-ui/components` | Numeric value selection | Prefer over custom pan gesture tracks. |
-| `StatusBar` | `@mrmeg/expo-ui/components` | Theme-aware native status bar | Usually mounted through `UIProvider`. |
-| `StyledText` | `@mrmeg/expo-ui/components` | Theme-aware typography | Prefer semantic aliases over raw `Text`. |
-| `Switch` | `@mrmeg/expo-ui/components` | Binary settings | Prefer over custom toggles for on/off state. |
-| `Tabs` | `@mrmeg/expo-ui/components` | In-page tabbed views | Use for profile sections, report views, and settings categories. |
-| `TextInput` | `@mrmeg/expo-ui/components` | Text entry | Use built-in label and error text support. |
-| `Toggle` | `@mrmeg/expo-ui/components` | One pressed/unpressed control | Use `Button` for commands and `Switch` for settings. |
-| `ToggleGroup` | `@mrmeg/expo-ui/components` | Related pressed states | Use for segmented controls, formatting, and filter chips. |
-| `Tooltip` | `@mrmeg/expo-ui/components` | Short hover/focus help | Requires root `UIProvider` portal setup. |
+| Component | Use When | Gotchas |
+|-----------|----------|---------|
+| `Accordion` | Multi-section disclosure such as FAQ or grouped settings | Use the compound parts instead of custom expanders. |
+| `Alert` | Cross-platform imperative alerts | Avoid `window.alert` and duplicated native/web branching. |
+| `AnimatedView` | Entrance and visibility animation | Keep simple reveal effects in this wrapper. |
+| `Avatar`, `AvatarGroup` | Profile images with initials/icon fallback | Pass both `source` and `name`; set `size`/`shape` on the group, not per child. |
+| `Badge` | Short status labels | Prefer over custom pill views. |
+| `BottomSheet` | Mobile-first modal sheets | Requires root `UIProvider`. Native sheet via `@expo/ui`; `swipeEnabled`, `avoidKeyboard`, `dismissKeyboardOnDrag` are accepted but ignored. |
+| `Button` | Commands and CTAs | Use `preset`, not `variant`; heights are 28/32/40. |
+| `Card` | Individual framed content groups | Do not wrap whole page sections in cards. |
+| `Carousel` | Small known set of horizontally snapping slides | Renders every child (no virtualization); fractional `itemWidth` measures the viewport until first layout. |
+| `Checkbox` | Boolean selection in forms or lists | Prefer over custom checkmark controls. |
+| `Collapsible` | One-off disclosure | Use for advanced settings or helper sections. |
+| `Dialog`, `AlertDialog` | Blocking modal content or decisions | Requires root `UIProvider` portal host. |
+| `DismissKeyboard` | Tap-away keyboard dismissal | Prefer over screen-level keyboard wrappers. |
+| `Drawer` | Side panels and drawer navigation | `Drawer.Content` owns safe-area top/bottom padding; do not duplicate it in children. |
+| `DropdownMenu` | Menus and command lists | Requires root `UIProvider` portal host. |
+| `EmptyState` | No-data or recoverable error regions | Props: `icon`, `title`, `description`, `actionLabel`, `onAction`, `actionPreset`. |
+| `ErrorBoundary` | React render error fallback | Use for route or feature boundaries. |
+| `Icon` | Feather or custom icons with theme tokens | `color` takes a theme color name; pass `decorative` to hide from a11y. |
+| `InputOTP` | Verification code entry | Prefer over manually managed text input groups. |
+| `Item` | List / settings rows | Applies the row density tokens and a 44px native hit area (40px on web). |
+| `KeyboardAvoidingView` | Native keyboard-aware roots, composer footers, form-heavy subtrees | `UIProvider` already mounts one root; use directly only for custom subtrees. |
+| `Label` | Accessible form labels | Two distinct ids: `nativeID` is the label's, `htmlFor` is the input's `nativeID`. Never reuse one id for both. |
+| `MaxWidthContainer` | Centered responsive width | Use for web and tablet constrained layouts. |
+| `Notification` | Global toast surface | Trigger through `notify` (or `globalUIStore` for subscriptions/tests) with root `UIProvider`; actions dismiss after press. |
+| `Popover` | Anchored contextual content | Requires root `UIProvider` portal host. |
+| `Progress` | Determinate or indeterminate progress | Omit `value` for indeterminate. Prefer over layout-shifting spinners. |
+| `RadioGroup` | Small mutually exclusive choices | Use `Select` for longer option sets. |
+| `SectionHeader` | Eyebrow / title / description section intro | Prefer over stacked ad hoc heading text. |
+| `SegmentedControl` | Native segmented picker | Backed by `@expo/ui`; the platform owns its look. |
+| `Select` | Option menus | `SelectContent` requires root `UIProvider` portal host; `label` drives default item text. |
+| `Separator` | Horizontal or vertical dividers | Prefer over border-only spacer views. |
+| `Skeleton` | Loading placeholders | Use stable dimensions to avoid layout shift. |
+| `Slider` | Numeric value selection | Backed by `@expo/ui`; prefer over custom pan gesture tracks. |
+| `StatCard` | Metric tile | Props: `label`, `value`, `unit`, `change` (`{ value, direction }`), `icon`, `onPress`. |
+| `StatusBar` | Theme-aware native status bar | Usually mounted through `UIProvider`. |
+| `StyledText` | Theme-aware typography | Prefer semantic aliases over raw `Text`. |
+| `Switch` | Binary settings | Prefer over custom toggles for on/off state. |
+| `Tabs` | In-page tabbed views | Sizes are `sm`/`md` only. |
+| `TextInput` | Text entry | Owns label, helper/error text, clear button, password reveal, numeric filtering, left/right elements. |
+| `Toggle` | One pressed/unpressed control | Sizes are `sm`/`default`/`lg`. Use `Button` for commands, `Switch` for settings. |
+| `ToggleGroup` | Related pressed states | Use for segmented controls, formatting, and filter chips. |
+| `Tooltip` | Short hover/focus help | Requires root `UIProvider` portal host. |
+
+Every compound part has a named export (`CardHeader`, `AccordionItem`,
+`SelectContent`, …). Dot notation exists only on `AlertDialog`, `BottomSheet`,
+`Button`, `Dialog`, `Drawer`, `Popover`, `RadioGroup`, `Select`, `Tabs`, and
+`Tooltip` — `Card`, `Accordion`, `Collapsible`, `DropdownMenu`, `Item`,
+`Skeleton`, `Toggle`, and `ToggleGroup` are named exports only.
 
 ## Selection Rules
 
-Use `Button` for commands, `Toggle` for one pressed state, `ToggleGroup` for
-related pressed states, and `Switch` for binary settings.
-
-Use `RadioGroup` for small mutually exclusive choices and `Select` for longer
+`Button` commands · `Toggle` one pressed state · `ToggleGroup` a related set ·
+`Switch` binary settings · `RadioGroup` few exclusive choices · `Select` longer
 option sets.
 
-Use `Dialog` for blocking decisions, `Popover` for contextual controls,
-`Tooltip` for short explanations, and `DropdownMenu` for action lists.
+`Dialog` blocking decisions · `Popover` contextual controls · `Tooltip` short
+explanations · `DropdownMenu` action lists.
 
-Use `Card` for individual repeated or framed items, not as a wrapper around
-full page sections. Use `EmptyState` for no-data or recoverable error regions,
-`Skeleton` for loading content with stable layout, and `Progress` for real
-progress or indeterminate long-running work.
+`Card` individual repeated or framed items, never a wrapper around full page
+sections · `EmptyState` no-data or recoverable errors · `Skeleton` loading
+content with stable layout · `Progress` real or indeterminate progress.
 
 ## Notifications
 
-`notify` is the primary imperative API for triggering the `Notification` component. Import from `@mrmeg/expo-ui/state` (also re-exported from the package root).
-
-Notifications auto-dismiss after 4s (`DEFAULT_NOTIFICATION_DURATION`) unless a `duration` is given; pass `duration: 0` to keep one up until dismissed. `notify.loading` never auto-dismisses.
+`notify` (from `@mrmeg/expo-ui/state`, also on the root barrel) is the imperative
+API for the `Notification` component. Notifications auto-dismiss after 4s
+(`DEFAULT_NOTIFICATION_DURATION`) unless a `duration` is given; `duration: 0`
+keeps one up until dismissed, and `notify.loading` never auto-dismisses.
+`position` is `"top"` (default) or `"bottom"`.
 
 ```ts
 import { notify } from "@mrmeg/expo-ui/state";
@@ -158,7 +176,6 @@ notify.error("Upload failed");
 notify.warning("Connection slow");
 notify.info("Copied to clipboard");
 
-// Loading spinner — persists until replaced or hidden (no auto-dismiss)
 notify.loading("Uploading…");
 notify.hide();
 
@@ -173,19 +190,12 @@ await notify.promise(saveProfile(), {
 });
 ```
 
-`globalUIStore` (the underlying zustand store) remains available for reactive selectors and tests. Use `notify` for all imperative triggers in app code.
+`globalUIStore` (the underlying zustand store) stays available for reactive
+selectors and tests. Use `notify` for imperative triggers in app code.
 
 ## Validation
 
-Run the UI package gates when changing package code or shipped docs:
-
-```sh
-bun run ui:typecheck
-bun run ui:test
-bun run ui:build
-bun run ui:pack
-bun run ui:consumer-smoke
-```
-
-For documentation-only package surface changes, `bun run ui:pack` is the
-minimum check that proves the new docs are included in the npm tarball.
+Changing package code or shipped docs? Run the gates from the monorepo root:
+`ui:typecheck`, `ui:test`, `ui:build`, `ui:pack`, `ui:consumer-smoke`
+(`bun run <gate>`). Docs-only changes need at least `ui:pack`, which proves the
+new docs land in the npm tarball.

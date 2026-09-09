@@ -1,32 +1,24 @@
 # @mrmeg/expo-media
 
-Docs for agents:
+Docs: README.md (install, server/client setup, processing, migration, security,
+validation), LLM_USAGE.md (import and implementation rules), llms-full.md
+(expanded contract).
 
-- README.md: install, server/client setup, app-wide defaults, processing,
-  migration, security, validation.
-- LLM_USAGE.md: concise import and implementation rules.
-- llms-full.md: expanded package contract.
+Entrypoints — `@mrmeg/expo-media` plus `/client`, `/react-query`, `/processing`,
+`/processing/image-compression`, `/processing/image-compression/config`,
+`/processing/video-conversion`, `/processing/video-thumbnails`, `/server`,
+`/worker`.
 
-Public entrypoints:
+Rules:
 
-- @mrmeg/expo-media
-- @mrmeg/expo-media/client
-- @mrmeg/expo-media/react-query
-- @mrmeg/expo-media/processing
-- @mrmeg/expo-media/processing/image-compression
-- @mrmeg/expo-media/processing/image-compression/config
-- @mrmeg/expo-media/processing/video-conversion
-- @mrmeg/expo-media/processing/video-thumbnails
-- @mrmeg/expo-media/server
-- @mrmeg/expo-media/worker
-
-Do not import server code from client entrypoints. Upload signing uses
-mediaType plus contentType, not extension-only signing, and should always carry
-size so the server's maxBytes check runs before the transfer.
-Client upload defaults are app-owned; keep them in one settings module and
-choose named upload policies from screens, resolved per asset before processing.
-processAsset from @mrmeg/expo-media/processing is the client pipeline entry
-point: its result is always a content type the allowlist accepts, or it throws
-MediaProcessingError. Config-only consumers should import
-/processing/image-compression/config so a settings screen does not pull the
-pipeline into a light bundle.
+- Never import `/server` or `/worker` from client code.
+- Sign uploads with `mediaType` plus `contentType`, never extension-only, and
+  send `size` so the server `maxBytes` check runs before the transfer.
+- Client upload defaults are app-owned: one settings module, named upload
+  policies chosen by screens and resolved per asset before processing.
+- `processAsset` from `/processing` is the client pipeline entry point; it returns
+  a content type the allowlist accepts or throws `MediaProcessingError`.
+- Config-only consumers import `/processing/image-compression/config` so a
+  settings screen does not pull the pipeline into a light bundle.
+- Every peer is optional; the native path needs `expo`, `expo-file-system`,
+  `expo-image-manipulator`, and `expo-video`.

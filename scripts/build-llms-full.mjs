@@ -28,10 +28,10 @@ const sources = [
       "import paths, required app setup, theme rules, component use-case index, examples",
   },
   {
-    path: "packages/media/README.md",
-    title: "@mrmeg/expo-media Reference",
+    path: "packages/media/LLM_USAGE.md",
+    title: "@mrmeg/expo-media Usage",
     summary:
-      "media contracts, client hooks, server handlers, processing presets",
+      "import paths, required app setup, media contracts, client hooks, server handlers, processing presets",
   },
   {
     path: "docs/server-guide.md",
@@ -157,9 +157,9 @@ another project.
 Two ways to consume this repo:
 
 1. Published packages: run \`bun add @mrmeg/expo-ui\` (and optionally
-   \`@mrmeg/expo-media\`), then follow the "@mrmeg/expo-ui Usage" section
-   below. The same guide ships in the npm tarball at
-   \`node_modules/@mrmeg/expo-ui/LLM_USAGE.md\`.
+   \`@mrmeg/expo-media\`), then follow the "@mrmeg/expo-ui Usage" and
+   "@mrmeg/expo-media Usage" sections below. Each ships in its npm tarball as
+   \`LLM_USAGE.md\`, with the full contract in \`llms-full.md\`.
 2. Pattern reference: follow the "Template Modernization Guide" and "Expo
    Server Guide" sections below; fetch concrete example files through the
    "Examples Index" section, or clone ${repoUrl}.git for bulk access.

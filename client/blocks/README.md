@@ -13,24 +13,21 @@ and renders no chrome: **no `flex: 1` root, no `ScrollView`, no safe-area
 insets**. The host screen owns scrolling and edge insets, so blocks stack
 cleanly in any order.
 
-Blocks are open code. Copy the folder into your project and edit it; the only
-imports are `react`, `react-native`, and `@mrmeg/expo-ui` (which publishes to
-npm), so a copied block has no dependency on this repo.
+Blocks are open code: copy the folder into your project and edit it. The only
+imports are `react`, `react-native`, and `@mrmeg/expo-ui` (published to npm), so
+a copied block has no dependency on this repo.
 
 ## Adding a block
 
-1. `mkdir client/blocks/<id>` — kebab-case, matching the `meta.id`.
-2. `Block.tsx` — a props-driven component named `<Name>Block`, with a default
-   for **every** prop so `<XBlock />` previews without configuration.
-3. `meta.ts` — `export const meta: BlockEntry = { ... }` (see `types.ts`).
-   `recipe` lists the `COMPONENTS` ids the block composes; the gallery renders
-   it as the "built from" strip.
+1. `mkdir client/blocks/<id>` — kebab-case, matching `meta.id`.
+2. `Block.tsx` — a props-driven component named `<Name>Block`, with a default for **every** prop so `<XBlock />` previews without configuration.
+3. `meta.ts` — `export const meta: BlockEntry = { ... }` (see `types.ts`). `recipe` lists the `COMPONENTS` ids the block composes; the gallery renders it as the "built from" strip.
 4. `README.md` — what it is, the files, a usage snippet.
 5. `bun run gen:blocks` and commit `registry.generated.ts`.
 
-`registry.generated.ts` is codegen — never hand-edit it. `gen:blocks:check`
-runs in CI and in `bun run verify`, so a new folder without a
-regenerate fails before review.
+`registry.generated.ts` is codegen — never hand-edit it. `gen:blocks:check` runs
+in CI and in `bun run verify`, so a new folder without a regenerate fails before
+review.
 
 ## Rules that aren't optional
 
@@ -60,5 +57,4 @@ Both are asserted against every block's source in
 | `faq-section` | content | SectionHeader, Accordion, StyledText |
 | `sign-in-form` | auth | Card, Label, TextInput, Button, Separator |
 
-Templates deliberately still carry their own copies of these patterns; they'll
-be refactored onto blocks once the gallery proves the shapes.
+Screen templates still carry their own copies of these patterns.
