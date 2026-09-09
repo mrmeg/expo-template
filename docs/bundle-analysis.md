@@ -28,7 +28,8 @@ Compares the total client JS bundle size in `dist/client` against the baseline
 in `scripts/bundle-baseline.json`. Exits with code 1 if the bundle grew more
 than 10% from the baseline.
 
-The current checked-in baseline is 5,170,148 bytes of client JS from the latest
+The current checked-in baseline is 4,474,265 bytes of budgeted client JS
+(every chunk except the optional `heic2any-*` conversion chunk) from the latest
 local web export.
 
 Note that the metric sums *every* client chunk, so it barely moves when code is
@@ -109,7 +110,45 @@ one barrel module, one `import()` specifier, every consumer using it:
 | Barrel | Consumers | Weight kept out of `__common` |
 |--------|-----------|-------------------------------|
 | `client/features/auth/provider/clerkClient` | `AuthProviderGate`, `getAuthClient()` | Clerk SDK + `swr` + `expo-auth-session` (~280 kB) |
-| `client/features/auth/components` | `AuthGate`, `(demos)/auth-demo`, `(demos)/showcase` | auth screen + 5 forms (~47 kB raw, ~14 kB gzip) |
+| `client/features/auth/components` | `AuthGate`, `(demos)/auth-demo`, `client/showcase/ShowcaseScreen` | auth screen + 5 forms (~47 kB raw, ~14 kB gzip) |
+| `client/showcase/gallery` (via `client/showcase/lazyGallery`) | Explore tab rail + block spotlight, `(demos)/showcase`, `themed-showcase`, `components`, `components/[id]`, `blocks` | the showcase cluster: previews of all 36 components, the kitchen sink, component details, block stages, plus the web engines only they reach (`vaul`, Radix select/menu/dialog/popover/tooltip, `@floating-ui`, `react-remove-scroll`) — ~575 kB raw / ~141 kB gzip as the `gallery-*` chunk; `__common` went from 906 kB to 504 kB raw |
+
+The gallery split point works the same way as the auth ones but with an extra
+layer: `lazyGallery.tsx` holds the ONE `import()` of `gallery.tsx` and exposes
+`React.lazy` wrappers (`LazyPreview`, `LazyBlockStage`, `GalleryRoute`). The
+five gallery route files under `app/(main)/(demos)` are one-line shells over
+`GalleryRoute`; their bodies live in `client/showcase/*Screen.tsx` and are
+imported statically only from `gallery.tsx`. Server rendering resolves the lazy
+boundary synchronously, so the streamed HTML already carries the previews and
+the browser hydrates them when the chunk lands.
+`client/showcase/__tests__/gallerySplitPoint.test.ts` guards the invariant.
+
+## Platform Files Instead of `Platform.OS` Branches (web)
+
+Metro registers every `import()` it can see as an async chunk, whichever branch
+it sits in, and a static import in one route plus a dynamic import somewhere
+else is two chunks reaching one module — which hoists it into `__common`. Two
+places use a `.native.ts` sibling so the web graph never sees the native path:
+
+- `packages/media/src/processing/videoThumbnailDeps.native.ts` holds the
+  `import("expo-video")` / `import("expo-image-manipulator")` for native
+  thumbnails; the web sibling has no imports. Without it `expo-video` was in
+  `__common` for every route even though only the media tab plays video.
+- `client/features/billing/hooks/browserHandoff.native.ts` is the only importer
+  of `expo-web-browser` for billing; web navigates with `window.location`. The
+  package now lives solely in the lazy Clerk chunk.
+
+`scripts/fix-package-esm.mjs` must list the suffix (`platformSuffixes`) for the
+package so the built specifier stays extension-less — Metro resolves an explicit
+`./foo.js` to that exact file and never considers `foo.native.js`.
+
+## Sentry on Web
+
+`client/lib/sentry.web.ts` replaces the RN SDK with `@sentry/react` (same
+version the RN SDK pins) and defers the chunk fetch to `requestIdleCallback`
+(3 s cap) so it never competes with hydration; global errors thrown before the
+SDK is up are buffered and forwarded after `init`. The lazy Sentry chunk went
+from ~706 kB to ~521 kB raw (~128 kB gzip). See `docs/error-tracking.md`.
 
 Adding a *static* import of one of those barrels — or a second `import()` with a
 different specifier for the same file — silently moves the whole graph back into
@@ -133,5 +172,5 @@ Watch for these in `source-map-explorer`:
 |---------|-------------|-------|
 | `aws-amplify` | ~510KB raw / ~105KB gzip | Lazy in the `cognitoSdk-*` chunk; keep it to one split point (see above) |
 | `@rn-primitives/*` | ~5-10KB each | 14 packages installed |
-| `zod` | ~13KB | Form validation |
-| `react-hook-form` | ~9KB | Form state |
+| `zod` | ~475KB raw in the `screen-form-*` chunk | `import * as z from "zod/mini"` is a namespace import, so tree shaking keeps every export: all locales, `toJSONSchema`, and `zod/v4/core`. Lazy (form routes only), but named imports would let the optimizer drop most of it |
+| `react-hook-form` | ~43KB | Form state |

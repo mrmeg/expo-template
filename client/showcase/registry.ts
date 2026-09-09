@@ -10,7 +10,7 @@
  * script or a server route has to be able to read it. UI lives in
  * `app/(main)/(tabs)/index.tsx` (Explore), the galleries under
  * `app/(main)/(demos)/{components,blocks,templates}/`, and
- * `app/(main)/(demos)/showcase/index.tsx` (the exhaustive kitchen sink).
+ * `client/showcase/ShowcaseScreen.tsx` (the exhaustive kitchen sink).
  * Anything that renders JSX per id lives beside it in `client/showcase/`
  * (`previews.tsx`, `blockStages.tsx`, `details.tsx`), keyed by the same id.
  */

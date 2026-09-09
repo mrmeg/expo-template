@@ -55,8 +55,9 @@ jest.mock("@expo/ui/community/bottom-sheet", () => {
 });
 
 // Imported after the mocks so the screens resolve the mocked modules.
-import BlocksGalleryScreen from "@/app/(main)/(demos)/blocks/index";
-import ComponentsGalleryScreen from "@/app/(main)/(demos)/components/index";
+// The route files are one-line lazy shells (see gallerySplitPoint.test.ts);
+// the screens under test are their bodies, imported from the gallery barrel.
+import { BlocksGalleryScreen, ComponentsGalleryScreen } from "../gallery";
 
 /** Advances one animation frame (jest-expo polyfills rAF onto setTimeout). */
 async function flushFrames(count: number) {

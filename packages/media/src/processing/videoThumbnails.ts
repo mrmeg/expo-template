@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { loadNativeThumbnailDependencies } from "./videoThumbnailDeps";
 import { extractVideoThumbnailNative } from "./videoThumbnailNative";
 
 export interface ThumbnailResult {
@@ -23,15 +24,11 @@ async function extractThumbnailNative(
   timeMs: number,
 ): Promise<ThumbnailResult | null> {
   try {
-    const [{ createVideoPlayer }, { ImageManipulator, SaveFormat }] = await Promise.all([
-      import("expo-video"),
-      import("expo-image-manipulator"),
-    ]);
-    return extractVideoThumbnailNative(uri, timeMs, {
-      createVideoPlayer,
-      manipulate: (thumbnail) => ImageManipulator.manipulate(thumbnail),
-      jpegFormat: SaveFormat.JPEG,
-    });
+    const dependencies = await loadNativeThumbnailDependencies();
+    if (!dependencies) {
+      return null;
+    }
+    return extractVideoThumbnailNative(uri, timeMs, dependencies);
   } catch {
     return null;
   }

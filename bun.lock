@@ -15,6 +15,7 @@
         "@mrmeg/expo-media": "workspace:*",
         "@mrmeg/expo-ui": "workspace:*",
         "@react-native-async-storage/async-storage": "2.2.0",
+        "@sentry/react": "10.37.0",
         "@sentry/react-native": "~7.11.0",
         "@tanstack/react-query": "^5.102.8",
         "aws-amplify": "^6.20.0",

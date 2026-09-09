@@ -67,7 +67,7 @@ See `docs/template-modernization-guide.md` for the modernization reference and `
 
 1. Scaffold: `bun run generate component <Name>`
 2. Implement in `packages/ui/src/components/<Name>.tsx`
-3. Add a showcase demo under `app/(main)/(demos)/showcase/`
+3. Add a showcase demo to `client/showcase/ShowcaseScreen.tsx` (the kitchen sink; its `app/(main)/(demos)/showcase/index.tsx` route is a one-line lazy shell) and a card preview to `client/showcase/previews.tsx`
 4. Export it from `packages/ui/src/components/index.ts` and add an entry to `COMPONENTS` in `client/showcase/registry.ts` — the Explore tab's component count and any future filtering read from there. The registry test (`client/showcase/__tests__/registry.test.ts`) verifies the package import path resolves on disk.
 
 ## Adding a New Screen Template Or Demo

@@ -14,12 +14,15 @@ import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * `platformSuffixes` is empty for packages without platform-split modules, which
- * skips the platform pass entirely instead of paying a stat per specifier.
+ * `platformSuffixes` lists the platform-split module suffixes a package uses. A
+ * specifier with a platform sibling (`./compress` next to `compress.native.js`)
+ * must stay extension-less: Metro resolves an explicit `./compress.js` to that
+ * exact file and never considers `compress.native.js`. An empty list skips the
+ * platform pass entirely instead of paying a stat per specifier.
  */
 const PACKAGES = {
   ui: { dist: "packages/ui/dist", platformSuffixes: ["native", "web", "ios", "android"] },
-  media: { dist: "packages/media/dist", platformSuffixes: [] },
+  media: { dist: "packages/media/dist", platformSuffixes: ["native"] },
 };
 
 const packageNames = Object.keys(PACKAGES).sort();

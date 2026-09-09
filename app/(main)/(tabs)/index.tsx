@@ -12,7 +12,7 @@
  * clearing the field restores them.
  */
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { View, StyleSheet, Pressable, Platform, ScrollView } from "react-native";
 import { Link } from "expo-router";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
@@ -27,7 +27,6 @@ import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { Seo } from "@/client/components/Seo";
 import { blurActiveElementOnWeb } from "@/client/features/navigation/blurActiveElementOnWeb";
 import { linkPressableStyle } from "@/client/features/navigation/linkPressableStyle";
-import { renderBlockStage } from "@/client/showcase/blockStages";
 import {
   EXPLORE_BLOCK_SPOTLIGHT_ID,
   EXPLORE_RAIL_IDS,
@@ -39,7 +38,7 @@ import {
   searchRegistries,
   type SearchHit,
 } from "@/client/showcase/filters";
-import { renderPreview } from "@/client/showcase/previews";
+import { LazyBlockStage, LazyPreview } from "@/client/showcase/lazyGallery";
 import {
   BLOCKS,
   COMPONENTS,
@@ -159,7 +158,9 @@ export default function ExploreScreen() {
                     {/* The block owns its own screen-section padding; the
                         spotlight card supplies its own, so override it. */}
                     <View pointerEvents="none">
-                      {renderBlockStage(spotlight.id, { style: styles.spotlightStage })}
+                      <Suspense fallback={<View style={styles.spotlightStage} />}>
+                        <LazyBlockStage id={spotlight.id} style={styles.spotlightStage} />
+                      </Suspense>
                     </View>
                     {/* `.recipe` — the block doubles as a recipe. */}
                     <SansSerifText style={styles.spotlightRecipe}>
@@ -295,8 +296,6 @@ function SectionHead({
  * half-operate the preview inside it (same rule as the gallery cards).
  */
 function RailCard({ entry, styles }: { entry: ComponentEntry; styles: ExploreStyles }) {
-  const preview = renderPreview(entry.id);
-
   return (
     <Link href={componentDetailRoute(entry.id) as never} asChild>
       <Pressable
@@ -307,7 +306,13 @@ function RailCard({ entry, styles }: { entry: ComponentEntry; styles: ExploreSty
         style={linkPressableStyle(styles.railCard)}
       >
         <View style={styles.railPreview} pointerEvents="none">
-          {preview ?? <Icon name="box" size={20} color="mutedForeground" decorative />}
+          {/* The well has a fixed height, so the lazy fallback costs no layout. */}
+          <Suspense fallback={null}>
+            <LazyPreview
+              id={entry.id}
+              missing={<Icon name="box" size={20} color="mutedForeground" decorative />}
+            />
+          </Suspense>
         </View>
         <SansSerifText style={styles.railName} numberOfLines={1}>
           {entry.id}

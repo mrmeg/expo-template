@@ -2,32 +2,33 @@
  * `useBillingActions` — creates Stripe Checkout / Billing Portal sessions
  * and performs the browser handoff.
  *
- * Web opens `window.location.href` so the browser history contains the
- * return URL naturally. Native uses `expo-web-browser`'s
- * `openAuthSessionAsync` with a deep-link redirect built from the active
- * app scheme (`<scheme>://billing/return`) so the system browser resolves
- * back into the app cleanly. The scheme comes from `client/lib/identity`,
- * which mirrors `app.config.ts` — adopters who rename the template change
- * the scheme in one place.
+ * The browser layer is platform-split (`browserHandoff.ts` for web,
+ * `browserHandoff.native.ts` for iOS/Android): web opens
+ * `window.location.href` so the browser history contains the return URL
+ * naturally; native uses `expo-web-browser`'s `openAuthSessionAsync` with a
+ * deep-link redirect built from the active app scheme
+ * (`<scheme>://billing/return`). Splitting by file rather than `Platform.OS`
+ * keeps `expo-web-browser` out of the web bundle's eager `__common` chunk.
  *
  * The return URL is a UX hint, not proof of payment — the hook refetches
  * the billing summary query on return regardless of reported status.
  */
 
 import { useCallback, useRef, useState } from "react";
-import { Platform } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
-import * as WebBrowser from "expo-web-browser";
 
 import {
   createCheckoutSession,
   createPortalSession,
   type BillingProblem,
 } from "../api";
+import { parseReturnUrl, type BillingReturnStatus, type BrowserHandoff } from "../lib/handoff";
 import { billingSummaryQueryKey } from "./useBillingSummary";
+import { defaultBrowser } from "./browserHandoff";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
-import { buildAppDeepLink } from "@/client/lib/identity";
 import type { BillingInterval } from "../types";
+
+export type { BillingReturnStatus, BrowserHandoff };
 
 export type BillingActionError = BillingProblem;
 
@@ -36,19 +37,9 @@ export interface StartCheckoutInput {
   interval: BillingInterval;
 }
 
-export type BillingReturnStatus = "success" | "cancel" | "portal" | "dismissed";
-
 export interface BillingActionResult {
   status: BillingReturnStatus | "failed";
   problem?: BillingActionError;
-}
-
-export interface BrowserHandoff {
-  /** Open the hosted URL. Resolves with the return status (or `"dismissed"` if the browser closed without a return). */
-  openHosted(
-    url: string,
-    options: { status: "success" | "portal" },
-  ): Promise<BillingReturnStatus>;
 }
 
 export interface UseBillingActionsOptions {
@@ -146,47 +137,6 @@ export function useBillingActions(
     isCreatingPortal,
     lastError,
   };
-}
-
-function defaultBrowser(): BrowserHandoff {
-  return {
-    async openHosted(url, { status }) {
-      if (Platform.OS === "web") {
-        if (typeof window !== "undefined") {
-          window.location.href = url;
-        }
-        return status;
-      }
-      const result = await WebBrowser.openAuthSessionAsync(
-        url,
-        nativeReturnUrl(),
-      );
-      if (result.type === "success" && "url" in result) {
-        const parsed = parseReturnUrl(result.url);
-        return parsed ?? status;
-      }
-      return "dismissed";
-    },
-  };
-}
-
-function nativeReturnUrl(): string {
-  return buildAppDeepLink("/billing/return");
-}
-
-/**
- * Extract the `status` query parameter from a return URL. Deliberately
- * minimal — anything we don't recognize falls back to the caller's
- * default so the webhook (not the URL) stays the source of truth.
- */
-function parseReturnUrl(url: string): BillingReturnStatus | null {
-  const match = url.match(/[?&]status=([^&#]+)/);
-  if (!match) return null;
-  const value = decodeURIComponent(match[1]);
-  if (value === "success" || value === "cancel" || value === "portal") {
-    return value;
-  }
-  return null;
 }
 
 export const __internal = { parseReturnUrl };

@@ -1,0 +1,434 @@
+/**
+ * Components gallery — scale 01 of the three-scale showcase.
+ *
+ * Layout follows mockups/02-components.html on wide viewports (category
+ * sections, three-up cards) and mockups/05-mobile.html frame 2 on a phone
+ * (category chips, two-up cards). Both are the same tree: the chip row filters,
+ * and the card grid's column count comes from `useDimensions()`.
+ *
+ * Every card renders a live instance of the real component from
+ * `client/showcase/previews.tsx` — a gallery of screenshots would go stale, and
+ * a live one shows a regression the moment it lands. Counts come from the
+ * registry so they can't drift from what's shipped.
+ *
+ * Those 36 live instances are most of `@mrmeg/expo-ui`, so on a client-side
+ * navigation they are mounted in per-frame batches
+ * (`useProgressivePreviewCount`) with a `Skeleton` standing in until a card's
+ * turn comes; mounting them all at once blanked the content pane for seconds.
+ * A direct URL load still renders every preview in one pass: the route-identity
+ * gate defers only on a client-side navigation, so nothing streams into a tree
+ * that has to match the prerendered HTML shell.
+ */
+
+import React, { useMemo, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
+import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { Skeleton } from "@mrmeg/expo-ui/components/Skeleton";
+import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { spacing } from "@mrmeg/expo-ui/constants";
+import { STAGGER_DELAY, useDimensions, useTheme } from "@mrmeg/expo-ui/hooks";
+import { createThemedStyles } from "@mrmeg/expo-ui/lib";
+import type { Theme } from "@mrmeg/expo-ui/constants";
+
+import { Seo } from "@/client/components/Seo";
+import { blurActiveElementOnWeb } from "@/client/features/navigation/blurActiveElementOnWeb";
+import { linkPressableStyle } from "@/client/features/navigation/linkPressableStyle";
+import { GalleryChips, buildCategoryChips } from "@/client/showcase/GalleryChips";
+import {
+  ALL_CATEGORIES,
+  COMPONENT_CATEGORIES,
+  COMPONENT_CATEGORY_DESCRIPTIONS,
+  COMPONENT_CATEGORY_LABELS,
+  COMPONENT_CATEGORY_SHORT_LABELS,
+  SHOWCASE_ROUTES,
+  componentDetailRoute,
+  countByCategory,
+  filterComponents,
+  groupComponentsByCategory,
+  type CategoryFilter,
+} from "@/client/showcase/filters";
+import { renderPreview } from "@/client/showcase/previews";
+import { COMPONENTS, type ComponentCategory, type ComponentEntry } from "@/client/showcase/registry";
+import {
+  COMPONENT_PREVIEW_SCHEDULE,
+  useProgressivePreviewCount,
+} from "@/client/showcase/useProgressivePreviewCount";
+
+/** Total cards across a run of category sections. */
+function countCards(sections: { entries: unknown[] }[]): number {
+  return sections.reduce((total, section) => total + section.entries.length, 0);
+}
+
+/** Narrows an arbitrary `?category=` value to a chip the gallery can select. */
+function parseCategoryParam(value: unknown): CategoryFilter<ComponentCategory> | null {
+  if (typeof value !== "string") return null;
+  if (value === ALL_CATEGORIES) return ALL_CATEGORIES;
+  return (COMPONENT_CATEGORIES as readonly string[]).includes(value)
+    ? (value as ComponentCategory)
+    : null;
+}
+
+export default function ComponentsGalleryScreen() {
+  const { theme } = useTheme();
+  const styles = themedStyles(theme);
+  const { isSmallScreen } = useDimensions();
+  const router = useRouter();
+
+  // The selected chip is mirrored to the `category` search param so the
+  // drawer shell's contextual "Categories" section can both drive it (its
+  // items navigate with the param) and highlight the active one. The param
+  // seeds the initial state — identically on the server and the first client
+  // render — and the effect below follows later drawer navigations. Chip taps
+  // stay the in-page source of truth and write the param back via setParams.
+  const params = useLocalSearchParams<{ category?: string }>();
+  const paramCategory = parseCategoryParam(params.category);
+  const [category, setCategory] = useState<CategoryFilter<ComponentCategory>>(
+    paramCategory ?? ALL_CATEGORIES,
+  );
+
+  // Follow later drawer navigations (param changes) with the render-time
+  // previous-value pattern rather than an effect — no post-commit re-render
+  // cascade, and the first render after a param change already shows the
+  // right sections.
+  const [prevParamCategory, setPrevParamCategory] = useState(paramCategory);
+  if (paramCategory !== prevParamCategory) {
+    setPrevParamCategory(paramCategory);
+    if (paramCategory) setCategory(paramCategory);
+  }
+
+  const selectCategory = (next: CategoryFilter<ComponentCategory>) => {
+    setCategory(next);
+    router.setParams({ category: next });
+  };
+
+  const counts = useMemo(
+    () => countByCategory(COMPONENTS, COMPONENT_CATEGORIES),
+    [],
+  );
+  const chips = useMemo(
+    () =>
+      buildCategoryChips(
+        COMPONENT_CATEGORIES,
+        COMPONENT_CATEGORY_LABELS,
+        counts,
+        "All",
+        COMPONENTS.length,
+      ),
+    [counts],
+  );
+
+  // One section per category under "All" (the desktop mockup's category rail
+  // is a set of headings on a phone), a single unlabelled section otherwise.
+  const sections = useMemo(() => {
+    if (category === ALL_CATEGORIES) return groupComponentsByCategory(COMPONENTS);
+    return [{ category, entries: filterComponents(category) }];
+  }, [category]);
+
+  // The mount budget is a per-SCREEN allowance, so the cards need one running
+  // index across the category sections — a per-section index would let every
+  // section mount its own first N and put all 36 previews back on the first
+  // frame. `cardOffsets[i]` is how many cards precede section `i`; written as a
+  // prefix sum rather than a `let` accumulator because the React Compiler
+  // (correctly) rejects reassigning a captured variable during render.
+  const cardOffsets = useMemo(
+    () => sections.map((_, index) => countCards(sections.slice(0, index))),
+    [sections],
+  );
+  const cardTotal = useMemo(() => countCards(sections), [sections]);
+
+  const livePreviews = useProgressivePreviewCount(cardTotal, COMPONENT_PREVIEW_SCHEDULE);
+
+  // Two-up on a phone (mockup 05 frame 2), three-up above that (mockup 02).
+  // `flexBasis` is a hair under 100/columns so the 14px gutter fits without
+  // wrapping a row early; `flexGrow` takes the slack back.
+  const basis = isSmallScreen ? "47%" : "30%";
+
+  return (
+    <>
+      <Seo
+        title="Components - Expo Template"
+        description="Every themed primitive in @mrmeg/expo-ui, rendered live: form, feedback, navigation, overlay, layout, and typography."
+      />
+      {/* The ScrollView stays the screen's first native child so the stack
+          header's scroll-edge effect finds it (see (tabs)/index.tsx). */}
+      <ScrollView
+        testID="components-gallery"
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <AnimatedView type="fadeSlideUp" delay={0}>
+          <SansSerifText style={styles.intro}>
+            Every primitive in the library, rendered live in the current theme.
+            Tap a card for variants and a copyable snippet.
+          </SansSerifText>
+
+          <View style={styles.headerRow}>
+            <SansSerifText style={styles.count}>
+              {COMPONENTS.length} components
+            </SansSerifText>
+            <Link href={SHOWCASE_ROUTES.kitchenSink as never} asChild>
+              <Pressable
+                onPressIn={blurActiveElementOnWeb}
+                accessibilityRole="link"
+                testID="components-kitchen-sink-link"
+                style={linkPressableStyle(styles.kitchenSink)}
+              >
+                <SansSerifText style={styles.kitchenSinkText}>
+                  Full showcase
+                </SansSerifText>
+                <Icon name="arrow-right" size={13} color={theme.colors.accent} />
+              </Pressable>
+            </Link>
+          </View>
+        </AnimatedView>
+
+        <AnimatedView type="fadeSlideUp" delay={STAGGER_DELAY}>
+          <GalleryChips
+            chips={chips}
+            selected={category}
+            onSelect={selectCategory}
+            label="Filter components by category"
+            testID="components-chips"
+          />
+        </AnimatedView>
+
+        {sections.map((section, index) => (
+          <AnimatedView
+            key={section.category}
+            type="fadeSlideUp"
+            delay={STAGGER_DELAY * (index + 2)}
+            style={styles.section}
+          >
+            <View style={styles.sectionHead}>
+              <SansSerifBoldText style={styles.sectionTitle}>
+                {COMPONENT_CATEGORY_LABELS[section.category]}
+              </SansSerifBoldText>
+              <SansSerifText style={styles.sectionCount}>
+                {section.entries.length}
+              </SansSerifText>
+            </View>
+            <SansSerifText style={styles.sectionDesc}>
+              {COMPONENT_CATEGORY_DESCRIPTIONS[section.category]}
+            </SansSerifText>
+            <View style={styles.grid}>
+              {section.entries.map((entry, cardIndex) => (
+                <ComponentCard
+                  key={entry.id}
+                  entry={entry}
+                  basis={basis}
+                  styles={styles}
+                  live={cardOffsets[index] + cardIndex < livePreviews}
+                />
+              ))}
+            </View>
+          </AnimatedView>
+        ))}
+      </ScrollView>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Card
+// ---------------------------------------------------------------------------
+
+type GalleryStyles = ReturnType<typeof createStyles>;
+
+/**
+ * One preview card. The preview is rendered inside a `pointerEvents="none"`
+ * wrapper on purpose: several previews are real interactive components (a
+ * `Switch`, a `Dialog` trigger), and a tap on the card should open the detail
+ * screen rather than half-operate the preview. The detail screen is where the
+ * instances are live.
+ *
+ * Card chrome — link, name, category — renders whether or not the preview does,
+ * so a deferred card is a complete, tappable card with a placeholder in the
+ * preview well rather than a hole in the grid.
+ */
+function ComponentCard({
+  entry,
+  basis,
+  styles,
+  live,
+}: {
+  entry: ComponentEntry;
+  /** Flex basis per card, derived from the viewport's column count. */
+  basis: `${number}%`;
+  styles: GalleryStyles;
+  /** Whether this card's turn in the mount schedule has come up yet. */
+  live: boolean;
+}) {
+  // Memoized so the element reference survives the re-render that each streamed
+  // batch triggers: React bails out of a child whose element is identical, so an
+  // already-live preview costs nothing on later frames. Without this, frame N
+  // re-renders every preview mounted in frames 1..N-1 — the per-frame budget
+  // this whole path exists to bound.
+  const preview = useMemo(() => (live ? renderPreview(entry.id) : null), [live, entry.id]);
+
+  return (
+    <Link href={componentDetailRoute(entry.id) as never} asChild>
+      <Pressable
+        onPressIn={blurActiveElementOnWeb}
+        accessibilityRole="link"
+        accessibilityLabel={`${entry.id}, ${COMPONENT_CATEGORY_LABELS[entry.category]}`}
+        testID={`component-card-${entry.id}`}
+        style={linkPressableStyle(styles.card, { flexBasis: basis })}
+      >
+        <View style={styles.cardPreview} pointerEvents="none">
+          {live ? (
+            preview ?? <Icon name="box" size={22} color="mutedForeground" decorative />
+          ) : (
+            // The testID lives on the wrapper because `Skeleton` renders only
+            // its documented props; the wrapper is also what centers the bar in
+            // the preview well the way a real preview centers itself.
+            <View
+              style={styles.cardPreviewSkeleton}
+              testID={`component-card-skeleton-${entry.id}`}
+            >
+              <Skeleton width="70%" height={40} />
+            </View>
+          )}
+        </View>
+        <View style={styles.cardMeta}>
+          <SansSerifText style={styles.cardName} numberOfLines={1}>
+            {entry.id}
+          </SansSerifText>
+          <SansSerifText style={styles.cardCategory}>
+            {COMPONENT_CATEGORY_SHORT_LABELS[entry.category]}
+          </SansSerifText>
+        </View>
+      </Pressable>
+    </Link>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    scroll: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.screenPadding,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.xxl,
+    },
+
+    intro: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.colors.mutedForeground,
+    },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: spacing.md,
+    },
+    count: {
+      fontSize: 12,
+      color: theme.colors.mutedForeground,
+    },
+    kitchenSink: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      paddingVertical: spacing.xs,
+    },
+    kitchenSinkText: {
+      fontSize: 13,
+      fontWeight: "500",
+      color: theme.colors.accent,
+    },
+
+    section: {
+      marginTop: spacing.lg,
+    },
+    sectionHead: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      gap: spacing.sm,
+    },
+    sectionTitle: {
+      fontSize: 15,
+      color: theme.colors.foreground,
+    },
+    sectionCount: {
+      fontSize: 11,
+      color: theme.colors.mutedForeground,
+    },
+    sectionDesc: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: theme.colors.mutedForeground,
+      marginTop: spacing.xxs,
+      marginBottom: spacing.sm + 2,
+    },
+
+    // Mockup 02 `.grid`: 3 columns (2 on a phone), 14px gutter. `flexBasis` is
+    // set per card from the column count; the negative-free gap keeps the row
+    // wrapping without a spacer element.
+    grid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 14,
+    },
+    // Mockup 02 `.card`
+    card: {
+      flexGrow: 1,
+      minWidth: 140,
+      backgroundColor: theme.colors.card,
+      borderRadius: spacing.radiusLg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      overflow: "hidden",
+    },
+    // `.pv` — the preview well sits on the sunken surface so the card's own
+    // components (which use `card`) stay legible against it.
+    cardPreview: {
+      minHeight: 110,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: spacing.md,
+      backgroundColor: theme.colors.surfaceSunken,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    // Placeholder well for a card whose preview hasn't been scheduled yet. Same
+    // box the preview would occupy, so nothing reflows when it arrives.
+    cardPreviewSkeleton: {
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    // `.meta`
+    cardMeta: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.xs,
+      paddingVertical: spacing.sm + 2,
+      paddingHorizontal: spacing.md - 2,
+    },
+    cardName: {
+      flexShrink: 1,
+      fontSize: 13,
+      fontWeight: "500",
+      color: theme.colors.foreground,
+    },
+    cardCategory: {
+      fontSize: 10,
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      color: theme.colors.mutedForeground,
+    },
+  });
+
+const themedStyles = createThemedStyles(createStyles);

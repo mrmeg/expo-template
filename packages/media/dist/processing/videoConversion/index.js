@@ -25,7 +25,7 @@
  * ```
  */
 // Main conversion function (platform-specific)
-export { convertVideo, isFFmpegLoaded, preloadFFmpeg, FFmpegWorkerUnavailableError, } from "./convert.js";
+export { convertVideo, isFFmpegLoaded, preloadFFmpeg, FFmpegWorkerUnavailableError, } from "./convert";
 // Utilities
 export { needsConversion, getFormatFromMimeType, estimateConversionTime, FORMATS_NEEDING_CONVERSION, TARGET_FORMAT, TARGET_MIME_TYPE, } from "./utils.js";
 // Configuration

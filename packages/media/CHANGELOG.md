@@ -3,6 +3,22 @@
 All notable changes to `@mrmeg/expo-media` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Native video thumbnails no longer leak `expo-video` into the web bundle's
+  eager `__common` chunk. The `import("expo-video")` /
+  `import("expo-image-manipulator")` calls moved from `videoThumbnails.ts` into
+  a `videoThumbnailDeps.native.ts` loader whose web sibling has no imports, so
+  on web the only path to `expo-video` is the consumer that plays video.
+- Built output keeps platform-split specifiers extension-less (`./compress`
+  instead of `./compress.js`). Metro resolves an explicit `./compress.js` to that
+  exact file and never considers `compress.native.js`, so iOS and Android were
+  getting the web canvas implementation of `compressImage` from the published
+  build. `scripts/fix-package-esm.mjs` now lists `native` as a platform suffix
+  for this package.
+
 ## [0.5.0]
 
 Breaking. The image pipeline is redesigned around one orchestrator and a

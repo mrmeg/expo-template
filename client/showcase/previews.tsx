@@ -11,7 +11,7 @@
  * the point of the gallery, and it means a component that regresses shows the
  * regression in the card. Previews are deliberately small and mostly
  * uncontrolled — a card is a glance, not a demo. The full kitchen sink
- * (`app/(main)/(demos)/showcase/index.tsx`) still owns the exhaustive variants.
+ * (`client/showcase/ShowcaseScreen.tsx`) still owns the exhaustive variants.
  *
  * Components with no meaningful static preview (imperative APIs like `Alert`,
  * or overlays that only exist while open) render a small trigger or a static

@@ -37,7 +37,7 @@ export { resolveLadderRungs, runDimensionLadder } from "./ladder.js";
 export { compressImageWith, resolveEncodeFormat, toImageSource, } from "./compressImage.js";
 // Platform entry points. Metro resolves to compress.ts (web) or
 // compress.native.ts (iOS/Android).
-export { compressImage, imagePlatformAdapter } from "./compress.js";
+export { compressImage, imagePlatformAdapter } from "./compress";
 // HEIC decoding (web; native decodes HEIF inside the encoder)
 export { convertHeicToJpeg, convertHeicToJpegIfNeeded, hasHeicExtension, isHeicBlob, } from "./heicConvert.js";
 // Canvas ceilings (web)

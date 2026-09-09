@@ -1,8 +1,9 @@
 /**
  * Gallery render smoke tests — Explore plus the three scale galleries.
  *
- * These are the first tests in the repo that mount an `app/` route file, which
- * is deliberate: each gallery's job is to turn a registry into a screen, and the
+ * These tests mount the real screens (the Explore route file and the gallery
+ * bodies behind `client/showcase/gallery.tsx`), which is deliberate: each
+ * gallery's job is to turn a registry into a screen, and the
  * regression that matters is "a registry entry stopped rendering", not "a helper
  * returned the wrong array" (`filters.test.ts` covers that). Every screen is
  * rendered in **both** schemes so a `createStyles` factory that only resolves
@@ -129,11 +130,26 @@ jest.mock("expo-clipboard", () => ({
 }));
 
 // Imported after the mocks so the screens resolve the mocked modules.
+/**
+ * The Explore route reaches previews through `React.lazy` boundaries in
+ * `lazyGallery.tsx`, and jest cannot execute the `import()` behind them. Resolve
+ * them synchronously from the real gallery barrel instead, which is exactly what
+ * a downloaded chunk does in the browser. The gallery screens themselves are
+ * imported from the barrel: their `app/` route files are one-line lazy shells
+ * (see `gallerySplitPoint.test.ts` for the invariant that keeps them that way).
+ */
+jest.mock("@/client/showcase/lazyGallery", () => {
+  const gallery = jest.requireActual("@/client/showcase/gallery");
+  return { LazyPreview: gallery.Preview, LazyBlockStage: gallery.BlockStage };
+});
+
 import ExploreScreen from "@/app/(main)/(tabs)/index";
-import BlocksGalleryScreen from "@/app/(main)/(demos)/blocks/index";
-import ComponentDetailScreen from "@/app/(main)/(demos)/components/[id]";
-import ComponentsGalleryScreen from "@/app/(main)/(demos)/components/index";
 import TemplatesGalleryScreen from "@/app/(main)/(demos)/templates/index";
+import {
+  BlocksGalleryScreen,
+  ComponentDetailScreen,
+  ComponentsGalleryScreen,
+} from "../gallery";
 
 // ---------------------------------------------------------------------------
 // Scheme matrix
@@ -714,9 +730,9 @@ describe("Link asChild style flattening", () => {
 
     for (const file of [
       "app/(main)/(tabs)/index.tsx",
-      "app/(main)/(demos)/components/index.tsx",
-      "app/(main)/(demos)/components/[id].tsx",
-      "app/(main)/(demos)/blocks/index.tsx",
+      "client/showcase/ComponentsGalleryScreen.tsx",
+      "client/showcase/ComponentDetailScreen.tsx",
+      "client/showcase/BlocksGalleryScreen.tsx",
       "app/(main)/(demos)/templates/index.tsx",
     ]) {
       expect(readFileSync(join(root, file), "utf8")).toContain("linkPressableStyle");

@@ -16,7 +16,7 @@ import { logMediaDebug as logDev } from "./logger.js";
 import { contentTypeFromFileName } from "./sniff.js";
 import { chooseUploadCandidate, isAllowlistedContentType, isUnknownContentType, normalizeContentType, resolveUploadFormatPolicy, } from "./uploadPolicy.js";
 import { compressImageWith } from "./imageCompression/compressImage.js";
-import { imagePlatformAdapter } from "./imageCompression/compress.js";
+import { imagePlatformAdapter } from "./imageCompression/compress";
 import { formatFileSize, longEdgeOf } from "./imageCompression/utils.js";
 import { MAX_CLIENT_CONVERSION_SIZE, TARGET_MIME_TYPE, convertVideo, needsConversion, } from "./videoConversion/index.js";
 import { extractVideoThumbnail } from "./videoThumbnails.js";

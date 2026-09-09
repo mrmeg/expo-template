@@ -90,14 +90,18 @@ largest scale that fits before dropping to the one below.
 
 The Explore tab (`app/(main)/(tabs)/index.tsx`) is the entry point: a search
 field that filters all three registries at once, then one section per scale.
-`app/(main)/(demos)/showcase/index.tsx` is still the exhaustive per-component
-kitchen sink and is linked from the components gallery header.
+`client/showcase/ShowcaseScreen.tsx` is still the exhaustive per-component
+kitchen sink and is linked from the components gallery header. The gallery
+route files under `app/(main)/(demos)` are one-line lazy shells; their bodies
+live in `client/showcase/*Screen.tsx` behind a single split point
+(`client/showcase/gallery.tsx`) so the previews stay out of every other
+route's first-render download — see `docs/bundle-analysis.md`.
 
 ## Component Selection
 
 Start with `packages/ui/src/components/index.ts` and the components gallery
-`app/(main)/(demos)/components/index.tsx` (or the exhaustive
-`app/(main)/(demos)/showcase/index.tsx`).
+`client/showcase/ComponentsGalleryScreen.tsx` (or the exhaustive
+`client/showcase/ShowcaseScreen.tsx`).
 
 | Use case | Prefer |
 |----------|--------|

@@ -15,7 +15,14 @@ is present and does nothing when it's empty.
 
 ## How It Works
 
-- `client/lib/sentry.ts` calls `Sentry.init()` at startup if DSN is set
+- `client/lib/sentry.ts` (native) calls `Sentry.init()` at startup if DSN is set.
+  The SDK is a lazy `import()` so it never sits in the eager bundle.
+- `client/lib/sentry.web.ts` (web) uses `@sentry/react` instead of the RN SDK
+  and loads it on `requestIdleCallback` (3 s cap) after hydration; errors thrown
+  before the SDK is ready are buffered from the global `error` /
+  `unhandledrejection` events and sent after `init`. `captureException` forces
+  the load immediately. Keep `@sentry/react` pinned to the version
+  `@sentry/react-native` depends on.
 - `ErrorBoundary.componentDidCatch` sends caught errors to Sentry with component stack
 - In development: `debug: true`, `tracesSampleRate: 1.0`
 - In production: `debug: false`, `tracesSampleRate: 0.2`
