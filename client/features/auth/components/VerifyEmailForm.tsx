@@ -6,6 +6,7 @@ import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import type { Theme } from "@mrmeg/expo-ui/constants";
+import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 import { AuthFormCard } from "./AuthFormCard";
 import { authFormStyles } from "./authFormStyles";
@@ -83,6 +84,8 @@ export function VerifyEmailForm({
   }, [codeLength, t]);
 
   const handleSubmit = useCallback(async () => {
+    // Buttons keep the keyboard open (see keyboardDismiss.ts); submit hides it.
+    dismissKeyboard();
     if (codeRef.current?.validate()) {
       const code = codeRef.current.getValue();
       await onVerify?.(code);

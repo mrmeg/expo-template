@@ -7,6 +7,7 @@ import { spacing } from "@mrmeg/expo-ui/constants";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import type { Theme } from "@mrmeg/expo-ui/constants";
+import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 import { AuthFormCard } from "./AuthFormCard";
 import { authFormStyles } from "./authFormStyles";
@@ -48,6 +49,8 @@ export function ForgotPasswordForm({
   const emailValidator = useCallback((value: string) => validateEmail(value, t), [t]);
 
   const handleSubmit = useCallback(async () => {
+    // Buttons keep the keyboard open (see keyboardDismiss.ts); submit hides it.
+    dismissKeyboard();
     if (emailRef.current?.validate()) {
       const email = emailRef.current.getValue();
       setSubmittedEmail(email);

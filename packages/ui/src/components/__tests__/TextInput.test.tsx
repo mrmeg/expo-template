@@ -3,7 +3,7 @@
  */
 
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import { render, screen, fireEvent, act } from "@testing-library/react-native";
 import { TextInput } from "../TextInput";
 
 // Mock useTheme hook
@@ -124,17 +124,198 @@ describe("TextInput", () => {
         />
       );
 
-      const input = screen.getByPlaceholderText("Password");
-      expect(input.props.secureTextEntry).toBe(true);
+      expect(screen.getByPlaceholderText("Password").props.secureTextEntry).toBe(true);
 
-      // Tap the eye button -> reveals the text.
+      // Tap the eye button -> reveals the text. On native the secure and plain
+      // flavours are different views, so re-query after each toggle.
       await fireEvent.press(screen.getByLabelText("Show password"));
-      expect(input.props.secureTextEntry).toBe(false);
+      expect(screen.getByPlaceholderText("Password").props.secureTextEntry).toBe(false);
 
       // Tap again -> hides it. Text persists across the toggle.
       await fireEvent.press(screen.getByLabelText("Hide password"));
+      const input = screen.getByPlaceholderText("Password");
       expect(input.props.secureTextEntry).toBe(true);
       expect(input.props.value).toBe("secret");
+    });
+
+    it("hands focus to the replacement view before unmounting the focused one (iOS)", async () => {
+      await render(
+        <TextInput
+          placeholder="Password"
+          secureTextEntry
+          showSecureEntryToggle
+          value="secret"
+        />
+      );
+
+      const secureField = screen.getByPlaceholderText("Password");
+      await fireEvent(secureField, "focus");
+
+      // While focused, the toggle mounts the plain view alongside the secure one
+      // instead of replacing it, so first responder can hand over.
+      await fireEvent.press(screen.getByLabelText("Show password"));
+      const fields = screen.getAllByPlaceholderText("Password");
+      expect(fields).toHaveLength(2);
+      const plainField = fields.find((field) => field.props.secureTextEntry === false);
+      expect(plainField).toBeDefined();
+      expect(plainField?.props.autoFocus).toBe(true);
+
+      // Once the plain view reports focus, the secure one goes away.
+      await fireEvent(plainField!, "focus");
+      const remaining = screen.getAllByPlaceholderText("Password");
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].props.secureTextEntry).toBe(false);
+    });
+
+    it("restores text iOS wipes on the first keystroke after hiding the password", async () => {
+      const onChangeText = jest.fn();
+      await render(
+        <TextInput
+          placeholder="Password"
+          secureTextEntry
+          showSecureEntryToggle
+          defaultValue="secret"
+          onChangeText={onChangeText}
+        />
+      );
+
+      // Show (handoff to the plain view), then hide (handoff back to a fresh
+      // SecureField).
+      await fireEvent(screen.getByPlaceholderText("Password"), "focus");
+      await fireEvent.press(screen.getByLabelText("Show password"));
+      await fireEvent(
+        screen.getAllByPlaceholderText("Password").find((f) => f.props.secureTextEntry === false)!,
+        "focus"
+      );
+      await fireEvent.press(screen.getByLabelText("Hide password"));
+      const secureField = screen
+        .getAllByPlaceholderText("Password")
+        .find((f) => f.props.secureTextEntry === true)!;
+      await fireEvent(secureField, "focus");
+
+      // UIKit replaces the whole text with the keystroke; the field puts it back.
+      await fireEvent.changeText(secureField, "x");
+      expect(onChangeText).toHaveBeenLastCalledWith("secretx");
+
+      // Only the first change after the handoff is eligible.
+      await fireEvent.changeText(secureField, "y");
+      expect(onChangeText).toHaveBeenLastCalledWith("y");
+    });
+
+    it("treats an empty first change after hiding as a backspace on the wiped text", async () => {
+      const onChangeText = jest.fn();
+      await render(
+        <TextInput
+          placeholder="Password"
+          secureTextEntry
+          showSecureEntryToggle
+          defaultValue="abc"
+          onChangeText={onChangeText}
+        />
+      );
+      await fireEvent(screen.getByPlaceholderText("Password"), "focus");
+      await fireEvent.press(screen.getByLabelText("Show password"));
+      await fireEvent(
+        screen.getAllByPlaceholderText("Password").find((f) => f.props.secureTextEntry === false)!,
+        "focus"
+      );
+      await fireEvent.press(screen.getByLabelText("Hide password"));
+      const secureField = screen
+        .getAllByPlaceholderText("Password")
+        .find((f) => f.props.secureTextEntry === true)!;
+      await fireEvent(secureField, "focus");
+
+      // iOS wiped "abc", then the delete key hit nothing.
+      await fireEvent.changeText(secureField, "");
+      expect(onChangeText).toHaveBeenLastCalledWith("ab");
+    });
+
+    it("applies a toggle tapped mid-handoff once the handoff settles", async () => {
+      jest.useFakeTimers();
+      try {
+        await render(
+          <TextInput placeholder="Password" secureTextEntry showSecureEntryToggle value="secret" />
+        );
+        await fireEvent(screen.getByPlaceholderText("Password"), "focus");
+        await fireEvent.press(screen.getByLabelText("Show password"));
+        // Second tap lands before the plain view has taken focus: deferred.
+        await fireEvent.press(screen.getByLabelText("Hide password"));
+        expect(screen.getAllByPlaceholderText("Password")).toHaveLength(2);
+
+        const plainField = screen
+          .getAllByPlaceholderText("Password")
+          .find((f) => f.props.secureTextEntry === false)!;
+        await fireEvent(plainField, "focus");
+        await act(async () => {
+          jest.runOnlyPendingTimers();
+        });
+
+        // The queued hide started its own handoff back to a SecureField.
+        const fields = screen.getAllByPlaceholderText("Password");
+        expect(fields).toHaveLength(2);
+        expect(fields.find((f) => f.props.secureTextEntry === true)?.props.autoFocus).toBe(true);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it("cancels out an even number of taps queued during one handoff", async () => {
+      jest.useFakeTimers();
+      try {
+        await render(
+          <TextInput placeholder="Password" secureTextEntry showSecureEntryToggle value="secret" />
+        );
+        await fireEvent(screen.getByPlaceholderText("Password"), "focus");
+        await fireEvent.press(screen.getByLabelText("Show password"));
+        await fireEvent.press(screen.getByLabelText("Hide password"));
+        await fireEvent.press(screen.getByLabelText("Hide password"));
+
+        const plainField = screen
+          .getAllByPlaceholderText("Password")
+          .find((f) => f.props.secureTextEntry === false)!;
+        await fireEvent(plainField, "focus");
+        await act(async () => {
+          jest.runOnlyPendingTimers();
+        });
+
+        const fields = screen.getAllByPlaceholderText("Password");
+        expect(fields).toHaveLength(1);
+        expect(fields[0].props.secureTextEntry).toBe(false);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it("undoes the toggle instead of dropping focus when the replacement never focuses", async () => {
+      jest.useFakeTimers();
+      try {
+        const onBlur = jest.fn();
+        await render(
+          <TextInput
+            placeholder="Password"
+            secureTextEntry
+            showSecureEntryToggle
+            value="secret"
+            onBlur={onBlur}
+          />
+        );
+        const secureField = screen.getByPlaceholderText("Password");
+        await fireEvent(secureField, "focus");
+        await fireEvent.press(screen.getByLabelText("Show password"));
+        expect(screen.getAllByPlaceholderText("Password")).toHaveLength(2);
+
+        // No focus event from the plain view: the fallback fires.
+        await act(async () => {
+          jest.advanceTimersByTime(700);
+        });
+
+        const fields = screen.getAllByPlaceholderText("Password");
+        expect(fields).toHaveLength(1);
+        expect(fields[0].props.secureTextEntry).toBe(true);
+        expect(screen.getByLabelText("Show password")).toBeTruthy();
+      } finally {
+        jest.useRealTimers();
+      }
     });
   });
 

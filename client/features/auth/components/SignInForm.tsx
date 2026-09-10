@@ -5,6 +5,7 @@ import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 import { AuthFormCard } from "./AuthFormCard";
 import { authFormStyles } from "./authFormStyles";
@@ -71,6 +72,8 @@ export function SignInForm({
   );
 
   const handleSubmit = useCallback(async () => {
+    // Buttons keep the keyboard open (see keyboardDismiss.ts); submit hides it.
+    dismissKeyboard();
     const isEmailValid = emailRef.current?.validate() ?? false;
     const isPasswordValid = passwordRef.current?.validate() ?? false;
     if (isEmailValid && isPasswordValid) {
@@ -81,6 +84,8 @@ export function SignInForm({
   }, [onSignIn]);
 
   const handleEmailCodeSubmit = useCallback(async () => {
+    // Buttons keep the keyboard open (see keyboardDismiss.ts); submit hides it.
+    dismissKeyboard();
     if (emailRef.current?.validate()) {
       await onEmailCodeSignIn?.({ email: emailRef.current.getValue() });
     }
