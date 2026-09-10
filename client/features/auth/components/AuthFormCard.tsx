@@ -1,6 +1,7 @@
 import React from "react";
 import { View, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 import {
   Card,
   CardHeader,
@@ -95,6 +96,8 @@ export function AuthFormCard({
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "none"}
+        onScrollBeginDrag={Platform.OS === "android" ? dismissKeyboard : undefined}
         showsVerticalScrollIndicator={false}
       >
         {card}

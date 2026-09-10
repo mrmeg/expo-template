@@ -1,20 +1,7 @@
 import React from "react";
-import {
-  StyleProp,
-  ViewStyle,
-  Platform,
-  ScrollView,
-  View,
-  type GestureResponderEvent,
-  type ViewProps,
-} from "react-native";
-import {
-  KeyboardController,
-  useKeyboardContext,
-  useKeyboardState,
-} from "./keyboardController";
+import { Platform, ScrollView, View, type StyleProp, type ViewStyle } from "react-native";
 import { KeyboardAvoidingView, useKeyboardAvoidance } from "./KeyboardAvoidingView";
-import { isTouchInsideKeyboardFocusedInput } from "./keyboardFocusRegistry";
+import { dismissKeyboard, useKeyboardDismissResponder } from "./keyboardDismiss";
 
 type Props = {
   children: React.ReactNode;
@@ -23,63 +10,37 @@ type Props = {
   avoidKeyboard?: boolean;
   /** Enable scrolling */
   scrollable?: boolean;
-}
-
-type DismissKeyboardLayoutProps = Props & {
-  dismissOnTouchStart?: ViewProps["onStartShouldSetResponderCapture"];
 };
 
 /**
- * Native tap-away keyboard dismissal.
+ * Wrapper for a screen (or form) that dismisses the keyboard when the user taps
+ * outside of a text input.
  *
- * Why window-level dismissal: the native `@expo/ui` TextInput is a SwiftUI /
- * Compose field that never registers with React Native's `TextInputState`, so
- * `Keyboard.dismiss()` (which only blurs RN-tracked inputs) does nothing for it.
- * `KeyboardController.dismiss()` resigns the focused responder at the IME level,
- * which works for both native and RN fields.
+ * Mirrors RN's `keyboardShouldPersistTaps="handled"` for the native `@expo/ui`
+ * field, which RN itself cannot see: the wrapper never claims the touch, so
+ * buttons, other fields and the focused field's own gestures win, and it
+ * dismisses on release only when nothing else took the tap and the finger did
+ * not scroll. See `useKeyboardDismissResponder`.
  *
- * Why responder capture: a full-screen overlay also catches taps on the focused
- * input, which breaks double-tap text selection. Capture lets the tap continue
- * to children while still dismissing when the touch starts outside the focused
- * input bounds.
+ * A drag on the inner ScrollView also hides the keyboard: `interactive` on iOS
+ * (UIKit resigns any first responder, SwiftUI fields included) and an explicit
+ * dismiss on drag start on Android, where RN's `on-drag` only knows RN inputs.
  */
-function useDismissKeyboardOnOutsideTouch() {
-  const isVisible = useKeyboardState((state) => state.isVisible);
-  const { layout: focusedInput } = useKeyboardContext();
-
-  return React.useCallback(
-    (event: GestureResponderEvent) => {
-      if (Platform.OS === "web" || !isVisible) {
-        return false;
-      }
-
-      if (isTouchInsideKeyboardFocusedInput(event, focusedInput.value?.layout)) {
-        return false;
-      }
-
-      KeyboardController.dismiss();
-      return false;
-    },
-    [focusedInput, isVisible]
-  );
-}
-
-/**
- * @returns Wrapper for a view that dismisses the keyboard when tapped outside of a text input
- */
-function DismissKeyboardLayout({
+export function DismissKeyboard({
   children,
   style,
   avoidKeyboard = true,
   scrollable = true,
-  dismissOnTouchStart,
-}: DismissKeyboardLayoutProps) {
+}: Props) {
+  const responderProps = useKeyboardDismissResponder();
   const hasKeyboardAvoidance = useKeyboardAvoidance();
   const content = scrollable ? (
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "none"}
+      onScrollBeginDrag={Platform.OS === "android" ? dismissKeyboard : undefined}
       showsVerticalScrollIndicator={false}
     >
       {children}
@@ -90,10 +51,7 @@ function DismissKeyboardLayout({
 
   if (!avoidKeyboard || hasKeyboardAvoidance) {
     return (
-      <View
-        style={{ flex: 1 }}
-        onStartShouldSetResponderCapture={dismissOnTouchStart}
-      >
+      <View style={{ flex: 1 }} {...responderProps}>
         {content}
       </View>
     );
@@ -102,32 +60,10 @@ function DismissKeyboardLayout({
   return (
     <KeyboardAvoidingView
       style={[{ flex: 1, width: "100%" }, style]}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-      onStartShouldSetResponderCapture={dismissOnTouchStart}
+      keyboardVerticalOffset={0}
+      {...responderProps}
     >
       {content}
     </KeyboardAvoidingView>
   );
 }
-
-function NativeDismissKeyboard(props: Props) {
-  const dismissOnTouchStart = useDismissKeyboardOnOutsideTouch();
-
-  return (
-    <DismissKeyboardLayout
-      {...props}
-      dismissOnTouchStart={dismissOnTouchStart}
-    />
-  );
-}
-
-/**
- * @returns Wrapper for a view that dismisses the keyboard when tapped outside of a text input
- */
-export const DismissKeyboard = (props: Props) => {
-  if (Platform.OS === "web") {
-    return <DismissKeyboardLayout {...props} />;
-  }
-
-  return <NativeDismissKeyboard {...props} />;
-};

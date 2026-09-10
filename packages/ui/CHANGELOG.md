@@ -3,6 +3,64 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Tap-away keyboard dismissal no longer steals taps from controls.**
+  `DismissKeyboard` used to call `KeyboardController.dismiss()` in the responder
+  *capture* phase on touch start, for any touch outside a cached rectangle of
+  the focused field. That rectangle went stale as soon as keyboard avoidance
+  shifted the form, and the dismiss collapsed the layout under the finger, so
+  the password eye toggle, tapping straight into another field, and double-tap
+  text selection all closed the keyboard. The wrapper now mirrors RN's
+  `keyboardShouldPersistTaps="handled"` for native fields: it never claims the
+  touch, lets Pressables and text inputs win the responder negotiation, and
+  dismisses on release only when nothing else took the tap and the finger did
+  not move. Tapping a button keeps the keyboard open; tapping another field
+  hands focus over natively.
+- **Native `TextInput`: the whole painted box now focuses the field.** The
+  SwiftUI `TextField` only hit-tests its text line (about 17pt of a 33pt `md`
+  box), so taps on the box's vertical padding were silent no-ops that read as
+  "the keyboard needs a second tap". The surface now focuses the field on
+  release of a tap nothing else claimed, and gains vertical `hitSlop` up to the
+  44pt touch-target guideline without changing the visual size.
+- **Native `TextInput`: the password eye toggle keeps the keyboard on iOS.**
+  `@expo/ui` renders `secureTextEntry` as a different native view, so flipping
+  it remounted the field unfocused and the keyboard dropped. While the field is
+  focused, the toggle now keeps the old view mounted until the new one has
+  taken first responder, so UIKit hands the keyboard over instead of dismissing
+  it. A second tap during that handoff is applied once it settles instead of
+  dropping the keyboard. iOS also clears a secure field's text on the first
+  keystroke after it regains first responder, which made "hide, keep typing"
+  erase the password; the field now restores the text and appends the
+  keystroke. Android toggles in place and was unaffected.
+
+### Added
+
+- **`useKeyboardDismissResponder()`** returns the touch-handler props behind
+  `DismissKeyboard`, for apps that mount their own boundary. Nesting is safe:
+  the innermost boundary owns each touch.
+- **`dismissKeyboard()`** resigns the focused native field (falling back to
+  `KeyboardController.dismiss()` for RN or third-party inputs). Call it from
+  submit handlers, since buttons no longer dismiss implicitly.
+- **`markTextInputTouchStart`** is the `onStartShouldSetResponder` handler the
+  package `TextInput` uses to tag its touches; custom native-field wrappers can
+  reuse it to opt into the same exemption.
+
+### Changed
+
+- **`DismissKeyboard` lets a drag hide the keyboard**:
+  `keyboardDismissMode="interactive"` on iOS and an explicit dismiss on drag
+  start on Android, where RN's `on-drag` only knows RN inputs.
+- **`keyboardFocusRegistry` no longer tracks layouts.** The internal module's
+  `setKeyboardFocusedInputLayout` / `clearKeyboardFocusedInputLayout` /
+  `getKeyboardFocusedInputLayout` / `isTouchInsideKeyboardFocusedInput` are
+  replaced by `setKeyboardFocusedInput(token, blur)` /
+  `clearKeyboardFocusedInput(token)`. The presence and blur APIs
+  (`hasKeyboardFocusedInput`, `subscribeKeyboardFocus`,
+  `dismissKeyboardFocusedInput`) are unchanged.
+
 ## [0.23.0]
 
 ### Added

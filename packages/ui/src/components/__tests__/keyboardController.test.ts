@@ -114,6 +114,7 @@ describe("packages/ui keyboard imports", () => {
   it.each([
     "KeyboardAvoidingView.tsx",
     "DismissKeyboard.tsx",
+    "keyboardDismiss.ts",
     "BottomSheet.tsx",
   ])("keeps %s off a runtime react-native-keyboard-controller import", (file) => {
     const source = readFileSync(join(componentsDir, file), "utf8");
@@ -122,14 +123,22 @@ describe("packages/ui keyboard imports", () => {
     // A value import here drags the package (and its animation runtime) into
     // the web bundle even when the component branches away from it at runtime.
     expect(source).not.toMatch(runtimeImport);
-    expect(source).toMatch(/from "\.\/keyboardController"/);
   });
 
-  it("keeps the type-only import in keyboardFocusRegistry", () => {
+  it.each(["KeyboardAvoidingView.tsx", "keyboardDismiss.ts", "BottomSheet.tsx"])(
+    "%s reaches keyboard-controller only through the platform-split module",
+    (file) => {
+      const source = readFileSync(join(componentsDir, file), "utf8");
+
+      expect(source).toMatch(/from "\.\/keyboardController"/);
+    }
+  );
+
+  it("keeps keyboardFocusRegistry free of react-native-keyboard-controller entirely", () => {
+    // The registry only holds blur handles now; it needs neither the package's
+    // runtime nor its types, so nothing here can leak into the web bundle.
     const source = readFileSync(join(componentsDir, "keyboardFocusRegistry.ts"), "utf8");
 
-    expect(source).toMatch(
-      /import type \{ FocusedInputLayoutChangedEvent \} from "react-native-keyboard-controller";/
-    );
+    expect(source).not.toMatch(/from\s+"react-native-keyboard-controller"/);
   });
 });

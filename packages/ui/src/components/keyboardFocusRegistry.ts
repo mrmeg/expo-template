@@ -1,15 +1,16 @@
-import type { GestureResponderEvent } from "react-native";
-import type { FocusedInputLayoutChangedEvent } from "react-native-keyboard-controller";
-
-export type KeyboardFocusedInputLayout = FocusedInputLayoutChangedEvent["layout"];
+/**
+ * Registry of the currently focused native (`@expo/ui`) text field.
+ *
+ * React Native's `TextInputState` never learns about SwiftUI / Compose fields,
+ * so `Keyboard.dismiss()` cannot blur them. The package `TextInput` registers a
+ * blur handle here on focus; tap-away dismissal (`keyboardDismiss.ts`) and the
+ * `BottomSheet` overlay resign the field through it.
+ */
 export type KeyboardFocusedInputToken = object;
-
-const FOCUSED_INPUT_TOUCH_SLOP = 16;
 
 let focusedInput:
   | {
       token: KeyboardFocusedInputToken;
-      layout: KeyboardFocusedInputLayout;
       /**
        * Resigns the native field's first responder directly. Window-independent:
        * acts on the real SwiftUI/Compose field via its @expo/ui ref, so it works
@@ -17,7 +18,7 @@ let focusedInput:
        * bottom sheet) where `KeyboardController.dismiss()` may target the wrong
        * window and `useKeyboardState()` never observes the keyboard.
        */
-      blur?: () => void;
+      blur: () => void;
     }
   | null = null;
 
@@ -40,27 +41,21 @@ export function subscribeKeyboardFocus(listener: () => void) {
   };
 }
 
-export function setKeyboardFocusedInputLayout(
-  token: KeyboardFocusedInputToken,
-  layout: KeyboardFocusedInputLayout,
-  blur?: () => void
-) {
+export function setKeyboardFocusedInput(token: KeyboardFocusedInputToken, blur: () => void) {
   const wasPresent = focusedInput != null;
-  focusedInput = { token, layout, blur };
-  // Only notify subscribers on a presence transition; re-measures (scroll,
-  // layout) update the layout silently so the overlay doesn't churn.
+  focusedInput = { token, blur };
+  // Only notify subscribers on a presence transition; a focus handoff between
+  // two fields keeps presence true and stays silent.
   if (!wasPresent) emit();
 }
 
-export function clearKeyboardFocusedInputLayout(token: KeyboardFocusedInputToken) {
+export function clearKeyboardFocusedInput(token: KeyboardFocusedInputToken) {
+  // Token-guarded: when focus hops A -> B, B's focus can land before A's blur,
+  // and A's late clear must not wipe B's registration.
   if (focusedInput?.token === token) {
     focusedInput = null;
     emit();
   }
-}
-
-export function getKeyboardFocusedInputLayout() {
-  return focusedInput?.layout;
 }
 
 /** Whether any native field currently holds focus. Stable boolean for snapshots. */
@@ -73,34 +68,9 @@ export function hasKeyboardFocusedInput() {
  * `true` if a field was focused and a blur handle was available.
  */
 export function dismissKeyboardFocusedInput() {
-  if (focusedInput?.blur) {
+  if (focusedInput) {
     focusedInput.blur();
     return true;
   }
   return false;
-}
-
-function isTouchInsideLayout(
-  event: GestureResponderEvent,
-  layout: KeyboardFocusedInputLayout | null | undefined
-) {
-  if (!layout) return false;
-
-  const { pageX, pageY } = event.nativeEvent;
-  const left = layout.absoluteX - FOCUSED_INPUT_TOUCH_SLOP;
-  const right = layout.absoluteX + layout.width + FOCUSED_INPUT_TOUCH_SLOP;
-  const top = layout.absoluteY - FOCUSED_INPUT_TOUCH_SLOP;
-  const bottom = layout.absoluteY + layout.height + FOCUSED_INPUT_TOUCH_SLOP;
-
-  return pageX >= left && pageX <= right && pageY >= top && pageY <= bottom;
-}
-
-export function isTouchInsideKeyboardFocusedInput(
-  event: GestureResponderEvent,
-  nativeLayout?: KeyboardFocusedInputLayout | null
-) {
-  return (
-    isTouchInsideLayout(event, getKeyboardFocusedInputLayout()) ||
-    isTouchInsideLayout(event, nativeLayout)
-  );
 }

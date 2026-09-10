@@ -36,10 +36,11 @@ import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
 import { palette } from "../constants/colors";
 import {
-  clearKeyboardFocusedInputLayout,
-  setKeyboardFocusedInputLayout,
+  clearKeyboardFocusedInput,
+  setKeyboardFocusedInput,
   type KeyboardFocusedInputToken,
 } from "./keyboardFocusRegistry";
+import { useTextInputSurfaceResponder } from "./keyboardDismiss";
 
 /**
  * Size variants for TextInput
@@ -52,6 +53,9 @@ export type TextInputSize = "sm" | "md" | "lg";
 export type TextInputVariant = "outline" | "filled" | "underlined";
 
 const NUMERIC_REGEX = /^[0-9]*$/;
+
+/** Platform touch-target guideline (pt); the compact fields sit below it. */
+const MIN_TOUCH_TARGET = 44;
 
 const SIZE_CONFIGS: Record<
   TextInputSize,
@@ -529,11 +533,38 @@ function NativeTextInput({
   const hasError = error || !!errorText;
   const sizeConfig = SIZE_CONFIGS[size];
 
-  // Password visibility toggle. Flipping `secureTextEntry` swaps SwiftUI's
-  // SecureField <-> TextField on iOS and toggles Compose's visualTransformation
-  // on Android; both bind the same `state` observable, so the text survives.
+  // Password visibility toggle. Flipping `secureTextEntry` toggles Compose's
+  // visualTransformation in place on Android, but on iOS it selects a different
+  // native view (SwiftUI SecureField vs TextField), so React remounts the field
+  // and the keyboard drops with a full dismiss + re-present bounce.
+  //
+  // iOS handoff: while the field is focused, the toggle keeps the OLD view
+  // mounted (and visible) and mounts the NEW view hidden with `autoFocus`.
+  // UIKit hands first responder from old to new without hiding the keyboard;
+  // once the new view reports focus, it takes the layout slot and the old one
+  // unmounts. Both views bind the same `state`, so the text carries over.
   const hasSecureToggle = !!(secureTextEntry && showSecureEntryToggle);
-  const effectiveSecureTextEntry = secureTextEntry && !passwordVisible;
+  const effectiveSecureTextEntry = !!secureTextEntry && !passwordVisible;
+  const [handoff, setHandoff] = useState<{ outgoingSecure: boolean } | null>(null);
+  const handoffRef = useRef<{ outgoingSecure: boolean; timer: ReturnType<typeof setTimeout> } | null>(
+    null
+  );
+  const isFocusedRef = useRef(false);
+  const activeSecureRef = useRef(effectiveSecureTextEntry);
+  activeSecureRef.current = effectiveSecureTextEntry;
+  // Taps that land while a handoff is in flight are counted and applied (by
+  // parity) once it settles.
+  const queuedTogglesRef = useRef(0);
+  const toggleRef = useRef<() => void>(() => {});
+  // Per-flavour mount generation. Bumped whenever a flavour becomes the incoming
+  // view so React always mounts a FRESH native view (whose `autoFocus` will run)
+  // instead of reusing one that is still unmounting from the previous handoff.
+  const generationRef = useRef({ secure: 0, plain: 0 });
+  // Last text the JS side knows about; see handleChangeText.
+  const lastTextRef = useRef<string>(value ?? defaultValue ?? "");
+  // Armed when the hide toggle hands focus to the SecureField (iOS); see
+  // handleChangeText.
+  const restoreAfterSecureHandoffRef = useRef(false);
 
   // Native text buffer. Seeded once; `value` changes are reconciled below.
   const state = useNativeState<string>(value ?? defaultValue ?? "");
@@ -545,77 +576,172 @@ function NativeTextInput({
     if (value !== undefined && value !== state.value) {
       state.value = value;
     }
+    if (value !== undefined) lastTextRef.current = value;
   }, [value, state]);
 
   // The inner ref is the @expo/ui handle; the outward ref is typed as
   // RNTextInput because that's what the public TextInputCustomProps declares.
   // We expose the subset consumers use, plus a `setNativeProps` shim so the
   // uncontrolled AuthTextField can push corrected text into the native buffer.
-  const innerRef = useRef<ExpoTextInputRef>(null);
-  const surfaceRef = useRef<View>(null);
-  const isFocusedRef = useRef(false);
+  // One ref per native view flavour; only the active one (or, mid-handoff on
+  // iOS, both) is mounted.
+  const secureRef = useRef<ExpoTextInputRef>(null);
+  const plainRef = useRef<ExpoTextInputRef>(null);
+  const activeInput = useCallback(
+    () => (activeSecureRef.current ? secureRef : plainRef).current,
+    []
+  );
+  const blurAll = useCallback(() => {
+    secureRef.current?.blur();
+    plainRef.current?.blur();
+  }, []);
   const focusRegistryToken = useMemo<KeyboardFocusedInputToken>(() => ({}), []);
 
-  const syncFocusedInputLayout = useCallback(() => {
-    if (!isFocusedRef.current) return;
+  const finishHandoff = useCallback(() => {
+    const pending = handoffRef.current;
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    handoffRef.current = null;
+    setHandoff(null);
+    const queued = queuedTogglesRef.current;
+    queuedTogglesRef.current = 0;
+    if (queued % 2 === 1) {
+      // Next tick: let this commit settle first.
+      setTimeout(() => toggleRef.current(), 0);
+    }
+  }, []);
 
-    surfaceRef.current?.measureInWindow((absoluteX, absoluteY, width, height) => {
-      if (!isFocusedRef.current) return;
+  const parentOnFocus = onFocus as (() => void) | undefined;
+  const parentOnBlur = onBlur as (() => void) | undefined;
 
-      setKeyboardFocusedInputLayout(
-        focusRegistryToken,
-        {
-          x: 0,
-          y: 0,
-          width,
-          height,
-          absoluteX,
-          absoluteY,
-        },
-        // Window-independent dismissal: blur the native field directly. Inside a
-        // native bottom sheet the field lives in its own window, where
-        // `KeyboardController.dismiss()` can miss; calling the field's own ref
-        // always resigns it.
-        () => innerRef.current?.blur()
-      );
-    });
-  }, [focusRegistryToken]);
-
-  const handleFocus = useCallback<NonNullable<ExpoTextInputProps["onFocus"]>>(
-    () => {
+  // Focus/blur from a view that is not the active flavour is ignored: that is
+  // the outgoing view resigning during a handoff, or a stale event from a view
+  // React is unmounting.
+  const handleFocus = useCallback(
+    (secure: boolean) => {
+      if (secure !== activeSecureRef.current) return;
       isFocusedRef.current = true;
-      syncFocusedInputLayout();
-      (onFocus as (() => void) | undefined)?.();
+      // Register a blur handle so tap-away dismissal (`keyboardDismiss.ts`) and
+      // the BottomSheet overlay can resign this field: RN's `TextInputState`
+      // never sees SwiftUI / Compose fields, so `Keyboard.dismiss()` cannot.
+      // Blurring through the field's own ref is window-independent — inside a
+      // native bottom sheet `KeyboardController.dismiss()` can miss, the ref
+      // never does.
+      setKeyboardFocusedInput(focusRegistryToken, blurAll);
+      if (handoffRef.current) {
+        // The incoming view took first responder; the parent never saw focus leave.
+        restoreAfterSecureHandoffRef.current = secure && lastTextRef.current.length > 0;
+        finishHandoff();
+        return;
+      }
+      parentOnFocus?.();
     },
-    [onFocus, syncFocusedInputLayout]
+    [blurAll, finishHandoff, focusRegistryToken, parentOnFocus]
   );
 
-  const handleBlur = useCallback<NonNullable<ExpoTextInputProps["onBlur"]>>(
-    () => {
+  const handleBlur = useCallback(
+    (secure: boolean) => {
+      if (secure !== activeSecureRef.current) return;
       isFocusedRef.current = false;
-      clearKeyboardFocusedInputLayout(focusRegistryToken);
-      (onBlur as (() => void) | undefined)?.();
+      restoreAfterSecureHandoffRef.current = false;
+      clearKeyboardFocusedInput(focusRegistryToken);
+      parentOnBlur?.();
     },
-    [focusRegistryToken, onBlur]
+    [focusRegistryToken, parentOnBlur]
+  );
+
+  const togglePasswordVisible = useCallback(() => {
+    if (handoffRef.current) {
+      // Mid-handoff: flipping now would unmount the view about to take first
+      // responder and drop the keyboard. Apply it once the handoff settles.
+      queuedTogglesRef.current += 1;
+      return;
+    }
+    restoreAfterSecureHandoffRef.current = false;
+    const outgoingSecure = activeSecureRef.current;
+    if (outgoingSecure) generationRef.current.plain += 1;
+    else generationRef.current.secure += 1;
+    if (Platform.OS === "ios" && isFocusedRef.current) {
+      const timer = setTimeout(() => {
+        // The incoming view never took first responder. Rather than unmount
+        // the focused outgoing view (which would drop the keyboard), undo the
+        // toggle so the outgoing flavour stays active; the user can tap again.
+        finishHandoff();
+        if (!activeInput()?.isFocused()) {
+          setPasswordVisible(!outgoingSecure);
+          setTimeout(() => {
+            // If the outgoing view lost focus in the meantime (e.g. a tap
+            // away during the handoff), report the blur its handler ignored.
+            if (!activeInput()?.isFocused()) {
+              isFocusedRef.current = false;
+              clearKeyboardFocusedInput(focusRegistryToken);
+              parentOnBlur?.();
+            }
+          }, 0);
+        }
+      }, 600);
+      handoffRef.current = { outgoingSecure, timer };
+      setHandoff({ outgoingSecure });
+    }
+    setPasswordVisible((v) => !v);
+  }, [activeInput, finishHandoff, focusRegistryToken, parentOnBlur]);
+  toggleRef.current = togglePasswordVisible;
+
+  // iOS clears a secure field's existing text on the first keystroke after it
+  // becomes first responder (text it did not see typed). Right after the hide
+  // toggle hands focus to the SecureField that reads as "type one character,
+  // lose the password", so the wiped text is put back with the keystroke
+  // applied. Only the first change after that handoff is eligible. A wipe
+  // shows up as a single character that cannot be a backspace of the previous
+  // text, or as an empty string (the wipe followed by a backspace that hit
+  // nothing) while the previous text had more than one character.
+  const handleChangeText = useCallback(
+    (text: string) => {
+      const previous = lastTextRef.current;
+      const armed = restoreAfterSecureHandoffRef.current && previous.length > 0;
+      const wipedByKey = armed && text.length === 1 && !previous.startsWith(text);
+      const wipedByBackspace = armed && text === "" && previous.length > 1;
+      const wiped = wipedByKey || wipedByBackspace;
+      restoreAfterSecureHandoffRef.current = false;
+      const next = wipedByKey ? previous + text : wipedByBackspace ? previous.slice(0, -1) : text;
+      lastTextRef.current = next;
+      if (wiped) state.value = next;
+      onChangeText?.(next);
+    },
+    [onChangeText, state]
   );
 
   useEffect(() => {
-    return () => clearKeyboardFocusedInputLayout(focusRegistryToken);
+    return () => {
+      if (handoffRef.current) clearTimeout(handoffRef.current.timer);
+      clearKeyboardFocusedInput(focusRegistryToken);
+    };
   }, [focusRegistryToken]);
 
+  // The SwiftUI field only hit-tests its text line, so a tap on the box's
+  // vertical padding (or on the hitSlop below) would otherwise be a no-op.
+  const surfaceResponderProps = useTextInputSurfaceResponder(() => {
+    if (editable === false) return;
+    activeInput()?.focus();
+  });
+  // Stretch the touch target to the 44pt guideline without changing the box.
+  const surfaceHitSlop = Math.max(0, Math.ceil((MIN_TOUCH_TARGET - sizeConfig.height) / 2));
+
   useImperativeHandle(ref, () => ({
-    focus: () => innerRef.current?.focus(),
-    blur: () => innerRef.current?.blur(),
+    focus: () => activeInput()?.focus(),
+    blur: () => blurAll(),
     clear: () => {
       state.value = "";
+      lastTextRef.current = "";
     },
-    isFocused: () => innerRef.current?.isFocused() ?? false,
+    isFocused: () => activeInput()?.isFocused() ?? false,
     setNativeProps: (props: { text?: string }) => {
       if (typeof props?.text === "string") {
         state.value = props.text;
+        lastTextRef.current = props.text;
       }
     },
-  }) as unknown as RNTextInput, [state]);
+  }) as unknown as RNTextInput, [activeInput, blurAll, state]);
 
   const backgroundColor = forceLight
     ? palette.white
@@ -706,9 +832,13 @@ function NativeTextInput({
         bit other native components, and keeps the eye inside the rounded surface.
       */}
       <View
-        ref={surfaceRef}
         style={[surfaceStyle, hasSecureToggle && styles.nativeRow]}
-        onLayout={syncFocusedInputLayout}
+        hitSlop={{ top: surfaceHitSlop, bottom: surfaceHitSlop }}
+        // Never claims the responder (the native field keeps every touch phase);
+        // tags the touch as "on a text input" so an enclosing tap-away boundary
+        // leaves focus handoff, double-tap selection and the eye toggle alone,
+        // and focuses the field for taps the native text line did not catch.
+        {...surfaceResponderProps}
       >
         {/*
           The universal @expo/ui TextInput renders a raw SwiftUI / Compose view and
@@ -716,33 +846,54 @@ function NativeTextInput({
           inside a standard UIView". matchContents vertical lets the host fill width
           via normal RN layout while sizing its height to the native field.
         */}
-        <Host
-          matchContents={{ vertical: true }}
-          style={hasSecureToggle ? styles.nativeHostFlex : styles.nativeHost}
-        >
-          <ExpoTextInput
-            {...(rest as ExpoTextInputProps)}
-            ref={innerRef}
-            value={state}
-            defaultValue={defaultValue}
-            onChangeText={onChangeText}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            editable={editable}
-            multiline={multiline}
-            rows={rows}
-            inputMode={inputMode}
-            secureTextEntry={effectiveSecureTextEntry}
-            placeholderTextColor={theme.colors.textDim}
-            style={boxStyle}
-            textStyle={textStyle}
-          />
-        </Host>
+        {[true, false].map((secure) => {
+          const active = secure === effectiveSecureTextEntry;
+          const outgoing = handoff != null && secure === handoff.outgoingSecure;
+          if (!active && !outgoing) return null;
+          // Mid-handoff the outgoing view keeps the visible slot (and focus)
+          // while the incoming one mounts hidden and takes first responder.
+          const inLayout = handoff ? outgoing : active;
+          return (
+            <Host
+              key={secure ? `secure-${generationRef.current.secure}` : `plain-${generationRef.current.plain}`}
+              matchContents={{ vertical: true }}
+              style={
+                inLayout
+                  ? hasSecureToggle
+                    ? styles.nativeHostFlex
+                    : styles.nativeHost
+                  : styles.nativeHostHandoff
+              }
+              pointerEvents={inLayout ? "auto" : "none"}
+              accessibilityElementsHidden={!inLayout}
+              importantForAccessibility={inLayout ? "auto" : "no-hide-descendants"}
+            >
+              <ExpoTextInput
+                {...(rest as ExpoTextInputProps)}
+                autoFocus={(rest as ExpoTextInputProps).autoFocus || (handoff != null && active)}
+                ref={secure ? secureRef : plainRef}
+                value={state}
+                defaultValue={defaultValue}
+                onChangeText={handleChangeText}
+                onFocus={() => handleFocus(secure)}
+                onBlur={() => handleBlur(secure)}
+                editable={editable}
+                multiline={multiline}
+                rows={rows}
+                inputMode={inputMode}
+                secureTextEntry={secure}
+                placeholderTextColor={theme.colors.textDim}
+                style={boxStyle}
+                textStyle={textStyle}
+              />
+            </Host>
+          );
+        })}
 
         {hasSecureToggle && (
           <Pressable
             style={styles.nativePasswordToggle}
-            onPress={() => setPasswordVisible((v) => !v)}
+            onPress={togglePasswordVisible}
             accessibilityLabel={passwordVisible ? "Hide password" : "Show password"}
             accessibilityRole="button"
           >
@@ -780,6 +931,15 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
     },
     nativeHostFlex: {
       flex: 1,
+    },
+    // Incoming view during an iOS secure/plain handoff: mounted and focusable,
+    // but invisible and out of the row's layout until it holds first responder.
+    nativeHostHandoff: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      opacity: 0,
     },
     nativePasswordToggle: {
       paddingHorizontal: spacing.xs,

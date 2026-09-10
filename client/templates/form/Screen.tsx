@@ -6,6 +6,7 @@ import {
   StyleProp,
   ViewStyle,
   Animated,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
@@ -15,6 +16,7 @@ import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import type { UseFormReturn } from "react-hook-form";
@@ -139,6 +141,8 @@ export function FormScreen({
   const navEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY * 3 });
 
   const handleNext = async () => {
+    // Buttons keep the keyboard open (see keyboardDismiss.ts); advancing hides it.
+    dismissKeyboard();
     if (isReviewStep) {
       // Final submit from review step
       setIsSubmitting(true);
@@ -185,6 +189,8 @@ export function FormScreen({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "none"}
+        onScrollBeginDrag={Platform.OS === "android" ? dismissKeyboard : undefined}
       >
         {header}
 

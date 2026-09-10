@@ -11,6 +11,7 @@ export * from "./Checkbox";
 export * from "./Collapsible";
 export * from "./Dialog";
 export * from "./DismissKeyboard";
+export * from "./keyboardDismiss";
 export * from "./Drawer";
 export * from "./DropdownMenu";
 export * from "./EmptyState";
