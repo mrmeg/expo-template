@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState, useEffect } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import { View, StyleSheet, Pressable, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
@@ -125,7 +125,11 @@ export function VerifyEmailForm({
         validateValue={validateCode}
         keyboardType="number-pad"
         maxLength={codeLength}
-        autoComplete="one-time-code"
+        // iOS/web: `one-time-code` + `oneTimeCode` let the keyboard offer a code
+        // that just arrived in Mail or Messages. Android only understands the
+        // `sms-otp` autofill hint (`one-time-code` maps to nothing there), and
+        // its autofill sources codes from SMS, never from email.
+        autoComplete={Platform.OS === "android" ? "sms-otp" : "one-time-code"}
         textContentType="oneTimeCode"
         editable={!loading}
         returnKeyType="go"

@@ -35,6 +35,31 @@ bun run auth:emails --pool us-east-1_xxx --app-name "Acme"   # any pool, explici
   that strip it still get the complete light email. Images are fine but must be
   absolute `https` URLs.
 
+## Code detection, AutoFill, and copying
+
+Email clients run no scripts, so a "copy" button inside the email is not possible. What
+is possible is shaping the message so the phone recognises the code itself:
+
+- **iOS Mail (iOS 17+)** detects one-time codes and offers them on the keyboard when an
+  app field is marked `textContentType="oneTimeCode"` / `autoComplete="one-time-code"`,
+  which the template's `VerifyEmailForm` and `InputOTP` are. Detected codes also get a
+  tap-to-copy affordance. Detection is heuristic; `verification-code.html` keeps it
+  reliable by:
+  - putting the words "verification code is" directly before the code, in the body and
+    in the preheader;
+  - making `{####}` the only run of digits in the email (no dates, phone numbers, or
+    "expires in 10 minutes" copy);
+  - keeping `{####}` a single unbroken text node with `letter-spacing` for the visual
+    gaps, so the copied or detected value has no spaces;
+  - `user-select: all` on the code cell, so a tap or long-press selects the whole code
+    in clients that honour it. Long-press copy works in every mobile client regardless.
+- **Android** has no email-to-app code autofill; its autofill only reads SMS. The app
+  still sets the `sms-otp` hint on Android for autofill services that support it.
+- **Subject line**: Cognito does not substitute `{####}` in `EmailSubject`, so the code
+  cannot go in the subject; the subject just says "verification code" for context.
+
+The test in `scripts/__tests__` enforces the body-copy rules above.
+
 ## Design
 
 The templates are the email-shaped version of the `@mrmeg/expo-ui` theme, so a code

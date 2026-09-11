@@ -169,7 +169,9 @@ function InputOTP({
         autoFocus={autoFocus}
         editable={!disabled}
         inputMode={inputMode}
-        autoComplete="one-time-code"
+        // Android only recognises the `sms-otp` autofill hint; iOS and web use
+        // `one-time-code` + `oneTimeCode` to offer codes from Messages / Mail.
+        autoComplete={Platform.OS === "android" ? "sms-otp" : "one-time-code"}
         textContentType="oneTimeCode"
         caretHidden
         style={styles.hiddenInput}

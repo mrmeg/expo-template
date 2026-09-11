@@ -1,1 +1,1 @@
-Your {{APP_NAME}} code
+Your {{APP_NAME}} verification code
