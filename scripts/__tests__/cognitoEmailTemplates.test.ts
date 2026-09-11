@@ -24,7 +24,7 @@ describe("renderEmailTemplates", () => {
   const rendered = renderEmailTemplates("Acme Camera", templatesDir);
 
   it("substitutes the app name everywhere and leaves no placeholder behind", () => {
-    expect(rendered.verification.subject).toBe("Your Acme Camera code");
+    expect(rendered.verification.subject).toBe("Your Acme Camera verification code");
     expect(rendered.invite.subject).toBe("Your Acme Camera account");
     expect(rendered.verification.html).toContain("Acme Camera");
     expect(rendered.verification.html).not.toContain("{{APP_NAME}}");
@@ -52,6 +52,22 @@ describe("renderEmailTemplates", () => {
 
   it("rejects an empty app name", () => {
     expect(() => renderEmailTemplates("   ", templatesDir)).toThrow(/App name is empty/);
+  });
+
+  it("keeps the verification code detectable by mail clients", () => {
+    // Visible text only: drop the <style> block and every tag, collapse whitespace.
+    const visible = rendered.verification.html
+      .replace(/<style[\s\S]*?<\/style>/g, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ");
+    // "verification code is" immediately precedes the code, in the body copy as
+    // well as the preheader, which is what iOS Mail keys its AutoFill / Copy Code on.
+    expect(visible).toMatch(/verification code is:? \{####\}/);
+    // The code is the only run of digits, so a detector cannot pick up anything else.
+    expect(visible.replace(/\{####\}/g, "")).not.toMatch(/\d/);
+    // One unbroken text node: no whitespace or markup between the cell and the code.
+    expect(rendered.verification.html).toMatch(/>\{####\}<\/td>/);
+    expect(rendered.verification.subject).toMatch(/verification code/);
   });
 
   it("keeps both templates on the same card shell and dark-mode layer", () => {
@@ -128,7 +144,7 @@ describe("buildUserPoolUpdate", () => {
   it("installs both templates and drops the deprecated validity field", () => {
     const verification = update.VerificationMessageTemplate as Record<string, unknown>;
     expect(verification.DefaultEmailOption).toBe("CONFIRM_WITH_CODE");
-    expect(verification.EmailSubject).toBe("Your Acme code");
+    expect(verification.EmailSubject).toBe("Your Acme verification code");
     expect(verification.EmailMessage).toContain(CODE_PLACEHOLDER);
 
     const admin = update.AdminCreateUserConfig as Record<string, unknown>;
