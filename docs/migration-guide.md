@@ -30,7 +30,7 @@ Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](http
 | react / react-dom | 19.2.3 |
 | react-native | 0.86.3 |
 | react-native-web | ^0.21.2 |
-| @mrmeg/expo-ui | ^0.23.0 |
+| @mrmeg/expo-ui | ^0.24.0 |
 | @mrmeg/expo-media (if using media) | ^0.5.0 |
 | zustand | ^5.0.15 |
 | @tanstack/react-query | ^5.102.8 |
@@ -157,7 +157,7 @@ Conventions:
 
 ## Phase 4 — @mrmeg/expo-ui
 
-Upgrade to `@mrmeg/expo-ui@^0.23.0`. Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 58; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.87; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 2.33; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3.
+Upgrade to `@mrmeg/expo-ui@^0.24.0`. Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 58; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.87; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 2.33; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3.
 
 **Required root setup:**
 
