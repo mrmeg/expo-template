@@ -24,6 +24,9 @@ export default function TabLayout() {
   // Hide the tab bar while the keyboard is open. On iOS 26 the floating tab
   // bar otherwise rides above the keyboard and collides with the autofill
   // accessory; on Android the resize keyboard mode pushes it up the same way.
+  // The hook flips on the keyboard's will-show/will-hide events so the bar's
+  // (non-animated) reveal rides along with the keyboard's slide instead of
+  // snapping in after it — see useKeyboardVisible.native.ts.
   const keyboardVisible = useKeyboardVisible();
 
   // The web tab-bar fallback never renders icons, but Native Tabs still resolves
