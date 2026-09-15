@@ -50,6 +50,7 @@
     "e2e": "maestro test .maestro",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
+    "lint:ui": "node packages/lint/bin/cli.js",
     "verify": "node scripts/verify.mjs",
     "generate": "npx tsx scripts/generate.ts",
     "init": "npx tsx scripts/init.ts",

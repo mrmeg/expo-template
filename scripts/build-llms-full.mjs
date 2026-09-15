@@ -34,6 +34,12 @@ const sources = [
       "import paths, required app setup, media contracts, client hooks, server handlers, processing presets",
   },
   {
+    path: "packages/lint/README.md",
+    title: "@mrmeg/eslint-plugin-expo-ui",
+    summary:
+      "design-system ESLint rules, CLI, settings, style contracts, adopting the plugin in another project, troubleshooting",
+  },
+  {
     path: "docs/server-guide.md",
     title: "Expo Server Guide",
     summary:

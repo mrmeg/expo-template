@@ -9,6 +9,14 @@ Read `node_modules/@mrmeg/expo-ui/llms.txt` first, then `LLM_USAGE.md` (concise
 rules) or `llms-full.md` (expanded contract), before creating app-local UI
 primitives. All three ship in the npm tarball.
 
+The same rules are available as an ESLint plugin: `@mrmeg/eslint-plugin-expo-ui`
+in the expo-template repo's `packages/lint` turns the theme and text rules into
+diagnostics at the call site — raw colors, off-scale spacing and radius,
+appearance overrides on package components, and raw primitives that have a
+wrapper here. See [`../lint/README.md`](../lint/README.md). It parses the design
+system's TypeScript sources (`packages/ui/src`) at lint time and is not yet
+published alongside this package.
+
 ## Install
 
 ```sh

@@ -5,8 +5,12 @@
   "description": "ESLint rules that enforce the @mrmeg/expo-ui design system in app code.",
   "license": "MIT",
   "main": "index.js",
+  "bin": {
+    "expo-ui-lint": "./bin/cli.js"
+  },
   "files": [
     "index.js",
+    "bin",
     "lib",
     "rules",
     "README.md"

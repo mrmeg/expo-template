@@ -104,7 +104,8 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `bun run start` | Run the Bun production server (`server.bun.ts`) |
 | `bun run start-local` | Same, with `.env` autoloaded |
 | `bun run typecheck` | `tsc --noEmit` |
-| `bun run lint` | `expo lint` (ESLint flat config) |
+| `bun run lint` | `expo lint` (ESLint flat config; lints `app/` only by default — pass paths to widen) |
+| `bun lint:ui` | Design-system rules only, over `app`, `client`, `shared`; `--changed` for touched files, `--doctor` to check wiring — see [`packages/lint/README.md`](packages/lint/README.md) |
 | `bun run verify` | Every CI `validate` gate locally, in CI order |
 | `bun run test:ci` | `jest --ci --coverage --forceExit` |
 | `bun run e2e` | Maestro native smoke suite — see `docs/e2e.md` |
@@ -156,7 +157,8 @@ bun run test:ci                        # CI-style with coverage
 Coverage spans `client/**`, `app/api/**`, `server/**`, `shared/**`,
 `packages/ui/src/**`, and `packages/media/src/**`, so CI flags drift in the
 route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing)
-and in the packaged UI.
+and in the packaged UI. The lint plugin's own suites live in
+`packages/lint/__tests__` and run with the rest of jest.
 
 ## Architecture
 
@@ -315,6 +317,28 @@ or local auth email.
 
 Full design system: `packages/ui/README.md`.
 
+### Design-system lint
+
+`@mrmeg/eslint-plugin-expo-ui` (`packages/lint`) turns the design system's
+theme and text rules into ESLint diagnostics over `app/`, `client/`, and
+`shared/`: raw colors in style properties and color props, off-scale spacing
+and radius literals, appearance overrides pushed through `style` onto
+`@mrmeg/expo-ui` components, and raw primitives the design system already
+wraps. Each message names the replacement — the token, the variant or preset
+prop, or the component to import.
+
+`bun run lint` is `expo lint`, which reaches `app/` only, so it does not see
+`client/` or `shared/`. Run `bun lint:ui` for the design-system rules across
+all three: `--changed` lints touched files, `--doctor` checks the wiring, and
+`--rules` lists what each rule catches.
+
+Where a rule is genuinely wrong for one line, disable it with a reason —
+`// eslint-disable-next-line expo-ui/no-restyle -- reason` — never bare.
+Adopting the plugin in another project is covered in
+[`packages/lint/README.md`](packages/lint/README.md); note that the rules parse
+the design system's TypeScript sources at lint time, and the published
+`@mrmeg/expo-ui` tarball does not ship them today.
+
 ## Billing (Stripe, hosted-external)
 
 Off by default. To turn on:
@@ -344,7 +368,8 @@ parallel jobs, no app credentials required:
   `packages:peer-check` → `typecheck` → `lint` → `check:features` →
   `gen:templates:check` → `gen:blocks:check` → `docs:llms:check` →
   `docs:versions:check` → `test:ci`. `bun run verify` runs the same gates
-  locally in the same order (without coverage).
+  locally in the same order (without coverage). `lint` there is `expo lint`, so
+  it gates `app/` only; run `bun lint:ui` for `client/` and `shared/`.
 - **Web Build + Bundle Size** — `bun run build` → `bun run bundle-size`. Fails
   the PR on >10% client bundle growth against `scripts/bundle-baseline.json`.
 
