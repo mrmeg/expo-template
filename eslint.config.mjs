@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
+import expoUi from "@mrmeg/eslint-plugin-expo-ui";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -82,6 +83,22 @@ export default [
       "react/jsx-uses-react": "off",
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
+    },
+  },
+  // Design-system rules: raw colors, off-scale spacing, appearance overrides on
+  // design-system components, and raw primitives where a wrapper exists. Each
+  // message names the token, variant, or component to use instead.
+  //
+  // `packages/**` stays outside: the design system is where the tokens, presets,
+  // and wrappers are implemented. `__tests__` stay outside so fixtures may use
+  // raw values.
+  {
+    files: ["app/**/*.{ts,tsx}", "client/**/*.{ts,tsx}", "shared/**/*.{ts,tsx}"],
+    ignores: ["**/__tests__/**", "**/*.test.{ts,tsx}"],
+    ...expoUi.configs.recommended,
+    settings: {
+      ...expoUi.configs.recommended.settings,
+      "expo-ui": { uiSourceDir: "packages/ui/src" },
     },
   },
 ];

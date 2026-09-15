@@ -35,7 +35,7 @@ function Wordmark() {
   return (
     <View style={styles.wordmark}>
       <View style={styles.wordmarkDot} />
-      <SansSerifBoldText style={styles.wordmarkText}>@mrmeg/expo-ui</SansSerifBoldText>
+      <SansSerifBoldText size="base" style={styles.wordmarkText}>@mrmeg/expo-ui</SansSerifBoldText>
     </View>
   );
 }
@@ -151,7 +151,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.accent,
     },
     wordmarkText: {
-      fontSize: 14,
       color: theme.colors.text,
     },
     overlayContent: {

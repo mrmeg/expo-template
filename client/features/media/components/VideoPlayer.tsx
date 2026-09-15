@@ -26,9 +26,9 @@ import {
   StatusBar,
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
-import { spacing } from "@mrmeg/expo-ui/constants";
+import { palette, spacing } from "@mrmeg/expo-ui/constants";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -115,7 +115,7 @@ export function VideoPlayer({
         <View style={[styles.header, { paddingTop: topInset }]}>
           <View style={styles.headerContent}>
             {title && (
-              <SansSerifText style={styles.title} numberOfLines={1}>
+              <SansSerifText fontWeight="medium" style={styles.title} numberOfLines={1}>
                 {title}
               </SansSerifText>
             )}
@@ -125,7 +125,7 @@ export function VideoPlayer({
             style={styles.closeButton}
             hitSlop={20}
           >
-            <Icon name="x" size={24} color="white" />
+            <Icon name="x" size={24} color={palette.white} />
           </Pressable>
         </View>
 
@@ -134,7 +134,7 @@ export function VideoPlayer({
           {isLoading && (
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color="white" />
-              <SansSerifText style={styles.loadingText}>
+              <SansSerifText size="base" style={styles.loadingText}>
                 Loading video…
               </SansSerifText>
             </View>
@@ -146,7 +146,7 @@ export function VideoPlayer({
                 Failed to load video
               </SansSerifText>
               <Pressable onPress={handleClose} style={styles.errorButton}>
-                <SansSerifText style={styles.errorButtonText}>
+                <SansSerifText size="base" fontWeight="medium" style={styles.errorButtonText}>
                   Close
                 </SansSerifText>
               </Pressable>
@@ -170,7 +170,7 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: "black",
+      backgroundColor: palette.black,
     },
     header: {
       flexDirection: "row",
@@ -178,7 +178,7 @@ const createStyles = (theme: Theme) =>
       justifyContent: "space-between",
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.sm,
-      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      backgroundColor: withAlpha(palette.black, 0.8),
       position: "absolute",
       top: 0,
       left: 0,
@@ -190,14 +190,12 @@ const createStyles = (theme: Theme) =>
       marginRight: spacing.md,
     },
     title: {
-      color: "white",
-      fontSize: 16,
-      fontWeight: "500",
+      color: palette.white,
     },
     closeButton: {
       padding: spacing.xs,
       borderRadius: spacing.radiusFull,
-      backgroundColor: "rgba(255, 255, 255, 0.2)",
+      backgroundColor: withAlpha(palette.white, 0.2),
     },
     videoContainer: {
       flex: 1,
@@ -212,24 +210,22 @@ const createStyles = (theme: Theme) =>
       ...StyleSheet.absoluteFill,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: "black",
+      backgroundColor: palette.black,
       zIndex: 5,
     },
     loadingText: {
-      color: "white",
+      color: palette.white,
       marginTop: spacing.md,
-      fontSize: 14,
     },
     errorOverlay: {
       ...StyleSheet.absoluteFill,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: "black",
+      backgroundColor: palette.black,
       zIndex: 5,
     },
     errorText: {
-      color: "white",
-      fontSize: 16,
+      color: palette.white,
       marginBottom: spacing.md,
     },
     errorButton: {
@@ -240,8 +236,6 @@ const createStyles = (theme: Theme) =>
     },
     errorButtonText: {
       color: theme.colors.primaryForeground,
-      fontSize: 14,
-      fontWeight: "500",
     },
   });
 

@@ -73,6 +73,8 @@ export function GalleryChips<C extends string>({
             ]}
           >
             <SansSerifText
+              size="base"
+              fontWeight={active ? "medium" : "regular"}
               style={active ? styles.chipTextActive : styles.chipTextInactive}
             >
               {chip.label}
@@ -80,6 +82,7 @@ export function GalleryChips<C extends string>({
             {chip.count !== undefined && (
               <View style={active ? styles.countActive : styles.countInactive}>
                 <SansSerifText
+                  size="xs"
                   style={active ? styles.countTextActive : styles.countTextInactive}
                 >
                   {chip.count}
@@ -144,12 +147,9 @@ const createStyles = (theme: Theme) =>
       borderColor: theme.colors.border,
     },
     chipTextActive: {
-      fontSize: 13,
-      fontWeight: "500",
       color: theme.colors.primaryForeground,
     },
     chipTextInactive: {
-      fontSize: 13,
       color: theme.colors.textDim,
     },
     countActive: {
@@ -163,11 +163,9 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.muted,
     },
     countTextActive: {
-      fontSize: 11,
       color: theme.colors.foreground,
     },
     countTextInactive: {
-      fontSize: 11,
       color: theme.colors.mutedForeground,
     },
   });

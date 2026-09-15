@@ -3,7 +3,6 @@ import { StyleSheet } from "react-native";
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { fontFamilies } from "@mrmeg/expo-ui/constants";
 
 interface FormMessageProps {
   /** Error message to display. Renders nothing when undefined/empty. */
@@ -25,6 +24,7 @@ export function FormMessage({ message }: FormMessageProps) {
 
   return (
     <StyledText
+      size="sm"
       style={[
         styles.message,
         { color: theme.colors.destructive },
@@ -37,8 +37,6 @@ export function FormMessage({ message }: FormMessageProps) {
 
 const styles = StyleSheet.create({
   message: {
-    fontFamily: fontFamilies.sansSerif.regular,
-    fontSize: 12,
     marginTop: spacing.xs,
   },
 });

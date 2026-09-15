@@ -13,11 +13,11 @@
  */
 
 import { Suspense, useMemo, useState } from "react";
-import { View, StyleSheet, Pressable, Platform, ScrollView } from "react-native";
+import { View, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Link } from "expo-router";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { SansSerifText, SansSerifBoldText, MonoText } from "@mrmeg/expo-ui/components/StyledText";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
@@ -92,10 +92,8 @@ export default function ExploreScreen() {
             value={query}
             onChangeText={setQuery}
             placeholder="Search components, blocks, templates…"
-            variant="filled"
+            variant="outline"
             size="md"
-            wrapperStyle={styles.searchField}
-            style={styles.searchFieldInput}
             autoCorrect={false}
             autoCapitalize="none"
             returnKeyType="search"
@@ -163,9 +161,9 @@ export default function ExploreScreen() {
                       </Suspense>
                     </View>
                     {/* `.recipe` — the block doubles as a recipe. */}
-                    <SansSerifText style={styles.spotlightRecipe}>
+                    <MonoText size="xs" style={styles.spotlightRecipe}>
                       {spotlight.recipe.join(" + ")}
-                    </SansSerifText>
+                    </MonoText>
                   </Pressable>
                 </Link>
               </AnimatedView>
@@ -200,11 +198,11 @@ export default function ExploreScreen() {
                           <View style={styles.gridIcon}>
                             <Icon name={item.icon} color={theme.colors.primary} size={22} />
                           </View>
-                          <SansSerifBoldText style={styles.gridName}>
+                          <SansSerifBoldText size="body" style={styles.gridName}>
                             {item.label}
                           </SansSerifBoldText>
                           {item.description && (
-                            <SansSerifText style={styles.gridDesc}>
+                            <SansSerifText size="sm" style={styles.gridDesc}>
                               {item.description}
                             </SansSerifText>
                           )}
@@ -219,7 +217,7 @@ export default function ExploreScreen() {
 
             {/* ── Demos & Tools — compact list ─────────────────────── */}
             <AnimatedView type="fadeSlideUp" delay={STAGGER_DELAY * 4} style={styles.section}>
-              <SansSerifText style={styles.sectionLabel}>Demos & Tools</SansSerifText>
+              <SansSerifText semantic="eyebrow" style={styles.sectionLabel}>Demos & Tools</SansSerifText>
               <View style={styles.demoCard}>
                 {DEMOS.map((item, index) => (
                   <View key={item.id}>
@@ -232,7 +230,7 @@ export default function ExploreScreen() {
                           <View style={styles.demoIcon}>
                             <Icon name={item.icon} color={theme.colors.mutedForeground} size={16} />
                           </View>
-                          <SansSerifText style={styles.demoLabel}>{item.label}</SansSerifText>
+                          <SansSerifText size="body" style={styles.demoLabel}>{item.label}</SansSerifText>
                         </View>
                         <Icon name="chevron-right" color={theme.colors.border} size={16} />
                       </Pressable>
@@ -352,7 +350,7 @@ function SearchResults({
 
   return (
     <View style={styles.section} testID="explore-search-results">
-      <SansSerifText style={styles.sectionLabel}>
+      <SansSerifText semantic="eyebrow" style={styles.sectionLabel}>
         {hits.length} {hits.length === 1 ? "result" : "results"}
       </SansSerifText>
       <View style={styles.demoCard}>
@@ -402,28 +400,16 @@ const createStyles = (theme: Theme) =>
     },
 
     // ── Search ─────────────────────────────────────────────
+    // Mockup 01's search field (`.kbd`) is a card surface with a 1px border.
+    // The `outline` variant owns the border and the radius; the fill lives here
+    // on the wrapper because a transparent `outline` field over `background`
+    // would read as bare placeholder text in light mode, where `card` *is*
+    // `background`. No `overflow: "hidden"`: on web the field's focus ring is a
+    // `boxShadow` on the view inside this one, which clipping would swallow.
     searchWrapper: {
       marginBottom: spacing.xs,
-    },
-    // The `filled` field paints `card`, and in light mode `card` *is*
-    // `background` — so on its own the field reads as bare placeholder text with
-    // no container. Mockup 01's search field (`.kbd`) is a card surface with a
-    // 1px border, and that border is what carries it in light mode; dark keeps
-    // its existing filled look. No `overflow: "hidden"`: on web the field's
-    // focus ring is a `boxShadow` on the view inside this one, which clipping
-    // would swallow.
-    searchField: {
       backgroundColor: theme.colors.card,
       borderRadius: spacing.radiusMd,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-    },
-    // Web only — the native field drops `style`. The surface now lives on the
-    // wrapper above, so the `filled` variant's own fill and 2px underline would
-    // double up inside the border.
-    searchFieldInput: {
-      backgroundColor: "transparent",
-      borderBottomWidth: 0,
     },
 
     // ── Section scaffolding ────────────────────────────────
@@ -455,10 +441,7 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.accent,
     },
     sectionLabel: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
-      textTransform: "uppercase",
-      letterSpacing: 0.8,
       marginBottom: spacing.sm + 2,
       marginLeft: spacing.xxs,
     },
@@ -512,10 +495,8 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing.md,
     },
     spotlightRecipe: {
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      fontSize: 11,
       color: theme.colors.mutedForeground,
-      paddingHorizontal: spacing.md,
+      marginHorizontal: spacing.md,
     },
 
     // ── Template grid ──────────────────────────────────────
@@ -542,22 +523,19 @@ const createStyles = (theme: Theme) =>
     gridIcon: {
       width: 44,
       height: 44,
-      borderRadius: 22,
+      borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.muted,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.sm,
     },
     gridName: {
-      fontSize: 15,
       color: theme.colors.foreground,
       marginBottom: 2,
     },
     gridDesc: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
       textAlign: "center",
-      lineHeight: 16,
     },
 
     // ── Demo list / search results ─────────────────────────
@@ -589,7 +567,6 @@ const createStyles = (theme: Theme) =>
       justifyContent: "center",
     },
     demoLabel: {
-      fontSize: 15,
       color: theme.colors.foreground,
     },
     demoDivider: {

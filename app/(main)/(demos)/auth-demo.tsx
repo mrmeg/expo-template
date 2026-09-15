@@ -1,12 +1,12 @@
 import { lazy, Suspense, useState, useEffect, useRef } from "react";
-import { View, StyleSheet, ScrollView, Platform } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
 import { useAuthStore, AuthState } from "@/client/features/auth/stores/authStore";
 import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@mrmeg/expo-ui/components/Card";
-import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { SansSerifText, SansSerifBoldText, MonoText } from "@mrmeg/expo-ui/components/StyledText";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
@@ -58,7 +58,7 @@ function AuthStateBadge({ state }: { state: AuthState }) {
   return (
     <View style={[styles.badge, { backgroundColor: bgColor }]}>
       <Icon name={icon} size={16} color={color} />
-      <SansSerifBoldText style={[styles.badgeText, { color }]}>
+      <SansSerifBoldText size="sm" style={{ color }}>
         {label}
       </SansSerifBoldText>
     </View>
@@ -85,10 +85,10 @@ function ProtectedSection() {
         <View style={dynamicStyles.successBox}>
           <Icon name="check-circle" size={24} color={theme.colors.success} />
           <View style={dynamicStyles.successTextContainer}>
-            <SansSerifBoldText style={[dynamicStyles.successTitle, { color: theme.colors.success }]}>
+            <SansSerifBoldText size="base" style={[dynamicStyles.successTitle, { color: theme.colors.success }]}>
               Access Granted
             </SansSerifBoldText>
-            <SansSerifText style={dynamicStyles.successMessage}>
+            <SansSerifText size="sm" style={dynamicStyles.successMessage}>
               The AuthWrapper successfully validated your authentication state
               and is rendering this protected content.
             </SansSerifText>
@@ -133,32 +133,32 @@ function UserInfoSection() {
         <View style={dynamicStyles.infoRow}>
           <View style={dynamicStyles.infoLabel}>
             <Icon name="key" size={14} color={theme.colors.mutedForeground} />
-            <SansSerifText style={dynamicStyles.labelText}>User ID</SansSerifText>
+            <SansSerifText size="base" style={dynamicStyles.labelText}>User ID</SansSerifText>
           </View>
-          <SansSerifText style={dynamicStyles.infoValue} numberOfLines={1}>
+          <MonoText size="base" style={dynamicStyles.infoValue} numberOfLines={1}>
             {user.userId}
-          </SansSerifText>
+          </MonoText>
         </View>
 
         <View style={dynamicStyles.infoRow}>
           <View style={dynamicStyles.infoLabel}>
             <Icon name="user" size={14} color={theme.colors.mutedForeground} />
-            <SansSerifText style={dynamicStyles.labelText}>Username</SansSerifText>
+            <SansSerifText size="base" style={dynamicStyles.labelText}>Username</SansSerifText>
           </View>
-          <SansSerifText style={dynamicStyles.infoValue} numberOfLines={1}>
+          <MonoText size="base" style={dynamicStyles.infoValue} numberOfLines={1}>
             {user.username}
-          </SansSerifText>
+          </MonoText>
         </View>
 
         {user.email && (
           <View style={dynamicStyles.infoRow}>
             <View style={dynamicStyles.infoLabel}>
               <Icon name="mail" size={14} color={theme.colors.mutedForeground} />
-              <SansSerifText style={dynamicStyles.labelText}>Email</SansSerifText>
+              <SansSerifText size="base" style={dynamicStyles.labelText}>Email</SansSerifText>
             </View>
-            <SansSerifText style={dynamicStyles.infoValue} numberOfLines={1}>
+            <MonoText size="base" style={dynamicStyles.infoValue} numberOfLines={1}>
               {user.email}
-            </SansSerifText>
+            </MonoText>
           </View>
         )}
 
@@ -225,7 +225,7 @@ function AuthStateMonitor() {
       <CardContent style={dynamicStyles.cardContent}>
         {/* Current State */}
         <View style={dynamicStyles.stateContainer}>
-          <SansSerifText style={dynamicStyles.stateLabel}>Current State</SansSerifText>
+          <SansSerifText size="base" style={dynamicStyles.stateLabel}>Current State</SansSerifText>
           <AuthStateBadge state={state} />
         </View>
 
@@ -234,10 +234,10 @@ function AuthStateMonitor() {
           <View style={dynamicStyles.warningBox}>
             <Icon name="clock" size={16} color={theme.colors.warning} />
             <View style={{ marginLeft: spacing.sm, flex: 1 }}>
-              <SansSerifBoldText style={{ color: theme.colors.warning, fontSize: 13 }}>
+              <SansSerifBoldText size="sm" style={{ color: theme.colors.warning }}>
                 Pending Verification
               </SansSerifBoldText>
-              <SansSerifText style={{ color: theme.colors.mutedForeground, fontSize: 12 }}>
+              <SansSerifText size="sm" style={{ color: theme.colors.mutedForeground }}>
                 {pendingVerificationEmail}
               </SansSerifText>
             </View>
@@ -249,10 +249,10 @@ function AuthStateMonitor() {
           <View style={dynamicStyles.errorBox}>
             <Icon name="x-circle" size={16} color={theme.colors.destructive} />
             <View style={{ marginLeft: spacing.sm, flex: 1 }}>
-              <SansSerifBoldText style={{ color: theme.colors.destructive, fontSize: 13 }}>
+              <SansSerifBoldText size="sm" style={{ color: theme.colors.destructive }}>
                 Error
               </SansSerifBoldText>
-              <SansSerifText style={{ color: theme.colors.mutedForeground, fontSize: 12 }}>
+              <SansSerifText size="sm" style={{ color: theme.colors.mutedForeground }}>
                 {error}
               </SansSerifText>
             </View>
@@ -261,18 +261,18 @@ function AuthStateMonitor() {
 
         {/* State History */}
         <View style={dynamicStyles.historyContainer}>
-          <SansSerifText style={dynamicStyles.historyTitle}>State History</SansSerifText>
+          <SansSerifText semantic="eyebrow" style={dynamicStyles.historyTitle}>State History</SansSerifText>
           {stateHistory.length === 0 ? (
-            <SansSerifText style={dynamicStyles.historyEmpty}>No state changes yet</SansSerifText>
+            <SansSerifText size="sm" style={dynamicStyles.historyEmpty}>No state changes yet</SansSerifText>
           ) : (
             stateHistory.map((entry) => (
               <View key={entry.id} style={dynamicStyles.historyItem}>
-                <SansSerifText style={dynamicStyles.historyTime}>
+                <MonoText size="xs" style={dynamicStyles.historyTime}>
                   {entry.timestamp.toLocaleTimeString()}
-                </SansSerifText>
-                <SansSerifText style={dynamicStyles.historyState}>
+                </MonoText>
+                <MonoText size="sm" style={dynamicStyles.historyState}>
                   {entry.state}
-                </SansSerifText>
+                </MonoText>
               </View>
             ))
           )}
@@ -311,11 +311,11 @@ function HowItWorksSection() {
       <CardContent style={dynamicStyles.cardContent}>
         <View style={dynamicStyles.stepItem}>
           <View style={[dynamicStyles.stepNumber, { backgroundColor: theme.colors.primary }]}>
-            <SansSerifBoldText style={{ color: theme.colors.primaryForeground, fontSize: 12 }}>1</SansSerifBoldText>
+            <SansSerifBoldText size="sm" style={{ color: theme.colors.primaryForeground }}>1</SansSerifBoldText>
           </View>
           <View style={dynamicStyles.stepContent}>
-            <SansSerifBoldText style={dynamicStyles.stepTitle}>AuthWrapper Component</SansSerifBoldText>
-            <SansSerifText style={dynamicStyles.stepDescription}>
+            <SansSerifBoldText size="base" style={dynamicStyles.stepTitle}>AuthWrapper Component</SansSerifBoldText>
+            <SansSerifText size="sm" style={dynamicStyles.stepDescription}>
               Wrap any content with AuthWrapper to protect it. Shows loading state, then auth screen or content.
             </SansSerifText>
           </View>
@@ -323,11 +323,11 @@ function HowItWorksSection() {
 
         <View style={dynamicStyles.stepItem}>
           <View style={[dynamicStyles.stepNumber, { backgroundColor: theme.colors.primary }]}>
-            <SansSerifBoldText style={{ color: theme.colors.primaryForeground, fontSize: 12 }}>2</SansSerifBoldText>
+            <SansSerifBoldText size="sm" style={{ color: theme.colors.primaryForeground }}>2</SansSerifBoldText>
           </View>
           <View style={dynamicStyles.stepContent}>
-            <SansSerifBoldText style={dynamicStyles.stepTitle}>Auth Store (Zustand)</SansSerifBoldText>
-            <SansSerifText style={dynamicStyles.stepDescription}>
+            <SansSerifBoldText size="base" style={dynamicStyles.stepTitle}>Auth Store (Zustand)</SansSerifBoldText>
+            <SansSerifText size="sm" style={dynamicStyles.stepDescription}>
               Centralized state management. Tracks user, auth state, and pending verification.
             </SansSerifText>
           </View>
@@ -335,22 +335,22 @@ function HowItWorksSection() {
 
         <View style={dynamicStyles.stepItem}>
           <View style={[dynamicStyles.stepNumber, { backgroundColor: theme.colors.primary }]}>
-            <SansSerifBoldText style={{ color: theme.colors.primaryForeground, fontSize: 12 }}>3</SansSerifBoldText>
+            <SansSerifBoldText size="sm" style={{ color: theme.colors.primaryForeground }}>3</SansSerifBoldText>
           </View>
           <View style={dynamicStyles.stepContent}>
-            <SansSerifBoldText style={dynamicStyles.stepTitle}>AWS Amplify + Cognito</SansSerifBoldText>
-            <SansSerifText style={dynamicStyles.stepDescription}>
+            <SansSerifBoldText size="base" style={dynamicStyles.stepTitle}>AWS Amplify + Cognito</SansSerifBoldText>
+            <SansSerifText size="sm" style={dynamicStyles.stepDescription}>
               Handles sign in, sign up, email verification, password reset, and token management.
             </SansSerifText>
           </View>
         </View>
 
         <View style={dynamicStyles.codeBlock}>
-          <SansSerifText style={dynamicStyles.codeText}>
+          <MonoText size="sm" style={dynamicStyles.codeText}>
             {`<AuthWrapper>
   <ProtectedContent />
 </AuthWrapper>`}
-          </SansSerifText>
+          </MonoText>
         </View>
       </CardContent>
     </Card>
@@ -400,9 +400,6 @@ const styles = StyleSheet.create({
     borderRadius: spacing.radiusFull,
     gap: spacing.xs,
   },
-  badgeText: {
-    fontSize: 13,
-  },
 });
 
 const createStyles = (theme: Theme) =>
@@ -431,7 +428,6 @@ const createStyles = (theme: Theme) =>
       justifyContent: "space-between",
     },
     stateLabel: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
     },
     infoRow: {
@@ -448,15 +444,12 @@ const createStyles = (theme: Theme) =>
       gap: spacing.xs,
     },
     labelText: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
     },
     infoValue: {
-      fontSize: 14,
       color: theme.colors.foreground,
       flex: 1,
       textAlign: "right",
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     },
     signOutContainer: {
       marginTop: spacing.sm,
@@ -475,13 +468,10 @@ const createStyles = (theme: Theme) =>
       marginLeft: spacing.sm,
     },
     successTitle: {
-      fontSize: 14,
       marginBottom: spacing.xs,
     },
     successMessage: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
-      lineHeight: 18,
     },
     warningBox: {
       flexDirection: "row",
@@ -507,16 +497,11 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusSm,
     },
     historyTitle: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
       marginBottom: spacing.xs,
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
     },
     historyEmpty: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
-      fontStyle: "italic",
     },
     historyItem: {
       flexDirection: "row",
@@ -525,14 +510,10 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing.xs / 2,
     },
     historyTime: {
-      fontSize: 11,
       color: theme.colors.mutedForeground,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     },
     historyState: {
-      fontSize: 12,
       color: theme.colors.foreground,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     },
     stepItem: {
       flexDirection: "row",
@@ -550,14 +531,11 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     stepTitle: {
-      fontSize: 14,
       color: theme.colors.foreground,
       marginBottom: spacing.xs / 2,
     },
     stepDescription: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
-      lineHeight: 18,
     },
     codeBlock: {
       backgroundColor: theme.colors.muted,
@@ -567,10 +545,7 @@ const createStyles = (theme: Theme) =>
       borderColor: theme.colors.border,
     },
     codeText: {
-      fontSize: 12,
       color: theme.colors.foreground,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      lineHeight: 18,
     },
   });
 

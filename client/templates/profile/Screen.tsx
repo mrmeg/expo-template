@@ -145,8 +145,8 @@ export function ProfileScreen({
                   />
                 )}
                 <SansSerifText
+                  fontWeight="medium"
                   style={{
-                    fontWeight: "500",
                     color:
                       action.preset === "outline" || action.preset === "ghost"
                         ? theme.colors.foreground

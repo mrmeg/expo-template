@@ -113,7 +113,7 @@ export function WelcomeScreen({
                     color={theme.colors.foreground}
                     style={{ marginRight: spacing.sm }}
                   />
-                  <SansSerifText style={{ color: theme.colors.foreground, fontWeight: "500" }}>
+                  <SansSerifText fontWeight="medium" style={{ color: theme.colors.foreground }}>
                     {provider.label}
                   </SansSerifText>
                 </Button>
@@ -144,7 +144,7 @@ export function WelcomeScreen({
             fullWidth
             onPress={secondaryAction.onPress}
           >
-            <SansSerifText style={{ color: theme.colors.foreground, fontWeight: "500" }}>
+            <SansSerifText fontWeight="medium" style={{ color: theme.colors.foreground }}>
               {secondaryAction.label}
             </SansSerifText>
           </Button>
@@ -200,9 +200,9 @@ const createStyles = (theme: Theme) =>
       gap: spacing.md,
       paddingVertical: spacing.xs,
     },
+    // Thickness comes from Separator's default `size="sm"` (1px).
     separatorLine: {
       flex: 1,
-      height: 1,
     },
     separatorText: {
       color: theme.colors.mutedForeground,

@@ -71,7 +71,7 @@ export default function ComponentDetailScreen() {
               accessibilityRole="link"
               style={linkPressableStyle(styles.cta)}
             >
-              <SansSerifText style={styles.ctaText}>
+              <SansSerifText semantic="label" style={styles.ctaText}>
                 Back to components
               </SansSerifText>
             </Pressable>
@@ -102,12 +102,12 @@ export default function ComponentDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         <AnimatedView type="fadeSlideUp" delay={0}>
-          <SansSerifBoldText style={styles.title}>{entry.id}</SansSerifBoldText>
-          <SansSerifText style={styles.sub}>
+          <SansSerifBoldText size="xl" style={styles.title}>{entry.id}</SansSerifBoldText>
+          <SansSerifText size="sm" style={styles.sub}>
             {categoryLabel} · iOS / Android / web
           </SansSerifText>
           {detail?.summary && (
-            <SansSerifText style={styles.summary}>{detail.summary}</SansSerifText>
+            <SansSerifText size="base" style={styles.summary}>{detail.summary}</SansSerifText>
           )}
         </AnimatedView>
 
@@ -119,12 +119,12 @@ export default function ComponentDetailScreen() {
             delay={STAGGER_DELAY}
             style={styles.section}
           >
-            <SansSerifText style={styles.sectionLabel}>Variants</SansSerifText>
+            <SansSerifText semantic="eyebrow" style={styles.sectionLabel}>Variants</SansSerifText>
             <View style={styles.variantRow} testID="component-detail-variants">
               {detail.variants.map((variant) => (
                 <View key={variant.label} style={styles.variant}>
                   <View style={styles.variantStage}>{variant.render()}</View>
-                  <SansSerifText style={styles.variantLabel}>
+                  <SansSerifText size="xs" style={styles.variantLabel}>
                     {variant.label}
                   </SansSerifText>
                 </View>
@@ -137,7 +137,7 @@ export default function ComponentDetailScreen() {
             delay={STAGGER_DELAY}
             style={styles.section}
           >
-            <SansSerifText style={styles.sectionLabel}>Preview</SansSerifText>
+            <SansSerifText semantic="eyebrow" style={styles.sectionLabel}>Preview</SansSerifText>
             <View style={styles.previewStage} testID="component-detail-preview">
               {preview}
             </View>
@@ -180,7 +180,7 @@ export default function ComponentDetailScreen() {
               testID="component-detail-full-demo"
               style={linkPressableStyle(styles.cta)}
             >
-              <SansSerifText style={styles.ctaText}>Open full demo</SansSerifText>
+              <SansSerifText semantic="label" style={styles.ctaText}>Open full demo</SansSerifText>
               <Icon
                 name="arrow-right"
                 size={14}
@@ -214,18 +214,13 @@ const createStyles = (theme: Theme) =>
     },
 
     title: {
-      fontSize: 24,
-      letterSpacing: -0.4,
       color: theme.colors.foreground,
     },
     sub: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
       marginTop: spacing.xxs,
     },
     summary: {
-      fontSize: 14,
-      lineHeight: 20,
       color: theme.colors.textDim,
       marginTop: spacing.sm,
     },
@@ -234,9 +229,6 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing.lg,
     },
     sectionLabel: {
-      fontSize: 11,
-      textTransform: "uppercase",
-      letterSpacing: 0.8,
       color: theme.colors.mutedForeground,
       marginBottom: spacing.sm,
     },
@@ -263,7 +255,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.surfaceSunken,
     },
     variantLabel: {
-      fontSize: 11,
       textAlign: "center",
       color: theme.colors.mutedForeground,
     },
@@ -290,8 +281,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.primary,
     },
     ctaText: {
-      fontSize: 14,
-      fontWeight: "500",
       color: theme.colors.primaryForeground,
     },
   });

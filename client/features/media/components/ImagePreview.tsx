@@ -14,8 +14,8 @@ import {
 } from "react-native-safe-area-context";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
-import { spacing, type Theme } from "@mrmeg/expo-ui/constants";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { palette, spacing, type Theme } from "@mrmeg/expo-ui/constants";
+import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 
 interface ImagePreviewProps {
@@ -52,7 +52,7 @@ export function ImagePreview({
         <View style={[styles.header, { paddingTop: topInset }]}>
           <View style={styles.headerContent}>
             {title && (
-              <SansSerifText style={styles.title} numberOfLines={1}>
+              <SansSerifText fontWeight="medium" style={styles.title} numberOfLines={1}>
                 {title}
               </SansSerifText>
             )}
@@ -64,7 +64,7 @@ export function ImagePreview({
             accessibilityRole="button"
             accessibilityLabel="Close image preview"
           >
-            <Icon name="x" size={24} color="white" />
+            <Icon name="x" size={24} color={palette.white} />
           </Pressable>
         </View>
 
@@ -72,7 +72,7 @@ export function ImagePreview({
           {isLoading && !hasError && (
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color="white" />
-              <SansSerifText style={styles.loadingText}>
+              <SansSerifText size="base" style={styles.loadingText}>
                 Loading image…
               </SansSerifText>
             </View>
@@ -84,7 +84,7 @@ export function ImagePreview({
                 Failed to load image
               </SansSerifText>
               <Pressable onPress={onClose} style={styles.errorButton}>
-                <SansSerifText style={styles.errorButtonText}>
+                <SansSerifText size="base" fontWeight="medium" style={styles.errorButtonText}>
                   Close
                 </SansSerifText>
               </Pressable>
@@ -116,7 +116,7 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: "black",
+      backgroundColor: palette.black,
     },
     header: {
       flexDirection: "row",
@@ -124,7 +124,7 @@ const createStyles = (theme: Theme) =>
       justifyContent: "space-between",
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.sm,
-      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      backgroundColor: withAlpha(palette.black, 0.8),
       position: "absolute",
       top: 0,
       left: 0,
@@ -136,14 +136,12 @@ const createStyles = (theme: Theme) =>
       marginRight: spacing.md,
     },
     title: {
-      color: "white",
-      fontSize: 16,
-      fontWeight: "500",
+      color: palette.white,
     },
     closeButton: {
       padding: spacing.xs,
       borderRadius: spacing.radiusFull,
-      backgroundColor: "rgba(255, 255, 255, 0.2)",
+      backgroundColor: withAlpha(palette.white, 0.2),
     },
     previewContainer: {
       flex: 1,
@@ -158,24 +156,22 @@ const createStyles = (theme: Theme) =>
       ...StyleSheet.absoluteFill,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: "black",
+      backgroundColor: palette.black,
       zIndex: 5,
     },
     loadingText: {
-      color: "white",
+      color: palette.white,
       marginTop: spacing.md,
-      fontSize: 14,
     },
     errorOverlay: {
       ...StyleSheet.absoluteFill,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: "black",
+      backgroundColor: palette.black,
       zIndex: 5,
     },
     errorText: {
-      color: "white",
-      fontSize: 16,
+      color: palette.white,
       marginBottom: spacing.md,
     },
     errorButton: {
@@ -186,8 +182,6 @@ const createStyles = (theme: Theme) =>
     },
     errorButtonText: {
       color: theme.colors.primaryForeground,
-      fontSize: 14,
-      fontWeight: "500",
     },
   });
 

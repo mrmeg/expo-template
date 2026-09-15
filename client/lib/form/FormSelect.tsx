@@ -17,7 +17,6 @@ import {
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { fontFamilies } from "@mrmeg/expo-ui/constants";
 import { FormMessage } from "./FormMessage";
 
 interface SelectOption {
@@ -100,10 +99,8 @@ export function FormSelect<
     <View>
       {!!label && (
         <StyledText
+          semantic="label"
           style={{
-            fontFamily: fontFamilies.sansSerif.regular,
-            fontWeight: "500",
-            fontSize: 14,
             color: theme.colors.text,
             marginBottom: spacing.xs,
           }}

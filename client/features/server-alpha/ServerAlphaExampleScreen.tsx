@@ -102,8 +102,8 @@ export default function ServerAlphaExampleScreen() {
           />
         </View>
         <View style={styles.heroText}>
-          <SansSerifBoldText style={styles.title}>{title}</SansSerifBoldText>
-          <SansSerifText style={styles.subtitle}>
+          <SansSerifBoldText semantic="heading" style={styles.title}>{title}</SansSerifBoldText>
+          <SansSerifText size="base" style={styles.subtitle}>
             Route params, a client fetch of the matching API route, and copyable code pointers.
           </SansSerifText>
         </View>
@@ -117,76 +117,84 @@ export default function ServerAlphaExampleScreen() {
             {example.apiPath ? <Badge variant="outline" text="matching API" /> : null}
           </View>
 
-          <Card variant="outline" style={styles.card}>
-            <CardHeader>
-              <CardTitle>Pattern</CardTitle>
-            </CardHeader>
-            <CardContent style={styles.rows}>
-              <InfoRow label="Route" value={example.route} />
-              <InfoRow label="Loader endpoint" value={example.loaderPath ?? "(none)"} />
-              <InfoRow label="API endpoint" value={example.apiPath ?? "(none)"} />
-              <InfoRow label="Pattern" value={example.pattern} />
-              <InfoRow label="Use case" value={example.useCase} />
-            </CardContent>
-          </Card>
+          <View style={styles.card}>
+            <Card variant="outline">
+              <CardHeader>
+                <CardTitle>Pattern</CardTitle>
+              </CardHeader>
+              <CardContent style={styles.rows}>
+                <InfoRow label="Route" value={example.route} />
+                <InfoRow label="Loader endpoint" value={example.loaderPath ?? "(none)"} />
+                <InfoRow label="API endpoint" value={example.apiPath ?? "(none)"} />
+                <InfoRow label="Pattern" value={example.pattern} />
+                <InfoRow label="Use case" value={example.useCase} />
+              </CardContent>
+            </Card>
+          </View>
 
-          <Card variant="outline" style={styles.card}>
-            <CardHeader>
-              <CardTitle>Code Pointers</CardTitle>
-            </CardHeader>
-            <CardContent style={styles.rows}>
-              {example.codePointers.map((pointer) => (
-                <InfoRow key={pointer} label="File" value={pointer} />
-              ))}
-            </CardContent>
-          </Card>
+          <View style={styles.card}>
+            <Card variant="outline">
+              <CardHeader>
+                <CardTitle>Code Pointers</CardTitle>
+              </CardHeader>
+              <CardContent style={styles.rows}>
+                {example.codePointers.map((pointer) => (
+                  <InfoRow key={pointer} label="File" value={pointer} />
+                ))}
+              </CardContent>
+            </Card>
+          </View>
         </>
       ) : state.phase === "ready" ? (
-        <Card variant="outline" style={styles.card}>
-          <CardHeader>
-            <CardTitle>Not Found</CardTitle>
-          </CardHeader>
-          <CardContent style={styles.rows}>
-            <InfoRow label="Requested" value={String(requestedExample ?? "(missing)")} />
-          </CardContent>
-        </Card>
+        <View style={styles.card}>
+          <Card variant="outline">
+            <CardHeader>
+              <CardTitle>Not Found</CardTitle>
+            </CardHeader>
+            <CardContent style={styles.rows}>
+              <InfoRow label="Requested" value={String(requestedExample ?? "(missing)")} />
+            </CardContent>
+          </Card>
+        </View>
       ) : null}
 
-      <Card variant="outline" style={styles.card}>
-        <CardHeader>
-          <CardTitle>Where This Data Comes From</CardTitle>
-        </CardHeader>
-        <CardContent style={styles.rows}>
-          <InfoRow label="Route param" value={String(requestedExample ?? "(missing)")} />
-          <InfoRow label="Fetched from" value={CATALOG_ENDPOINT} />
-          <InfoRow
-            label="Why not a loader"
-            value="A loader payload is a build-time snapshot keyed by the route file, so a param'd route would 404. Params read an API route instead."
-          />
-          {state.phase === "ready" ? (
-            <>
-              <InfoRow label="Served at" value={state.catalog.status.servedAt} />
-              <InfoRow
-                label="Request path"
-                value={state.catalog.status.request.path ?? "(no request)"}
-              />
-              <InfoRow label="Mode" value={state.catalog.status.runtime.mode} />
-            </>
-          ) : null}
-          {state.phase === "loading" ? (
-            <InfoRow label="Status" value="Fetching the catalog…" />
-          ) : null}
-          {state.phase === "failed" ? (
-            <InfoRow label="Fetch failed" value={state.message} />
-          ) : null}
-          {state.phase === "native" ? (
+      <View style={styles.card}>
+        <Card variant="outline">
+          <CardHeader>
+            <CardTitle>Where This Data Comes From</CardTitle>
+          </CardHeader>
+          <CardContent style={styles.rows}>
+            <InfoRow label="Route param" value={String(requestedExample ?? "(missing)")} />
+            <InfoRow label="Fetched from" value={CATALOG_ENDPOINT} />
             <InfoRow
-              label="Status"
-              value="The catalog endpoint is relative, so this card only fills in on the web build."
+              label="Why not a loader"
+              value="A loader payload is a build-time snapshot keyed by the route file, so a param'd route would 404. Params read an API route instead."
             />
-          ) : null}
-        </CardContent>
-      </Card>
+            {state.phase === "ready" ? (
+              <>
+                <InfoRow label="Served at" value={state.catalog.status.servedAt} />
+                <InfoRow
+                  label="Request path"
+                  value={state.catalog.status.request.path ?? "(no request)"}
+                />
+                <InfoRow label="Mode" value={state.catalog.status.runtime.mode} />
+              </>
+            ) : null}
+            {state.phase === "loading" ? (
+              <InfoRow label="Status" value="Fetching the catalog…" />
+            ) : null}
+            {state.phase === "failed" ? (
+              <InfoRow label="Fetch failed" value={state.message} />
+            ) : null}
+            {state.phase === "native" ? (
+              <InfoRow
+                label="Status"
+                value="The catalog endpoint is relative, so this card only fills in on the web build."
+              />
+            ) : null}
+          </CardContent>
+        </Card>
+      </View>
     </ScrollView>
   );
 }
@@ -197,8 +205,8 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
   return (
     <View style={styles.row}>
-      <SansSerifText style={styles.rowLabel}>{label}</SansSerifText>
-      <SansSerifText style={styles.rowValue}>{value}</SansSerifText>
+      <SansSerifText semantic="eyebrow" style={styles.rowLabel}>{label}</SansSerifText>
+      <SansSerifText size="base" style={styles.rowValue}>{value}</SansSerifText>
     </View>
   );
 }
@@ -233,20 +241,20 @@ const createStyles = (theme: Theme) =>
     },
     title: {
       color: theme.colors.foreground,
-      fontSize: 22,
     },
     subtitle: {
       color: theme.colors.mutedForeground,
-      fontSize: 14,
-      lineHeight: 20,
     },
     badges: {
       flexDirection: "row",
       flexWrap: "wrap",
       gap: spacing.xs,
     },
+    // Card owns its surface colors through `variant`, so the card fill lives on
+    // a wrapper around an `outline` card and matches the Card's own radius.
     card: {
       backgroundColor: theme.colors.card,
+      borderRadius: spacing.radiusLg,
     },
     rows: {
       gap: spacing.sm,
@@ -259,13 +267,9 @@ const createStyles = (theme: Theme) =>
     },
     rowLabel: {
       color: theme.colors.mutedForeground,
-      fontSize: 12,
-      textTransform: "uppercase",
     },
     rowValue: {
       color: theme.colors.foreground,
-      fontSize: 14,
-      lineHeight: 20,
     },
   });
 

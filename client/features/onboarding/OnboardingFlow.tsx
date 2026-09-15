@@ -156,7 +156,7 @@ export function OnboardingFlow({
       <View testID="onboarding-icon" style={styles.iconContainer}>
         <Icon name={item.icon} size={80} color={theme.colors.accent} />
       </View>
-      <SansSerifBoldText testID="onboarding-title" style={styles.pageTitle}>{item.title}</SansSerifBoldText>
+      <SansSerifBoldText semantic="title" testID="onboarding-title" style={styles.pageTitle}>{item.title}</SansSerifBoldText>
       <SansSerifText testID="onboarding-description" style={styles.pageDescription}>{item.description}</SansSerifText>
     </View>
   );
@@ -270,7 +270,6 @@ const createStyles = (theme: Theme) =>
       minHeight: 44,
     },
     skipText: {
-      fontSize: 16,
       color: theme.colors.mutedForeground,
     },
     page: {
@@ -291,16 +290,11 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.xl,
     },
     pageTitle: {
-      fontSize: 28,
-      lineHeight: 34,
-      letterSpacing: -0.5,
       color: theme.colors.foreground,
       textAlign: "center",
       marginBottom: spacing.sm,
     },
     pageDescription: {
-      fontSize: 16,
-      lineHeight: 24,
       color: theme.colors.mutedForeground,
       textAlign: "center",
       maxWidth: 300,

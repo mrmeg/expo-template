@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { fontFamilies } from "@mrmeg/expo-ui/constants";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
 
 interface SubSectionProps {
   label?: string;
@@ -10,10 +10,12 @@ interface SubSectionProps {
 }
 
 export function SubSection({ label, children }: SubSectionProps) {
+  const { theme } = useTheme();
+
   return (
     <View style={styles.subSection}>
       {label && (
-        <StyledText style={styles.subSectionLabel}>
+        <StyledText semantic="caption" style={[styles.subSectionLabel, { color: theme.colors.textDim }]}>
           {label}
         </StyledText>
       )}
@@ -27,9 +29,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   subSectionLabel: {
-    fontSize: 12,
-    fontFamily: fontFamilies.sansSerif.regular,
-    opacity: 0.7,
     marginBottom: spacing.xs,
   },
 });
