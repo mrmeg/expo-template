@@ -106,6 +106,7 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run lint` | `expo lint` (ESLint flat config; lints `app/` only by default — pass paths to widen) |
 | `bun lint:ui` | Design-system rules only, over `app`, `client`, `shared`; `--changed` for touched files, `--doctor` to check wiring — see [`packages/lint/README.md`](packages/lint/README.md) |
+| `bun run lint:release` | Release `@mrmeg/eslint-plugin-expo-ui`: version bump, the `lint:typecheck`/`test`/`build`/`pack`/`consumer-smoke` gates, `--publish` to push it — see [`packages/lint/README.md`](packages/lint/README.md#release) |
 | `bun run verify` | Every CI `validate` gate locally, in CI order |
 | `bun run test:ci` | `jest --ci --coverage --forceExit` |
 | `bun run e2e` | Maestro native smoke suite — see `docs/e2e.md` |
@@ -315,6 +316,12 @@ manually with `version=patch` and `ref=main`; manual runs bump the version, run
 the package gates, commit the bump, and publish through npm OIDC — no npm token
 or local auth email.
 
+`.github/workflows/publish-lint.yml` does the same for
+`@mrmeg/eslint-plugin-expo-ui`, and `publish-media.yml` for `@mrmeg/expo-media`.
+The lint one is `workflow_dispatch` only until its first release exists on npm —
+a package npm does not have yet cannot be set up for trusted publishing, so that
+first run needs an `NPM_TOKEN` secret.
+
 Full design system: `packages/ui/README.md`.
 
 ### Design-system lint
@@ -334,10 +341,14 @@ all three: `--changed` lints touched files, `--doctor` checks the wiring, and
 
 Where a rule is genuinely wrong for one line, disable it with a reason —
 `// eslint-disable-next-line expo-ui/no-restyle -- reason` — never bare.
-Adopting the plugin in another project is covered in
-[`packages/lint/README.md`](packages/lint/README.md); note that the rules parse
-the design system's TypeScript sources at lint time, and the published
-`@mrmeg/expo-ui` tarball does not ship them today.
+
+Another project adopts the plugin with
+`bun add -d @mrmeg/eslint-plugin-expo-ui` alongside `@mrmeg/expo-ui`: with no
+design-system sources on disk, the rules read the `design-system.json` manifest
+the UI package's build ships, so the messages quote the presets and tokens of the
+installed release. Config block, settings, and the resolution order are in
+[`packages/lint/README.md`](packages/lint/README.md). Here the rules read
+`packages/ui/src` directly.
 
 ## Billing (Stripe, hosted-external)
 

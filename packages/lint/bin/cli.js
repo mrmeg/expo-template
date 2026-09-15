@@ -17,8 +17,8 @@ const path = require("node:path");
 const { ESLint } = require("eslint");
 
 const plugin = require("../index.js");
-const { DEFAULT_UI_SOURCE_DIR, resolveUiSourceDir } = require("../lib/settings.js");
-const { loadDesignSystem } = require("../lib/source.js");
+const { resolveOrigin } = require("../lib/settings.js");
+const { designSystemNotFoundMessage, loadDesignSystemFor } = require("../lib/source.js");
 
 const RULE_PREFIX = "expo-ui/";
 const RULE_NAMES = ["no-raw-colors", "no-arbitrary-values", "no-restyle", "no-raw-primitives"];
@@ -62,9 +62,10 @@ Options:
   --base <ref>      Base ref for --changed (default: origin/dev, else dev)
   --rules           List the design-system rules and what each catches
   --clear-cache     Delete .expo/cache/eslint (the expo lint result cache)
-  --doctor [file]   Check the plugin, the config wiring, and the design system.
-                    Reads the config off the first path given, or off a .tsx
-                    file under app/ when no path is named
+  --doctor [file]   Check the plugin, the config wiring, and the design system —
+                    sources on disk, or the manifest an installed @mrmeg/expo-ui
+                    ships. Reads the config off the first path given, or off a
+                    .tsx file under app/ when no path is named
   -h, --help        Show this help
 
 Exit codes:
@@ -399,15 +400,15 @@ async function doctor(cwd, requestedSample = null) {
     );
   }
 
-  // 3. The design system the messages quote, resolved the way the rules resolve it.
-  const configured =
-    (config && config.settings && config.settings["expo-ui"] && config.settings["expo-ui"].uiSourceDir) ||
-    DEFAULT_UI_SOURCE_DIR;
-  const uiSourceDir = resolveUiSourceDir(configured, [cwd, sample ? path.dirname(sample) : cwd]);
-  if (!isDirectory(uiSourceDir)) {
-    report(false, `design system: \`${configured}\` did not resolve to a directory (tried ${uiSourceDir})`);
+  // 3. The design system the messages quote, resolved the way the rules resolve
+  // it — sources, a configured manifest, or an installed package's manifest.
+  const rawSettings = (config && config.settings && config.settings["expo-ui"]) || {};
+  const origin = resolveOrigin({ rawSettings, cwd, filename: sample || "" });
+  const settings = { origin, uiSourceDir: origin.uiSourceDir || origin.path || "" };
+  const design = loadDesignSystemFor(settings);
+  if (!design.loaded) {
+    report(false, `design system: ${designSystemNotFoundMessage(settings, design)}`);
   } else {
-    const design = loadDesignSystem(uiSourceDir);
     const counts = {
       spacing: design.tokens.spacing.entries.length,
       palette: Object.keys(design.palette).length,
@@ -419,8 +420,8 @@ async function doctor(cwd, requestedSample = null) {
       .map(([name, count]) => `${count} ${name}`)
       .join(", ");
     report(
-      design.loaded && Object.values(counts).every((count) => count > 0),
-      `design system: ${uiSourceDir} — ${summary}`,
+      Object.values(counts).every((count) => count > 0),
+      `design system: ${describeOrigin(design.origin)} — ${summary}`,
     );
   }
 
@@ -556,15 +557,21 @@ function readJson(file) {
 }
 
 /**
- * @param {string} dir
- * @returns {boolean}
+ * @param {import("../lib/settings.js").DesignSystemOrigin} origin the loaded one,
+ *   which carries the manifest's package and version
+ * @returns {string}
  */
-function isDirectory(dir) {
-  try {
-    return fs.statSync(dir).isDirectory();
-  } catch {
-    return false;
+function describeOrigin(origin) {
+  if (origin && origin.kind === "manifest") {
+    // A hand-edited manifest can hold anything here; an object interpolated raw
+    // would print `[object Object]` in a line the reader trusts.
+    const name =
+      typeof origin.package === "string" && origin.package ? origin.package : "unknown package";
+    const version =
+      typeof origin.version === "string" && origin.version ? origin.version : "unknown version";
+    return `manifest ${name}@${version} at ${origin.path}`;
   }
+  return `sources at ${origin ? origin.path : "unknown"}`;
 }
 
 /**

@@ -9,11 +9,11 @@
  * so those live in the `PACKAGES` table below.
  *
  * Usage:
- *   node scripts/check-package-consumer.mjs <ui|media>
+ *   node scripts/check-package-consumer.mjs <ui|media|lint>
  */
-import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 function run(command, args, options = {}) {
@@ -24,6 +24,31 @@ function run(command, args, options = {}) {
 
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} failed with status ${result.status}`);
+  }
+}
+
+/**
+ * A `run` step, with `expectStdout` when what the command printed is the check —
+ * `--doctor` exits 0 whether it read a manifest or a source tree, so the line it
+ * printed is the only proof of which.
+ */
+function runStep(step, cwd) {
+  if (!step.expectStdout) {
+    run(step.command, step.args, { cwd });
+    return;
+  }
+
+  const result = spawnSync(step.command, step.args, { cwd, encoding: "utf8" });
+  process.stdout.write(result.stdout ?? "");
+  process.stderr.write(result.stderr ?? "");
+
+  if (result.status !== 0) {
+    throw new Error(`${step.command} ${step.args.join(" ")} failed with status ${result.status}`);
+  }
+  if (!(result.stdout ?? "").includes(step.expectStdout)) {
+    throw new Error(
+      `${step.command} ${step.args.join(" ")} never printed ${JSON.stringify(step.expectStdout)}`
+    );
   }
 }
 
@@ -222,10 +247,105 @@ const MEDIA_INDEX_TSX = [
   "",
 ].join("\n");
 
+const LINT_FIXTURE_TSX = [
+  "import { Text } from \"react-native\";",
+  "import { Slider } from \"@expo/ui/community/slider\";",
+  "import { Button } from \"@mrmeg/expo-ui\";",
+  "",
+  "export default function Fixture() {",
+  "  return <Button style={{ backgroundColor: \"#f00\", padding: 13 }} />;",
+  "}",
+  "",
+].join("\n");
+
+const LINT_ESLINT_CONFIG_MJS = [
+  "import parser from \"@typescript-eslint/parser\";",
+  "import expoUi from \"@mrmeg/eslint-plugin-expo-ui\";",
+  "",
+  "export default [",
+  "  {",
+  "    // `app/**` is here for `--doctor`, whose smoke fixture claims to live at",
+  "    // app/__expo_ui_doctor__.tsx: a src-only glob would leave it unconfigured.",
+  "    files: [\"src/**/*.tsx\", \"app/**/*.tsx\"],",
+  "    ...expoUi.configs.recommended,",
+  "    languageOptions: {",
+  "      parser,",
+  "      parserOptions: { ecmaFeatures: { jsx: true } },",
+  "    },",
+  "    settings: {",
+  "      ...expoUi.configs.recommended.settings,",
+  "      // No design-system sources in a consumer: the rules must fall through to",
+  "      // the manifest the installed @mrmeg/expo-ui ships.",
+  "      \"expo-ui\": { uiSourceDir: \"/nonexistent/dir\" },",
+  "    },",
+  "  },",
+  "];",
+  "",
+].join("\n");
+
+const LINT_RUNTIME_CJS = [
+  "const assert = require(\"node:assert/strict\");",
+  "const { ESLint } = require(\"eslint\");",
+  "",
+  "const plugin = require(\"@mrmeg/eslint-plugin-expo-ui\");",
+  "",
+  "// The counts the four rules report on src/fixture.tsx: a raw color, an",
+  "// off-scale padding, two restyles of Button, and two raw primitives.",
+  "const EXPECTED = {",
+  "  \"expo-ui/no-raw-colors\": 1,",
+  "  \"expo-ui/no-arbitrary-values\": 1,",
+  "  \"expo-ui/no-restyle\": 2,",
+  "  \"expo-ui/no-raw-primitives\": 2,",
+  "};",
+  "",
+  "async function main() {",
+  "  assert.deepEqual(Object.keys(plugin.rules).sort(), [",
+  "    \"no-arbitrary-values\",",
+  "    \"no-raw-colors\",",
+  "    \"no-raw-primitives\",",
+  "    \"no-restyle\",",
+  "  ]);",
+  "",
+  "  const eslint = new ESLint({ cwd: __dirname, cache: false });",
+  "  const [result] = await eslint.lintFiles([\"src/fixture.tsx\"]);",
+  "  const counts = {};",
+  "  for (const rule of Object.keys(EXPECTED)) counts[rule] = 0;",
+  "  for (const message of result.messages) {",
+  "    if (message.ruleId in counts) counts[message.ruleId] += 1;",
+  "    else throw new Error(`Unexpected ${message.ruleId} message: ${message.message}`);",
+  "  }",
+  "  assert.deepEqual(counts, EXPECTED, `Unexpected rule counts: ${JSON.stringify(counts)}`);",
+  "",
+  "  // The messages must name the installed package, not this repo's source tree:",
+  "  // that is the manifest label doing its job.",
+  "  const labelled = result.messages.filter((message) =>",
+  "    message.message.includes(\"`@mrmeg/expo-ui/components/Button.tsx`\"),",
+  "  );",
+  "  assert.ok(",
+  "    labelled.length > 0,",
+  "    `No message named @mrmeg/expo-ui/components/Button.tsx: ${JSON.stringify(",
+  "      result.messages.map((message) => message.message),",
+  "      null,",
+  "      2,",
+  "    )}`,",
+  "  );",
+  "  console.log(`lint consumer: rules reported ${result.messages.length} messages, manifest-labelled`);",
+  "}",
+  "",
+  "main().catch((error) => {",
+  "  console.error(error);",
+  "  process.exit(1);",
+  "});",
+  "",
+].join("\n");
+
 /**
- * Per-package fixtures. `files` receives `{ tarball, rootPackage, manifest,
- * peerDependencies }` and returns the fixture's files keyed by relative path.
- * `steps` run after `bun install` in fixture order.
+ * Per-package fixtures. `files` receives `{ tarball, extraTarballs, rootPackage,
+ * manifest, peerDependencies }` and returns the fixture's files keyed by relative
+ * path. `steps` run after `bun install` in fixture order. `extraPackages` maps a
+ * name to another workspace package directory, which is built and packed too and
+ * arrives in `extraTarballs` under that name — the lint plugin's fixture needs the
+ * UI tarball, because the manifest it reads ships inside it.
  */
 const PACKAGES = {
   ui: {
@@ -242,8 +362,13 @@ const PACKAGES = {
       { entrypoint: "@mrmeg/expo-ui/state", key: "./state", wildcardReplacement: "" },
       { entrypoint: "@mrmeg/expo-ui/state/globalUIStore", key: "./state/*", wildcardReplacement: "globalUIStore" },
       { entrypoint: "@mrmeg/expo-ui/lib", key: "./lib", wildcardReplacement: "" },
+      {
+        entrypoint: "@mrmeg/expo-ui/design-system.json",
+        key: "./design-system.json",
+        wildcardReplacement: "",
+      },
     ],
-    requiredDocs: [],
+    requiredDocs: ["dist/design-system.json"],
     fixtures: [
       {
         prefix: "expo-ui-consumer-",
@@ -296,6 +421,25 @@ const PACKAGES = {
           { kind: "assert-surface" },
           { kind: "run", command: "bun", args: ["x", "tsc", "--noEmit"] },
           { kind: "run", command: "node", args: ["runtime-check.mjs"] },
+          {
+            // The lint plugin reads this file out of an installed release, so the
+            // tarball must carry a manifest this plugin's schema version accepts.
+            kind: "run",
+            command: "node",
+            args: [
+              "-e",
+              [
+                'const manifest = require("@mrmeg/expo-ui/design-system.json");',
+                "if (manifest.schemaVersion !== 1) {",
+                "  throw new Error(`design-system.json schemaVersion ${manifest.schemaVersion} !== 1`);",
+                "}",
+                "if (!Array.isArray(manifest.components) || manifest.components.length === 0) {",
+                '  throw new Error("design-system.json lists no components");',
+                "}",
+                "console.log(`design-system.json: ${manifest.components.length} components`);",
+              ].join("\n"),
+            ],
+          },
           { kind: "expo-export", platform: "ios", outputDirName: "ui-consumer-ios-export" },
         ],
       },
@@ -411,6 +555,66 @@ const PACKAGES = {
       },
     ],
   },
+  lint: {
+    dir: "packages/lint",
+    packageName: "@mrmeg/eslint-plugin-expo-ui",
+    // The plugin is plain CommonJS with no `exports` map: `assert-surface` has
+    // nothing to index, so the shipped files are listed as docs instead.
+    exportChecks: [],
+    requiredDocs: [
+      "index.js",
+      "bin/cli.js",
+      "lib/manifest.js",
+      "rules/no-restyle.js",
+      "README.md",
+      "CHANGELOG.md",
+    ],
+    fixtures: [
+      {
+        prefix: "expo-ui-lint-consumer-",
+        // The UI tarball's peers (react, react-native, expo, …) are irrelevant to
+        // reading its manifest, and installing them would double the fixture's
+        // install for nothing.
+        extraPackages: { ui: "packages/ui" },
+        install: ["install", "--omit", "peer"],
+        files: ({ tarball, extraTarballs, rootPackage, peerDependencies }) => ({
+          "package.json": json({
+            name: "expo-ui-lint-consumer-smoke",
+            private: true,
+            dependencies: {
+              "@mrmeg/eslint-plugin-expo-ui": tarball,
+              // The packed tarball, not the root manifest's `workspace:*`: this
+              // fixture is outside the workspace.
+              "@mrmeg/expo-ui": extraTarballs.ui,
+              ...peerDependencies,
+              // `@typescript-eslint/parser` peer-depends on typescript, and this
+              // fixture omits peers, so it has to be asked for by name.
+              typescript: rootPackage.devDependencies.typescript,
+            },
+          }),
+          "eslint.config.mjs": LINT_ESLINT_CONFIG_MJS,
+          "src/fixture.tsx": LINT_FIXTURE_TSX,
+          "runtime.cjs": LINT_RUNTIME_CJS,
+        }),
+        steps: [
+          { kind: "assert-surface" },
+          { kind: "run", command: "node", args: ["runtime.cjs"] },
+          {
+            // The doctor is the consumer's own diagnosis: it must name the
+            // manifest it read, not a source tree that does not exist here.
+            kind: "run",
+            command: "node",
+            args: [
+              "node_modules/@mrmeg/eslint-plugin-expo-ui/bin/cli.js",
+              "--doctor",
+              "src/fixture.tsx",
+            ],
+            expectStdout: "manifest @mrmeg/expo-ui@",
+          },
+        ],
+      },
+    ],
+  },
 };
 
 const packageNames = Object.keys(PACKAGES).sort();
@@ -421,7 +625,7 @@ if (!target) {
   console.error(
     `check-package-consumer: unknown package "${packageName ?? ""}". Expected one of: ${packageNames.join(", ")}`
   );
-  console.error("Usage: node scripts/check-package-consumer.mjs <ui|media>");
+  console.error("Usage: node scripts/check-package-consumer.mjs <ui|media|lint>");
   process.exit(1);
 }
 
@@ -449,14 +653,29 @@ async function assertInstalledPackageSurface(fixtureRoot) {
 const root = process.cwd();
 const fixtureRoots = [];
 const exportOutputs = [];
-let tarball;
+/** Packed tarballs by package directory, so each one is built and packed once. */
+const tarballs = new Map();
+
+/**
+ * @param {string} dir a workspace package directory, repo-relative
+ * @returns {Promise<string>} absolute path to the packed tarball
+ */
+async function packWorkspacePackage(dir) {
+  const existing = tarballs.get(dir);
+  if (existing) return existing;
+
+  const manifest = await readJson(join(root, dir, "package.json"));
+  run("bun", ["run", "--cwd", dir, "build"], { cwd: root });
+  run("bun", ["pm", "pack"], { cwd: join(root, dir) });
+  const tarball = join(root, dir, tarballNameForPackage(manifest.name, manifest.version));
+  tarballs.set(dir, tarball);
+  return tarball;
+}
 
 try {
   const manifest = await readJson(join(root, target.dir, "package.json"));
   const rootPackage = await readJson(join(root, "package.json"));
-  run("bun", ["run", "--cwd", target.dir, "build"], { cwd: root });
-  run("bun", ["pm", "pack"], { cwd: join(root, target.dir) });
-  tarball = join(root, target.dir, tarballNameForPackage(manifest.name, manifest.version));
+  const tarball = await packWorkspacePackage(target.dir);
 
   const peerDependencies = Object.fromEntries(
     Object.keys(manifest.peerDependencies ?? {}).map((name) => [
@@ -469,9 +688,17 @@ try {
     const fixtureRoot = await mkdtemp(join(tmpdir(), fixture.prefix));
     fixtureRoots.push(fixtureRoot);
 
-    const files = fixture.files({ tarball, rootPackage, manifest, peerDependencies });
+    /** @type {Record<string, string>} */
+    const extraTarballs = {};
+    for (const [name, dir] of Object.entries(fixture.extraPackages ?? {})) {
+      extraTarballs[name] = await packWorkspacePackage(dir);
+    }
+
+    const files = fixture.files({ tarball, extraTarballs, rootPackage, manifest, peerDependencies });
     for (const [name, contents] of Object.entries(files)) {
-      await writeFile(join(fixtureRoot, name), contents);
+      const file = join(fixtureRoot, name);
+      await mkdir(dirname(file), { recursive: true });
+      await writeFile(file, contents);
     }
 
     run("bun", fixture.install, { cwd: fixtureRoot });
@@ -480,7 +707,7 @@ try {
       if (step.kind === "assert-surface") {
         await assertInstalledPackageSurface(fixtureRoot);
       } else if (step.kind === "run") {
-        run(step.command, step.args, { cwd: fixtureRoot });
+        runStep(step, fixtureRoot);
       } else if (step.kind === "expo-export") {
         const outputDir = join(tmpdir(), step.outputDirName);
         exportOutputs.push(outputDir);
@@ -494,7 +721,9 @@ try {
     }
   }
 } finally {
-  if (tarball) await rm(tarball, { force: true });
+  for (const tarball of tarballs.values()) {
+    await rm(tarball, { force: true });
+  }
   for (const outputDir of exportOutputs) {
     await rm(outputDir, { recursive: true, force: true });
   }

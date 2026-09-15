@@ -15,8 +15,11 @@ const ruleTester = new RuleTester({
 const IMPORT =
   'import { Button, Card, StyledText, BodyText, SansSerifBoldText, ItemTitle, Label, AnimatedView, BottomSheet, TextInput } from "@mrmeg/expo-ui/components";\n';
 
+// A configured manifest that is not there: an unreadable design system that
+// stays unreadable wherever this runs, unlike a missing directory, which can
+// still fall through to an installed package's manifest.
 const NOT_FOUND =
-  'Design-system sources were not found at `/nonexistent/dir`; the expo-ui rules need `packages/ui/src` (or `settings["expo-ui"].uiSourceDir`) to point at the @mrmeg/expo-ui sources.';
+  "Design-system manifest could not be read at `/nonexistent/design-system.json`: no file at that path.";
 
 ruleTester.run("no-restyle", rule, {
   valid: [
@@ -252,7 +255,7 @@ ruleTester.run("no-restyle", rule, {
       // A design system that cannot be read is reported once per file, not
       // silently ignored.
       code: IMPORT + "const x = <Button />;",
-      settings: { "expo-ui": { uiSourceDir: "/nonexistent/dir" } },
+      settings: { "expo-ui": { manifestPath: "/nonexistent/design-system.json" } },
       errors: [{ message: NOT_FOUND }],
     },
   ],

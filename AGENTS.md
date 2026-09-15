@@ -27,7 +27,7 @@ unless the user asks for a plan.
 | Media Worker Migration | [`docs/media-worker-migration.md`](docs/media-worker-migration.md) | Shared media Worker contract, consumer migration checklists, legacy-worker teardown |
 | UI Package | [`packages/ui/README.md`](packages/ui/README.md) | `@mrmeg/expo-ui` install, setup, components, theming, publishing |
 | Media Package | [`packages/media/README.md`](packages/media/README.md) | `@mrmeg/expo-media` install, setup, processing, server handlers |
-| Lint Package | [`packages/lint/README.md`](packages/lint/README.md) | `@mrmeg/eslint-plugin-expo-ui` rules, CLI (`bun lint:ui`), settings, style contracts, adoption in other projects, troubleshooting |
+| Lint Package | [`packages/lint/README.md`](packages/lint/README.md) | `@mrmeg/eslint-plugin-expo-ui` rules, CLI (`bun lint:ui`), settings, style contracts, adoption in other projects, troubleshooting, release |
 
 ### Tech Stack
 
@@ -39,7 +39,7 @@ unless the user asks for a plan.
 | Language | TypeScript 6 strict | Path alias `@/*` points at repo root |
 | UI | `@mrmeg/expo-ui` workspace package | RN primitives, design tokens, theme state, reusable components |
 | Media | `@mrmeg/expo-media` workspace package | Client hooks, processing helpers, S3/R2 server handlers |
-| Lint | `@mrmeg/eslint-plugin-expo-ui` workspace package | Design-system ESLint rules; `bun lint:ui` for `app`, `client`, `shared`; reads `packages/ui/src` at lint time |
+| Lint | `@mrmeg/eslint-plugin-expo-ui` workspace package | Design-system ESLint rules; `bun lint:ui` for `app`, `client`, `shared`; published alongside `@mrmeg/expo-ui`; reads `packages/ui/src` here and `dist/design-system.json` in consumers |
 | State/data | Zustand 5, TanStack React Query 5 | Persisted client stores; query defaults in app providers |
 | Auth | Clerk or AWS Amplify/Cognito | Optional; env-selected (Clerk publishable key, or both Cognito vars; Cognito wins if both) behind a shared `AuthClient`/`TokenVerifier` |
 | Billing | Stripe hosted-external baseline | Optional; disabled unless Stripe/server env is configured |

@@ -3,6 +3,19 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **The build emits a design-system manifest.** `dist/design-system.json`
+  (`schemaVersion: 1`) carries the spacing, radius and icon scales, the palette,
+  the theme colors, the font variants, and every component's variant and size
+  values, exported as `@mrmeg/expo-ui/design-system.json`.
+  `@mrmeg/eslint-plugin-expo-ui` loads it when the design-system sources are not
+  on disk, so the design-system rules work against an installed release instead
+  of only inside the template repo. Adding an export means the next release is a
+  minor bump.
+
 ## [0.24.0]
 
 ### Fixed

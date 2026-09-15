@@ -11,7 +11,7 @@ const { compileContracts, decide, denialMessage } = require("../lib/contracts");
 const { readSettings } = require("../lib/settings");
 const {
   DESIGN_SYSTEM_MISSING_MESSAGES,
-  loadDesignSystem,
+  loadDesignSystemFor,
   reportMissingDesignSystem,
 } = require("../lib/source");
 const { resolveStyleEntries } = require("../lib/styles");
@@ -55,7 +55,7 @@ module.exports = {
 
   create(context) {
     const settings = readSettings(context);
-    const design = loadDesignSystem(settings.uiSourceDir);
+    const design = loadDesignSystemFor(settings);
     const options = context.options[0] || {};
     const contracts = compileContracts(options.contracts);
     // A shared sheet property can be reached from several elements and several
@@ -65,7 +65,7 @@ module.exports = {
     const reported = new Set();
 
     return {
-      Program: reportMissingDesignSystem(context, design, settings.uiSourceDir),
+      Program: reportMissingDesignSystem(context, design, settings),
 
       JSXAttribute(node) {
         if (!node.name || node.name.type !== "JSXIdentifier") return;

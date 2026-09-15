@@ -13,6 +13,13 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 /**
+ * Duplicated from `lib/settings.js` on purpose: `settings.js` reaches this file
+ * through `lib/manifest.js`, so requiring it back would be a cycle. Only the
+ * not-found text uses it, as a last-resort name for the directory.
+ */
+const DEFAULT_UI_SOURCE_DIR = "packages/ui/src";
+
+/**
  * @typedef {object} TokenGroup
  * @property {{name: string, value: number}[]} entries source-ordered tokens
  * @property {number[]} values de-duplicated, ascending
@@ -39,6 +46,8 @@ const path = require("node:path");
  * @property {Record<string, {paletteKey: string | null, value: string | null}>} darkTheme
  * @property {string[] | null} fontVariants the `FontVariant` union, or null
  * @property {Map<string, ComponentInfo>} components
+ * @property {import("./settings").DesignSystemOrigin | null} origin where these
+ *   facts came from; `origin.error` says why an empty one is empty
  */
 
 const SPACING_FILE = path.join("constants", "spacing.ts");
@@ -146,6 +155,7 @@ function emptyDesignSystem() {
     darkTheme: {},
     fontVariants: null,
     components: new Map(),
+    origin: null,
   };
 }
 
@@ -177,22 +187,55 @@ function loadDesignSystem(uiSourceDir) {
   } catch {
     data = emptyDesignSystem();
   }
+  data.origin = { kind: "source", path: uiSourceDir };
   cache.set(uiSourceDir, { signature, checkedAt: now, data });
   return data;
 }
 
 /**
- * The design system is missing, not just partly unreadable: every fact the
- * rules quote is unknown, so the messages name where the sources are expected
- * instead of pretending to lint against them.
+ * Loads the facts the resolved origin points at. The manifest loader is required
+ * lazily: `lib/manifest.js` needs `emptyDesignSystem` from this file, and a
+ * top-level require here would make that a cycle.
  *
- * @param {string} uiSourceDir the absolute path that was searched
+ * @param {import("./settings").Settings} settings
+ * @returns {DesignSystem}
+ */
+function loadDesignSystemFor(settings) {
+  const origin = (settings && settings.origin) || null;
+  if (!origin || origin.kind === "none") return emptyDesignSystem();
+  if (origin.kind === "source") return loadDesignSystem(origin.path);
+  const { loadDesignSystemFromManifest } = require("./manifest");
+  return loadDesignSystemFromManifest(origin.path);
+}
+
+/**
+ * The design system is missing, not just partly unreadable: every fact the
+ * rules quote is unknown, so the message names what was looked for instead of
+ * pretending to lint against it.
+ *
+ * A configured manifest that could not be read gets its own text: the project
+ * said where the facts are, so the reason it failed is the useful part. A
+ * `source` origin that parsed nothing lands on the not-found text too — the
+ * directory exists but holds no design system, which is the same dead end.
+ *
+ * @param {import("./settings").Settings} settings
+ * @param {DesignSystem} [design] what the loader returned, for its `origin.error`
  * @returns {string}
  */
-function designSystemNotFoundMessage(uiSourceDir) {
+function designSystemNotFoundMessage(settings, design) {
+  const origin = (settings && settings.origin) || { kind: "none" };
+  if (origin.kind === "manifest") {
+    const reason =
+      (design && design.origin && design.origin.error) || "the manifest could not be read";
+    return `Design-system manifest could not be read at \`${origin.path}\`: ${reason}.`;
+  }
+  const uiSourceDir =
+    origin.uiSourceDir || origin.path || (settings && settings.uiSourceDir) || DEFAULT_UI_SOURCE_DIR;
   return (
-    `Design-system sources were not found at \`${uiSourceDir}\`; the expo-ui rules need ` +
-    "`packages/ui/src` (or `settings[\"expo-ui\"].uiSourceDir`) to point at the @mrmeg/expo-ui sources."
+    `Design-system facts were not found: no sources at \`${uiSourceDir}\` and no manifest ` +
+    "resolvable as `@mrmeg/expo-ui/design-system.json`. Install an @mrmeg/expo-ui release that " +
+    "ships the manifest, or set `settings[\"expo-ui\"].uiSourceDir` or " +
+    "`settings[\"expo-ui\"].manifestPath`."
   );
 }
 
@@ -209,16 +252,16 @@ const DESIGN_SYSTEM_MISSING_MESSAGES = { designSystemMissing: "{{message}}" };
  *
  * @param {import("eslint").Rule.RuleContext} context
  * @param {DesignSystem} design
- * @param {string} uiSourceDir
+ * @param {import("./settings").Settings} settings
  * @returns {(node: object) => void}
  */
-function reportMissingDesignSystem(context, design, uiSourceDir) {
+function reportMissingDesignSystem(context, design, settings) {
   return (node) => {
     if (design.loaded) return;
     context.report({
       node,
       messageId: "designSystemMissing",
-      data: { message: designSystemNotFoundMessage(uiSourceDir) },
+      data: { message: designSystemNotFoundMessage(settings, design) },
     });
   };
 }
@@ -825,7 +868,8 @@ module.exports = {
   DESIGN_SYSTEM_MISSING_MESSAGES,
   designSystemNotFoundMessage,
   loadDesignSystem,
+  loadDesignSystemFor,
   reportMissingDesignSystem,
-  // exported for tests
+  // exported for tests and for `lib/manifest.js`
   emptyDesignSystem,
 };

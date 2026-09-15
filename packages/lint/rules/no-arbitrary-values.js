@@ -8,7 +8,7 @@ const { RADIUS_SCALE_KEYS, SPACING_SCALE_KEYS } = require("../lib/categories");
 const { readSettings } = require("../lib/settings");
 const {
   DESIGN_SYSTEM_MISSING_MESSAGES,
-  loadDesignSystem,
+  loadDesignSystemFor,
   reportMissingDesignSystem,
 } = require("../lib/source");
 
@@ -78,11 +78,11 @@ module.exports = {
 
   create(context) {
     const settings = readSettings(context);
-    const design = loadDesignSystem(settings.uiSourceDir);
+    const design = loadDesignSystemFor(settings);
     const sourceCode = context.sourceCode || context.getSourceCode();
 
     return {
-      Program: reportMissingDesignSystem(context, design, settings.uiSourceDir),
+      Program: reportMissingDesignSystem(context, design, settings),
 
       Property(node) {
         if (node.computed) return;
