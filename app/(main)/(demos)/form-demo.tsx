@@ -503,12 +503,12 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       height: 4,
       backgroundColor: theme.colors.muted,
-      borderRadius: 2,
+      borderRadius: spacing.radiusXs,
       overflow: "hidden",
     },
     strengthFill: {
       height: "100%",
-      borderRadius: 2,
+      borderRadius: spacing.radiusXs,
     },
     strengthLabel: {
       fontSize: 12,

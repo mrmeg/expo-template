@@ -141,7 +141,7 @@ export default function ComponentsGalleryScreen() {
   const livePreviews = useProgressivePreviewCount(cardTotal, COMPONENT_PREVIEW_SCHEDULE);
 
   // Two-up on a phone (mockup 05 frame 2), three-up above that (mockup 02).
-  // `flexBasis` is a hair under 100/columns so the 14px gutter fits without
+  // `flexBasis` is a hair under 100/columns so the grid gutter fits without
   // wrapping a row early; `flexGrow` takes the slack back.
   const basis = isSmallScreen ? "47%" : "30%";
 
@@ -160,13 +160,13 @@ export default function ComponentsGalleryScreen() {
         showsVerticalScrollIndicator={false}
       >
         <AnimatedView type="fadeSlideUp" delay={0}>
-          <SansSerifText style={styles.intro}>
+          <SansSerifText size="base" style={styles.intro}>
             Every primitive in the library, rendered live in the current theme.
             Tap a card for variants and a copyable snippet.
           </SansSerifText>
 
           <View style={styles.headerRow}>
-            <SansSerifText style={styles.count}>
+            <SansSerifText size="sm" style={styles.count}>
               {COMPONENTS.length} components
             </SansSerifText>
             <Link href={SHOWCASE_ROUTES.kitchenSink as never} asChild>
@@ -176,7 +176,7 @@ export default function ComponentsGalleryScreen() {
                 testID="components-kitchen-sink-link"
                 style={linkPressableStyle(styles.kitchenSink)}
               >
-                <SansSerifText style={styles.kitchenSinkText}>
+                <SansSerifText semantic="label" style={styles.kitchenSinkText}>
                   Full showcase
                 </SansSerifText>
                 <Icon name="arrow-right" size={13} color={theme.colors.accent} />
@@ -203,14 +203,14 @@ export default function ComponentsGalleryScreen() {
             style={styles.section}
           >
             <View style={styles.sectionHead}>
-              <SansSerifBoldText style={styles.sectionTitle}>
+              <SansSerifBoldText size="body" style={styles.sectionTitle}>
                 {COMPONENT_CATEGORY_LABELS[section.category]}
               </SansSerifBoldText>
-              <SansSerifText style={styles.sectionCount}>
+              <SansSerifText size="xs" style={styles.sectionCount}>
                 {section.entries.length}
               </SansSerifText>
             </View>
-            <SansSerifText style={styles.sectionDesc}>
+            <SansSerifText size="sm" style={styles.sectionDesc}>
               {COMPONENT_CATEGORY_DESCRIPTIONS[section.category]}
             </SansSerifText>
             <View style={styles.grid}>
@@ -322,8 +322,6 @@ const createStyles = (theme: Theme) =>
     },
 
     intro: {
-      fontSize: 14,
-      lineHeight: 20,
       color: theme.colors.mutedForeground,
     },
     headerRow: {
@@ -333,7 +331,6 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing.md,
     },
     count: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     kitchenSink: {
@@ -343,8 +340,6 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing.xs,
     },
     kitchenSinkText: {
-      fontSize: 13,
-      fontWeight: "500",
       color: theme.colors.accent,
     },
 
@@ -357,28 +352,24 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
     },
     sectionTitle: {
-      fontSize: 15,
       color: theme.colors.foreground,
     },
     sectionCount: {
-      fontSize: 11,
       color: theme.colors.mutedForeground,
     },
     sectionDesc: {
-      fontSize: 13,
-      lineHeight: 18,
       color: theme.colors.mutedForeground,
       marginTop: spacing.xxs,
       marginBottom: spacing.sm + 2,
     },
 
-    // Mockup 02 `.grid`: 3 columns (2 on a phone), 14px gutter. `flexBasis` is
-    // set per card from the column count; the negative-free gap keeps the row
-    // wrapping without a spacer element.
+    // Mockup 02 `.grid`: 3 columns (2 on a phone), gutter snapped to the
+    // spacing scale. `flexBasis` is set per card from the column count; the
+    // negative-free gap keeps the row wrapping without a spacer element.
     grid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: 14,
+      gap: spacing.md,
     },
     // Mockup 02 `.card`
     card: {

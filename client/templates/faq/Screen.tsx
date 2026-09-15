@@ -78,18 +78,22 @@ export function FaqScreen({
       >
         <SectionHeader eyebrow={eyebrow} title={title} description={description} style={styles.header} />
 
-        <Accordion type="single" collapsible style={styles.accordion}>
-          {items.map((item, index) => (
-            <AccordionItem key={item.question} value={String(index)}>
-              <AccordionTrigger>
-                <BodyText style={styles.question}>{item.question}</BodyText>
-              </AccordionTrigger>
-              <AccordionContent>
-                <BodyText style={styles.answer}>{item.answer}</BodyText>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        {/* The list's top hairline lives on this wrapper: Accordion owns its
+            own borders, so the frame is composed around it. */}
+        <View style={styles.accordion}>
+          <Accordion type="single" collapsible>
+            {items.map((item, index) => (
+              <AccordionItem key={item.question} value={String(index)}>
+                <AccordionTrigger>
+                  <BodyText style={styles.question}>{item.question}</BodyText>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <BodyText style={styles.answer}>{item.answer}</BodyText>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </View>
 
         {!!footerTitle && (
           <View style={styles.footer}>

@@ -1,0 +1,18 @@
+{
+  "name": "@mrmeg/eslint-plugin-expo-ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ESLint rules that enforce the @mrmeg/expo-ui design system in app code.",
+  "license": "MIT",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "lib",
+    "rules",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@typescript-eslint/parser": ">=8",
+    "eslint": ">=9.30"
+  }
+}

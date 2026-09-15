@@ -13,6 +13,7 @@ import { spacing } from "@mrmeg/expo-ui/constants";
 import {
   SansSerifText,
   SansSerifBoldText,
+  MonoText,
 } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
@@ -131,7 +132,7 @@ export default function DeveloperScreen() {
       <View style={[styles.section, getShadowStyle("subtle")]}>
         <View style={styles.sectionHeader}>
           <Icon name="settings" color={theme.colors.primary} size={20} />
-          <SansSerifBoldText style={styles.sectionTitle}>
+          <SansSerifBoldText size="body" style={styles.sectionTitle}>
               Environment
           </SansSerifBoldText>
         </View>
@@ -156,7 +157,7 @@ export default function DeveloperScreen() {
       <View style={[styles.section, getShadowStyle("subtle")]}>
         <View style={styles.sectionHeader}>
           <Icon name="settings" color={theme.colors.primary} size={20} />
-          <SansSerifBoldText style={styles.sectionTitle}>
+          <SansSerifBoldText size="body" style={styles.sectionTitle}>
               Configuration
           </SansSerifBoldText>
         </View>
@@ -174,7 +175,7 @@ export default function DeveloperScreen() {
       <View style={[styles.section, getShadowStyle("subtle")]}>
         <View style={styles.sectionHeader}>
           <Icon name="database" color={theme.colors.primary} size={20} />
-          <SansSerifBoldText style={styles.sectionTitle}>
+          <SansSerifBoldText size="body" style={styles.sectionTitle}>
               Storage Inspector
           </SansSerifBoldText>
         </View>
@@ -188,7 +189,7 @@ export default function DeveloperScreen() {
             style={styles.flex1}
           >
             <Icon name="refresh-cw" color={theme.colors.primary} size={14} />
-            <SansSerifText style={styles.buttonText}> Refresh</SansSerifText>
+            <SansSerifText size="base" style={styles.buttonText}> Refresh</SansSerifText>
           </Button>
           <Button
             preset="destructive"
@@ -198,13 +199,13 @@ export default function DeveloperScreen() {
             style={styles.flex1}
           >
             <Icon name="trash-2" color={theme.colors.destructiveForeground} size={14} />
-            <SansSerifText style={styles.buttonTextLight}> Clear All</SansSerifText>
+            <SansSerifText size="base" style={styles.buttonTextLight}> Clear All</SansSerifText>
           </Button>
         </View>
 
         {storageKeys.length === 0 ? (
           <View style={styles.emptyState}>
-            <SansSerifText style={styles.emptyText}>
+            <SansSerifText size="base" style={styles.emptyText}>
               {storageLoading ? "Loading..." : "No data in storage. Tap Refresh to scan."}
             </SansSerifText>
           </View>
@@ -222,15 +223,15 @@ export default function DeveloperScreen() {
                     color={theme.colors.mutedForeground}
                     size={16}
                   />
-                  <SansSerifText style={styles.storageKey} numberOfLines={1}>
+                  <MonoText size="sm" style={styles.storageKey} numberOfLines={1}>
                     {key}
-                  </SansSerifText>
+                  </MonoText>
                 </View>
                 {expandedKey === key && (
                   <View style={styles.storageValue}>
-                    <SansSerifText style={styles.storageValueText}>
+                    <MonoText size="xs" style={styles.storageValueText}>
                       {JSON.stringify(storageData[key], null, 2)}
-                    </SansSerifText>
+                    </MonoText>
                   </View>
                 )}
               </Pressable>
@@ -243,12 +244,12 @@ export default function DeveloperScreen() {
       <View style={[styles.section, getShadowStyle("subtle")]}>
         <View style={styles.sectionHeader}>
           <Icon name="lock" color={theme.colors.primary} size={20} />
-          <SansSerifBoldText style={styles.sectionTitle}>
+          <SansSerifBoldText size="body" style={styles.sectionTitle}>
               Auth Demo
           </SansSerifBoldText>
         </View>
 
-        <SansSerifText style={styles.debugDescription}>
+        <SansSerifText size="base" style={styles.debugDescription}>
             Test the authentication flow with Cognito integration.
         </SansSerifText>
 
@@ -268,12 +269,12 @@ export default function DeveloperScreen() {
       <View style={[styles.section, getShadowStyle("subtle")]}>
         <View style={styles.sectionHeader}>
           <Icon name="terminal" color={theme.colors.primary} size={20} />
-          <SansSerifBoldText style={styles.sectionTitle}>
+          <SansSerifBoldText size="body" style={styles.sectionTitle}>
               Debug Tools
           </SansSerifBoldText>
         </View>
 
-        <SansSerifText style={styles.debugDescription}>
+        <SansSerifText size="base" style={styles.debugDescription}>
             Test the ErrorBoundary by triggering a controlled error.
         </SansSerifText>
 
@@ -283,22 +284,22 @@ export default function DeveloperScreen() {
           fullWidth
         >
           <Icon name="alert-triangle" color={theme.colors.destructiveForeground} size={16} />
-          <SansSerifBoldText style={styles.buttonTextLight}>
+          <SansSerifBoldText size="base" style={styles.buttonTextLight}>
             {" "}Trigger Test Error
           </SansSerifBoldText>
         </Button>
 
-        <SansSerifText style={styles.debugHint}>
+        <SansSerifText size="sm" style={styles.debugHint}>
             The ErrorBoundary will catch this and show the error screen.
             Use the "Try Again" button to reset.
         </SansSerifText>
 
         {__DEV__ && (
           <View style={styles.reactotronNote}>
-            <SansSerifBoldText style={styles.reactotronTitle}>
+            <SansSerifBoldText size="base" style={styles.reactotronTitle}>
                 Reactotron
             </SansSerifBoldText>
-            <SansSerifText style={styles.reactotronText}>
+            <SansSerifText size="sm" style={styles.reactotronText}>
                 Reactotron is enabled in development. Open the Reactotron app to see logs,
                 network requests, and AsyncStorage data.
             </SansSerifText>
@@ -314,10 +315,12 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   const { theme } = useTheme();
   return (
     <View style={infoRowStyles.row}>
-      <SansSerifText style={[infoRowStyles.label, { color: theme.colors.mutedForeground }]}>
+      <SansSerifText size="base" style={{ color: theme.colors.mutedForeground }}>
         {label}
       </SansSerifText>
       <SansSerifText
+        size="base"
+        fontWeight="medium"
         style={[infoRowStyles.value, { color: theme.colors.foreground }]}
         numberOfLines={1}
       >
@@ -334,12 +337,7 @@ const infoRowStyles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: spacing.xs,
   },
-  label: {
-    fontSize: 14,
-  },
   value: {
-    fontSize: 14,
-    fontWeight: "500",
     textAlign: "right",
     flex: 1,
     marginLeft: spacing.md,
@@ -374,7 +372,6 @@ const createStyles = (theme: Theme) =>
       borderBottomColor: theme.colors.border,
     },
     sectionTitle: {
-      fontSize: 16,
       color: theme.colors.foreground,
       marginLeft: spacing.sm,
     },
@@ -391,11 +388,9 @@ const createStyles = (theme: Theme) =>
     },
     buttonText: {
       color: theme.colors.primary,
-      fontSize: 14,
     },
     buttonTextLight: {
       color: theme.colors.destructiveForeground,
-      fontSize: 14,
     },
     emptyState: {
       padding: spacing.cardPadding,
@@ -403,7 +398,6 @@ const createStyles = (theme: Theme) =>
     },
     emptyText: {
       color: theme.colors.mutedForeground,
-      fontSize: 14,
       textAlign: "center",
     },
     storageList: {
@@ -420,9 +414,7 @@ const createStyles = (theme: Theme) =>
       gap: spacing.xs,
     },
     storageKey: {
-      fontSize: 13,
       color: theme.colors.foreground,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
       flex: 1,
     },
     storageValue: {
@@ -432,20 +424,15 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusSm,
     },
     storageValueText: {
-      fontSize: 11,
       color: theme.colors.foreground,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     },
     debugDescription: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
       marginBottom: spacing.md,
     },
     debugHint: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
       marginTop: spacing.sm,
-      fontStyle: "italic",
     },
     reactotronNote: {
       marginTop: spacing.lg,
@@ -454,14 +441,11 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusSm,
     },
     reactotronTitle: {
-      fontSize: 14,
       color: theme.colors.foreground,
       marginBottom: spacing.xs,
     },
     reactotronText: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
-      lineHeight: 18,
     },
   });
 

@@ -36,7 +36,7 @@ export function CodeSnippet({ label, code, testID }: CodeSnippetProps) {
   return (
     <View style={styles.wrapper} testID={testID}>
       <View style={styles.header}>
-        <SansSerifText style={styles.label}>{label}</SansSerifText>
+        <SansSerifText semantic="eyebrow" style={styles.label}>{label}</SansSerifText>
         <Pressable
           onPress={() => copy(code)}
           onPressIn={blurActiveElementOnWeb}
@@ -50,7 +50,7 @@ export function CodeSnippet({ label, code, testID }: CodeSnippetProps) {
             size={13}
             color={copied ? theme.colors.success : theme.colors.mutedForeground}
           />
-          <SansSerifText style={styles.copyText}>
+          <SansSerifText size="sm" style={styles.copyText}>
             {copied ? "Copied" : "Copy"}
           </SansSerifText>
         </Pressable>
@@ -75,9 +75,6 @@ const createStyles = (theme: Theme) =>
       justifyContent: "space-between",
     },
     label: {
-      fontSize: 11,
-      textTransform: "uppercase",
-      letterSpacing: 0.8,
       color: theme.colors.mutedForeground,
     },
     copy: {
@@ -88,7 +85,6 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing.xs,
     },
     copyText: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     block: {
@@ -100,7 +96,6 @@ const createStyles = (theme: Theme) =>
     },
     code: {
       color: theme.colors.foreground,
-      lineHeight: 20,
     },
   });
 

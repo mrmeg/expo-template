@@ -61,20 +61,25 @@ export function CtaBannerBlock({
 
   return (
     <View style={[styles.container, styleOverride]}>
-      <Card variant="outline" style={styles.card}>
-        <View style={[styles.body, isSmallScreen ? styles.bodyStacked : styles.bodyRow]}>
-          <View style={[styles.copy, !isSmallScreen && styles.copyRow]}>
-            <SansSerifBoldText size="lg">{title}</SansSerifBoldText>
-            {!!description && (
-              <SansSerifText size="sm" style={styles.description}>
-                {description}
-              </SansSerifText>
-            )}
-          </View>
+      {/* The accent border and muted fill live on this wrapper, not on the
+          Card: Card owns its own surface colors through `variant`, so the
+          banner's treatment is composed around a `ghost` card instead. */}
+      <View style={styles.card}>
+        <Card variant="ghost">
+          <View style={[styles.body, isSmallScreen ? styles.bodyStacked : styles.bodyRow]}>
+            <View style={[styles.copy, !isSmallScreen && styles.copyRow]}>
+              <SansSerifBoldText size="lg">{title}</SansSerifBoldText>
+              {!!description && (
+                <SansSerifText size="sm" style={styles.description}>
+                  {description}
+                </SansSerifText>
+              )}
+            </View>
 
-          {!!actionLabel && <Button onPress={onAction} text={actionLabel} />}
-        </View>
-      </Card>
+            {!!actionLabel && <Button onPress={onAction} text={actionLabel} />}
+          </View>
+        </Card>
+      </View>
     </View>
   );
 }
@@ -94,6 +99,8 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing.xl,
     },
     card: {
+      borderRadius: spacing.radiusLg,
+      borderWidth: 1,
       borderColor: theme.colors.accent,
       backgroundColor: theme.colors.muted,
     },

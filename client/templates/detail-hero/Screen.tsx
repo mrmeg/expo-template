@@ -13,9 +13,9 @@ import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/Styl
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
-import { useTheme, useDimensions } from "@mrmeg/expo-ui/hooks";
+import { useTheme, useDimensions, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles, shouldUseNativeDriver } from "@mrmeg/expo-ui/lib";
-import { spacing } from "@mrmeg/expo-ui/constants";
+import { palette, spacing } from "@mrmeg/expo-ui/constants";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -374,7 +374,7 @@ const createStyles = (theme: Theme) =>
       width: 40,
       height: 40,
       borderRadius: spacing.radiusFull,
-      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      backgroundColor: withAlpha(palette.black, 0.2),
       alignItems: "center",
       justifyContent: "center",
     },

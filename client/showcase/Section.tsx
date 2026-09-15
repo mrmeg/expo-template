@@ -3,7 +3,6 @@ import { StyleSheet, View } from "react-native";
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { fontFamilies } from "@mrmeg/expo-ui/constants";
 
 interface SectionProps {
   title: string;
@@ -25,7 +24,11 @@ export function Section({ title, children }: SectionProps) {
         shadowStyle,
       ]}
     >
-      <StyledText style={[styles.sectionTitle, { color: theme.colors.foreground }]}>
+      <StyledText
+        variant="serif"
+        size="xl"
+        style={[styles.sectionTitle, { color: theme.colors.foreground }]}
+      >
         {title}
       </StyledText>
       {children}
@@ -41,8 +44,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontFamily: fontFamilies.serif.bold,
     marginBottom: spacing.lg,
   },
 });

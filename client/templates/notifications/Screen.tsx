@@ -267,7 +267,8 @@ export function NotificationListScreen({
         <ItemContent style={styles.rowContent}>
           <View style={styles.rowTitleLine}>
             <ItemTitle
-              style={[styles.rowTitle, !item.read && styles.rowTitleUnread]}
+              fontWeight={item.read ? "medium" : "semibold"}
+              style={styles.rowTitle}
               numberOfLines={1}
             >
               {item.title}
@@ -373,9 +374,6 @@ const createStyles = (theme: Theme) =>
     },
     rowTitle: {
       flex: 1,
-    },
-    rowTitleUnread: {
-      fontWeight: "600",
     },
     rowTime: {
       color: theme.colors.mutedForeground,

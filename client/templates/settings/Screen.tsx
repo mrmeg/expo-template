@@ -164,7 +164,10 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
             <ItemMedia
               icon={item.icon}
               iconColor="destructive"
-              style={{ backgroundColor: withAlpha(theme.colors.destructive, 0.12) }}
+              style={{
+                // eslint-disable-next-line expo-ui/no-restyle -- destructive icon tile tint; ItemMedia has no tinted variant
+                backgroundColor: withAlpha(theme.colors.destructive, 0.12),
+              }}
             />
           )}
           <ItemContent>
@@ -237,6 +240,7 @@ const createStyles = (theme: Theme) =>
     // select row with no icon still aligns its label under the first row's
     // icon column instead of ItemMedia's muted background showing through.
     iconSpacer: {
+      // eslint-disable-next-line expo-ui/no-restyle -- blank icon-column placeholder; ItemMedia has no untinted variant
       backgroundColor: "transparent",
     },
     radio: {

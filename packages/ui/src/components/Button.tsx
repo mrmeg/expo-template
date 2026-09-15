@@ -92,7 +92,7 @@ export interface ButtonProps extends PressableProps {
    */
   txOptions?: TextProps["txOptions"];
   /**
-   * An optional style override useful for padding & margin.
+   * An optional style override useful for margin and layout.
    */
   style?: StyleProp<ViewStyle>;
   /**

@@ -63,8 +63,8 @@ export default function BillingReturnScreen() {
           color={copy.iconColor(theme)}
         />
       </View>
-      <SansSerifBoldText style={styles.title}>{copy.title}</SansSerifBoldText>
-      <SansSerifText style={styles.subtitle}>{copy.subtitle}</SansSerifText>
+      <SansSerifBoldText size="xl" style={styles.title}>{copy.title}</SansSerifBoldText>
+      <SansSerifText size="base" style={styles.subtitle}>{copy.subtitle}</SansSerifText>
       <Button preset="default" onPress={handleDone} text={copy.cta} style={styles.cta} />
     </View>
   );
@@ -132,16 +132,13 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.md,
     },
     title: {
-      fontSize: 22,
       color: theme.colors.foreground,
       textAlign: "center",
     },
     subtitle: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
       textAlign: "center",
       maxWidth: 320,
-      lineHeight: 20,
     },
     cta: {
       marginTop: spacing.lg,

@@ -402,11 +402,13 @@ const createStyles = (theme: Theme) =>
     scrollContent: {
       paddingBottom: spacing.xxl,
     },
+    // Margin, not padding: StyledText owns its box spacing, and margins
+    // reproduce the previous inset exactly (nothing paints behind the title).
     title: {
       color: theme.colors.foreground,
-      paddingHorizontal: spacing.screenPadding,
-      paddingTop: spacing.md,
-      paddingBottom: spacing.md,
+      marginHorizontal: spacing.screenPadding,
+      marginTop: spacing.md,
+      marginBottom: spacing.md,
     },
 
     // Metric cards

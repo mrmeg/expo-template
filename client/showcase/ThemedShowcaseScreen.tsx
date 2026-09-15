@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@mrmeg/expo-ui/compone
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { useThemeStore } from "@mrmeg/expo-ui/state";
-import { spacing, fontFamilies } from "@mrmeg/expo-ui/constants";
+import { spacing } from "@mrmeg/expo-ui/constants";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme, ThemeColors } from "@mrmeg/expo-ui/constants";
 import { Section, SubSection, ThemeToggle } from "@/client/showcase";
@@ -207,7 +207,7 @@ export default function ThemedShowcaseScreen() {
               >
                 {PALETTE_ORDER.map((key) => (
                   <ToggleGroupItem key={key} value={key}>
-                    <StyledText style={styles.labelText}>
+                    <StyledText>
                       {PALETTES[key]?.label ?? "Package Default"}
                     </StyledText>
                   </ToggleGroupItem>
@@ -225,7 +225,7 @@ export default function ThemedShowcaseScreen() {
                         { backgroundColor: theme.colors[key], borderColor: theme.colors.border },
                       ]}
                     />
-                    <StyledText style={styles.swatchLabel}>{key}</StyledText>
+                    <StyledText size="xs" style={styles.swatchLabel}>{key}</StyledText>
                   </View>
                 ))}
               </View>
@@ -240,13 +240,13 @@ export default function ThemedShowcaseScreen() {
               <Button preset="default" text="Default" onPress={() => {}} />
               <Button preset="secondary" text="Secondary" onPress={() => {}} />
               <Button preset="outline" onPress={() => {}}>
-                <StyledText style={styles.outlineText}>Outline</StyledText>
+                <StyledText fontWeight="bold" style={styles.outlineText}>Outline</StyledText>
               </Button>
               <Button preset="ghost" onPress={() => {}}>
-                <StyledText style={styles.ghostText}>Ghost</StyledText>
+                <StyledText fontWeight="bold" style={styles.ghostText}>Ghost</StyledText>
               </Button>
               <Button preset="link" onPress={() => {}}>
-                <StyledText style={styles.linkText}>Link</StyledText>
+                <StyledText fontWeight="bold" style={styles.linkText}>Link</StyledText>
               </Button>
               <Button preset="destructive" text="Destructive" onPress={() => {}} />
             </View>
@@ -288,7 +288,7 @@ export default function ThemedShowcaseScreen() {
                     dispatch({ type: "checkedChanged", checked: value })
                   }
                 />
-                <StyledText style={styles.labelText}>
+                <StyledText>
                   Toggles use the active primary color
                 </StyledText>
               </View>
@@ -322,15 +322,15 @@ export default function ThemedShowcaseScreen() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="buttons">
-                <StyledText style={styles.labelText}>
+                <StyledText>
                   The active tab indicator follows the injected palette.
                 </StyledText>
               </TabsContent>
               <TabsContent value="details">
-                <StyledText style={styles.labelText}>Details content.</StyledText>
+                <StyledText>Details content.</StyledText>
               </TabsContent>
               <TabsContent value="activity">
-                <StyledText style={styles.labelText}>Activity content.</StyledText>
+                <StyledText>Activity content.</StyledText>
               </TabsContent>
             </Tabs>
           </Section>
@@ -394,20 +394,15 @@ const createStyles = (theme: Theme) =>
       gap: spacing.md,
       alignItems: "center",
     },
-    labelText: {
-      fontFamily: fontFamilies.sansSerif.regular,
-    },
     outlineText: {
-      fontFamily: fontFamilies.sansSerif.bold,
       color: theme.colors.primary,
     },
     ghostText: {
-      fontFamily: fontFamilies.sansSerif.bold,
       color: theme.colors.foreground,
     },
     linkText: {
-      fontFamily: fontFamilies.sansSerif.bold,
       color: theme.colors.primary,
+      // eslint-disable-next-line expo-ui/no-restyle -- showcase demonstrates the link-preset underline; StyledText has no textDecoration prop
       textDecorationLine: "underline",
     },
     swatchRow: {
@@ -427,8 +422,6 @@ const createStyles = (theme: Theme) =>
       borderWidth: 1,
     },
     swatchLabel: {
-      fontFamily: fontFamilies.sansSerif.regular,
-      fontSize: 11,
       color: theme.colors.mutedForeground,
     },
   });

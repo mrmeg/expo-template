@@ -62,11 +62,11 @@ function DrawerNavItem({ label, href, active, count, testID, onNavigate }: NavIt
         onPress={onNavigate}
         style={linkPressableStyle(styles.item, active ? styles.itemActive : undefined)}
       >
-        <SansSerifText style={[styles.itemLabel, active && styles.itemLabelActive]}>
+        <SansSerifText size="base" style={[styles.itemLabel, active && styles.itemLabelActive]}>
           {label}
         </SansSerifText>
         {typeof count === "number" && (
-          <SansSerifText style={styles.itemCount}>{count}</SansSerifText>
+          <SansSerifText size="xs" style={styles.itemCount}>{count}</SansSerifText>
         )}
       </Pressable>
     </Link>
@@ -76,7 +76,7 @@ function DrawerNavItem({ label, href, active, count, testID, onNavigate }: NavIt
 function SectionTitle({ children }: { children: string }) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
-  return <SansSerifBoldText style={styles.sectionTitle}>{children}</SansSerifBoldText>;
+  return <SansSerifBoldText semantic="eyebrow" style={styles.sectionTitle}>{children}</SansSerifBoldText>;
 }
 
 export function DrawerNavContent({ onNavigate }: DrawerNavContentProps) {
@@ -118,7 +118,7 @@ export function DrawerNavContent({ onNavigate }: DrawerNavContentProps) {
             style={linkPressableStyle(styles.wordmark)}
           >
             <View style={styles.wordmarkDot} />
-            <SansSerifBoldText style={styles.wordmarkText}>@mrmeg/expo-ui</SansSerifBoldText>
+            <SansSerifBoldText size="base" style={styles.wordmarkText}>@mrmeg/expo-ui</SansSerifBoldText>
           </Pressable>
         </Link>
 
@@ -132,8 +132,8 @@ export function DrawerNavContent({ onNavigate }: DrawerNavContentProps) {
             onPress={onNavigate}
             style={linkPressableStyle(styles.search)}
           >
-            <SansSerifText style={styles.searchText}>Search…</SansSerifText>
-            <SansSerifText style={styles.searchHint}>⌘K</SansSerifText>
+            <SansSerifText size="base" style={styles.searchText}>Search…</SansSerifText>
+            <SansSerifText size="xs" style={styles.searchHint}>⌘K</SansSerifText>
           </Pressable>
         </Link>
 
@@ -222,7 +222,7 @@ export function DrawerNavContent({ onNavigate }: DrawerNavContentProps) {
 
       {/* Theme footer — label + toggle, like the mockups' `.d-foot`. */}
       <View style={styles.footer}>
-        <SansSerifText style={styles.footerLabel}>Theme: {themeLabel}</SansSerifText>
+        <SansSerifText size="sm" style={styles.footerLabel}>Theme: {themeLabel}</SansSerifText>
         <Pressable
           onPress={toggleTheme}
           accessibilityRole="button"
@@ -263,7 +263,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.accent,
     },
     wordmarkText: {
-      fontSize: 14,
       color: theme.colors.text,
     },
     search: {
@@ -279,21 +278,19 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
     searchText: {
-      fontSize: 13,
       color: theme.colors.textDim,
     },
     searchHint: {
-      fontSize: 11,
       color: theme.colors.textDim,
     },
+    // Margin, not padding: StyledText owns its box spacing, and the outer
+    // margins reproduce the previous padding exactly (no background or border
+    // sits on this label).
     sectionTitle: {
-      fontSize: 11,
-      letterSpacing: 1.2,
-      textTransform: "uppercase",
       color: theme.colors.textDim,
-      paddingHorizontal: spacing.xs,
-      paddingTop: spacing.md,
-      paddingBottom: spacing.xs,
+      marginHorizontal: spacing.xs,
+      marginTop: spacing.md,
+      marginBottom: spacing.xs,
     },
     nav: {
       gap: 2,
@@ -302,7 +299,7 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingVertical: 7,
+      paddingVertical: spacing.base,
       paddingHorizontal: 10,
       borderRadius: spacing.radiusSm,
       borderLeftWidth: 2,
@@ -315,14 +312,12 @@ const createStyles = (theme: Theme) =>
       borderBottomLeftRadius: 0,
     },
     itemLabel: {
-      fontSize: 13.5,
       color: theme.colors.textDim,
     },
     itemLabelActive: {
       color: theme.colors.text,
     },
     itemCount: {
-      fontSize: 11.5,
       color: theme.colors.textDim,
     },
     footer: {
@@ -335,7 +330,6 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing.sm,
     },
     footerLabel: {
-      fontSize: 12,
       color: theme.colors.textDim,
     },
     footerButton: {
