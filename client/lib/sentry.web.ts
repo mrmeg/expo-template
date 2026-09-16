@@ -5,8 +5,10 @@
  * 1. `@sentry/react` instead of `@sentry/react-native`. On web the RN SDK is a
  *    wrapper around `@sentry/browser` plus ~200 kB of native-only integrations
  *    (RN tracing, profiling, feedback, replay stubs) that never run in a
- *    browser. `@sentry/react` is the same version the RN SDK depends on, so
- *    the two platforms report through one Sentry release.
+ *    browser. The root `package.json` pins `@sentry/react` to the exact
+ *    version `@sentry/react-native` depends on (10.74.0 for RN SDK 8.26.x), so
+ *    one `@sentry/core` is installed and both platforms report through one
+ *    Sentry release. Re-pin it whenever the RN SDK is upgraded.
  *
  * 2. The SDK loads on idle, not at startup. `RootLayout` calls `setupSentry()`
  *    during module evaluation, so the eager version fetched a ~700 kB chunk in

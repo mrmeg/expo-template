@@ -10,12 +10,14 @@ import * as DropdownMenuPrimitive from "@rn-primitives/dropdown-menu";
 import type { IconName } from "./Icon";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-// Re-export primitives that don't need styling
-const DropdownMenu = DropdownMenuPrimitive.Root;
-const DropdownMenuGroup = DropdownMenuPrimitive.Group;
+// Re-export primitives that don't need styling. Annotated with `typeof` for
+// portable declaration emit — see the note in Dialog.tsx (TS2883).
+const DropdownMenu: typeof DropdownMenuPrimitive.Root = DropdownMenuPrimitive.Root;
+const DropdownMenuGroup: typeof DropdownMenuPrimitive.Group = DropdownMenuPrimitive.Group;
 const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
-const DropdownMenuSub = DropdownMenuPrimitive.Sub;
-const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
+const DropdownMenuSub: typeof DropdownMenuPrimitive.Sub = DropdownMenuPrimitive.Sub;
+const DropdownMenuRadioGroup: typeof DropdownMenuPrimitive.RadioGroup =
+  DropdownMenuPrimitive.RadioGroup;
 
 // Platform-specific overlay
 const FullWindowOverlay = Platform.OS === "ios" ? RNFullWindowOverlay : React.Fragment;

@@ -28,10 +28,14 @@ jobs:
             sdk: 56
           - package: media
             sdk: 57
+          - package: media
+            sdk: 58
           - package: ui
             sdk: 56
           - package: ui
             sdk: 57
+          - package: ui
+            sdk: 58
 
     steps:
       - uses: actions/checkout@v4

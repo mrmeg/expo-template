@@ -17,7 +17,7 @@ const FullWindowOverlay = Platform.OS === "ios" ? RNFullWindowOverlay : React.Fr
  * SelectRoot Component
  * Manages select state and provides context for trigger and content
  */
-const SelectRoot = SelectPrimitive.Root;
+const SelectRoot: typeof SelectPrimitive.Root = SelectPrimitive.Root;
 
 /**
  * Size variants for SelectTrigger
@@ -428,11 +428,22 @@ const styles = StyleSheet.create({
   },
 });
 
+type SelectComponent = typeof SelectRoot & {
+  Trigger: typeof SelectTrigger;
+  Value: typeof SelectValue;
+  Content: typeof SelectContent;
+  Item: typeof SelectItem;
+  Group: typeof SelectGroup;
+  Label: typeof SelectLabel;
+  Separator: typeof SelectSeparator;
+};
+
 /**
  * Select Component with Sub-components
- * Properly typed interface for dot notation access (e.g., Select.Trigger)
+ * Properly typed interface for dot notation access (e.g., Select.Trigger).
+ * The annotation is what keeps declaration emit portable — see Dialog.tsx (TS2883).
  */
-const Select = Object.assign(SelectRoot, {
+const Select: SelectComponent = Object.assign(SelectRoot, {
   Trigger: SelectTrigger,
   Value: SelectValue,
   Content: SelectContent,

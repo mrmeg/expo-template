@@ -24,7 +24,8 @@ Importable paths: root, `components`, `components/*`, `constants`,
 `constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`. Never import from
 `@mrmeg/expo-ui/dist/*` or a source checkout path.
 
-Hosts: Expo 56–57, React 19.2, React Native 0.85–0.86, React Native Web 0.21.
+Hosts: Expo 56–58 (58 in beta), React 19.2, React Native 0.85–0.88, React
+Native Web 0.21.
 Install the peer versions recommended by the consuming app's Expo SDK.
 
 ## Required App Setup
