@@ -109,7 +109,7 @@ export function VideoPlayer({
       statusBarTranslucent
     >
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="black" />
+        <StatusBar barStyle="light-content" />
 
         {/* Header with close button */}
         <View style={[styles.header, { paddingTop: topInset }]}>

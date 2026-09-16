@@ -41,6 +41,6 @@ import { Platform, StyleSheet, type StyleProp, type ViewStyle } from "react-nati
  * function rather than an array.
  */
 export function linkPressableStyle(...styles: StyleProp<ViewStyle>[]): ViewStyle {
-  const flattened = StyleSheet.flatten<ViewStyle>(styles);
+  const flattened: ViewStyle = StyleSheet.flatten(styles) ?? {};
   return Platform.OS === "web" ? { ...flattened, cursor: "pointer" } : flattened;
 }

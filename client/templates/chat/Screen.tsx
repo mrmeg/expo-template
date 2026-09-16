@@ -383,7 +383,7 @@ export function ChatScreen({
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={isTyping ? <TypingIndicator theme={theme} /> : null}
+        ListHeaderComponent={isTyping ? <TypingIndicator theme={theme} /> : undefined}
       />
 
       {/* Input bar */}

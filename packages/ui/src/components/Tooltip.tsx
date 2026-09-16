@@ -97,7 +97,7 @@ function TooltipContent({
       maxWidth: 250,
       ...getShadowStyle("soft"),
     },
-  ]);
+  ]) ?? undefined;
 
   return (
     <TooltipPrimitive.Portal hostName={portalHost}>

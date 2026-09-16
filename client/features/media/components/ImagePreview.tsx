@@ -47,7 +47,7 @@ export function ImagePreview({
       statusBarTranslucent
     >
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="black" />
+        <StatusBar barStyle="light-content" />
 
         <View style={[styles.header, { paddingTop: topInset }]}>
           <View style={styles.headerContent}>

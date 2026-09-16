@@ -1,6 +1,6 @@
 # Expo Server Guide
 
-Reference for replicating this template's server stack — server-rendered web output, API routes, request middleware, data loaders — in another Expo Router project. Server rendering, loaders, and middleware are Expo Router alpha features behind `unstable_` flags (the demos call this surface "Server Alpha"); their APIs move between SDK versions, so check the pinned Expo version in `package.json` before copying.
+Reference for replicating this template's server stack — server-rendered web output, API routes, request middleware, data loaders — in another Expo Router project. Server rendering and data loaders are Expo Router alpha features behind `unstable_` flags; request middleware is stable as of SDK 58 and needs no flag (the demos still call this surface "Server Alpha"). The alpha APIs move between SDK versions, so check the pinned Expo version in `package.json` before copying.
 
 ## Source Map
 
@@ -35,7 +35,6 @@ plugins: [
     {
       origin: "",
       unstable_useServerRendering: true,
-      unstable_useServerMiddleware: true,
       unstable_useServerDataLoaders: true,
       asyncRoutes: { web: "production" },
     },
@@ -45,7 +44,7 @@ plugins: [
 
 - `output: "server"` makes `expo export -p web` emit `dist/client` (static assets) plus `dist/server` (request handler, route manifest, API routes, and — with server rendering on — the SSR render module).
 - `unstable_useServerRendering` renders each web route on the server per request instead of writing an HTML shell at export time.
-- `unstable_useServerMiddleware` enables `app/+middleware.ts`.
+- `app/+middleware.ts` runs without a flag as of SDK 58; `unstable_useServerMiddleware` is deprecated, warns once, and has no effect.
 - `unstable_useServerDataLoaders` enables route `loader` exports and `useLoaderData`.
 - `asyncRoutes: { web: "production" }` emits per-route chunks on web production exports; omitting `ios`/`android`/`default` keeps dev servers and native builds synchronous.
 
@@ -241,7 +240,7 @@ Match the route shapes your app serves: the repo file lists the grouped paths (`
 
 ## Replication Checklist
 
-1. Set `web.output: "server"` and the three `unstable_` router flags; confirm the SDK supports them. Budget for the Server Rendering constraints first — stylesheet flush, `+html.tsx` snapshot filter, request-derived viewport/persisted state, `@expo/router-server` bootstrap-order patch.
+1. Set `web.output: "server"` and the two `unstable_` router flags (server rendering, data loaders); confirm the SDK supports them. Budget for the Server Rendering constraints first — stylesheet flush, `+html.tsx` snapshot filter, request-derived viewport/persisted state.
 2. Add a server entry (`server.bun.ts`, or the `expo-server` adapter for your runtime) owning CORS, rate limits, security headers, and static caching around the request handler.
 3. Create `server/api/shared/` with the CORS, error, and auth helpers; keep route files thin handler exports.
 4. Add API routes under `app/api/**/+api.ts` with `OPTIONS` preflight and CORS headers on every response. Consolidate sibling actions sharing heavy dependencies behind a `[action]+api.ts` dispatcher — each `+api.ts` exports as its own bundle.

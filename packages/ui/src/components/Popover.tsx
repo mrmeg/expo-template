@@ -77,7 +77,7 @@ function PopoverContent({
       padding: spacing.xs,
       ...getShadowStyle("soft"),
     },
-  ]);
+  ]) ?? undefined;
 
   return (
     <PopoverPrimitive.Portal hostName={portalHost}>

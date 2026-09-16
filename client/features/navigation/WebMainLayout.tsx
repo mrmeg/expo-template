@@ -41,7 +41,6 @@ export default function WebMainLayout() {
   return (
     <WebNavShell>
       <Stack
-        initialRouteName="(tabs)"
         screenOptions={{
           contentStyle: { backgroundColor: theme.colors.background },
           headerStyle: { backgroundColor: theme.colors.background },

@@ -1,5 +1,5 @@
 import { use, type Ref } from "react";
-import { Text as RNText, TextProps as RNTextProps, StyleSheet } from "react-native";
+import { Text as RNText, TextProps as RNTextProps, StyleSheet, type TextInstance } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { resolveFontStyle, type FontVariant } from "../constants/fonts";
 import { useThemeStore } from "../state/themeStore";
@@ -119,7 +119,7 @@ export type TextProps = RNTextProps & {
   /**
    * Forwarded ref to the underlying RNText element.
    */
-  ref?: Ref<RNText>;
+  ref?: Ref<TextInstance>;
 };
 
 /**

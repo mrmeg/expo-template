@@ -317,11 +317,11 @@ Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](http
 
 | Package | Version |
 |---------|---------|
-| expo | ~57.0.21 |
-| expo-router | ~57.0.20 |
-| expo-server | ~57.0.3 |
+| expo | ^58.0.0-preview.2 (SDK 58 beta) |
+| expo-router | ~58.0.3 |
+| expo-server | ~58.0.0 |
 | react / react-dom | 19.2.3 |
-| react-native | 0.86.3 |
+| react-native | 0.88.0-rc.0 |
 | react-native-web | ^0.21.2 |
 | @mrmeg/expo-ui | ^0.24.0 |
 | @mrmeg/expo-media (if using media) | ^0.5.0 |
@@ -330,7 +330,7 @@ Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](http
 | react-hook-form | ^7.87.0 |
 | zod | ^4.5.4 |
 | typescript | ~6.0.3 (strict) |
-| jest-expo | ~57.0.5 |
+| jest-expo | ~58.0.2 |
 | @testing-library/react-native | ^14.0.1 |
 | eslint | ^10 (flat config) |
 
@@ -340,14 +340,14 @@ Package manager: **Bun** (`bun.lock`; scripts run as `bun run <script>`).
 
 Check `package.json` and the app config:
 
-- **Tier 1** — Expo 56, `web.output: "server"`, `@mrmeg/expo-ui` ≥ 0.6. Start at Phase 3, then 4–7.
+- **Tier 1** — Expo 56–57, `web.output: "server"`, `@mrmeg/expo-ui` ≥ 0.6. Start at Phase 3, then 4–7.
 - **Tier 2** — Expo 55, `@mrmeg/expo-ui` 0.1–0.2. Start at Phase 1; budget real time for Phase 4, since the ui API moved substantially between 0.2 and 0.23.
-- **Tier 3** — Expo ≤ 54, no `@mrmeg/expo-ui`, possibly `web.output: "single"` or `"static"`. Every phase, upgrading Expo one major at a time (52→53→54→55→56→57) and getting the app booting at each step.
+- **Tier 3** — Expo ≤ 54, no `@mrmeg/expo-ui`, possibly `web.output: "single"` or `"static"`. Every phase, upgrading Expo one major at a time (52→53→54→55→56→57→58) and getting the app booting at each step.
 
 ## Phase 1 — Toolchain
 
 1. Adopt Bun: delete other lockfiles, run `bun install`.
-2. `bunx expo install expo@^57.0.0 --fix`, then `bunx expo-doctor`; resolve every finding. (Tier 3: one major at a time.)
+2. `bunx expo install expo@next --fix` (SDK 58 is in beta; use `expo@^58.0.0` once it is stable), then `bunx expo-doctor`; resolve every finding. (Tier 3: one major at a time.)
 3. TypeScript ~6.0, `"strict": true`, `"@/*"` path alias pointing at the repo root.
 4. ESLint 10 flat config (`eslint.config.mjs`); lint via `bunx expo lint`.
 
@@ -367,7 +367,6 @@ plugins: [
     {
       origin: "",
       unstable_useServerRendering: true,
-      unstable_useServerMiddleware: true,
       unstable_useServerDataLoaders: true,
       asyncRoutes: { web: "production" },
     },
@@ -1686,7 +1685,7 @@ yet.
 
 # Expo Server Guide
 
-Reference for replicating this template's server stack — server-rendered web output, API routes, request middleware, data loaders — in another Expo Router project. Server rendering, loaders, and middleware are Expo Router alpha features behind `unstable_` flags (the demos call this surface "Server Alpha"); their APIs move between SDK versions, so check the pinned Expo version in `package.json` before copying.
+Reference for replicating this template's server stack — server-rendered web output, API routes, request middleware, data loaders — in another Expo Router project. Server rendering and data loaders are Expo Router alpha features behind `unstable_` flags; request middleware is stable as of SDK 58 and needs no flag (the demos still call this surface "Server Alpha"). The alpha APIs move between SDK versions, so check the pinned Expo version in `package.json` before copying.
 
 ## Source Map
 
@@ -1721,7 +1720,6 @@ plugins: [
     {
       origin: "",
       unstable_useServerRendering: true,
-      unstable_useServerMiddleware: true,
       unstable_useServerDataLoaders: true,
       asyncRoutes: { web: "production" },
     },
@@ -1731,7 +1729,7 @@ plugins: [
 
 - `output: "server"` makes `expo export -p web` emit `dist/client` (static assets) plus `dist/server` (request handler, route manifest, API routes, and — with server rendering on — the SSR render module).
 - `unstable_useServerRendering` renders each web route on the server per request instead of writing an HTML shell at export time.
-- `unstable_useServerMiddleware` enables `app/+middleware.ts`.
+- `app/+middleware.ts` runs without a flag as of SDK 58; `unstable_useServerMiddleware` is deprecated, warns once, and has no effect.
 - `unstable_useServerDataLoaders` enables route `loader` exports and `useLoaderData`.
 - `asyncRoutes: { web: "production" }` emits per-route chunks on web production exports; omitting `ios`/`android`/`default` keeps dev servers and native builds synchronous.
 
@@ -1927,7 +1925,7 @@ Match the route shapes your app serves: the repo file lists the grouped paths (`
 
 ## Replication Checklist
 
-1. Set `web.output: "server"` and the three `unstable_` router flags; confirm the SDK supports them. Budget for the Server Rendering constraints first — stylesheet flush, `+html.tsx` snapshot filter, request-derived viewport/persisted state, `@expo/router-server` bootstrap-order patch.
+1. Set `web.output: "server"` and the two `unstable_` router flags (server rendering, data loaders); confirm the SDK supports them. Budget for the Server Rendering constraints first — stylesheet flush, `+html.tsx` snapshot filter, request-derived viewport/persisted state.
 2. Add a server entry (`server.bun.ts`, or the `expo-server` adapter for your runtime) owning CORS, rate limits, security headers, and static caching around the request handler.
 3. Create `server/api/shared/` with the CORS, error, and auth helpers; keep route files thin handler exports.
 4. Add API routes under `app/api/**/+api.ts` with `OPTIONS` preflight and CORS headers on every response. Consolidate sibling actions sharing heavy dependencies behind a `[action]+api.ts` dispatcher — each `+api.ts` exports as its own bundle.

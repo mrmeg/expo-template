@@ -1,7 +1,7 @@
 export const rootUnstableSettings = {
-  initialRouteName: "(main)",
+  anchor: "(main)",
 };
 
 export const mainUnstableSettings = {
-  initialRouteName: "(tabs)",
+  anchor: "(tabs)",
 };

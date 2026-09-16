@@ -5,10 +5,10 @@
  * -------------------
  * `app/(main)/(tabs)/_layout.tsx` renders `NativeTabs`, whose web
  * implementation (`expo-router/build/native-tabs/NativeTabsView.web.js`) is
- * built on `@radix-ui/react-tabs`. Because `MainLayout` sets
- * `initialRouteName: "(tabs)"`, that Radix tree renders on *every* `(main)`
- * route — including all `(demos)/*` — both in the browser and in Node when
- * `expo export` prerenders each route's HTML shell.
+ * built on `@radix-ui/react-tabs`. Because the `(main)` layout anchors on
+ * `(tabs)` (`unstable_settings.anchor`), that Radix tree renders on *every*
+ * `(main)` route — including all `(demos)/*` — both in the browser and in Node
+ * when `expo export` prerenders each route's HTML shell.
  *
  * The classic way to make a Radix tree throw is a duplicated Radix module:
  * two copies of a context provider means the consumer reads the *other* copy's

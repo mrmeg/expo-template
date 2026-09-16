@@ -24,11 +24,11 @@ Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](http
 
 | Package | Version |
 |---------|---------|
-| expo | ~57.0.21 |
-| expo-router | ~57.0.20 |
-| expo-server | ~57.0.3 |
+| expo | ^58.0.0-preview.2 (SDK 58 beta) |
+| expo-router | ~58.0.3 |
+| expo-server | ~58.0.0 |
 | react / react-dom | 19.2.3 |
-| react-native | 0.86.3 |
+| react-native | 0.88.0-rc.0 |
 | react-native-web | ^0.21.2 |
 | @mrmeg/expo-ui | ^0.24.0 |
 | @mrmeg/expo-media (if using media) | ^0.5.0 |
@@ -37,7 +37,7 @@ Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](http
 | react-hook-form | ^7.87.0 |
 | zod | ^4.5.4 |
 | typescript | ~6.0.3 (strict) |
-| jest-expo | ~57.0.5 |
+| jest-expo | ~58.0.2 |
 | @testing-library/react-native | ^14.0.1 |
 | eslint | ^10 (flat config) |
 
@@ -47,14 +47,14 @@ Package manager: **Bun** (`bun.lock`; scripts run as `bun run <script>`).
 
 Check `package.json` and the app config:
 
-- **Tier 1** — Expo 56, `web.output: "server"`, `@mrmeg/expo-ui` ≥ 0.6. Start at Phase 3, then 4–7.
+- **Tier 1** — Expo 56–57, `web.output: "server"`, `@mrmeg/expo-ui` ≥ 0.6. Start at Phase 3, then 4–7.
 - **Tier 2** — Expo 55, `@mrmeg/expo-ui` 0.1–0.2. Start at Phase 1; budget real time for Phase 4, since the ui API moved substantially between 0.2 and 0.23.
-- **Tier 3** — Expo ≤ 54, no `@mrmeg/expo-ui`, possibly `web.output: "single"` or `"static"`. Every phase, upgrading Expo one major at a time (52→53→54→55→56→57) and getting the app booting at each step.
+- **Tier 3** — Expo ≤ 54, no `@mrmeg/expo-ui`, possibly `web.output: "single"` or `"static"`. Every phase, upgrading Expo one major at a time (52→53→54→55→56→57→58) and getting the app booting at each step.
 
 ## Phase 1 — Toolchain
 
 1. Adopt Bun: delete other lockfiles, run `bun install`.
-2. `bunx expo install expo@^57.0.0 --fix`, then `bunx expo-doctor`; resolve every finding. (Tier 3: one major at a time.)
+2. `bunx expo install expo@next --fix` (SDK 58 is in beta; use `expo@^58.0.0` once it is stable), then `bunx expo-doctor`; resolve every finding. (Tier 3: one major at a time.)
 3. TypeScript ~6.0, `"strict": true`, `"@/*"` path alias pointing at the repo root.
 4. ESLint 10 flat config (`eslint.config.mjs`); lint via `bunx expo lint`.
 
@@ -74,7 +74,6 @@ plugins: [
     {
       origin: "",
       unstable_useServerRendering: true,
-      unstable_useServerMiddleware: true,
       unstable_useServerDataLoaders: true,
       asyncRoutes: { web: "production" },
     },

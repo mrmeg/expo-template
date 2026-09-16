@@ -5,6 +5,7 @@ import {
   Text,
   View,
   type ImageSourcePropType,
+  type ImageURISource,
   type StyleProp,
   type TextStyle,
   type ViewStyle,
@@ -105,11 +106,19 @@ export function getAvatarInitials(name?: string): string {
  * `{ bundle, name }`, a resolved asset object). Keying those as "no image"
  * silently degraded a perfectly good source to initials.
  */
+// `Array.isArray` narrows to `any[]`, which cannot subtract the readonly array
+// arm of the source union, so the predicate spells the arm out.
+function isSourceList(
+  source: ImageURISource | readonly ImageURISource[]
+): source is readonly ImageURISource[] {
+  return Array.isArray(source);
+}
+
 function getSourceKey(source?: ImageSourcePropType): string | null {
   if (source == null) return null;
   if (typeof source === "number") return `asset:${source}`;
 
-  if (Array.isArray(source)) {
+  if (isSourceList(source)) {
     // An empty array carries no image; anything else does.
     const keys = source.map((entry) => getSourceKey(entry) ?? "").filter(Boolean);
     return keys.length > 0 ? keys.join("|") : null;

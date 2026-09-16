@@ -63,6 +63,7 @@ export const KeyboardController: KeyboardControllerModule = {
   setDefaultMode: () => undefined,
   setInputMode: () => undefined,
   preload: () => undefined,
+  setTranslucent: () => undefined,
   dismiss: () => Promise.resolve(),
   setFocusTo: () => undefined,
   isVisible: () => false,

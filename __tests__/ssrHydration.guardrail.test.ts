@@ -15,15 +15,16 @@
  * 3. The flushed atomics carry two-class specificity so react-native-web's
  *    client-sheet resets cannot outrank them while an async route chunk is
  *    still downloading.
- * 4. `@expo/router-server` is patched so bootstrap chunks execute in order
- *    instead of racing as `<script async>`; the patch is pinned to the installed
- *    version and must be re-created when that version changes.
+ * 4. `@expo/router-server` injects the Metro bootstrap chunks itself — preload
+ *    links in the head, in-order scripts in the body — instead of handing the
+ *    list to React as racing `<script async>` tags. SDK 57 needed a local patch
+ *    for this; SDK 58 ships it, and no patch may pin the old fix back on.
  *
  * Each is a plausible "simplification" for a later edit, and each fails
  * silently: the page still renders, just wrong for the first few hundred
  * milliseconds. Cheap source checks catch that before a browser has to.
  */
-import { existsSync, readFileSync } from "fs";
+import { readFileSync } from "fs";
 import { join } from "path";
 import { hardenFlushedSheet } from "@/client/features/app/SsrStyleFlush";
 
@@ -113,22 +114,21 @@ describe("hardenFlushedSheet", () => {
   });
 });
 
-describe("@expo/router-server bootstrap-order patch", () => {
-  const pkg = JSON.parse(read("package.json")) as { patchedDependencies?: Record<string, string> };
-  const installed = JSON.parse(read("node_modules/@expo/router-server/package.json")) as { version: string };
-  const key = `@expo/router-server@${installed.version}`;
-
-  it(`is pinned to the installed version (${installed.version})`, () => {
-    // A version bump without `bun patch` silently drops the patch: bun only
-    // applies it to the exact version in the key.
-    const patchPath = pkg.patchedDependencies?.[key];
-    expect(patchPath).toBeDefined();
-    expect(existsSync(join(root, patchPath as string))).toBe(true);
+describe("@expo/router-server injects bootstrap chunks in order", () => {
+  it("is not patched locally", () => {
+    // SDK 57 needed a bun patch to stop React emitting the Metro chunks as
+    // `<script async>`. SDK 58's renderer orders them itself, so a patch entry
+    // here means the old fix was re-pinned onto a version that no longer
+    // needs it.
+    const pkg = JSON.parse(read("package.json")) as { patchedDependencies?: Record<string, string> };
+    const patched = Object.keys(pkg.patchedDependencies ?? {});
+    expect(patched.filter((key) => key.startsWith("@expo/router-server@"))).toEqual([]);
   });
 
-  it("is applied to the installed streaming renderer", () => {
+  it("uses the upstream ordered injection in the installed streaming renderer", () => {
     const renderer = read("node_modules/@expo/router-server/build/server/renderStreamingContent.js");
-    expect(renderer).toContain("getOrderedBootstrapScriptContents");
+    // Preload links in the head plus in-order body scripts, built upstream.
+    expect(renderer).toContain("createInjectedScriptAsNodes");
     // The async race comes back the moment React is handed the chunk list.
     expect(renderer).not.toMatch(/bootstrapScripts:\s*options\?\.assets\?\.js/);
   });
