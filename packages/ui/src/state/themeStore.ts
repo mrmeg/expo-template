@@ -50,7 +50,7 @@ export type ShapeOverrides = {
   button?: {
     /**
      * Border radius applied to every Button preset. Package default:
-     * `spacing.radiusMd` (12). Use 9999 for pill buttons. A caller `style`
+     * `spacing.radiusMd` (10). Use 9999 for pill buttons. A caller `style`
      * still wins over this, as it always has.
      */
     borderRadius?: number;

@@ -20,7 +20,7 @@ describe("design-system source loader", () => {
     expect(design.tokens.spacing.values).toContain(64);
     // 9999 is `radiusFull`; it must not leak into the spacing scale.
     expect(design.tokens.spacing.values).not.toContain(9999);
-    expect(design.tokens.radius.nameByValue.get(12)).toBe("radiusMd");
+    expect(design.tokens.radius.nameByValue.get(10)).toBe("radiusMd");
     expect(design.tokens.radius.values).toContain(9999);
     expect(design.tokens.icon.values).toEqual([12, 16, 24, 32, 48]);
   });

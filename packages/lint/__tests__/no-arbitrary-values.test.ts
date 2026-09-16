@@ -49,7 +49,7 @@ ruleTester.run("no-arbitrary-values", rule, {
       errors: [
         {
           message:
-            "`13` is not a radius token. Nearest: `spacing.radiusMd` (12), `spacing.radiusLg` (14). " +
+            "`13` is not a radius token. Nearest: `spacing.radiusLg` (14), `spacing.radiusMd` (10). " +
             IMPORT_AND_FILE,
         },
       ],

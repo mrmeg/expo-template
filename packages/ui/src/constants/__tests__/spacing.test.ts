@@ -1,7 +1,7 @@
 /**
  * spacing constants tests
  *
- * Locks in the radius scale (rebased to a 12px default) and its ordering.
+ * Locks in the radius scale (rebased to a 10px default) and its ordering.
  */
 
 import {
@@ -21,7 +21,7 @@ describe("radius scale", () => {
     expect(spacing.radiusNone).toBe(0);
     expect(spacing.radiusXs).toBe(4);
     expect(spacing.radiusSm).toBe(8);
-    expect(spacing.radiusMd).toBe(12);
+    expect(spacing.radiusMd).toBe(10);
     expect(spacing.radiusLg).toBe(14);
     expect(spacing.radiusXl).toBe(18);
     expect(spacing.radius2xl).toBe(24);

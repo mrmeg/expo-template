@@ -210,7 +210,7 @@ too, because @react-navigation parses them with a color library.
 
 `spacing` exposes an 8px base scale (`xxs` 2, `xs` 4, `sm` 8, `smd` 12, `md`
 16, `mdl` 20, `lg` 24, `xl` 32, `xxl` 48, `xxxl` 64), radii (`radiusNone` 0,
-`radiusXs` 4, `radiusSm` 8, `radiusMd` 12, `radiusLg` 14, `radiusXl` 18,
+`radiusXs` 4, `radiusSm` 8, `radiusMd` 10, `radiusLg` 14, `radiusXl` 18,
 `radius2xl` 24, `radiusFull` 9999), icon sizes (`iconXs` 12, `iconSm` 16,
 `iconMd` 24, `iconLg` 32, `iconXl` 48), and the semantic density tokens package
 components read from. Prefer the semantic names so a density tune lands
