@@ -1,11 +1,11 @@
 /**
  * Guardrails for the generic workspace-package script runner.
  *
- * `scripts/run-package-script.mjs` replaces twelve copy-pasted `ui:*`/`media:*`
- * scripts with one table, so adding a third workspace package is a one-line
- * change instead of six more scripts. The twelve aliases stay because they are
- * load-bearing: `scripts/release-package.mjs` shells out to them,
- * `.github/workflows/publish-{ui,media}.yml` run them as steps, and the
+ * `scripts/run-package-script.mjs` replaces the copy-pasted `ui:*`/`media:*`
+ * scripts with one table, so adding a workspace package is a one-line change
+ * instead of six more scripts. The aliases stay because they are load-bearing:
+ * `scripts/release-package.mjs` shells out to them,
+ * `.github/workflows/publish-{ui,media,lint}.yml` run them as steps, and the
  * published package READMEs document them.
  *
  * These tests pin the resolved command for every (package, task) pair against
@@ -42,11 +42,18 @@ function resolve(args: string[]): { status: number; stdout: string; stderr: stri
 
 const print = (args: string[]) => resolve(["--print", ...args]).stdout.trim();
 
-/** Every `<package>:<task>` root alias mentioned in a file or command output. */
+const PACKAGE_SLUGS = ["ui", "media", "lint"];
+const TASK_NAMES = ["typecheck", "test", "build", "pack", "consumer-smoke", "release"];
+
+/**
+ * Every `<package>:<task>` root alias mentioned in a file or command output. The
+ * task half is pinned to the runner's task names rather than any word, because
+ * `lint` also prefixes two unrelated root scripts: `lint` (expo lint) and
+ * `lint:ui` (the design-system CLI), which are not package gates.
+ */
 function aliasesIn(source: string): string[] {
-  return [...source.matchAll(/\b(ui|media):([a-z-]+(?::[a-z-]+)?)\b/g)]
-    .map((match) => `${match[1]}:${match[2]}`)
-    .filter((script) => !script.endsWith(":dry-run"));
+  const pattern = new RegExp(`\\b(${PACKAGE_SLUGS.join("|")}):(${TASK_NAMES.join("|")})\\b`, "g");
+  return [...source.matchAll(pattern)].map((match) => `${match[1]}:${match[2]}`);
 }
 
 /** The release script's own usage text for one package. */
@@ -60,7 +67,8 @@ function releaseUsage(pkg: string): string {
 
 /**
  * The pre-refactor command for each alias, copied from the `ui:*`/`media:*`
- * entries as they existed before `pkg` was introduced. These are the contract.
+ * entries as they existed before `pkg` was introduced, plus the `lint:*` set that
+ * followed the same shape. These are the contract.
  */
 const EXPECTED: Record<string, string> = {
   "ui typecheck": "bun run --cwd packages/ui typecheck",
@@ -75,6 +83,12 @@ const EXPECTED: Record<string, string> = {
   "media pack": "bun run --cwd packages/media publish:dry-run",
   "media consumer-smoke": "node scripts/check-package-consumer.mjs media",
   "media release": "node scripts/release-package.mjs media",
+  "lint typecheck": "bun run --cwd packages/lint typecheck",
+  "lint test": "bun run --cwd packages/lint test",
+  "lint build": "bun run --cwd packages/lint build",
+  "lint pack": "bun run --cwd packages/lint publish:dry-run",
+  "lint consumer-smoke": "node scripts/check-package-consumer.mjs lint",
+  "lint release": "node scripts/release-package.mjs lint",
 };
 
 describe("run-package-script resolves the historical alias commands", () => {
@@ -124,6 +138,14 @@ describe("run-package-script argument validation", () => {
     expect(`${result.stdout}${result.stderr}`).toContain("ui");
   });
 
+  it("does not mistake the root lint scripts for package gates", () => {
+    // `lint` runs expo lint and `lint:ui` runs the design-system CLI: neither is
+    // a `<package>:<task>` gate, and treating them as one would let the runner's
+    // table drift unnoticed.
+    expect(aliasesIn("bun run lint\nbun run lint:ui --doctor")).toEqual([]);
+    expect(aliasesIn("bun run lint:test")).toEqual(["lint:test"]);
+  });
+
   it("rejects an unknown task and names the valid ones", () => {
     const result = resolve(["ui", "publish"]);
 
@@ -149,7 +171,7 @@ describe("package.json wiring", () => {
     expect(packageJson.scripts.pkg).toBe("node scripts/run-package-script.mjs");
   });
 
-  it("keeps all twelve ui:*/media:* aliases delegating to the runner", () => {
+  it("keeps every ui:*/media:*/lint:* gate alias delegating to the runner", () => {
     for (const pair of Object.keys(EXPECTED)) {
       const [pkg, task] = pair.split(" ");
       expect(packageJson.scripts[`${pkg}:${task}`]).toBe(
@@ -164,6 +186,7 @@ describe("package.json wiring", () => {
     for (const source of [
       ".github/workflows/publish-ui.yml",
       ".github/workflows/publish-media.yml",
+      ".github/workflows/publish-lint.yml",
     ]) {
       const referenced = aliasesIn(read(source));
 
@@ -178,7 +201,7 @@ describe("package.json wiring", () => {
     // scripts/release-package.mjs interpolates the package name into its gate
     // list, so the aliases are read back out of its usage text — which is
     // generated from the same list the script executes.
-    for (const pkg of ["ui", "media"]) {
+    for (const pkg of PACKAGE_SLUGS) {
       const referenced = aliasesIn(releaseUsage(pkg));
 
       expect(referenced).toContain(`${pkg}:consumer-smoke`);

@@ -185,13 +185,16 @@ multi-weight CSS family. `setShape({ button: { borderRadius?, withShadow? } })`
 re-shapes Buttons globally. Per-instance props and caller `style` always win.
 
 Enforce these rules mechanically with `@mrmeg/eslint-plugin-expo-ui`
-(`packages/lint` in the expo-template repo,
-https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/lint/README.md),
-which reports raw colors, off-scale spacing and radius, appearance overrides on
-package components, and raw primitives as ESLint diagnostics. It reads the
-design-system TypeScript sources on disk, so today it applies inside the
-template repo or a project that vendors `packages/ui/src` — not to a plain
-`@mrmeg/expo-ui` install.
+(`bun add -d @mrmeg/eslint-plugin-expo-ui`), which reports raw colors, off-scale
+spacing and radius, appearance overrides on package components, and raw
+primitives as ESLint diagnostics. It reads this package's
+`design-system.json` manifest out of `node_modules`, so the messages quote the
+tokens, presets and sizes of the installed release. The plugin's first npm release is
+still pending, and only `@mrmeg/expo-ui` releases built after the manifest was
+added ship one: the installed release has it when
+`node_modules/@mrmeg/expo-ui/dist/design-system.json` exists. Config block and
+settings:
+https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/lint/README.md
 
 ## Component Use-Case Index
 

@@ -51,6 +51,8 @@ describe("expo-ui-lint", () => {
     () => {
       const { status, stdout, stderr } = run(["--doctor"]);
       expect(stderr).toBe("");
+      // In this repo the facts come from the sources, not from a manifest.
+      expect(stdout).toContain(`design system: sources at ${path.join(ROOT, "packages", "ui", "src")}`);
       // The fixture trips all four rules; the counts are the wiring check.
       expect(stdout).toContain("= 1/1/2/2 (expected 1/1/2/2)");
       expect(stdout).not.toContain("FAIL");

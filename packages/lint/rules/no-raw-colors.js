@@ -16,7 +16,7 @@ const { designSystemComponent } = require("../lib/components");
 const { readSettings } = require("../lib/settings");
 const {
   DESIGN_SYSTEM_MISSING_MESSAGES,
-  loadDesignSystem,
+  loadDesignSystemFor,
   reportMissingDesignSystem,
 } = require("../lib/source");
 
@@ -79,7 +79,7 @@ module.exports = {
 
   create(context) {
     const settings = readSettings(context);
-    const design = loadDesignSystem(settings.uiSourceDir);
+    const design = loadDesignSystemFor(settings);
 
     /**
      * @param {object} node the node to report
@@ -97,7 +97,7 @@ module.exports = {
     };
 
     return {
-      Program: reportMissingDesignSystem(context, design, settings.uiSourceDir),
+      Program: reportMissingDesignSystem(context, design, settings),
 
       // Style objects anywhere in the file: inline JSX styles,
       // `StyleSheet.create({...})`, and `createThemedStyles` factories.
