@@ -800,7 +800,7 @@ function DrawerRailContent({
 
   // The rail is in-flow: its own width is what content sits beside, so growing it
   // pushes that content. No absolute positioning, no spacer.
-  const panelStyle: Animated.WithAnimatedObject<ViewStyle> = {
+  const panelStyle: Animated.WithAnimatedValue<ViewStyle> = {
     width: Platform.OS === "web" ? targetWidth : widthAnim,
     overflow: "hidden",
     // Rail chrome sits on the sunken tier, one step below the content pane.

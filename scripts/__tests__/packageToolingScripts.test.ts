@@ -42,6 +42,7 @@ describe("release-package.mjs package argument", () => {
   it.each([
     ["ui", "packages/ui"],
     ["media", "packages/media"],
+    ["lint", "packages/lint"],
   ])("prints %s-specific usage naming %s", (pkg, dir) => {
     const result = release([pkg, "--help"]);
 
@@ -52,9 +53,11 @@ describe("release-package.mjs package argument", () => {
     expect(result.stdout).toContain("--allow-dirty");
   });
 
-  it("does not leak the other package's aliases into usage", () => {
+  it("does not leak the other packages' aliases into usage", () => {
     expect(release(["ui", "--help"]).stdout).not.toContain("media:");
+    expect(release(["ui", "--help"]).stdout).not.toContain("lint:");
     expect(release(["media", "--help"]).stdout).not.toContain("ui:");
+    expect(release(["lint", "--help"]).stdout).not.toContain("media:");
   });
 
   it("documents every gate it runs, in order", () => {
@@ -78,7 +81,7 @@ describe("release-package.mjs package argument", () => {
 
     expect(result.status).not.toBe(0);
     expect(output(result)).toMatch(/Unknown package "nope"/i);
-    expect(output(result)).toContain("media, ui");
+    expect(output(result)).toContain("lint, media, ui");
   });
 
   it("treats a leading flag as a missing package instead of releasing a default", () => {
@@ -132,11 +135,13 @@ describe("check-package-consumer.mjs package argument", () => {
 
     expect(result.status).toBe(1);
     expect(output(result)).toMatch(/unknown package/i);
-    expect(output(result)).toContain("media, ui");
+    expect(output(result)).toContain("lint, media, ui");
   });
 });
 
 describe("fix-package-esm.mjs package argument", () => {
+  // Still `media, ui`: the lint plugin ships unbuilt CommonJS, so it has no dist
+  // tree to rewrite and is deliberately not registered there.
   it.each([[[]], [["nope"]]])("rejects %p before touching any dist tree", (args) => {
     const result = runScript("fix-package-esm.mjs", args);
 

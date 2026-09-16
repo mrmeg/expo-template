@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/native-tabs";
 import Feather from "@expo/vector-icons/Feather";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { NAV_DESTINATIONS } from "@/client/features/navigation/navDestinations";
@@ -24,6 +24,8 @@ export default function TabLayout() {
   // Hide the tab bar while the keyboard is open. On iOS 26 the floating tab
   // bar otherwise rides above the keyboard and collides with the autofill
   // accessory; on Android the resize keyboard mode pushes it up the same way.
+  // Reveal only after keyboard dismissal completes: a transient hide/show
+  // during input focus handoff must not trigger tab-bar layout mid-transition.
   const keyboardVisible = useKeyboardVisible();
 
   // The web tab-bar fallback never renders icons, but Native Tabs still resolves

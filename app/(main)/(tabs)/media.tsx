@@ -9,11 +9,12 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Image } from "expo-image";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
-import { spacing } from "@mrmeg/expo-ui/constants";
+import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
+import { palette, spacing } from "@mrmeg/expo-ui/constants";
 import {
   SansSerifText,
   SansSerifBoldText,
+  MonoText,
 } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Checkbox } from "@mrmeg/expo-ui/components/Checkbox";
@@ -680,6 +681,7 @@ function useMediaScreenContent() {
             }}
           >
             <SansSerifText
+              size="sm"
               style={[
                 styles.filterText,
                 filter === f.key && styles.filterTextActive,
@@ -694,16 +696,16 @@ function useMediaScreenContent() {
       {/* Stats */}
       <View style={[styles.statsRow, getShadowStyle("subtle")]}>
         <View style={styles.stat}>
-          <SansSerifBoldText style={styles.statValue}>
+          <SansSerifBoldText size="lg" style={styles.statValue}>
             {data?.totalCount ?? 0}
           </SansSerifBoldText>
-          <SansSerifText style={styles.statLabel}>Files</SansSerifText>
+          <SansSerifText size="sm" style={styles.statLabel}>Files</SansSerifText>
         </View>
         <View style={styles.stat}>
-          <SansSerifBoldText style={styles.statValue}>
+          <SansSerifBoldText size="lg" style={styles.statValue}>
             {formatBytes(mediaItems.reduce((sum, i) => sum + i.size, 0))}
           </SansSerifBoldText>
-          <SansSerifText style={styles.statLabel}>Total Size</SansSerifText>
+          <SansSerifText size="sm" style={styles.statLabel}>Total Size</SansSerifText>
         </View>
         <Button preset="ghost" size="sm" onPress={() => refetch()}>
           <Icon name="refresh-cw" size={16} color={theme.colors.primary} />
@@ -722,25 +724,25 @@ function useMediaScreenContent() {
       {mediaDisabled ? (
         <View style={styles.emptyContainer} testID="media-disabled">
           <Icon name="cloud-off" size={48} color={theme.colors.mutedForeground} />
-          <SansSerifText style={styles.emptyText}>Media storage not configured</SansSerifText>
-          <SansSerifText style={styles.emptySubtext}>
+          <SansSerifText size="body" style={styles.emptyText}>Media storage not configured</SansSerifText>
+          <SansSerifText size="base" style={styles.emptySubtext}>
             Set the R2/S3 env vars in .env to enable uploads, listing, and signed URLs.
           </SansSerifText>
           {missingEnvVars && missingEnvVars.length > 0 && (
-            <SansSerifText style={styles.disabledMissing}>
+            <MonoText size="sm" style={styles.disabledMissing}>
               Missing: {missingEnvVars.join(", ")}
-            </SansSerifText>
+            </MonoText>
           )}
         </View>
       ) : mediaAccessError ? (
         <View style={styles.emptyContainer} testID="media-auth-required">
           <Icon name="lock" size={48} color={theme.colors.mutedForeground} />
-          <SansSerifText style={styles.emptyText}>
+          <SansSerifText size="body" style={styles.emptyText}>
             {mediaAccessError.problem.kind === "unauthorized"
               ? "Sign in to access media"
               : "Media access denied"}
           </SansSerifText>
-          <SansSerifText style={styles.emptySubtext}>
+          <SansSerifText size="base" style={styles.emptySubtext}>
             {mediaAccessError.message}
           </SansSerifText>
           <Button
@@ -754,8 +756,8 @@ function useMediaScreenContent() {
       ) : fetchError ? (
         <View style={styles.emptyContainer} testID="media-error">
           <Icon name="alert-triangle" size={48} color={theme.colors.destructive} />
-          <SansSerifText style={styles.emptyText}>Couldn&apos;t load media</SansSerifText>
-          <SansSerifText style={styles.emptySubtext}>
+          <SansSerifText size="body" style={styles.emptyText}>Couldn&apos;t load media</SansSerifText>
+          <SansSerifText size="base" style={styles.emptySubtext}>
             {fetchError instanceof Error ? fetchError.message : "Try again in a moment."}
           </SansSerifText>
           <Button
@@ -777,8 +779,8 @@ function useMediaScreenContent() {
             size={48}
             color={theme.colors.mutedForeground}
           />
-          <SansSerifText style={styles.emptyText}>No files found</SansSerifText>
-          <SansSerifText style={styles.emptySubtext}>
+          <SansSerifText size="body" style={styles.emptyText}>No files found</SansSerifText>
+          <SansSerifText size="base" style={styles.emptySubtext}>
             Upload some media to see it here
           </SansSerifText>
         </View>
@@ -792,7 +794,7 @@ function useMediaScreenContent() {
               disabled={isDeleteBusy}
               label={isAllVisibleSelected ? "Deselect all" : "Select all"}
             />
-            <SansSerifText style={styles.selectionSummary}>
+            <SansSerifText size="sm" style={styles.selectionSummary}>
               {selectedCount > 0
                 ? `${selectedCount} selected`
                 : `${visibleKeys.length} visible`}
@@ -971,7 +973,7 @@ const MediaRow = memo(function MediaRow({
             accessibilityLabel={`Play ${filename}`}
           >
             <View style={styles.playButton}>
-              <Icon name="play" size={16} color="white" />
+              <Icon name="play" size={16} color="primaryForeground" />
             </View>
           </Pressable>
         )}
@@ -1027,7 +1029,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.primary,
     },
     filterText: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
     },
     filterTextActive: {
@@ -1048,11 +1049,9 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     statValue: {
-      fontSize: 18,
       color: theme.colors.foreground,
     },
     statLabel: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     loadingContainer: {
@@ -1067,20 +1066,16 @@ const createStyles = (theme: Theme) =>
       padding: spacing.xl,
     },
     emptyText: {
-      fontSize: 16,
       color: theme.colors.foreground,
       marginTop: spacing.md,
     },
     emptySubtext: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
       marginTop: spacing.xs,
       textAlign: "center",
     },
     disabledMissing: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
-      fontFamily: "monospace",
       marginTop: spacing.sm,
       textAlign: "center",
     },
@@ -1104,7 +1099,6 @@ const createStyles = (theme: Theme) =>
     },
     selectionSummary: {
       flex: 1,
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     selectionActions: {
@@ -1170,7 +1164,7 @@ const createStyles = (theme: Theme) =>
       ...StyleSheet.absoluteFill,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.3)",
+      backgroundColor: withAlpha(palette.black, 0.3),
       borderRadius: spacing.radiusSm,
     },
     playButton: {

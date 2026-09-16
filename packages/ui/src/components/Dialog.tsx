@@ -16,8 +16,13 @@ const FullWindowOverlay = Platform.OS === "ios" ? RNFullWindowOverlay : React.Fr
 // Dialog
 // ============================================================================
 
-const DialogTrigger = DialogPrimitive.Trigger;
-const DialogClose = DialogPrimitive.Close;
+// These re-exports and the compound components below carry explicit type
+// annotations because React Native 0.88 resolves primitive ref types through
+// its private `ReactNativeElement`, which declaration emit cannot name
+// portably (TS2883). Annotating with `typeof <primitive>` keeps the emitted
+// .d.ts pointing at the primitive's own public types instead.
+const DialogTrigger: typeof DialogPrimitive.Trigger = DialogPrimitive.Trigger;
+const DialogClose: typeof DialogPrimitive.Close = DialogPrimitive.Close;
 
 interface DialogProps extends DialogPrimitive.RootProps {
   children: React.ReactNode;
@@ -177,7 +182,17 @@ function DialogDescription({
   );
 }
 
-const Dialog = Object.assign(DialogRoot, {
+type DialogComponent = typeof DialogRoot & {
+  Trigger: typeof DialogTrigger;
+  Content: typeof DialogContent;
+  Header: typeof DialogHeader;
+  Footer: typeof DialogFooter;
+  Title: typeof DialogTitle;
+  Description: typeof DialogDescription;
+  Close: typeof DialogClose;
+};
+
+const Dialog: DialogComponent = Object.assign(DialogRoot, {
   Trigger: DialogTrigger,
   Content: DialogContent,
   Header: DialogHeader,
@@ -191,9 +206,9 @@ const Dialog = Object.assign(DialogRoot, {
 // AlertDialog
 // ============================================================================
 
-const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
-const AlertDialogAction = AlertDialogPrimitive.Action;
-const AlertDialogCancel = AlertDialogPrimitive.Cancel;
+const AlertDialogTrigger: typeof AlertDialogPrimitive.Trigger = AlertDialogPrimitive.Trigger;
+const AlertDialogAction: typeof AlertDialogPrimitive.Action = AlertDialogPrimitive.Action;
+const AlertDialogCancel: typeof AlertDialogPrimitive.Cancel = AlertDialogPrimitive.Cancel;
 
 interface AlertDialogProps extends AlertDialogPrimitive.RootProps {
   children: React.ReactNode;
@@ -318,7 +333,18 @@ function AlertDialogDescription({
   );
 }
 
-const AlertDialog = Object.assign(AlertDialogRoot, {
+type AlertDialogComponent = typeof AlertDialogRoot & {
+  Trigger: typeof AlertDialogTrigger;
+  Content: typeof AlertDialogContent;
+  Header: typeof DialogHeader;
+  Footer: typeof DialogFooter;
+  Title: typeof AlertDialogTitle;
+  Description: typeof AlertDialogDescription;
+  Action: typeof AlertDialogAction;
+  Cancel: typeof AlertDialogCancel;
+};
+
+const AlertDialog: AlertDialogComponent = Object.assign(AlertDialogRoot, {
   Trigger: AlertDialogTrigger,
   Content: AlertDialogContent,
   Header: DialogHeader,

@@ -1,8 +1,8 @@
-import { View, StyleSheet, Platform, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { useThemeStore } from "@mrmeg/expo-ui/state";
-import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { SansSerifText, SansSerifBoldText, MonoText } from "@mrmeg/expo-ui/components/StyledText";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 import {
@@ -53,7 +53,7 @@ export default function SettingsRoute() {
       <ScrollView testID="settings-screen" style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Appearance section */}
         <View style={styles.section}>
-          <SansSerifBoldText style={styles.sectionTitle}>
+          <SansSerifBoldText semantic="eyebrow" style={styles.sectionTitle}>
             {t("settings.appearance")}
           </SansSerifBoldText>
 
@@ -87,14 +87,14 @@ export default function SettingsRoute() {
             })}
           </View>
 
-          <SansSerifText style={styles.hint}>
+          <SansSerifText size="sm" style={styles.hint}>
             {t("settings.currentTheme")}: {scheme}
           </SansSerifText>
         </View>
 
         {/* Language section */}
         <View style={styles.section}>
-          <SansSerifBoldText style={styles.sectionTitle}>
+          <SansSerifBoldText semantic="eyebrow" style={styles.sectionTitle}>
             {t("settings.language")}
           </SansSerifBoldText>
 
@@ -126,14 +126,14 @@ export default function SettingsRoute() {
             })}
           </View>
 
-          <SansSerifText style={styles.hint}>
+          <SansSerifText size="sm" style={styles.hint}>
             {t("settings.languageHint")}
           </SansSerifText>
         </View>
 
         {/* About section */}
         <View style={styles.section}>
-          <SansSerifBoldText style={styles.sectionTitle}>
+          <SansSerifBoldText semantic="eyebrow" style={styles.sectionTitle}>
             {t("settings.about")}
           </SansSerifBoldText>
 
@@ -143,7 +143,7 @@ export default function SettingsRoute() {
                 <ItemTitle>{t("settings.version")}</ItemTitle>
               </ItemContent>
               <ItemActions>
-                <SansSerifText style={styles.settingValue}>1.0.0</SansSerifText>
+                <SansSerifText size="base" style={styles.settingValue}>1.0.0</SansSerifText>
               </ItemActions>
             </Item>
             <View style={styles.dividerFull} />
@@ -152,7 +152,7 @@ export default function SettingsRoute() {
                 <ItemTitle>{t("settings.environment")}</ItemTitle>
               </ItemContent>
               <ItemActions>
-                <SansSerifText style={styles.settingValue}>
+                <SansSerifText size="base" style={styles.settingValue}>
                   {__DEV__ ? "Development" : "Production"}
                 </SansSerifText>
               </ItemActions>
@@ -163,9 +163,9 @@ export default function SettingsRoute() {
                 <ItemTitle>{t("settings.apiUrl")}</ItemTitle>
               </ItemContent>
               <ItemActions>
-                <SansSerifText style={[styles.settingValue, styles.mono]} numberOfLines={1}>
+                <MonoText size="sm" style={styles.settingValue} numberOfLines={1}>
                   {Config.apiUrl}
-                </SansSerifText>
+                </MonoText>
               </ItemActions>
             </Item>
           </View>
@@ -187,11 +187,7 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.sectionSpacing,
     },
     sectionTitle: {
-      fontSize: 14,
-      color: theme.colors.foreground,
-      opacity: 0.6,
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
+      color: theme.colors.mutedForeground,
       marginBottom: spacing.sm,
       marginLeft: spacing.xs,
     },
@@ -203,22 +199,17 @@ const createStyles = (theme: Theme) =>
       overflow: "hidden",
     },
     mediaActive: {
+      // eslint-disable-next-line expo-ui/no-restyle -- colored icon tile; ItemMedia has no tint variant
       backgroundColor: withAlpha(theme.colors.primary, 0.13),
     },
     settingValue: {
-      fontSize: 14,
-      color: theme.colors.foreground,
-      opacity: 0.6,
+      color: theme.colors.mutedForeground,
       maxWidth: 180,
-    },
-    mono: {
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      fontSize: 12,
     },
     radio: {
       width: 22,
       height: 22,
-      borderRadius: 11,
+      borderRadius: spacing.radiusFull,
       borderWidth: 2,
       borderColor: theme.colors.border,
       alignItems: "center",
@@ -230,7 +221,7 @@ const createStyles = (theme: Theme) =>
     radioInner: {
       width: 12,
       height: 12,
-      borderRadius: 6,
+      borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.primary,
     },
     dividerFull: {
@@ -238,9 +229,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.border,
     },
     hint: {
-      fontSize: 12,
-      color: theme.colors.foreground,
-      opacity: 0.5,
+      color: theme.colors.mutedForeground,
       marginTop: spacing.sm,
       marginLeft: spacing.xs,
     },

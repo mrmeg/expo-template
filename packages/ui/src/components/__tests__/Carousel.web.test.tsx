@@ -19,7 +19,7 @@
 import "./forceWebPlatform";
 
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { Carousel } from "../Carousel";
@@ -44,7 +44,7 @@ jest.mock("../../hooks/useDimensions", () => ({
   }),
 }));
 
-function flatten(style: unknown) {
+function flatten(style: StyleProp<ViewStyle>) {
   // `snap={false}` passes no style at all, and flatten(undefined) is undefined.
   return (StyleSheet.flatten(style) ?? {}) as Record<string, unknown>;
 }

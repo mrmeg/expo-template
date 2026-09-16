@@ -67,7 +67,7 @@ export function ForgotPasswordForm({
         description={t("auth.resetLinkSentDescription", { email: submittedEmail })}
       >
         <View style={styles.successContainer}>
-          <SansSerifText style={styles.successText}>
+          <SansSerifText size="base" style={styles.successText}>
             {t("auth.didntReceiveEmail")}
           </SansSerifText>
         </View>
@@ -146,7 +146,6 @@ const createStyles = (theme: Theme) =>
     },
     successText: {
       color: theme.colors.foreground,
-      fontSize: 14,
       textAlign: "center",
     },
   });

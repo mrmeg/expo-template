@@ -20,12 +20,12 @@
  */
 
 import React, { useMemo, useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Skeleton } from "@mrmeg/expo-ui/components/Skeleton";
-import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { MonoText, SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { STAGGER_DELAY, useTheme } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
@@ -89,11 +89,11 @@ export default function BlocksGalleryScreen() {
         showsVerticalScrollIndicator={false}
       >
         <AnimatedView type="fadeSlideUp" delay={0}>
-          <SansSerifText style={styles.intro}>
+          <SansSerifText size="base" style={styles.intro}>
             Composed sections you drop into any screen. Each block lives in{" "}
-            <SansSerifText style={styles.mono}>client/blocks/&lt;id&gt;/</SansSerifText>,
+            <MonoText size="sm" style={styles.mono}>client/blocks/&lt;id&gt;/</MonoText>,
             registers via{" "}
-            <SansSerifText style={styles.mono}>bun run gen:blocks</SansSerifText>, and
+            <MonoText size="sm" style={styles.mono}>bun run gen:blocks</MonoText>, and
             lists its component recipe below the preview.
           </SansSerifText>
         </AnimatedView>
@@ -247,13 +247,9 @@ const createStyles = (theme: Theme) =>
     },
 
     intro: {
-      fontSize: 14,
-      lineHeight: 21,
       color: theme.colors.mutedForeground,
     },
     mono: {
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      fontSize: 12.5,
       color: theme.colors.textDim,
     },
     chipRow: {

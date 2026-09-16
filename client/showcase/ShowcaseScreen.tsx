@@ -48,7 +48,6 @@ import { Avatar, AvatarGroup } from "@mrmeg/expo-ui/components/Avatar";
 import { notify } from "@mrmeg/expo-ui/state";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { fontFamilies } from "@mrmeg/expo-ui/constants";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { blurActiveElementOnWeb } from "@/client/features/navigation/blurActiveElementOnWeb";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -144,12 +143,12 @@ function useShowcaseScreenContent() {
           <View style={{ flexDirection: "row", gap: 8, marginBottom: spacing.lg }}>
             <Link href="/(main)/(demos)/form-demo" asChild>
               <Button preset="outline" onPressIn={blurActiveElementOnWeb}>
-                <StyledText style={styles.outlineButtonText}>Go to Form Demo</StyledText>
+                <StyledText fontWeight="bold" style={styles.outlineButtonText}>Go to Form Demo</StyledText>
               </Button>
             </Link>
             <Link href="/(main)/(demos)/developer" asChild>
               <Button preset="outline" onPressIn={blurActiveElementOnWeb}>
-                <StyledText style={styles.outlineButtonText}>Go to Developer</StyledText>
+                <StyledText fontWeight="bold" style={styles.outlineButtonText}>Go to Developer</StyledText>
               </Button>
             </Link>
           </View>
@@ -158,20 +157,20 @@ function useShowcaseScreenContent() {
             <Accordion type="single" collapsible>
               <AccordionItem value="item-1">
                 <AccordionTrigger>
-                  <StyledText style={styles.boldText}>What is React Native?</StyledText>
+                  <StyledText fontWeight="bold" style={styles.boldText}>What is React Native?</StyledText>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <StyledText style={styles.labelText}>
+                  <StyledText>
                     React Native is a framework for building native mobile applications using React and JavaScript.
                   </StyledText>
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-2">
                 <AccordionTrigger>
-                  <StyledText style={styles.boldText}>What is Expo?</StyledText>
+                  <StyledText fontWeight="bold" style={styles.boldText}>What is Expo?</StyledText>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <StyledText style={styles.labelText}>
+                  <StyledText>
                     Expo is a platform that makes it easier to build and deploy React Native applications with a rich
                     set of tools and services.
                   </StyledText>
@@ -179,10 +178,10 @@ function useShowcaseScreenContent() {
               </AccordionItem>
               <AccordionItem value="item-3">
                 <AccordionTrigger>
-                  <StyledText style={styles.boldText}>What are primitives?</StyledText>
+                  <StyledText fontWeight="bold" style={styles.boldText}>What are primitives?</StyledText>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <StyledText style={styles.labelText}>
+                  <StyledText>
                     Primitives are unstyled, accessible UI components that work across iOS, Android, and Web platforms.
                   </StyledText>
                 </AccordionContent>
@@ -200,7 +199,7 @@ function useShowcaseScreenContent() {
                   })
                 }
               >
-                <StyledText style={styles.buttonText}>Show Simple Alert</StyledText>
+                <StyledText fontWeight="bold">Show Simple Alert</StyledText>
               </Button>
             </SubSection>
 
@@ -214,7 +213,7 @@ function useShowcaseScreenContent() {
                   })
                 }
               >
-                <StyledText style={styles.outlineButtonText}>Show Alert with Title</StyledText>
+                <StyledText fontWeight="bold" style={styles.outlineButtonText}>Show Alert with Title</StyledText>
               </Button>
             </SubSection>
 
@@ -241,7 +240,7 @@ function useShowcaseScreenContent() {
                   })
                 }
               >
-                <StyledText style={styles.outlineButtonText}>Show Confirmation</StyledText>
+                <StyledText fontWeight="bold" style={styles.outlineButtonText}>Show Confirmation</StyledText>
               </Button>
             </SubSection>
           </Section>
@@ -294,30 +293,30 @@ function useShowcaseScreenContent() {
           <Section title="Button Sizes">
             <SubSection label="Small">
               <Button preset="default" size="sm" onPress={() => { }}>
-                <StyledText style={styles.buttonText}>Small</StyledText>
+                <StyledText fontWeight="bold">Small</StyledText>
               </Button>
             </SubSection>
 
             <SubSection label="Default">
               <Button preset="default" onPress={() => { }}>
-                <StyledText style={styles.buttonText}>Default</StyledText>
+                <StyledText fontWeight="bold">Default</StyledText>
               </Button>
             </SubSection>
 
             <SubSection label="Large">
               <Button preset="default" size="lg" onPress={() => { }}>
-                <StyledText style={styles.buttonText}>Large</StyledText>
+                <StyledText fontWeight="bold">Large</StyledText>
               </Button>
             </SubSection>
           </Section>
 
-          <ButtonStatesSection styles={styles} />
+          <ButtonStatesSection />
 
           <Section title="Button Icons">
             <SubSection label="Left Icon">
               <Button preset="default" onPress={() => { }}>
                 <Icon name="heart" size={16} color={theme.colors.primaryForeground} />
-                <StyledText style={[styles.buttonText, { marginLeft: spacing.xs }]}>
+                <StyledText fontWeight="bold" style={{ marginLeft: spacing.xs }}>
                   With Left Icon
                 </StyledText>
               </Button>
@@ -325,7 +324,7 @@ function useShowcaseScreenContent() {
 
             <SubSection label="Right Icon">
               <Button preset="outline" onPress={() => { }}>
-                <StyledText style={[styles.outlineButtonText, { marginRight: spacing.xs }]}>
+                <StyledText fontWeight="bold" style={[styles.outlineButtonText, { marginRight: spacing.xs }]}>
                   Continue
                 </StyledText>
                 <Icon name="arrow-right" size={16} color={theme.colors.primary} />
@@ -406,15 +405,15 @@ function useShowcaseScreenContent() {
               >
                 <CollapsibleTrigger>
                   <View style={styles.collapsibleTrigger}>
-                    <StyledText style={styles.boldText}>Can I use this in my project?</StyledText>
-                    <StyledText style={[styles.labelText, { fontSize: 18, opacity: 0.7 }]}>
+                    <StyledText fontWeight="bold" style={styles.boldText}>Can I use this in my project?</StyledText>
+                    <StyledText size="lg" style={styles.dimText}>
                       {collapsibleOpen ? "\u2212" : "+"}
                     </StyledText>
                   </View>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <View style={{ paddingTop: spacing.sm }}>
-                    <StyledText style={styles.labelText}>
+                    <StyledText>
                       Yes! This is a reusable collapsible component built with @rn-primitives/collapsible. It supports
                       smooth animations and works across iOS, Android, and Web.
                     </StyledText>
@@ -426,23 +425,23 @@ function useShowcaseScreenContent() {
             <SubSection label="With Button Trigger (asChild)">
               <Collapsible>
                 <View style={styles.collapsibleHeader}>
-                  <StyledText style={styles.boldText}>@peduarte starred 3 repositories</StyledText>
+                  <StyledText fontWeight="bold" style={styles.boldText}>@peduarte starred 3 repositories</StyledText>
                   <CollapsibleTrigger asChild>
-                    <Button preset="outline" size="sm" style={styles.smallButton}>
-                      <StyledText style={[styles.labelText, { fontSize: 12 }]}>Toggle</StyledText>
+                    <Button preset="outline" size="sm">
+                      <StyledText size="sm">Toggle</StyledText>
                     </Button>
                   </CollapsibleTrigger>
                 </View>
                 <View style={[styles.collapsibleItem, { borderColor: theme.colors.border }]}>
-                  <StyledText style={styles.labelText}>@radix-ui/primitives</StyledText>
+                  <StyledText>@radix-ui/primitives</StyledText>
                 </View>
                 <CollapsibleContent>
                   <View style={{ gap: spacing.sm }}>
                     <View style={[styles.collapsibleItem, { borderColor: theme.colors.border }]}>
-                      <StyledText style={styles.labelText}>@radix-ui/react</StyledText>
+                      <StyledText>@radix-ui/react</StyledText>
                     </View>
                     <View style={[styles.collapsibleItem, { borderColor: theme.colors.border }]}>
-                      <StyledText style={styles.labelText}>@stitches/core</StyledText>
+                      <StyledText>@stitches/core</StyledText>
                     </View>
                   </View>
                 </CollapsibleContent>
@@ -457,25 +456,25 @@ function useShowcaseScreenContent() {
               <Drawer side="left" width={280}>
                 <Drawer.Trigger asChild>
                   <Button preset="outline">
-                    <StyledText style={styles.outlineButtonText}>Open Left Drawer</StyledText>
+                    <StyledText fontWeight="bold" style={styles.outlineButtonText}>Open Left Drawer</StyledText>
                   </Button>
                 </Drawer.Trigger>
                 <Drawer.Content>
                   <Drawer.Header>
-                    <StyledText style={[styles.boldText, { fontSize: 18 }]}>Navigation</StyledText>
+                    <StyledText fontWeight="bold" size="lg" style={styles.boldText}>Navigation</StyledText>
                   </Drawer.Header>
                   <Drawer.Body>
                     <View style={{ gap: spacing.md }}>
-                      <StyledText style={styles.labelText}>Home</StyledText>
-                      <StyledText style={styles.labelText}>Profile</StyledText>
-                      <StyledText style={styles.labelText}>Settings</StyledText>
-                      <StyledText style={styles.labelText}>About</StyledText>
+                      <StyledText>Home</StyledText>
+                      <StyledText>Profile</StyledText>
+                      <StyledText>Settings</StyledText>
+                      <StyledText>About</StyledText>
                     </View>
                   </Drawer.Body>
                   <Drawer.Footer>
                     <Drawer.Close asChild>
                       <Button preset="outline">
-                        <StyledText style={styles.outlineButtonText}>Close</StyledText>
+                        <StyledText fontWeight="bold" style={styles.outlineButtonText}>Close</StyledText>
                       </Button>
                     </Drawer.Close>
                   </Drawer.Footer>
@@ -487,19 +486,19 @@ function useShowcaseScreenContent() {
               <Drawer side="right" width="75%">
                 <Drawer.Trigger asChild>
                   <Button preset="outline">
-                    <StyledText style={styles.outlineButtonText}>Open Right Drawer</StyledText>
+                    <StyledText fontWeight="bold" style={styles.outlineButtonText}>Open Right Drawer</StyledText>
                   </Button>
                 </Drawer.Trigger>
                 <Drawer.Content>
                   <Drawer.Header>
-                    <StyledText style={[styles.boldText, { fontSize: 18 }]}>Filters</StyledText>
+                    <StyledText fontWeight="bold" size="lg" style={styles.boldText}>Filters</StyledText>
                   </Drawer.Header>
                   <Drawer.Body>
                     <View style={{ gap: spacing.md }}>
-                      <StyledText style={styles.labelText}>Category: All</StyledText>
-                      <StyledText style={styles.labelText}>Price: $0 - $100</StyledText>
-                      <StyledText style={styles.labelText}>Rating: 4+ stars</StyledText>
-                      <StyledText style={[styles.labelText, { marginTop: spacing.lg, opacity: 0.6 }]}>
+                      <StyledText>Category: All</StyledText>
+                      <StyledText>Price: $0 - $100</StyledText>
+                      <StyledText>Rating: 4+ stars</StyledText>
+                      <StyledText style={[styles.dimText, { marginTop: spacing.lg }]}>
                         Swipe right to close (on native)
                       </StyledText>
                     </View>
@@ -508,12 +507,12 @@ function useShowcaseScreenContent() {
                     <View style={{ flexDirection: "row", gap: spacing.sm }}>
                       <Drawer.Close asChild>
                         <Button preset="outline" style={{ flex: 1 }}>
-                          <StyledText style={styles.outlineButtonText}>Cancel</StyledText>
+                          <StyledText fontWeight="bold" style={styles.outlineButtonText}>Cancel</StyledText>
                         </Button>
                       </Drawer.Close>
                       <Drawer.Close asChild>
                         <Button preset="default" style={{ flex: 1 }}>
-                          <StyledText style={styles.smallButtonText}>Apply</StyledText>
+                          <StyledText fontWeight="bold" size="sm">Apply</StyledText>
                         </Button>
                       </Drawer.Close>
                     </View>
@@ -528,21 +527,21 @@ function useShowcaseScreenContent() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline">
-                    <StyledText style={styles.outlineButtonText}>Open Menu</StyledText>
+                    <StyledText fontWeight="bold" style={styles.outlineButtonText}>Open Menu</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem>
-                    <StyledText style={styles.labelText}>Profile</StyledText>
+                    <StyledText>Profile</StyledText>
                     <DropdownMenuShortcut text="⌘P" />
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <StyledText style={styles.labelText}>Settings</StyledText>
+                    <StyledText>Settings</StyledText>
                     <DropdownMenuShortcut text="⌘S" />
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive">
-                    <StyledText style={styles.labelText}>Logout</StyledText>
+                    <StyledText>Logout</StyledText>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -552,12 +551,12 @@ function useShowcaseScreenContent() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline">
-                    <StyledText style={styles.outlineButtonText}>View Options</StyledText>
+                    <StyledText fontWeight="bold" style={styles.outlineButtonText}>View Options</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuLabel>
-                    <StyledText style={styles.boldText}>Appearance</StyledText>
+                    <StyledText fontWeight="bold" style={styles.boldText}>Appearance</StyledText>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuCheckboxItem
@@ -569,7 +568,7 @@ function useShowcaseScreenContent() {
                       })
                     }
                   >
-                    <StyledText style={styles.labelText}>Show Bookmarks</StyledText>
+                    <StyledText>Show Bookmarks</StyledText>
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={showUrls}
@@ -580,7 +579,7 @@ function useShowcaseScreenContent() {
                       })
                     }
                   >
-                    <StyledText style={styles.labelText}>Show Full URLs</StyledText>
+                    <StyledText>Show Full URLs</StyledText>
                   </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -590,12 +589,12 @@ function useShowcaseScreenContent() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline">
-                    <StyledText style={styles.outlineButtonText}>Panel Position</StyledText>
+                    <StyledText fontWeight="bold" style={styles.outlineButtonText}>Panel Position</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuLabel>
-                    <StyledText style={styles.boldText}>Position</StyledText>
+                    <StyledText fontWeight="bold" style={styles.boldText}>Position</StyledText>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuRadioGroup
@@ -608,13 +607,13 @@ function useShowcaseScreenContent() {
                     }
                   >
                     <DropdownMenuRadioItem value="top">
-                      <StyledText style={styles.labelText}>Top</StyledText>
+                      <StyledText>Top</StyledText>
                     </DropdownMenuRadioItem>
                     <DropdownMenuRadioItem value="bottom">
-                      <StyledText style={styles.labelText}>Bottom</StyledText>
+                      <StyledText>Bottom</StyledText>
                     </DropdownMenuRadioItem>
                     <DropdownMenuRadioItem value="right">
-                      <StyledText style={styles.labelText}>Right</StyledText>
+                      <StyledText>Right</StyledText>
                     </DropdownMenuRadioItem>
                   </DropdownMenuRadioGroup>
                 </DropdownMenuContent>
@@ -625,30 +624,30 @@ function useShowcaseScreenContent() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button preset="outline">
-                    <StyledText style={styles.outlineButtonText}>Advanced Menu</StyledText>
+                    <StyledText fontWeight="bold" style={styles.outlineButtonText}>Advanced Menu</StyledText>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem>
-                    <StyledText style={styles.labelText}>New File</StyledText>
+                    <StyledText>New File</StyledText>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <StyledText style={styles.labelText}>New Window</StyledText>
+                    <StyledText>New Window</StyledText>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
-                      <StyledText style={styles.labelText}>More Tools</StyledText>
+                      <StyledText>More Tools</StyledText>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
                       <DropdownMenuItem>
-                        <StyledText style={styles.labelText}>Developer Tools</StyledText>
+                        <StyledText>Developer Tools</StyledText>
                       </DropdownMenuItem>
                       <DropdownMenuItem>
-                        <StyledText style={styles.labelText}>Task Manager</StyledText>
+                        <StyledText>Task Manager</StyledText>
                       </DropdownMenuItem>
                       <DropdownMenuItem>
-                        <StyledText style={styles.labelText}>Extensions</StyledText>
+                        <StyledText>Extensions</StyledText>
                       </DropdownMenuItem>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
@@ -707,7 +706,7 @@ function useShowcaseScreenContent() {
                 >
                   <View style={styles.customChildRow}>
                     <Icon name="info" size={16} color={theme.colors.mutedForeground} />
-                    <SansSerifText style={styles.customChildText}>
+                    <SansSerifText size="sm" style={styles.customChildText}>
                       Last synced 5 minutes ago
                     </SansSerifText>
                   </View>
@@ -860,7 +859,7 @@ function useShowcaseScreenContent() {
                   })
                 }
               >
-                <StyledText style={styles.buttonText}>Show Success</StyledText>
+                <StyledText fontWeight="bold">Show Success</StyledText>
               </Button>
             </SubSection>
 
@@ -874,7 +873,7 @@ function useShowcaseScreenContent() {
                   })
                 }
               >
-                <StyledText style={styles.outlineButtonText}>Show Error</StyledText>
+                <StyledText fontWeight="bold" style={styles.outlineButtonText}>Show Error</StyledText>
               </Button>
             </SubSection>
 
@@ -888,7 +887,7 @@ function useShowcaseScreenContent() {
                   })
                 }
               >
-                <StyledText style={styles.outlineButtonText}>Show Warning</StyledText>
+                <StyledText fontWeight="bold" style={styles.outlineButtonText}>Show Warning</StyledText>
               </Button>
             </SubSection>
 
@@ -899,7 +898,7 @@ function useShowcaseScreenContent() {
                   notify({ type: "info", messages: ["Here's some information for you"], duration: 3000 })
                 }
               >
-                <StyledText style={styles.outlineButtonText}>Show Info</StyledText>
+                <StyledText fontWeight="bold" style={styles.outlineButtonText}>Show Info</StyledText>
               </Button>
             </SubSection>
 
@@ -910,7 +909,7 @@ function useShowcaseScreenContent() {
                   notify({ type: "info", loading: true, messages: ["Loading data..."], duration: 2000 });
                 }}
               >
-                <StyledText style={styles.outlineButtonText}>Show Loading</StyledText>
+                <StyledText fontWeight="bold" style={styles.outlineButtonText}>Show Loading</StyledText>
               </Button>
             </SubSection>
             <SubSection label="Bottom Toast">
@@ -921,7 +920,7 @@ function useShowcaseScreenContent() {
                     notify.success("Copied to clipboard", { duration: 2000, position: "bottom" });
                   }}
                 >
-                  <StyledText style={styles.outlineButtonText}>Success Toast</StyledText>
+                  <StyledText fontWeight="bold" style={styles.outlineButtonText}>Success Toast</StyledText>
                 </Button>
                 <Button
                   preset="outline"
@@ -933,7 +932,7 @@ function useShowcaseScreenContent() {
                     });
                   }}
                 >
-                  <StyledText style={styles.outlineButtonText}>Info Toast</StyledText>
+                  <StyledText fontWeight="bold" style={styles.outlineButtonText}>Info Toast</StyledText>
                 </Button>
                 <Button
                   preset="outline"
@@ -945,7 +944,7 @@ function useShowcaseScreenContent() {
                     });
                   }}
                 >
-                  <StyledText style={styles.outlineButtonText}>Error Toast</StyledText>
+                  <StyledText fontWeight="bold" style={styles.outlineButtonText}>Error Toast</StyledText>
                 </Button>
               </View>
             </SubSection>
@@ -956,26 +955,26 @@ function useShowcaseScreenContent() {
               <View style={styles.buttonRow}>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button preset="default" size="sm" style={styles.smallButton}>
-                      <StyledText style={styles.smallButtonText}>Top</StyledText>
+                    <Button preset="default" size="sm">
+                      <StyledText fontWeight="bold" size="sm">Top</StyledText>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent side="top" align="center">
                     <PopoverBody>
-                      <StyledText style={styles.labelText}>Popover on top</StyledText>
+                      <StyledText>Popover on top</StyledText>
                     </PopoverBody>
                   </PopoverContent>
                 </Popover>
 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button preset="default" size="sm" style={styles.smallButton}>
-                      <StyledText style={styles.smallButtonText}>Bottom</StyledText>
+                    <Button preset="default" size="sm">
+                      <StyledText fontWeight="bold" size="sm">Bottom</StyledText>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent side="bottom" align="center">
                     <PopoverBody>
-                      <StyledText style={styles.labelText}>Popover on bottom</StyledText>
+                      <StyledText>Popover on bottom</StyledText>
                     </PopoverBody>
                   </PopoverContent>
                 </Popover>
@@ -986,18 +985,18 @@ function useShowcaseScreenContent() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button preset="outline" size="sm">
-                    <StyledText style={styles.outlineButtonText}>View Profile</StyledText>
+                    <StyledText fontWeight="bold" style={styles.outlineButtonText}>View Profile</StyledText>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="start" sideOffset={8}>
                   <View style={{ minWidth: 200 }}>
                     <View style={{ paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-                      <StyledText style={[styles.boldText, { fontSize: 16 }]}>John Doe</StyledText>
-                      <StyledText style={[styles.labelText, { fontSize: 12, opacity: 0.7 }]}>john@example.com</StyledText>
+                      <StyledText fontWeight="bold" size="body" style={styles.boldText}>John Doe</StyledText>
+                      <StyledText size="sm" style={styles.dimText}>john@example.com</StyledText>
                     </View>
                     <View style={{ paddingTop: spacing.sm }}>
-                      <StyledText style={[styles.labelText, { fontSize: 14, marginBottom: spacing.xs }]}>Member since 2024</StyledText>
-                      <StyledText style={[styles.labelText, { fontSize: 14 }]}>Premium Account</StyledText>
+                      <StyledText size="base" style={{ marginBottom: spacing.xs }}>Member since 2024</StyledText>
+                      <StyledText size="base">Premium Account</StyledText>
                     </View>
                   </View>
                 </PopoverContent>
@@ -1059,28 +1058,28 @@ function useShowcaseScreenContent() {
           <Section title="Separator">
             <SubSection label="Horizontal (Default)">
               <View style={{ gap: spacing.sm }}>
-                <StyledText style={styles.labelText}>Content above separator</StyledText>
+                <StyledText>Content above separator</StyledText>
                 <Separator margin={spacing.sm} />
-                <StyledText style={styles.labelText}>Content below separator</StyledText>
+                <StyledText>Content below separator</StyledText>
               </View>
             </SubSection>
 
             <SubSection label="Size Variants">
               <View style={{ gap: spacing.xs }}>
                 <View style={styles.separatorRow}>
-                  <StyledText style={[styles.labelText, { width: 40 }]}>sm</StyledText>
+                  <StyledText style={{ width: 40 }}>sm</StyledText>
                   <View style={{ flex: 1 }}>
                     <Separator size="sm" margin={0} />
                   </View>
                 </View>
                 <View style={styles.separatorRow}>
-                  <StyledText style={[styles.labelText, { width: 40 }]}>md</StyledText>
+                  <StyledText style={{ width: 40 }}>md</StyledText>
                   <View style={{ flex: 1 }}>
                     <Separator size="md" margin={0} />
                   </View>
                 </View>
                 <View style={styles.separatorRow}>
-                  <StyledText style={[styles.labelText, { width: 40 }]}>lg</StyledText>
+                  <StyledText style={{ width: 40 }}>lg</StyledText>
                   <View style={{ flex: 1 }}>
                     <Separator size="lg" margin={0} />
                   </View>
@@ -1091,19 +1090,19 @@ function useShowcaseScreenContent() {
             <SubSection label="Visual Variants">
               <View style={{ gap: spacing.sm }}>
                 <View style={styles.separatorRow}>
-                  <StyledText style={[styles.labelText, { width: 70 }]}>default</StyledText>
+                  <StyledText style={{ width: 70 }}>default</StyledText>
                   <View style={{ flex: 1 }}>
                     <Separator variant="default" margin={0} />
                   </View>
                 </View>
                 <View style={styles.separatorRow}>
-                  <StyledText style={[styles.labelText, { width: 70 }]}>muted</StyledText>
+                  <StyledText style={{ width: 70 }}>muted</StyledText>
                   <View style={{ flex: 1 }}>
                     <Separator variant="muted" margin={0} />
                   </View>
                 </View>
                 <View style={styles.separatorRow}>
-                  <StyledText style={[styles.labelText, { width: 70 }]}>primary</StyledText>
+                  <StyledText style={{ width: 70 }}>primary</StyledText>
                   <View style={{ flex: 1 }}>
                     <Separator variant="primary" margin={0} />
                   </View>
@@ -1113,11 +1112,11 @@ function useShowcaseScreenContent() {
 
             <SubSection label="Vertical Orientation">
               <View style={{ flexDirection: "row", alignItems: "center", height: 60 }}>
-                <StyledText style={styles.labelText}>Left</StyledText>
+                <StyledText>Left</StyledText>
                 <Separator orientation="vertical" margin={spacing.md} />
-                <StyledText style={styles.labelText}>Center</StyledText>
+                <StyledText>Center</StyledText>
                 <Separator orientation="vertical" variant="primary" margin={spacing.md} />
-                <StyledText style={styles.labelText}>Right</StyledText>
+                <StyledText>Right</StyledText>
               </View>
             </SubSection>
           </Section>
@@ -1144,7 +1143,7 @@ function useShowcaseScreenContent() {
             </SubSection>
           </Section>
 
-          <SliderSection styles={styles} />
+          <SliderSection />
 
           <SwitchSection styles={styles} />
 
@@ -1171,13 +1170,13 @@ function useShowcaseScreenContent() {
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="account">
-                  <SansSerifText style={styles.labelText}>Manage your account settings and preferences.</SansSerifText>
+                  <SansSerifText>Manage your account settings and preferences.</SansSerifText>
                 </TabsContent>
                 <TabsContent value="password">
-                  <SansSerifText style={styles.labelText}>Update your password and security settings.</SansSerifText>
+                  <SansSerifText>Update your password and security settings.</SansSerifText>
                 </TabsContent>
                 <TabsContent value="notifications">
-                  <SansSerifText style={styles.labelText}>Configure how you receive notifications.</SansSerifText>
+                  <SansSerifText>Configure how you receive notifications.</SansSerifText>
                 </TabsContent>
               </Tabs>
             </SubSection>
@@ -1201,32 +1200,32 @@ function useShowcaseScreenContent() {
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview">
-                  <SansSerifText style={styles.labelText}>A high-level summary of your project.</SansSerifText>
+                  <SansSerifText>A high-level summary of your project.</SansSerifText>
                 </TabsContent>
                 <TabsContent value="analytics">
-                  <SansSerifText style={styles.labelText}>Detailed analytics and usage metrics.</SansSerifText>
+                  <SansSerifText>Detailed analytics and usage metrics.</SansSerifText>
                 </TabsContent>
               </Tabs>
             </SubSection>
           </Section>
 
-          <TextInputSection styles={styles} />
+          <TextInputSection />
 
-          <ToggleSection styles={styles} />
+          <ToggleSection />
 
-          <ToggleGroupSection styles={styles} />
+          <ToggleGroupSection />
 
           <Section title="Tooltip">
             <SubSection label="Basic Tooltip">
               <View style={styles.tooltipRow}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button preset="outline" size="sm" style={styles.smallButton}>
-                      <StyledText style={styles.smallButtonText}>Hover me</StyledText>
+                    <Button preset="outline" size="sm">
+                      <StyledText fontWeight="bold" size="sm">Hover me</StyledText>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <StyledText style={styles.labelText}>This is a tooltip</StyledText>
+                    <StyledText>This is a tooltip</StyledText>
                   </TooltipContent>
                 </Tooltip>
 
@@ -1237,7 +1236,7 @@ function useShowcaseScreenContent() {
                     </View>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <StyledText style={styles.labelText}>Help information</StyledText>
+                    <StyledText>Help information</StyledText>
                   </TooltipContent>
                 </Tooltip>
               </View>
@@ -1247,23 +1246,23 @@ function useShowcaseScreenContent() {
               <View style={styles.tooltipRow}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button preset="default" size="sm" style={styles.smallButton}>
-                      <StyledText style={styles.smallButtonText}>Top</StyledText>
+                    <Button preset="default" size="sm">
+                      <StyledText fontWeight="bold" size="sm">Top</StyledText>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
-                    <StyledText style={styles.labelText}>Tooltip on top</StyledText>
+                    <StyledText>Tooltip on top</StyledText>
                   </TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button preset="default" size="sm" style={styles.smallButton}>
-                      <StyledText style={styles.smallButtonText}>Bottom</StyledText>
+                    <Button preset="default" size="sm">
+                      <StyledText fontWeight="bold" size="sm">Bottom</StyledText>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
-                    <StyledText style={styles.labelText}>Tooltip on bottom</StyledText>
+                    <StyledText>Tooltip on bottom</StyledText>
                   </TooltipContent>
                 </Tooltip>
               </View>
@@ -1273,34 +1272,34 @@ function useShowcaseScreenContent() {
               <View style={styles.tooltipRow}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button preset="outline" size="sm" style={styles.smallButton}>
-                      <StyledText style={styles.smallButtonText}>Default</StyledText>
+                    <Button preset="outline" size="sm">
+                      <StyledText fontWeight="bold" size="sm">Default</StyledText>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent variant="default">
-                    <StyledText style={styles.labelText}>Default variant</StyledText>
+                    <StyledText>Default variant</StyledText>
                   </TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button preset="outline" size="sm" style={styles.smallButton}>
-                      <StyledText style={styles.smallButtonText}>Dark</StyledText>
+                    <Button preset="outline" size="sm">
+                      <StyledText fontWeight="bold" size="sm">Dark</StyledText>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent variant="dark">
-                    <StyledText style={[styles.labelText, { color: "#fff" }]}>Dark variant</StyledText>
+                    <StyledText>Dark variant</StyledText>
                   </TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button preset="outline" size="sm" style={styles.smallButton}>
-                      <StyledText style={styles.smallButtonText}>Light</StyledText>
+                    <Button preset="outline" size="sm">
+                      <StyledText fontWeight="bold" size="sm">Light</StyledText>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent variant="light">
-                    <StyledText style={[styles.labelText, { color: "#2C2C2C" }]}>Light variant</StyledText>
+                    <StyledText>Light variant</StyledText>
                   </TooltipContent>
                 </Tooltip>
               </View>
@@ -1309,13 +1308,13 @@ function useShowcaseScreenContent() {
 
           <Section title="Typography">
             <SubSection label="Sans Serif">
-              <StyledText style={styles.sansSerifText}>Sans Serif Text - Default body text</StyledText>
-              <StyledText style={styles.sansSerifBoldText}>Sans Serif Bold - Emphasized text</StyledText>
+              <StyledText variant="sansSerif" style={styles.sansSerifText}>Sans Serif Text - Default body text</StyledText>
+              <StyledText variant="sansSerif" fontWeight="bold" style={styles.sansSerifBoldText}>Sans Serif Bold - Emphasized text</StyledText>
             </SubSection>
 
             <SubSection label="Serif">
-              <StyledText style={styles.serifText}>Serif Text - Elegant headings</StyledText>
-              <StyledText style={styles.serifBoldText}>Serif Bold - Strong emphasis</StyledText>
+              <StyledText variant="serif" style={styles.serifText}>Serif Text - Elegant headings</StyledText>
+              <StyledText variant="serif" fontWeight="bold" style={styles.serifBoldText}>Serif Bold - Strong emphasis</StyledText>
             </SubSection>
           </Section>
 
@@ -1327,11 +1326,7 @@ function useShowcaseScreenContent() {
 
 type ShowcaseStyles = ReturnType<typeof createStyles>;
 
-const ButtonStatesSection = memo(function ButtonStatesSection({
-  styles,
-}: {
-  styles: ShowcaseStyles;
-}) {
+const ButtonStatesSection = memo(function ButtonStatesSection() {
   const [loading, setLoading] = useState(false);
 
   const handleLoadingDemo = () => {
@@ -1343,7 +1338,7 @@ const ButtonStatesSection = memo(function ButtonStatesSection({
     <Section title="Button States">
       <SubSection label="Disabled">
         <Button preset="default" disabled onPress={() => { }}>
-          <StyledText style={styles.buttonText}>Disabled Button</StyledText>
+          <StyledText fontWeight="bold">Disabled Button</StyledText>
         </Button>
       </SubSection>
 
@@ -1353,7 +1348,7 @@ const ButtonStatesSection = memo(function ButtonStatesSection({
           loading={loading}
           onPress={handleLoadingDemo}
         >
-          <StyledText style={styles.buttonText}>
+          <StyledText fontWeight="bold">
             {loading ? "Loading..." : "Click to Load"}
           </StyledText>
         </Button>
@@ -1361,18 +1356,14 @@ const ButtonStatesSection = memo(function ButtonStatesSection({
 
       <SubSection label="Full Width">
         <Button preset="default" fullWidth onPress={() => { }}>
-          <StyledText style={styles.buttonText}>Full Width Button</StyledText>
+          <StyledText fontWeight="bold">Full Width Button</StyledText>
         </Button>
       </SubSection>
     </Section>
   );
 });
 
-const TextInputSection = memo(function TextInputSection({
-  styles,
-}: {
-  styles: ShowcaseStyles;
-}) {
+const TextInputSection = memo(function TextInputSection() {
   const [textValue, setTextValue] = useState("");
   const [passwordValue, setPasswordValue] = useState("");
 
@@ -1412,14 +1403,14 @@ const SwitchSection = memo(function SwitchSection({
     <Section title="Switch">
       <SubSection label="Basic">
         <View style={styles.switchRow}>
-          <StyledText style={styles.labelText}>Basic Switch</StyledText>
+          <StyledText>Basic Switch</StyledText>
           <Switch checked={toggleValue} onCheckedChange={setToggleValue} />
         </View>
       </SubSection>
 
       <SubSection label="With Labels">
         <View style={styles.switchRow}>
-          <StyledText style={styles.labelText}>Switch with Labels</StyledText>
+          <StyledText>Switch with Labels</StyledText>
           <Switch
             size={{ width: 60, height: 32 }}
             checked={toggleValue}
@@ -1432,7 +1423,7 @@ const SwitchSection = memo(function SwitchSection({
 
       <SubSection label="Large Size">
         <View style={styles.switchRow}>
-          <StyledText style={styles.labelText}>Large Switch</StyledText>
+          <StyledText>Large Switch</StyledText>
           <Switch
             checked={toggleValue}
             onCheckedChange={setToggleValue}
@@ -1525,40 +1516,32 @@ const CheckboxSection = memo(function CheckboxSection({
       <SubSection>
         <View style={styles.checkboxRow}>
           <Checkbox checked={checkbox1} onCheckedChange={setCheckbox1} />
-          <StyledText style={styles.labelText}>Checkbox Option 1</StyledText>
+          <StyledText>Checkbox Option 1</StyledText>
         </View>
         <View style={[styles.checkboxRow, { marginTop: spacing.md }]}>
           <Checkbox checked={checkbox2} onCheckedChange={setCheckbox2} />
-          <StyledText style={styles.labelText}>Checkbox Option 2 (initially checked)</StyledText>
+          <StyledText>Checkbox Option 2 (initially checked)</StyledText>
         </View>
       </SubSection>
     </Section>
   );
 });
 
-const ToggleSection = memo(function ToggleSection({
-  styles,
-}: {
-  styles: ShowcaseStyles;
-}) {
+const ToggleSection = memo(function ToggleSection() {
   const [singleTogglePressed, setSingleTogglePressed] = useState(false);
 
   return (
     <Section title="Toggle">
       <SubSection label="Single Toggle">
         <Toggle pressed={singleTogglePressed} onPressedChange={setSingleTogglePressed}>
-          <StyledText style={styles.labelText}>Toggle Me</StyledText>
+          <StyledText>Toggle Me</StyledText>
         </Toggle>
       </SubSection>
     </Section>
   );
 });
 
-const ToggleGroupSection = memo(function ToggleGroupSection({
-  styles,
-}: {
-  styles: ShowcaseStyles;
-}) {
+const ToggleGroupSection = memo(function ToggleGroupSection() {
   const [alignment, setAlignment] = useState<string | undefined>("left");
   const [formats, setFormats] = useState<string[]>(["bold"]);
 
@@ -1567,13 +1550,13 @@ const ToggleGroupSection = memo(function ToggleGroupSection({
       <SubSection label="Single Selection">
         <ToggleGroup type="single" value={alignment} onValueChange={setAlignment}>
           <ToggleGroupItem value="left">
-            <StyledText style={styles.labelText}>Left</StyledText>
+            <StyledText>Left</StyledText>
           </ToggleGroupItem>
           <ToggleGroupItem value="center">
-            <StyledText style={styles.labelText}>Center</StyledText>
+            <StyledText>Center</StyledText>
           </ToggleGroupItem>
           <ToggleGroupItem value="right">
-            <StyledText style={styles.labelText}>Right</StyledText>
+            <StyledText>Right</StyledText>
           </ToggleGroupItem>
         </ToggleGroup>
       </SubSection>
@@ -1581,13 +1564,27 @@ const ToggleGroupSection = memo(function ToggleGroupSection({
       <SubSection label="Multiple Selection">
         <ToggleGroup type="multiple" value={formats} onValueChange={setFormats}>
           <ToggleGroupItem value="bold">
-            <StyledText style={[styles.labelText, { fontWeight: "bold" }]}>B</StyledText>
+            <StyledText fontWeight="bold">B</StyledText>
           </ToggleGroupItem>
           <ToggleGroupItem value="italic">
-            <StyledText style={[styles.labelText, { fontStyle: "italic" }]}>I</StyledText>
+            <StyledText
+              style={{
+                // eslint-disable-next-line expo-ui/no-restyle -- showcase demonstrates raw italic text; StyledText has no italic prop
+                fontStyle: "italic",
+              }}
+            >
+              I
+            </StyledText>
           </ToggleGroupItem>
           <ToggleGroupItem value="underline">
-            <StyledText style={[styles.labelText, { textDecorationLine: "underline" }]}>U</StyledText>
+            <StyledText
+              style={{
+                // eslint-disable-next-line expo-ui/no-restyle -- showcase demonstrates raw underlined text; StyledText has no textDecoration prop
+                textDecorationLine: "underline",
+              }}
+            >
+              U
+            </StyledText>
           </ToggleGroupItem>
         </ToggleGroup>
       </SubSection>
@@ -1595,13 +1592,13 @@ const ToggleGroupSection = memo(function ToggleGroupSection({
       <SubSection label="Outline Variant">
         <ToggleGroup type="single" variant="outline" value={alignment} onValueChange={setAlignment}>
           <ToggleGroupItem value="left">
-            <StyledText style={styles.labelText}>Left</StyledText>
+            <StyledText>Left</StyledText>
           </ToggleGroupItem>
           <ToggleGroupItem value="center">
-            <StyledText style={styles.labelText}>Center</StyledText>
+            <StyledText>Center</StyledText>
           </ToggleGroupItem>
           <ToggleGroupItem value="right">
-            <StyledText style={styles.labelText}>Right</StyledText>
+            <StyledText>Right</StyledText>
           </ToggleGroupItem>
         </ToggleGroup>
       </SubSection>
@@ -1609,13 +1606,13 @@ const ToggleGroupSection = memo(function ToggleGroupSection({
       <SubSection label="Small Size">
         <ToggleGroup type="single" size="sm" value={alignment} onValueChange={setAlignment}>
           <ToggleGroupItem value="left">
-            <StyledText style={styles.labelText}>L</StyledText>
+            <StyledText>L</StyledText>
           </ToggleGroupItem>
           <ToggleGroupItem value="center">
-            <StyledText style={styles.labelText}>C</StyledText>
+            <StyledText>C</StyledText>
           </ToggleGroupItem>
           <ToggleGroupItem value="right">
-            <StyledText style={styles.labelText}>R</StyledText>
+            <StyledText>R</StyledText>
           </ToggleGroupItem>
         </ToggleGroup>
       </SubSection>
@@ -1667,19 +1664,19 @@ const AuthFormsSection = memo(function AuthFormsSection({
             }}
           >
             <ToggleGroupItem value="signin">
-              <StyledText style={styles.labelText}>Sign In</StyledText>
+              <StyledText>Sign In</StyledText>
             </ToggleGroupItem>
             <ToggleGroupItem value="signup">
-              <StyledText style={styles.labelText}>Sign Up</StyledText>
+              <StyledText>Sign Up</StyledText>
             </ToggleGroupItem>
             <ToggleGroupItem value="verify">
-              <StyledText style={styles.labelText}>Verify</StyledText>
+              <StyledText>Verify</StyledText>
             </ToggleGroupItem>
             <ToggleGroupItem value="forgot">
-              <StyledText style={styles.labelText}>Forgot</StyledText>
+              <StyledText>Forgot</StyledText>
             </ToggleGroupItem>
             <ToggleGroupItem value="reset">
-              <StyledText style={styles.labelText}>Reset</StyledText>
+              <StyledText>Reset</StyledText>
             </ToggleGroupItem>
           </ToggleGroup>
         </ScrollView>
@@ -1828,7 +1825,7 @@ const AvatarSection = memo(function AvatarSection({
           <Avatar size="lg" />
           <Avatar icon="camera" size="lg" />
         </View>
-        <StyledText style={styles.labelText}>
+        <StyledText>
           The first avatar points at a dead URL and degrades to initials on load failure.
         </StyledText>
       </SubSection>
@@ -2265,7 +2262,7 @@ const DialogSection = memo(function DialogSection({
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button preset="outline">
-              <SansSerifText style={styles.outlineButtonText}>Edit Profile</SansSerifText>
+              <SansSerifText fontWeight="bold" style={styles.outlineButtonText}>Edit Profile</SansSerifText>
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -2278,7 +2275,7 @@ const DialogSection = memo(function DialogSection({
             <DialogFooter>
               <DialogClose asChild>
                 <Button preset="default">
-                  <SansSerifText style={styles.buttonText}>Save Changes</SansSerifText>
+                  <SansSerifText fontWeight="bold">Save Changes</SansSerifText>
                 </Button>
               </DialogClose>
             </DialogFooter>
@@ -2300,7 +2297,7 @@ const DialogSection = memo(function DialogSection({
             <DialogFooter>
               <AlertDialogCancel asChild>
                 <Button preset="outline" size="sm">
-                  <SansSerifText style={styles.outlineButtonText}>Cancel</SansSerifText>
+                  <SansSerifText fontWeight="bold" style={styles.outlineButtonText}>Cancel</SansSerifText>
                 </Button>
               </AlertDialogCancel>
               <AlertDialogAction asChild>
@@ -2399,18 +2396,14 @@ const RadioGroupSection = memo(function RadioGroupSection() {
   );
 });
 
-const SliderSection = memo(function SliderSection({
-  styles,
-}: {
-  styles: ShowcaseStyles;
-}) {
+const SliderSection = memo(function SliderSection() {
   const [sliderValue, setSliderValue] = useState(50);
   const [rangeValue, setRangeValue] = useState(5);
 
   return (
     <Section title="Slider">
       <SubSection label="Basic">
-        <SansSerifText style={styles.labelText}>Value: {sliderValue}</SansSerifText>
+        <SansSerifText>Value: {sliderValue}</SansSerifText>
         <Slider value={sliderValue} onValueChange={setSliderValue} />
       </SubSection>
       <SubSection label="Custom Range">
@@ -2501,29 +2494,19 @@ const createStyles = (theme: Theme) =>
     },
 
     // Shared text styles
-    // No `color` override — Button supplies the correct per-preset text color
+    // Most button labels need no style at all: weight comes from the
+    // `fontWeight` prop and Button supplies the correct per-preset text color
     // via TextColorContext (e.g. secondaryForeground for `preset="secondary"`).
-    buttonText: {
-      fontFamily: fontFamilies.sansSerif.bold,
-    },
+    // `outlineButtonText` is the exception — the outline preset has no filled
+    // background, so its label takes the primary color explicitly.
     outlineButtonText: {
-      fontFamily: fontFamilies.sansSerif.bold,
       color: theme.colors.primary,
     },
-    labelText: {
-      fontFamily: fontFamilies.sansSerif.regular,
-    },
     boldText: {
-      fontFamily: fontFamilies.sansSerif.bold,
       color: theme.colors.foreground,
     },
-    smallButton: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-    },
-    smallButtonText: {
-      fontFamily: fontFamilies.sansSerif.bold,
-      fontSize: 12,
+    dimText: {
+      color: theme.colors.textDim,
     },
 
     // Forms
@@ -2604,22 +2587,18 @@ const createStyles = (theme: Theme) =>
 
     // Typography
     sansSerifText: {
-      fontFamily: fontFamilies.sansSerif.regular,
       color: theme.colors.foreground,
       marginBottom: spacing.sm,
     },
     sansSerifBoldText: {
-      fontFamily: fontFamilies.sansSerif.bold,
       color: theme.colors.foreground,
       marginBottom: spacing.sm,
     },
     serifText: {
-      fontFamily: fontFamilies.serif.regular,
       color: theme.colors.foreground,
       marginBottom: spacing.sm,
     },
     serifBoldText: {
-      fontFamily: fontFamilies.serif.bold,
       color: theme.colors.foreground,
     },
     iconRow: {
@@ -2649,7 +2628,6 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing.md,
     },
     customChildText: {
-      fontSize: 13,
       color: theme.colors.mutedForeground,
     },
     skeletonRow: {
@@ -2753,7 +2731,7 @@ const createStyles = (theme: Theme) =>
     contactAvatar: {
       width: 40,
       height: 40,
-      borderRadius: 20,
+      borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.muted,
       alignItems: "center",
       justifyContent: "center",

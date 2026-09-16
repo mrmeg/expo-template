@@ -19,7 +19,7 @@ import { Link } from "expo-router";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
-import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { MonoText, SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { STAGGER_DELAY, useDimensions, useTheme } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
@@ -85,16 +85,16 @@ export default function TemplatesGalleryScreen() {
         showsVerticalScrollIndicator={false}
       >
         <AnimatedView type="fadeSlideUp" delay={0}>
-          <SansSerifText style={styles.eyebrow}>
+          <SansSerifText semantic="eyebrow" style={styles.eyebrow}>
             Scale 03 · complete screens
           </SansSerifText>
-          <SansSerifText style={styles.intro}>
+          <SansSerifText size="base" style={styles.intro}>
             {SCREEN_TEMPLATES.length} finished screens with routing, state, and
             theming wired. Copy a folder from{" "}
-            <SansSerifText style={styles.mono}>
+            <MonoText size="sm" style={styles.mono}>
               client/templates/&lt;id&gt;/
-            </SansSerifText>
-            , run <SansSerifText style={styles.mono}>bun run gen:templates</SansSerifText>
+            </MonoText>
+            , run <MonoText size="sm" style={styles.mono}>bun run gen:templates</MonoText>
             , and it&apos;s registered.
           </SansSerifText>
         </AnimatedView>
@@ -199,20 +199,13 @@ const createStyles = (theme: Theme) =>
     },
 
     eyebrow: {
-      fontSize: 11,
-      textTransform: "uppercase",
-      letterSpacing: 1.4,
       color: theme.colors.accent,
       marginBottom: spacing.sm,
     },
     intro: {
-      fontSize: 14,
-      lineHeight: 21,
       color: theme.colors.mutedForeground,
     },
     mono: {
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      fontSize: 12.5,
       color: theme.colors.textDim,
     },
     chipRow: {
@@ -223,7 +216,7 @@ const createStyles = (theme: Theme) =>
     grid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: 18,
+      gap: spacing.md,
     },
     card: {
       flexGrow: 1,
@@ -231,7 +224,7 @@ const createStyles = (theme: Theme) =>
     },
     // `.phone`
     phone: {
-      padding: 9,
+      padding: spacing.base,
       borderRadius: spacing.radius2xl,
       borderWidth: 1,
       borderColor: theme.colors.border,
@@ -243,14 +236,14 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.muted,
       alignSelf: "center",
-      marginTop: 2,
-      marginBottom: 9,
+      marginTop: spacing.xxs,
+      marginBottom: spacing.base,
     },
     screen: {
       height: 150,
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: 15,
+      borderRadius: spacing.radiusLg,
       borderWidth: 1,
       borderColor: theme.colors.border,
       backgroundColor: theme.colors.surfaceSunken,

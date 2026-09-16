@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useTheme } from "../hooks/useTheme";
-import { StatusBar as RNStatusBar, Platform } from "react-native";
+import { StatusBar as RNStatusBar } from "react-native";
 
 export const StatusBar = () => {
   const { scheme, theme } = useTheme();
@@ -11,17 +11,7 @@ export const StatusBar = () => {
    */
   useEffect(() => {
     RNStatusBar.setBarStyle(barStyle, true);
-    if (Platform.OS === "android") {
-      RNStatusBar.setBackgroundColor("transparent", true);
-      RNStatusBar.setTranslucent(true);
-    }
   }, [barStyle]);
 
-  return (
-    <RNStatusBar
-      barStyle={barStyle}
-      backgroundColor={Platform.OS === "android" ? "transparent" : undefined}
-      translucent={true}
-    />
-  );
+  return <RNStatusBar barStyle={barStyle} />;
 };

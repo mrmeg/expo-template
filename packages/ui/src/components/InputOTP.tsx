@@ -103,7 +103,9 @@ function InputOTP({
   style: styleOverride,
 }: InputOTPProps) {
   const { theme } = useTheme();
-  const inputRef = useRef<RNTextInput>(null);
+  // `ComponentRef<typeof RNTextInput>` rather than RN 0.88's `TextInputInstance`,
+  // which RN 0.85/0.86 typings do not export.
+  const inputRef = useRef<React.ComponentRef<typeof RNTextInput>>(null);
   const [focused, setFocused] = useState(false);
   const styles = themedStyles(theme);
   const hasError = error || !!errorText;

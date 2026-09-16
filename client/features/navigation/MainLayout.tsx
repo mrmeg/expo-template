@@ -14,7 +14,6 @@ export default function MainLayout() {
 
   return (
     <Stack
-      initialRouteName="(tabs)"
       screenOptions={{
         // Painted underneath each stack screen. Without this the screen
         // container defaults to white and flashes through on push/pop and

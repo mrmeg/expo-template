@@ -24,7 +24,8 @@ Importable paths: root, `components`, `components/*`, `constants`,
 `constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`. Never import from
 `@mrmeg/expo-ui/dist/*` or a source checkout path.
 
-Hosts: Expo 56–57, React 19.2, React Native 0.85–0.86, React Native Web 0.21.
+Hosts: Expo 56–58 (58 in beta), React 19.2, React Native 0.85–0.88, React
+Native Web 0.21.
 Install the peer versions recommended by the consuming app's Expo SDK.
 
 ## Required App Setup
@@ -183,6 +184,18 @@ mount for the skip). Use `webWeightStrategy: "family"` when loading per-weight
 faces through `expo-font` / `@expo-google-fonts`, `"numeric"` (default) for one
 multi-weight CSS family. `setShape({ button: { borderRadius?, withShadow? } })`
 re-shapes Buttons globally. Per-instance props and caller `style` always win.
+
+Enforce these rules mechanically with `@mrmeg/eslint-plugin-expo-ui`
+(`bun add -d @mrmeg/eslint-plugin-expo-ui`), which reports raw colors, off-scale
+spacing and radius, appearance overrides on package components, and raw
+primitives as ESLint diagnostics. It reads this package's
+`design-system.json` manifest out of `node_modules`, so the messages quote the
+tokens, presets and sizes of the installed release. The plugin's first npm release is
+still pending, and only `@mrmeg/expo-ui` releases built after the manifest was
+added ship one: the installed release has it when
+`node_modules/@mrmeg/expo-ui/dist/design-system.json` exists. Config block and
+settings:
+https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/lint/README.md
 
 ## Component Use-Case Index
 

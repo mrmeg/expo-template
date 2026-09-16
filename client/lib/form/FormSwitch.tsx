@@ -73,7 +73,7 @@ export function FormSwitch<
   return (
     <View>
       <View style={styles.row}>
-        <StyledText style={[styles.label, { color: theme.colors.text }]}>
+        <StyledText size="base" style={[styles.label, { color: theme.colors.text }]}>
           {label}
         </StyledText>
         {switchElement}
@@ -91,7 +91,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   label: {
-    fontSize: 14,
     flex: 1,
   },
 });

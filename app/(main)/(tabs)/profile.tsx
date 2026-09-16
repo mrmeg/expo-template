@@ -123,20 +123,19 @@ function ProfileScreen() {
                 <Icon name="user" color={palette.white} size={48} />
               </View>
             </Pressable>
-            <SansSerifBoldText style={styles.name}>
+            <SansSerifBoldText size="xl" style={styles.name}>
               {user?.username || "User"}
             </SansSerifBoldText>
-            <SansSerifText style={styles.email}>
+            <SansSerifText size="base" style={styles.email}>
               {user?.email || "user@example.com"}
             </SansSerifText>
             <Button
               preset="outline"
               size="sm"
               onPress={handleEditProfile}
-              style={styles.editButton}
             >
               <Icon name="edit-3" size={14} color={theme.colors.primary} />
-              <SansSerifText style={styles.editButtonText}> Edit Profile</SansSerifText>
+              <SansSerifText size="base" style={styles.editButtonText}> Edit Profile</SansSerifText>
             </Button>
           </View>
 
@@ -157,12 +156,12 @@ function ProfileScreen() {
 
           {/* Account Settings */}
           <View style={styles.section}>
-            <SansSerifBoldText style={styles.sectionTitle}>Account Settings</SansSerifBoldText>
+            <SansSerifBoldText size="body" style={styles.sectionTitle}>Account Settings</SansSerifBoldText>
             <View style={[styles.card, getShadowStyle("subtle")]}>
               <Pressable style={styles.settingsRow} onPress={handleChangePassword}>
                 <View style={styles.settingsRowLeft}>
                   <Icon name="key" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText style={styles.settingsLabel}>Change Password</SansSerifText>
+                  <SansSerifText size="base" style={styles.settingsLabel}>Change Password</SansSerifText>
                 </View>
                 <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
               </Pressable>
@@ -170,7 +169,7 @@ function ProfileScreen() {
               <Pressable style={styles.settingsRow} onPress={handlePrivacySettings}>
                 <View style={styles.settingsRowLeft}>
                   <Icon name="shield" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText style={styles.settingsLabel}>Privacy Settings</SansSerifText>
+                  <SansSerifText size="base" style={styles.settingsLabel}>Privacy Settings</SansSerifText>
                 </View>
                 <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
               </Pressable>
@@ -179,12 +178,12 @@ function ProfileScreen() {
 
           {/* Notification Preferences */}
           <View style={styles.section}>
-            <SansSerifBoldText style={styles.sectionTitle}>Notifications</SansSerifBoldText>
+            <SansSerifBoldText size="body" style={styles.sectionTitle}>Notifications</SansSerifBoldText>
             <View style={[styles.card, getShadowStyle("subtle")]}>
               <View style={styles.switchRow}>
                 <View style={styles.switchRowLeft}>
                   <Icon name="mail" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText style={styles.settingsLabel}>Email Notifications</SansSerifText>
+                  <SansSerifText size="base" style={styles.settingsLabel}>Email Notifications</SansSerifText>
                 </View>
                 <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
               </View>
@@ -192,7 +191,7 @@ function ProfileScreen() {
               <View style={styles.switchRow}>
                 <View style={styles.switchRowLeft}>
                   <Icon name="bell" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText style={styles.settingsLabel}>Push Notifications</SansSerifText>
+                  <SansSerifText size="base" style={styles.settingsLabel}>Push Notifications</SansSerifText>
                 </View>
                 <Switch checked={pushNotifications} onCheckedChange={setPushNotifications} />
               </View>
@@ -200,7 +199,7 @@ function ProfileScreen() {
               <View style={styles.switchRow}>
                 <View style={styles.switchRowLeft}>
                   <Icon name="mail" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText style={styles.settingsLabel}>Marketing Emails</SansSerifText>
+                  <SansSerifText size="base" style={styles.settingsLabel}>Marketing Emails</SansSerifText>
                 </View>
                 <Switch checked={marketingEmails} onCheckedChange={setMarketingEmails} />
               </View>
@@ -209,16 +208,22 @@ function ProfileScreen() {
 
           {/* Connected Accounts */}
           <View style={styles.section}>
-            <SansSerifBoldText style={styles.sectionTitle}>Connected Accounts</SansSerifBoldText>
+            <SansSerifBoldText size="body" style={styles.sectionTitle}>Connected Accounts</SansSerifBoldText>
             <View style={[styles.card, getShadowStyle("subtle")]}>
               <Pressable style={styles.connectedRow} onPress={handleConnectGoogle}>
                 <View style={styles.connectedRowLeft}>
-                  <View style={[styles.providerIcon, { backgroundColor: "#DB4437" }]}>
-                    <SansSerifBoldText style={styles.providerLetter}>G</SansSerifBoldText>
+                  <View
+                    style={[
+                      styles.providerIcon,
+                      // eslint-disable-next-line expo-ui/no-raw-colors -- Google brand color; must not follow the theme
+                      { backgroundColor: "#DB4437" },
+                    ]}
+                  >
+                    <SansSerifBoldText size="body" style={styles.providerLetter}>G</SansSerifBoldText>
                   </View>
                   <View>
-                    <SansSerifText style={styles.settingsLabel}>Google</SansSerifText>
-                    <SansSerifText style={styles.connectedStatus}>Not connected</SansSerifText>
+                    <SansSerifText size="base" style={styles.settingsLabel}>Google</SansSerifText>
+                    <SansSerifText size="sm" style={styles.connectedStatus}>Not connected</SansSerifText>
                   </View>
                 </View>
                 <Icon name="link-2" size={18} color={theme.colors.primary} />
@@ -227,13 +232,13 @@ function ProfileScreen() {
               <Pressable style={styles.connectedRow} onPress={handleConnectApple}>
                 <View style={styles.connectedRowLeft}>
                   <View style={[styles.providerIcon, { backgroundColor: theme.colors.foreground }]}>
-                    <SansSerifBoldText style={[styles.providerLetter, { color: theme.colors.background }]}>
+                    <SansSerifBoldText size="body" style={[styles.providerLetter, { color: theme.colors.background }]}>
                       A
                     </SansSerifBoldText>
                   </View>
                   <View>
-                    <SansSerifText style={styles.settingsLabel}>Apple</SansSerifText>
-                    <SansSerifText style={styles.connectedStatus}>Not connected</SansSerifText>
+                    <SansSerifText size="base" style={styles.settingsLabel}>Apple</SansSerifText>
+                    <SansSerifText size="sm" style={styles.connectedStatus}>Not connected</SansSerifText>
                   </View>
                 </View>
                 <Icon name="link-2" size={18} color={theme.colors.primary} />
@@ -243,7 +248,7 @@ function ProfileScreen() {
 
           {/* Danger Zone */}
           <View style={styles.section}>
-            <SansSerifBoldText style={[styles.sectionTitle, { color: theme.colors.destructive }]}>
+            <SansSerifBoldText size="body" style={[styles.sectionTitle, { color: theme.colors.destructive }]}>
               Danger Zone
             </SansSerifBoldText>
             <View style={[styles.card, styles.dangerCard, getShadowStyle("subtle")]}>
@@ -252,7 +257,7 @@ function ProfileScreen() {
                   <Pressable style={styles.dangerRow} onPress={handleSignOut}>
                     <View style={styles.dangerRowLeft}>
                       <Icon name="log-out" size={18} color={theme.colors.destructive} />
-                      <SansSerifText style={styles.dangerLabel}>Sign Out</SansSerifText>
+                      <SansSerifText size="base" style={styles.dangerLabel}>Sign Out</SansSerifText>
                     </View>
                   </Pressable>
                   <View style={styles.divider} />
@@ -261,7 +266,7 @@ function ProfileScreen() {
               <Pressable style={styles.dangerRow} onPress={handleDeleteAccount}>
                 <View style={styles.dangerRowLeft}>
                   <Icon name="trash-2" size={18} color={theme.colors.destructive} />
-                  <SansSerifText style={styles.dangerLabel}>Delete Account</SansSerifText>
+                  <SansSerifText size="base" style={styles.dangerLabel}>Delete Account</SansSerifText>
                 </View>
               </Pressable>
             </View>
@@ -303,7 +308,7 @@ function AccountInfoSection({
 }) {
   return (
     <View style={styles.section}>
-      <SansSerifBoldText style={styles.sectionTitle}>Account Info</SansSerifBoldText>
+      <SansSerifBoldText size="body" style={styles.sectionTitle}>Account Info</SansSerifBoldText>
       <View style={[styles.card, shadowStyle]}>
         <View style={styles.infoRow}>
           <View style={styles.infoRowLeft}>
@@ -387,6 +392,7 @@ function AccountInfoSection({
                   color={theme.colors.accent}
                 />
                 <SansSerifText
+                  size="base"
                   style={[styles.settingsLabel, { color: theme.colors.accent }]}
                 >
                   {billingAction === "manage"
@@ -507,34 +513,27 @@ const createStyles = (theme: Theme) =>
     avatar: {
       width: 100,
       height: 100,
-      borderRadius: 50,
+      borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.primary,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.md,
     },
     name: {
-      fontSize: 24,
       color: theme.colors.foreground,
       marginBottom: spacing.xs,
     },
     email: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
       marginBottom: spacing.md,
     },
-    editButton: {
-      paddingHorizontal: spacing.md,
-    },
     editButtonText: {
       color: theme.colors.primary,
-      fontSize: 14,
     },
     section: {
       marginBottom: spacing.lg,
     },
     sectionTitle: {
-      fontSize: 16,
       color: theme.colors.foreground,
       marginBottom: spacing.sm,
     },
@@ -584,7 +583,6 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
     },
     settingsLabel: {
-      fontSize: 14,
       color: theme.colors.foreground,
     },
     switchRow: {
@@ -617,12 +615,9 @@ const createStyles = (theme: Theme) =>
       justifyContent: "center",
     },
     providerLetter: {
-      fontSize: 16,
       color: palette.white,
-      fontWeight: "bold",
     },
     connectedStatus: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     dangerRow: {
@@ -637,7 +632,6 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
     },
     dangerLabel: {
-      fontSize: 14,
       color: theme.colors.destructive,
     },
     notice: {

@@ -202,7 +202,7 @@ function StatusText({ status, theme }: { status?: MessageStatus; theme: Theme })
           name="check"
           size={11}
           color={theme.colors.mutedForeground}
-          style={{ marginLeft: -6 }}
+          style={{ marginLeft: -spacing.xs }}
           decorative
         />
       </View>
@@ -215,7 +215,7 @@ function StatusText({ status, theme }: { status?: MessageStatus; theme: Theme })
           name="check"
           size={11}
           color={theme.colors.accent}
-          style={{ marginLeft: -6 }}
+          style={{ marginLeft: -spacing.xs }}
           decorative
         />
       </View>
@@ -338,7 +338,7 @@ export function ChatScreen({
               ]}
             >
               <SansSerifText
-                size="body"
+                size="base"
                 style={item.isMine ? styles.sentText : styles.receivedText}
               >
                 {item.text}
@@ -383,7 +383,7 @@ export function ChatScreen({
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={isTyping ? <TypingIndicator theme={theme} /> : null}
+        ListHeaderComponent={isTyping ? <TypingIndicator theme={theme} /> : undefined}
       />
 
       {/* Input bar */}
@@ -479,16 +479,13 @@ const createStyles = (theme: Theme) =>
       borderBottomLeftRadius: BUBBLE_TAIL_RADIUS,
     },
 
-    // Bubble text — explicit lineHeight (tighter than the "body" token's
-    // 24.75) is intentional for dense chat message text; wins over the
-    // size-driven default since StyledText lets an explicit style lineHeight
-    // override the token when fontSize itself comes from the `size` prop.
+    // Bubble text — the bubbles render at the `base` size, whose 21px
+    // lineHeight is the dense leading chat message text wants (the `body`
+    // token's 24.75 is too airy for stacked bubbles).
     sentText: {
-      lineHeight: 21,
       color: theme.colors.primaryForeground,
     },
     receivedText: {
-      lineHeight: 21,
       color: theme.colors.foreground,
     },
 
@@ -554,7 +551,9 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     input: {
+      // eslint-disable-next-line expo-ui/no-restyle -- multiline growth cap for the composer; TextInput has no maxHeight/growth prop
       maxHeight: 100,
+      // eslint-disable-next-line expo-ui/no-restyle -- composer pill radius; TextInput has no radius variant
       borderRadius: spacing.radiusXl,
     },
     sendButton: {

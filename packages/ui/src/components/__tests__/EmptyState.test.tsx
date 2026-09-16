@@ -7,7 +7,7 @@
 import "@/test/mockTheme";
 
 import React from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 
 import { EmptyState } from "../EmptyState";
@@ -64,15 +64,15 @@ describe("EmptyState", () => {
 
   it("does not apply the dashed border by default", async () => {
     const { toJSON } = await render(<EmptyState title="Nothing here" />);
-    const container = toJSON() as unknown as { props: { style: unknown } };
-    const flatStyle = StyleSheet.flatten(container.props.style) as Record<string, unknown>;
+    const container = toJSON() as unknown as { props: { style: StyleProp<ViewStyle> } };
+    const flatStyle = (StyleSheet.flatten(container.props.style) ?? {}) as Record<string, unknown>;
     expect(flatStyle.borderStyle).toBeUndefined();
   });
 
   it("wraps in a dashed-border container when bordered is true", async () => {
     const { toJSON } = await render(<EmptyState title="Nothing here" bordered />);
-    const container = toJSON() as unknown as { props: { style: unknown } };
-    const flatStyle = StyleSheet.flatten(container.props.style) as Record<string, unknown>;
+    const container = toJSON() as unknown as { props: { style: StyleProp<ViewStyle> } };
+    const flatStyle = (StyleSheet.flatten(container.props.style) ?? {}) as Record<string, unknown>;
     expect(flatStyle).toMatchObject({
       borderWidth: 1,
       borderStyle: "dashed",

@@ -9,13 +9,24 @@ Read `node_modules/@mrmeg/expo-ui/llms.txt` first, then `LLM_USAGE.md` (concise
 rules) or `llms-full.md` (expanded contract), before creating app-local UI
 primitives. All three ship in the npm tarball.
 
+The same rules are available as an ESLint plugin: `@mrmeg/eslint-plugin-expo-ui`
+turns the theme and text rules into diagnostics at the call site — raw colors,
+off-scale spacing and radius, appearance overrides on package components, and raw
+primitives that have a wrapper here. See [`../lint/README.md`](../lint/README.md)
+for the config block. It reads the design-system facts from
+`@mrmeg/expo-ui/design-system.json`, the manifest this package's build ships, so
+the diagnostics quote the tokens, presets and sizes of the installed release. The
+plugin's first npm release is still pending, and only `@mrmeg/expo-ui` releases
+built after the manifest was added ship it: the installed release has one when
+`node_modules/@mrmeg/expo-ui/dist/design-system.json` exists.
+
 ## Install
 
 ```sh
 bun add @mrmeg/expo-ui
 ```
 
-Tested hosts: Expo SDK 56–57, React 19.2, React Native 0.85–0.86, React Native
+Tested hosts: Expo SDK 56–58 (58 in beta), React 19.2, React Native 0.85–0.88, React Native
 Web 0.21. Install these peers at the versions your Expo SDK recommends: `expo`,
 `@expo/ui`, `expo-font`, `expo-haptics`, `react`, `react-native`,
 `react-native-web`, `react-native-gesture-handler`,
@@ -656,3 +667,18 @@ inspected before release. `ui:consumer-smoke` installs the packed tarball into
 a clean fixture, checks every documented export-map target resolves,
 type-checks all public entrypoints, and runs an iOS `expo export` against the
 packed package at the workspace's Expo version, without a custom Metro config.
+
+### Design-system manifest
+
+`ui:build` also writes `dist/design-system.json`
+([`scripts/build-design-system-manifest.mjs`](../../scripts/build-design-system-manifest.mjs)):
+the spacing, radius and icon scales, the palette, the light and dark themes, the
+font variants, and every component's variant and size values, serialized out of
+`src` by the same extractor the lint rules use. It is exported as
+`@mrmeg/expo-ui/design-system.json`, and `@mrmeg/eslint-plugin-expo-ui` reads it
+in projects that install this package instead of checking out its sources — which
+is what lets the design-system rules quote this release's presets and tokens.
+`ui:consumer-smoke` asserts the packed tarball carries it and that it parses at
+`schemaVersion: 1` with a non-empty component list. The build fails rather than
+writing an empty manifest, so a broken extractor cannot ship as "no rules to
+enforce".

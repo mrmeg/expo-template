@@ -178,7 +178,9 @@ export function Carousel({
   // state: web's throttled ticks report the same page many times over, and
   // onIndexChange must fire once per page.
   const activeIndexRef = useRef(activeIndex);
-  const scrollRef = useRef<ScrollView | null>(null);
+  // `ComponentRef<typeof ScrollView>` rather than RN 0.88's `ScrollViewInstance`,
+  // which RN 0.85/0.86 typings do not export.
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const hasScrolledToInitial = useRef(false);
 
   const commitIndex = useCallback(

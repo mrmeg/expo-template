@@ -1,0 +1,50 @@
+{
+  "name": "@mrmeg/eslint-plugin-expo-ui",
+  "version": "0.1.0",
+  "private": false,
+  "description": "ESLint rules that enforce the @mrmeg/expo-ui design system in app code.",
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "expo",
+    "react-native",
+    "design-system"
+  ],
+  "author": "Matt Megenhardt",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrmeg/expo-template.git",
+    "directory": "packages/lint"
+  },
+  "bugs": {
+    "url": "https://github.com/mrmeg/expo-template/issues"
+  },
+  "homepage": "https://github.com/mrmeg/expo-template/tree/main/packages/lint",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "main": "index.js",
+  "bin": {
+    "expo-ui-lint": "./bin/cli.js"
+  },
+  "files": [
+    "index.js",
+    "bin",
+    "lib",
+    "rules",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "jest --config ../../jest.config.js packages/lint --runInBand --watchman=false",
+    "build": "node -e \"require('./index.js')\"",
+    "publish:dry-run": "bun pm pack --dry-run"
+  },
+  "peerDependencies": {
+    "@typescript-eslint/parser": ">=8",
+    "eslint": ">=9.30"
+  }
+}

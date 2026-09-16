@@ -32,9 +32,8 @@ import { dismissKeyboardFocusedInput, hasKeyboardFocusedInput } from "./keyboard
 /** Finger travel (pt) after which a touch counts as a scroll, not a tap. */
 const MOVE_SLOP = 10;
 
-// RN types `identifier` as a string even though the runtime value is numeric;
-// only equality matters here, so follow the type.
-type TouchKey = { identifier: string; timestamp: number };
+// Only equality matters here, so the identifier is kept exactly as RN reports it.
+type TouchKey = { identifier: number; timestamp: number };
 
 function keyOf(event: GestureResponderEvent): TouchKey {
   const { identifier, timestamp } = event.nativeEvent;

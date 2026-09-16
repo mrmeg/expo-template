@@ -214,6 +214,7 @@ jest.mock("react-native-keyboard-controller", () => {
     type: "default",
     appearance: "light",
   };
+  const keyboardEventListeners = new Map<string, Set<(event: unknown) => void>>();
   const keyboardContext = {
     layout: { value: null as any },
     update: jest.fn(),
@@ -246,9 +247,22 @@ jest.mock("react-native-keyboard-controller", () => {
     },
     useKeyboardState: (selector?: (state: typeof keyboardState) => unknown) =>
       selector ? selector(keyboardState) : keyboardState,
+    KeyboardEvents: {
+      addListener: (name: string, cb: (event: unknown) => void) => {
+        const listeners = keyboardEventListeners.get(name) ?? new Set();
+        listeners.add(cb);
+        keyboardEventListeners.set(name, listeners);
+        return { remove: () => listeners.delete(cb) };
+      },
+    },
     __setKeyboardState: (next: Partial<typeof keyboardState>) => {
       Object.assign(keyboardState, next);
     },
+    /** Fire a `KeyboardEvents` event at every subscriber, like the native emitter. */
+    __emitKeyboardEvent: (name: string, event: Record<string, unknown> = {}) => {
+      keyboardEventListeners.get(name)?.forEach((cb) => cb({ height: 0, duration: 0, timestamp: 0, target: -1, ...event }));
+    },
+    __keyboardEventListenerCount: (name: string) => keyboardEventListeners.get(name)?.size ?? 0,
     __setFocusedInputLayout: (layout: any) => {
       keyboardContext.layout.value = layout
         ? { target: keyboardState.target, parentScrollViewTarget: -1, layout }

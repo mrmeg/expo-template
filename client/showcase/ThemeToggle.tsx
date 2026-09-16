@@ -1,5 +1,6 @@
 import React from "react";
-import { StyleSheet, View, Pressable, Text } from "react-native";
+import { StyleSheet, View, Pressable } from "react-native";
+import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 
@@ -10,16 +11,16 @@ export function ThemeToggle() {
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: theme.colors.text }]}>
+      <StyledText size="base" selectable={false}>
         Theme: {currentTheme === "system" ? "System" : scheme === "dark" ? "Dark" : "Light"}
-      </Text>
+      </StyledText>
       <Pressable
         onPress={toggleTheme}
         style={[styles.button, { borderColor: theme.colors.primary }]}
       >
-        <Text style={[styles.buttonText, { color: theme.colors.primary }]}>
+        <StyledText semantic="label" selectable={false} style={{ color: theme.colors.primary }}>
           {buttonText}
-        </Text>
+        </StyledText>
       </Pressable>
     </View>
   );
@@ -30,17 +31,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
   },
-  label: {
-    fontSize: 14,
-  },
   button: {
     borderWidth: 1,
     borderRadius: spacing.radiusSm,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: "500",
   },
 });

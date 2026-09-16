@@ -63,6 +63,7 @@ export const KeyboardController: KeyboardControllerModule = {
   setDefaultMode: () => undefined,
   setInputMode: () => undefined,
   preload: () => undefined,
+  setTranslucent: () => undefined,
   dismiss: () => Promise.resolve(),
   setFocusTo: () => undefined,
   isVisible: () => false,
@@ -96,6 +97,9 @@ type NativeKeyboardAvoidingViewProps = KeyboardAvoidingViewProps & {
  * Plain `View` passthrough. Keyboard-avoidance props are accepted (so callers
  * stay identical across platforms) and dropped, since the browser handles
  * viewport resizing itself.
+ *
+ * The explicit return type keeps declaration emit from inlining `View`'s ref
+ * type (RN 0.88's `ViewInstance`), which older RN typings do not export.
  */
 export function NativeKeyboardAvoidingView({
   behavior,
@@ -105,7 +109,7 @@ export function NativeKeyboardAvoidingView({
   enabled,
   children,
   ...viewProps
-}: NativeKeyboardAvoidingViewProps) {
+}: NativeKeyboardAvoidingViewProps): React.ReactElement {
   // Dropped rather than forwarded so they never reach the DOM node.
   void behavior;
   void contentContainerStyle;

@@ -12,7 +12,9 @@ import { palette } from "../constants/colors";
  * Tooltip Trigger Component
  * The element that triggers the tooltip to appear on hover (web) or press (native)
  */
-const TooltipTrigger = TooltipPrimitive.Trigger;
+// Annotated with `typeof` for portable declaration emit — see the note in
+// Dialog.tsx (TS2883). Without it the .d.ts inlines RN 0.88's `PressableInstance`.
+const TooltipTrigger: typeof TooltipPrimitive.Trigger = TooltipPrimitive.Trigger;
 
 /**
  * FullWindowOverlay wrapper - uses native overlay on iOS for proper z-index handling
@@ -97,7 +99,7 @@ function TooltipContent({
       maxWidth: 250,
       ...getShadowStyle("soft"),
     },
-  ]);
+  ]) ?? undefined;
 
   return (
     <TooltipPrimitive.Portal hostName={portalHost}>
@@ -213,11 +215,18 @@ function Tooltip({
   );
 }
 
+type TooltipCompound = typeof Tooltip & {
+  Trigger: typeof TooltipTrigger;
+  Content: typeof TooltipContent;
+  Body: typeof TooltipBody;
+};
+
 /**
  * Tooltip Component with Sub-components
- * Properly typed interface for dot notation access (e.g., Tooltip.Trigger)
+ * Properly typed interface for dot notation access (e.g., Tooltip.Trigger).
+ * The annotation is what keeps declaration emit portable — see Dialog.tsx (TS2883).
  */
-const TooltipComponent = Object.assign(Tooltip, {
+const TooltipComponent: TooltipCompound = Object.assign(Tooltip, {
   Trigger: TooltipTrigger,
   Content: TooltipContent,
   Body: TooltipBody,

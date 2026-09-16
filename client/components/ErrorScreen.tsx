@@ -3,13 +3,12 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
+import { MonoText, SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import { palette } from "@mrmeg/expo-ui/constants";
@@ -56,11 +55,11 @@ export function ErrorScreen({ error, errorInfo, resetError }: ErrorScreenProps) 
       <View style={styles.content}>
         {/* Icon placeholder */}
         <View style={styles.iconContainer}>
-          <SansSerifBoldText style={styles.icon}>!</SansSerifBoldText>
+          <SansSerifBoldText size="display" style={styles.icon}>!</SansSerifBoldText>
         </View>
 
         {/* Main message */}
-        <SansSerifBoldText style={styles.title}>
+        <SansSerifBoldText semantic="heading" style={styles.title}>
           Something went wrong
         </SansSerifBoldText>
 
@@ -87,7 +86,7 @@ export function ErrorScreen({ error, errorInfo, resetError }: ErrorScreenProps) 
               onPress={() => setShowDetails(!showDetails)}
               style={styles.detailsToggle}
             >
-              <SansSerifText style={styles.detailsToggleText}>
+              <SansSerifText size="base" style={styles.detailsToggleText}>
                 {showDetails ? "Hide Details" : "Show Details"}
               </SansSerifText>
             </Button>
@@ -98,32 +97,32 @@ export function ErrorScreen({ error, errorInfo, resetError }: ErrorScreenProps) 
         {showDetails && (
           <View style={[styles.errorDetails, getShadowStyle("subtle")]}>
             <ScrollView style={styles.errorScroll}>
-              <SansSerifBoldText style={styles.errorLabel}>
+              <SansSerifBoldText size="sm" style={styles.errorLabel}>
                 Error:
               </SansSerifBoldText>
-              <SansSerifText style={styles.errorText}>
+              <MonoText size="xs" style={styles.errorText}>
                 {error.message}
-              </SansSerifText>
+              </MonoText>
 
               {error.stack && (
                 <>
-                  <SansSerifBoldText style={[styles.errorLabel, styles.stackLabel]}>
+                  <SansSerifBoldText size="sm" style={[styles.errorLabel, styles.stackLabel]}>
                     Stack Trace:
                   </SansSerifBoldText>
-                  <SansSerifText style={styles.errorText}>
+                  <MonoText size="xs" style={styles.errorText}>
                     {error.stack}
-                  </SansSerifText>
+                  </MonoText>
                 </>
               )}
 
               {errorInfo?.componentStack && (
                 <>
-                  <SansSerifBoldText style={[styles.errorLabel, styles.stackLabel]}>
+                  <SansSerifBoldText size="sm" style={[styles.errorLabel, styles.stackLabel]}>
                     Component Stack:
                   </SansSerifBoldText>
-                  <SansSerifText style={styles.errorText}>
+                  <MonoText size="xs" style={styles.errorText}>
                     {errorInfo.componentStack}
-                  </SansSerifText>
+                  </MonoText>
                 </>
               )}
             </ScrollView>
@@ -150,27 +149,22 @@ const createStyles = (theme: Theme) =>
     iconContainer: {
       width: 80,
       height: 80,
-      borderRadius: 40,
+      borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.destructive,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.lg,
     },
     icon: {
-      fontSize: 40,
       color: palette.white,
-      fontWeight: "bold",
     },
     title: {
-      fontSize: 24,
       color: theme.colors.foreground,
       textAlign: "center",
       marginBottom: spacing.sm,
     },
     subtitle: {
-      fontSize: 16,
-      color: theme.colors.foreground,
-      opacity: 0.7,
+      color: theme.colors.mutedForeground,
       textAlign: "center",
       marginBottom: spacing.xl,
       maxWidth: 300,
@@ -188,7 +182,6 @@ const createStyles = (theme: Theme) =>
     },
     detailsToggleText: {
       color: theme.colors.primary,
-      fontSize: 14,
     },
     errorDetails: {
       marginTop: spacing.xl,
@@ -204,7 +197,6 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     errorLabel: {
-      fontSize: 12,
       color: theme.colors.destructive,
       marginBottom: spacing.xs,
     },
@@ -212,10 +204,7 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing.md,
     },
     errorText: {
-      fontSize: 11,
       color: theme.colors.foreground,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      lineHeight: 16,
     },
   });
 

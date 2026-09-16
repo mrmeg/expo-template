@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    // Standalone, not extending the root config, because that one is a React
+    // Native/Expo project (jsx, RN types) and this package runs in Node only.
+    "allowJs": true,
+    // `checkJs` off: the rules and AST helpers annotate ESTree nodes as `object`
+    // and index string keys into literal maps, so checking them reports dozens
+    // of JSDoc-looseness errors that are not defects. This gate is therefore a
+    // parse-and-resolve pass over the shipped files.
+    "checkJs": false,
+    "noEmit": true,
+    "module": "commonjs",
+    "target": "es2022",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["index.js", "bin", "lib", "rules"]
+}

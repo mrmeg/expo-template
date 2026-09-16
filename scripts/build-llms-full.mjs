@@ -34,6 +34,12 @@ const sources = [
       "import paths, required app setup, media contracts, client hooks, server handlers, processing presets",
   },
   {
+    path: "packages/lint/README.md",
+    title: "@mrmeg/eslint-plugin-expo-ui",
+    summary:
+      "design-system ESLint rules, CLI, settings, style contracts, adopting the plugin in another project, troubleshooting",
+  },
+  {
     path: "docs/server-guide.md",
     title: "Expo Server Guide",
     summary:
@@ -77,7 +83,6 @@ const serverFiles = [
   "client/features/app/ssrViewportMetrics.ts",
   "server/lib/ssrViewport.ts",
   "server/lib/ssrOnboarding.ts",
-  "patches/@expo%2Frouter-server@57.0.9.patch",
   "__tests__/ssrHydration.guardrail.test.ts",
   "client/features/server-alpha/loaders.ts",
   "client/features/server-alpha/ServerAlphaDemoScreen.tsx",

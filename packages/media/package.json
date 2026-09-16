@@ -93,13 +93,13 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": ">=5.101.0 <6.0.0",
-    "expo": ">=55.0.0 <58.0.0",
-    "expo-file-system": ">=55.0.0 <58.0.0",
-    "expo-image-manipulator": ">=55.0.0 <58.0.0",
-    "expo-video": ">=55.0.0 <58.0.0",
+    "expo": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
+    "expo-file-system": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
+    "expo-image-manipulator": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
+    "expo-video": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
     "heic2any": "^0.0.4",
     "react": ">=19.2.0 <20.0.0",
-    "react-native": ">=0.83.0 <0.87.0"
+    "react-native": ">=0.83.0 <0.89.0 || >=0.88.0-0 <0.89.0"
   },
   "peerDependenciesMeta": {
     "@tanstack/react-query": {
