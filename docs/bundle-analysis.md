@@ -16,7 +16,7 @@ the known optional lazy chunks (`heic2any-*`, `VideoThumbnails-*`) and compares
 the total to `totalBytes` in `scripts/bundle-baseline.json`. Growth beyond
 `THRESHOLD` (`0.10`, a constant at the top of the script) exits 1.
 
-Current baseline: 4,474,265 bytes of budgeted client JS.
+Current baseline: 4,476,780 bytes of budgeted client JS.
 
 The metric sums *every* budgeted chunk, so it barely moves when code is split out
 of the entry — it guards against new dependency weight, not against poor

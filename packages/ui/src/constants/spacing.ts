@@ -44,11 +44,11 @@ export const spacing = {
   inputPadding: 10,       // Default input padding
   listItemSpacing: 8,     // Space between list items
 
-  // Border radius — shadcn-inspired scale (radiusMd = 12px default)
+  // Border radius — shadcn-inspired scale (radiusMd = 10px default)
   radiusNone: 0,
   radiusXs: 4,
   radiusSm: 8,
-  radiusMd: 12,
+  radiusMd: 10,
   radiusLg: 14,
   radiusXl: 18,
   radius2xl: 24,

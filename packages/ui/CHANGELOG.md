@@ -3,6 +3,16 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **`spacing.radiusMd` is 10 instead of 12.** Buttons, inputs, selects, toggles,
+  tabs, menus, popovers, tooltips, list items and every other component on the
+  default radius render slightly squarer. `radiusSm` (8) and `radiusLg` (14) are
+  unchanged, so the scale still increases monotonically. Apps that want the old
+  look can pass `borderRadius: 12` through `setShape` or a `style` override.
+
 ## [0.25.0]
 
 ### Added

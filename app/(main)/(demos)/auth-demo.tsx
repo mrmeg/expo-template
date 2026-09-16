@@ -522,7 +522,7 @@ const createStyles = (theme: Theme) =>
     stepNumber: {
       width: 24,
       height: 24,
-      borderRadius: 12,
+      borderRadius: spacing.radiusFull,
       alignItems: "center",
       justifyContent: "center",
       marginRight: spacing.sm,
