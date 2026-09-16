@@ -1,6 +1,6 @@
 # Expo Server Guide
 
-Reference for replicating this template's server stack — server-rendered web output, API routes, request middleware, data loaders — in another Expo Router project. Server rendering, loaders, and middleware are Expo Router alpha features behind `unstable_` flags (the demos call this surface "Server Alpha"); their APIs move between SDK versions, so check the pinned Expo version in `package.json` before copying.
+Reference for replicating this template's server stack — server-rendered web output, API routes, request middleware, data loaders — in another Expo Router project. Server rendering and data loaders are Expo Router alpha features behind `unstable_` flags; request middleware is stable as of SDK 58 and needs no flag (the demos still call this surface "Server Alpha"). The alpha APIs move between SDK versions, so check the pinned Expo version in `package.json` before copying.
 
 ## Source Map
 
@@ -9,7 +9,6 @@ Reference for replicating this template's server stack — server-rendered web o
 | Server output and router flags | `app.config.ts` |
 | HTML document (server-rendered per request) | `app/+html.tsx` |
 | SSR stylesheet flush | `client/features/app/SsrStyleFlush.tsx` |
-| Ordered bootstrap scripts (patch) | `patches/@expo%2Frouter-server@57.0.9.patch`, pinned in `package.json` `patchedDependencies` |
 | Not-found route (served at 404) | `app/+not-found.tsx` |
 | SSR hydration guardrails | `__tests__/ssrHydration.guardrail.test.ts` |
 | SSR request-derived state | `server/lib/ssrViewport.ts`, `server/lib/ssrOnboarding.ts`, `client/features/app/ssrViewportMetrics.ts` |
@@ -35,7 +34,6 @@ plugins: [
     {
       origin: "",
       unstable_useServerRendering: true,
-      unstable_useServerMiddleware: true,
       unstable_useServerDataLoaders: true,
       asyncRoutes: { web: "production" },
     },
@@ -45,7 +43,7 @@ plugins: [
 
 - `output: "server"` makes `expo export -p web` emit `dist/client` (static assets) plus `dist/server` (request handler, route manifest, API routes, and — with server rendering on — the SSR render module).
 - `unstable_useServerRendering` renders each web route on the server per request instead of writing an HTML shell at export time.
-- `unstable_useServerMiddleware` enables `app/+middleware.ts`.
+- `app/+middleware.ts` runs without a flag as of SDK 58; `unstable_useServerMiddleware` is deprecated, warns once, and has no effect.
 - `unstable_useServerDataLoaders` enables route `loader` exports and `useLoaderData`.
 - `asyncRoutes: { web: "production" }` emits per-route chunks on web production exports; omitting `ios`/`android`/`default` keeps dev servers and native builds synchronous.
 
@@ -53,12 +51,13 @@ plugins: [
 
 Export skips HTML prerendering: it emits `dist/server/_expo/server/render.js` and marks `dist/server/_expo/routes.json` with `"rendering": { "mode": "ssr", "file": "_expo/server/render.js" }` (export log: "Server rendering is enabled"). `expo-server` streams that renderer per request, so every response carries the route's real markup. Page-level meta still comes from `client/components/Seo.tsx`.
 
-The first render runs in Node: no DOM, no browser storage. Six constraints follow.
+Expo Router 58's renderer also injects the Metro bootstrap chunks itself — preload links in the head, in-order `<script>` tags in the body, built by `createInjectedScriptAsNodes` — instead of handing the chunk list to React as racing `<script async>` tags. Order matters because a route chunk that runs before the Metro prelude has no `__d` and is refetched on demand. SDK 57 needed a local `@expo/router-server` patch for this; SDK 58 ships it, and `__tests__/ssrHydration.guardrail.test.ts` fails if a `patchedDependencies` entry for `@expo/router-server` reappears or the installed renderer loses the ordered injection.
+
+The first render runs in Node: no DOM, no browser storage. Five constraints follow.
 
 - **Register styles at module scope.** The framework's head snapshot (`useServerDocumentContext()` → the `<style id="react-native-stylesheet">` node) is taken before route modules load, so later-registered rules are missing and the HTML references classes with no rules — unstyled paint until hydration. It misses whenever the module cache is cold: every dev request, and the first request after a production cold start. `createThemedStyles` hoists rules to module scope. `client/features/app/SsrStyleFlush.tsx` renders last in the root layout, after the whole subtree, so `StyleSheet.getSheet()` sees every rule the page uses; it emits them as a React 19 style resource (`href` + `precedence`) and renders nothing on the client (resources dedupe by `href` outside the reconciled tree, so hydration still matches).
 - **The flush doubles atomic selectors** (`hardenFlushedSheet`: `.r-x` → `.r-x.r-x`). React hoists the flushed node into the head preamble, ahead of `app/+html.tsx`, so the client sheet wins ties — required, because the flush carries classic base resets that would zero out client-only atomics. react-native-web fills the client sheet with resets at bundle boot while a route's atomics arrive only with its async chunk; two-class specificity holds the flushed atomics across that gap. Classic `.css-*` resets, element rules, group markers, and keyframes stay single-class so client atomics beat them.
 - **`app/+html.tsx` filters the snapshot.** It drops the framework's `<style id="react-native-stylesheet">` node from `headNodes` and renders exactly one empty element with that id for react-native-web to adopt as its client sheet. Head order: filtered nodes, anchor, scripts. Both sheets are single-class, so keeping the snapshot would let its resets win over later atomics.
-- **Order the bootstrap scripts.** React emits `bootstrapScripts` as `<script async>`, so runtime, common, entry, layout, and route chunks execute in download order; a route chunk running before the Metro prelude has no `__d` and is refetched on demand. `patches/@expo%2Frouter-server@57.0.9.patch` (applied by `bun install` through `patchedDependencies`) preloads every chunk from the head and inserts them from one inline script with `async = false`. On a version change: `bun patch @expo/router-server`, re-apply the edit marked `PATCH(expo-template)`, `bun patch --commit`. The guardrail test fails while the pinned and installed versions disagree.
 - **Take first-render state off the request.** `server/lib/ssrViewport.ts` derives a viewport width from a `mrmeg-vw` cookie, then a User-Agent heuristic, then a desktop default (without it react-native-web lays out at width 0). `server/lib/ssrOnboarding.ts` reads a `has-seen-onboarding` cookie, where only `"1"` counts as seen. Each module exports a request form for loaders (`detectSsrViewportWidth`, `detectOnboardingSeen`) and an ambient form reading `expo-server`'s request scope (`detectSsrViewportFromRequestScope`, `detectOnboardingSeenFromRequestScope`). The app uses the ambient form: both values land in the root layout (`SafeAreaProvider`'s `initialMetrics`, the onboarding gate), and layouts cannot export loaders. `requestHeaders()` throws with no active scope, so both modules try/catch to their default (desktop, `false`). Never cache the viewport in module scope — concurrent requests at different widths would overwrite it. Both cookies mirror client state, not sources of truth: `client/features/app/ssrViewportMetrics.ts` re-derives the same values from the same bytes so hydration matches. A request with no cookies renders the onboarding variant.
 - **Dev SSR shares one React copy.** Expo externalizes `react` and `react-dom` in `node`/`react-server` dev bundles, so `metro.config.js` skips its dedupe rewrite for those packages there; rewriting them would bundle a second React and give externalized packages a null hooks dispatcher.
 
@@ -241,7 +240,7 @@ Match the route shapes your app serves: the repo file lists the grouped paths (`
 
 ## Replication Checklist
 
-1. Set `web.output: "server"` and the three `unstable_` router flags; confirm the SDK supports them. Budget for the Server Rendering constraints first — stylesheet flush, `+html.tsx` snapshot filter, request-derived viewport/persisted state, `@expo/router-server` bootstrap-order patch.
+1. Set `web.output: "server"` and the two `unstable_` router flags (server rendering, data loaders); confirm the SDK supports them. Budget for the Server Rendering constraints first — stylesheet flush, `+html.tsx` snapshot filter, request-derived viewport/persisted state.
 2. Add a server entry (`server.bun.ts`, or the `expo-server` adapter for your runtime) owning CORS, rate limits, security headers, and static caching around the request handler.
 3. Create `server/api/shared/` with the CORS, error, and auth helpers; keep route files thin handler exports.
 4. Add API routes under `app/api/**/+api.ts` with `OPTIONS` preflight and CORS headers on every response. Consolidate sibling actions sharing heavy dependencies behind a `[action]+api.ts` dispatcher — each `+api.ts` exports as its own bundle.

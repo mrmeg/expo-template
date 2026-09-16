@@ -6,7 +6,7 @@
  */
 
 import React from "react";
-import { Platform, StyleSheet } from "react-native";
+import { Platform, StyleSheet, type ViewStyle } from "react-native";
 import { act, renderHook } from "@testing-library/react-native";
 import { useStyles, useTheme } from "../useTheme";
 import { colors } from "../../constants/colors";
@@ -410,7 +410,7 @@ describe("useTheme", () => {
         }))
       );
 
-      const cardStyle = StyleSheet.flatten(result.current.styles.card);
+      const cardStyle: ViewStyle = StyleSheet.flatten(result.current.styles.card) ?? {};
 
       expect(cardStyle.backgroundColor).toBe(result.current.withAlpha(result.current.theme.colors.primary, 0.08));
       expect(cardStyle.padding).toBe(result.current.spacing.sm);

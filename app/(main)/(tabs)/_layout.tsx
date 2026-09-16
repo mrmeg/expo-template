@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/native-tabs";
 import Feather from "@expo/vector-icons/Feather";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { NAV_DESTINATIONS } from "@/client/features/navigation/navDestinations";

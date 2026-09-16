@@ -77,7 +77,7 @@ function PopoverContent({
       padding: spacing.xs,
       ...getShadowStyle("soft"),
     },
-  ]);
+  ]) ?? undefined;
 
   return (
     <PopoverPrimitive.Portal hostName={portalHost}>
@@ -189,13 +189,22 @@ function PopoverFooter({ children, style, ...props }: PopoverFooterProps) {
  * Popover Root Component
  * Manages popover state and provides context for trigger and content
  */
-const PopoverRoot = PopoverPrimitive.Root;
+const PopoverRoot: typeof PopoverPrimitive.Root = PopoverPrimitive.Root;
+
+type PopoverComponent = typeof PopoverRoot & {
+  Trigger: typeof PopoverTrigger;
+  Content: typeof PopoverContent;
+  Header: typeof PopoverHeader;
+  Body: typeof PopoverBody;
+  Footer: typeof PopoverFooter;
+};
 
 /**
  * Popover Component with Sub-components
- * Properly typed interface for dot notation access (e.g., Popover.Trigger)
+ * Properly typed interface for dot notation access (e.g., Popover.Trigger).
+ * The annotation is what keeps declaration emit portable — see Dialog.tsx (TS2883).
  */
-const Popover = Object.assign(PopoverRoot, {
+const Popover: PopoverComponent = Object.assign(PopoverRoot, {
   Trigger: PopoverTrigger,
   Content: PopoverContent,
   Header: PopoverHeader,

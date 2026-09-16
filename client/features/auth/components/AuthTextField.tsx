@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { TextInput as RNTextInput } from "react-native";
+import type { TextInputInstance } from "react-native";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 
 /**
@@ -46,7 +46,7 @@ function AuthTextFieldComponent({
   ref,
   ...props
 }: AuthTextFieldProps) {
-  const inputRef = useRef<RNTextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const valueRef = useRef(initialValue);
   const errorTextRef = useRef("");
   const [errorText, setErrorText] = useState("");

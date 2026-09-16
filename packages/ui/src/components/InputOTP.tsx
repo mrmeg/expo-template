@@ -7,6 +7,7 @@ import {
   Platform,
   StyleProp,
   ViewStyle,
+  type TextInputInstance,
 } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
@@ -103,7 +104,7 @@ function InputOTP({
   style: styleOverride,
 }: InputOTPProps) {
   const { theme } = useTheme();
-  const inputRef = useRef<RNTextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const [focused, setFocused] = useState(false);
   const styles = themedStyles(theme);
   const hasError = error || !!errorText;

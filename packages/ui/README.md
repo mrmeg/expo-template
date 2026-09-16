@@ -26,7 +26,7 @@ built after the manifest was added ship it: the installed release has one when
 bun add @mrmeg/expo-ui
 ```
 
-Tested hosts: Expo SDK 56–57, React 19.2, React Native 0.85–0.86, React Native
+Tested hosts: Expo SDK 56–58 (58 in beta), React 19.2, React Native 0.85–0.88, React Native
 Web 0.21. Install these peers at the versions your Expo SDK recommends: `expo`,
 `@expo/ui`, `expo-font`, `expo-haptics`, `react`, `react-native`,
 `react-native-web`, `react-native-gesture-handler`,

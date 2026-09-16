@@ -97,6 +97,19 @@ const serverExternalizedPackages = new Set(["react", "react-dom"]);
 // bundles — the server graph legitimately needs a different copy.
 const clientOnlyDedupePackages = new Set(["@clerk/shared"]);
 
+// Specifiers that must reach the resolver verbatim. Since React Native 0.88 its
+// public subpaths (`react-native/setup-env`, `react-native/asset-registry`, …) are
+// `exports`-map entries with no file at the literal path, so rewriting them to an
+// absolute path fails to resolve. Keeping the bare specifier also lets Expo claim
+// `react-native/asset-registry` for its shared virtual registry module. The app
+// holds the only react-native copy, so skipping the rewrite still dedupes.
+const reactNativeExports = require("react-native/package.json").exports ?? {};
+const passthroughModules = new Set(
+  Object.keys(reactNativeExports)
+    .filter((key) => key.startsWith("./") && !key.includes("*"))
+    .map((key) => `react-native/${key.slice(2)}`)
+);
+
 const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const resolve = originalResolveRequest || context.resolveRequest;
@@ -105,6 +118,10 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     environment === "node" || environment === "react-server";
   const isDevServerEnvironment =
     isServerEnvironment && !context.customResolverOptions?.exporting;
+
+  if (passthroughModules.has(moduleName)) {
+    return resolve(context, moduleName, platform);
+  }
 
   for (const [packageName, packagePath] of Object.entries(dedupePackages)) {
     if (moduleName === packageName || moduleName.startsWith(`${packageName}/`)) {

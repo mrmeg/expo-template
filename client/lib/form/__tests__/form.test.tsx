@@ -41,7 +41,7 @@ function Harness({ onSubmit }: { onSubmit: (data: FormData) => void }) {
     <FormProvider form={form}>
       <FormTextInput name="name" control={form.control} label="Name" placeholder="Jane" />
       <FormCheckbox name="newsletter" control={form.control} label="Subscribe" />
-      <Pressable onPress={form.handleSubmit(onSubmit)}>
+      <Pressable onPress={() => void form.handleSubmit(onSubmit)()}>
         <Text>Submit</Text>
       </Pressable>
     </FormProvider>

@@ -456,9 +456,9 @@ GitHub Actions CI to EAS Workflows are not configured here.
 
 ## Tech Stack
 
-- Expo SDK 57, React 19.2, React Native 0.86, React Native Web 0.21 (exact pins in `package.json`)
+- Expo SDK 58 (beta), React 19.2, React Native 0.88 (RC), React Native Web 0.21 (exact pins in `package.json`)
 - TypeScript 6 (strict), path alias `@/*` -> repo root
-- Expo Router 57 (typed routes, server-rendered web build)
+- Expo Router 58 (typed routes, server-rendered web build)
 - Zustand 5, TanStack React Query 5
 - AWS Amplify 6 + Cognito or Clerk (optional; env-selected, fail-closed to disabled)
 - Stripe 22 (server, hosted-external Checkout + Billing Portal)

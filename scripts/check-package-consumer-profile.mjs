@@ -31,7 +31,7 @@ const sdk = Number(option("--sdk"));
 
 if (!packageCompatibilityProfiles[packageKey] || !Number.isInteger(sdk)) {
   throw new Error(
-    "Usage: bun run packages:compatibility -- --package [media|ui] --sdk [55|56|57]",
+    "Usage: bun run packages:compatibility -- --package [media|ui] --sdk [55|56|57|58]",
   );
 }
 

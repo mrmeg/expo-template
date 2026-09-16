@@ -90,7 +90,7 @@ Read before adding a flow.
   `component-card-<id>`, `component-detail`.
 
 - **Tab bar items match by visible label.** `(tabs)/_layout.tsx` uses `NativeTabs`
-  (`expo-router/unstable-native-tabs`), so the bar is a real `UITabBar` /
+  (`expo-router/native-tabs`), so the bar is a real `UITabBar` /
   `BottomNavigationView` and cannot carry a React `testID`. Labels come from
   `NAV_DESTINATIONS`; rename a destination and the flows need the same rename.
 

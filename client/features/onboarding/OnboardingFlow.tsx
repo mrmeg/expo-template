@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Platform,
   Pressable,
-  ViewToken,
+  type ListViewToken,
   type DimensionValue,
 } from "react-native";
 import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
@@ -105,8 +105,8 @@ export function OnboardingFlow({
   const isLastPage = currentIndex === pages.length - 1;
 
   const onViewableItemsChanged = useCallback(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      if (viewableItems.length > 0 && viewableItems[0].index !== null) {
+    ({ viewableItems }: { viewableItems: ListViewToken[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
         const newIndex = viewableItems[0].index;
         setCurrentIndex(newIndex);
 

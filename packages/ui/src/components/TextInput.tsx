@@ -19,6 +19,7 @@ import {
   Platform,
   View,
   Pressable,
+  type TextInputInstance,
 } from "react-native";
 import {
   Host,
@@ -102,7 +103,7 @@ interface TextInputCustomProps extends TextInputProps {
   /**
    * Forwarded ref to the underlying RNTextInput element.
    */
-  ref?: Ref<RNTextInput>;
+  ref?: Ref<TextInputInstance>;
   /**
    * Visual variant
    * @default "outline"
@@ -741,7 +742,7 @@ function NativeTextInput({
         lastTextRef.current = props.text;
       }
     },
-  }) as unknown as RNTextInput, [activeInput, blurAll, state]);
+  }) as unknown as TextInputInstance, [activeInput, blurAll, state]);
 
   const backgroundColor = forceLight
     ? palette.white

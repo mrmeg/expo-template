@@ -16,7 +16,7 @@
  */
 
 import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { Carousel, getCarouselIndex, resolveCarouselItemWidth } from "../Carousel";
@@ -62,8 +62,8 @@ function layoutEvent(width: number) {
   return { nativeEvent: { layout: { x: 0, y: 0, width, height: 200 } } };
 }
 
-function flatten(style: unknown) {
-  return StyleSheet.flatten(style) as Record<string, unknown>;
+function flatten(style: StyleProp<ViewStyle>) {
+  return (StyleSheet.flatten(style) ?? {}) as Record<string, unknown>;
 }
 
 function slides(count: number) {

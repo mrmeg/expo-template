@@ -34,8 +34,8 @@ unless the user asks for a plan.
 | Layer | Tech | Notes |
 |-------|------|-------|
 | Package manager | Bun | `bun.lock`; CI installs with `bun install --frozen-lockfile` |
-| App runtime | Expo SDK 57, React 19.2, React Native 0.86 | Expo Router entry, native and web targets |
-| Router | Expo Router 57 | Typed routes, API routes, server output, server rendering, middleware and data loaders |
+| App runtime | Expo SDK 58 (beta), React 19.2, React Native 0.88 (RC) | Expo Router entry, native and web targets |
+| Router | Expo Router 58 | Typed routes, API routes, server output, server rendering, middleware (stable) and data loaders |
 | Language | TypeScript 6 strict | Path alias `@/*` points at repo root |
 | UI | `@mrmeg/expo-ui` workspace package | RN primitives, design tokens, theme state, reusable components |
 | Media | `@mrmeg/expo-media` workspace package | Client hooks, processing helpers, S3/R2 server handlers |

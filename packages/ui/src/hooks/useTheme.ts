@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { Colors, colors, resolveRawColor } from "../constants/colors";
-import { ViewStyle, Platform, StyleSheet } from "react-native";
+import { ImageStyle, TextStyle, ViewStyle, Platform, StyleSheet } from "react-native";
 import { resolveThemePreference, useThemeStore } from "../state/themeStore";
 import { useThemeColorScope } from "../state/themeColorScope";
 import { spacing as spacingConstants } from "../constants/spacing";
@@ -480,9 +480,16 @@ interface StyleContext {
 }
 
 /**
+ * Shape a `useStyles` factory must return: named entries, each a single style
+ * object. React Native no longer exports this constraint publicly (it dropped
+ * `StyleSheet.NamedStyles` in 0.88), so it lives here.
+ */
+type NamedStyles<T> = { [K in keyof T]: ViewStyle | TextStyle | ImageStyle };
+
+/**
  * Return type for useStyles hook
  */
-type UseStylesReturn<T extends StyleSheet.NamedStyles<T>> = {
+type UseStylesReturn<T extends NamedStyles<T>> = {
   styles: T;
   theme: Colors["light" | "dark"];
   spacing: typeof spacingConstants;
@@ -520,7 +527,7 @@ type UseStylesReturn<T extends StyleSheet.NamedStyles<T>> = {
  * }
  * ```
  */
-export function useStyles<T extends StyleSheet.NamedStyles<T>>(
+export function useStyles<T extends NamedStyles<T>>(
   factory: (context: StyleContext) => T
 ): UseStylesReturn<T> {
   const themeContext = useTheme();

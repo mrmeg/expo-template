@@ -23,6 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Expo SDK 58 requires Node 22.13+, 24.3+, or 26; the runner default is not pinned.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -68,6 +73,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # Expo SDK 58 requires Node 22.13+, 24.3+, or 26; the runner default is not pinned.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
 
       - uses: oven-sh/setup-bun@v2
         with:
