@@ -1,5 +1,5 @@
-import { use, type Ref } from "react";
-import { Text as RNText, TextProps as RNTextProps, StyleSheet, type TextInstance } from "react-native";
+import { use, type ComponentRef, type Ref } from "react";
+import { Text as RNText, TextProps as RNTextProps, StyleSheet } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { resolveFontStyle, type FontVariant } from "../constants/fonts";
 import { useThemeStore } from "../state/themeStore";
@@ -118,8 +118,12 @@ export type TextProps = RNTextProps & {
   txOptions?: object;
   /**
    * Forwarded ref to the underlying RNText element.
+   *
+   * Written as `ComponentRef<typeof RNText>` rather than RN 0.88's `TextInstance`
+   * alias so the emitted declarations stay valid on RN 0.85/0.86, whose typings
+   * do not export that name.
    */
-  ref?: Ref<TextInstance>;
+  ref?: Ref<ComponentRef<typeof RNText>>;
 };
 
 /**

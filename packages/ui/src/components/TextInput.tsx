@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type ComponentProps,
+  type ComponentRef,
   type ReactNode,
   type Ref,
 } from "react";
@@ -19,7 +20,6 @@ import {
   Platform,
   View,
   Pressable,
-  type TextInputInstance,
 } from "react-native";
 import {
   Host,
@@ -102,8 +102,12 @@ const SIZE_CONFIGS: Record<
 interface TextInputCustomProps extends TextInputProps {
   /**
    * Forwarded ref to the underlying RNTextInput element.
+   *
+   * Written as `ComponentRef<typeof RNTextInput>` rather than RN 0.88's
+   * `TextInputInstance` alias so the emitted declarations stay valid on
+   * RN 0.85/0.86, whose typings do not export that name.
    */
-  ref?: Ref<TextInputInstance>;
+  ref?: Ref<ComponentRef<typeof RNTextInput>>;
   /**
    * Visual variant
    * @default "outline"
@@ -742,7 +746,7 @@ function NativeTextInput({
         lastTextRef.current = props.text;
       }
     },
-  }) as unknown as TextInputInstance, [activeInput, blurAll, state]);
+  }) as unknown as ComponentRef<typeof RNTextInput>, [activeInput, blurAll, state]);
 
   const backgroundColor = forceLight
     ? palette.white
