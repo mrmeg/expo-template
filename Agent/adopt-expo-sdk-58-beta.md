@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: HITL
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/87
 ---
 
 # Adopt Expo SDK 58 beta
