@@ -1,11 +1,12 @@
 import React, { lazy, memo, Suspense, useReducer, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
 import { KeyboardAwareScrollView } from "@/client/features/keyboard/platform";
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
+import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 import { Switch } from "@mrmeg/expo-ui/components/Switch";
 import { Checkbox } from "@mrmeg/expo-ui/components/Checkbox";
 import { Toggle } from "@mrmeg/expo-ui/components/Toggle";
@@ -123,16 +124,15 @@ function useShowcaseScreenContent() {
   return (
     <View style={styles.container}>
       {/*
-        keyboardDismissMode="interactive" lets a downward scroll drag dismiss the
-        keyboard. We deliberately do NOT wrap content in a tap-to-dismiss Pressable:
-        the native @expo/ui TextInput is a SwiftUI field that doesn't claim RN's JS
-        responder, so a wrapping Pressable would win the focus tap and immediately
-        dismiss the keyboard before it opens.
+        The root boundary owns tap dismissal, including non-scrolling drags.
+        Actual scrolling dismisses interactively on iOS and explicitly on Android;
+        Android does not implement keyboardDismissMode="interactive".
       */}
       <KeyboardAwareScrollView
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "none"}
+        onScrollBeginDrag={Platform.OS === "android" ? dismissKeyboard : undefined}
       >
         <View style={styles.content}>
           <View style={styles.header}>

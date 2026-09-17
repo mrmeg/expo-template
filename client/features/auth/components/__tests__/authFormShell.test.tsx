@@ -12,9 +12,11 @@
 import "@/test/mockTheme";
 
 import React from "react";
-import { Text } from "react-native";
+import { KeyboardAvoidingView as RNKeyboardAvoidingView, Platform, Text } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 import type { ReactTestRendererJSON } from "react-test-renderer";
+import { KeyboardAvoidingView } from "@mrmeg/expo-ui/components/KeyboardAvoidingView";
+import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 
 import { AuthFormCard } from "../AuthFormCard";
 import {
@@ -24,6 +26,10 @@ import {
   validatePassword,
 } from "../validators";
 import { VerifyEmailForm } from "../VerifyEmailForm";
+import { SignInForm } from "../SignInForm";
+import { SignUpForm } from "../SignUpForm";
+import { ForgotPasswordForm } from "../ForgotPasswordForm";
+import { ResetPasswordForm } from "../ResetPasswordForm";
 
 /** Matches the global react-i18next mock in test/setup.ts: keys pass through. */
 const t = (key: string) => key;
@@ -33,14 +39,14 @@ type RenderedTree = ReactTestRendererJSON | ReactTestRendererJSON[] | null;
 /**
  * RNTL 14 dropped the `UNSAFE_*ByType` queries, so the shell's wrapper is
  * checked against the host tree instead: a `ScrollView` shows up as
- * `RCTScrollView`, while the `KeyboardAvoidingView` is just the root host view.
+ * `RCTScrollView`. The keyboard-controller mock forwards avoidance props to a View.
  */
-function hostTypeNames(node: RenderedTree): string[] {
+function hostNodes(node: RenderedTree): ReactTestRendererJSON[] {
   if (node == null || typeof node !== "object") return [];
   const nodes: ReactTestRendererJSON[] = Array.isArray(node) ? node : [node];
-  return nodes.flatMap((child) => [
-    String(child.type),
-    ...hostTypeNames(child.children as RenderedTree),
+  return nodes.flatMap((child) => typeof child !== "object" || child == null ? [] : [
+    child,
+    ...hostNodes(child.children as RenderedTree),
   ]);
 }
 
@@ -140,17 +146,36 @@ describe("AuthFormCard", () => {
     expect(screen.getByText("Something broke")).toBeTruthy();
   });
 
-  it("wraps standalone forms in a keyboard-avoiding scroll view", async () => {
-    const view = await render(
+  it.each([
+    ["ios", false],
+    ["ios", true],
+    ["android", false],
+    ["android", true],
+  ] as const)("owns tap dismissal with one scroll view and avoider (%s, parent avoidance: %s)", async (platform, parentAvoidance) => {
+    jest.replaceProperty(Platform, "OS", platform);
+    const rnAvoider = jest.spyOn(RNKeyboardAvoidingView.prototype, "render");
+    const form = (
       <AuthFormCard title="Card title">
         <Text>Body slot</Text>
-      </AuthFormCard>,
+      </AuthFormCard>
     );
-    const tree = view.toJSON();
+    const view = await render(
+      parentAvoidance ? <KeyboardAvoidingView>{form}</KeyboardAvoidingView> : form,
+    );
+    const nodes = hostNodes(view.toJSON());
+    const scrolls = nodes.filter((node) => node.type === "RCTScrollView");
+    const boundaries = nodes.filter((node) => node.props.onTouchEnd && node.props.onStartShouldSetResponder);
 
-    // The KeyboardAvoidingView renders as the flex:1 root host view.
-    expect(hostTypeNames(tree)).toContain("RCTScrollView");
-    expect(rootStyles(tree)).toContainEqual({ flex: 1 });
+    expect(scrolls).toHaveLength(1);
+    // RN's handled policy can blur a hosted input after a non-scrolling drag.
+    expect(scrolls[0].props.keyboardShouldPersistTaps).toBe("always");
+    expect(scrolls[0].props.keyboardDismissMode).toBe(platform === "ios" ? "interactive" : "none");
+    expect(scrolls[0].props.onScrollBeginDrag).toBe(platform === "android" ? dismissKeyboard : undefined);
+    expect(boundaries).toHaveLength(1);
+    expect(boundaries[0].props.onTouchStart).toEqual(expect.any(Function));
+    expect(boundaries[0].props.onTouchMove).toEqual(expect.any(Function));
+    expect(nodes.filter((node) => node.props.automaticOffset === true)).toHaveLength(1);
+    expect(rnAvoider).not.toHaveBeenCalled();
   });
 
   it("skips the scroll wrapper when embedded in a parent scroll view", async () => {
@@ -161,8 +186,56 @@ describe("AuthFormCard", () => {
     );
     const tree = view.toJSON();
 
-    expect(hostTypeNames(tree)).not.toContain("RCTScrollView");
+    const nodes = hostNodes(tree);
+    expect(nodes.map((node) => node.type)).not.toContain("RCTScrollView");
+    expect(nodes.some((node) => node.props.automaticOffset || node.props.onTouchEnd)).toBe(false);
     expect(rootStyles(tree)).toContainEqual({ width: "100%" });
+  });
+});
+
+describe("auth control labels", () => {
+  it.each([
+    {
+      name: "sign in",
+      form: <SignInForm embedded onSignUp={() => {}} onForgotPassword={() => {}} />,
+      labels: ["auth.signUp", "auth.forgotPassword"],
+      readable: "auth.noAccount",
+    },
+    {
+      name: "sign up",
+      form: <SignUpForm embedded onSignIn={() => {}} />,
+      labels: ["auth.signIn"],
+      readable: "auth.hasAccount",
+    },
+    {
+      name: "verify email",
+      form: <VerifyEmailForm embedded email="ada@example.com" onBack={() => {}} onChangeEmail={() => {}} />,
+      labels: ["auth.backToSignIn", "auth.resendCodeLink", "auth.wrongEmail auth.changeIt"],
+      readable: "auth.didntReceiveCode",
+    },
+    {
+      name: "forgot password",
+      form: <ForgotPasswordForm embedded onBack={() => {}} />,
+      labels: ["auth.backToSignIn"],
+      readable: "auth.forgotPasswordDescription",
+    },
+    {
+      name: "reset password",
+      form: <ResetPasswordForm embedded onBack={() => {}} />,
+      labels: ["auth.backToSignIn"],
+      readable: "auth.passwordMinLength",
+    },
+  ])("keeps $name control text nonselectable and readable copy selectable", async ({ form, labels, readable }) => {
+    await render(form);
+
+    for (const label of labels) {
+      expect(screen.getByText(label).props.selectable).toBe(false);
+      expect(screen.getByRole("button", { name: label }).props.focusable).not.toBe(false);
+    }
+    expect(screen.getByText(readable).props.selectable).toBe(true);
+    if (screen.queryByText("auth.changeIt")) {
+      expect(screen.getByText("auth.changeIt").props.selectable).toBe(false);
+    }
   });
 });
 

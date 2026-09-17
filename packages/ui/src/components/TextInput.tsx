@@ -101,7 +101,7 @@ const SIZE_CONFIGS: Record<
 
 interface TextInputCustomProps extends TextInputProps {
   /**
-   * Forwarded ref to the underlying RNTextInput element.
+   * RNTextInput ref on web; an RN-compatible imperative handle on native.
    *
    * Written as `ComponentRef<typeof RNTextInput>` rather than RN 0.88's
    * `TextInputInstance` alias so the emitted declarations stay valid on
@@ -494,11 +494,10 @@ type ExpoTextInputProps = ComponentProps<typeof ExpoTextInput>;
  * never round-trips through React state — eliminating the cursor flicker seen on
  * controlled RN inputs.
  *
- * By design (reliability over feature-parity) this path renders the field plus
- * sibling label / helper / error text only. The in-field overlays from the web
- * implementation — password visibility toggle, clear button, left/right
- * elements, and error icon — are intentionally omitted on native to avoid
- * layering RN views over the native host view.
+ * This path supports label / helper / error text and a password visibility
+ * toggle laid out beside the native Host. Clear buttons, left/right elements,
+ * and the error icon remain web-only; RN overlays are not layered over the
+ * native host view.
  */
 function NativeTextInput({
   variant = "outline",
@@ -561,9 +560,9 @@ function NativeTextInput({
   // parity) once it settles.
   const queuedTogglesRef = useRef(0);
   const toggleRef = useRef<() => void>(() => {});
-  // Per-flavour mount generation. Bumped whenever a flavour becomes the incoming
-  // view so React always mounts a FRESH native view (whose `autoFocus` will run)
-  // instead of reusing one that is still unmounting from the previous handoff.
+  // iOS-only per-flavour mount generation. Bumped whenever a flavour becomes
+  // the incoming view so React mounts a FRESH native view (whose `autoFocus`
+  // will run) instead of reusing one still unmounting from the previous handoff.
   const generationRef = useRef({ secure: 0, plain: 0 });
   // Last text the JS side knows about; see handleChangeText.
   const lastTextRef = useRef<string>(value ?? defaultValue ?? "");
@@ -588,15 +587,17 @@ function NativeTextInput({
   // RNTextInput because that's what the public TextInputCustomProps declares.
   // We expose the subset consumers use, plus a `setNativeProps` shim so the
   // uncontrolled AuthTextField can push corrected text into the native buffer.
-  // One ref per native view flavour; only the active one (or, mid-handoff on
-  // iOS, both) is mounted.
+  // Android keeps one field/ref as visualTransformation changes in place.
+  // iOS has one ref per flavour; both are mounted only during a handoff.
+  const androidRef = useRef<ExpoTextInputRef>(null);
   const secureRef = useRef<ExpoTextInputRef>(null);
   const plainRef = useRef<ExpoTextInputRef>(null);
-  const activeInput = useCallback(
-    () => (activeSecureRef.current ? secureRef : plainRef).current,
-    []
-  );
+  const activeInput = useCallback(() => {
+    if (Platform.OS === "android") return androidRef.current;
+    return (activeSecureRef.current ? secureRef : plainRef).current;
+  }, []);
   const blurAll = useCallback(() => {
+    androidRef.current?.blur();
     secureRef.current?.blur();
     plainRef.current?.blur();
   }, []);
@@ -619,19 +620,15 @@ function NativeTextInput({
   const parentOnFocus = onFocus as (() => void) | undefined;
   const parentOnBlur = onBlur as (() => void) | undefined;
 
-  // Focus/blur from a view that is not the active flavour is ignored: that is
-  // the outgoing view resigning during a handoff, or a stale event from a view
-  // React is unmounting.
+  // On iOS, ignore focus/blur from the outgoing flavour during a handoff or
+  // unmount. Android events always belong to the same mounted field.
   const handleFocus = useCallback(
     (secure: boolean) => {
-      if (secure !== activeSecureRef.current) return;
+      if (Platform.OS === "ios" && secure !== activeSecureRef.current) return;
       isFocusedRef.current = true;
-      // Register a blur handle so tap-away dismissal (`keyboardDismiss.ts`) and
-      // the BottomSheet overlay can resign this field: RN's `TextInputState`
-      // never sees SwiftUI / Compose fields, so `Keyboard.dismiss()` cannot.
-      // Blurring through the field's own ref is window-independent — inside a
-      // native bottom sheet `KeyboardController.dismiss()` can miss, the ref
-      // never does.
+      // Register the field's own blur handle for tap-away dismissal and the
+      // BottomSheet overlay. RN supports Expo-hosted field interop; this direct
+      // ref also targets the actual field inside a native sheet's window.
       setKeyboardFocusedInput(focusRegistryToken, blurAll);
       if (handoffRef.current) {
         // The incoming view took first responder; the parent never saw focus leave.
@@ -646,7 +643,7 @@ function NativeTextInput({
 
   const handleBlur = useCallback(
     (secure: boolean) => {
-      if (secure !== activeSecureRef.current) return;
+      if (Platform.OS === "ios" && secure !== activeSecureRef.current) return;
       isFocusedRef.current = false;
       restoreAfterSecureHandoffRef.current = false;
       clearKeyboardFocusedInput(focusRegistryToken);
@@ -664,8 +661,10 @@ function NativeTextInput({
     }
     restoreAfterSecureHandoffRef.current = false;
     const outgoingSecure = activeSecureRef.current;
-    if (outgoingSecure) generationRef.current.plain += 1;
-    else generationRef.current.secure += 1;
+    if (Platform.OS === "ios") {
+      if (outgoingSecure) generationRef.current.plain += 1;
+      else generationRef.current.secure += 1;
+    }
     if (Platform.OS === "ios" && isFocusedRef.current) {
       const timer = setTimeout(() => {
         // The incoming view never took first responder. Rather than unmount
@@ -850,8 +849,10 @@ function NativeTextInput({
           MUST be wrapped in <Host>, or iOS throws "a SwiftUI view is being mounted
           inside a standard UIView". matchContents vertical lets the host fill width
           via normal RN layout while sizing its height to the native field.
+          Android keeps one Host and field with a key/ref independent of secure
+          mode, preserving native focus and selection. Only iOS swaps flavours.
         */}
-        {[true, false].map((secure) => {
+        {(Platform.OS === "android" ? [effectiveSecureTextEntry] : [true, false]).map((secure) => {
           const active = secure === effectiveSecureTextEntry;
           const outgoing = handoff != null && secure === handoff.outgoingSecure;
           if (!active && !outgoing) return null;
@@ -860,7 +861,13 @@ function NativeTextInput({
           const inLayout = handoff ? outgoing : active;
           return (
             <Host
-              key={secure ? `secure-${generationRef.current.secure}` : `plain-${generationRef.current.plain}`}
+              key={
+                Platform.OS === "android"
+                  ? "android"
+                  : secure
+                    ? `secure-${generationRef.current.secure}`
+                    : `plain-${generationRef.current.plain}`
+              }
               matchContents={{ vertical: true }}
               style={
                 inLayout
@@ -876,7 +883,7 @@ function NativeTextInput({
               <ExpoTextInput
                 {...(rest as ExpoTextInputProps)}
                 autoFocus={(rest as ExpoTextInputProps).autoFocus || (handoff != null && active)}
-                ref={secure ? secureRef : plainRef}
+                ref={Platform.OS === "android" ? androidRef : secure ? secureRef : plainRef}
                 value={state}
                 defaultValue={defaultValue}
                 onChangeText={handleChangeText}

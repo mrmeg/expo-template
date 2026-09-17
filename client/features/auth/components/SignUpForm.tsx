@@ -145,8 +145,8 @@ export function SignUpForm({
             <SansSerifText style={shared.mutedText}>
               {t("auth.hasAccount")}{" "}
             </SansSerifText>
-            <Pressable onPress={onSignIn} disabled={loading}>
-              <SansSerifBoldText style={shared.linkText}>
+            <Pressable accessibilityRole="button" onPress={onSignIn} disabled={loading}>
+              <SansSerifBoldText selectable={false} style={shared.linkText}>
                 {t("auth.signIn")}
               </SansSerifBoldText>
             </Pressable>
@@ -275,11 +275,12 @@ export function SignUpForm({
           testID={
             usePassword ? "sign-up-use-passwordless-button" : "sign-up-add-password-button"
           }
+          accessibilityRole="button"
           onPress={() => setUsePassword((current) => !current)}
           disabled={loading}
           style={styles.methodToggle}
         >
-          <SansSerifText style={shared.linkText}>
+          <SansSerifText selectable={false} style={shared.linkText}>
             {usePassword ? t("auth.signUpWithoutPasswordInstead") : t("auth.addAPassword")}
           </SansSerifText>
         </Pressable>

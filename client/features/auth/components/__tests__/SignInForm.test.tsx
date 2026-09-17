@@ -70,20 +70,22 @@ describe("SignInForm", () => {
       />,
     );
 
-    await fireEvent.press(screen.getByTestId("sign-in-use-password-button"));
+    await fireEvent.changeText(screen.getByTestId("sign-in-email-input"), EMAIL);
+    expect(screen.getByText("auth.usePasswordInstead").props.selectable).toBe(false);
+    await fireEvent.press(screen.getByRole("button", { name: "auth.usePasswordInstead" }));
 
     expect(screen.getByTestId("sign-in-password-input")).toBeTruthy();
     expect(screen.getByText("auth.forgotPassword")).toBeTruthy();
     expect(screen.queryByTestId("sign-in-email-code-button")).toBeNull();
 
-    await fireEvent.changeText(screen.getByTestId("sign-in-email-input"), EMAIL);
+    expect(screen.getByText("auth.useEmailCodeInstead").props.selectable).toBe(false);
     await fireEvent.changeText(screen.getByTestId("sign-in-password-input"), PASSWORD);
     await fireEvent.press(screen.getByTestId("sign-in-submit-button"));
 
     expect(onSignIn).toHaveBeenCalledWith({ email: EMAIL, password: PASSWORD });
     expect(onEmailCodeSignIn).not.toHaveBeenCalled();
 
-    await fireEvent.press(screen.getByTestId("sign-in-use-code-button"));
+    await fireEvent.press(screen.getByRole("button", { name: "auth.useEmailCodeInstead" }));
 
     expect(screen.getByTestId("sign-in-email-code-button")).toBeTruthy();
     expect(screen.queryByTestId("sign-in-password-input")).toBeNull();

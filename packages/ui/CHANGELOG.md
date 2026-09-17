@@ -5,6 +5,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.25.1]
+
+### Fixed
+
+- **Android password toggles retain the native field.** The secure/plain Host
+  keys previously replaced the Compose field on every eye press, leaving the
+  keyboard visible but disconnecting subsequent typing. Android now changes
+  password transformation on one mounted Host/input/ref, preserving focus,
+  selection, and the input connection. iOS retains its two-field handoff.
+- **Non-scrolling drags no longer trigger tap-away dismissal.** `DismissKeyboard`
+  gives its boundary sole tap-dismiss ownership (`keyboardShouldPersistTaps="always"`)
+  instead of letting RN ScrollView independently blur a registered hosted field
+  on release. Both tap-away dismissal and text-surface focus check final travel
+  even when move events are missed, and cancel multitouch. Actual scrolling still
+  dismisses through the existing platform-specific scroll behavior.
+
+Consumer note: raw `Pressable` labels made from `StyledText` must set
+`selectable={false}`. On Android selectable label text can take native focus from
+an input even when the press handler does not dismiss. The template's auth
+controls and standalone scroll shell are corrected separately in app code;
+updating this package does not update a consuming app's copied forms.
+
 ### Changed
 
 - **`spacing.radiusMd` is 10 instead of 12.** Buttons, inputs, selects, toggles,

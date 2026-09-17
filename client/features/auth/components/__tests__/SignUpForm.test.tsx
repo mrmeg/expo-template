@@ -93,13 +93,15 @@ describe("SignUpForm", () => {
       />,
     );
 
-    await fireEvent.press(screen.getByTestId("sign-up-add-password-button"));
+    await fireEvent.changeText(screen.getByTestId("sign-up-email-input"), EMAIL);
+    expect(screen.getByText("auth.addAPassword").props.selectable).toBe(false);
+    await fireEvent.press(screen.getByRole("button", { name: "auth.addAPassword" }));
 
     expect(screen.getByTestId("sign-up-password-input")).toBeTruthy();
     expect(screen.getByTestId("sign-up-confirm-password-input")).toBeTruthy();
     expect(screen.queryByTestId("sign-up-passwordless-button")).toBeNull();
 
-    await fireEvent.changeText(screen.getByTestId("sign-up-email-input"), EMAIL);
+    expect(screen.getByText("auth.signUpWithoutPasswordInstead").props.selectable).toBe(false);
     await fireEvent.changeText(screen.getByTestId("sign-up-password-input"), PASSWORD);
     await fireEvent.changeText(screen.getByTestId("sign-up-confirm-password-input"), PASSWORD);
     await fireEvent.press(screen.getByTestId("sign-up-submit-button"));
@@ -107,7 +109,7 @@ describe("SignUpForm", () => {
     expect(onSignUp).toHaveBeenCalledWith({ name: "", email: EMAIL, password: PASSWORD });
     expect(onPasswordlessSignUp).not.toHaveBeenCalled();
 
-    await fireEvent.press(screen.getByTestId("sign-up-use-passwordless-button"));
+    await fireEvent.press(screen.getByRole("button", { name: "auth.signUpWithoutPasswordInstead" }));
 
     expect(screen.getByTestId("sign-up-passwordless-button")).toBeTruthy();
     expect(screen.queryByTestId("sign-up-password-input")).toBeNull();

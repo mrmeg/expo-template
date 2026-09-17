@@ -95,8 +95,8 @@ export function ForgotPasswordForm({
       description={description ?? t("auth.forgotPasswordDescription")}
       footer={
         onBack && (
-          <Pressable onPress={onBack} disabled={loading}>
-            <SansSerifText style={shared.linkText}>
+          <Pressable accessibilityRole="button" onPress={onBack} disabled={loading}>
+            <SansSerifText selectable={false} style={shared.linkText}>
               {t("auth.backToSignIn")}
             </SansSerifText>
           </Pressable>

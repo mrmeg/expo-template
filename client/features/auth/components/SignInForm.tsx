@@ -109,8 +109,8 @@ export function SignInForm({
             <SansSerifText style={shared.mutedText}>
               {t("auth.noAccount")}{" "}
             </SansSerifText>
-            <Pressable onPress={onSignUp} disabled={loading}>
-              <SansSerifBoldText style={shared.linkText}>
+            <Pressable accessibilityRole="button" onPress={onSignUp} disabled={loading}>
+              <SansSerifBoldText selectable={false} style={shared.linkText}>
                 {t("auth.signUp")}
               </SansSerifBoldText>
             </Pressable>
@@ -161,11 +161,12 @@ export function SignInForm({
 
       {showPasswordField && onForgotPassword && (
         <Pressable
+          accessibilityRole="button"
           onPress={onForgotPassword}
           disabled={loading}
           style={styles.forgotPassword}
         >
-          <SansSerifText style={shared.linkText}>
+          <SansSerifText selectable={false} style={shared.linkText}>
             {t("auth.forgotPassword")}
           </SansSerifText>
         </Pressable>
@@ -198,11 +199,12 @@ export function SignInForm({
       {onEmailCodeSignIn && (
         <Pressable
           testID={usePassword ? "sign-in-use-code-button" : "sign-in-use-password-button"}
+          accessibilityRole="button"
           onPress={() => setUsePassword((current) => !current)}
           disabled={loading}
           style={styles.methodToggle}
         >
-          <SansSerifText style={shared.linkText}>
+          <SansSerifText selectable={false} style={shared.linkText}>
             {usePassword ? t("auth.useEmailCodeInstead") : t("auth.usePasswordInstead")}
           </SansSerifText>
         </Pressable>

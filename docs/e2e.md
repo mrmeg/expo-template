@@ -132,6 +132,39 @@ is a separate workflow (not a job on the existing lint/test matrix) that boots a
 simulator, runs `bunx expo run:ios --configuration Release`, and calls
 `bun run e2e`. Until then, run it locally before native releases.
 
+## Android keyboard regression checks
+
+These are separate from the Maestro smoke suite above. Use an exclusively owned
+device/emulator. The `/showcase` auth forms use demo callbacks, so submission and
+resend checks can run without real credentials. `/auth-demo` uses `AuthWrapper`
+and the configured auth provider: use it for focus, typing, mode-switching, and
+scroll checks; submissions there require a configured test account/provider.
+
+The Android input fixes were reproduced against UI 0.25.0 and rechecked with the
+fixed package dist on an Android 16/API 36 arm64 emulator, Expo SDK 58/RN 0.88 RC,
+at 300 and 420 dpi:
+
+- Focus password, establish a known value, show/type/hide/type, then rapidly
+  toggle six times and type again. The same Compose Host and live input
+  connection must survive; native text and the form value must agree.
+- Keep **email** focused while switching password/code mode both ways. The
+  control must fire without selectable label text taking focus. Removing a
+  focused password field is a different case, not evidence of an unwanted blur.
+- Drag horizontally over empty space by more than 100 logical units. Verify
+  unchanged scroll offset and that field focus, input connection, text, and IME
+  survive both during the gesture and after release.
+- Tap the same empty space: it must dismiss once. Actually scroll vertically:
+  it must dismiss through the configured scroll handler. `interactive` alone
+  only covers iOS; Android needs its explicit scroll-begin handler.
+- Verify field-to-field handoff, long-press selection, and the showcase resend
+  callback while its code field remains focused. Control labels are
+  nonselectable; ordinary content and input text remain selectable.
+
+All of these cases passed on that emulator. This does not replace a Camera App
+SDK 57 device check after consuming the release and porting the template's
+app-owned auth labels/scroll-shell changes. The SDK 57 package compatibility
+gate checks declarations and bundling, not native IME behavior.
+
 ## Out of scope
 
 - **Android runs.** The flows avoid iOS-only selectors but are unverified on an
