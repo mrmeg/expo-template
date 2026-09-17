@@ -649,6 +649,13 @@ avoidance is `react-native-keyboard-controller`, so mount its `KeyboardProvider`
 above `UIProvider`; use `KeyboardAvoidingView` directly only for a subtree with
 custom behavior.
 
+`DismissKeyboard` owns tap dismissal; its ScrollView uses
+`keyboardShouldPersistTaps="always"` so RN cannot independently blur a hosted
+field after a non-scrolling drag. Use `always` for your own scroll view inside
+that boundary too. Dead-space taps dismiss on release; movement and multitouch
+cancel. Actual scrolling retains platform-specific dismissal. Submit handlers
+call `dismissKeyboard()` explicitly.
+
 `BottomSheet` renders the platform's native sheet through `@expo/ui` (iOS
 SwiftUI `.sheet()`, Android Material3 `ModalBottomSheet`, web `vaul`). The
 platform owns gestures and keyboard avoidance: `swipeEnabled`, `avoidKeyboard`,
@@ -829,6 +836,11 @@ Check this before creating a new app-local primitive. All components come from
 `true`). Aliases: `DisplayText`, `TitleText`, `HeadingText`, `SubheadingText`,
 `BodyText`, `CaptionText`, `LabelText`, `EyebrowText`, `MonoText`, `SerifText`,
 `SansSerifText`, `SerifBoldText`, `SansSerifBoldText`.
+
+Set `selectable={false}` on text labels inside app-owned `Pressable`s. Selectable
+Android text can take input focus even if the press handler never dismisses the
+keyboard. Package controls already scope label selectability; ordinary text
+should remain selectable.
 
 ## Component Selection Rules
 

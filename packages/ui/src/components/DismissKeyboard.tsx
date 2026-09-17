@@ -16,15 +16,17 @@ type Props = {
  * Wrapper for a screen (or form) that dismisses the keyboard when the user taps
  * outside of a text input.
  *
- * Mirrors RN's `keyboardShouldPersistTaps="handled"` for the native `@expo/ui`
- * field, which RN itself cannot see: the wrapper never claims the touch, so
- * buttons, other fields and the focused field's own gestures win, and it
- * dismisses on release only when nothing else took the tap and the finger did
- * not scroll. See `useKeyboardDismissResponder`.
+ * The wrapper never claims the touch: buttons, other fields and the focused
+ * field's own gestures win. It dismisses only an unclaimed single-finger tap
+ * within the travel slop, even if no scroll/move event was delivered. The inner
+ * ScrollView uses `always` to leave tap dismissal to this boundary; RN's
+ * `handled` policy can independently blur registered hosted inputs on release
+ * after a drag that produced no scroll. See `useKeyboardDismissResponder`.
  *
  * A drag on the inner ScrollView also hides the keyboard: `interactive` on iOS
  * (UIKit resigns any first responder, SwiftUI fields included) and an explicit
- * dismiss on drag start on Android, where RN's `on-drag` only knows RN inputs.
+ * dismiss on drag start on Android, using the package's window-independent
+ * native blur handle with a keyboard-controller fallback.
  */
 export function DismissKeyboard({
   children,
@@ -38,7 +40,7 @@ export function DismissKeyboard({
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
-      keyboardShouldPersistTaps="handled"
+      keyboardShouldPersistTaps="always"
       keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "none"}
       onScrollBeginDrag={Platform.OS === "android" ? dismissKeyboard : undefined}
       showsVerticalScrollIndicator={false}

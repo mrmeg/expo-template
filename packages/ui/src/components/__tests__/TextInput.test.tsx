@@ -126,7 +126,7 @@ describe("TextInput", () => {
 
       expect(screen.getByPlaceholderText("Password").props.secureTextEntry).toBe(true);
 
-      // Tap the eye button -> reveals the text. On native the secure and plain
+      // Tap the eye button -> reveals the text. On iOS the secure and plain
       // flavours are different views, so re-query after each toggle.
       await fireEvent.press(screen.getByLabelText("Show password"));
       expect(screen.getByPlaceholderText("Password").props.secureTextEntry).toBe(false);

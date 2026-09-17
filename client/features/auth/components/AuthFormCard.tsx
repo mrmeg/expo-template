@@ -1,6 +1,7 @@
 import React from "react";
-import { View, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import { View, ScrollView, Platform } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { DismissKeyboard } from "@mrmeg/expo-ui/components/DismissKeyboard";
 import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 import {
   Card,
@@ -19,7 +20,7 @@ import { authFormStyles } from "./authFormStyles";
  * fields themselves, and an optional footer row.
  *
  * Also owns the "embedded vs standalone" wrapper. Standalone (a form owning the
- * screen) gets the `KeyboardAvoidingView` + centering `ScrollView`; `embedded`
+ * screen) gets a `DismissKeyboard` boundary + centering `ScrollView`; `embedded`
  * (rendered inside a parent scroll view, which is how `AuthScreen`, the
  * `auth-demo` route and the showcase gallery use the forms) gets a plain
  * full-width `View` so there is no nested scroll container.
@@ -89,19 +90,17 @@ export function AuthFormCard({
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardAvoid}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+    <DismissKeyboard style={styles.keyboardAvoid} scrollable={false}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+        // Leave tap dismissal to the boundary, including non-scrolling drags.
+        keyboardShouldPersistTaps="always"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "none"}
         onScrollBeginDrag={Platform.OS === "android" ? dismissKeyboard : undefined}
         showsVerticalScrollIndicator={false}
       >
         {card}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </DismissKeyboard>
   );
 }

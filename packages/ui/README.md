@@ -110,6 +110,20 @@ For a subtree with custom keyboard behavior, use `KeyboardAvoidingView`
 directly (`behavior`, `automaticOffset`, `contentContainerStyle`,
 `keyboardVerticalOffset`).
 
+### Keyboard dismissal
+
+`DismissKeyboard` owns tap-away dismissal without claiming touches. Its scroll
+view uses `keyboardShouldPersistTaps="always"`: RN's `handled` policy can blur
+Expo-hosted fields independently when a finger travels without scrolling.
+Single-finger dead-space taps dismiss on release; movement past 10 logical units
+and multitouch cancel the tap. Real scrolling still dismisses (interactive on
+iOS, an explicit scroll-begin handler on Android).
+
+If a form supplies its own ScrollView inside `DismissKeyboard scrollable={false}`
+or an app-level `useKeyboardDismissResponder` boundary, use `always` there too.
+Avoid nested keyboard-avoiding wrappers; the package reuses `UIProvider`'s owner.
+Call `dismissKeyboard()` explicitly from submit handlers.
+
 ## Theme System
 
 ```tsx
@@ -299,6 +313,10 @@ import { BodyText, CaptionText, HeadingText, StyledText } from "@mrmeg/expo-ui/c
 - `align`, `text`, `tx`, `txOptions`
 - `selectable`: defaults to `true`; package controls disable it for labels and
   interactive chrome where accidental drag selection would feel broken.
+
+For app-owned `Pressable` labels, explicitly set `selectable={false}` on the
+nested `StyledText`. On Android selectable label text can take focus and the IME
+connection from an active input. Preserve selection for ordinary readable text.
 
 Aliases: `DisplayText`, `TitleText`, `HeadingText`, `SubheadingText`,
 `BodyText`, `CaptionText`, `LabelText`, `EyebrowText`, `MonoText` (code, IDs,

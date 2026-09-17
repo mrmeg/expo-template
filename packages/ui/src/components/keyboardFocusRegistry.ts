@@ -1,10 +1,12 @@
 /**
  * Registry of the currently focused native (`@expo/ui`) text field.
  *
- * React Native's `TextInputState` never learns about SwiftUI / Compose fields,
- * so `Keyboard.dismiss()` cannot blur them. The package `TextInput` registers a
- * blur handle here on focus; tap-away dismissal (`keyboardDismiss.ts`) and the
- * `BottomSheet` overlay resign the field through it.
+ * Hosted `@expo/ui` inputs also register with React Native's `TextInputState`.
+ * This package registry supplies a window-independent native blur handle and
+ * focus presence even when keyboard-controller cannot observe the keyboard
+ * (for example, in an isolated native sheet window). The package `TextInput`
+ * registers on focus; tap-away dismissal (`keyboardDismiss.ts`) and the
+ * `BottomSheet` overlay resign the field through that handle.
  */
 export type KeyboardFocusedInputToken = object;
 

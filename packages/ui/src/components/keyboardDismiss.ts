@@ -1,35 +1,39 @@
 /**
  * Tap-away keyboard dismissal that never steals a touch.
  *
- * React Native's own `keyboardShouldPersistTaps="handled"` is the model: let the
- * deepest interactive view win the responder negotiation, and blur on *release*
- * only when nothing else took the tap and the finger did not scroll. RN cannot
- * apply that to the native `@expo/ui` field (it is invisible to
- * `TextInputState`), so this module re-creates the same decision with two
- * signals that need no rectangles and no responder ownership:
+ * Let the deepest interactive view win the responder negotiation, and blur on
+ * release only for an unclaimed, single-finger tap within the travel slop.
+ * Hosted `@expo/ui` inputs register with RN's `TextInputState`. A ScrollView
+ * using `keyboardShouldPersistTaps="handled"` can therefore claim dead space
+ * and blur on release if it observed no scroll, even after substantial travel.
+ * `DismissKeyboard`'s ScrollView uses `always` so this boundary owns tap dismissal
+ * with an explicit travel policy, independent of whether content can scroll.
+ * Two signals need no rectangles and no responder ownership:
  *
  *  1. `onStartShouldSetResponder` in the *bubble* phase is only ever called on a
- *     view when no descendant claimed the touch. Pressables, RN TextInputs and
- *     scroll views all claim, so being asked at all means "this tap is on dead
- *     space or on a native view that does not participate".
+ *     view when no descendant claimed the touch. Pressables and RN TextInputs
+ *     claim, as can scroll views depending on their tap policy. Being asked
+ *     means no descendant took responder ownership, not necessarily dead space.
  *  2. The package `TextInput` tags touches that begin on its surface
  *     (`markTextInputTouchStart`). Its bubble handler runs before any enclosing
  *     boundary's, so the boundary can tell a tap on *any* native field — focused
  *     or not — from dead space, and leave focus handoff, double-tap selection
  *     and the eye toggle to the platform.
  *
- * The boundary always answers `false`, so no JS responder is ever set: native
- * controls (SwiftUI/Compose fields, sliders) keep receiving every touch phase
+ * The boundary always answers `false`, so it never becomes the JS responder.
+ * Native controls (SwiftUI/Compose fields, sliders) keep receiving every touch phase
  * on both platforms, and scroll views take over drags exactly as before.
  * Dismissal happens in `onTouchEnd`, a plain bubbling event that fires whether
- * or not anyone became the responder; a drag past the slop or a cancel drops it.
+ * or not anyone became the responder. Moves cancel permanently once past the
+ * slop; release coordinates also enforce it when move delivery was missed.
+ * Cancellation and multitouch drop the tap without rearming another finger.
  */
 import { useMemo, useRef } from "react";
 import { Platform, type GestureResponderEvent, type ViewProps } from "react-native";
 import { KeyboardController, useKeyboardState } from "./keyboardController";
 import { dismissKeyboardFocusedInput, hasKeyboardFocusedInput } from "./keyboardFocusRegistry";
 
-/** Finger travel (pt) after which a touch counts as a scroll, not a tap. */
+/** Maximum displacement per axis (RN logical units) for a tap, scrollable or not. */
 const MOVE_SLOP = 10;
 
 // Only equality matters here, so the identifier is kept exactly as RN reports it.
@@ -51,6 +55,10 @@ function isSameEvent(key: TouchKey | null, event: GestureResponderEvent) {
 
 let textInputTouch: TouchKey | null = null;
 let claimedTouch: TouchKey | null = null;
+// An ancestor can observe a second finger outside an inner boundary/surface.
+// Invalidate already-armed taps there too, even if that finger lifts first and
+// the inner view only receives its original finger's final touches=[] event.
+let multiTouchVersion = 0;
 
 /**
  * `onStartShouldSetResponder` for a native text-field surface: decline the
@@ -89,6 +97,77 @@ function movedPastSlop(tap: PendingTap, event: GestureResponderEvent) {
   );
 }
 
+/** Shared single-finger travel policy for tap-away dismissal and surface focus. */
+function createTapTracker() {
+  let pending: PendingTap | null = null;
+  let armedVersion = multiTouchVersion;
+  let lastStart: TouchKey | null = null;
+  const active = new Set<TouchKey["identifier"]>();
+
+  function readTouches(event: GestureResponderEvent) {
+    const { touches } = event.nativeEvent;
+    if (touches == null) return false;
+    active.clear();
+    touches.forEach(({ identifier }) => active.add(identifier));
+    return true;
+  }
+
+  return {
+    start(event: GestureResponderEvent) {
+      // Negotiation precedes the plain bubbling touch-start for the same event.
+      // Observe it once; a child-claimed start reaches only onTouchStart, which
+      // clears any stale pending tap but never arms one.
+      if (isSameEvent(lastStart, event)) return false;
+      lastStart = keyOf(event);
+      pending = null;
+      // RN's array is authoritative, including after a missed end. The set is
+      // also a fallback for callers/tests omitting arrays, retaining other down
+      // fingers even after movement has cancelled the pending tap.
+      if (!readTouches(event)) active.add(event.nativeEvent.identifier);
+      if (active.size > 1 || (event.nativeEvent.changedTouches?.length ?? 1) > 1) {
+        multiTouchVersion += 1;
+        return false;
+      }
+      return active.size === 1;
+    },
+    arm(event: GestureResponderEvent) {
+      pending = { ...keyOf(event), pageX: event.nativeEvent.pageX, pageY: event.nativeEvent.pageY };
+      armedVersion = multiTouchVersion;
+    },
+    move(event: GestureResponderEvent) {
+      readTouches(event);
+      if (active.size > 1 || (event.nativeEvent.changedTouches?.length ?? 1) > 1) {
+        multiTouchVersion += 1;
+        pending = null;
+      } else if (isSameTouch(pending, event) && movedPastSlop(pending, event)) {
+        pending = null;
+      }
+    },
+    end(event: GestureResponderEvent) {
+      const tap = pending;
+      pending = null;
+      // On touch end, touches contains the REMAINING fingers (empty on the last
+      // release); changedTouches contains those that ended. Never treat the
+      // final empty array as an invalid single-finger tap.
+      if (!readTouches(event)) {
+        active.delete(event.nativeEvent.identifier);
+        event.nativeEvent.changedTouches?.forEach(({ identifier }) => active.delete(identifier));
+      }
+      if (active.size === 0) lastStart = null;
+      if (active.size > 0 || (event.nativeEvent.changedTouches?.length ?? 1) > 1) {
+        multiTouchVersion += 1;
+      }
+      return (
+        armedVersion === multiTouchVersion &&
+        active.size === 0 &&
+        (event.nativeEvent.changedTouches?.length ?? 1) <= 1 &&
+        isSameTouch(tap, event) &&
+        !movedPastSlop(tap, event)
+      );
+    },
+  };
+}
+
 export type TextInputSurfaceResponderProps = Pick<
   ViewProps,
   "onStartShouldSetResponder" | "onTouchStart" | "onTouchMove" | "onTouchEnd" | "onTouchCancel"
@@ -109,32 +188,28 @@ export type TextInputSurfaceResponderProps = Pick<
 export function useTextInputSurfaceResponder(focus: () => void): TextInputSurfaceResponderProps {
   const focusRef = useRef(focus);
   focusRef.current = focus;
-  const tap = useRef<PendingTap | null>(null);
-
-  return useMemo<TextInputSurfaceResponderProps>(
-    () => ({
+  return useMemo<TextInputSurfaceResponderProps>(() => {
+    const tap = createTapTracker();
+    return {
       onStartShouldSetResponder: (event) => {
         markTextInputTouchStart(event);
-        tap.current = { ...keyOf(event), pageX: event.nativeEvent.pageX, pageY: event.nativeEvent.pageY };
+        if (tap.start(event)) tap.arm(event);
         return false;
       },
       onTouchStart: (event) => {
-        if (tap.current && !isSameEvent(tap.current, event)) tap.current = null;
+        tap.start(event);
       },
       onTouchMove: (event) => {
-        if (isSameTouch(tap.current, event) && movedPastSlop(tap.current, event)) tap.current = null;
+        tap.move(event);
       },
       onTouchEnd: (event) => {
-        if (!isSameTouch(tap.current, event)) return;
-        tap.current = null;
-        focusRef.current();
+        if (tap.end(event)) focusRef.current();
       },
-      onTouchCancel: () => {
-        tap.current = null;
+      onTouchCancel: (event) => {
+        tap.end(event);
       },
-    }),
-    []
-  );
+    };
+  }, []);
 }
 
 export type KeyboardDismissResponderProps = Pick<
@@ -152,14 +227,14 @@ export function useKeyboardDismissResponder(): KeyboardDismissResponderProps {
   const isVisible = useKeyboardState((state) => state.isVisible);
   const isVisibleRef = useRef(isVisible);
   isVisibleRef.current = isVisible;
-  const pending = useRef<PendingTap | null>(null);
 
   return useMemo<KeyboardDismissResponderProps>(() => {
     if (Platform.OS === "web") return {};
+    const tap = createTapTracker();
 
     return {
       onStartShouldSetResponder: (event) => {
-        pending.current = null;
+        if (!tap.start(event)) return false;
         // `hasKeyboardFocusedInput` covers the window where a field has focus but
         // keyboard-controller has not reported the keyboard yet (or a hardware
         // keyboard is attached and there is no software keyboard to observe).
@@ -168,27 +243,20 @@ export function useKeyboardDismissResponder(): KeyboardDismissResponderProps {
         // An inner boundary already runs this touch (bubble order is inner-first).
         if (isSameEvent(claimedTouch, event)) return false;
         claimedTouch = keyOf(event);
-        pending.current = { ...claimedTouch, pageX: event.nativeEvent.pageX, pageY: event.nativeEvent.pageY };
+        tap.arm(event);
         return false;
       },
       onTouchStart: (event) => {
-        // Bubbling touch events run after the negotiation for the same native
-        // event, so a fresh pending tap matches here; anything else is stale
-        // (e.g. a touch whose end never reached this view).
-        if (pending.current && !isSameEvent(pending.current, event)) pending.current = null;
+        tap.start(event);
       },
       onTouchMove: (event) => {
-        if (isSameTouch(pending.current, event) && movedPastSlop(pending.current, event)) {
-          pending.current = null;
-        }
+        tap.move(event);
       },
       onTouchEnd: (event) => {
-        if (!isSameTouch(pending.current, event)) return;
-        pending.current = null;
-        dismissKeyboard();
+        if (tap.end(event)) dismissKeyboard();
       },
-      onTouchCancel: () => {
-        pending.current = null;
+      onTouchCancel: (event) => {
+        tap.end(event);
       },
     };
   }, []);
