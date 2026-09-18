@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/90
 ---
 
 # `BottomSheet`: tap-away dismissal stops swallowing taps; Android body fills the rendered sheet
