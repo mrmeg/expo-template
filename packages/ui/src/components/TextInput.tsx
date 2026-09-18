@@ -5,7 +5,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ComponentProps,
   type ComponentRef,
   type ReactNode,
   type Ref,
@@ -23,10 +22,10 @@ import {
 } from "react-native";
 import {
   Host,
-  TextInput as ExpoTextInput,
   useNativeState,
   type TextInputRef as ExpoTextInputRef,
 } from "@expo/ui";
+import { NativeTextField, type NativeTextFieldProps } from "./nativeTextField";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { useFontStyle } from "../hooks/useFontStyle";
@@ -485,14 +484,23 @@ function WebTextInput({
   );
 }
 
-type ExpoTextInputProps = ComponentProps<typeof ExpoTextInput>;
-
 /**
- * Native (iOS / Android) implementation backed by `@expo/ui`'s TextInput, which
- * bridges to SwiftUI's `TextField`/`SecureField` and Jetpack Compose's
- * `TextField`. The text buffer lives natively (via `useNativeState`), so typing
- * never round-trips through React state — eliminating the cursor flicker seen on
- * controlled RN inputs.
+ * Native (iOS / Android) implementation backed by a native text field rendered
+ * inside an `@expo/ui` `Host`. The text buffer lives natively (via
+ * `useNativeState`), so typing never round-trips through React state —
+ * eliminating the cursor flicker seen on controlled RN inputs.
+ *
+ * The field comes from `./nativeTextField`, a platform-split module. iOS gets
+ * `@expo/ui`'s universal TextInput (SwiftUI `TextField`/`SecureField`, which
+ * already reports a password field to the keyboard). Android gets a
+ * package-owned port of that universal field built on
+ * `@expo/ui/jetpack-compose`'s `BasicTextField` (`nativeTextField.android.tsx`),
+ * because the universal Android field maps `secureTextEntry` to a masking
+ * transformation only and offers no way to set Compose's `KeyboardType.Password`
+ * — the IME saw a plain text field, kept its suggestion strip and learned the
+ * password. The port declares a password keyboard for secure fields and keeps it
+ * across the eye toggle, so revealing the text never restarts the IME. Metro
+ * picks the platform file; TypeScript types both through the default file.
  *
  * This path supports label / helper / error text and a password visibility
  * toggle laid out beside the native Host. Clear buttons, left/right elements,
@@ -792,7 +800,7 @@ function NativeTextInput({
   // bottom-heavy gap; iOS centered fine. Letting padding define the height keeps
   // the text vertically centered on both platforms while matching the previous
   // visual size (≈ `sizeConfig.height`). Multiline is left to grow naturally.
-  const boxStyle: ExpoTextInputProps["style"] = {
+  const boxStyle: NativeTextFieldProps["style"] = {
     backgroundColor: "transparent",
     paddingHorizontal: sizeConfig.paddingHorizontal,
     paddingVertical: multiline
@@ -812,7 +820,7 @@ function NativeTextInput({
       ? undefined
       : inputFont.fontFamily;
 
-  const textStyle: ExpoTextInputProps["textStyle"] = {
+  const textStyle: NativeTextFieldProps["textStyle"] = {
     color: textColor,
     fontSize: sizeConfig.fontSize,
     ...(nativeFontFamily ? { fontFamily: nativeFontFamily } : null),
@@ -846,12 +854,14 @@ function NativeTextInput({
         {...surfaceResponderProps}
       >
         {/*
-          The universal @expo/ui TextInput renders a raw SwiftUI / Compose view and
-          MUST be wrapped in <Host>, or iOS throws "a SwiftUI view is being mounted
-          inside a standard UIView". matchContents vertical lets the host fill width
-          via normal RN layout while sizing its height to the native field.
+          The native field renders a raw SwiftUI / Compose view and MUST be wrapped
+          in <Host>, or iOS throws "a SwiftUI view is being mounted inside a
+          standard UIView". matchContents vertical lets the host fill width via
+          normal RN layout while sizing its height to the native field.
           Android keeps one Host and field with a key/ref independent of secure
-          mode, preserving native focus and selection. Only iOS swaps flavours.
+          mode, preserving native focus and selection; the package-owned Android
+          field turns the flipped `secureTextEntry` into a constant password
+          keyboard plus a toggled masking transformation. Only iOS swaps flavours.
         */}
         {(Platform.OS === "android" ? [effectiveSecureTextEntry] : [true, false]).map((secure) => {
           const active = secure === effectiveSecureTextEntry;
@@ -881,9 +891,9 @@ function NativeTextInput({
               accessibilityElementsHidden={!inLayout}
               importantForAccessibility={inLayout ? "auto" : "no-hide-descendants"}
             >
-              <ExpoTextInput
-                {...(rest as ExpoTextInputProps)}
-                autoFocus={(rest as ExpoTextInputProps).autoFocus || (handoff != null && active)}
+              <NativeTextField
+                {...(rest as NativeTextFieldProps)}
+                autoFocus={(rest as NativeTextFieldProps).autoFocus || (handoff != null && active)}
                 ref={Platform.OS === "android" ? androidRef : secure ? secureRef : plainRef}
                 value={state}
                 defaultValue={defaultValue}

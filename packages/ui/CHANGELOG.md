@@ -27,6 +27,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ModalBottomSheet` ignores percentage snap points and its host already bounds
   the column, so a `55%` sheet no longer shows a blank strip below a capped
   `BottomSheet.Body`.
+- **Android secure fields declare a password keyboard.** `TextInput` with
+  `secureTextEntry` now reports `textPassword` to the IME (or `numberPassword`
+  for the `number-pad`, `decimal-pad`, `numeric` and `phone-pad` keyboards), so
+  Gboard shows no suggestion strip and learns nothing typed; autocorrect is off
+  and capitalization is `none` unless the props say otherwise. Revealing the
+  text with the eye toggle keeps the password keyboard and only drops the
+  masking, so focus, selection and the input connection survive exactly as in
+  0.25.1. The Android field is now package-owned — a port of `@expo/ui` 58.0.2's
+  universal Android `TextInput` on top of `@expo/ui/jetpack-compose`'s
+  `BasicTextField` — because the universal field offers no way to set Compose's
+  password keyboard type. iOS keeps `@expo/ui`'s universal field.
 
 ## [0.25.1]
 
