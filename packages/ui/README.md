@@ -518,6 +518,12 @@ web, where the window cannot be read during export or hydration.
   nativeID="email-input" />`). One id on both renders duplicate ids on web and
   associates nothing. Prefer `TextInput`'s own `label` prop when no separate
   label element is needed.
+- `TextInput` renders a native field on iOS and Android. On Android a
+  `secureTextEntry` field declares a password keyboard (`textPassword`, or
+  `numberPassword` for numeric keyboards) in both the masked and the revealed
+  eye-toggle state, with autocorrect off by default; that Android field is
+  package-owned on top of `@expo/ui/jetpack-compose`'s `BasicTextField`, while
+  iOS uses `@expo/ui`'s universal field (SwiftUI `SecureField`).
 - `BottomSheet` renders the platform's native sheet through `@expo/ui`: iOS
   SwiftUI `.sheet()`, Android Material3 `ModalBottomSheet`, web `vaul`. The
   platform owns gestures and keyboard avoidance, so `swipeEnabled`,
