@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/92
 ---
 
 # `Icon` renders Lucide; prepare `@mrmeg/expo-ui` 0.26.0
