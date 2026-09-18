@@ -56,8 +56,11 @@ jest.mock("../packages/ui/src/components/iconRegistry.generated", () => {
   const ICONS = new Proxy(
     {},
     {
-      get: (_target, name) => (typeof name === "string" ? iconFor(name) : undefined),
-      has: (_target, name) => typeof name === "string",
+      // Names prefixed `missing-` stay undefined so tests can exercise the
+      // runtime fallback for a name outside the registry.
+      get: (_target, name) =>
+        typeof name === "string" && !name.startsWith("missing-") ? iconFor(name) : undefined,
+      has: (_target, name) => typeof name === "string" && !name.startsWith("missing-"),
     }
   );
   return { __esModule: true, ICONS };

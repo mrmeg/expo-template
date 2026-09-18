@@ -3,7 +3,7 @@ import path from "path";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
-import { Icon } from "../Icon";
+import { Icon, type IconName } from "../Icon";
 import iconNames from "../icon-names.json";
 
 jest.mock("../../hooks/useTheme", () => ({
@@ -112,6 +112,21 @@ describe("Icon", () => {
     expect(node.props["aria-hidden"]).toBe(true);
     expect(StyleSheet.flatten(node.props.style)).toEqual(expect.objectContaining({ pointerEvents: "none" }));
     expect(Custom).toHaveBeenCalled();
+  });
+
+  it("renders nothing and warns once for a name outside the registry at runtime", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const missing = "missing-glyph" as unknown as IconName;
+      expect(renderIcon(<Icon name={missing} />).toJSON()).toBeNull();
+      expect(renderIcon(<Icon name={missing} />).toJSON()).toBeNull();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toContain('"missing-glyph"');
+      // A registered name still renders after the miss.
+      expect(iconColorOf(<Icon name="check" color="primary" />, "check")).toBe("#0F172A");
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("rejects names outside the registry at compile time", () => {

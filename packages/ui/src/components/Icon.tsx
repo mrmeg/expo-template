@@ -95,6 +95,17 @@ export type IconProps = RegistryIconProps | CustomIconProps;
  * <Icon component={Rocket} color="accent" /> // any Lucide import
  * ```
  */
+const warnedUnknownIconNames = new Set<string>();
+
+function warnUnknownIconName(name: string) {
+  if (!__DEV__ || warnedUnknownIconNames.has(name)) return;
+  warnedUnknownIconNames.add(name);
+  console.warn(
+    `Icon: "${name}" is not in the package icon registry, so nothing was rendered. ` +
+      "Add it to icon-names.json and run `bun run ui:icons`, or pass a Lucide component through `component`."
+  );
+}
+
 export function Icon(props: IconProps) {
   const { size = 24, color, style, decorative = false } = props;
   const { theme } = useTheme();
@@ -127,7 +138,16 @@ export function Icon(props: IconProps) {
     );
   }
 
-  const Lucide = ICONS[(props as RegistryIconProps).name];
+  const name = (props as RegistryIconProps).name;
+  const Lucide = ICONS[name] as (typeof ICONS)[IconName] | undefined;
+
+  // `IconName` makes an unknown name a type error, but names also arrive at
+  // runtime (a database field, a config file). Rendering `undefined` would
+  // throw; draw nothing and say so once per name in development instead.
+  if (!Lucide) {
+    warnUnknownIconName(name);
+    return null;
+  }
 
   return (
     <Lucide
