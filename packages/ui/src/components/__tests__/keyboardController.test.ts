@@ -125,7 +125,9 @@ describe("packages/ui keyboard imports", () => {
     expect(source).not.toMatch(runtimeImport);
   });
 
-  it.each(["KeyboardAvoidingView.tsx", "keyboardDismiss.ts", "BottomSheet.tsx"])(
+  // BottomSheet.tsx is covered by the import guard above but not here: it uses
+  // keyboard-controller only indirectly, through keyboardDismiss.ts's boundary.
+  it.each(["KeyboardAvoidingView.tsx", "keyboardDismiss.ts"])(
     "%s reaches keyboard-controller only through the platform-split module",
     (file) => {
       const source = readFileSync(join(componentsDir, file), "utf8");

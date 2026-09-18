@@ -626,9 +626,10 @@ function NativeTextInput({
     (secure: boolean) => {
       if (Platform.OS === "ios" && secure !== activeSecureRef.current) return;
       isFocusedRef.current = true;
-      // Register the field's own blur handle for tap-away dismissal and the
-      // BottomSheet overlay. RN supports Expo-hosted field interop; this direct
-      // ref also targets the actual field inside a native sheet's window.
+      // Register the field's own blur handle for tap-away dismissal
+      // (`DismissKeyboard`, `BottomSheet.Content`). RN supports Expo-hosted field
+      // interop; this direct ref also targets the actual field inside a native
+      // sheet's window.
       setKeyboardFocusedInput(focusRegistryToken, blurAll);
       if (handoffRef.current) {
         // The incoming view took first responder; the parent never saw focus leave.
