@@ -53,6 +53,9 @@ jobs:
       - name: Block registry freshness check
         run: bun run gen:blocks:check
 
+      - name: Icon registry freshness check
+        run: bun run ui:icons:check
+
       - name: LLM docs freshness check
         run: bun run docs:llms:check
 

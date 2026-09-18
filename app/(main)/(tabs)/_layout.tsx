@@ -10,9 +10,13 @@ import { useKeyboardVisible } from "@/client/features/keyboard/platform";
  *
  * A single `<NativeTabs>` navigator renders the platform-native tab bar
  * (`UITabBar` on iOS, `BottomNavigationView` on Android, a CSS fallback on web).
- * Destinations come from the shared `NAV_DESTINATIONS` list and, on native, reuse
- * the app's Feather icon family via `NativeTabs.Trigger.VectorIcon`. The web
- * fallback is labels-only (see the `isWeb` note below).
+ * Destinations come from the shared `NAV_DESTINATIONS` list and, on native, draw
+ * their icons through `NativeTabs.Trigger.VectorIcon`. `VectorIcon` needs an
+ * icon-font family, so the tab bar stays on `@expo/vector-icons/Feather` (a root
+ * dependency) while `Icon` elsewhere renders `lucide-react-native` SVGs; Lucide
+ * is a superset of Feather in the same 24px, 2px-stroke style, so the two match.
+ * Destination icon names must therefore exist in both sets. The web fallback is
+ * labels-only (see the `isWeb` note below).
  *
  * Colors are derived from `useTheme()` inside this component so they re-render on
  * theme toggle — important because `babel-plugin-react-compiler` (via

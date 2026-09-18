@@ -48,7 +48,7 @@ describe("StatCard", () => {
     );
 
     expect(flattenStyle("+12.5%").color).toBe("#22C55E");
-    expect(screen.getByTestId("icon-Feather", { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByTestId("icon-trending-up", { includeHiddenElements: true })).toBeTruthy();
   });
 
   it("colors a 'down' change with the destructive color and shows a trend icon", async () => {
@@ -57,7 +57,7 @@ describe("StatCard", () => {
     );
 
     expect(flattenStyle("-4.1%").color).toBe("#EF4444");
-    expect(screen.getByTestId("icon-Feather", { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByTestId("icon-trending-down", { includeHiddenElements: true })).toBeTruthy();
   });
 
   it("colors a 'neutral' change with the muted text color and shows no trend icon", async () => {
@@ -66,13 +66,13 @@ describe("StatCard", () => {
     );
 
     expect(flattenStyle("No change").color).toBe("#52525B");
-    expect(screen.queryByTestId("icon-Feather", { includeHiddenElements: true })).toBeNull();
+    expect(screen.queryByTestId(/^icon-trending-/, { includeHiddenElements: true })).toBeNull();
   });
 
   it("does not render a change line when none is provided", async () => {
     await render(<StatCard label="Revenue" value="48.2" />);
 
-    expect(screen.queryByTestId("icon-Feather", { includeHiddenElements: true })).toBeNull();
+    expect(screen.queryByTestId(/^icon-/, { includeHiddenElements: true })).toBeNull();
   });
 
   it("fires onPress when pressed", async () => {

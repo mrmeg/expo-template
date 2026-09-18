@@ -83,7 +83,7 @@ function ProtectedSection() {
       </CardHeader>
       <CardContent>
         <View style={dynamicStyles.successBox}>
-          <Icon name="check-circle" size={24} color={theme.colors.success} />
+          <Icon name="circle-check-big" size={24} color={theme.colors.success} />
           <View style={dynamicStyles.successTextContainer}>
             <SansSerifBoldText size="base" style={[dynamicStyles.successTitle, { color: theme.colors.success }]}>
               Access Granted
@@ -247,7 +247,7 @@ function AuthStateMonitor() {
         {/* Error */}
         {error && (
           <View style={dynamicStyles.errorBox}>
-            <Icon name="x-circle" size={16} color={theme.colors.destructive} />
+            <Icon name="circle-x" size={16} color={theme.colors.destructive} />
             <View style={{ marginLeft: spacing.sm, flex: 1 }}>
               <SansSerifBoldText size="sm" style={{ color: theme.colors.destructive }}>
                 Error
@@ -304,7 +304,7 @@ function HowItWorksSection() {
     <Card style={dynamicStyles.card}>
       <CardHeader>
         <View style={dynamicStyles.cardHeaderRow}>
-          <Icon name="unlock" size={20} color={theme.colors.primary} />
+          <Icon name="lock-open" size={20} color={theme.colors.primary} />
           <CardTitle style={{ marginLeft: spacing.sm }}>How It Works</CardTitle>
         </View>
       </CardHeader>

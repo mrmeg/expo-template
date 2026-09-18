@@ -386,7 +386,7 @@ export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
         label: "with icon",
         render: () => (
           <View style={{ minWidth: 150 }}>
-            <StatCard label="NPS" value={62} icon="smile" change={{ value: "+4", direction: "neutral" }} />
+            <StatCard label="NPS" value={62} icon="face-slightly-smiling" change={{ value: "+4", direction: "neutral" }} />
           </View>
         ),
       },

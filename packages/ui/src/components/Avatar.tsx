@@ -151,7 +151,7 @@ export interface AvatarProps {
   source?: ImageSourcePropType;
   /** Display name; supplies the fallback initials and the default accessibility label. */
   name?: string;
-  /** Feather icon rendered when there is no image and no derivable initials. @default "user" */
+  /** Icon (Lucide name) rendered when there is no image and no derivable initials. @default "user" */
   icon?: IconName;
   /** Size token or explicit pixel diameter. Inherited from `AvatarGroup` when unset. @default "md" */
   size?: AvatarSize;

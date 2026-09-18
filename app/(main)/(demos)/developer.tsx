@@ -198,7 +198,7 @@ export default function DeveloperScreen() {
             disabled={storageLoading || storageKeys.length === 0}
             style={styles.flex1}
           >
-            <Icon name="trash-2" color={theme.colors.destructiveForeground} size={14} />
+            <Icon name="trash" color={theme.colors.destructiveForeground} size={14} />
             <SansSerifText size="base" style={styles.buttonTextLight}> Clear All</SansSerifText>
           </Button>
         </View>
@@ -283,7 +283,7 @@ export default function DeveloperScreen() {
           onPress={triggerError}
           fullWidth
         >
-          <Icon name="alert-triangle" color={theme.colors.destructiveForeground} size={16} />
+          <Icon name="triangle-alert" color={theme.colors.destructiveForeground} size={16} />
           <SansSerifBoldText size="base" style={styles.buttonTextLight}>
             {" "}Trigger Test Error
           </SansSerifBoldText>

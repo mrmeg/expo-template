@@ -305,8 +305,9 @@ Use `--patch`, `--minor`, `--major`, or an exact version such as `0.2.0`.
 Without `--publish` the command performs the same version bump and gates as a
 dry run. Do not commit `.npmrc` tokens or registry secrets. Consumer Expo apps
 install `@mrmeg/expo-ui` plus the native and Expo peer dependencies listed in
-`packages/ui/package.json`; implementation details such as `@rn-primitives/*`
-and `@expo/vector-icons` are managed by the package.
+`packages/ui/package.json` (including `react-native-svg` and
+`lucide-react-native` for `Icon`); implementation details such as
+`@rn-primitives/*` are managed by the package.
 
 If local npm login is blocked, use GitHub Actions trusted publishing. After
 one-time npm package setup, pushing a commit that changes
@@ -465,7 +466,7 @@ GitHub Actions CI to EAS Workflows are not configured here.
 - AWS S3 client + presigner (R2-compatible)
 - react-hook-form 7 + Zod 4 + `@hookform/resolvers`
 - React Native `Animated` for package UI motion
-- `@expo/vector-icons` (Feather icon set in `Icon`)
+- `lucide-react-native` + `react-native-svg` (SVG icon set in `Icon`; `@expo/vector-icons` Feather only for the native tab bar)
 - Jest 29 + jest-expo + RNTL 14
 - ESLint 10 flat config
 - Bun + Expo Server (production web server), Bun as package manager + script runner

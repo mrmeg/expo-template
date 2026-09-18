@@ -63,7 +63,7 @@ const VARIANT_DEFAULTS: Record<ErrorVariant, { icon: IconName; title: string; de
     description: "Check your internet connection and try again.",
   },
   maintenance: {
-    icon: "tool",
+    icon: "wrench",
     title: "Under maintenance",
     description: "We're making improvements. We'll be back shortly.",
   },
@@ -73,7 +73,7 @@ const VARIANT_DEFAULTS: Record<ErrorVariant, { icon: IconName; title: string; de
     description: "You don't have permission to view this page.",
   },
   generic: {
-    icon: "alert-circle",
+    icon: "circle-alert",
     title: "Something went wrong",
     description: "An unexpected error occurred. Please try again.",
   },

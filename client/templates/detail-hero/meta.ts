@@ -5,7 +5,7 @@ export const meta: ScreenTemplateEntry = {
   route: "/(main)/(demos)/detail-hero",
   label: "Detail / Hero",
   description: "Hero image detail view",
-  icon: "layout",
+  icon: "panels-top-left",
   order: 130,
   category: "content",
 };

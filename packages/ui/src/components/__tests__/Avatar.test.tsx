@@ -109,11 +109,11 @@ describe("Avatar", () => {
   it("shows the icon while a nameless avatar's image is loading", async () => {
     await render(<Avatar source={REMOTE} icon="camera" />);
 
-    expect(screen.getByTestId("icon-Feather", HIDDEN).props.name).toBe("camera");
+    expect(screen.getByTestId("icon-camera", HIDDEN)).toBeTruthy();
 
     await fireEvent(images()[0], "load");
 
-    expect(screen.queryByTestId("icon-Feather", HIDDEN)).toBeNull();
+    expect(screen.queryByTestId(/^icon-/, HIDDEN)).toBeNull();
   });
 
   it("returns to the fallback when the source changes after a load", async () => {
@@ -240,32 +240,32 @@ describe("Avatar", () => {
 
     expect(images()).toHaveLength(0);
     expect(screen.getByText("AL", HIDDEN)).toBeTruthy();
-    expect(screen.queryByTestId("icon-Feather", HIDDEN)).toBeNull();
+    expect(screen.queryByTestId(/^icon-/, HIDDEN)).toBeNull();
   });
 
   it("prefers initials over the icon when both a name and an icon are given", async () => {
     await render(<Avatar name="Ada Lovelace" icon="camera" />);
 
     expect(screen.getByText("AL", HIDDEN)).toBeTruthy();
-    expect(screen.queryByTestId("icon-Feather", HIDDEN)).toBeNull();
+    expect(screen.queryByTestId(/^icon-/, HIDDEN)).toBeNull();
   });
 
   it("renders the given icon when there is no name", async () => {
     await render(<Avatar icon="camera" />);
 
-    expect(screen.getByTestId("icon-Feather", HIDDEN).props.name).toBe("camera");
+    expect(screen.getByTestId("icon-camera", HIDDEN)).toBeTruthy();
   });
 
   it("renders the default user icon when there is no source, name, or icon", async () => {
     await render(<Avatar />);
 
-    expect(screen.getByTestId("icon-Feather", HIDDEN).props.name).toBe("user");
+    expect(screen.getByTestId("icon-user", HIDDEN)).toBeTruthy();
   });
 
   it("falls back to the icon when a name has no derivable initials", async () => {
     await render(<Avatar name="   " icon="camera" />);
 
-    expect(screen.getByTestId("icon-Feather", HIDDEN).props.name).toBe("camera");
+    expect(screen.getByTestId("icon-camera", HIDDEN)).toBeTruthy();
   });
 
   it("labels itself with the name by default", async () => {

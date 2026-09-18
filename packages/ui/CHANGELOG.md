@@ -5,6 +5,48 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **`Icon` renders Lucide.** `<Icon name>` draws `lucide-react-native` SVGs
+  instead of the `@expo/vector-icons` Feather font. Lucide is a maintained
+  superset of Feather in the same 24px, 2px round-stroke style, so glyphs look
+  the same, but the set is ten times larger and nothing is loaded as a font.
+  `IconName` is now the union of kebab-case Lucide names in the package
+  registry (`src/components/icon-names.json`, generated into
+  `iconRegistry.generated.ts` by `bun run ui:icons`); only those icons ship in
+  the bundle. The `component` escape hatch is unchanged and accepts any
+  `LucideIcon` (`CustomIconComponentProps.style` is a view style). Names Lucide
+  renamed, which consumers must update: `alert-circle` → `circle-alert`,
+  `check-circle` → `circle-check-big`, `x-circle` → `circle-x`,
+  `alert-triangle` → `triangle-alert`, `help-circle` → `circle-question-mark`,
+  `edit` → `square-pen`, `edit-2` → `pen`, `edit-3` → `pencil`,
+  `sliders` → `sliders-horizontal`, `grid` → `layout-grid`, `home` → `house`,
+  `unlock` → `lock-open`, `trash-2` → `trash`, `tool` → `wrench`,
+  `layout` → `panels-top-left`, `bar-chart-2` → `chart-no-axes-column`,
+  `plus-circle` → `circle-plus`, `stop-circle` → `circle-stop`,
+  `more-vertical` → `ellipsis-vertical`, `more-horizontal` → `ellipsis`,
+  `sidebar` → `panel-left`, `smile` → `face-slightly-smiling`. Brand glyphs
+  (`github`, `chrome`, `facebook`, `instagram`, `linkedin`, `twitter`) have
+  no Lucide equivalent; pass your own SVG through `component`. Every other
+  Feather name resolves unchanged. A name outside the registry is a type error.
+
+### Removed
+
+- **`@expo/vector-icons` is no longer a dependency**, and `useResources` no
+  longer loads or registers an icon font. `ensureIconFontRegistered` is gone:
+  SVG icons render in export-time HTML as `<svg>`, so the hydration fix it
+  existed for has nothing left to fix.
+
+### Added
+
+- **Peers `lucide-react-native` (`>=1.46 <2`) and `react-native-svg`
+  (`>=15 <16`).** Install `react-native-svg` with `npx expo install` so it
+  matches your SDK. They are peers, not dependencies, so an app that imports
+  Lucide components for `<Icon component>` shares one copy.
+- **`icons.names` in `dist/design-system.json`**, the registry's name list, so
+  `@mrmeg/eslint-plugin-expo-ui` can validate icon names against an installed
+  release (a lint rule is a follow-up). `schemaVersion` stays `1`.
+
 ### Fixed
 
 - **Sheet taps reach controls while the keyboard is up.** `BottomSheet.Content`

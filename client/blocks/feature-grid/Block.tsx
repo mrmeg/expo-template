@@ -47,7 +47,7 @@ const DEFAULT_ITEMS: FeatureGridItem[] = [
     description: "Blocks are open code — copy the folder and make it yours.",
   },
   {
-    icon: "grid",
+    icon: "layout-grid",
     title: "Registry-driven",
     description: "gen:blocks scans meta files and writes the registry; no hand-editing.",
   },

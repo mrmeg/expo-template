@@ -5,7 +5,7 @@ export const meta: ScreenTemplateEntry = {
   route: "/(main)/(demos)/screen-card-grid",
   label: "Card Grid",
   description: "Filterable card layout",
-  icon: "grid",
+  icon: "layout-grid",
   order: 60,
   category: "content",
 };

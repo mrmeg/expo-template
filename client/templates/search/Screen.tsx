@@ -406,7 +406,7 @@ const SearchResultsHeader = React.memo(function SearchResultsHeader({
           <View style={styles.toolbarRight}>
             {sortOptions && sortOptions.length > 0 && (
               <Pressable onPress={onSortCycle} style={styles.sortButton}>
-                <Icon name="sliders" size={14} color={theme.colors.mutedForeground} />
+                <Icon name="sliders-horizontal" size={14} color={theme.colors.mutedForeground} />
                 {currentSortLabel && (
                   <SansSerifText size="sm" style={styles.sortLabel}>{currentSortLabel}</SansSerifText>
                 )}
@@ -440,7 +440,7 @@ const SearchResultsHeader = React.memo(function SearchResultsHeader({
                   ]}
                 >
                   <Icon
-                    name="grid"
+                    name="layout-grid"
                     size={16}
                     color={
                       viewMode === "grid"
