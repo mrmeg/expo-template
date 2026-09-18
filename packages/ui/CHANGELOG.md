@@ -47,6 +47,40 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `@mrmeg/eslint-plugin-expo-ui` can validate icon names against an installed
   release (a lint rule is a follow-up). `schemaVersion` stays `1`.
 
+### Fixed
+
+- **Sheet taps reach controls while the keyboard is up.** `BottomSheet.Content`
+  no longer mounts an absolute-fill "Dismiss keyboard" overlay that swallowed
+  the first tap on every button, tab and field inside the sheet. It spreads the
+  same release-based tap-away boundary `DismissKeyboard` uses onto its content
+  column: the boundary never claims the touch, an unclaimed dead-space tap
+  dismisses on release only, drags and multitouch do not dismiss, and presence
+  still comes from the focus registry so it works in the sheet's isolated
+  native window.
+- **`dismissKeyboard()` clears the focus registry immediately.**
+  `dismissKeyboardFocusedInput()` blurs the registered field and drops its
+  registration in the same call instead of waiting for a native blur callback
+  that may never arrive (submit handlers, isolated sheet window, iOS
+  secure/plain handoff), so no stale focus presence survives a dismissal. A
+  field that takes focus during the blur keeps its registration.
+- **Android sheet bodies fill the rendered sheet.** The content column's
+  `maxHeight` cap (last snap point as a window percentage) now applies only
+  off Android, where the iOS SwiftUI host needs it; Material's
+  `ModalBottomSheet` ignores percentage snap points and its host already bounds
+  the column, so a `55%` sheet no longer shows a blank strip below a capped
+  `BottomSheet.Body`.
+- **Android secure fields declare a password keyboard.** `TextInput` with
+  `secureTextEntry` now reports `textPassword` to the IME (or `numberPassword`
+  for the `number-pad`, `decimal-pad`, `numeric` and `phone-pad` keyboards), so
+  Gboard shows no suggestion strip and learns nothing typed; autocorrect is off
+  and capitalization is `none` unless the props say otherwise. Revealing the
+  text with the eye toggle keeps the password keyboard and only drops the
+  masking, so focus, selection and the input connection survive exactly as in
+  0.25.1. The Android field is now package-owned — a port of `@expo/ui` 58.0.2's
+  universal Android `TextInput` on top of `@expo/ui/jetpack-compose`'s
+  `BasicTextField` — because the universal field offers no way to set Compose's
+  password keyboard type. iOS keeps `@expo/ui`'s universal field.
+
 ## [0.25.1]
 
 ### Fixed

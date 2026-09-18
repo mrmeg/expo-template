@@ -559,19 +559,30 @@ web, where the window cannot be read during export or hydration.
   nativeID="email-input" />`). One id on both renders duplicate ids on web and
   associates nothing. Prefer `TextInput`'s own `label` prop when no separate
   label element is needed.
+- `TextInput` renders a native field on iOS and Android. On Android a
+  `secureTextEntry` field declares a password keyboard (`textPassword`, or
+  `numberPassword` for numeric keyboards) in both the masked and the revealed
+  eye-toggle state, with autocorrect off by default; that Android field is
+  package-owned on top of `@expo/ui/jetpack-compose`'s `BasicTextField`, while
+  iOS uses `@expo/ui`'s universal field (SwiftUI `SecureField`).
 - `BottomSheet` renders the platform's native sheet through `@expo/ui`: iOS
   SwiftUI `.sheet()`, Android Material3 `ModalBottomSheet`, web `vaul`. The
   platform owns gestures and keyboard avoidance, so `swipeEnabled`,
   `avoidKeyboard`, and `dismissKeyboardOnDrag` are accepted for call-site
-  ergonomics but have no effect; `BottomSheet.Content` does mount its own
-  tap-away keyboard-dismiss overlay while a field is focused. Android has only
-  two snap states (partial / expanded) and maps extra snap points to the
-  nearest. `BottomSheet.Content` also takes `backgroundStyle`, merged over the
-  themed card default on the native sheet surface (web panel, Android
-  `containerColor`, iOS `presentationBackground`) — pass
-  `{ backgroundColor: "transparent" }`, plus a `style` clearing the content
-  column's card fill, to let custom chrome such as a glass backdrop show
-  through.
+  ergonomics but have no effect. The sheet hosts its content in a separate
+  native window outside the app's `DismissKeyboard`, so `BottomSheet.Content`
+  mounts its own tap-away keyboard-dismiss boundary on the content column: it
+  never claims the touch (buttons, tabs and other fields fire on the first tap
+  with the keyboard up) and dismisses an unclaimed dead-space tap on release,
+  matching `DismissKeyboard`. Android has only two snap states (partial /
+  expanded) and maps extra snap points to the nearest; because Material ignores
+  percentage snap points, the Android body fills the rendered sheet height
+  rather than a window-percentage cap. `BottomSheet.Content` also takes
+  `backgroundStyle`, merged over the themed card default on the native sheet
+  surface (web panel, Android `containerColor`, iOS `presentationBackground`) —
+  pass `{ backgroundColor: "transparent" }`, plus a `style` clearing the
+  content column's card fill, to let custom chrome such as a glass backdrop
+  show through.
 - `Carousel` renders every child (no virtualization), so slides survive into
   the exported HTML shell and the first client frame; use `FlatList` for large
   or unbounded data. An `itemWidth` below 1 (default `0.85`) is a fraction of

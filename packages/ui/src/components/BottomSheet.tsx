@@ -1,4 +1,4 @@
-import React, { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from "react";
+import React, { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import {
   View,
   ViewProps,
@@ -13,18 +13,13 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { BottomSheet as NativeBottomSheet } from "@expo/ui/community/bottom-sheet";
-import { KeyboardController } from "./keyboardController";
 import { useSafeAreaInsets, initialWindowMetrics } from "react-native-safe-area-context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { useScalePress } from "../hooks/useScalePress";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { Icon } from "./Icon";
-import {
-  dismissKeyboardFocusedInput,
-  hasKeyboardFocusedInput,
-  subscribeKeyboardFocus,
-} from "./keyboardFocusRegistry";
+import { useKeyboardDismissResponder } from "./keyboardDismiss";
 
 /**
  * BottomSheet — a sliding bottom sheet with a compound API, backed by the
@@ -390,62 +385,6 @@ function SheetCloseButton({ style }: { style?: StyleProp<ViewStyle> }) {
 }
 
 // ============================================================================
-// Keyboard dismiss overlay — tap-away dismissal inside the sheet
-// ============================================================================
-
-/**
- * Tap-away keyboard dismissal for sheet content.
- *
- * The native sheet (SwiftUI `.sheet()` / Material `ModalBottomSheet`) hosts its
- * RN children in a separate native window via @expo/ui's `RNHostView`, OUTSIDE
- * the app's `KeyboardProvider` / `KeyboardDismissBoundary`. Two consequences,
- * both worked around here:
- *
- *  1. Detection: `react-native-keyboard-controller`'s `useKeyboardState` watches
- *     the main window and does NOT see a keyboard raised inside the sheet's
- *     window (the same isolation that makes `useSafeAreaInsets()` read zero in
- *     here). So presence is read from the `keyboardFocusRegistry` instead, which
- *     is fed by @expo/ui's own native focus events and is window-independent.
- *  2. Dispatch: RN's JS responder chain (onStartShouldSetResponder*) is NOT
- *     dispatched across the `RNHostView` boundary on Android — only `Pressable`
- *     hit-testing (native `measure()`) works inside the host. So this is a
- *     transparent `Pressable` mounted ONLY while a field is focused, mirroring
- *     a tap-to-dismiss overlay in the app. The tap blurs the focused field via
- *     its own native ref (`dismissKeyboardFocusedInput`), which resigns the
- *     responder regardless of window; `KeyboardController.dismiss()` is a
- *     best-effort fallback for the (rare) case with no registered blur handle.
- *
- * iOS doesn't strictly need this (SwiftUI resigns first-responder on outside
- * taps for free), but the same path is harmless and keeps behavior identical.
- */
-function SheetKeyboardDismissOverlay() {
-  const hasFocus = useSyncExternalStore(
-    subscribeKeyboardFocus,
-    hasKeyboardFocusedInput,
-    () => false
-  );
-
-  if (Platform.OS === "web" || !hasFocus) return null;
-
-  return (
-    <Pressable
-      style={[StyleSheet.absoluteFill, styles.keyboardDismissOverlay]}
-      onPressIn={() => {
-        if (!dismissKeyboardFocusedInput()) KeyboardController.dismiss();
-      }}
-      accessibilityLabel="Dismiss keyboard"
-      accessibilityRole="button"
-    />
-  );
-}
-
-const styles = StyleSheet.create({
-  keyboardDismissOverlay: {
-    zIndex: 999,
-  },
-});
-
-// ============================================================================
 // Root
 // ============================================================================
 
@@ -588,6 +527,7 @@ function BottomSheetContent({
   dismissKeyboardOnDrag: _dismissKeyboardOnDrag,
   backgroundStyle: backgroundStyleOverride,
   style: styleOverride,
+  testID,
   children,
 }: BottomSheetContentProps) {
   const { open, onOpenChange, snapPoints, snapIndex, setSnapIndex, hasHeader } =
@@ -597,16 +537,37 @@ function BottomSheetContent({
   const showClose = useShowClose();
   const { height: winH } = useWindowDimensions();
 
+  // Tap-away keyboard dismissal inside the sheet. The native sheet (SwiftUI
+  // `.sheet()` / Material `ModalBottomSheet`) hosts its RN children in a separate
+  // native window via @expo/ui's `RNHostView`, OUTSIDE the app's
+  // `KeyboardProvider` / `DismissKeyboard`, so an app-level boundary never sees
+  // these touches and the sheet mounts its own on the content column. It is the
+  // same boundary `DismissKeyboard` uses: presence comes from the
+  // `keyboardFocusRegistry` (keyboard-controller's `useKeyboardState` watches
+  // the main window and does not observe a keyboard raised in here), the
+  // boundary never claims the touch — buttons, tabs and other fields win the
+  // responder negotiation and fire on the first tap — and an unclaimed
+  // dead-space tap dismisses on release only, through the registered field's
+  // own window-independent blur handle.
+  const dismissResponderProps = useKeyboardDismissResponder();
+
   // Boolean open → native imperative index. The root resets snapIndex to the
   // highest point while closed; -1 keeps the native sheet closed.
   const index = open ? snapIndex : -1;
 
-  // The native RN-in-SwiftUI host does NOT clamp our RN column to the sheet's
+  // iOS: the RN-in-SwiftUI host does NOT clamp our RN column to the sheet's
   // detent height — it lays the column out at its full intrinsic content height,
   // SwiftUI then clips it at the sheet edge (footer/tail fall off-screen), and
   // `flex:1` never gets a definite parent height so the ScrollView can't bound
   // and scroll. Cap the column to the expanded detent height (highest snap
-  // point) so `flex:1` resolves and the Body becomes scrollable.
+  // point) so `flex:1` resolves and the Body becomes scrollable. Web (vaul)
+  // sizes the panel itself from the snap point, so the cap is inert there.
+  // Android: the Compose host wraps children in a `flexGrow: 1, height: 0` view
+  // that fills `RNHostView`'s measured height, so `flex:1` already resolves,
+  // and Material's `ModalBottomSheet` ignores percentage snap points
+  // (partial / expanded only) — a window-percentage cap would leave the Body
+  // short of the rendered sheet with a blank strip below it. Android therefore
+  // keeps `flex:1` alone (see the content column style).
   const expandedSnap = snapPoints[snapPoints.length - 1];
   const detentHeight =
     typeof expandedSnap === "number"
@@ -653,19 +614,20 @@ function BottomSheetContent({
       <TextColorContext.Provider value={theme.colors.foreground}>
         <TextClassContext.Provider value="">
           <View
+            testID={testID}
             style={[
               {
                 flex: 1,
-                maxHeight: detentHeight,
                 // Themes the content surface across all platforms regardless of
                 // native sheet chrome.
                 backgroundColor: theme.colors.card,
               },
+              Platform.OS !== "android" && { maxHeight: detentHeight },
               styleOverride,
             ]}
+            {...dismissResponderProps}
           >
             {children}
-            <SheetKeyboardDismissOverlay />
             {showFloatingClose && (
               <SheetCloseButton
                 style={{
