@@ -5,7 +5,7 @@ export const meta: ScreenTemplateEntry = {
   route: "/(main)/(demos)/screen-error",
   label: "Error",
   description: "Error state variants",
-  icon: "alert-triangle",
+  icon: "triangle-alert",
   order: 120,
   category: "states",
 };

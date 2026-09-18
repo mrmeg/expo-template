@@ -82,7 +82,7 @@ function statusToCopy(status: NormalizedStatus) {
   switch (status) {
   case "success":
     return {
-      icon: "check-circle" as const,
+      icon: "circle-check-big" as const,
       iconColor: (theme: Theme) => theme.colors.success,
       title: "Processing your subscription",
       subtitle:
@@ -91,7 +91,7 @@ function statusToCopy(status: NormalizedStatus) {
     };
   case "cancel":
     return {
-      icon: "x-circle" as const,
+      icon: "circle-x" as const,
       iconColor: (theme: Theme) => theme.colors.mutedForeground,
       title: "Checkout canceled",
       subtitle: "No charge was made. You can choose a different plan at any time.",

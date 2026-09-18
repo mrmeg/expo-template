@@ -46,7 +46,7 @@ export interface BlockEntry {
    * makes a block teach its own composition.
    */
   recipe: string[];
-  /** Feather icon name from `@mrmeg/expo-ui/components/Icon`. */
+  /** Icon name (Lucide) from `@mrmeg/expo-ui/components/Icon`. */
   icon: IconName;
   /** Position in the gallery; lower sorts first. */
   order: number;

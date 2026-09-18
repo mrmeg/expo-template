@@ -459,7 +459,7 @@ function WebTextInput({
             accessibilityLabel="Error"
           >
             <Icon
-              name="alert-circle"
+              name="circle-alert"
               size={spacing.iconSm}
               color="destructive"
               decorative

@@ -6,6 +6,6 @@ export const meta: BlockEntry = {
   description: "StatCard row with change indicators",
   category: "data",
   recipe: ["StatCard", "SectionHeader"],
-  icon: "bar-chart-2",
+  icon: "chart-no-axes-column",
   order: 30,
 };

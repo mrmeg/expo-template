@@ -18,7 +18,7 @@ const profileStats: ProfileStat[] = [
 
 export default function ScreenProfileDemo() {
   const actions: ProfileAction[] = [
-    { label: "Edit Profile", icon: "edit-2", preset: "default", onPress: () => showAlert("Edit Profile") },
+    { label: "Edit Profile", icon: "pen", preset: "default", onPress: () => showAlert("Edit Profile") },
     { label: "Share", icon: "share", preset: "outline", onPress: () => showAlert("Share") },
   ];
 
@@ -36,7 +36,7 @@ export default function ScreenProfileDemo() {
       items: [
         { icon: "bell", label: "Notifications", onPress: () => showAlert("Notifications") },
         { icon: "shield", label: "Privacy", onPress: () => showAlert("Privacy") },
-        { icon: "help-circle", label: "Help & Support", onPress: () => showAlert("Help") },
+        { icon: "circle-question-mark", label: "Help & Support", onPress: () => showAlert("Help") },
       ],
     },
   ];

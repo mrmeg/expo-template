@@ -83,7 +83,7 @@ export function CardGridScreen<T>({
   onCardPress,
   loading = false,
   skeletonCount = 6,
-  emptyIcon = "grid",
+  emptyIcon = "layout-grid",
   emptyTitle = "No items",
   emptyDescription,
   emptyAction,

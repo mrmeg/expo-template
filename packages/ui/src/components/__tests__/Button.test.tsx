@@ -486,7 +486,7 @@ describe("Button", () => {
         <Button text="With Icon" LeftAccessory={LeftAccessory} />
       );
 
-      expect(screen.getByTestId("icon-Feather", { includeHiddenElements: true })).toBeTruthy();
+      expect(screen.getByTestId("icon-check", { includeHiddenElements: true })).toBeTruthy();
       expect(screen.getByText("With Icon")).toBeTruthy();
     });
 

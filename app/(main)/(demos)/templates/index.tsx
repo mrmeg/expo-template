@@ -111,7 +111,7 @@ export default function TemplatesGalleryScreen() {
 
         {templates.length === 0 ? (
           <EmptyState
-            icon="layout"
+            icon="panels-top-left"
             title="No templates here yet"
             description={`Nothing is filed under ${TEMPLATE_CATEGORY_LABELS[category as ScreenTemplateCategory]}.`}
           />

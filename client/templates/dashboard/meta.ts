@@ -5,7 +5,7 @@ export const meta: ScreenTemplateEntry = {
   route: "/(main)/(demos)/screen-dashboard",
   label: "Dashboard",
   description: "Metrics & activity feed",
-  icon: "bar-chart-2",
+  icon: "chart-no-axes-column",
   order: 80,
   category: "data",
 };

@@ -39,7 +39,7 @@ export default function ScreenSettingsDemo() {
       items: [
         {
           type: "select",
-          icon: "sliders",
+          icon: "sliders-horizontal",
           label: "Quality",
           options: [
             { value: "low", label: "Low (360p)" },
@@ -61,7 +61,7 @@ export default function ScreenSettingsDemo() {
     {
       title: "Danger Zone",
       items: [
-        { type: "destructive", icon: "trash-2", label: "Delete Account", onPress: () => showAlert("Delete Account?") },
+        { type: "destructive", icon: "trash", label: "Delete Account", onPress: () => showAlert("Delete Account?") },
       ],
     },
   ];

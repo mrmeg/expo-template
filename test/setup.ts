@@ -19,7 +19,7 @@ jest.mock("expo", () => {
   };
 });
 
-// Mock expo-font (provide Font.isLoaded used by @expo/vector-icons)
+// Mock expo-font
 jest.mock("expo-font", () => ({
   useFonts: () => [true, null],
   loadAsync: jest.fn().mockResolvedValue(true),
@@ -32,45 +32,36 @@ jest.mock("expo-font", () => ({
   },
 }));
 
-// Mock @expo/vector-icons — render icons as plain Views so tests don't depend on font loading
-jest.mock("@expo/vector-icons", () => {
+// Mock the Icon registry — every name renders as a plain View tagged
+// `icon-<name>` so tests find icons by name without loading any Lucide module
+// or react-native-svg. Jest maps `@mrmeg/expo-ui/components/*` to
+// `packages/ui/src/components/*` (jest.config.js), so this one mock covers the
+// package suites and the app suites alike. The Proxy answers for any name: an
+// unknown name is a type error at the call site, not a runtime miss.
+jest.mock("../packages/ui/src/components/iconRegistry.generated", () => {
   const React = require("react");
   const { View } = require("react-native");
-  const makeIcon = (name: string) =>
-    function MockIcon(props: any) {
-      return React.createElement(View, { ...props, testID: props.testID || `icon-${name}` });
-    };
-  return {
-    Ionicons: makeIcon("Ionicons"),
-    MaterialIcons: makeIcon("MaterialIcons"),
-    MaterialCommunityIcons: makeIcon("MaterialCommunityIcons"),
-    FontAwesome: makeIcon("FontAwesome"),
-    FontAwesome5: makeIcon("FontAwesome5"),
-    FontAwesome6: makeIcon("FontAwesome6"),
-    Feather: makeIcon("Feather"),
-    AntDesign: makeIcon("AntDesign"),
-    Entypo: makeIcon("Entypo"),
-    EvilIcons: makeIcon("EvilIcons"),
-    Foundation: makeIcon("Foundation"),
-    Octicons: makeIcon("Octicons"),
-    SimpleLineIcons: makeIcon("SimpleLineIcons"),
-    Zocial: makeIcon("Zocial"),
-    Fontisto: makeIcon("Fontisto"),
+  const cache = new Map<string, React.ComponentType<any>>();
+  const iconFor = (name: string) => {
+    let MockIcon = cache.get(name);
+    if (!MockIcon) {
+      MockIcon = function MockLucideIcon(props: any) {
+        return React.createElement(View, { ...props, testID: props.testID ?? `icon-${name}` });
+      };
+      (MockIcon as any).displayName = `MockIcon(${name})`;
+      cache.set(name, MockIcon);
+    }
+    return MockIcon;
   };
-}, { virtual: true });
-
-jest.mock("@expo/vector-icons/Feather", () => {
-  const React = require("react");
-  const { View } = require("react-native");
-  function MockFeather(props: any) {
-    return React.createElement(View, { ...props, testID: props.testID || "icon-Feather" });
-  }
-  MockFeather.font = {};
-  return {
-    __esModule: true,
-    default: MockFeather,
-  };
-}, { virtual: true });
+  const ICONS = new Proxy(
+    {},
+    {
+      get: (_target, name) => (typeof name === "string" ? iconFor(name) : undefined),
+      has: (_target, name) => typeof name === "string",
+    }
+  );
+  return { __esModule: true, ICONS };
+});
 
 // Mock @expo/ui (bare entry) — jest-expo reports Platform.OS === "ios", so the
 // UI TextInput routes to the native @expo/ui field, which would otherwise call

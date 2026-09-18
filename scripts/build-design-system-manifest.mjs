@@ -66,10 +66,24 @@ if (problems.length > 0) {
   process.exit(1);
 }
 
-const payload = serializeDesignSystem(design, {
-  packageName: manifest.name,
-  version: manifest.version,
-});
+const iconNames = JSON.parse(
+  await readFile(join(sourceDir, "components", "icon-names.json"), "utf8")
+);
+if (!Array.isArray(iconNames) || iconNames.length === 0) {
+  console.error("build-design-system-manifest: no icon names in components/icon-names.json");
+  process.exit(1);
+}
+
+const payload = {
+  ...serializeDesignSystem(design, {
+    packageName: manifest.name,
+    version: manifest.version,
+  }),
+  // The `Icon` registry (`IconName` union), so the lint plugin can validate
+  // icon names against an installed release. An added key keeps schemaVersion 1:
+  // the plugin's loader ignores keys it does not read.
+  icons: { names: iconNames },
+};
 const outputPath = join(packageDir, target.output);
 // `dist` exists when this runs inside the package build; not when run on its own.
 await mkdir(dirname(outputPath), { recursive: true });
@@ -77,5 +91,6 @@ await writeFile(outputPath, `${JSON.stringify(payload, null, 2)}\n`);
 
 console.log(
   `Wrote ${target.dir}/${target.output} — schemaVersion ${payload.schemaVersion}, ` +
-    `${payload.components.length} components, ${payload.tokens.spacing.entries.length} spacing tokens`
+    `${payload.components.length} components, ${payload.tokens.spacing.entries.length} spacing tokens, ` +
+    `${payload.icons.names.length} icon names`
 );

@@ -36,8 +36,8 @@ import { Button, colors, UIProvider, useTheme } from "@mrmeg/expo-ui";
 ## App Setup
 
 Call `useResources()` once near the Expo app root; it resolves `{ loaded, error }`
-and loads the Feather icon font plus the four static Inter weights (web gets a
-single Google Fonts Inter stylesheet).
+and loads the four static Inter weights (web gets a single Google Fonts Inter
+stylesheet). Icons are `lucide-react-native` SVGs, so there is no icon font to load.
 
 Mount `UIProvider` once near the root. It owns the package `Notification`,
 `StatusBar`, default `@rn-primitives` portal host, and native keyboard-avoiding
@@ -115,7 +115,7 @@ before creating a new app-local primitive.
 | `DropdownMenu` | Menus and command lists | Requires root `UIProvider` portal host. |
 | `EmptyState` | No-data or recoverable error regions | Props: `icon`, `title`, `description`, `actionLabel`, `onAction`, `actionPreset`. |
 | `ErrorBoundary` | React render error fallback | Use for route or feature boundaries. |
-| `Icon` | Feather or custom icons with theme tokens | `color` takes a theme color name; pass `decorative` to hide from a11y. |
+| `Icon` | Lucide or custom icons with theme tokens | `color` takes a theme color name; pass `decorative` to hide from a11y. |
 | `InputOTP` | Verification code entry | Prefer over manually managed text input groups. |
 | `Item` | List / settings rows | Applies the row density tokens and a 44px native hit area (40px on web). |
 | `KeyboardAvoidingView` | Native keyboard-aware roots, composer footers, form-heavy subtrees | `UIProvider` already mounts one root; use directly only for custom subtrees. |

@@ -1,3 +1,5 @@
+import type { ComponentProps } from "react";
+import type Feather from "@expo/vector-icons/Feather";
 import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 
 /**
@@ -20,13 +22,28 @@ import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 
 export type NavDestinationName = "index" | "media" | "profile" | "settings";
 
+/**
+ * Icon names that exist in both families. The rail draws destinations with
+ * `Icon` (Lucide SVG); the native tab bar draws them with
+ * `NativeTabs.Trigger.VectorIcon`, which needs an icon *font*, so it stays on
+ * `@expo/vector-icons/Feather`. Lucide is a superset of Feather in the same
+ * style, so any name in this intersection renders identically on both.
+ */
+export type NavIconName = Extract<IconName, ComponentProps<typeof Feather>["name"]>;
+
 export interface NavDestination {
   /** Route key inside the `(tabs)` navigator. */
   name: NavDestinationName;
   /** Display label — matches the current `Tabs.Screen` title. */
   label: string;
-  /** Feather icon name from `@mrmeg/expo-ui/components/Icon`. */
-  icon: IconName;
+  /**
+   * Icon name from `@mrmeg/expo-ui/components/Icon` (Lucide). The native tab
+   * bar draws the same name through `@expo/vector-icons/Feather`
+   * (`NativeTabs.Trigger.VectorIcon` needs a font family), so a destination
+   * icon must exist in both sets; the intersection makes a name that only one
+   * of them knows a type error here instead of a blank tab glyph.
+   */
+  icon: NavIconName;
 }
 
 export const NAV_DESTINATIONS: readonly NavDestination[] = [

@@ -32,6 +32,9 @@ Web 0.21. Install these peers at the versions your Expo SDK recommends: `expo`,
 `react-native-web`, `react-native-gesture-handler`,
 `react-native-keyboard-controller`, `react-native-safe-area-context`,
 `react-native-screens`, `@react-native-async-storage/async-storage`, `zustand`.
+`Icon` renders [Lucide](https://lucide.dev/icons) SVGs, so also install its two
+peers: `npx expo install react-native-svg` (a native module, pinned by your
+SDK) and `bun add lucide-react-native` (`>=1.46 <2`).
 
 `@rn-primitives/*` and `@expo-google-fonts/inter` are package dependencies, not
 peers. Animations use React Native `Animated`. `BottomSheet`, `Slider`, and
@@ -343,9 +346,10 @@ Inter is the sans face on every platform, in four static weights
 from the bundled `@expo-google-fonts/inter`. Serif is Georgia; mono is the
 platform system monospace.
 
-`useResources()` loads those four weights plus `Feather.font` (from the
-package-managed `@expo/vector-icons`) on native, so `StyledText`'s
-`light`–`bold` range resolves to real files instead of a faked OS bold. On web
+`useResources()` loads those four weights on native, so `StyledText`'s
+`light`–`bold` range resolves to real files instead of a faked OS bold. Icons
+are SVG (`lucide-react-native`), so there is no icon font to load on any
+platform. On web
 it injects one Google Fonts Inter stylesheet (all four weights) after hydration
 unless the app already added it; web weight differentiation then comes from a
 numeric `fontWeight` on the shared `"Inter"` family. For better first paint in
@@ -391,7 +395,7 @@ When `sansSerif` is overridden, `useResources` skips downloading the packaged
 Inter faces entirely (native `.ttf`s and the web stylesheet). For the skip to
 apply, call `setFonts` before the hook mounts (module scope, or ahead of
 rendering the root); a later call still re-skins all text, it just doesn't
-prevent the download. Feather always loads.
+prevent the download.
 
 | `webWeightStrategy` | Use when | Effect |
 |---|---|---|
@@ -432,7 +436,7 @@ building a new primitive.
 | `DropdownMenu` | Menus and command lists | Row actions, account menu, sort menu, checkbox/radio groups |
 | `EmptyState` | No-data or recoverable error regions | Empty inbox, no results, failed list load |
 | `ErrorBoundary` | React render error fallback | Route-level and feature-level fallbacks |
-| `Icon` | Feather or custom icons on theme tokens | Button accessories, menu icons, status glyphs |
+| `Icon` | Lucide or custom icons on theme tokens | Button accessories, menu icons, status glyphs |
 | `InputOTP` | Verification code entry | Email/SMS codes, MFA, invite codes |
 | `Item` | List and settings rows on the density tokens | Settings lists, inbox rows, pickers, detail rows |
 | `KeyboardAvoidingView` | Native keyboard-aware layout | Screen roots, composer footers, form-heavy subtrees |
@@ -457,6 +461,43 @@ building a new primitive.
 | `Toggle` | Pressed/unpressed control | Favorite, mute, bold/italic, view mode |
 | `ToggleGroup` | Single or multi toggle groups | Alignment, formatting toolbar, filter chips |
 | `Tooltip` | Short hover/focus help | Icon button labels, field hints, disabled-action reasons |
+
+### Icons
+
+`Icon` renders `lucide-react-native` — Lucide is a maintained superset of
+Feather in the same 24px, 2px round-stroke style. `name` is typed by
+`IconName`, the union of kebab-case Lucide names in the package registry
+(`src/components/icon-names.json`, about 150 names), so only the icons the package
+and its consumers name ship in the bundle: the root `lucide-react-native`
+entry (1,800+ icons) is never imported. `color` takes a theme color name or a
+literal; `decorative` hides the glyph from assistive tech.
+
+```tsx
+import { Icon } from "@mrmeg/expo-ui/components";
+import Rocket from "lucide-react-native/icons/rocket";
+
+<Icon name="circle-check-big" color="success" size={16} />
+<Icon component={Rocket} color="accent" />
+```
+
+Adding an icon: in this repo, add the kebab-case Lucide name to
+`packages/ui/src/components/icon-names.json` (keep it sorted), run
+`bun run ui:icons`, and commit both files — an unknown name fails with the
+alias lines from Lucide's root entry that point at its current name
+(`bun run ui:icons:check` guards freshness in CI). From a consuming app, pass
+any Lucide component through `component` instead; it needs no registry entry.
+Feather-era names that Lucide renamed: `alert-circle` → `circle-alert`,
+`check-circle` → `circle-check-big`, `x-circle` → `circle-x`,
+`alert-triangle` → `triangle-alert`, `help-circle` → `circle-question-mark`,
+`edit` → `square-pen`, `edit-2` → `pen`, `edit-3` → `pencil`,
+`sliders` → `sliders-horizontal`, `grid` → `layout-grid`, `home` → `house`,
+`unlock` → `lock-open`, `trash-2` → `trash`, `tool` → `wrench`,
+`layout` → `panels-top-left`, `bar-chart-2` → `chart-no-axes-column`,
+`plus-circle` → `circle-plus`, `stop-circle` → `circle-stop`,
+`more-vertical` → `ellipsis-vertical`, `more-horizontal` → `ellipsis`,
+`sidebar` → `panel-left`, `smile` → `face-slightly-smiling`. Brand glyphs
+(`github`, `chrome`, `facebook`, `instagram`, `linkedin`, `twitter`) have no
+Lucide equivalent; use `component` with your own SVG.
 
 ### Compound Parts
 
@@ -492,7 +533,7 @@ are named exports only.
 
 | Hook | Returns |
 |------|---------|
-| `useResources()` | `{ loaded, error }` — loads Feather plus the Inter faces |
+| `useResources()` | `{ loaded, error }` — loads the Inter faces (icons are SVG, nothing to load) |
 | `useTheme()` | Active theme, scheme helpers, shadow/contrast/alpha helpers |
 | `useStyles(factory)` | Memoized theme-aware styles plus the `useTheme()` helpers |
 | `useDimensions()` | `{ width, height, orientation, isSmallScreen, isMediumScreen, isLargeScreen }` against `SCREEN_SIZES` (768 / 1000 / 1200) |
@@ -691,8 +732,9 @@ packed package at the workspace's Expo version, without a custom Metro config.
 `ui:build` also writes `dist/design-system.json`
 ([`scripts/build-design-system-manifest.mjs`](../../scripts/build-design-system-manifest.mjs)):
 the spacing, radius and icon scales, the palette, the light and dark themes, the
-font variants, and every component's variant and size values, serialized out of
-`src` by the same extractor the lint rules use. It is exported as
+font variants, every component's variant and size values, and `icons.names` (the
+`IconName` registry), serialized out of `src` by the same extractor the lint
+rules use. It is exported as
 `@mrmeg/expo-ui/design-system.json`, and `@mrmeg/eslint-plugin-expo-ui` reads it
 in projects that install this package instead of checking out its sources — which
 is what lets the design-system rules quote this release's presets and tokens.

@@ -1,8 +1,16 @@
 import * as React from "react";
-import type { StyleProp, TextProps, TextStyle } from "react-native";
+import type { StyleProp, TextStyle, ViewProps, ViewStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
-import Feather from "@expo/vector-icons/Feather";
 import type { ThemeColors } from "../constants/colors";
+import { ICONS, type IconName } from "./iconRegistry.generated";
+
+/**
+ * Kebab-case Lucide icon names the package bundles, served from
+ * `icon-names.json` through the generated registry. Add a name there and run
+ * `bun run ui:icons` to extend the union; pass any other Lucide component
+ * through `component` without touching the registry.
+ */
+export type { IconName };
 
 /**
  * Theme color names that can be used as shortcuts.
@@ -29,8 +37,6 @@ function resolveIconColor(color: string | ThemeColorName | undefined, themeColor
   return color;
 }
 
-export type IconName = React.ComponentProps<typeof Feather>["name"];
-
 type IconBaseProps = {
   /** Size of the icon in pixels */
   size?: number;
@@ -43,39 +49,50 @@ type IconBaseProps = {
 };
 
 type IconAccessibilityProps = Pick<
-  TextProps,
+  ViewProps,
   "accessible" | "importantForAccessibility" | "accessibilityElementsHidden" | "aria-hidden"
 >;
 
+/**
+ * Props handed to a `component`. Wide enough that any `lucide-react-native`
+ * component type-checks as-is (`LucideProps` extends `SvgProps`, whose `style`
+ * is a view style), and any component that accepts `size` and `color` works.
+ */
 type CustomIconComponentProps = {
   size: number;
   color: string;
-  style?: StyleProp<TextStyle>;
+  style?: StyleProp<ViewStyle>;
 } & Partial<IconAccessibilityProps>;
 
-type FeatherIconProps = IconBaseProps & {
-  /** The icon name to render (Feather icons) */
+type RegistryIconProps = IconBaseProps & {
+  /** The icon name to render (a Lucide name from the package registry) */
   name: IconName;
   component?: never;
 };
 
 type CustomIconProps = IconBaseProps & {
   name?: never;
-  /** Custom component to render instead of Feather. Receives size and color as props. */
+  /**
+   * Custom component to render instead of a registry icon. Receives size and
+   * color as props — any `lucide-react-native` icon import works here.
+   */
   component: React.ComponentType<CustomIconComponentProps>;
 };
 
-export type IconProps = FeatherIconProps | CustomIconProps;
+export type IconProps = RegistryIconProps | CustomIconProps;
 
 /**
  * Universal Icon Component
- * Renders @expo/vector-icons Feather with theme integration and style support
+ * Renders `lucide-react-native` SVG icons with theme integration and style
+ * support. Icons are SVG on every platform: no font to load, and server markup
+ * carries the glyph.
  *
  * Usage:
  * ```tsx
  * <Icon name="check" color="primary" size={16} />
  * <Icon name="calendar" color="#FF0000" size={24} />
  * <Icon name="terminal" style={{ marginRight: 8 }} />
+ * <Icon component={Rocket} color="accent" /> // any Lucide import
  * ```
  */
 export function Icon(props: IconProps) {
@@ -94,7 +111,10 @@ export function Icon(props: IconProps) {
     }
     : { accessible: true };
 
-  const iconStyle = [style, { pointerEvents: "none" as const }];
+  // `style` stays a text style on the public prop for source compatibility
+  // with the font-icon era; SVG roots take a view style, and every layout
+  // property callers actually pass (margins, transforms) belongs to both.
+  const iconStyle = [style, { pointerEvents: "none" as const }] as StyleProp<ViewStyle>;
 
   if (CustomComponent) {
     return (
@@ -107,9 +127,10 @@ export function Icon(props: IconProps) {
     );
   }
 
+  const Lucide = ICONS[(props as RegistryIconProps).name];
+
   return (
-    <Feather
-      name={(props as FeatherIconProps).name}
+    <Lucide
       size={size}
       color={iconColor}
       style={iconStyle}

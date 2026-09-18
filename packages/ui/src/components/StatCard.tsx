@@ -24,7 +24,7 @@ export interface StatCardProps {
   unit?: string;
   /** Optional signed change line below the value. */
   change?: StatCardChange;
-  /** Optional leading icon name (Feather), rendered beside the label. */
+  /** Optional leading icon name (Lucide), rendered beside the label. */
   icon?: IconName;
   /** Makes the card pressable with scale feedback (delegates to Card). */
   onPress?: () => void;

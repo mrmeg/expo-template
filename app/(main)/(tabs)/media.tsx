@@ -755,7 +755,7 @@ function useMediaScreenContent() {
         </View>
       ) : fetchError ? (
         <View style={styles.emptyContainer} testID="media-error">
-          <Icon name="alert-triangle" size={48} color={theme.colors.destructive} />
+          <Icon name="triangle-alert" size={48} color={theme.colors.destructive} />
           <SansSerifText size="body" style={styles.emptyText}>Couldn&apos;t load media</SansSerifText>
           <SansSerifText size="base" style={styles.emptySubtext}>
             {fetchError instanceof Error ? fetchError.message : "Try again in a moment."}
@@ -818,7 +818,7 @@ function useMediaScreenContent() {
                 loading={isDeletingBatch}
                 LeftAccessory={() => (
                   <Icon
-                    name="trash-2"
+                    name="trash"
                     size={14}
                     color={theme.colors.destructiveForeground}
                   />
@@ -1001,7 +1001,7 @@ const MediaRow = memo(function MediaRow({
         accessibilityRole="button"
         accessibilityLabel={`Delete ${filename}`}
       >
-        <Icon name="trash-2" size={18} color={theme.colors.destructive} />
+        <Icon name="trash" size={18} color={theme.colors.destructive} />
       </Pressable>
     </View>
   );
