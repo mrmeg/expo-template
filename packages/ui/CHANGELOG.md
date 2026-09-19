@@ -49,6 +49,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Popover, DropdownMenu, Select, and Tooltip content receives Android
+  touches.** The fade wrapper between each overlay and its absolutely
+  positioned content now fills the overlay with `pointerEvents="box-none"`, so
+  the card is inside its parent's bounds. Android dispatches `ACTION_DOWN` and
+  accessibility traversal only to children inside their parent's bounds, so
+  native controls (`Switch`, `TextInput`) inside a `PopoverContent` ignored
+  taps and the content was missing from the accessibility tree. Tap-away still
+  closes.
 - **Sheet taps reach controls while the keyboard is up.** `BottomSheet.Content`
   no longer mounts an absolute-fill "Dismiss keyboard" overlay that swallowed
   the first tap on every button, tab and field inside the sheet. It spreads the

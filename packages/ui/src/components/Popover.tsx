@@ -83,7 +83,20 @@ function PopoverContent({
     <PopoverPrimitive.Portal hostName={portalHost}>
       <FullWindowOverlay>
         <PopoverPrimitive.Overlay style={Platform.select({ native: StyleSheet.absoluteFill })}>
-          <AnimatedView type="fade" enterDuration={200}>
+          {/*
+            The primitive Content is `position: absolute` against the screen, so an
+            unsized fade wrapper lays out at zero size and the card sits outside its
+            parent's bounds. Android dispatches ACTION_DOWN and accessibility only to
+            children inside their parent's bounds, so native controls (a `Switch`)
+            inside the popover ignored taps and the content was missing from the
+            accessibility tree. Fill the overlay; `box-none` keeps tap-away working.
+          */}
+          <AnimatedView
+            type="fade"
+            enterDuration={200}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="box-none"
+          >
             <TextColorContext.Provider value={textColor}>
               <TextClassContext.Provider value="">
                 <PopoverPrimitive.Content
