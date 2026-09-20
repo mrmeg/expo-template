@@ -5,6 +5,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.26.0]
+
 ### Changed
 
 - **`Icon` renders Lucide.** `<Icon name>` draws `lucide-react-native` SVGs
