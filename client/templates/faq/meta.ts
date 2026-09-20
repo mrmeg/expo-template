@@ -5,7 +5,7 @@ export const meta: ScreenTemplateEntry = {
   route: "/(main)/(demos)/screen-faq",
   label: "FAQ",
   description: "Accordion of questions & answers",
-  icon: "help-circle",
+  icon: "circle-question-mark",
   order: 170,
   category: "content",
 };

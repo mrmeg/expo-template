@@ -5,6 +5,92 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.26.0]
+
+### Changed
+
+- **`Icon` renders Lucide.** `<Icon name>` draws `lucide-react-native` SVGs
+  instead of the `@expo/vector-icons` Feather font. Lucide is a maintained
+  superset of Feather in the same 24px, 2px round-stroke style, so glyphs look
+  the same, but the set is ten times larger and nothing is loaded as a font.
+  `IconName` is now the union of kebab-case Lucide names in the package
+  registry (`src/components/icon-names.json`, generated into
+  `iconRegistry.generated.ts` by `bun run ui:icons`); only those icons ship in
+  the bundle. The `component` escape hatch is unchanged and accepts any
+  `LucideIcon` (`CustomIconComponentProps.style` is a view style). Names Lucide
+  renamed, which consumers must update: `alert-circle` → `circle-alert`,
+  `check-circle` → `circle-check-big`, `x-circle` → `circle-x`,
+  `alert-triangle` → `triangle-alert`, `help-circle` → `circle-question-mark`,
+  `edit` → `square-pen`, `edit-2` → `pen`, `edit-3` → `pencil`,
+  `sliders` → `sliders-horizontal`, `grid` → `layout-grid`, `home` → `house`,
+  `unlock` → `lock-open`, `trash-2` → `trash`, `tool` → `wrench`,
+  `layout` → `panels-top-left`, `bar-chart-2` → `chart-no-axes-column`,
+  `plus-circle` → `circle-plus`, `stop-circle` → `circle-stop`,
+  `more-vertical` → `ellipsis-vertical`, `more-horizontal` → `ellipsis`,
+  `sidebar` → `panel-left`, `smile` → `face-slightly-smiling`. Brand glyphs
+  (`github`, `chrome`, `facebook`, `instagram`, `linkedin`, `twitter`) have
+  no Lucide equivalent; pass your own SVG through `component`. Every other
+  Feather name resolves unchanged. A name outside the registry is a type error.
+
+### Removed
+
+- **`@expo/vector-icons` is no longer a dependency**, and `useResources` no
+  longer loads or registers an icon font. `ensureIconFontRegistered` is gone:
+  SVG icons render in export-time HTML as `<svg>`, so the hydration fix it
+  existed for has nothing left to fix.
+
+### Added
+
+- **Peers `lucide-react-native` (`>=1.46 <2`) and `react-native-svg`
+  (`>=15 <16`).** Install `react-native-svg` with `npx expo install` so it
+  matches your SDK. They are peers, not dependencies, so an app that imports
+  Lucide components for `<Icon component>` shares one copy.
+- **`icons.names` in `dist/design-system.json`**, the registry's name list, so
+  `@mrmeg/eslint-plugin-expo-ui` can validate icon names against an installed
+  release (a lint rule is a follow-up). `schemaVersion` stays `1`.
+
+### Fixed
+
+- **Popover, DropdownMenu, Select, and Tooltip content receives Android
+  touches.** The fade wrapper between each overlay and its absolutely
+  positioned content now fills the overlay with `pointerEvents="box-none"`, so
+  the card is inside its parent's bounds. Android dispatches `ACTION_DOWN` and
+  accessibility traversal only to children inside their parent's bounds, so
+  native controls (`Switch`, `TextInput`) inside a `PopoverContent` ignored
+  taps and the content was missing from the accessibility tree. Tap-away still
+  closes.
+- **Sheet taps reach controls while the keyboard is up.** `BottomSheet.Content`
+  no longer mounts an absolute-fill "Dismiss keyboard" overlay that swallowed
+  the first tap on every button, tab and field inside the sheet. It spreads the
+  same release-based tap-away boundary `DismissKeyboard` uses onto its content
+  column: the boundary never claims the touch, an unclaimed dead-space tap
+  dismisses on release only, drags and multitouch do not dismiss, and presence
+  still comes from the focus registry so it works in the sheet's isolated
+  native window.
+- **`dismissKeyboard()` clears the focus registry immediately.**
+  `dismissKeyboardFocusedInput()` blurs the registered field and drops its
+  registration in the same call instead of waiting for a native blur callback
+  that may never arrive (submit handlers, isolated sheet window, iOS
+  secure/plain handoff), so no stale focus presence survives a dismissal. A
+  field that takes focus during the blur keeps its registration.
+- **Android sheet bodies fill the rendered sheet.** The content column's
+  `maxHeight` cap (last snap point as a window percentage) now applies only
+  off Android, where the iOS SwiftUI host needs it; Material's
+  `ModalBottomSheet` ignores percentage snap points and its host already bounds
+  the column, so a `55%` sheet no longer shows a blank strip below a capped
+  `BottomSheet.Body`.
+- **Android secure fields declare a password keyboard.** `TextInput` with
+  `secureTextEntry` now reports `textPassword` to the IME (or `numberPassword`
+  for the `number-pad`, `decimal-pad`, `numeric` and `phone-pad` keyboards), so
+  Gboard shows no suggestion strip and learns nothing typed; autocorrect is off
+  and capitalization is `none` unless the props say otherwise. Revealing the
+  text with the eye toggle keeps the password keyboard and only drops the
+  masking, so focus, selection and the input connection survive exactly as in
+  0.25.1. The Android field is now package-owned — a port of `@expo/ui` 58.0.2's
+  universal Android `TextInput` on top of `@expo/ui/jetpack-compose`'s
+  `BasicTextField` — because the universal field offers no way to set Compose's
+  password keyboard type. iOS keeps `@expo/ui`'s universal field.
+
 ## [0.25.1]
 
 ### Fixed

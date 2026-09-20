@@ -57,7 +57,7 @@ const FIXTURE_BLOCKS: BlockEntry[] = [
     description: "Metric cards in a row",
     category: "data",
     recipe: ["StatCard", "SectionHeader"],
-    icon: "bar-chart-2",
+    icon: "chart-no-axes-column",
     order: 20,
   },
 ];
@@ -77,7 +77,7 @@ const FIXTURE_TEMPLATES: ScreenTemplateEntry[] = [
     route: "/(main)/(demos)/screen-dashboard",
     label: "Dashboard",
     description: "Metrics & activity feed",
-    icon: "bar-chart-2",
+    icon: "chart-no-axes-column",
     order: 80,
     category: "data",
   },

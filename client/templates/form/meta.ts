@@ -5,7 +5,7 @@ export const meta: ScreenTemplateEntry = {
   route: "/(main)/(demos)/screen-form",
   label: "Form",
   description: "Multi-step wizard",
-  icon: "edit-3",
+  icon: "pencil",
   order: 90,
   category: "forms-auth",
 };

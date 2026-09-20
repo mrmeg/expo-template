@@ -5,8 +5,9 @@
  * This package registry supplies a window-independent native blur handle and
  * focus presence even when keyboard-controller cannot observe the keyboard
  * (for example, in an isolated native sheet window). The package `TextInput`
- * registers on focus; tap-away dismissal (`keyboardDismiss.ts`) and the
- * `BottomSheet` overlay resign the field through that handle.
+ * registers on focus; tap-away dismissal (`keyboardDismiss.ts`, mounted by
+ * `DismissKeyboard` and `BottomSheet.Content`) resigns the field through that
+ * handle.
  */
 export type KeyboardFocusedInputToken = object;
 
@@ -68,11 +69,18 @@ export function hasKeyboardFocusedInput() {
 /**
  * Resign the currently-focused native field, dismissing its keyboard. Returns
  * `true` if a field was focused and a blur handle was available.
+ *
+ * Presence is cleared here, in the same call, rather than left to the field's
+ * later `onBlur`: consumers call `dismissKeyboard()` from submit handlers and
+ * the native blur callback is not guaranteed to arrive (isolated sheet window,
+ * iOS secure/plain handoff), which used to leave a stale registration behind.
+ * The clear is token-guarded, so a field that takes focus synchronously during
+ * `blur()` keeps its registration; the field's own later clear is idempotent.
  */
 export function dismissKeyboardFocusedInput() {
-  if (focusedInput) {
-    focusedInput.blur();
-    return true;
-  }
-  return false;
+  const entry = focusedInput;
+  if (!entry) return false;
+  entry.blur();
+  clearKeyboardFocusedInput(entry.token);
+  return true;
 }

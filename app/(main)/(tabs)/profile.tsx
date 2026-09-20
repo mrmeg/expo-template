@@ -134,7 +134,7 @@ function ProfileScreen() {
               size="sm"
               onPress={handleEditProfile}
             >
-              <Icon name="edit-3" size={14} color={theme.colors.primary} />
+              <Icon name="pencil" size={14} color={theme.colors.primary} />
               <SansSerifText size="base" style={styles.editButtonText}> Edit Profile</SansSerifText>
             </Button>
           </View>
@@ -265,7 +265,7 @@ function ProfileScreen() {
               )}
               <Pressable style={styles.dangerRow} onPress={handleDeleteAccount}>
                 <View style={styles.dangerRowLeft}>
-                  <Icon name="trash-2" size={18} color={theme.colors.destructive} />
+                  <Icon name="trash" size={18} color={theme.colors.destructive} />
                   <SansSerifText size="base" style={styles.dangerLabel}>Delete Account</SansSerifText>
                 </View>
               </Pressable>
@@ -357,7 +357,7 @@ function AccountInfoSection({
           <>
             <View style={styles.divider} />
             <View style={styles.notice}>
-              <Icon name="alert-triangle" size={16} color={theme.colors.warning} />
+              <Icon name="triangle-alert" size={16} color={theme.colors.warning} />
               <SansSerifText style={styles.noticeText}>
                 Your plan is scheduled to end. Re-enable from Manage
                 subscription to keep access.
@@ -369,7 +369,7 @@ function AccountInfoSection({
           <>
             <View style={styles.divider} />
             <View style={styles.notice}>
-              <Icon name="alert-triangle" size={16} color={theme.colors.warning} />
+              <Icon name="triangle-alert" size={16} color={theme.colors.warning} />
               <SansSerifText style={styles.noticeText}>
                 Your last payment failed. Update your payment method in Manage
                 subscription.

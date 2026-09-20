@@ -33,7 +33,7 @@ export interface ScreenTemplateEntry {
   label: string;
   /** One-line description shown beneath the label. */
   description: string;
-  /** Feather icon name from `@mrmeg/expo-ui/components/Icon`. */
+  /** Icon name (Lucide) from `@mrmeg/expo-ui/components/Icon`. */
   icon: IconName;
   /** Position in the Explore grid; lower sorts first. */
   order: number;

@@ -25,7 +25,7 @@ describe("EmptyState", () => {
 
   it("renders the icon when provided (testID exposed by the Icon mock)", async () => {
     await render(<EmptyState title="No inbox" icon="inbox" />);
-    expect(screen.getByTestId("icon-Feather")).toBeTruthy();
+    expect(screen.getByTestId("icon-inbox")).toBeTruthy();
   });
 
   it("calls onAction when the CTA button is pressed", async () => {
@@ -81,7 +81,7 @@ describe("EmptyState", () => {
 
   it("renders the icon inside a fixed-size media slot", async () => {
     await render(<EmptyState title="No inbox" icon="inbox" />);
-    const icon = screen.getByTestId("icon-Feather");
+    const icon = screen.getByTestId("icon-inbox");
     const wrapperStyle = StyleSheet.flatten(icon.parent?.props.style) as Record<string, unknown>;
     expect(wrapperStyle).toMatchObject({
       width: 56,

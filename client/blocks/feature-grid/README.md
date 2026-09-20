@@ -21,6 +21,6 @@ import { FeatureGridBlock } from "@/client/blocks/feature-grid/Block";
 />
 ```
 
-`items` defaults to a six-card sample set so `<FeatureGridBlock />` previews without configuration. `icon` is a Feather name from `@mrmeg/expo-ui/components/Icon`.
+`items` defaults to a six-card sample set so `<FeatureGridBlock />` previews without configuration. `icon` is a Lucide icon name (`IconName`) from `@mrmeg/expo-ui/components/Icon`.
 
 Column count comes from `useDimensions()` (seeded for the export-time prerender), not raw `useWindowDimensions()`, so the exported HTML shell and the client's first render agree — see "Enable Server Output" in `docs/server-guide.md`.

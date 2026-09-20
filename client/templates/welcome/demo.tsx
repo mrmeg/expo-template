@@ -25,8 +25,8 @@ export default function ScreenWelcomeDemo() {
         onPress: () => showAlert("Sign In"),
       }}
       socialProviders={[
-        { label: "Continue with Google", icon: "chrome", onPress: () => showAlert("Google") },
-        { label: "Continue with GitHub", icon: "github", onPress: () => showAlert("GitHub") },
+        { label: "Continue with Google", icon: "globe", onPress: () => showAlert("Google") },
+        { label: "Continue with GitHub", icon: "code", onPress: () => showAlert("GitHub") },
       ]}
       footerText="By continuing, you agree to our Terms of Service and Privacy Policy."
     />

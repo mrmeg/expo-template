@@ -5,7 +5,7 @@ export const meta: ScreenTemplateEntry = {
   route: "/(main)/(demos)/screen-stats",
   label: "Stats",
   description: "Metric grid with change indicators",
-  icon: "bar-chart-2",
+  icon: "chart-no-axes-column",
   order: 150,
   category: "data",
 };

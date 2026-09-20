@@ -228,7 +228,7 @@ Check this before creating a new app-local primitive. All components come from
 | `DropdownMenu` | Menus and command lists | Homemade popover menus |
 | `EmptyState` | No-data or recoverable error regions | One-off empty placeholders |
 | `ErrorBoundary` | React render error fallback | Unhandled screen crashes |
-| `Icon` | Feather or custom icons with theme tokens | Raw vector icons with hardcoded colors |
+| `Icon` | Lucide or custom icons with theme tokens | Raw vector icons with hardcoded colors |
 | `InputOTP` | Verification code entry | Several manually managed text inputs |
 | `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens | Hand-rolled row `View`s |
 | `KeyboardAvoidingView` | Native keyboard-aware layout root | Repeated app-local keyboard wrappers |

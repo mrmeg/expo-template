@@ -6,6 +6,6 @@ export const meta: BlockEntry = {
   description: "Heading above a single-open accordion",
   category: "content",
   recipe: ["SectionHeader", "Accordion", "StyledText"],
-  icon: "help-circle",
+  icon: "circle-question-mark",
   order: 50,
 };

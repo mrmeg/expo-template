@@ -721,7 +721,7 @@ function useShowcaseScreenContent() {
                 <Icon name="heart" size={24} />
                 <Icon name="star" size={24} />
                 <Icon name="settings" size={24} />
-                <Icon name="home" size={24} />
+                <Icon name="house" size={24} />
                 <Icon name="user" size={24} />
                 <Icon name="mail" size={24} />
                 <Icon name="bell" size={24} />
@@ -743,16 +743,16 @@ function useShowcaseScreenContent() {
               <View style={styles.iconRow}>
                 <Icon name="heart" size={32} color={theme.colors.destructive} />
                 <Icon name="star" size={32} color={theme.colors.warning} />
-                <Icon name="check-circle" size={32} color={theme.colors.success} />
+                <Icon name="circle-check-big" size={32} color={theme.colors.success} />
                 <Icon name="info" size={32} color={theme.colors.primary} />
               </View>
             </SubSection>
 
             <SubSection label="Status Icons">
               <View style={styles.iconRow}>
-                <Icon name="alert-circle" size={28} color={theme.colors.destructive} />
-                <Icon name="check-circle" size={28} color={theme.colors.success} />
-                <Icon name="alert-triangle" size={28} color={theme.colors.warning} />
+                <Icon name="circle-alert" size={28} color={theme.colors.destructive} />
+                <Icon name="circle-check-big" size={28} color={theme.colors.success} />
+                <Icon name="triangle-alert" size={28} color={theme.colors.warning} />
                 <Icon name="info" size={28} color={theme.colors.foreground} />
               </View>
             </SubSection>
@@ -1232,7 +1232,7 @@ function useShowcaseScreenContent() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <View style={{ padding: spacing.xs }}>
-                      <Icon name="help-circle" size={24} color={theme.colors.primary} />
+                      <Icon name="circle-question-mark" size={24} color={theme.colors.primary} />
                     </View>
                   </TooltipTrigger>
                   <TooltipContent>

@@ -178,19 +178,19 @@ export const Notification = () => {
     switch (alert?.type) {
     case "error":
       return {
-        icon: "alert-circle",
+        icon: "circle-alert",
         color: theme.colors.destructive,
         bgColor: withAlpha(theme.colors.destructive, 0.08),
       };
     case "success":
       return {
-        icon: "check-circle",
+        icon: "circle-check-big",
         color: theme.colors.success,
         bgColor: withAlpha(theme.colors.success, 0.08),
       };
     case "warning":
       return {
-        icon: "alert-triangle",
+        icon: "triangle-alert",
         color: theme.colors.warning,
         bgColor: withAlpha(theme.colors.warning, 0.08),
       };

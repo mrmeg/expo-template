@@ -6,6 +6,6 @@ export const meta: BlockEntry = {
   description: "Icon + title + copy cards, 1–3 columns by width",
   category: "marketing",
   recipe: ["Card", "Icon", "StyledText"],
-  icon: "grid",
+  icon: "layout-grid",
   order: 20,
 };

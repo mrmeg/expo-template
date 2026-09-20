@@ -61,6 +61,7 @@ describe("bun run verify mirrors the CI validate job", () => {
       "check:features",
       "gen:templates:check",
       "gen:blocks:check",
+      "ui:icons:check",
       "docs:llms:check",
       "test:ci",
     ];

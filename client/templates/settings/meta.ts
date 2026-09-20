@@ -5,7 +5,7 @@ export const meta: ScreenTemplateEntry = {
   route: "/(main)/(demos)/screen-settings",
   label: "Settings",
   description: "Grouped lists & toggles",
-  icon: "sliders",
+  icon: "sliders-horizontal",
   order: 10,
   category: "forms-auth",
 };

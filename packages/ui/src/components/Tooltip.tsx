@@ -105,7 +105,13 @@ function TooltipContent({
     <TooltipPrimitive.Portal hostName={portalHost}>
       <FullWindowOverlay>
         <TooltipPrimitive.Overlay style={Platform.select({ native: StyleSheet.absoluteFill })}>
-          <AnimatedView type="fade" enterDuration={150}>
+          {/* Fills the overlay so Android hit-tests the absolute Content; see Popover.tsx. */}
+          <AnimatedView
+            type="fade"
+            enterDuration={150}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="box-none"
+          >
             <TextColorContext.Provider value={colors.text}>
               <TextClassContext.Provider value="">
                 <TextSelectabilityContext.Provider value={false}>

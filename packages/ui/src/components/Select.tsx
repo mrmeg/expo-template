@@ -205,7 +205,8 @@ function SelectContent({
             default: undefined,
           })}
         >
-          <AnimatedView type="fade">
+          {/* Fills the overlay so Android hit-tests the absolute Content; see Popover.tsx. */}
+          <AnimatedView type="fade" style={StyleSheet.absoluteFill} pointerEvents="box-none">
             <TextColorContext.Provider value={theme.colors.popoverForeground}>
               <TextClassContext.Provider value="">
                 <TextSelectabilityContext.Provider value={false}>
