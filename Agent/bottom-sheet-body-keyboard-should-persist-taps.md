@@ -18,7 +18,7 @@ Verified on `dev` at f59d2fa (`@mrmeg/expo-ui` 0.26.0, the commit that published
 
 **What 0.26.0 already fixed.** The consumer reports (tractor `Agent/bottomsheet-keyboard-dismiss-overlay-swallows-taps.md`, doglog `Agent/bottom-sheet-keyboard-overlay-press-in.md`, both written against 0.24.0/0.25.1) blame `SheetKeyboardDismissOverlay`, an absolute-fill `Pressable` that dismissed on `onPressIn`. Commit 4f691ba (#90) removed it; the published 0.26.0 tarball's `dist/components/BottomSheet.js` has no `SheetKeyboardDismissOverlay`, and `BottomSheet.Content` spreads the release-based `useKeyboardDismissResponder()` boundary onto its content column (`packages/ui/src/components/BottomSheet.tsx:552`, `:628`). `BottomSheet.test.tsx` covers that boundary ("keyboard dismiss boundary" cases). Bumping a consumer to 0.26.0 answers the overlay half of those reports.
 
-**Residual root cause (code-proven, not yet device-observed on 0.26.0).**
+### Root cause (residual in 0.26.0; code-proven, not yet device-observed)
 
 - `BottomSheetBody` renders RN `ScrollView` without `keyboardShouldPersistTaps` (`packages/ui/src/components/BottomSheet.tsx:782-805`), so RN's default `never` applies.
 - RN `ScrollView._handleStartShouldSetResponderCapture` (`node_modules/react-native/Libraries/Components/ScrollView/ScrollView.js:1583-1616`): with `never`, `_keyboardIsDismissible()` true and a non-text-input target, the ScrollView claims the responder in the capture phase, so the child never receives the touch; `_handleResponderRelease` (`ScrollView.js:1472-1481`) then blurs the focused input on release. Net effect: first tap dismisses, second tap fires — the symptom the consumers describe, now release-based instead of press-in.

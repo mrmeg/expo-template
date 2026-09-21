@@ -16,7 +16,7 @@ With a field focused inside a `BottomSheet`, `BottomSheet.Footer` and the tail o
 
 Verified on `dev` at a7bde1b (`@mrmeg/expo-ui` 0.26.0 source; CI green on the 0.26.0 release commit f59d2fa).
 
-**Package (root cause).**
+### Root cause (package)
 
 - `BottomSheetContentProps.avoidKeyboard` is documented "Accepted for call-site ergonomics; ignored" (`packages/ui/src/components/BottomSheet.tsx:149`) and `BottomSheetContent` destructures it to `_avoidKeyboard` and never reads it (`:526`). The header comment (`:35-44`) and `packages/ui/README.md:568-572` promise "the platform owns keyboard avoidance".
 - Nothing in the sheet reads a keyboard height: `BottomSheetFooter` pads `spacing.md + insets.bottom` (`:816-843`, `:833`), `BottomSheetBody` pads `spacing.md + (hasFooter ? 0 : insets.bottom)` (`:756-808`, `:790`), the `Content` column is `flex: 1` plus `maxHeight: detentHeight` off Android (`:612-630`). `useSheetInsets` (`:310-319`) is safe-area only.
