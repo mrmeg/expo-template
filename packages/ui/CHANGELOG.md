@@ -5,6 +5,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`BottomSheet.Body` no longer swallows the first tap on its controls while a
+  sheet field is focused on iOS.** `Body`'s `ScrollView` now sets
+  `keyboardShouldPersistTaps="always"` (before `{...props}`, so an explicit
+  consumer value still wins). Without it RN's default `never` policy claimed the
+  tap in the capture phase whenever a registered field was focused and the
+  keyboard was visible, then blurred the field on release, so chips, buttons,
+  tabs and field-to-field handoff inside `Body` needed a second tap. The
+  `BottomSheet.Content` column boundary already owns tap-away dismissal, so
+  dead-space taps inside `Body` still dismiss on release and a short drag still
+  does not. Android >= 30 was already unaffected: RN reads keyboard insets from
+  the main root view, and the Material sheet is its own window, so RN's policy
+  never armed there.
+
 ## [0.26.0]
 
 ### Changed

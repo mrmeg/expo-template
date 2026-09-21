@@ -45,6 +45,10 @@ import { useKeyboardDismissResponder } from "./keyboardDismiss";
  *     platform's on native; theming reaches the content + background color.
  *   - On Android only two snap states exist (partial / expanded); extra snap
  *     points map to the nearest of those two.
+ *   - `Body` sets `keyboardShouldPersistTaps="always"` on its ScrollView so RN's
+ *     own tap-dismissal never claims the first tap on a chip, button or field
+ *     while a sheet field is focused; the `Content` boundary owns tap-away
+ *     dismissal instead.
  *
  * Scrollable bodies: the native sheet doesn't bound the hosted RN content to
  * the detent height, so a tall `Body` overflows and clips its footer/tail. When
@@ -791,6 +795,14 @@ function BottomSheetBody({
         },
         contentContainerStyle,
       ]}
+      // The `Content` column's keyboard-dismiss boundary owns tap-away
+      // dismissal (see DismissKeyboard). RN's default `never` claims the first
+      // tap on any non-input child while a registered field is focused and
+      // blurs it on release; `handled` can still blur independently after a
+      // non-scrolling drag. `always` leaves every tap to its target and lets
+      // dead-space taps bubble to the boundary. Placed before `{...props}` so an
+      // explicit consumer value still wins.
+      keyboardShouldPersistTaps="always"
       showsVerticalScrollIndicator={false}
       onLayout={(e) => {
         viewportH.current = e.nativeEvent.layout.height;
