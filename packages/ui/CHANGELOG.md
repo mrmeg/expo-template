@@ -5,6 +5,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.27.1]
+
+### Fixed
+
+- **Android state surfaces no longer re-parent their children on a
+  `disabled` / `pending` / `checked` flip.** `Button` (surface and content),
+  `TextInput`, `Slider`, `InputOTP` and the `Switch` labels express state as
+  `opacity` on a plain `View`. On Fabric a View whose only stacking-context
+  prop is that opacity has its children hoisted into the parent while the
+  opacity is 1 and pulled back under it when the opacity changes, and a flip
+  that raced a navigation pop crashed with `addViewAt: cannot insert view …
+  View already has a parent` (doglog #57, Pixel 6a). Those Views now set
+  `collapsable={false}` on Android so the native tree shape is fixed across
+  state. iOS and web are unchanged. `stateSurfaceProps()` from
+  `@mrmeg/expo-ui/lib` is the same guard for app-owned surfaces; RN's
+  `Pressable` already pins itself, so `Pressable`-based controls need nothing.
+
 ## [0.27.0]
 
 ### Changed
