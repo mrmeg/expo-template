@@ -50,9 +50,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   field is focused — RN's `Keyboard` reports the sheet's IME from the activity
   root — and blurs the field on release, so the keyboard closes and `onPress`
   never runs (Pixel_10 / API 36, `@expo/ui` 58.0.2: 0 of 3 Footer taps fired
-  inside a default `ScrollView`, 3 of 3 inside `keyboardShouldPersistTaps=
-  "always"` or a plain `View`; `Body`'s own `always` covers only ScrollViews
-  inside the sheet). Nothing inside the tree can preempt a capture-phase claim,
+  inside a default `ScrollView`, 3 of 3 inside
+  `keyboardShouldPersistTaps="always"` or a plain `View`; `Body`'s own `always`
+  covers only ScrollViews inside the sheet). Nothing inside the tree can preempt
+  a capture-phase claim,
   so `BottomSheet.Content` now warns once in development on Android when a
   touch starts on its column without having reached the column's own capture
   handler while a package `TextInput` holds focus — the exact signature of that
