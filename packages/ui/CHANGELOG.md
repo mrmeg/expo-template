@@ -9,6 +9,37 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **iOS `Dialog` and `AlertDialog` present through React Native's `Modal`, so
+  `@expo/ui`-hosted controls inside them mount and take focus.** Both dialogs
+  rendered through react-native-screens' `FullWindowOverlay` on iOS, which adds
+  its container straight to the `UIWindow` with no `UIViewController` above it.
+  `expo-modules-core`'s `ExpoSwiftUI.HostingView` attaches its
+  `UIHostingController` only when `reactViewController()` finds a parent
+  controller and otherwise removes the SwiftUI view, so every hosted control
+  inside a dialog — the package `TextInput`, and `Slider` / `SegmentedControl`
+  — was a zero-height box: no editable accessibility element, no focus, no
+  keyboard (fieldnest `start-trip-modal-keyboard-avoidance`, iOS 27 simulator,
+  0.27.0; reproduced in the template's `Dialog` `form` variant, where the
+  accessibility tree listed only the two field labels and a tap raised no
+  keyboard, while the same content mounted and focused with the overlay
+  replaced by a Fragment — but then did not move for the keyboard, because the
+  portal host sits outside `UIProvider`'s root avoidance). `DialogContent` and
+  `AlertDialogContent` now present through a transparent, unanimated
+  `overFullScreen` `Modal` on iOS, which presents a real view controller and
+  still stacks above native stack modals; the platform close request
+  (`onRequestClose`) reaches the root's `onOpenChange(false)`. The Modal is
+  outside the root keyboard avoidance, so the dialog owns it there: the
+  centered container is wrapped in the package `KeyboardAvoidingView`
+  (`behavior="padding"`), the card recenters above the keyboard, and
+  `useKeyboardAvoidance()` is `true` inside dialog content — do not wrap dialog
+  content in another `KeyboardAvoidingView`. Device-verified on iOS 27: the
+  first tap on each field focuses it, the keyboard appears, typing lands, and
+  both fields and the footer stay visible. Android and web keep the inline
+  portal-host tree unchanged; there the portal host is still outside the root
+  avoidance, so an Android dialog does not avoid the keyboard yet (follow-up).
+  `Drawer`, `Popover`, `Select`, `DropdownMenu` and `Tooltip` still render
+  through `FullWindowOverlay`, so hosted controls inside those do not mount on
+  iOS either (follow-up).
 - **Android `BottomSheet` names the host requirement its keyboard avoidance
   depends on.** 0.27.0 said Material owns Android avoidance. That is true for
   the window and, on `expo-modules-core` >= 57.0.4, for the hosted column too:

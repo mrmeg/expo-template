@@ -1,16 +1,100 @@
 import * as React from "react";
-import { Platform, StyleSheet, View, ViewProps } from "react-native";
-import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
+import { Modal, Platform, StyleSheet, View, ViewProps } from "react-native";
 import * as DialogPrimitive from "@rn-primitives/dialog";
 import * as AlertDialogPrimitive from "@rn-primitives/alert-dialog";
 import { AnimatedView } from "./AnimatedView";
+import { KeyboardAvoidingView } from "./KeyboardAvoidingView";
 import { TextClassContext, TextColorContext } from "./StyledText.context";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { palette } from "../constants/colors";
 
-const FullWindowOverlay = Platform.OS === "ios" ? RNFullWindowOverlay : React.Fragment;
+// ============================================================================
+// Presentation
+// ============================================================================
+
+/** The Modal follows the app's own orientation mask instead of RN's portrait-only default. */
+const SUPPORTED_ORIENTATIONS = [
+  "portrait",
+  "portrait-upside-down",
+  "landscape",
+  "landscape-left",
+  "landscape-right",
+] as const;
+
+interface DialogPresentationProps {
+  /** Close request from the platform (hardware back / TV menu); wired to the root's `onOpenChange`. */
+  onRequestClose: () => void;
+  children: React.ReactNode;
+}
+
+/**
+ * Native presentation for dialog content.
+ *
+ * iOS presents through React Native's `Modal`. Until 0.27.1 both dialogs
+ * rendered through react-native-screens' `FullWindowOverlay` so they stacked
+ * above native stack modals. That overlay adds its container straight to the
+ * `UIWindow`, so no `UIViewController` sits above it, and `expo-modules-core`'s
+ * `ExpoSwiftUI.HostingView` — which attaches its `UIHostingController` only
+ * when `reactViewController()` finds a parent controller — removed the SwiftUI
+ * view instead. Every `@expo/ui`-hosted control inside (`TextInput`, `Slider`,
+ * `SegmentedControl`) was a zero-height box: no editable element, no focus, no
+ * keyboard (fieldnest on iOS 27, `@mrmeg/expo-ui` 0.27.0; reproduced in the
+ * template's `Dialog` `form` variant — the hosting view had height 0 and no
+ * child inside `RNSFullWindowOverlayContainer`, and rendered with the overlay
+ * removed). `Modal` presents a real view controller, still above native stack
+ * modals, so hosted controls mount and take focus on the first tap.
+ *
+ * Android and web render inline into the portal host, as before.
+ */
+function DialogPresentation({ onRequestClose, children }: DialogPresentationProps) {
+  if (Platform.OS !== "ios") {
+    return <>{children}</>;
+  }
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      presentationStyle="overFullScreen"
+      supportedOrientations={SUPPORTED_ORIENTATIONS}
+      onRequestClose={onRequestClose}
+    >
+      {children}
+    </Modal>
+  );
+}
+
+/**
+ * Keyboard avoidance owner for dialog content.
+ *
+ * On iOS the `Modal` above is presented outside `UIProvider`'s root
+ * `KeyboardAvoidingView`, so nothing else can keep a focused dialog field and
+ * the footer above the keyboard: this wrapper pads the centered container by
+ * the keyboard height, and the card (capped at 85% of the remaining height)
+ * recenters in the space that is left. It is the package `KeyboardAvoidingView`,
+ * so `useKeyboardAvoidance()` is `true` inside `DialogContent` and a
+ * `DismissKeyboard` in dialog content adds no second layer. Do not wrap dialog
+ * content in another `KeyboardAvoidingView`.
+ *
+ * Android and web keep the portal-host tree unchanged; the portal host sits
+ * outside the root avoidance there, and a dialog is not keyboard-avoided yet.
+ */
+function DialogKeyboardAvoidance({ children }: { children: React.ReactNode }) {
+  if (Platform.OS !== "ios") {
+    return <>{children}</>;
+  }
+  return (
+    <KeyboardAvoidingView
+      style={overlayStyles.fill}
+      behavior="padding"
+      keyboardVerticalOffset={0}
+    >
+      {children}
+    </KeyboardAvoidingView>
+  );
+}
 
 // ============================================================================
 // Dialog
@@ -43,6 +127,7 @@ function DialogContent({
   ...props
 }: DialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
+  const { onOpenChange } = DialogPrimitive.useRootContext();
   const textColor = getContrastingColor(
     theme.colors.popover,
     palette.white,
@@ -51,7 +136,7 @@ function DialogContent({
 
   return (
     <DialogPrimitive.Portal hostName={portalHost}>
-      <FullWindowOverlay>
+      <DialogPresentation onRequestClose={() => onOpenChange(false)}>
         <DialogPrimitive.Overlay
           // On web the primitive wraps the overlay in a react-native-web
           // Pressable whose click handler stops propagation unconditionally.
@@ -69,35 +154,37 @@ function DialogContent({
           ])}
         >
           <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
-            <View style={overlayStyles.centeredContainer}>
-              <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
-                <TextColorContext.Provider value={textColor}>
-                  <TextClassContext.Provider value="">
-                    <DialogPrimitive.Content
-                      style={StyleSheet.flatten([
-                        {
-                          backgroundColor: theme.colors.popover,
-                          borderColor: theme.colors.border,
-                          borderWidth: 1,
-                          borderRadius: spacing.radiusLg,
-                          padding: spacing.dialogPadding,
-                          gap: spacing.md,
-                          width: "100%",
-                          ...getShadowStyle("soft"),
-                        },
-                        style,
-                      ])}
-                      {...props}
-                    >
-                      {children}
-                    </DialogPrimitive.Content>
-                  </TextClassContext.Provider>
-                </TextColorContext.Provider>
-              </AnimatedView>
-            </View>
+            <DialogKeyboardAvoidance>
+              <View style={overlayStyles.centeredContainer}>
+                <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
+                  <TextColorContext.Provider value={textColor}>
+                    <TextClassContext.Provider value="">
+                      <DialogPrimitive.Content
+                        style={StyleSheet.flatten([
+                          {
+                            backgroundColor: theme.colors.popover,
+                            borderColor: theme.colors.border,
+                            borderWidth: 1,
+                            borderRadius: spacing.radiusLg,
+                            padding: spacing.dialogPadding,
+                            gap: spacing.md,
+                            width: "100%",
+                            ...getShadowStyle("soft"),
+                          },
+                          style,
+                        ])}
+                        {...props}
+                      >
+                        {children}
+                      </DialogPrimitive.Content>
+                    </TextClassContext.Provider>
+                  </TextColorContext.Provider>
+                </AnimatedView>
+              </View>
+            </DialogKeyboardAvoidance>
           </AnimatedView>
         </DialogPrimitive.Overlay>
-      </FullWindowOverlay>
+      </DialogPresentation>
     </DialogPrimitive.Portal>
   );
 }
@@ -229,6 +316,7 @@ function AlertDialogContent({
   ...props
 }: AlertDialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
+  const { onOpenChange } = AlertDialogPrimitive.useRootContext();
   const textColor = getContrastingColor(
     theme.colors.popover,
     palette.white,
@@ -237,7 +325,7 @@ function AlertDialogContent({
 
   return (
     <AlertDialogPrimitive.Portal hostName={portalHost}>
-      <FullWindowOverlay>
+      <DialogPresentation onRequestClose={() => onOpenChange(false)}>
         <AlertDialogPrimitive.Overlay
           style={StyleSheet.flatten([
             StyleSheet.absoluteFill,
@@ -246,35 +334,37 @@ function AlertDialogContent({
           ])}
         >
           <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
-            <View style={overlayStyles.centeredContainer}>
-              <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
-                <TextColorContext.Provider value={textColor}>
-                  <TextClassContext.Provider value="">
-                    <AlertDialogPrimitive.Content
-                      style={StyleSheet.flatten([
-                        {
-                          backgroundColor: theme.colors.popover,
-                          borderColor: theme.colors.border,
-                          borderWidth: 1,
-                          borderRadius: spacing.radiusLg,
-                          padding: spacing.dialogPadding,
-                          gap: spacing.md,
-                          width: "100%",
-                          ...getShadowStyle("soft"),
-                        },
-                        style,
-                      ])}
-                      {...props}
-                    >
-                      {children}
-                    </AlertDialogPrimitive.Content>
-                  </TextClassContext.Provider>
-                </TextColorContext.Provider>
-              </AnimatedView>
-            </View>
+            <DialogKeyboardAvoidance>
+              <View style={overlayStyles.centeredContainer}>
+                <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
+                  <TextColorContext.Provider value={textColor}>
+                    <TextClassContext.Provider value="">
+                      <AlertDialogPrimitive.Content
+                        style={StyleSheet.flatten([
+                          {
+                            backgroundColor: theme.colors.popover,
+                            borderColor: theme.colors.border,
+                            borderWidth: 1,
+                            borderRadius: spacing.radiusLg,
+                            padding: spacing.dialogPadding,
+                            gap: spacing.md,
+                            width: "100%",
+                            ...getShadowStyle("soft"),
+                          },
+                          style,
+                        ])}
+                        {...props}
+                      >
+                        {children}
+                      </AlertDialogPrimitive.Content>
+                    </TextClassContext.Provider>
+                  </TextColorContext.Provider>
+                </AnimatedView>
+              </View>
+            </DialogKeyboardAvoidance>
           </AnimatedView>
         </AlertDialogPrimitive.Overlay>
-      </FullWindowOverlay>
+      </DialogPresentation>
     </AlertDialogPrimitive.Portal>
   );
 }
@@ -360,6 +450,11 @@ const AlertDialog: AlertDialogComponent = Object.assign(AlertDialogRoot, {
 // ============================================================================
 
 const overlayStyles = StyleSheet.create({
+  // The keyboard-avoiding wrapper fills the overlay so its bottom padding
+  // shrinks the centered container instead of the card.
+  fill: {
+    flex: 1,
+  },
   centeredContainer: {
     flex: 1,
     justifyContent: "center",
