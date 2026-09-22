@@ -1,6 +1,7 @@
 import { palette } from "../constants/colors";
 import { useTheme } from "../hooks/useTheme";
 import { hapticLight } from "../lib/haptics";
+import { stateSurfaceProps } from "../lib/stateSurface";
 import React, { useCallback, useRef } from "react";
 import { StyleProp, View, ViewStyle } from "react-native";
 import { Slider as NativeSlider } from "@expo/ui/community/slider";
@@ -95,7 +96,7 @@ function Slider({
     // the first layout pass. Without it the SwiftUI/Compose Host measures width
     // lazily, so the thumb starts at an unresolved position and visibly snaps to
     // the correct spot on first interaction.
-    <View style={[{ opacity: disabled ? 0.5 : 1, alignSelf: "stretch" }, styleOverride]}>
+    <View {...stateSurfaceProps()} style={[{ opacity: disabled ? 0.5 : 1, alignSelf: "stretch" }, styleOverride]}>
       {showValue && (
         <StyledText
           selectable={false}

@@ -25,6 +25,7 @@ import { useFontStyle } from "../hooks/useFontStyle";
 import { useScalePress } from "../hooks/useScalePress";
 import { useThemeStore } from "../state/themeStore";
 import { createThemedStyles } from "../lib/themedStyles";
+import { stateSurfaceProps } from "../lib/stateSurface";
 
 /**
  * Button variants
@@ -362,6 +363,9 @@ function ButtonRoot(props: ButtonProps) {
             {(state) => (
               <Animated.View style={scaleStyle}>
                 <View
+                  // Android: fixed native tree across disabled/pressed/loading
+                  // flips (see `stateSurfaceProps`).
+                  {...stateSurfaceProps()}
                   style={[
                     styles.button,
                     // Host-app radius override (see `setShape`). Sits right
@@ -398,7 +402,7 @@ function ButtonRoot(props: ButtonProps) {
                     </View>
                   )}
 
-                  <View style={[styles.content, loading && styles.loadingContent, { pointerEvents: loading ? "none" : "auto" }]}>
+                  <View {...stateSurfaceProps()} style={[styles.content, loading && styles.loadingContent, { pointerEvents: loading ? "none" : "auto" }]}>
                     {!!LeftAccessory && (
                       <LeftAccessory
                         style={styles.leftAccessory}

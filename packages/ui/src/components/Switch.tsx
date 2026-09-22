@@ -2,6 +2,7 @@ import { palette } from "../constants/colors";
 import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
 import { hapticLight } from "../lib/haptics";
+import { stateSurfaceProps } from "../lib/stateSurface";
 import * as SwitchPrimitives from "@rn-primitives/switch";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, PressableProps, StyleProp, StyleSheet, View, ViewStyle, Animated } from "react-native";
@@ -205,6 +206,7 @@ function Switch({
       {/* Label ON */}
       {labelOn && !isIOS && (
         <View
+          {...stateSurfaceProps()}
           style={{
             ...styles.label,
             left: labelHorizontalInset,
@@ -257,6 +259,7 @@ function Switch({
       {/* Label OFF */}
       {labelOff && !isIOS && (
         <View
+          {...stateSurfaceProps()}
           style={{
             ...styles.label,
             left: thumbInset + thumbSize + labelGap,
