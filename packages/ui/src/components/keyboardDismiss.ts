@@ -212,6 +212,65 @@ export function useTextInputSurfaceResponder(focus: () => void): TextInputSurfac
   }, []);
 }
 
+export type AncestorClaimWarningProps = Pick<
+  ViewProps,
+  "onStartShouldSetResponderCapture" | "onTouchStart"
+>;
+
+let warnedAncestorClaim = false;
+
+/** Test hook: let the once-per-session ancestor-claim warning fire again. */
+export function resetAncestorClaimWarningForTests() {
+  warnedAncestorClaim = false;
+}
+
+/**
+ * Dev-only diagnostic for a boundary whose subtree is drawn in another native
+ * window but still lives in the screen's React tree (`BottomSheet.Content`).
+ *
+ * React Native's responder negotiation walks the React tree, so every ancestor
+ * of the sheet takes part in the capture phase for a tap inside it, even though
+ * none of them is under the finger. An ancestor `ScrollView` left on the default
+ * `keyboardShouldPersistTaps="never"` claims the tap there as soon as a text
+ * input holds focus and RN's `Keyboard` has reported the IME, and blurs the
+ * field on release: the keyboard closes and the tapped control never fires.
+ * Nothing inside the tree can preempt a capture-phase claim, so the boundary
+ * names it instead.
+ *
+ * The signal needs no heuristics: `onStartShouldSetResponderCapture` runs on
+ * this view for every touch that reaches the negotiation without an ancestor
+ * claiming it, while `onTouchStart` bubbles regardless. A touch start with no
+ * capture call for the same native event, while a package field is focused,
+ * is exactly a tap an ancestor took. Warns once per session, Android only,
+ * `__DEV__` only; elsewhere the inner props are returned untouched. The wrapped
+ * `onTouchStart` still runs, so the boundary's own behavior is unchanged.
+ */
+export function useAncestorClaimWarning<P extends Pick<ViewProps, "onTouchStart">>(
+  inner: P,
+  message: string
+): P & AncestorClaimWarningProps {
+  const messageRef = useRef(message);
+  messageRef.current = message;
+  return useMemo(() => {
+    if (!__DEV__ || Platform.OS !== "android") return inner;
+    let captured: TouchKey | null = null;
+    return {
+      ...inner,
+      onStartShouldSetResponderCapture: (event: GestureResponderEvent) => {
+        captured = keyOf(event);
+        return false;
+      },
+      onTouchStart: (event: GestureResponderEvent) => {
+        if (!warnedAncestorClaim && !isSameEvent(captured, event) && hasKeyboardFocusedInput()) {
+          warnedAncestorClaim = true;
+          console.warn(messageRef.current);
+        }
+        inner.onTouchStart?.(event);
+      },
+    };
+  }, [inner]);
+}
+
 export type KeyboardDismissResponderProps = Pick<
   ViewProps,
   "onStartShouldSetResponder" | "onTouchStart" | "onTouchMove" | "onTouchEnd" | "onTouchCancel"

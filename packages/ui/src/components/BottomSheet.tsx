@@ -19,7 +19,7 @@ import { spacing } from "../constants/spacing";
 import { useScalePress } from "../hooks/useScalePress";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { Icon } from "./Icon";
-import { useKeyboardDismissResponder } from "./keyboardDismiss";
+import { useAncestorClaimWarning, useKeyboardDismissResponder } from "./keyboardDismiss";
 import { warnIfBottomSheetHostDropsResize } from "./bottomSheetHostSupport";
 
 /**
@@ -69,7 +69,19 @@ import { warnIfBottomSheetHostDropsResize } from "./bottomSheetHostSupport";
  *   - `Body` sets `keyboardShouldPersistTaps="always"` on its ScrollView so RN's
  *     own tap-dismissal never claims the first tap on a chip, button or field
  *     while a sheet field is focused; the `Content` boundary owns tap-away
- *     dismissal instead.
+ *     dismissal instead. That covers ScrollViews *inside* the sheet only. The
+ *     sheet's content is drawn in another native window but stays in the
+ *     screen's React tree, and RN's responder negotiation walks that tree, so a
+ *     ScrollView *around* the `BottomSheet` with the default
+ *     `keyboardShouldPersistTaps="never"` claims a tap on any sheet control
+ *     (`Footer` included) in the capture phase once a field is focused and
+ *     blurs the field on release: the keyboard closes and the control never
+ *     fires (Pixel_10 / API 36: 0 of 3 taps inside a default ScrollView, 3 of 3
+ *     inside `always` or a plain View). Nothing inside the tree can preempt a
+ *     capture-phase claim, so `Content` warns once in dev on Android when it
+ *     observes one (`useAncestorClaimWarning`); the remedy is
+ *     `keyboardShouldPersistTaps="always"` / `"handled"` on scroll views that
+ *     contain a sheet, or `DismissKeyboard`, which already sets it.
  *
  * Scrollable bodies: the native sheet doesn't bound the hosted RN content to
  * the detent height, so a tall `Body` overflows and clips its footer/tail. When
@@ -318,6 +330,20 @@ function bottomSheetRootReducer(
 // ============================================================================
 // Context
 // ============================================================================
+
+/**
+ * Dev warning (Android) when an ancestor claimed a tap inside the sheet before
+ * the sheet was asked, while a package field held focus. See the header and
+ * `useAncestorClaimWarning`.
+ */
+export const bottomSheetAncestorClaimWarning =
+  "@mrmeg/expo-ui BottomSheet: an ancestor claimed a tap inside the sheet before the sheet " +
+  "was asked, while a sheet field was focused, so the tapped control did not fire and the " +
+  "keyboard was dismissed instead. That is usually a ScrollView around the BottomSheet on React " +
+  'Native\'s default keyboardShouldPersistTaps="never" (sheet content stays in the screen\'s ' +
+  "React tree even though it is drawn in another window). Set " +
+  'keyboardShouldPersistTaps="always" or "handled" on scroll views that contain the ' +
+  "BottomSheet, or wrap the screen in DismissKeyboard.";
 
 const BottomSheetContext = createContext<BottomSheetContextValue | null>(null);
 
@@ -581,6 +607,12 @@ function BottomSheetContent({
   // dead-space tap dismisses on release only, through the registered field's
   // own window-independent blur handle.
   const dismissResponderProps = useKeyboardDismissResponder();
+  // Android, dev, once per session: name an ancestor ScrollView that claimed a
+  // tap inside the sheet in the capture phase (nothing in here can preempt it).
+  const columnResponderProps = useAncestorClaimWarning(
+    dismissResponderProps,
+    bottomSheetAncestorClaimWarning
+  );
 
   // Android only, dev only, once per session: name the host floor the column's
   // keyboard avoidance depends on when the app was built against an
@@ -667,7 +699,7 @@ function BottomSheetContent({
               Platform.OS !== "android" && { maxHeight: detentHeight },
               styleOverride,
             ]}
-            {...dismissResponderProps}
+            {...columnResponderProps}
           >
             {children}
             {showFloatingClose && (

@@ -609,7 +609,16 @@ web, where the window cannot be read during export or hydration.
   matching `DismissKeyboard`. `BottomSheet.Body` sets
   `keyboardShouldPersistTaps="always"` on its ScrollView so that column boundary
   owns dismissal; do not pass `never`, which lets RN claim the first tap on a
-  body control and blur the field instead. Android has only two snap states
+  body control and blur the field instead. That covers ScrollViews inside the
+  sheet only: the sheet's content stays in the screen's React tree even though
+  it is drawn in another window, and RN's responder negotiation walks that tree,
+  so a ScrollView *around* the `BottomSheet` left on the default
+  `keyboardShouldPersistTaps="never"` claims the first tap on any sheet control
+  (`Footer` included) while a sheet field is focused and blurs the field instead
+  of firing the control. Set `keyboardShouldPersistTaps="always"` (or
+  `"handled"`) on scroll views that contain a sheet, or use `DismissKeyboard`,
+  which already does; the sheet warns once in development on Android when it
+  observes such a swallowed tap. Android has only two snap states
   (partial / expanded) and maps extra snap points to the nearest; because
   Material ignores percentage snap points, the Android body fills the rendered
   sheet height rather than a window-percentage cap. `BottomSheet.Content` also
