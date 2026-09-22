@@ -286,3 +286,65 @@ describe("TextInput Android native identity", () => {
     }
   });
 });
+
+describe("TextInput Android mount blur", () => {
+  const originalOS = Platform.OS;
+
+  beforeEach(() => {
+    Platform.OS = "android";
+    for (const records of Object.values(lifecycle)) records.length = 0;
+  });
+
+  afterEach(async () => {
+    await cleanup();
+    Platform.OS = originalOS;
+  });
+
+  // Compose's onFocusChanged reports isFocused=false when the field is first
+  // composed; the Android field forwards it as onBlur. Call the callback the
+  // package handed to the native field directly, as that report does.
+  async function nativeMountBlur() {
+    await act(async () => {
+      lifecycle.inputs[0].props.onBlur?.();
+    });
+  }
+
+  it("does not forward a blur that arrives before any focus", async () => {
+    const onFocus = jest.fn();
+    const onBlur = jest.fn();
+    await render(<TextInput placeholder="Email" onFocus={onFocus} onBlur={onBlur} />);
+
+    await nativeMountBlur();
+
+    expect(onFocus).not.toHaveBeenCalled();
+    expect(onBlur).not.toHaveBeenCalled();
+  });
+
+  it("forwards a real blur after focus exactly once", async () => {
+    const onFocus = jest.fn();
+    const onBlur = jest.fn();
+    await render(<TextInput placeholder="Email" onFocus={onFocus} onBlur={onBlur} />);
+    await nativeMountBlur();
+
+    await fireEvent(screen.getByTestId("compose-input"), "focus");
+    await fireEvent(screen.getByTestId("compose-input"), "blur");
+    expect(onFocus).toHaveBeenCalledTimes(1);
+    expect(onBlur).toHaveBeenCalledTimes(1);
+
+    // A repeated native report with no focus in between is dropped too.
+    await nativeMountBlur();
+    expect(onBlur).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps tap-away registration in step with real focus and blur", async () => {
+    await render(<TextInput placeholder="Email" />);
+    await nativeMountBlur();
+    expect(hasKeyboardFocusedInput()).toBe(false);
+
+    await fireEvent(screen.getByTestId("compose-input"), "focus");
+    expect(hasKeyboardFocusedInput()).toBe(true);
+
+    await fireEvent(screen.getByTestId("compose-input"), "blur");
+    expect(hasKeyboardFocusedInput()).toBe(false);
+  });
+});
