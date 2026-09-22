@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/101
 ---
 
 # Android: pin `collapsable={false}` on every plain `View` whose opacity is state-driven
