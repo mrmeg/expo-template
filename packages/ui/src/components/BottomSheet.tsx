@@ -49,8 +49,8 @@ import { useKeyboardDismissResponder } from "./keyboardDismiss";
  *   - `.Handle` replaces the native drag indicator with a pressable equivalent.
  *     Pressing it walks through the configured snap points, reversing direction
  *     at either end. Dragging the sheet continues to use the platform gesture.
- *   - `swipeEnabled` / `dismissKeyboardOnDrag` are accepted for call-site
- *     ergonomics but have no effect — the platform handles them.
+ *   - `swipeEnabled` / `avoidKeyboard` / `dismissKeyboardOnDrag` are accepted
+ *     for call-site ergonomics but have no effect — the platform handles them.
  *   - Sheet *chrome* (corner radius, system background, safe area) is the
  *     platform's on native; theming reaches the content + background color.
  *   - On Android only two snap states exist (partial / expanded); extra snap
@@ -543,8 +543,8 @@ function BottomSheetTrigger({ asChild, children, style: styleOverride }: BottomS
 function BottomSheetContent({
   // Accepted-but-ignored ergonomics props (platform owns these behaviors):
   swipeEnabled: _swipeEnabled,
-  dismissKeyboardOnDrag: _dismissKeyboardOnDrag,
   avoidKeyboard: _avoidKeyboard,
+  dismissKeyboardOnDrag: _dismissKeyboardOnDrag,
   backgroundStyle: backgroundStyleOverride,
   style: styleOverride,
   testID,
