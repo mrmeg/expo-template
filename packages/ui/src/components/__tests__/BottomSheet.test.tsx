@@ -243,6 +243,102 @@ describe("BottomSheet.Content backgroundStyle", () => {
   });
 });
 
+describe("BottomSheet.Body keyboard taps", () => {
+  const token = {};
+
+  beforeEach(() => {
+    keyboardControllerMock.__setKeyboardState({ isVisible: true, target: 12 });
+  });
+
+  afterEach(() => {
+    clearKeyboardFocusedInput(token);
+    keyboardControllerMock.__setKeyboardState({ isVisible: false, target: -1 });
+  });
+
+  it("renders keyboardShouldPersistTaps=\"always\" by default so RN never claims the first tap", async () => {
+    await render(
+      <BottomSheet open snapPoints={["50%"]}>
+        <BottomSheet.Content>
+          <BottomSheet.Body testID="sheet-body">
+            <Text>Body</Text>
+          </BottomSheet.Body>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+
+    expect(screen.getByTestId("sheet-body").props.keyboardShouldPersistTaps).toBe("always");
+  });
+
+  it("preserves an explicit consumer keyboardShouldPersistTaps value", async () => {
+    await render(
+      <BottomSheet open snapPoints={["50%"]}>
+        <BottomSheet.Content>
+          <BottomSheet.Body testID="sheet-body" keyboardShouldPersistTaps="handled">
+            <Text>Body</Text>
+          </BottomSheet.Body>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+
+    expect(screen.getByTestId("sheet-body").props.keyboardShouldPersistTaps).toBe("handled");
+  });
+
+  it("fires a control inside Body on the first tap without blurring the focused field", async () => {
+    const blur = jest.fn();
+    setKeyboardFocusedInput(token, blur);
+    const onPress = jest.fn();
+    await render(
+      <BottomSheet open snapPoints={["55%"]}>
+        <BottomSheet.Content testID="sheet-column">
+          <BottomSheet.Body testID="sheet-body">
+            <Pressable testID="body-control" onPress={onPress}>
+              <Text>In stock</Text>
+            </Pressable>
+          </BottomSheet.Body>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+    const column = screen.getByTestId("sheet-column") as unknown as Handlers;
+
+    // Same shape as the Content boundary case: the Pressable claims the touch,
+    // so only the plain touch events bubble to the column.
+    const start = touch();
+    column.props.onTouchStart(start);
+    await fireEvent.press(screen.getByTestId("body-control"));
+    column.props.onTouchEnd(touch());
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(blur).not.toHaveBeenCalled();
+    expect(hasKeyboardFocusedInput()).toBe(true);
+  });
+
+  it("still dismisses an unclaimed dead-space tap on the column with a Body mounted", async () => {
+    const blur = jest.fn();
+    setKeyboardFocusedInput(token, blur);
+    await render(
+      <BottomSheet open snapPoints={["55%"]}>
+        <BottomSheet.Content testID="sheet-column">
+          <BottomSheet.Body testID="sheet-body">
+            <Text>Body</Text>
+          </BottomSheet.Body>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+    const column = screen.getByTestId("sheet-column") as unknown as Handlers;
+    const start = touch();
+
+    expect(column.props.onStartShouldSetResponder(start)).toBe(false);
+    column.props.onTouchStart(start);
+    expect(blur).not.toHaveBeenCalled();
+    expect(hasKeyboardFocusedInput()).toBe(true);
+
+    column.props.onTouchEnd(touch());
+
+    expect(blur).toHaveBeenCalledTimes(1);
+    expect(hasKeyboardFocusedInput()).toBe(false);
+  });
+});
+
 describe("BottomSheet.Content keyboard dismiss boundary", () => {
   const token = {};
 
