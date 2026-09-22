@@ -314,12 +314,17 @@ import { BodyText, CaptionText, HeadingText, StyledText } from "@mrmeg/expo-ui/c
 - `fontWeight`: `light`, `regular`, `medium`, `semibold`, `bold`
 - `variant`: `sansSerif`, `serif`, `mono`
 - `align`, `text`, `tx`, `txOptions`
-- `selectable`: defaults to `true`; package controls disable it for labels and
-  interactive chrome where accidental drag selection would feel broken.
+- `selectable`: defaults to `true` on iOS and web and to `false` on Android
+  (0.27.0), where a selectable `Text` is focusable and takes focus and the IME
+  from an active input. Opt copyable content in per element with `selectable`
+  (codes, addresses, chat bubbles). Package controls disable it on every
+  platform for labels and interactive chrome where accidental drag selection
+  would feel broken.
 
-For app-owned `Pressable` labels, explicitly set `selectable={false}` on the
-nested `StyledText`. On Android selectable label text can take focus and the IME
-connection from an active input. Preserve selection for ordinary readable text.
+For app-owned `Pressable` labels, still set `selectable={false}` on the nested
+`StyledText` so iOS and web show no selection cursor on control chrome. Ordinary
+readable text keeps selection on iOS and web; on Android it selects only when
+opted in.
 
 Aliases: `DisplayText`, `TitleText`, `HeadingText`, `SubheadingText`,
 `BodyText`, `CaptionText`, `LabelText`, `EyebrowText`, `MonoText` (code, IDs,
@@ -564,25 +569,38 @@ web, where the window cannot be read during export or hydration.
   `numberPassword` for numeric keyboards) in both the masked and the revealed
   eye-toggle state, with autocorrect off by default; that Android field is
   package-owned on top of `@expo/ui/jetpack-compose`'s `BasicTextField`, while
-  iOS uses `@expo/ui`'s universal field (SwiftUI `SecureField`).
+  iOS uses `@expo/ui`'s universal field (SwiftUI `SecureField`). On Android the
+  native field reports a blur when it is first composed; the package forwards
+  `onBlur` only after the field has reported focus, so blur validation never
+  flags an untouched field and app code needs no touched-fields guard.
 - `BottomSheet` renders the platform's native sheet through `@expo/ui`: iOS
   SwiftUI `.sheet()`, Android Material3 `ModalBottomSheet`, web `vaul`. The
   platform owns gestures and keyboard avoidance, so `swipeEnabled`,
   `avoidKeyboard`, and `dismissKeyboardOnDrag` are accepted for call-site
-  ergonomics but have no effect. The sheet hosts its content in a separate
+  ergonomics but have no effect. On iOS the sheet presentation itself keeps the
+  hosted content above the keyboard — a short sheet is lifted whole, a tall one
+  is shrunk — so `Footer` and the tail of `Body` end at the keyboard's top with
+  only their home-indicator padding as clearance (device-verified on iOS 27 with
+  `@expo/ui` 58); on Android Material3's `ModalBottomSheet` owns it (no JS
+  keyboard signal exists inside the Compose dialog window); web has none. Do not
+  wrap sheet content in another `KeyboardAvoidingView`: it would lift twice.
+  The sheet hosts its content in a separate
   native window outside the app's `DismissKeyboard`, so `BottomSheet.Content`
   mounts its own tap-away keyboard-dismiss boundary on the content column: it
   never claims the touch (buttons, tabs and other fields fire on the first tap
   with the keyboard up) and dismisses an unclaimed dead-space tap on release,
-  matching `DismissKeyboard`. Android has only two snap states (partial /
-  expanded) and maps extra snap points to the nearest; because Material ignores
-  percentage snap points, the Android body fills the rendered sheet height
-  rather than a window-percentage cap. `BottomSheet.Content` also takes
-  `backgroundStyle`, merged over the themed card default on the native sheet
-  surface (web panel, Android `containerColor`, iOS `presentationBackground`) —
-  pass `{ backgroundColor: "transparent" }`, plus a `style` clearing the
-  content column's card fill, to let custom chrome such as a glass backdrop
-  show through.
+  matching `DismissKeyboard`. `BottomSheet.Body` sets
+  `keyboardShouldPersistTaps="always"` on its ScrollView so that column boundary
+  owns dismissal; do not pass `never`, which lets RN claim the first tap on a
+  body control and blur the field instead. Android has only two snap states
+  (partial / expanded) and maps extra snap points to the nearest; because
+  Material ignores percentage snap points, the Android body fills the rendered
+  sheet height rather than a window-percentage cap. `BottomSheet.Content` also
+  takes `backgroundStyle`, merged over the themed card default on the native
+  sheet surface (web panel, Android `containerColor`, iOS
+  `presentationBackground`) — pass `{ backgroundColor: "transparent" }`, plus a
+  `style` clearing the content column's card fill, to let custom chrome such as
+  a glass backdrop show through.
 - `Carousel` renders every child (no virtualization), so slides survive into
   the exported HTML shell and the first client frame; use `FlatList` for large
   or unbounded data. An `itemWidth` below 1 (default `0.85`) is a fraction of

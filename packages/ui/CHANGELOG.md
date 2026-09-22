@@ -5,6 +5,60 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.27.0]
+
+### Changed
+
+- **`StyledText` is non-selectable by default on Android.** RN implements
+  `selectable` with `TextView.setTextIsSelectable(true)`, which makes the label
+  focusable-in-touch-mode, so a tap on any default `StyledText` next to a
+  focused `TextInput` moved view focus to the label and hid the keyboard
+  (tractor-tools-direct #19, mindmap #38 worked around it per label). The
+  Android default is now `false`; pass `selectable` to opt copyable content in.
+  iOS and web keep `true`, an explicit `selectable` prop still wins everywhere,
+  and `TextSelectabilityContext` still overrides the platform default. Consumers
+  can drop `selectable={false}` added only to keep the Android keyboard up;
+  keeping it on control chrome is harmless and still recommended for iOS/web.
+- **`BottomSheet.Content avoidKeyboard` is documented as platform-owned, with
+  the iOS behavior verified on device.** The prop stays accepted-and-ignored,
+  like `swipeEnabled` and `dismissKeyboardOnDrag`. On iOS (iPhone 17 Pro, iOS
+  27, `@expo/ui` 58.0.2) UIKit's sheet presentation keeps the hosted RN column
+  above the keyboard by itself: a 45% sheet is lifted whole (its column shrinks
+  393 → 363 pt), a 92% sheet is shrunk in place (700 → 468 pt), and in both
+  cases the column's bottom edge lands at the keyboard's top, so `Footer` and
+  the tail of `Body` sit 50 pt (`spacing.md` + home-indicator inset) above the
+  keyboard and a long `Body` scrolls. The package therefore adds no inset, and
+  none could be correct from JS: `measureInWindow` inside the `layoutRoot`
+  sheet host reports host-relative coordinates (the 45% column read bottom 409
+  while sitting at screen y 546), and a window-height estimate would lift a
+  lifted sheet twice. Android: Material3's `ModalBottomSheet` owns avoidance
+  (no JS keyboard signal exists inside the Compose dialog window: RN reads IME
+  insets from the main root view, and keyboard-controller watches only the
+  main window and RN `Modal` dialogs). Web: none. Never nest a
+  `KeyboardAvoidingView` inside a sheet.
+
+### Fixed
+
+- **`TextInput` no longer forwards the Android mount blur.** Compose reports
+  `isFocused=false` when the field is first composed and the Android field
+  forwarded it as `onBlur`, so forms validating on blur showed "required"
+  errors before the user typed anything (tractor-tools-direct #28 gated it in
+  app code). `onBlur` now fires only after the field has reported focus, and a
+  repeated blur with no focus in between is dropped too. Android only; iOS and
+  web are unchanged. Consumers can drop touched-field guards added for this.
+- **`BottomSheet.Body` no longer swallows the first tap on its controls while a
+  sheet field is focused on iOS.** `Body`'s `ScrollView` now sets
+  `keyboardShouldPersistTaps="always"` (before `{...props}`, so an explicit
+  consumer value still wins). Without it RN's default `never` policy claimed the
+  tap in the capture phase whenever a registered field was focused and the
+  keyboard was visible, then blurred the field on release, so chips, buttons,
+  tabs and field-to-field handoff inside `Body` needed a second tap. The
+  `BottomSheet.Content` column boundary already owns tap-away dismissal, so
+  dead-space taps inside `Body` still dismiss on release and a short drag still
+  does not. Android >= 30 was already unaffected: RN reads keyboard insets from
+  the main root view, and the Material sheet is its own window, so RN's policy
+  never armed there.
+
 ## [0.26.0]
 
 ### Changed

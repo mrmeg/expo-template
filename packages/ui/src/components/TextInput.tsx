@@ -506,6 +506,10 @@ function WebTextInput({
  * toggle laid out beside the native Host. Clear buttons, left/right elements,
  * and the error icon remain web-only; RN overlays are not layered over the
  * native host view.
+ *
+ * On Android `onBlur` is reported only after a forwarded `onFocus`: Compose
+ * reports `isFocused=false` on first composition and the field forwards it,
+ * so an unguarded consumer saw a blur before any interaction.
  */
 function NativeTextInput({
   variant = "outline",
@@ -653,9 +657,15 @@ function NativeTextInput({
   const handleBlur = useCallback(
     (secure: boolean) => {
       if (Platform.OS === "ios" && secure !== activeSecureRef.current) return;
+      // Compose reports `isFocused=false` when the field is first composed and
+      // the Android field forwards it as a blur. A blur the field never
+      // preceded with a focus is not the user leaving the field: keep it from
+      // the consumer so blur validation does not flag untouched fields.
+      const wasFocused = isFocusedRef.current;
       isFocusedRef.current = false;
       restoreAfterSecureHandoffRef.current = false;
       clearKeyboardFocusedInput(focusRegistryToken);
+      if (Platform.OS === "android" && !wasFocused) return;
       parentOnBlur?.();
     },
     [focusRegistryToken, parentOnBlur]

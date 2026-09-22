@@ -1,5 +1,5 @@
 import { use, type ComponentRef, type Ref } from "react";
-import { Text as RNText, TextProps as RNTextProps, StyleSheet } from "react-native";
+import { Platform, Text as RNText, TextProps as RNTextProps, StyleSheet } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { resolveFontStyle, type FontVariant } from "../constants/fonts";
 import { useThemeStore } from "../state/themeStore";
@@ -138,8 +138,12 @@ export type TextProps = RNTextProps & {
  *   real Inter font files on native, and family + numeric fontWeight on web
  * - Per-size letter-spacing scale (tight on large headings, positive on micro
  *   labels); explicit `style` letterSpacing always wins
- * - Text selection enabled by default; pass `selectable={false}` for control
- *   chrome such as button labels, tabs, badges, and field labels
+ * - Text selection on by default on iOS and web, off by default on Android:
+ *   a selectable Android `Text` is focusable-in-touch-mode, so a tap on a label
+ *   next to a focused input moved view focus to the label and hid the keyboard.
+ *   Pass `selectable` to opt copyable content in (codes, addresses, chat
+ *   bubbles); pass `selectable={false}` on every platform for control chrome
+ *   such as button labels, tabs, badges, and field labels
  * - numberOfLines and ellipsizeMode support from RN TextProps
  */
 export function StyledText(props: TextProps) {
@@ -168,7 +172,9 @@ export function StyledText(props: TextProps) {
   const contextColor = use(TextColorContext);
   const contextTextStyle = use(TextStyleContext);
   const contextSelectable = use(TextSelectabilityContext);
-  const resolvedSelectable = selectable ?? contextSelectable ?? true;
+  // Read at render time (not module load) so tests can flip `Platform.OS`.
+  const platformDefaultSelectable = Platform.OS !== "android";
+  const resolvedSelectable = selectable ?? contextSelectable ?? platformDefaultSelectable;
 
   // Use context color if provided, otherwise use theme default
   const color = contextColor ?? theme.colors.text;

@@ -31,8 +31,18 @@ import { useKeyboardDismissResponder } from "./keyboardDismiss";
  *
  * The compound surface (Trigger / Content / Handle / Header / Body / Footer /
  * Close), controlled + uncontrolled state, and theming match a hand-rolled
- * sheet, but the platform owns gestures and keyboard avoidance — so there's no
- * PanResponder, snap-physics, or keyboard lift-and-shrink code to maintain.
+ * sheet, but the platform owns gestures — so there's no PanResponder or
+ * snap-physics code to maintain. Keyboard avoidance is the platform's too.
+ * iOS (device-verified, iOS 27 / `@expo/ui` 58): UIKit's sheet presentation
+ * keeps the hosted RN column above the keyboard by itself — a short sheet is
+ * lifted whole, a tall one is shrunk — so the column's bottom edge lands at the
+ * keyboard's top and `Footer` / the tail of `Body` stay reachable with only
+ * their own home-indicator padding as clearance. The package adds no inset:
+ * nothing in JS can measure the column in screen space (`measureInWindow`
+ * inside the `layoutRoot` sheet host reports host-relative coordinates), and a
+ * window-height estimate would lift a lifted sheet twice. Android: Material3's
+ * `ModalBottomSheet` owns it (no JS keyboard signal exists inside the Compose
+ * dialog window). Web: none. Never nest a `KeyboardAvoidingView` in a sheet.
  *
  * Platform-owned behaviors (props accepted for ergonomics, but the platform
  * decides):
@@ -45,6 +55,10 @@ import { useKeyboardDismissResponder } from "./keyboardDismiss";
  *     platform's on native; theming reaches the content + background color.
  *   - On Android only two snap states exist (partial / expanded); extra snap
  *     points map to the nearest of those two.
+ *   - `Body` sets `keyboardShouldPersistTaps="always"` on its ScrollView so RN's
+ *     own tap-dismissal never claims the first tap on a chip, button or field
+ *     while a sheet field is focused; the `Content` boundary owns tap-away
+ *     dismissal instead.
  *
  * Scrollable bodies: the native sheet doesn't bound the hosted RN content to
  * the detent height, so a tall `Body` overflows and clips its footer/tail. When
@@ -145,7 +159,13 @@ interface BottomSheetTriggerProps {
 interface BottomSheetContentProps extends ViewProps {
   /** Accepted for call-site ergonomics; ignored (platform owns gestures). */
   swipeEnabled?: boolean;
-  /** Accepted for call-site ergonomics; ignored (platform owns keyboard avoidance). */
+  /**
+   * Accepted for call-site ergonomics; ignored (platform owns keyboard
+   * avoidance). iOS: UIKit's sheet presentation lifts or shrinks the hosted
+   * content so its bottom edge sits at the keyboard's top (device-verified).
+   * Android: Material3's `ModalBottomSheet`. Web: none. `false` has no effect;
+   * do not wrap sheet content in another `KeyboardAvoidingView`.
+   */
   avoidKeyboard?: boolean;
   /** Accepted for call-site ergonomics; ignored (platform owns keyboard). */
   dismissKeyboardOnDrag?: boolean;
@@ -791,6 +811,14 @@ function BottomSheetBody({
         },
         contentContainerStyle,
       ]}
+      // The `Content` column's keyboard-dismiss boundary owns tap-away
+      // dismissal (see DismissKeyboard). RN's default `never` claims the first
+      // tap on any non-input child while a registered field is focused and
+      // blurs it on release; `handled` can still blur independently after a
+      // non-scrolling drag. `always` leaves every tap to its target and lets
+      // dead-space taps bubble to the boundary. Placed before `{...props}` so an
+      // explicit consumer value still wins.
+      keyboardShouldPersistTaps="always"
       showsVerticalScrollIndicator={false}
       onLayout={(e) => {
         viewportH.current = e.nativeEvent.layout.height;
