@@ -85,7 +85,10 @@ call `dismissKeyboard()` explicitly.
 SwiftUI `.sheet()`, Android Material3 `ModalBottomSheet`, web `vaul`). The
 platform owns gestures and keyboard avoidance: `swipeEnabled`, `avoidKeyboard`,
 and `dismissKeyboardOnDrag` are accepted for call-site ergonomics but have no
-effect. `BottomSheet.Content` mounts the tap-away keyboard-dismiss boundary on
+effect. On iOS the sheet presentation lifts or shrinks the hosted content so
+`Footer` and the tail of `Body` end at the keyboard's top (device-verified);
+Android avoidance is Material3's; do not nest a `KeyboardAvoidingView` inside a
+sheet. `BottomSheet.Content` mounts the tap-away keyboard-dismiss boundary on
 its column, and `BottomSheet.Body` sets `keyboardShouldPersistTaps="always"` on
 its ScrollView so that boundary owns dismissal; do not pass `never`. `Slider`
 and `SegmentedControl` are also `@expo/ui`-backed.

@@ -31,8 +31,18 @@ import { useKeyboardDismissResponder } from "./keyboardDismiss";
  *
  * The compound surface (Trigger / Content / Handle / Header / Body / Footer /
  * Close), controlled + uncontrolled state, and theming match a hand-rolled
- * sheet, but the platform owns gestures and keyboard avoidance — so there's no
- * PanResponder, snap-physics, or keyboard lift-and-shrink code to maintain.
+ * sheet, but the platform owns gestures — so there's no PanResponder or
+ * snap-physics code to maintain. Keyboard avoidance is the platform's too.
+ * iOS (device-verified, iOS 27 / `@expo/ui` 58): UIKit's sheet presentation
+ * keeps the hosted RN column above the keyboard by itself — a short sheet is
+ * lifted whole, a tall one is shrunk — so the column's bottom edge lands at the
+ * keyboard's top and `Footer` / the tail of `Body` stay reachable with only
+ * their own home-indicator padding as clearance. The package adds no inset:
+ * nothing in JS can measure the column in screen space (`measureInWindow`
+ * inside the `layoutRoot` sheet host reports host-relative coordinates), and a
+ * window-height estimate would lift a lifted sheet twice. Android: Material3's
+ * `ModalBottomSheet` owns it (no JS keyboard signal exists inside the Compose
+ * dialog window). Web: none. Never nest a `KeyboardAvoidingView` in a sheet.
  *
  * Platform-owned behaviors (props accepted for ergonomics, but the platform
  * decides):
@@ -149,7 +159,13 @@ interface BottomSheetTriggerProps {
 interface BottomSheetContentProps extends ViewProps {
   /** Accepted for call-site ergonomics; ignored (platform owns gestures). */
   swipeEnabled?: boolean;
-  /** Accepted for call-site ergonomics; ignored (platform owns keyboard avoidance). */
+  /**
+   * Accepted for call-site ergonomics; ignored (platform owns keyboard
+   * avoidance). iOS: UIKit's sheet presentation lifts or shrinks the hosted
+   * content so its bottom edge sits at the keyboard's top (device-verified).
+   * Android: Material3's `ModalBottomSheet`. Web: none. `false` has no effect;
+   * do not wrap sheet content in another `KeyboardAvoidingView`.
+   */
   avoidKeyboard?: boolean;
   /** Accepted for call-site ergonomics; ignored (platform owns keyboard). */
   dismissKeyboardOnDrag?: boolean;

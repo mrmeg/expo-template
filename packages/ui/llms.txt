@@ -27,7 +27,10 @@ mount react-native-keyboard-controller's KeyboardProvider above UIProvider.
 
 BottomSheet renders the platform's native sheet via @expo/ui, which owns
 gestures and keyboard avoidance; swipeEnabled, avoidKeyboard, and
-dismissKeyboardOnDrag are accepted but ignored.
+dismissKeyboardOnDrag are accepted but ignored. On iOS the sheet presentation
+lifts or shrinks the hosted content so Footer and Body end at the keyboard's
+top (device-verified); Android avoidance is Material3's. Do not nest a
+KeyboardAvoidingView inside a sheet.
 
 Use useTheme(), useStyles(), semantic tokens, StyledText, and package controls.
 Do not add app-local Appearance or matchMedia listeners for theme sync. On web

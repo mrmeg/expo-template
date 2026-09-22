@@ -1,6 +1,15 @@
 import React from "react";
-import { Dimensions, Platform, Pressable, StyleSheet, Text } from "react-native";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  DeviceEventEmitter,
+  Dimensions,
+  Keyboard,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
 import { BottomSheet } from "../BottomSheet";
 import {
@@ -466,6 +475,95 @@ describe("BottomSheet.Content column height", () => {
       const style = await columnStyle(["55%"]);
       expect(style.flex).toBe(1);
       expect(style).not.toHaveProperty("maxHeight");
+    });
+  });
+});
+
+describe("BottomSheet.Content keyboard avoidance is platform-owned", () => {
+  // Device-verified (iPhone 17 Pro, iOS 27, @expo/ui 58): UIKit's sheet
+  // presentation keeps the hosted column above the keyboard by itself — a 45%
+  // sheet is lifted whole, a 92% one is shrunk — so the column's bottom edge
+  // already lands at the keyboard's top and any JS inset would stack on it.
+  // `measureInWindow` inside the sheet host is host-relative (the 45% column
+  // reported bottom 409 while sitting at screen y 546), so no measured inset
+  // can be right either. The column must observe no keyboard and pad nothing.
+  const measureInWindow = (View.prototype as unknown as { measureInWindow: jest.Mock })
+    .measureInWindow;
+  let addListener: jest.SpyInstance;
+
+  function columnStyle() {
+    return StyleSheet.flatten(screen.getByTestId("sheet-column").props.style) as Record<
+      string,
+      unknown
+    >;
+  }
+
+  function renderSheet(avoidKeyboard?: boolean, style?: Record<string, unknown>) {
+    return render(
+      <BottomSheet open snapPoints={["45%"]}>
+        <BottomSheet.Content testID="sheet-column" avoidKeyboard={avoidKeyboard} style={style}>
+          <BottomSheet.Body>
+            <Text>Body</Text>
+          </BottomSheet.Body>
+          <BottomSheet.Footer>
+            <Text>Footer</Text>
+          </BottomSheet.Footer>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+  }
+
+  /** What the device reported for a 45% sheet with the keyboard up. */
+  const deviceKeyboardFrame = {
+    endCoordinates: { screenX: 0, screenY: 546, width: 402, height: 328 },
+    startCoordinates: { screenX: 0, screenY: 874, width: 402, height: 328 },
+    duration: 250,
+    easing: "keyboard",
+    isEventFromThisApp: true,
+  };
+
+  beforeEach(() => {
+    addListener = jest.spyOn(Keyboard, "addListener");
+    // Host-relative, as on device: the column starts 16 below the host top.
+    measureInWindow.mockImplementation((cb: (...args: number[]) => void) => cb(0, 16, 402, 393));
+  });
+
+  afterEach(() => {
+    addListener.mockRestore();
+    measureInWindow.mockReset();
+  });
+
+  it.each([undefined, true, false])(
+    "subscribes to no keyboard event and measures nothing on iOS (avoidKeyboard=%s)",
+    async (avoidKeyboard) => {
+      await renderSheet(avoidKeyboard);
+
+      expect(addListener).not.toHaveBeenCalled();
+      expect(measureInWindow).not.toHaveBeenCalled();
+      expect(columnStyle()).not.toHaveProperty("paddingBottom");
+    }
+  );
+
+  it("keeps the column unpadded through keyboard frame events on iOS", async () => {
+    await renderSheet(undefined, { paddingBottom: 8 });
+
+    await act(async () => {
+      DeviceEventEmitter.emit("keyboardWillChangeFrame", deviceKeyboardFrame);
+      DeviceEventEmitter.emit("keyboardDidChangeFrame", deviceKeyboardFrame);
+      DeviceEventEmitter.emit("keyboardDidShow", deviceKeyboardFrame);
+    });
+
+    // A consumer's own paddingBottom survives untouched: 8, not 8 + overlap.
+    expect(columnStyle().paddingBottom).toBe(8);
+    expect(measureInWindow).not.toHaveBeenCalled();
+  });
+
+  it("adds no paddingBottom on Android, where Material3 owns avoidance", async () => {
+    await withPlatform("android", async () => {
+      await renderSheet();
+
+      expect(addListener).not.toHaveBeenCalled();
+      expect(columnStyle()).not.toHaveProperty("paddingBottom");
     });
   });
 });

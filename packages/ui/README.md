@@ -569,7 +569,14 @@ web, where the window cannot be read during export or hydration.
   SwiftUI `.sheet()`, Android Material3 `ModalBottomSheet`, web `vaul`. The
   platform owns gestures and keyboard avoidance, so `swipeEnabled`,
   `avoidKeyboard`, and `dismissKeyboardOnDrag` are accepted for call-site
-  ergonomics but have no effect. The sheet hosts its content in a separate
+  ergonomics but have no effect. On iOS the sheet presentation itself keeps the
+  hosted content above the keyboard — a short sheet is lifted whole, a tall one
+  is shrunk — so `Footer` and the tail of `Body` end at the keyboard's top with
+  only their home-indicator padding as clearance (device-verified on iOS 27 with
+  `@expo/ui` 58); on Android Material3's `ModalBottomSheet` owns it (no JS
+  keyboard signal exists inside the Compose dialog window); web has none. Do not
+  wrap sheet content in another `KeyboardAvoidingView`: it would lift twice.
+  The sheet hosts its content in a separate
   native window outside the app's `DismissKeyboard`, so `BottomSheet.Content`
   mounts its own tap-away keyboard-dismiss boundary on the content column: it
   never claims the touch (buttons, tabs and other fields fire on the first tap
