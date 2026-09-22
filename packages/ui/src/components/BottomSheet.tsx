@@ -339,7 +339,7 @@ function bottomSheetRootReducer(
 export const bottomSheetAncestorClaimWarning =
   "@mrmeg/expo-ui BottomSheet: an ancestor claimed a tap inside the sheet before the sheet " +
   "was asked, while a sheet field was focused, so the tapped control did not fire and the " +
-  "keyboard was dismissed instead. That is a ScrollView around the BottomSheet on React " +
+  "keyboard was dismissed instead. That is usually a ScrollView around the BottomSheet on React " +
   'Native\'s default keyboardShouldPersistTaps="never" (sheet content stays in the screen\'s ' +
   "React tree even though it is drawn in another window). Set " +
   'keyboardShouldPersistTaps="always" or "handled" on scroll views that contain the ' +
