@@ -25,9 +25,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   replaced by a Fragment — but then did not move for the keyboard, because the
   portal host sits outside `UIProvider`'s root avoidance). `DialogContent` and
   `AlertDialogContent` now present through a transparent, unanimated
-  `overFullScreen` `Modal` on iOS, which presents a real view controller and
-  still stacks above native stack modals; the platform close request
-  (`onRequestClose`) reaches the root's `onOpenChange(false)`. The Modal is
+  `overFullScreen` `Modal` on iOS, rendered inline where the dialog sits in
+  the tree instead of through the portal host: RN presents a `Modal` from the
+  view controller nearest its host view, so a portal-hosted `Modal` presents
+  from the root controller and silently fails while a native stack modal or
+  sheet is up (device-verified — the trigger reported expanded, nothing
+  appeared), while the inline one presents from the screen, native stack modal
+  or sheet that contains the dialog and stacks above it (device-verified over
+  a `presentation: "modal"` route). `portalHost` is honored on Android and web
+  only, and a `Dialog` placed inside `FullWindowOverlay`-hosted content
+  (`Drawer`, `Popover`, `Select`, `DropdownMenu`, `Tooltip`) has no view
+  controller to present from on iOS — render it at screen level and open it
+  from the item's `onPress`. The platform close request (`onRequestClose`)
+  reaches the root's `onOpenChange(false)`. The Modal is
   outside the root keyboard avoidance, so the dialog owns it there: the
   centered container is wrapped in the package `KeyboardAvoidingView`
   (`behavior="padding"`), the card recenters above the keyboard, and

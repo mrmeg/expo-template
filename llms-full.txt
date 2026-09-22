@@ -686,12 +686,16 @@ the content column's card fill, when custom chrome such as a glass backdrop must
 show through.
 
 `Dialog` and `AlertDialog` present their content through React Native's `Modal`
-on iOS (transparent, `overFullScreen`, unanimated; the package fade/scale run
-inside). `@expo/ui`-hosted controls (`TextInput`, `Slider`, `SegmentedControl`)
-need a view controller above them and render as empty, unfocusable boxes inside
-react-native-screens' `FullWindowOverlay`, which `Drawer`, `Popover`, `Select`,
-`DropdownMenu` and `Tooltip` still use on iOS — keep hosted controls out of
-those. The dialog owns keyboard avoidance inside its Modal (package
+on iOS, rendered inline where the dialog sits (transparent, `overFullScreen`,
+unanimated; the package fade/scale run inside), so it stacks above whatever
+screen, native stack modal or sheet contains it; `portalHost` is honored on
+Android and web only. `@expo/ui`-hosted controls (`TextInput`, `Slider`,
+`SegmentedControl`) need a view controller above them and render as empty,
+unfocusable boxes inside react-native-screens' `FullWindowOverlay`, which
+`Drawer`, `Popover`, `Select`, `DropdownMenu` and `Tooltip` still use on iOS —
+keep hosted controls out of those, and do not place a `Dialog` inside their
+content (no view controller to present from; render it at screen level and open
+it from the item's `onPress`). The dialog owns keyboard avoidance inside its Modal (package
 `KeyboardAvoidingView`, `behavior="padding"`; the card recenters above the
 keyboard and `useKeyboardAvoidance()` is `true` in dialog content); do not wrap
 dialog content in another `KeyboardAvoidingView`. Android and web render dialog

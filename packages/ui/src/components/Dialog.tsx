@@ -24,33 +24,60 @@ const SUPPORTED_ORIENTATIONS = [
 ] as const;
 
 interface DialogPresentationProps {
+  /** The primitive's portal for this dialog kind; Android and web render through it. */
+  Portal: typeof DialogPrimitive.Portal | typeof AlertDialogPrimitive.Portal;
+  open: boolean;
+  /** Custom `@rn-primitives/portal` host name; honored on Android and web only. */
+  portalHost?: string;
   /** Close request from the platform (hardware back / TV menu); wired to the root's `onOpenChange`. */
   onRequestClose: () => void;
   children: React.ReactNode;
 }
 
 /**
- * Native presentation for dialog content.
+ * Presentation for dialog content.
  *
- * iOS presents through React Native's `Modal`. Until 0.27.1 both dialogs
- * rendered through react-native-screens' `FullWindowOverlay` so they stacked
- * above native stack modals. That overlay adds its container straight to the
- * `UIWindow`, so no `UIViewController` sits above it, and `expo-modules-core`'s
+ * iOS presents through React Native's `Modal`, rendered inline where the
+ * dialog sits in the tree rather than through the portal host. Until 0.27.1
+ * both dialogs rendered into `UIProvider`'s portal host inside
+ * react-native-screens' `FullWindowOverlay`, which stacks above native stack
+ * modals by adding its container straight to the `UIWindow`. No
+ * `UIViewController` sits above that container, and `expo-modules-core`'s
  * `ExpoSwiftUI.HostingView` — which attaches its `UIHostingController` only
  * when `reactViewController()` finds a parent controller — removed the SwiftUI
  * view instead. Every `@expo/ui`-hosted control inside (`TextInput`, `Slider`,
  * `SegmentedControl`) was a zero-height box: no editable element, no focus, no
  * keyboard (fieldnest on iOS 27, `@mrmeg/expo-ui` 0.27.0; reproduced in the
- * template's `Dialog` `form` variant — the hosting view had height 0 and no
- * child inside `RNSFullWindowOverlayContainer`, and rendered with the overlay
- * removed). `Modal` presents a real view controller, still above native stack
- * modals, so hosted controls mount and take focus on the first tap.
+ * template's `Dialog` `form` variant — the accessibility tree listed only the
+ * field labels, and the same content mounted with the overlay removed).
  *
- * Android and web render inline into the portal host, as before.
+ * `Modal` presents a real view controller, so hosted controls mount and take
+ * focus on the first tap. RN presents it from the view controller nearest the
+ * `Modal`'s own host view, which is why it renders inline: a `Modal` in the
+ * root portal host presents from the root controller and silently fails
+ * whenever that controller already presents a native stack modal or a sheet
+ * (device-verified: the trigger reported expanded, nothing appeared). Inline,
+ * the presenter is whatever screen, native stack modal or sheet contains the
+ * dialog, and the dialog stacks above it. The trade-off: content hosted by
+ * `FullWindowOverlay` (`Drawer`, `Popover`, `Select`, `DropdownMenu`,
+ * `Tooltip`) has no view controller either, so a dialog placed inside that
+ * content cannot present on iOS — render it at screen level and open it from
+ * the item's `onPress`.
+ *
+ * Android and web render into the portal host, as before.
  */
-function DialogPresentation({ onRequestClose, children }: DialogPresentationProps) {
+function DialogPresentation({
+  Portal,
+  open,
+  portalHost,
+  onRequestClose,
+  children,
+}: DialogPresentationProps) {
   if (Platform.OS !== "ios") {
-    return <>{children}</>;
+    return <Portal hostName={portalHost}>{children}</Portal>;
+  }
+  if (!open) {
+    return null;
   }
   return (
     <Modal
@@ -127,7 +154,7 @@ function DialogContent({
   ...props
 }: DialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
-  const { onOpenChange } = DialogPrimitive.useRootContext();
+  const { open, onOpenChange } = DialogPrimitive.useRootContext();
   const textColor = getContrastingColor(
     theme.colors.popover,
     palette.white,
@@ -135,57 +162,60 @@ function DialogContent({
   );
 
   return (
-    <DialogPrimitive.Portal hostName={portalHost}>
-      <DialogPresentation onRequestClose={() => onOpenChange(false)}>
-        <DialogPrimitive.Overlay
-          // On web the primitive wraps the overlay in a react-native-web
-          // Pressable whose click handler stops propagation unconditionally.
-          // With that Pressable between the overlay and the Radix content,
-          // outside presses (mouse and touch) and Escape never dismissed the
-          // dialog, so a dialog without a Close button was stuck. `asChild`
-          // makes the primitive clone our fade wrapper instead, removing the
-          // Pressable; Radix dismissal then works. Native keeps the Pressable,
-          // which is what implements closeOnPress there.
-          asChild={Platform.OS === "web"}
-          style={StyleSheet.flatten([
-            StyleSheet.absoluteFill,
-            { backgroundColor: theme.colors.overlay },
-            Platform.OS === "web" && { zIndex: 50 },
-          ])}
-        >
-          <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
-            <DialogKeyboardAvoidance>
-              <View style={overlayStyles.centeredContainer}>
-                <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
-                  <TextColorContext.Provider value={textColor}>
-                    <TextClassContext.Provider value="">
-                      <DialogPrimitive.Content
-                        style={StyleSheet.flatten([
-                          {
-                            backgroundColor: theme.colors.popover,
-                            borderColor: theme.colors.border,
-                            borderWidth: 1,
-                            borderRadius: spacing.radiusLg,
-                            padding: spacing.dialogPadding,
-                            gap: spacing.md,
-                            width: "100%",
-                            ...getShadowStyle("soft"),
-                          },
-                          style,
-                        ])}
-                        {...props}
-                      >
-                        {children}
-                      </DialogPrimitive.Content>
-                    </TextClassContext.Provider>
-                  </TextColorContext.Provider>
-                </AnimatedView>
-              </View>
-            </DialogKeyboardAvoidance>
-          </AnimatedView>
-        </DialogPrimitive.Overlay>
-      </DialogPresentation>
-    </DialogPrimitive.Portal>
+    <DialogPresentation
+      Portal={DialogPrimitive.Portal}
+      open={open}
+      portalHost={portalHost}
+      onRequestClose={() => onOpenChange(false)}
+    >
+      <DialogPrimitive.Overlay
+        // On web the primitive wraps the overlay in a react-native-web
+        // Pressable whose click handler stops propagation unconditionally.
+        // With that Pressable between the overlay and the Radix content,
+        // outside presses (mouse and touch) and Escape never dismissed the
+        // dialog, so a dialog without a Close button was stuck. `asChild`
+        // makes the primitive clone our fade wrapper instead, removing the
+        // Pressable; Radix dismissal then works. Native keeps the Pressable,
+        // which is what implements closeOnPress there.
+        asChild={Platform.OS === "web"}
+        style={StyleSheet.flatten([
+          StyleSheet.absoluteFill,
+          { backgroundColor: theme.colors.overlay },
+          Platform.OS === "web" && { zIndex: 50 },
+        ])}
+      >
+        <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
+          <DialogKeyboardAvoidance>
+            <View style={overlayStyles.centeredContainer}>
+              <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
+                <TextColorContext.Provider value={textColor}>
+                  <TextClassContext.Provider value="">
+                    <DialogPrimitive.Content
+                      style={StyleSheet.flatten([
+                        {
+                          backgroundColor: theme.colors.popover,
+                          borderColor: theme.colors.border,
+                          borderWidth: 1,
+                          borderRadius: spacing.radiusLg,
+                          padding: spacing.dialogPadding,
+                          gap: spacing.md,
+                          width: "100%",
+                          ...getShadowStyle("soft"),
+                        },
+                        style,
+                      ])}
+                      {...props}
+                    >
+                      {children}
+                    </DialogPrimitive.Content>
+                  </TextClassContext.Provider>
+                </TextColorContext.Provider>
+              </AnimatedView>
+            </View>
+          </DialogKeyboardAvoidance>
+        </AnimatedView>
+      </DialogPrimitive.Overlay>
+    </DialogPresentation>
   );
 }
 
@@ -316,7 +346,7 @@ function AlertDialogContent({
   ...props
 }: AlertDialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
-  const { onOpenChange } = AlertDialogPrimitive.useRootContext();
+  const { open, onOpenChange } = AlertDialogPrimitive.useRootContext();
   const textColor = getContrastingColor(
     theme.colors.popover,
     palette.white,
@@ -324,48 +354,51 @@ function AlertDialogContent({
   );
 
   return (
-    <AlertDialogPrimitive.Portal hostName={portalHost}>
-      <DialogPresentation onRequestClose={() => onOpenChange(false)}>
-        <AlertDialogPrimitive.Overlay
-          style={StyleSheet.flatten([
-            StyleSheet.absoluteFill,
-            { backgroundColor: theme.colors.overlay },
-            Platform.OS === "web" && { zIndex: 52 },
-          ])}
-        >
-          <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
-            <DialogKeyboardAvoidance>
-              <View style={overlayStyles.centeredContainer}>
-                <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
-                  <TextColorContext.Provider value={textColor}>
-                    <TextClassContext.Provider value="">
-                      <AlertDialogPrimitive.Content
-                        style={StyleSheet.flatten([
-                          {
-                            backgroundColor: theme.colors.popover,
-                            borderColor: theme.colors.border,
-                            borderWidth: 1,
-                            borderRadius: spacing.radiusLg,
-                            padding: spacing.dialogPadding,
-                            gap: spacing.md,
-                            width: "100%",
-                            ...getShadowStyle("soft"),
-                          },
-                          style,
-                        ])}
-                        {...props}
-                      >
-                        {children}
-                      </AlertDialogPrimitive.Content>
-                    </TextClassContext.Provider>
-                  </TextColorContext.Provider>
-                </AnimatedView>
-              </View>
-            </DialogKeyboardAvoidance>
-          </AnimatedView>
-        </AlertDialogPrimitive.Overlay>
-      </DialogPresentation>
-    </AlertDialogPrimitive.Portal>
+    <DialogPresentation
+      Portal={AlertDialogPrimitive.Portal}
+      open={open}
+      portalHost={portalHost}
+      onRequestClose={() => onOpenChange(false)}
+    >
+      <AlertDialogPrimitive.Overlay
+        style={StyleSheet.flatten([
+          StyleSheet.absoluteFill,
+          { backgroundColor: theme.colors.overlay },
+          Platform.OS === "web" && { zIndex: 52 },
+        ])}
+      >
+        <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
+          <DialogKeyboardAvoidance>
+            <View style={overlayStyles.centeredContainer}>
+              <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
+                <TextColorContext.Provider value={textColor}>
+                  <TextClassContext.Provider value="">
+                    <AlertDialogPrimitive.Content
+                      style={StyleSheet.flatten([
+                        {
+                          backgroundColor: theme.colors.popover,
+                          borderColor: theme.colors.border,
+                          borderWidth: 1,
+                          borderRadius: spacing.radiusLg,
+                          padding: spacing.dialogPadding,
+                          gap: spacing.md,
+                          width: "100%",
+                          ...getShadowStyle("soft"),
+                        },
+                        style,
+                      ])}
+                      {...props}
+                    >
+                      {children}
+                    </AlertDialogPrimitive.Content>
+                  </TextClassContext.Provider>
+                </TextColorContext.Provider>
+              </AnimatedView>
+            </View>
+          </DialogKeyboardAvoidance>
+        </AnimatedView>
+      </AlertDialogPrimitive.Overlay>
+    </DialogPresentation>
   );
 }
 
