@@ -41,6 +41,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `@mrmeg/expo-ui/lib` is the same guard for app-owned surfaces; RN's
   `Pressable` already pins itself, so `Pressable`-based controls need nothing.
 
+- **`BottomSheet` names the ancestor `ScrollView` that swallows the first tap
+  on a sheet control while a sheet field is focused (Android).** Sheet content
+  is drawn in the Material dialog window but stays in the screen's React tree,
+  and React Native's responder negotiation walks that tree: a `ScrollView`
+  around the `BottomSheet` on the default `keyboardShouldPersistTaps="never"`
+  claims a tap on `Footer` (or any sheet control) in the capture phase once a
+  field is focused — RN's `Keyboard` reports the sheet's IME from the activity
+  root — and blurs the field on release, so the keyboard closes and `onPress`
+  never runs (Pixel_10 / API 36, `@expo/ui` 58.0.2: 0 of 3 Footer taps fired
+  inside a default `ScrollView`, 3 of 3 inside `keyboardShouldPersistTaps=
+  "always"` or a plain `View`; `Body`'s own `always` covers only ScrollViews
+  inside the sheet). Nothing inside the tree can preempt a capture-phase claim,
+  so `BottomSheet.Content` now warns once in development on Android when a
+  touch starts on its column without having reached the column's own capture
+  handler while a package `TextInput` holds focus — the exact signature of that
+  claim — and the docs state the remedy: `keyboardShouldPersistTaps="always"`
+  (or `"handled"`) on scroll views that contain a sheet, or `DismissKeyboard`,
+  which already sets it. The tap-away boundary itself is unchanged; iOS and web
+  are untouched.
+
 ## [0.27.0]
 
 ### Changed

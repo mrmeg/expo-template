@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
-import { BottomSheet } from "../BottomSheet";
+import { BottomSheet, bottomSheetAncestorClaimWarning } from "../BottomSheet";
+import { resetAncestorClaimWarningForTests } from "../keyboardDismiss";
 import {
   clearKeyboardFocusedInput,
   hasKeyboardFocusedInput,
@@ -637,5 +638,109 @@ describe("BottomSheet.Content host floor warning", () => {
     await renderSheet();
 
     expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+describe("BottomSheet.Content ancestor claim diagnostic", () => {
+  // Sheet content is drawn in the Material dialog window but stays in the
+  // screen's React tree, so an ancestor ScrollView on RN's default
+  // `keyboardShouldPersistTaps="never"` claims a Footer tap in the capture phase
+  // once a sheet field is focused and blurs the field on release (Pixel_10 /
+  // API 36: 0 of 3 taps fired inside a default ScrollView, 3 of 3 inside
+  // `always` or a plain View). The column cannot preempt that claim; it names it
+  // once, in dev, on Android, from a touch start that no capture reached.
+  const token = {};
+  let warn: jest.SpyInstance;
+
+  beforeEach(() => {
+    resetAncestorClaimWarningForTests();
+    warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    keyboardControllerMock.__setKeyboardState({ isVisible: true, target: 12 });
+  });
+
+  afterEach(() => {
+    warn.mockRestore();
+    clearKeyboardFocusedInput(token);
+    keyboardControllerMock.__setKeyboardState({ isVisible: false, target: -1 });
+    resetAncestorClaimWarningForTests();
+  });
+
+  async function setup(os: string) {
+    const blur = jest.fn();
+    setKeyboardFocusedInput(token, blur);
+    const onPress = jest.fn();
+    await withPlatform(os, async () => {
+      await render(
+        <BottomSheet open snapPoints={["60%"]}>
+          <BottomSheet.Content testID="sheet-column">
+            <BottomSheet.Body>
+              <Text>Body</Text>
+            </BottomSheet.Body>
+            <BottomSheet.Footer>
+              <Pressable testID="footer-control" onPress={onPress}>
+                <Text>Submit</Text>
+              </Pressable>
+            </BottomSheet.Footer>
+          </BottomSheet.Content>
+        </BottomSheet>
+      );
+    });
+    return { blur, onPress, column: screen.getByTestId("sheet-column") as unknown as Handlers };
+  }
+
+  it("warns once on Android when a touch starts on the column without reaching its capture handler while a field is focused, and leaves the boundary alone", async () => {
+    const { column, blur } = await setup("android");
+
+    // An ancestor ScrollView claimed in capture: neither the column's capture
+    // handler nor any bubble negotiation runs; only the plain touch events do.
+    const swallowed = touch();
+    column.props.onTouchStart(swallowed);
+    column.props.onTouchEnd(touch());
+    column.props.onTouchStart(touch());
+    column.props.onTouchEnd(touch());
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(bottomSheetAncestorClaimWarning);
+    expect(bottomSheetAncestorClaimWarning).toContain('keyboardShouldPersistTaps="always"');
+    // The boundary never armed (it was not asked), so it did not dismiss either;
+    // the ancestor's own release handler is what blurred the field on device.
+    expect(blur).not.toHaveBeenCalled();
+    expect(hasKeyboardFocusedInput()).toBe(true);
+  });
+
+  it("stays silent on Android for a tap that reached the column, whether a child or dead space took it", async () => {
+    const { column, blur, onPress } = await setup("android");
+
+    // Footer control: capture reaches the column, the Pressable claims in bubble.
+    const claimed = touch();
+    expect(column.props.onStartShouldSetResponderCapture(claimed)).toBe(false);
+    column.props.onTouchStart(claimed);
+    await fireEvent.press(screen.getByTestId("footer-control"));
+    column.props.onTouchEnd(touch());
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(blur).not.toHaveBeenCalled();
+
+    // Dead space: capture reaches the column, nobody claims, boundary dismisses.
+    const dead = touch();
+    expect(column.props.onStartShouldSetResponderCapture(dead)).toBe(false);
+    expect(column.props.onStartShouldSetResponder(dead)).toBe(false);
+    column.props.onTouchStart(dead);
+    column.props.onTouchEnd(touch());
+    expect(blur).toHaveBeenCalledTimes(1);
+
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("adds no capture handler and never warns on iOS", async () => {
+    const { column, blur } = await setup("ios");
+
+    expect(column.props.onStartShouldSetResponderCapture).toBeUndefined();
+    const start = touch();
+    column.props.onTouchStart(start);
+    column.props.onTouchEnd(touch());
+
+    expect(warn).not.toHaveBeenCalled();
+    // The boundary itself is unchanged on iOS: an unarmed start never dismisses.
+    expect(blur).not.toHaveBeenCalled();
   });
 });

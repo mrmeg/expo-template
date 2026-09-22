@@ -95,8 +95,15 @@ dev on Android, and the fix is `npx expo install --fix` plus a rebuild, never
 padding in app code. Do not nest a `KeyboardAvoidingView` inside a
 sheet. `BottomSheet.Content` mounts the tap-away keyboard-dismiss boundary on
 its column, and `BottomSheet.Body` sets `keyboardShouldPersistTaps="always"` on
-its ScrollView so that boundary owns dismissal; do not pass `never`. `Slider`
-and `SegmentedControl` are also `@expo/ui`-backed.
+its ScrollView so that boundary owns dismissal; do not pass `never`. Sheet
+content stays in the screen's React tree although it is drawn in another
+window, so a ScrollView *around* a `BottomSheet` on the default
+`keyboardShouldPersistTaps="never"` claims the first tap on any sheet control
+(`Footer` included) while a sheet field is focused and blurs the field instead:
+give scroll views that contain a sheet `keyboardShouldPersistTaps="always"` (or
+`"handled"`), or use `DismissKeyboard`; the sheet warns once in dev on Android
+when it sees such a tap. `Slider` and `SegmentedControl` are also
+`@expo/ui`-backed.
 
 `BottomSheet.Content` themes the native sheet surface with the card color. Pass
 `backgroundStyle={{ backgroundColor: "transparent" }}`, plus a `style` clearing
