@@ -9,6 +9,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **`StyledText` is non-selectable by default on Android.** RN implements
+  `selectable` with `TextView.setTextIsSelectable(true)`, which makes the label
+  focusable-in-touch-mode, so a tap on any default `StyledText` next to a
+  focused `TextInput` moved view focus to the label and hid the keyboard
+  (tractor-tools-direct #19, mindmap #38 worked around it per label). The
+  Android default is now `false`; pass `selectable` to opt copyable content in.
+  iOS and web keep `true`, an explicit `selectable` prop still wins everywhere,
+  and `TextSelectabilityContext` still overrides the platform default. Consumers
+  can drop `selectable={false}` added only to keep the Android keyboard up;
+  keeping it on control chrome is harmless and still recommended for iOS/web.
 - **`BottomSheet.Content avoidKeyboard` is documented as platform-owned, with
   the iOS behavior verified on device.** The prop stays accepted-and-ignored,
   like `swipeEnabled` and `dismissKeyboardOnDrag`. On iOS (iPhone 17 Pro, iOS
