@@ -5,8 +5,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **`BottomSheet.Content avoidKeyboard` now has effect on iOS.** Default
+  `true`; pass `false` to opt out. The content column pads itself by the
+  measured part of the keyboard that overlaps it (RN `Keyboard`
+  `keyboardDidChangeFrame` + `measureInWindow` inside the sheet's own window,
+  the same computation RN's `KeyboardAvoidingView` uses), net of the
+  home-indicator inset `Footer` / `Body` already pad, so the inset never stacks
+  on top of native avoidance. `swipeEnabled` and `dismissKeyboardOnDrag` remain
+  accepted-and-ignored.
+
 ### Fixed
 
+- **Sheet footers and body tails no longer sit under the iOS keyboard** where
+  the SwiftUI host is not shrunk for it (`@expo/ui`'s community sheet forwards
+  no keyboard behavior to SwiftUI, and the hosted RN column is exactly as tall
+  as the host). With a field focused, `BottomSheet.Footer` and the last rows of
+  `BottomSheet.Body` stay above the keyboard; the inset is 0 whenever the column
+  bottom already clears the keyboard, so sheets that were already fine are not
+  lifted twice. Android keyboard avoidance is Material3's `ModalBottomSheet`'s:
+  no JS keyboard signal exists inside the Compose dialog window (RN reads IME
+  insets from the main root view, and keyboard-controller watches only the main
+  window and RN `Modal` dialogs), so the package adds no Android inset.
 - **`BottomSheet.Body` no longer swallows the first tap on its controls while a
   sheet field is focused on iOS.** `Body`'s `ScrollView` now sets
   `keyboardShouldPersistTaps="always"` (before `{...props}`, so an explicit

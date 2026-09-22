@@ -1,6 +1,6 @@
 import React from "react";
-import { Dimensions, Platform, Pressable, StyleSheet, Text } from "react-native";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { Dimensions, Keyboard, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
 import { BottomSheet } from "../BottomSheet";
 import {
@@ -466,6 +466,98 @@ describe("BottomSheet.Content column height", () => {
       const style = await columnStyle(["55%"]);
       expect(style.flex).toBe(1);
       expect(style).not.toHaveProperty("maxHeight");
+    });
+  });
+});
+
+describe("BottomSheet.Content keyboard inset", () => {
+  const measureInWindow = (View.prototype as unknown as { measureInWindow: jest.Mock })
+    .measureInWindow;
+  let addListener: jest.SpyInstance;
+
+  function listenerFor(event: string): (payload?: unknown) => void {
+    const call = addListener.mock.calls.find(([name]) => name === event);
+    if (!call) throw new Error(`no ${event} listener`);
+    return call[1] as (payload?: unknown) => void;
+  }
+
+  function columnStyle() {
+    return StyleSheet.flatten(screen.getByTestId("sheet-column").props.style) as Record<
+      string,
+      unknown
+    >;
+  }
+
+  beforeEach(() => {
+    addListener = jest
+      .spyOn(Keyboard, "addListener")
+      .mockImplementation(() => ({ remove: jest.fn() }) as never);
+    // Column at y=300, 500 tall → bottom 800 in the sheet window.
+    measureInWindow.mockImplementation((cb: (...args: number[]) => void) => cb(0, 300, 390, 500));
+  });
+
+  afterEach(() => {
+    addListener.mockRestore();
+    measureInWindow.mockReset();
+  });
+
+  it("subscribes to keyboard frame events by default on iOS and pads the column by the overlap", async () => {
+    await render(
+      <BottomSheet open snapPoints={["55%"]}>
+        <BottomSheet.Content testID="sheet-column">
+          <BottomSheet.Body>
+            <Text>Body</Text>
+          </BottomSheet.Body>
+          <BottomSheet.Footer>
+            <Text>Footer</Text>
+          </BottomSheet.Footer>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+
+    expect(addListener).toHaveBeenCalledWith("keyboardDidChangeFrame", expect.any(Function));
+    expect(addListener).toHaveBeenCalledWith("keyboardDidHide", expect.any(Function));
+    expect(columnStyle()).not.toHaveProperty("paddingBottom");
+
+    await act(async () => {
+      listenerFor("keyboardDidChangeFrame")({ endCoordinates: { screenY: 600 } });
+    });
+
+    // Sheet insets read 0 under jest (no SafeAreaProvider, no initial metrics),
+    // so nothing is absorbed: 800 - 600 = 200.
+    expect(columnStyle().paddingBottom).toBe(200);
+
+    await act(async () => {
+      listenerFor("keyboardDidHide")();
+    });
+    expect(columnStyle()).not.toHaveProperty("paddingBottom");
+  });
+
+  it("subscribes to nothing with avoidKeyboard={false}", async () => {
+    await render(
+      <BottomSheet open snapPoints={["55%"]}>
+        <BottomSheet.Content testID="sheet-column" avoidKeyboard={false}>
+          <Text>Sheet content</Text>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+
+    expect(addListener).not.toHaveBeenCalled();
+    expect(columnStyle()).not.toHaveProperty("paddingBottom");
+  });
+
+  it("adds no paddingBottom on Android, where Material3 owns avoidance", async () => {
+    await withPlatform("android", async () => {
+      await render(
+        <BottomSheet open snapPoints={["55%"]}>
+          <BottomSheet.Content testID="sheet-column">
+            <Text>Sheet content</Text>
+          </BottomSheet.Content>
+        </BottomSheet>
+      );
+
+      expect(addListener).not.toHaveBeenCalled();
+      expect(columnStyle()).not.toHaveProperty("paddingBottom");
     });
   });
 });

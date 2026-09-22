@@ -20,6 +20,7 @@ import { useScalePress } from "../hooks/useScalePress";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { Icon } from "./Icon";
 import { useKeyboardDismissResponder } from "./keyboardDismiss";
+import { useSheetKeyboardInset } from "./sheetKeyboardInset";
 
 /**
  * BottomSheet — a sliding bottom sheet with a compound API, backed by the
@@ -31,16 +32,21 @@ import { useKeyboardDismissResponder } from "./keyboardDismiss";
  *
  * The compound surface (Trigger / Content / Handle / Header / Body / Footer /
  * Close), controlled + uncontrolled state, and theming match a hand-rolled
- * sheet, but the platform owns gestures and keyboard avoidance — so there's no
- * PanResponder, snap-physics, or keyboard lift-and-shrink code to maintain.
+ * sheet, but the platform owns gestures — so there's no PanResponder or
+ * snap-physics code to maintain. Keyboard avoidance is shared: on iOS the
+ * `Content` column pads itself by the measured part of the keyboard that
+ * overlaps it (`avoidKeyboard`, default true; see `sheetKeyboardInset.ts`),
+ * which is a no-op when SwiftUI already shrank the hosted content; on Android
+ * Material3's `ModalBottomSheet` owns it (no JS keyboard signal exists inside
+ * the Compose dialog window); web has none.
  *
  * Platform-owned behaviors (props accepted for ergonomics, but the platform
  * decides):
  *   - `.Handle` replaces the native drag indicator with a pressable equivalent.
  *     Pressing it walks through the configured snap points, reversing direction
  *     at either end. Dragging the sheet continues to use the platform gesture.
- *   - `swipeEnabled` / `avoidKeyboard` / `dismissKeyboardOnDrag` are accepted
- *     for call-site ergonomics but have no effect — the platform handles them.
+ *   - `swipeEnabled` / `dismissKeyboardOnDrag` are accepted for call-site
+ *     ergonomics but have no effect — the platform handles them.
  *   - Sheet *chrome* (corner radius, system background, safe area) is the
  *     platform's on native; theming reaches the content + background color.
  *   - On Android only two snap states exist (partial / expanded); extra snap
@@ -149,7 +155,13 @@ interface BottomSheetTriggerProps {
 interface BottomSheetContentProps extends ViewProps {
   /** Accepted for call-site ergonomics; ignored (platform owns gestures). */
   swipeEnabled?: boolean;
-  /** Accepted for call-site ergonomics; ignored (platform owns keyboard avoidance). */
+  /**
+   * Default `true`. iOS: pads the content column by the measured part of the
+   * keyboard that overlaps it, so `Footer` and the tail of `Body` stay above
+   * the keyboard; no-op when the native sheet already shrinks its content.
+   * Android: Material3's `ModalBottomSheet` owns it. Web: none. Pass `false`
+   * to opt out of the iOS inset.
+   */
   avoidKeyboard?: boolean;
   /** Accepted for call-site ergonomics; ignored (platform owns keyboard). */
   dismissKeyboardOnDrag?: boolean;
@@ -527,8 +539,8 @@ function BottomSheetTrigger({ asChild, children, style: styleOverride }: BottomS
 function BottomSheetContent({
   // Accepted-but-ignored ergonomics props (platform owns these behaviors):
   swipeEnabled: _swipeEnabled,
-  avoidKeyboard: _avoidKeyboard,
   dismissKeyboardOnDrag: _dismissKeyboardOnDrag,
+  avoidKeyboard = true,
   backgroundStyle: backgroundStyleOverride,
   style: styleOverride,
   testID,
@@ -554,6 +566,17 @@ function BottomSheetContent({
   // dead-space tap dismisses on release only, through the registered field's
   // own window-independent blur handle.
   const dismissResponderProps = useKeyboardDismissResponder();
+
+  // iOS keyboard inset for the column (see sheetKeyboardInset.ts). `Footer` /
+  // `Body` already pad the home-indicator inset, so it is absorbed into the
+  // clearance rather than stacked above the keyboard. Inert off iOS and when
+  // `avoidKeyboard={false}`.
+  const sheetInsets = useSheetInsets();
+  const {
+    columnRef,
+    onLayout: onColumnLayout,
+    paddingBottom: keyboardPaddingBottom,
+  } = useSheetKeyboardInset({ enabled: avoidKeyboard, absorbedInset: sheetInsets.bottom });
 
   // Boolean open → native imperative index. The root resets snapIndex to the
   // highest point while closed; -1 keeps the native sheet closed.
@@ -618,7 +641,9 @@ function BottomSheetContent({
       <TextColorContext.Provider value={theme.colors.foreground}>
         <TextClassContext.Provider value="">
           <View
+            ref={columnRef}
             testID={testID}
+            onLayout={onColumnLayout}
             style={[
               {
                 flex: 1,
@@ -628,6 +653,9 @@ function BottomSheetContent({
               },
               Platform.OS !== "android" && { maxHeight: detentHeight },
               styleOverride,
+              // Measured keyboard overlap wins over a consumer paddingBottom so
+              // the footer stays reachable; absent when there is no overlap.
+              keyboardPaddingBottom > 0 && { paddingBottom: keyboardPaddingBottom },
             ]}
             {...dismissResponderProps}
           >

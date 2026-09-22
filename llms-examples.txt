@@ -157,6 +157,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/keyboardFocusRegistry.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/keyboardFocusRegistry.ts
 - packages/ui/src/components/nativeTextField.android.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeTextField.android.tsx
 - packages/ui/src/components/nativeTextField.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeTextField.tsx
+- packages/ui/src/components/sheetKeyboardInset.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/sheetKeyboardInset.ts
 
 ## Form Wrappers (`client/lib/form/`)
 
