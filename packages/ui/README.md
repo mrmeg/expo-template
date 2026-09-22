@@ -314,12 +314,17 @@ import { BodyText, CaptionText, HeadingText, StyledText } from "@mrmeg/expo-ui/c
 - `fontWeight`: `light`, `regular`, `medium`, `semibold`, `bold`
 - `variant`: `sansSerif`, `serif`, `mono`
 - `align`, `text`, `tx`, `txOptions`
-- `selectable`: defaults to `true`; package controls disable it for labels and
-  interactive chrome where accidental drag selection would feel broken.
+- `selectable`: defaults to `true` on iOS and web and to `false` on Android
+  (0.27.0), where a selectable `Text` is focusable and takes focus and the IME
+  from an active input. Opt copyable content in per element with `selectable`
+  (codes, addresses, chat bubbles). Package controls disable it on every
+  platform for labels and interactive chrome where accidental drag selection
+  would feel broken.
 
-For app-owned `Pressable` labels, explicitly set `selectable={false}` on the
-nested `StyledText`. On Android selectable label text can take focus and the IME
-connection from an active input. Preserve selection for ordinary readable text.
+For app-owned `Pressable` labels, still set `selectable={false}` on the nested
+`StyledText` so iOS and web show no selection cursor on control chrome. Ordinary
+readable text keeps selection on iOS and web; on Android it selects only when
+opted in.
 
 Aliases: `DisplayText`, `TitleText`, `HeadingText`, `SubheadingText`,
 `BodyText`, `CaptionText`, `LabelText`, `EyebrowText`, `MonoText` (code, IDs,

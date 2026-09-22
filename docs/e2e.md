@@ -158,7 +158,9 @@ at 300 and 420 dpi:
   only covers iOS; Android needs its explicit scroll-begin handler.
 - Verify field-to-field handoff, long-press selection, and the showcase resend
   callback while its code field remains focused. Control labels are
-  nonselectable; ordinary content and input text remain selectable.
+  nonselectable; ordinary content and input text remain selectable (that run
+  predates `@mrmeg/expo-ui` 0.27.0; on Android `StyledText` is now
+  non-selectable by default and only opted-in text selects).
 
 All of these cases passed on that emulator. This does not replace a Camera App
 SDK 57 device check after consuming the release and porting the template's

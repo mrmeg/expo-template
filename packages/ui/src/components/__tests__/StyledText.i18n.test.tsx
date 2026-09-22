@@ -47,7 +47,7 @@ describe("StyledText i18n adapter", () => {
     expect(screen.getByText("Plain text")).toBeTruthy();
   });
 
-  it("keeps standalone text selectable by default", async () => {
+  it("keeps standalone text selectable by default on iOS", async () => {
     await render(<StyledText>Selectable copy</StyledText>);
 
     const text = screen.getByText("Selectable copy");
