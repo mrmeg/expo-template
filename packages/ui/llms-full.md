@@ -103,7 +103,7 @@ before creating a new app-local primitive.
 | `AnimatedView` | Entrance and visibility animation | Keep simple reveal effects in this wrapper. |
 | `Avatar`, `AvatarGroup` | Profile images with initials/icon fallback | Pass both `source` and `name`; set `size`/`shape` on the group, not per child. |
 | `Badge` | Short status labels | Prefer over custom pill views. |
-| `BottomSheet` | Mobile-first modal sheets | Requires root `UIProvider`. Native sheet via `@expo/ui`; `swipeEnabled` and `dismissKeyboardOnDrag` are accepted but ignored; `avoidKeyboard` (default `true`) pads the iOS content column by the measured keyboard overlap so `Footer` / `Body` stay above the keyboard. |
+| `BottomSheet` | Mobile-first modal sheets | Requires root `UIProvider`. Native sheet via `@expo/ui`; `swipeEnabled`, `avoidKeyboard`, `dismissKeyboardOnDrag` are accepted but ignored (the iOS sheet presentation and Android Material3 keep content above the keyboard; never nest a `KeyboardAvoidingView` in a sheet). |
 | `Button` | Commands and CTAs | Use `preset`, not `variant`; heights are 28/32/40. |
 | `Card` | Individual framed content groups | Do not wrap whole page sections in cards. |
 | `Carousel` | Small known set of horizontally snapping slides | Renders every child (no virtualization); fractional `itemWidth` measures the viewport until first layout. |

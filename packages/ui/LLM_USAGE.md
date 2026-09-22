@@ -83,13 +83,12 @@ call `dismissKeyboard()` explicitly.
 
 `BottomSheet` renders the platform's native sheet through `@expo/ui` (iOS
 SwiftUI `.sheet()`, Android Material3 `ModalBottomSheet`, web `vaul`). The
-platform owns gestures: `swipeEnabled` and `dismissKeyboardOnDrag` are accepted
-for call-site ergonomics but have no effect. `BottomSheet.Content avoidKeyboard`
-(default `true`) pads the iOS content column by the measured keyboard overlap so
-`Footer` and the tail of `Body` stay above the keyboard (no-op when the native
-sheet already shrinks its content; `false` opts out); Android avoidance is
-Material3's; do not nest a `KeyboardAvoidingView` inside a sheet.
-`BottomSheet.Content` mounts the tap-away keyboard-dismiss boundary on
+platform owns gestures and keyboard avoidance: `swipeEnabled`, `avoidKeyboard`,
+and `dismissKeyboardOnDrag` are accepted for call-site ergonomics but have no
+effect. On iOS the sheet presentation lifts or shrinks the hosted content so
+`Footer` and the tail of `Body` end at the keyboard's top (device-verified);
+Android avoidance is Material3's; do not nest a `KeyboardAvoidingView` inside a
+sheet. `BottomSheet.Content` mounts the tap-away keyboard-dismiss boundary on
 its column, and `BottomSheet.Body` sets `keyboardShouldPersistTaps="always"` on
 its ScrollView so that boundary owns dismissal; do not pass `never`. `Slider`
 and `SegmentedControl` are also `@expo/ui`-backed.

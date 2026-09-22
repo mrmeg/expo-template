@@ -5,29 +5,30 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-09-22
+
 ### Changed
 
-- **`BottomSheet.Content avoidKeyboard` now has effect on iOS.** Default
-  `true`; pass `false` to opt out. The content column pads itself by the
-  measured part of the keyboard that overlaps it (RN `Keyboard`
-  `keyboardDidChangeFrame` + `measureInWindow` inside the sheet's own window,
-  the same computation RN's `KeyboardAvoidingView` uses), net of the
-  home-indicator inset `Footer` / `Body` already pad, so the inset never stacks
-  on top of native avoidance. `swipeEnabled` and `dismissKeyboardOnDrag` remain
-  accepted-and-ignored.
+- **`BottomSheet.Content avoidKeyboard` is documented as platform-owned, with
+  the iOS behavior verified on device.** The prop stays accepted-and-ignored,
+  like `swipeEnabled` and `dismissKeyboardOnDrag`. On iOS (iPhone 17 Pro, iOS
+  27, `@expo/ui` 58.0.2) UIKit's sheet presentation keeps the hosted RN column
+  above the keyboard by itself: a 45% sheet is lifted whole (its column shrinks
+  393 → 363 pt), a 92% sheet is shrunk in place (700 → 468 pt), and in both
+  cases the column's bottom edge lands at the keyboard's top, so `Footer` and
+  the tail of `Body` sit 50 pt (`spacing.md` + home-indicator inset) above the
+  keyboard and a long `Body` scrolls. The package therefore adds no inset, and
+  none could be correct from JS: `measureInWindow` inside the `layoutRoot`
+  sheet host reports host-relative coordinates (the 45% column read bottom 409
+  while sitting at screen y 546), and a window-height estimate would lift a
+  lifted sheet twice. Android: Material3's `ModalBottomSheet` owns avoidance
+  (no JS keyboard signal exists inside the Compose dialog window: RN reads IME
+  insets from the main root view, and keyboard-controller watches only the
+  main window and RN `Modal` dialogs). Web: none. Never nest a
+  `KeyboardAvoidingView` inside a sheet.
 
 ### Fixed
 
-- **Sheet footers and body tails no longer sit under the iOS keyboard** where
-  the SwiftUI host is not shrunk for it (`@expo/ui`'s community sheet forwards
-  no keyboard behavior to SwiftUI, and the hosted RN column is exactly as tall
-  as the host). With a field focused, `BottomSheet.Footer` and the last rows of
-  `BottomSheet.Body` stay above the keyboard; the inset is 0 whenever the column
-  bottom already clears the keyboard, so sheets that were already fine are not
-  lifted twice. Android keyboard avoidance is Material3's `ModalBottomSheet`'s:
-  no JS keyboard signal exists inside the Compose dialog window (RN reads IME
-  insets from the main root view, and keyboard-controller watches only the main
-  window and RN `Modal` dialogs), so the package adds no Android inset.
 - **`BottomSheet.Body` no longer swallows the first tap on its controls while a
   sheet field is focused on iOS.** `Body`'s `ScrollView` now sets
   `keyboardShouldPersistTaps="always"` (before `{...props}`, so an explicit
