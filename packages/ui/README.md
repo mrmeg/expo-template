@@ -581,9 +581,16 @@ web, where the window cannot be read during export or hydration.
   hosted content above the keyboard — a short sheet is lifted whole, a tall one
   is shrunk — so `Footer` and the tail of `Body` end at the keyboard's top with
   only their home-indicator padding as clearance (device-verified on iOS 27 with
-  `@expo/ui` 58); on Android Material3's `ModalBottomSheet` owns it (no JS
-  keyboard signal exists inside the Compose dialog window); web has none. Do not
-  wrap sheet content in another `KeyboardAvoidingView`: it would lift twice.
+  `@expo/ui` 58); on Android Material3's `ModalBottomSheet` shrinks the sheet
+  for the keyboard and `@expo/ui`'s `RNHostView` re-reports its size to the
+  React Native shadow tree, so the hosted column follows and `Footer` stays
+  above the keyboard — this needs the app built against `expo-modules-core`
+  >= 57.0.4 (expo/expo#47778; older cores dropped that size update until the
+  activity redrew, leaving `Footer` under the keyboard; no 56.x release has the
+  fix). Run `npx expo install --fix` (or `bun update expo-modules-core`) and
+  rebuild; the sheet warns once in development on Android when the native core
+  is older. Web has none. Do not wrap sheet content in another
+  `KeyboardAvoidingView`: it would lift twice.
   The sheet hosts its content in a separate
   native window outside the app's `DismissKeyboard`, so `BottomSheet.Content`
   mounts its own tap-away keyboard-dismiss boundary on the content column: it

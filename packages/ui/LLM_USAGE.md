@@ -87,7 +87,12 @@ platform owns gestures and keyboard avoidance: `swipeEnabled`, `avoidKeyboard`,
 and `dismissKeyboardOnDrag` are accepted for call-site ergonomics but have no
 effect. On iOS the sheet presentation lifts or shrinks the hosted content so
 `Footer` and the tail of `Body` end at the keyboard's top (device-verified);
-Android avoidance is Material3's; do not nest a `KeyboardAvoidingView` inside a
+on Android Material3 shrinks the sheet and `@expo/ui`'s `RNHostView` re-reports
+its size to the shadow tree, which needs the app built against
+`expo-modules-core` >= 57.0.4 (expo/expo#47778) — below that the column keeps
+its detent height and `Footer` sits under the keyboard; the sheet warns once in
+dev on Android, and the fix is `npx expo install --fix` plus a rebuild, never
+padding in app code. Do not nest a `KeyboardAvoidingView` inside a
 sheet. `BottomSheet.Content` mounts the tap-away keyboard-dismiss boundary on
 its column, and `BottomSheet.Body` sets `keyboardShouldPersistTaps="always"` on
 its ScrollView so that boundary owns dismissal; do not pass `never`. `Slider`
