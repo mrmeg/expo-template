@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/104
 ---
 
 # Dialog: `TextInput` fields inside `DialogContent` never mount on iOS
