@@ -33,7 +33,8 @@ export const MIN_EXPO_MODULES_CORE: Readonly<Omit<ExpoModulesCoreVersion, "versi
 /**
  * The native `expo-modules-core` version compiled into the running app, as the
  * core's own `CoreModule` publishes it on `globalThis.expo` (Android and iOS,
- * since SDK 50). `undefined` on web, in Jest, or when the core is not loaded.
+ * present on every Expo release the package supports, 56 through 58).
+ * `undefined` on web, in Jest, or when the core is not loaded.
  */
 export function readExpoModulesCoreVersion(): ExpoModulesCoreVersion | undefined {
   const expo = (globalThis as { expo?: { expoModulesCoreVersion?: unknown } }).expo;
