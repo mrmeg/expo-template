@@ -17,6 +17,10 @@ import {
   hasKeyboardFocusedInput,
   setKeyboardFocusedInput,
 } from "../keyboardFocusRegistry";
+import {
+  bottomSheetHostWarning,
+  resetBottomSheetHostWarningForTests,
+} from "../bottomSheetHostSupport";
 
 const keyboardControllerMock = jest.requireMock("react-native-keyboard-controller");
 
@@ -565,5 +569,73 @@ describe("BottomSheet.Content keyboard avoidance is platform-owned", () => {
       expect(addListener).not.toHaveBeenCalled();
       expect(columnStyle()).not.toHaveProperty("paddingBottom");
     });
+  });
+});
+
+describe("BottomSheet.Content host floor warning", () => {
+  // On Android the column follows the keyboard only because `RNHostView`
+  // re-reports its Compose size to the shadow tree; expo-modules-core <= 57.0.3
+  // dropped that report until the activity redrew (expo/expo#47778). The sheet
+  // names that floor once, in dev, when the app's native core is older.
+  type ExpoGlobal = { expo?: { expoModulesCoreVersion?: unknown } };
+  const originalExpo = (globalThis as ExpoGlobal).expo;
+  const staleCore = { version: "57.0.3", major: 57, minor: 0, patch: 3 };
+  let warn: jest.SpyInstance;
+
+  beforeEach(() => {
+    resetBottomSheetHostWarningForTests();
+    warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warn.mockRestore();
+    (globalThis as ExpoGlobal).expo = originalExpo;
+    resetBottomSheetHostWarningForTests();
+  });
+
+  function renderSheet() {
+    return render(
+      <BottomSheet open snapPoints={["45%"]}>
+        <BottomSheet.Content testID="sheet-column">
+          <BottomSheet.Body>
+            <Text>Body</Text>
+          </BottomSheet.Body>
+          <BottomSheet.Footer>
+            <Text>Footer</Text>
+          </BottomSheet.Footer>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+  }
+
+  it("warns once on Android when the native expo-modules-core predates 57.0.4", async () => {
+    (globalThis as ExpoGlobal).expo = { expoModulesCoreVersion: staleCore };
+    await withPlatform("android", async () => {
+      const first = await renderSheet();
+      await first.unmount();
+      await renderSheet();
+    });
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(bottomSheetHostWarning(staleCore));
+    // The column itself is untouched: no inset, no height, `flex: 1` only.
+    expect(
+      StyleSheet.flatten(screen.getByTestId("sheet-column").props.style)
+    ).not.toHaveProperty("paddingBottom");
+  });
+
+  it("does not warn on Android with a fixed core, nor on iOS with a stale one", async () => {
+    (globalThis as ExpoGlobal).expo = {
+      expoModulesCoreVersion: { version: "58.0.2", major: 58, minor: 0, patch: 2 },
+    };
+    await withPlatform("android", async () => {
+      await renderSheet();
+    });
+
+    (globalThis as ExpoGlobal).expo = { expoModulesCoreVersion: staleCore };
+    resetBottomSheetHostWarningForTests();
+    await renderSheet();
+
+    expect(warn).not.toHaveBeenCalled();
   });
 });

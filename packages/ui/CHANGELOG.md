@@ -9,6 +9,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Android `BottomSheet` names the host requirement its keyboard avoidance
+  depends on.** 0.27.0 said Material owns Android avoidance. That is true for
+  the window and, on `expo-modules-core` >= 57.0.4, for the hosted column too:
+  Material3's `ModalBottomSheet` shrinks the sheet with `imePadding()`,
+  `@expo/ui`'s `RNHostView` re-reports its Compose size to the shadow tree, and
+  the `flexGrow: 1, height: 0` column follows, so `Footer` and the tail of
+  `Body` stay above the keyboard and `Body` scrolls. `expo-modules-core`
+  <= 57.0.3 flushed that report only from a pre-draw listener on the activity
+  window, which does not draw while the sheet's own dialog window animates the
+  IME, so the column kept its detent height until the activity redrew
+  (expo/expo#47778, fixed by expo/expo#47810 in 57.0.4 and 58.0.0; no 56.x
+  release has it). That is the clipped `Footer` tractor-tools-direct #32 saw on
+  Expo 57 with core 57.0.3, and background/resume "fixing" it. The package adds
+  no inset or height of its own — nothing in JS can observe a size the shadow
+  tree never received — and instead warns once in development on Android when
+  the native core compiled into the app is older (`globalThis.expo`'s
+  `expoModulesCoreVersion`), and the docs state the floor: `npx expo install
+  --fix` (or `bun update expo-modules-core`), then rebuild. iOS and web are
+  untouched.
 - **Android state surfaces no longer re-parent their children on a
   `disabled` / `pending` / `checked` flip.** `Button` (surface and content),
   `TextInput`, `Slider`, `InputOTP` and the `Switch` labels express state as

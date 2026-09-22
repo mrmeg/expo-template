@@ -20,6 +20,7 @@ import { useScalePress } from "../hooks/useScalePress";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { Icon } from "./Icon";
 import { useKeyboardDismissResponder } from "./keyboardDismiss";
+import { warnIfBottomSheetHostDropsResize } from "./bottomSheetHostSupport";
 
 /**
  * BottomSheet — a sliding bottom sheet with a compound API, backed by the
@@ -41,8 +42,18 @@ import { useKeyboardDismissResponder } from "./keyboardDismiss";
  * nothing in JS can measure the column in screen space (`measureInWindow`
  * inside the `layoutRoot` sheet host reports host-relative coordinates), and a
  * window-height estimate would lift a lifted sheet twice. Android: Material3's
- * `ModalBottomSheet` owns it (no JS keyboard signal exists inside the Compose
- * dialog window). Web: none. Never nest a `KeyboardAvoidingView` in a sheet.
+ * `ModalBottomSheet` shrinks the sheet with `imePadding()`, `@expo/ui`'s
+ * `RNHostView` re-reports its Compose size to the shadow tree, and the
+ * `flexGrow: 1, height: 0` column the host wraps our children in follows, so
+ * `Footer` and the tail of `Body` stay above the keyboard. That report is
+ * delivered reliably only by `expo-modules-core` >= 57.0.4 (expo/expo#47778,
+ * fixed by #47810): older cores flushed it from a pre-draw listener on the
+ * activity window, which does not draw while the sheet's dialog window animates
+ * the IME, so the column kept its detent height until the activity redrew. The
+ * package warns once in dev on Android below that floor
+ * (`bottomSheetHostSupport.ts`). No JS keyboard signal exists inside the
+ * Compose dialog window, and none is needed. Web: none. Never nest a
+ * `KeyboardAvoidingView` in a sheet.
  *
  * Platform-owned behaviors (props accepted for ergonomics, but the platform
  * decides):
@@ -571,6 +582,13 @@ function BottomSheetContent({
   // own window-independent blur handle.
   const dismissResponderProps = useKeyboardDismissResponder();
 
+  // Android only, dev only, once per session: name the host floor the column's
+  // keyboard avoidance depends on when the app was built against an
+  // `expo-modules-core` that drops `RNHostView`'s size update (see the header).
+  useEffect(() => {
+    warnIfBottomSheetHostDropsResize();
+  }, []);
+
   // Boolean open → native imperative index. The root resets snapIndex to the
   // highest point while closed; -1 keeps the native sheet closed.
   const index = open ? snapIndex : -1;
@@ -587,7 +605,11 @@ function BottomSheetContent({
   // and Material's `ModalBottomSheet` ignores percentage snap points
   // (partial / expanded only) — a window-percentage cap would leave the Body
   // short of the rendered sheet with a blank strip below it. Android therefore
-  // keeps `flex:1` alone (see the content column style).
+  // keeps `flex:1` alone (see the content column style). The same measured
+  // height is how the column follows the keyboard: Material shrinks the sheet
+  // with `imePadding()` and `RNHostView` re-reports its Compose size to the
+  // shadow tree, which needs `expo-modules-core` >= 57.0.4 to always land
+  // (expo/expo#47778) — see `warnIfBottomSheetHostDropsResize` above.
   const expandedSnap = snapPoints[snapPoints.length - 1];
   const detentHeight =
     typeof expandedSnap === "number"
