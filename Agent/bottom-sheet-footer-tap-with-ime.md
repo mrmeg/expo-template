@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/103
 ---
 
 # Android `BottomSheet`: a `Footer` button must fire on the first tap while the IME is up
