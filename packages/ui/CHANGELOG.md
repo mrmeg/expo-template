@@ -39,6 +39,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`TextInput` no longer forwards the Android mount blur.** Compose reports
+  `isFocused=false` when the field is first composed and the Android field
+  forwarded it as `onBlur`, so forms validating on blur showed "required"
+  errors before the user typed anything (tractor-tools-direct #28 gated it in
+  app code). `onBlur` now fires only after the field has reported focus, and a
+  repeated blur with no focus in between is dropped too. Android only; iOS and
+  web are unchanged. Consumers can drop touched-field guards added for this.
 - **`BottomSheet.Body` no longer swallows the first tap on its controls while a
   sheet field is focused on iOS.** `Body`'s `ScrollView` now sets
   `keyboardShouldPersistTaps="always"` (before `{...props}`, so an explicit

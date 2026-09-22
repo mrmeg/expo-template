@@ -569,7 +569,10 @@ web, where the window cannot be read during export or hydration.
   `numberPassword` for numeric keyboards) in both the masked and the revealed
   eye-toggle state, with autocorrect off by default; that Android field is
   package-owned on top of `@expo/ui/jetpack-compose`'s `BasicTextField`, while
-  iOS uses `@expo/ui`'s universal field (SwiftUI `SecureField`).
+  iOS uses `@expo/ui`'s universal field (SwiftUI `SecureField`). On Android the
+  native field reports a blur when it is first composed; the package forwards
+  `onBlur` only after the field has reported focus, so blur validation never
+  flags an untouched field and app code needs no touched-fields guard.
 - `BottomSheet` renders the platform's native sheet through `@expo/ui`: iOS
   SwiftUI `.sheet()`, Android Material3 `ModalBottomSheet`, web `vaul`. The
   platform owns gestures and keyboard avoidance, so `swipeEnabled`,
