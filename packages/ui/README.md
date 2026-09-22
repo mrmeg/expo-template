@@ -558,6 +558,16 @@ web, where the window cannot be read during export or hydration.
   Native targets add computed hit slop up to 44px. Nested `StyledText` inherits
   the Button size, so use `size="sm"` for popover, tooltip, and toolbar
   triggers.
+- A plain `View` whose `opacity` or `pointerEvents` follows state (`disabled`,
+  `loading`, `checked`, `editable`) must be `collapsable={false}` on Android.
+  Fabric hoists the children of a filled or bordered View into its parent while
+  the opacity is 1 and pulls them back when it changes, and a flip racing a
+  navigation pop crashes with `addViewAt: … View already has a parent`. The
+  package pins its own surfaces (`Button`, `TextInput`, `Slider`, `InputOTP`,
+  `Switch` labels); spread `stateSurfaceProps()` from `@mrmeg/expo-ui/lib` on
+  app-owned surfaces (`<View {...stateSurfaceProps()} style={{ opacity:
+  disabled ? 0.5 : 1 }} />`). `Pressable` already pins itself. iOS and web get
+  no prop.
 - Pair a standalone `Label` with its control using two DISTINCT ids: `nativeID`
   is the label's own id, `htmlFor` is the input's id (`<Label
   nativeID="email-label" htmlFor="email-input">` + `<TextInput
