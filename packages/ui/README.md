@@ -627,6 +627,33 @@ web, where the window cannot be read during export or hydration.
   `presentationBackground`) — pass `{ backgroundColor: "transparent" }`, plus a
   `style` clearing the content column's card fill, to let custom chrome such as
   a glass backdrop show through.
+- `Dialog` and `AlertDialog` present their content through React Native's
+  `Modal` on iOS, rendered inline where the dialog sits in the tree
+  (transparent, `overFullScreen`, no animation of its own; the package's fade
+  and scale still run inside). The Modal presents a real view controller, which
+  `@expo/ui`-hosted controls need: `expo-modules-core`'s SwiftUI hosting view
+  drops its content when no `UIViewController` sits above it, so inside
+  react-native-screens' `FullWindowOverlay` — which adds its container straight
+  to the window — a package `TextInput`, `Slider` or `SegmentedControl`
+  rendered as an empty box that could not take focus (device-verified on
+  iOS 27). RN presents a `Modal` from the view controller nearest its host
+  view, so the dialog stacks above whatever screen, native stack modal or sheet
+  contains it (device-verified over a `presentation: "modal"` route);
+  `portalHost` is honored on Android and web only. `Drawer`, `Popover`,
+  `Select`, `DropdownMenu` and `Tooltip` still use that overlay on iOS, so do
+  not put `@expo/ui`-hosted controls inside them yet, and do not place a
+  `Dialog` inside their content either — it has no view controller to present
+  from there; render it at screen level and open it from the item's
+  `onPress`. The iOS Modal is outside `UIProvider`'s root
+  keyboard avoidance, so the dialog owns it there: the centered container is a
+  package `KeyboardAvoidingView` (`behavior="padding"`), the card recenters
+  above the keyboard with its fields and footer visible, and
+  `useKeyboardAvoidance()` is `true` inside dialog content. Do not wrap dialog
+  content in another `KeyboardAvoidingView`. The platform close request
+  (hardware back, TV menu) routes to the root's `onOpenChange(false)`. Android
+  and web render dialog content inline into the portal host, which sits
+  outside the root avoidance, so an Android dialog does not avoid the keyboard
+  yet.
 - `Carousel` renders every child (no virtualization), so slides survive into
   the exported HTML shell and the first client frame; use `FlatList` for large
   or unbounded data. An `itemWidth` below 1 (default `0.85`) is a fraction of

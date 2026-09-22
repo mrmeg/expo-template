@@ -110,6 +110,23 @@ when it sees such a tap. `Slider` and `SegmentedControl` are also
 the content column's card fill, when custom chrome such as a glass backdrop must
 show through.
 
+`Dialog` and `AlertDialog` present their content through React Native's `Modal`
+on iOS, rendered inline where the dialog sits (transparent, `overFullScreen`,
+unanimated; the package fade/scale run inside), so it stacks above whatever
+screen, native stack modal or sheet contains it; `portalHost` is honored on
+Android and web only. `@expo/ui`-hosted controls (`TextInput`, `Slider`,
+`SegmentedControl`) need a view controller above them and render as empty,
+unfocusable boxes inside react-native-screens' `FullWindowOverlay`, which
+`Drawer`, `Popover`, `Select`, `DropdownMenu` and `Tooltip` still use on iOS —
+keep hosted controls out of those, and do not place a `Dialog` inside their
+content (no view controller to present from; render it at screen level and open
+it from the item's `onPress`). The dialog owns keyboard avoidance inside its Modal (package
+`KeyboardAvoidingView`, `behavior="padding"`; the card recenters above the
+keyboard and `useKeyboardAvoidance()` is `true` in dialog content); do not wrap
+dialog content in another `KeyboardAvoidingView`. Android and web render dialog
+content inline into the portal host, outside the root avoidance, so an Android
+dialog does not avoid the keyboard yet.
+
 i18n is optional. Do not add app-level i18n setup just to use this package;
 plain children and `text` props work without `i18next` or `react-i18next`. `tx`
 props render their fallback text when provided, otherwise the key. Package-owned

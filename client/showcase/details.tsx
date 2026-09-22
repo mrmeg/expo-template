@@ -20,7 +20,23 @@ import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { BottomSheet } from "@mrmeg/expo-ui/components/BottomSheet";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@mrmeg/expo-ui/components/Card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@mrmeg/expo-ui/components/Dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@mrmeg/expo-ui/components/Dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@mrmeg/expo-ui/components/Select";
 import { StatCard } from "@mrmeg/expo-ui/components/StatCard";
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
@@ -57,6 +73,51 @@ export interface ComponentDetail {
 function SwitchVariant({ initial, disabled }: { initial: boolean; disabled?: boolean }) {
   const [checked, setChecked] = React.useState(initial);
   return <Switch checked={checked} onCheckedChange={setChecked} disabled={disabled} />;
+}
+
+/**
+ * `Dialog` with fields. Regression harness for `@expo/ui`-hosted controls
+ * inside `DialogContent` on iOS: under react-native-screens' `FullWindowOverlay`
+ * the SwiftUI field never mounted, so the odometer could not take focus.
+ */
+function DialogFormVariant() {
+  const [odometer, setOdometer] = React.useState("");
+  const [purpose, setPurpose] = React.useState("");
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button preset="outline" size="sm" text="Start trip" />
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Start trip</DialogTitle>
+          <DialogDescription>Enter the starting odometer and an optional purpose.</DialogDescription>
+        </DialogHeader>
+        <TextInput
+          label="Starting odometer"
+          required
+          inputMode="numeric"
+          placeholder="0"
+          value={odometer}
+          onChangeText={setOdometer}
+        />
+        <TextInput
+          label="Trip purpose"
+          placeholder="Client visit"
+          value={purpose}
+          onChangeText={setPurpose}
+        />
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button preset="ghost" size="sm" text="Cancel" />
+          </DialogClose>
+          <DialogClose asChild>
+            <Button preset="default" size="sm" text="Start" />
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -181,6 +242,31 @@ export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
               </DialogHeader>
             </DialogContent>
           </Dialog>
+        ),
+      },
+      { label: "form", render: () => <DialogFormVariant /> },
+      {
+        label: "alert",
+        render: () => (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button preset="destructive" size="sm" text="Delete project" />
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialog.Header>
+                <AlertDialogTitle>Delete project?</AlertDialogTitle>
+                <AlertDialogDescription>This can&apos;t be undone.</AlertDialogDescription>
+              </AlertDialog.Header>
+              <AlertDialog.Footer>
+                <AlertDialogCancel asChild>
+                  <Button preset="ghost" size="sm" text="Cancel" />
+                </AlertDialogCancel>
+                <AlertDialogAction asChild>
+                  <Button preset="destructive" size="sm" text="Delete" />
+                </AlertDialogAction>
+              </AlertDialog.Footer>
+            </AlertDialogContent>
+          </AlertDialog>
         ),
       },
     ],
