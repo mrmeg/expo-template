@@ -406,6 +406,13 @@ async function doctor(cwd, requestedSample = null) {
   const origin = resolveOrigin({ rawSettings, cwd, filename: sample || "" });
   const settings = { origin, uiSourceDir: origin.uiSourceDir || origin.path || "" };
   const design = loadDesignSystemFor(settings);
+  if (origin.skippedSources) {
+    // Informational: a `packages/ui/src` that is some other package's sources.
+    const owner = origin.skippedSources.packageName || "no named package";
+    lines.push(
+      `ok   skipped sources at ${origin.skippedSources.path}: they belong to ${owner}, not @mrmeg/expo-ui`,
+    );
+  }
   if (!design.loaded) {
     report(false, `design system: ${designSystemNotFoundMessage(settings, design)}`);
   } else {

@@ -231,8 +231,16 @@ function designSystemNotFoundMessage(settings, design) {
   }
   const uiSourceDir =
     origin.uiSourceDir || origin.path || (settings && settings.uiSourceDir) || DEFAULT_UI_SOURCE_DIR;
+  const skipped = origin.skippedSources;
+  // Sources that exist but belong to another package: say whose, or the
+  // reader will go looking for a directory that is plainly there.
+  const sources = skipped
+    ? `the sources at \`${skipped.path}\` are ${
+      skipped.packageName ? `\`${skipped.packageName}\`'s` : "not in a named package"
+    }, not @mrmeg/expo-ui's,`
+    : `no sources at \`${uiSourceDir}\``;
   return (
-    `Design-system facts were not found: no sources at \`${uiSourceDir}\` and no manifest ` +
+    `Design-system facts were not found: ${sources} and no manifest ` +
     "resolvable as `@mrmeg/expo-ui/design-system.json`. Install an @mrmeg/expo-ui release that " +
     "ships the manifest, or set `settings[\"expo-ui\"].uiSourceDir` or " +
     "`settings[\"expo-ui\"].manifestPath`."
