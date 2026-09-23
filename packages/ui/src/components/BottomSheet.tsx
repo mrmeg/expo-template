@@ -21,6 +21,7 @@ import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { Icon } from "./Icon";
 import { useAncestorClaimWarning, useKeyboardDismissResponder } from "./keyboardDismiss";
 import { warnIfBottomSheetHostDropsResize } from "./bottomSheetHostSupport";
+import { awaitDialogClose } from "./bottomSheetDismiss";
 
 /**
  * BottomSheet — a sliding bottom sheet with a compound API, backed by the
@@ -82,6 +83,18 @@ import { warnIfBottomSheetHostDropsResize } from "./bottomSheetHostSupport";
  *     observes one (`useAncestorClaimWarning`); the remedy is
  *     `keyboardShouldPersistTaps="always"` / `"handled"` on scroll views that
  *     contain a sheet, or `DismissKeyboard`, which already sets it.
+ *
+ * Dismiss completion: `onDismissed` (root prop) fires once per close after the
+ * sheet is fully gone, so the next modal (an RN `Modal`-backed `Dialog`, a
+ * native stack modal) can be presented from it without UIKit rejecting the
+ * presentation while the sheet is still animating out. iOS: `@expo/ui` raises
+ * its close callback from the native `onDismiss` event of SwiftUI
+ * `.sheet(isPresented:onDismiss:)`, which runs after the dismissal transition.
+ * Android: `@expo/ui` raises it after Material's hide animation for a swipe /
+ * back / scrim dismissal, and with the removal of the Compose sheet for a
+ * prop-driven close (which has no exit animation). Web: `@expo/ui` raises it
+ * before its exit animation, so the package waits for the HTML `<dialog>`'s
+ * `close` event instead (`bottomSheetDismiss.ts`).
  *
  * Scrollable bodies: the native sheet doesn't bound the hosted RN content to
  * the detent height, so a tall `Body` overflows and clips its footer/tail. When
@@ -146,6 +159,8 @@ interface BottomSheetContextValue {
   /** Whether a `Footer` is mounted, so `Body` can own the bottom safe-area inset when it isn't. */
   hasFooter: boolean;
   setHasFooter: (present: boolean) => void;
+  /** Called by `Content` once the native sheet has fully dismissed; invokes the root's `onDismissed`. */
+  notifyDismissed: () => void;
 }
 
 interface BottomSheetProps {
@@ -153,6 +168,20 @@ interface BottomSheetProps {
   open?: boolean;
   /** Callback when open state changes. */
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Called once per close, after the sheet has fully dismissed on every
+   * platform. Present the next modal (a `Dialog`, a native stack modal) from
+   * here rather than from `onOpenChange(false)` or a timer: on iOS the
+   * `UISheetPresentationController` is still dismissing when `onOpenChange`
+   * fires, and a `Modal` presented then is rejected ("already presenting")
+   * without retry. Detection — iOS: `@expo/ui`'s native `onDismiss` event
+   * (SwiftUI `.sheet(onDismiss:)`, after the transition). Android: `@expo/ui`'s
+   * close callback (after Material's hide animation for swipe / back / scrim; a
+   * prop-driven close removes the Compose sheet with no exit animation). Web:
+   * the HTML `<dialog>`'s `close` event, which `@expo/ui` raises when its exit
+   * animation ends.
+   */
+  onDismissed?: () => void;
   /** Initial open state for uncontrolled mode. Default: false. */
   defaultOpen?: boolean;
   /** Snap point heights (px or percentage strings). Default: ["50%"]. */
@@ -449,6 +478,7 @@ function SheetCloseButton({ style }: { style?: StyleProp<ViewStyle> }) {
 function BottomSheetRoot({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
+  onDismissed,
   defaultOpen = false,
   snapPoints = DEFAULT_SNAP_POINTS,
   closeOnBackdropPress = true,
@@ -490,6 +520,13 @@ function BottomSheetRoot({
 
   const toggle = useCallback(() => onOpenChange(!open), [onOpenChange, open]);
 
+  // Latest callback without re-creating the context value on every render.
+  const onDismissedRef = useRef(onDismissed);
+  onDismissedRef.current = onDismissed;
+  const notifyDismissed = useCallback(() => {
+    onDismissedRef.current?.();
+  }, []);
+
   const setScrollable = useCallback((scrollable: boolean) => {
     dispatch({ type: "setScrollable", scrollable });
   }, []);
@@ -518,6 +555,7 @@ function BottomSheetRoot({
       setHasHeader,
       hasFooter: state.hasFooter,
       setHasFooter,
+      notifyDismissed,
     }),
     [
       open,
@@ -534,6 +572,7 @@ function BottomSheetRoot({
       setHasHeader,
       state.hasFooter,
       setHasFooter,
+      notifyDismissed,
     ]
   );
 
@@ -588,7 +627,7 @@ function BottomSheetContent({
   testID,
   children,
 }: BottomSheetContentProps) {
-  const { open, onOpenChange, snapPoints, snapIndex, setSnapIndex, hasHeader } =
+  const { open, onOpenChange, snapPoints, snapIndex, setSnapIndex, hasHeader, notifyDismissed } =
     useBottomSheetContext();
   const { theme } = useTheme();
   const dismissDisabled = useDismissDisabled();
@@ -657,12 +696,47 @@ function BottomSheetContent({
 
   const handleChange = (newIndex: number) => {
     // Native fires onChange(-1) on dismiss (swipe / backdrop / back button).
+    // The same close also reaches `handleNativeClose`, which owns `onDismissed`.
     if (newIndex < 0) {
       if (open) onOpenChange(false);
       return;
     }
 
     setSnapIndex(newIndex);
+  };
+
+  // `onDismissed`: once per close. `@expo/ui` fires `onClose` once per close
+  // itself (post-dismissal on iOS and Android, see the header); the guard here
+  // is defensive and is re-armed when the sheet opens again. On web the close
+  // callback precedes the exit animation, so completion is the enclosing
+  // `<dialog>`'s `close` event, found from the content column's DOM node.
+  const columnRef = useRef<React.ComponentRef<typeof View>>(null);
+  const dismissedRef = useRef(false);
+  const cancelDismissWaitRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (open) dismissedRef.current = false;
+  }, [open]);
+  useEffect(
+    () => () => {
+      cancelDismissWaitRef.current?.();
+      cancelDismissWaitRef.current = null;
+    },
+    []
+  );
+
+  const handleNativeClose = () => {
+    if (open) onOpenChange(false);
+    if (dismissedRef.current) return;
+    dismissedRef.current = true;
+    if (Platform.OS !== "web") {
+      notifyDismissed();
+      return;
+    }
+    cancelDismissWaitRef.current?.();
+    cancelDismissWaitRef.current = awaitDialogClose(columnRef.current, () => {
+      cancelDismissWaitRef.current = null;
+      notifyDismissed();
+    });
   };
 
   return (
@@ -675,9 +749,7 @@ function BottomSheetContent({
       handleComponent={hasInteractiveHandle ? null : undefined}
       enablePanDownToClose={!dismissDisabled}
       onChange={handleChange}
-      onClose={() => {
-        if (open) onOpenChange(false);
-      }}
+      onClose={handleNativeClose}
       // Themes the scrim/background on web (vaul), Android (containerColor),
       // and iOS (presentationBackground). Flattened so native readers that
       // expect a plain object (not a style array) keep working.
@@ -689,6 +761,7 @@ function BottomSheetContent({
       <TextColorContext.Provider value={theme.colors.foreground}>
         <TextClassContext.Provider value="">
           <View
+            ref={columnRef}
             testID={testID}
             style={[
               // No fill of its own: the native surface (`backgroundStyle`) is

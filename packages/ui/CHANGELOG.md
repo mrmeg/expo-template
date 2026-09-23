@@ -5,6 +5,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`BottomSheet` `onDismissed`: fires once per close after the sheet has fully
+  dismissed on iOS, Android and web.** Closing a sheet and presenting a `Dialog`
+  (an RN `Modal` on iOS since 0.27.1) from the same handler failed on iOS: the
+  `UISheetPresentationController` was still dismissing when the `Modal` asked the
+  same presenter to present, UIKit rejected it ("already presenting") and RN does
+  not retry, so fieldnest #42 opened its Start Trip dialog on a 500 ms timer.
+  `onOpenChange(false)` fires when the close is requested, not when the sheet is
+  gone; `onDismissed` fires when it is. iOS: `@expo/ui` raises its close callback
+  from the native `onDismiss` event of SwiftUI `.sheet(isPresented:onDismiss:)`,
+  which runs after the dismissal transition, and the package forwards it.
+  Android: `@expo/ui` raises that callback after Material's hide animation for a
+  swipe / back / scrim dismissal, and with the removal of the Compose sheet for a
+  prop-driven close, which has no exit animation; forwarded the same way. Web:
+  `@expo/ui` raises it before its exit animation, so the package instead waits
+  for the `close` event of the HTML `<dialog>` that hosts the sheet, which
+  `@expo/ui` closes when the animation ends (at once under reduced motion). Fires
+  once per close (re-armed on reopen) and always after `onOpenChange(false)` for
+  a user dismissal. Present the next modal from `onDismissed`; drop timers.
+
 ## [0.27.1]
 
 ### Fixed

@@ -601,6 +601,18 @@ web, where the window cannot be read during export or hydration.
   rebuild; the sheet warns once in development on Android when the native core
   is older. Web has none. Do not wrap sheet content in another
   `KeyboardAvoidingView`: it would lift twice.
+  `onDismissed` (root prop) fires once per close after the sheet is fully gone;
+  present the next modal — a `Dialog` (an RN `Modal` on iOS), a native stack
+  modal — from it, not from `onOpenChange(false)` or a timer: on iOS the sheet
+  is still dismissing when `onOpenChange` fires and UIKit rejects a `Modal`
+  presented then ("already presenting") with no retry. Detection per platform:
+  iOS uses `@expo/ui`'s native `onDismiss` event, raised by SwiftUI
+  `.sheet(isPresented:onDismiss:)` after the dismissal transition; Android uses
+  `@expo/ui`'s close callback, raised after Material's hide animation for a
+  swipe / back / scrim dismissal and with the removal of the Compose sheet for a
+  prop-driven close (which has no exit animation); web derives it from the HTML
+  `<dialog>`'s `close` event, which `@expo/ui` raises when its exit animation
+  ends (immediately under reduced motion).
   The sheet hosts its content in a separate
   native window outside the app's `DismissKeyboard`, so `BottomSheet.Content`
   mounts its own tap-away keyboard-dismiss boundary on the content column: it
