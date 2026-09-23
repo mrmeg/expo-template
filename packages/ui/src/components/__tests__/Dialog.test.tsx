@@ -381,10 +381,18 @@ describe("keyboard dismiss boundary", () => {
     return { blur, onPress, boundary: boundaries[0] };
   }
 
-  it("mounts one boundary inside DialogContent that never claims the responder", async () => {
+  it("mounts one boundary on the Dialog card and keeps the primitive's claim on it", async () => {
     const { boundary } = await setup();
 
-    expect(boundary.props.onStartShouldSetResponder(touch())).toBe(false);
+    // `@rn-primitives/dialog`'s native Content claims every touch that reaches
+    // it (so the overlay Pressable's closeOnPress never fires for a tap inside
+    // the card), which ends the bubble negotiation before any ancestor is
+    // asked: a boundary on the centered container never armed (Pixel 6a,
+    // dead-space taps left the keyboard up). The boundary is the card itself
+    // and still answers true.
+    expect(boundary.props.testID).toBe("dialog-content");
+    expect(boundary.props.role).toBe("dialog");
+    expect(boundary.props.onStartShouldSetResponder(touch())).toBe(true);
     expect(screen.queryByLabelText("Dismiss keyboard")).toBeNull();
   });
 
@@ -392,7 +400,7 @@ describe("keyboard dismiss boundary", () => {
     const { boundary, blur } = await setup();
     const start = touch();
 
-    expect(boundary.props.onStartShouldSetResponder(start)).toBe(false);
+    expect(boundary.props.onStartShouldSetResponder(start)).toBe(true);
     boundary.props.onTouchStart(start);
     expect(blur).not.toHaveBeenCalled();
     expect(hasKeyboardFocusedInput()).toBe(true);
@@ -437,7 +445,7 @@ describe("keyboard dismiss boundary", () => {
 
     // The field's surface tags the touch before the boundary is asked.
     markTextInputTouchStart(start as never);
-    expect(boundary.props.onStartShouldSetResponder(start)).toBe(false);
+    expect(boundary.props.onStartShouldSetResponder(start)).toBe(true);
     boundary.props.onTouchStart(start);
     boundary.props.onTouchEnd(touch());
 
@@ -457,11 +465,14 @@ describe("keyboard dismiss boundary", () => {
     expect(blur).toHaveBeenCalledTimes(1);
   });
 
-  it("mounts the same boundary inside AlertDialogContent", async () => {
+  it("mounts the same boundary on AlertDialogContent's centered container, never claiming", async () => {
     const { boundary, blur } = await setup("alert");
     const start = touch();
 
-    boundary.props.onStartShouldSetResponder(start);
+    // The alert primitive's Content claims nothing, so the container boundary
+    // is asked for every unclaimed tap inside and around the card.
+    expect(boundary.props.testID).toBeUndefined();
+    expect(boundary.props.onStartShouldSetResponder(start)).toBe(false);
     boundary.props.onTouchStart(start);
     boundary.props.onTouchEnd(touch());
 

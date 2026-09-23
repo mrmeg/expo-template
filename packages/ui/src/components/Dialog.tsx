@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Modal, Platform, StyleSheet, View, ViewProps } from "react-native";
+import { GestureResponderEvent, Modal, Platform, StyleSheet, View, ViewProps } from "react-native";
 import * as DialogPrimitive from "@rn-primitives/dialog";
 import * as AlertDialogPrimitive from "@rn-primitives/alert-dialog";
 import { AnimatedView } from "./AnimatedView";
@@ -133,17 +133,39 @@ function DialogKeyboardAvoidance({ children }: { children: React.ReactNode }) {
  * The iOS `Modal` sits outside any app-level `DismissKeyboard`, and the
  * portal-hosted tree on Android does too, so a tap on the card's dead space
  * (padding, labels, the gap between fields and footer) left the keyboard up.
- * The centered container now carries the same boundary as `DismissKeyboard`
- * and `BottomSheet.Content` (`useKeyboardDismissResponder`): it never claims
- * the touch — `Close` / `Action` / `Cancel`, buttons and fields win the
- * negotiation and fire on the first tap — and dismisses on release of an
- * unclaimed single-finger tap within the travel slop, through the registered
- * field's blur handle with a `KeyboardController.dismiss()` fallback. It covers
- * the backdrop as well: the primitive `Overlay` still claims that tap and closes
- * the dialog while the keyboard drops with it. Inert on web (returns `{}`).
+ * The dialogs carry the same boundary as `DismissKeyboard` and
+ * `BottomSheet.Content` (`useKeyboardDismissResponder`): `Close` / `Action` /
+ * `Cancel`, buttons and fields win the negotiation and fire on the first tap,
+ * and the boundary dismisses on release of an otherwise unclaimed single-finger
+ * tap within the travel slop, through the registered field's blur handle with a
+ * `KeyboardController.dismiss()` fallback. Inert on web (returns `{}`).
+ *
+ * Where it sits differs per primitive. `@rn-primitives/dialog`'s native
+ * `Content` claims every touch that reaches it (`onStartShouldSetResponder`
+ * returning `true`), so the overlay `Pressable`'s `closeOnPress` never fires for
+ * a tap inside the card — and that claim ends the bubble negotiation before any
+ * ancestor is asked, so a boundary on the centered container was never armed
+ * for a card tap (Pixel 6a: dead-space taps left the keyboard up). `Dialog`
+ * therefore puts the boundary on the `Content` itself and keeps the claim
+ * (`claimsTouch`): the boundary arms, then answers `true` as the primitive
+ * did. `@rn-primitives/alert-dialog`'s `Content` claims nothing, so
+ * `AlertDialog` keeps the never-claiming boundary on its centered container,
+ * which also covers its backdrop (the alert overlay does not close on press).
+ * A `Dialog` backdrop tap is still the primitive `Overlay`'s: it closes the
+ * dialog and the keyboard drops with it.
  */
-function useDialogKeyboardDismissBoundary() {
-  return useKeyboardDismissResponder();
+function useDialogKeyboardDismissBoundary(claimsTouch = false) {
+  const boundary = useKeyboardDismissResponder();
+  return React.useMemo(() => {
+    if (!claimsTouch || Platform.OS === "web") return boundary;
+    return {
+      ...boundary,
+      onStartShouldSetResponder: (event: GestureResponderEvent) => {
+        boundary.onStartShouldSetResponder?.(event);
+        return true;
+      },
+    };
+  }, [boundary, claimsTouch]);
 }
 
 // ============================================================================
@@ -178,7 +200,7 @@ function DialogContent({
 }: DialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
   const { open, onOpenChange } = DialogPrimitive.useRootContext();
-  const dismissBoundaryProps = useDialogKeyboardDismissBoundary();
+  const dismissBoundaryProps = useDialogKeyboardDismissBoundary(true);
   const textColor = getContrastingColor(
     theme.colors.popover,
     palette.white,
@@ -210,7 +232,7 @@ function DialogContent({
       >
         <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
           <DialogKeyboardAvoidance>
-            <View style={overlayStyles.centeredContainer} {...dismissBoundaryProps}>
+            <View style={overlayStyles.centeredContainer}>
               <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
                 <TextColorContext.Provider value={textColor}>
                   <TextClassContext.Provider value="">
@@ -228,6 +250,7 @@ function DialogContent({
                         },
                         style,
                       ])}
+                      {...dismissBoundaryProps}
                       {...props}
                     >
                       {children}
