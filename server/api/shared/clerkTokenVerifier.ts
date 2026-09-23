@@ -12,16 +12,25 @@
 
 import type { AuthenticatedUser, TokenVerifier } from "./auth";
 
+type ClerkBackend = Pick<typeof import("@clerk/backend"), "verifyToken">;
+
 export interface ClerkTokenVerifierOptions {
   secretKey: string;
+  /**
+   * Loads `@clerk/backend`. Defaults to a lazy `import()`, so the SDK loads
+   * only once Clerk is the active provider. Tests pass the module in
+   * directly, because Jest cannot execute `import()`.
+   */
+  loadBackend?: () => Promise<ClerkBackend>;
 }
 
 export function createClerkTokenVerifier(
   options: ClerkTokenVerifierOptions,
 ): TokenVerifier {
+  const loadBackend = options.loadBackend ?? (() => import("@clerk/backend"));
   return {
     async verify(token) {
-      const { verifyToken } = await import("@clerk/backend");
+      const { verifyToken } = await loadBackend();
       const payload = await verifyToken(token, { secretKey: options.secretKey });
       return toAuthenticatedUser(payload as unknown as Record<string, unknown>);
     },
