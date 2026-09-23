@@ -32,6 +32,7 @@ import {
   resolveSsrViewportWidthForRender,
 } from "@/client/features/app/ssrViewportMetrics";
 import { AuthProviderGate } from "@/client/features/auth/provider/AuthProviderGate";
+import { registerApiTokenGetter } from "@/client/features/auth/provider/apiTokenGetter";
 import { useHasSeenOnboarding } from "@/client/features/onboarding/onboardingStore";
 
 // Surface partial-feature env config (e.g. only one Cognito var set) at
@@ -41,6 +42,10 @@ validateClientEnv();
 
 // Initialize Sentry — no-op if EXPO_PUBLIC_SENTRY_DSN is not set
 setupSentry();
+
+// Give the API client its bearer-token source before any screen can issue a
+// request (no token when auth is disabled). client/lib/api never imports auth.
+registerApiTokenGetter();
 
 function reportBoundaryError(error: Error, errorInfo: ErrorInfo) {
   captureException(error, {

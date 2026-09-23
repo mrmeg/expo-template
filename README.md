@@ -232,9 +232,11 @@ language by dropping a new bundle there and wiring it into
 
 ## API Layer
 
-`authenticatedFetch` (`client/lib/api/`) pulls a token from the
-provider-agnostic `getAuthClient()` — Cognito or Clerk per env, no token when
-auth is disabled.
+`authenticatedFetch` (`client/lib/api/`) attaches the bearer token from a
+getter the auth feature registers at startup — `registerApiTokenGetter()`,
+called at module scope in the root layout, mirroring the server's
+`setTokenVerifier()`. The API client imports no feature code; with auth
+disabled no getter is registered and requests carry no token.
 
 ```tsx
 import { api as authedApi } from "@/client/lib/api/authenticatedFetch";

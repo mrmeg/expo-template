@@ -54,7 +54,7 @@ Docs index: `AGENTS.md`. Modernization reference:
 - `client/blocks/` — Composed screen sections; see `client/blocks/README.md`
 - `client/showcase/` — Gallery registry, filters, previews, details, gallery screen bodies
 - `packages/ui/src/components/` — Design system primitives for `@mrmeg/expo-ui`
-- `client/lib/api/` — `authenticatedFetch` (provider-aware fetch helper)
+- `client/lib/api/` — `authenticatedFetch` (fetch helper; auth registers its token getter at startup)
 - `client/lib/form/` — `FormProvider`, `FormTextInput`, `FormCheckbox`, … on react-hook-form + Zod
 - `client/lib/storage/` — Cross-platform AsyncStorage wrapper
 - `server.bun.ts` — Bun production server (static compression, CORS, rate limiting, security headers)
