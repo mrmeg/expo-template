@@ -729,23 +729,28 @@ render from) is written once per page view and then once resizing settles.
   not put `@expo/ui`-hosted controls inside them yet, and do not place a
   `Dialog` inside their content either — it has no view controller to present
   from there; render it at screen level and open it from the item's
-  `onPress`. The iOS Modal is outside `UIProvider`'s root
-  keyboard avoidance, so the dialog owns it there: the centered container is a
-  package `KeyboardAvoidingView` (`behavior="padding"`), the card recenters
-  above the keyboard with its fields and footer visible, and
-  `useKeyboardAvoidance()` is `true` inside dialog content. Do not wrap dialog
-  content in another `KeyboardAvoidingView`. Dialog content also owns tap-away
-  keyboard dismissal on iOS and Android: the centered container carries the
-  same non-claiming boundary as `DismissKeyboard` and `BottomSheet.Content`, so
-  a tap on the card's dead space (padding, labels, the gap between fields and
-  footer) or on the backdrop hides the keyboard on release, while `Close`,
-  `Action`, `Cancel`, buttons and fields still fire on the first tap; no
+  `onPress`. Dialog content sits outside `UIProvider`'s root keyboard
+  avoidance on both native platforms (the iOS Modal is presented outside it;
+  the Android portal host is a sibling of it), so the dialog owns keyboard
+  avoidance on iOS and Android: the centered container is a package
+  `KeyboardAvoidingView` (`behavior="padding"`), the card recenters above the
+  keyboard with its fields and footer visible, and `useKeyboardAvoidance()` is
+  `true` inside dialog content. Do not wrap dialog content in another
+  `KeyboardAvoidingView`. Web has no software keyboard and no avoidance owner
+  (`useKeyboardAvoidance()` is `false` there). Dialog content also owns tap-away
+  keyboard dismissal on iOS and Android with the same boundary as
+  `DismissKeyboard` and `BottomSheet.Content`: `Dialog` carries it on the card
+  itself (the primitive's native content claims every touch inside the card so
+  the backdrop's close-on-press never fires there, and that claim would stop a
+  boundary on any ancestor from ever being asked), `AlertDialog` on its
+  centered container. A tap on the card's dead space (padding, labels, the gap
+  between fields and footer) hides the keyboard on release, a `Dialog` backdrop
+  tap closes the dialog and the keyboard with it, and `Close`, `Action`,
+  `Cancel`, buttons and fields still fire on the first tap; no
   `DismissKeyboard` is needed inside a dialog (inert on web, which has no
   software keyboard). The platform close request
   (hardware back, TV menu) routes to the root's `onOpenChange(false)`. Android
-  and web render dialog content inline into the portal host, which sits
-  outside the root avoidance, so an Android dialog does not avoid the keyboard
-  yet.
+  and web render dialog content inline into the portal host.
 - `Carousel` renders every child (no virtualization), so slides survive into
   the exported HTML shell and the first client frame; use `FlatList` for large
   or unbounded data. An `itemWidth` below 1 (default `0.85`) is a fraction of

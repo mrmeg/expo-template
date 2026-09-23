@@ -96,6 +96,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`Dialog` and `AlertDialog` keep their fields and footer above the keyboard
+  on Android.** 0.27.1 gave the dialog its own keyboard avoidance on iOS only:
+  Android renders dialog content through the primitive `Portal` into
+  `UIProvider`'s `PortalHost`, a sibling of the root `KeyboardAvoidingView`, so
+  nothing padded it, and with `KeyboardProvider` above `UIProvider` the RN root
+  does not shrink for the keyboard either (keyboard-controller consumes the IME
+  insets), so a dialog with a focused field stayed centered behind the keyboard.
+  `DialogKeyboardAvoidance` now wraps the centered container in the package
+  `KeyboardAvoidingView` (`behavior="padding"`, `keyboardVerticalOffset={0}`)
+  on Android as well as iOS: keyboard-controller observes the main window's IME,
+  which is where the portal-hosted dialog lives, so the container shrinks by the
+  keyboard height and the card (capped at 85% of what is left) recenters above
+  it. `useKeyboardAvoidance()` is now `true` inside dialog content on Android,
+  so a `DismissKeyboard` there adds no second layer; do not wrap dialog content
+  in another `KeyboardAvoidingView`. Device-verified on a Pixel 6a (Android 16,
+  `@expo/ui` 58.0.2, `KeyboardProvider` above `UIProvider`) with the showcase
+  `Dialog` form variant: before, the card stayed centered and its footer sat
+  under the keyboard; after, focusing either field moves the card up (title
+  from 35.5% to 16.8% of the screen height), both fields and the Cancel /
+  Start footer stay above the keyboard, typing lands, and the card recenters
+  when the keyboard hides. Cancel and Start fire on the first tap with the
+  keyboard up, the fieldless `Dialog` and an `AlertDialog` render as before,
+  and a dialog opened from a screen wrapped in `DismissKeyboard` lands at the
+  same positions (one shift, not two). Web is unchanged (no software keyboard,
+  no avoidance owner).
 - **A tap on dead space inside `Dialog` / `AlertDialog` content dismisses the
   keyboard (iOS, Android).** With a dialog field focused, tapping the card's
   padding, a label or the gap between fields and footer left the keyboard up
@@ -103,16 +128,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   sit outside any app-level `DismissKeyboard`, and the dialog mounted no
   boundary of its own. `DialogContent` and `AlertDialogContent` now carry the
   package tap-away boundary (`useKeyboardDismissResponder`, the one
-  `DismissKeyboard` and `BottomSheet.Content` use) on their centered container.
-  It never claims the touch — `Close`, `Action`, `Cancel`, buttons and fields
-  win the negotiation and fire on the first tap, and a tap that begins on a
-  package `TextInput` is left to the field — and it dismisses on release of an
-  unclaimed single-finger tap within 10 logical units through the focused
-  field's own blur handle, with a `KeyboardController.dismiss()` fallback for RN
-  or third-party inputs. A backdrop tap still closes the dialog through the
-  primitive `Overlay` and drops the keyboard with it. Nothing new is added inside
-  the card, so its `gap` layout is unchanged. Web is untouched (no software
-  keyboard; the boundary returns no handlers there).
+  `DismissKeyboard` and `BottomSheet.Content` use). `Close`, `Action`,
+  `Cancel`, buttons and fields win the negotiation and fire on the first tap, a
+  tap that begins on a package `TextInput` is left to the field, and the
+  boundary dismisses on release of an otherwise unclaimed single-finger tap
+  within 10 logical units through the focused field's own blur handle, with a
+  `KeyboardController.dismiss()` fallback for RN or third-party inputs. Where it
+  sits follows the primitive: `@rn-primitives/dialog`'s native content claims
+  every touch inside the card (so the backdrop's close-on-press never fires
+  there), and that claim ends the negotiation before any ancestor is asked — a
+  boundary on the centered container never armed for a card tap (Pixel 6a, this
+  branch's first device check: dead-space taps left the keyboard up). `Dialog`
+  therefore carries the boundary on the card itself and keeps the primitive's
+  claim; `AlertDialog`, whose primitive content claims nothing, keeps the
+  never-claiming boundary on its centered container, which also covers its
+  backdrop. A `Dialog` backdrop tap still closes the dialog through the
+  primitive `Overlay` and drops the keyboard with it. Nothing new is added
+  inside the card, so its `gap` layout is unchanged. Device-verified on the
+  Pixel 6a (Android 16, `@expo/ui` 58.0.2): with the odometer field focused, a
+  tap on the description text hid the keyboard, the dialog stayed open and the
+  card recentered; Cancel closed the dialog on the first tap with the keyboard
+  up. Web is untouched (no software keyboard; the boundary returns no handlers
+  there).
 - **`syncThemeFromEnvironment()` and `startSystemThemeListener()` are safe to
   call more than once.** Every call after the first returned the same stop
   function, so the first caller to clean up removed the OS color-scheme
