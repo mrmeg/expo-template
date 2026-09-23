@@ -37,11 +37,15 @@ export interface RevenueCatWebhookEvent {
   originalAppUserId: string | null;
   aliases: string[];
   productId: string | null;
+  /** On PRODUCT_CHANGE: the product the customer moved to. */
+  newProductId: string | null;
   entitlementIds: string[];
   /** NORMAL, TRIAL, INTRO, PROMOTIONAL. */
   periodType: string | null;
   purchasedAtMs: number | null;
   expirationAtMs: number | null;
+  /** On BILLING_ISSUE: when the store's grace period ends. */
+  gracePeriodExpirationAtMs: number | null;
   eventTimestampMs: number;
   /** SANDBOX or PRODUCTION. */
   environment: string | null;
@@ -148,10 +152,12 @@ export function parseRevenueCatWebhook(body: unknown): RevenueCatWebhookEvent | 
     originalAppUserId: asString(e.original_app_user_id),
     aliases: asStringArray(e.aliases),
     productId: asString(e.product_id),
+    newProductId: asString(e.new_product_id),
     entitlementIds,
     periodType: asString(e.period_type),
     purchasedAtMs: asNumber(e.purchased_at_ms),
     expirationAtMs: asNumber(e.expiration_at_ms),
+    gracePeriodExpirationAtMs: asNumber(e.grace_period_expiration_at_ms),
     eventTimestampMs,
     environment: asString(e.environment),
     store: asString(e.store),
@@ -178,7 +184,9 @@ export function parseRevenueCatWebhook(body: unknown): RevenueCatWebhookEvent | 
  * reducer never lets one product's event shorten access another product
  * granted:
  * - Grants set `until` to the later of the current value and the event's
- *   expiration (`LIFETIME_UNTIL` when the grant has none). Because that is
+ *   expiration. Only a NON_RENEWING_PURCHASE may lack one (a lifetime product:
+ *   `LIFETIME_UNTIL`); any other grant without `expiration_at_ms` is malformed
+ *   and skipped rather than turned into permanent access. Because the rule is
  *   monotonic, a grant delivered late (older than the last applied event) is
  *   still applied; only revocations honour the out-of-order guard.
  * - EXPIRATION sets `until` to the event's expiration (falling back to the event
@@ -209,14 +217,18 @@ export function reduceEntitlement(
   const stale = current.updatedAt !== null && event.eventTimestampMs < current.updatedAt;
 
   if (GRANT_EVENT_TYPES.has(event.type)) {
+    if (event.expirationAtMs === null && event.type !== "NON_RENEWING_PURCHASE") {
+      return { action: "skip", reason: "no-op" };
+    }
     const granted = event.expirationAtMs ?? LIFETIME_UNTIL;
     const until = current.until !== null && current.until > granted ? current.until : granted;
+    const eventProductId = event.newProductId ?? event.productId;
     return {
       action: "set",
       next: {
         until,
         // A late grant never overwrites the product the newer event recorded.
-        productId: stale ? current.productId ?? event.productId : event.productId ?? current.productId,
+        productId: stale ? current.productId ?? eventProductId : eventProductId ?? current.productId,
         updatedAt: Math.max(current.updatedAt ?? 0, event.eventTimestampMs),
       },
     };

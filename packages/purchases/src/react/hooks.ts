@@ -7,7 +7,6 @@ import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
 import {
-  isUsableSnapshot,
   resolveEntitlement,
   type EntitlementResolution,
   type EntitlementState,
@@ -21,10 +20,11 @@ export interface EntitlementView extends EntitlementResolution {
   hydrated: boolean;
   /**
    * The verdict is worth acting on: the store is scoped to the current user,
-   * hydrated, and either the device reported (a state or its absence), a usable
-   * snapshot exists, the server granted (`serverUntil > now`), the SDK is
-   * unavailable and the server has reported, or there is no user. Hold the
-   * splash screen and any automatic paywall until this is true.
+   * hydrated, and either the device reported (a state or its absence), some
+   * source already grants, the SDK is unavailable and the server has reported,
+   * or there is no user. A "not entitled" verdict is therefore never settled
+   * while the device can still answer. Hold the splash screen and any
+   * automatic paywall until this is true.
    */
   settled: boolean;
   /** A public SDK key exists for this platform. */
@@ -38,15 +38,10 @@ export interface EntitlementView extends EntitlementResolution {
   presentPaywallIfNeeded: (options?: PresentPaywallOptions) => Promise<PaywallOutcome>;
 }
 
-export function isSettled(state: EntitlementState, userId: string | null, now: number = Date.now()): boolean {
+export function isSettled(state: EntitlementState, userId: string | null, isEntitled: boolean): boolean {
   if (!state.hydrated || state.userId !== userId) return false;
   if (userId === null) return true;
-  return (
-    state.deviceReported ||
-    isUsableSnapshot(state.snapshot, now) ||
-    (state.serverUntil !== null && state.serverUntil > now) ||
-    (state.sdkStatus === "unavailable" && state.serverReported)
-  );
+  return state.deviceReported || isEntitled || (state.sdkStatus === "unavailable" && state.serverReported);
 }
 
 const MAX_TIMEOUT_MS = 2_147_483_647;
@@ -72,7 +67,7 @@ export function useEntitlement(entitlement?: string): EntitlementView {
         until: resolution.until,
         source: resolution.source,
         hydrated: state.hydrated,
-        settled: isSettled(state, userId, now),
+        settled: isSettled(state, userId, resolution.isEntitled),
         sdkStatus: state.sdkStatus,
         customer: state.customer,
       };
@@ -82,13 +77,14 @@ export function useEntitlement(entitlement?: string): EntitlementView {
   // A time-based grant (server expiry, snapshot) can lapse while the screen is
   // idle; re-render right after `until` so the verdict flips without a store
   // update.
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!view.isEntitled || view.until === null) return;
+    // `tick` is a dep so a far-off expiry re-arms after each clamped wait.
     const delay = Math.min(Math.max(view.until - Date.now(), 0) + 1, MAX_TIMEOUT_MS);
-    const id = setTimeout(() => setTick((tick) => tick + 1), delay);
+    const id = setTimeout(() => setTick((value) => value + 1), delay);
     return () => clearTimeout(id);
-  }, [view.isEntitled, view.until]);
+  }, [view.isEntitled, view.until, tick]);
 
   const restore = useCallback(() => client.restore(), [client]);
   const presentPaywall = useCallback(

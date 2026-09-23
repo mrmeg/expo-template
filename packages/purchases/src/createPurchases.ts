@@ -74,8 +74,15 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
     identityChain = next.catch(() => undefined);
     return next;
   };
-  /** App listeners and the SDK listener each is attached through, once the SDK is ready. */
-  const listeners = new Map<(state: CustomerState) => void, RcCustomerInfoListener | null>();
+  /**
+   * App listeners with the SDK listener each is attached through (once the SDK
+   * is ready) and a subscription count, so the same function subscribed twice
+   * stays attached until both handles are released.
+   */
+  const listeners = new Map<
+    (state: CustomerState) => void,
+    { sdkListener: RcCustomerInfoListener | null; count: number }
+  >();
 
   /** The SDK once a configure in flight has settled; null when none succeeded. */
   const ready = async (): Promise<PurchasesSdk | null> => {
@@ -105,10 +112,10 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
   };
 
   const attachListener = (listener: (state: CustomerState) => void): void => {
-    if (!sdk || listeners.get(listener)) return;
-    const sdkListener: RcCustomerInfoListener = (info) => listener(toCustomerState(info, config.entitlement));
-    listeners.set(listener, sdkListener);
-    sdk.addCustomerInfoUpdateListener(sdkListener);
+    const entry = listeners.get(listener);
+    if (!sdk || !entry || entry.sdkListener) return;
+    entry.sdkListener = (info) => listener(toCustomerState(info, config.entitlement));
+    sdk.addCustomerInfoUpdateListener(entry.sdkListener);
   };
 
   /**
@@ -249,15 +256,20 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
     },
 
     subscribe(listener) {
-      // A listener already registered keeps its SDK binding; re-subscribing is a no-op.
-      if (!listeners.has(listener)) {
-        listeners.set(listener, null);
-        attachListener(listener);
-      }
+      const entry = listeners.get(listener) ?? { sdkListener: null, count: 0 };
+      entry.count += 1;
+      listeners.set(listener, entry);
+      attachListener(listener);
+      let released = false;
       return () => {
-        const sdkListener = listeners.get(listener);
+        if (released) return;
+        released = true;
+        const current = listeners.get(listener);
+        if (!current) return;
+        current.count -= 1;
+        if (current.count > 0) return;
         listeners.delete(listener);
-        if (sdk && sdkListener) sdk.removeCustomerInfoUpdateListener(sdkListener);
+        if (sdk && current.sdkListener) sdk.removeCustomerInfoUpdateListener(current.sdkListener);
       };
     },
 

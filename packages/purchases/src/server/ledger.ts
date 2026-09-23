@@ -41,6 +41,14 @@ export const LEDGER_EVENT_TYPES = [
 
 export type LedgerEventType = (typeof LEDGER_EVENT_TYPES)[number];
 
+/** Rows that carry money; every other row is state-only with a null amount. */
+const MONEY_ROWS: ReadonlySet<LedgerEventType> = new Set<LedgerEventType>([
+  "purchased",
+  "renewed",
+  "trial_converted",
+  "refunded",
+]);
+
 /** Current-state status derived from one event; the consumer's `subscriptions` row. */
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled";
 
@@ -56,7 +64,12 @@ export interface LedgerRow {
   store: string | null;
   /** Lowercased period type (`normal`, `trial`, `intro`, `promotional`). */
   periodType: string | null;
-  /** RevenueCat's USD price rounded to cents; 0 for `trial_started`; null when absent. */
+  /**
+   * RevenueCat's USD price rounded to cents on the money rows (`purchased`,
+   * `renewed`, `trial_converted`, `refunded`); 0 for `trial_started`; null on
+   * state-only rows (`cancel_scheduled`, `reactivated`, …) so `SUM(amount)`
+   * counts each sale once.
+   */
   amountCents: number | null;
   currency: "usd";
   renewalNumber: number | null;
@@ -178,6 +191,10 @@ export function buildLedgerRows(event: RevenueCatWebhookEvent, options: BuildLed
   }
 
   const amountCents = toAmountCents(event.price);
+  const amountFor = (eventType: LedgerEventType): number | null => {
+    if (eventType === "trial_started") return 0;
+    return MONEY_ROWS.has(eventType) ? amountCents : null;
+  };
 
   return types.map((eventType) => ({
     userId: options.userId,
@@ -186,10 +203,10 @@ export function buildLedgerRows(event: RevenueCatWebhookEvent, options: BuildLed
     providerEventId: event.id,
     providerEventType: event.type,
     providerSubscriptionId: providerSubscriptionId(event),
-    productId: event.productId,
+    productId: eventType === "product_changed" ? event.newProductId ?? event.productId : event.productId,
     store: event.store ? event.store.toLowerCase() : null,
     periodType: event.periodType ? event.periodType.toLowerCase() : null,
-    amountCents: eventType === "trial_started" ? 0 : amountCents,
+    amountCents: amountFor(eventType),
     currency: "usd" as const,
     renewalNumber: event.renewalNumber,
     cancelReason: event.type === "CANCELLATION" ? event.cancelReason : null,

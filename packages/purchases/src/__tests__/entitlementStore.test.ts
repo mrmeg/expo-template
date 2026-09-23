@@ -170,6 +170,26 @@ describe("createEntitlementStore", () => {
     expect(JSON.parse(storage.data.get(entitlementSnapshotKey("purchases:snapshot:", "user-2"))!)).toMatchObject({ isActive: false });
   });
 
+  it("discards a storage read that started before a sign-out, even for the same user", async () => {
+    const reads: Array<(value: string | null) => void> = [];
+    const storage: EntitlementStorage = {
+      getItem: () => new Promise((resolve) => reads.push(resolve)),
+      setItem: async () => {},
+      removeItem: async () => {},
+    };
+    const store = createEntitlementStore({ storage });
+    const first = store.getState().hydrate("user-1");
+    await store.getState().clear();
+    const second = store.getState().hydrate("user-1");
+    // The pre-sign-out read resolves with the snapshot that clear() deleted.
+    reads[0](JSON.stringify(snapshot()));
+    await first;
+    expect(store.getState()).toMatchObject({ snapshot: null, hydrated: false });
+    reads[1](null);
+    await second;
+    expect(store.getState()).toMatchObject({ snapshot: null, hydrated: true, userId: "user-1" });
+  });
+
   it("marks the device as reported even when the customer state is null", () => {
     const store = createEntitlementStore();
     store.getState().applyCustomerState(null);

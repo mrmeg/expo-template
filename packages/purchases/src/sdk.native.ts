@@ -40,8 +40,3 @@ export function loadPurchasesSdk(): Promise<PurchasesSdk | null> {
 export function loadPaywallUi(): Promise<PaywallUi | null> {
   return Promise.resolve(requirePaywallUi());
 }
-
-/** Test seam kept for API symmetry with earlier builds; the module registry is the only cache. */
-export function resetSdkCache(): void {
-  // Nothing cached here.
-}

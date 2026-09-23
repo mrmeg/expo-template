@@ -45,7 +45,6 @@ jest.mock("react-native-purchases-ui", () => ({
 }));
 
 import { createPurchases } from "../createPurchases";
-import { resetSdkCache } from "../sdk";
 
 const ENTITLEMENT = "pro";
 const UNTIL = 1_800_000_000_000;
@@ -83,7 +82,6 @@ describe("createPurchases (native)", () => {
   const originalOS = Platform.OS;
 
   beforeEach(() => {
-    resetSdkCache();
     for (const fn of Object.values(mockSdk)) fn.mockReset();
     for (const fn of Object.values(mockUi)) fn.mockReset();
     mockSdk.getCustomerInfo.mockResolvedValue(customerInfo(false));
@@ -130,7 +128,6 @@ describe("createPurchases (native)", () => {
       jest.doMock("../sdk", () => ({
         loadPurchasesSdk: jest.fn(async () => null),
         loadPaywallUi: jest.fn(async () => null),
-        resetSdkCache: jest.fn(),
       }));
       const isolated = require("../createPurchases") as typeof import("../createPurchases");
       client = isolated.createPurchases({ entitlement: ENTITLEMENT, iosKey: "appl_x", onError });
@@ -333,7 +330,7 @@ describe("createPurchases (native)", () => {
     expect(mockSdk.removeCustomerInfoUpdateListener).toHaveBeenCalledWith(sdkListener);
   });
 
-  it("registers the same listener once and detaches it fully on unsubscribe", async () => {
+  it("attaches a listener subscribed twice once and keeps it until both handles are released", async () => {
     const client = makeClient();
     await client.configure("user-1");
     const listener = jest.fn();
@@ -343,9 +340,15 @@ describe("createPurchases (native)", () => {
     const sdkListener = mockSdk.addCustomerInfoUpdateListener.mock.calls[0][0] as (info: CustomerInfo) => void;
     sdkListener(customerInfo(true));
     expect(listener).toHaveBeenCalledTimes(1);
+
+    first();
+    first(); // a handle released twice counts once
+    expect(mockSdk.removeCustomerInfoUpdateListener).not.toHaveBeenCalled();
+    sdkListener(customerInfo(false));
+    expect(listener).toHaveBeenCalledTimes(2);
+
     second();
     expect(mockSdk.removeCustomerInfoUpdateListener).toHaveBeenCalledWith(sdkListener);
-    first();
     expect(mockSdk.removeCustomerInfoUpdateListener).toHaveBeenCalledTimes(1);
   });
 

@@ -11,7 +11,3 @@ export function loadPurchasesSdk(): Promise<PurchasesSdk | null> {
 export function loadPaywallUi(): Promise<PaywallUi | null> {
   return Promise.resolve(null);
 }
-
-export function resetSdkCache(): void {
-  // Nothing cached on web.
-}

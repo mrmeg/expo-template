@@ -26,10 +26,12 @@ function event(overrides: Partial<RevenueCatWebhookEvent> = {}): RevenueCatWebho
     originalAppUserId: null,
     aliases: [],
     productId: "app_pro_monthly",
+    newProductId: null,
     entitlementIds: [ENTITLEMENT],
     periodType: "NORMAL",
     purchasedAtMs: NOW,
     expirationAtMs: LATER,
+    gracePeriodExpirationAtMs: null,
     eventTimestampMs: NOW,
     environment: "SANDBOX",
     store: "APP_STORE",
@@ -88,6 +90,8 @@ describe("parseRevenueCatWebhook", () => {
       expiration_at_ms: LATER,
       store: "PLAY_STORE",
       environment: "PRODUCTION",
+      new_product_id: "app_pro_annual_v2",
+      grace_period_expiration_at_ms: LATER + 5,
       original_transaction_id: "GPA.123",
       price: 49.99,
       price_in_purchased_currency: 44.99,
@@ -109,10 +113,12 @@ describe("parseRevenueCatWebhook", () => {
       originalAppUserId: "sub-1",
       aliases: ["sub-1", "$RCAnonymousID:abc"],
       productId: "app_pro_annual",
+      newProductId: "app_pro_annual_v2",
       entitlementIds: ["pro"],
       periodType: "NORMAL",
       purchasedAtMs: NOW - 10,
       expirationAtMs: LATER,
+      gracePeriodExpirationAtMs: LATER + 5,
       eventTimestampMs: NOW,
       store: "PLAY_STORE",
       environment: "PRODUCTION",
@@ -206,11 +212,27 @@ describe("reduceEntitlement", () => {
     },
   );
 
-  it("stores a grant without expiration as LIFETIME_UNTIL, never as null", () => {
+  it("stores a one-time purchase without expiration as LIFETIME_UNTIL, never as null", () => {
     expect(reduceEntitlement(empty, event({ type: "NON_RENEWING_PURCHASE", expirationAtMs: null }), options)).toEqual({
       action: "set",
       next: { until: LIFETIME_UNTIL, productId: "app_pro_monthly", updatedAt: NOW },
     });
+  });
+
+  it.each(["INITIAL_PURCHASE", "RENEWAL", "PRODUCT_CHANGE", "SUBSCRIPTION_EXTENDED", "TEMPORARY_ENTITLEMENT_GRANT"])(
+    "skips a malformed %s without expiration instead of granting forever",
+    (type) => {
+      expect(reduceEntitlement(empty, event({ type, expirationAtMs: null }), options)).toEqual({
+        action: "skip",
+        reason: "no-op",
+      });
+    },
+  );
+
+  it("records the new product on PRODUCT_CHANGE", () => {
+    expect(
+      reduceEntitlement(empty, event({ type: "PRODUCT_CHANGE", productId: "app_pro_monthly", newProductId: "app_pro_annual" }), options),
+    ).toEqual({ action: "set", next: { until: LATER, productId: "app_pro_annual", updatedAt: NOW } });
   });
 
   it("never lets one product's event shorten access another product granted", () => {

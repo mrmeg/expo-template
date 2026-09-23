@@ -321,7 +321,7 @@ describe("PaywallGate settling", () => {
     expect(onBlocked).toHaveBeenCalledWith("export");
   });
 
-  it("reports immediately when the SDK is unavailable or there is no user", async () => {
+  it("reports immediately when the SDK is unavailable, but never for a signed-out visitor", async () => {
     const store = createEntitlementStore();
     const onBlocked = jest.fn();
     await render(
@@ -337,13 +337,52 @@ describe("PaywallGate settling", () => {
     const anonymousBlocked = jest.fn();
     await render(
       <PurchasesProvider client={fakeClient()} store={createEntitlementStore()} userId={null} onBlocked={anonymousBlocked}>
-        <PaywallGate feature="export">
+        <PaywallGate feature="export" fallback={<Text>locked</Text>}>
           <Text>secret</Text>
         </PaywallGate>
       </PurchasesProvider>,
     );
     await flush();
-    expect(anonymousBlocked).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("locked")).toBeTruthy();
+    expect(anonymousBlocked).not.toHaveBeenCalled();
+  });
+
+  it("does not settle a lapsed or inactive snapshot before the device answers, and needs no device when a snapshot grants", async () => {
+    const { client, resolveLogIn } = deferredClient();
+    const inactiveStorage = {
+      getItem: async () => JSON.stringify({ version: 1, userId: "user-1", savedAt: 1, isActive: false, until: null }),
+      setItem: async () => {},
+      removeItem: async () => {},
+    };
+    const store = createEntitlementStore({ storage: inactiveStorage });
+    const onBlocked = jest.fn();
+    await render(
+      <PurchasesProvider client={client} store={store} userId="user-1" onBlocked={onBlocked}>
+        <PaywallGate feature="export" fallback={<Text>locked</Text>}>
+          <Text>secret</Text>
+        </PaywallGate>
+      </PurchasesProvider>,
+    );
+    await flush();
+    expect(store.getState().snapshot).toMatchObject({ isActive: false });
+    expect(onBlocked).not.toHaveBeenCalled();
+    await act(async () => resolveLogIn(activeCustomer));
+    expect(screen.getByText("secret")).toBeTruthy();
+    expect(onBlocked).not.toHaveBeenCalled();
+
+    const activeStorage = {
+      getItem: async () => JSON.stringify({ version: 1, userId: "user-1", savedAt: 1, isActive: true, until: LATER }),
+      setItem: async () => {},
+      removeItem: async () => {},
+    };
+    const { client: pending } = deferredClient();
+    await render(
+      <PurchasesProvider client={pending} store={createEntitlementStore({ storage: activeStorage })} userId="user-1">
+        <Probe />
+      </PurchasesProvider>,
+    );
+    await flush();
+    expect(screen.getByTestId("probe").props.children).toBe(`true|snapshot|true|true|true|${LATER}|true`);
   });
 
   it("on web (no key) waits for the server before reporting a block", async () => {
@@ -439,15 +478,16 @@ describe("PaywallGate settling", () => {
 
     await rerender(tree(null));
     await flush();
-    // Signed out: settled and blocked once.
-    expect(onBlocked).toHaveBeenCalledTimes(1);
+    // Signed out: locked, but sign-out never pushes the paywall.
+    expect(screen.getByText("locked")).toBeTruthy();
+    expect(onBlocked).not.toHaveBeenCalled();
 
     await rerender(tree("user-1"));
     await flush();
     expect(screen.getByText("locked")).toBeTruthy();
     await act(async () => resolveLogIn(activeCustomer));
     expect(screen.getByText("secret")).toBeTruthy();
-    expect(onBlocked).toHaveBeenCalledTimes(1);
+    expect(onBlocked).not.toHaveBeenCalled();
   });
 });
 

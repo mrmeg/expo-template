@@ -69,11 +69,10 @@ describe("buildLedgerRows", () => {
     expect(paidTrialRow[0].amountCents).toBe(0);
   });
 
-  it("adds reactivated only when the caller says the user had lapsed", () => {
-    expect(types(buildLedgerRows(event(), { userId: "u1", previouslyExpired: true }))).toEqual([
-      "purchased",
-      "reactivated",
-    ]);
+  it("adds reactivated only when the caller says the user had lapsed, without double-counting the sale", () => {
+    const rows = buildLedgerRows(event(), { userId: "u1", previouslyExpired: true });
+    expect(types(rows)).toEqual(["purchased", "reactivated"]);
+    expect(rows.map((row) => row.amountCents)).toEqual([9900, null]);
     expect(types(buildLedgerRows(event({ type: "RENEWAL" }), { userId: "u1", previouslyExpired: true }))).toEqual([
       "renewed",
     ]);
@@ -93,11 +92,15 @@ describe("buildLedgerRows", () => {
     expect(types(plain)).toEqual(["cancel_scheduled"]);
     expect(plain[0].cancelReason).toBe("UNSUBSCRIBE");
 
+    expect(plain[0].amountCents).toBeNull();
+
     const refund = buildLedgerRows(
       event({ type: "CANCELLATION", cancel_reason: "CUSTOMER_SUPPORT", expiration_at_ms: NOW - 1 }),
       { userId: "u1" },
     );
     expect(types(refund)).toEqual(["cancel_scheduled", "refunded"]);
+    // Only the refund row carries money.
+    expect(refund.map((row) => row.amountCents)).toEqual([null, 9900]);
 
     // CUSTOMER_SUPPORT with access continuing to the period end is not a refund.
     const support = buildLedgerRows(
@@ -113,8 +116,16 @@ describe("buildLedgerRows", () => {
     ["BILLING_ISSUE", "billing_issue"],
     ["PRODUCT_CHANGE", "product_changed"],
     ["REFUND_REVERSED", "refund_reversed"],
-  ])("maps %s to %s", (type, ledgerType) => {
-    expect(types(buildLedgerRows(event({ type }), { userId: "u1" }))).toEqual([ledgerType]);
+  ])("maps %s to a state-only %s row", (type, ledgerType) => {
+    const rows = buildLedgerRows(event({ type }), { userId: "u1" });
+    expect(types(rows)).toEqual([ledgerType]);
+    expect(rows[0].amountCents).toBeNull();
+  });
+
+  it("records the product the customer moved to on PRODUCT_CHANGE", () => {
+    const [row] = buildLedgerRows(event({ type: "PRODUCT_CHANGE", new_product_id: "annual_200" }), { userId: "u1" });
+    expect(row.productId).toBe("annual_200");
+    expect(buildLedgerRows(event({ type: "PRODUCT_CHANGE" }), { userId: "u1" })[0].productId).toBe("annual_100");
   });
 
   it("records a one-time NON_RENEWING_PURCHASE as purchased revenue", () => {

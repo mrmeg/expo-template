@@ -97,7 +97,9 @@ export function PurchasesProvider({
   useEffect(() => {
     if (!userId || serverPending) return;
     store.getState().applyServerEntitlement(serverUntil ?? null);
-  }, [store, serverUntil, serverPending, userId]);
+    // `client` is a dep only so this re-applies after the scope effect above
+    // re-ran (and reset the store) for a new client instance.
+  }, [client, store, serverUntil, serverPending, userId]);
 
   const value = useMemo<PurchasesContextValue>(
     () => ({ client, store, userId, onBlocked }),

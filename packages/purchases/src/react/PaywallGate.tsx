@@ -3,7 +3,8 @@
  * (default nothing) and reports the block once per lock so the app can push its
  * paywall. Reports only once the verdict is `settled` (store scoped to the
  * user, snapshot read, and a source reported or none can), so a cold start or
- * an account switch never flashes the paywall at a paying user.
+ * an account switch never flashes the paywall at a paying user. Never reports
+ * for a signed-out visitor: sign-out must not push the paywall.
  */
 import React, { useEffect, useRef, type ReactNode } from "react";
 
@@ -37,10 +38,10 @@ export function PaywallGate({ feature, entitlement, fallback = null, onBlocked, 
       reported.current = false;
       return;
     }
-    if (!settled || reported.current) return;
+    if (!settled || reported.current || context.userId === null) return;
     reported.current = true;
     handler?.(feature);
-  }, [isEntitled, settled, handler, feature]);
+  }, [isEntitled, settled, handler, feature, context.userId]);
 
   return <>{isEntitled ? children : fallback}</>;
 }

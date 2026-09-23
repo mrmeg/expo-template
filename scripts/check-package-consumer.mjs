@@ -65,13 +65,15 @@ const json = (value) => JSON.stringify(value, null, 2);
 
 /**
  * Version a fixture should install a peer with. Prefers whatever the template
- * itself is pinned to, falling back to the package's own declarations.
+ * itself is pinned to, then the package's own pins (a devDependency is the
+ * version the package was typed and tested against), then the peer range.
  */
 function dependencyVersion(name, rootPackage, manifest) {
   return (
     rootPackage.dependencies?.[name] ??
     rootPackage.devDependencies?.[name] ??
     manifest.dependencies?.[name] ??
+    manifest.devDependencies?.[name] ??
     manifest.peerDependencies?.[name]
   );
 }

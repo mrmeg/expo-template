@@ -218,6 +218,8 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
 
   /** Last snapshot written per key, so an unchanged verdict is not rewritten on every SDK tick. */
   const lastWritten = new Map<string, string>();
+  /** Bumped by every rescope; a storage read that started under an older scope is discarded. */
+  let scopeGeneration = 0;
 
   return createStore<EntitlementState>((set, get) => {
     /**
@@ -273,6 +275,7 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
       hydrate: async (userId) => {
         // Rescope first, synchronously, so the previous user's state can never
         // grant (or be persisted under) the new user's id.
+        const generation = ++scopeGeneration;
         set({ ...emptyScope, userId, hydrated: false });
         if (!storage) {
           set({ hydrated: true });
@@ -284,13 +287,15 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
         } catch {
           snapshot = null;
         }
-        // A later hydrate for another user wins.
-        if (get().userId !== userId) return;
+        // A later hydrate or clear wins, even for the same user: a read that
+        // started before a sign-out must not resurrect the deleted snapshot.
+        if (scopeGeneration !== generation) return;
         set({ snapshot, hydrated: true });
       },
 
       clear: async (userId) => {
         const target = userId === undefined ? get().userId : userId;
+        scopeGeneration += 1;
         set({ ...emptyScope, userId: null, hydrated: true });
         if (!storage) return;
         lastWritten.delete(keyFor(target));

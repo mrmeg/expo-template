@@ -147,9 +147,10 @@ The provider, per user:
 1. scopes the store to `userId` and reads that user's persisted snapshot
    (`hydrated` becomes true);
 2. configures the SDK once (`sdkStatus` becomes `ready` or `unavailable`),
-   attaches the customer-info listener, and calls `logIn(userId)` so
-   RevenueCat's `app_user_id` is the app's user id (the result is applied even
-   when null, so the device counts as having reported);
+   calls `logIn(userId)` so RevenueCat's `app_user_id` is the app's user id (the
+   result is applied even when null, so the device counts as having reported),
+   and only then attaches the customer-info listener, so the anonymous state
+   the SDK emits after a previous user's `logOut` is never applied;
 3. mirrors `serverUntil` into the store once `serverPending` is false.
 
 When `userId` changes the store is rescoped first (every source from the
@@ -218,10 +219,11 @@ reads as missing, and nothing is written for the signed-out scope.
 
 `useEntitlement().settled` is the signal to act on: the store is scoped to the
 current user, its snapshot was read (`hydrated`), and either the device has
-reported (a state, or "nothing"), a usable snapshot exists (inactive, or active
-with a future or no expiry), the server granted (`serverUntil > now`), the SDK
-is unavailable (web, key-less build) and the server has reported, or there is
-no user. Hold the splash screen and any automatic paywall until `settled` is
+reported (a state, or "nothing"), some source already grants, the SDK is
+unavailable (web, key-less build) and the server has reported, or there is no
+user. A "not entitled" verdict is never settled while the device can still
+answer, so a lapsed or inactive snapshot cannot flash the paywall at a user who
+re-subscribed elsewhere. Hold the splash screen and any automatic paywall until `settled` is
 true; `hydrated` alone only says the snapshot read finished. A time-based grant
 is re-evaluated when its `until` passes, so an idle screen locks on expiry.
 
@@ -253,10 +255,11 @@ async function onExport() {
 ```
 
 `PaywallGate` renders `children` when entitled, otherwise `fallback` (nothing
-by default) and reports the block once per lock through its own `onBlocked`
-or the provider's. It reports only once the verdict is `settled`, so a paying
-user never sees the paywall flash on a cold start, a reinstall, or an account
-switch. Both the hook and the gate accept `feature` so the paywall can explain
+by default) and reports the block once per lock (and once per user) through
+its own `onBlocked` or the provider's. It reports only once the verdict is
+`settled`, so a paying user never sees the paywall flash on a cold start, a
+reinstall, or an account switch, and never for a signed-out visitor, so
+sign-out does not push the paywall. Both the hook and the gate accept `feature` so the paywall can explain
 why it opened.
 
 On the paywall screen call `presentPaywall()` for the RevenueCat dashboard
@@ -324,7 +327,10 @@ Row shape: `{ userId, provider: "revenuecat", eventType, providerEventId,
 providerEventType, providerSubscriptionId, productId, store, periodType,
 amountCents, currency: "usd", renewalNumber, cancelReason, environment,
 occurredAt, payload }`. `store`, `periodType`, and `environment` are
-lowercased; `amountCents` is RevenueCat's USD `price` rounded to cents;
+lowercased; `amountCents` is RevenueCat's USD `price` rounded to cents on the
+money rows (`purchased`, `renewed`, `trial_converted`, `refunded`), 0 on
+`trial_started`, and null on state-only rows so `SUM(amount_cents)` counts each
+sale once; `product_changed` carries `new_product_id`;
 `payload` is the event minus `subscriber_attributes`; `occurredAt` is
 `event_timestamp_ms`. Make (`providerEventId`, `eventType`) unique in the
 ledger table and insert with conflicts ignored so a replayed delivery cannot
@@ -342,7 +348,9 @@ never lets one product's event shorten what another granted:
   `NON_RENEWING_PURCHASE`, `SUBSCRIPTION_EXTENDED`,
   `TEMPORARY_ENTITLEMENT_GRANT`, `REFUND_REVERSED`) set `until` to the later of
   the current value and the event's expiration — monotonic, so a late-delivered
-  grant is still applied;
+  grant is still applied. Only `NON_RENEWING_PURCHASE` may lack an expiration
+  (`LIFETIME_UNTIL`); any other grant without one is skipped rather than turned
+  into permanent access. `PRODUCT_CHANGE` records `new_product_id`;
 - `EXPIRATION` sets `until` to the event's expiration (else the event time)
   unless the record already runs longer, except when `expiration_reason` is
   `CUSTOMER_SUPPORT` or `DEVELOPER_INITIATED` (deliberate early revocations

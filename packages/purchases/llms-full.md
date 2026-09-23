@@ -70,8 +70,9 @@ store and snapshot.
 `useEntitlement(entitlement?)` → `{ isEntitled, until, source, hydrated,
 settled, isConfigured, isReady, sdkStatus, customer, restore, presentPaywall,
 presentPaywallIfNeeded }`; `settled` = scoped to this user, hydrated, and
-`deviceReported` or a usable snapshot or a server grant (`serverUntil > now`),
-or the SDK is unavailable and `serverReported`, or there is no user.
+`deviceReported` or any source grants, or the SDK is unavailable and
+`serverReported`, or there is no user (`PaywallGate` never reports for a
+signed-out visitor).
 `useRequireEntitlement(feature)` reports a block only when settled. A time-based
 grant re-evaluates when `until` passes. `useRequireEntitlement(feature)` → `() => boolean`
 (false also calls the provider's `onBlocked(feature)`).
@@ -82,17 +83,18 @@ entitled, else fallback, reporting once per lock after hydration.
 
 - `isAuthorizedWebhook(header, secret)`: constant-time; bare or `Bearer`.
 - `parseRevenueCatWebhook(body)` → `RevenueCatWebhookEvent | null`: camelCase
-  `{ id, type, appUserId, originalAppUserId, aliases, productId,
+  `{ id, type, appUserId, originalAppUserId, aliases, productId, newProductId,
   entitlementIds (legacy entitlement_id folded in), periodType, purchasedAtMs,
-  expirationAtMs, eventTimestampMs, environment, store, originalTransactionId,
+  expirationAtMs, gracePeriodExpirationAtMs, eventTimestampMs, environment, store, originalTransactionId,
   cancelReason, expirationReason, price, priceInPurchasedCurrency, currency,
   renewalNumber, isTrialConversion, countryCode, offerCode, transferredFrom,
   transferredTo, raw }`; `raw` drops `subscriber_attributes`. Requires `id`,
   `type`, `event_timestamp_ms`, and `app_user_id` (except TRANSFER).
 - `reduceEntitlement(current, event, { entitlement })` →
   `{ action: "set", next: { until, productId, updatedAt } }` for
-  `GRANT_EVENT_TYPES` (later of current and event expiry; `LIFETIME_UNTIL` when
-  none; applied even when late), `EXPIRATION` (event expiry unless the record
+  `GRANT_EVENT_TYPES` (later of current and event expiry; `LIFETIME_UNTIL` for a
+  NON_RENEWING_PURCHASE without one, other grants without expiry skip; applied
+  even when late; PRODUCT_CHANGE records `newProductId`), `EXPIRATION` (event expiry unless the record
   runs longer, forced on `CUSTOMER_SUPPORT` / `DEVELOPER_INITIATED`), and a
   refund `CANCELLATION` (event expiry or event time, unconditionally); else
   `{ action: "skip", reason: "not-entitlement" | "stale" | "no-op" }` (stale
@@ -104,6 +106,8 @@ entitled, else fallback, reporting once per lock after hydration.
   `refunded`, `refund_reversed`, `product_changed`, `reactivated`).
   `isRefundCancellation`, `providerSubscriptionId`, `toAmountCents`,
   `deriveSubscriptionStatus` (`trialing | active | past_due | canceled`).
+  `amountCents` only on `purchased` / `renewed` / `trial_converted` /
+  `refunded` (0 on `trial_started`, null otherwise).
 - `createWebhookHandler({ secret, onEvent, entitlement?, onError? })` →
   `(Request) => Promise<Response>`: 500 no secret, 401 bad header, 400 bad
   body, 200 `{ ok: true, ...result }`, 200 `{ ok: true, ignored: "entitlement" }`,

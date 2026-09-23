@@ -11,10 +11,9 @@ import { createPurchases } from "../createPurchases";
 const webSdk = require("../sdk.ts") as typeof import("../sdk");
 
 describe("sdk (web twin)", () => {
-  it("resolves null for both loaders and has a no-op cache reset", async () => {
+  it("resolves null for both loaders", async () => {
     await expect(webSdk.loadPurchasesSdk()).resolves.toBeNull();
     await expect(webSdk.loadPaywallUi()).resolves.toBeNull();
-    expect(() => webSdk.resetSdkCache()).not.toThrow();
   });
 
   it("never mentions the RevenueCat modules in its source", () => {
