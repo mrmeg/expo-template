@@ -49,6 +49,12 @@
       ],
       "@mrmeg/expo-media/worker": [
         "./packages/media/src/worker/index.ts"
+      ],
+      "@mrmeg/expo-purchases": [
+        "./packages/purchases/src/index.ts"
+      ],
+      "@mrmeg/expo-purchases/server": [
+        "./packages/purchases/src/server/index.ts"
       ]
     },
     "noImplicitAny": false,

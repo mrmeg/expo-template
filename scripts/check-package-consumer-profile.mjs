@@ -31,7 +31,7 @@ const sdk = Number(option("--sdk"));
 
 if (!packageCompatibilityProfiles[packageKey] || !Number.isInteger(sdk)) {
   throw new Error(
-    "Usage: bun run packages:compatibility -- --package [media|ui] --sdk [55|56|57|58]",
+    "Usage: bun run packages:compatibility -- --package [media|purchases|ui] --sdk [55|56|57|58]",
   );
 }
 
@@ -61,6 +61,7 @@ try {
         main: "index.ts",
         dependencies: {
           [manifest.name]: tarball,
+          ...(profile.fixtureDependencies ?? {}),
           ...profile.versions,
         },
         devDependencies: {
@@ -131,6 +132,28 @@ try {
         "        <Button text='Check' />",
         "      </View>",
         "    </UIProvider>",
+        "  );",
+        "}",
+        "",
+      ].join("\n"),
+    );
+  } else if (packageKey === "purchases") {
+    await writeFile(
+      join(fixture, "App.tsx"),
+      [
+        "import { View } from 'react-native';",
+        "import { createEntitlementStore, createPurchases, PurchasesProvider } from '@mrmeg/expo-purchases';",
+        "import { buildLedgerRows, parseRevenueCatWebhook } from '@mrmeg/expo-purchases/server';",
+        "",
+        "const purchases = createPurchases({ entitlement: 'pro', iosKey: 'appl_test' });",
+        "const store = createEntitlementStore();",
+        "void buildLedgerRows; void parseRevenueCatWebhook;",
+        "",
+        "export default function App() {",
+        "  return (",
+        "    <PurchasesProvider client={purchases} store={store} userId={null}>",
+        "      <View />",
+        "    </PurchasesProvider>",
         "  );",
         "}",
         "",

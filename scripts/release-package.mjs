@@ -7,7 +7,7 @@
  * `scripts/run-package-script.mjs`.
  *
  * Usage:
- *   node scripts/release-package.mjs <ui|media|lint> [patch|minor|major|x.y.z] [--publish] [--allow-dirty]
+ *   node scripts/release-package.mjs <ui|media|purchases|lint> [patch|minor|major|x.y.z] [--publish] [--allow-dirty]
  *
  * The `bun run ui:release -- --patch` ergonomics are unchanged: the
  * `run-package-script` table supplies the leading package-name argument.
@@ -21,6 +21,7 @@ import semver from "semver";
 const PACKAGES = {
   ui: { dir: "packages/ui", exampleVersion: "0.2.0" },
   media: { dir: "packages/media", exampleVersion: "0.3.0" },
+  purchases: { dir: "packages/purchases", exampleVersion: "0.1.0" },
   lint: { dir: "packages/lint", exampleVersion: "0.1.0" },
 };
 

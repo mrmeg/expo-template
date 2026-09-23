@@ -34,6 +34,12 @@ const sources = [
       "import paths, required app setup, media contracts, client hooks, server handlers, processing presets",
   },
   {
+    path: "packages/purchases/LLM_USAGE.md",
+    title: "@mrmeg/expo-purchases Usage",
+    summary:
+      "import paths, RevenueCat client and provider setup, entitlement resolution, gating, pure webhook and ledger helpers, identifier contract",
+  },
+  {
     path: "packages/lint/README.md",
     title: "@mrmeg/eslint-plugin-expo-ui",
     summary:

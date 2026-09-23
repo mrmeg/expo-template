@@ -8,7 +8,7 @@ unless the user asks for a plan.
 - Read this file first, then load only what the task needs.
 - Validate with fresh command output; never claim tests, builds, UI checks, or CI passed from memory.
 - Keep durable template guidance in `docs/` or the relevant package README.
-- Reusable UI goes in `packages/ui`; reusable media contracts and processing in `packages/media`.
+- Reusable UI goes in `packages/ui`; reusable media contracts and processing in `packages/media`; reusable RevenueCat purchases, entitlement state, and webhook helpers in `packages/purchases`.
 - App integrations stay under `client/`, `server/`, `app/api/`, or `shared/`.
 
 ### Docs
@@ -27,6 +27,7 @@ unless the user asks for a plan.
 | Media Worker Migration | [`docs/media-worker-migration.md`](docs/media-worker-migration.md) | Shared media Worker contract, consumer migration checklists, legacy-worker teardown |
 | UI Package | [`packages/ui/README.md`](packages/ui/README.md) | `@mrmeg/expo-ui` install, setup, components, theming, publishing |
 | Media Package | [`packages/media/README.md`](packages/media/README.md) | `@mrmeg/expo-media` install, setup, processing, server handlers |
+| Purchases Package | [`packages/purchases/README.md`](packages/purchases/README.md) | `@mrmeg/expo-purchases` RevenueCat client, entitlement store, gating, pure webhook/ledger helpers, setup and store-review checklists |
 | Lint Package | [`packages/lint/README.md`](packages/lint/README.md) | `@mrmeg/eslint-plugin-expo-ui` rules, CLI (`bun lint:ui`), settings, style contracts, adoption in other projects, troubleshooting, release |
 
 ### Tech Stack
@@ -39,6 +40,7 @@ unless the user asks for a plan.
 | Language | TypeScript 6 strict | Path alias `@/*` points at repo root |
 | UI | `@mrmeg/expo-ui` workspace package | RN primitives, design tokens, theme state, reusable components |
 | Media | `@mrmeg/expo-media` workspace package | Client hooks, processing helpers, S3/R2 server handlers |
+| Purchases | `@mrmeg/expo-purchases` workspace package | RevenueCat client, entitlement store, paywall gating, pure webhook/ledger helpers; optional peers `react-native-purchases` / `react-native-purchases-ui`, not used by the template app |
 | Lint | `@mrmeg/eslint-plugin-expo-ui` workspace package | Design-system ESLint rules; `bun lint:ui` for `app`, `client`, `shared`; published alongside `@mrmeg/expo-ui`; reads `packages/ui/src` here and `dist/design-system.json` in consumers |
 | State/data | Zustand 5, TanStack React Query 5 | Persisted client stores; query defaults in app providers |
 | Auth | Clerk or AWS Amplify/Cognito | Optional; env-selected (Clerk publishable key, or both Cognito vars; Cognito wins if both) behind a shared `AuthClient`/`TokenVerifier` |
