@@ -71,43 +71,52 @@ export const useResources = (): LoadResourcesResult => {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-    // Read once at mount, not subscribed: font loading is a one-shot startup
-    // effect and cannot be undone by a later override.
-    const sansSerifOverridden =
-      !!useThemeStore.getState().fontOverrides.families?.sansSerif;
-
-    async function loadResourcesAndDataAsync() {
-      try {
-        const fontPromise = Promise.all([
-          sansSerifOverridden ? Promise.resolve() : loadNativeInterFonts(),
-          sansSerifOverridden ? Promise.resolve() : ensureWebFontStylesheet(),
-        ]);
-
-        // Timeout after 5 seconds — proceed with system fallback fonts
-        const timeoutPromise = new Promise<void>((_, reject) => {
-          timeoutId = setTimeout(
-            () => reject(new Error("Font loading timed out after 5s")),
-            5000
-          );
-        });
-
-        await Promise.race([fontPromise, timeoutPromise]);
-      } catch (e: unknown) {
-        const error = e instanceof Error ? e : new Error(String(e));
-        console.warn("Font loading issue (proceeding with fallback):", error.message);
-        setError(error);
-      } finally {
-        clearTimeout(timeoutId);
-        setLoaded(true);
-      }
-    }
-    loadResourcesAndDataAsync();
-
-    return () => clearTimeout(timeoutId);
-  }, []);
+  useEffect(() => startResourceLoad(setError, () => setLoaded(true)), []);
 
   return { loaded, error };
 };
+
+/**
+ * The one-shot startup load behind `useResources`: reports a failure through
+ * `onError` (at most once), then calls `onLoaded` exactly once, and returns
+ * the effect cleanup, which cancels the timeout. A module-level function
+ * because the React Compiler can't compile a `try`/`finally` and skipped the
+ * hook while it lived inside the effect.
+ */
+function startResourceLoad(onError: (error: Error) => void, onLoaded: () => void): () => void {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  // Read once at mount, not subscribed: font loading is a one-shot startup
+  // effect and cannot be undone by a later override.
+  const sansSerifOverridden =
+    !!useThemeStore.getState().fontOverrides.families?.sansSerif;
+
+  async function loadResourcesAndDataAsync() {
+    try {
+      const fontPromise = Promise.all([
+        sansSerifOverridden ? Promise.resolve() : loadNativeInterFonts(),
+        sansSerifOverridden ? Promise.resolve() : ensureWebFontStylesheet(),
+      ]);
+
+      // Timeout after 5 seconds — proceed with system fallback fonts
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error("Font loading timed out after 5s")),
+          5000
+        );
+      });
+
+      await Promise.race([fontPromise, timeoutPromise]);
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      console.warn("Font loading issue (proceeding with fallback):", error.message);
+      onError(error);
+    } finally {
+      clearTimeout(timeoutId);
+      onLoaded();
+    }
+  }
+  loadResourcesAndDataAsync();
+
+  return () => clearTimeout(timeoutId);
+}

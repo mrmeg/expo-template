@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Pressable, PressableProps, Platform, Animated } from "react-native";
 import { Icon } from "./Icon";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { hapticLight } from "../lib/haptics";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
 import * as CheckboxPrimitive from "@rn-primitives/checkbox";
@@ -101,7 +102,7 @@ function Checkbox({
   };
 
   // Simple fast opacity for the checkmark icon
-  const checkOpacity = useRef(new Animated.Value(checked || indeterminate ? 1 : 0)).current;
+  const checkOpacity = useAnimatedValue(checked || indeterminate ? 1 : 0);
   const isVisuallyChecked = !!checked || indeterminate;
 
   const animateCheckOpacity = useCallback(

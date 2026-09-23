@@ -61,6 +61,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   primitive `Overlay` and drops the keyboard with it. Nothing new is added inside
   the card, so its `gap` layout is unchanged. Web is untouched (no software
   keyboard; the boundary returns no handlers there).
+- **Every package component and hook now compiles under the React Compiler.**
+  The compiler skipped any function that read or wrote a ref during render,
+  mutated a hook result, or used syntax it can't lower, and 133
+  `react-hooks/refs` plus 4 `react-hooks/immutability` findings covered
+  `Drawer`, `TextInput` (native), `Notification`, `Progress`, `RadioGroup`,
+  `Skeleton`, `Switch`, `Tabs`, `Accordion`, `Checkbox`, the Android text
+  field, `keyboardDismiss`'s hooks, `useStaggeredEntrance`, and
+  `useScalePress` (so every `Button`); computed default props,
+  `try`/`finally`, and a reassigned captured counter kept `Drawer`,
+  `KeyboardAvoidingView`, `UIProvider`, `Notification`, `ToggleGroup`, and
+  `useResources` out as well. Animated values are created once through a
+  lazy initializer instead of `useRef(new Animated.Value(x)).current` (which
+  also allocated and discarded a value every render), "latest value" refs are
+  synced in a layout effect, animations that started during render start in
+  a layout effect before the frame paints, and render-time latches are state.
+  `Notification` reads `globalUIStore` through zustand's `useStore`: the
+  compiler recognizes hooks only by a `use` prefix, so a bare
+  `globalUIStore()` call would be cached and skipped on the next render
+  (React error #311), and a package test now rejects such calls. Behavior is
+  unchanged; apps whose bundler runs the compiler over the package now get
+  memoized components. Apps compiling their own components should read
+  `globalUIStore` the same way.
 
 ## [0.27.1]
 

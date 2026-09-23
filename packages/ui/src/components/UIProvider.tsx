@@ -45,9 +45,12 @@ export function UIProvider({
   notification = true,
   portalHost = true,
   statusBar = true,
-  keyboardAvoiding = Platform.OS !== "web",
+  keyboardAvoiding: keyboardAvoidingProp,
   keyboardAvoidingProps,
 }: UIProviderProps) {
+  // Resolved in the body rather than as a default parameter: the React
+  // Compiler can't reorder a computed default, and skipped the component.
+  const keyboardAvoiding = keyboardAvoidingProp === undefined ? Platform.OS !== "web" : keyboardAvoidingProp;
   const { style: keyboardAvoidingStyle, ...restKeyboardAvoidingProps } =
     keyboardAvoidingProps ?? {};
   const content = keyboardAvoiding ? (

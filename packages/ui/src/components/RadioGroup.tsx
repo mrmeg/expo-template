@@ -1,9 +1,10 @@
-import React, { createContext, use, useEffect, useRef, useState } from "react";
+import React, { createContext, use, useEffect, useState } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Pressable, PressableProps, Platform, Animated } from "react-native";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { hapticLight } from "../lib/haptics";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
 import * as RadioGroupPrimitive from "@rn-primitives/radio-group";
@@ -180,7 +181,7 @@ function RadioGroupItem({
   const isChecked = groupValue === itemValue;
 
   // Animated dot scale — follows Checkbox opacity pattern
-  const dotScale = useRef(new Animated.Value(isChecked ? 1 : 0)).current;
+  const dotScale = useAnimatedValue(isChecked ? 1 : 0);
 
   useEffect(() => {
     Animated.timing(dotScale, {

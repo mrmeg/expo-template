@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Animated } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { spacing } from "../constants/spacing";
 import { createThemedStyles } from "../lib/themedStyles";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import type { Theme } from "../constants/colors";
 
 // ============================================================================
@@ -44,7 +45,7 @@ export function Skeleton({
 }: SkeletonProps) {
   const { theme } = useTheme();
   const reduceMotion = useReducedMotion();
-  const opacity = useRef(new Animated.Value(reduceMotion ? 0.6 : 0.3)).current;
+  const opacity = useAnimatedValue(reduceMotion ? 0.6 : 0.3);
 
   useEffect(() => {
     if (reduceMotion) {
