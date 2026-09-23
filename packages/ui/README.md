@@ -523,14 +523,23 @@ Feather in the same 24px, 2px round-stroke style. `name` is typed by
 (`src/components/icon-names.json`, about 150 names), so only the icons the package
 and its consumers name ship in the bundle: the root `lucide-react-native`
 entry (1,800+ icons) is never imported. `color` takes a theme color name or a
-literal; `decorative` hides the glyph from assistive tech.
+literal; `decorative` hides the glyph from assistive tech. Instead of `name`,
+`Icon` and `Button.Icon` take `component`: any Lucide import (or another SVG
+component that accepts `size` and `color`), sized, colored, themed, and hidden
+from assistive tech exactly like a named icon. `Button.Icon` defaults its
+color to the button's label color either way.
 
 ```tsx
-import { Icon } from "@mrmeg/expo-ui/components";
+import { Button, Icon } from "@mrmeg/expo-ui/components";
+import House from "lucide-react-native/icons/house";
 import Rocket from "lucide-react-native/icons/rocket";
 
 <Icon name="circle-check-big" color="success" size={16} />
 <Icon component={Rocket} color="accent" />
+<Button onPress={goHome}>
+  <Button.Icon component={House} />
+  <Button.Text>Home</Button.Text>
+</Button>
 ```
 
 Adding an icon: in this repo, add the kebab-case Lucide name to

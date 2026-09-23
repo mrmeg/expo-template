@@ -231,7 +231,7 @@ interface TextInputCustomProps extends TextInputProps {
  * // With custom elements
  * <TextInput
  *   label="Search"
- *   leftElement={<Icon as={Search} size={20} />}
+ *   leftElement={<Icon name="search" size={20} />}
  * />
  * ```
  */

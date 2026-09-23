@@ -12,6 +12,7 @@ import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import type { TestInstance } from "test-renderer";
+import type LucideHouse from "lucide-react-native/icons/house";
 import { Button, type ButtonAccessoryProps } from "../Button";
 import { Icon } from "../Icon";
 import { StyledText } from "../StyledText";
@@ -514,6 +515,36 @@ describe("Button", () => {
 
       expect(screen.getByTestId("icon-check", { includeHiddenElements: true })).toBeTruthy();
       expect(screen.getByText("With Icon")).toBeTruthy();
+    });
+
+    it("renders Button.Icon from a component with the button's text color, like a named icon", async () => {
+      const Custom = (props: { size: number; color: string }) => <View testID="custom-glyph" {...props} />;
+
+      await render(
+        <Button preset="default">
+          <Button.Icon component={Custom} />
+          <Button.Icon name="heart" />
+          <Button.Text>Like</Button.Text>
+        </Button>
+      );
+
+      const custom = screen.getByTestId("custom-glyph", { includeHiddenElements: true });
+      const named = screen.getByTestId("icon-heart", { includeHiddenElements: true });
+      // Default preset label color, from the button's text-color context.
+      expect(custom.props.color).toBe("#FAFAFA");
+      expect(custom.props.color).toBe(named.props.color);
+      expect(custom.props.size).toBe(named.props.size);
+      // Decorative by default: the label carries the meaning.
+      expect(custom.props["aria-hidden"]).toBe(true);
+      expect(named.props["aria-hidden"]).toBe(true);
+    });
+
+    it("lets Button.Icon take a Lucide component at the type level", () => {
+      // Never called: `tsc` checks that a real Lucide export fits `component`.
+      function typeOnly(House: typeof LucideHouse) {
+        return <Button.Icon component={House} size={16} />;
+      }
+      expect(typeof typeOnly).toBe("function");
     });
 
     it("keeps accessories mounted but hidden when loading", async () => {

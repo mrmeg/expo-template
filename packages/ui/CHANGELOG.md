@@ -136,6 +136,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   memoized components. Apps compiling their own components should read
   `globalUIStore` the same way.
 
+### Documentation
+
+- **`Button.Icon` documents and tests its `component` prop.** `Icon` has taken
+  a component through `component` (any `LucideIcon`) since before 0.26, and
+  `Button.Icon` forwards every `Icon` prop, so `<Button.Icon component={House} />`
+  already rendered with the button's label color; the docs only showed `name`,
+  and two doc comments showed an `as` prop that never existed. The README,
+  `LLM_USAGE.md`, and those comments now use `component`, and tests pin that a
+  real Lucide export type-checks for both and renders sized, colored, and
+  decorative exactly like a named icon. No API change: `component` is the name
+  the package already used, so there is no `as` alias.
+
 ## [0.27.1]
 
 ### Fixed
