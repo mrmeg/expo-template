@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import * as Crypto from "expo-crypto";
 import { Alert } from "@mrmeg/expo-ui/components/Alert";
 import { logDev } from "@/client/lib/devtools";
 import {
@@ -18,6 +17,7 @@ import type {
 } from "@mrmeg/expo-media/processing/image-compression/config";
 import { notify } from "@mrmeg/expo-ui/state";
 import { MEDIA_CONTENT_TYPE_ALLOWLIST, type MediaType } from "@/shared/media";
+import { createAssetId } from "../assetId";
 import { useCompressionStore } from "../stores/compressionStore";
 import {
   MEDIA_APP_SETTINGS,
@@ -362,7 +362,7 @@ export function useMediaLibrary() {
             return {
               ok: true as const,
               asset: toProcessedAsset(upload, {
-                id: Crypto.randomUUID(),
+                id: createAssetId(),
                 fileName,
                 mediaType: uploadPolicy.policy.mediaType,
                 exif: { gps, takenAt },
