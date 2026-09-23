@@ -5,6 +5,10 @@ const {
   wrapWithReanimatedMetroConfig,
 } = require("react-native-reanimated/metro-config");
 const { withSentryResolver } = require("@sentry/react-native/metro");
+const {
+  describeOmittedIntegration,
+  getOmittedIntegrationFor,
+} = require("./metro/resolverRules");
 const path = require("path");
 
 const config = getDefaultConfig(__dirname);
@@ -110,6 +114,15 @@ const passthroughModules = new Set(
     .map((key) => `react-native/${key.slice(2)}`)
 );
 
+// Resolver stubs (metro/resolverRules.js, docs/bundle-analysis.md):
+// - Optional native integrations. In production iOS/Android bundles, the
+//   Sentry, Amplify, and Clerk imports inside their env-gated app modules
+//   resolve to an empty module while that SDK's env is blank; native has no
+//   code splitting, so otherwise every build shipped all three. Web keeps its
+//   lazy chunks, and dev keeps the SDKs so `.env` edits apply without a restart.
+const projectRoots = Array.from(new Set([__dirname, fs.realpathSync(__dirname)]));
+const reportedOmissions = new Set();
+
 const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const resolve = originalResolveRequest || context.resolveRequest;
@@ -118,9 +131,28 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     environment === "node" || environment === "react-server";
   const isDevServerEnvironment =
     isServerEnvironment && !context.customResolverOptions?.exporting;
+  const { originModulePath } = context;
+  const request = {
+    moduleName,
+    originModulePath,
+    platform,
+    dev: context.dev,
+    environment,
+    env: process.env,
+  };
 
   if (passthroughModules.has(moduleName)) {
     return resolve(context, moduleName, platform);
+  }
+
+  const omittedIntegration = getOmittedIntegrationFor({ ...request, projectRoots });
+  if (omittedIntegration) {
+    const report = `${platform}:${omittedIntegration.name}`;
+    if (!reportedOmissions.has(report)) {
+      reportedOmissions.add(report);
+      console.log(describeOmittedIntegration(omittedIntegration, platform, process.env));
+    }
+    return { type: "empty" };
   }
 
   for (const [packageName, packagePath] of Object.entries(dedupePackages)) {

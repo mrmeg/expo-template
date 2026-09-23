@@ -110,13 +110,61 @@ version the RN SDK pins) and defers the chunk fetch to `requestIdleCallback`
 SDK is up are buffered and forwarded after `init`. The lazy Sentry chunk went
 from ~706 kB to ~521 kB raw (~128 kB gzip). See `docs/error-tracking.md`.
 
+## Resolver Stubs and Dedupes
+
+`metro.config.js` resolves a few modules differently from Node. The selection
+logic lives in `metro/resolverRules.js`, unit-tested in `metro/__tests__/`, and
+every rule errs toward shipping code: when a condition is not certain, the real
+module resolves. Sizes below come from `expo export` with the tree-shaking
+flags (`--no-bytecode` on iOS) and a blank env unless a column says otherwise,
+attributed per package from the source maps.
+
+### Optional SDKs in native bundles
+
+Native bundles have no code splitting, so the one `import()` that keeps each
+optional SDK lazy on web is inlined into the iOS/Android bundle: every native
+build shipped Sentry, Amplify, and Clerk even when their env was blank and the
+runtime gate could never load them. In production iOS/Android bundles, the SDK
+imports inside the gated modules now resolve to an empty module while that
+SDK's env is blank:
+
+| SDK (and what only it pulls in) | Left out while blank | Stubbed importers | iOS JS when enabled |
+|---------------------------------|----------------------|-------------------|---------------------|
+| `@sentry/react-native` (`@sentry/core`, `@sentry/browser`, `expo-updates` JS) | `EXPO_PUBLIC_SENTRY_DSN` | `client/lib/sentry.ts` | ~740 kB raw / ~190 kB gzip |
+| `aws-amplify` (`@aws-amplify/*`, `rxjs`, `buffer`, URL polyfill) | `EXPO_PUBLIC_USER_POOL_ID` or `EXPO_PUBLIC_USER_POOL_CLIENT_ID` | `client/features/auth/provider/cognitoSdk.ts` | ~615 kB / ~136 kB |
+| `@clerk/clerk-expo` (`@clerk/clerk-js` headless, `swr`, `expo-auth-session`) | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | `client/features/auth/provider/clerkClient.ts`, `ClerkProviderBoundary.tsx` | ~571 kB / ~149 kB |
+
+A blank-env iOS bundle dropped from 6.38 MB to 4.48 MB raw (1.50 → 1.03 MB
+gzip). The build log names each omission, e.g.
+`› Sentry left out of the ios bundle: EXPO_PUBLIC_SENTRY_DSN is blank`.
+
+- **Blank** means unset or empty in the environment Metro runs with — the same
+  values Expo inlines into the bundle. Whitespace-only values keep the SDK.
+- **Runtime behavior is unchanged**: with blank env the gates never evaluate the
+  SDK, stubbed or not. With the env set the real SDK resolves as before.
+- **Production only.** `expo export`, `expo export:embed` (Xcode/Gradle release
+  builds), and `eas update` apply the stubs; dev bundles keep the SDKs so a
+  `.env` edit still takes effect without restarting Metro. An update exported
+  with the env set carries the SDK again — the native modules are autolinked
+  into every binary either way.
+- **Only the listed importers are stubbed.** An SDK imported anywhere else
+  (`Sentry.wrap` in a layout, `Amplify.configure` at module scope) gets the real
+  package, which also puts the whole SDK back into every native bundle.
+  `resolverRules.test.js` fails when that happens, and when a listed importer
+  moves or stops importing its SDK.
+- **Web is untouched**: each SDK stays a lazy chunk behind its split point.
+
+To gate another optional SDK the same way, add an entry to
+`OPTIONAL_NATIVE_INTEGRATIONS` naming the env its runtime gate reads, the
+package, and the gated modules that import it.
+
 ## Common Large Dependencies
 
 Watch for these in `source-map-explorer`:
 
 | Package | Typical size | Notes |
 |---------|--------------|-------|
-| `aws-amplify` | ~510 kB raw / ~105 kB gzip | Lazy in the `cognitoSdk-*` chunk; keep it to one split point |
+| `aws-amplify` | ~510 kB raw / ~105 kB gzip | Lazy in the `cognitoSdk-*` chunk; keep it to one split point. Left out of native bundles while the Cognito env is blank |
 | `zod` | ~475 kB raw in the `screen-form-*` chunk | `import * as z from "zod/mini"` is a namespace import, so tree shaking keeps every export: all locales, `toJSONSchema`, `zod/v4/core`. Lazy (form routes only), but named imports would let the optimizer drop most of it |
 | `react-hook-form` | ~43 kB | Form state |
 | `@rn-primitives/*` | ~5–10 kB each | 18 packages, declared in `packages/ui/package.json` |
