@@ -329,6 +329,12 @@ function ButtonRoot(props: ButtonProps) {
     onPressOut?.(event);
   };
 
+  // The resting width is only read while `loading`, to keep the button from
+  // resizing when its label changes under the spinner (the label stays
+  // mounted at opacity 0, so an unchanged label already keeps the width). A
+  // button that is never given a `loading` prop can't enter that state, so it
+  // skips the layout callback and the extra render it caused on every mount.
+  const measuresRestingWidth = props.loading !== undefined && !fullWidth;
   const handleButtonLayout = useCallback((event: LayoutChangeEvent) => {
     if (loading || fullWidth) return;
 
@@ -391,7 +397,7 @@ function ButtonRoot(props: ButtonProps) {
                     // Spread array styles from Slot to prevent nested arrays on web
                     ...(Array.isArray(styleOverride) ? styleOverride : [styleOverride]),
                   ]}
-                  onLayout={handleButtonLayout}
+                  onLayout={measuresRestingWidth ? handleButtonLayout : undefined}
                 >
                   {loading && (
                     <View style={[styles.loaderOverlay, { pointerEvents: "none" }]}>

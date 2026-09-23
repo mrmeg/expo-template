@@ -41,6 +41,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   weight or an italic by family name (`Inter_300Light`, `Inter_400Regular_Italic`)
   was relying on a file the package never loaded; it must load that face
   itself, as before.
+- **`Button` measures itself only when it can show a spinner.** Every button
+  attached an `onLayout` to record its resting width, which cost a layout
+  callback (a `ResizeObserver` on web) and a second render on every mount,
+  but the width is only read while `loading` is true, to keep the button's
+  size when its label changes under the spinner. A button that never
+  receives a `loading` prop no longer measures; one that does (including
+  `loading={false}`) and isn't `fullWidth` measures as before, so the loading
+  state still keeps the resting width. Nothing to change in apps; a button
+  whose `loading` toggles between `undefined` and `true` should pass a
+  boolean to keep the width lock.
 
 ### Fixed
 

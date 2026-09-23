@@ -299,6 +299,32 @@ describe("Button", () => {
       expect(loadingButtonSurface).toEqual(expect.objectContaining({ width: 128 }));
       expect(screen.getByText("Loading...")).toBeTruthy();
     });
+
+    function surfaceNode(): TestInstance | undefined {
+      return getAllHostNodes().find((node) => {
+        const style = StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined;
+        return style?.backgroundColor === "#18181B";
+      });
+    }
+
+    it("does not measure itself when it is never given a loading prop", async () => {
+      await render(<Button text="Plain" />);
+
+      expect(surfaceNode()).toBeTruthy();
+      expect(surfaceNode()!.props.onLayout).toBeUndefined();
+    });
+
+    it("measures its resting width once a loading prop is passed, even false", async () => {
+      await render(<Button loading={false} text="Save" />);
+
+      expect(typeof surfaceNode()!.props.onLayout).toBe("function");
+    });
+
+    it("never measures a full-width button, whose width the container sets", async () => {
+      await render(<Button fullWidth loading={false} text="Submit" />);
+
+      expect(surfaceNode()!.props.onLayout).toBeUndefined();
+    });
   });
 
   describe("Accessibility", () => {
