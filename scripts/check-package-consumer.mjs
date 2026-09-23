@@ -543,6 +543,11 @@ const PACKAGES = {
         key: "./processing/video-conversion",
       },
       {
+        // Not a module: the FFmpeg worker script the app serves same-origin.
+        entrypoint: "@mrmeg/expo-media/processing/video-conversion/ffmpeg-worker.js",
+        key: "./processing/video-conversion/ffmpeg-worker.js",
+      },
+      {
         entrypoint: "@mrmeg/expo-media/processing/video-thumbnails",
         key: "./processing/video-thumbnails",
       },
@@ -574,6 +579,12 @@ const PACKAGES = {
             "}",
             "if (!worker.createMediaWorker || !worker.createKvTokenAuthorizer) {",
             "  throw new Error('Minimal worker consumer could not load the worker entrypoint');",
+            "}",
+            "// What a consumer's metro.config.js or server does to serve the FFmpeg worker.",
+            "const { createRequire } = await import('node:module');",
+            "const ffmpegWorker = createRequire(import.meta.url).resolve('@mrmeg/expo-media/processing/video-conversion/ffmpeg-worker.js');",
+            "if (!ffmpegWorker.endsWith('/dist/processing/videoConversion/ffmpeg-worker.js')) {",
+            "  throw new Error(`FFmpeg worker resolved to ${ffmpegWorker}`);",
             "}",
             "",
           ].join("\n"),

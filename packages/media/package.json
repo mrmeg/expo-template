@@ -75,6 +75,10 @@
       "types": "./dist/processing/videoConversion/index.d.ts",
       "default": "./dist/processing/videoConversion/index.js"
     },
+    "./processing/video-conversion/ffmpeg-worker.js": {
+      "@mrmeg/source": "./src/processing/videoConversion/ffmpeg-worker.js",
+      "default": "./dist/processing/videoConversion/ffmpeg-worker.js"
+    },
     "./processing/video-thumbnails": {
       "@mrmeg/source": "./src/processing/videoThumbnails.ts",
       "types": "./dist/processing/videoThumbnails.d.ts",
@@ -94,7 +98,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest --config ../../jest.config.js packages/media/src --runInBand --watchman=false",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-package-esm.mjs media",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-package-esm.mjs media && cp src/processing/videoConversion/ffmpeg-worker.js dist/processing/videoConversion/ffmpeg-worker.js",
     "publish:dry-run": "bun pm pack --dry-run"
   },
   "dependencies": {

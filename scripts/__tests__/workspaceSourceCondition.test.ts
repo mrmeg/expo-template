@@ -144,3 +144,24 @@ describe("@mrmeg/expo-ui platform-split exact keys", () => {
     );
   });
 });
+
+describe("@mrmeg/expo-media FFmpeg worker subpath", () => {
+  it("serves the worker script from dist to consumers and from src here", () => {
+    const exportsMap = readExports("packages/media");
+    const subpath = "./processing/video-conversion/ffmpeg-worker.js";
+    expect(resolveSubpath(exportsMap, subpath, ["require", "node"])).toBe(
+      "./dist/processing/videoConversion/ffmpeg-worker.js",
+    );
+    expect(resolveSubpath(exportsMap, subpath, [SOURCE_CONDITION, "require"])).toBe(
+      "./src/processing/videoConversion/ffmpeg-worker.js",
+    );
+  });
+
+  it("copies the worker into dist in the package build", () => {
+    const manifest = JSON.parse(readFileSync(join(root, "packages/media/package.json"), "utf8"));
+    expect(manifest.scripts.build).toContain(
+      "cp src/processing/videoConversion/ffmpeg-worker.js dist/processing/videoConversion/ffmpeg-worker.js",
+    );
+    expect(manifest.files).toContain("dist");
+  });
+});
