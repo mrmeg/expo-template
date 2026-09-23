@@ -758,10 +758,11 @@ const PACKAGES = {
             private: true,
             dependencies: {
               "@mrmeg/eslint-plugin-expo-ui": tarball,
-              // The packed tarball, not the root manifest's `workspace:*`: this
-              // fixture is outside the workspace.
-              "@mrmeg/expo-ui": extraTarballs.ui,
               ...peerDependencies,
+              // The packed tarball, not the root manifest's `workspace:*`: this
+              // fixture is outside the workspace. After the peers, because
+              // `@mrmeg/expo-ui` is one of them.
+              "@mrmeg/expo-ui": extraTarballs.ui,
               // `@typescript-eslint/parser` peer-depends on typescript, and this
               // fixture omits peers, so it has to be asked for by name.
               typescript: rootPackage.devDependencies.typescript,

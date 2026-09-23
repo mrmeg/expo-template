@@ -99,9 +99,13 @@
         "expo-ui-lint": "./bin/cli.js",
       },
       "peerDependencies": {
+        "@mrmeg/expo-ui": ">=0.25.0 <1.0.0",
         "@typescript-eslint/parser": ">=8",
         "eslint": ">=9.30",
       },
+      "optionalPeers": [
+        "@mrmeg/expo-ui",
+      ],
     },
     "packages/media": {
       "name": "@mrmeg/expo-media",
