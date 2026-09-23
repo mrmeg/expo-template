@@ -108,7 +108,8 @@ explicit `./foo.js` to that exact file and never considers `foo.native.js`.
 version the RN SDK pins) and defers the chunk fetch to `requestIdleCallback`
 (3 s cap) so it never competes with hydration; global errors thrown before the
 SDK is up are buffered and forwarded after `init`. The lazy Sentry chunk went
-from ~706 kB to ~521 kB raw (~128 kB gzip). See `docs/error-tracking.md`.
+from ~706 kB with the RN SDK to ~547 kB raw (~128 kB gzip), with Session Replay
+and User Feedback stubbed out of it (see below). See `docs/error-tracking.md`.
 
 ## Resolver Stubs and Dedupes
 
@@ -157,6 +158,17 @@ gzip). The build log names each omission, e.g.
 To gate another optional SDK the same way, add an entry to
 `OPTIONAL_NATIVE_INTEGRATIONS` naming the env its runtime gate reads, the
 package, and the gated modules that import it.
+
+### Sentry Session Replay and User Feedback
+
+`withSentryResolver(config, false)` and `withSentryFeedbackResolver(config,
+false)` resolve `@sentry/replay*` and `@sentry/feedback` (plus
+`@sentry/browser`'s `feedbackSync` / `feedbackAsync` wrappers, which build the
+integration at module load) to an empty module on every platform; the Sentry
+default strips them on native only. Neither Sentry wrapper enables them.
+Feedback was ~51 kB of the lazy web Sentry chunk (598 → 547 kB raw, 146 →
+128 kB gzip). `getFeedback` and `sendFeedback` are `undefined` as a result:
+drop the feedback resolver before adding a feedback widget.
 
 ## Common Large Dependencies
 

@@ -4,7 +4,10 @@ const { getDefaultConfig } = require("expo/metro-config");
 const {
   wrapWithReanimatedMetroConfig,
 } = require("react-native-reanimated/metro-config");
-const { withSentryResolver } = require("@sentry/react-native/metro");
+const {
+  withSentryFeedbackResolver,
+  withSentryResolver,
+} = require("@sentry/react-native/metro");
 const {
   describeOmittedIntegration,
   getOmittedIntegrationFor,
@@ -214,11 +217,15 @@ if (ffmpegWorkerAsset) {
 // END FFmpeg
 // ============================================================================
 
-// Strip Sentry Session Replay from every bundle. Sentry.init in
-// client/lib/sentry.ts never enables a replay integration, and the default
-// (flag undefined) only strips it on android/ios — passing `false` extends
-// that to web, dropping ~137 KB raw from the lazy Sentry chunk. The resolver
-// chains to the dedupe resolveRequest installed above.
+// Strip Sentry Session Replay and User Feedback from every bundle. Neither
+// Sentry wrapper (client/lib/sentry.ts, client/lib/sentry.web.ts) enables a
+// replay or feedback integration, and the default (flag undefined) only strips
+// them on android/ios — passing `false` extends that to web, dropping ~137 KB
+// (replay) and ~51 KB (feedback, including @sentry/browser's feedbackSync /
+// feedbackAsync wrappers) raw from the lazy Sentry chunk. `getFeedback` and
+// `sendFeedback` from @sentry/react are undefined as a result; drop the second
+// wrapper before adding a feedback widget. The resolvers chain to the
+// resolveRequest installed above.
 module.exports = wrapWithReanimatedMetroConfig(
-  withSentryResolver(config, false)
+  withSentryFeedbackResolver(withSentryResolver(config, false), false)
 );

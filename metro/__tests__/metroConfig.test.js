@@ -77,6 +77,15 @@ describe("metro.config.js resolver wiring", () => {
     }
   });
 
+  it("strips Sentry User Feedback from web bundles", () => {
+    const { result } = resolveWith({
+      moduleName: "@sentry/feedback",
+      originModulePath: path.join(APP, "node_modules/@sentry/browser/build/npm/esm/prod/index.js"),
+      platform: "web",
+    });
+    expect(result).toEqual({ type: "empty" });
+  });
+
   it("passes other requests through unchanged", () => {
     const { result } = resolveWith({
       moduleName: "zustand",
