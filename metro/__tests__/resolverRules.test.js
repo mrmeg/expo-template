@@ -19,6 +19,8 @@ const {
   getOmittedIntegrations,
   getOmittedIntegrationFor,
   getScopedDedupeTarget,
+  isRouteFileForOtherPlatform,
+  isUnusedRouteFile,
   packageOfModulePath,
 } = require("../resolverRules");
 
@@ -261,6 +263,107 @@ describe("optional native integrations", () => {
         expect(importers).toEqual([...integration.importers].sort());
       }
     );
+  });
+});
+
+describe("route files for other platforms", () => {
+  describe("isRouteFileForOtherPlatform (mirrors expo-router getFileMeta)", () => {
+    it.each([
+      ["_layout.native.tsx", "web", true],
+      ["_layout.native.tsx", "ios", false],
+      ["_layout.native.tsx", "android", false],
+      ["_layout.web.tsx", "ios", true],
+      ["_layout.web.tsx", "android", true],
+      ["_layout.web.tsx", "web", false],
+      ["index.ios.tsx", "android", true],
+      ["index.ios.tsx", "web", true],
+      ["index.ios.tsx", "ios", false],
+      ["index.android.js", "ios", true],
+      ["_layout.tsx", "web", false],
+      ["_layout.tsx", "ios", false],
+      ["[id].tsx", "web", false],
+      ["+not-found.tsx", "ios", false],
+      ["screen.form.tsx", "web", false],
+      ["_layout.native.tsx", null, false],
+    ])("%s on %s → %s", (file, platform, expected) => {
+      expect(isRouteFileForOtherPlatform(`${ROOT}/app/(main)/${file}`, platform)).toBe(expected);
+    });
+  });
+
+  describe("isUnusedRouteFile", () => {
+    const routerRoots = [`${ROOT}/app`];
+    const contextOrigin = `${ROOT}/app?ctx=0123456789abcdef0123456789abcdef01234567`;
+
+    it("stubs a native-only route listed by the router context in a web bundle", () => {
+      expect(
+        isUnusedRouteFile({
+          moduleName: `${ROOT}/app/(main)/(tabs)/_layout.native.tsx`,
+          originModulePath: contextOrigin,
+          platform: "web",
+          routerRoots,
+        })
+      ).toBe(true);
+    });
+
+    it("stubs a web-only route listed by the router context in a native bundle", () => {
+      expect(
+        isUnusedRouteFile({
+          moduleName: `${ROOT}/app/(main)/_layout.web.tsx`,
+          originModulePath: contextOrigin,
+          platform: "ios",
+          routerRoots,
+        })
+      ).toBe(true);
+    });
+
+    it("keeps the route the platform selects", () => {
+      expect(
+        isUnusedRouteFile({
+          moduleName: `${ROOT}/app/(main)/(tabs)/_layout.native.tsx`,
+          originModulePath: contextOrigin,
+          platform: "android",
+          routerRoots,
+        })
+      ).toBe(false);
+    });
+
+    it("leaves imports from anywhere but the router context to Metro", () => {
+      expect(
+        isUnusedRouteFile({
+          moduleName: `${ROOT}/app/(main)/_layout.web.tsx`,
+          originModulePath: `${ROOT}/client/features/navigation/MainLayout.tsx`,
+          platform: "ios",
+          routerRoots,
+        })
+      ).toBe(false);
+      expect(
+        isUnusedRouteFile({
+          moduleName: `${ROOT}/client/features/navigation/WebMainLayout.web.tsx`,
+          originModulePath: contextOrigin,
+          platform: "ios",
+          routerRoots,
+        })
+      ).toBe(false);
+      expect(
+        isUnusedRouteFile({
+          moduleName: "./_layout.web.tsx",
+          originModulePath: contextOrigin,
+          platform: "ios",
+          routerRoots,
+        })
+      ).toBe(false);
+    });
+
+    it("ignores other directories' contexts", () => {
+      expect(
+        isUnusedRouteFile({
+          moduleName: `${ROOT}/client/icons/logo.web.tsx`,
+          originModulePath: `${ROOT}/client/icons?ctx=0123456789abcdef0123456789abcdef01234567`,
+          platform: "ios",
+          routerRoots,
+        })
+      ).toBe(false);
+    });
   });
 });
 

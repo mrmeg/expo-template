@@ -77,6 +77,15 @@ describe("metro.config.js resolver wiring", () => {
     }
   });
 
+  it("resolves a native-only route from the router context to the empty module on web", () => {
+    const { result } = resolveWith({
+      moduleName: path.join(APP, "app/(main)/(tabs)/_layout.native.tsx"),
+      originModulePath: `${path.join(APP, "app")}?ctx=0123456789abcdef0123456789abcdef01234567`,
+      platform: "web",
+    });
+    expect(result).toEqual({ type: "empty" });
+  });
+
   it("collapses whatwg-url-without-unicode's buffer onto the app-level copy while Amplify ships", () => {
     const request = {
       moduleName: "buffer/",

@@ -102,6 +102,10 @@ For built package output, the suffix must be listed in `platformSuffixes` in
 `native`) so the built specifier stays extension-less — Metro resolves an
 explicit `./foo.js` to that exact file and never considers `foo.native.js`.
 
+Route files under `app/` work differently: Expo Router lists every platform's
+files, so a platform route only stays out of other bundles through the resolver
+rule in [Route files for other platforms](#route-files-for-other-platforms).
+
 ## Sentry on Web
 
 `client/lib/sentry.web.ts` replaces the RN SDK with `@sentry/react` (the same
@@ -169,6 +173,30 @@ default strips them on native only. Neither Sentry wrapper enables them.
 Feedback was ~51 kB of the lazy web Sentry chunk (598 → 547 kB raw, 146 →
 128 kB gzip). `getFeedback` and `sendFeedback` are `undefined` as a result:
 drop the feedback resolver before adding a feedback widget.
+
+### Route files for other platforms
+
+Expo Router's `require.context` filter matches every platform's route files and
+Metro does not filter them by platform, so a `.native.tsx` route became a web
+chunk referenced from the entry (never fetched — the router ignores it on web)
+and every `.web.tsx` route was compiled into the native bundles.
+`isUnusedRouteFile` resolves each route file the router ignores on the bundle's
+platform — another platform's extension, or `.native` on web, mirroring
+`getFileMeta` in `expo-router/build/getRoutesCore.js` — to an empty module.
+
+The router still requires a non-platform sibling as the fallback, so the file
+with the platform-only code must carry the extension:
+
+- `app/(main)/(tabs)/_layout.native.tsx` holds `NativeTabs`; `_layout.tsx` is
+  the web stack (and fallback). Web lost the ~55 kB raw / ~17 kB gzip NativeTabs
+  chunk (its Radix Tabs web view, the Feather glyph map) and the render-blocking
+  `native-tabs.module-*.css` stylesheet (2.5 kB) that every page linked.
+- `app/(main)/_layout.web.tsx` (`WebMainLayout`, `WebNavShell`,
+  `DrawerNavContent`) is out of the native bundles: ~15 kB raw on iOS.
+
+A plain route shadowed by a `.web` sibling, like `app/(main)/_layout.tsx`, still
+emits a web chunk that no page fetches; it is tiny today, and the same
+inversion (move its code to `.native.tsx`) removes it.
 
 ### Scoped dedupes
 

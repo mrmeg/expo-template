@@ -129,6 +129,45 @@ function getOmittedIntegrationFor(request, integrations = OPTIONAL_NATIVE_INTEGR
 }
 
 // ---------------------------------------------------------------------------
+// Route files for other platforms
+// ---------------------------------------------------------------------------
+
+const ROUTE_PLATFORM_EXTENSIONS = new Set(["android", "ios", "native", "web"]);
+
+/**
+ * Whether Expo Router ignores the route file on `platform`. Mirrors `getFileMeta`
+ * in expo-router/build/getRoutesCore.js: a platform extension other than the
+ * bundle's own — or `native`, when bundling web — gets specificity -1, so the
+ * router never loads the module.
+ */
+function isRouteFileForOtherPlatform(filePath, platform) {
+  const [, extension] = path
+    .basename(filePath)
+    .replace(/(\+api)?\.[jt]sx?$/, "")
+    .split(".");
+  if (!platform || !ROUTE_PLATFORM_EXTENSIONS.has(extension)) return false;
+  return extension !== platform && !(extension === "native" && platform !== "web");
+}
+
+/**
+ * A route file that Expo Router's `require.context` lists but never loads on
+ * this platform. The router context's filter matches every platform's files, so
+ * without this a `.native.tsx` route became a web chunk referenced from the
+ * entry, and a `.web.tsx` route was compiled into the native bundle. Metro names
+ * the context module `<directory>?ctx=<hash>` and lists its files by absolute
+ * path; `routerRoots` holds the app directory (and its realpath).
+ */
+function isUnusedRouteFile({ moduleName, originModulePath, platform, routerRoots }) {
+  if (!originModulePath || !path.isAbsolute(moduleName)) return false;
+  return routerRoots.some(
+    (root) =>
+      originModulePath.startsWith(`${root}?ctx=`) &&
+      moduleName.startsWith(`${root}${path.sep}`) &&
+      isRouteFileForOtherPlatform(moduleName, platform)
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Scoped dedupes
 // ---------------------------------------------------------------------------
 
@@ -220,5 +259,7 @@ module.exports = {
   getOmittedIntegrationFor,
   getOmittedIntegrationsForBundle,
   getScopedDedupeTarget,
+  isRouteFileForOtherPlatform,
+  isUnusedRouteFile,
   packageOfModulePath,
 };

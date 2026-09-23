@@ -13,6 +13,7 @@ const {
   describeOmittedIntegration,
   getOmittedIntegrationFor,
   getScopedDedupeTarget,
+  isUnusedRouteFile,
 } = require("./metro/resolverRules");
 const path = require("path");
 
@@ -140,7 +141,12 @@ const scopedDedupes = SCOPED_DEDUPES.map((entry) => {
 //   resolve to an empty module while that SDK's env is blank; native has no
 //   code splitting, so otherwise every build shipped all three. Web keeps its
 //   lazy chunks, and dev keeps the SDKs so `.env` edits apply without a restart.
+// - Route files for other platforms. Expo Router's require.context lists every
+//   platform's route files, and ones the router ignores on this platform — a
+//   `.native.tsx` route on web, a `.web.tsx` route on iOS/Android — resolve to
+//   an empty module instead of becoming a web chunk or native bundle code.
 const projectRoots = Array.from(new Set([__dirname, fs.realpathSync(__dirname)]));
+const routerRoots = projectRoots.map((root) => path.join(root, "app"));
 const reportedOmissions = new Set();
 
 const originalResolveRequest = config.resolver.resolveRequest;
@@ -172,6 +178,10 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       reportedOmissions.add(report);
       console.log(describeOmittedIntegration(omittedIntegration, platform, process.env));
     }
+    return { type: "empty" };
+  }
+
+  if (isUnusedRouteFile({ moduleName, originModulePath, platform, routerRoots })) {
     return { type: "empty" };
   }
 
