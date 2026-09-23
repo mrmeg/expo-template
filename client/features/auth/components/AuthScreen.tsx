@@ -112,9 +112,6 @@ export function AuthScreen({
    * list hides the social buttons entirely (see `getSocialAuthProviders`).
    */
   const socialProviders = useMemo(() => getSocialAuthProviders(), []);
-  // A failed redirect surfaces as a provider session event, not as a rejected
-  // promise, so the store's error is the only signal the screen can react to.
-  const storeError = useAuthStore((state) => state.error);
 
   const [authScreenState, setAuthScreenState] = useState<AuthScreenState>(() =>
     createInitialAuthScreenState(initialView)
@@ -144,19 +141,27 @@ export function AuthScreen({
 
   /**
    * A redirect sign-in that fails after leaving the app comes back as a
-   * `sessionExpired` provider event, which the store turns into an error
-   * string. Adopt it as the form's error and stop the pending state; the
+   * `sessionExpired` provider event, not as a rejected promise, and the store
+   * turns it into an error string — the only signal the screen gets. Adopt a
+   * new store error as the form's error and stop the pending state; the
    * success case is handled by the store flipping to `authenticated`, which
-   * unmounts this screen (see AuthGate).
+   * unmounts this screen (see AuthGate). A store subscription rather than a
+   * selector plus effect, so the update runs in the store callback instead of
+   * as a synchronous setState in an effect body.
    */
-  useEffect(() => {
-    if (!storeError) return;
-    setAuthScreenState((current) =>
-      current.socialPending
-        ? { ...current, socialPending: false, error: storeError }
-        : current,
-    );
-  }, [storeError]);
+  useEffect(
+    () =>
+      useAuthStore.subscribe((state, previous) => {
+        const storeError = state.error;
+        if (!storeError || storeError === previous.error) return;
+        setAuthScreenState((current) =>
+          current.socialPending
+            ? { ...current, socialPending: false, error: storeError }
+            : current,
+        );
+      }),
+    [],
+  );
 
   // Sign In
   const handleSignIn = async (data: { email: string; password: string }) => {
