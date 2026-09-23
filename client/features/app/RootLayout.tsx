@@ -6,7 +6,7 @@ if (__DEV__) {
 }
 
 import { useEffect, useState, type ErrorInfo } from "react";
-import { Platform, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { Stack, ThemeProvider, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { colors } from "@mrmeg/expo-ui/constants";
@@ -31,7 +31,7 @@ import {
   resolveSsrInitialMetrics,
   resolveSsrViewportWidthForRender,
 } from "@/client/features/app/ssrViewportMetrics";
-import { AuthProviderGate } from "@/client/features/auth/provider/AuthProviderGate";
+import { StartupGate } from "@/client/features/app/StartupGate";
 import { registerApiTokenGetter } from "@/client/features/auth/provider/apiTokenGetter";
 import { useHasSeenOnboarding } from "@/client/features/onboarding/onboardingStore";
 
@@ -134,15 +134,13 @@ export default function RootLayout() {
     }
   }, [ready]);
 
-  // Block render on native until startup completes so the splash screen stays
-  // visible and we don't flash an unstyled tree. On web, render through so the
-  // first paint has content (fonts/i18n come in via useEffect after mount).
-  if (Platform.OS !== "web" && !ready) {
-    return null;
-  }
-
+  // StartupGate holds the app on native until startup completes, so the splash
+  // stays visible and we don't flash an unstyled tree, but mounts the auth
+  // provider immediately: Clerk loads inside it and startup waits on that. On
+  // web it renders through so the first paint has content (fonts/i18n come in
+  // via useEffect after mount).
   return (
-    <AuthProviderGate>
+    <StartupGate ready={ready}>
       <QueryClientProvider client={queryClient}>
         {/* FIRST child: it records the entry pathname during render, and every
             screen that reads that record renders below it. */}
@@ -191,7 +189,7 @@ export default function RootLayout() {
             captures every RNW rule registered during this render pass. */}
         <SsrStyleFlush />
       </QueryClientProvider>
-    </AuthProviderGate>
+    </StartupGate>
   );
 }
 

@@ -10,6 +10,18 @@ export interface User {
 
 export type AuthState = "loading" | "authenticated" | "unauthenticated";
 
+export interface InitializeOptions {
+  /**
+   * Bypass the 2s throttle. For callers that know the session just changed — a
+   * provider sign-in event, the end of a sign-in flow, startup — where a
+   * throttled no-op would leave the store showing the previous state (a
+   * signed-in user shown as signed out). A forced call that finds a read in
+   * flight queues one more read after it, since that read may predate the
+   * change.
+   */
+  force?: boolean;
+}
+
 interface AuthStore {
   state: AuthState;
   user: User | null;
@@ -21,7 +33,12 @@ interface AuthStore {
   lastInitializeTime: number;
 
   // Actions
-  initialize: () => Promise<void>;
+  /**
+   * Re-read the session from the active provider. Concurrent calls join the
+   * read in flight, and the returned promise settles once the store holds its
+   * result. Unforced calls within 2s of the last read are skipped.
+   */
+  initialize: (options?: InitializeOptions) => Promise<void>;
   signOut: () => Promise<void>;
   setUser: (user: User | null) => void;
   setState: (state: AuthState) => void;
@@ -30,38 +47,22 @@ interface AuthStore {
   reset: () => void;
 }
 
-export const useAuthStore = create<AuthStore>((set, get) => ({
-  state: "loading",
-  user: null,
-  pendingVerificationEmail: null,
-  error: null,
+/** Passive re-checks within this window of the last read are skipped. */
+const INITIALIZE_THROTTLE_MS = 2000;
 
-  // Internal state for preventing loops
-  isInitializing: false,
-  lastInitializeTime: 0,
+/** The session read in flight; concurrent `initialize()` calls join it. */
+let inflightInitialize: Promise<void> | null = null;
+/** A forced read requested while another was in flight. */
+let refreshQueued = false;
 
-  initialize: async () => {
+export const useAuthStore = create<AuthStore>((set, get) => {
+  async function readSession(): Promise<void> {
     try {
-      const currentState = get();
-      const now = Date.now();
-
-      // Prevent multiple simultaneous initializations
-      if (currentState.isInitializing) {
-        logDev("Auth initialization already in progress, skipping...");
-        return;
-      }
-
-      // Throttle initialization calls (minimum 2 seconds between calls)
-      if (now - currentState.lastInitializeTime < 2000) {
-        logDev("Auth initialization throttled, skipping...");
-        return;
-      }
-
       set({
         state: "loading",
         error: null,
         isInitializing: true,
-        lastInitializeTime: now,
+        lastInitializeTime: Date.now(),
       });
 
       logDev("Initializing auth store...");
@@ -93,50 +94,92 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         isInitializing: false,
       });
     }
-  },
+  }
 
-  signOut: async () => {
+  async function runInitialize(): Promise<void> {
     try {
-      set({ state: "loading", error: null });
-      const client = await getAuthClient();
-      await client?.signOut();
-      set({
-        user: null,
-        state: "unauthenticated",
-        error: null,
-        pendingVerificationEmail: null,
-      });
-    } catch (error) {
-      console.error("Sign out error:", error);
-      set({
-        state: "unauthenticated",
-        error: error instanceof Error ? error.message : "Sign out failed",
-      });
+      await readSession();
+    } finally {
+      inflightInitialize = null;
     }
-  },
 
-  setUser: (user) => {
-    set({
-      user,
-      state: user ? "authenticated" : "unauthenticated",
-      error: null,
-    });
-  },
+    if (refreshQueued) {
+      refreshQueued = false;
+      await get().initialize({ force: true });
+    }
+  }
 
-  setState: (state) => set({ state }),
+  return {
+    state: "loading",
+    user: null,
+    pendingVerificationEmail: null,
+    error: null,
 
-  setPendingVerificationEmail: (email) => set({ pendingVerificationEmail: email }),
+    // Internal state for preventing loops
+    isInitializing: false,
+    lastInitializeTime: 0,
 
-  setError: (error) => set({ error }),
+    initialize: (options) => {
+      const force = options?.force === true;
 
-  reset: () =>
-    set({
-      state: "unauthenticated",
-      user: null,
-      pendingVerificationEmail: null,
-      error: null,
-    }),
-}));
+      if (inflightInitialize) {
+        if (force) refreshQueued = true;
+        logDev("Auth initialization already in progress, joining it...");
+        return inflightInitialize;
+      }
+
+      if (!force && Date.now() - get().lastInitializeTime < INITIALIZE_THROTTLE_MS) {
+        logDev("Auth initialization throttled, skipping...");
+        return Promise.resolve();
+      }
+
+      inflightInitialize = runInitialize();
+      return inflightInitialize;
+    },
+
+    signOut: async () => {
+      try {
+        set({ state: "loading", error: null });
+        const client = await getAuthClient();
+        await client?.signOut();
+        set({
+          user: null,
+          state: "unauthenticated",
+          error: null,
+          pendingVerificationEmail: null,
+        });
+      } catch (error) {
+        console.error("Sign out error:", error);
+        set({
+          state: "unauthenticated",
+          error: error instanceof Error ? error.message : "Sign out failed",
+        });
+      }
+    },
+
+    setUser: (user) => {
+      set({
+        user,
+        state: user ? "authenticated" : "unauthenticated",
+        error: null,
+      });
+    },
+
+    setState: (state) => set({ state }),
+
+    setPendingVerificationEmail: (email) => set({ pendingVerificationEmail: email }),
+
+    setError: (error) => set({ error }),
+
+    reset: () =>
+      set({
+        state: "unauthenticated",
+        user: null,
+        pendingVerificationEmail: null,
+        error: null,
+      }),
+  };
+});
 
 // Lazy provider change-listener setup
 let authListenerInitialized = false;
@@ -156,10 +199,13 @@ export async function initAuth() {
     switch (event.type) {
     case "signedIn":
       // Defer briefly: providers can emit before the session is queryable.
-      setTimeout(async () => {
-        const state = useAuthStore.getState();
-        if (state.state !== "authenticated" && !state.isInitializing) {
-          await initialize();
+      // Forced: the event is proof the session changed, so neither the
+      // throttle nor a read already in flight (which may predate the
+      // sign-in) may swallow this refresh. Clerk restoring a session after a
+      // startup timeout arrives here within the throttle window.
+      setTimeout(() => {
+        if (useAuthStore.getState().state !== "authenticated") {
+          void initialize({ force: true });
         }
       }, 500);
       break;
