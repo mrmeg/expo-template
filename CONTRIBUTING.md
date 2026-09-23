@@ -67,6 +67,9 @@ bun run pkg <package> typecheck|test|build|pack|consumer-smoke|release
 bun run pkg ui release -- --patch            # bump + every gate, no publish
 ```
 
+The older `<package>:<task>` root scripts remain as shims over the same runner
+for automation outside this repo; docs and scripts in the repo use `pkg`.
+
 `release` bumps the version, runs the package's gates, packs one tarball, and
 runs the consumer smoke against it; `--publish` then publishes that tarball.
 CI does the same from `.github/workflows/publish-packages.yml` — see

@@ -1,12 +1,14 @@
 /**
  * Guardrails for the generic workspace-package script runner.
  *
- * `bun run pkg <package> <task>` is the only way to run a package task: the
- * `ui:*`/`media:*`/`purchases:*`/`lint:*` root aliases are gone, and every
- * caller (the release script, the publish workflow, `verify`, the docs) uses
- * the runner. These tests pin the resolved command for every (package, task)
- * pair — if the table drifts, a publish silently runs the wrong thing — and fail
- * when anything still calls a removed alias.
+ * `bun run pkg <package> <task>` is the way to run a package task: every
+ * caller in this repo (the release script, the publish workflow, `verify`, the
+ * docs) uses the runner. The `ui:*`/`media:*`/`purchases:*`/`lint:*` root
+ * aliases stay only as shims over the same runner, because automation outside
+ * the repo still calls them. These tests pin the resolved command for every
+ * (package, task) pair — if the table drifts, a publish silently runs the wrong
+ * thing — pin each shim to its runner call, and fail when a repo caller uses a
+ * shim instead of `pkg`.
  */
 import { execFileSync } from "child_process";
 import { readdirSync, readFileSync } from "fs";
@@ -151,7 +153,6 @@ describe("run-package-script argument validation", () => {
 /** Tracked text files outside generated output that could name a script. */
 function callerFiles(): string[] {
   const files = [
-    "package.json",
     "README.md",
     "AGENTS.md",
     "CONTRIBUTING.md",
@@ -173,8 +174,17 @@ function callerFiles(): string[] {
 }
 
 describe("the per-package aliases are folded into `pkg`", () => {
-  it("package.json defines no <package>:<task> alias", () => {
-    expect(aliasesIn(Object.keys(packageJson.scripts).join("\n"))).toEqual([]);
+  it.each(PACKAGE_SLUGS.flatMap((pkg) => TASK_NAMES.map((task) => [pkg, task])))(
+    "keeps %s:%s as a shim over `pkg`",
+    (pkg, task) => {
+      expect(packageJson.scripts[`${pkg}:${task}`]).toBe(
+        `node scripts/run-package-script.mjs ${pkg} ${task}`
+      );
+    }
+  );
+
+  it("no package.json script calls a shim", () => {
+    expect(aliasesIn(Object.values(packageJson.scripts).join("\n"))).toEqual([]);
   });
 
   it("exposes the generic runner as `pkg`", () => {
@@ -190,7 +200,7 @@ describe("the per-package aliases are folded into `pkg`", () => {
     expect(packageJson.scripts["lint:ui"]).toBeDefined();
   });
 
-  it.each(callerFiles())("%s calls no removed alias", (file) => {
+  it.each(callerFiles())("%s calls `pkg`, not a shim", (file) => {
     expect(aliasesIn(read(file))).toEqual([]);
   });
 
