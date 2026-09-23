@@ -12,8 +12,10 @@
  * or sheet that contains the dialog (a portal-hosted `Modal` would present from
  * the root controller and fail while a native stack modal is up), and because
  * it sits outside `UIProvider`'s root keyboard avoidance the dialog owns
- * keyboard avoidance inside it. Android and web keep the portal-host tree — no
- * `Modal`, no avoidance owner — exactly as before.
+ * keyboard avoidance inside it. Android and web keep the portal-host tree (no
+ * `Modal`); Android also owns keyboard avoidance there, because the portal host
+ * sits outside the root avoidance and keyboard-controller observes the main
+ * window's IME, while web has no software keyboard and no avoidance owner.
  *
  * Jest has no native tree, so these tests lock the React structure: which
  * presenter each platform renders, that a field inside `DialogContent` is
@@ -113,15 +115,32 @@ jest.mock("../../hooks/useTheme", () => ({
   }),
 }));
 
+/**
+ * Host views rendered by the keyboard-controller `KeyboardAvoidingView` mock,
+ * which passes `behavior` / `keyboardVerticalOffset` straight through to a
+ * `View` (the package `KeyboardAvoidingView` renders it on native).
+ */
+function keyboardAvoidingHostViews() {
+  const root = screen.root;
+  if (!root) return [];
+  return [root, ...root.queryAll(() => true)].filter(
+    (node) => node.type === "View" && typeof node.props.behavior === "string"
+  );
+}
+
 /** Reports whether the package's keyboard-avoidance owner wraps this subtree. */
 function AvoidanceProbe() {
   const avoided = useKeyboardAvoidance();
   return <Text>{`avoided:${avoided}`}</Text>;
 }
 
+/**
+ * Both helpers render inside one host `View` so `screen.root` spans the dialog
+ * and the `PortalHost` (RNTL's `root` is the first host node only).
+ */
 async function renderDialog(onOpenChange = jest.fn(), onFocus = jest.fn()) {
   await render(
-    <>
+    <View>
       <Dialog open onOpenChange={onOpenChange}>
         <DialogContent testID="dialog-content">
           <DialogTitle>Start trip</DialogTitle>
@@ -130,14 +149,14 @@ async function renderDialog(onOpenChange = jest.fn(), onFocus = jest.fn()) {
         </DialogContent>
       </Dialog>
       <PortalHost />
-    </>
+    </View>
   );
   return { onOpenChange, onFocus };
 }
 
 async function renderAlertDialog(onOpenChange = jest.fn()) {
   await render(
-    <>
+    <View>
       <AlertDialog open onOpenChange={onOpenChange}>
         <AlertDialogContent testID="alert-content">
           <AlertDialogTitle>Delete project?</AlertDialogTitle>
@@ -145,7 +164,7 @@ async function renderAlertDialog(onOpenChange = jest.fn()) {
         </AlertDialogContent>
       </AlertDialog>
       <PortalHost />
-    </>
+    </View>
   );
   return { onOpenChange };
 }
@@ -241,18 +260,21 @@ describe("iOS", () => {
   });
 });
 
-describe.each(["android", "web"] as const)("%s", (os) => {
+describe.each([
+  ["android", true],
+  ["web", false],
+] as const)("%s", (os, avoided) => {
   beforeEach(() => {
     Platform.OS = os;
   });
 
-  it("renders DialogContent inline in the portal host with no Modal and no avoidance owner", async () => {
+  it(`renders DialogContent inline in the portal host with no Modal (avoidance owner: ${avoided})`, async () => {
     await renderDialog();
 
     expect(screen.queryByTestId("rn-modal")).toBeNull();
     expect(screen.getByTestId("dialog-content")).toBeTruthy();
     expect(screen.getByText("Start trip")).toBeTruthy();
-    expect(screen.getByText("avoided:false")).toBeTruthy();
+    expect(screen.getByText(`avoided:${avoided}`)).toBeTruthy();
   });
 
   it("renders only into a portal host", async () => {
@@ -268,12 +290,48 @@ describe.each(["android", "web"] as const)("%s", (os) => {
     expect(screen.queryByText("Portal only")).toBeNull();
   });
 
-  it("renders AlertDialogContent inline with no Modal", async () => {
+  it(`renders AlertDialogContent inline with no Modal (avoidance owner: ${avoided})`, async () => {
     await renderAlertDialog();
 
     expect(screen.queryByTestId("rn-modal")).toBeNull();
     expect(screen.getByText("Delete project?")).toBeTruthy();
-    expect(screen.getByText("avoided:false")).toBeTruthy();
+    expect(screen.getByText(`avoided:${avoided}`)).toBeTruthy();
+  });
+});
+
+describe("Android keyboard avoidance", () => {
+  beforeEach(() => {
+    Platform.OS = "android";
+  });
+
+  it("wraps the centered container in the package KeyboardAvoidingView inside the portal host", async () => {
+    await renderDialog();
+
+    const avoidingViews = keyboardAvoidingHostViews();
+    expect(avoidingViews).toHaveLength(1);
+    expect(avoidingViews[0].props).toMatchObject({ behavior: "padding", keyboardVerticalOffset: 0 });
+    expect(avoidingViews[0].queryAll((node) => node.props.testID === "dialog-content")).toHaveLength(1);
+    expect(screen.queryByTestId("rn-modal")).toBeNull();
+    expect(screen.getByText("avoided:true")).toBeTruthy();
+  });
+
+  it("wraps AlertDialogContent the same way", async () => {
+    await renderAlertDialog();
+
+    const avoidingViews = keyboardAvoidingHostViews();
+    expect(avoidingViews).toHaveLength(1);
+    expect(avoidingViews[0].props).toMatchObject({ behavior: "padding", keyboardVerticalOffset: 0 });
+    expect(avoidingViews[0].queryAll((node) => node.props.testID === "alert-content")).toHaveLength(1);
+    expect(screen.queryByTestId("rn-modal")).toBeNull();
+    expect(screen.getByText("avoided:true")).toBeTruthy();
+  });
+
+  it("keeps a TextInput inside DialogContent reachable and focusable", async () => {
+    const { onFocus } = await renderDialog();
+
+    const input = screen.getByPlaceholderText("0");
+    fireEvent(input, "focus");
+    expect(onFocus).toHaveBeenCalled();
   });
 });
 

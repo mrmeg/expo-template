@@ -97,20 +97,23 @@ function DialogPresentation({
 /**
  * Keyboard avoidance owner for dialog content.
  *
- * On iOS the `Modal` above is presented outside `UIProvider`'s root
- * `KeyboardAvoidingView`, so nothing else can keep a focused dialog field and
- * the footer above the keyboard: this wrapper pads the centered container by
- * the keyboard height, and the card (capped at 85% of the remaining height)
- * recenters in the space that is left. It is the package `KeyboardAvoidingView`,
- * so `useKeyboardAvoidance()` is `true` inside `DialogContent` and a
+ * Dialog content sits outside `UIProvider`'s root `KeyboardAvoidingView` on
+ * both native platforms — the iOS `Modal` above is presented outside it, and
+ * on Android the primitive `Portal` renders into `UIProvider`'s `PortalHost`,
+ * a sibling of the root avoidance — so nothing else can keep a focused dialog
+ * field and the footer above the keyboard. This wrapper pads the centered
+ * container by the keyboard height, and the card (capped at 85% of the
+ * remaining height) recenters in the space that is left. It is the package
+ * `KeyboardAvoidingView` (keyboard-controller on native, which observes the
+ * main window's IME on Android, where the portal-hosted dialog lives), so
+ * `useKeyboardAvoidance()` is `true` inside `DialogContent` and a
  * `DismissKeyboard` in dialog content adds no second layer. Do not wrap dialog
  * content in another `KeyboardAvoidingView`.
  *
- * Android and web keep the portal-host tree unchanged; the portal host sits
- * outside the root avoidance there, and a dialog is not keyboard-avoided yet.
+ * Web has no software keyboard and keeps the portal-host tree unchanged.
  */
 function DialogKeyboardAvoidance({ children }: { children: React.ReactNode }) {
-  if (Platform.OS !== "ios") {
+  if (Platform.OS === "web") {
     return <>{children}</>;
   }
   return (
