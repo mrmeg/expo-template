@@ -170,6 +170,29 @@ Feedback was ~51 kB of the lazy web Sentry chunk (598 → 547 kB raw, 146 →
 128 kB gzip). `getFeedback` and `sendFeedback` are `undefined` as a result:
 drop the feedback resolver before adding a feedback widget.
 
+### Scoped dedupes
+
+`SCOPED_DEDUPES` collapses a nested copy onto the app-level install for the one
+importer whose usage was checked against that version, so a future dependency
+that pins another major keeps its own copy. An entry is skipped when the
+app-level copy is not installed.
+
+| Package | Importer (declared range) | Collapsed onto | Why it is compatible | Saved |
+|---------|---------------------------|----------------|----------------------|-------|
+| `buffer` 5.7.1 | `whatwg-url-without-unicode` (^5.4.3) | 6.0.3 (from `@aws-amplify/react-native`) | Calls only `Buffer.from` and `toString`, identical in 6.x. Client bundles only: server bundles resolve `buffer` to Node's built-in | ~21 kB raw on iOS with Cognito enabled |
+| `react-native-url-polyfill` 2.0.0 | `@clerk/clerk-expo` (pinned) | 3.0.0 (from `@aws-amplify/react-native`) | Same `/auto` globals; 3.0.0 adds `URL.canParse` and reads BlobModule constants through `getConstants()`, as the New Architecture requires | ~3 kB raw on iOS with Clerk and Cognito both enabled |
+| `@react-native/normalize-colors` 0.74.89 | `react-native-web` (^0.74.1) | 0.88 (react-native, expo-router) | Same `normalizeColor()` and packed integers, plus an LRU cache and CSS Color 4 alpha syntax. Server bundles too, so server-rendered styles match hydration | ~7.5 kB raw / ~2.7 kB gzip from the web entry (first load) |
+
+The first two apply only while the bundle includes Amplify (`withIntegration`):
+`@aws-amplify/react-native` is what brings the app-level copies, so in a bundle
+that leaves Amplify out the nested copy is the only one, and collapsing it would
+swap it for the larger newer release (+4 kB in a Clerk-only iOS bundle).
+
+These are Metro rewrites, not `overrides`: the install tree (and Jest) keeps the
+nested copies, and no version is pinned globally — an override of
+`@react-native/normalize-colors` would also freeze react-native's own copy on
+the next React Native upgrade.
+
 ## Common Large Dependencies
 
 Watch for these in `source-map-explorer`:

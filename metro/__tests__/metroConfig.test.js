@@ -77,6 +77,20 @@ describe("metro.config.js resolver wiring", () => {
     }
   });
 
+  it("collapses whatwg-url-without-unicode's buffer onto the app-level copy while Amplify ships", () => {
+    const request = {
+      moduleName: "buffer/",
+      originModulePath: path.join(APP, "node_modules/whatwg-url-without-unicode/lib/url-state-machine.js"),
+    };
+    // Dev bundles keep Amplify, so its buffer copy is in the bundle to collapse onto.
+    expect(resolveWith({ ...request, dev: true }).result).toEqual({
+      type: "sourceFile",
+      filePath: `${fs.realpathSync(path.join(APP, "node_modules/buffer"))}/`,
+    });
+    // A blank-env production bundle leaves Amplify out: the nested copy stays.
+    expect(resolveWith(request).result).toEqual({ type: "sourceFile", filePath: "buffer/" });
+  });
+
   it("strips Sentry User Feedback from web bundles", () => {
     const { result } = resolveWith({
       moduleName: "@sentry/feedback",

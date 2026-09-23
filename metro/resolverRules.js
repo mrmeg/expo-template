@@ -128,10 +128,97 @@ function getOmittedIntegrationFor(request, integrations = OPTIONAL_NATIVE_INTEGR
   );
 }
 
+// ---------------------------------------------------------------------------
+// Scoped dedupes
+// ---------------------------------------------------------------------------
+
+/**
+ * Nested copies that Metro bundled next to the app-level install, collapsed
+ * onto it for the one importer whose usage was checked against that version. A
+ * future dependency that pins another major keeps its own copy.
+ *
+ * - `buffer`: `whatwg-url-without-unicode` (under `react-native-url-polyfill`)
+ *   declares ^5.4.3 and calls only `Buffer.from` and `toString`, identical in
+ *   the app's 6.0.3. Client bundles only: in server bundles `buffer` is Node's
+ *   built-in.
+ * - `react-native-url-polyfill`: `@clerk/clerk-expo` pins 2.0.0. The app's 3.0.0
+ *   adds `URL.canParse` and reads the BlobModule constants through
+ *   `getConstants()`, as the New Architecture requires; both install the same
+ *   globals from `/auto`.
+ * - `@react-native/normalize-colors`: `react-native-web` declares ^0.74.1. The
+ *   app's copy (react-native, expo-router) exports the same `normalizeColor()`
+ *   returning the same packed integers, plus an LRU cache and CSS Color 4 alpha
+ *   syntax. Server bundles too, so server-rendered styles match hydration.
+ *
+ * `withIntegration`: the app-level copies of `buffer` and
+ * `react-native-url-polyfill` reach a bundle only through
+ * `@aws-amplify/react-native`. When a bundle leaves Amplify out, the nested copy
+ * is the only one, and collapsing it would just swap it for the larger newer
+ * release (+4 kB in a Clerk-only iOS bundle).
+ */
+const SCOPED_DEDUPES = [
+  {
+    packageName: "buffer",
+    importers: ["whatwg-url-without-unicode"],
+    clientOnly: true,
+    withIntegration: "AWS Amplify (Cognito)",
+  },
+  {
+    packageName: "react-native-url-polyfill",
+    importers: ["@clerk/clerk-expo"],
+    withIntegration: "AWS Amplify (Cognito)",
+  },
+  { packageName: "@react-native/normalize-colors", importers: ["react-native-web"] },
+];
+
+/** The package a module path belongs to: the segment after its last `node_modules`. */
+function packageOfModulePath(filePath) {
+  const segments = filePath.split(/[\\/]/);
+  const index = segments.lastIndexOf("node_modules");
+  const name = index === -1 ? undefined : segments[index + 1];
+  if (!name) return null;
+  if (!name.startsWith("@")) return name;
+  const scopedName = segments[index + 2];
+  return scopedName ? `${name}/${scopedName}` : null;
+}
+
+/**
+ * `moduleName` rewritten onto the app-level copy when a scoped dedupe applies,
+ * else null. `request` carries the bundle (`platform`, `dev`, `environment`,
+ * `env`) so `withIntegration` entries can check that integration ships. Entries
+ * without a `packagePath` (no app-level copy installed) are skipped.
+ */
+function getScopedDedupeTarget(request, dedupes, integrations = OPTIONAL_NATIVE_INTEGRATIONS) {
+  const { moduleName, originModulePath, environment } = request;
+  const importer = originModulePath ? packageOfModulePath(originModulePath) : null;
+  if (!importer) return null;
+
+  const entry = dedupes.find(
+    ({ packageName, packagePath, importers, clientOnly }) =>
+      packagePath &&
+      importers.includes(importer) &&
+      !(clientOnly && isServerEnvironment(environment)) &&
+      matchesPackage(moduleName, packageName)
+  );
+  if (!entry) return null;
+  if (
+    entry.withIntegration &&
+    getOmittedIntegrationsForBundle(request, integrations).some(
+      (integration) => integration.name === entry.withIntegration
+    )
+  ) {
+    return null;
+  }
+  return entry.packagePath + moduleName.slice(entry.packageName.length);
+}
+
 module.exports = {
   OPTIONAL_NATIVE_INTEGRATIONS,
+  SCOPED_DEDUPES,
   describeOmittedIntegration,
   getOmittedIntegrations,
   getOmittedIntegrationFor,
   getOmittedIntegrationsForBundle,
+  getScopedDedupeTarget,
+  packageOfModulePath,
 };

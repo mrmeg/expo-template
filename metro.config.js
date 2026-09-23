@@ -9,8 +9,10 @@ const {
   withSentryResolver,
 } = require("@sentry/react-native/metro");
 const {
+  SCOPED_DEDUPES,
   describeOmittedIntegration,
   getOmittedIntegrationFor,
+  getScopedDedupeTarget,
 } = require("./metro/resolverRules");
 const path = require("path");
 
@@ -117,6 +119,21 @@ const passthroughModules = new Set(
     .map((key) => `react-native/${key.slice(2)}`)
 );
 
+// Scoped dedupes: nested copies collapsed onto the app-level install for the
+// one importer checked against that version (buffer, react-native-url-polyfill,
+// @react-native/normalize-colors — see SCOPED_DEDUPES in
+// metro/resolverRules.js, which also records why each is compatible and why the
+// first two apply only to bundles that include Amplify). An entry is skipped
+// when the app-level copy is not installed, e.g. after removing the dependency
+// that hoisted it.
+const scopedDedupes = SCOPED_DEDUPES.map((entry) => {
+  const packageDir = path.resolve(appNodeModules, entry.packageName);
+  return {
+    ...entry,
+    packagePath: fs.existsSync(packageDir) ? fs.realpathSync(packageDir) : null,
+  };
+});
+
 // Resolver stubs (metro/resolverRules.js, docs/bundle-analysis.md):
 // - Optional native integrations. In production iOS/Android bundles, the
 //   Sentry, Amplify, and Clerk imports inside their env-gated app modules
@@ -156,6 +173,11 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       console.log(describeOmittedIntegration(omittedIntegration, platform, process.env));
     }
     return { type: "empty" };
+  }
+
+  const scopedDedupeTarget = getScopedDedupeTarget(request, scopedDedupes);
+  if (scopedDedupeTarget) {
+    return resolve(context, scopedDedupeTarget, platform);
   }
 
   for (const [packageName, packagePath] of Object.entries(dedupePackages)) {

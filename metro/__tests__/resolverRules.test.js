@@ -14,9 +14,12 @@ const path = require("path");
 
 const {
   OPTIONAL_NATIVE_INTEGRATIONS,
+  SCOPED_DEDUPES,
   describeOmittedIntegration,
   getOmittedIntegrations,
   getOmittedIntegrationFor,
+  getScopedDedupeTarget,
+  packageOfModulePath,
 } = require("../resolverRules");
 
 const REPO_ROOT = path.resolve(__dirname, "../..");
@@ -258,5 +261,166 @@ describe("optional native integrations", () => {
         expect(importers).toEqual([...integration.importers].sort());
       }
     );
+  });
+});
+
+describe("scoped dedupes", () => {
+  const NM = `${ROOT}/node_modules`;
+  const dedupes = SCOPED_DEDUPES.map((entry) => ({
+    ...entry,
+    packagePath: `${NM}/${entry.packageName}`,
+  }));
+
+  describe("packageOfModulePath", () => {
+    it.each([
+      [`${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`, "whatwg-url-without-unicode"],
+      [`${NM}/@clerk/clerk-expo/dist/polyfills/index.js`, "@clerk/clerk-expo"],
+      [`${NM}/@clerk/clerk-expo/node_modules/react-native-url-polyfill/auto.js`, "react-native-url-polyfill"],
+      [`${NM}/react-native-web/dist/exports/processColor/index.js`, "react-native-web"],
+      [`${ROOT}/client/lib/sentry.ts`, null],
+      [`${NM}/@scope`, null],
+    ])("%s → %s", (file, expected) => {
+      expect(packageOfModulePath(file)).toBe(expected);
+    });
+  });
+
+  it("collapses buffer onto the app copy for whatwg-url-without-unicode, keeping the subpath", () => {
+    const originModulePath = `${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`;
+    expect(getScopedDedupeTarget({ moduleName: "buffer", originModulePath }, dedupes)).toBe(`${NM}/buffer`);
+    expect(getScopedDedupeTarget({ moduleName: "buffer/", originModulePath }, dedupes)).toBe(`${NM}/buffer/`);
+  });
+
+  it("keeps buffer's server resolution (Node's built-in)", () => {
+    expect(
+      getScopedDedupeTarget(
+        {
+          moduleName: "buffer/",
+          originModulePath: `${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`,
+          environment: "node",
+        },
+        dedupes
+      )
+    ).toBeNull();
+  });
+
+  it("collapses react-native-url-polyfill for @clerk/clerk-expo", () => {
+    expect(
+      getScopedDedupeTarget(
+        {
+          moduleName: "react-native-url-polyfill/auto",
+          originModulePath: `${NM}/@clerk/clerk-expo/dist/polyfills/index.js`,
+        },
+        dedupes
+      )
+    ).toBe(`${NM}/react-native-url-polyfill/auto`);
+  });
+
+  describe("buffer and react-native-url-polyfill follow the Amplify SDK", () => {
+    // Their app-level copies ship only with @aws-amplify/react-native. Without
+    // Amplify the nested copy is the only one; collapsing would swap it for the
+    // larger newer release.
+    const nativeRequests = [
+      {
+        moduleName: "buffer/",
+        originModulePath: `${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`,
+        target: `${NM}/buffer/`,
+      },
+      {
+        moduleName: "react-native-url-polyfill/auto",
+        originModulePath: `${NM}/@clerk/clerk-expo/dist/polyfills/index.js`,
+        target: `${NM}/react-native-url-polyfill/auto`,
+      },
+    ];
+    const cognitoEnv = {
+      EXPO_PUBLIC_USER_POOL_ID: FULL_ENV.EXPO_PUBLIC_USER_POOL_ID,
+      EXPO_PUBLIC_USER_POOL_CLIENT_ID: FULL_ENV.EXPO_PUBLIC_USER_POOL_CLIENT_ID,
+    };
+
+    it.each(nativeRequests)("keeps $moduleName nested when a production native bundle leaves Amplify out", (req) => {
+      const clerkOnly = { EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_example" };
+      expect(
+        getScopedDedupeTarget({ ...req, platform: "ios", dev: false, env: clerkOnly }, dedupes)
+      ).toBeNull();
+    });
+
+    it.each(nativeRequests)("collapses $moduleName when the bundle includes Amplify", (req) => {
+      expect(
+        getScopedDedupeTarget({ ...req, platform: "ios", dev: false, env: cognitoEnv }, dedupes)
+      ).toBe(req.target);
+      expect(
+        getScopedDedupeTarget({ ...req, platform: "android", dev: false, env: FULL_ENV }, dedupes)
+      ).toBe(req.target);
+      // Dev bundles keep every SDK, Amplify included.
+      expect(getScopedDedupeTarget({ ...req, platform: "ios", dev: true, env: {} }, dedupes)).toBe(
+        req.target
+      );
+    });
+
+    it("leaves normalize-colors unconditional", () => {
+      expect(
+        getScopedDedupeTarget(
+          {
+            moduleName: "@react-native/normalize-colors",
+            originModulePath: `${NM}/react-native-web/dist/exports/processColor/index.js`,
+            platform: "web",
+            dev: false,
+            env: {},
+          },
+          dedupes
+        )
+      ).toBe(`${NM}/@react-native/normalize-colors`);
+    });
+  });
+
+  it("collapses normalize-colors for react-native-web in client and server bundles", () => {
+    for (const environment of [undefined, "node"]) {
+      expect(
+        getScopedDedupeTarget(
+          {
+            moduleName: "@react-native/normalize-colors",
+            originModulePath: `${NM}/react-native-web/dist/exports/processColor/index.js`,
+            environment,
+          },
+          dedupes
+        )
+      ).toBe(`${NM}/@react-native/normalize-colors`);
+    }
+  });
+
+  it("leaves every other importer on its own copy", () => {
+    // e.g. @aws-amplify/storage pins buffer 4.9.2; nothing checked it against 6.x.
+    expect(
+      getScopedDedupeTarget(
+        { moduleName: "buffer", originModulePath: `${NM}/@aws-amplify/storage/dist/esm/index.mjs` },
+        dedupes
+      )
+    ).toBeNull();
+    expect(
+      getScopedDedupeTarget({ moduleName: "buffer", originModulePath: `${ROOT}/client/lib/sentry.ts` }, dedupes)
+    ).toBeNull();
+  });
+
+  it("only matches the package itself", () => {
+    expect(
+      getScopedDedupeTarget(
+        {
+          moduleName: "buffer-xor",
+          originModulePath: `${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`,
+        },
+        dedupes
+      )
+    ).toBeNull();
+  });
+
+  it("skips an entry whose app-level copy is not installed", () => {
+    expect(
+      getScopedDedupeTarget(
+        {
+          moduleName: "buffer",
+          originModulePath: `${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`,
+        },
+        dedupes.map((entry) => ({ ...entry, packagePath: null }))
+      )
+    ).toBeNull();
   });
 });
