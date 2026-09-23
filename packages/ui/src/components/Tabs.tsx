@@ -7,6 +7,7 @@ import { Icon, type IconName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { spacing } from "../constants/spacing";
 
 // ============================================================================
@@ -131,7 +132,7 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
   const rootContext = TabsPrimitive.useRootContext();
   const isSelected = rootContext.value === value;
 
-  const activeOpacity = React.useRef(new Animated.Value(isSelected ? 1 : 0)).current;
+  const activeOpacity = useAnimatedValue(isSelected ? 1 : 0);
 
   React.useEffect(() => {
     Animated.timing(activeOpacity, {
@@ -304,7 +305,7 @@ function TabsContent({ style, children, ...props }: TabsContentProps) {
 // Styles
 // ============================================================================
 
-const triggerContentStyles = StyleSheet.create({
+const triggerContentStyles = /*#__PURE__*/ StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",

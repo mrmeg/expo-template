@@ -1,19 +1,17 @@
 /**
  * Guardrails for the generic workspace-package script runner.
  *
- * `scripts/run-package-script.mjs` replaces the copy-pasted `ui:*`/`media:*`
- * scripts with one table, so adding a workspace package is a one-line change
- * instead of six more scripts. The aliases stay because they are load-bearing:
- * `scripts/release-package.mjs` shells out to them,
- * `.github/workflows/publish-{ui,media,lint}.yml` run them as steps, and the
- * published package READMEs document them.
- *
- * These tests pin the resolved command for every (package, task) pair against
- * the exact commands the aliases ran before the refactor. If the runner's table
- * drifts, a publish workflow silently starts running the wrong thing.
+ * `bun run pkg <package> <task>` is the way to run a package task: every
+ * caller in this repo (the release script, the publish workflow, `verify`, the
+ * docs) uses the runner. The `ui:*`/`media:*`/`purchases:*`/`lint:*` root
+ * aliases stay only as shims over the same runner, because automation outside
+ * the repo still calls them. These tests pin the resolved command for every
+ * (package, task) pair — if the table drifts, a publish silently runs the wrong
+ * thing — pin each shim to its runner call, and fail when a repo caller uses a
+ * shim instead of `pkg`.
  */
 import { execFileSync } from "child_process";
-import { readFileSync } from "fs";
+import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 
 const root = join(__dirname, "..", "..");
@@ -46,29 +44,19 @@ const PACKAGE_SLUGS = ["ui", "media", "purchases", "lint"];
 const TASK_NAMES = ["typecheck", "test", "build", "pack", "consumer-smoke", "release"];
 
 /**
- * Every `<package>:<task>` root alias mentioned in a file or command output. The
- * task half is pinned to the runner's task names rather than any word, because
- * `lint` also prefixes two unrelated root scripts: `lint` (expo lint) and
- * `lint:ui` (the design-system CLI), which are not package gates.
+ * Every `<package>:<task>` alias mentioned in a file. The task half is pinned to
+ * the runner's task names rather than any word, because `lint` also prefixes two
+ * unrelated root scripts: `lint` (expo lint) and `lint:ui` (the design-system
+ * CLI), which are not package tasks.
  */
 function aliasesIn(source: string): string[] {
   const pattern = new RegExp(`\\b(${PACKAGE_SLUGS.join("|")}):(${TASK_NAMES.join("|")})\\b`, "g");
   return [...source.matchAll(pattern)].map((match) => `${match[1]}:${match[2]}`);
 }
 
-/** The release script's own usage text for one package. */
-function releaseUsage(pkg: string): string {
-  return execFileSync("node", ["scripts/release-package.mjs", pkg, "--help"], {
-    cwd: root,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-}
-
 /**
- * The pre-refactor command for each alias, copied from the `ui:*`/`media:*`
- * entries as they existed before `pkg` was introduced, plus the `lint:*` set that
- * followed the same shape. These are the contract.
+ * The command each (package, task) pair resolves to: the same commands the
+ * removed aliases ran, so moving callers to `pkg` changed nothing they execute.
  */
 const EXPECTED: Record<string, string> = {
   "ui typecheck": "bun run --cwd packages/ui typecheck",
@@ -97,7 +85,7 @@ const EXPECTED: Record<string, string> = {
   "lint release": "node scripts/release-package.mjs lint",
 };
 
-describe("run-package-script resolves the historical alias commands", () => {
+describe("run-package-script resolves every package task", () => {
   it.each(Object.entries(EXPECTED))("pkg %s -> %s", (pair, command) => {
     expect(print(pair.split(" "))).toBe(command);
   });
@@ -109,17 +97,16 @@ describe("run-package-script resolves the historical alias commands", () => {
     expect(print(["media", "test", "--runTestsByPath", "src/foo.test.ts"])).toBe(
       "bun run --cwd packages/media test --runTestsByPath src/foo.test.ts",
     );
+    expect(print(["ui", "consumer-smoke", "--tarball", "/tmp/x.tgz"])).toBe(
+      "node scripts/check-package-consumer.mjs ui --tarball /tmp/x.tgz",
+    );
   });
 
   it("forwards trailing --help to the task instead of swallowing it", () => {
-    // `bun run ui:release -- --help` is documented in scripts/release-package.mjs's
+    // `bun run pkg ui release -- --help` is documented in the release script's
     // own usage text. The runner must not intercept flags that come after the task.
-    expect(print(["ui", "release", "--help"])).toBe(
-      "node scripts/release-package.mjs ui --help",
-    );
-    expect(print(["media", "release", "-h"])).toBe(
-      "node scripts/release-package.mjs media -h",
-    );
+    expect(print(["ui", "release", "--help"])).toBe("node scripts/release-package.mjs ui --help");
+    expect(print(["media", "release", "-h"])).toBe("node scripts/release-package.mjs media -h");
   });
 });
 
@@ -128,9 +115,9 @@ describe("run-package-script forwards --help to the real release script", () => 
     const result = resolve(["ui", "release", "--help"]);
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("bun run ui:release --");
+    expect(result.stdout).toContain("bun run pkg ui release --");
     expect(result.stdout).toContain("--allow-dirty");
-    expect(result.stdout).not.toContain("bun run pkg <package>");
+    expect(result.stdout).not.toContain("bun run pkg <package> <task>");
   });
 });
 
@@ -140,16 +127,7 @@ describe("run-package-script argument validation", () => {
 
     expect(result.status).toBe(1);
     expect(`${result.stdout}${result.stderr}`).toMatch(/unknown package "nope"/i);
-    expect(`${result.stdout}${result.stderr}`).toContain("media");
-    expect(`${result.stdout}${result.stderr}`).toContain("ui");
-  });
-
-  it("does not mistake the root lint scripts for package gates", () => {
-    // `lint` runs expo lint and `lint:ui` runs the design-system CLI: neither is
-    // a `<package>:<task>` gate, and treating them as one would let the runner's
-    // table drift unnoticed.
-    expect(aliasesIn("bun run lint\nbun run lint:ui --doctor")).toEqual([]);
-    expect(aliasesIn("bun run lint:test")).toEqual(["lint:test"]);
+    expect(`${result.stdout}${result.stderr}`).toContain("lint, media, purchases, ui");
   });
 
   it("rejects an unknown task and names the valid ones", () => {
@@ -172,49 +150,71 @@ describe("run-package-script argument validation", () => {
   });
 });
 
-describe("package.json wiring", () => {
+/** Tracked text files outside generated output that could name a script. */
+function callerFiles(): string[] {
+  const files = [
+    "README.md",
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "workers/media/README.md",
+    ...readdirSync(join(root, ".github/workflows")).map((name) => `.github/workflows/${name}`),
+    ...readdirSync(join(root, "docs"))
+      .filter((name) => name.endsWith(".md"))
+      .map((name) => `docs/${name}`),
+    ...readdirSync(join(root, "scripts"))
+      .filter((name) => /\.(mjs|js|ts)$/.test(name))
+      .map((name) => `scripts/${name}`),
+  ];
+  for (const pkg of PACKAGE_SLUGS) {
+    for (const name of readdirSync(join(root, "packages", pkg))) {
+      if (/\.(md|txt)$/.test(name)) files.push(`packages/${pkg}/${name}`);
+    }
+  }
+  return files;
+}
+
+describe("the per-package aliases are folded into `pkg`", () => {
+  it.each(PACKAGE_SLUGS.flatMap((pkg) => TASK_NAMES.map((task) => [pkg, task])))(
+    "keeps %s:%s as a shim over `pkg`",
+    (pkg, task) => {
+      expect(packageJson.scripts[`${pkg}:${task}`]).toBe(
+        `node scripts/run-package-script.mjs ${pkg} ${task}`
+      );
+    }
+  );
+
+  it("no package.json script calls a shim", () => {
+    expect(aliasesIn(Object.values(packageJson.scripts).join("\n"))).toEqual([]);
+  });
+
   it("exposes the generic runner as `pkg`", () => {
     expect(packageJson.scripts.pkg).toBe("node scripts/run-package-script.mjs");
   });
 
-  it("keeps every ui:*/media:*/lint:* gate alias delegating to the runner", () => {
-    for (const pair of Object.keys(EXPECTED)) {
-      const [pkg, task] = pair.split(" ");
-      expect(packageJson.scripts[`${pkg}:${task}`]).toBe(
-        `node scripts/run-package-script.mjs ${pkg} ${task}`,
-      );
-    }
+  it("does not mistake the root lint scripts for package tasks", () => {
+    // `lint` runs expo lint and `lint:ui` runs the design-system CLI: neither is
+    // a package task, and both stay.
+    expect(aliasesIn("bun run lint\nbun run lint:ui --doctor")).toEqual([]);
+    expect(aliasesIn("bun run lint:test")).toEqual(["lint:test"]);
+    expect(packageJson.scripts.lint).toBe("expo lint");
+    expect(packageJson.scripts["lint:ui"]).toBeDefined();
   });
 
-  it("still exposes every alias the publish workflows call", () => {
-    // .github/workflows/publish-*.yml invoke these by name; dropping one breaks
-    // a publish mid-flight.
-    for (const source of [
-      ".github/workflows/publish-ui.yml",
-      ".github/workflows/publish-media.yml",
-      ".github/workflows/publish-purchases.yml",
-      ".github/workflows/publish-lint.yml",
-    ]) {
-      const referenced = aliasesIn(read(source));
-
-      expect(referenced.length).toBeGreaterThan(0);
-      for (const script of new Set(referenced)) {
-        expect(packageJson.scripts[script]).toBeDefined();
-      }
-    }
+  it.each(callerFiles())("%s calls `pkg`, not a shim", (file) => {
+    expect(aliasesIn(read(file))).toEqual([]);
   });
 
-  it("still exposes every alias the release script shells out to", () => {
-    // scripts/release-package.mjs interpolates the package name into its gate
-    // list, so the aliases are read back out of its usage text — which is
-    // generated from the same list the script executes.
-    for (const pkg of PACKAGE_SLUGS) {
-      const referenced = aliasesIn(releaseUsage(pkg));
-
-      expect(referenced).toContain(`${pkg}:consumer-smoke`);
-      for (const script of new Set(referenced)) {
-        expect(packageJson.scripts[script]).toBeDefined();
+  it("every documented `bun run pkg <package> <task>` resolves", () => {
+    const calls = new Set<string>();
+    for (const file of callerFiles()) {
+      for (const match of read(file).matchAll(/bun run pkg ([a-z]+) ([a-z-]+)/g)) {
+        calls.add(`${match[1]} ${match[2]}`);
       }
+    }
+
+    expect(calls.size).toBeGreaterThan(0);
+    for (const call of calls) {
+      expect([call, resolve(["--print", ...call.split(" ")]).status]).toEqual([call, 0]);
     }
   });
 });

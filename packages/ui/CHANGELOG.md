@@ -26,6 +26,74 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   once per close (re-armed on reopen) and always after `onOpenChange(false)` for
   a user dismissal. Present the next modal from `onDismissed`; drop timers.
 
+### Changed
+
+- **Native bundles ship four Inter files instead of 18, and web bundles ship
+  none.** `useResources` imported the `@expo-google-fonts/inter` root entry,
+  which `require`s every weight and italic, and a bundler ships every file a
+  bundle requires, so each app carried 14 faces nothing referenced (4,844,592
+  bytes) on native and all 18 (6,217,596 bytes) as web export assets. Native
+  now imports `Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`, and
+  `Inter_700Bold` from their per-weight subpaths (1,373,004 bytes), and web
+  imports no TTF: it keeps loading Inter as one CSS family from Google Fonts.
+  `useResources` keeps its export and `{ loaded, error }` result, and the
+  registered family names are unchanged. An app that rendered another Inter
+  weight or an italic by family name (`Inter_300Light`, `Inter_400Regular_Italic`)
+  was relying on a file the package never loaded; it must load that face
+  itself, as before.
+- **`package.json` declares `sideEffects`, so barrel imports tree-shake.**
+  Without the field a bundler has to assume every module does work when
+  imported, and keeps it. The field lists the one module that does,
+  `state/themeStore` (its native branch loads the saved theme and starts the
+  OS color-scheme listener at module load), as `./src/state/themeStore.ts` and
+  `./dist/state/themeStore.js`; everything else is side-effect free, and
+  module-scope `StyleSheet.create` / `createThemedStyles` calls are marked
+  `/*#__PURE__*/`. A package test fails if a module gains an import-time
+  statement the field does not list. Measured with esbuild (web, peers
+  external), `import { Button } from "@mrmeg/expo-ui"` went from 199 modules
+  (71 of this package's) and 281,990 bytes minified to 20 modules (19) and
+  30,076 bytes, about what the `components/Button` deep import costs. Metro
+  bundles everything reachable unless Expo's tree shaking is on
+  (`EXPO_UNSTABLE_TREE_SHAKING=1`), which was already dropping unused
+  re-exports and still does. Nothing to change in apps.
+- **`Button` measures itself only when it can show a spinner.** Every button
+  attached an `onLayout` to record its resting width, which cost a layout
+  callback (a `ResizeObserver` on web) and a second render on every mount,
+  but the width is only read while `loading` is true, to keep the button's
+  size when its label changes under the spinner. A button that never
+  receives a `loading` prop no longer measures; one that does (including
+  `loading={false}`) and isn't `fullWidth` measures as before, so the loading
+  state still keeps the resting width. Nothing to change in apps; a button
+  whose `loading` toggles between `undefined` and `true` should pass a
+  boolean to keep the width lock.
+- **Web: a theme switch no longer churns every `useTheme()` consumer.** The
+  two schemes' `colors` hold the same `var(--c-*)` references but were
+  separate objects; they are now one shared object on web
+  (`colors.light.colors === colors.dark.colors`), so `theme.colors` keeps its
+  identity across a switch. `colors.light` and `colors.dark` stay distinct
+  (`dark`, `navigation`, and `fonts` differ). `useTheme()` reads the theme
+  store through one subscription (`useShallow`) instead of four, and the
+  `<html data-theme>` / `color-scheme` write that ran as an effect in every
+  consumer on every switch is one app-wide store subscription, started by the
+  first consumer to mount and writing only when the resolved scheme changes.
+  `useTheme()`'s return shape and values are unchanged. Consumer note: code
+  that mutated `colors.light.colors` or `colors.dark.colors` on web now
+  changes both schemes; brand through `setColors` instead.
+- **Web `useDimensions()` shares one window store.** Every consumer added its
+  own `resize` listener, set state on every resize event (a new object even
+  when nothing changed, so every consumer re-rendered), and wrote the
+  `mrmeg-vw` SSR cookie on mount and on every resize event. One listener now
+  serves all consumers while any is mounted, consumers re-render only when the
+  width or height changes, and the cookie is written once per page view and
+  then 250 ms after resizing settles (a pending write is flushed when the last
+  consumer unmounts). The returned fields and values are unchanged, and the
+  server render and hydration pass still seed from `SsrViewportContext` (or
+  the 1280 × 800 default); the real viewport now arrives in a synchronous
+  re-render right after hydration instead of a passive effect. One visible
+  difference, a fix: a component that mounts after hydration now reads the
+  current viewport on its first render instead of rendering one frame at the
+  seed width. Native still follows `useWindowDimensions`.
+
 ### Fixed
 
 - **`Dialog` and `AlertDialog` keep their fields and footer above the keyboard
@@ -82,6 +150,55 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   card recentered; Cancel closed the dialog on the first tap with the keyboard
   up. Web is untouched (no software keyboard; the boundary returns no handlers
   there).
+- **`syncThemeFromEnvironment()` and `startSystemThemeListener()` are safe to
+  call more than once.** Every call after the first returned the same stop
+  function, so the first caller to clean up removed the OS color-scheme
+  listener for everyone, a cleanup run twice could orphan a later caller's
+  listener and let the next call stack a second one, and on native an app's
+  `useEffect(() => syncThemeFromEnvironment(), [])` cleanup (StrictMode's
+  double effects included) removed the listener the package installs at
+  startup. Calls now share one listener, each returns its own idempotent
+  release, and the listener is removed when the last holder releases; the
+  package's native startup hold is never released. Consumer note: a release
+  now drops only that call's hold, so code that relied on one stop function
+  ending OS tracking for every caller must release each call. The web setup
+  (`getThemeCssVariables()` in `+html.tsx`, `syncThemeFromEnvironment()` in a
+  root effect) is now documented in the README and `LLM_USAGE.md`; `UIProvider`
+  still does not call it, so apps that skip it keep their current appearance.
+- **Every package component and hook now compiles under the React Compiler.**
+  The compiler skipped any function that read or wrote a ref during render,
+  mutated a hook result, or used syntax it can't lower, and 134
+  `react-hooks/refs` plus 4 `react-hooks/immutability` findings covered
+  `Drawer`, `TextInput` (native), `Notification`, `Progress`, `RadioGroup`,
+  `Skeleton`, `Switch`, `Tabs`, `Accordion`, `Checkbox`, `BottomSheet`, the
+  Android text field, `keyboardDismiss`'s hooks, `useStaggeredEntrance`, and
+  `useScalePress` (so every `Button`); computed default props,
+  `try`/`finally`, and a reassigned captured counter kept `Drawer`,
+  `KeyboardAvoidingView`, `UIProvider`, `Notification`, `ToggleGroup`, and
+  `useResources` out as well. Animated values are created once through a
+  lazy initializer instead of `useRef(new Animated.Value(x)).current` (which
+  also allocated and discarded a value every render), "latest value" refs are
+  synced in a layout effect, animations that started during render start in
+  a layout effect before the frame paints, and render-time latches are state.
+  `Notification` reads `globalUIStore` through zustand's `useStore`: the
+  compiler recognizes hooks only by a `use` prefix, so a bare
+  `globalUIStore()` call would be cached and skipped on the next render
+  (React error #311), and a package test now rejects such calls. Behavior is
+  unchanged; apps whose bundler runs the compiler over the package now get
+  memoized components. Apps compiling their own components should read
+  `globalUIStore` the same way.
+
+### Documentation
+
+- **`Button.Icon` documents and tests its `component` prop.** `Icon` has taken
+  a component through `component` (any `LucideIcon`) since before 0.26, and
+  `Button.Icon` forwards every `Icon` prop, so `<Button.Icon component={House} />`
+  already rendered with the button's label color; the docs only showed `name`,
+  and two doc comments showed an `as` prop that never existed. The README,
+  `LLM_USAGE.md`, and those comments now use `component`, and tests pin that a
+  real Lucide export type-checks for both and renders sized, colored, and
+  decorative exactly like a named icon. No API change: `component` is the name
+  the package already used, so there is no `as` alias.
 
 ## [0.27.1]
 

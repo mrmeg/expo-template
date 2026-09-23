@@ -36,12 +36,16 @@ export function useKeyboardAvoidance() {
 export function KeyboardAvoidingView({
   children,
   style,
-  behavior = Platform.OS === "ios" ? "padding" : "height",
+  behavior: behaviorProp,
   automaticOffset = true,
   contentContainerStyle,
   keyboardVerticalOffset,
   ...props
 }: KeyboardAvoidingViewProps) {
+  // Resolved in the body rather than as a default parameter: the React
+  // Compiler can't reorder a computed default, and skipped the component.
+  const behavior = behaviorProp === undefined ? (Platform.OS === "ios" ? "padding" : "height") : behaviorProp;
+
   if (Platform.OS === "web") {
     return (
       <KeyboardAvoidanceContext.Provider value>

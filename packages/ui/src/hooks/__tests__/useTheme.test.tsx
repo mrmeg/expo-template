@@ -82,6 +82,52 @@ describe("useTheme", () => {
       expect(result.current.theme).toBe(colors.light);
     });
 
+    it("reads the theme store through one subscription per consumer", async () => {
+      const useSyncExternalStore = jest.spyOn(React, "useSyncExternalStore");
+      let renders = 0;
+
+      try {
+        await renderHook(() => {
+          renders += 1;
+          return useTheme();
+        });
+
+        const storeReads = useSyncExternalStore.mock.calls.filter(
+          ([subscribe]) => subscribe === useThemeStore.subscribe
+        );
+        // One store read per render, not one per field it selects.
+        expect(renders).toBeGreaterThan(0);
+        expect(storeReads).toHaveLength(renders);
+      } finally {
+        useSyncExternalStore.mockRestore();
+      }
+    });
+
+    it("re-renders for the fields it reads and not for other store changes", async () => {
+      let renders = 0;
+      const { result } = await renderHook(() => {
+        renders += 1;
+        return useTheme();
+      });
+      const settled = renders;
+
+      await act(() => {
+        useThemeStore.getState().setFonts({ families: { mono: { regular: "Mono" } } });
+        useThemeStore.getState().setShape({ button: { borderRadius: 4 } });
+      });
+      expect(renders).toBe(settled);
+
+      await act(() => {
+        useThemeStore.getState().setTheme("dark");
+      });
+      expect(renders).toBeGreaterThan(settled);
+      expect(result.current.scheme).toBe("dark");
+      expect(result.current.currentTheme).toBe("dark");
+
+      useThemeStore.getState().setFonts({});
+      useThemeStore.getState().setShape({});
+    });
+
     it("keeps helper identities stable across unchanged rerenders", async () => {
       const { result, rerender } = await renderHook(() => useTheme());
       const first = result.current;

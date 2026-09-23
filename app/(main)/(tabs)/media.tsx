@@ -912,6 +912,11 @@ const MediaRow = memo(function MediaRow({
   const filename = itemKey.split("/").pop() || itemKey;
   const isImage = isImageKey(itemKey);
   const isVideo = isVideoKey(itemKey);
+  // Thumbnails are cached under their object key, not the signed URL: every
+  // refetch re-signs the URL (new query string, same object), so keying on the
+  // URL missed expo-image's cache and re-downloaded each thumbnail. Keys are
+  // never overwritten with different bytes — uploads get a fresh id, and a
+  // video's thumbnail is named after the video.
 
   return (
     <View
@@ -939,14 +944,14 @@ const MediaRow = memo(function MediaRow({
             accessibilityLabel={`Open ${filename}`}
           >
             <Image
-              source={{ uri: signedUrl }}
+              source={{ uri: signedUrl, cacheKey: itemKey }}
               style={styles.thumbnail}
               contentFit="cover"
             />
           </Pressable>
         ) : isVideo && thumbnailUrl ? (
           <Image
-            source={{ uri: thumbnailUrl }}
+            source={{ uri: thumbnailUrl, cacheKey: getVideoThumbnailKey(itemKey) }}
             style={styles.thumbnail}
             contentFit="cover"
           />

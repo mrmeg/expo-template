@@ -51,8 +51,9 @@ export default function ServerAlphaExampleScreen() {
       return;
     }
 
+    // No `setState({ phase: "loading" })` here: the lazy initial state already
+    // starts web in "loading", and this effect runs once.
     let cancelled = false;
-    setState({ phase: "loading" });
 
     void (async () => {
       try {

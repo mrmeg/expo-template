@@ -636,44 +636,46 @@ media error mappers.
 
 ```sh
 bun run packages:peer-check
-bun run media:typecheck
-bun run media:test
-bun run media:build
-bun run media:pack
-bun run media:consumer-smoke
+bun run pkg media typecheck
+bun run pkg media test
+bun run pkg media build
+bun run pkg media pack
+bun run pkg media consumer-smoke
 ```
 
-`media:consumer-smoke` installs the packed tarball into two clean fixtures: a
+`pkg media consumer-smoke` installs the packed tarball into two clean fixtures: a
 peer-free one proving core, `/server`, and `/worker` load without React Native or
 Expo, and a fully provisioned one that type-checks every documented entrypoint. It
 also verifies export-map files, root runtime imports, and that the installed
 package ships `README.md`, `CHANGELOG.md`, `LLM_USAGE.md`, `llms.txt`, and
-`llms-full.md`. CI installs packed consumers against Expo 55, 56, and 57.
+`llms-full.md`. CI installs packed consumers against Expo 55, 56, 57, and 58.
 
 ## Package Release
 
 ```sh
-bun run media:release -- --patch [--publish]
+bun run pkg media release -- --patch [--publish]
 ```
 
 Accepts `--patch`, `--minor`, `--major`, or an exact `x.y.z`; the default bump is
-patch. It updates `packages/media/package.json` and `bun.lock`, then runs
-`packages:peer-check` and the `typecheck`, `test`, `build`, `pack`, and
-`consumer-smoke` gates. Without `--publish` it stops after the gates. A clean
-working tree is required unless `--allow-dirty` is passed.
+patch, and the committed version itself releases without a bump. It updates
+`packages/media/package.json` and `bun.lock`, then runs `packages:peer-check`
+and the `typecheck`, `test`, and `build` gates, packs one tarball, and runs the
+consumer smoke against it. `--publish` publishes that same tarball; without it
+the command stops after the gates. A clean working tree is required unless
+`--allow-dirty` is passed.
 
 ## GitHub Publishing
 
-The `Publish Media Package` workflow (`.github/workflows/publish-media.yml`)
-runs on pushes to `main` that change `packages/media/package.json` — publishing
-the committed version when npm does not already have it — and on
-`workflow_dispatch`, which bumps `patch`, `minor`, `major`, or an exact version,
-publishes, and commits the bump back to the selected branch. Either way it runs
-`packages:peer-check` and the media gates before `npm publish --access public`.
+The `Publish Packages` workflow (`.github/workflows/publish-packages.yml`)
+publishes every workspace package. It runs on pushes to `main` that change a
+`packages/*/package.json` — releasing the committed media version when it changed
+in the push and npm does not already have it — and on `workflow_dispatch` with
+`package=media`, which bumps `patch`, `minor`, `major`, or an exact version and
+commits the bump to the selected branch before publishing. Either way it runs
+the release script above, publishes the smoked tarball with
+`npm publish <tarball> --provenance --access public`, and tags
+`expo-media-v<version>`.
 
 Configure npm trusted publishing for owner `mrmeg`, repository `expo-template`,
-workflow filename `publish-media.yml`. The first publish predates that settings
-page, so it needs a manual run with a repository secret `NPM_TOKEN` holding
-publish access to the `@mrmeg` scope; push runs skip cleanly while the package is
-missing and no token is set. Afterwards the workflow defaults to trusted
-publishing and still accepts `NPM_TOKEN` as a fallback.
+workflow filename `publish-packages.yml`. A repository secret `NPM_TOKEN` with
+publish access to the `@mrmeg` scope, when set, is used instead.

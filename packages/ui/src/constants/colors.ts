@@ -310,11 +310,16 @@ const webVarColors = Object.fromEntries(
   themeColorTokens.map((token) => [token, `var(${cssVarName(token)})`])
 ) as unknown as ThemeColors;
 
+// Web: both schemes hold the same `var(--c-*)` references, so they share ONE
+// `colors` object. A scheme switch then keeps `theme.colors` identical, so
+// anything memoized on it keeps its result; the CSS variables do the
+// re-theming. `colors.light` and `colors.dark` stay distinct objects:
+// `dark`, `navigation`, and `fonts` differ per scheme.
 export const colors: Colors =
   Platform.OS === "web"
     ? {
-      light: { ...lightTheme, colors: { ...webVarColors } },
-      dark: { ...darkTheme, colors: { ...webVarColors } },
+      light: { ...lightTheme, colors: webVarColors },
+      dark: { ...darkTheme, colors: webVarColors },
     }
     : {
       light: lightTheme,

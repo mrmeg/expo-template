@@ -35,22 +35,94 @@ import { Platform, StyleSheet } from "react-native";
  * so on a cold cache there is a window where the client sheet holds resets
  * and no atomics, and its single-class resets beat this sheet's single-class
  * atomics by order — padding and margins snap to zero until the chunk lands.
+ *
+ * The sheet is server-wide and only grows, so the serialized text is cached
+ * (`readFlushedSheet`) and rebuilt only after a `StyleSheet.create` call —
+ * the one path that adds rules — instead of re-sorting and re-joining every
+ * rule on every request.
  */
 export function SsrStyleFlush() {
   if (Platform.OS !== "web" || typeof document !== "undefined") {
     return null;
   }
 
-  // getSheet() is a react-native-web extension; absent from RN's types.
-  const sheet = (StyleSheet as unknown as {
-    getSheet: () => { id: string; textContent: string };
-  }).getSheet();
-
   return (
     <style href="rnw-ssr-flush" precedence="rnw-ssr">
-      {hardenFlushedSheet(sheet.textContent)}
+      {readFlushedSheet(StyleSheet as unknown as FlushableStyleSheet)}
     </style>
   );
+}
+
+/**
+ * The react-native-web `StyleSheet` surface the flush reads. `getSheet()` is
+ * an RNW extension absent from React Native's types.
+ */
+export type FlushableStyleSheet = {
+  create: (styles: never) => unknown;
+  getSheet: () => { id: string; textContent: string };
+};
+
+/**
+ * Global-registry symbol, so a re-evaluated copy of this module (dev SSR)
+ * finds the counter already installed instead of wrapping `create` again.
+ */
+const RULE_VERSION = Symbol.for("expo-template.ssr-style-flush.rule-version");
+
+type TrackedStyleSheet = FlushableStyleSheet & { [RULE_VERSION]?: number };
+
+/**
+ * Count every `StyleSheet.create` call on `sheet`. In react-native-web,
+ * `create` is the only thing that inserts rules (`StyleSheet/index.js` →
+ * `insertRules`), so an unchanged count means an unchanged sheet. Rules
+ * inserted before tracking starts are covered by the first read, which
+ * always serializes. A sheet whose `create` cannot be replaced stays
+ * untracked and is re-serialized on every read, as before.
+ */
+export function trackStyleSheetRules(sheet: FlushableStyleSheet): void {
+  const tracked = sheet as TrackedStyleSheet;
+  if (typeof tracked[RULE_VERSION] === "number") {
+    return;
+  }
+
+  const create = tracked.create;
+  try {
+    tracked.create = function trackedCreate(this: unknown, styles: never) {
+      try {
+        return create.call(this, styles);
+      } finally {
+        tracked[RULE_VERSION] = (tracked[RULE_VERSION] ?? 0) + 1;
+      }
+    };
+    tracked[RULE_VERSION] = 0;
+  } catch {
+    // Frozen export: leave it untracked.
+  }
+}
+
+const flushedSheets = new WeakMap<FlushableStyleSheet, { version: number; text: string }>();
+
+/**
+ * The hardened sheet text for the flush, re-serialized only when rules may
+ * have been added since the last read — so a request that registers new
+ * rules still flushes them, and every other request reuses the cached text.
+ */
+export function readFlushedSheet(sheet: FlushableStyleSheet): string {
+  const version = (sheet as TrackedStyleSheet)[RULE_VERSION];
+  const cached = flushedSheets.get(sheet);
+  if (cached && cached.version === version) {
+    return cached.text;
+  }
+
+  const text = hardenFlushedSheet(sheet.getSheet().textContent);
+  if (typeof version === "number") {
+    flushedSheets.set(sheet, { version, text });
+  }
+  return text;
+}
+
+// Server web render only: the browser never flushes, and native has no sheet.
+if (Platform.OS === "web" && typeof document === "undefined") {
+  trackStyleSheetRules(StyleSheet as unknown as FlushableStyleSheet);
 }
 
 /**

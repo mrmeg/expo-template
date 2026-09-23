@@ -3,34 +3,6 @@ import { getAppIdentity } from "./app.identity";
 
 const withNativeBuildSettings = require("./plugins/withNativeBuildSettings");
 
-const CHANNEL_BY_PROFILE: Record<string, string> = {
-  development: "development",
-  preview: "preview",
-  production: "production",
-};
-
-function resolveUpdatesChannel(): string {
-  const explicitChannel = process.env.EXPO_UPDATES_CHANNEL?.trim();
-
-  if (explicitChannel) {
-    return explicitChannel;
-  }
-
-  const publicChannel = process.env.EXPO_PUBLIC_CHANNEL?.trim();
-
-  if (publicChannel) {
-    return publicChannel;
-  }
-
-  const easBuildProfile = process.env.EAS_BUILD_PROFILE?.trim();
-
-  if (easBuildProfile && CHANNEL_BY_PROFILE[easBuildProfile]) {
-    return CHANNEL_BY_PROFILE[easBuildProfile];
-  }
-
-  return process.env.NODE_ENV === "development" ? "development" : "production";
-}
-
 function resolveBuildNodeHeapMb(): string {
   const configuredHeapMb = process.env.EXPO_BUILD_NODE_HEAP_MB?.trim();
 
@@ -127,7 +99,6 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
 
 export default function appConfig(_: ConfigContext): ExpoConfig {
   const identity = getAppIdentity();
-  const updatesChannel = resolveUpdatesChannel();
   const buildNodeHeapMb = resolveBuildNodeHeapMb();
   const buildNodeOptions = `--max-old-space-size=${buildNodeHeapMb}`;
   const easProjectId = readOptionalEnv("EAS_PROJECT_ID");
@@ -162,7 +133,6 @@ export default function appConfig(_: ConfigContext): ExpoConfig {
       reactCompiler: true,
     },
     extra: {
-      updatesChannel,
       buildNodeHeapMb,
       // Surface the active scheme on `Constants.expoConfig.extra.appScheme`
       // for any code path that prefers ExpoConfig over EXPO_PUBLIC_* env.

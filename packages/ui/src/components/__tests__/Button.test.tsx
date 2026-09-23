@@ -12,6 +12,7 @@ import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import type { TestInstance } from "test-renderer";
+import type LucideHouse from "lucide-react-native/icons/house";
 import { Button, type ButtonAccessoryProps } from "../Button";
 import { Icon } from "../Icon";
 import { StyledText } from "../StyledText";
@@ -299,6 +300,32 @@ describe("Button", () => {
       expect(loadingButtonSurface).toEqual(expect.objectContaining({ width: 128 }));
       expect(screen.getByText("Loading...")).toBeTruthy();
     });
+
+    function surfaceNode(): TestInstance | undefined {
+      return getAllHostNodes().find((node) => {
+        const style = StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined;
+        return style?.backgroundColor === "#18181B";
+      });
+    }
+
+    it("does not measure itself when it is never given a loading prop", async () => {
+      await render(<Button text="Plain" />);
+
+      expect(surfaceNode()).toBeTruthy();
+      expect(surfaceNode()!.props.onLayout).toBeUndefined();
+    });
+
+    it("measures its resting width once a loading prop is passed, even false", async () => {
+      await render(<Button loading={false} text="Save" />);
+
+      expect(typeof surfaceNode()!.props.onLayout).toBe("function");
+    });
+
+    it("never measures a full-width button, whose width the container sets", async () => {
+      await render(<Button fullWidth loading={false} text="Submit" />);
+
+      expect(surfaceNode()!.props.onLayout).toBeUndefined();
+    });
   });
 
   describe("Accessibility", () => {
@@ -488,6 +515,36 @@ describe("Button", () => {
 
       expect(screen.getByTestId("icon-check", { includeHiddenElements: true })).toBeTruthy();
       expect(screen.getByText("With Icon")).toBeTruthy();
+    });
+
+    it("renders Button.Icon from a component with the button's text color, like a named icon", async () => {
+      const Custom = (props: { size: number; color: string }) => <View testID="custom-glyph" {...props} />;
+
+      await render(
+        <Button preset="default">
+          <Button.Icon component={Custom} />
+          <Button.Icon name="heart" />
+          <Button.Text>Like</Button.Text>
+        </Button>
+      );
+
+      const custom = screen.getByTestId("custom-glyph", { includeHiddenElements: true });
+      const named = screen.getByTestId("icon-heart", { includeHiddenElements: true });
+      // Default preset label color, from the button's text-color context.
+      expect(custom.props.color).toBe("#FAFAFA");
+      expect(custom.props.color).toBe(named.props.color);
+      expect(custom.props.size).toBe(named.props.size);
+      // Decorative by default: the label carries the meaning.
+      expect(custom.props["aria-hidden"]).toBe(true);
+      expect(named.props["aria-hidden"]).toBe(true);
+    });
+
+    it("lets Button.Icon take a Lucide component at the type level", () => {
+      // Never called: `tsc` checks that a real Lucide export fits `component`.
+      function typeOnly(House: typeof LucideHouse) {
+        return <Button.Icon component={House} size={16} />;
+      }
+      expect(typeof typeOnly).toBe("function");
     });
 
     it("keeps accessories mounted but hidden when loading", async () => {

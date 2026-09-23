@@ -164,10 +164,7 @@ export default function DeveloperScreen() {
 
         <View style={styles.infoGrid}>
           <InfoRow label="API URL" value={Config.apiUrl || "(not set)"} />
-          <InfoRow label="API Timeout" value={`${Config.apiTimeout}ms`} />
-          <InfoRow label="Persist Navigation" value={Config.persistNavigation} />
           <InfoRow label="Catch Errors" value={Config.catchErrors} />
-          <InfoRow label="Exit Routes" value={Config.exitRoutes.join(", ")} />
         </View>
       </View>
 

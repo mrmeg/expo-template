@@ -66,8 +66,8 @@ Reusable UI belongs in `packages/ui`; reusable media contracts and processing in
   explorable with auth, billing, media, and Sentry disabled.
 - Web routes are server-rendered per request, so persisted browser state
   (localStorage, `matchMedia`, dimensions) is unavailable in that first render. It
-  must be derived from the request — the way `server/lib/ssrViewport.ts` and
-  `server/lib/ssrOnboarding.ts` read cookies — or read after mount. Changes to
+  must be derived from the request — the way `shared/ssrViewport.ts` and
+  `shared/ssrOnboarding.ts` read cookies — or read after mount. Changes to
   `app/+html.tsx`, root/theme/i18n startup, onboarding, viewport logic, or font
   loading must be verified in a browser against `bun run build && bun run start`.
 - Add showcase coverage for any new reusable component, block, or screen template.
@@ -177,10 +177,11 @@ template.
 
 | Pattern | Source | Notes |
 |---------|--------|-------|
-| Root providers and startup gate | `client/features/app/RootLayout.tsx`, `client/features/app/useAppStartup.ts` | Coordinates resources, i18n, onboarding, optional auth, splash hiding |
+| Root providers and startup gate | `client/features/app/RootLayout.tsx`, `client/features/app/useAppStartup.ts`, `client/features/app/StartupGate.tsx` | Coordinates resources, i18n, onboarding, optional auth, splash hiding; the auth provider mounts under the native splash (startup waits on its load) and the app renders once `ready` latches |
 | Navigation shell | `app/(main)/`, `app/(main)/(tabs)/` | Main Stack, tabs, demos, route grouping |
+| Keyboard | `client/features/keyboard/platform`, `client/features/app/RootLayout.tsx` | The app root does not avoid the keyboard (`UIProvider keyboardAvoiding={false}`); each screen with text input owns it. Scrolling screens use `KeyboardAwareScrollView` from `client/features/keyboard/platform` (pads content by the keyboard; on iOS also scrolls the focused field into view); a form inside `DismissKeyboard` gets that component's own keyboard-avoiding view. Dialogs and bottom sheets handle their own keyboard |
 | API routes | `app/api/**/+api.ts`, `server/api/shared/` | Route files stay thin; shared auth, CORS, and errors live under `server/api/shared` |
-| API client | `client/lib/api/authenticatedFetch.ts` | Use the authenticated fetch helper; keep raw `Response` handling out of UI |
+| API client | `client/lib/api/authenticatedFetch.ts` | Use the authenticated fetch helper; keep raw `Response` handling out of UI. It imports no auth code (auth registers its token getter at startup) and resolves native `/api/*` paths against `EXPO_PUBLIC_API_URL` (`client/lib/api/apiOrigin.ts`), failing closed in a release build without it; web stays same-origin |
 | Feature folders | `client/features/<feature>/` | Keep features portable; obey feature isolation checks |
 | Persisted client state | Zustand stores under `client/features/**` | Use cross-platform storage helpers where persistence is needed |
 | Server state | TanStack React Query | Root defaults live in the provider stack |
@@ -218,10 +219,10 @@ bun run typecheck
 bun run lint
 bun run check:features
 bun run test:ci
-bun run ui:typecheck
-bun run ui:test
-bun run media:typecheck
-bun run media:test
+bun run pkg ui typecheck
+bun run pkg ui test
+bun run pkg media typecheck
+bun run pkg media test
 bun run build
 bun run bundle-size
 ```

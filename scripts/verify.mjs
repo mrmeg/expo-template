@@ -1,76 +1,103 @@
 #!/usr/bin/env node
 /**
- * Local CI parity gate.
+ * The quality gates, in order: what CI's `validate` job runs (`bun run verify`,
+ * nothing else) and what a contributor runs before pushing. One list, so CI and
+ * local runs cannot drift. Prints per-gate timing and a summary table.
  *
- * Runs the same checks as the `validate` job in `.github/workflows/ci.yml`, in
- * the same order, so a failure surfaces on the contributor's machine instead of
- * ten minutes into a CI run. Prints per-gate timing and a summary table.
- *
- * Gate names match the CI step's script name, so `scripts/__tests__/verify.test.ts`
- * can diff this list against the workflow and fail when the two drift.
- *
- * Deliberate differences from CI:
- *   - `test:ci`'s `--coverage`/`--forceExit` are dropped; coverage roughly
- *     doubles the run and nothing local reads the report. The gate still runs
- *     jest in `--ci` mode.
- *   - The web build + bundle-size delta (ci.yml's second job) is NOT run — it
- *     needs an 8GB-heap Expo export. Run `bun run build && bun run bundle-size`
- *     when you touch dependencies or anything bundle-shaped.
+ * The web build + bundle-size delta (ci.yml's `bundle-size` job) is not a gate
+ * here: it needs an 8 GB-heap Expo export. Run `bun run build && bun run
+ * bundle-size` when you touch dependencies or anything bundle-shaped.
  *
  * Must pass on a fresh clone with no `.env`: every optional feature (auth,
- * billing, media, Sentry) fails closed when its env vars are missing.
+ * billing, media, Sentry) fails closed when its env vars are missing. The one
+ * gate that needs the network, `packages:drift-check`, warns instead of failing
+ * when the npm registry is unreachable — except in CI.
  *
  * Usage:
  *   bun run verify
- *   bun run verify --list    # print "<name>\t<command>" per gate, run nothing
- *   bun run verify --bail    # stop at the first failing gate
+ *   bun run verify --list             # print "<name>\t<command>" per gate, run nothing
+ *   bun run verify --bail             # stop at the first failing gate
+ *   bun run verify --max-workers 2    # cap jest's workers (shared machines)
  */
 import { spawnSync } from "node:child_process";
+import { PACKAGE_KEYS } from "./lib/workspacePackages.mjs";
 
-/** Ordered gates, mirroring ci.yml's `validate` steps. */
+/** Ordered gates. Each is a root script, so every gate reruns as its own command. */
 const GATES = [
   { name: "packages:peer-check", command: ["bun", "run", "packages:peer-check"] },
+  { name: "packages:drift-check", command: ["bun", "run", "packages:drift-check"] },
   { name: "typecheck", command: ["bun", "run", "typecheck"] },
+  // Each package against its own tsconfig (its rootDir, no root path aliases),
+  // which the root typecheck does not apply.
+  ...PACKAGE_KEYS.map((key) => ({
+    name: `pkg ${key} typecheck`,
+    command: ["bun", "run", "pkg", key, "typecheck"],
+  })),
   { name: "lint", command: ["bun", "run", "lint"] },
   { name: "check:features", command: ["bun", "run", "check:features"] },
-  { name: "gen:templates:check", command: ["bun", "run", "gen:templates:check"] },
-  { name: "gen:blocks:check", command: ["bun", "run", "gen:blocks:check"] },
-  { name: "ui:icons:check", command: ["bun", "run", "ui:icons:check"] },
-  { name: "docs:llms:check", command: ["bun", "run", "docs:llms:check"] },
+  // Every committed generated artifact: registries, icon registry, LLM docs.
+  { name: "gen --check", command: ["bun", "run", "gen", "--check"] },
   { name: "docs:versions:check", command: ["bun", "run", "docs:versions:check"] },
-  // Not `bun run test:ci`: local runs skip coverage and --forceExit.
-  { name: "test:ci", command: ["bun", "x", "jest", "--ci"] },
+  { name: "test:ci", command: ["bun", "run", "test:ci"] },
 ];
 
 const argv = process.argv.slice(2);
 
-if (argv.includes("-h") || argv.includes("--help")) {
+function usage() {
   console.log(`
 Usage:
-  bun run verify [--list] [--bail]
+  bun run verify [--list] [--bail] [--max-workers <n>]
 
-Runs the CI \`validate\` gates locally, in CI order:
-${GATES.map((gate) => `  ${gate.name.padEnd(20)} ${gate.command.join(" ")}`).join("\n")}
+Runs every gate CI's \`validate\` job runs, in order:
+${GATES.map((gate) => `  ${gate.name.padEnd(24)} ${gate.command.join(" ")}`).join("\n")}
 
 Options:
-  --list      Print each gate as "<name>\\t<command>" without running anything
-  --bail      Stop at the first failure instead of running every gate
-  -h, --help  Usage info
+  --list             Print each gate as "<name>\\t<command>" without running anything
+  --bail             Stop at the first failure instead of running every gate
+  --max-workers <n>  Pass --maxWorkers=<n> to jest in the test:ci gate
+  -h, --help         Usage info
 
-Not covered: the web build + bundle-size delta (ci.yml's second job).
+Not covered: the web build + bundle-size delta (ci.yml's \`bundle-size\` job).
 Run \`bun run build && bun run bundle-size\` for that.
 `);
-  process.exit(0);
 }
 
-if (argv.includes("--list")) {
+let bail = false;
+let list = false;
+let maxWorkers = null;
+for (let index = 0; index < argv.length; index += 1) {
+  const arg = argv[index];
+  if (arg === "-h" || arg === "--help") {
+    usage();
+    process.exit(0);
+  } else if (arg === "--list") {
+    list = true;
+  } else if (arg === "--bail") {
+    bail = true;
+  } else if (arg === "--max-workers" || arg.startsWith("--max-workers=")) {
+    maxWorkers = arg.includes("=") ? arg.slice(arg.indexOf("=") + 1) : argv[(index += 1)];
+    if (!/^\d+%?$/.test(maxWorkers ?? "")) {
+      console.error(`verify: --max-workers needs a count or percentage, got "${maxWorkers ?? ""}"`);
+      process.exit(1);
+    }
+  } else {
+    console.error(`verify: unknown argument "${arg}"`);
+    usage();
+    process.exit(1);
+  }
+}
+
+if (maxWorkers) {
+  GATES.find((gate) => gate.name === "test:ci").command.push(`--maxWorkers=${maxWorkers}`);
+}
+
+if (list) {
   for (const gate of GATES) {
     console.log(`${gate.name}\t${gate.command.join(" ")}`);
   }
   process.exit(0);
 }
 
-const bail = argv.includes("--bail");
 const results = [];
 
 for (const [index, gate] of GATES.entries()) {

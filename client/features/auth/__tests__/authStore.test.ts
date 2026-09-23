@@ -1,11 +1,9 @@
 /**
  * Synchronous authStore tests.
  *
- * Scope: only the setters / reset / initial-state surface. `initialize`,
- * `signOut`, and the change listener all resolve the provider AuthClient via
- * dynamic import, which Jest's default babel transform can't resolve without
- * the experimental VM modules flag; those paths are exercised in the running
- * app. What we pin
+ * Scope: only the setters / reset / initial-state surface. `initialize`
+ * scheduling and the change listener are covered with a mocked AuthClient in
+ * ./authStore.initialize.test.ts. What we pin
  * down here is the state-machine surface that the UI components depend on —
  * AuthWrapper reads `state`, ProfileTab reads `user`, SignUpForm reads
  * `pendingVerificationEmail`, and the gates call `reset()` on sign-out. A

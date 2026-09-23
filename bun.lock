@@ -71,6 +71,7 @@
         "@babel/runtime": "^8.0.0",
         "@eslint/eslintrc": "^3.3.7",
         "@eslint/js": "^10.0.1",
+        "@fontsource-variable/inter": "^5.3.0",
         "@mrmeg/eslint-plugin-expo-ui": "workspace:*",
         "@react-native/jest-preset": "0.88.0-rc.0",
         "@sentry/cli": "3.7.0",
@@ -105,7 +106,7 @@
     },
     "packages/media": {
       "name": "@mrmeg/expo-media",
-      "version": "0.5.1",
+      "version": "0.5.2",
       "dependencies": {
         "aws4fetch": "^1.0.20",
         "ulid": "^3.0.2",
@@ -162,7 +163,7 @@
     },
     "packages/ui": {
       "name": "@mrmeg/expo-ui",
-      "version": "0.27.1",
+      "version": "0.28.0",
       "dependencies": {
         "@expo-google-fonts/inter": "^0.4.2",
         "@rn-primitives/accordion": "~1.5.2",
@@ -690,6 +691,8 @@
     "@floating-ui/react-dom": ["@floating-ui/react-dom@2.1.8", "", { "dependencies": { "@floating-ui/dom": "^1.7.6" }, "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-cC52bHwM/n/CxS87FH0yWdngEZrjdtLW/qVruo68qg+prK7ZQ4YGdut2GyDVpoGeAYe/h899rVeOVm6Oi40k2A=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
+
+    "@fontsource-variable/inter": ["@fontsource-variable/inter@5.3.0", "", {}, "sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA=="],
 
     "@formkit/auto-animate": ["@formkit/auto-animate@0.8.4", "", {}, "sha512-DHHC01EJ1p70Q0z/ZFRBIY8NDnmfKccQoyoM84Tgb6omLMat6jivCdf272Y8k3nf4Lzdin/Y4R9q8uFtU0GbnA=="],
 

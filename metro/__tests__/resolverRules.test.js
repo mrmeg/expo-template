@@ -1,0 +1,529 @@
+/* global require, __dirname, describe, it, expect */
+/**
+ * Selection logic for the resolver stubs and scoped dedupes in
+ * `metro.config.js` (implemented in `metro/resolverRules.js`).
+ *
+ * A stub that fires when it should not removes code the app runs, so every
+ * rule is pinned from both sides: when it applies, and each condition that
+ * keeps the real module. The bundle effect itself only shows in a full
+ * `expo export`; docs/bundle-analysis.md records the measured savings.
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+const {
+  OPTIONAL_NATIVE_INTEGRATIONS,
+  SCOPED_DEDUPES,
+  describeOmittedIntegration,
+  getOmittedIntegrations,
+  getOmittedIntegrationFor,
+  getScopedDedupeTarget,
+  isRouteFileForOtherPlatform,
+  isUnusedRouteFile,
+  packageOfModulePath,
+} = require("../resolverRules");
+
+const REPO_ROOT = path.resolve(__dirname, "../..");
+const ROOT = "/repo";
+
+const FULL_ENV = {
+  EXPO_PUBLIC_SENTRY_DSN: "https://key@o0.ingest.sentry.io/0",
+  EXPO_PUBLIC_USER_POOL_ID: "us-east-1_example",
+  EXPO_PUBLIC_USER_POOL_CLIENT_ID: "exampleclientid",
+  EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_example",
+};
+
+const names = (integrations) => integrations.map((integration) => integration.name);
+
+function request(overrides = {}) {
+  return {
+    moduleName: "@sentry/react-native",
+    originModulePath: `${ROOT}/client/lib/sentry.ts`,
+    platform: "ios",
+    dev: false,
+    environment: undefined,
+    env: {},
+    projectRoots: [ROOT],
+    ...overrides,
+  };
+}
+
+describe("optional native integrations", () => {
+  describe("getOmittedIntegrations", () => {
+    it("omits every integration when the env is blank", () => {
+      expect(names(getOmittedIntegrations({}))).toEqual([
+        "Sentry",
+        "AWS Amplify (Cognito)",
+        "Clerk",
+      ]);
+    });
+
+    it("keeps every integration when its env is set", () => {
+      expect(getOmittedIntegrations(FULL_ENV)).toEqual([]);
+    });
+
+    it("treats an empty string as blank", () => {
+      expect(names(getOmittedIntegrations({ ...FULL_ENV, EXPO_PUBLIC_SENTRY_DSN: "" }))).toEqual([
+        "Sentry",
+      ]);
+    });
+
+    it("omits Cognito while either user-pool var is missing (the gate needs both)", () => {
+      expect(
+        names(getOmittedIntegrations({ ...FULL_ENV, EXPO_PUBLIC_USER_POOL_CLIENT_ID: undefined }))
+      ).toEqual(["AWS Amplify (Cognito)"]);
+      expect(names(getOmittedIntegrations({ ...FULL_ENV, EXPO_PUBLIC_USER_POOL_ID: "" }))).toEqual([
+        "AWS Amplify (Cognito)",
+      ]);
+    });
+
+    it("decides each integration on its own env", () => {
+      expect(names(getOmittedIntegrations({ EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk" }))).toEqual([
+        "Sentry",
+        "AWS Amplify (Cognito)",
+      ]);
+    });
+
+    it("keeps the SDK for a whitespace-only value, erring toward shipping it", () => {
+      // The Sentry gate treats " " as a DSN; stubbing it would break that path.
+      expect(names(getOmittedIntegrations({ ...FULL_ENV, EXPO_PUBLIC_SENTRY_DSN: " " }))).toEqual([]);
+    });
+  });
+
+  describe("getOmittedIntegrationFor", () => {
+    it("stubs the Sentry SDK in the native wrapper on iOS and Android", () => {
+      expect(getOmittedIntegrationFor(request())?.name).toBe("Sentry");
+      expect(getOmittedIntegrationFor(request({ platform: "android" }))?.name).toBe("Sentry");
+    });
+
+    it("stubs Amplify entry points in the Cognito barrel", () => {
+      for (const moduleName of ["aws-amplify", "aws-amplify/utils", "aws-amplify/auth"]) {
+        expect(
+          getOmittedIntegrationFor(
+            request({
+              moduleName,
+              originModulePath: `${ROOT}/client/features/auth/provider/cognitoSdk.ts`,
+            })
+          )?.name
+        ).toBe("AWS Amplify (Cognito)");
+      }
+    });
+
+    it("stubs Clerk imports, including subpaths, in both Clerk modules", () => {
+      expect(
+        getOmittedIntegrationFor(
+          request({
+            moduleName: "@clerk/clerk-expo",
+            originModulePath: `${ROOT}/client/features/auth/provider/clerkClient.ts`,
+          })
+        )?.name
+      ).toBe("Clerk");
+      expect(
+        getOmittedIntegrationFor(
+          request({
+            moduleName: "@clerk/clerk-expo/token-cache",
+            originModulePath: `${ROOT}/client/features/auth/provider/ClerkProviderBoundary.tsx`,
+          })
+        )?.name
+      ).toBe("Clerk");
+    });
+
+    it("keeps the SDK when its env is set", () => {
+      expect(getOmittedIntegrationFor(request({ env: FULL_ENV }))).toBeNull();
+      expect(
+        getOmittedIntegrationFor(
+          request({ env: { EXPO_PUBLIC_SENTRY_DSN: FULL_ENV.EXPO_PUBLIC_SENTRY_DSN } })
+        )
+      ).toBeNull();
+    });
+
+    it("keeps web's lazy chunks", () => {
+      expect(getOmittedIntegrationFor(request({ platform: "web" }))).toBeNull();
+    });
+
+    it("keeps dev bundles unchanged so .env edits apply without a Metro restart", () => {
+      expect(getOmittedIntegrationFor(request({ dev: true }))).toBeNull();
+    });
+
+    it("never touches server bundles", () => {
+      expect(getOmittedIntegrationFor(request({ environment: "node" }))).toBeNull();
+      expect(getOmittedIntegrationFor(request({ environment: "react-server" }))).toBeNull();
+    });
+
+    it("keeps the real SDK for any importer outside the env gate", () => {
+      // e.g. a fork calling Sentry.wrap() in the root layout.
+      expect(
+        getOmittedIntegrationFor(request({ originModulePath: `${ROOT}/app/_layout.tsx` }))
+      ).toBeNull();
+      expect(
+        getOmittedIntegrationFor(
+          request({ originModulePath: `${ROOT}/node_modules/some-lib/client/lib/sentry.ts` })
+        )
+      ).toBeNull();
+    });
+
+    it("only matches the SDK package itself, not other imports of the gated module", () => {
+      expect(getOmittedIntegrationFor(request({ moduleName: "react" }))).toBeNull();
+      expect(getOmittedIntegrationFor(request({ moduleName: "@sentry/react-native-extra" }))).toBeNull();
+      expect(getOmittedIntegrationFor(request({ moduleName: "@sentry/core" }))).toBeNull();
+    });
+
+    it("matches importers under any of the project roots (path and realpath)", () => {
+      expect(
+        getOmittedIntegrationFor(
+          request({
+            originModulePath: "/private/repo/client/lib/sentry.ts",
+            projectRoots: [ROOT, "/private/repo"],
+          })
+        )?.name
+      ).toBe("Sentry");
+    });
+
+    it("ignores resolutions without an origin (Metro's own empty-module lookup)", () => {
+      expect(getOmittedIntegrationFor(request({ originModulePath: "", platform: null }))).toBeNull();
+    });
+  });
+
+  it("names the blank variables in the build log", () => {
+    const [sentry, cognito] = OPTIONAL_NATIVE_INTEGRATIONS;
+    expect(describeOmittedIntegration(sentry, "ios", {})).toBe(
+      "› Sentry left out of the ios bundle: EXPO_PUBLIC_SENTRY_DSN is blank"
+    );
+    expect(
+      describeOmittedIntegration(cognito, "android", { EXPO_PUBLIC_USER_POOL_ID: "x" })
+    ).toBe(
+      "› AWS Amplify (Cognito) left out of the android bundle: EXPO_PUBLIC_USER_POOL_CLIENT_ID is blank"
+    );
+  });
+
+  describe("source: SDK imports stay in the gated modules", () => {
+    const stripComments = (source) =>
+      source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|\s)\/\/[^\n]*/g, "$1");
+
+    /** Specifiers of runtime imports; type-only imports create no module edge. */
+    function runtimeImports(source) {
+      const code = stripComments(source);
+      const specifiers = [
+        ...code.matchAll(/^\s*(?:import|export)\s+(?!type\b)[^;]*?\bfrom\s+["']([^"']+)["']/gm),
+        ...code.matchAll(/^\s*import\s+["']([^"']+)["']/gm),
+        ...code.matchAll(/(?<!typeof\s)\bimport\(\s*["']([^"']+)["']\s*\)/g),
+        ...code.matchAll(/\brequire\(\s*["']([^"']+)["']\s*\)/g),
+      ];
+      return specifiers.map((match) => match[1]);
+    }
+
+    function sourceFiles(dir) {
+      return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          return entry.name === "__tests__" || entry.name === "node_modules" ? [] : sourceFiles(full);
+        }
+        return /\.[jt]sx?$/.test(entry.name) && !/\.test\.[jt]sx?$/.test(entry.name) ? [full] : [];
+      });
+    }
+
+    const appFiles = ["app", "client", "shared"].flatMap((dir) =>
+      sourceFiles(path.join(REPO_ROOT, dir))
+    );
+
+    it.each(OPTIONAL_NATIVE_INTEGRATIONS.map((integration) => [integration.name, integration]))(
+      "%s: every listed importer exists and imports the SDK",
+      (_name, integration) => {
+        // A moved or renamed import leaves the stub pointing at nothing, and the
+        // SDK silently ships in every native bundle again.
+        for (const importer of integration.importers) {
+          const source = fs.readFileSync(path.join(REPO_ROOT, importer), "utf8");
+          const imported = runtimeImports(source).some((specifier) =>
+            integration.packages.some(
+              (packageName) => specifier === packageName || specifier.startsWith(`${packageName}/`)
+            )
+          );
+          expect({ importer, imported }).toEqual({ importer, imported: true });
+        }
+      }
+    );
+
+    it.each(OPTIONAL_NATIVE_INTEGRATIONS.map((integration) => [integration.name, integration]))(
+      "%s: no other app module imports the SDK",
+      (_name, integration) => {
+        // Another importer is not stubbed (it may run outside the env gate), so
+        // it would bring the whole SDK back into every native bundle. Route it
+        // through the gated module, or accept the size and list it here.
+        const importers = appFiles
+          .filter((file) =>
+            runtimeImports(fs.readFileSync(file, "utf8")).some((specifier) =>
+              integration.packages.some(
+                (packageName) => specifier === packageName || specifier.startsWith(`${packageName}/`)
+              )
+            )
+          )
+          .map((file) => path.relative(REPO_ROOT, file).split(path.sep).join("/"))
+          .sort();
+        expect(importers).toEqual([...integration.importers].sort());
+      }
+    );
+  });
+});
+
+describe("route files for other platforms", () => {
+  describe("isRouteFileForOtherPlatform (mirrors expo-router getFileMeta)", () => {
+    it.each([
+      ["_layout.native.tsx", "web", true],
+      ["_layout.native.tsx", "ios", false],
+      ["_layout.native.tsx", "android", false],
+      ["_layout.web.tsx", "ios", true],
+      ["_layout.web.tsx", "android", true],
+      ["_layout.web.tsx", "web", false],
+      ["index.ios.tsx", "android", true],
+      ["index.ios.tsx", "web", true],
+      ["index.ios.tsx", "ios", false],
+      ["index.android.js", "ios", true],
+      ["_layout.tsx", "web", false],
+      ["_layout.tsx", "ios", false],
+      ["[id].tsx", "web", false],
+      ["+not-found.tsx", "ios", false],
+      ["screen.form.tsx", "web", false],
+      ["_layout.native.tsx", null, false],
+    ])("%s on %s → %s", (file, platform, expected) => {
+      expect(isRouteFileForOtherPlatform(`${ROOT}/app/(main)/${file}`, platform)).toBe(expected);
+    });
+  });
+
+  describe("isUnusedRouteFile", () => {
+    const routerRoots = [`${ROOT}/app`];
+    const contextOrigin = `${ROOT}/app?ctx=0123456789abcdef0123456789abcdef01234567`;
+
+    it("stubs a native-only route listed by the router context in a web bundle", () => {
+      expect(
+        isUnusedRouteFile({
+          moduleName: `${ROOT}/app/(main)/(tabs)/_layout.native.tsx`,
+          originModulePath: contextOrigin,
+          platform: "web",
+          routerRoots,
+        })
+      ).toBe(true);
+    });
+
+    it("stubs a web-only route listed by the router context in a native bundle", () => {
+      expect(
+        isUnusedRouteFile({
+          moduleName: `${ROOT}/app/(main)/_layout.web.tsx`,
+          originModulePath: contextOrigin,
+          platform: "ios",
+          routerRoots,
+        })
+      ).toBe(true);
+    });
+
+    it("keeps the route the platform selects", () => {
+      expect(
+        isUnusedRouteFile({
+          moduleName: `${ROOT}/app/(main)/(tabs)/_layout.native.tsx`,
+          originModulePath: contextOrigin,
+          platform: "android",
+          routerRoots,
+        })
+      ).toBe(false);
+    });
+
+    it("leaves imports from anywhere but the router context to Metro", () => {
+      expect(
+        isUnusedRouteFile({
+          moduleName: `${ROOT}/app/(main)/_layout.web.tsx`,
+          originModulePath: `${ROOT}/client/features/navigation/MainLayout.tsx`,
+          platform: "ios",
+          routerRoots,
+        })
+      ).toBe(false);
+      expect(
+        isUnusedRouteFile({
+          moduleName: `${ROOT}/client/features/navigation/WebMainLayout.web.tsx`,
+          originModulePath: contextOrigin,
+          platform: "ios",
+          routerRoots,
+        })
+      ).toBe(false);
+      expect(
+        isUnusedRouteFile({
+          moduleName: "./_layout.web.tsx",
+          originModulePath: contextOrigin,
+          platform: "ios",
+          routerRoots,
+        })
+      ).toBe(false);
+    });
+
+    it("ignores other directories' contexts", () => {
+      expect(
+        isUnusedRouteFile({
+          moduleName: `${ROOT}/client/icons/logo.web.tsx`,
+          originModulePath: `${ROOT}/client/icons?ctx=0123456789abcdef0123456789abcdef01234567`,
+          platform: "ios",
+          routerRoots,
+        })
+      ).toBe(false);
+    });
+  });
+});
+
+describe("scoped dedupes", () => {
+  const NM = `${ROOT}/node_modules`;
+  const dedupes = SCOPED_DEDUPES.map((entry) => ({
+    ...entry,
+    packagePath: `${NM}/${entry.packageName}`,
+  }));
+
+  describe("packageOfModulePath", () => {
+    it.each([
+      [`${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`, "whatwg-url-without-unicode"],
+      [`${NM}/@clerk/clerk-expo/dist/polyfills/index.js`, "@clerk/clerk-expo"],
+      [`${NM}/@clerk/clerk-expo/node_modules/react-native-url-polyfill/auto.js`, "react-native-url-polyfill"],
+      [`${NM}/react-native-web/dist/exports/processColor/index.js`, "react-native-web"],
+      [`${ROOT}/client/lib/sentry.ts`, null],
+      [`${NM}/@scope`, null],
+    ])("%s → %s", (file, expected) => {
+      expect(packageOfModulePath(file)).toBe(expected);
+    });
+  });
+
+  it("collapses buffer onto the app copy for whatwg-url-without-unicode, keeping the subpath", () => {
+    const originModulePath = `${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`;
+    expect(getScopedDedupeTarget({ moduleName: "buffer", originModulePath }, dedupes)).toBe(`${NM}/buffer`);
+    expect(getScopedDedupeTarget({ moduleName: "buffer/", originModulePath }, dedupes)).toBe(`${NM}/buffer/`);
+  });
+
+  it("keeps buffer's server resolution (Node's built-in)", () => {
+    expect(
+      getScopedDedupeTarget(
+        {
+          moduleName: "buffer/",
+          originModulePath: `${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`,
+          environment: "node",
+        },
+        dedupes
+      )
+    ).toBeNull();
+  });
+
+  it("collapses react-native-url-polyfill for @clerk/clerk-expo", () => {
+    expect(
+      getScopedDedupeTarget(
+        {
+          moduleName: "react-native-url-polyfill/auto",
+          originModulePath: `${NM}/@clerk/clerk-expo/dist/polyfills/index.js`,
+        },
+        dedupes
+      )
+    ).toBe(`${NM}/react-native-url-polyfill/auto`);
+  });
+
+  describe("buffer and react-native-url-polyfill follow the Amplify SDK", () => {
+    // Their app-level copies ship only with @aws-amplify/react-native. Without
+    // Amplify the nested copy is the only one; collapsing would swap it for the
+    // larger newer release.
+    const nativeRequests = [
+      {
+        moduleName: "buffer/",
+        originModulePath: `${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`,
+        target: `${NM}/buffer/`,
+      },
+      {
+        moduleName: "react-native-url-polyfill/auto",
+        originModulePath: `${NM}/@clerk/clerk-expo/dist/polyfills/index.js`,
+        target: `${NM}/react-native-url-polyfill/auto`,
+      },
+    ];
+    const cognitoEnv = {
+      EXPO_PUBLIC_USER_POOL_ID: FULL_ENV.EXPO_PUBLIC_USER_POOL_ID,
+      EXPO_PUBLIC_USER_POOL_CLIENT_ID: FULL_ENV.EXPO_PUBLIC_USER_POOL_CLIENT_ID,
+    };
+
+    it.each(nativeRequests)("keeps $moduleName nested when a production native bundle leaves Amplify out", (req) => {
+      const clerkOnly = { EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_example" };
+      expect(
+        getScopedDedupeTarget({ ...req, platform: "ios", dev: false, env: clerkOnly }, dedupes)
+      ).toBeNull();
+    });
+
+    it.each(nativeRequests)("collapses $moduleName when the bundle includes Amplify", (req) => {
+      expect(
+        getScopedDedupeTarget({ ...req, platform: "ios", dev: false, env: cognitoEnv }, dedupes)
+      ).toBe(req.target);
+      expect(
+        getScopedDedupeTarget({ ...req, platform: "android", dev: false, env: FULL_ENV }, dedupes)
+      ).toBe(req.target);
+      // Dev bundles keep every SDK, Amplify included.
+      expect(getScopedDedupeTarget({ ...req, platform: "ios", dev: true, env: {} }, dedupes)).toBe(
+        req.target
+      );
+    });
+
+    it("leaves normalize-colors unconditional", () => {
+      expect(
+        getScopedDedupeTarget(
+          {
+            moduleName: "@react-native/normalize-colors",
+            originModulePath: `${NM}/react-native-web/dist/exports/processColor/index.js`,
+            platform: "web",
+            dev: false,
+            env: {},
+          },
+          dedupes
+        )
+      ).toBe(`${NM}/@react-native/normalize-colors`);
+    });
+  });
+
+  it("collapses normalize-colors for react-native-web in client and server bundles", () => {
+    for (const environment of [undefined, "node"]) {
+      expect(
+        getScopedDedupeTarget(
+          {
+            moduleName: "@react-native/normalize-colors",
+            originModulePath: `${NM}/react-native-web/dist/exports/processColor/index.js`,
+            environment,
+          },
+          dedupes
+        )
+      ).toBe(`${NM}/@react-native/normalize-colors`);
+    }
+  });
+
+  it("leaves every other importer on its own copy", () => {
+    // e.g. @aws-amplify/storage pins buffer 4.9.2; nothing checked it against 6.x.
+    expect(
+      getScopedDedupeTarget(
+        { moduleName: "buffer", originModulePath: `${NM}/@aws-amplify/storage/dist/esm/index.mjs` },
+        dedupes
+      )
+    ).toBeNull();
+    expect(
+      getScopedDedupeTarget({ moduleName: "buffer", originModulePath: `${ROOT}/client/lib/sentry.ts` }, dedupes)
+    ).toBeNull();
+  });
+
+  it("only matches the package itself", () => {
+    expect(
+      getScopedDedupeTarget(
+        {
+          moduleName: "buffer-xor",
+          originModulePath: `${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`,
+        },
+        dedupes
+      )
+    ).toBeNull();
+  });
+
+  it("skips an entry whose app-level copy is not installed", () => {
+    expect(
+      getScopedDedupeTarget(
+        {
+          moduleName: "buffer",
+          originModulePath: `${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`,
+        },
+        dedupes.map((entry) => ({ ...entry, packagePath: null }))
+      )
+    ).toBeNull();
+  });
+});

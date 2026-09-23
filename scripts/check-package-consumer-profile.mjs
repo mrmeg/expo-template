@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { tarballName } from "./lib/workspacePackages.mjs";
 import { packageCompatibilityProfiles } from "./package-compatibility-profiles.mjs";
 
 const root = process.cwd();
@@ -20,10 +21,6 @@ function run(command, commandArgs, options = {}) {
   if (result.status !== 0) {
     throw new Error(`${command} ${commandArgs.join(" ")} failed with status ${result.status}`);
   }
-}
-
-function tarballNameForPackage(packageName, version) {
-  return `${packageName.replace(/^@/, "").replace("/", "-")}-${version}.tgz`;
 }
 
 const packageKey = option("--package");
@@ -49,7 +46,7 @@ let tarball;
 try {
   run("bun", ["run", "build"], { cwd: packageDir });
   run("bun", ["pm", "pack"], { cwd: packageDir });
-  tarball = join(packageDir, tarballNameForPackage(manifest.name, manifest.version));
+  tarball = join(packageDir, tarballName(manifest.name, manifest.version));
 
   await writeFile(
     join(fixture, "package.json"),

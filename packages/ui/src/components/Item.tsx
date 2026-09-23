@@ -198,7 +198,7 @@ export function ItemActions({ children, style }: ItemActionsProps) {
   return <View style={[styles.actions, style]}>{children}</View>;
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",

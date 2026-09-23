@@ -530,7 +530,7 @@ const AlertDialog: AlertDialogComponent = Object.assign(AlertDialogRoot, {
 // Shared styles
 // ============================================================================
 
-const overlayStyles = StyleSheet.create({
+const overlayStyles = /*#__PURE__*/ StyleSheet.create({
   // The keyboard-avoiding wrapper fills the overlay so its bottom padding
   // shrinks the centered container instead of the card.
   fill: {
