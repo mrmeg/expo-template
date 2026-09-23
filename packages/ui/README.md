@@ -750,20 +750,21 @@ stays available for reactive selectors and tests.
 ## Package Release
 
 ```sh
-bun run ui:release -- --patch --publish
+bun run pkg ui release -- --patch --publish
 ```
 
-Use `--patch`, `--minor`, `--major`, or an exact version such as `0.2.0`. The
-command updates `packages/ui/package.json` and `bun.lock`, runs
-`bun run packages:peer-check` then the `ui:typecheck`, `ui:test`, `ui:build`,
-`ui:pack`, and `ui:consumer-smoke` gates, and publishes with
-`npm publish --access public` only when `--publish` is present (which also
-requires a working `npm whoami`). Without `--publish` it is the same bump and
-gate run as a dry run.
+Use `--patch`, `--minor`, `--major`, or an exact version such as `0.2.0` (the
+committed version itself releases without a bump). The command updates
+`packages/ui/package.json` and `bun.lock`, runs `bun run packages:peer-check`
+then `bun run pkg ui typecheck`, `test`, and `build`, packs one tarball, runs
+`bun run pkg ui consumer-smoke -- --tarball <that tarball>`, and publishes that
+same tarball with `npm publish <tarball> --access public` only when
+`--publish` is present (which also requires a working `npm whoami`). Without
+`--publish` it is the same bump and gate run as a dry run.
 
 A clean working tree is required; commit first or pass `--allow-dirty`.
 
-CI also installs and exports packed consumers against Expo 56 and 57
+CI also installs and exports packed consumers against Expo 56, 57, and 58
 (`.github/workflows/package-compatibility.yml`).
 
 ### GitHub Publishing
@@ -773,18 +774,20 @@ publishing:
 
 1. In npm package settings for `@mrmeg/expo-ui`, add a trusted publisher:
    GitHub Actions, owner `mrmeg`, repository `expo-template`, workflow filename
-   `publish-ui.yml`.
+   `publish-packages.yml`.
 2. Bump `packages/ui/package.json` in a commit and push it to `main`.
 
-`publish-ui.yml` runs on a push to `main` touching `packages/ui/package.json`
-and on `workflow_dispatch`, using npm OIDC rather than a checked-in token or
-local npm login. On push it reads the committed version, skips cleanly if that
-version is already published, otherwise runs the gates and publishes from
-`packages/ui`. Manual runs take `version` (`patch`, `minor`, `major`, or exact
-`x.y.z`) and `ref` (default `main`); they bump the version, update `bun.lock`,
-run the gates, publish, then commit and push the bump. If a manual run fails
-after the bump landed, rerun it with the exact current version (e.g.
-`version=0.1.3`) — exact versions do not bump again.
+`publish-packages.yml` publishes every workspace package. It runs on a push to
+`main` that changes a `packages/*/package.json` and on `workflow_dispatch`, using
+npm OIDC rather than a checked-in token or local npm login. On push it releases
+the committed version when that version changed in the push and npm does not
+have it yet, through the same release script as the local command, then
+publishes the smoked tarball with provenance and tags `expo-ui-v<version>`.
+Manual runs take `package=ui`, `version` (`patch`, `minor`, `major`, or exact
+`x.y.z`), and `ref` (default `main`); they bump the version and commit it to
+`ref`, run the gates, publish, and tag. If a manual run fails after the bump
+landed, rerun it with the exact current version (e.g. `version=0.1.3`) — the
+committed version does not bump again.
 
 Keep `repository.url` in `package.json` as
 `git+https://github.com/mrmeg/expo-template.git`: npm trusted publishing checks
@@ -799,22 +802,30 @@ CI configuration, never in the repository.
 
 ```sh
 bun run packages:peer-check
-bun run ui:typecheck
-bun run ui:test
-bun run ui:build
-bun run ui:pack
-bun run ui:consumer-smoke
+bun run pkg ui typecheck
+bun run pkg ui test
+bun run pkg ui build
+bun run pkg ui pack
+bun run pkg ui consumer-smoke
 ```
 
-`ui:pack` is a dry pack, so the published file list and package size can be
-inspected before release. `ui:consumer-smoke` installs the packed tarball into
-a clean fixture, checks every documented export-map target resolves,
-type-checks all public entrypoints, and runs an iOS `expo export` against the
-packed package at the workspace's Expo version, without a custom Metro config.
+`pkg ui pack` is a dry pack, so the published file list and package size can be
+inspected before release. `pkg ui consumer-smoke` installs the packed tarball
+into a clean fixture, checks every documented export-map target resolves,
+type-checks all public entrypoints, imports the Node-safe subpaths
+(`constants/spacing`, `constants/motion`, `components/keyboardFocusRegistry`,
+`state/notify` with `state/globalUIStore`, `state/SsrViewportContext`) in plain
+Node, and runs iOS, Android, and web `expo export`s against the packed package
+at the workspace's Expo version, without a custom Metro config. The web export's
+source maps must show one copy of React, react-dom, react-native-web, and every
+`@radix-ui/*` / `@rn-primitives/*` module: a consumer install that resolves two
+copies of `@radix-ui/react-slot` crashes the web `AlertDialog` with
+`React.Children.only expected to receive a single React element child`. Pass
+`-- --tarball <file>` to smoke an existing tarball instead of building one.
 
 ### Design-system manifest
 
-`ui:build` also writes `dist/design-system.json`
+`pkg ui build` also writes `dist/design-system.json`
 ([`scripts/build-design-system-manifest.mjs`](../../scripts/build-design-system-manifest.mjs)):
 the spacing, radius and icon scales, the palette, the light and dark themes, the
 font variants, every component's variant and size values, and `icons.names` (the
@@ -823,7 +834,7 @@ rules use. It is exported as
 `@mrmeg/expo-ui/design-system.json`, and `@mrmeg/eslint-plugin-expo-ui` reads it
 in projects that install this package instead of checking out its sources — which
 is what lets the design-system rules quote this release's presets and tokens.
-`ui:consumer-smoke` asserts the packed tarball carries it and that it parses at
+`pkg ui consumer-smoke` asserts the packed tarball carries it and that it parses at
 `schemaVersion: 1` with a non-empty component list. The build fails rather than
 writing an empty manifest, so a broken extractor cannot ship as "no rules to
 enforce".

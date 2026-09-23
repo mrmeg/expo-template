@@ -8,13 +8,20 @@
  * consumer would. Only the fixture contents and the post-install steps differ,
  * so those live in the `PACKAGES` table below.
  *
+ * `--tarball <path>` skips the build and pack and tests that tarball instead:
+ * the release flow packs once and passes the tarball here, so the file the smoke
+ * approved is the file `npm publish` uploads.
+ *
  * Usage:
- *   node scripts/check-package-consumer.mjs <ui|media|purchases|lint>
+ *   node scripts/check-package-consumer.mjs <ui|media|purchases|lint> [--tarball <path>]
  */
+import { existsSync } from "node:fs";
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { bundledPackages, findDuplicatePackages, readSourceMapSources } from "./lib/bundleSingletons.mjs";
+import { tarballName } from "./lib/workspacePackages.mjs";
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -50,10 +57,6 @@ function runStep(step, cwd) {
       `${step.command} ${step.args.join(" ")} never printed ${JSON.stringify(step.expectStdout)}`
     );
   }
-}
-
-function tarballNameForPackage(packageName, version) {
-  return `${packageName.replace(/^@/, "").replace("/", "-")}-${version}.tgz`;
 }
 
 async function readJson(path) {
@@ -96,13 +99,30 @@ function resolveExportTargets(exportValue, wildcardReplacement = "") {
     .map((target) => target.replace("*", wildcardReplacement));
 }
 
+/**
+ * The app every UI export bundles (iOS, Android, web). `AlertDialog` is here for
+ * web: it is the Radix-backed component the duplicate-module crash hit, so the
+ * web bundle has to carry the Radix graph the singleton check inspects. The
+ * deep imports are the subpaths consumer apps import directly.
+ */
 const UI_APP_TSX = [
   "import { View } from \"react-native\";",
   "import { colors } from \"@mrmeg/expo-ui/constants\";",
   "import { colors as leafColors } from \"@mrmeg/expo-ui/constants/colors\";",
+  "import { spacing } from \"@mrmeg/expo-ui/constants/spacing\";",
   "import { useResources, useTheme } from \"@mrmeg/expo-ui/hooks\";",
   "import { useTheme as useThemeLeaf } from \"@mrmeg/expo-ui/hooks/useTheme\";",
   "import { Button } from \"@mrmeg/expo-ui/components/Button\";",
+  "import {",
+  "  AlertDialog,",
+  "  AlertDialogAction,",
+  "  AlertDialogCancel,",
+  "  AlertDialogContent,",
+  "  AlertDialogDescription,",
+  "  AlertDialogTitle,",
+  "  AlertDialogTrigger,",
+  "} from \"@mrmeg/expo-ui/components/Dialog\";",
+  "import { dismissKeyboard } from \"@mrmeg/expo-ui/components/keyboardDismiss\";",
   "import { UIProvider } from \"@mrmeg/expo-ui/components/UIProvider\";",
   "import { StyledText } from \"@mrmeg/expo-ui/components/StyledText\";",
   "",
@@ -113,9 +133,24 @@ const UI_APP_TSX = [
   "",
   "  return (",
   "    <UIProvider>",
-  "      <View style={{ flex: 1, backgroundColor: colors.light.colors.background, padding: 24 }}>",
+  "      <View style={{ flex: 1, backgroundColor: colors.light.colors.background, padding: spacing.lg }}>",
   "        <StyledText text={`${loaded}-${theme.colors.background}-${leafColors[scheme].colors.background}`} />",
-  "        <Button text=\"Smoke\" />",
+  "        <Button text=\"Smoke\" onPress={dismissKeyboard} />",
+  "        <AlertDialog>",
+  "          <AlertDialogTrigger asChild>",
+  "            <Button text=\"Delete project\" />",
+  "          </AlertDialogTrigger>",
+  "          <AlertDialogContent>",
+  "            <AlertDialogTitle>Delete project?</AlertDialogTitle>",
+  "            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>",
+  "            <AlertDialogCancel asChild>",
+  "              <Button text=\"Cancel\" />",
+  "            </AlertDialogCancel>",
+  "            <AlertDialogAction asChild>",
+  "              <Button text=\"Delete\" />",
+  "            </AlertDialogAction>",
+  "          </AlertDialogContent>",
+  "        </AlertDialog>",
   "      </View>",
   "    </UIProvider>",
   "  );",
@@ -165,23 +200,72 @@ const UI_INDEX_TSX = [
   "",
 ].join("\n");
 
+/**
+ * Plain-Node imports of the UI subpaths that do not reach `react-native` (which
+ * is Flow source and needs a bundler): each one proves its export-map entry
+ * resolves in Node and that the shipped ESM loads and works. Everything that
+ * does reach `react-native` is covered by the Expo exports instead.
+ */
 const UI_RUNTIME_CHECK_MJS = [
-  "// constants now imports Platform from \"react-native\" (for SSR-stable web detection),",
-  "// so it requires a bundler alias to react-native-web. The Expo export step below",
-  "// still exercises the full surface via Metro.",
-  "const runtimeSafeEntrypoints = [];",
+  "import assert from \"node:assert/strict\";",
+  "",
+  "const runtimeSafeEntrypoints = [",
+  "  {",
+  "    specifier: \"@mrmeg/expo-ui/constants/spacing\",",
+  "    validate: ({ spacing, space }) => {",
+  "      assert.equal(typeof spacing.md, \"number\");",
+  "      assert.equal(space(2), spacing.base * 2);",
+  "    },",
+  "  },",
+  "  {",
+  "    specifier: \"@mrmeg/expo-ui/constants/motion\",",
+  "    validate: ({ durations }) => {",
+  "      assert.ok(durations.fast < durations.normal && durations.normal < durations.slow);",
+  "    },",
+  "  },",
+  "  {",
+  "    specifier: \"@mrmeg/expo-ui/components/keyboardFocusRegistry\",",
+  "    validate: (registry) => {",
+  "      let blurred = false;",
+  "      registry.setKeyboardFocusedInput(\"smoke\", () => {",
+  "        blurred = true;",
+  "      });",
+  "      assert.equal(registry.hasKeyboardFocusedInput(), true);",
+  "      assert.equal(registry.dismissKeyboardFocusedInput(), true);",
+  "      assert.equal(blurred, true);",
+  "      assert.equal(registry.hasKeyboardFocusedInput(), false);",
+  "    },",
+  "  },",
+  "  {",
+  "    // Two subpaths over one zustand store: a deep import must not load a second copy.",
+  "    specifier: \"@mrmeg/expo-ui/state/notify\",",
+  "    validate: async ({ notify }) => {",
+  "      const { globalUIStore } = await import(\"@mrmeg/expo-ui/state/globalUIStore\");",
+  "      notify.success(\"Saved\");",
+  "      const { alert } = globalUIStore.getState();",
+  "      assert.equal(alert?.type, \"success\");",
+  "      assert.equal(alert?.title, \"Saved\");",
+  "      notify.hide();",
+  "      assert.equal(globalUIStore.getState().alert, null);",
+  "    },",
+  "  },",
+  "  {",
+  "    specifier: \"@mrmeg/expo-ui/state/SsrViewportContext\",",
+  "    validate: ({ SsrViewportContext }) => {",
+  "      assert.ok(SsrViewportContext?.Provider, \"SsrViewportContext is not a React context\");",
+  "    },",
+  "  },",
+  "];",
   "",
   "for (const entrypoint of runtimeSafeEntrypoints) {",
   "  try {",
-  "    const imported = await import(entrypoint.specifier);",
-  "    if (!entrypoint.validate(imported)) {",
-  "      throw new Error('runtime validation failed');",
-  "    }",
+  "    await entrypoint.validate(await import(entrypoint.specifier));",
   "  } catch (error) {",
-  "    console.error(`Runtime import failed for ${entrypoint.specifier}`);",
+  "    console.error(`Runtime check failed for ${entrypoint.specifier}`);",
   "    throw error;",
   "  }",
   "}",
+  "console.log(`runtime-check: ${runtimeSafeEntrypoints.length} UI entrypoints load and work in Node`);",
   "",
 ].join("\n");
 
@@ -453,6 +537,9 @@ const PACKAGES = {
             dependencies: {
               "@mrmeg/expo-ui": tarball,
               ...peerDependencies,
+              // Not UI peers, but what any Expo app needs to export for web.
+              "@expo/metro-runtime": rootPackage.dependencies["@expo/metro-runtime"],
+              "react-dom": rootPackage.dependencies["react-dom"],
             },
             devDependencies: {
               "@types/react": rootPackage.devDependencies["@types/react"],
@@ -463,7 +550,7 @@ const PACKAGES = {
             expo: {
               name: "Expo UI Consumer Smoke",
               slug: "expo-ui-consumer-smoke",
-              platforms: ["ios"],
+              platforms: ["ios", "android", "web"],
             },
           }),
           "tsconfig.json": json({
@@ -511,7 +598,18 @@ const PACKAGES = {
               ].join("\n"),
             ],
           },
-          { kind: "expo-export", platform: "ios", outputDirName: "ui-consumer-ios-export" },
+          { kind: "expo-export", platform: "ios" },
+          { kind: "expo-export", platform: "android" },
+          {
+            // A consumer's install decides whether the web bundle gets two copies
+            // of a Radix module, and two copies is the AlertDialog crash. The
+            // expected packages prove the bundle took the Radix path at all.
+            kind: "expo-export",
+            platform: "web",
+            singletons: {
+              expect: ["@radix-ui/react-alert-dialog", "@radix-ui/react-slot", "react-dom"],
+            },
+          },
         ],
       },
     ],
@@ -776,21 +874,44 @@ const PACKAGES = {
 };
 
 const packageNames = Object.keys(PACKAGES).sort();
-const packageName = process.argv[2];
+const USAGE = "Usage: node scripts/check-package-consumer.mjs <ui|media|purchases|lint> [--tarball <path>]";
+const [packageName, ...options] = process.argv.slice(2);
 const target = PACKAGES[packageName];
 
-if (!target) {
-  console.error(
-    `check-package-consumer: unknown package "${packageName ?? ""}". Expected one of: ${packageNames.join(", ")}`
-  );
-  console.error("Usage: node scripts/check-package-consumer.mjs <ui|media|purchases|lint>");
+function exitWithUsage(message) {
+  console.error(`check-package-consumer: ${message}`);
+  console.error(USAGE);
   process.exit(1);
+}
+
+if (!target) {
+  exitWithUsage(`unknown package "${packageName ?? ""}". Expected one of: ${packageNames.join(", ")}`);
+}
+
+/** The prebuilt tarball to test instead of building and packing one, if any. */
+let providedTarball = null;
+for (let index = 0; index < options.length; index += 1) {
+  // `bun run pkg ui consumer-smoke -- --tarball x` forwards the `--` too.
+  if (options[index] === "--") continue;
+  if (options[index] === "--tarball" && options[index + 1]) {
+    providedTarball = resolve(options[index + 1]);
+    index += 1;
+  } else {
+    exitWithUsage(`unexpected argument "${options[index]}"`);
+  }
+}
+if (providedTarball && !existsSync(providedTarball)) {
+  exitWithUsage(`no tarball at ${providedTarball}`);
 }
 
 /** Every declared export target and shipped doc must exist in the installed tree. */
 async function assertInstalledPackageSurface(fixtureRoot) {
   const packageRoot = join(fixtureRoot, "node_modules", target.packageName);
-  const manifest = await readJson(join(packageRoot, "package.json"));
+  const manifestPath = join(packageRoot, "package.json");
+  if (!existsSync(manifestPath)) {
+    throw new Error(`The tested tarball did not install as ${target.packageName}: no ${manifestPath}`);
+  }
+  const manifest = await readJson(manifestPath);
 
   for (const check of target.exportChecks) {
     const exportValue = manifest.exports[check.key];
@@ -808,10 +929,49 @@ async function assertInstalledPackageSurface(fixtureRoot) {
   }
 }
 
+/**
+ * Export the fixture for one platform. With `singletons`, the export writes
+ * source maps and fails when a singleton package (`scripts/lib/bundleSingletons.mjs`)
+ * was bundled from two copies, or when an expected package is missing — which
+ * would mean the check looked at a bundle that never took the path it guards.
+ */
+async function exportFixture(step, fixture, fixtureRoot) {
+  const outputDir = await mkdtemp(join(tmpdir(), `${fixture.prefix}${step.platform}-export-`));
+  scratchDirs.push(outputDir);
+  const args = ["expo", "export", "--platform", step.platform, "--output-dir", outputDir, "--no-minify"];
+  if (step.singletons) args.push("--source-maps");
+  run("bunx", args, { cwd: fixtureRoot });
+  if (!step.singletons) return;
+
+  const { maps, sources } = await readSourceMapSources(outputDir);
+  if (maps === 0) throw new Error(`The ${step.platform} export wrote no source maps to check`);
+
+  const bundled = bundledPackages(sources);
+  const missing = step.singletons.expect.filter((name) => !bundled.has(name));
+  if (missing.length > 0) {
+    throw new Error(`The ${step.platform} bundle is missing ${missing.join(", ")}: the singleton check would prove nothing`);
+  }
+
+  const duplicates = findDuplicatePackages(sources);
+  if (duplicates.length > 0) {
+    throw new Error(
+      [
+        `The ${step.platform} bundle carries more than one copy of:`,
+        ...duplicates.map(({ name, roots }) => `  ${name}: ${roots.join(", ")}`),
+        "Two copies of a Radix module break its React context and Slottable identity",
+        "(the web AlertDialog React.Children.only crash). Align the versions the package's",
+        "dependencies pin so a consumer install resolves one copy.",
+      ].join("\n"),
+    );
+  }
+  console.log(`${step.platform} bundle: one copy of every singleton package (${bundled.size} packages bundled)`);
+}
+
 const root = process.cwd();
 const fixtureRoots = [];
-const exportOutputs = [];
-/** Packed tarballs by package directory, so each one is built and packed once. */
+/** Temporary pack and export directories, removed on exit. */
+const scratchDirs = [];
+/** Tarballs by package directory, so each one is built and packed once. */
 const tarballs = new Map();
 
 /**
@@ -822,10 +982,18 @@ async function packWorkspacePackage(dir) {
   const existing = tarballs.get(dir);
   if (existing) return existing;
 
+  if (dir === target.dir && providedTarball) {
+    tarballs.set(dir, providedTarball);
+    return providedTarball;
+  }
+
   const manifest = await readJson(join(root, dir, "package.json"));
+  const destination = await mkdtemp(join(tmpdir(), "expo-package-pack-"));
+  scratchDirs.push(destination);
   run("bun", ["run", "--cwd", dir, "build"], { cwd: root });
-  run("bun", ["pm", "pack"], { cwd: join(root, dir) });
-  const tarball = join(root, dir, tarballNameForPackage(manifest.name, manifest.version));
+  run("bun", ["pm", "pack", "--destination", destination, "--quiet"], { cwd: join(root, dir) });
+  const tarball = join(destination, tarballName(manifest.name, manifest.version));
+  await assertFileExists(tarball, `${manifest.name} tarball`);
   tarballs.set(dir, tarball);
   return tarball;
 }
@@ -834,6 +1002,7 @@ try {
   const manifest = await readJson(join(root, target.dir, "package.json"));
   const rootPackage = await readJson(join(root, "package.json"));
   const tarball = await packWorkspacePackage(target.dir);
+  console.log(`Consumer smoke for ${target.packageName} against ${tarball}`);
 
   const peerDependencies = Object.fromEntries(
     Object.keys(manifest.peerDependencies ?? {}).map((name) => [
@@ -867,25 +1036,16 @@ try {
       } else if (step.kind === "run") {
         runStep(step, fixtureRoot);
       } else if (step.kind === "expo-export") {
-        const outputDir = join(tmpdir(), step.outputDirName);
-        exportOutputs.push(outputDir);
-        await rm(outputDir, { recursive: true, force: true });
-        run("bunx", ["expo", "export", "--platform", step.platform, "--output-dir", outputDir, "--no-minify"], {
-          cwd: fixtureRoot,
-        });
+        await exportFixture(step, fixture, fixtureRoot);
       } else {
         throw new Error(`Unknown consumer smoke step: ${JSON.stringify(step)}`);
       }
     }
   }
+  console.log(`${target.packageName} consumer smoke passed`);
 } finally {
-  for (const tarball of tarballs.values()) {
-    await rm(tarball, { force: true });
-  }
-  for (const outputDir of exportOutputs) {
-    await rm(outputDir, { recursive: true, force: true });
-  }
-  for (const fixtureRoot of fixtureRoots) {
-    await rm(fixtureRoot, { recursive: true, force: true });
+  // A provided tarball belongs to the caller (the release flow publishes it next).
+  for (const dir of [...scratchDirs, ...fixtureRoots]) {
+    await rm(dir, { recursive: true, force: true });
   }
 }

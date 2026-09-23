@@ -106,8 +106,9 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run lint` | `expo lint` (ESLint flat config; lints `app/` only by default — pass paths to widen) |
 | `bun lint:ui` | Design-system rules only, over `app`, `client`, `shared`; `--changed` for touched files, `--doctor` to check wiring — see [`packages/lint/README.md`](packages/lint/README.md) |
-| `bun run lint:release` | Release `@mrmeg/eslint-plugin-expo-ui`: version bump, the `lint:typecheck`/`test`/`build`/`pack`/`consumer-smoke` gates, `--publish` to push it — see [`packages/lint/README.md`](packages/lint/README.md#release) |
 | `bun run verify` | Every CI `validate` gate locally, in CI order |
+| `bun run gen` | Regenerate every generated artifact (icon, template, and block registries, LLM docs); `--check` fails on a stale one |
+| `bun run pkg <package> <task>` | A workspace package task: `typecheck`, `test`, `build`, `pack`, `consumer-smoke`, `release` for `ui`, `media`, `purchases`, `lint` — see [Publishing packages](#publishing-packages) |
 | `bun run test:ci` | `jest --ci --coverage --forceExit` |
 | `bun run e2e` | Maestro native smoke suite — see `docs/e2e.md` |
 | `bun run bundle-size` | Compare client JS against `scripts/bundle-baseline.json` |
@@ -287,46 +288,60 @@ toast store, and UI helpers ship from the workspace package `@mrmeg/expo-ui`.
 The package ships no font files: web loads Inter through Google Fonts from
 `app/+html.tsx` and `useResources()`; native uses system sans-serif fallbacks.
 
-Package validation:
+Consumer Expo apps install `@mrmeg/expo-ui` plus the native and Expo peer
+dependencies listed in `packages/ui/package.json` (including `react-native-svg`
+and `lucide-react-native` for `Icon`); implementation details such as
+`@rn-primitives/*` are managed by the package. Full design system:
+`packages/ui/README.md`.
+
+### Publishing packages
+
+Every workspace package (`ui`, `media`, `purchases`, `lint`) has the same tasks:
 
 ```bash
-bun run ui:typecheck
-bun run ui:test
-bun run ui:build
-bun run ui:pack
-bun run ui:consumer-smoke
+bun run pkg ui typecheck
+bun run pkg ui test
+bun run pkg ui build
+bun run pkg ui pack             # dry pack: the file list and size
+bun run pkg ui consumer-smoke   # build, pack, install into clean fixtures, type-check, export
 ```
 
-To publish, authenticate through your developer or CI npm config:
+To release from your machine, authenticate through your developer npm config:
 
 ```sh
-bun run ui:release -- --patch --publish
+bun run pkg ui release -- --patch --publish
 ```
 
-Use `--patch`, `--minor`, `--major`, or an exact version such as `0.2.0`.
-Without `--publish` the command performs the same version bump and gates as a
-dry run. Do not commit `.npmrc` tokens or registry secrets. Consumer Expo apps
-install `@mrmeg/expo-ui` plus the native and Expo peer dependencies listed in
-`packages/ui/package.json` (including `react-native-svg` and
-`lucide-react-native` for `Icon`); implementation details such as
-`@rn-primitives/*` are managed by the package.
+Use `--patch`, `--minor`, `--major`, or an exact version such as `0.28.0`; the
+committed version itself releases without a bump. The command sets the version,
+runs the peer check and the package's typecheck, test, and build, packs **one**
+tarball, runs the consumer smoke against that tarball, and with `--publish`
+publishes that same file. Without `--publish` it is a dry run. Do not commit
+`.npmrc` tokens or registry secrets.
 
-If local npm login is blocked, use GitHub Actions trusted publishing. After
-one-time npm package setup, pushing a commit that changes
-`packages/ui/package.json` on `main` publishes the exact committed version when
-npm does not already have it. The same `Publish UI Package` workflow also runs
-manually with `version=patch` and `ref=main`; manual runs bump the version, run
-the package gates, commit the bump, and publish through npm OIDC — no npm token
-or local auth email.
+CI publishes through `.github/workflows/publish-packages.yml`, one workflow for
+every package in `scripts/lib/workspacePackages.mjs` (adding a package there is
+the only change it needs):
 
-`.github/workflows/publish-lint.yml` does the same for
-`@mrmeg/eslint-plugin-expo-ui`, `publish-media.yml` for `@mrmeg/expo-media`, and
-`publish-purchases.yml` for `@mrmeg/expo-purchases`. The lint and purchases ones
-are `workflow_dispatch` only until their first release exists on npm — a package
-npm does not have yet cannot be set up for trusted publishing, so that first run
-needs an `NPM_TOKEN` secret.
+- **Push to `main`** that changes a `packages/*/package.json`: each package whose
+  version changed in the push and is not on npm yet is released as committed.
+- **Manual run** with `package`, `version` (`patch`, `minor`, `major`, or exact
+  `x.y.z`), and `ref`: bumps and commits the version to `ref` first, then
+  releases. Rerun with the exact committed version if a run failed after its bump
+  landed.
 
-Full design system: `packages/ui/README.md`.
+Each release runs the same script as the local command, publishes the smoked
+tarball with `npm publish <tarball> --provenance --access public`, and pushes a
+`<name-without-scope>-v<version>` tag (`expo-ui-v0.28.0`). Auth is npm trusted
+publishing: each package's npm settings name owner `mrmeg`, repository
+`expo-template`, workflow filename `publish-packages.yml`. A repository secret
+`NPM_TOKEN`, when set, is used instead. A package npm does not have yet cannot be
+set up for trusted publishing, so its first publish is a manual run with
+`NPM_TOKEN` set; a push never makes a first publish.
+
+`bun run verify`'s `packages:drift-check` keeps the two honest: once a version is
+on npm, changing that package's dependencies, peers, exports, or files without a
+version bump fails CI.
 
 ### Design-system lint
 

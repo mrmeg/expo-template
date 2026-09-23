@@ -1,0 +1,173 @@
+name: Publish Packages
+
+# Publishes every workspace package listed in scripts/lib/workspacePackages.mjs;
+# adding a package there is the only change this workflow needs.
+#
+# - Push to main that changes a packages/*/package.json: each package whose
+#   version changed in the push and is not on npm yet, released as committed.
+# - Manual run: one package, bumped (patch/minor/major) or set to an exact
+#   version. The bump commit lands on `ref` before anything is published, so npm
+#   never has a version git lacks. An exact version equal to the committed one
+#   releases it as is: the retry when a run failed after its bump landed.
+#
+# Each release runs scripts/release-package.mjs (peer check, the package's
+# typecheck, test, and build, ONE `bun pm pack`, then the consumer smoke against
+# that tarball), publishes that same tarball with provenance, and pushes a
+# `<name-without-scope>-v<version>` tag, e.g. expo-ui-v0.28.0.
+#
+# Auth is npm trusted publishing (OIDC). Each package's npm settings must name
+# this file: Trusted publisher -> GitHub Actions, owner mrmeg, repository
+# expo-template, workflow filename publish-packages.yml. A repository secret
+# NPM_TOKEN, when set, is used instead. It is also the only way to make a
+# package's first publish, which runs from a manual run only: npm has no trusted
+# publisher settings for a package that does not exist yet.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/*/package.json"
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package short name from scripts/lib/workspacePackages.mjs: ui, media, purchases, lint"
+        required: true
+      version:
+        description: "Version bump: patch, minor, major, or exact x.y.z (the committed version releases as is)"
+        required: true
+        default: "patch"
+      ref:
+        description: "Branch to release from"
+        required: true
+        default: "main"
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Plan releases
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      count: ${{ steps.plan.outputs.count }}
+      sha: ${{ steps.plan.outputs.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.sha }}
+          # The push's `before` commit must be reachable to diff versions against.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # Node built-ins only: no install needed to decide what to release.
+      - name: Plan
+        id: plan
+        env:
+          HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
+          BEFORE: ${{ github.event.before }}
+          PACKAGE: ${{ inputs.package }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            node scripts/plan-package-publish.mjs --event push --before "${BEFORE}"
+          else
+            node scripts/plan-package-publish.mjs --event workflow_dispatch --package "${PACKAGE}" --version "${VERSION}"
+          fi
+
+  publish:
+    name: Publish ${{ matrix.name }}
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+
+      # Expo SDK 58 requires Node 22.13+, 24.3+, or 26; the runner default is not pinned.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      # Trusted publishing needs npm 11.5.1 or later.
+      - name: Use npm 11
+        run: npm install -g "npm@^11.5.1"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Gates, pack, and consumer smoke
+        id: release
+        env:
+          PACKAGE: ${{ matrix.package }}
+          RELEASE: ${{ matrix.release }}
+        run: node scripts/release-package.mjs "${PACKAGE}" "${RELEASE}" --pack-destination "${RUNNER_TEMP}/release"
+
+      - name: Commit version bump
+        if: steps.release.outputs.bumped == 'true'
+        env:
+          DIR: ${{ steps.release.outputs.dir }}
+          NAME: ${{ steps.release.outputs.name }}
+          VERSION: ${{ steps.release.outputs.version }}
+          REF: ${{ inputs.ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${DIR}/package.json" bun.lock
+          git commit -m "chore: release ${NAME} v${VERSION}"
+          git push origin "HEAD:${REF}"
+
+      - name: Publish ${{ steps.release.outputs.name }}@${{ steps.release.outputs.version }}
+        env:
+          NPM_PUBLISH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TARBALL: ${{ steps.release.outputs.tarball }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+        run: |
+          if [ -n "${NPM_PUBLISH_TOKEN:-}" ]; then
+            echo "//registry.npmjs.org/:_authToken=${NPM_PUBLISH_TOKEN}" > "${RUNNER_TEMP}/.npmrc"
+            export NPM_CONFIG_USERCONFIG="${RUNNER_TEMP}/.npmrc"
+          else
+            # Trusted publishing: npm exchanges the job's OIDC token itself, and the
+            # placeholder token setup-node configured would win over it.
+            unset NODE_AUTH_TOKEN
+            unset NPM_CONFIG_USERCONFIG
+          fi
+          DIST_TAG=()
+          if [ "${PRERELEASE}" = "true" ]; then DIST_TAG=(--tag next); fi
+          npm publish "${TARBALL}" --provenance --access public --registry=https://registry.npmjs.org/ "${DIST_TAG[@]}"
+
+      - name: Tag ${{ steps.release.outputs.tag }}
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          NAME: ${{ steps.release.outputs.name }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null; then
+            echo "::notice::${TAG} already exists on origin; leaving it where it is."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "${NAME} v${VERSION}"
+          git push origin "refs/tags/${TAG}"
