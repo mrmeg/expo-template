@@ -557,7 +557,12 @@ are named exports only.
 | `useStaggeredEntrance(options?)` | Entrance animated style for list rows (`delay`; `STAGGER_DELAY` is 30) |
 
 `SsrViewportContext` (from `state`) supplies the first-render viewport width on
-web, where the window cannot be read during export or hydration.
+web, where the window cannot be read during export or hydration. Right after
+hydration `useDimensions()` switches to the real window. On web every consumer
+shares one `resize` listener and one snapshot, re-renders only when the width or
+height changes, and a component that mounts later reads the current viewport
+straight away. The `mrmeg-vw` cookie (the width a server can seed the next
+render from) is written once per page view and then once resizing settles.
 
 ### Patterns And Gotchas
 

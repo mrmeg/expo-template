@@ -64,6 +64,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `useTheme()`'s return shape and values are unchanged. Consumer note: code
   that mutated `colors.light.colors` or `colors.dark.colors` on web now
   changes both schemes; brand through `setColors` instead.
+- **Web `useDimensions()` shares one window store.** Every consumer added its
+  own `resize` listener, set state on every resize event (a new object even
+  when nothing changed, so every consumer re-rendered), and wrote the
+  `mrmeg-vw` SSR cookie on mount and on every resize event. One listener now
+  serves all consumers while any is mounted, consumers re-render only when the
+  width or height changes, and the cookie is written once per page view and
+  then 250 ms after resizing settles (a pending write is flushed when the last
+  consumer unmounts). The returned fields and values are unchanged, and the
+  server render and hydration pass still seed from `SsrViewportContext` (or
+  the 1280 × 800 default); the real viewport now arrives in a synchronous
+  re-render right after hydration instead of a passive effect. One visible
+  difference, a fix: a component that mounts after hydration now reads the
+  current viewport on its first render instead of rendering one frame at the
+  seed width. Native still follows `useWindowDimensions`.
 
 ### Fixed
 
