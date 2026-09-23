@@ -305,7 +305,7 @@ function TabsContent({ style, children, ...props }: TabsContentProps) {
 // Styles
 // ============================================================================
 
-const triggerContentStyles = StyleSheet.create({
+const triggerContentStyles = /*#__PURE__*/ StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",

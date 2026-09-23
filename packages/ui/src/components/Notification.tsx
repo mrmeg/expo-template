@@ -410,4 +410,4 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 });
 
-const themedStyles = createThemedStyles(createStyles);
+const themedStyles = /*#__PURE__*/ createThemedStyles(createStyles);

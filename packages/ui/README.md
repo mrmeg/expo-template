@@ -59,6 +59,14 @@ Importable paths: root, `components`, `components/*`, `constants`,
 `constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`. Never import from
 `dist/*` or a source checkout path.
 
+The package declares `sideEffects`: only `state/themeStore` does work at import
+time (on native it loads the saved theme and starts the OS color-scheme
+listener). A bundler that tree-shakes (Expo with `EXPO_UNSTABLE_TREE_SHAKING=1`,
+esbuild, Rollup, webpack) keeps only the modules a barrel import actually uses,
+so `import { Button } from "@mrmeg/expo-ui"` costs about what the
+`components/Button` deep import does. Metro without tree shaking bundles
+everything a file imports, so the deep imports stay the smaller choice there.
+
 ## App Startup
 
 Call `useResources()` once near the Expo app root before hiding the splash

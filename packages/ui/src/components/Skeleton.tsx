@@ -228,4 +228,4 @@ const createCardStyles = (theme: Theme) =>
     },
   });
 
-const themedStyles = createThemedStyles(createCardStyles);
+const themedStyles = /*#__PURE__*/ createThemedStyles(createCardStyles);

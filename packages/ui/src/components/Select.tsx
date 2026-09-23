@@ -408,7 +408,7 @@ function SelectSeparator({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   trigger: {
     flexDirection: "row",
     justifyContent: "space-between",

@@ -293,7 +293,7 @@ function RadioGroupItem({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   radio: {
     justifyContent: "center",
     alignItems: "center",

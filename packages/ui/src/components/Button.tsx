@@ -575,7 +575,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
   });
 };
 
-const themedStyles = createThemedStyles((theme: Theme) => ({
+const themedStyles = /*#__PURE__*/ createThemedStyles((theme: Theme) => ({
   sm: createStyles(theme, "sm"),
   md: createStyles(theme, "md"),
   lg: createStyles(theme, "lg"),

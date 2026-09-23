@@ -287,7 +287,7 @@ function Switch({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   label: {
     position: "absolute",
     top: 0,

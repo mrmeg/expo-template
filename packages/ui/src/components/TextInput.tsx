@@ -1116,7 +1116,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
 const VARIANT_KEYS: TextInputVariant[] = ["outline", "filled", "underlined"];
 const SIZE_KEYS: TextInputSize[] = ["sm", "md", "lg"];
 
-const themedStyles = createThemedStyles((theme: Theme) =>
+const themedStyles = /*#__PURE__*/ createThemedStyles((theme: Theme) =>
   Object.fromEntries(
     VARIANT_KEYS.map((variant) => [
       variant,

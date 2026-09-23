@@ -330,7 +330,7 @@ function ToggleGroupIcon({ name, size, color }: ToggleGroupIconProps) {
   return <Icon name={name} size={size || spacing.iconMd} color={color || contextColor} />;
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   item: {
     flexDirection: "row",
     alignItems: "center",

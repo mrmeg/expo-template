@@ -41,6 +41,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   weight or an italic by family name (`Inter_300Light`, `Inter_400Regular_Italic`)
   was relying on a file the package never loaded; it must load that face
   itself, as before.
+- **`package.json` declares `sideEffects`, so barrel imports tree-shake.**
+  Without the field a bundler has to assume every module does work when
+  imported, and keeps it. The field lists the one module that does,
+  `state/themeStore` (its native branch loads the saved theme and starts the
+  OS color-scheme listener at module load), as `./src/state/themeStore.ts` and
+  `./dist/state/themeStore.js`; everything else is side-effect free, and
+  module-scope `StyleSheet.create` / `createThemedStyles` calls are marked
+  `/*#__PURE__*/`. A package test fails if a module gains an import-time
+  statement the field does not list. Measured with esbuild (web, peers
+  external), `import { Button } from "@mrmeg/expo-ui"` went from 199 modules
+  (71 of this package's) and 281,990 bytes minified to 20 modules (19) and
+  30,076 bytes, about what the `components/Button` deep import costs. Metro
+  bundles everything reachable unless Expo's tree shaking is on
+  (`EXPO_UNSTABLE_TREE_SHAKING=1`), which was already dropping unused
+  re-exports and still does. Nothing to change in apps.
 - **`Button` measures itself only when it can show a spinner.** Every button
   attached an `onLayout` to record its resting width, which cost a layout
   callback (a `ResizeObserver` on web) and a second render on every mount,
