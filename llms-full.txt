@@ -253,10 +253,10 @@ bun run typecheck
 bun run lint
 bun run check:features
 bun run test:ci
-bun run ui:typecheck
-bun run ui:test
-bun run media:typecheck
-bun run media:test
+bun run pkg ui typecheck
+bun run pkg ui test
+bun run pkg media typecheck
+bun run pkg media test
 bun run build
 bun run bundle-size
 ```
@@ -654,6 +654,25 @@ avoidance is `react-native-keyboard-controller`, so mount its `KeyboardProvider`
 above `UIProvider`; use `KeyboardAvoidingView` directly only for a subtree with
 custom behavior.
 
+Web setup, two more steps (every web theme color is a `var(--c-*)`, and the
+theme store boots at `"system"`/light so the first client render matches the
+server or exported HTML):
+
+1. `app/+html.tsx`: put `getThemeCssVariables()` (from `constants`) in the
+   global `<style>`, with the same overrides passed to `setColors` if the app
+   re-brands; without it every theme color is unset. Optionally add a blocking
+   inline script that sets `document.documentElement.dataset.theme` from
+   `localStorage[THEME_STORAGE_KEY]` (from `state`) or `prefers-color-scheme`,
+   so the first frame paints in the visitor's scheme.
+2. Root layout: `useEffect(() => syncThemeFromEnvironment(), []);`
+   (`syncThemeFromEnvironment` from `state`). It reads the persisted preference
+   and follows the OS color scheme, and returns its cleanup. Never call it
+   during render or at module scope. Safe to call more than once: calls share
+   one OS listener and each cleanup releases only its own call. `UIProvider`
+   does not call it; without it a web app stays on the boot default until the
+   user picks a theme. Optional on native, which loads the preference at
+   startup.
+
 `DismissKeyboard` owns tap dismissal; its ScrollView uses
 `keyboardShouldPersistTaps="always"` so RN cannot independently blur a hosted
 field after a non-scrolling drag. Use `always` for your own scroll view inside
@@ -738,7 +757,7 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 - Use `Button.preset`, not `variant`.
 - Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36).
 - Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the Button size.
-- Use `notify` plus a root `UIProvider` for transient global feedback. (`globalUIStore` stays available for reactive subscriptions and tests.)
+- Use `notify` plus a root `UIProvider` for transient global feedback. (`globalUIStore` stays available for reactive subscriptions and tests. In a component, read it with zustand's `useStore(globalUIStore, selector)`, never `globalUIStore()`: the React Compiler only treats `use*` calls as hooks, caches the bare call, and the next render crashes with React error #311.)
 - Keep app monitoring, auth, API, and domain behavior outside this package.
 
 Semantic color tokens on `theme.colors`: `surfaceSunken`, `background`,
@@ -759,7 +778,9 @@ Elevation is a surface-tier ladder, not shadow depth: `surfaceSunken` (chrome) <
 `background` (content) < `card`/`popover` (raised) < `muted` (chips, insets).
 
 On web every `theme.colors.*` value is a CSS custom property (`var(--c-*)`), so
-themes swap in CSS when `html[data-theme]` changes; native keeps literals. Hex
+themes swap in CSS when `html[data-theme]` changes; native keeps literals. Both
+web schemes share one `colors` object (`colors.light.colors ===
+colors.dark.colors`); re-brand with `setColors`, never by mutating it. Hex
 alpha concatenation (`theme.colors.x + "15"`) does **not** work — use
 `withAlpha(theme.colors.x, 0.08)`, exported standalone from `hooks` and from
 `useTheme()`. For sinks that cannot take `var()` (e.g. `<meta name="theme-color">`)
@@ -906,6 +927,7 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 - A plain `View` whose `opacity`/`pointerEvents` follows state must be `collapsable={false}` on Android (Fabric re-parents its children on the flip; a flip racing a navigation pop crashes). Package surfaces are pinned; spread `stateSurfaceProps()` from `@mrmeg/expo-ui/lib` on app-owned ones. `Pressable` already pins itself.
 - `TextInput` `onBlur` fires only after a real focus on Android (the native field's first-composition blur is dropped in the package); validate on blur directly and do not add a touched-fields guard in app code.
 - `Drawer.Header` takes `icon`, `title`, and `action` slots for a compact app-brand row; put `Drawer.ToggleCollapse` in `action` for a trailing rail control. `Drawer.Content` owns safe-area top/bottom padding — do not duplicate it in children.
+- `Icon` and `Button.Icon` take `name` (a kebab-case name from the package registry, typed `IconName`) or `component` (any Lucide import such as `import House from "lucide-react-native/icons/house"`, or another SVG component taking `size` and `color`). Both are sized, colored with theme tokens, and hidden by `decorative` the same way; `Button.Icon` inherits the button's label color and is decorative by default. Use `component` for icons outside the registry instead of rendering raw Lucide components.
 
 ## Minimal Examples
 
@@ -1119,16 +1141,17 @@ server entrypoints need no React or Expo peer. Test seams:
 
 ## Repo Validation And Publishing
 
-Run `packages:peer-check`, `media:typecheck`, `media:test`, `media:build`,
-`media:pack`, `media:consumer-smoke` in order; the smoke covers a minimal
-core/server/worker install plus a fully provisioned packed package, and CI covers
-Expo 55, 56, and 57 consumers. Release with
-`bun run media:release -- --patch [--publish]`.
-`.github/workflows/publish-media.yml` reruns those gates then `npm publish` on
-pushes to `main` that change `packages/media/package.json`, or on
-`workflow_dispatch`, using trusted publishing with an `NPM_TOKEN` fallback. Before
-the package exists on npm, push runs skip unless `NPM_TOKEN` is set: make the
-first publish a manual run with `NPM_TOKEN`, then configure trusted publishing.
+Run `bun run packages:peer-check`, then `bun run pkg media <gate>` for
+`typecheck`, `test`, `build`, `pack`, `consumer-smoke` in order; the smoke covers
+a minimal core/server/worker install plus a fully provisioned packed package, and
+CI covers Expo 55, 56, 57, and 58 consumers. Release with
+`bun run pkg media release -- --patch [--publish]`, which packs one tarball,
+smokes it, and publishes that file. `.github/workflows/publish-packages.yml` runs
+the same release on pushes to `main` that change the media version, or on a
+manual run with `package=media`, then publishes the tarball with provenance
+through trusted publishing (workflow filename `publish-packages.yml`) with an
+`NPM_TOKEN` fallback. Changing the manifest's dependencies, peers, exports, or
+files needs a version bump: `packages:drift-check` fails otherwise.
 
 ---
 
@@ -1477,7 +1500,7 @@ manifest of a published release:
   `packages/ui/src` is already on disk and the default `uiSourceDir` resolves.
 
 A checked-in manifest is a third option: build one with
-`bun run ui:build` in a checkout of this repo, commit
+`bun run pkg ui build` in a checkout of this repo, commit
 `dist/design-system.json` into the project, and point
 `settings["expo-ui"].manifestPath` at it.
 
@@ -1839,42 +1862,45 @@ The plugin has the same release path as the other two workspace packages, driven
 by [`scripts/release-package.mjs`](../../scripts/release-package.mjs):
 
 ```sh
-bun run lint:typecheck        # tsc -p packages/lint/tsconfig.json
-bun run lint:test             # jest packages/lint
-bun run lint:build            # require("./index.js") — the load smoke
-bun run lint:pack             # bun pm pack --dry-run
-bun run lint:consumer-smoke   # both tarballs in a temp project
-bun run lint:release -- --patch --publish
+bun run pkg lint typecheck        # tsc -p packages/lint/tsconfig.json
+bun run pkg lint test             # jest packages/lint
+bun run pkg lint build            # require("./index.js") — the load smoke
+bun run pkg lint pack             # bun pm pack --dry-run
+bun run pkg lint consumer-smoke   # both tarballs in a temp project
+bun run pkg lint release -- --patch --publish
 ```
 
-`lint:release` bumps the version, updates `bun.lock`, runs
-`packages:peer-check` and the five gates above in order, then publishes with
-`npm publish --access public`. Without `--publish` it is a dry run. (The
-unrelated `bun run lint` and `bun lint:ui` scripts run ESLint; they are not part
-of this.)
+`pkg lint release` bumps the version, updates `bun.lock`, runs
+`packages:peer-check` and the typecheck, test, and build gates in order, packs
+one tarball, runs the consumer smoke against it, then publishes that tarball
+with `npm publish <tarball> --access public`. Without `--publish` it is a dry
+run. (The unrelated `bun run lint` and `bun lint:ui` scripts run ESLint; they
+are not part of this.)
 
-Two notes on the gates. `lint:build` is a load smoke, not a build — the package
-ships the `.js` it is written in. `lint:typecheck` runs with `checkJs: false`
+Two notes on the gates. `pkg lint build` is a load smoke, not a build — the package
+ships the `.js` it is written in. `pkg lint typecheck` runs with `checkJs: false`
 ([`tsconfig.json`](tsconfig.json)): the rules and AST helpers annotate ESTree
 nodes as `object` and index string keys into literal maps, so checking the JSDoc
 reports dozens of type errors that are not defects; the gate is a
 parse-and-resolve pass over the shipped files instead. The repo's own `bun run typecheck`
 covers `packages/lint/__tests__/*.ts` as TypeScript.
 
-`lint:consumer-smoke` is the interesting one: it packs *both* this package and
+`pkg lint consumer-smoke` is the interesting one: it packs *both* this package and
 `packages/ui`, installs them into a throwaway project with no design-system
 sources, and asserts the four rules fire with the right counts, that a message
 names `@mrmeg/expo-ui/components/Button.tsx`, and that `--doctor` reports
 `manifest @mrmeg/expo-ui@…`. That is the manifest path proven end to end from a
 consumer's position.
 
-[`.github/workflows/publish-lint.yml`](../../.github/workflows/publish-lint.yml)
-runs the same gates in CI. It is **`workflow_dispatch` only**: the sibling
-workflows also trigger on a push that changes their package's `package.json`,
-which is added here once the first release exists on npm. The first publish needs
-npm access configured — an `NPM_TOKEN` secret with publish rights, since
-package-level trusted publishing cannot be set up for a package npm does not have
-yet.
+[`.github/workflows/publish-packages.yml`](../../.github/workflows/publish-packages.yml)
+runs the same release in CI for every workspace package, publishes the smoked
+tarball with provenance, and tags `eslint-plugin-expo-ui-v<version>`. A push to
+`main` never makes a package's first publish, so this one's first release is a
+manual run (`package=lint`, `version=0.1.0`) and needs npm access configured — an
+`NPM_TOKEN` secret with publish rights, since package-level trusted publishing
+cannot be set up for a package npm does not have yet. After that, configure
+trusted publishing with workflow filename `publish-packages.yml`; later version
+bumps on `main` publish on push.
 
 ---
 
@@ -1952,8 +1978,7 @@ Two route-level rules follow. `expo-server` answers every unmatched `GET` with `
 |---------|------|
 | `bun run web` | `expo start --web` — dev server renders routes and runs loaders, middleware, and API routes in place |
 | `bun run build` | `expo export -p web --output-dir dist` with an 8 GB Node heap |
-| `bun run start` | `bun ./server.bun.ts`, the production entry |
-| `bun run start-local` | Same entry, `.env` autoloaded |
+| `bun run start` | `bun ./server.bun.ts`, the production entry; Bun loads `.env` itself |
 | `bun run serve:ssr` | `expo serve` — local preview of `dist/` without the Bun entry's layers |
 
 `server.bun.ts` wraps `createRequestHandler({ build: "dist/server" })` from `expo-server/adapter/bun` in `Bun.serve` and serves `dist/client` statics. It owns what Expo's request handler does not:
@@ -2133,7 +2158,7 @@ Match the route shapes your app serves: the repo file lists the grouped paths (`
 ## Validation
 
 ```bash
-bun run verify   # peer-check, typecheck, lint, check:features, registry + docs checks, jest --ci
+bun run verify   # every CI gate: CONTRIBUTING.md#verify-gates
 bun run build
 bun run start    # then load a loader-backed route and curl an API route
 ```
