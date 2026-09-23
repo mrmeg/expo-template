@@ -5,6 +5,9 @@
 // `max-width:-68px` (from `layout.width - 68`), centered containers collapse,
 // and responsive branches all resolve to their narrowest case.
 //
+// Lives in `shared/` because both sides run it: the server render reads the
+// request, and the browser's first render re-derives the same value.
+//
 // Order of precedence:
 //   1. `mrmeg-vw` cookie — precise width written by `useDimensions` after the
 //      first client mount on a given device. Best signal, available on every

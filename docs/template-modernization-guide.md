@@ -66,8 +66,8 @@ Reusable UI belongs in `packages/ui`; reusable media contracts and processing in
   explorable with auth, billing, media, and Sentry disabled.
 - Web routes are server-rendered per request, so persisted browser state
   (localStorage, `matchMedia`, dimensions) is unavailable in that first render. It
-  must be derived from the request — the way `server/lib/ssrViewport.ts` and
-  `server/lib/ssrOnboarding.ts` read cookies — or read after mount. Changes to
+  must be derived from the request — the way `shared/ssrViewport.ts` and
+  `shared/ssrOnboarding.ts` read cookies — or read after mount. Changes to
   `app/+html.tsx`, root/theme/i18n startup, onboarding, viewport logic, or font
   loading must be verified in a browser against `bun run build && bun run start`.
 - Add showcase coverage for any new reusable component, block, or screen template.
