@@ -3,8 +3,10 @@
  *
  * Uses `getClerkInstance()` — Clerk's imperative singleton accessor — rather
  * than React hooks, so the store-driven architecture keeps working unchanged.
- * The singleton is initialized by the `ClerkProvider` mounted in RootLayout
- * when Clerk is the active provider; `init()` waits for it to hydrate.
+ * The singleton is built and loaded by the `ClerkProvider` the root layout
+ * mounts while the native splash is up; `init()` waits for the provider to
+ * report the load settled (`./clerkLoadSignal.ts`), with a timeout as the only
+ * fallback, and never reads the instance before then.
  *
  * Flow mapping (email + password with emailed verification code, matching
  * the existing screens):
@@ -33,6 +35,8 @@
 import { getClerkInstance } from "@clerk/clerk-expo";
 import { logDev } from "@/client/lib/devtools";
 import type { User } from "../stores/authStore";
+import { CLERK_INSTANCE_OPTIONS } from "./ClerkProviderBoundary";
+import { clerkSettled, getClerkSettledStatus } from "./clerkLoadSignal";
 import {
   AuthError,
   type AuthChangeEvent,
@@ -46,6 +50,38 @@ import {
 export { default as ClerkProviderBoundary } from "./ClerkProviderBoundary";
 
 type ClerkInstance = ReturnType<typeof getClerkInstance>;
+
+/**
+ * How long startup waits for `ClerkProvider` before continuing signed out. The
+ * provider mounts with the splash, so this only elapses when Clerk cannot load
+ * at all; a session it restores later still arrives through `onAuthChange`.
+ */
+export const CLERK_LOAD_TIMEOUT_MS = 10_000;
+
+/**
+ * The instance `ClerkProvider` loads. Native: the singleton, fetched with the
+ * provider's own options so that even a call that beats the provider (only
+ * possible after the timeout) builds it with the persistent token cache. Web:
+ * `window.Clerk`, which is `undefined` until clerk-js has loaded.
+ */
+function currentClerk(): ClerkInstance | undefined {
+  return getClerkInstance(CLERK_INSTANCE_OPTIONS) ?? undefined;
+}
+
+/** Resolves `true` once the provider settled, `false` if the timeout won. */
+async function waitForProvider(): Promise<boolean> {
+  if (getClerkSettledStatus()) return true;
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<false>((resolve) => {
+    timer = setTimeout(() => resolve(false), CLERK_LOAD_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([clerkSettled().then(() => true as const), timedOut]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 const ERROR_CODE_BY_CLERK_CODE: Record<string, AuthErrorCode> = {
   form_identifier_not_found: "userNotFound",
@@ -84,40 +120,41 @@ async function withAuthErrors<T>(action: () => Promise<T>): Promise<T> {
 }
 
 export function createClerkAuthClient(): AuthClient {
-  let initPromise: Promise<ClerkInstance> | null = null;
+  let initPromise: Promise<void> | null = null;
 
-  async function loadClerk(): Promise<ClerkInstance> {
-    const clerk = getClerkInstance();
-
-    // ClerkProvider (RootLayout) owns loading; poll until the singleton has
-    // hydrated its session so getCurrentUser/getToken don't race startup.
-    if (!clerk.loaded) {
-      await new Promise<void>((resolve) => {
-        const started = Date.now();
-        const tick = () => {
-          if (clerk.loaded || Date.now() - started > 10_000) {
-            resolve();
-            return;
-          }
-          setTimeout(tick, 50);
-        };
-        tick();
-      });
-      if (!clerk.loaded) {
-        logDev("Clerk did not finish loading within 10s; continuing unauthenticated");
-      }
+  async function loadClerk(): Promise<void> {
+    // ClerkProvider owns loading; wait for it to settle so getCurrentUser and
+    // getToken see the restored session instead of racing startup.
+    const settled = await waitForProvider();
+    if (!settled) {
+      logDev(
+        `ClerkProvider did not finish loading Clerk within ${CLERK_LOAD_TIMEOUT_MS / 1000}s; continuing unauthenticated`,
+      );
+    } else if (!currentClerk()?.loaded) {
+      logDev("Clerk failed to load; continuing unauthenticated");
     }
+  }
+
+  /**
+   * The Clerk instance once startup's wait is over. Re-read on every call
+   * rather than cached: on web, `window.Clerk` can arrive after the timeout.
+   */
+  async function clerkInstance(): Promise<ClerkInstance | undefined> {
+    if (!initPromise) initPromise = loadClerk();
+    await initPromise;
+    return currentClerk();
+  }
+
+  /** For the flows below: they cannot run without a Clerk instance. */
+  async function requireClerk(): Promise<ClerkInstance> {
+    const clerk = await clerkInstance();
+    if (!clerk) throw new AuthError("unknown", "Clerk client is not ready");
     return clerk;
   }
 
-  function clerkInstance(): Promise<ClerkInstance> {
-    if (!initPromise) initPromise = loadClerk();
-    return initPromise;
-  }
-
-  function toUser(clerk: ClerkInstance): User | null {
-    const clerkUser = clerk.user;
-    if (!clerkUser || !clerk.session) return null;
+  function toUser(clerk: ClerkInstance | undefined): User | null {
+    const clerkUser = clerk?.user;
+    if (!clerk || !clerkUser || !clerk.session) return null;
     const email = clerkUser.primaryEmailAddress?.emailAddress
       ?? clerkUser.emailAddresses[0]?.emailAddress;
     return {
@@ -140,7 +177,7 @@ export function createClerkAuthClient(): AuthClient {
     async getToken(): Promise<string | null> {
       try {
         const clerk = await clerkInstance();
-        return (await clerk.session?.getToken()) ?? null;
+        return (await clerk?.session?.getToken()) ?? null;
       } catch {
         return null;
       }
@@ -148,7 +185,7 @@ export function createClerkAuthClient(): AuthClient {
 
     async signIn({ email, password }): Promise<AuthFlowResult> {
       return withAuthErrors(async () => {
-        const clerk = await clerkInstance();
+        const clerk = await requireClerk();
         const signIn = clerk.client?.signIn;
         if (!signIn) throw new AuthError("unknown", "Clerk client is not ready");
 
@@ -206,7 +243,7 @@ export function createClerkAuthClient(): AuthClient {
       }
 
       return withAuthErrors(async () => {
-        const clerk = await clerkInstance();
+        const clerk = await requireClerk();
         const signUp = clerk.client?.signUp;
         if (!signUp) throw new AuthError("unknown", "Clerk client is not ready");
 
@@ -224,7 +261,7 @@ export function createClerkAuthClient(): AuthClient {
 
     async confirmSignUp({ code }): Promise<ConfirmSignUpResult> {
       return withAuthErrors(async () => {
-        const clerk = await clerkInstance();
+        const clerk = await requireClerk();
         const signUp = clerk.client?.signUp;
         if (!signUp) throw new AuthError("unknown", "Clerk client is not ready");
 
@@ -246,7 +283,7 @@ export function createClerkAuthClient(): AuthClient {
 
     async resendCode(): Promise<void> {
       await withAuthErrors(async () => {
-        const clerk = await clerkInstance();
+        const clerk = await requireClerk();
         const signUp = clerk.client?.signUp;
         if (!signUp) throw new AuthError("unknown", "Clerk client is not ready");
         await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
@@ -255,7 +292,7 @@ export function createClerkAuthClient(): AuthClient {
 
     async forgotPassword(email): Promise<ForgotPasswordResult> {
       return withAuthErrors(async () => {
-        const clerk = await clerkInstance();
+        const clerk = await requireClerk();
         const signIn = clerk.client?.signIn;
         if (!signIn) throw new AuthError("unknown", "Clerk client is not ready");
 
@@ -269,7 +306,7 @@ export function createClerkAuthClient(): AuthClient {
 
     async resetPassword({ code, newPassword }): Promise<void> {
       await withAuthErrors(async () => {
-        const clerk = await clerkInstance();
+        const clerk = await requireClerk();
         const signIn = clerk.client?.signIn;
         if (!signIn) throw new AuthError("unknown", "Clerk client is not ready");
 
@@ -299,23 +336,38 @@ export function createClerkAuthClient(): AuthClient {
 
     async signOut(): Promise<void> {
       const clerk = await clerkInstance();
-      await clerk.signOut();
+      await clerk?.signOut();
     },
 
     onAuthChange(callback: (event: AuthChangeEvent) => void) {
       let disposed = false;
       let removeListener: (() => void) | undefined;
-      let hadSession: boolean | null = null;
 
-      void clerkInstance().then((clerk) => {
-        if (disposed) return;
-        hadSession = Boolean(clerk.session);
+      /** Report session transitions relative to `hadSession`. */
+      const attach = (clerk: ClerkInstance, hadSessionAtStart: boolean) => {
+        let hadSession = hadSessionAtStart;
         removeListener = clerk.addListener(({ session }) => {
           const hasSession = Boolean(session);
           if (hadSession === hasSession) return;
           hadSession = hasSession;
           callback(hasSession ? { type: "signedIn" } : { type: "signedOut" });
         });
+      };
+
+      void clerkInstance().then(async (clerk) => {
+        if (disposed) return;
+        if (clerk && getClerkSettledStatus()) {
+          attach(clerk, Boolean(clerk.session));
+          return;
+        }
+
+        // Startup gave up waiting (timeout), so the store now shows the viewer
+        // signed out. Attach once the provider does settle: a session Clerk
+        // restores then is reported as a sign-in rather than taken as the
+        // baseline.
+        await clerkSettled();
+        const late = disposed ? undefined : currentClerk();
+        if (late) attach(late, false);
       });
 
       return () => {

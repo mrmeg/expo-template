@@ -12,7 +12,6 @@ const mockRenderCounts = {
 };
 
 jest.mock("@mrmeg/expo-ui/components/Card", () => {
-  const React = require("react");
   const { Text, View } = require("react-native");
 
   return {

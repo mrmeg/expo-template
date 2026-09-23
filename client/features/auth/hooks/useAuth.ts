@@ -15,6 +15,12 @@ async function requireAuthClient(): Promise<AuthClient> {
   return client;
 }
 
+/**
+ * The provider just established a session, so the store must re-read it even
+ * inside the throttle window (see `InitializeOptions.force`).
+ */
+const SESSION_CHANGED = { force: true } as const;
+
 export function useAuth() {
   const { initialize, setPendingVerificationEmail } = useAuthStore();
 
@@ -34,7 +40,7 @@ export function useAuth() {
     const result = await client.signIn({ email, password });
 
     if (result.status === "complete") {
-      await initialize();
+      await initialize(SESSION_CHANGED);
     }
 
     return result;
@@ -50,7 +56,7 @@ export function useAuth() {
     const result = await client.signInWithEmailCode({ email });
 
     if (result.status === "complete") {
-      await initialize();
+      await initialize(SESSION_CHANGED);
     }
 
     return result;
@@ -65,7 +71,7 @@ export function useAuth() {
     const client = await requireAuthClient();
     const result = await client.confirmSignInCode({ code });
 
-    await initialize();
+    await initialize(SESSION_CHANGED);
 
     return result;
   }, [initialize]);
@@ -98,7 +104,7 @@ export function useAuth() {
     const result = await client.signUp({ email, password });
 
     if (result.status === "complete") {
-      await initialize();
+      await initialize(SESSION_CHANGED);
     } else {
       // Store email for verification screen
       setPendingVerificationEmail(email);
@@ -122,7 +128,7 @@ export function useAuth() {
 
     setPendingVerificationEmail(null);
     if (result.autoSignedIn) {
-      await initialize();
+      await initialize(SESSION_CHANGED);
     }
 
     return result;

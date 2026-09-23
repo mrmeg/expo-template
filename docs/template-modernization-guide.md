@@ -177,10 +177,11 @@ template.
 
 | Pattern | Source | Notes |
 |---------|--------|-------|
-| Root providers and startup gate | `client/features/app/RootLayout.tsx`, `client/features/app/useAppStartup.ts` | Coordinates resources, i18n, onboarding, optional auth, splash hiding |
+| Root providers and startup gate | `client/features/app/RootLayout.tsx`, `client/features/app/useAppStartup.ts`, `client/features/app/StartupGate.tsx` | Coordinates resources, i18n, onboarding, optional auth, splash hiding; the auth provider mounts under the native splash (startup waits on its load) and the app renders once `ready` latches |
 | Navigation shell | `app/(main)/`, `app/(main)/(tabs)/` | Main Stack, tabs, demos, route grouping |
+| Keyboard | `client/features/keyboard/platform`, `client/features/app/RootLayout.tsx` | The app root does not avoid the keyboard (`UIProvider keyboardAvoiding={false}`); each screen with text input owns it. Scrolling screens use `KeyboardAwareScrollView` from `client/features/keyboard/platform` (pads content by the keyboard; on iOS also scrolls the focused field into view); a form inside `DismissKeyboard` gets that component's own keyboard-avoiding view. Dialogs and bottom sheets handle their own keyboard |
 | API routes | `app/api/**/+api.ts`, `server/api/shared/` | Route files stay thin; shared auth, CORS, and errors live under `server/api/shared` |
-| API client | `client/lib/api/authenticatedFetch.ts` | Use the authenticated fetch helper; keep raw `Response` handling out of UI |
+| API client | `client/lib/api/authenticatedFetch.ts` | Use the authenticated fetch helper; keep raw `Response` handling out of UI. It imports no auth code (auth registers its token getter at startup) and resolves native `/api/*` paths against `EXPO_PUBLIC_API_URL` (`client/lib/api/apiOrigin.ts`), failing closed in a release build without it; web stays same-origin |
 | Feature folders | `client/features/<feature>/` | Keep features portable; obey feature isolation checks |
 | Persisted client state | Zustand stores under `client/features/**` | Use cross-platform storage helpers where persistence is needed |
 | Server state | TanStack React Query | Root defaults live in the provider stack |

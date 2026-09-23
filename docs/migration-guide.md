@@ -90,7 +90,7 @@ plugins: [
 Then:
 
 1. Add `expo-server` (`~57.0.3`).
-2. Add `app/+html.tsx` (fetch the template's). It wraps every route's HTML with the viewport meta, global CSS, a blocking script that stamps the color scheme on `<html>` before first paint, and — under server rendering — the framework's SSR head/body resources. Adapt fonts and scripts.
+2. Add `app/+html.tsx` (fetch the template's). It wraps every route's HTML with the viewport meta, global CSS, a blocking script that stamps the color scheme on `<html>` before first paint, and — under server rendering — the framework's SSR head/body resources. Adapt fonts and scripts. The template self-hosts Inter (`public/fonts/inter/`, Latin preloaded, `@font-face` inline with `font-display: optional`) instead of a render-blocking Google Fonts stylesheet; keep the `mrmeg-expo-ui-inter` id on that `<style>` so `useResources()` does not inject a second copy.
 3. Add a production server entry. Template: `server.bun.ts` (`Bun.serve`) serves `dist/client/` statics and mounts the `dist/server/` handler through `expo-server/adapter/bun`. On a non-Bun host, use the matching `expo-server` adapter and reimplement the same static/CORS/rate-limit/header layers.
 4. **First-render rules.** Persisted browser state (localStorage, `matchMedia`, dimensions) exists only after mount, so a route's first render must not depend on it — read it in an effect or accept the pre-hydration default. Anything that must be correct before paint belongs in a `+html.tsx` blocking script (how the color scheme is stamped). Under server rendering, any value the markup depends on must come off the request: mirror it into a cookie and re-derive it from identical bytes on both sides so hydration matches (`shared/ssrViewport.ts`, `shared/ssrOnboarding.ts`, `client/features/app/ssrViewportMetrics.ts`). Without a viewport signal, react-native-web lays out the tree at width 0.
 
@@ -233,7 +233,7 @@ Copy the folders you need (raw path `client/templates/<id>/Screen.tsx`), then re
 - **State:** React Query for server state, small Zustand stores for client state. No giant global stores.
 - **Forms:** `react-hook-form` + `zod` resolvers behind form wrappers (template: `client/lib/form/`).
 - **API routes:** `app/api/<feature>/<name>+api.ts` exporting `export async function GET(request: Request): Promise<Response>`. Shared auth/CORS/error helpers in `server/api/shared/`; keep route files thin. Return typed problem objects, not raw `Response` branching in UI code. Each `+api.ts` exports as its own self-contained server bundle, so consolidate sibling actions that share heavy dependencies behind one `app/api/<feature>/[action]+api.ts` dispatcher (template: `app/api/media/[action]+api.ts`).
-- **Auth fetch:** one `authenticatedFetch`/`api.*` wrapper injects the Bearer token; UI code never builds auth headers.
+- **Auth fetch:** one `authenticatedFetch`/`api.*` wrapper injects the Bearer token; UI code never builds auth headers. The wrapper imports no auth code — auth registers its token getter at startup, as the server registers its token verifier. Web requests stay same-origin; native ones resolve `/api/*` against `EXPO_PUBLIC_API_URL` and fail closed in a release build without it (expo-router's `origin` stays blank).
 - **Optional systems fail closed:** with a blank `.env`, auth, billing, media, and Sentry degrade to disabled/setup states instead of crashing.
 
 ## Phase 7 — Verification

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, type PropsWithChildren } from "react";
+import React, { useState, type PropsWithChildren } from "react";
 import { Pressable, View } from "react-native";
 import { usePathname } from "expo-router";
 import { Drawer } from "@mrmeg/expo-ui/components/Drawer";
@@ -48,10 +48,15 @@ export function WebNavShell({ children }: PropsWithChildren) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Close the overlay when the route changes: items call `onNavigate`, but
-  // this also covers browser back/forward while the drawer is open.
-  useEffect(() => {
+  // this also covers browser back/forward while the drawer is open. Adjusted
+  // during render (React's "reset state when a prop changes" pattern) instead
+  // of in an effect, which also keeps the new route from painting once with
+  // the drawer still open.
+  const [drawerPathname, setDrawerPathname] = useState(pathname);
+  if (drawerPathname !== pathname) {
+    setDrawerPathname(pathname);
     setDrawerOpen(false);
-  }, [pathname]);
+  }
 
   if (isLargeScreen) {
     return (

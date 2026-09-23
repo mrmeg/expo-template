@@ -4,11 +4,14 @@
  * The template treats Cognito auth, an external API URL, and Stripe billing
  * as opt-in. A fresh clone with no `.env` should produce no warnings; we only
  * warn when a feature is half-configured (Cognito with one of the two vars
- * set, billing flag on with no app URL).
+ * set, billing flag on with no app URL, billing on in a native release build
+ * with no API origin).
  *
  * Validation always warns instead of throwing so route initialization can
  * still complete and features can fail gracefully at point of use.
  */
+
+import { resolveApiOrigin } from "./api/apiOrigin";
 
 function isMissing(value: string | undefined): boolean {
   return value === undefined || value.trim() === "";
@@ -35,9 +38,9 @@ export function validateClientEnv(): void {
   const appUrl = process.env.EXPO_PUBLIC_APP_URL;
 
   // Cognito auth — both vars required when enabled, both optional when not.
-  // EXPO_PUBLIC_API_URL is intentionally not validated: the template uses
-  // local Expo Router api routes by default and the prod config falls back
-  // to a placeholder when unset.
+  // EXPO_PUBLIC_API_URL is not required on its own: web calls the same-origin
+  // Expo Router api routes and native development reaches the dev server. Only
+  // a native release build needs it, which the billing check below covers.
   const poolMissing = isMissing(userPoolId);
   const clientMissing = isMissing(userPoolClientId);
   if (poolMissing !== clientMissing) {
@@ -89,6 +92,15 @@ export function validateClientEnv(): void {
   if (isBillingFlagEnabled(billingEnabled) && isMissing(appUrl)) {
     console.warn(
       "⚠️ EXPO_PUBLIC_BILLING_ENABLED=true but EXPO_PUBLIC_APP_URL is empty. Hosted-billing return URLs will fall back to the request origin.",
+    );
+  }
+
+  // Billing calls the app's /api routes. A native release build resolves them
+  // against EXPO_PUBLIC_API_URL (client/lib/api/apiOrigin.ts) and has no other
+  // origin, so without it every billing request fails closed.
+  if (isBillingFlagEnabled(billingEnabled) && resolveApiOrigin().kind === "unconfigured") {
+    console.warn(
+      "⚠️ EXPO_PUBLIC_BILLING_ENABLED=true but EXPO_PUBLIC_API_URL is empty. This native build has no API origin, so billing requests will fail until it is set.",
     );
   }
 }
