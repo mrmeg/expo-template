@@ -8,7 +8,6 @@ import { Platform } from "react-native";
 
 import { createPurchases } from "../createPurchases";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const webSdk = require("../sdk.ts") as typeof import("../sdk");
 
 describe("sdk (web twin)", () => {
@@ -19,8 +18,7 @@ describe("sdk (web twin)", () => {
   });
 
   it("never mentions the RevenueCat modules in its source", () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const source = require("node:fs").readFileSync(require.resolve("../sdk.ts"), "utf8") as string;
+        const source = require("node:fs").readFileSync(require.resolve("../sdk.ts"), "utf8") as string;
     expect(source).not.toMatch(/react-native-purchases/);
   });
 });

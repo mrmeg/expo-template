@@ -133,7 +133,8 @@ export function parseRevenueCatWebhook(body: unknown): RevenueCatWebhookEvent | 
     entitlementIds.push(legacyEntitlement);
   }
 
-  const { subscriber_attributes: _attributes, ...raw } = e;
+  const raw: Record<string, unknown> = { ...e };
+  delete raw.subscriber_attributes;
 
   return {
     id,

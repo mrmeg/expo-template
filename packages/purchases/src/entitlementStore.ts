@@ -210,7 +210,7 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
           set({ snapshot: null, hydrated: true });
           return;
         }
-        let snapshot: EntitlementSnapshot | null = null;
+        let snapshot: EntitlementSnapshot | null;
         try {
           snapshot = parseSnapshot(await storage.getItem(keyFor(userId)), userId);
         } catch {

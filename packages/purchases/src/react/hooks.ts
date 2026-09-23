@@ -4,6 +4,7 @@
  */
 import { useCallback } from "react";
 import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 
 import { resolveEntitlement, type EntitlementResolution, type SdkStatus } from "../entitlementStore";
 import type { CustomerState, PaywallOutcome, PresentPaywallOptions, RestoreOutcome } from "../types";
@@ -30,14 +31,16 @@ export interface EntitlementView extends EntitlementResolution {
 export function useEntitlement(entitlement?: string): EntitlementView {
   const { client, store } = usePurchasesContext();
   const customer = useStore(store, (state) => state.customer);
-  const serverUntil = useStore(store, (state) => state.serverUntil);
-  const snapshot = useStore(store, (state) => state.snapshot);
-  const devOverride = useStore(store, (state) => state.devOverride);
   const hydrated = useStore(store, (state) => state.hydrated);
   const sdkStatus = useStore(store, (state) => state.sdkStatus);
 
   const target = entitlement !== undefined && entitlement !== client.entitlement ? entitlement : undefined;
-  const resolution = resolveEntitlement({ customer, serverUntil, snapshot, devOverride }, Date.now(), target);
+  // The clock is read inside the selector, not in render, and the result is
+  // shallow-compared (three primitives) so a fresh object never loops.
+  const resolution = useStore(
+    store,
+    useShallow((state) => resolveEntitlement(state, Date.now(), target)),
+  );
 
   const restore = useCallback(() => client.restore(), [client]);
   const presentPaywall = useCallback(
