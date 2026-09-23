@@ -212,10 +212,11 @@ template.
 
 | Pattern | Source | Notes |
 |---------|--------|-------|
-| Root providers and startup gate | `client/features/app/RootLayout.tsx`, `client/features/app/useAppStartup.ts` | Coordinates resources, i18n, onboarding, optional auth, splash hiding |
+| Root providers and startup gate | `client/features/app/RootLayout.tsx`, `client/features/app/useAppStartup.ts`, `client/features/app/StartupGate.tsx` | Coordinates resources, i18n, onboarding, optional auth, splash hiding; the auth provider mounts under the native splash (startup waits on its load) and the app renders once `ready` latches |
 | Navigation shell | `app/(main)/`, `app/(main)/(tabs)/` | Main Stack, tabs, demos, route grouping |
+| Keyboard | `client/features/keyboard/platform`, `client/features/app/RootLayout.tsx` | The app root does not avoid the keyboard (`UIProvider keyboardAvoiding={false}`); each screen with text input owns it. Scrolling screens use `KeyboardAwareScrollView` from `client/features/keyboard/platform` (pads content by the keyboard; on iOS also scrolls the focused field into view); a form inside `DismissKeyboard` gets that component's own keyboard-avoiding view. Dialogs and bottom sheets handle their own keyboard |
 | API routes | `app/api/**/+api.ts`, `server/api/shared/` | Route files stay thin; shared auth, CORS, and errors live under `server/api/shared` |
-| API client | `client/lib/api/authenticatedFetch.ts` | Use the authenticated fetch helper; keep raw `Response` handling out of UI |
+| API client | `client/lib/api/authenticatedFetch.ts` | Use the authenticated fetch helper; keep raw `Response` handling out of UI. It imports no auth code (auth registers its token getter at startup) and resolves native `/api/*` paths against `EXPO_PUBLIC_API_URL` (`client/lib/api/apiOrigin.ts`), failing closed in a release build without it; web stays same-origin |
 | Feature folders | `client/features/<feature>/` | Keep features portable; obey feature isolation checks |
 | Persisted client state | Zustand stores under `client/features/**` | Use cross-platform storage helpers where persistence is needed |
 | Server state | TanStack React Query | Root defaults live in the provider stack |
@@ -388,7 +389,7 @@ plugins: [
 Then:
 
 1. Add `expo-server` (`~57.0.3`).
-2. Add `app/+html.tsx` (fetch the template's). It wraps every route's HTML with the viewport meta, global CSS, a blocking script that stamps the color scheme on `<html>` before first paint, and — under server rendering — the framework's SSR head/body resources. Adapt fonts and scripts.
+2. Add `app/+html.tsx` (fetch the template's). It wraps every route's HTML with the viewport meta, global CSS, a blocking script that stamps the color scheme on `<html>` before first paint, and — under server rendering — the framework's SSR head/body resources. Adapt fonts and scripts. The template self-hosts Inter (`public/fonts/inter/`, Latin preloaded, `@font-face` inline with `font-display: optional`) instead of a render-blocking Google Fonts stylesheet; keep the `mrmeg-expo-ui-inter` id on that `<style>` so `useResources()` does not inject a second copy.
 3. Add a production server entry. Template: `server.bun.ts` (`Bun.serve`) serves `dist/client/` statics and mounts the `dist/server/` handler through `expo-server/adapter/bun`. On a non-Bun host, use the matching `expo-server` adapter and reimplement the same static/CORS/rate-limit/header layers.
 4. **First-render rules.** Persisted browser state (localStorage, `matchMedia`, dimensions) exists only after mount, so a route's first render must not depend on it — read it in an effect or accept the pre-hydration default. Anything that must be correct before paint belongs in a `+html.tsx` blocking script (how the color scheme is stamped). Under server rendering, any value the markup depends on must come off the request: mirror it into a cookie and re-derive it from identical bytes on both sides so hydration matches (`shared/ssrViewport.ts`, `shared/ssrOnboarding.ts`, `client/features/app/ssrViewportMetrics.ts`). Without a viewport signal, react-native-web lays out the tree at width 0.
 
@@ -531,7 +532,7 @@ Copy the folders you need (raw path `client/templates/<id>/Screen.tsx`), then re
 - **State:** React Query for server state, small Zustand stores for client state. No giant global stores.
 - **Forms:** `react-hook-form` + `zod` resolvers behind form wrappers (template: `client/lib/form/`).
 - **API routes:** `app/api/<feature>/<name>+api.ts` exporting `export async function GET(request: Request): Promise<Response>`. Shared auth/CORS/error helpers in `server/api/shared/`; keep route files thin. Return typed problem objects, not raw `Response` branching in UI code. Each `+api.ts` exports as its own self-contained server bundle, so consolidate sibling actions that share heavy dependencies behind one `app/api/<feature>/[action]+api.ts` dispatcher (template: `app/api/media/[action]+api.ts`).
-- **Auth fetch:** one `authenticatedFetch`/`api.*` wrapper injects the Bearer token; UI code never builds auth headers.
+- **Auth fetch:** one `authenticatedFetch`/`api.*` wrapper injects the Bearer token; UI code never builds auth headers. The wrapper imports no auth code — auth registers its token getter at startup, as the server registers its token verifier. Web requests stay same-origin; native ones resolve `/api/*` against `EXPO_PUBLIC_API_URL` and fail closed in a release build without it (expo-router's `origin` stays blank).
 - **Optional systems fail closed:** with a blank `.env`, auth, billing, media, and Sentry degrade to disabled/setup states instead of crashing.
 
 ## Phase 7 — Verification
