@@ -22,8 +22,9 @@
  */
 
 import React from "react";
-import { Platform, Text } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { KeyboardController } from "react-native-keyboard-controller";
 import { PortalHost } from "@rn-primitives/portal";
 import {
   AlertDialog,
@@ -35,6 +36,42 @@ import {
 } from "../Dialog";
 import { TextInput } from "../TextInput";
 import { useKeyboardAvoidance } from "../KeyboardAvoidingView";
+import { markTextInputTouchStart } from "../keyboardDismiss";
+import {
+  clearKeyboardFocusedInput,
+  hasKeyboardFocusedInput,
+  setKeyboardFocusedInput,
+} from "../keyboardFocusRegistry";
+
+const keyboardControllerMock = jest.requireMock("react-native-keyboard-controller");
+
+type TouchEvent = { nativeEvent: Record<string, number | string> };
+type Boundary = { props: Record<string, (event?: TouchEvent) => unknown> };
+
+let nextTimestamp = 5000;
+
+/** Same shape as BottomSheet.test.tsx: a single-finger touch at (50, 60). */
+function touch(overrides: TouchEvent["nativeEvent"] = {}): TouchEvent {
+  nextTimestamp += 16;
+  return {
+    nativeEvent: { identifier: "0", timestamp: nextTimestamp, pageX: 50, pageY: 60, ...overrides },
+  };
+}
+
+/**
+ * Host views carrying the package tap-away boundary (`useKeyboardDismissResponder`):
+ * the plain touch handlers without Pressability's responder-grant handlers.
+ * Callers render inside one wrapping `View` so `root` spans the dialog and the
+ * sibling `PortalHost` that Android and web render dialog content into.
+ */
+function findBoundaries(root: { queryAll: (predicate: (node: any) => boolean) => any[] }) {
+  return root.queryAll(
+    (node) =>
+      typeof node.props.onStartShouldSetResponder === "function" &&
+      typeof node.props.onTouchEnd === "function" &&
+      node.props.onResponderGrant === undefined
+  ) as unknown as Boundary[];
+}
 
 // RNTL 14 has no by-type query, so the native Modal is replaced by a tagged
 // View that keeps its props: the tests read them off `rn-modal` and fire
@@ -237,5 +274,169 @@ describe.each(["android", "web"] as const)("%s", (os) => {
     expect(screen.queryByTestId("rn-modal")).toBeNull();
     expect(screen.getByText("Delete project?")).toBeTruthy();
     expect(screen.getByText("avoided:false")).toBeTruthy();
+  });
+});
+
+describe("keyboard dismiss boundary", () => {
+  const token = {};
+
+  beforeEach(() => {
+    keyboardControllerMock.__setKeyboardState({ isVisible: true, target: 12 });
+  });
+
+  afterEach(() => {
+    clearKeyboardFocusedInput(token);
+    keyboardControllerMock.__setKeyboardState({ isVisible: false, target: -1 });
+  });
+
+  async function setup(kind: "dialog" | "alert" = "dialog") {
+    const blur = jest.fn();
+    setKeyboardFocusedInput(token, blur);
+    const onPress = jest.fn();
+    const control = (
+      <Pressable testID="control" onPress={onPress}>
+        <Text>Save</Text>
+      </Pressable>
+    );
+    const result = await render(
+      <View>
+        {kind === "dialog" ? (
+          <Dialog open onOpenChange={jest.fn()}>
+            <DialogContent testID="dialog-content">
+              <DialogTitle>Start trip</DialogTitle>
+              {control}
+            </DialogContent>
+          </Dialog>
+        ) : (
+          <AlertDialog open onOpenChange={jest.fn()}>
+            <AlertDialogContent testID="alert-content">
+              <AlertDialogTitle>Delete project?</AlertDialogTitle>
+              {control}
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        <PortalHost />
+      </View>
+    );
+    const boundaries = findBoundaries(result.root!);
+    expect(boundaries).toHaveLength(1);
+    return { blur, onPress, boundary: boundaries[0] };
+  }
+
+  it("mounts one boundary inside DialogContent that never claims the responder", async () => {
+    const { boundary } = await setup();
+
+    expect(boundary.props.onStartShouldSetResponder(touch())).toBe(false);
+    expect(screen.queryByLabelText("Dismiss keyboard")).toBeNull();
+  });
+
+  it("dismisses an unclaimed dead-space tap on release and drops focus presence", async () => {
+    const { boundary, blur } = await setup();
+    const start = touch();
+
+    expect(boundary.props.onStartShouldSetResponder(start)).toBe(false);
+    boundary.props.onTouchStart(start);
+    expect(blur).not.toHaveBeenCalled();
+    expect(hasKeyboardFocusedInput()).toBe(true);
+
+    boundary.props.onTouchEnd(touch());
+
+    expect(blur).toHaveBeenCalledTimes(1);
+    expect(hasKeyboardFocusedInput()).toBe(false);
+    expect(KeyboardController.dismiss).not.toHaveBeenCalled();
+  });
+
+  it("does not dismiss a tap that travels 12 units before release", async () => {
+    const { boundary, blur } = await setup();
+    const start = touch();
+
+    boundary.props.onStartShouldSetResponder(start);
+    boundary.props.onTouchStart(start);
+    boundary.props.onTouchMove(touch({ pageY: 72 }));
+    boundary.props.onTouchEnd(touch({ pageY: 72 }));
+
+    expect(blur).not.toHaveBeenCalled();
+    expect(hasKeyboardFocusedInput()).toBe(true);
+  });
+
+  it("does not dismiss a touch a control claimed, so the control fires on the first tap", async () => {
+    const { boundary, blur, onPress } = await setup();
+    // A claiming child (the Pressable) ends the bubble negotiation before the
+    // boundary is asked; only the plain touch events still bubble up to it.
+    const start = touch();
+    boundary.props.onTouchStart(start);
+    await fireEvent.press(screen.getByTestId("control"));
+    boundary.props.onTouchEnd(touch());
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(blur).not.toHaveBeenCalled();
+    expect(hasKeyboardFocusedInput()).toBe(true);
+  });
+
+  it("leaves a tap that began on a package TextInput surface alone", async () => {
+    const { boundary, blur } = await setup();
+    const start = touch();
+
+    // The field's surface tags the touch before the boundary is asked.
+    markTextInputTouchStart(start as never);
+    expect(boundary.props.onStartShouldSetResponder(start)).toBe(false);
+    boundary.props.onTouchStart(start);
+    boundary.props.onTouchEnd(touch());
+
+    expect(blur).not.toHaveBeenCalled();
+    expect(hasKeyboardFocusedInput()).toBe(true);
+  });
+
+  it("arms from focus-registry presence alone when keyboard-controller reports no keyboard", async () => {
+    keyboardControllerMock.__setKeyboardState({ isVisible: false, target: -1 });
+    const { boundary, blur } = await setup();
+    const start = touch();
+
+    boundary.props.onStartShouldSetResponder(start);
+    boundary.props.onTouchStart(start);
+    boundary.props.onTouchEnd(touch());
+
+    expect(blur).toHaveBeenCalledTimes(1);
+  });
+
+  it("mounts the same boundary inside AlertDialogContent", async () => {
+    const { boundary, blur } = await setup("alert");
+    const start = touch();
+
+    boundary.props.onStartShouldSetResponder(start);
+    boundary.props.onTouchStart(start);
+    boundary.props.onTouchEnd(touch());
+
+    expect(blur).toHaveBeenCalledTimes(1);
+  });
+
+  it("mounts the boundary on Android too", async () => {
+    Platform.OS = "android";
+    const { boundary, blur } = await setup();
+    const start = touch();
+
+    boundary.props.onStartShouldSetResponder(start);
+    boundary.props.onTouchStart(start);
+    boundary.props.onTouchEnd(touch());
+
+    expect(blur).toHaveBeenCalledTimes(1);
+  });
+
+  it("mounts no boundary on web, which has no software keyboard", async () => {
+    Platform.OS = "web";
+    setKeyboardFocusedInput(token, jest.fn());
+    const result = await render(
+      <View>
+        <Dialog open onOpenChange={jest.fn()}>
+          <DialogContent testID="dialog-content">
+            <DialogTitle>Start trip</DialogTitle>
+          </DialogContent>
+        </Dialog>
+        <PortalHost />
+      </View>
+    );
+
+    expect(screen.getByText("Start trip")).toBeTruthy();
+    expect(findBoundaries(result.root!)).toHaveLength(0);
   });
 });

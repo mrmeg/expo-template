@@ -26,6 +26,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   once per close (re-armed on reopen) and always after `onOpenChange(false)` for
   a user dismissal. Present the next modal from `onDismissed`; drop timers.
 
+### Fixed
+
+- **A tap on dead space inside `Dialog` / `AlertDialog` content dismisses the
+  keyboard (iOS, Android).** With a dialog field focused, tapping the card's
+  padding, a label or the gap between fields and footer left the keyboard up
+  (fieldnest start-trip matrix B3): the iOS `Modal` and the Android portal tree
+  sit outside any app-level `DismissKeyboard`, and the dialog mounted no
+  boundary of its own. `DialogContent` and `AlertDialogContent` now carry the
+  package tap-away boundary (`useKeyboardDismissResponder`, the one
+  `DismissKeyboard` and `BottomSheet.Content` use) on their centered container.
+  It never claims the touch — `Close`, `Action`, `Cancel`, buttons and fields
+  win the negotiation and fire on the first tap, and a tap that begins on a
+  package `TextInput` is left to the field — and it dismisses on release of an
+  unclaimed single-finger tap within 10 logical units through the focused
+  field's own blur handle, with a `KeyboardController.dismiss()` fallback for RN
+  or third-party inputs. A backdrop tap still closes the dialog through the
+  primitive `Overlay` and drops the keyboard with it. Nothing new is added inside
+  the card, so its `gap` layout is unchanged. Web is untouched (no software
+  keyboard; the boundary returns no handlers there).
+
 ## [0.27.1]
 
 ### Fixed
