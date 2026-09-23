@@ -86,11 +86,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   keyboard; the boundary returns no handlers there).
 - **Every package component and hook now compiles under the React Compiler.**
   The compiler skipped any function that read or wrote a ref during render,
-  mutated a hook result, or used syntax it can't lower, and 133
+  mutated a hook result, or used syntax it can't lower, and 134
   `react-hooks/refs` plus 4 `react-hooks/immutability` findings covered
   `Drawer`, `TextInput` (native), `Notification`, `Progress`, `RadioGroup`,
-  `Skeleton`, `Switch`, `Tabs`, `Accordion`, `Checkbox`, the Android text
-  field, `keyboardDismiss`'s hooks, `useStaggeredEntrance`, and
+  `Skeleton`, `Switch`, `Tabs`, `Accordion`, `Checkbox`, `BottomSheet`, the
+  Android text field, `keyboardDismiss`'s hooks, `useStaggeredEntrance`, and
   `useScalePress` (so every `Button`); computed default props,
   `try`/`finally`, and a reassigned captured counter kept `Drawer`,
   `KeyboardAvoidingView`, `UIProvider`, `Notification`, `ToggleGroup`, and
