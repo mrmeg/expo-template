@@ -206,7 +206,13 @@ const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
 On web every `theme.colors.*` value resolves to a CSS custom property
 (`var(--c-<kebab-token>)`), so styles built from the theme — including HTML
 shells baked at export time — re-theme purely in CSS when `html[data-theme]`
-changes. Native keeps literal values.
+changes. Native keeps literal values. Because the references are the same in
+both schemes, web shares one object between them (`colors.light.colors ===
+colors.dark.colors`), so a scheme switch keeps `theme.colors` identical and
+anything memoized on it keeps its result. Re-brand through `setColors`, not by
+mutating that object. The package keeps `html[data-theme]` on the resolved
+scheme with one store subscription, started by the first `useTheme()` consumer
+to mount.
 
 Consequence: hex-suffix alpha (`theme.colors.x + "15"`) does not work. Use
 `withAlpha(theme.colors.x, 0.08)`, exported standalone from `hooks` as well as

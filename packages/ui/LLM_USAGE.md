@@ -179,7 +179,9 @@ Elevation is a surface-tier ladder, not shadow depth: `surfaceSunken` (chrome) <
 `background` (content) < `card`/`popover` (raised) < `muted` (chips, insets).
 
 On web every `theme.colors.*` value is a CSS custom property (`var(--c-*)`), so
-themes swap in CSS when `html[data-theme]` changes; native keeps literals. Hex
+themes swap in CSS when `html[data-theme]` changes; native keeps literals. Both
+web schemes share one `colors` object (`colors.light.colors ===
+colors.dark.colors`); re-brand with `setColors`, never by mutating it. Hex
 alpha concatenation (`theme.colors.x + "15"`) does **not** work — use
 `withAlpha(theme.colors.x, 0.08)`, exported standalone from `hooks` and from
 `useTheme()`. For sinks that cannot take `var()` (e.g. `<meta name="theme-color">`)

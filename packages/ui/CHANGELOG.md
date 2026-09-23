@@ -51,6 +51,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   state still keeps the resting width. Nothing to change in apps; a button
   whose `loading` toggles between `undefined` and `true` should pass a
   boolean to keep the width lock.
+- **Web: a theme switch no longer churns every `useTheme()` consumer.** The
+  two schemes' `colors` hold the same `var(--c-*)` references but were
+  separate objects; they are now one shared object on web
+  (`colors.light.colors === colors.dark.colors`), so `theme.colors` keeps its
+  identity across a switch. `colors.light` and `colors.dark` stay distinct
+  (`dark`, `navigation`, and `fonts` differ). `useTheme()` reads the theme
+  store through one subscription (`useShallow`) instead of four, and the
+  `<html data-theme>` / `color-scheme` write that ran as an effect in every
+  consumer on every switch is one app-wide store subscription, started by the
+  first consumer to mount and writing only when the resolved scheme changes.
+  `useTheme()`'s return shape and values are unchanged. Consumer note: code
+  that mutated `colors.light.colors` or `colors.dark.colors` on web now
+  changes both schemes; brand through `setColors` instead.
 
 ### Fixed
 
