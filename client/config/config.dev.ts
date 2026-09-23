@@ -27,9 +27,6 @@ const devApiUrl =
 const DevConfig: Partial<ConfigBaseProps> = {
   apiUrl: devApiUrl,
 
-  // Persist navigation state for faster dev iteration
-  persistNavigation: "always",
-
   // Always catch errors in dev to see the error screen
   catchErrors: "always",
 };

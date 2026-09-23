@@ -5,15 +5,6 @@
 
 export interface ConfigBaseProps {
   /**
-   * When to persist navigation state (useful for dev to restore on refresh)
-   * - "always": Always persist
-   * - "dev": Only in development
-   * - "prod": Only in production
-   * - "never": Never persist
-   */
-  persistNavigation: "always" | "dev" | "prod" | "never";
-
-  /**
    * When to catch errors with ErrorBoundary
    * - "always": Catch in all environments
    * - "dev": Only catch in development
@@ -23,19 +14,9 @@ export interface ConfigBaseProps {
   catchErrors: "always" | "dev" | "prod" | "never";
 
   /**
-   * Routes where pressing back should exit the app (Android)
-   */
-  exitRoutes: string[];
-
-  /**
    * Base URL for API requests
    */
   apiUrl: string;
-
-  /**
-   * Request timeout in milliseconds
-   */
-  apiTimeout: number;
 
   /**
    * Feature flag for the hosted-external Stripe billing surface.
@@ -57,11 +38,8 @@ function parseBooleanEnv(value: string | undefined): boolean {
 }
 
 const BaseConfig: ConfigBaseProps = {
-  persistNavigation: "dev",
   catchErrors: "always",
-  exitRoutes: ["index", "(main)"],
   apiUrl: "",
-  apiTimeout: 10000,
   billingEnabled: parseBooleanEnv(process.env.EXPO_PUBLIC_BILLING_ENABLED),
 };
 

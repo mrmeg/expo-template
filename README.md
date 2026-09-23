@@ -431,9 +431,8 @@ eas build --profile production --platform all
 The dev profiles set no `channel` — a dev client pulls JS from the local dev
 server, not from EAS Update.
 
-Profile names are load-bearing beyond `eas.json`: `CHANNEL_BY_PROFILE` in
-`app.config.ts` maps `EAS_BUILD_PROFILE` to `extra.updatesChannel`, so renaming
-a profile means updating that map and the profile's `channel` together.
+A build's update channel comes only from its profile's `channel` in `eas.json`;
+`app.config.ts` does not derive one, so renaming a profile needs no config change.
 
 ### Workflows
 
