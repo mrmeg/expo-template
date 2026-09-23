@@ -54,9 +54,10 @@ mismatch, removed by `clear`.
 
 `resolveEntitlement({ customer, serverUntil, snapshot, devOverride }, now?,
 entitlement?)` → `{ isEntitled, until, source }` with source order `dev` →
-`device` → `server` → `snapshot` (only while `customer === null && serverUntil
-=== null`) → `none`. A non-default `entitlement` checks
-`customer.activeEntitlements` only.
+`device` → `server` → `snapshot` (usable, while `customer === null` and the
+server has not reported, or reported a past term while the device can still
+answer) → `none`. `isUsableSnapshot(snapshot, now)`. A non-default
+`entitlement` checks `customer.activeEntitlements` only.
 
 ## React
 
@@ -69,9 +70,10 @@ store and snapshot.
 `useEntitlement(entitlement?)` → `{ isEntitled, until, source, hydrated,
 settled, isConfigured, isReady, sdkStatus, customer, restore, presentPaywall,
 presentPaywallIfNeeded }`; `settled` = scoped to this user, hydrated, and
-`deviceReported` or a snapshot or a server grant, or the SDK is unavailable and
-`serverReported`, or there is no user. `useRequireEntitlement(feature)` reports
-a block only when settled. A time-based grant re-evaluates when `until` passes. `useRequireEntitlement(feature)` → `() => boolean`
+`deviceReported` or a usable snapshot or a server grant (`serverUntil > now`),
+or the SDK is unavailable and `serverReported`, or there is no user.
+`useRequireEntitlement(feature)` reports a block only when settled. A time-based
+grant re-evaluates when `until` passes. `useRequireEntitlement(feature)` → `() => boolean`
 (false also calls the provider's `onBlocked(feature)`).
 `<PaywallGate feature? entitlement? fallback? onBlocked?>` renders children when
 entitled, else fallback, reporting once per lock after hydration.
@@ -90,10 +92,12 @@ entitled, else fallback, reporting once per lock after hydration.
 - `reduceEntitlement(current, event, { entitlement })` →
   `{ action: "set", next: { until, productId, updatedAt } }` for
   `GRANT_EVENT_TYPES` (later of current and event expiry; `LIFETIME_UNTIL` when
-  none), `EXPIRATION` (event expiry unless the record runs longer), and a refund
-  `CANCELLATION` (event expiry or event time, unconditionally); else
-  `{ action: "skip", reason: "not-entitlement" | "stale" | "no-op" }` (TRANSFER
-  skips as not-entitlement). `revokedByTransfer(event)`.
+  none; applied even when late), `EXPIRATION` (event expiry unless the record
+  runs longer, forced on `CUSTOMER_SUPPORT` / `DEVELOPER_INITIATED`), and a
+  refund `CANCELLATION` (event expiry or event time, unconditionally); else
+  `{ action: "skip", reason: "not-entitlement" | "stale" | "no-op" }` (stale
+  applies to revocations only; TRANSFER skips as not-entitlement).
+  `revokedByTransfer(event)`.
 - `buildLedgerRows(event, { userId, previouslyExpired? })` → `LedgerRow[]` over
   `LEDGER_EVENT_TYPES` (`trial_started`, `trial_converted`, `purchased`,
   `renewed`, `cancel_scheduled`, `uncanceled`, `expired`, `billing_issue`,

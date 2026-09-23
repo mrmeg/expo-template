@@ -178,9 +178,13 @@ export function parseRevenueCatWebhook(body: unknown): RevenueCatWebhookEvent | 
  * reducer never lets one product's event shorten access another product
  * granted:
  * - Grants set `until` to the later of the current value and the event's
- *   expiration (`LIFETIME_UNTIL` when the grant has none).
+ *   expiration (`LIFETIME_UNTIL` when the grant has none). Because that is
+ *   monotonic, a grant delivered late (older than the last applied event) is
+ *   still applied; only revocations honour the out-of-order guard.
  * - EXPIRATION sets `until` to the event's expiration (falling back to the event
- *   time) unless the current record already runs longer, in which case it stays.
+ *   time) unless the current record already runs longer, in which case it stays
+ *   — except when `expiration_reason` is `CUSTOMER_SUPPORT` or
+ *   `DEVELOPER_INITIATED`: those are deliberate early revocations and always cut.
  * - A refund CANCELLATION (`isRefundCancellation`) moves `until` back to the
  *   event's expiration (the event time for a refunded one-time purchase)
  *   unconditionally: the store has already revoked access, and a refund is the
@@ -191,8 +195,8 @@ export function parseRevenueCatWebhook(body: unknown): RevenueCatWebhookEvent | 
  *   in place until the following EXPIRATION arrives.
  * - TRANSFER carries no entitlement ids and is skipped here; revoke the losing
  *   side with `revokedByTransfer` instead.
- * - Events older than the last applied one are ignored (webhook retries can
- *   arrive out of order); an equal timestamp is applied (idempotent retry).
+ * - Revocations older than the last applied event are ignored (webhook retries
+ *   can arrive out of order); an equal timestamp is applied (idempotent retry).
  */
 export function reduceEntitlement(
   current: EntitlementRecord,
@@ -202,22 +206,31 @@ export function reduceEntitlement(
   if (!event.entitlementIds.includes(options.entitlement)) {
     return { action: "skip", reason: "not-entitlement" };
   }
-  if (current.updatedAt !== null && event.eventTimestampMs < current.updatedAt) {
-    return { action: "skip", reason: "stale" };
-  }
-
-  const productId = event.productId ?? current.productId;
-  const updatedAt = event.eventTimestampMs;
+  const stale = current.updatedAt !== null && event.eventTimestampMs < current.updatedAt;
 
   if (GRANT_EVENT_TYPES.has(event.type)) {
     const granted = event.expirationAtMs ?? LIFETIME_UNTIL;
     const until = current.until !== null && current.until > granted ? current.until : granted;
-    return { action: "set", next: { until, productId, updatedAt } };
+    return {
+      action: "set",
+      next: {
+        until,
+        // A late grant never overwrites the product the newer event recorded.
+        productId: stale ? current.productId ?? event.productId : event.productId ?? current.productId,
+        updatedAt: Math.max(current.updatedAt ?? 0, event.eventTimestampMs),
+      },
+    };
   }
+
+  if (stale) return { action: "skip", reason: "stale" };
+
+  const productId = event.productId ?? current.productId;
+  const updatedAt = event.eventTimestampMs;
 
   if (REVOKE_EVENT_TYPES.has(event.type)) {
     const ended = event.expirationAtMs ?? event.eventTimestampMs;
-    const until = current.until !== null && current.until > ended ? current.until : ended;
+    const forced = event.expirationReason === "CUSTOMER_SUPPORT" || event.expirationReason === "DEVELOPER_INITIATED";
+    const until = !forced && current.until !== null && current.until > ended ? current.until : ended;
     return { action: "set", next: { until, productId, updatedAt } };
   }
 

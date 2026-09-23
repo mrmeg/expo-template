@@ -41,9 +41,11 @@ bun add zustand
 ```
 
 `react-native-purchases-ui` pins the exact `react-native-purchases` version;
-install both at once. The published type declarations do not import either SDK
-(the shapes used are declared locally), so a web-only or server-only consumer
-type-checks without them. They are native modules: rebuild the dev client
+install both unless you render your own paywall, in which case
+`react-native-purchases` alone is enough (the `-ui` require is an optional
+dependency Metro tolerates). The published type declarations do not import
+either SDK (the shapes used are declared locally), so a web-only or server-only
+consumer type-checks without them. They are native modules: rebuild the dev client
 (`bun run ios` / `bun run android` or an EAS development build) after adding
 them. `/server` needs no peer at all and runs without React, React Native, or
 Node APIs.
@@ -175,7 +177,9 @@ treats the visitor as settled and not entitled.
 | `setAttributes({ $mediaSource, $campaign, … })` | `Promise<void>` | Subscriber attributes |
 
 `PaywallOutcome` is `"purchased" | "restored" | "cancelled" | "error" |
-"not_configured" | "not_presented"`. A `purchased` or `restored` result means the
+"not_configured" | "not_presented"` for both paywall calls (`not_presented` is
+what RevenueCatUI answers when the entitlement is already active, or when the
+project has no paywall to show). A `purchased` or `restored` result means the
 StoreKit / Play transaction completed; the listener updates the store on
 device and the webhook updates the server record. Every SDK failure is
 swallowed and reported to `onError(error, context)`.
@@ -198,8 +202,11 @@ store with `customer` (device), `serverUntil` (backend), `snapshot`
 1. `devOverride` (only when `__DEV__`);
 2. device: `customer.isActive`;
 3. server: `serverUntil > now`;
-4. snapshot: only while neither live source has reported this session, and
-   only when it says active with a future (or no) expiry;
+4. snapshot: only while the device has given no state, when it says active with
+   a future (or no) expiry, and when the server has not reported — or reported
+   an expired term while the device can still answer (a lagging backend must
+   not lock a renewed subscriber out for the logIn round-trip; on web the
+   server verdict stands);
 5. none.
 
 `until` is the latest known expiry across the sources consulted; a lifetime
@@ -211,9 +218,10 @@ reads as missing, and nothing is written for the signed-out scope.
 
 `useEntitlement().settled` is the signal to act on: the store is scoped to the
 current user, its snapshot was read (`hydrated`), and either the device has
-reported (a state, or "nothing"), a snapshot exists, the server granted, the
-SDK is unavailable (web, key-less build) and the server has reported, or there
-is no user. Hold the splash screen and any automatic paywall until `settled` is
+reported (a state, or "nothing"), a usable snapshot exists (inactive, or active
+with a future or no expiry), the server granted (`serverUntil > now`), the SDK
+is unavailable (web, key-less build) and the server has reported, or there is
+no user. Hold the splash screen and any automatic paywall until `settled` is
 true; `hydrated` alone only says the snapshot read finished. A time-based grant
 is re-evaluated when its `until` passes, so an idle screen locks on expiry.
 
@@ -333,9 +341,12 @@ never lets one product's event shorten what another granted:
 - grants (`INITIAL_PURCHASE`, `RENEWAL`, `UNCANCELLATION`, `PRODUCT_CHANGE`,
   `NON_RENEWING_PURCHASE`, `SUBSCRIPTION_EXTENDED`,
   `TEMPORARY_ENTITLEMENT_GRANT`, `REFUND_REVERSED`) set `until` to the later of
-  the current value and the event's expiration;
+  the current value and the event's expiration — monotonic, so a late-delivered
+  grant is still applied;
 - `EXPIRATION` sets `until` to the event's expiration (else the event time)
-  unless the record already runs longer;
+  unless the record already runs longer, except when `expiration_reason` is
+  `CUSTOMER_SUPPORT` or `DEVELOPER_INITIATED` (deliberate early revocations
+  always cut);
 - a refund `CANCELLATION` (`isRefundCancellation`: `CUSTOMER_SUPPORT` with the
   expiration moved back, or absent for a refunded one-time purchase) moves
   `until` back to the event's expiration (else the event time)
@@ -344,7 +355,7 @@ never lets one product's event shorten what another granted:
   longer term another product granted: key records per product if you sell
   overlapping products on one entitlement;
 - everything else is `{ action: "skip", reason }`: other entitlements
-  (`not-entitlement`), out-of-order deliveries (`stale`: older than
+  (`not-entitlement`), out-of-order revocations (`stale`: older than
   `current.updatedAt`), and events that change nothing (`no-op`: ordinary
   `CANCELLATION`, `BILLING_ISSUE`, `SUBSCRIPTION_PAUSED`, `TEST`).
 

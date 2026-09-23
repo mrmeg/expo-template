@@ -164,8 +164,8 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
       configurePromise = (async () => {
         const loaded = await loadPurchasesSdk();
         if (!loaded) {
+          // Reported once; a missing native module cannot appear later in this build.
           report(new Error("react-native-purchases is not installed in this build"), "load");
-          configurePromise = null;
           return false;
         }
         try {
@@ -249,8 +249,11 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
     },
 
     subscribe(listener) {
-      listeners.set(listener, null);
-      attachListener(listener);
+      // A listener already registered keeps its SDK binding; re-subscribing is a no-op.
+      if (!listeners.has(listener)) {
+        listeners.set(listener, null);
+        attachListener(listener);
+      }
       return () => {
         const sdkListener = listeners.get(listener);
         listeners.delete(listener);

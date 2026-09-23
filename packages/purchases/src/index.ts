@@ -15,6 +15,7 @@ export {
   ENTITLEMENT_SNAPSHOT_VERSION,
   createEntitlementStore,
   entitlementSnapshotKey,
+  isUsableSnapshot,
   resolveEntitlement,
   type EntitlementResolution,
   type EntitlementSnapshot,

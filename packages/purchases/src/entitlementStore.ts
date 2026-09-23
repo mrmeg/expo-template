@@ -55,6 +55,10 @@ export interface EntitlementSources {
   serverUntil: number | null;
   snapshot: EntitlementSnapshot | null;
   devOverride: boolean;
+  /** Optional: whether the device has answered; absent means it still may. */
+  deviceReported?: boolean;
+  /** Optional: an `unavailable` SDK can never answer, so the snapshot yields to the server. */
+  sdkStatus?: SdkStatus;
 }
 
 export interface EntitlementState extends EntitlementSources {
@@ -111,10 +115,14 @@ function displayUntil(until: number | null): number | null {
 
 /**
  * Decide access from the sources, in trust order: dev override (development
- * builds only) → device customer state → server expiry → persisted snapshot
- * (only while neither live source has reported) → none. A non-default
- * `entitlement` is checked against the device's active list only; the server
- * and snapshot know the configured entitlement alone.
+ * builds only) → device customer state → server expiry → persisted snapshot →
+ * none. The snapshot is consulted only while the device has given no state, and
+ * only when the server has not reported, or reported an expired term while the
+ * device can still answer (a lagging backend must not lock a renewed subscriber
+ * out for the logIn round-trip; on web, where the device never answers, the
+ * server verdict stands). A non-default `entitlement` is checked against the
+ * device's active list only; the server and snapshot know the configured
+ * entitlement alone.
  */
 export function resolveEntitlement(
   sources: EntitlementSources,
@@ -139,15 +147,29 @@ export function resolveEntitlement(
   }
   const until = displayUntil(maxKnown([customer?.until, serverUntil]));
   if (serverUntil !== null && serverUntil > now) return { isEntitled: true, until, source: "server" };
+  const devicePending = !(sources.deviceReported ?? false) && sources.sdkStatus !== "unavailable";
   if (
     customer === null &&
-    serverUntil === null &&
-    snapshot?.isActive &&
-    (snapshot.until === null || snapshot.until > now)
+    (serverUntil === null || devicePending) &&
+    isUsableSnapshot(snapshot, now) &&
+    snapshot.isActive
   ) {
     return { isEntitled: true, until: displayUntil(snapshot.until), source: "snapshot" };
   }
   return { isEntitled: false, until, source: "none" };
+}
+
+/**
+ * A snapshot is evidence when it still describes the present: an inactive one
+ * always is; an active one only until its `until` passes (a renewal may have
+ * happened since, so a lapsed snapshot says nothing either way).
+ */
+export function isUsableSnapshot(
+  snapshot: EntitlementSnapshot | null,
+  now: number = Date.now(),
+): snapshot is EntitlementSnapshot {
+  if (!snapshot) return false;
+  return !snapshot.isActive || snapshot.until === null || snapshot.until > now;
 }
 
 function parseSnapshot(raw: string | null, userId: string | null): EntitlementSnapshot | null {
@@ -177,18 +199,6 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
   const { storage, storageKeyPrefix = DEFAULT_SNAPSHOT_KEY_PREFIX } = options;
   const keyFor = (userId: string | null) => entitlementSnapshotKey(storageKeyPrefix, userId);
 
-  const initial = {
-    sdkStatus: "idle" as SdkStatus,
-    customer: null as CustomerState | null,
-    serverUntil: null as number | null,
-    snapshot: null as EntitlementSnapshot | null,
-    hydrated: false,
-    deviceReported: false,
-    serverReported: false,
-    devOverride: false,
-    userId: null as string | null,
-  };
-
   /** Everything scoped to a user; reset whenever the scope changes. */
   const emptyScope = {
     customer: null as CustomerState | null,
@@ -196,6 +206,14 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
     snapshot: null as EntitlementSnapshot | null,
     deviceReported: false,
     serverReported: false,
+  };
+
+  const initial = {
+    ...emptyScope,
+    sdkStatus: "idle" as SdkStatus,
+    hydrated: false,
+    devOverride: false,
+    userId: null as string | null,
   };
 
   /** Last snapshot written per key, so an unchanged verdict is not rewritten on every SDK tick. */

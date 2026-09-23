@@ -27,6 +27,11 @@ export function PaywallGate({ feature, entitlement, fallback = null, onBlocked, 
   const handler = onBlocked ?? context.onBlocked;
   const reported = useRef(false);
 
+  // A new user gets their own report, even if the gate stayed locked throughout.
+  useEffect(() => {
+    reported.current = false;
+  }, [context.userId]);
+
   useEffect(() => {
     if (isEntitled) {
       reported.current = false;

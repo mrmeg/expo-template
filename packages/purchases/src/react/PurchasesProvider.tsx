@@ -7,8 +7,8 @@
  *  - the store is rescoped to that user (previous sources dropped) and its
  *    snapshot read (`hydrate`);
  *  - the SDK is configured once (`sdkStatus` becomes `ready` or `unavailable`),
- *    the customer-info listener attached, and `logIn(userId)` applied — the
- *    result is applied even when null so `deviceReported` marks the attempt;
+ *    `logIn(userId)` applied — even when null, so `deviceReported` marks the
+ *    attempt — and only then the customer-info listener attached;
  *  - `serverUntil` (the app's webhook-synced expiry) is mirrored into the store
  *    once `serverPending` is false.
  * When `userId` becomes null the SDK returns to anonymous and the store is
@@ -57,7 +57,9 @@ export function PurchasesProvider({
     const state = store.getState();
     if (!userId) {
       void state.clear();
-      if (client.isReady()) void client.logOut();
+      // logOut awaits a configure in flight and is serialised behind any logIn,
+      // so a sign-out during configure(userId) still returns the SDK to anonymous.
+      if (client.isConfigured()) void client.logOut();
       return;
     }
 
@@ -74,11 +76,14 @@ export function PurchasesProvider({
       if (cancelled) return;
       store.getState().setSdkStatus(ready ? "ready" : "unavailable");
       if (!ready) return;
-      unsubscribe = client.subscribe((customer) => {
-        if (!cancelled) store.getState().applyCustomerState(customer);
-      });
+      // Identify first, then listen: the SDK emits the anonymous customer after
+      // the previous user's logOut, and that must not be applied under this user.
       const customer = await client.logIn(userId);
-      if (!cancelled) store.getState().applyCustomerState(customer);
+      if (cancelled) return;
+      store.getState().applyCustomerState(customer);
+      unsubscribe = client.subscribe((update) => {
+        if (!cancelled) store.getState().applyCustomerState(update);
+      });
     })();
 
     return () => {

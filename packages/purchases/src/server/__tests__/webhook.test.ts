@@ -277,13 +277,47 @@ describe("reduceEntitlement", () => {
     });
   });
 
-  it("ignores events older than the last applied one and applies same-timestamp retries", () => {
+  it("ignores revocations older than the last applied event and applies same-timestamp retries", () => {
     const current: EntitlementRecord = { until: LATER, productId: "app_pro_annual", updatedAt: NOW };
     expect(reduceEntitlement(current, event({ type: "EXPIRATION", eventTimestampMs: NOW - 1 }), options)).toEqual({
       action: "skip",
       reason: "stale",
     });
+    expect(
+      reduceEntitlement(
+        current,
+        event({ type: "CANCELLATION", cancelReason: "CUSTOMER_SUPPORT", expirationAtMs: NOW - 2, eventTimestampMs: NOW - 1 }),
+        options,
+      ),
+    ).toEqual({ action: "skip", reason: "stale" });
     expect(reduceEntitlement(current, event({ type: "RENEWAL", eventTimestampMs: NOW }), options).action).toBe("set");
+  });
+
+  it("applies a late-delivered grant (monotonic) without rewinding updatedAt or the newer product", () => {
+    const current: EntitlementRecord = { until: LATER, productId: "app_pro_monthly", updatedAt: NOW };
+    expect(
+      reduceEntitlement(
+        current,
+        event({ type: "INITIAL_PURCHASE", productId: "app_pro_annual", expirationAtMs: LATER + 5000, eventTimestampMs: NOW - 10 }),
+        options,
+      ),
+    ).toEqual({ action: "set", next: { until: LATER + 5000, productId: "app_pro_monthly", updatedAt: NOW } });
+    // A late grant that is shorter changes nothing but is still reported as applied.
+    expect(
+      reduceEntitlement(current, event({ type: "RENEWAL", expirationAtMs: LATER - 5, eventTimestampMs: NOW - 10 }), options),
+    ).toEqual({ action: "set", next: { until: LATER, productId: "app_pro_monthly", updatedAt: NOW } });
+  });
+
+  it("lets a customer-support or developer-initiated EXPIRATION cut a longer record", () => {
+    const current: EntitlementRecord = { until: LATER, productId: "app_pro_annual", updatedAt: NOW - 10 };
+    for (const expirationReason of ["CUSTOMER_SUPPORT", "DEVELOPER_INITIATED"]) {
+      expect(
+        reduceEntitlement(current, event({ type: "EXPIRATION", expirationAtMs: NOW - 1, expirationReason }), options),
+      ).toEqual({ action: "set", next: { until: NOW - 1, productId: "app_pro_monthly", updatedAt: NOW } });
+    }
+    expect(
+      reduceEntitlement(current, event({ type: "EXPIRATION", expirationAtMs: NOW - 1, expirationReason: "UNSUBSCRIBE" }), options),
+    ).toEqual({ action: "set", next: { until: LATER, productId: "app_pro_monthly", updatedAt: NOW } });
   });
 
   it("keeps the previous product id when the event carries none", () => {

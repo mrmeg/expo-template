@@ -7,6 +7,7 @@ import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
 import {
+  isUsableSnapshot,
   resolveEntitlement,
   type EntitlementResolution,
   type EntitlementState,
@@ -20,10 +21,10 @@ export interface EntitlementView extends EntitlementResolution {
   hydrated: boolean;
   /**
    * The verdict is worth acting on: the store is scoped to the current user,
-   * hydrated, and either the device reported (a state or its absence), a
-   * snapshot exists, the server granted, the SDK is unavailable and the server
-   * has reported, or there is no user. Hold the splash screen and any automatic
-   * paywall until this is true.
+   * hydrated, and either the device reported (a state or its absence), a usable
+   * snapshot exists, the server granted (`serverUntil > now`), the SDK is
+   * unavailable and the server has reported, or there is no user. Hold the
+   * splash screen and any automatic paywall until this is true.
    */
   settled: boolean;
   /** A public SDK key exists for this platform. */
@@ -37,13 +38,13 @@ export interface EntitlementView extends EntitlementResolution {
   presentPaywallIfNeeded: (options?: PresentPaywallOptions) => Promise<PaywallOutcome>;
 }
 
-export function isSettled(state: EntitlementState, userId: string | null): boolean {
+export function isSettled(state: EntitlementState, userId: string | null, now: number = Date.now()): boolean {
   if (!state.hydrated || state.userId !== userId) return false;
   if (userId === null) return true;
   return (
     state.deviceReported ||
-    state.snapshot !== null ||
-    state.serverUntil !== null ||
+    isUsableSnapshot(state.snapshot, now) ||
+    (state.serverUntil !== null && state.serverUntil > now) ||
     (state.sdkStatus === "unavailable" && state.serverReported)
   );
 }
@@ -64,13 +65,14 @@ export function useEntitlement(entitlement?: string): EntitlementView {
   const view = useStore(
     store,
     useShallow((state) => {
-      const resolution = resolveEntitlement(state, Date.now(), target);
+      const now = Date.now();
+      const resolution = resolveEntitlement(state, now, target);
       return {
         isEntitled: resolution.isEntitled,
         until: resolution.until,
         source: resolution.source,
         hydrated: state.hydrated,
-        settled: isSettled(state, userId),
+        settled: isSettled(state, userId, now),
         sdkStatus: state.sdkStatus,
         customer: state.customer,
       };

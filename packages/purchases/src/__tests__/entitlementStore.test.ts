@@ -9,6 +9,7 @@ import {
   createEntitlementStore,
   ENTITLEMENT_SNAPSHOT_VERSION,
   entitlementSnapshotKey,
+  isUsableSnapshot,
   resolveEntitlement,
   type EntitlementSnapshot,
   type EntitlementStorage,
@@ -73,10 +74,28 @@ describe("resolveEntitlement", () => {
     expect(resolveEntitlement({ ...base, snapshot: snapshot({ until: null }) }, NOW).isEntitled).toBe(true);
     expect(resolveEntitlement({ ...base, snapshot: snapshot({ until: EARLIER }) }, NOW).isEntitled).toBe(false);
     expect(resolveEntitlement({ ...base, snapshot: snapshot({ isActive: false }) }, NOW).isEntitled).toBe(false);
-    // Once the device reported (even inactive) the snapshot no longer grants.
+    // Once the device reported a state (even inactive) the snapshot no longer grants.
     expect(resolveEntitlement({ ...base, customer: inactive, snapshot: snapshot() }, NOW).isEntitled).toBe(false);
-    // Once the server reported (even null-ish past) the snapshot no longer grants.
-    expect(resolveEntitlement({ ...base, serverUntil: EARLIER, snapshot: snapshot() }, NOW).isEntitled).toBe(false);
+    // A past server term does not lock out a still-usable snapshot while the device can answer...
+    expect(resolveEntitlement({ ...base, serverUntil: EARLIER, snapshot: snapshot() }, NOW)).toMatchObject({
+      isEntitled: true,
+      source: "snapshot",
+    });
+    // ...but it does once the device has answered with nothing, or can never answer (web).
+    expect(
+      resolveEntitlement({ ...base, serverUntil: EARLIER, snapshot: snapshot(), deviceReported: true }, NOW).isEntitled,
+    ).toBe(false);
+    expect(
+      resolveEntitlement({ ...base, serverUntil: EARLIER, snapshot: snapshot(), sdkStatus: "unavailable" }, NOW).isEntitled,
+    ).toBe(false);
+  });
+
+  it("treats a lapsed active snapshot as no evidence and an inactive one as evidence", () => {
+    expect(isUsableSnapshot(null, NOW)).toBe(false);
+    expect(isUsableSnapshot(snapshot(), NOW)).toBe(true);
+    expect(isUsableSnapshot(snapshot({ until: null }), NOW)).toBe(true);
+    expect(isUsableSnapshot(snapshot({ until: EARLIER }), NOW)).toBe(false);
+    expect(isUsableSnapshot(snapshot({ isActive: false, until: EARLIER }), NOW)).toBe(true);
   });
 
   it("reports a lifetime entitlement as until null, whatever the server or snapshot say", () => {

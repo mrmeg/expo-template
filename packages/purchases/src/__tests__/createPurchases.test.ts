@@ -121,6 +121,28 @@ describe("createPurchases (native)", () => {
     expect(client.isReady()).toBe(true);
   });
 
+  it("reports a missing native module once and does not retry the load", async () => {
+    const onError = jest.fn();
+    let client!: ReturnType<typeof createPurchases>;
+    // A fresh module graph whose loader never finds the SDK (a dev client built
+    // before the native module was added).
+    jest.isolateModules(() => {
+      jest.doMock("../sdk", () => ({
+        loadPurchasesSdk: jest.fn(async () => null),
+        loadPaywallUi: jest.fn(async () => null),
+        resetSdkCache: jest.fn(),
+      }));
+      const isolated = require("../createPurchases") as typeof import("../createPurchases");
+      client = isolated.createPurchases({ entitlement: ENTITLEMENT, iosKey: "appl_x", onError });
+    });
+    jest.dontMock("../sdk");
+    await expect(client.configure("user-1")).resolves.toBe(false);
+    await expect(client.configure("user-1")).resolves.toBe(false);
+    expect(client.isReady()).toBe(false);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(expect.any(Error), "load");
+  });
+
   it("reports configure failures through onError and stays unconfigured", async () => {
     const onError = jest.fn();
     mockSdk.configure.mockImplementation(() => {
@@ -309,6 +331,22 @@ describe("createPurchases (native)", () => {
     expect(listener).toHaveBeenCalledWith(expect.objectContaining({ isActive: true }));
     unsubscribe();
     expect(mockSdk.removeCustomerInfoUpdateListener).toHaveBeenCalledWith(sdkListener);
+  });
+
+  it("registers the same listener once and detaches it fully on unsubscribe", async () => {
+    const client = makeClient();
+    await client.configure("user-1");
+    const listener = jest.fn();
+    const first = client.subscribe(listener);
+    const second = client.subscribe(listener);
+    expect(mockSdk.addCustomerInfoUpdateListener).toHaveBeenCalledTimes(1);
+    const sdkListener = mockSdk.addCustomerInfoUpdateListener.mock.calls[0][0] as (info: CustomerInfo) => void;
+    sdkListener(customerInfo(true));
+    expect(listener).toHaveBeenCalledTimes(1);
+    second();
+    expect(mockSdk.removeCustomerInfoUpdateListener).toHaveBeenCalledWith(sdkListener);
+    first();
+    expect(mockSdk.removeCustomerInfoUpdateListener).toHaveBeenCalledTimes(1);
   });
 
   it("attaches after a failed configure is retried successfully", async () => {

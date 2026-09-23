@@ -219,6 +219,54 @@ describe("PurchasesProvider", () => {
   });
 });
 
+describe("PurchasesProvider identity ordering", () => {
+  it("ignores customer updates emitted before logIn resolves (the previous user's anonymous state)", async () => {
+    let resolveLogIn!: (state: CustomerState | null) => void;
+    const client = fakeClient({
+      logIn: jest.fn(() => new Promise<CustomerState | null>((resolve) => (resolveLogIn = resolve))),
+    });
+    const store = createEntitlementStore();
+    await render(
+      <PurchasesProvider client={client} store={store} userId="user-2">
+        <Probe />
+      </PurchasesProvider>,
+    );
+    await flush();
+    // Nothing is subscribed yet, so an SDK emission cannot be applied under user-2.
+    expect(client.subscribe).not.toHaveBeenCalled();
+    await act(async () => client.emit(inactiveCustomer));
+    expect(store.getState().customer).toBeNull();
+    expect(store.getState().deviceReported).toBe(false);
+
+    await act(async () => resolveLogIn(activeCustomer));
+    expect(client.subscribe).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("probe").props.children).toBe(`true|device|true|true|true|${LATER}|true`);
+  });
+
+  it("logs out on a sign-out that lands while configure is still in flight", async () => {
+    let resolveConfigure!: (ok: boolean) => void;
+    const client = fakeClient({
+      configure: jest.fn(() => new Promise<boolean>((resolve) => (resolveConfigure = resolve))),
+    });
+    const store = createEntitlementStore();
+    const { rerender } = await render(
+      <PurchasesProvider client={client} store={store} userId="user-1">
+        <Probe />
+      </PurchasesProvider>,
+    );
+    await flush();
+    await rerender(
+      <PurchasesProvider client={client} store={store} userId={null}>
+        <Probe />
+      </PurchasesProvider>,
+    );
+    await flush();
+    expect(client.logOut).toHaveBeenCalledTimes(1);
+    await act(async () => resolveConfigure(true));
+    expect(client.logIn).not.toHaveBeenCalled();
+  });
+});
+
 describe("useEntitlement outside a provider", () => {
   it("throws a readable error", async () => {
     const spy = jest.spyOn(console, "error").mockImplementation(() => {});
@@ -328,6 +376,50 @@ describe("PaywallGate settling", () => {
     );
     await flush();
     expect(blocked).toHaveBeenCalledWith("export");
+  });
+
+  it("does not settle on a lapsed active snapshot or an expired server term while the device is pending", async () => {
+    const { client, resolveLogIn } = deferredClient();
+    const storage = {
+      getItem: async () =>
+        JSON.stringify({ version: 1, userId: "user-1", savedAt: 1, isActive: true, until: Date.now() - 1000 }),
+      setItem: async () => {},
+      removeItem: async () => {},
+    };
+    const store = createEntitlementStore({ storage });
+    const onBlocked = jest.fn();
+    await render(
+      <PurchasesProvider client={client} store={store} userId="user-1" onBlocked={onBlocked} serverUntil={Date.now() - 1000}>
+        <PaywallGate feature="export" fallback={<Text>locked</Text>}>
+          <Text>secret</Text>
+        </PaywallGate>
+      </PurchasesProvider>,
+    );
+    await flush();
+    expect(store.getState().snapshot).not.toBeNull();
+    expect(onBlocked).not.toHaveBeenCalled();
+    await act(async () => resolveLogIn(activeCustomer));
+    expect(screen.getByText("secret")).toBeTruthy();
+    expect(onBlocked).not.toHaveBeenCalled();
+  });
+
+  it("reports again for a new user who is also blocked", async () => {
+    const client = fakeClient();
+    const store = createEntitlementStore();
+    const onBlocked = jest.fn();
+    const tree = (userId: string) => (
+      <PurchasesProvider client={client} store={store} userId={userId} onBlocked={onBlocked}>
+        <PaywallGate feature="export">
+          <Text>secret</Text>
+        </PaywallGate>
+      </PurchasesProvider>
+    );
+    const { rerender } = await render(tree("user-1"));
+    await flush();
+    expect(onBlocked).toHaveBeenCalledTimes(1);
+    await rerender(tree("user-2"));
+    await flush();
+    expect(onBlocked).toHaveBeenCalledTimes(2);
   });
 
   it("does not flash the paywall on sign-out followed by a paying sign-in", async () => {

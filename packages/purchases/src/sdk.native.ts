@@ -1,48 +1,47 @@
 /**
  * Native loader for the RevenueCat SDKs (iOS / Android).
  *
- * Both modules are required lazily, inside a function and only after a public
- * key check: an unconfigured build never touches the native module, and a dev
+ * Each module is required lazily, inside a function and only after a public key
+ * check: an unconfigured build never touches the native module, and a dev
  * client built before the modules were added fails soft (null) instead of
  * crashing at import time. The web twin (`sdk.ts`) always resolves null, which
  * also keeps both SDKs out of the web bundle. Lifted from Mindmap
- * `client/features/pro/purchasesModule.native.ts`; a deferred `require` replaces
- * its `import()` so the loader is also exercisable under Jest, which cannot
- * evaluate a native dynamic import without `--experimental-vm-modules`.
+ * `client/features/pro/purchasesModule.native.ts`; a deferred `require`
+ * replaces its `import()` so the loader is also exercisable under Jest, which
+ * cannot evaluate a native dynamic import without `--experimental-vm-modules`.
+ *
+ * Each `require` sits lexically inside its own `try` block: that is the shape
+ * Expo's Metro transformer (`allowOptionalDependencies`) recognises as an
+ * optional dependency, so a native consumer that installs only
+ * `react-native-purchases` (custom paywall, no `-ui`) still bundles.
  */
 import type { PaywallUi, PurchasesSdk } from "./sdkTypes";
 
-let sdkPromise: Promise<PurchasesSdk | null> | null = null;
-let uiPromise: Promise<PaywallUi | null> | null = null;
+function requirePurchasesSdk(): PurchasesSdk | null {
+  try {
+    return (require("react-native-purchases") as { default: PurchasesSdk }).default ?? null;
+  } catch {
+    return null;
+  }
+}
 
-function load<T>(loader: () => T): Promise<T | null> {
-  return new Promise((resolve) => {
-    try {
-      resolve(loader());
-    } catch {
-      resolve(null);
-    }
-  });
+function requirePaywallUi(): PaywallUi | null {
+  try {
+    return (require("react-native-purchases-ui") as { default: PaywallUi }).default ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function loadPurchasesSdk(): Promise<PurchasesSdk | null> {
-  sdkPromise ??= load(() => {
-    const mod = require("react-native-purchases") as { default: PurchasesSdk };
-    return mod.default;
-  });
-  return sdkPromise;
+  return Promise.resolve(requirePurchasesSdk());
 }
 
 export function loadPaywallUi(): Promise<PaywallUi | null> {
-  uiPromise ??= load(() => {
-    const mod = require("react-native-purchases-ui") as { default: PaywallUi };
-    return mod.default;
-  });
-  return uiPromise;
+  return Promise.resolve(requirePaywallUi());
 }
 
-/** Test seam: forget the cached modules. */
+/** Test seam kept for API symmetry with earlier builds; the module registry is the only cache. */
 export function resetSdkCache(): void {
-  sdkPromise = null;
-  uiPromise = null;
+  // Nothing cached here.
 }
