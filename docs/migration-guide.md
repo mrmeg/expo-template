@@ -233,7 +233,7 @@ Copy the folders you need (raw path `client/templates/<id>/Screen.tsx`), then re
 - **State:** React Query for server state, small Zustand stores for client state. No giant global stores.
 - **Forms:** `react-hook-form` + `zod` resolvers behind form wrappers (template: `client/lib/form/`).
 - **API routes:** `app/api/<feature>/<name>+api.ts` exporting `export async function GET(request: Request): Promise<Response>`. Shared auth/CORS/error helpers in `server/api/shared/`; keep route files thin. Return typed problem objects, not raw `Response` branching in UI code. Each `+api.ts` exports as its own self-contained server bundle, so consolidate sibling actions that share heavy dependencies behind one `app/api/<feature>/[action]+api.ts` dispatcher (template: `app/api/media/[action]+api.ts`).
-- **Auth fetch:** one `authenticatedFetch`/`api.*` wrapper injects the Bearer token; UI code never builds auth headers.
+- **Auth fetch:** one `authenticatedFetch`/`api.*` wrapper injects the Bearer token; UI code never builds auth headers. The wrapper imports no auth code — auth registers its token getter at startup, as the server registers its token verifier. Web requests stay same-origin; native ones resolve `/api/*` against `EXPO_PUBLIC_API_URL` and fail closed in a release build without it (expo-router's `origin` stays blank).
 - **Optional systems fail closed:** with a blank `.env`, auth, billing, media, and Sentry degrade to disabled/setup states instead of crashing.
 
 ## Phase 7 — Verification

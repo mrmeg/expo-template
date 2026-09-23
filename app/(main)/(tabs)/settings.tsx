@@ -164,7 +164,8 @@ export default function SettingsRoute() {
               </ItemContent>
               <ItemActions>
                 <MonoText size="sm" style={styles.settingValue} numberOfLines={1}>
-                  {Config.apiUrl}
+                  {/* "" means a native release build without EXPO_PUBLIC_API_URL. */}
+                  {Config.apiUrl || "—"}
                 </MonoText>
               </ItemActions>
             </Item>

@@ -244,12 +244,21 @@ import { api as authedApi } from "@/client/lib/api/authenticatedFetch";
 await authedApi.post("/api/media/getUploadUrl", { extension: "jpg", mediaType: "uploads" });
 ```
 
+Paths resolve per platform (`client/lib/api/apiOrigin.ts`). Web keeps
+same-origin relative requests. Native has no page origin, so `/api/*` goes to
+`EXPO_PUBLIC_API_URL` (the server hosting `app/api/*`; a trailing `/api` is
+fine). A native development build without it uses the dev server; a native
+release build without it rejects with `ApiOriginError` before any request.
+expo-router's `origin` stays blank. Call the app's routes through `api.*` or
+`authenticatedFetch`: a raw `fetch("/api/…")` has no origin in a native release
+build.
+
 ## Configuration
 
 ```tsx
 import Config from "@/client/config";
 
-Config.apiUrl;          // External API base URL (or "" for local /api/* routes)
+Config.apiUrl;          // Display form of the API base: "/api" on web, "<EXPO_PUBLIC_API_URL>/api" on native, "" when a native release build has none
 Config.catchErrors;     // ErrorBoundary policy
 Config.billingEnabled;  // Stripe billing UI flag (mirrors EXPO_PUBLIC_BILLING_ENABLED)
 ```

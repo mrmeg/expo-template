@@ -3,6 +3,8 @@
  * These values are shared across all environments.
  */
 
+import { describeApiBaseUrl } from "@/client/lib/api/apiOrigin";
+
 export interface ConfigBaseProps {
   /**
    * When to catch errors with ErrorBoundary
@@ -14,7 +16,13 @@ export interface ConfigBaseProps {
   catchErrors: "always" | "dev" | "prod" | "never";
 
   /**
-   * Base URL for API requests
+   * Where `/api/*` requests go, for display (settings, developer screen).
+   * Requests resolve through `client/lib/api/apiOrigin.ts`, which this mirrors:
+   * - web: `"/api"` — same-origin relative requests
+   * - native: `<EXPO_PUBLIC_API_URL origin>/api`; in development without it,
+   *   the dev server that served the bundle
+   * - native release build without `EXPO_PUBLIC_API_URL`: `""` — API requests
+   *   fail closed
    */
   apiUrl: string;
 
@@ -39,7 +47,7 @@ function parseBooleanEnv(value: string | undefined): boolean {
 
 const BaseConfig: ConfigBaseProps = {
   catchErrors: "always",
-  apiUrl: "",
+  apiUrl: describeApiBaseUrl(),
   billingEnabled: parseBooleanEnv(process.env.EXPO_PUBLIC_BILLING_ENABLED),
 };
 

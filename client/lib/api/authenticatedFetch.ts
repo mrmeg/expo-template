@@ -1,14 +1,20 @@
 /**
  * Fetch helper for the app's own API routes.
  *
- * The bearer token comes from the getter registered in `./authToken`, never
- * from an auth import: the auth feature registers it at startup
- * (`registerApiTokenGetter()`, called from the root layout) the way the server
- * registers its verifier with `setTokenVerifier()`. With no getter — auth
- * disabled — requests go out without an `Authorization` header.
+ * - Paths resolve through `resolveApiUrl` (`./apiOrigin`): relative on web,
+ *   against `EXPO_PUBLIC_API_URL` on native. A native release build without an
+ *   origin rejects with `ApiOriginError` instead of sending a relative request
+ *   that could only fail. Absolute URLs pass through unchanged.
+ * - The bearer token comes from the getter registered in `./authToken`, never
+ *   from an auth import: the auth feature registers it at startup
+ *   (`registerApiTokenGetter()`, called from the root layout) the way the
+ *   server registers its verifier with `setTokenVerifier()`. With no getter —
+ *   auth disabled — requests go out without an `Authorization` header.
  */
+import { resolveApiUrl } from "./apiOrigin";
 import { getAuthToken } from "./authToken";
 
+export { ApiOriginError, isApiOriginError } from "./apiOrigin";
 export { setAuthTokenGetter, type AuthTokenGetter } from "./authToken";
 
 export async function getAuthData(): Promise<{ token: string | undefined }> {
@@ -33,6 +39,8 @@ export async function authenticatedFetch(
   let signal = options.signal;
 
   try {
+    const requestUrl = resolveApiUrl(url);
+
     // Prepare headers
     const headers = new Headers(options.headers || {});
 
@@ -56,7 +64,7 @@ export async function authenticatedFetch(
     };
 
     // Make the request
-    const response = await fetch(url, requestOptions);
+    const response = await fetch(requestUrl, requestOptions);
     if (timeoutId) clearTimeout(timeoutId);
 
     // Return error responses (including 401) as-is: callers map status

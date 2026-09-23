@@ -6,9 +6,6 @@
 import type { ConfigBaseProps } from "./config.base";
 
 const ProdConfig: Partial<ConfigBaseProps> = {
-  // Production API URL — reads from env, falls back to placeholder
-  apiUrl: process.env.EXPO_PUBLIC_API_URL || "https://api.example.com",
-
   // Always catch errors in prod to show user-friendly error screen
   catchErrors: "always",
 };
