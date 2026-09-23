@@ -664,7 +664,14 @@ web, where the window cannot be read during export or hydration.
   package `KeyboardAvoidingView` (`behavior="padding"`), the card recenters
   above the keyboard with its fields and footer visible, and
   `useKeyboardAvoidance()` is `true` inside dialog content. Do not wrap dialog
-  content in another `KeyboardAvoidingView`. The platform close request
+  content in another `KeyboardAvoidingView`. Dialog content also owns tap-away
+  keyboard dismissal on iOS and Android: the centered container carries the
+  same non-claiming boundary as `DismissKeyboard` and `BottomSheet.Content`, so
+  a tap on the card's dead space (padding, labels, the gap between fields and
+  footer) or on the backdrop hides the keyboard on release, while `Close`,
+  `Action`, `Cancel`, buttons and fields still fire on the first tap; no
+  `DismissKeyboard` is needed inside a dialog (inert on web, which has no
+  software keyboard). The platform close request
   (hardware back, TV menu) routes to the root's `onOpenChange(false)`. Android
   and web render dialog content inline into the portal host, which sits
   outside the root avoidance, so an Android dialog does not avoid the keyboard

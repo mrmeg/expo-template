@@ -4,6 +4,7 @@ import * as DialogPrimitive from "@rn-primitives/dialog";
 import * as AlertDialogPrimitive from "@rn-primitives/alert-dialog";
 import { AnimatedView } from "./AnimatedView";
 import { KeyboardAvoidingView } from "./KeyboardAvoidingView";
+import { useKeyboardDismissResponder } from "./keyboardDismiss";
 import { TextClassContext, TextColorContext } from "./StyledText.context";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
@@ -123,6 +124,25 @@ function DialogKeyboardAvoidance({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Tap-away keyboard dismissal for dialog content.
+ *
+ * The iOS `Modal` sits outside any app-level `DismissKeyboard`, and the
+ * portal-hosted tree on Android does too, so a tap on the card's dead space
+ * (padding, labels, the gap between fields and footer) left the keyboard up.
+ * The centered container now carries the same boundary as `DismissKeyboard`
+ * and `BottomSheet.Content` (`useKeyboardDismissResponder`): it never claims
+ * the touch — `Close` / `Action` / `Cancel`, buttons and fields win the
+ * negotiation and fire on the first tap — and dismisses on release of an
+ * unclaimed single-finger tap within the travel slop, through the registered
+ * field's blur handle with a `KeyboardController.dismiss()` fallback. It covers
+ * the backdrop as well: the primitive `Overlay` still claims that tap and closes
+ * the dialog while the keyboard drops with it. Inert on web (returns `{}`).
+ */
+function useDialogKeyboardDismissBoundary() {
+  return useKeyboardDismissResponder();
+}
+
 // ============================================================================
 // Dialog
 // ============================================================================
@@ -155,6 +175,7 @@ function DialogContent({
 }: DialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
   const { open, onOpenChange } = DialogPrimitive.useRootContext();
+  const dismissBoundaryProps = useDialogKeyboardDismissBoundary();
   const textColor = getContrastingColor(
     theme.colors.popover,
     palette.white,
@@ -186,7 +207,7 @@ function DialogContent({
       >
         <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
           <DialogKeyboardAvoidance>
-            <View style={overlayStyles.centeredContainer}>
+            <View style={overlayStyles.centeredContainer} {...dismissBoundaryProps}>
               <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
                 <TextColorContext.Provider value={textColor}>
                   <TextClassContext.Provider value="">
@@ -347,6 +368,7 @@ function AlertDialogContent({
 }: AlertDialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
   const { open, onOpenChange } = AlertDialogPrimitive.useRootContext();
+  const dismissBoundaryProps = useDialogKeyboardDismissBoundary();
   const textColor = getContrastingColor(
     theme.colors.popover,
     palette.white,
@@ -369,7 +391,7 @@ function AlertDialogContent({
       >
         <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
           <DialogKeyboardAvoidance>
-            <View style={overlayStyles.centeredContainer}>
+            <View style={overlayStyles.centeredContainer} {...dismissBoundaryProps}>
               <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
                 <TextColorContext.Provider value={textColor}>
                   <TextClassContext.Provider value="">

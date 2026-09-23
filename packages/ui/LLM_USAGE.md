@@ -131,7 +131,11 @@ content (no view controller to present from; render it at screen level and open
 it from the item's `onPress`). The dialog owns keyboard avoidance inside its Modal (package
 `KeyboardAvoidingView`, `behavior="padding"`; the card recenters above the
 keyboard and `useKeyboardAvoidance()` is `true` in dialog content); do not wrap
-dialog content in another `KeyboardAvoidingView`. Android and web render dialog
+dialog content in another `KeyboardAvoidingView`. Dialog content owns tap-away
+keyboard dismissal on iOS and Android (the same non-claiming boundary as
+`DismissKeyboard`: dead-space and backdrop taps hide the keyboard on release,
+controls and fields fire on the first tap); do not wrap dialog content in
+`DismissKeyboard` for that. Android and web render dialog
 content inline into the portal host, outside the root avoidance, so an Android
 dialog does not avoid the keyboard yet.
 
