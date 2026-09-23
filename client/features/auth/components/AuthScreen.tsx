@@ -576,6 +576,9 @@ function AuthScreenFrame({
   appName: string;
   children: React.ReactNode;
 }) {
+  // The app root does not avoid the keyboard, so DismissKeyboard wraps its own
+  // keyboard-avoiding view here: its scroll view shrinks to the space above the
+  // keyboard, which keeps the focused field in view.
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <DismissKeyboard style={styles.content}>

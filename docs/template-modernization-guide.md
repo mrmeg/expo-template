@@ -179,6 +179,7 @@ template.
 |---------|--------|-------|
 | Root providers and startup gate | `client/features/app/RootLayout.tsx`, `client/features/app/useAppStartup.ts`, `client/features/app/StartupGate.tsx` | Coordinates resources, i18n, onboarding, optional auth, splash hiding; the auth provider mounts under the native splash (startup waits on its load) and the app renders once `ready` latches |
 | Navigation shell | `app/(main)/`, `app/(main)/(tabs)/` | Main Stack, tabs, demos, route grouping |
+| Keyboard | `client/features/keyboard/platform`, `client/features/app/RootLayout.tsx` | The app root does not avoid the keyboard (`UIProvider keyboardAvoiding={false}`); each screen with text input owns it. Scrolling screens use `KeyboardAwareScrollView` from `client/features/keyboard/platform` (pads content by the keyboard; on iOS also scrolls the focused field into view); a form inside `DismissKeyboard` gets that component's own keyboard-avoiding view. Dialogs and bottom sheets handle their own keyboard |
 | API routes | `app/api/**/+api.ts`, `server/api/shared/` | Route files stay thin; shared auth, CORS, and errors live under `server/api/shared` |
 | API client | `client/lib/api/authenticatedFetch.ts` | Use the authenticated fetch helper; keep raw `Response` handling out of UI |
 | Feature folders | `client/features/<feature>/` | Keep features portable; obey feature isolation checks |

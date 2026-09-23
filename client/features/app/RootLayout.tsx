@@ -156,7 +156,12 @@ export default function RootLayout() {
             fonts: colors[scheme ?? "light"].fonts,
           }}>
             <KeyboardProvider>
-              <UIProvider>
+              {/* No root keyboard avoidance: an animated KeyboardAvoidingView
+                  around the whole app resized every screen, header and tab bar
+                  on each keyboard frame. Screens with text input own it —
+                  KeyboardAwareScrollView, or DismissKeyboard's own avoiding
+                  view — and dialogs and sheets already handle theirs. */}
+              <UIProvider keyboardAvoiding={false}>
                 <KeyboardDismissBoundary style={styles.keyboardDismissScope}>
                   <ErrorBoundary
                     catchErrors={Config.catchErrors}

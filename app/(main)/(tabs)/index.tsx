@@ -14,6 +14,7 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { View, StyleSheet, Pressable, ScrollView } from "react-native";
+import { KeyboardAwareScrollView } from "@/client/features/keyboard/platform";
 import { Link } from "expo-router";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -77,8 +78,12 @@ export default function ExploreScreen() {
       <Seo title="Explore - Expo Template" description="Browse UI components, composed blocks, screen templates, and interactive demos built with Expo and React Native." />
       {/* The ScrollView must be the screen's first native child: the native tab
           bar (and stack header) locate it by walking first subviews, and that
-          hookup drives minimizeBehavior + scroll edge effects on iOS 26. */}
-      <ScrollView
+          hookup drives minimizeBehavior + scroll edge effects on iOS 26.
+          KeyboardAwareScrollView keeps it first — its wrapper's first subview
+          is the scroll view — and pads the content by the keyboard, so search
+          results stay reachable above it now that the app root no longer
+          avoids the keyboard. */}
+      <KeyboardAwareScrollView
         testID="explore-screen"
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -242,7 +247,7 @@ export default function ExploreScreen() {
             </AnimatedView>
           </>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </>
   );
 }
