@@ -352,7 +352,10 @@ from the bundled `@expo-google-fonts/inter`. Serif is Georgia; mono is the
 platform system monospace.
 
 `useResources()` loads those four weights on native, so `StyledText`'s
-`light`–`bold` range resolves to real files instead of a faked OS bold. Icons
+`light`–`bold` range resolves to real files instead of a faked OS bold. Each
+weight is imported from its own `@expo-google-fonts/inter/<weight>` subpath, so
+a native bundle carries those four files and no other Inter face, and a web
+bundle carries no Inter file at all. Icons
 are SVG (`lucide-react-native`), so there is no icon font to load on any
 platform. On web
 it injects one Google Fonts Inter stylesheet (all four weights) after hydration

@@ -26,6 +26,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   once per close (re-armed on reopen) and always after `onOpenChange(false)` for
   a user dismissal. Present the next modal from `onDismissed`; drop timers.
 
+### Changed
+
+- **Native bundles ship four Inter files instead of 18, and web bundles ship
+  none.** `useResources` imported the `@expo-google-fonts/inter` root entry,
+  which `require`s every weight and italic, and a bundler ships every file a
+  bundle requires, so each app carried 14 faces nothing referenced (4,844,592
+  bytes) on native and all 18 (6,217,596 bytes) as web export assets. Native
+  now imports `Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`, and
+  `Inter_700Bold` from their per-weight subpaths (1,373,004 bytes), and web
+  imports no TTF: it keeps loading Inter as one CSS family from Google Fonts.
+  `useResources` keeps its export and `{ loaded, error }` result, and the
+  registered family names are unchanged. An app that rendered another Inter
+  weight or an italic by family name (`Inter_300Light`, `Inter_400Regular_Italic`)
+  was relying on a file the package never loaded; it must load that face
+  itself, as before.
+
 ### Fixed
 
 - **A tap on dead space inside `Dialog` / `AlertDialog` content dismisses the

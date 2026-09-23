@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import * as Font from "expo-font";
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from "@expo-google-fonts/inter";
 import { Platform } from "react-native";
 
+import { interFontMap } from "../lib/interFonts";
 import { useThemeStore } from "../state/themeStore";
 
 interface LoadResourcesResult {
@@ -16,20 +11,14 @@ interface LoadResourcesResult {
 }
 
 // The four static Inter weights StyledText's native family keys point at
-// (see constants/fonts.ts). Native-only: web never renders these family names
-// ("Inter_400Regular" etc.) — fontFamilies.sansSerif resolves every weight to
-// the single "Inter" CSS family on web (loaded via ensureWebFontStylesheet
-// below), so fetching these .ttf assets there would just be ~1.3MB of dead
-// weight with nothing pointing at them.
-const interFontMap = {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-};
-
+// (see constants/fonts.ts) come from `lib/interFonts`, a platform-split
+// module: the native variant imports each weight from its own
+// `@expo-google-fonts/inter/<weight>` subpath, and the web variant imports no
+// TTF at all. Web never renders these family names ("Inter_400Regular" etc.)
+// — fontFamilies.sansSerif resolves every weight to the single "Inter" CSS
+// family on web (loaded via ensureWebFontStylesheet below).
 function loadNativeInterFonts(): Promise<void> {
-  if (Platform.OS === "web") {
+  if (Platform.OS === "web" || !interFontMap) {
     return Promise.resolve();
   }
   return Font.loadAsync(interFontMap);
@@ -61,10 +50,11 @@ function ensureWebFontStylesheet(): Promise<void> {
 /**
  * Loads essential app resources on startup.
  *
- * Native platforms load four static Inter weights (via
- * @expo-google-fonts/inter) so StyledText's weight range resolves to real
- * font files. Web loads Inter from Google Fonts as a single CSS family;
- * weight differentiation there comes from a numeric fontWeight instead.
+ * Native platforms load four static Inter weights (400/500/600/700, each from
+ * its own `@expo-google-fonts/inter/<weight>` subpath, so only those four
+ * files ship) and StyledText's weight range resolves to real font files. Web
+ * loads Inter from Google Fonts as a single CSS family and bundles no Inter
+ * file; weight differentiation there comes from a numeric fontWeight instead.
  *
  * Icons need nothing here: `Icon` renders `lucide-react-native` SVGs, which
  * have no font face to register on any platform, so server-rendered HTML
