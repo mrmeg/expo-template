@@ -105,6 +105,14 @@ give scroll views that contain a sheet `keyboardShouldPersistTaps="always"` (or
 when it sees such a tap. `Slider` and `SegmentedControl` are also
 `@expo/ui`-backed.
 
+`BottomSheet` `onDismissed` fires once per close after the sheet is fully gone
+on every platform (iOS: `@expo/ui`'s native SwiftUI `onDismiss` event, after
+the transition; Android: `@expo/ui`'s post-animation close callback; web: the
+HTML `<dialog>` `close` event at the end of the exit animation). Open the next
+modal — a `Dialog`, a native stack modal — from `onDismissed`, never from
+`onOpenChange(false)` or a timer: on iOS the sheet is still dismissing when
+`onOpenChange` fires and a `Modal` presented then is rejected.
+
 `BottomSheet.Content` themes the native sheet surface with the card color. Pass
 `backgroundStyle={{ backgroundColor: "transparent" }}`, plus a `style` clearing
 the content column's card fill, when custom chrome such as a glass backdrop must
