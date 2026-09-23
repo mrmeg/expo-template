@@ -108,7 +108,7 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `bun run verify` | Every quality gate, in order — exactly what CI's `validate` job runs; the list is in [`CONTRIBUTING.md#verify-gates`](CONTRIBUTING.md#verify-gates) |
 | `bun run gen` | Regenerate every generated artifact (icon, template, and block registries, LLM docs); `--check` fails on a stale one |
 | `bun run pkg <package> <task>` | A workspace package task: `typecheck`, `test`, `build`, `pack`, `consumer-smoke`, `release` for `ui`, `media`, `purchases`, `lint` — see [Publishing packages](#publishing-packages) |
-| `bun run test:ci` | `jest --ci` (`bun run test:coverage` adds the coverage report) |
+| `bun run test:ci` | `jest --ci --forceExit` (`bun run test:coverage` adds the coverage report) |
 | `bun run e2e` | Maestro native smoke suite — see `docs/e2e.md` |
 | `bun run bundle-size` | Compare client JS against `scripts/bundle-baseline.json` |
 | `bun run analyze` | `source-map-explorer` treemap of the client bundle |
@@ -152,7 +152,7 @@ snake_case names are accepted and normalized to PascalCase exports.
 ```bash
 bun jest --watchAll                    # interactive
 bun jest --testPathPattern=<path>      # single suite
-bun run test:ci                        # the CI gate: jest --ci
+bun run test:ci                        # the CI gate: jest --ci --forceExit
 bun run test:coverage                  # the same run with a coverage report
 ```
 

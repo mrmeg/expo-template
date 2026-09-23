@@ -51,7 +51,7 @@ stops matching `bun run verify --list`. Rerun any gate on its own as
 | 9 | `check:features` | Feature-folder isolation |
 | 10 | `gen --check` | Every generated artifact is fresh: icon registry, template and block registries, `llms-full.txt` / `llms-examples.txt`. Fix with `bun run gen` |
 | 11 | `docs:versions:check` | `README.md`'s version claims match `package.json` |
-| 12 | `test:ci` | `jest --ci`, no coverage (`bun run test:coverage` when you want the report) |
+| 12 | `test:ci` | `jest --ci --forceExit`, no coverage (`bun run test:coverage` when you want the report). `--forceExit` because some suites leave timers that hold a single-worker run open for minutes |
 <!-- verify-gates:end -->
 
 `bun run verify --bail` stops at the first failure; `--max-workers <n>` caps
@@ -79,7 +79,7 @@ package's dependencies, peers, exports, or files means bumping its version:
 ```bash
 bun jest --watchAll                     # interactive
 bun jest --testPathPattern=path/to/test # single file
-bun run test:ci                         # the CI gate: jest --ci
+bun run test:ci                         # the CI gate: jest --ci --forceExit
 bun run test:coverage                   # the same run with a coverage report
 ```
 
