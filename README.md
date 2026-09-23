@@ -106,10 +106,10 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run lint` | `expo lint` (ESLint flat config; lints `app/` only by default — pass paths to widen) |
 | `bun lint:ui` | Design-system rules only, over `app`, `client`, `shared`; `--changed` for touched files, `--doctor` to check wiring — see [`packages/lint/README.md`](packages/lint/README.md) |
-| `bun run verify` | Every CI `validate` gate locally, in CI order |
+| `bun run verify` | Every quality gate, in order — exactly what CI's `validate` job runs; the list is in [`CONTRIBUTING.md#verify-gates`](CONTRIBUTING.md#verify-gates) |
 | `bun run gen` | Regenerate every generated artifact (icon, template, and block registries, LLM docs); `--check` fails on a stale one |
 | `bun run pkg <package> <task>` | A workspace package task: `typecheck`, `test`, `build`, `pack`, `consumer-smoke`, `release` for `ui`, `media`, `purchases`, `lint` — see [Publishing packages](#publishing-packages) |
-| `bun run test:ci` | `jest --ci --coverage --forceExit` |
+| `bun run test:ci` | `jest --ci` (`bun run test:coverage` adds the coverage report) |
 | `bun run e2e` | Maestro native smoke suite — see `docs/e2e.md` |
 | `bun run bundle-size` | Compare client JS against `scripts/bundle-baseline.json` |
 | `bun run analyze` | `source-map-explorer` treemap of the client bundle |
@@ -153,14 +153,15 @@ snake_case names are accepted and normalized to PascalCase exports.
 ```bash
 bun jest --watchAll                    # interactive
 bun jest --testPathPattern=<path>      # single suite
-bun run test:ci                        # CI-style with coverage
+bun run test:ci                        # the CI gate: jest --ci
+bun run test:coverage                  # the same run with a coverage report
 ```
 
-Coverage spans `client/**`, `app/api/**`, `server/**`, `shared/**`,
-`packages/ui/src/**`, `packages/media/src/**`, and `packages/purchases/src/**`,
-so CI flags drift in the
-route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing)
-and in the packaged UI. The lint plugin's own suites live in
+Coverage (`bun run test:coverage`) spans `client/**`, `app/api/**`,
+`server/**`, `shared/**`, `packages/ui/src/**`, `packages/media/src/**`, and
+`packages/purchases/src/**`, so a coverage run shows the route-level seams (CORS,
+rate limiting, auth bootstrap, media storage, billing) and the packaged UI. CI
+does not collect it. The lint plugin's own suites live in
 `packages/lint/__tests__` and run with the rest of jest.
 
 ## Architecture
@@ -391,17 +392,24 @@ Billing contracts and disabling behavior: `docs/template-modernization-guide.md`
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every push and pull request to `main`. Two
-parallel jobs, no app credentials required:
+`.github/workflows/ci.yml` runs on every pull request, whatever its base
+(stacked PRs included), and on every push to `main` and `dev`. Two parallel
+jobs, no app credentials required:
 
 - **Lint, Type Check, Test** (`validate`) — `bun install --frozen-lockfile` →
-  `packages:peer-check` → `typecheck` → `lint` → `check:features` →
-  `gen:templates:check` → `gen:blocks:check` → `docs:llms:check` →
-  `docs:versions:check` → `test:ci`. `bun run verify` runs the same gates
-  locally in the same order (without coverage). `lint` there is `expo lint`, so
-  it gates `app/` only; run `bun lint:ui` for `client/` and `shared/`.
+  `bun run verify`. Verify is the gate list, so CI and a local run cannot drift;
+  the gates and what each checks are in
+  [`CONTRIBUTING.md#verify-gates`](CONTRIBUTING.md#verify-gates). Its `lint` is
+  `expo lint`, so it gates `app/` only; run `bun lint:ui` for `client/` and
+  `shared/`.
 - **Web Build + Bundle Size** — `bun run build` → `bun run bundle-size`. Fails
   the PR on >10% client bundle growth against `scripts/bundle-baseline.json`.
+
+`.github/workflows/package-compatibility.yml` installs each package's packed
+tarball into Expo SDK consumer profiles on the same events, for changes under
+`packages/` or the compatibility tooling. Publishing is
+`.github/workflows/publish-packages.yml` ([Publishing packages](#publishing-packages)).
+Every workflow installs the Bun version pinned in `.bun-version`.
 
 Tests mock the AWS / Stripe surfaces, so a blank `.env` is enough.
 

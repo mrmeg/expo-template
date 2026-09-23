@@ -1,8 +1,10 @@
 name: Package Compatibility
 
+# Every pull request that touches a package or its compatibility tooling,
+# whatever the PR's base (stacked PRs included), and the same pushes to the two
+# long-lived branches. Keep the two path lists identical.
 on:
   pull_request:
-    branches: [main]
     paths:
       - "packages/media/**"
       - "packages/purchases/**"
@@ -10,6 +12,23 @@ on:
       - "scripts/check-package-consumer-profile.mjs"
       - "scripts/check-package-peer-compatibility.mjs"
       - "scripts/package-compatibility-profiles.mjs"
+      - "scripts/lib/workspacePackages.mjs"
+      - ".github/workflows/package-compatibility.yml"
+      - ".bun-version"
+      - "package.json"
+      - "bun.lock"
+  push:
+    branches: [main, dev]
+    paths:
+      - "packages/media/**"
+      - "packages/purchases/**"
+      - "packages/ui/**"
+      - "scripts/check-package-consumer-profile.mjs"
+      - "scripts/check-package-peer-compatibility.mjs"
+      - "scripts/package-compatibility-profiles.mjs"
+      - "scripts/lib/workspacePackages.mjs"
+      - ".github/workflows/package-compatibility.yml"
+      - ".bun-version"
       - "package.json"
       - "bun.lock"
   workflow_dispatch:
@@ -45,9 +64,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The fixture's `expo export` runs on Node, and Expo SDK 58 requires Node
+      # 22.13+, 24.3+, or 26; the runner default is not pinned.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version-file: .bun-version
 
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile

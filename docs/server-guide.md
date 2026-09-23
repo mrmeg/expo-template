@@ -250,7 +250,7 @@ Match the route shapes your app serves: the repo file lists the grouped paths (`
 ## Validation
 
 ```bash
-bun run verify   # peer-check, typecheck, lint, check:features, registry + docs checks, jest --ci
+bun run verify   # every CI gate: CONTRIBUTING.md#verify-gates
 bun run build
 bun run start    # then load a loader-backed route and curl an API route
 ```
