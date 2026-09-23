@@ -28,6 +28,7 @@ production server, and LLM-facing docs under `docs/`.
 
 - **Sign-in (Cognito)** — email one-time code (default; `USER_AUTH` + `EMAIL_OTP`, no Lambdas), password (behind a toggle), Google/Apple via Managed Login. Email codes require `EMAIL_OTP` as a pool first auth factor and `ALLOW_USER_AUTH` on the client. Social also requires `EXPO_PUBLIC_COGNITO_DOMAIN`, `EXPO_PUBLIC_AUTH_SOCIAL_PROVIDERS="google,apple"`, registered identity providers, and a dev build on native (Expo Go can't autolink `@aws-amplify/rtn-web-browser`). `bash scripts/create-cognito-pool.sh` provisions all of it; without it the extra buttons stay hidden and password sign-in still works. Clerk: `unsupported`.
 - **Sign-up (Cognito)** — email-first and password-optional: the default action creates the account with no password (confirmed by the emailed code, then signed in with email codes); "Add a password" reveals the password + confirm fields. Needs the same `EMAIL_OTP`-as-first-factor pool setting; a pool without it rejects the request with a surfaced error naming the requirement, leaving the password path usable. Clerk: `unsupported`.
+- **Startup** — the provider's context mounts under the native splash (`client/features/app/StartupGate.tsx`); the splash hides once the provider has loaded and the session has been read, so a signed-in user never sees the signed-out shell. Clerk reports its load to the auth client instead of being polled; a load that fails or never finishes continues signed out after 10 s, and a session restored later still signs the user in.
 - **Auth emails (Cognito)** — sign-up confirmation, sign-in code, password reset, and admin invite render from the HTML in `scripts/cognito-email/` with the app's name. Edit those files, then `bun run auth:emails` (`--dry-run` validates without touching AWS) stores them on the pool; `scripts/create-cognito-pool.sh` applies them at pool creation. `scripts/cognito-email/README.md` lists the placeholders and Cognito's limits, enforced by `scripts/__tests__/cognitoEmailTemplates.test.ts`.
 
 **Billing** — Stripe Checkout + Billing Portal (`hosted-external`). Without `STRIPE_*` env vars every `/api/billing/*` route returns a typed `503 billing-disabled` and the UI hides purchase CTAs.
@@ -233,9 +234,11 @@ language by dropping a new bundle there and wiring it into
 
 ## API Layer
 
-`authenticatedFetch` (`client/lib/api/`) pulls a token from the
-provider-agnostic `getAuthClient()` — Cognito or Clerk per env, no token when
-auth is disabled.
+`authenticatedFetch` (`client/lib/api/`) attaches the bearer token from a
+getter the auth feature registers at startup — `registerApiTokenGetter()`,
+called at module scope in the root layout, mirroring the server's
+`setTokenVerifier()`. The API client imports no feature code; with auth
+disabled no getter is registered and requests carry no token.
 
 ```tsx
 import { api as authedApi } from "@/client/lib/api/authenticatedFetch";
@@ -243,12 +246,21 @@ import { api as authedApi } from "@/client/lib/api/authenticatedFetch";
 await authedApi.post("/api/media/getUploadUrl", { extension: "jpg", mediaType: "uploads" });
 ```
 
+Paths resolve per platform (`client/lib/api/apiOrigin.ts`). Web keeps
+same-origin relative requests. Native has no page origin, so `/api/*` goes to
+`EXPO_PUBLIC_API_URL` (the server hosting `app/api/*`; a trailing `/api` is
+fine). A native development build without it uses the dev server; a native
+release build without it rejects with `ApiOriginError` before any request.
+expo-router's `origin` stays blank. Call the app's routes through `api.*` or
+`authenticatedFetch`: a raw `fetch("/api/…")` has no origin in a native release
+build.
+
 ## Configuration
 
 ```tsx
 import Config from "@/client/config";
 
-Config.apiUrl;          // External API base URL (or "" for local /api/* routes)
+Config.apiUrl;          // Display form of the API base: "/api" on web, "<EXPO_PUBLIC_API_URL>/api" on native, "" when a native release build has none
 Config.catchErrors;     // ErrorBoundary policy
 Config.billingEnabled;  // Stripe billing UI flag (mirrors EXPO_PUBLIC_BILLING_ENABLED)
 ```
@@ -285,8 +297,12 @@ Color tokens live in `packages/ui/src/constants/colors.ts`, imported through
 `@mrmeg/expo-ui/constants`. The primitives, theme hooks, resource-loading hook,
 toast store, and UI helpers ship from the workspace package `@mrmeg/expo-ui`.
 
-The package ships no font files: web loads Inter through Google Fonts from
-`app/+html.tsx` and `useResources()`; native uses system sans-serif fallbacks.
+Fonts: native loads Inter through `useResources()` (from
+`@expo-google-fonts/inter`). Web self-hosts it: `app/+html.tsx` preloads
+`public/fonts/inter/` (copied from the `@fontsource-variable/inter`
+devDependency; a guardrail test fails if they drift) and inlines the
+`@font-face` rules in `<style id="mrmeg-expo-ui-inter">`, the id that makes
+`useResources()` skip injecting its render-blocking Google Fonts stylesheet.
 
 Consumer Expo apps install `@mrmeg/expo-ui` plus the native and Expo peer
 dependencies listed in `packages/ui/package.json` (including `react-native-svg`
@@ -458,9 +474,8 @@ Every profile's `env` sets `EXPO_UNSTABLE_TREE_SHAKING=1` and
 the EAS Update workflow job, so every production bundle is tree-shaken. `.env` is
 gitignored, so its copy of the flags reaches local exports only.
 
-Profile names are load-bearing beyond `eas.json`: `CHANNEL_BY_PROFILE` in
-`app.config.ts` maps `EAS_BUILD_PROFILE` to `extra.updatesChannel`, so renaming
-a profile means updating that map and the profile's `channel` together.
+A build's update channel comes only from its profile's `channel` in `eas.json`;
+`app.config.ts` does not derive one, so renaming a profile needs no config change.
 
 ### Workflows
 
