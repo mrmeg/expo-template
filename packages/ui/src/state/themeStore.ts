@@ -211,19 +211,17 @@ export const useThemeStore = create<ThemeStore>((set) => ({
   }
 }));
 
-let stopSystemThemeListener: (() => void) | null = null;
+// The OS color-scheme listener is shared: one subscription however many
+// callers hold it, removed when the last holder releases. Each
+// `startSystemThemeListener()` call takes a hold and gets its own release.
+let systemThemeSubscription: { remove: () => void } | null = null;
+let systemThemeHolds = 0;
 
 export function syncSystemTheme(): void {
   useThemeStore.getState().setSystemTheme(getSystemTheme());
 }
 
-export function startSystemThemeListener(): () => void {
-  if (stopSystemThemeListener) {
-    return stopSystemThemeListener;
-  }
-
-  syncSystemTheme();
-
+function subscribeToSystemTheme(): { remove: () => void } {
   if (Platform.OS === "web" && typeof window !== "undefined" && typeof window.matchMedia === "function") {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
@@ -232,53 +230,75 @@ export function startSystemThemeListener(): () => void {
 
     if (typeof mediaQuery.addEventListener === "function") {
       mediaQuery.addEventListener("change", onChange);
-      stopSystemThemeListener = () => {
-        mediaQuery.removeEventListener("change", onChange);
-        stopSystemThemeListener = null;
-      };
-    } else {
-      mediaQuery.addListener(onChange);
-      stopSystemThemeListener = () => {
-        mediaQuery.removeListener(onChange);
-        stopSystemThemeListener = null;
-      };
+      return { remove: () => mediaQuery.removeEventListener("change", onChange) };
     }
-
-    return stopSystemThemeListener;
+    mediaQuery.addListener(onChange);
+    return { remove: () => mediaQuery.removeListener(onChange) };
   }
 
-  const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+  return Appearance.addChangeListener(({ colorScheme }) => {
     useThemeStore.getState().setSystemTheme(colorScheme === "dark" ? "dark" : "light");
   });
-
-  stopSystemThemeListener = () => {
-    subscription.remove();
-    stopSystemThemeListener = null;
-  };
-
-  return stopSystemThemeListener;
 }
 
-// Single entry point for host apps to populate the store from the
-// environment (persisted preference + OS color scheme listener). Safe to
-// call multiple times — `startSystemThemeListener` is idempotent — and
-// returns the unsubscribe so it can be used directly inside `useEffect`.
-//
-// The listener starts BEFORE `loadTheme()` on purpose: reading the real OS
-// scheme first means a `system` user resolves straight from the boot-default
-// "light" to their actual scheme in one commit.
+/**
+ * Keep `systemTheme` following the OS color scheme (`prefers-color-scheme` on
+ * web, `Appearance` on native). The first holder reads the current scheme and
+ * attaches the one listener; later calls share it.
+ *
+ * Returns this caller's release: once every holder has released, the
+ * listener is removed. Calling a release again is a no-op, so an effect
+ * cleanup that runs twice can't drop another caller's hold. On native the
+ * package holds the listener for the app's lifetime (see the module-load
+ * init below), so an app's release never stops OS tracking there.
+ */
+export function startSystemThemeListener(): () => void {
+  systemThemeHolds += 1;
+  if (systemThemeHolds === 1) {
+    syncSystemTheme();
+    systemThemeSubscription = subscribeToSystemTheme();
+  }
+
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    systemThemeHolds -= 1;
+    if (systemThemeHolds === 0) {
+      systemThemeSubscription?.remove();
+      systemThemeSubscription = null;
+    }
+  };
+}
+
+/**
+ * Single entry point for host apps to populate the store from the
+ * environment: the OS color-scheme listener plus the persisted preference.
+ *
+ * Web apps call it once, from a top-level `useEffect` (never during render or
+ * at module scope — see below), and return its result as the cleanup:
+ * `useEffect(() => syncThemeFromEnvironment(), [])`. Safe to call more than
+ * once (StrictMode's double effects, two roots): every call shares the one
+ * OS listener, re-reads the persisted preference, and returns its own
+ * cleanup, which releases only that call's hold on the listener.
+ *
+ * The listener starts BEFORE `loadTheme()` on purpose: reading the real OS
+ * scheme first means a `system` user resolves straight from the boot-default
+ * "light" to their actual scheme in one commit.
+ */
 export function syncThemeFromEnvironment(): () => void {
-  const stop = startSystemThemeListener();
+  const release = startSystemThemeListener();
   useThemeStore.getState().loadTheme();
-  return stop;
+  return release;
 }
 
 // Native can read persistence at module load, so keep the historical
-// auto-init behavior there. On web the host app must call
-// `syncThemeFromEnvironment()` from a top-level `useEffect`: web bundles are
-// also evaluated in Node when `expo export` renders the HTML shell, where
-// `window`/`localStorage` don't exist, and reading them during the browser's
-// first render would disagree with the markup being hydrated.
+// auto-init behavior there, with a hold on the OS listener that is never
+// released. On web the host app must call `syncThemeFromEnvironment()` from a
+// top-level `useEffect`: web bundles are also evaluated in Node when
+// `expo export` renders the HTML shell, where `window`/`localStorage` don't
+// exist, and reading them during the browser's first render would disagree
+// with the markup being hydrated.
 if (Platform.OS !== "web") {
   useThemeStore.getState().loadTheme();
   startSystemThemeListener();

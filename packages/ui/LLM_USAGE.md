@@ -74,6 +74,25 @@ avoidance is `react-native-keyboard-controller`, so mount its `KeyboardProvider`
 above `UIProvider`; use `KeyboardAvoidingView` directly only for a subtree with
 custom behavior.
 
+Web setup, two more steps (every web theme color is a `var(--c-*)`, and the
+theme store boots at `"system"`/light so the first client render matches the
+server or exported HTML):
+
+1. `app/+html.tsx`: put `getThemeCssVariables()` (from `constants`) in the
+   global `<style>`, with the same overrides passed to `setColors` if the app
+   re-brands; without it every theme color is unset. Optionally add a blocking
+   inline script that sets `document.documentElement.dataset.theme` from
+   `localStorage[THEME_STORAGE_KEY]` (from `state`) or `prefers-color-scheme`,
+   so the first frame paints in the visitor's scheme.
+2. Root layout: `useEffect(() => syncThemeFromEnvironment(), []);`
+   (`syncThemeFromEnvironment` from `state`). It reads the persisted preference
+   and follows the OS color scheme, and returns its cleanup. Never call it
+   during render or at module scope. Safe to call more than once: calls share
+   one OS listener and each cleanup releases only its own call. `UIProvider`
+   does not call it; without it a web app stays on the boot default until the
+   user picks a theme. Optional on native, which loads the preference at
+   startup.
+
 `DismissKeyboard` owns tap dismissal; its ScrollView uses
 `keyboardShouldPersistTaps="always"` so RN cannot independently blur a hosted
 field after a non-scrolling drag. Use `always` for your own scroll view inside

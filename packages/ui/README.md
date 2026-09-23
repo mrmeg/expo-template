@@ -113,6 +113,45 @@ For a subtree with custom keyboard behavior, use `KeyboardAvoidingView`
 directly (`behavior`, `automaticOffset`, `contentContainerStyle`,
 `keyboardVerticalOffset`).
 
+### Web setup
+
+Web needs two more pieces, because every web theme color is a CSS variable
+(see [Web theming is CSS variables](#web-theming-is-css-variables)) and the
+theme store boots at `"system"`/light so the first client render matches the
+server-rendered or exported HTML:
+
+1. **`app/+html.tsx`: define the variables.** Put `getThemeCssVariables()` (from
+   `constants`) in the document's global `<style>`, passing the same overrides
+   you give `setColors` if you re-brand. Without it every `var(--c-*)` color is
+   unset. A blocking inline script that stamps `data-theme` on `<html>` from
+   the persisted preference (`THEME_STORAGE_KEY`, from `state`) or
+   `prefers-color-scheme` makes the first frame paint in the visitor's scheme
+   before any JS runs.
+2. **Root layout: sync the store after the first commit.** Call
+   `syncThemeFromEnvironment()` (from `state`) in a top-level `useEffect` and
+   return its result as the cleanup. It reads the persisted preference and
+   starts following the OS color scheme. Never call it during render or at
+   module scope: the server has no `window`, and reading it while hydrating
+   would disagree with the markup. It is safe to call more than once
+   (StrictMode's double effects, several roots): the calls share one OS
+   listener, and each cleanup releases only its own call. `UIProvider` does not
+   call it. A web app that skips it stays on the boot default until the user
+   picks a theme. Native loads the preference and follows the OS at startup, so
+   the call is optional there.
+
+```tsx
+// app/+html.tsx (head)
+import { getThemeCssVariables } from "@mrmeg/expo-ui/constants";
+
+<style>{`${getThemeCssVariables()} body { background-color: var(--c-background); }`}</style>
+
+// Root layout
+import { useEffect } from "react";
+import { syncThemeFromEnvironment } from "@mrmeg/expo-ui/state";
+
+useEffect(() => syncThemeFromEnvironment(), []);
+```
+
 ### Keyboard dismissal
 
 `DismissKeyboard` owns tap-away dismissal without claiming touches. Its scroll

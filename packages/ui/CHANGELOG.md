@@ -98,6 +98,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   primitive `Overlay` and drops the keyboard with it. Nothing new is added inside
   the card, so its `gap` layout is unchanged. Web is untouched (no software
   keyboard; the boundary returns no handlers there).
+- **`syncThemeFromEnvironment()` and `startSystemThemeListener()` are safe to
+  call more than once.** Every call after the first returned the same stop
+  function, so the first caller to clean up removed the OS color-scheme
+  listener for everyone, a cleanup run twice could orphan a later caller's
+  listener and let the next call stack a second one, and on native an app's
+  `useEffect(() => syncThemeFromEnvironment(), [])` cleanup (StrictMode's
+  double effects included) removed the listener the package installs at
+  startup. Calls now share one listener, each returns its own idempotent
+  release, and the listener is removed when the last holder releases; the
+  package's native startup hold is never released. Consumer note: a release
+  now drops only that call's hold, so code that relied on one stop function
+  ending OS tracking for every caller must release each call. The web setup
+  (`getThemeCssVariables()` in `+html.tsx`, `syncThemeFromEnvironment()` in a
+  root effect) is now documented in the README and `LLM_USAGE.md`; `UIProvider`
+  still does not call it, so apps that skip it keep their current appearance.
 - **Every package component and hook now compiles under the React Compiler.**
   The compiler skipped any function that read or wrote a ref during render,
   mutated a hook result, or used syntax it can't lower, and 134
