@@ -63,12 +63,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # `build` sets EXPO_UNSTABLE_TREE_SHAKING and EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH
+      # itself, so this measures the same tree-shaken bundle every production build ships.
       - name: Build web export
-        # Match local builds: `.env` (gitignored) enables these flags, so the
-        # baseline is measured tree-shaken and CI must be too.
-        env:
-          EXPO_UNSTABLE_TREE_SHAKING: "1"
-          EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH: "1"
         run: bun run build
 
       - name: Bundle size check

@@ -100,7 +100,7 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `bun run web` | Expo web dev server |
 | `bun run ios` / `bun run android` | Build + run on simulator / emulator |
 | `bun run scan:showcase` | Open React Scan against the local showcase route on port 8081 |
-| `bun run build` | Production web export → `dist/` (client bundle + server output) |
+| `bun run build` | Production web export → `dist/` (client bundle + server output), tree-shaken |
 | `bun run start` | Run the Bun production server (`server.bun.ts`) |
 | `bun run start-local` | Same, with `.env` autoloaded |
 | `bun run typecheck` | `tsc --noEmit` |
@@ -453,6 +453,11 @@ eas build --profile production --platform all
 `cli.appVersionSource` is `remote`, so EAS owns the build number / version code.
 The dev profiles set no `channel` — a dev client pulls JS from the local dev
 server, not from EAS Update.
+
+Every profile's `env` sets `EXPO_UNSTABLE_TREE_SHAKING=1` and
+`EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1`, as do `bun run build` / `build-web` and
+the EAS Update workflow job, so every production bundle is tree-shaken. `.env` is
+gitignored, so its copy of the flags reaches local exports only.
 
 Profile names are load-bearing beyond `eas.json`: `CHANNEL_BY_PROFILE` in
 `app.config.ts` maps `EAS_BUILD_PROFILE` to `extra.updatesChannel`, so renaming
