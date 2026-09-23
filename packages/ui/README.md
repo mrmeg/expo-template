@@ -624,9 +624,12 @@ web, where the window cannot be read during export or hydration.
   sheet height rather than a window-percentage cap. `BottomSheet.Content` also
   takes `backgroundStyle`, merged over the themed card default on the native
   sheet surface (web panel, Android `containerColor`, iOS
-  `presentationBackground`) — pass `{ backgroundColor: "transparent" }`, plus a
-  `style` clearing the content column's card fill, to let custom chrome such as
-  a glass backdrop show through.
+  `presentationBackground`). That surface is the sheet's only background: the
+  content column paints no fill of its own, so a translucent card reads as one
+  layer from the grabber down (a second, column-level fill made the 16 pt
+  strip behind the iOS grabber a different shade), and
+  `{ backgroundColor: "transparent" }` alone lets custom chrome such as a glass
+  backdrop show through.
 - `Dialog` and `AlertDialog` present their content through React Native's
   `Modal` on iOS, rendered inline where the dialog sits in the tree
   (transparent, `overFullScreen`, no animation of its own; the package's fade

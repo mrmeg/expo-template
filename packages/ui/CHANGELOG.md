@@ -9,6 +9,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`BottomSheet.Content` paints no fill of its own; the native surface set
+  through `backgroundStyle` is the sheet's only background.** `@expo/ui`'s iOS
+  sheet lays the hosted RN column out 16 pt below the sheet's top edge while the
+  native grabber is shown, so the column's own card fill covered everything
+  below that line and the strip behind the grabber showed the native
+  `presentationBackground` alone. Opaque theme colors matched and hid the seam,
+  but a translucent card, or a translucent `backgroundStyle`, read as two layers
+  below the line and one above it: a differently shaded band behind the grabber
+  in every app with a glass-style sheet (iPhone 17 simulator, iOS 27, `@expo/ui`
+  58.0.2, 60% card: strip 30,30,32 over a 24,24,27 body; one continuous
+  30,30,32 surface from the rim down after the change). Web (vaul panel) and
+  Android (`containerColor`) already paint the surface natively, so the column
+  fill was redundant there too. `backgroundStyle={{ backgroundColor:
+  "transparent" }}` no longer needs a `style` clearing the column; content sits
+  directly on the transparent surface, so add a fill inside the content if a
+  card behind it was intended.
 - **iOS `Dialog` and `AlertDialog` present through React Native's `Modal`, so
   `@expo/ui`-hosted controls inside them mount and take focus.** Both dialogs
   rendered through react-native-screens' `FullWindowOverlay` on iOS, which adds

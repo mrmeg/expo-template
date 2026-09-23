@@ -255,6 +255,22 @@ describe("BottomSheet.Content backgroundStyle", () => {
       backgroundColor: "transparent",
     });
   });
+
+  it("leaves the content column unfilled so the native surface is the only background", async () => {
+    // @expo/ui's iOS sheet starts the hosted column 16pt below the sheet's top
+    // edge while the native grabber is shown; a column-level fill made a
+    // translucent card read as two layers below that line and one above it.
+    await render(
+      <BottomSheet open>
+        <BottomSheet.Content testID="sheet-column">
+          <Text>Sheet content</Text>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+
+    const style = StyleSheet.flatten(screen.getByTestId("sheet-column").props.style);
+    expect(style.backgroundColor).toBeUndefined();
+  });
 });
 
 describe("BottomSheet.Body keyboard taps", () => {

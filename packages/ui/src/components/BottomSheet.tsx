@@ -193,11 +193,12 @@ interface BottomSheetContentProps extends ViewProps {
   /** Accepted for call-site ergonomics; ignored (platform owns keyboard). */
   dismissKeyboardOnDrag?: boolean;
   /**
-   * Style for the native sheet surface behind the RN content — the web (vaul)
-   * panel, Android `containerColor`, iOS `presentationBackground`. Merged over
-   * the themed card default, so `{ backgroundColor: "transparent" }` lets a
-   * custom chrome (e.g. a glass backdrop) show through. The RN content column
-   * paints its own card fill too; clear that via `style`.
+   * Style for the native sheet surface — the web (vaul) panel, Android
+   * `containerColor`, iOS `presentationBackground`. Merged over the themed card
+   * default. This is the sheet's only background: the RN content column paints
+   * no fill of its own, so a translucent color here reads as one layer from the
+   * grabber down, and `{ backgroundColor: "transparent" }` lets custom chrome
+   * (e.g. a glass backdrop) show through with nothing to clear via `style`.
    */
   backgroundStyle?: StyleProp<ViewStyle>;
   style?: StyleProp<ViewStyle>;
@@ -690,12 +691,13 @@ function BottomSheetContent({
           <View
             testID={testID}
             style={[
-              {
-                flex: 1,
-                // Themes the content surface across all platforms regardless of
-                // native sheet chrome.
-                backgroundColor: theme.colors.card,
-              },
+              // No fill of its own: the native surface (`backgroundStyle`) is
+              // the sheet's only background. On iOS the hosted column starts
+              // 16 pt below the sheet's top edge when the native grabber is
+              // shown, so a second, column-level fill made a translucent card
+              // read as two layers below that line and one above it — a
+              // differently colored strip behind the grabber.
+              { flex: 1 },
               Platform.OS !== "android" && { maxHeight: detentHeight },
               styleOverride,
             ]}
