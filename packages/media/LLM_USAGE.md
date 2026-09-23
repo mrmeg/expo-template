@@ -123,13 +123,14 @@ server entrypoints need no React or Expo peer. Test seams:
 
 ## Repo Validation And Publishing
 
-Run `packages:peer-check`, `media:typecheck`, `media:test`, `media:build`,
-`media:pack`, `media:consumer-smoke` in order; the smoke covers a minimal
-core/server/worker install plus a fully provisioned packed package, and CI covers
-Expo 55, 56, and 57 consumers. Release with
-`bun run media:release -- --patch [--publish]`.
-`.github/workflows/publish-media.yml` reruns those gates then `npm publish` on
-pushes to `main` that change `packages/media/package.json`, or on
-`workflow_dispatch`, using trusted publishing with an `NPM_TOKEN` fallback. Before
-the package exists on npm, push runs skip unless `NPM_TOKEN` is set: make the
-first publish a manual run with `NPM_TOKEN`, then configure trusted publishing.
+Run `bun run packages:peer-check`, then `bun run pkg media <gate>` for
+`typecheck`, `test`, `build`, `pack`, `consumer-smoke` in order; the smoke covers
+a minimal core/server/worker install plus a fully provisioned packed package, and
+CI covers Expo 55, 56, 57, and 58 consumers. Release with
+`bun run pkg media release -- --patch [--publish]`, which packs one tarball,
+smokes it, and publishes that file. `.github/workflows/publish-packages.yml` runs
+the same release on pushes to `main` that change the media version, or on a
+manual run with `package=media`, then publishes the tarball with provenance
+through trusted publishing (workflow filename `publish-packages.yml`) with an
+`NPM_TOKEN` fallback. Changing the manifest's dependencies, peers, exports, or
+files needs a version bump: `packages:drift-check` fails otherwise.

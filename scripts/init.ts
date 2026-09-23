@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env bun
 /**
  * Project init CLI — turns a fresh clone of the template into a named project.
  *

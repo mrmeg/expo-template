@@ -149,9 +149,9 @@ upload a native file URI; FFmpeg only in web `convertVideo()`. Test seams:
 
 ```sh
 bun run packages:peer-check
-bun run media:typecheck
-bun run media:test
-bun run media:build
-bun run media:pack
-bun run media:consumer-smoke
+bun run pkg media typecheck
+bun run pkg media test
+bun run pkg media build
+bun run pkg media pack
+bun run pkg media consumer-smoke
 ```

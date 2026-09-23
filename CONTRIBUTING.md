@@ -22,24 +22,73 @@ Double quotes, always semicolons (ESLint-enforced), 2-space indentation.
 
 ## PR Checklist
 
-- [ ] `bun run verify` passes (peer check, typecheck, lint, feature isolation, template + block registry and LLM docs freshness, README version drift, tests — CI's `validate` gates in CI order)
+- [ ] `bun run verify` passes — the [verify gates](#verify-gates) below, which are exactly what CI's `validate` job runs
 - [ ] Web tested (`bun run web`)
 - [ ] iOS/Android tested if touching native code
 - [ ] New components include showcase demos
 - [ ] No secrets or credentials committed
-- [ ] CI green — `.github/workflows/ci.yml` runs the same gates plus the web build + bundle-size delta
+- [ ] CI green — `.github/workflows/ci.yml` runs `bun run verify` plus the web build + bundle-size delta
+
+## Verify gates
+
+`bun run verify` runs these in order and prints a PASS/FAIL summary; CI's
+`validate` job runs `bun run verify` and nothing else. This table is the one
+list the other docs link to, and `scripts/__tests__/verify.test.ts` fails when it
+stops matching `bun run verify --list`. Rerun any gate on its own as
+`bun run <gate>`.
+
+<!-- verify-gates:start -->
+| # | Gate | Checks |
+|---|------|--------|
+| 1 | `packages:peer-check` | Every package import is a declared dependency or peer, and the peer ranges accept each compatibility profile's versions |
+| 2 | `packages:drift-check` | A package version already on npm still has the dependencies, peers, peer meta, exports, and files npm shipped — contents never change without a bump. Warns instead of failing when the registry is unreachable, except in CI |
+| 3 | `typecheck` | `tsc --noEmit` over the app |
+| 4 | `pkg ui typecheck` | `@mrmeg/expo-ui` against its own tsconfig |
+| 5 | `pkg media typecheck` | `@mrmeg/expo-media` against its own tsconfig |
+| 6 | `pkg purchases typecheck` | `@mrmeg/expo-purchases` against its own tsconfig |
+| 7 | `pkg lint typecheck` | `@mrmeg/eslint-plugin-expo-ui` against its own tsconfig |
+| 8 | `lint` | `expo lint` over `app/` (run `bun lint:ui` for `client/` and `shared/`) |
+| 9 | `check:features` | Feature-folder isolation |
+| 10 | `gen --check` | Every generated artifact is fresh: icon registry, template and block registries, `llms-full.txt` / `llms-examples.txt`. Fix with `bun run gen` |
+| 11 | `docs:versions:check` | `README.md`'s version claims match `package.json` |
+| 12 | `test:ci` | `jest --ci --forceExit`, no coverage (`bun run test:coverage` when you want the report). `--forceExit` because some suites leave timers that hold a single-worker run open for minutes |
+<!-- verify-gates:end -->
+
+`bun run verify --bail` stops at the first failure; `--max-workers <n>` caps
+jest's workers on a shared machine.
+
+## Packages
+
+Package tasks run through one runner, for every package in
+`scripts/lib/workspacePackages.mjs` (`ui`, `media`, `purchases`, `lint`):
+
+```bash
+bun run pkg <package> typecheck|test|build|pack|consumer-smoke|release
+bun run pkg ui release -- --patch            # bump + every gate, no publish
+```
+
+The older `<package>:<task>` root scripts remain as shims over the same runner
+for automation outside this repo; docs and scripts in the repo use `pkg`.
+
+`release` bumps the version, runs the package's gates, packs one tarball, and
+runs the consumer smoke against it; `--publish` then publishes that tarball.
+CI does the same from `.github/workflows/publish-packages.yml` — see
+[README.md#publishing-packages](README.md#publishing-packages). Changing a
+package's dependencies, peers, exports, or files means bumping its version:
+`packages:drift-check` fails otherwise once that version is on npm.
 
 ## Testing
 
 ```bash
 bun jest --watchAll                     # interactive
 bun jest --testPathPattern=path/to/test # single file
-bun run test:ci                         # CI-style with coverage
+bun run test:ci                         # the CI gate: jest --ci --forceExit
+bun run test:coverage                   # the same run with a coverage report
 ```
 
 - Tests live in `__tests__/` directories next to source, or as `*.test.ts(x)` siblings.
-- `bun run verify` runs the same suite without coverage.
-- Coverage spans `client/**`, `app/api/**`, `server/**`, `shared/**`, `packages/ui/src/**`, `packages/media/src/**`, and `packages/purchases/src/**`, so route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing) stay observable — not just UI code.
+- `bun run verify` runs the suite as its last gate.
+- Coverage (`bun run test:coverage`) spans `client/**`, `app/api/**`, `server/**`, `shared/**`, `packages/ui/src/**`, `packages/media/src/**`, and `packages/purchases/src/**`, so route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing) stay observable — not just UI code.
 - Need a stable theme without mounting providers? `import "@/test/mockTheme";` at the top of the file mocks `useTheme` with a fixed light-scheme palette.
 - Keep coverage on reusable surfaces: design-system primitives (Card, Badge, EmptyState, Skeleton, RadioGroup, …), the form primitive trio (`FormProvider` + `FormTextInput` + `FormCheckbox`), and screen templates (Welcome, Error, List, …). Avoid snapshot-only tests — assert visible behaviour or interaction outcomes.
 
@@ -78,7 +127,7 @@ Docs index: `AGENTS.md`. Modernization reference:
 ## Adding a New Screen Template Or Demo
 
 1. Scaffold: `bun run generate screen <Name>` — writes `client/templates/<kebab>/Screen.tsx` (reusable, props-driven `<Name>Screen`), `demo.tsx` (what the route renders), `meta.ts` (registry metadata), and the route `app/(main)/(demos)/screen-<kebab>.tsx`. Standalone demos can be hand-written directly under `app/(main)/(demos)/`.
-2. Fill in `meta.ts` (description, icon, order), then `bun run gen:templates` to regenerate `client/templates/registry.generated.ts` (codegen; `gen:templates:check` gates CI and `bun run verify`).
+2. Fill in `meta.ts` (description, icon, order), then `bun run gen:templates` to regenerate `client/templates/registry.generated.ts` (codegen; `bun run gen` regenerates every artifact, and its `--check` gates CI and `bun run verify`).
 3. Add a Stack entry in `app/(main)/_layout.tsx` if you need a deep link beyond the demo route.
 4. A hand-written demo instead needs an entry in `DEMOS` in `client/showcase/registry.ts` to reach the Explore tab. The registry test enforces unique ids/routes and that every documented route maps to a real `.tsx` file.
 

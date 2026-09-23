@@ -210,7 +210,7 @@ manifest of a published release:
   `packages/ui/src` is already on disk and the default `uiSourceDir` resolves.
 
 A checked-in manifest is a third option: build one with
-`bun run ui:build` in a checkout of this repo, commit
+`bun run pkg ui build` in a checkout of this repo, commit
 `dist/design-system.json` into the project, and point
 `settings["expo-ui"].manifestPath` at it.
 
@@ -572,39 +572,42 @@ The plugin has the same release path as the other two workspace packages, driven
 by [`scripts/release-package.mjs`](../../scripts/release-package.mjs):
 
 ```sh
-bun run lint:typecheck        # tsc -p packages/lint/tsconfig.json
-bun run lint:test             # jest packages/lint
-bun run lint:build            # require("./index.js") — the load smoke
-bun run lint:pack             # bun pm pack --dry-run
-bun run lint:consumer-smoke   # both tarballs in a temp project
-bun run lint:release -- --patch --publish
+bun run pkg lint typecheck        # tsc -p packages/lint/tsconfig.json
+bun run pkg lint test             # jest packages/lint
+bun run pkg lint build            # require("./index.js") — the load smoke
+bun run pkg lint pack             # bun pm pack --dry-run
+bun run pkg lint consumer-smoke   # both tarballs in a temp project
+bun run pkg lint release -- --patch --publish
 ```
 
-`lint:release` bumps the version, updates `bun.lock`, runs
-`packages:peer-check` and the five gates above in order, then publishes with
-`npm publish --access public`. Without `--publish` it is a dry run. (The
-unrelated `bun run lint` and `bun lint:ui` scripts run ESLint; they are not part
-of this.)
+`pkg lint release` bumps the version, updates `bun.lock`, runs
+`packages:peer-check` and the typecheck, test, and build gates in order, packs
+one tarball, runs the consumer smoke against it, then publishes that tarball
+with `npm publish <tarball> --access public`. Without `--publish` it is a dry
+run. (The unrelated `bun run lint` and `bun lint:ui` scripts run ESLint; they
+are not part of this.)
 
-Two notes on the gates. `lint:build` is a load smoke, not a build — the package
-ships the `.js` it is written in. `lint:typecheck` runs with `checkJs: false`
+Two notes on the gates. `pkg lint build` is a load smoke, not a build — the package
+ships the `.js` it is written in. `pkg lint typecheck` runs with `checkJs: false`
 ([`tsconfig.json`](tsconfig.json)): the rules and AST helpers annotate ESTree
 nodes as `object` and index string keys into literal maps, so checking the JSDoc
 reports dozens of type errors that are not defects; the gate is a
 parse-and-resolve pass over the shipped files instead. The repo's own `bun run typecheck`
 covers `packages/lint/__tests__/*.ts` as TypeScript.
 
-`lint:consumer-smoke` is the interesting one: it packs *both* this package and
+`pkg lint consumer-smoke` is the interesting one: it packs *both* this package and
 `packages/ui`, installs them into a throwaway project with no design-system
 sources, and asserts the four rules fire with the right counts, that a message
 names `@mrmeg/expo-ui/components/Button.tsx`, and that `--doctor` reports
 `manifest @mrmeg/expo-ui@…`. That is the manifest path proven end to end from a
 consumer's position.
 
-[`.github/workflows/publish-lint.yml`](../../.github/workflows/publish-lint.yml)
-runs the same gates in CI. It is **`workflow_dispatch` only**: the sibling
-workflows also trigger on a push that changes their package's `package.json`,
-which is added here once the first release exists on npm. The first publish needs
-npm access configured — an `NPM_TOKEN` secret with publish rights, since
-package-level trusted publishing cannot be set up for a package npm does not have
-yet.
+[`.github/workflows/publish-packages.yml`](../../.github/workflows/publish-packages.yml)
+runs the same release in CI for every workspace package, publishes the smoked
+tarball with provenance, and tags `eslint-plugin-expo-ui-v<version>`. A push to
+`main` never makes a package's first publish, so this one's first release is a
+manual run (`package=lint`, `version=0.1.0`) and needs npm access configured — an
+`NPM_TOKEN` secret with publish rights, since package-level trusted publishing
+cannot be set up for a package npm does not have yet. After that, configure
+trusted publishing with workflow filename `publish-packages.yml`; later version
+bumps on `main` publish on push.

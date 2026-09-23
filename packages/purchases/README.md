@@ -448,14 +448,14 @@ compared with a resubmission.
 
 ```sh
 bun run packages:peer-check
-bun run purchases:typecheck
-bun run purchases:test
-bun run purchases:build
-bun run purchases:pack
-bun run purchases:consumer-smoke
+bun run pkg purchases typecheck
+bun run pkg purchases test
+bun run pkg purchases build
+bun run pkg purchases pack
+bun run pkg purchases consumer-smoke
 ```
 
-`purchases:consumer-smoke` installs the packed tarball into two clean
+`pkg purchases consumer-smoke` installs the packed tarball into two clean
 fixtures: a peer-free one proving `/server` loads and parses a webhook without
 React Native, zustand, or either RevenueCat SDK present, and a fully
 provisioned one that type-checks every documented entrypoint. It also verifies
@@ -466,30 +466,32 @@ packed consumers against Expo 57 and 58.
 ## Package Release
 
 ```sh
-bun run purchases:release -- --patch [--publish]
+bun run pkg purchases release -- --patch [--publish]
 ```
 
 Accepts `--patch`, `--minor`, `--major`, or an exact `x.y.z`; the default bump
-is patch. It updates `packages/purchases/package.json` and `bun.lock`, then
-runs `packages:peer-check` and the `typecheck`, `test`, `build`, `pack`, and
-`consumer-smoke` gates. Without `--publish` it stops after the gates. A clean
-working tree is required unless `--allow-dirty` is passed.
+is patch, and the committed version itself releases without a bump. It updates
+`packages/purchases/package.json` and `bun.lock`, then runs
+`packages:peer-check` and the `typecheck`, `test`, and `build` gates, packs one
+tarball, and runs the consumer smoke against it. `--publish` publishes that same
+tarball; without it the command stops after the gates. A clean working tree is
+required unless `--allow-dirty` is passed.
 
 ## GitHub Publishing
 
-The `Publish Purchases Package` workflow
-(`.github/workflows/publish-purchases.yml`) is `workflow_dispatch` only: it
-bumps `patch`, `minor`, `major`, or an exact version, runs
-`packages:peer-check` and the purchases gates, publishes with
-`npm publish --access public`, and commits the bump back to the selected
-branch. It has no `push` trigger yet because the package has never been
-published, and npm has no settings page for trusted publishing until it
-exists.
+The `Publish Packages` workflow (`.github/workflows/publish-packages.yml`)
+publishes every workspace package: on pushes to `main` that change a package's
+version, and on manual runs (`package`, `version`, `ref`) that bump, commit the
+bump to `ref`, and release. Each release runs the release script above, then
+publishes the smoked tarball with provenance
+(`npm publish <tarball> --provenance --access public`) and tags
+`expo-purchases-v<version>`.
 
-First publish: add a repository secret `NPM_TOKEN` with publish access to the
-`@mrmeg` scope, run the workflow manually with `version=0.1.0` and
-`ref=main` (or `bun run purchases:release -- 0.1.0 --publish` locally after
-`npm login`). Then configure npm trusted publishing for owner `mrmeg`,
-repository `expo-template`, workflow filename `publish-purchases.yml`, and add
-the same `push` block `publish-media.yml` has so later version bumps on `main`
-publish automatically.
+A push never makes a package's first publish, and npm has no settings page for
+trusted publishing until the package exists. First publish: add a repository
+secret `NPM_TOKEN` with publish access to the `@mrmeg` scope, run the workflow
+manually with `package=purchases`, `version=0.1.0`, and `ref=main` (or
+`bun run pkg purchases release -- 0.1.0 --publish` locally after `npm login`).
+Then configure npm trusted publishing for owner `mrmeg`, repository
+`expo-template`, workflow filename `publish-packages.yml`; later version bumps
+on `main` publish automatically.

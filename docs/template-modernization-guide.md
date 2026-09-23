@@ -218,10 +218,10 @@ bun run typecheck
 bun run lint
 bun run check:features
 bun run test:ci
-bun run ui:typecheck
-bun run ui:test
-bun run media:typecheck
-bun run media:test
+bun run pkg ui typecheck
+bun run pkg ui test
+bun run pkg media typecheck
+bun run pkg media test
 bun run build
 bun run bundle-size
 ```
