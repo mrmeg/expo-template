@@ -296,8 +296,12 @@ Color tokens live in `packages/ui/src/constants/colors.ts`, imported through
 `@mrmeg/expo-ui/constants`. The primitives, theme hooks, resource-loading hook,
 toast store, and UI helpers ship from the workspace package `@mrmeg/expo-ui`.
 
-The package ships no font files: web loads Inter through Google Fonts from
-`app/+html.tsx` and `useResources()`; native uses system sans-serif fallbacks.
+Fonts: native loads Inter through `useResources()` (from
+`@expo-google-fonts/inter`). Web self-hosts it: `app/+html.tsx` preloads
+`public/fonts/inter/` (copied from the `@fontsource-variable/inter`
+devDependency; a guardrail test fails if they drift) and inlines the
+`@font-face` rules in `<style id="mrmeg-expo-ui-inter">`, the id that makes
+`useResources()` skip injecting its render-blocking Google Fonts stylesheet.
 
 Package validation:
 
