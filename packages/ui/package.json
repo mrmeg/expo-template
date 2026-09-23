@@ -44,42 +44,105 @@
   ],
   "exports": {
     ".": {
+      "@mrmeg/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./components": {
+      "@mrmeg/source": "./src/components/index.ts",
       "types": "./dist/components/index.d.ts",
       "default": "./dist/components/index.js"
     },
+    "./components/bottomSheetDismiss": {
+      "@mrmeg/source": "./src/components/bottomSheetDismiss.ts",
+      "types": "./dist/components/bottomSheetDismiss.d.ts",
+      "default": "./dist/components/bottomSheetDismiss.js"
+    },
+    "./components/bottomSheetHostSupport": {
+      "@mrmeg/source": "./src/components/bottomSheetHostSupport.ts",
+      "types": "./dist/components/bottomSheetHostSupport.d.ts",
+      "default": "./dist/components/bottomSheetHostSupport.js"
+    },
+    "./components/iconRegistry.generated": {
+      "@mrmeg/source": "./src/components/iconRegistry.generated.ts",
+      "types": "./dist/components/iconRegistry.generated.d.ts",
+      "default": "./dist/components/iconRegistry.generated.js"
+    },
+    "./components/index": {
+      "@mrmeg/source": "./src/components/index.ts",
+      "types": "./dist/components/index.d.ts",
+      "default": "./dist/components/index.js"
+    },
+    "./components/keyboardController": {
+      "@mrmeg/source": {
+        "react-native": "./src/components/keyboardController.native.ts",
+        "default": "./src/components/keyboardController.ts"
+      },
+      "types": "./dist/components/keyboardController.d.ts",
+      "default": "./dist/components/keyboardController.js"
+    },
+    "./components/keyboardDismiss": {
+      "@mrmeg/source": "./src/components/keyboardDismiss.ts",
+      "types": "./dist/components/keyboardDismiss.d.ts",
+      "default": "./dist/components/keyboardDismiss.js"
+    },
+    "./components/keyboardFocusRegistry": {
+      "@mrmeg/source": "./src/components/keyboardFocusRegistry.ts",
+      "types": "./dist/components/keyboardFocusRegistry.d.ts",
+      "default": "./dist/components/keyboardFocusRegistry.js"
+    },
+    "./components/StyledText.context": {
+      "@mrmeg/source": "./src/components/StyledText.context.ts",
+      "types": "./dist/components/StyledText.context.d.ts",
+      "default": "./dist/components/StyledText.context.js"
+    },
     "./components/*": {
+      "@mrmeg/source": "./src/components/*.tsx",
       "types": "./dist/components/*.d.ts",
       "default": "./dist/components/*.js"
     },
     "./constants": {
+      "@mrmeg/source": "./src/constants/index.ts",
       "types": "./dist/constants/index.d.ts",
       "default": "./dist/constants/index.js"
     },
     "./constants/*": {
+      "@mrmeg/source": "./src/constants/*.ts",
       "types": "./dist/constants/*.d.ts",
       "default": "./dist/constants/*.js"
     },
     "./hooks": {
+      "@mrmeg/source": "./src/hooks/index.ts",
       "types": "./dist/hooks/index.d.ts",
       "default": "./dist/hooks/index.js"
     },
+    "./hooks/useReduceMotion": {
+      "@mrmeg/source": "./src/hooks/useReduceMotion.tsx",
+      "types": "./dist/hooks/useReduceMotion.d.ts",
+      "default": "./dist/hooks/useReduceMotion.js"
+    },
     "./hooks/*": {
+      "@mrmeg/source": "./src/hooks/*.ts",
       "types": "./dist/hooks/*.d.ts",
       "default": "./dist/hooks/*.js"
     },
     "./state": {
+      "@mrmeg/source": "./src/state/index.ts",
       "types": "./dist/state/index.d.ts",
       "default": "./dist/state/index.js"
     },
+    "./state/themeColorScope": {
+      "@mrmeg/source": "./src/state/themeColorScope.tsx",
+      "types": "./dist/state/themeColorScope.d.ts",
+      "default": "./dist/state/themeColorScope.js"
+    },
     "./state/*": {
+      "@mrmeg/source": "./src/state/*.ts",
       "types": "./dist/state/*.d.ts",
       "default": "./dist/state/*.js"
     },
     "./lib": {
+      "@mrmeg/source": "./src/lib/index.ts",
       "types": "./dist/lib/index.d.ts",
       "default": "./dist/lib/index.js"
     },

@@ -23,6 +23,7 @@ import {
   Pressable,
   ActivityIndicator,
   Platform,
+  // eslint-disable-next-line expo-ui/no-raw-primitives -- full-screen player over black forces light status-bar content; the design-system StatusBar follows the theme
   StatusBar,
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";

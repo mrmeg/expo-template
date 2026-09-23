@@ -3,6 +3,7 @@ import {
   View,
   StyleSheet,
   ScrollView,
+  // eslint-disable-next-line expo-ui/no-raw-primitives -- moving this screen to the design-system KeyboardAvoidingView changes native keyboard handling and needs an on-device check first
   KeyboardAvoidingView,
   Platform,
 } from "react-native";

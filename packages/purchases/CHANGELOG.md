@@ -3,6 +3,20 @@
 All notable changes to `@mrmeg/expo-purchases` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Relative imports in the built `.d.ts` files carry `.js` or `/index.js`, so a
+  consumer on `moduleResolution: nodenext` gets the real types instead of
+  `any` (28 were extension-less).
+
+### Changed
+
+- `exports` entries list a repo-only `@mrmeg/source` condition first, pointing
+  at `src`, for the template's own builds and tests. Consumers never set it and
+  resolve the same `dist` files.
+
 ## [0.1.0]
 
 First release. The RevenueCat client, entitlement state, gating, and pure
