@@ -163,6 +163,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   decorative exactly like a named icon. No API change: `component` is the name
   the package already used, so there is no `as` alias.
 
+- **Built output resolves under Node ESM and `moduleResolution: nodenext`.**
+  The build left 97 relative imports in the `.d.ts` files extension-less, which
+  NodeNext cannot resolve: `skipLibCheck` hid the errors and the symbols behind
+  them became `any`. They now carry `.js` or `/index.js`. In the JavaScript, the
+  15 imports of dotted module names (`./StyledText.context`,
+  `./iconRegistry.generated`) kept no extension because `.context` read as one;
+  they now end in `.js`, so Node can load `components/*` outside a bundler.
+  Platform-split imports (`./keyboardController`, `./nativeTextField`) stay
+  extension-less, as Metro needs. Nothing to change for consumers.
+
+### Changed
+
+- `exports` entries list a repo-only `@mrmeg/source` condition first, pointing
+  at `src`, and gain exact keys for the nine modules the `components/*`,
+  `hooks/*`, and `state/*` patterns cannot map to a source file (a `.ts` module
+  under a `*.tsx` pattern, and the reverse). Without the condition — every
+  consumer toolchain — each key resolves to the same `dist` files as before.
+
 ## [0.27.1]
 
 ### Fixed

@@ -89,14 +89,20 @@ async function assertFileExists(path, label) {
   }
 }
 
+/**
+ * The repo-only export condition that points at `src`. Consumers never set it,
+ * and `src` is not in the tarball, so its targets are not a consumer surface.
+ */
+const SOURCE_CONDITION = "@mrmeg/source";
+
 function resolveExportTargets(exportValue, wildcardReplacement = "") {
   if (typeof exportValue === "string") {
     return [exportValue.replace("*", wildcardReplacement)];
   }
 
-  return Object.values(exportValue)
-    .filter((target) => typeof target === "string")
-    .map((target) => target.replace("*", wildcardReplacement));
+  return Object.entries(exportValue)
+    .filter(([condition, target]) => condition !== SOURCE_CONDITION && typeof target === "string")
+    .map(([, target]) => target.replace("*", wildcardReplacement));
 }
 
 /**
@@ -635,6 +641,11 @@ const PACKAGES = {
         key: "./processing/video-conversion",
       },
       {
+        // Not a module: the FFmpeg worker script the app serves same-origin.
+        entrypoint: "@mrmeg/expo-media/processing/video-conversion/ffmpeg-worker.js",
+        key: "./processing/video-conversion/ffmpeg-worker.js",
+      },
+      {
         entrypoint: "@mrmeg/expo-media/processing/video-thumbnails",
         key: "./processing/video-thumbnails",
       },
@@ -666,6 +677,12 @@ const PACKAGES = {
             "}",
             "if (!worker.createMediaWorker || !worker.createKvTokenAuthorizer) {",
             "  throw new Error('Minimal worker consumer could not load the worker entrypoint');",
+            "}",
+            "// What a consumer's metro.config.js or server does to serve the FFmpeg worker.",
+            "const { createRequire } = await import('node:module');",
+            "const ffmpegWorker = createRequire(import.meta.url).resolve('@mrmeg/expo-media/processing/video-conversion/ffmpeg-worker.js');",
+            "if (!ffmpegWorker.endsWith('/dist/processing/videoConversion/ffmpeg-worker.js')) {",
+            "  throw new Error(`FFmpeg worker resolved to ${ffmpegWorker}`);",
             "}",
             "",
           ].join("\n"),
@@ -839,10 +856,11 @@ const PACKAGES = {
             private: true,
             dependencies: {
               "@mrmeg/eslint-plugin-expo-ui": tarball,
-              // The packed tarball, not the root manifest's `workspace:*`: this
-              // fixture is outside the workspace.
-              "@mrmeg/expo-ui": extraTarballs.ui,
               ...peerDependencies,
+              // The packed tarball, not the root manifest's `workspace:*`: this
+              // fixture is outside the workspace. After the peers, because
+              // `@mrmeg/expo-ui` is one of them.
+              "@mrmeg/expo-ui": extraTarballs.ui,
               // `@typescript-eslint/parser` peer-depends on typescript, and this
               // fixture omits peers, so it has to be asked for by name.
               typescript: rootPackage.devDependencies.typescript,

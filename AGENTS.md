@@ -41,7 +41,7 @@ unless the user asks for a plan.
 | UI | `@mrmeg/expo-ui` workspace package | RN primitives, design tokens, theme state, reusable components |
 | Media | `@mrmeg/expo-media` workspace package | Client hooks, processing helpers, S3/R2 server handlers |
 | Purchases | `@mrmeg/expo-purchases` workspace package | RevenueCat client, entitlement store, paywall gating, pure webhook/ledger helpers; optional peers `react-native-purchases` / `react-native-purchases-ui`, not used by the template app |
-| Lint | `@mrmeg/eslint-plugin-expo-ui` workspace package | Design-system ESLint rules; `bun lint:ui` for `app`, `client`, `shared`; published alongside `@mrmeg/expo-ui`; reads `packages/ui/src` here and `dist/design-system.json` in consumers |
+| Lint | `@mrmeg/eslint-plugin-expo-ui` workspace package | Design-system ESLint rules; `bun lint:ui` for `app`, `client`, `shared`; publishable but not yet on npm (first release pending); reads `packages/ui/src` here and `dist/design-system.json` in consumers |
 | State/data | Zustand 5, TanStack React Query 5 | Persisted client stores; query defaults in app providers |
 | Auth | Clerk or AWS Amplify/Cognito | Optional; env-selected (Clerk publishable key, or both Cognito vars; Cognito wins if both) behind a shared `AuthClient`/`TokenVerifier` |
 | Billing | Stripe hosted-external baseline | Optional; disabled unless Stripe/server env is configured |
