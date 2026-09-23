@@ -1,0 +1,222 @@
+/**
+ * Pure helpers for a RevenueCat webhook receiver: request authorization, payload
+ * parsing, and an entitlement reducer. No React, React Native, Node, or SDK
+ * imports, so the same code runs in Expo API routes, Express, Convex HTTP
+ * actions, Cloudflare Workers, and Jest. Lifted from Mindmap
+ * `convex/revenuecatEvents.ts` with the entitlement id made a parameter and the
+ * event widened to the fields NeuroSpicy's processor reads.
+ *
+ * Webhook reference: https://www.revenuecat.com/docs/integrations/webhooks
+ */
+
+/** Event types that grant or extend access until `expiration_at_ms`. */
+export const GRANT_EVENT_TYPES: ReadonlySet<string> = new Set([
+  "INITIAL_PURCHASE",
+  "RENEWAL",
+  "UNCANCELLATION",
+  "PRODUCT_CHANGE",
+  "NON_RENEWING_PURCHASE",
+  "SUBSCRIPTION_EXTENDED",
+  "TEMPORARY_ENTITLEMENT_GRANT",
+  // App Store undoing a refund: the customer keeps the purchase and
+  // `expiration_at_ms` carries the restored term end.
+  "REFUND_REVERSED",
+]);
+
+/** Event types that end access. There is no REFUND type: a refund is a CANCELLATION (see `isRefundCancellation`). */
+export const REVOKE_EVENT_TYPES: ReadonlySet<string> = new Set(["EXPIRATION"]);
+
+/** CamelCase view of the webhook `event` object. Unset fields are null, arrays empty. */
+export interface RevenueCatWebhookEvent {
+  id: string;
+  type: string;
+  /** Empty only for TRANSFER events. */
+  appUserId: string;
+  originalAppUserId: string | null;
+  aliases: string[];
+  productId: string | null;
+  entitlementIds: string[];
+  /** NORMAL, TRIAL, INTRO, PROMOTIONAL. */
+  periodType: string | null;
+  purchasedAtMs: number | null;
+  expirationAtMs: number | null;
+  eventTimestampMs: number;
+  /** SANDBOX or PRODUCTION. */
+  environment: string | null;
+  /** APP_STORE, PLAY_STORE, STRIPE, … */
+  store: string | null;
+  originalTransactionId: string | null;
+  /** On CANCELLATION: UNSUBSCRIBE, BILLING_ERROR, CUSTOMER_SUPPORT, … */
+  cancelReason: string | null;
+  /** On EXPIRATION: UNSUBSCRIBE, BILLING_ERROR, CUSTOMER_SUPPORT, … */
+  expirationReason: string | null;
+  /** Gross price in USD (RevenueCat converts); 0 for trials. */
+  price: number | null;
+  priceInPurchasedCurrency: number | null;
+  currency: string | null;
+  /** 1 for the first paid period, incremented per renewal. */
+  renewalNumber: number | null;
+  /** True on the RENEWAL that converts a trial to paid. */
+  isTrialConversion: boolean | null;
+  countryCode: string | null;
+  offerCode: string | null;
+  transferredFrom: string[];
+  transferredTo: string[];
+  /** The event object as received, minus `subscriber_attributes`. */
+  raw: Record<string, unknown>;
+}
+
+export interface EntitlementRecord {
+  /** Access until this ms timestamp; null = no access recorded, or lifetime when set by a grant with no expiry. */
+  until: number | null;
+  productId: string | null;
+  /** `event_timestamp_ms` of the last applied event, for out-of-order protection. */
+  updatedAt: number | null;
+}
+
+export type EntitlementReduction =
+  | { action: "skip"; reason: "not-entitlement" | "stale" | "no-op" }
+  | { action: "set"; next: EntitlementRecord };
+
+/**
+ * Constant-time comparison of the request's `Authorization` header with the
+ * configured secret. Accepts the bare secret or `Bearer <secret>`, which is how
+ * the dashboard field is usually filled in.
+ */
+export function isAuthorizedWebhook(header: string | null | undefined, secret: string): boolean {
+  if (!header || !secret) return false;
+  return timingSafeEqual(header, secret) || timingSafeEqual(header, `Bearer ${secret}`);
+}
+
+export function timingSafeEqual(a: string, b: string): boolean {
+  const length = Math.max(a.length, b.length);
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < length; i += 1) {
+    diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  }
+  return diff === 0;
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function asNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function asBoolean(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+/** Parse a webhook body. Returns null when the payload is not a RevenueCat event. */
+export function parseRevenueCatWebhook(body: unknown): RevenueCatWebhookEvent | null {
+  if (!body || typeof body !== "object") return null;
+  const event = (body as { event?: unknown }).event;
+  if (!event || typeof event !== "object") return null;
+  const e = event as Record<string, unknown>;
+
+  const id = asString(e.id);
+  const type = asString(e.type);
+  const appUserId = asString(e.app_user_id);
+  const eventTimestampMs = asNumber(e.event_timestamp_ms);
+  if (!id || !type || !eventTimestampMs) return null;
+  if (!appUserId && type !== "TRANSFER") return null;
+
+  const entitlementIds = asStringArray(e.entitlement_ids);
+  const legacyEntitlement = asString(e.entitlement_id);
+  if (legacyEntitlement && !entitlementIds.includes(legacyEntitlement)) {
+    entitlementIds.push(legacyEntitlement);
+  }
+
+  const { subscriber_attributes: _attributes, ...raw } = e;
+
+  return {
+    id,
+    type,
+    appUserId: appUserId ?? "",
+    originalAppUserId: asString(e.original_app_user_id),
+    aliases: asStringArray(e.aliases),
+    productId: asString(e.product_id),
+    entitlementIds,
+    periodType: asString(e.period_type),
+    purchasedAtMs: asNumber(e.purchased_at_ms),
+    expirationAtMs: asNumber(e.expiration_at_ms),
+    eventTimestampMs,
+    environment: asString(e.environment),
+    store: asString(e.store),
+    originalTransactionId: asString(e.original_transaction_id),
+    cancelReason: asString(e.cancel_reason),
+    expirationReason: asString(e.expiration_reason),
+    price: asNumber(e.price),
+    priceInPurchasedCurrency: asNumber(e.price_in_purchased_currency),
+    currency: asString(e.currency),
+    renewalNumber: asNumber(e.renewal_number),
+    isTrialConversion: asBoolean(e.is_trial_conversion),
+    countryCode: asString(e.country_code),
+    offerCode: asString(e.offer_code),
+    transferredFrom: asStringArray(e.transferred_from),
+    transferredTo: asStringArray(e.transferred_to),
+    raw,
+  };
+}
+
+/**
+ * Decide how an event changes a user's stored entitlement.
+ *
+ * - Grants set `until` to the event's expiration (null = no expiry).
+ * - EXPIRATION sets it to the expiration, falling back to the event time.
+ * - CANCELLATION / BILLING_ISSUE / SUBSCRIPTION_PAUSED / TEST leave access in
+ *   place until the following EXPIRATION arrives.
+ * - Events older than the last applied one are ignored (webhook retries can
+ *   arrive out of order); an equal timestamp is applied (idempotent retry).
+ */
+export function reduceEntitlement(
+  current: EntitlementRecord,
+  event: RevenueCatWebhookEvent,
+  options: { entitlement: string },
+): EntitlementReduction {
+  if (event.type !== "TRANSFER" && !event.entitlementIds.includes(options.entitlement)) {
+    return { action: "skip", reason: "not-entitlement" };
+  }
+  if (current.updatedAt !== null && event.eventTimestampMs < current.updatedAt) {
+    return { action: "skip", reason: "stale" };
+  }
+
+  if (GRANT_EVENT_TYPES.has(event.type)) {
+    return {
+      action: "set",
+      next: {
+        until: event.expirationAtMs,
+        productId: event.productId ?? current.productId,
+        updatedAt: event.eventTimestampMs,
+      },
+    };
+  }
+
+  if (REVOKE_EVENT_TYPES.has(event.type)) {
+    return {
+      action: "set",
+      next: {
+        until: event.expirationAtMs ?? event.eventTimestampMs,
+        productId: event.productId ?? current.productId,
+        updatedAt: event.eventTimestampMs,
+      },
+    };
+  }
+
+  return { action: "skip", reason: "no-op" };
+}
+
+/**
+ * TRANSFER moves purchases between app user ids. The losing side is revoked
+ * with this record; the receiving side is refreshed by the SDK on device and by
+ * the next subscription event RevenueCat emits for it.
+ */
+export function revokedByTransfer(event: RevenueCatWebhookEvent): EntitlementRecord {
+  return { until: event.eventTimestampMs, productId: null, updatedAt: event.eventTimestampMs };
+}

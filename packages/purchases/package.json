@@ -1,0 +1,88 @@
+{
+  "name": "@mrmeg/expo-purchases",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Reusable RevenueCat purchases client, entitlement state, paywall gating, and pure webhook/ledger helpers for Expo apps.",
+  "keywords": [
+    "expo",
+    "react-native",
+    "revenuecat",
+    "in-app-purchases",
+    "paywall",
+    "subscriptions",
+    "webhook"
+  ],
+  "author": "Matt Megenhardt",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrmeg/expo-template.git",
+    "directory": "packages/purchases"
+  },
+  "bugs": {
+    "url": "https://github.com/mrmeg/expo-template/issues"
+  },
+  "homepage": "https://github.com/mrmeg/expo-template/tree/main/packages/purchases",
+  "type": "module",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "package.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LLM_USAGE.md",
+    "llms.txt",
+    "llms-full.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "jest --config ../../jest.config.js packages/purchases/src --runInBand --watchman=false",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-package-esm.mjs purchases",
+    "publish:dry-run": "bun pm pack --dry-run"
+  },
+  "peerDependencies": {
+    "react": ">=19.2.0 <20.0.0",
+    "react-native": ">=0.83.0 <0.89.0 || >=0.88.0-0 <0.89.0",
+    "react-native-purchases": ">=10.0.0 <11.0.0",
+    "react-native-purchases-ui": ">=10.0.0 <11.0.0",
+    "zustand": ">=5.0.0 <6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-native": {
+      "optional": true
+    },
+    "react-native-purchases": {
+      "optional": true
+    },
+    "react-native-purchases-ui": {
+      "optional": true
+    },
+    "zustand": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.18",
+    "react-native-purchases": "10.10.1",
+    "react-native-purchases-ui": "10.10.1",
+    "typescript": "~6.0.3"
+  }
+}
