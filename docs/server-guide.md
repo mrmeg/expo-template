@@ -69,8 +69,7 @@ Two route-level rules follow. `expo-server` answers every unmatched `GET` with `
 |---------|------|
 | `bun run web` | `expo start --web` — dev server renders routes and runs loaders, middleware, and API routes in place |
 | `bun run build` | `expo export -p web --output-dir dist` with an 8 GB Node heap |
-| `bun run start` | `bun ./server.bun.ts`, the production entry |
-| `bun run start-local` | Same entry, `.env` autoloaded |
+| `bun run start` | `bun ./server.bun.ts`, the production entry; Bun loads `.env` itself |
 | `bun run serve:ssr` | `expo serve` — local preview of `dist/` without the Bun entry's layers |
 
 `server.bun.ts` wraps `createRequestHandler({ build: "dist/server" })` from `expo-server/adapter/bun` in `Bun.serve` and serves `dist/client` statics. It owns what Expo's request handler does not:

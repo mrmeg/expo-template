@@ -101,8 +101,7 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `bun run ios` / `bun run android` | Build + run on simulator / emulator |
 | `bun run scan:showcase` | Open React Scan against the local showcase route on port 8081 |
 | `bun run build` | Production web export → `dist/` (client bundle + server output), tree-shaken |
-| `bun run start` | Run the Bun production server (`server.bun.ts`) |
-| `bun run start-local` | Same, with `.env` autoloaded |
+| `bun run start` | Run the Bun production server (`server.bun.ts`); Bun loads `.env` itself |
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run lint` | `expo lint` (ESLint flat config; lints `app/` only by default — pass paths to widen) |
 | `bun lint:ui` | Design-system rules only, over `app`, `client`, `shared`; `--changed` for touched files, `--doctor` to check wiring — see [`packages/lint/README.md`](packages/lint/README.md) |
