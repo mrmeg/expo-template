@@ -82,7 +82,13 @@ with `expo-file-system`), so the `maxBytes` check is not web-only. Native PUTs u
 `createMediaQueryHooks({ client, queryKeyNamespace = "media" })` → `useMediaList`,
 `useSignedMediaUrls` (alias `useSignedUrls`), `useMediaUpload`, `useMediaDelete`,
 `useMediaDeleteBatch`, `queryKeys`; mutations invalidate the list queries and
-queries retry via `shouldRetryMediaError`. Hooks throw `MediaError` with
+queries retry via `shouldRetryMediaError`. `useSignedMediaUrls` caches URLs per
+object key: a changed list signs only keys no cached list has a fresh URL for,
+shows the cached ones meanwhile (`isPlaceholderData`), serves a fully cached
+list without a request, and sets `staleTime` from the URLs' lifetime
+(`X-Amz-Expires`, `X-Goog-Expires`, `Expires`) less 10% (at most five minutes);
+`data.urlExpiresAt` holds each expiry. Invalidating `queryKeys.signedUrls(keys,
+path)` or `[namespace, "signed-urls"]` re-signs every key. Hooks throw `MediaError` with
 `problem.kind` `disabled`, `bad-request`, `unauthorized`, `forbidden`, or
 `unknown`. The app supplies the single `QueryClientProvider`.
 
@@ -132,7 +138,8 @@ unknown UA, 11180 Firefox, 16384 Chromium/desktop Safari) and never emits WebP;
 web decodes HEIC with `heic2any` while the native encoder decodes HEIF itself; web
 transcodes `webm`, `avi`, `mkv`, `ogv`, `wmv`, `flv`, `3gp` to MP4 up to 500 MB
 (`MAX_CLIENT_CONVERSION_SIZE`) and needs `FFMPEG_WORKER_URL`
-(`/_expo/static/js/web/ffmpeg-worker.js`) served same-origin, while
+(`/_expo/static/js/web/ffmpeg-worker.js`) served same-origin — the script ships
+as `@mrmeg/expo-media/processing/video-conversion/ffmpeg-worker.js` — while
 `convertVideo()` throws on native; a failed conversion falls back to an
 allowlisted source and otherwise rejects the asset; thumbnails use `<video>` +
 canvas on web and `createVideoPlayer().generateThumbnailsAsync()` +

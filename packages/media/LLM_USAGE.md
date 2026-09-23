@@ -67,7 +67,11 @@ const hooks = createMediaQueryHooks({ client: mediaClient });
 Hooks: `useMediaUpload` (web `Blob`/`File` and native URI uploads),
 `useMediaList`, `useSignedMediaUrls`, `useMediaDelete`, `useMediaDeleteBatch`.
 The app provides the single `QueryClientProvider` so hooks share its query
-context.
+context. `useSignedMediaUrls` caches URLs per object key: a changed key list
+signs only keys without a fresh cached URL (unchanged items keep theirs and are
+not re-downloaded), shows the cached ones as placeholder data meanwhile, and
+stays fresh for the URLs' own lifetime less a margin. Invalidating
+`queryKeys.signedUrls(keys, path)` still re-signs every key.
 
 Always send `size`; it is what the server's `maxBytes` check reads. Omitted,
 `upload()` measures the payload, native file URIs included (`resolveUploadSize`
@@ -110,8 +114,11 @@ default), `highQuality`, `none`; the app picks its own product default.
 
 Web video conversion needs `FFMPEG_WORKER_URL`
 (`/_expo/static/js/web/ffmpeg-worker.js`) served same-origin by Metro and
-production; it falls back to the original when unavailable and the source type is
-allowlisted, otherwise rejects the asset. `convertVideo()` throws on native.
+production; the script ships as
+`@mrmeg/expo-media/processing/video-conversion/ffmpeg-worker.js`
+(`require.resolve` it, serve its text). It falls back to the original when
+unavailable and the source type is allowlisted, otherwise rejects the asset.
+`convertVideo()` throws on native.
 
 Heavy features load lazily: `heic2any` only in web HEIC conversion; `expo-video`
 and `expo-image-manipulator` only from the native-only thumbnail dependency

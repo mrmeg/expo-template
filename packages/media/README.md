@@ -56,6 +56,14 @@ Monorepo consumers use workspace resolution:
 { "dependencies": { "@mrmeg/expo-media": "workspace:*" } }
 ```
 
+Each `exports` entry lists a `@mrmeg/source` condition first, pointing at `src`.
+Only this repo enables it — tsconfig `customConditions`, Metro
+`resolver.unstable_conditionNames`, and the Jest resolver — so the template
+builds and tests the sources without a package build. `src` is not published
+and no other toolchain sets the condition, so an installed release resolves
+`dist` exactly as before; a workspace that does not enable it needs
+`bun run media:build` first. `dist` is build output and is not committed.
+
 ## Public Imports
 
 ```ts
@@ -417,6 +425,23 @@ retries through `shouldRetryMediaError`. The app must provide a single
 `@tanstack/react-query` `QueryClientProvider`; React Query is a peer so the hooks
 share the app's query context.
 
+`useSignedMediaUrls({ mediaKeys, path?, enabled? })` is keyed on the whole list
+(`queryKeys.signedUrls(keys, path)`) but caches URLs per object key. When the
+list changes — an upload adds a key, a delete removes one — the new list reuses
+every fresh URL any cached list holds for the same `path` and signs only the
+rest, so an unchanged item keeps its URL and is not downloaded again. While
+those sign, `data` holds the reused URLs (`isPlaceholderData` is true) instead
+of `undefined`; a list the cache covers entirely starts with data and makes no
+request. `staleTime` is the time until the first URL is due for replacement:
+its lifetime, read off the URL (`X-Amz-Expires`, which the handlers set from
+`readExpiresInSeconds`; `X-Goog-Expires`; or an `Expires` timestamp), less 10%
+of it and at most five minutes. A URL that states no lifetime is never reused,
+and its list keeps the client's default `staleTime`. `data.urlExpiresAt` holds
+each URL's expiry in epoch milliseconds on the device clock
+(`SignedMediaUrlsData`). Invalidating keeps its meaning: invalidate
+`queryKeys.signedUrls(keys, path)`, or `[namespace, "signed-urls"]`, and the
+refetch re-signs every key; invalidated lists are never reused.
+
 Uploads use the content-type contract:
 
 ```ts
@@ -562,10 +587,10 @@ that is not smaller. A format conversion therefore always wins, even when larger
   rejected only if that source type is not in the video allowlist.
 - Web video conversion needs the FFmpeg worker served same-origin at
   `FFMPEG_WORKER_URL` (`/_expo/static/js/web/ffmpeg-worker.js`) in Metro and in
-  the production server; the ~30 MB FFmpeg core is fetched lazily from
-  `cdn.jsdelivr.net` (`@ffmpeg/core@0.12.6`), which CSP must allow.
-  `FFmpegWorkerUnavailableError` is exported from both platform builds so
-  `instanceof` checks stay platform-safe.
+  the production server — see [FFmpeg worker](#ffmpeg-worker); the ~30 MB
+  FFmpeg core is fetched lazily from `cdn.jsdelivr.net` (`@ffmpeg/core@0.12.6`),
+  which CSP must allow. `FFmpegWorkerUnavailableError` is exported from both
+  platform builds so `instanceof` checks stay platform-safe.
 - `extractVideoThumbnail(uri, timeMs = 1000)` uses `<video>` + canvas on web and
   `createVideoPlayer().generateThumbnailsAsync()` plus `expo-image-manipulator`
   on native, saving the frame as JPEG to a cache-file URI. A thumbnail failure
@@ -574,6 +599,42 @@ that is not smaller. A format conversion therefore always wins, even when larger
   multi-asset selections; each in-flight asset holds a full-resolution bitmap.
   Results stay in input order. Catch `MediaProcessingError` per asset so one bad
   photo does not fail the batch.
+
+### FFmpeg worker
+
+`convertVideo()` loads FFmpeg's worker from the app's own origin: it fetches
+`FFMPEG_WORKER_URL` and wraps the script in a blob URL (the cross-origin worker
+workaround from ffmpeg.wasm issue #694). The script ships in the package at
+`dist/processing/videoConversion/ffmpeg-worker.js`, exported as
+`@mrmeg/expo-media/processing/video-conversion/ffmpeg-worker.js` so the app's
+Node-side code can find it wherever the package is installed. It is not a
+module to import — serve its text as `application/javascript`:
+
+```js
+// metro.config.js — development
+const fs = require("node:fs");
+const FFMPEG_WORKER_URL = "/_expo/static/js/web/ffmpeg-worker.js"; // the package's FFMPEG_WORKER_URL
+const workerSource = fs.readFileSync(
+  require.resolve("@mrmeg/expo-media/processing/video-conversion/ffmpeg-worker.js"),
+  "utf8",
+);
+config.server = {
+  ...config.server,
+  enhanceMiddleware: (middleware) => (req, res, next) => {
+    if (req.url?.split("?")[0] === FFMPEG_WORKER_URL) {
+      res.setHeader("Content-Type", "application/javascript");
+      return res.end(workerSource);
+    }
+    return middleware(req, res, next);
+  },
+};
+```
+
+In production, answer the same path from the server in front of the export
+(this repo's `server.bun.ts` does it through `server/ffmpegWorker.js`), or copy
+the file to `public/_expo/static/js/web/ffmpeg-worker.js` so the static export
+carries it. Without it, conversion fails with `FFmpegWorkerUnavailableError`
+and the upload falls back to the original file where the allowlist accepts it.
 
 ### Lower-Level Entry Points
 
@@ -646,9 +707,12 @@ bun run media:consumer-smoke
 `media:consumer-smoke` installs the packed tarball into two clean fixtures: a
 peer-free one proving core, `/server`, and `/worker` load without React Native or
 Expo, and a fully provisioned one that type-checks every documented entrypoint. It
-also verifies export-map files, root runtime imports, and that the installed
-package ships `README.md`, `CHANGELOG.md`, `LLM_USAGE.md`, `llms.txt`, and
-`llms-full.md`. CI installs packed consumers against Expo 55, 56, and 57.
+also verifies export-map files (the FFmpeg worker included, resolved the way a
+`metro.config.js` would), root runtime imports, and that the installed package
+ships `README.md`, `CHANGELOG.md`, `LLM_USAGE.md`, `llms.txt`, and
+`llms-full.md`. CI installs packed consumers against Expo 55, 56, 57, and 58.
+`scripts/__tests__/nodenextConsumer.test.ts` type-checks every public entry
+point of the built declarations under `moduleResolution: nodenext`.
 
 ## Package Release
 

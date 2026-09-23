@@ -3,6 +3,73 @@
 All notable changes to `@mrmeg/expo-media` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2]
+
+### Fixed
+
+- **Web `convertVideo()` has a worker to load.** `ffmpeg-worker.js`, which
+  `convertVideo()` fetches from `FFMPEG_WORKER_URL`
+  (`/_expo/static/js/web/ffmpeg-worker.js`), was never in the published package,
+  so an app installing it from npm had nothing to serve at that URL and every
+  web conversion failed with `FFmpegWorkerUnavailableError`. It now ships at
+  `dist/processing/videoConversion/ffmpeg-worker.js` and is exported as
+  `@mrmeg/expo-media/processing/video-conversion/ffmpeg-worker.js`, so a
+  `metro.config.js` or server can `require.resolve()` it. **Upgrade:** serve
+  that file same-origin at `FFMPEG_WORKER_URL` in development (Metro
+  middleware) and production; the README's "FFmpeg worker" section has both.
+  Nothing changes for an app that does not convert video on web.
+- **Types under `moduleResolution: node16`/`nodenext`.** The built declarations
+  imported each other extension-less (`./handlers`, `import(".")`), which
+  NodeNext cannot resolve; `skipLibCheck` hid the errors and every symbol behind
+  them — `createMediaHandlers`, `createMediaConfig`, the hook result types —
+  became `any`. All 63 relative specifiers in the `.d.ts` files now carry `.js`
+  or `/index.js`.
+  Nothing to change: bundler-resolution consumers were already typed, NodeNext
+  ones now are, and a call that only compiled because it was `any` may now
+  report a real type error.
+- **Peer ranges cover Expo SDK 58 and React Native 0.88.** 0.5.1 as published
+  declared `expo`, `expo-file-system`, `expo-image-manipulator`, and
+  `expo-video` as `>=55.0.0 <58.0.0` and `react-native` as `>=0.83.0 <0.87.0`,
+  so an SDK 58 app got peer warnings or refused installs. They are now
+  `>=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0` and
+  `>=0.83.0 <0.89.0 || >=0.88.0-0 <0.89.0` (the prerelease tuple admits the SDK
+  58 beta and the 0.88 RC). Lower bounds are unchanged.
+
+### Changed
+
+- **`useSignedMediaUrls` (and its `useSignedUrls` alias) caches signed URLs per
+  object key.** The query key is still the whole key list, so an upload or a
+  delete — which changes the list — used to start a new query that re-signed
+  every key; a re-signed URL is a new URL, so every image downloaded again. Now
+  a list fetching for the first time signs only the keys no cached list holds
+  a fresh URL for, and unchanged items keep their URL. While the new keys sign,
+  `data` holds the cached URLs for the rest (`isPlaceholderData` is true)
+  instead of `undefined`; a list the cache can serve entirely (after a delete)
+  starts with data and makes no request. `staleTime` follows the URLs' own
+  lifetime — `X-Amz-Expires` / `X-Goog-Expires`, or an `Expires` timestamp —
+  less 10% of it, at most five minutes; URLs that state no lifetime are never
+  reused and keep the client's default `staleTime`. The hook's data type is
+  `SignedMediaUrlsData`: `SignedMediaUrlsResult` plus `urlExpiresAt` (epoch ms on
+  the device clock, per key). `queryKeys.signedUrls(keys, path)` and
+  invalidation mean what they did: invalidating a list, or
+  `[namespace, "signed-urls"]`, re-signs every key of it, and invalidated lists
+  are never reused. **Upgrade:** nothing required. A screen that showed a
+  loading state for a changed key list sees `isPlaceholderData` with partial
+  `data` instead.
+- `exports` entries list a repo-only `@mrmeg/source` condition first, pointing
+  at `src`; the template enables it to build and test the sources. No consumer
+  toolchain sets it and `src` is not published, so every entry resolves to the
+  same `dist` file as before.
+
+### Notes
+
+- The template's media library hook (`client/features/media`, not part of this
+  package) now creates asset ids with `globalThis.crypto.randomUUID()` on web
+  through a platform file, so `expo-crypto` no longer lands in the web bundle's
+  shared chunk; native still uses `expo-crypto`. The package itself never
+  depended on `expo-crypto`. An app that copied that hook can make the same
+  split.
+
 ## [0.5.1]
 
 ### Fixed

@@ -105,7 +105,7 @@
     },
     "packages/media": {
       "name": "@mrmeg/expo-media",
-      "version": "0.5.1",
+      "version": "0.5.2",
       "dependencies": {
         "aws4fetch": "^1.0.20",
         "ulid": "^3.0.2",
