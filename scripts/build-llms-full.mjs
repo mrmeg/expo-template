@@ -81,6 +81,7 @@ const exampleDirs = [
 const serverFiles = [
   "app.config.ts",
   "server.bun.ts",
+  "server/http/createHandler.ts",
   "server/rateLimits.js",
   "app/+middleware.ts",
   "app/+html.tsx",
