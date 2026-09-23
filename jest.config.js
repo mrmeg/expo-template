@@ -5,34 +5,17 @@ module.exports = {
   // Setup files run after test environment is set up
   setupFilesAfterEnv: ["<rootDir>/test/setup.ts"],
 
-  // Module path aliases matching tsconfig
+  // The `@/*` alias from tsconfig. Workspace packages are not mapped: they
+  // resolve through their own `exports` maps, and the resolver below enables the
+  // repo-only `@mrmeg/source` condition that points those maps at `src`.
   moduleNameMapper: {
-    "^@mrmeg/expo-ui$": "<rootDir>/packages/ui/src/index.ts",
-    "^@mrmeg/expo-ui/components$": "<rootDir>/packages/ui/src/components/index.ts",
-    "^@mrmeg/expo-ui/components/(.*)$": "<rootDir>/packages/ui/src/components/$1",
-    "^@mrmeg/expo-ui/constants$": "<rootDir>/packages/ui/src/constants/index.ts",
-    "^@mrmeg/expo-ui/hooks$": "<rootDir>/packages/ui/src/hooks/index.ts",
-    "^@mrmeg/expo-ui/state$": "<rootDir>/packages/ui/src/state/index.ts",
-    "^@mrmeg/expo-ui/state/(.*)$": "<rootDir>/packages/ui/src/state/$1",
-    "^@mrmeg/expo-ui/lib$": "<rootDir>/packages/ui/src/lib/index.ts",
-    "^@mrmeg/expo-media$": "<rootDir>/packages/media/src/index.ts",
-    "^@mrmeg/expo-media/client$": "<rootDir>/packages/media/src/client/index.ts",
-    "^@mrmeg/expo-media/react-query$": "<rootDir>/packages/media/src/react-query/index.ts",
-    "^@mrmeg/expo-media/processing/image-compression$":
-      "<rootDir>/packages/media/src/processing/imageCompression/index.ts",
-    "^@mrmeg/expo-media/processing/image-compression/config$":
-      "<rootDir>/packages/media/src/processing/imageCompression/config.ts",
-    "^@mrmeg/expo-media/processing/video-conversion$":
-      "<rootDir>/packages/media/src/processing/videoConversion/index.ts",
-    "^@mrmeg/expo-media/processing/video-thumbnails$":
-      "<rootDir>/packages/media/src/processing/videoThumbnails.ts",
-    "^@mrmeg/expo-media/processing$": "<rootDir>/packages/media/src/processing/index.ts",
-    "^@mrmeg/expo-media/server$": "<rootDir>/packages/media/src/server/index.ts",
-    "^@mrmeg/expo-media/worker$": "<rootDir>/packages/media/src/worker/index.ts",
-    "^@mrmeg/expo-purchases$": "<rootDir>/packages/purchases/src/index.ts",
-    "^@mrmeg/expo-purchases/server$": "<rootDir>/packages/purchases/src/server/index.ts",
     "^@/(.*)$": "<rootDir>/$1",
   },
+
+  // The React Native preset's resolver plus the `@mrmeg/source` export
+  // condition (see test/resolver.js for why it cannot be a
+  // `testEnvironmentOptions.customExportConditions` entry).
+  resolver: "<rootDir>/test/resolver.js",
 
   // Transform files with babel
   transformIgnorePatterns: [
@@ -74,7 +57,6 @@ module.exports = {
     "packages/purchases/src/**/*.{ts,tsx}",
     "!client/**/*.d.ts",
     "!client/**/index.ts",
-    "!client/devtools/**",
     "!app/api/**/index.ts",
     "!server/**/*.test.{js,ts}",
     "!shared/**/*.d.ts",

@@ -8,7 +8,6 @@ const { withSentryResolver } = require("@sentry/react-native/metro");
 const path = require("path");
 
 const config = getDefaultConfig(__dirname);
-const useLocalUiSource = process.env.EXPO_UI_LOCAL_SOURCE === "1";
 const appNodeModules = path.resolve(__dirname, "node_modules");
 const resolveAppPackage = (packageName) =>
   fs.realpathSync(path.resolve(appNodeModules, packageName));
@@ -26,30 +25,50 @@ const resolvePackageFrom = (packageName, fromPackageName) => {
   );
 };
 
-// LOCAL UI PACKAGE DEVELOPMENT ONLY.
+// ============================================================================
+// Workspace packages resolve to their sources
+// ============================================================================
+// packages/ui, packages/media, and packages/purchases list a repo-only
+// "@mrmeg/source" condition first in every `exports` entry, pointing at `src`.
+// Enabling it makes Metro bundle the workspace sources (no package build) through
+// the same export map consumers resolve — a subpath the map does not export
+// fails here too. Consumers never set the condition and get `dist`.
+// tsconfig.json (`customConditions`) and test/resolver.js enable it as well.
 //
-// This block is only needed when working on packages/ui from inside this
-// monorepo and you want Metro to read package source directly:
-// EXPO_UI_LOCAL_SOURCE=1 bun run web
-//
-// Forked apps and external consumers should resolve @mrmeg/expo-ui through
-// package.json exports instead. If your fork does not edit packages/ui, delete
-// this entire EXPO_UI_LOCAL_SOURCE block and the path import above if unused.
-if (useLocalUiSource) {
-  const uiPackageRoot = path.resolve(__dirname, "packages/ui");
-  const uiPackagePath = path.join(uiPackageRoot, "src");
+// A fork that installs the packages from npm instead of editing them can delete
+// this block.
+const WORKSPACE_SOURCE_CONDITION = "@mrmeg/source";
 
-  config.watchFolders = Array.from(
-    new Set([...(config.watchFolders || []), uiPackageRoot])
-  );
-  config.resolver = {
-    ...config.resolver,
-    extraNodeModules: {
-      ...(config.resolver.extraNodeModules || {}),
-      "@mrmeg/expo-ui": uiPackagePath,
+config.resolver.unstable_conditionNames = Array.from(
+  new Set([
+    ...(config.resolver.unstable_conditionNames || []),
+    WORKSPACE_SOURCE_CONDITION,
+  ])
+);
+
+// Expo replaces the condition list for server bundles — API routes and
+// server rendering get ["node"], React Server Components
+// ["node", "react-server", "workerd"] — so the list above never reaches them.
+// Add the condition back per request; client bundles already carry it.
+const workspaceUpstreamResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  const resolve = workspaceUpstreamResolveRequest || context.resolveRequest;
+  const conditions = context.unstable_conditionNames || [];
+  if (conditions.includes(WORKSPACE_SOURCE_CONDITION)) {
+    return resolve(context, moduleName, platform);
+  }
+  return resolve(
+    {
+      ...context,
+      unstable_conditionNames: [...conditions, WORKSPACE_SOURCE_CONDITION],
     },
-  };
-}
+    moduleName,
+    platform
+  );
+};
+// ============================================================================
+// END workspace packages
+// ============================================================================
 
 config.resolver.nodeModulesPaths = Array.from(
   new Set([appNodeModules, ...(config.resolver.nodeModulesPaths || [])])

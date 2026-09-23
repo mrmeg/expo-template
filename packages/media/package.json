@@ -41,42 +41,52 @@
   ],
   "exports": {
     ".": {
+      "@mrmeg/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./client": {
+      "@mrmeg/source": "./src/client/index.ts",
       "types": "./dist/client/index.d.ts",
       "default": "./dist/client/index.js"
     },
     "./react-query": {
+      "@mrmeg/source": "./src/react-query/index.ts",
       "types": "./dist/react-query/index.d.ts",
       "default": "./dist/react-query/index.js"
     },
     "./processing": {
+      "@mrmeg/source": "./src/processing/index.ts",
       "types": "./dist/processing/index.d.ts",
       "default": "./dist/processing/index.js"
     },
     "./processing/image-compression": {
+      "@mrmeg/source": "./src/processing/imageCompression/index.ts",
       "types": "./dist/processing/imageCompression/index.d.ts",
       "default": "./dist/processing/imageCompression/index.js"
     },
     "./processing/image-compression/config": {
+      "@mrmeg/source": "./src/processing/imageCompression/config.ts",
       "types": "./dist/processing/imageCompression/config.d.ts",
       "default": "./dist/processing/imageCompression/config.js"
     },
     "./processing/video-conversion": {
+      "@mrmeg/source": "./src/processing/videoConversion/index.ts",
       "types": "./dist/processing/videoConversion/index.d.ts",
       "default": "./dist/processing/videoConversion/index.js"
     },
     "./processing/video-thumbnails": {
+      "@mrmeg/source": "./src/processing/videoThumbnails.ts",
       "types": "./dist/processing/videoThumbnails.d.ts",
       "default": "./dist/processing/videoThumbnails.js"
     },
     "./server": {
+      "@mrmeg/source": "./src/server/index.ts",
       "types": "./dist/server/index.d.ts",
       "default": "./dist/server/index.js"
     },
     "./worker": {
+      "@mrmeg/source": "./src/worker/index.ts",
       "types": "./dist/worker/index.d.ts",
       "default": "./dist/worker/index.js"
     }

@@ -7,56 +7,19 @@
     "paths": {
       "@/*": [
         "./*"
-      ],
-      "@mrmeg/expo-ui": [
-        "./packages/ui/src/index.ts"
-      ],
-      "@mrmeg/expo-ui/components": [
-        "./packages/ui/src/components/index.ts"
-      ],
-      "@mrmeg/expo-ui/components/*": [
-        "./packages/ui/src/components/*"
-      ],
-      "@mrmeg/expo-ui/constants": [
-        "./packages/ui/src/constants/index.ts"
-      ],
-      "@mrmeg/expo-ui/hooks": [
-        "./packages/ui/src/hooks/index.ts"
-      ],
-      "@mrmeg/expo-ui/state": [
-        "./packages/ui/src/state/index.ts"
-      ],
-      "@mrmeg/expo-ui/state/*": [
-        "./packages/ui/src/state/*"
-      ],
-      "@mrmeg/expo-ui/lib": [
-        "./packages/ui/src/lib/index.ts"
-      ],
-      "@mrmeg/expo-media": [
-        "./packages/media/src/index.ts"
-      ],
-      "@mrmeg/expo-media/client": [
-        "./packages/media/src/client/index.ts"
-      ],
-      "@mrmeg/expo-media/react-query": [
-        "./packages/media/src/react-query/index.ts"
-      ],
-      "@mrmeg/expo-media/processing": [
-        "./packages/media/src/processing/index.ts"
-      ],
-      "@mrmeg/expo-media/server": [
-        "./packages/media/src/server/index.ts"
-      ],
-      "@mrmeg/expo-media/worker": [
-        "./packages/media/src/worker/index.ts"
-      ],
-      "@mrmeg/expo-purchases": [
-        "./packages/purchases/src/index.ts"
-      ],
-      "@mrmeg/expo-purchases/server": [
-        "./packages/purchases/src/server/index.ts"
       ]
     },
+    // Workspace packages (`@mrmeg/expo-ui`, `@mrmeg/expo-media`,
+    // `@mrmeg/expo-purchases`) resolve through their own `exports` maps, whose
+    // repo-only `@mrmeg/source` condition points at `src` — the same condition
+    // Metro (metro.config.js) and Jest (test/resolver.js) enable. Consumers never
+    // set it and get `dist`. `react-native` is expo/tsconfig.base's own
+    // condition; listing `customConditions` here replaces that list rather than
+    // extending it.
+    "customConditions": [
+      "react-native",
+      "@mrmeg/source"
+    ],
     "noImplicitAny": false,
     "jsx": "react-native",
     "types": [
@@ -72,8 +35,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "nativewind-env.d.ts"
+    ".expo/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

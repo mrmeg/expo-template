@@ -86,14 +86,20 @@ async function assertFileExists(path, label) {
   }
 }
 
+/**
+ * The repo-only export condition that points at `src`. Consumers never set it,
+ * and `src` is not in the tarball, so its targets are not a consumer surface.
+ */
+const SOURCE_CONDITION = "@mrmeg/source";
+
 function resolveExportTargets(exportValue, wildcardReplacement = "") {
   if (typeof exportValue === "string") {
     return [exportValue.replace("*", wildcardReplacement)];
   }
 
-  return Object.values(exportValue)
-    .filter((target) => typeof target === "string")
-    .map((target) => target.replace("*", wildcardReplacement));
+  return Object.entries(exportValue)
+    .filter(([condition, target]) => condition !== SOURCE_CONDITION && typeof target === "string")
+    .map(([, target]) => target.replace("*", wildcardReplacement));
 }
 
 const UI_APP_TSX = [
