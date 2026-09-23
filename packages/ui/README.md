@@ -558,6 +558,16 @@ web, where the window cannot be read during export or hydration.
   Native targets add computed hit slop up to 44px. Nested `StyledText` inherits
   the Button size, so use `size="sm"` for popover, tooltip, and toolbar
   triggers.
+- A plain `View` whose `opacity` or `pointerEvents` follows state (`disabled`,
+  `loading`, `checked`, `editable`) must be `collapsable={false}` on Android.
+  Fabric hoists the children of a filled or bordered View into its parent while
+  the opacity is 1 and pulls them back when it changes, and a flip racing a
+  navigation pop crashes with `addViewAt: … View already has a parent`. The
+  package pins its own surfaces (`Button`, `TextInput`, `Slider`, `InputOTP`,
+  `Switch` labels); spread `stateSurfaceProps()` from `@mrmeg/expo-ui/lib` on
+  app-owned surfaces (`<View {...stateSurfaceProps()} style={{ opacity:
+  disabled ? 0.5 : 1 }} />`). `Pressable` already pins itself. iOS and web get
+  no prop.
 - Pair a standalone `Label` with its control using two DISTINCT ids: `nativeID`
   is the label's own id, `htmlFor` is the input's id (`<Label
   nativeID="email-label" htmlFor="email-input">` + `<TextInput
@@ -581,9 +591,16 @@ web, where the window cannot be read during export or hydration.
   hosted content above the keyboard — a short sheet is lifted whole, a tall one
   is shrunk — so `Footer` and the tail of `Body` end at the keyboard's top with
   only their home-indicator padding as clearance (device-verified on iOS 27 with
-  `@expo/ui` 58); on Android Material3's `ModalBottomSheet` owns it (no JS
-  keyboard signal exists inside the Compose dialog window); web has none. Do not
-  wrap sheet content in another `KeyboardAvoidingView`: it would lift twice.
+  `@expo/ui` 58); on Android Material3's `ModalBottomSheet` shrinks the sheet
+  for the keyboard and `@expo/ui`'s `RNHostView` re-reports its size to the
+  React Native shadow tree, so the hosted column follows and `Footer` stays
+  above the keyboard — this needs the app built against `expo-modules-core`
+  >= 57.0.4 (expo/expo#47778; older cores dropped that size update until the
+  activity redrew, leaving `Footer` under the keyboard; no 56.x release has the
+  fix). Run `npx expo install --fix` (or `bun update expo-modules-core`) and
+  rebuild; the sheet warns once in development on Android when the native core
+  is older. Web has none. Do not wrap sheet content in another
+  `KeyboardAvoidingView`: it would lift twice.
   The sheet hosts its content in a separate
   native window outside the app's `DismissKeyboard`, so `BottomSheet.Content`
   mounts its own tap-away keyboard-dismiss boundary on the content column: it
@@ -592,15 +609,54 @@ web, where the window cannot be read during export or hydration.
   matching `DismissKeyboard`. `BottomSheet.Body` sets
   `keyboardShouldPersistTaps="always"` on its ScrollView so that column boundary
   owns dismissal; do not pass `never`, which lets RN claim the first tap on a
-  body control and blur the field instead. Android has only two snap states
+  body control and blur the field instead. That covers ScrollViews inside the
+  sheet only: the sheet's content stays in the screen's React tree even though
+  it is drawn in another window, and RN's responder negotiation walks that tree,
+  so a ScrollView *around* the `BottomSheet` left on the default
+  `keyboardShouldPersistTaps="never"` claims the first tap on any sheet control
+  (`Footer` included) while a sheet field is focused and blurs the field instead
+  of firing the control. Set `keyboardShouldPersistTaps="always"` (or
+  `"handled"`) on scroll views that contain a sheet, or use `DismissKeyboard`,
+  which already does; the sheet warns once in development on Android when it
+  observes such a swallowed tap. Android has only two snap states
   (partial / expanded) and maps extra snap points to the nearest; because
   Material ignores percentage snap points, the Android body fills the rendered
   sheet height rather than a window-percentage cap. `BottomSheet.Content` also
   takes `backgroundStyle`, merged over the themed card default on the native
   sheet surface (web panel, Android `containerColor`, iOS
-  `presentationBackground`) — pass `{ backgroundColor: "transparent" }`, plus a
-  `style` clearing the content column's card fill, to let custom chrome such as
-  a glass backdrop show through.
+  `presentationBackground`). That surface is the sheet's only background: the
+  content column paints no fill of its own, so a translucent card reads as one
+  layer from the grabber down (a second, column-level fill made the 16 pt
+  strip behind the iOS grabber a different shade), and
+  `{ backgroundColor: "transparent" }` alone lets custom chrome such as a glass
+  backdrop show through.
+- `Dialog` and `AlertDialog` present their content through React Native's
+  `Modal` on iOS, rendered inline where the dialog sits in the tree
+  (transparent, `overFullScreen`, no animation of its own; the package's fade
+  and scale still run inside). The Modal presents a real view controller, which
+  `@expo/ui`-hosted controls need: `expo-modules-core`'s SwiftUI hosting view
+  drops its content when no `UIViewController` sits above it, so inside
+  react-native-screens' `FullWindowOverlay` — which adds its container straight
+  to the window — a package `TextInput`, `Slider` or `SegmentedControl`
+  rendered as an empty box that could not take focus (device-verified on
+  iOS 27). RN presents a `Modal` from the view controller nearest its host
+  view, so the dialog stacks above whatever screen, native stack modal or sheet
+  contains it (device-verified over a `presentation: "modal"` route);
+  `portalHost` is honored on Android and web only. `Drawer`, `Popover`,
+  `Select`, `DropdownMenu` and `Tooltip` still use that overlay on iOS, so do
+  not put `@expo/ui`-hosted controls inside them yet, and do not place a
+  `Dialog` inside their content either — it has no view controller to present
+  from there; render it at screen level and open it from the item's
+  `onPress`. The iOS Modal is outside `UIProvider`'s root
+  keyboard avoidance, so the dialog owns it there: the centered container is a
+  package `KeyboardAvoidingView` (`behavior="padding"`), the card recenters
+  above the keyboard with its fields and footer visible, and
+  `useKeyboardAvoidance()` is `true` inside dialog content. Do not wrap dialog
+  content in another `KeyboardAvoidingView`. The platform close request
+  (hardware back, TV menu) routes to the root's `onOpenChange(false)`. Android
+  and web render dialog content inline into the portal host, which sits
+  outside the root avoidance, so an Android dialog does not avoid the keyboard
+  yet.
 - `Carousel` renders every child (no virtualization), so slides survive into
   the exported HTML shell and the first client frame; use `FlatList` for large
   or unbounded data. An `itemWidth` below 1 (default `0.85`) is a fraction of

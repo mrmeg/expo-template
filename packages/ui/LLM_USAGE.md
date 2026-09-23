@@ -87,16 +87,45 @@ platform owns gestures and keyboard avoidance: `swipeEnabled`, `avoidKeyboard`,
 and `dismissKeyboardOnDrag` are accepted for call-site ergonomics but have no
 effect. On iOS the sheet presentation lifts or shrinks the hosted content so
 `Footer` and the tail of `Body` end at the keyboard's top (device-verified);
-Android avoidance is Material3's; do not nest a `KeyboardAvoidingView` inside a
+on Android Material3 shrinks the sheet and `@expo/ui`'s `RNHostView` re-reports
+its size to the shadow tree, which needs the app built against
+`expo-modules-core` >= 57.0.4 (expo/expo#47778) — below that the column keeps
+its detent height and `Footer` sits under the keyboard; the sheet warns once in
+dev on Android, and the fix is `npx expo install --fix` plus a rebuild, never
+padding in app code. Do not nest a `KeyboardAvoidingView` inside a
 sheet. `BottomSheet.Content` mounts the tap-away keyboard-dismiss boundary on
 its column, and `BottomSheet.Body` sets `keyboardShouldPersistTaps="always"` on
-its ScrollView so that boundary owns dismissal; do not pass `never`. `Slider`
-and `SegmentedControl` are also `@expo/ui`-backed.
+its ScrollView so that boundary owns dismissal; do not pass `never`. Sheet
+content stays in the screen's React tree although it is drawn in another
+window, so a ScrollView *around* a `BottomSheet` on the default
+`keyboardShouldPersistTaps="never"` claims the first tap on any sheet control
+(`Footer` included) while a sheet field is focused and blurs the field instead:
+give scroll views that contain a sheet `keyboardShouldPersistTaps="always"` (or
+`"handled"`), or use `DismissKeyboard`; the sheet warns once in dev on Android
+when it sees such a tap. `Slider` and `SegmentedControl` are also
+`@expo/ui`-backed.
 
 `BottomSheet.Content` themes the native sheet surface with the card color. Pass
 `backgroundStyle={{ backgroundColor: "transparent" }}`, plus a `style` clearing
 the content column's card fill, when custom chrome such as a glass backdrop must
 show through.
+
+`Dialog` and `AlertDialog` present their content through React Native's `Modal`
+on iOS, rendered inline where the dialog sits (transparent, `overFullScreen`,
+unanimated; the package fade/scale run inside), so it stacks above whatever
+screen, native stack modal or sheet contains it; `portalHost` is honored on
+Android and web only. `@expo/ui`-hosted controls (`TextInput`, `Slider`,
+`SegmentedControl`) need a view controller above them and render as empty,
+unfocusable boxes inside react-native-screens' `FullWindowOverlay`, which
+`Drawer`, `Popover`, `Select`, `DropdownMenu` and `Tooltip` still use on iOS —
+keep hosted controls out of those, and do not place a `Dialog` inside their
+content (no view controller to present from; render it at screen level and open
+it from the item's `onPress`). The dialog owns keyboard avoidance inside its Modal (package
+`KeyboardAvoidingView`, `behavior="padding"`; the card recenters above the
+keyboard and `useKeyboardAvoidance()` is `true` in dialog content); do not wrap
+dialog content in another `KeyboardAvoidingView`. Android and web render dialog
+content inline into the portal host, outside the root avoidance, so an Android
+dialog does not avoid the keyboard yet.
 
 i18n is optional. Do not add app-level i18n setup just to use this package;
 plain children and `text` props work without `i18next` or `react-i18next`. `tx`
@@ -282,6 +311,7 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 - `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive into the exported HTML shell and the first client frame; use `FlatList` for large or unbounded data. Dots are pressable and jump to their slide. A fractional `itemWidth` (default `0.85`) measures the viewport until the first layout, so pass absolute pixels (`> 1`) when the parent is narrower than the window and the first frame matters.
 - `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent, still loading, or failed, plus the default accessibility label. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring; the group's count is a hidden summary node, so each member stays individually announceable and the group needs no `accessible` wrapper.
 - Pair a standalone `Label` with its control using two DISTINCT ids: `nativeID` is the label's own id, `htmlFor` is the input's id (`<Label nativeID="email-label" htmlFor="email-input">` + `<TextInput nativeID="email-input" />`). One id on both renders duplicate ids on web and associates nothing. Prefer `TextInput`'s own `label` prop when no separate label element is needed.
+- A plain `View` whose `opacity`/`pointerEvents` follows state must be `collapsable={false}` on Android (Fabric re-parents its children on the flip; a flip racing a navigation pop crashes). Package surfaces are pinned; spread `stateSurfaceProps()` from `@mrmeg/expo-ui/lib` on app-owned ones. `Pressable` already pins itself.
 - `TextInput` `onBlur` fires only after a real focus on Android (the native field's first-composition blur is dropped in the package); validate on blur directly and do not add a touched-fields guard in app code.
 - `Drawer.Header` takes `icon`, `title`, and `action` slots for a compact app-brand row; put `Drawer.ToggleCollapse` in `action` for a trailing rail control. `Drawer.Content` owns safe-area top/bottom padding — do not duplicate it in children.
 

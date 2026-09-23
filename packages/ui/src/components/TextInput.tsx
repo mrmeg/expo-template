@@ -33,6 +33,7 @@ import { StyledText } from "./StyledText";
 import { Icon } from "./Icon";
 import { hapticLight } from "../lib/haptics";
 import { createThemedStyles } from "../lib/themedStyles";
+import { stateSurfaceProps } from "../lib/stateSurface";
 import type { Theme } from "../constants/colors";
 import { palette } from "../constants/colors";
 import {
@@ -855,6 +856,7 @@ function NativeTextInput({
         bit other native components, and keeps the eye inside the rounded surface.
       */}
       <View
+        {...stateSurfaceProps()}
         style={[surfaceStyle, hasSecureToggle && styles.nativeRow]}
         hitSlop={{ top: surfaceHitSlop, bottom: surfaceHitSlop }}
         // Never claims the responder (the native field keeps every touch phase);

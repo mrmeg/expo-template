@@ -19,7 +19,8 @@ import { spacing } from "../constants/spacing";
 import { useScalePress } from "../hooks/useScalePress";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { Icon } from "./Icon";
-import { useKeyboardDismissResponder } from "./keyboardDismiss";
+import { useAncestorClaimWarning, useKeyboardDismissResponder } from "./keyboardDismiss";
+import { warnIfBottomSheetHostDropsResize } from "./bottomSheetHostSupport";
 
 /**
  * BottomSheet — a sliding bottom sheet with a compound API, backed by the
@@ -41,8 +42,18 @@ import { useKeyboardDismissResponder } from "./keyboardDismiss";
  * nothing in JS can measure the column in screen space (`measureInWindow`
  * inside the `layoutRoot` sheet host reports host-relative coordinates), and a
  * window-height estimate would lift a lifted sheet twice. Android: Material3's
- * `ModalBottomSheet` owns it (no JS keyboard signal exists inside the Compose
- * dialog window). Web: none. Never nest a `KeyboardAvoidingView` in a sheet.
+ * `ModalBottomSheet` shrinks the sheet with `imePadding()`, `@expo/ui`'s
+ * `RNHostView` re-reports its Compose size to the shadow tree, and the
+ * `flexGrow: 1, height: 0` column the host wraps our children in follows, so
+ * `Footer` and the tail of `Body` stay above the keyboard. That report is
+ * delivered reliably only by `expo-modules-core` >= 57.0.4 (expo/expo#47778,
+ * fixed by #47810): older cores flushed it from a pre-draw listener on the
+ * activity window, which does not draw while the sheet's dialog window animates
+ * the IME, so the column kept its detent height until the activity redrew. The
+ * package warns once in dev on Android below that floor
+ * (`bottomSheetHostSupport.ts`). No JS keyboard signal exists inside the
+ * Compose dialog window, and none is needed. Web: none. Never nest a
+ * `KeyboardAvoidingView` in a sheet.
  *
  * Platform-owned behaviors (props accepted for ergonomics, but the platform
  * decides):
@@ -58,7 +69,19 @@ import { useKeyboardDismissResponder } from "./keyboardDismiss";
  *   - `Body` sets `keyboardShouldPersistTaps="always"` on its ScrollView so RN's
  *     own tap-dismissal never claims the first tap on a chip, button or field
  *     while a sheet field is focused; the `Content` boundary owns tap-away
- *     dismissal instead.
+ *     dismissal instead. That covers ScrollViews *inside* the sheet only. The
+ *     sheet's content is drawn in another native window but stays in the
+ *     screen's React tree, and RN's responder negotiation walks that tree, so a
+ *     ScrollView *around* the `BottomSheet` with the default
+ *     `keyboardShouldPersistTaps="never"` claims a tap on any sheet control
+ *     (`Footer` included) in the capture phase once a field is focused and
+ *     blurs the field on release: the keyboard closes and the control never
+ *     fires (Pixel_10 / API 36: 0 of 3 taps inside a default ScrollView, 3 of 3
+ *     inside `always` or a plain View). Nothing inside the tree can preempt a
+ *     capture-phase claim, so `Content` warns once in dev on Android when it
+ *     observes one (`useAncestorClaimWarning`); the remedy is
+ *     `keyboardShouldPersistTaps="always"` / `"handled"` on scroll views that
+ *     contain a sheet, or `DismissKeyboard`, which already sets it.
  *
  * Scrollable bodies: the native sheet doesn't bound the hosted RN content to
  * the detent height, so a tall `Body` overflows and clips its footer/tail. When
@@ -170,11 +193,12 @@ interface BottomSheetContentProps extends ViewProps {
   /** Accepted for call-site ergonomics; ignored (platform owns keyboard). */
   dismissKeyboardOnDrag?: boolean;
   /**
-   * Style for the native sheet surface behind the RN content — the web (vaul)
-   * panel, Android `containerColor`, iOS `presentationBackground`. Merged over
-   * the themed card default, so `{ backgroundColor: "transparent" }` lets a
-   * custom chrome (e.g. a glass backdrop) show through. The RN content column
-   * paints its own card fill too; clear that via `style`.
+   * Style for the native sheet surface — the web (vaul) panel, Android
+   * `containerColor`, iOS `presentationBackground`. Merged over the themed card
+   * default. This is the sheet's only background: the RN content column paints
+   * no fill of its own, so a translucent color here reads as one layer from the
+   * grabber down, and `{ backgroundColor: "transparent" }` lets custom chrome
+   * (e.g. a glass backdrop) show through with nothing to clear via `style`.
    */
   backgroundStyle?: StyleProp<ViewStyle>;
   style?: StyleProp<ViewStyle>;
@@ -307,6 +331,20 @@ function bottomSheetRootReducer(
 // ============================================================================
 // Context
 // ============================================================================
+
+/**
+ * Dev warning (Android) when an ancestor claimed a tap inside the sheet before
+ * the sheet was asked, while a package field held focus. See the header and
+ * `useAncestorClaimWarning`.
+ */
+export const bottomSheetAncestorClaimWarning =
+  "@mrmeg/expo-ui BottomSheet: an ancestor claimed a tap inside the sheet before the sheet " +
+  "was asked, while a sheet field was focused, so the tapped control did not fire and the " +
+  "keyboard was dismissed instead. That is usually a ScrollView around the BottomSheet on React " +
+  'Native\'s default keyboardShouldPersistTaps="never" (sheet content stays in the screen\'s ' +
+  "React tree even though it is drawn in another window). Set " +
+  'keyboardShouldPersistTaps="always" or "handled" on scroll views that contain the ' +
+  "BottomSheet, or wrap the screen in DismissKeyboard.";
 
 const BottomSheetContext = createContext<BottomSheetContextValue | null>(null);
 
@@ -570,6 +608,19 @@ function BottomSheetContent({
   // dead-space tap dismisses on release only, through the registered field's
   // own window-independent blur handle.
   const dismissResponderProps = useKeyboardDismissResponder();
+  // Android, dev, once per session: name an ancestor ScrollView that claimed a
+  // tap inside the sheet in the capture phase (nothing in here can preempt it).
+  const columnResponderProps = useAncestorClaimWarning(
+    dismissResponderProps,
+    bottomSheetAncestorClaimWarning
+  );
+
+  // Android only, dev only, once per session: name the host floor the column's
+  // keyboard avoidance depends on when the app was built against an
+  // `expo-modules-core` that drops `RNHostView`'s size update (see the header).
+  useEffect(() => {
+    warnIfBottomSheetHostDropsResize();
+  }, []);
 
   // Boolean open → native imperative index. The root resets snapIndex to the
   // highest point while closed; -1 keeps the native sheet closed.
@@ -587,7 +638,11 @@ function BottomSheetContent({
   // and Material's `ModalBottomSheet` ignores percentage snap points
   // (partial / expanded only) — a window-percentage cap would leave the Body
   // short of the rendered sheet with a blank strip below it. Android therefore
-  // keeps `flex:1` alone (see the content column style).
+  // keeps `flex:1` alone (see the content column style). The same measured
+  // height is how the column follows the keyboard: Material shrinks the sheet
+  // with `imePadding()` and `RNHostView` re-reports its Compose size to the
+  // shadow tree, which needs `expo-modules-core` >= 57.0.4 to always land
+  // (expo/expo#47778) — see `warnIfBottomSheetHostDropsResize` above.
   const expandedSnap = snapPoints[snapPoints.length - 1];
   const detentHeight =
     typeof expandedSnap === "number"
@@ -636,16 +691,17 @@ function BottomSheetContent({
           <View
             testID={testID}
             style={[
-              {
-                flex: 1,
-                // Themes the content surface across all platforms regardless of
-                // native sheet chrome.
-                backgroundColor: theme.colors.card,
-              },
+              // No fill of its own: the native surface (`backgroundStyle`) is
+              // the sheet's only background. On iOS the hosted column starts
+              // 16 pt below the sheet's top edge when the native grabber is
+              // shown, so a second, column-level fill made a translucent card
+              // read as two layers below that line and one above it — a
+              // differently colored strip behind the grabber.
+              { flex: 1 },
               Platform.OS !== "android" && { maxHeight: detentHeight },
               styleOverride,
             ]}
-            {...dismissResponderProps}
+            {...columnResponderProps}
           >
             {children}
             {showFloatingClose && (

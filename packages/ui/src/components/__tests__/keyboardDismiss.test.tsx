@@ -1,11 +1,14 @@
 import React from "react";
-import { render } from "@testing-library/react-native";
-import { View } from "react-native";
+import { render, screen } from "@testing-library/react-native";
+import { Platform, View, type GestureResponderEvent, type ViewProps } from "react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
 import {
+  resetAncestorClaimWarningForTests,
+  useAncestorClaimWarning,
   useKeyboardDismissResponder,
   useTextInputSurfaceResponder,
 } from "../keyboardDismiss";
+import { clearKeyboardFocusedInput, setKeyboardFocusedInput } from "../keyboardFocusRegistry";
 
 const keyboardControllerMock = jest.requireMock("react-native-keyboard-controller");
 
@@ -316,5 +319,100 @@ describe.each(["boundary", "surface"] as const)("%s tap policy", (kind) => {
     outer.onTouchEnd(nextEnd);
     expect(kind === "surface" ? focus : KeyboardController.dismiss).toHaveBeenCalledTimes(1);
     expect(kind === "surface" ? KeyboardController.dismiss : focus).not.toHaveBeenCalled();
+  });
+});
+
+describe("useAncestorClaimWarning", () => {
+  // A sheet's content is drawn in another native window but stays in the
+  // screen's React tree, so an ancestor ScrollView on the default
+  // `keyboardShouldPersistTaps="never"` can claim a tap inside it in the capture
+  // phase. The column cannot preempt that; it names it instead, once, in dev on
+  // Android, from the one signal that is exact: a touch start whose native event
+  // never reached the column's own capture handler while a field held focus.
+  const token = {};
+  const message = "ancestor claimed the tap";
+  let warn: jest.SpyInstance;
+
+  function Diagnosed({ inner }: { inner: Pick<ViewProps, "onTouchStart"> }) {
+    const props = useAncestorClaimWarning(inner, message);
+    return <View testID="diagnosed" {...(props as object)} />;
+  }
+
+  async function withPlatform<T>(os: string, run: () => Promise<T>) {
+    const originalPlatform = Platform.OS;
+    Object.defineProperty(Platform, "OS", { value: os, configurable: true });
+    try {
+      return await run();
+    } finally {
+      Object.defineProperty(Platform, "OS", { value: originalPlatform, configurable: true });
+    }
+  }
+
+  async function renderDiagnosed(os: string) {
+    const innerTouchStart = jest.fn();
+    const inner: Pick<ViewProps, "onTouchStart"> = {
+      onTouchStart: innerTouchStart as unknown as (event: GestureResponderEvent) => void,
+    };
+    await withPlatform(os, async () => {
+      await render(<Diagnosed inner={inner} />);
+    });
+    return { innerTouchStart, view: screen.getByTestId("diagnosed") as unknown as Handlers };
+  }
+
+  beforeEach(() => {
+    resetAncestorClaimWarningForTests();
+    warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    setKeyboardFocusedInput(token, jest.fn());
+  });
+
+  afterEach(() => {
+    warn.mockRestore();
+    clearKeyboardFocusedInput(token);
+    resetAncestorClaimWarningForTests();
+  });
+
+  it("warns once when a touch starts without reaching the capture handler while a field is focused, and still runs the inner handler", async () => {
+    const { view, innerTouchStart } = await renderDiagnosed("android");
+
+    const swallowed = touch();
+    view.props.onTouchStart(swallowed);
+    const swallowedAgain = touch();
+    view.props.onTouchStart(swallowedAgain);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(message);
+    expect(innerTouchStart).toHaveBeenCalledTimes(2);
+    expect(innerTouchStart).toHaveBeenNthCalledWith(1, swallowed);
+  });
+
+  it("stays silent when the capture phase reached the view for that same event", async () => {
+    const { view, innerTouchStart } = await renderDiagnosed("android");
+
+    const start = touch();
+    expect(view.props.onStartShouldSetResponderCapture(start)).toBe(false);
+    view.props.onTouchStart(start);
+
+    expect(warn).not.toHaveBeenCalled();
+    expect(innerTouchStart).toHaveBeenCalledWith(start);
+  });
+
+  it("stays silent when no field holds focus", async () => {
+    clearKeyboardFocusedInput(token);
+    const { view } = await renderDiagnosed("android");
+
+    view.props.onTouchStart(touch());
+
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("returns the inner props untouched on iOS", async () => {
+    const { view, innerTouchStart } = await renderDiagnosed("ios");
+
+    expect(view.props.onStartShouldSetResponderCapture).toBeUndefined();
+    const start = touch();
+    view.props.onTouchStart(start);
+
+    expect(warn).not.toHaveBeenCalled();
+    expect(innerTouchStart).toHaveBeenCalledWith(start);
   });
 });

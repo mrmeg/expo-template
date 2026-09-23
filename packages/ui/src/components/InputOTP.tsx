@@ -12,6 +12,7 @@ import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { StyledText } from "./StyledText";
 import { createThemedStyles } from "../lib/themedStyles";
+import { stateSurfaceProps } from "../lib/stateSurface";
 import type { Theme } from "../constants/colors";
 
 export interface InputOTPProps {
@@ -261,6 +262,7 @@ function OTPCell({
       accessibilityState={{ disabled }}
     >
       <View
+        {...stateSurfaceProps()}
         style={[
           {
             width: CELL_WIDTH,

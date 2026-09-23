@@ -5,6 +5,120 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.27.1]
+
+### Fixed
+
+- **`BottomSheet.Content` paints no fill of its own; the native surface set
+  through `backgroundStyle` is the sheet's only background.** `@expo/ui`'s iOS
+  sheet lays the hosted RN column out 16 pt below the sheet's top edge while the
+  native grabber is shown, so the column's own card fill covered everything
+  below that line and the strip behind the grabber showed the native
+  `presentationBackground` alone. Opaque theme colors matched and hid the seam,
+  but a translucent card, or a translucent `backgroundStyle`, read as two layers
+  below the line and one above it: a differently shaded band behind the grabber
+  in every app with a glass-style sheet (iPhone 17 simulator, iOS 27, `@expo/ui`
+  58.0.2, 60% card: strip 30,30,32 over a 24,24,27 body; one continuous
+  30,30,32 surface from the rim down after the change). Web (vaul panel) and
+  Android (`containerColor`) already paint the surface natively, so the column
+  fill was redundant there too. `backgroundStyle={{ backgroundColor:
+  "transparent" }}` no longer needs a `style` clearing the column; content sits
+  directly on the transparent surface, so add a fill inside the content if a
+  card behind it was intended.
+- **iOS `Dialog` and `AlertDialog` present through React Native's `Modal`, so
+  `@expo/ui`-hosted controls inside them mount and take focus.** Both dialogs
+  rendered through react-native-screens' `FullWindowOverlay` on iOS, which adds
+  its container straight to the `UIWindow` with no `UIViewController` above it.
+  `expo-modules-core`'s `ExpoSwiftUI.HostingView` attaches its
+  `UIHostingController` only when `reactViewController()` finds a parent
+  controller and otherwise removes the SwiftUI view, so every hosted control
+  inside a dialog — the package `TextInput`, and `Slider` / `SegmentedControl`
+  — was a zero-height box: no editable accessibility element, no focus, no
+  keyboard (fieldnest `start-trip-modal-keyboard-avoidance`, iOS 27 simulator,
+  0.27.0; reproduced in the template's `Dialog` `form` variant, where the
+  accessibility tree listed only the two field labels and a tap raised no
+  keyboard, while the same content mounted and focused with the overlay
+  replaced by a Fragment — but then did not move for the keyboard, because the
+  portal host sits outside `UIProvider`'s root avoidance). `DialogContent` and
+  `AlertDialogContent` now present through a transparent, unanimated
+  `overFullScreen` `Modal` on iOS, rendered inline where the dialog sits in
+  the tree instead of through the portal host: RN presents a `Modal` from the
+  view controller nearest its host view, so a portal-hosted `Modal` presents
+  from the root controller and silently fails while a native stack modal or
+  sheet is up (device-verified — the trigger reported expanded, nothing
+  appeared), while the inline one presents from the screen, native stack modal
+  or sheet that contains the dialog and stacks above it (device-verified over
+  a `presentation: "modal"` route). `portalHost` is honored on Android and web
+  only, and a `Dialog` placed inside `FullWindowOverlay`-hosted content
+  (`Drawer`, `Popover`, `Select`, `DropdownMenu`, `Tooltip`) has no view
+  controller to present from on iOS — render it at screen level and open it
+  from the item's `onPress`. The platform close request (`onRequestClose`)
+  reaches the root's `onOpenChange(false)`. The Modal is
+  outside the root keyboard avoidance, so the dialog owns it there: the
+  centered container is wrapped in the package `KeyboardAvoidingView`
+  (`behavior="padding"`), the card recenters above the keyboard, and
+  `useKeyboardAvoidance()` is `true` inside dialog content — do not wrap dialog
+  content in another `KeyboardAvoidingView`. Device-verified on iOS 27: the
+  first tap on each field focuses it, the keyboard appears, typing lands, and
+  both fields and the footer stay visible. Android and web keep the inline
+  portal-host tree unchanged; there the portal host is still outside the root
+  avoidance, so an Android dialog does not avoid the keyboard yet (follow-up).
+  `Drawer`, `Popover`, `Select`, `DropdownMenu` and `Tooltip` still render
+  through `FullWindowOverlay`, so hosted controls inside those do not mount on
+  iOS either (follow-up).
+- **Android `BottomSheet` names the host requirement its keyboard avoidance
+  depends on.** 0.27.0 said Material owns Android avoidance. That is true for
+  the window and, on `expo-modules-core` >= 57.0.4, for the hosted column too:
+  Material3's `ModalBottomSheet` shrinks the sheet with `imePadding()`,
+  `@expo/ui`'s `RNHostView` re-reports its Compose size to the shadow tree, and
+  the `flexGrow: 1, height: 0` column follows, so `Footer` and the tail of
+  `Body` stay above the keyboard and `Body` scrolls. `expo-modules-core`
+  <= 57.0.3 flushed that report only from a pre-draw listener on the activity
+  window, which does not draw while the sheet's own dialog window animates the
+  IME, so the column kept its detent height until the activity redrew
+  (expo/expo#47778, fixed by expo/expo#47810 in 57.0.4 and 58.0.0; no 56.x
+  release has it). That is the clipped `Footer` tractor-tools-direct #32 saw on
+  Expo 57 with core 57.0.3, and background/resume "fixing" it. The package adds
+  no inset or height of its own — nothing in JS can observe a size the shadow
+  tree never received — and instead warns once in development on Android when
+  the native core compiled into the app is older (`globalThis.expo`'s
+  `expoModulesCoreVersion`), and the docs state the floor: `npx expo install
+  --fix` (or `bun update expo-modules-core`), then rebuild. iOS and web are
+  untouched.
+- **Android state surfaces no longer re-parent their children on a
+  `disabled` / `pending` / `checked` flip.** `Button` (surface and content),
+  `TextInput`, `Slider`, `InputOTP` and the `Switch` labels express state as
+  `opacity` on a plain `View`. On Fabric a View whose only stacking-context
+  prop is that opacity has its children hoisted into the parent while the
+  opacity is 1 and pulled back under it when the opacity changes, and a flip
+  that raced a navigation pop crashed with `addViewAt: cannot insert view …
+  View already has a parent` (doglog #57, Pixel 6a). Those Views now set
+  `collapsable={false}` on Android so the native tree shape is fixed across
+  state. iOS and web are unchanged. `stateSurfaceProps()` from
+  `@mrmeg/expo-ui/lib` is the same guard for app-owned surfaces; RN's
+  `Pressable` already pins itself, so `Pressable`-based controls need nothing.
+
+- **`BottomSheet` names the ancestor `ScrollView` that swallows the first tap
+  on a sheet control while a sheet field is focused (Android).** Sheet content
+  is drawn in the Material dialog window but stays in the screen's React tree,
+  and React Native's responder negotiation walks that tree: a `ScrollView`
+  around the `BottomSheet` on the default `keyboardShouldPersistTaps="never"`
+  claims a tap on `Footer` (or any sheet control) in the capture phase once a
+  field is focused — RN's `Keyboard` reports the sheet's IME from the activity
+  root — and blurs the field on release, so the keyboard closes and `onPress`
+  never runs (Pixel_10 / API 36, `@expo/ui` 58.0.2: 0 of 3 Footer taps fired
+  inside a default `ScrollView`, 3 of 3 inside
+  `keyboardShouldPersistTaps="always"` or a plain `View`; `Body`'s own `always`
+  covers only ScrollViews inside the sheet). Nothing inside the tree can preempt
+  a capture-phase claim,
+  so `BottomSheet.Content` now warns once in development on Android when a
+  touch starts on its column without having reached the column's own capture
+  handler while a package `TextInput` holds focus — the exact signature of that
+  claim — and the docs state the remedy: `keyboardShouldPersistTaps="always"`
+  (or `"handled"`) on scroll views that contain a sheet, or `DismissKeyboard`,
+  which already sets it. The tap-away boundary itself is unchanged; iOS and web
+  are untouched.
+
 ## [0.27.0]
 
 ### Changed
