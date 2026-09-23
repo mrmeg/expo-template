@@ -1,6 +1,7 @@
 import React, { useCallback, use, useEffect, useEffectEvent, useRef } from "react";
 import { Animated, Easing, StyleSheet, View, ActivityIndicator, Pressable, Platform } from "react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
+import { useStore } from "zustand";
 import { Icon } from "./Icon";
 import type { IconName } from "./Icon";
 import { useTheme, withAlpha } from "../hooks/useTheme";
@@ -12,10 +13,24 @@ import { palette } from "../constants/colors";
 import type { Theme } from "../constants/colors";
 import { translateText } from "../lib/i18n";
 import { createThemedStyles } from "../lib/themedStyles";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { globalUIStore } from "../state/globalUIStore";
 
 const timingIn = { duration: durations.fast, easing: Easing.out(Easing.quad), useNativeDriver: true };
 const timingOut = { duration: durations.instant, easing: Easing.in(Easing.quad), useNativeDriver: true };
+
+/**
+ * Run an action's handler, then dismiss, even when the handler throws. A
+ * module-level function because the React Compiler can't compile a
+ * `try`/`finally` and would otherwise skip the whole component.
+ */
+function runThenDismiss(run: () => void, dismiss: () => void): void {
+  try {
+    run();
+  } finally {
+    dismiss();
+  }
+}
 
 /**
  * Notification
@@ -39,24 +54,19 @@ export const Notification = () => {
   const { theme, getShadowStyle } = useTheme();
   const reduceMotion = useReducedMotion();
   const insets = use(SafeAreaInsetsContext);
-  const { alert, hide } = globalUIStore();
+  // Read the store through zustand's `useStore`, not by calling
+  // `globalUIStore()` directly: the React Compiler recognizes hooks by their
+  // `use` prefix, so it treated that call as a plain function, cached its
+  // result, and skipped the hook on the next render (React error #311).
+  const { alert, hide } = useStore(globalUIStore);
   const styles = themedStyles(theme);
 
   const position = alert?.position ?? "top";
   const isBottom = position === "bottom";
 
   // Just opacity + translateY — no scale (scale = bouncy feel)
-  const opacityRef = useRef<Animated.Value | null>(null);
-  if (opacityRef.current === null) {
-    opacityRef.current = new Animated.Value(0);
-  }
-  const opacity = opacityRef.current;
-
-  const translateYRef = useRef<Animated.Value | null>(null);
-  if (translateYRef.current === null) {
-    translateYRef.current = new Animated.Value(0);
-  }
-  const translateY = translateYRef.current;
+  const opacity = useAnimatedValue(0);
+  const translateY = useAnimatedValue(0);
 
   const wasVisibleRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -100,11 +110,7 @@ export const Notification = () => {
     const action = alert?.action;
     if (!action) return;
 
-    try {
-      action.onPress();
-    } finally {
-      animateOut();
-    }
+    runThenDismiss(() => action.onPress(), animateOut);
   }, [alert?.action, animateOut]);
 
   // The auto-dismiss timer only needs the latest animateOut; wrapping it in an
@@ -404,4 +410,4 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
 });
 
-const themedStyles = createThemedStyles(createStyles);
+const themedStyles = /*#__PURE__*/ createThemedStyles(createStyles);

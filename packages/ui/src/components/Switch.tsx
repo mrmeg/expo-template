@@ -3,6 +3,7 @@ import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
 import { hapticLight } from "../lib/haptics";
 import { stateSurfaceProps } from "../lib/stateSurface";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import * as SwitchPrimitives from "@rn-primitives/switch";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, PressableProps, StyleProp, StyleSheet, View, ViewStyle, Animated } from "react-native";
@@ -59,6 +60,7 @@ function Switch({
   thumbSize = 20,
   loading = false,
   style: styleOverride,
+  onCheckedChange,
   ...props
 }: SwitchProps) {
   const { theme, getContrastingColor, getShadowStyle, getFocusRingStyle, withAlpha } = useTheme();
@@ -98,9 +100,9 @@ function Switch({
   const wrappedOnCheckedChange = useCallback(
     (checked: boolean) => {
       if (hasMounted.current) hapticLight();
-      props.onCheckedChange?.(checked);
+      onCheckedChange?.(checked);
     },
-    [props.onCheckedChange],
+    [onCheckedChange],
   );
 
   useEffect(() => {
@@ -108,7 +110,7 @@ function Switch({
   }, []);
 
   // Single animated value drives everything: 0 = off, 1 = on
-  const progress = useRef(new Animated.Value(props.checked ? 1 : 0)).current;
+  const progress = useAnimatedValue(props.checked ? 1 : 0);
 
   useEffect(() => {
     const target = props.checked ? 1 : 0;
@@ -285,7 +287,7 @@ function Switch({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   label: {
     position: "absolute",
     top: 0,

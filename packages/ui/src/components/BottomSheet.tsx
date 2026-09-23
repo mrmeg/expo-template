@@ -1,4 +1,4 @@
-import React, { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import React, { createContext, use, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef } from "react";
 import {
   View,
   ViewProps,
@@ -521,8 +521,12 @@ function BottomSheetRoot({
   const toggle = useCallback(() => onOpenChange(!open), [onOpenChange, open]);
 
   // Latest callback without re-creating the context value on every render.
+  // Synced after each commit (the sheet reports its dismissal from a native
+  // or DOM event, never during render) instead of written during render.
   const onDismissedRef = useRef(onDismissed);
-  onDismissedRef.current = onDismissed;
+  useLayoutEffect(() => {
+    onDismissedRef.current = onDismissed;
+  });
   const notifyDismissed = useCallback(() => {
     onDismissedRef.current?.();
   }, []);

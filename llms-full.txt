@@ -654,6 +654,25 @@ avoidance is `react-native-keyboard-controller`, so mount its `KeyboardProvider`
 above `UIProvider`; use `KeyboardAvoidingView` directly only for a subtree with
 custom behavior.
 
+Web setup, two more steps (every web theme color is a `var(--c-*)`, and the
+theme store boots at `"system"`/light so the first client render matches the
+server or exported HTML):
+
+1. `app/+html.tsx`: put `getThemeCssVariables()` (from `constants`) in the
+   global `<style>`, with the same overrides passed to `setColors` if the app
+   re-brands; without it every theme color is unset. Optionally add a blocking
+   inline script that sets `document.documentElement.dataset.theme` from
+   `localStorage[THEME_STORAGE_KEY]` (from `state`) or `prefers-color-scheme`,
+   so the first frame paints in the visitor's scheme.
+2. Root layout: `useEffect(() => syncThemeFromEnvironment(), []);`
+   (`syncThemeFromEnvironment` from `state`). It reads the persisted preference
+   and follows the OS color scheme, and returns its cleanup. Never call it
+   during render or at module scope. Safe to call more than once: calls share
+   one OS listener and each cleanup releases only its own call. `UIProvider`
+   does not call it; without it a web app stays on the boot default until the
+   user picks a theme. Optional on native, which loads the preference at
+   startup.
+
 `DismissKeyboard` owns tap dismissal; its ScrollView uses
 `keyboardShouldPersistTaps="always"` so RN cannot independently blur a hosted
 field after a non-scrolling drag. Use `always` for your own scroll view inside
@@ -738,7 +757,7 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 - Use `Button.preset`, not `variant`.
 - Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36).
 - Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the Button size.
-- Use `notify` plus a root `UIProvider` for transient global feedback. (`globalUIStore` stays available for reactive subscriptions and tests.)
+- Use `notify` plus a root `UIProvider` for transient global feedback. (`globalUIStore` stays available for reactive subscriptions and tests. In a component, read it with zustand's `useStore(globalUIStore, selector)`, never `globalUIStore()`: the React Compiler only treats `use*` calls as hooks, caches the bare call, and the next render crashes with React error #311.)
 - Keep app monitoring, auth, API, and domain behavior outside this package.
 
 Semantic color tokens on `theme.colors`: `surfaceSunken`, `background`,
@@ -759,7 +778,9 @@ Elevation is a surface-tier ladder, not shadow depth: `surfaceSunken` (chrome) <
 `background` (content) < `card`/`popover` (raised) < `muted` (chips, insets).
 
 On web every `theme.colors.*` value is a CSS custom property (`var(--c-*)`), so
-themes swap in CSS when `html[data-theme]` changes; native keeps literals. Hex
+themes swap in CSS when `html[data-theme]` changes; native keeps literals. Both
+web schemes share one `colors` object (`colors.light.colors ===
+colors.dark.colors`); re-brand with `setColors`, never by mutating it. Hex
 alpha concatenation (`theme.colors.x + "15"`) does **not** work — use
 `withAlpha(theme.colors.x, 0.08)`, exported standalone from `hooks` and from
 `useTheme()`. For sinks that cannot take `var()` (e.g. `<meta name="theme-color">`)
@@ -906,6 +927,7 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 - A plain `View` whose `opacity`/`pointerEvents` follows state must be `collapsable={false}` on Android (Fabric re-parents its children on the flip; a flip racing a navigation pop crashes). Package surfaces are pinned; spread `stateSurfaceProps()` from `@mrmeg/expo-ui/lib` on app-owned ones. `Pressable` already pins itself.
 - `TextInput` `onBlur` fires only after a real focus on Android (the native field's first-composition blur is dropped in the package); validate on blur directly and do not add a touched-fields guard in app code.
 - `Drawer.Header` takes `icon`, `title`, and `action` slots for a compact app-brand row; put `Drawer.ToggleCollapse` in `action` for a trailing rail control. `Drawer.Content` owns safe-area top/bottom padding — do not duplicate it in children.
+- `Icon` and `Button.Icon` take `name` (a kebab-case name from the package registry, typed `IconName`) or `component` (any Lucide import such as `import House from "lucide-react-native/icons/house"`, or another SVG component taking `size` and `color`). Both are sized, colored with theme tokens, and hidden by `decorative` the same way; `Button.Icon` inherits the button's label color and is decorative by default. Use `component` for icons outside the registry instead of rendering raw Lucide components.
 
 ## Minimal Examples
 

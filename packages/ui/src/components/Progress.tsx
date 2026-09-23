@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { Animated, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 
 // ============================================================================
 // Types
@@ -131,7 +132,7 @@ function DeterminateFill({
   // Animate scaleX (GPU compositor) instead of width (JS-thread layout each
   // frame). transformOrigin "left" grows the fill from the left edge, so a
   // full-width bar scaled by clamped/100 needs no container measurement.
-  const scaleX = useRef(new Animated.Value(0)).current;
+  const scaleX = useAnimatedValue(0);
 
   useEffect(() => {
     Animated.timing(scaleX, {
@@ -174,7 +175,7 @@ function IndeterminateFill({
   borderRadius,
   reduceMotion,
 }: IndeterminateFillProps) {
-  const opacity = useRef(new Animated.Value(reduceMotion ? 0.7 : 0.4)).current;
+  const opacity = useAnimatedValue(reduceMotion ? 0.7 : 0.4);
 
   useEffect(() => {
     if (reduceMotion) {

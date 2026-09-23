@@ -2,6 +2,7 @@ import {
   useEffect,
   useCallback,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -54,6 +55,24 @@ export type TextInputSize = "sm" | "md" | "lg";
 export type TextInputVariant = "outline" | "filled" | "underlined";
 
 const NUMERIC_REGEX = /^[0-9]*$/;
+
+/**
+ * Write the `@expo/ui` observable text buffer. `set()` is the React
+ * Compiler-friendly writer (`@expo/ui` >= 56.0.17); earlier releases in the
+ * peer range only have the `value` setter, which calls the same native
+ * `setValue`. Kept outside the component so the compiler doesn't see a hook
+ * result being mutated, which made it skip `NativeTextInput` entirely.
+ */
+function writeNativeText(
+  state: { value: string; set?: (value: string) => void },
+  text: string
+): void {
+  if (typeof state.set === "function") {
+    state.set(text);
+  } else {
+    state.value = text;
+  }
+}
 
 /** Platform touch-target guideline (pt); the compact fields sit below it. */
 const MIN_TOUCH_TARGET = 44;
@@ -212,7 +231,7 @@ interface TextInputCustomProps extends TextInputProps {
  * // With custom elements
  * <TextInput
  *   label="Search"
- *   leftElement={<Icon as={Search} size={20} />}
+ *   leftElement={<Icon name="search" size={20} />}
  * />
  * ```
  */
@@ -567,8 +586,13 @@ function NativeTextInput({
     null
   );
   const isFocusedRef = useRef(false);
+  // Latest flavour for the focus/blur/toggle handlers and the handoff timer,
+  // synced after each commit (before any native event can be dispatched)
+  // instead of written during render.
   const activeSecureRef = useRef(effectiveSecureTextEntry);
-  activeSecureRef.current = effectiveSecureTextEntry;
+  useLayoutEffect(() => {
+    activeSecureRef.current = effectiveSecureTextEntry;
+  });
   // Taps that land while a handoff is in flight are counted and applied (by
   // parity) once it settles.
   const queuedTogglesRef = useRef(0);
@@ -576,7 +600,9 @@ function NativeTextInput({
   // iOS-only per-flavour mount generation. Bumped whenever a flavour becomes
   // the incoming view so React mounts a FRESH native view (whose `autoFocus`
   // will run) instead of reusing one still unmounting from the previous handoff.
-  const generationRef = useRef({ secure: 0, plain: 0 });
+  // State, not a ref: it keys the rendered Host, and the bump lands in the same
+  // batch as the `passwordVisible` flip that makes that flavour incoming.
+  const [generation, setGeneration] = useState({ secure: 0, plain: 0 });
   // Last text the JS side knows about; see handleChangeText.
   const lastTextRef = useRef<string>(value ?? defaultValue ?? "");
   // Armed when the hide toggle hands focus to the SecureField (iOS); see
@@ -591,7 +617,7 @@ function NativeTextInput({
   // programmatic sets); typing already updated `state` natively.
   useEffect(() => {
     if (value !== undefined && value !== state.value) {
-      state.value = value;
+      writeNativeText(state, value);
     }
     if (value !== undefined) lastTextRef.current = value;
   }, [value, state]);
@@ -682,8 +708,11 @@ function NativeTextInput({
     restoreAfterSecureHandoffRef.current = false;
     const outgoingSecure = activeSecureRef.current;
     if (Platform.OS === "ios") {
-      if (outgoingSecure) generationRef.current.plain += 1;
-      else generationRef.current.secure += 1;
+      setGeneration((current) =>
+        outgoingSecure
+          ? { ...current, plain: current.plain + 1 }
+          : { ...current, secure: current.secure + 1 }
+      );
     }
     if (Platform.OS === "ios" && isFocusedRef.current) {
       const timer = setTimeout(() => {
@@ -709,7 +738,11 @@ function NativeTextInput({
     }
     setPasswordVisible((v) => !v);
   }, [activeInput, finishHandoff, focusRegistryToken, parentOnBlur]);
-  toggleRef.current = togglePasswordVisible;
+  // `finishHandoff` replays queued taps through this ref (it is declared
+  // before the toggle it calls). Synced after commit, like `activeSecureRef`.
+  useLayoutEffect(() => {
+    toggleRef.current = togglePasswordVisible;
+  }, [togglePasswordVisible]);
 
   // iOS clears a secure field's existing text on the first keystroke after it
   // becomes first responder (text it did not see typed). Right after the hide
@@ -729,7 +762,7 @@ function NativeTextInput({
       restoreAfterSecureHandoffRef.current = false;
       const next = wipedByKey ? previous + text : wipedByBackspace ? previous.slice(0, -1) : text;
       lastTextRef.current = next;
-      if (wiped) state.value = next;
+      if (wiped) writeNativeText(state, next);
       onChangeText?.(next);
     },
     [onChangeText, state]
@@ -755,13 +788,13 @@ function NativeTextInput({
     focus: () => activeInput()?.focus(),
     blur: () => blurAll(),
     clear: () => {
-      state.value = "";
+      writeNativeText(state, "");
       lastTextRef.current = "";
     },
     isFocused: () => activeInput()?.isFocused() ?? false,
     setNativeProps: (props: { text?: string }) => {
       if (typeof props?.text === "string") {
-        state.value = props.text;
+        writeNativeText(state, props.text);
         lastTextRef.current = props.text;
       }
     },
@@ -888,8 +921,8 @@ function NativeTextInput({
                 Platform.OS === "android"
                   ? "android"
                   : secure
-                    ? `secure-${generationRef.current.secure}`
-                    : `plain-${generationRef.current.plain}`
+                    ? `secure-${generation.secure}`
+                    : `plain-${generation.plain}`
               }
               matchContents={{ vertical: true }}
               style={
@@ -1083,7 +1116,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
 const VARIANT_KEYS: TextInputVariant[] = ["outline", "filled", "underlined"];
 const SIZE_KEYS: TextInputSize[] = ["sm", "md", "lg"];
 
-const themedStyles = createThemedStyles((theme: Theme) =>
+const themedStyles = /*#__PURE__*/ createThemedStyles((theme: Theme) =>
   Object.fromEntries(
     VARIANT_KEYS.map((variant) => [
       variant,

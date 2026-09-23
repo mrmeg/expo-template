@@ -59,6 +59,14 @@ Importable paths: root, `components`, `components/*`, `constants`,
 `constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`. Never import from
 `dist/*` or a source checkout path.
 
+The package declares `sideEffects`: only `state/themeStore` does work at import
+time (on native it loads the saved theme and starts the OS color-scheme
+listener). A bundler that tree-shakes (Expo with `EXPO_UNSTABLE_TREE_SHAKING=1`,
+esbuild, Rollup, webpack) keeps only the modules a barrel import actually uses,
+so `import { Button } from "@mrmeg/expo-ui"` costs about what the
+`components/Button` deep import does. Metro without tree shaking bundles
+everything a file imports, so the deep imports stay the smaller choice there.
+
 ## App Startup
 
 Call `useResources()` once near the Expo app root before hiding the splash
@@ -112,6 +120,45 @@ notifications.
 For a subtree with custom keyboard behavior, use `KeyboardAvoidingView`
 directly (`behavior`, `automaticOffset`, `contentContainerStyle`,
 `keyboardVerticalOffset`).
+
+### Web setup
+
+Web needs two more pieces, because every web theme color is a CSS variable
+(see [Web theming is CSS variables](#web-theming-is-css-variables)) and the
+theme store boots at `"system"`/light so the first client render matches the
+server-rendered or exported HTML:
+
+1. **`app/+html.tsx`: define the variables.** Put `getThemeCssVariables()` (from
+   `constants`) in the document's global `<style>`, passing the same overrides
+   you give `setColors` if you re-brand. Without it every `var(--c-*)` color is
+   unset. A blocking inline script that stamps `data-theme` on `<html>` from
+   the persisted preference (`THEME_STORAGE_KEY`, from `state`) or
+   `prefers-color-scheme` makes the first frame paint in the visitor's scheme
+   before any JS runs.
+2. **Root layout: sync the store after the first commit.** Call
+   `syncThemeFromEnvironment()` (from `state`) in a top-level `useEffect` and
+   return its result as the cleanup. It reads the persisted preference and
+   starts following the OS color scheme. Never call it during render or at
+   module scope: the server has no `window`, and reading it while hydrating
+   would disagree with the markup. It is safe to call more than once
+   (StrictMode's double effects, several roots): the calls share one OS
+   listener, and each cleanup releases only its own call. `UIProvider` does not
+   call it. A web app that skips it stays on the boot default until the user
+   picks a theme. Native loads the preference and follows the OS at startup, so
+   the call is optional there.
+
+```tsx
+// app/+html.tsx (head)
+import { getThemeCssVariables } from "@mrmeg/expo-ui/constants";
+
+<style>{`${getThemeCssVariables()} body { background-color: var(--c-background); }`}</style>
+
+// Root layout
+import { useEffect } from "react";
+import { syncThemeFromEnvironment } from "@mrmeg/expo-ui/state";
+
+useEffect(() => syncThemeFromEnvironment(), []);
+```
 
 ### Keyboard dismissal
 
@@ -206,7 +253,13 @@ const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
 On web every `theme.colors.*` value resolves to a CSS custom property
 (`var(--c-<kebab-token>)`), so styles built from the theme — including HTML
 shells baked at export time — re-theme purely in CSS when `html[data-theme]`
-changes. Native keeps literal values.
+changes. Native keeps literal values. Because the references are the same in
+both schemes, web shares one object between them (`colors.light.colors ===
+colors.dark.colors`), so a scheme switch keeps `theme.colors` identical and
+anything memoized on it keeps its result. Re-brand through `setColors`, not by
+mutating that object. The package keeps `html[data-theme]` on the resolved
+scheme with one store subscription, started by the first `useTheme()` consumer
+to mount.
 
 Consequence: hex-suffix alpha (`theme.colors.x + "15"`) does not work. Use
 `withAlpha(theme.colors.x, 0.08)`, exported standalone from `hooks` as well as
@@ -352,7 +405,10 @@ from the bundled `@expo-google-fonts/inter`. Serif is Georgia; mono is the
 platform system monospace.
 
 `useResources()` loads those four weights on native, so `StyledText`'s
-`light`–`bold` range resolves to real files instead of a faked OS bold. Icons
+`light`–`bold` range resolves to real files instead of a faked OS bold. Each
+weight is imported from its own `@expo-google-fonts/inter/<weight>` subpath, so
+a native bundle carries those four files and no other Inter face, and a web
+bundle carries no Inter file at all. Icons
 are SVG (`lucide-react-native`), so there is no icon font to load on any
 platform. On web
 it injects one Google Fonts Inter stylesheet (all four weights) after hydration
@@ -475,14 +531,23 @@ Feather in the same 24px, 2px round-stroke style. `name` is typed by
 (`src/components/icon-names.json`, about 150 names), so only the icons the package
 and its consumers name ship in the bundle: the root `lucide-react-native`
 entry (1,800+ icons) is never imported. `color` takes a theme color name or a
-literal; `decorative` hides the glyph from assistive tech.
+literal; `decorative` hides the glyph from assistive tech. Instead of `name`,
+`Icon` and `Button.Icon` take `component`: any Lucide import (or another SVG
+component that accepts `size` and `color`), sized, colored, themed, and hidden
+from assistive tech exactly like a named icon. `Button.Icon` defaults its
+color to the button's label color either way.
 
 ```tsx
-import { Icon } from "@mrmeg/expo-ui/components";
+import { Button, Icon } from "@mrmeg/expo-ui/components";
+import House from "lucide-react-native/icons/house";
 import Rocket from "lucide-react-native/icons/rocket";
 
 <Icon name="circle-check-big" color="success" size={16} />
 <Icon component={Rocket} color="accent" />
+<Button onPress={goHome}>
+  <Button.Icon component={House} />
+  <Button.Text>Home</Button.Text>
+</Button>
 ```
 
 Adding an icon: in this repo, add the kebab-case Lucide name to
@@ -548,7 +613,12 @@ are named exports only.
 | `useStaggeredEntrance(options?)` | Entrance animated style for list rows (`delay`; `STAGGER_DELAY` is 30) |
 
 `SsrViewportContext` (from `state`) supplies the first-render viewport width on
-web, where the window cannot be read during export or hydration.
+web, where the window cannot be read during export or hydration. Right after
+hydration `useDimensions()` switches to the real window. On web every consumer
+shares one `resize` listener and one snapshot, re-renders only when the width or
+height changes, and a component that mounts later reads the current viewport
+straight away. The `mrmeg-vw` cookie (the width a server can seed the next
+render from) is written once per page view and then once resizing settles.
 
 ### Patterns And Gotchas
 
