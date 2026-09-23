@@ -3,6 +3,7 @@
  * entitlement reducer. Lifted from Mindmap `test/convex/revenuecatEvents.test.ts`
  * with the entitlement id made a parameter.
  */
+import { LIFETIME_UNTIL } from "../../constants";
 import {
   isAuthorizedWebhook,
   parseRevenueCatWebhook,
@@ -204,6 +205,57 @@ describe("reduceEntitlement", () => {
       expect(reduceEntitlement(empty, event({ type }), options)).toEqual({ action: "skip", reason: "no-op" });
     },
   );
+
+  it("stores a grant without expiration as LIFETIME_UNTIL, never as null", () => {
+    expect(reduceEntitlement(empty, event({ type: "NON_RENEWING_PURCHASE", expirationAtMs: null }), options)).toEqual({
+      action: "set",
+      next: { until: LIFETIME_UNTIL, productId: "app_pro_monthly", updatedAt: NOW },
+    });
+  });
+
+  it("never lets one product's event shorten access another product granted", () => {
+    const lifetime: EntitlementRecord = { until: LIFETIME_UNTIL, productId: "app_pro_lifetime", updatedAt: NOW - 10 };
+    // A trial on the same entitlement starts and expires: the lifetime term stays.
+    expect(reduceEntitlement(lifetime, event({ type: "INITIAL_PURCHASE", expirationAtMs: LATER }), options)).toEqual({
+      action: "set",
+      next: { until: LIFETIME_UNTIL, productId: "app_pro_monthly", updatedAt: NOW },
+    });
+    expect(reduceEntitlement(lifetime, event({ type: "EXPIRATION", expirationAtMs: NOW - 1 }), options)).toEqual({
+      action: "set",
+      next: { until: LIFETIME_UNTIL, productId: "app_pro_monthly", updatedAt: NOW },
+    });
+    // A longer annual term survives the monthly one expiring.
+    const annual: EntitlementRecord = { until: LATER + 1000, productId: "app_pro_annual", updatedAt: NOW - 10 };
+    expect(reduceEntitlement(annual, event({ type: "EXPIRATION", expirationAtMs: NOW }), options)).toMatchObject({
+      action: "set",
+      next: { until: LATER + 1000 },
+    });
+    // But an expiration at or past the current term ends access.
+    const monthly: EntitlementRecord = { until: NOW - 5, productId: "app_pro_monthly", updatedAt: NOW - 10 };
+    expect(reduceEntitlement(monthly, event({ type: "EXPIRATION", expirationAtMs: NOW }), options)).toMatchObject({
+      action: "set",
+      next: { until: NOW },
+    });
+  });
+
+  it("revokes immediately on a refund CANCELLATION (CUSTOMER_SUPPORT with the expiration moved back)", () => {
+    const current: EntitlementRecord = { until: LATER, productId: "app_pro_annual", updatedAt: NOW - 10 };
+    expect(
+      reduceEntitlement(
+        current,
+        event({ type: "CANCELLATION", cancelReason: "CUSTOMER_SUPPORT", expirationAtMs: NOW - 1 }),
+        options,
+      ),
+    ).toEqual({ action: "set", next: { until: NOW - 1, productId: "app_pro_monthly", updatedAt: NOW } });
+    // A support cancellation that keeps access to the period end is an ordinary cancellation.
+    expect(
+      reduceEntitlement(
+        current,
+        event({ type: "CANCELLATION", cancelReason: "CUSTOMER_SUPPORT", expirationAtMs: LATER }),
+        options,
+      ),
+    ).toEqual({ action: "skip", reason: "no-op" });
+  });
 
   it("ignores events for other entitlements", () => {
     expect(reduceEntitlement(empty, event({ entitlementIds: ["other"] }), options)).toEqual({

@@ -6,6 +6,8 @@ import type { PurchasesClient } from "../types";
 export interface PurchasesContextValue {
   client: PurchasesClient;
   store: EntitlementStore;
+  /** The provider's current `userId`, so hooks can tell when the store has been rescoped to it. */
+  userId: string | null;
   /** Called by `useRequireEntitlement` / `PaywallGate` when access is blocked; the app pushes its paywall route here. */
   onBlocked?: (feature?: string) => void;
 }

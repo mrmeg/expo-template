@@ -7,6 +7,7 @@ export type {
   PurchasesLogLevel,
   RestoreOutcome,
 } from "./types";
+export { LIFETIME_UNTIL } from "./constants";
 export { createPurchases, mapPaywallResult } from "./createPurchases";
 export { resolvePlatformKey, toCustomerState } from "./customerState";
 export {

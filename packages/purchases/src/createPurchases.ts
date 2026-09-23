@@ -16,7 +16,7 @@ import { Platform } from "react-native";
 
 import { resolvePlatformKey, toCustomerState } from "./customerState";
 import { loadPaywallUi, loadPurchasesSdk } from "./sdk";
-import type { PurchasesSdk } from "./sdkTypes";
+import type { PaywallUi, PurchasesSdk } from "./sdkTypes";
 import type {
   CustomerState,
   PaywallOutcome,
@@ -65,6 +65,18 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
   let configurePromise: Promise<boolean> | null = null;
   /** App user id the SDK currently holds; `undefined` until configure runs. */
   let currentAppUserId: string | null | undefined;
+  /**
+   * Identity calls run one at a time. A sign-out followed quickly by a sign-in
+   * must not let `logOut` land after `logIn` and leave the SDK anonymous.
+   */
+  let identityChain: Promise<unknown> = Promise.resolve();
+  const serializeIdentity = <T>(task: () => Promise<T>): Promise<T> => {
+    const next = identityChain.then(task, task);
+    identityChain = next.catch(() => undefined);
+    return next;
+  };
+  /** App listeners and the SDK listener each is attached through, once the SDK is ready. */
+  const listeners = new Map<(state: CustomerState) => void, ((info: CustomerInfo) => void) | null>();
 
   const report = (error: unknown, context: string): void => {
     if (config.onError) {
@@ -86,21 +98,49 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
     }
   };
 
+  const attachListener = (listener: (state: CustomerState) => void): void => {
+    if (!sdk || listeners.get(listener)) return;
+    const sdkListener = (info: CustomerInfo) => listener(toCustomerState(info, config.entitlement));
+    listeners.set(listener, sdkListener);
+    sdk.addCustomerInfoUpdateListener(sdkListener);
+  };
+
   /**
    * The `PurchasesOffering` to present: the requested id, else the configured
-   * id, else the dashboard's current offering. Undefined when offerings cannot
-   * be loaded, which lets RevenueCatUI fall back to its own default.
+   * id, resolved through `getOfferings()`; the dashboard's current offering when
+   * that id is unknown. Undefined when no id is wanted or offerings cannot be
+   * loaded, which lets RevenueCatUI use its own default (the current offering).
    */
   const resolveOffering = async (offeringId?: string): Promise<PurchasesOffering | undefined> => {
-    if (!sdk) return undefined;
     const wanted = offeringId ?? config.offering;
+    if (!sdk || !wanted) return undefined;
     try {
       const offerings = await sdk.getOfferings();
-      const byId = wanted ? offerings.all?.[wanted] : undefined;
-      return byId ?? offerings.current ?? undefined;
+      return offerings.all?.[wanted] ?? offerings.current ?? undefined;
     } catch (error) {
       report(error, "getOfferings");
       return undefined;
+    }
+  };
+
+  /** Shared paywall sequence: load the UI module, resolve the offering, present, map the result. */
+  const present = async (
+    context: "presentPaywall" | "presentPaywallIfNeeded",
+    options: PresentPaywallOptions,
+    invoke: (ui: PaywallUi, offering: PurchasesOffering | undefined, displayCloseButton: boolean) => Promise<unknown>,
+  ): Promise<PaywallOutcome> => {
+    if (!sdk) return "not_configured";
+    const ui = await loadPaywallUi();
+    if (!ui) {
+      report(new Error("react-native-purchases-ui is not installed in this build"), context);
+      return "not_configured";
+    }
+    const offering = await resolveOffering(options.offering);
+    try {
+      return mapPaywallResult(await invoke(ui, offering, options.displayCloseButton ?? true));
+    } catch (error) {
+      report(error, context);
+      return "error";
     }
   };
 
@@ -129,6 +169,7 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
           loaded.configure(appUserId ? { apiKey, appUserID: appUserId } : { apiKey });
           sdk = loaded;
           currentAppUserId = appUserId;
+          for (const listener of listeners.keys()) attachListener(listener);
           return true;
         } catch (error) {
           report(error, "configure");
@@ -139,30 +180,34 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
       return configurePromise;
     },
 
-    async logIn(appUserId) {
-      if (!sdk) return null;
-      if (currentAppUserId === appUserId) return getCustomerState();
-      try {
-        const result = await sdk.logIn(appUserId);
-        currentAppUserId = appUserId;
-        return toCustomerState(result.customerInfo, config.entitlement);
-      } catch (error) {
-        report(error, "logIn");
-        return null;
-      }
+    logIn(appUserId) {
+      return serializeIdentity(async () => {
+        if (!sdk) return null;
+        if (currentAppUserId === appUserId) return getCustomerState();
+        try {
+          const result = await sdk.logIn(appUserId);
+          currentAppUserId = appUserId;
+          return toCustomerState(result.customerInfo, config.entitlement);
+        } catch (error) {
+          report(error, "logIn");
+          return null;
+        }
+      });
     },
 
-    async logOut() {
-      if (!sdk) return;
-      try {
-        if (!(await sdk.isAnonymous())) {
-          await sdk.logOut();
+    logOut() {
+      return serializeIdentity(async () => {
+        if (!sdk) return;
+        try {
+          if (!(await sdk.isAnonymous())) {
+            await sdk.logOut();
+          }
+        } catch (error) {
+          report(error, "logOut");
+        } finally {
+          currentAppUserId = null;
         }
-      } catch (error) {
-        report(error, "logOut");
-      } finally {
-        currentAppUserId = null;
-      }
+      });
     },
 
     getCustomerState,
@@ -178,64 +223,29 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
       }
     },
 
-    async presentPaywall(options: PresentPaywallOptions = {}) {
-      if (!sdk) return "not_configured";
-      const ui = await loadPaywallUi();
-      if (!ui) {
-        report(new Error("react-native-purchases-ui is not installed in this build"), "presentPaywall");
-        return "not_configured";
-      }
-      const offering = await resolveOffering(options.offering);
-      try {
-        const result = await ui.presentPaywall({
-          offering,
-          displayCloseButton: options.displayCloseButton ?? true,
-        });
-        return mapPaywallResult(result);
-      } catch (error) {
-        report(error, "presentPaywall");
-        return "error";
-      }
+    presentPaywall(options: PresentPaywallOptions = {}) {
+      return present("presentPaywall", options, (ui, offering, displayCloseButton) =>
+        ui.presentPaywall({ offering, displayCloseButton }),
+      );
     },
 
-    async presentPaywallIfNeeded(options: PresentPaywallOptions = {}) {
-      if (!sdk) return "not_configured";
-      const ui = await loadPaywallUi();
-      if (!ui) {
-        report(new Error("react-native-purchases-ui is not installed in this build"), "presentPaywallIfNeeded");
-        return "not_configured";
-      }
-      const offering = await resolveOffering(options.offering);
-      try {
-        const result = await ui.presentPaywallIfNeeded({
+    presentPaywallIfNeeded(options: PresentPaywallOptions = {}) {
+      return present("presentPaywallIfNeeded", options, (ui, offering, displayCloseButton) =>
+        ui.presentPaywallIfNeeded({
           requiredEntitlementIdentifier: config.entitlement,
           offering,
-          displayCloseButton: options.displayCloseButton ?? true,
-        });
-        return mapPaywallResult(result);
-      } catch (error) {
-        report(error, "presentPaywallIfNeeded");
-        return "error";
-      }
+          displayCloseButton,
+        }),
+      );
     },
 
     subscribe(listener) {
-      let disposed = false;
-      let attached: ((info: CustomerInfo) => void) | null = null;
-      let attachedTo: PurchasesSdk | null = null;
-
-      void (configurePromise ?? Promise.resolve(false)).then(() => {
-        if (disposed || !sdk) return;
-        attachedTo = sdk;
-        attached = (info) => listener(toCustomerState(info, config.entitlement));
-        sdk.addCustomerInfoUpdateListener(attached);
-      });
-
+      listeners.set(listener, null);
+      attachListener(listener);
       return () => {
-        disposed = true;
-        if (attachedTo && attached) {
-          attachedTo.removeCustomerInfoUpdateListener(attached);
-        }
+        const sdkListener = listeners.get(listener);
+        listeners.delete(listener);
+        if (sdk && sdkListener) sdk.removeCustomerInfoUpdateListener(sdkListener);
       };
     },
 

@@ -41,10 +41,12 @@ appUserId, activeEntitlements }`, keyed to the configured entitlement
 ## Store
 
 `createEntitlementStore({ storage?, storageKeyPrefix? })` (zustand vanilla):
-state `sdkStatus`, `customer`, `serverUntil`, `snapshot`, `hydrated`, `userId`,
-`devOverride`; actions `setSdkStatus`, `applyCustomerState`,
+state `sdkStatus`, `customer`, `serverUntil`, `snapshot`, `hydrated`,
+`deviceReported`, `userId`, `devOverride`; actions `setSdkStatus`, `applyCustomerState`,
 `applyServerEntitlement`, `hydrate(userId)`, `clear(userId?)`,
-`setDevOverride` (development only), `reset`. The snapshot
+`setDevOverride` (development only), `reset`. `hydrate` rescopes first (drops
+every source, `hydrated: false`) and `clear` leaves the signed-out scope
+hydrated. The snapshot
 `{ version, userId, savedAt, isActive, until }` is written on every live update
 (revocations too) under `${prefix}${userId}`, rejected on user or version
 mismatch, removed by `clear`.
@@ -63,8 +65,10 @@ mirrors `serverUntil`; with `userId={null}`, logs the SDK out and clears the
 store and snapshot.
 
 `useEntitlement(entitlement?)` → `{ isEntitled, until, source, hydrated,
-isConfigured, isReady, sdkStatus, customer, restore, presentPaywall,
-presentPaywallIfNeeded }`. `useRequireEntitlement(feature)` → `() => boolean`
+settled, isConfigured, isReady, sdkStatus, customer, restore, presentPaywall,
+presentPaywallIfNeeded }`; `settled` = scoped to this user, hydrated, and a
+source reported (`deviceReported`, `serverUntil`, `snapshot`) or the SDK is
+unavailable or there is no user. `useRequireEntitlement(feature)` → `() => boolean`
 (false also calls the provider's `onBlocked(feature)`).
 `<PaywallGate feature? entitlement? fallback? onBlocked?>` renders children when
 entitled, else fallback, reporting once per lock after hydration.
@@ -82,8 +86,10 @@ entitled, else fallback, reporting once per lock after hydration.
   `type`, `event_timestamp_ms`, and `app_user_id` (except TRANSFER).
 - `reduceEntitlement(current, event, { entitlement })` →
   `{ action: "set", next: { until, productId, updatedAt } }` for
-  `GRANT_EVENT_TYPES` and `EXPIRATION`, else `{ action: "skip", reason:
-  "not-entitlement" | "stale" | "no-op" }`. `revokedByTransfer(event)`.
+  `GRANT_EVENT_TYPES` (later of current and event expiry; `LIFETIME_UNTIL` when
+  none), `EXPIRATION` (event expiry unless the record runs longer), and a refund
+  `CANCELLATION` (event expiry, unconditionally); else `{ action: "skip",
+  reason: "not-entitlement" | "stale" | "no-op" }`. `revokedByTransfer(event)`.
 - `buildLedgerRows(event, { userId, previouslyExpired? })` → `LedgerRow[]` over
   `LEDGER_EVENT_TYPES` (`trial_started`, `trial_converted`, `purchased`,
   `renewed`, `cancel_scheduled`, `uncanceled`, `expired`, `billing_issue`,

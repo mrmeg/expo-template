@@ -210,10 +210,13 @@ describe("createPurchases (native)", () => {
     await client.presentPaywall({ offering: "missing", displayCloseButton: false });
     expect(mockUi.presentPaywall).toHaveBeenLastCalledWith({ offering: offerings.current, displayCloseButton: false });
 
+    // No offering configured or requested: no getOfferings round-trip, RevenueCatUI picks current.
+    mockSdk.getOfferings.mockClear();
     const plain = makeClient();
     await plain.configure("user-1");
     await plain.presentPaywall();
-    expect(mockUi.presentPaywall).toHaveBeenLastCalledWith({ offering: offerings.current, displayCloseButton: true });
+    expect(mockSdk.getOfferings).not.toHaveBeenCalled();
+    expect(mockUi.presentPaywall).toHaveBeenLastCalledWith({ offering: undefined, displayCloseButton: true });
   });
 
   it("still presents when offerings cannot be loaded", async () => {
@@ -272,21 +275,71 @@ describe("createPurchases (native)", () => {
     expect(mockSdk.removeCustomerInfoUpdateListener).toHaveBeenCalledWith(sdkListener);
   });
 
-  it("does not attach a listener when unsubscribed before the SDK resolved", async () => {
+  it("does not attach a listener that was unsubscribed before configure completed", async () => {
     const client = makeClient();
-    await client.configure("user-1");
     const unsubscribe = client.subscribe(() => {});
     unsubscribe();
-    await Promise.resolve();
-    await Promise.resolve();
+    await client.configure("user-1");
     expect(mockSdk.addCustomerInfoUpdateListener).not.toHaveBeenCalled();
+    expect(mockSdk.removeCustomerInfoUpdateListener).not.toHaveBeenCalled();
   });
 
-  it("subscribe is inert before configure", async () => {
+  it("subscribe is inert before configure and attaches once configure succeeds", async () => {
     const client = makeClient();
-    const unsubscribe = client.subscribe(() => {});
+    const listener = jest.fn();
+    const unsubscribe = client.subscribe(listener);
     await Promise.resolve();
     expect(mockSdk.addCustomerInfoUpdateListener).not.toHaveBeenCalled();
+
+    await client.configure("user-1");
+    expect(mockSdk.addCustomerInfoUpdateListener).toHaveBeenCalledTimes(1);
+    const sdkListener = mockSdk.addCustomerInfoUpdateListener.mock.calls[0][0] as (info: CustomerInfo) => void;
+    sdkListener(customerInfo(true));
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ isActive: true }));
     unsubscribe();
+    expect(mockSdk.removeCustomerInfoUpdateListener).toHaveBeenCalledWith(sdkListener);
+  });
+
+  it("attaches after a failed configure is retried successfully", async () => {
+    mockSdk.configure.mockImplementationOnce(() => {
+      throw new Error("first attempt");
+    });
+    const client = makeClient({ onError: () => {} });
+    client.subscribe(() => {});
+    await expect(client.configure("user-1")).resolves.toBe(false);
+    expect(mockSdk.addCustomerInfoUpdateListener).not.toHaveBeenCalled();
+    await expect(client.configure("user-1")).resolves.toBe(true);
+    expect(mockSdk.addCustomerInfoUpdateListener).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs identity calls one at a time so a slow logOut cannot land after the next logIn", async () => {
+    const client = makeClient();
+    await client.configure("user-1");
+    const order: string[] = [];
+    let releaseLogOut!: () => void;
+    mockSdk.logOut.mockImplementationOnce(
+      () =>
+        new Promise<CustomerInfo>((resolve) => {
+          releaseLogOut = () => {
+            order.push("logOut");
+            resolve(customerInfo(false));
+          };
+        }),
+    );
+    mockSdk.logIn.mockImplementation(async (id: string) => {
+      order.push(`logIn:${id}`);
+      return { customerInfo: customerInfo(true, id), created: false };
+    });
+
+    const signOut = client.logOut();
+    const signIn = client.logIn("user-2");
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(order).toEqual([]);
+    releaseLogOut();
+    await signOut;
+    const state = await signIn;
+    expect(order).toEqual(["logOut", "logIn:user-2"]);
+    expect(state).toMatchObject({ appUserId: "user-2", isActive: true });
   });
 });

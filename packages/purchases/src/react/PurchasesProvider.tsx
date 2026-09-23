@@ -2,14 +2,18 @@
  * Boots RevenueCat for the signed-in user and keeps the entitlement store
  * current. Lifted from Mindmap `client/features/pro/PurchasesProvider.tsx`.
  *
- * Every effect is inert without a `userId`: an anonymous visitor must not
- * become an anonymous RevenueCat customer. With a user:
- *  - the store is scoped to that user and its snapshot read (`hydrate`);
+ * Nothing touches the SDK or persists without a `userId`: an anonymous visitor
+ * must not become an anonymous RevenueCat customer. With a user:
+ *  - the store is rescoped to that user (previous sources dropped) and its
+ *    snapshot read (`hydrate`);
  *  - the SDK is configured once (`sdkStatus` becomes `ready` or `unavailable`),
- *    the customer-info listener attached, and `logIn(userId)` applied;
+ *    the customer-info listener attached, and `logIn(userId)` applied — the
+ *    result is applied even when null so `deviceReported` marks the attempt;
  *  - `serverUntil` (the app's webhook-synced expiry) is mirrored into the store.
  * When `userId` becomes null the SDK returns to anonymous and the store is
- * cleared, including the persisted snapshot.
+ * cleared, including the persisted snapshot. Mount it inside the auth boundary:
+ * while `userId` is null every gate treats the visitor as settled and not
+ * entitled.
  */
 import React, { useEffect, useMemo, type ReactNode } from "react";
 
@@ -62,7 +66,7 @@ export function PurchasesProvider({
         if (!cancelled) store.getState().applyCustomerState(customer);
       });
       const customer = await client.logIn(userId);
-      if (!cancelled && customer) store.getState().applyCustomerState(customer);
+      if (!cancelled) store.getState().applyCustomerState(customer);
     })();
 
     return () => {
@@ -71,11 +75,17 @@ export function PurchasesProvider({
     };
   }, [client, store, userId]);
 
+  // Runs after the scope effect above (declaration order), so a user switch
+  // re-applies the app's `serverUntil` into the freshly rescoped store.
   useEffect(() => {
+    if (!userId) return;
     store.getState().applyServerEntitlement(serverUntil ?? null);
-  }, [store, serverUntil]);
+  }, [store, serverUntil, userId]);
 
-  const value = useMemo<PurchasesContextValue>(() => ({ client, store, onBlocked }), [client, store, onBlocked]);
+  const value = useMemo<PurchasesContextValue>(
+    () => ({ client, store, userId, onBlocked }),
+    [client, store, userId, onBlocked],
+  );
 
   return <PurchasesContext.Provider value={value}>{children}</PurchasesContext.Provider>;
 }

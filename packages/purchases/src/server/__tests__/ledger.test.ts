@@ -117,7 +117,13 @@ describe("buildLedgerRows", () => {
     expect(types(buildLedgerRows(event({ type }), { userId: "u1" }))).toEqual([ledgerType]);
   });
 
-  it.each(["TRANSFER", "TEST", "SUBSCRIPTION_PAUSED", "NON_RENEWING_PURCHASE", "SOMETHING_NEW"])(
+  it("records a one-time NON_RENEWING_PURCHASE as purchased revenue", () => {
+    const rows = buildLedgerRows(event({ type: "NON_RENEWING_PURCHASE", expiration_at_ms: null, price: 29.99 }), { userId: "u1" });
+    expect(types(rows)).toEqual(["purchased"]);
+    expect(rows[0].amountCents).toBe(2999);
+  });
+
+  it.each(["TRANSFER", "TEST", "SUBSCRIPTION_PAUSED", "SUBSCRIPTION_EXTENDED", "TEMPORARY_ENTITLEMENT_GRANT", "SOMETHING_NEW"])(
     "writes nothing for %s",
     (type) => {
       expect(buildLedgerRows(event({ type }), { userId: "u1" })).toEqual([]);
@@ -189,7 +195,16 @@ describe("isRefundCancellation", () => {
 });
 
 describe("deriveSubscriptionStatus", () => {
-  it.each(["INITIAL_PURCHASE", "RENEWAL", "PRODUCT_CHANGE", "UNCANCELLATION", "REFUND_REVERSED"])(
+  it.each([
+    "INITIAL_PURCHASE",
+    "RENEWAL",
+    "PRODUCT_CHANGE",
+    "UNCANCELLATION",
+    "REFUND_REVERSED",
+    "NON_RENEWING_PURCHASE",
+    "SUBSCRIPTION_EXTENDED",
+    "TEMPORARY_ENTITLEMENT_GRANT",
+  ])(
     "%s is active, or trialing on a TRIAL period",
     (type) => {
       expect(deriveSubscriptionStatus(event({ type }))).toBe("active");

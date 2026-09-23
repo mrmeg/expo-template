@@ -1176,8 +1176,10 @@ attaches the customer-info listener, mirrors `serverUntil`, and on sign-out
 returns the SDK to anonymous and deletes the persisted snapshot.
 
 Read access with `useEntitlement()` → `{ isEntitled, until, source, hydrated,
-isConfigured, isReady, customer, restore, presentPaywall,
-presentPaywallIfNeeded }`. Hold the splash screen until `hydrated`. Gate an
+settled, isConfigured, isReady, customer, restore, presentPaywall,
+presentPaywallIfNeeded }`. Hold the splash screen and any automatic paywall
+until `settled` (store scoped to this user, snapshot read, and a source
+reported or none can); `hydrated` alone only says the snapshot read finished. Gate an
 action with `const requireExport = useRequireEntitlement("export")` and
 `if (!requireExport()) return;`. Gate a subtree with
 `<PaywallGate feature="export" fallback={<Upsell />}>`. `presentPaywall()`
@@ -1187,7 +1189,10 @@ the listener updates the store; the webhook updates the server record.
 
 `resolveEntitlement` order: dev override (development builds only), device
 `customer.isActive`, `serverUntil > now`, then the persisted snapshot only while
-neither live source has reported this session. A gate on another entitlement
+neither live source has reported this session. A lifetime grant reads as
+`until: null`; the server stores it as `LIFETIME_UNTIL`. Switching `userId`
+rescopes the store synchronously (nothing from the previous user grants or is
+persisted under the new id) and identity calls are serialised. A gate on another entitlement
 (`useEntitlement("teams")`, `<PaywallGate entitlement="teams">`) checks the
 device's active list only.
 
@@ -1220,9 +1225,12 @@ other entitlements are acknowledged without reaching `onEvent`. Anonymous
 Ledger vocabulary (`LEDGER_EVENT_TYPES`): `trial_started`, `trial_converted`,
 `purchased`, `renewed`, `cancel_scheduled`, `uncanceled`, `expired`,
 `billing_issue`, `refunded`, `refund_reversed`, `product_changed`,
-`reactivated`. There is no REFUND webhook type: a refund is a CANCELLATION with
-`cancel_reason: CUSTOMER_SUPPORT` and the expiration moved back
-(`isRefundCancellation`). `amountCents` is RevenueCat's USD price in cents,
+`reactivated`. `NON_RENEWING_PURCHASE` is `purchased`. There is no REFUND
+webhook type: a refund is a CANCELLATION with `cancel_reason: CUSTOMER_SUPPORT`
+and the expiration moved back (`isRefundCancellation`); `reduceEntitlement`
+revokes on it immediately. Grants never shorten `until` (later of current and
+event), `EXPIRATION` never cuts a record that runs longer, and a grant without
+expiration stores `LIFETIME_UNTIL`, never null. `amountCents` is RevenueCat's USD price in cents,
 pinned to 0 for `trial_started`. `occurredAt` is `event_timestamp_ms`. Rows are
 camelCase and JSON-serialisable; map to your table's columns.
 

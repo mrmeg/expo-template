@@ -142,10 +142,13 @@ The provider, per user:
    RevenueCat's `app_user_id` is the app's user id;
 3. mirrors `serverUntil` into the store.
 
-When `userId` becomes null it returns the SDK to an anonymous id and clears the
-store, including the persisted snapshot, so entitlement never leaks between
-accounts. Public routes rendered without a session must sit outside the
-provider or pass `userId={null}`.
+When `userId` changes the store is rescoped first (every source from the
+previous user dropped synchronously) and the new user logged in; when it becomes
+null the SDK returns to an anonymous id and the store is cleared, including the
+persisted snapshot, so entitlement never leaks between accounts. Identity calls
+are serialised, so a fast sign-out → sign-in cannot leave the SDK anonymous.
+Mount the provider inside the auth boundary: while `userId` is null every gate
+treats the visitor as settled and not entitled.
 
 ### `PurchasesClient`
 
@@ -191,11 +194,19 @@ store with `customer` (device), `serverUntil` (backend), `snapshot`
    only when it says active with a future (or no) expiry;
 5. none.
 
-`until` is the latest known expiry across the sources consulted. The snapshot
-is written on every live update, revocations included, so a cold start can
-show the paywall without waiting on the network; it is scoped by user id and
-`ENTITLEMENT_SNAPSHOT_VERSION`, and a wrong user or version reads as missing.
-Hold the splash screen until `useEntitlement().hydrated` is true.
+`until` is the latest known expiry across the sources consulted; a lifetime
+grant (device `until: null`, or the server's `LIFETIME_UNTIL` sentinel) reads
+as `null`. The snapshot is written on every live update, revocations included,
+so a cold start can show the paywall without waiting on the network; it is
+scoped by user id and `ENTITLEMENT_SNAPSHOT_VERSION`, a wrong user or version
+reads as missing, and nothing is written for the signed-out scope.
+
+`useEntitlement().settled` is the signal to act on: the store is scoped to the
+current user, its snapshot was read (`hydrated`), and either a source has
+reported (device — even "nothing", server, or snapshot), the SDK is
+unavailable, or there is no user. Hold the splash screen and any automatic
+paywall until `settled` is true; `hydrated` alone only says the snapshot read
+finished.
 
 A gate on another entitlement than the configured one
 (`useEntitlement("teams")`, `<PaywallGate entitlement="teams">`) checks the
@@ -220,9 +231,10 @@ async function onExport() {
 
 `PaywallGate` renders `children` when entitled, otherwise `fallback` (nothing
 by default) and reports the block once per lock through its own `onBlocked`
-or the provider's. It waits for `hydrated` before reporting so a paying user
-never sees the paywall flash on a cold start. Both the hook and the gate accept
-`feature` so the paywall can explain why it opened.
+or the provider's. It reports only once the verdict is `settled`, so a paying
+user never sees the paywall flash on a cold start, a reinstall, or an account
+switch. Both the hook and the gate accept `feature` so the paywall can explain
+why it opened.
 
 On the paywall screen call `presentPaywall()` for the RevenueCat dashboard
 paywall, or build your own screen from the app's UI kit and call
@@ -275,6 +287,7 @@ export const POST = createWebhookHandler({
 | RevenueCat event | Ledger rows | Notes |
 |---|---|---|
 | `INITIAL_PURCHASE` | `trial_started` (amount 0) when `period_type = TRIAL`, else `purchased`; plus `reactivated` when `previouslyExpired` | |
+| `NON_RENEWING_PURCHASE` | `purchased` | One-time purchase; revenue like any other |
 | `RENEWAL` | `trial_converted` when `is_trial_conversion`, else `renewed` | |
 | `CANCELLATION` | `cancel_scheduled`; plus `refunded` when `cancel_reason = CUSTOMER_SUPPORT` and `expiration_at_ms <= event_timestamp_ms` | RevenueCat has no REFUND type |
 | `UNCANCELLATION` | `uncanceled` | |
@@ -282,7 +295,7 @@ export const POST = createWebhookHandler({
 | `BILLING_ISSUE` | `billing_issue` | |
 | `PRODUCT_CHANGE` | `product_changed` | |
 | `REFUND_REVERSED` | `refund_reversed` | App Store undoing a refund; access restored from `expiration_at_ms` |
-| anything else (`TEST`, `TRANSFER`, `SUBSCRIPTION_PAUSED`, …) | none | |
+| anything else (`TEST`, `TRANSFER`, `SUBSCRIPTION_PAUSED`, `SUBSCRIPTION_EXTENDED`, `TEMPORARY_ENTITLEMENT_GRANT`, …) | none | |
 
 Row shape: `{ userId, provider: "revenuecat", eventType, providerEventId,
 providerEventType, providerSubscriptionId, productId, store, periodType,
@@ -296,17 +309,31 @@ double-count.
 
 ### Current state (`reduceEntitlement`, `deriveSubscriptionStatus`)
 
-`reduceEntitlement(current, event, { entitlement })` returns `{ action: "set",
-next: { until, productId, updatedAt } }` for grants (`INITIAL_PURCHASE`,
-`RENEWAL`, `UNCANCELLATION`, `PRODUCT_CHANGE`, `NON_RENEWING_PURCHASE`,
-`SUBSCRIPTION_EXTENDED`, `TEMPORARY_ENTITLEMENT_GRANT`, `REFUND_REVERSED`)
-and for `EXPIRATION` (until = the expiration, else the event time), and
-`{ action: "skip", reason }` for other entitlements (`not-entitlement`),
-out-of-order deliveries (`stale`: older than `current.updatedAt`), and events
-that change nothing (`no-op`: `CANCELLATION`, `BILLING_ISSUE`,
-`SUBSCRIPTION_PAUSED`, `TEST`). `TRANSFER` moves purchases between app user
-ids: revoke each `transferredFrom` user with `revokedByTransfer(event)`; the
-receiving side refreshes from the SDK and the next event.
+`reduceEntitlement(current, event, { entitlement })` keeps one record per user
+and entitlement, `{ until, productId, updatedAt }`, where `until` is null for
+"no access recorded" and `LIFETIME_UNTIL` (exported; the largest `Date` value)
+for a grant with no expiration. Webhook events are per product, so the reducer
+never lets one product's event shorten what another granted:
+
+- grants (`INITIAL_PURCHASE`, `RENEWAL`, `UNCANCELLATION`, `PRODUCT_CHANGE`,
+  `NON_RENEWING_PURCHASE`, `SUBSCRIPTION_EXTENDED`,
+  `TEMPORARY_ENTITLEMENT_GRANT`, `REFUND_REVERSED`) set `until` to the later of
+  the current value and the event's expiration;
+- `EXPIRATION` sets `until` to the event's expiration (else the event time)
+  unless the record already runs longer;
+- a refund `CANCELLATION` (`isRefundCancellation`) moves `until` back to the
+  event's expiration unconditionally, so access ends without waiting for the
+  later `EXPIRATION`;
+- everything else is `{ action: "skip", reason }`: other entitlements
+  (`not-entitlement`), out-of-order deliveries (`stale`: older than
+  `current.updatedAt`), and events that change nothing (`no-op`: ordinary
+  `CANCELLATION`, `BILLING_ISSUE`, `SUBSCRIPTION_PAUSED`, `TEST`).
+
+Store `next.until` as the user's `until` and pass it to `PurchasesProvider
+serverUntil` as is; `resolveEntitlement` treats `LIFETIME_UNTIL` as "never
+expires". `TRANSFER` moves purchases between app user ids: revoke each
+`transferredFrom` user with `revokedByTransfer(event)`; the receiving side
+refreshes from the SDK and the next event.
 
 `deriveSubscriptionStatus(event)` maps to `trialing | active | past_due |
 canceled` for consumers that keep a current-state subscriptions row per

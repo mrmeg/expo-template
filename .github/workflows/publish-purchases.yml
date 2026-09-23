@@ -1,6 +1,6 @@
 name: Publish Purchases Package
 
-# Dispatch only, like publish-lint.yml and unlike publish-ui.yml / publish-purchases.yml.
+# Dispatch only, like publish-lint.yml and unlike publish-ui.yml / publish-media.yml.
 # @mrmeg/expo-purchases has never been published, so a `push` trigger on
 # packages/purchases/package.json would fire on the first bump commit before the
 # package exists on npm — which is also before trusted publishing can be

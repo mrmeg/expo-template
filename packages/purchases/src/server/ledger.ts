@@ -11,6 +11,8 @@
  * |------------------|--------------------------------------------------------------|
  * | INITIAL_PURCHASE | `trial_started` (TRIAL) else `purchased`; + `reactivated`    |
  * |                  | when `previouslyExpired`                                     |
+ * | NON_RENEWING_    | `purchased` (a one-time purchase is revenue too)             |
+ * | PURCHASE         |                                                              |
  * | RENEWAL          | `trial_converted` when `isTrialConversion`, else `renewed`   |
  * | CANCELLATION     | `cancel_scheduled`; + `refunded` on the refund heuristic     |
  * | UNCANCELLATION   | `uncanceled`                                                 |
@@ -107,7 +109,8 @@ export function providerSubscriptionId(event: RevenueCatWebhookEvent): string {
 /**
  * Map an event to the consumer's current-state status enum.
  *
- * - INITIAL_PURCHASE / RENEWAL / PRODUCT_CHANGE / UNCANCELLATION / REFUND_REVERSED
+ * - INITIAL_PURCHASE / RENEWAL / PRODUCT_CHANGE / UNCANCELLATION / REFUND_REVERSED /
+ *   NON_RENEWING_PURCHASE / SUBSCRIPTION_EXTENDED / TEMPORARY_ENTITLEMENT_GRANT
  *   → `trialing` when the period is TRIAL, else `active`.
  * - CANCELLATION → `canceled` (auto-renew off; access continues until the
  *   expiration, which the consumer honours). Refunds ride this path with the
@@ -123,6 +126,9 @@ export function deriveSubscriptionStatus(event: RevenueCatWebhookEvent): Subscri
     case "PRODUCT_CHANGE":
     case "UNCANCELLATION":
     case "REFUND_REVERSED":
+    case "NON_RENEWING_PURCHASE":
+    case "SUBSCRIPTION_EXTENDED":
+    case "TEMPORARY_ENTITLEMENT_GRANT":
       return event.periodType === "TRIAL" ? "trialing" : "active";
     case "BILLING_ISSUE":
       return "past_due";
@@ -141,6 +147,9 @@ export function buildLedgerRows(event: RevenueCatWebhookEvent, options: BuildLed
     case "INITIAL_PURCHASE":
       types.push(event.periodType === "TRIAL" ? "trial_started" : "purchased");
       if (options.previouslyExpired) types.push("reactivated");
+      break;
+    case "NON_RENEWING_PURCHASE":
+      types.push("purchased");
       break;
     case "RENEWAL":
       types.push(event.isTrialConversion === true ? "trial_converted" : "renewed");

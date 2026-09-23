@@ -23,13 +23,16 @@ package.
 - `createEntitlementStore({ storage?, storageKeyPrefix? })` and
   `resolveEntitlement()`: on-device customer state, the server's webhook-synced
   expiry, and a per-user persisted snapshot merged in that trust order.
-- `PurchasesProvider`, `useEntitlement()`, `useRequireEntitlement(feature)`,
-  `<PaywallGate>`. The package never imports a router; the app's `onBlocked`
-  opens its paywall route.
+- `PurchasesProvider`, `useEntitlement()` (with `settled`: act on the verdict
+  only once the store is scoped to the user and a source has reported),
+  `useRequireEntitlement(feature)`, `<PaywallGate>`. The package never imports a
+  router; the app's `onBlocked` opens its paywall route.
 - `@mrmeg/expo-purchases/server` (no React, React Native, Node, or SDK imports):
   `isAuthorizedWebhook`, `timingSafeEqual`, `parseRevenueCatWebhook`,
   `reduceEntitlement`, `revokedByTransfer`, `buildLedgerRows`,
   `isRefundCancellation`, `deriveSubscriptionStatus`, `providerSubscriptionId`,
-  `createWebhookHandler`.
+  `createWebhookHandler`, `LIFETIME_UNTIL`. The reducer keeps one record per
+  entitlement across products: grants never shorten `until`, `EXPIRATION` never
+  cuts a longer term, and a refund `CANCELLATION` revokes immediately.
 - Docs: identifier contract, the human setup checklist, the store-review
   checklist (Terms of Use and Privacy Policy links on the paywall).

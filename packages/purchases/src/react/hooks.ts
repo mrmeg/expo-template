@@ -11,8 +11,15 @@ import type { CustomerState, PaywallOutcome, PresentPaywallOptions, RestoreOutco
 import { usePurchasesContext } from "./context";
 
 export interface EntitlementView extends EntitlementResolution {
-  /** The persisted snapshot was read; hold the splash screen until this is true. */
+  /** The persisted snapshot for this user was read. */
   hydrated: boolean;
+  /**
+   * The verdict is worth acting on: the store is scoped to the current user,
+   * hydrated, and either a source has reported (device, server, snapshot), the
+   * SDK is unavailable, or there is no user. Hold the splash screen and any
+   * automatic paywall until this is true.
+   */
+  settled: boolean;
   /** A public SDK key exists for this platform. */
   isConfigured: boolean;
   /** The SDK configured successfully and purchases can be made. */
@@ -29,10 +36,21 @@ export interface EntitlementView extends EntitlementResolution {
  * names another one (checked against the device's active list only).
  */
 export function useEntitlement(entitlement?: string): EntitlementView {
-  const { client, store } = usePurchasesContext();
+  const { client, store, userId } = usePurchasesContext();
   const customer = useStore(store, (state) => state.customer);
   const hydrated = useStore(store, (state) => state.hydrated);
   const sdkStatus = useStore(store, (state) => state.sdkStatus);
+  const settled = useStore(
+    store,
+    (state) =>
+      state.hydrated &&
+      state.userId === userId &&
+      (userId === null ||
+        state.deviceReported ||
+        state.serverUntil !== null ||
+        state.snapshot !== null ||
+        state.sdkStatus === "unavailable"),
+  );
 
   const target = entitlement !== undefined && entitlement !== client.entitlement ? entitlement : undefined;
   // The clock is read inside the selector, not in render, and the result is
@@ -55,6 +73,7 @@ export function useEntitlement(entitlement?: string): EntitlementView {
   return {
     ...resolution,
     hydrated,
+    settled,
     isConfigured: client.isConfigured(),
     isReady: sdkStatus === "ready",
     sdkStatus,

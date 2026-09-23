@@ -59,7 +59,7 @@ function Probe({ entitlement }: { entitlement?: string }) {
   const view = useEntitlement(entitlement);
   return (
     <Text testID="probe">
-      {`${view.isEntitled}|${view.source}|${view.hydrated}|${view.isReady}|${view.isConfigured}|${view.until ?? "-"}`}
+      {`${view.isEntitled}|${view.source}|${view.hydrated}|${view.isReady}|${view.isConfigured}|${view.until ?? "-"}|${view.settled}`}
     </Text>
   );
 }
@@ -97,7 +97,7 @@ describe("PurchasesProvider", () => {
     await flush();
     expect(client.configure).not.toHaveBeenCalled();
     expect(store.getState().sdkStatus).toBe("unavailable");
-    expect(screen.getByTestId("probe").props.children).toBe("false|none|true|false|false|-");
+    expect(screen.getByTestId("probe").props.children).toBe("false|none|true|false|false|-|true");
   });
 
   it("configures for the signed-in user, applies the customer state, and follows listener updates", async () => {
@@ -113,10 +113,10 @@ describe("PurchasesProvider", () => {
     expect(client.logIn).toHaveBeenCalledWith("user-1");
     expect(store.getState().sdkStatus).toBe("ready");
     expect(store.getState().userId).toBe("user-1");
-    expect(screen.getByTestId("probe").props.children).toBe(`true|device|true|true|true|${LATER}`);
+    expect(screen.getByTestId("probe").props.children).toBe(`true|device|true|true|true|${LATER}|true`);
 
     await act(async () => client.emit(inactiveCustomer));
-    expect(screen.getByTestId("probe").props.children).toBe("false|none|true|true|true|-");
+    expect(screen.getByTestId("probe").props.children).toBe("false|none|true|true|true|-|true");
   });
 
   it("mirrors the server until and clears on sign-out", async () => {
@@ -128,7 +128,7 @@ describe("PurchasesProvider", () => {
       </PurchasesProvider>,
     );
     await flush();
-    expect(screen.getByTestId("probe").props.children).toBe(`true|server|true|true|true|${LATER}`);
+    expect(screen.getByTestId("probe").props.children).toBe(`true|server|true|true|true|${LATER}|true`);
 
     await rerender(
       <PurchasesProvider client={client} store={store} userId={null} serverUntil={null}>
@@ -138,26 +138,62 @@ describe("PurchasesProvider", () => {
     await flush();
     expect(client.logOut).toHaveBeenCalledTimes(1);
     expect(store.getState()).toMatchObject({ customer: null, serverUntil: null, userId: null });
-    expect(screen.getByTestId("probe").props.children).toBe("false|none|true|true|true|-");
+    expect(screen.getByTestId("probe").props.children).toBe("false|none|true|true|true|-|true");
   });
 
-  it("logs the new user in when the user id changes", async () => {
-    const client = fakeClient();
+  it("logs the new user in when the user id changes and drops the previous user's state", async () => {
+    let customer: CustomerState | null = activeCustomer;
+    const client = fakeClient({ logIn: jest.fn(async () => customer), getCustomerState: jest.fn(async () => customer) });
     const store = createEntitlementStore();
     const { rerender } = await render(
-      <PurchasesProvider client={client} store={store} userId="user-1">
+      <PurchasesProvider client={client} store={store} userId="user-1" serverUntil={LATER}>
         <Probe />
       </PurchasesProvider>,
     );
     await flush();
+    expect(screen.getByTestId("probe").props.children).toBe(`true|device|true|true|true|${LATER}|true`);
+
+    // user-2's logIn fails (null): nothing of user-1 may grant, and the verdict is still settled.
+    customer = null;
     await rerender(
-      <PurchasesProvider client={client} store={store} userId="user-2">
+      <PurchasesProvider client={client} store={store} userId="user-2" serverUntil={null}>
         <Probe />
       </PurchasesProvider>,
     );
     await flush();
     expect(client.logIn).toHaveBeenLastCalledWith("user-2");
-    expect(store.getState().userId).toBe("user-2");
+    expect(store.getState()).toMatchObject({ userId: "user-2", customer: null, serverUntil: null, deviceReported: true });
+    expect(screen.getByTestId("probe").props.children).toBe("false|none|true|true|true|-|true");
+  });
+
+  it("re-applies serverUntil for the new user after a switch", async () => {
+    const client = fakeClient();
+    const store = createEntitlementStore();
+    const { rerender } = await render(
+      <PurchasesProvider client={client} store={store} userId="user-1" serverUntil={LATER}>
+        <Probe />
+      </PurchasesProvider>,
+    );
+    await flush();
+    await rerender(
+      <PurchasesProvider client={client} store={store} userId="user-2" serverUntil={LATER}>
+        <Probe />
+      </PurchasesProvider>,
+    );
+    await flush();
+    expect(store.getState()).toMatchObject({ userId: "user-2", serverUntil: LATER });
+  });
+
+  it("does not persist or mirror serverUntil while signed out", async () => {
+    const client = fakeClient();
+    const store = createEntitlementStore();
+    await render(
+      <PurchasesProvider client={client} store={store} userId={null} serverUntil={LATER}>
+        <Probe />
+      </PurchasesProvider>,
+    );
+    await flush();
+    expect(store.getState().serverUntil).toBeNull();
   });
 });
 
@@ -166,6 +202,106 @@ describe("useEntitlement outside a provider", () => {
     const spy = jest.spyOn(console, "error").mockImplementation(() => {});
     await expect(render(<Probe />)).rejects.toThrow(/PurchasesProvider/);
     spy.mockRestore();
+  });
+});
+
+describe("PaywallGate settling", () => {
+  function deferredClient() {
+    let resolveLogIn!: (state: CustomerState | null) => void;
+    const client = fakeClient({
+      logIn: jest.fn(() => new Promise<CustomerState | null>((resolve) => (resolveLogIn = resolve))),
+    });
+    return { client, resolveLogIn: (state: CustomerState | null) => resolveLogIn(state) };
+  }
+
+  it("waits for the device to report before reporting a block, then renders children for a paying user", async () => {
+    const { client, resolveLogIn } = deferredClient();
+    const store = createEntitlementStore();
+    const onBlocked = jest.fn();
+    await render(
+      <PurchasesProvider client={client} store={store} userId="user-1" onBlocked={onBlocked}>
+        <PaywallGate feature="export" fallback={<Text>locked</Text>}>
+          <Text>secret</Text>
+        </PaywallGate>
+      </PurchasesProvider>,
+    );
+    await flush();
+    expect(screen.getByText("locked")).toBeTruthy();
+    expect(onBlocked).not.toHaveBeenCalled();
+
+    await act(async () => resolveLogIn(activeCustomer));
+    expect(screen.getByText("secret")).toBeTruthy();
+    expect(onBlocked).not.toHaveBeenCalled();
+  });
+
+  it("reports once the device has reported nothing", async () => {
+    const { client, resolveLogIn } = deferredClient();
+    const store = createEntitlementStore();
+    const onBlocked = jest.fn();
+    await render(
+      <PurchasesProvider client={client} store={store} userId="user-1" onBlocked={onBlocked}>
+        <PaywallGate feature="export">
+          <Text>secret</Text>
+        </PaywallGate>
+      </PurchasesProvider>,
+    );
+    await flush();
+    expect(onBlocked).not.toHaveBeenCalled();
+    await act(async () => resolveLogIn(null));
+    expect(onBlocked).toHaveBeenCalledWith("export");
+  });
+
+  it("reports immediately when the SDK is unavailable or there is no user", async () => {
+    const store = createEntitlementStore();
+    const onBlocked = jest.fn();
+    await render(
+      <PurchasesProvider client={fakeClient({ configured: false })} store={store} userId="user-1" onBlocked={onBlocked}>
+        <PaywallGate feature="export">
+          <Text>secret</Text>
+        </PaywallGate>
+      </PurchasesProvider>,
+    );
+    await flush();
+    expect(onBlocked).toHaveBeenCalledTimes(1);
+
+    const anonymousBlocked = jest.fn();
+    await render(
+      <PurchasesProvider client={fakeClient()} store={createEntitlementStore()} userId={null} onBlocked={anonymousBlocked}>
+        <PaywallGate feature="export">
+          <Text>secret</Text>
+        </PaywallGate>
+      </PurchasesProvider>,
+    );
+    await flush();
+    expect(anonymousBlocked).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not flash the paywall on sign-out followed by a paying sign-in", async () => {
+    const { client, resolveLogIn } = deferredClient();
+    const store = createEntitlementStore();
+    const onBlocked = jest.fn();
+    const tree = (userId: string | null) => (
+      <PurchasesProvider client={client} store={store} userId={userId} onBlocked={onBlocked}>
+        <PaywallGate feature="export" fallback={<Text>locked</Text>}>
+          <Text>secret</Text>
+        </PaywallGate>
+      </PurchasesProvider>
+    );
+    const { rerender } = await render(tree("user-1"));
+    await act(async () => resolveLogIn(activeCustomer));
+    expect(screen.getByText("secret")).toBeTruthy();
+
+    await rerender(tree(null));
+    await flush();
+    // Signed out: settled and blocked once.
+    expect(onBlocked).toHaveBeenCalledTimes(1);
+
+    await rerender(tree("user-1"));
+    await flush();
+    expect(screen.getByText("locked")).toBeTruthy();
+    await act(async () => resolveLogIn(activeCustomer));
+    expect(screen.getByText("secret")).toBeTruthy();
+    expect(onBlocked).toHaveBeenCalledTimes(1);
   });
 });
 

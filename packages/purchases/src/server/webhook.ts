@@ -8,6 +8,8 @@
  *
  * Webhook reference: https://www.revenuecat.com/docs/integrations/webhooks
  */
+import { LIFETIME_UNTIL } from "../constants";
+import { isRefundCancellation } from "./ledger";
 
 /** Event types that grant or extend access until `expiration_at_ms`. */
 export const GRANT_EVENT_TYPES: ReadonlySet<string> = new Set([
@@ -67,7 +69,10 @@ export interface RevenueCatWebhookEvent {
 }
 
 export interface EntitlementRecord {
-  /** Access until this ms timestamp; null = no access recorded, or lifetime when set by a grant with no expiry. */
+  /**
+   * Access until this ms timestamp; null = no access recorded. A grant with no
+   * expiration stores `LIFETIME_UNTIL` so it is never mistaken for "nothing".
+   */
   until: number | null;
   productId: string | null;
   /** `event_timestamp_ms` of the last applied event, for out-of-order protection. */
@@ -169,10 +174,17 @@ export function parseRevenueCatWebhook(body: unknown): RevenueCatWebhookEvent | 
 /**
  * Decide how an event changes a user's stored entitlement.
  *
- * - Grants set `until` to the event's expiration (null = no expiry).
- * - EXPIRATION sets it to the expiration, falling back to the event time.
- * - CANCELLATION / BILLING_ISSUE / SUBSCRIPTION_PAUSED / TEST leave access in
- *   place until the following EXPIRATION arrives.
+ * Webhook events are per product, while the record is per entitlement, so the
+ * reducer never lets one product's event shorten access another product
+ * granted:
+ * - Grants set `until` to the later of the current value and the event's
+ *   expiration (`LIFETIME_UNTIL` when the grant has none).
+ * - EXPIRATION sets `until` to the event's expiration (falling back to the event
+ *   time) unless the current record already runs longer, in which case it stays.
+ * - A refund CANCELLATION (`isRefundCancellation`) moves `until` back to the
+ *   event's expiration unconditionally: the store has already revoked access.
+ * - Other CANCELLATION / BILLING_ISSUE / SUBSCRIPTION_PAUSED / TEST leave access
+ *   in place until the following EXPIRATION arrives.
  * - Events older than the last applied one are ignored (webhook retries can
  *   arrive out of order); an equal timestamp is applied (idempotent retry).
  */
@@ -188,26 +200,23 @@ export function reduceEntitlement(
     return { action: "skip", reason: "stale" };
   }
 
+  const productId = event.productId ?? current.productId;
+  const updatedAt = event.eventTimestampMs;
+
   if (GRANT_EVENT_TYPES.has(event.type)) {
-    return {
-      action: "set",
-      next: {
-        until: event.expirationAtMs,
-        productId: event.productId ?? current.productId,
-        updatedAt: event.eventTimestampMs,
-      },
-    };
+    const granted = event.expirationAtMs ?? LIFETIME_UNTIL;
+    const until = current.until !== null && current.until > granted ? current.until : granted;
+    return { action: "set", next: { until, productId, updatedAt } };
   }
 
   if (REVOKE_EVENT_TYPES.has(event.type)) {
-    return {
-      action: "set",
-      next: {
-        until: event.expirationAtMs ?? event.eventTimestampMs,
-        productId: event.productId ?? current.productId,
-        updatedAt: event.eventTimestampMs,
-      },
-    };
+    const ended = event.expirationAtMs ?? event.eventTimestampMs;
+    const until = current.until !== null && current.until > ended ? current.until : ended;
+    return { action: "set", next: { until, productId, updatedAt } };
+  }
+
+  if (isRefundCancellation(event)) {
+    return { action: "set", next: { until: event.expirationAtMs, productId, updatedAt } };
   }
 
   return { action: "skip", reason: "no-op" };

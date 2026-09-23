@@ -18,6 +18,7 @@
  */
 import { createStore, type StoreApi } from "zustand/vanilla";
 
+import { LIFETIME_UNTIL } from "./constants";
 import type { CustomerState } from "./types";
 
 export const ENTITLEMENT_SNAPSHOT_VERSION = 1;
@@ -59,17 +60,25 @@ export interface EntitlementSources {
 export interface EntitlementState extends EntitlementSources {
   /** Whether `configure()` succeeded this session. */
   sdkStatus: SdkStatus;
-  /** True once the persisted snapshot was read (or no storage is configured). */
+  /** True once the persisted snapshot for the current scope was read (or no storage is configured). */
   hydrated: boolean;
+  /** True once the device reported a customer state (or its absence) for the current scope. */
+  deviceReported: boolean;
   /** User the store is scoped to; set by `hydrate`, cleared by `clear`. */
   userId: string | null;
 
   setSdkStatus: (status: SdkStatus) => void;
   applyCustomerState: (customer: CustomerState | null) => void;
   applyServerEntitlement: (until: number | null) => void;
-  /** Scope the store to a user and read that user's snapshot. */
+  /**
+   * Scope the store to a user: drop every source from the previous scope, then
+   * read this user's snapshot. `hydrated` is false until the read completes.
+   */
   hydrate: (userId: string | null) => Promise<void>;
-  /** Sign-out: drop live state and the persisted snapshot for `userId` (default: the hydrated user). */
+  /**
+   * Sign-out: drop live state and the persisted snapshot for `userId` (default:
+   * the hydrated user). The signed-out scope is trivially hydrated.
+   */
   clear: (userId?: string | null) => Promise<void>;
   setDevOverride: (enabled: boolean) => void;
   reset: () => void;
@@ -91,6 +100,11 @@ export function entitlementSnapshotKey(prefix: string, userId: string | null): s
 function maxKnown(values: Array<number | null | undefined>): number | null {
   const known = values.filter((value): value is number => typeof value === "number");
   return known.length ? Math.max(...known) : null;
+}
+
+/** `LIFETIME_UNTIL` (and anything past it) reads as "no expiry" for the UI. */
+function displayUntil(until: number | null): number | null {
+  return until !== null && until >= LIFETIME_UNTIL ? null : until;
 }
 
 /**
@@ -115,8 +129,13 @@ export function resolveEntitlement(
       : { isEntitled: false, until: null, source: "none" };
   }
 
-  const until = maxKnown([customer?.until, serverUntil]);
-  if (customer?.isActive) return { isEntitled: true, until, source: "device" };
+  if (customer?.isActive) {
+    // A device lifetime entitlement (`until: null`) is reported as such, never
+    // as some other product's expiry.
+    const until = customer.until === null ? null : displayUntil(maxKnown([customer.until, serverUntil]));
+    return { isEntitled: true, until, source: "device" };
+  }
+  const until = displayUntil(maxKnown([customer?.until, serverUntil]));
   if (serverUntil !== null && serverUntil > now) return { isEntitled: true, until, source: "server" };
   if (
     customer === null &&
@@ -124,7 +143,7 @@ export function resolveEntitlement(
     snapshot?.isActive &&
     (snapshot.until === null || snapshot.until > now)
   ) {
-    return { isEntitled: true, until: snapshot.until, source: "snapshot" };
+    return { isEntitled: true, until: displayUntil(snapshot.until), source: "snapshot" };
   }
   return { isEntitled: false, until, source: "none" };
 }
@@ -162,8 +181,17 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
     serverUntil: null as number | null,
     snapshot: null as EntitlementSnapshot | null,
     hydrated: false,
+    deviceReported: false,
     devOverride: false,
     userId: null as string | null,
+  };
+
+  /** Everything scoped to a user; reset whenever the scope changes. */
+  const emptyScope = {
+    customer: null as CustomerState | null,
+    serverUntil: null as number | null,
+    snapshot: null as EntitlementSnapshot | null,
+    deviceReported: false,
   };
 
   return createStore<EntitlementState>((set, get) => {
@@ -175,6 +203,8 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
     const persist = (): void => {
       if (!storage) return;
       const { customer, serverUntil, userId } = get();
+      // Nothing is written for the signed-out scope: there is no user to scope it to.
+      if (userId === null) return;
       if (customer === null && serverUntil === null) return;
       const live = resolveEntitlement({ customer, serverUntil, snapshot: null, devOverride: false });
       const snapshot: EntitlementSnapshot = {
@@ -195,7 +225,7 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
       setSdkStatus: (sdkStatus) => set({ sdkStatus }),
 
       applyCustomerState: (customer) => {
-        set({ customer });
+        set({ customer, deviceReported: true });
         persist();
       },
 
@@ -205,9 +235,11 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
       },
 
       hydrate: async (userId) => {
-        set({ userId });
+        // Rescope first, synchronously, so the previous user's state can never
+        // grant (or be persisted under) the new user's id.
+        set({ ...emptyScope, userId, hydrated: false });
         if (!storage) {
-          set({ snapshot: null, hydrated: true });
+          set({ hydrated: true });
           return;
         }
         let snapshot: EntitlementSnapshot | null;
@@ -223,7 +255,7 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
 
       clear: async (userId) => {
         const target = userId === undefined ? get().userId : userId;
-        set({ customer: null, serverUntil: null, snapshot: null, userId: null });
+        set({ ...emptyScope, userId: null, hydrated: true });
         if (!storage) return;
         try {
           await storage.removeItem(keyFor(target));

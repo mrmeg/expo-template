@@ -4,6 +4,7 @@
  * (selectors, dev override) and NeuroSpicy `entitlementSnapshot.ts` (user- and
  * version-scoped persistence, revocations persisted too).
  */
+import { LIFETIME_UNTIL } from "../constants";
 import {
   createEntitlementStore,
   ENTITLEMENT_SNAPSHOT_VERSION,
@@ -78,6 +79,25 @@ describe("resolveEntitlement", () => {
     expect(resolveEntitlement({ ...base, serverUntil: EARLIER, snapshot: snapshot() }, NOW).isEntitled).toBe(false);
   });
 
+  it("reports a lifetime entitlement as until null, whatever the server or snapshot say", () => {
+    const lifetime: CustomerState = { ...active, until: null };
+    expect(resolveEntitlement({ ...base, customer: lifetime, serverUntil: EARLIER }, NOW)).toEqual({
+      isEntitled: true,
+      until: null,
+      source: "device",
+    });
+    expect(resolveEntitlement({ ...base, serverUntil: LIFETIME_UNTIL }, NOW)).toEqual({
+      isEntitled: true,
+      until: null,
+      source: "server",
+    });
+    expect(resolveEntitlement({ ...base, snapshot: snapshot({ until: LIFETIME_UNTIL }) }, NOW)).toEqual({
+      isEntitled: true,
+      until: null,
+      source: "snapshot",
+    });
+  });
+
   it("honours the dev override only in development builds", () => {
     expect(__DEV__).toBe(true);
     expect(resolveEntitlement({ ...base, devOverride: true }, NOW)).toEqual({ isEntitled: true, until: null, source: "dev" });
@@ -100,9 +120,50 @@ describe("createEntitlementStore", () => {
       serverUntil: null,
       snapshot: null,
       hydrated: false,
+      deviceReported: false,
       devOverride: false,
       userId: null,
     });
+  });
+
+  it("rescoping to another user drops every source synchronously and unhydrates until the read completes", async () => {
+    const storage = memoryStorage();
+    storage.data.set(entitlementSnapshotKey("purchases:snapshot:", "user-2"), JSON.stringify(snapshot({ userId: "user-2", isActive: false })));
+    const store = createEntitlementStore({ storage });
+    await store.getState().hydrate("user-1");
+    store.getState().applyCustomerState(active);
+    store.getState().applyServerEntitlement(LATER);
+    expect(store.getState().deviceReported).toBe(true);
+
+    const pending = store.getState().hydrate("user-2");
+    expect(store.getState()).toMatchObject({
+      userId: "user-2",
+      customer: null,
+      serverUntil: null,
+      snapshot: null,
+      deviceReported: false,
+      hydrated: false,
+    });
+    expect(resolveEntitlement(store.getState(), NOW).isEntitled).toBe(false);
+    await pending;
+    expect(store.getState()).toMatchObject({ hydrated: true, snapshot: snapshot({ userId: "user-2", isActive: false }) });
+    // Nothing from user-1 was written under user-2's key.
+    expect(JSON.parse(storage.data.get(entitlementSnapshotKey("purchases:snapshot:", "user-2"))!)).toMatchObject({ isActive: false });
+  });
+
+  it("marks the device as reported even when the customer state is null", () => {
+    const store = createEntitlementStore();
+    store.getState().applyCustomerState(null);
+    expect(store.getState().deviceReported).toBe(true);
+  });
+
+  it("never persists for the signed-out scope", async () => {
+    const storage = memoryStorage();
+    const store = createEntitlementStore({ storage });
+    store.getState().applyServerEntitlement(LATER);
+    store.getState().applyCustomerState(active);
+    await Promise.resolve();
+    expect(storage.data.size).toBe(0);
   });
 
   it("hydrates immediately without storage", async () => {
@@ -181,7 +242,15 @@ describe("createEntitlementStore", () => {
 
     await store.getState().clear();
     expect(storage.data.size).toBe(0);
-    expect(store.getState()).toMatchObject({ customer: null, serverUntil: null, snapshot: null, userId: null, sdkStatus: "ready" });
+    expect(store.getState()).toMatchObject({
+      customer: null,
+      serverUntil: null,
+      snapshot: null,
+      userId: null,
+      deviceReported: false,
+      hydrated: true,
+      sdkStatus: "ready",
+    });
   });
 
   it("survives storage failures", async () => {
