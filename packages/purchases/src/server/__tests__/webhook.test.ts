@@ -224,7 +224,7 @@ describe("reduceEntitlement", () => {
     (type) => {
       expect(reduceEntitlement(empty, event({ type, expirationAtMs: null }), options)).toEqual({
         action: "skip",
-        reason: "no-op",
+        reason: "malformed",
       });
     },
   );
@@ -242,15 +242,16 @@ describe("reduceEntitlement", () => {
       action: "set",
       next: { until: LIFETIME_UNTIL, productId: "app_pro_monthly", updatedAt: NOW },
     });
+    // ...and the surviving term keeps the product that granted it.
     expect(reduceEntitlement(lifetime, event({ type: "EXPIRATION", expirationAtMs: NOW - 1 }), options)).toEqual({
       action: "set",
-      next: { until: LIFETIME_UNTIL, productId: "app_pro_monthly", updatedAt: NOW },
+      next: { until: LIFETIME_UNTIL, productId: "app_pro_lifetime", updatedAt: NOW },
     });
     // A longer annual term survives the monthly one expiring.
     const annual: EntitlementRecord = { until: LATER + 1000, productId: "app_pro_annual", updatedAt: NOW - 10 };
-    expect(reduceEntitlement(annual, event({ type: "EXPIRATION", expirationAtMs: NOW }), options)).toMatchObject({
+    expect(reduceEntitlement(annual, event({ type: "EXPIRATION", expirationAtMs: NOW }), options)).toEqual({
       action: "set",
-      next: { until: LATER + 1000 },
+      next: { until: LATER + 1000, productId: "app_pro_annual", updatedAt: NOW },
     });
     // But an expiration at or past the current term ends access.
     const monthly: EntitlementRecord = { until: NOW - 5, productId: "app_pro_monthly", updatedAt: NOW - 10 };
@@ -339,7 +340,7 @@ describe("reduceEntitlement", () => {
     }
     expect(
       reduceEntitlement(current, event({ type: "EXPIRATION", expirationAtMs: NOW - 1, expirationReason: "UNSUBSCRIBE" }), options),
-    ).toEqual({ action: "set", next: { until: LATER, productId: "app_pro_monthly", updatedAt: NOW } });
+    ).toEqual({ action: "set", next: { until: LATER, productId: "app_pro_annual", updatedAt: NOW } });
   });
 
   it("keeps the previous product id when the event carries none", () => {

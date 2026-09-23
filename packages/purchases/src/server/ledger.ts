@@ -65,10 +65,10 @@ export interface LedgerRow {
   /** Lowercased period type (`normal`, `trial`, `intro`, `promotional`). */
   periodType: string | null;
   /**
-   * RevenueCat's USD price rounded to cents on the money rows (`purchased`,
-   * `renewed`, `trial_converted`, `refunded`); 0 for `trial_started`; null on
-   * state-only rows (`cancel_scheduled`, `reactivated`, …) so `SUM(amount)`
-   * counts each sale once.
+   * RevenueCat's USD price rounded to cents on the money rows: positive on
+   * `purchased`, `renewed`, `trial_converted`, negative on `refunded`; 0 for
+   * `trial_started`; null on state-only rows (`cancel_scheduled`,
+   * `reactivated`, …). `SUM(amount)` is therefore net revenue.
    */
   amountCents: number | null;
   currency: "usd";
@@ -193,6 +193,7 @@ export function buildLedgerRows(event: RevenueCatWebhookEvent, options: BuildLed
   const amountCents = toAmountCents(event.price);
   const amountFor = (eventType: LedgerEventType): number | null => {
     if (eventType === "trial_started") return 0;
+    if (eventType === "refunded") return amountCents === null ? null : -Math.abs(amountCents);
     return MONEY_ROWS.has(eventType) ? amountCents : null;
   };
 

@@ -99,8 +99,8 @@ describe("buildLedgerRows", () => {
       { userId: "u1" },
     );
     expect(types(refund)).toEqual(["cancel_scheduled", "refunded"]);
-    // Only the refund row carries money.
-    expect(refund.map((row) => row.amountCents)).toEqual([null, 9900]);
+    // Only the refund row carries money, negative so SUM(amount) nets out.
+    expect(refund.map((row) => row.amountCents)).toEqual([null, -9900]);
 
     // CUSTOMER_SUPPORT with access continuing to the period end is not a refund.
     const support = buildLedgerRows(

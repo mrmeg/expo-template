@@ -18,7 +18,7 @@
  */
 import { createStore, type StoreApi } from "zustand/vanilla";
 
-import { LIFETIME_UNTIL } from "./constants";
+import { isDev, LIFETIME_UNTIL } from "./constants";
 import type { CustomerState } from "./types";
 
 export const ENTITLEMENT_SNAPSHOT_VERSION = 1;
@@ -97,8 +97,6 @@ export interface EntitlementStoreOptions {
   storageKeyPrefix?: string;
 }
 
-const isDev = (): boolean => typeof __DEV__ !== "undefined" && __DEV__;
-
 export function entitlementSnapshotKey(prefix: string, userId: string | null): string {
   return `${prefix}${userId ?? "anonymous"}`;
 }
@@ -115,8 +113,8 @@ function displayUntil(until: number | null): number | null {
 
 /**
  * Decide access from the sources, in trust order: dev override (development
- * builds only) → device customer state → server expiry → persisted snapshot →
- * none. The snapshot is consulted only while the device has given no state, and
+ * builds only) → device customer state (while its own expiry holds) → server
+ * expiry → persisted snapshot → none. The snapshot is consulted only while the device has given no state, and
  * only when the server has not reported, or reported an expired term while the
  * device can still answer (a lagging backend must not lock a renewed subscriber
  * out for the logIn round-trip; on web, where the device never answers, the
@@ -139,7 +137,9 @@ export function resolveEntitlement(
       : { isEntitled: false, until: null, source: "none" };
   }
 
-  if (customer?.isActive) {
+  // The SDK computed `isActive` when it fetched the customer; a cached copy can
+  // outlive the term, so the device grants only while its own expiry holds.
+  if (customer?.isActive && (customer.until === null || customer.until > now)) {
     // A device lifetime entitlement (`until: null`) is reported as such, never
     // as some other product's expiry.
     const until = customer.until === null ? null : displayUntil(maxKnown([customer.until, serverUntil]));
@@ -297,7 +297,8 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
         const target = userId === undefined ? get().userId : userId;
         scopeGeneration += 1;
         set({ ...emptyScope, userId: null, hydrated: true });
-        if (!storage) return;
+        // Nothing is ever written for the signed-out scope, so there is nothing to remove.
+        if (!storage || target === null) return;
         lastWritten.delete(keyFor(target));
         try {
           await storage.removeItem(keyFor(target));

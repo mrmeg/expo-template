@@ -13,6 +13,7 @@
  */
 import { Platform } from "react-native";
 
+import { isDev } from "./constants";
 import { resolvePlatformKey, toCustomerState } from "./customerState";
 import { loadPaywallUi, loadPurchasesSdk } from "./sdk";
 import type { PaywallUi, PurchasesSdk, RcCustomerInfoListener, RcOffering } from "./sdkTypes";
@@ -26,14 +27,8 @@ import type {
   RestoreOutcome,
 } from "./types";
 
-/** `LOG_LEVEL` enum values are their own names; mirrored so the enum is never imported. */
-const LOG_LEVELS: Record<PurchasesLogLevel, string> = {
-  verbose: "VERBOSE",
-  debug: "DEBUG",
-  info: "INFO",
-  warn: "WARN",
-  error: "ERROR",
-};
+/** `LOG_LEVEL` enum values are their own upper-cased names, so the enum is never imported. */
+const toLogLevel = (level: PurchasesLogLevel): string => level.toUpperCase();
 
 /** `PAYWALL_RESULT` values are their own names; compared as strings for the same reason. */
 export function mapPaywallResult(result: unknown): PaywallOutcome {
@@ -93,7 +88,7 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
   const report = (error: unknown, context: string): void => {
     if (config.onError) {
       config.onError(error, context);
-    } else if (typeof __DEV__ !== "undefined" && __DEV__) {
+    } else if (isDev()) {
       console.warn(`[expo-purchases] ${context} failed:`, error);
     }
   };
@@ -177,7 +172,7 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
         }
         try {
           if (config.logLevel) {
-            await loaded.setLogLevel(LOG_LEVELS[config.logLevel]);
+            await loaded.setLogLevel(toLogLevel(config.logLevel));
           }
           loaded.configure(appUserId ? { apiKey, appUserID: appUserId } : { apiKey });
           sdk = loaded;

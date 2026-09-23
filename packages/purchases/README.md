@@ -139,8 +139,9 @@ Mount the provider inside the auth boundary, with the auth subject as
 ```
 
 `serverUntil` must be the record for `userId`: pass `serverPending` while the
-query for that user is loading (or still holds the previous user's data), and
-omit both when the app has no server source.
+query for that user is loading, has errored, or still holds the previous
+user's data (`isPending || isError` with React Query — a failed fetch must not
+read as "no record"), and omit both when the app has no server source.
 
 The provider, per user:
 
@@ -201,7 +202,8 @@ store with `customer` (device), `serverUntil` (backend), `snapshot`
 `resolveEntitlement(sources, now?, entitlement?)` decides access in trust order:
 
 1. `devOverride` (only when `__DEV__`);
-2. device: `customer.isActive`;
+2. device: `customer.isActive` while `customer.until` is null or in the future
+   (a cached `CustomerInfo` can outlive the term);
 3. server: `serverUntil > now`;
 4. snapshot: only while the device has given no state, when it says active with
    a future (or no) expiry, and when the server has not reported — or reported
@@ -328,9 +330,9 @@ providerEventType, providerSubscriptionId, productId, store, periodType,
 amountCents, currency: "usd", renewalNumber, cancelReason, environment,
 occurredAt, payload }`. `store`, `periodType`, and `environment` are
 lowercased; `amountCents` is RevenueCat's USD `price` rounded to cents on the
-money rows (`purchased`, `renewed`, `trial_converted`, `refunded`), 0 on
-`trial_started`, and null on state-only rows so `SUM(amount_cents)` counts each
-sale once; `product_changed` carries `new_product_id`;
+money rows (positive on `purchased`, `renewed`, `trial_converted`; negative on
+`refunded`), 0 on `trial_started`, and null on state-only rows, so
+`SUM(amount_cents)` is net revenue; `product_changed` carries `new_product_id`;
 `payload` is the event minus `subscriber_attributes`; `occurredAt` is
 `event_timestamp_ms`. Make (`providerEventId`, `eventType`) unique in the
 ledger table and insert with conflicts ignored so a replayed delivery cannot
@@ -364,8 +366,10 @@ never lets one product's event shorten what another granted:
   overlapping products on one entitlement;
 - everything else is `{ action: "skip", reason }`: other entitlements
   (`not-entitlement`), out-of-order revocations (`stale`: older than
-  `current.updatedAt`), and events that change nothing (`no-op`: ordinary
-  `CANCELLATION`, `BILLING_ISSUE`, `SUBSCRIPTION_PAUSED`, `TEST`).
+  `current.updatedAt`), grants missing `expiration_at_ms` (`malformed`: alert
+  on these), and events that change nothing (`no-op`: ordinary `CANCELLATION`,
+  `BILLING_ISSUE`, `SUBSCRIPTION_PAUSED`, `TEST`). When an `EXPIRATION` leaves
+  a longer term in place, the record keeps the product that granted it.
 
 Store `next.until` as the user's `until` and pass it to `PurchasesProvider
 serverUntil` as is; `resolveEntitlement` treats `LIFETIME_UNTIL` as "never

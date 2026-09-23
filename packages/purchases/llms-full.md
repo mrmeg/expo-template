@@ -54,7 +54,7 @@ mismatch, removed by `clear`.
 
 `resolveEntitlement({ customer, serverUntil, snapshot, devOverride }, now?,
 entitlement?)` → `{ isEntitled, until, source }` with source order `dev` →
-`device` → `server` → `snapshot` (usable, while `customer === null` and the
+`device` (while `customer.until` holds) → `server` → `snapshot` (usable, while `customer === null` and the
 server has not reported, or reported a past term while the device can still
 answer) → `none`. `isUsableSnapshot(snapshot, now)`. A non-default
 `entitlement` checks `customer.activeEntitlements` only.
@@ -97,8 +97,9 @@ entitled, else fallback, reporting once per lock after hydration.
   even when late; PRODUCT_CHANGE records `newProductId`), `EXPIRATION` (event expiry unless the record
   runs longer, forced on `CUSTOMER_SUPPORT` / `DEVELOPER_INITIATED`), and a
   refund `CANCELLATION` (event expiry or event time, unconditionally); else
-  `{ action: "skip", reason: "not-entitlement" | "stale" | "no-op" }` (stale
-  applies to revocations only; TRANSFER skips as not-entitlement).
+  `{ action: "skip", reason: "not-entitlement" | "stale" | "no-op" | "malformed" }`
+  (stale applies to revocations only; TRANSFER skips as not-entitlement; a
+  preserved longer term keeps its product).
   `revokedByTransfer(event)`.
 - `buildLedgerRows(event, { userId, previouslyExpired? })` → `LedgerRow[]` over
   `LEDGER_EVENT_TYPES` (`trial_started`, `trial_converted`, `purchased`,
@@ -106,8 +107,8 @@ entitled, else fallback, reporting once per lock after hydration.
   `refunded`, `refund_reversed`, `product_changed`, `reactivated`).
   `isRefundCancellation`, `providerSubscriptionId`, `toAmountCents`,
   `deriveSubscriptionStatus` (`trialing | active | past_due | canceled`).
-  `amountCents` only on `purchased` / `renewed` / `trial_converted` /
-  `refunded` (0 on `trial_started`, null otherwise).
+  `amountCents` only on `purchased` / `renewed` / `trial_converted` (positive)
+  and `refunded` (negative); 0 on `trial_started`, null otherwise.
 - `createWebhookHandler({ secret, onEvent, entitlement?, onError? })` →
   `(Request) => Promise<Response>`: 500 no secret, 401 bad header, 400 bad
   body, 200 `{ ok: true, ...result }`, 200 `{ ok: true, ignored: "entitlement" }`,

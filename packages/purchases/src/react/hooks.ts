@@ -80,9 +80,12 @@ export function useEntitlement(entitlement?: string): EntitlementView {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!view.isEntitled || view.until === null) return;
-    // `tick` is a dep so a far-off expiry re-arms after each clamped wait.
-    const delay = Math.min(Math.max(view.until - Date.now(), 0) + 1, MAX_TIMEOUT_MS);
-    const id = setTimeout(() => setTick((value) => value + 1), delay);
+    // `tick` is a dep so a far-off expiry re-arms after each clamped wait; an
+    // expiry already in the past arms nothing (the verdict has flipped, or a
+    // source that ignores the clock is granting and a timer cannot change that).
+    const remaining = view.until - Date.now();
+    if (remaining <= 0) return;
+    const id = setTimeout(() => setTick((value) => value + 1), Math.min(remaining + 1, MAX_TIMEOUT_MS));
     return () => clearTimeout(id);
   }, [view.isEntitled, view.until, tick]);
 

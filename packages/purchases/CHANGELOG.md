@@ -32,7 +32,10 @@ package.
   `reduceEntitlement`, `revokedByTransfer`, `buildLedgerRows`,
   `isRefundCancellation`, `deriveSubscriptionStatus`, `providerSubscriptionId`,
   `createWebhookHandler`, `LIFETIME_UNTIL`. The reducer keeps one record per
-  entitlement across products: grants never shorten `until`, `EXPIRATION` never
-  cuts a longer term, and a refund `CANCELLATION` revokes immediately.
+  entitlement across products: grants never shorten `until`, an ordinary
+  `EXPIRATION` never cuts a longer term, and a refund `CANCELLATION` or a
+  customer-support / developer-initiated `EXPIRATION` revokes immediately.
+  Ledger amounts are positive on sales and renewals, negative on refunds, null
+  on state-only rows.
 - Docs: identifier contract, the human setup checklist, the store-review
   checklist (Terms of Use and Privacy Policy links on the paywall).

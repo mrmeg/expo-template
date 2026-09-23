@@ -84,7 +84,7 @@ export interface EntitlementRecord {
 }
 
 export type EntitlementReduction =
-  | { action: "skip"; reason: "not-entitlement" | "stale" | "no-op" }
+  | { action: "skip"; reason: "not-entitlement" | "stale" | "no-op" | "malformed" }
   | { action: "set"; next: EntitlementRecord };
 
 /**
@@ -188,7 +188,9 @@ export function parseRevenueCatWebhook(body: unknown): RevenueCatWebhookEvent | 
  *   `LIFETIME_UNTIL`); any other grant without `expiration_at_ms` is malformed
  *   and skipped rather than turned into permanent access. Because the rule is
  *   monotonic, a grant delivered late (older than the last applied event) is
- *   still applied; only revocations honour the out-of-order guard.
+ *   still applied; only revocations honour the out-of-order guard. A grant
+ *   skipped for a missing expiration is reported as `malformed`, distinct from
+ *   the `no-op` of an intentionally ignored event, so consumers can alert on it.
  * - EXPIRATION sets `until` to the event's expiration (falling back to the event
  *   time) unless the current record already runs longer, in which case it stays
  *   — except when `expiration_reason` is `CUSTOMER_SUPPORT` or
@@ -218,7 +220,7 @@ export function reduceEntitlement(
 
   if (GRANT_EVENT_TYPES.has(event.type)) {
     if (event.expirationAtMs === null && event.type !== "NON_RENEWING_PURCHASE") {
-      return { action: "skip", reason: "no-op" };
+      return { action: "skip", reason: "malformed" };
     }
     const granted = event.expirationAtMs ?? LIFETIME_UNTIL;
     const until = current.until !== null && current.until > granted ? current.until : granted;
@@ -242,8 +244,12 @@ export function reduceEntitlement(
   if (REVOKE_EVENT_TYPES.has(event.type)) {
     const ended = event.expirationAtMs ?? event.eventTimestampMs;
     const forced = event.expirationReason === "CUSTOMER_SUPPORT" || event.expirationReason === "DEVELOPER_INITIATED";
-    const until = !forced && current.until !== null && current.until > ended ? current.until : ended;
-    return { action: "set", next: { until, productId, updatedAt } };
+    const preserved = !forced && current.until !== null && current.until > ended;
+    return {
+      action: "set",
+      // When a longer term survives, it still belongs to the product that granted it.
+      next: { until: preserved ? current.until : ended, productId: preserved ? current.productId : productId, updatedAt },
+    };
   }
 
   if (isRefundCancellation(event)) {

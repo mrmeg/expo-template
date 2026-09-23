@@ -16,7 +16,7 @@
  * while `userId` is null every gate treats the visitor as settled and not
  * entitled.
  */
-import React, { useEffect, useMemo, type ReactNode } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 
 import type { EntitlementStore } from "../entitlementStore";
 import type { PurchasesClient } from "../types";
@@ -101,9 +101,17 @@ export function PurchasesProvider({
     // re-ran (and reset the store) for a new client instance.
   }, [client, store, serverUntil, serverPending, userId]);
 
+  // The app usually passes an inline `onBlocked`; route it through a ref so the
+  // context value (and every gate) does not re-render on each provider render.
+  const onBlockedRef = useRef(onBlocked);
+  useEffect(() => {
+    onBlockedRef.current = onBlocked;
+  }, [onBlocked]);
+  const stableOnBlocked = useCallback((feature?: string) => onBlockedRef.current?.(feature), []);
+
   const value = useMemo<PurchasesContextValue>(
-    () => ({ client, store, userId, onBlocked }),
-    [client, store, userId, onBlocked],
+    () => ({ client, store, userId, onBlocked: stableOnBlocked }),
+    [client, store, userId, stableOnBlocked],
   );
 
   return <PurchasesContext.Provider value={value}>{children}</PurchasesContext.Provider>;

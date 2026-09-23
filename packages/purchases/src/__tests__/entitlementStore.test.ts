@@ -52,9 +52,15 @@ function memoryStorage(): EntitlementStorage & { data: Map<string, string> } {
 const base = { customer: null, serverUntil: null, snapshot: null, devOverride: false };
 
 describe("resolveEntitlement", () => {
-  it("grants from the on-device customer state first", () => {
+  it("grants from the on-device customer state first, while its own expiry holds", () => {
     expect(resolveEntitlement({ ...base, customer: active }, NOW)).toEqual({ isEntitled: true, until: LATER, source: "device" });
     expect(resolveEntitlement({ ...base, customer: inactive }, NOW)).toEqual({ isEntitled: false, until: null, source: "none" });
+    // A cached CustomerInfo can outlive the term: isActive alone does not grant past `until`.
+    expect(resolveEntitlement({ ...base, customer: { ...active, until: EARLIER } }, NOW)).toEqual({
+      isEntitled: false,
+      until: EARLIER,
+      source: "none",
+    });
   });
 
   it("grants from a future server until and not a past one", () => {
