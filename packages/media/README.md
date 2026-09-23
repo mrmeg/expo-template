@@ -62,7 +62,7 @@ Only this repo enables it — tsconfig `customConditions`, Metro
 builds and tests the sources without a package build. `src` is not published
 and no other toolchain sets the condition, so an installed release resolves
 `dist` exactly as before; a workspace that does not enable it needs
-`bun run media:build` first. `dist` is build output and is not committed.
+`bun run pkg media build` first. `dist` is build output and is not committed.
 
 ## Public Imports
 
