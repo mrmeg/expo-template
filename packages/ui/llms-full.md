@@ -196,6 +196,6 @@ selectors and tests. Use `notify` for imperative triggers in app code.
 ## Validation
 
 Changing package code or shipped docs? Run the gates from the monorepo root:
-`ui:typecheck`, `ui:test`, `ui:build`, `ui:pack`, `ui:consumer-smoke`
-(`bun run <gate>`). Docs-only changes need at least `ui:pack`, which proves the
-new docs land in the npm tarball.
+`typecheck`, `test`, `build`, `pack`, `consumer-smoke` (`bun run pkg ui <gate>`).
+Docs-only changes need at least `bun run pkg ui pack`, which proves the new docs
+land in the npm tarball.

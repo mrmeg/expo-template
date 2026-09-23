@@ -26,7 +26,7 @@ has no `window`, so the web module is inert there. Both use `debug: __DEV__` and
 ## Source Maps (Production)
 
 ```bash
-bun run build-sourcemap
+bun run build-web
 
 npx sentry-cli sourcemaps upload \
   --org YOUR_ORG \

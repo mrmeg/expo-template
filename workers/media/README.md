@@ -50,7 +50,7 @@ deploy.
 1. Build the package the Worker imports (from the repo root):
 
    ```sh
-   bun run media:build
+   bun run pkg media build
    ```
 
 2. Create the auth KV namespace and paste the printed id into

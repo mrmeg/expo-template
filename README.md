@@ -100,15 +100,15 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `bun run web` | Expo web dev server |
 | `bun run ios` / `bun run android` | Build + run on simulator / emulator |
 | `bun run scan:showcase` | Open React Scan against the local showcase route on port 8081 |
-| `bun run build` | Production web export → `dist/` (client bundle + server output) |
-| `bun run start` | Run the Bun production server (`server.bun.ts`) |
-| `bun run start-local` | Same, with `.env` autoloaded |
+| `bun run build` | Production web export → `dist/` (client bundle + server output), tree-shaken |
+| `bun run start` | Run the Bun production server (`server.bun.ts`); Bun loads `.env` itself |
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run lint` | `expo lint` (ESLint flat config; lints `app/` only by default — pass paths to widen) |
 | `bun lint:ui` | Design-system rules only, over `app`, `client`, `shared`; `--changed` for touched files, `--doctor` to check wiring — see [`packages/lint/README.md`](packages/lint/README.md) |
-| `bun run lint:release` | Release `@mrmeg/eslint-plugin-expo-ui`: version bump, the `lint:typecheck`/`test`/`build`/`pack`/`consumer-smoke` gates, `--publish` to push it — see [`packages/lint/README.md`](packages/lint/README.md#release) |
-| `bun run verify` | Every CI `validate` gate locally, in CI order |
-| `bun run test:ci` | `jest --ci --coverage --forceExit` |
+| `bun run verify` | Every quality gate, in order — exactly what CI's `validate` job runs; the list is in [`CONTRIBUTING.md#verify-gates`](CONTRIBUTING.md#verify-gates) |
+| `bun run gen` | Regenerate every generated artifact (icon, template, and block registries, LLM docs); `--check` fails on a stale one |
+| `bun run pkg <package> <task>` | A workspace package task: `typecheck`, `test`, `build`, `pack`, `consumer-smoke`, `release` for `ui`, `media`, `purchases`, `lint` — see [Publishing packages](#publishing-packages) |
+| `bun run test:ci` | `jest --ci --forceExit` (`bun run test:coverage` adds the coverage report) |
 | `bun run e2e` | Maestro native smoke suite — see `docs/e2e.md` |
 | `bun run bundle-size` | Compare client JS against `scripts/bundle-baseline.json` |
 | `bun run analyze` | `source-map-explorer` treemap of the client bundle |
@@ -152,14 +152,15 @@ snake_case names are accepted and normalized to PascalCase exports.
 ```bash
 bun jest --watchAll                    # interactive
 bun jest --testPathPattern=<path>      # single suite
-bun run test:ci                        # CI-style with coverage
+bun run test:ci                        # the CI gate: jest --ci --forceExit
+bun run test:coverage                  # the same run with a coverage report
 ```
 
-Coverage spans `client/**`, `app/api/**`, `server/**`, `shared/**`,
-`packages/ui/src/**`, `packages/media/src/**`, and `packages/purchases/src/**`,
-so CI flags drift in the
-route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing)
-and in the packaged UI. The lint plugin's own suites live in
+Coverage (`bun run test:coverage`) spans `client/**`, `app/api/**`,
+`server/**`, `shared/**`, `packages/ui/src/**`, `packages/media/src/**`, and
+`packages/purchases/src/**`, so a coverage run shows the route-level seams (CORS,
+rate limiting, auth bootstrap, media storage, billing) and the packaged UI. CI
+does not collect it. The lint plugin's own suites live in
 `packages/lint/__tests__` and run with the rest of jest.
 
 ## Architecture
@@ -287,46 +288,60 @@ toast store, and UI helpers ship from the workspace package `@mrmeg/expo-ui`.
 The package ships no font files: web loads Inter through Google Fonts from
 `app/+html.tsx` and `useResources()`; native uses system sans-serif fallbacks.
 
-Package validation:
+Consumer Expo apps install `@mrmeg/expo-ui` plus the native and Expo peer
+dependencies listed in `packages/ui/package.json` (including `react-native-svg`
+and `lucide-react-native` for `Icon`); implementation details such as
+`@rn-primitives/*` are managed by the package. Full design system:
+`packages/ui/README.md`.
+
+### Publishing packages
+
+Every workspace package (`ui`, `media`, `purchases`, `lint`) has the same tasks:
 
 ```bash
-bun run ui:typecheck
-bun run ui:test
-bun run ui:build
-bun run ui:pack
-bun run ui:consumer-smoke
+bun run pkg ui typecheck
+bun run pkg ui test
+bun run pkg ui build
+bun run pkg ui pack             # dry pack: the file list and size
+bun run pkg ui consumer-smoke   # build, pack, install into clean fixtures, type-check, export
 ```
 
-To publish, authenticate through your developer or CI npm config:
+To release from your machine, authenticate through your developer npm config:
 
 ```sh
-bun run ui:release -- --patch --publish
+bun run pkg ui release -- --patch --publish
 ```
 
-Use `--patch`, `--minor`, `--major`, or an exact version such as `0.2.0`.
-Without `--publish` the command performs the same version bump and gates as a
-dry run. Do not commit `.npmrc` tokens or registry secrets. Consumer Expo apps
-install `@mrmeg/expo-ui` plus the native and Expo peer dependencies listed in
-`packages/ui/package.json` (including `react-native-svg` and
-`lucide-react-native` for `Icon`); implementation details such as
-`@rn-primitives/*` are managed by the package.
+Use `--patch`, `--minor`, `--major`, or an exact version such as `0.28.0`; the
+committed version itself releases without a bump. The command sets the version,
+runs the peer check and the package's typecheck, test, and build, packs **one**
+tarball, runs the consumer smoke against that tarball, and with `--publish`
+publishes that same file. Without `--publish` it is a dry run. Do not commit
+`.npmrc` tokens or registry secrets.
 
-If local npm login is blocked, use GitHub Actions trusted publishing. After
-one-time npm package setup, pushing a commit that changes
-`packages/ui/package.json` on `main` publishes the exact committed version when
-npm does not already have it. The same `Publish UI Package` workflow also runs
-manually with `version=patch` and `ref=main`; manual runs bump the version, run
-the package gates, commit the bump, and publish through npm OIDC — no npm token
-or local auth email.
+CI publishes through `.github/workflows/publish-packages.yml`, one workflow for
+every package in `scripts/lib/workspacePackages.mjs` (adding a package there is
+the only change it needs):
 
-`.github/workflows/publish-lint.yml` does the same for
-`@mrmeg/eslint-plugin-expo-ui`, `publish-media.yml` for `@mrmeg/expo-media`, and
-`publish-purchases.yml` for `@mrmeg/expo-purchases`. The lint and purchases ones
-are `workflow_dispatch` only until their first release exists on npm — a package
-npm does not have yet cannot be set up for trusted publishing, so that first run
-needs an `NPM_TOKEN` secret.
+- **Push to `main`** that changes a `packages/*/package.json`: each package whose
+  version changed in the push and is not on npm yet is released as committed.
+- **Manual run** with `package`, `version` (`patch`, `minor`, `major`, or exact
+  `x.y.z`), and `ref`: bumps and commits the version to `ref` first, then
+  releases. Rerun with the exact committed version if a run failed after its bump
+  landed.
 
-Full design system: `packages/ui/README.md`.
+Each release runs the same script as the local command, publishes the smoked
+tarball with `npm publish <tarball> --provenance --access public`, and pushes a
+`<name-without-scope>-v<version>` tag (`expo-ui-v0.28.0`). Auth is npm trusted
+publishing: each package's npm settings name owner `mrmeg`, repository
+`expo-template`, workflow filename `publish-packages.yml`. A repository secret
+`NPM_TOKEN`, when set, is used instead. A package npm does not have yet cannot be
+set up for trusted publishing, so its first publish is a manual run with
+`NPM_TOKEN` set; a push never makes a first publish.
+
+`bun run verify`'s `packages:drift-check` keeps the two honest: once a version is
+on npm, changing that package's dependencies, peers, exports, or files without a
+version bump fails CI.
 
 ### Design-system lint
 
@@ -376,17 +391,24 @@ Billing contracts and disabling behavior: `docs/template-modernization-guide.md`
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every push and pull request to `main`. Two
-parallel jobs, no app credentials required:
+`.github/workflows/ci.yml` runs on every pull request, whatever its base
+(stacked PRs included), and on every push to `main` and `dev`. Two parallel
+jobs, no app credentials required:
 
 - **Lint, Type Check, Test** (`validate`) — `bun install --frozen-lockfile` →
-  `packages:peer-check` → `typecheck` → `lint` → `check:features` →
-  `gen:templates:check` → `gen:blocks:check` → `docs:llms:check` →
-  `docs:versions:check` → `test:ci`. `bun run verify` runs the same gates
-  locally in the same order (without coverage). `lint` there is `expo lint`, so
-  it gates `app/` only; run `bun lint:ui` for `client/` and `shared/`.
+  `bun run verify`. Verify is the gate list, so CI and a local run cannot drift;
+  the gates and what each checks are in
+  [`CONTRIBUTING.md#verify-gates`](CONTRIBUTING.md#verify-gates). Its `lint` is
+  `expo lint`, so it gates `app/` only; run `bun lint:ui` for `client/` and
+  `shared/`.
 - **Web Build + Bundle Size** — `bun run build` → `bun run bundle-size`. Fails
   the PR on >10% client bundle growth against `scripts/bundle-baseline.json`.
+
+`.github/workflows/package-compatibility.yml` installs each package's packed
+tarball into Expo SDK consumer profiles on the same events, for changes under
+`packages/` or the compatibility tooling. Publishing is
+`.github/workflows/publish-packages.yml` ([Publishing packages](#publishing-packages)).
+Every workflow installs the Bun version pinned in `.bun-version`.
 
 Tests mock the AWS / Stripe surfaces, so a blank `.env` is enough.
 
@@ -430,6 +452,11 @@ eas build --profile production --platform all
 `cli.appVersionSource` is `remote`, so EAS owns the build number / version code.
 The dev profiles set no `channel` — a dev client pulls JS from the local dev
 server, not from EAS Update.
+
+Every profile's `env` sets `EXPO_UNSTABLE_TREE_SHAKING=1` and
+`EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1`, as do `bun run build` / `build-web` and
+the EAS Update workflow job, so every production bundle is tree-shaken. `.env` is
+gitignored, so its copy of the flags reaches local exports only.
 
 Profile names are load-bearing beyond `eas.json`: `CHANNEL_BY_PROFILE` in
 `app.config.ts` maps `EAS_BUILD_PROFILE` to `extra.updatesChannel`, so renaming

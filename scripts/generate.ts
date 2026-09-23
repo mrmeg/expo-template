@@ -1,12 +1,12 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env bun
 /**
  * Generator CLI for scaffolding components, screens, hooks, and forms.
  *
  * Usage:
- *   npx tsx scripts/generate.ts component MyButton
- *   npx tsx scripts/generate.ts screen Settings
- *   npx tsx scripts/generate.ts hook Debounce
- *   npx tsx scripts/generate.ts form ContactInfo
+ *   bun scripts/generate.ts component MyButton
+ *   bun scripts/generate.ts screen Settings
+ *   bun scripts/generate.ts hook Debounce
+ *   bun scripts/generate.ts form ContactInfo
  *
  * Or via the npm script:
  *   bun run generate component MyButton
