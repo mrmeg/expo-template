@@ -8,6 +8,8 @@
 // localStorage stays the client's source of truth. The cookie is a
 // server-render hint only, and the client reconciles against localStorage
 // after mount (a stale cookie can never trap a user in the wrong shell).
+// Lives in `shared/` because both the server render and the client's first
+// render parse the cookie.
 //
 // Two read surfaces:
 //
