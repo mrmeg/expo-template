@@ -39,7 +39,7 @@ bun run test:ci                         # CI-style with coverage
 
 - Tests live in `__tests__/` directories next to source, or as `*.test.ts(x)` siblings.
 - `bun run verify` runs the same suite without coverage.
-- Coverage spans `client/**`, `app/api/**`, `server/**`, `shared/**`, `packages/ui/src/**`, and `packages/media/src/**`, so route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing) stay observable — not just UI code.
+- Coverage spans `client/**`, `app/api/**`, `server/**`, `shared/**`, `packages/ui/src/**`, `packages/media/src/**`, and `packages/purchases/src/**`, so route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing) stay observable — not just UI code.
 - Need a stable theme without mounting providers? `import "@/test/mockTheme";` at the top of the file mocks `useTheme` with a fixed light-scheme palette.
 - Keep coverage on reusable surfaces: design-system primitives (Card, Badge, EmptyState, Skeleton, RadioGroup, …), the form primitive trio (`FormProvider` + `FormTextInput` + `FormCheckbox`), and screen templates (Welcome, Error, List, …). Avoid snapshot-only tests — assert visible behaviour or interaction outcomes.
 

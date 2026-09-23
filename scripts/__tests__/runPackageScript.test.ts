@@ -42,7 +42,7 @@ function resolve(args: string[]): { status: number; stdout: string; stderr: stri
 
 const print = (args: string[]) => resolve(["--print", ...args]).stdout.trim();
 
-const PACKAGE_SLUGS = ["ui", "media", "lint"];
+const PACKAGE_SLUGS = ["ui", "media", "purchases", "lint"];
 const TASK_NAMES = ["typecheck", "test", "build", "pack", "consumer-smoke", "release"];
 
 /**
@@ -83,6 +83,12 @@ const EXPECTED: Record<string, string> = {
   "media pack": "bun run --cwd packages/media publish:dry-run",
   "media consumer-smoke": "node scripts/check-package-consumer.mjs media",
   "media release": "node scripts/release-package.mjs media",
+  "purchases typecheck": "bun run --cwd packages/purchases typecheck",
+  "purchases test": "bun run --cwd packages/purchases test",
+  "purchases build": "bun run --cwd packages/purchases build",
+  "purchases pack": "bun run --cwd packages/purchases publish:dry-run",
+  "purchases consumer-smoke": "node scripts/check-package-consumer.mjs purchases",
+  "purchases release": "node scripts/release-package.mjs purchases",
   "lint typecheck": "bun run --cwd packages/lint typecheck",
   "lint test": "bun run --cwd packages/lint test",
   "lint build": "bun run --cwd packages/lint build",
@@ -186,6 +192,7 @@ describe("package.json wiring", () => {
     for (const source of [
       ".github/workflows/publish-ui.yml",
       ".github/workflows/publish-media.yml",
+      ".github/workflows/publish-purchases.yml",
       ".github/workflows/publish-lint.yml",
     ]) {
       const referenced = aliasesIn(read(source));

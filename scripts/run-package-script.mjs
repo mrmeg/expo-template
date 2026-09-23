@@ -7,11 +7,11 @@
  * instead of six more near-identical `package.json` lines.
  *
  * Usage:
- *   bun run pkg <ui|media|lint> <typecheck|test|build|pack|consumer-smoke|release> [...args]
+ *   bun run pkg <ui|media|purchases|lint> <typecheck|test|build|pack|consumer-smoke|release> [...args]
  *   bun run pkg ui release -- --patch --publish
  *   bun run pkg --print media test          # print the resolved command, run nothing
  *
- * The `ui:*`/`media:*`/`lint:*` aliases still exist and now delegate here. They
+ * The `ui:*`/`media:*`/`purchases:*`/`lint:*` aliases still exist and now delegate here. They
  * are load-bearing and must not be removed: `scripts/release-package.mjs`
  * shells out to them by name, `.github/workflows/publish-*.yml` runs them as
  * steps, and the published package READMEs document them. The root `lint` and
@@ -24,6 +24,7 @@ import { spawnSync } from "node:child_process";
 const PACKAGES = {
   ui: { dir: "packages/ui", slug: "ui" },
   media: { dir: "packages/media", slug: "media" },
+  purchases: { dir: "packages/purchases", slug: "purchases" },
   lint: { dir: "packages/lint", slug: "lint" },
 };
 

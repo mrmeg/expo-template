@@ -1,0 +1,35 @@
+# @mrmeg/expo-purchases
+
+Docs: README.md (install, client and server setup, entitlement store, gating,
+webhook, identifier contract, human setup checklist, store-review checklist,
+validation, release), LLM_USAGE.md (import and implementation rules),
+llms-full.md (expanded contract).
+
+Entrypoints — `@mrmeg/expo-purchases` (client, store, React) and `/server`
+(pure webhook and ledger helpers).
+
+Rules:
+
+- Never import the root from server code and never import `/server` into a
+  bundle that needs the SDK; `/server` has no React, React Native, or SDK
+  imports and runs in Expo API routes, Express, Convex HTTP actions, and Workers.
+- The app passes the RevenueCat public keys in (`iosKey` / `androidKey`); the
+  package reads no `process.env`. No key for the platform means every call
+  answers `not_configured` and web is always unconfigured.
+- RevenueCat `app_user_id` is the app's auth subject: mount `PurchasesProvider`
+  with `userId` from the auth store; it configures only while signed in and logs
+  out on sign-out.
+- Access is `resolveEntitlement`: device customer state, then the server's
+  `until`, then the persisted snapshot (only until a live source reports). Pass
+  `serverUntil` from the app's webhook-backed record (with `serverPending` while
+  it loads) and hold the splash and any automatic paywall on `settled`, not
+  `hydrated`.
+- Gate with `useRequireEntitlement(feature)()` or `<PaywallGate feature>`; the
+  provider's `onBlocked(feature)` pushes the app's paywall route.
+- Server side: authenticate with `isAuthorizedWebhook`, parse with
+  `parseRevenueCatWebhook`, write `buildLedgerRows` to an append-only ledger
+  keyed unique on (`providerEventId`, `eventType`), and store
+  `reduceEntitlement` output per user. Always answer 200 for handled or
+  ignored events.
+- Every peer is optional; native apps install `react-native-purchases` and
+  `react-native-purchases-ui` (same version) plus `zustand`.

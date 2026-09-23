@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "packages/media/**"
+      - "packages/purchases/**"
       - "packages/ui/**"
       - "scripts/check-package-consumer-profile.mjs"
       - "scripts/check-package-peer-compatibility.mjs"
@@ -29,6 +30,10 @@ jobs:
           - package: media
             sdk: 57
           - package: media
+            sdk: 58
+          - package: purchases
+            sdk: 57
+          - package: purchases
             sdk: 58
           - package: ui
             sdk: 56

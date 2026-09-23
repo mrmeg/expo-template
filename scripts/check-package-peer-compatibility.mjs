@@ -80,13 +80,16 @@ async function checkPackage(key) {
     }
   }
 
-  if (key === "media") {
+  if (key === "media" || key === "purchases") {
     for (const name of Object.keys(manifest.peerDependencies ?? {})) {
       assert(
         manifest.peerDependenciesMeta?.[name]?.optional === true,
         `${manifest.name} feature peer ${name} must be optional for core/server consumers`,
       );
     }
+  }
+
+  if (key === "media") {
     for (const removed of ["expo-crypto", "expo-image-picker", "expo-video-thumbnails"]) {
       assert(!declared[removed], `${manifest.name} still declares obsolete or unused peer ${removed}`);
     }
@@ -96,4 +99,5 @@ async function checkPackage(key) {
 }
 
 await checkPackage("media");
+await checkPackage("purchases");
 await checkPackage("ui");

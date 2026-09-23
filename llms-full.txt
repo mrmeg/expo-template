@@ -23,9 +23,10 @@ Sections, in order:
 2. External App Migration Guide — self-contained guide for migrating an existing Expo app to this template's baseline: tier self-assessment, server output config, loaders, ui package, screen templates, verification gates
 3. @mrmeg/expo-ui Usage — import paths, required app setup, theme rules, component use-case index, examples
 4. @mrmeg/expo-media Usage — import paths, required app setup, media contracts, client hooks, server handlers, processing presets
-5. @mrmeg/eslint-plugin-expo-ui — design-system ESLint rules, CLI, settings, style contracts, adopting the plugin in another project, troubleshooting
-6. Expo Server Guide — server output config, API routes, data loaders, middleware, server entries, replication checklist
-7. Examples Index — fetchable raw URLs for demo routes, screen templates, component source, form wrappers, server stack
+5. @mrmeg/expo-purchases Usage — import paths, RevenueCat client and provider setup, entitlement resolution, gating, pure webhook and ledger helpers, identifier contract
+6. @mrmeg/eslint-plugin-expo-ui — design-system ESLint rules, CLI, settings, style contracts, adopting the plugin in another project, troubleshooting
+7. Expo Server Guide — server output config, API routes, data loaders, middleware, server entries, replication checklist
+8. Examples Index — fetchable raw URLs for demo routes, screen templates, component source, form wrappers, server stack
 
 ---
 
@@ -49,6 +50,7 @@ Source of truth before editing another project:
 | Repo guidance and docs index | `AGENTS.md` |
 | UI package setup, components, theming | `packages/ui/README.md` |
 | Media package setup, processing, server handlers | `packages/media/README.md` |
+| Purchases package: RevenueCat client, entitlement store, gating, webhook helpers | `packages/purchases/README.md` |
 | Server output, API routes, data loaders, middleware | `docs/server-guide.md` |
 | Bundle budget and analysis workflow | `docs/bundle-analysis.md` |
 | Sentry runtime and native upload setup | `docs/error-tracking.md` |
@@ -72,10 +74,13 @@ billing, optional S3/R2 media, optional Sentry, and two workspace packages:
   components, animation/haptic helpers, global UI state.
 - `@mrmeg/expo-media` from `packages/media`: media contracts, processing helpers,
   React Query factories, S3/R2 server handler factories.
+- `@mrmeg/expo-purchases` from `packages/purchases`: RevenueCat client,
+  entitlement store, paywall gating, pure webhook and ledger helpers. Not used
+  by the template app itself.
 
 App-specific integration belongs in `app/`, `client/`, `server/`, or `shared/`.
 Reusable UI belongs in `packages/ui`; reusable media contracts and processing in
-`packages/media`.
+`packages/media`; reusable purchases and entitlement code in `packages/purchases`.
 
 ## LLM Use Rules
 
@@ -1112,6 +1117,136 @@ pushes to `main` that change `packages/media/package.json`, or on
 `workflow_dispatch`, using trusted publishing with an `NPM_TOKEN` fallback. Before
 the package exists on npm, push runs skip unless `NPM_TOKEN` is set: make the
 first publish a manual run with `NPM_TOKEN`, then configure trusted publishing.
+
+---
+
+<!-- Source: packages/purchases/LLM_USAGE.md -->
+<!-- Raw: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/purchases/LLM_USAGE.md -->
+
+# LLM Usage: @mrmeg/expo-purchases
+
+## Imports
+
+| Subpath | Contents |
+|---|---|
+| `@mrmeg/expo-purchases` | `createPurchases`, `createEntitlementStore`, `resolveEntitlement`, `PurchasesProvider`, `useEntitlement`, `useRequireEntitlement`, `PaywallGate`, `toCustomerState`, types |
+| `/server` | `isAuthorizedWebhook`, `parseRevenueCatWebhook`, `reduceEntitlement`, `revokedByTransfer`, `buildLedgerRows`, `deriveSubscriptionStatus`, `isRefundCancellation`, `createWebhookHandler`, `LEDGER_EVENT_TYPES` |
+
+`/server` imports nothing from React, React Native, Node, or the RevenueCat
+SDKs: use it from Expo API routes, Express, Convex `httpAction`, Next, or a
+Worker. Never import the root into server code.
+
+Peers are all optional. Native apps install `react-native-purchases` and
+`react-native-purchases-ui` at the same version (`>=10 <11`) and `zustand`
+(`>=5 <6`); web and server consumers install none. The SDK loader is platform
+split (`sdk.js` / `sdk.native.js`, extension-less specifier), so a native
+bundler needs Metro-style platform resolution.
+
+## Client
+
+```ts
+const purchases = createPurchases({
+  entitlement: "pro",              // RevenueCat entitlement identifier
+  offering: "default",             // optional; dashboard "current" otherwise
+  iosKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
+  androidKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
+  onError: (error, context) => Sentry.captureException(error, { tags: { context } }),
+});
+const entitlementStore = createEntitlementStore({ storage: AsyncStorage });
+```
+
+Read `process.env.EXPO_PUBLIC_*` with direct property access in the app (Expo
+inlines only statically visible references); the package reads no env. Create
+both once at module scope.
+
+Mount once, inside the auth boundary:
+
+```tsx
+<PurchasesProvider
+  client={purchases}
+  store={entitlementStore}
+  userId={user?.id ?? null}                 // RevenueCat app_user_id
+  serverUntil={entitlementQuery.data?.until ?? null}  // the app's webhook-backed record for userId
+  serverPending={entitlementQuery.isPending}          // hold settling while it loads
+  onBlocked={(feature) => router.push({ pathname: "/paywall", params: feature ? { feature } : {} })}
+>
+```
+
+The provider configures the SDK only while `userId` is set, logs the user in,
+attaches the customer-info listener, mirrors `serverUntil`, and on sign-out
+returns the SDK to anonymous and deletes the persisted snapshot.
+
+Read access with `useEntitlement()` → `{ isEntitled, until, source, hydrated,
+settled, isConfigured, isReady, customer, restore, presentPaywall,
+presentPaywallIfNeeded }`. Hold the splash screen and any automatic paywall
+until `settled` (store scoped to this user, snapshot read, and the device
+reported, a snapshot exists, the server granted, or the SDK is unavailable and
+the server reported); `hydrated` alone only says the snapshot read finished.
+`useRequireEntitlement(feature)()` returns false without opening the paywall
+while not settled. Gate an
+action with `const requireExport = useRequireEntitlement("export")` and
+`if (!requireExport()) return;`. Gate a subtree with
+`<PaywallGate feature="export" fallback={<Upsell />}>`. `presentPaywall()`
+resolves `"purchased" | "restored" | "cancelled" | "error" | "not_configured"`;
+`presentPaywallIfNeeded()` adds `"not_presented"`. After `purchased`/`restored`
+the listener updates the store; the webhook updates the server record.
+
+`resolveEntitlement` order: dev override (development builds only), device
+`customer.isActive`, `serverUntil > now`, then the persisted snapshot only while
+neither live source has reported this session. A lifetime grant reads as
+`until: null`; the server stores it as `LIFETIME_UNTIL`. Switching `userId`
+rescopes the store synchronously (nothing from the previous user grants or is
+persisted under the new id) and identity calls are serialised. A gate on another entitlement
+(`useEntitlement("teams")`, `<PaywallGate entitlement="teams">`) checks the
+device's active list only.
+
+## Server
+
+```ts
+export const POST = createWebhookHandler({
+  secret: process.env.REVENUECAT_WEBHOOK_SECRET,
+  entitlement: "pro",
+  onEvent: async (event) => {
+    if (await alreadyProcessed(event.id)) return { duplicate: true };
+    const user = await findUserByAuthSubject(event.appUserId);   // app_user_id
+    if (!user) return { applied: false };
+    const rows = buildLedgerRows(event, { userId: user.id, previouslyExpired: await hadExpired(user.id) });
+    await insertLedgerIgnoringConflicts(rows);                    // unique (providerEventId, eventType)
+    const next = reduceEntitlement(user.entitlement, event, { entitlement: "pro" });
+    if (next.action === "set") await saveEntitlement(user.id, next.next);
+    return { applied: next.action === "set" };
+  },
+});
+```
+
+`createWebhookHandler` answers 500 without a secret, 401 on a bad
+`Authorization` header (bare secret or `Bearer <secret>`, constant-time), 400 on
+a malformed body, 200 after `onEvent` (its returned object is merged into
+`{ ok: true }`), and 500 when `onEvent` throws so RevenueCat retries. Events for
+other entitlements are acknowledged without reaching `onEvent`. Anonymous
+`$RCAnonymousID:*` app user ids cannot be mapped; ignore them.
+
+Ledger vocabulary (`LEDGER_EVENT_TYPES`): `trial_started`, `trial_converted`,
+`purchased`, `renewed`, `cancel_scheduled`, `uncanceled`, `expired`,
+`billing_issue`, `refunded`, `refund_reversed`, `product_changed`,
+`reactivated`. `NON_RENEWING_PURCHASE` is `purchased`. There is no REFUND
+webhook type: a refund is a CANCELLATION with `cancel_reason: CUSTOMER_SUPPORT`
+and the expiration moved back or absent (`isRefundCancellation`);
+`reduceEntitlement` revokes on it immediately, at the expiration or the event
+time. `TRANSFER` is skipped by the reducer; use `revokedByTransfer`. Grants never shorten `until` (later of current and
+event), `EXPIRATION` never cuts a record that runs longer, and a grant without
+expiration stores `LIFETIME_UNTIL`, never null. `amountCents` is RevenueCat's USD price in cents,
+pinned to 0 for `trial_started`. `occurredAt` is `event_timestamp_ms`. Rows are
+camelCase and JSON-serialisable; map to your table's columns.
+
+## Identifiers
+
+Entitlement, offering, and product identifiers are case sensitive and must match
+the RevenueCat dashboard exactly. `app_user_id` is the app's auth subject
+(Clerk user id, Cognito `sub`). The server keys the subscription row off
+`providerSubscriptionId` (`rc:<original_transaction_id>`), so store product ids
+are cosmetic to the backend. See README "Identifier Contract", "Setup Checklist
+(human)", and "Store Review Checklist".
 
 ---
 

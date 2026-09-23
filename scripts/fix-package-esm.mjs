@@ -7,7 +7,7 @@
  * whether platform-split modules exist, which is config-keyed below.
  *
  * Usage:
- *   node scripts/fix-package-esm.mjs <ui|media>
+ *   node scripts/fix-package-esm.mjs <ui|media|purchases>
  */
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
@@ -23,6 +23,7 @@ import { fileURLToPath } from "node:url";
 const PACKAGES = {
   ui: { dist: "packages/ui/dist", platformSuffixes: ["native", "web", "ios", "android"] },
   media: { dist: "packages/media/dist", platformSuffixes: ["native"] },
+  purchases: { dist: "packages/purchases/dist", platformSuffixes: ["native"] },
 };
 
 const packageNames = Object.keys(PACKAGES).sort();
@@ -35,7 +36,7 @@ if (!target) {
   console.error(
     `fix-package-esm: unknown package "${packageName ?? ""}". Expected one of: ${packageNames.join(", ")}`
   );
-  console.error("Usage: node scripts/fix-package-esm.mjs <ui|media>");
+  console.error("Usage: node scripts/fix-package-esm.mjs <ui|media|purchases>");
   process.exit(1);
 }
 

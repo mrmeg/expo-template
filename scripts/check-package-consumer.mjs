@@ -9,7 +9,7 @@
  * so those live in the `PACKAGES` table below.
  *
  * Usage:
- *   node scripts/check-package-consumer.mjs <ui|media|lint>
+ *   node scripts/check-package-consumer.mjs <ui|media|purchases|lint>
  */
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -65,13 +65,15 @@ const json = (value) => JSON.stringify(value, null, 2);
 
 /**
  * Version a fixture should install a peer with. Prefers whatever the template
- * itself is pinned to, falling back to the package's own declarations.
+ * itself is pinned to, then the package's own pins (a devDependency is the
+ * version the package was typed and tested against), then the peer range.
  */
 function dependencyVersion(name, rootPackage, manifest) {
   return (
     rootPackage.dependencies?.[name] ??
     rootPackage.devDependencies?.[name] ??
     manifest.dependencies?.[name] ??
+    manifest.devDependencies?.[name] ??
     manifest.peerDependencies?.[name]
   );
 }
@@ -244,6 +246,75 @@ const MEDIA_INDEX_TSX = [
   "void needsConversion('video/webm');",
   "void resolveCompressionConfig('gallery');",
   "void mediaTypeForKey(config, 'users/avatars/a.jpg');",
+  "",
+].join("\n");
+
+const PURCHASES_INDEX_TSX = [
+  "import AsyncStorage from '@react-native-async-storage/async-storage';",
+  "import { View } from 'react-native';",
+  "import {",
+  "  createEntitlementStore,",
+  "  createPurchases,",
+  "  PaywallGate,",
+  "  PurchasesProvider,",
+  "  resolveEntitlement,",
+  "  useEntitlement,",
+  "  useRequireEntitlement,",
+  "  type CustomerState,",
+  "  type PaywallOutcome,",
+  "} from '@mrmeg/expo-purchases';",
+  "import {",
+  "  buildLedgerRows,",
+  "  createWebhookHandler,",
+  "  isAuthorizedWebhook,",
+  "  parseRevenueCatWebhook,",
+  "  reduceEntitlement,",
+  "  type LedgerRow,",
+  "  type RevenueCatWebhookEvent,",
+  "} from '@mrmeg/expo-purchases/server';",
+  "",
+  "const purchases = createPurchases({",
+  "  entitlement: 'pro',",
+  "  offering: 'default',",
+  "  iosKey: 'appl_test',",
+  "  androidKey: 'goog_test',",
+  "  onError: () => {},",
+  "});",
+  "const store = createEntitlementStore({ storage: AsyncStorage });",
+  "",
+  "const handler = createWebhookHandler({",
+  "  secret: 'secret',",
+  "  entitlement: 'pro',",
+  "  onEvent: async (event: RevenueCatWebhookEvent) => {",
+  "    const rows: LedgerRow[] = buildLedgerRows(event, { userId: event.appUserId });",
+  "    const reduction = reduceEntitlement({ until: null, productId: null, updatedAt: null }, event, { entitlement: 'pro' });",
+  "    return { rows: rows.length, applied: reduction.action === 'set' };",
+  "  },",
+  "});",
+  "",
+  "function Gated() {",
+  "  const { isEntitled, presentPaywall } = useEntitlement();",
+  "  const requireExport = useRequireEntitlement('export');",
+  "  const outcome: Promise<PaywallOutcome> = presentPaywall();",
+  "  void outcome; void requireExport(); void isEntitled;",
+  "  return (",
+  "    <PaywallGate feature=\"export\" fallback={<View />}>",
+  "      <View />",
+  "    </PaywallGate>",
+  "  );",
+  "}",
+  "",
+  "export default function App() {",
+  "  return (",
+  "    <PurchasesProvider client={purchases} store={store} userId=\"user-1\" serverUntil={null} onBlocked={() => {}}>",
+  "      <Gated />",
+  "    </PurchasesProvider>",
+  "  );",
+  "}",
+  "",
+  "const customer: CustomerState | null = null;",
+  "void resolveEntitlement({ customer, serverUntil: null, snapshot: null, devOverride: false });",
+  "void handler; void isAuthorizedWebhook; void parseRevenueCatWebhook;",
   "",
 ].join("\n");
 
@@ -555,6 +626,93 @@ const PACKAGES = {
       },
     ],
   },
+  purchases: {
+    dir: "packages/purchases",
+    packageName: "@mrmeg/expo-purchases",
+    exportChecks: [
+      { entrypoint: "@mrmeg/expo-purchases", key: "." },
+      { entrypoint: "@mrmeg/expo-purchases/server", key: "./server" },
+    ],
+    requiredDocs: ["README.md", "CHANGELOG.md", "LLM_USAGE.md", "llms.txt", "llms-full.md"],
+    fixtures: [
+      {
+        // Peer-free install: proves `/server` loads without React, React Native,
+        // zustand, or either RevenueCat SDK present.
+        prefix: "expo-purchases-minimal-consumer-",
+        install: ["install", "--omit", "peer"],
+        files: ({ tarball }) => ({
+          "package.json": json({
+            name: "expo-purchases-minimal-consumer-smoke",
+            private: true,
+            type: "module",
+            dependencies: {
+              "@mrmeg/expo-purchases": tarball,
+            },
+          }),
+          "runtime.mjs": [
+            "const server = await import('@mrmeg/expo-purchases/server');",
+            "const event = server.parseRevenueCatWebhook({",
+            "  event: { id: 'e1', type: 'INITIAL_PURCHASE', app_user_id: 'u1', entitlement_ids: ['pro'], event_timestamp_ms: 1, price: 9.99 },",
+            "});",
+            "if (!event) throw new Error('Minimal server consumer could not parse a webhook event');",
+            "const rows = server.buildLedgerRows(event, { userId: 'u1' });",
+            "if (rows.length !== 1 || rows[0].eventType !== 'purchased' || rows[0].amountCents !== 999) {",
+            "  throw new Error('Minimal server consumer produced unexpected ledger rows');",
+            "}",
+            "if (!server.isAuthorizedWebhook('Bearer s', 's') || typeof server.createWebhookHandler !== 'function') {",
+            "  throw new Error('Minimal server consumer could not load the webhook helpers');",
+            "}",
+            "",
+          ].join("\n"),
+        }),
+        steps: [
+          { kind: "assert-surface" },
+          { kind: "run", command: "node", args: ["runtime.mjs"] },
+        ],
+      },
+      {
+        prefix: "expo-purchases-consumer-",
+        install: ["install"],
+        files: ({ tarball, rootPackage, peerDependencies }) => ({
+          "package.json": json({
+            name: "expo-purchases-consumer-smoke",
+            private: true,
+            type: "module",
+            dependencies: {
+              "@mrmeg/expo-purchases": tarball,
+              ...peerDependencies,
+              "@react-native-async-storage/async-storage":
+                rootPackage.dependencies["@react-native-async-storage/async-storage"],
+              react: rootPackage.dependencies.react,
+              "react-native": rootPackage.dependencies["react-native"],
+            },
+            devDependencies: {
+              "@types/react": rootPackage.devDependencies["@types/react"],
+              "@types/node": rootPackage.devDependencies["@types/node"],
+              typescript: rootPackage.devDependencies.typescript,
+            },
+          }),
+          "tsconfig.json": json({
+            compilerOptions: {
+              strict: true,
+              module: "ESNext",
+              moduleResolution: "Bundler",
+              jsx: "react-jsx",
+              skipLibCheck: true,
+              noEmit: true,
+              types: ["node"],
+            },
+            include: ["*.ts", "*.tsx"],
+          }),
+          "index.tsx": PURCHASES_INDEX_TSX,
+        }),
+        steps: [
+          { kind: "assert-surface" },
+          { kind: "run", command: "bun", args: ["x", "tsc", "--noEmit"] },
+        ],
+      },
+    ],
+  },
   lint: {
     dir: "packages/lint",
     packageName: "@mrmeg/eslint-plugin-expo-ui",
@@ -625,7 +783,7 @@ if (!target) {
   console.error(
     `check-package-consumer: unknown package "${packageName ?? ""}". Expected one of: ${packageNames.join(", ")}`
   );
-  console.error("Usage: node scripts/check-package-consumer.mjs <ui|media|lint>");
+  console.error("Usage: node scripts/check-package-consumer.mjs <ui|media|purchases|lint>");
   process.exit(1);
 }
 

@@ -1,10 +1,10 @@
 # Expo Template
 
-> Bun-managed Expo SDK 58 (beta) template (React Native iOS/Android + server-rendered web on a Bun server) with two reusable npm packages: `@mrmeg/expo-ui` (design system: 36 components, semantic theme tokens, notifications) and `@mrmeg/expo-media` (S3/R2 media pipeline). These docs teach an LLM agent to apply the template's components and best practices in another project.
+> Bun-managed Expo SDK 58 (beta) template (React Native iOS/Android + server-rendered web on a Bun server) with three reusable npm packages: `@mrmeg/expo-ui` (design system: 36 components, semantic theme tokens, notifications), `@mrmeg/expo-media` (S3/R2 media pipeline), and `@mrmeg/expo-purchases` (RevenueCat purchases, entitlement state, webhook helpers). These docs teach an LLM agent to apply the template's components and best practices in another project.
 
 Two ways to consume this repo:
 
-- **Published packages**: `bun add @mrmeg/expo-ui` (and optionally `@mrmeg/expo-media`), then read `node_modules/@mrmeg/expo-ui/LLM_USAGE.md` — the usage guide ships in the npm tarball.
+- **Published packages**: `bun add @mrmeg/expo-ui` (and optionally `@mrmeg/expo-media`, `@mrmeg/expo-purchases`), then read `node_modules/@mrmeg/expo-ui/LLM_USAGE.md` — the usage guide ships in the npm tarball.
 - **Pattern reference**: fetch `llms-full.txt` below for everything in one request, or follow individual links. Clone `https://github.com/mrmeg/expo-template.git` when you need screen or component source, not just docs.
 
 Links below are raw URLs on the `main` branch and can be fetched directly.
@@ -18,6 +18,7 @@ Links below are raw URLs on the `main` branch and can be fetched directly.
 - [UI package LLM usage](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/LLM_USAGE.md): `@mrmeg/expo-ui` import paths, required app setup, theme rules, component use-case index, minimal examples
 - [UI package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/README.md): full `@mrmeg/expo-ui` install, setup, theming, and publishing reference
 - [Media package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/media/README.md): `@mrmeg/expo-media` contracts, client hooks, server handler factories, processing presets
+- [Purchases package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/purchases/README.md): `@mrmeg/expo-purchases` RevenueCat client, entitlement store, paywall gating, pure webhook and ledger helpers, setup and store-review checklists
 - [Lint plugin README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/lint/README.md): `@mrmeg/eslint-plugin-expo-ui` design-system ESLint rules, CLI, settings, adoption in another project
 - [Expo server guide](https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/server-guide.md): server output, API routes, data loaders, middleware, server entries, replication checklist
 

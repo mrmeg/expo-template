@@ -15,6 +15,7 @@ Source of truth before editing another project:
 | Repo guidance and docs index | `AGENTS.md` |
 | UI package setup, components, theming | `packages/ui/README.md` |
 | Media package setup, processing, server handlers | `packages/media/README.md` |
+| Purchases package: RevenueCat client, entitlement store, gating, webhook helpers | `packages/purchases/README.md` |
 | Server output, API routes, data loaders, middleware | `docs/server-guide.md` |
 | Bundle budget and analysis workflow | `docs/bundle-analysis.md` |
 | Sentry runtime and native upload setup | `docs/error-tracking.md` |
@@ -38,10 +39,13 @@ billing, optional S3/R2 media, optional Sentry, and two workspace packages:
   components, animation/haptic helpers, global UI state.
 - `@mrmeg/expo-media` from `packages/media`: media contracts, processing helpers,
   React Query factories, S3/R2 server handler factories.
+- `@mrmeg/expo-purchases` from `packages/purchases`: RevenueCat client,
+  entitlement store, paywall gating, pure webhook and ledger helpers. Not used
+  by the template app itself.
 
 App-specific integration belongs in `app/`, `client/`, `server/`, or `shared/`.
 Reusable UI belongs in `packages/ui`; reusable media contracts and processing in
-`packages/media`.
+`packages/media`; reusable purchases and entitlement code in `packages/purchases`.
 
 ## LLM Use Rules
 

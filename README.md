@@ -156,7 +156,8 @@ bun run test:ci                        # CI-style with coverage
 ```
 
 Coverage spans `client/**`, `app/api/**`, `server/**`, `shared/**`,
-`packages/ui/src/**`, and `packages/media/src/**`, so CI flags drift in the
+`packages/ui/src/**`, `packages/media/src/**`, and `packages/purchases/src/**`,
+so CI flags drift in the
 route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing)
 and in the packaged UI. The lint plugin's own suites live in
 `packages/lint/__tests__` and run with the rest of jest.
@@ -195,6 +196,7 @@ and in the packaged UI. The lint plugin's own suites live in
 
 /packages/ui                  # @mrmeg/expo-ui npm package source
 /packages/media               # @mrmeg/expo-media npm package source
+/packages/purchases           # @mrmeg/expo-purchases npm package source
 
 /server.bun.ts                # Bun production server (compression, CORS, rate limits)
 /server                       # Shared server helpers (rate limits, API helpers, media handlers)
@@ -318,10 +320,11 @@ the package gates, commit the bump, and publish through npm OIDC — no npm toke
 or local auth email.
 
 `.github/workflows/publish-lint.yml` does the same for
-`@mrmeg/eslint-plugin-expo-ui`, and `publish-media.yml` for `@mrmeg/expo-media`.
-The lint one is `workflow_dispatch` only until its first release exists on npm —
-a package npm does not have yet cannot be set up for trusted publishing, so that
-first run needs an `NPM_TOKEN` secret.
+`@mrmeg/eslint-plugin-expo-ui`, `publish-media.yml` for `@mrmeg/expo-media`, and
+`publish-purchases.yml` for `@mrmeg/expo-purchases`. The lint and purchases ones
+are `workflow_dispatch` only until their first release exists on npm — a package
+npm does not have yet cannot be set up for trusted publishing, so that first run
+needs an `NPM_TOKEN` secret.
 
 Full design system: `packages/ui/README.md`.
 
