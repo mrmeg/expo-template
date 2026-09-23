@@ -41,7 +41,9 @@ bun add zustand
 ```
 
 `react-native-purchases-ui` pins the exact `react-native-purchases` version;
-install both at once. They are native modules: rebuild the dev client
+install both at once. The published type declarations do not import either SDK
+(the shapes used are declared locally), so a web-only or server-only consumer
+type-checks without them. They are native modules: rebuild the dev client
 (`bun run ios` / `bun run android` or an EAS development build) after adding
 them. `/server` needs no peer at all and runs without React, React Native, or
 Node APIs.
@@ -126,12 +128,17 @@ Mount the provider inside the auth boundary, with the auth subject as
   client={purchases}
   store={entitlementStore}
   userId={user?.id ?? null}
-  serverUntil={entitlement?.until ?? null}
+  serverUntil={entitlementQuery.data?.until ?? null}
+  serverPending={entitlementQuery.isPending}
   onBlocked={(feature) => router.push({ pathname: "/paywall", params: feature ? { feature } : {} })}
 >
   {children}
 </PurchasesProvider>
 ```
+
+`serverUntil` must be the record for `userId`: pass `serverPending` while the
+query for that user is loading (or still holds the previous user's data), and
+omit both when the app has no server source.
 
 The provider, per user:
 
@@ -139,8 +146,9 @@ The provider, per user:
    (`hydrated` becomes true);
 2. configures the SDK once (`sdkStatus` becomes `ready` or `unavailable`),
    attaches the customer-info listener, and calls `logIn(userId)` so
-   RevenueCat's `app_user_id` is the app's user id;
-3. mirrors `serverUntil` into the store.
+   RevenueCat's `app_user_id` is the app's user id (the result is applied even
+   when null, so the device counts as having reported);
+3. mirrors `serverUntil` into the store once `serverPending` is false.
 
 When `userId` changes the store is rescoped first (every source from the
 previous user dropped synchronously) and the new user logged in; when it becomes
@@ -202,11 +210,16 @@ scoped by user id and `ENTITLEMENT_SNAPSHOT_VERSION`, a wrong user or version
 reads as missing, and nothing is written for the signed-out scope.
 
 `useEntitlement().settled` is the signal to act on: the store is scoped to the
-current user, its snapshot was read (`hydrated`), and either a source has
-reported (device — even "nothing", server, or snapshot), the SDK is
-unavailable, or there is no user. Hold the splash screen and any automatic
-paywall until `settled` is true; `hydrated` alone only says the snapshot read
-finished.
+current user, its snapshot was read (`hydrated`), and either the device has
+reported (a state, or "nothing"), a snapshot exists, the server granted, the
+SDK is unavailable (web, key-less build) and the server has reported, or there
+is no user. Hold the splash screen and any automatic paywall until `settled` is
+true; `hydrated` alone only says the snapshot read finished. A time-based grant
+is re-evaluated when its `until` passes, so an idle screen locks on expiry.
+
+The snapshot is written only once the device has answered (or the SDK is
+unavailable), so a server value the app still held from a previous user is
+never persisted under the new user's key.
 
 A gate on another entitlement than the configured one
 (`useEntitlement("teams")`, `<PaywallGate entitlement="teams">`) checks the
@@ -223,6 +236,8 @@ async function onExport() {
   if (!requireExport()) return; // provider onBlocked("export") pushed the paywall
   await exportGraph();
 }
+// Before `settled`, requireExport() returns false without opening the paywall;
+// disable the control on `!settled` if the first second matters.
 
 <PaywallGate feature="media" fallback={<UpsellCard feature="media" />}>
   <MediaPicker />
@@ -289,7 +304,7 @@ export const POST = createWebhookHandler({
 | `INITIAL_PURCHASE` | `trial_started` (amount 0) when `period_type = TRIAL`, else `purchased`; plus `reactivated` when `previouslyExpired` | |
 | `NON_RENEWING_PURCHASE` | `purchased` | One-time purchase; revenue like any other |
 | `RENEWAL` | `trial_converted` when `is_trial_conversion`, else `renewed` | |
-| `CANCELLATION` | `cancel_scheduled`; plus `refunded` when `cancel_reason = CUSTOMER_SUPPORT` and `expiration_at_ms <= event_timestamp_ms` | RevenueCat has no REFUND type |
+| `CANCELLATION` | `cancel_scheduled`; plus `refunded` when `cancel_reason = CUSTOMER_SUPPORT` and `expiration_at_ms` is absent or `<= event_timestamp_ms` | RevenueCat has no REFUND type |
 | `UNCANCELLATION` | `uncanceled` | |
 | `EXPIRATION` | `expired` | |
 | `BILLING_ISSUE` | `billing_issue` | |
@@ -321,9 +336,13 @@ never lets one product's event shorten what another granted:
   the current value and the event's expiration;
 - `EXPIRATION` sets `until` to the event's expiration (else the event time)
   unless the record already runs longer;
-- a refund `CANCELLATION` (`isRefundCancellation`) moves `until` back to the
-  event's expiration unconditionally, so access ends without waiting for the
-  later `EXPIRATION`;
+- a refund `CANCELLATION` (`isRefundCancellation`: `CUSTOMER_SUPPORT` with the
+  expiration moved back, or absent for a refunded one-time purchase) moves
+  `until` back to the event's expiration (else the event time)
+  unconditionally, so access ends without waiting for an `EXPIRATION` that, for
+  a one-time purchase, never comes. This is the one event that can cut a
+  longer term another product granted: key records per product if you sell
+  overlapping products on one entitlement;
 - everything else is `{ action: "skip", reason }`: other entitlements
   (`not-entitlement`), out-of-order deliveries (`stale`: older than
   `current.updatedAt`), and events that change nothing (`no-op`: ordinary
@@ -333,7 +352,8 @@ Store `next.until` as the user's `until` and pass it to `PurchasesProvider
 serverUntil` as is; `resolveEntitlement` treats `LIFETIME_UNTIL` as "never
 expires". `TRANSFER` moves purchases between app user ids: revoke each
 `transferredFrom` user with `revokedByTransfer(event)`; the receiving side
-refreshes from the SDK and the next event.
+refreshes from the SDK and the next event; `reduceEntitlement` skips `TRANSFER`
+(it carries no entitlement ids).
 
 `deriveSubscriptionStatus(event)` maps to `trialing | active | past_due |
 canceled` for consumers that keep a current-state subscriptions row per

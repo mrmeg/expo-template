@@ -182,9 +182,15 @@ export function parseRevenueCatWebhook(body: unknown): RevenueCatWebhookEvent | 
  * - EXPIRATION sets `until` to the event's expiration (falling back to the event
  *   time) unless the current record already runs longer, in which case it stays.
  * - A refund CANCELLATION (`isRefundCancellation`) moves `until` back to the
- *   event's expiration unconditionally: the store has already revoked access.
+ *   event's expiration (the event time for a refunded one-time purchase)
+ *   unconditionally: the store has already revoked access, and a refund is the
+ *   one case where the record is cut even if another product on the same
+ *   entitlement ran longer — key records per product if you sell overlapping
+ *   products on one entitlement.
  * - Other CANCELLATION / BILLING_ISSUE / SUBSCRIPTION_PAUSED / TEST leave access
  *   in place until the following EXPIRATION arrives.
+ * - TRANSFER carries no entitlement ids and is skipped here; revoke the losing
+ *   side with `revokedByTransfer` instead.
  * - Events older than the last applied one are ignored (webhook retries can
  *   arrive out of order); an equal timestamp is applied (idempotent retry).
  */
@@ -193,7 +199,7 @@ export function reduceEntitlement(
   event: RevenueCatWebhookEvent,
   options: { entitlement: string },
 ): EntitlementReduction {
-  if (event.type !== "TRANSFER" && !event.entitlementIds.includes(options.entitlement)) {
+  if (!event.entitlementIds.includes(options.entitlement)) {
     return { action: "skip", reason: "not-entitlement" };
   }
   if (current.updatedAt !== null && event.eventTimestampMs < current.updatedAt) {
@@ -216,7 +222,7 @@ export function reduceEntitlement(
   }
 
   if (isRefundCancellation(event)) {
-    return { action: "set", next: { until: event.expirationAtMs, productId, updatedAt } };
+    return { action: "set", next: { until: event.expirationAtMs ?? event.eventTimestampMs, productId, updatedAt } };
   }
 
   return { action: "skip", reason: "no-op" };

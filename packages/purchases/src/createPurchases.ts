@@ -11,12 +11,11 @@
  * `client/features/pro/purchasesClient.ts` (one-time configure, identity
  * bookkeeping, customer-info listener).
  */
-import type { CustomerInfo, LOG_LEVEL, PurchasesOffering } from "react-native-purchases";
 import { Platform } from "react-native";
 
 import { resolvePlatformKey, toCustomerState } from "./customerState";
 import { loadPaywallUi, loadPurchasesSdk } from "./sdk";
-import type { PaywallUi, PurchasesSdk } from "./sdkTypes";
+import type { PaywallUi, PurchasesSdk, RcCustomerInfoListener, RcOffering } from "./sdkTypes";
 import type {
   CustomerState,
   PaywallOutcome,
@@ -27,7 +26,7 @@ import type {
   RestoreOutcome,
 } from "./types";
 
-/** `LOG_LEVEL` enum values are their own names; mirrored so the enum is never imported at runtime. */
+/** `LOG_LEVEL` enum values are their own names; mirrored so the enum is never imported. */
 const LOG_LEVELS: Record<PurchasesLogLevel, string> = {
   verbose: "VERBOSE",
   debug: "DEBUG",
@@ -76,7 +75,13 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
     return next;
   };
   /** App listeners and the SDK listener each is attached through, once the SDK is ready. */
-  const listeners = new Map<(state: CustomerState) => void, ((info: CustomerInfo) => void) | null>();
+  const listeners = new Map<(state: CustomerState) => void, RcCustomerInfoListener | null>();
+
+  /** The SDK once a configure in flight has settled; null when none succeeded. */
+  const ready = async (): Promise<PurchasesSdk | null> => {
+    if (!sdk && configurePromise) await configurePromise;
+    return sdk;
+  };
 
   const report = (error: unknown, context: string): void => {
     if (config.onError) {
@@ -89,6 +94,7 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
   const platformKey = (): string | undefined => resolvePlatformKey(config, Platform.OS);
 
   const getCustomerState = async (): Promise<CustomerState | null> => {
+    const sdk = await ready();
     if (!sdk) return null;
     try {
       return toCustomerState(await sdk.getCustomerInfo(), config.entitlement);
@@ -100,7 +106,7 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
 
   const attachListener = (listener: (state: CustomerState) => void): void => {
     if (!sdk || listeners.get(listener)) return;
-    const sdkListener = (info: CustomerInfo) => listener(toCustomerState(info, config.entitlement));
+    const sdkListener: RcCustomerInfoListener = (info) => listener(toCustomerState(info, config.entitlement));
     listeners.set(listener, sdkListener);
     sdk.addCustomerInfoUpdateListener(sdkListener);
   };
@@ -111,7 +117,7 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
    * that id is unknown. Undefined when no id is wanted or offerings cannot be
    * loaded, which lets RevenueCatUI use its own default (the current offering).
    */
-  const resolveOffering = async (offeringId?: string): Promise<PurchasesOffering | undefined> => {
+  const resolveOffering = async (offeringId?: string): Promise<RcOffering | undefined> => {
     const wanted = offeringId ?? config.offering;
     if (!sdk || !wanted) return undefined;
     try {
@@ -127,9 +133,9 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
   const present = async (
     context: "presentPaywall" | "presentPaywallIfNeeded",
     options: PresentPaywallOptions,
-    invoke: (ui: PaywallUi, offering: PurchasesOffering | undefined, displayCloseButton: boolean) => Promise<unknown>,
+    invoke: (ui: PaywallUi, offering: RcOffering | undefined, displayCloseButton: boolean) => Promise<unknown>,
   ): Promise<PaywallOutcome> => {
-    if (!sdk) return "not_configured";
+    if (!(await ready())) return "not_configured";
     const ui = await loadPaywallUi();
     if (!ui) {
       report(new Error("react-native-purchases-ui is not installed in this build"), context);
@@ -164,7 +170,7 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
         }
         try {
           if (config.logLevel) {
-            await loaded.setLogLevel(LOG_LEVELS[config.logLevel] as unknown as LOG_LEVEL);
+            await loaded.setLogLevel(LOG_LEVELS[config.logLevel]);
           }
           loaded.configure(appUserId ? { apiKey, appUserID: appUserId } : { apiKey });
           sdk = loaded;
@@ -182,6 +188,7 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
 
     logIn(appUserId) {
       return serializeIdentity(async () => {
+        const sdk = await ready();
         if (!sdk) return null;
         if (currentAppUserId === appUserId) return getCustomerState();
         try {
@@ -197,6 +204,7 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
 
     logOut() {
       return serializeIdentity(async () => {
+        const sdk = await ready();
         if (!sdk) return;
         try {
           if (!(await sdk.isAnonymous())) {
@@ -213,6 +221,7 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
     getCustomerState,
 
     async restore(): Promise<RestoreOutcome> {
+      const sdk = await ready();
       if (!sdk) return { kind: "not_configured" };
       try {
         const customer = toCustomerState(await sdk.restorePurchases(), config.entitlement);
@@ -250,6 +259,7 @@ export function createPurchases(config: PurchasesConfig): PurchasesClient {
     },
 
     async setAttributes(attributes) {
+      const sdk = await ready();
       if (!sdk) return;
       try {
         await sdk.setAttributes(attributes);

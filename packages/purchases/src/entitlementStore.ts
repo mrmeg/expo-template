@@ -64,6 +64,8 @@ export interface EntitlementState extends EntitlementSources {
   hydrated: boolean;
   /** True once the device reported a customer state (or its absence) for the current scope. */
   deviceReported: boolean;
+  /** True once the app applied its server record (a value or null) for the current scope. */
+  serverReported: boolean;
   /** User the store is scoped to; set by `hydrate`, cleared by `clear`. */
   userId: string | null;
 
@@ -182,6 +184,7 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
     snapshot: null as EntitlementSnapshot | null,
     hydrated: false,
     deviceReported: false,
+    serverReported: false,
     devOverride: false,
     userId: null as string | null,
   };
@@ -192,21 +195,32 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
     serverUntil: null as number | null,
     snapshot: null as EntitlementSnapshot | null,
     deviceReported: false,
+    serverReported: false,
   };
+
+  /** Last snapshot written per key, so an unchanged verdict is not rewritten on every SDK tick. */
+  const lastWritten = new Map<string, string>();
 
   return createStore<EntitlementState>((set, get) => {
     /**
      * Persist the live verdict — revocations included, so a later cold start
      * can show the paywall without waiting on the network. Nothing is written
-     * while neither live source has reported: the previous snapshot stands.
+     * for the signed-out scope, while neither live source has reported, or
+     * before the device has answered on a platform where it can: a server value
+     * the app still holds from a previous user must not be written under the
+     * new user's key before the SDK has spoken for them.
      */
     const persist = (): void => {
       if (!storage) return;
-      const { customer, serverUntil, userId } = get();
-      // Nothing is written for the signed-out scope: there is no user to scope it to.
+      const { customer, serverUntil, userId, deviceReported, sdkStatus } = get();
       if (userId === null) return;
       if (customer === null && serverUntil === null) return;
+      if (!deviceReported && sdkStatus !== "unavailable") return;
       const live = resolveEntitlement({ customer, serverUntil, snapshot: null, devOverride: false });
+      const key = keyFor(userId);
+      const verdict = JSON.stringify({ isActive: live.isEntitled, until: live.until });
+      if (lastWritten.get(key) === verdict) return;
+      lastWritten.set(key, verdict);
       const snapshot: EntitlementSnapshot = {
         version: ENTITLEMENT_SNAPSHOT_VERSION,
         userId,
@@ -214,15 +228,19 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
         isActive: live.isEntitled,
         until: live.until,
       };
-      storage.setItem(keyFor(userId), JSON.stringify(snapshot)).catch(() => {
-        // Persistence is best-effort; the live sources are authoritative.
+      storage.setItem(key, JSON.stringify(snapshot)).catch(() => {
+        lastWritten.delete(key);
       });
     };
 
     return {
       ...initial,
 
-      setSdkStatus: (sdkStatus) => set({ sdkStatus }),
+      setSdkStatus: (sdkStatus) => {
+        set({ sdkStatus });
+        // "unavailable" unblocks persistence of a server-only verdict (web, key-less build).
+        if (sdkStatus === "unavailable") persist();
+      },
 
       applyCustomerState: (customer) => {
         set({ customer, deviceReported: true });
@@ -230,7 +248,7 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
       },
 
       applyServerEntitlement: (serverUntil) => {
-        set({ serverUntil });
+        set({ serverUntil, serverReported: true });
         persist();
       },
 
@@ -257,6 +275,7 @@ export function createEntitlementStore(options: EntitlementStoreOptions = {}): E
         const target = userId === undefined ? get().userId : userId;
         set({ ...emptyScope, userId: null, hydrated: true });
         if (!storage) return;
+        lastWritten.delete(keyFor(target));
         try {
           await storage.removeItem(keyFor(target));
         } catch {

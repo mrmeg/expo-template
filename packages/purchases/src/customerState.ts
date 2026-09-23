@@ -3,11 +3,10 @@
  * Lifted from Mindmap `purchasesClient.toCustomerState`, generalised to any
  * entitlement id and extended with the list of active entitlements.
  */
-import type { CustomerInfo } from "react-native-purchases";
-
+import type { RcCustomerInfo } from "./sdkTypes";
 import type { CustomerState, PurchasesConfig } from "./types";
 
-export function toCustomerState(info: CustomerInfo, entitlement: string): CustomerState {
+export function toCustomerState(info: RcCustomerInfo, entitlement: string): CustomerState {
   const active = info.entitlements?.active ?? {};
   const activeEntitlements = Object.keys(active);
   const current = active[entitlement];

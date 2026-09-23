@@ -190,7 +190,8 @@ describe("isRefundCancellation", () => {
     expect(isRefundCancellation(event({ type: "CANCELLATION", cancel_reason: "CUSTOMER_SUPPORT", expiration_at_ms: NOW + 1 }))).toBe(false);
     expect(isRefundCancellation(event({ type: "CANCELLATION", cancel_reason: "UNSUBSCRIBE", expiration_at_ms: NOW }))).toBe(false);
     expect(isRefundCancellation(event({ type: "EXPIRATION", cancel_reason: "CUSTOMER_SUPPORT", expiration_at_ms: NOW }))).toBe(false);
-    expect(isRefundCancellation(event({ type: "CANCELLATION", cancel_reason: "CUSTOMER_SUPPORT", expiration_at_ms: null }))).toBe(false);
+    // A refunded one-time purchase never had an expiration.
+    expect(isRefundCancellation(event({ type: "CANCELLATION", cancel_reason: "CUSTOMER_SUPPORT", expiration_at_ms: null }))).toBe(true);
   });
 });
 

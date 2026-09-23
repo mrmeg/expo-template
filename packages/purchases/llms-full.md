@@ -42,13 +42,14 @@ appUserId, activeEntitlements }`, keyed to the configured entitlement
 
 `createEntitlementStore({ storage?, storageKeyPrefix? })` (zustand vanilla):
 state `sdkStatus`, `customer`, `serverUntil`, `snapshot`, `hydrated`,
-`deviceReported`, `userId`, `devOverride`; actions `setSdkStatus`, `applyCustomerState`,
+`deviceReported`, `serverReported`, `userId`, `devOverride`; actions `setSdkStatus`, `applyCustomerState`,
 `applyServerEntitlement`, `hydrate(userId)`, `clear(userId?)`,
 `setDevOverride` (development only), `reset`. `hydrate` rescopes first (drops
 every source, `hydrated: false`) and `clear` leaves the signed-out scope
 hydrated. The snapshot
 `{ version, userId, savedAt, isActive, until }` is written on every live update
-(revocations too) under `${prefix}${userId}`, rejected on user or version
+(revocations too) under `${prefix}${userId}`, only once the device reported or
+the SDK is unavailable, skipped when unchanged, rejected on user or version
 mismatch, removed by `clear`.
 
 `resolveEntitlement({ customer, serverUntil, snapshot, devOverride }, now?,
@@ -59,16 +60,18 @@ entitlement?)` → `{ isEntitled, until, source }` with source order `dev` →
 
 ## React
 
-`<PurchasesProvider client store userId serverUntil? onBlocked?>`: with a
-user, hydrates the store for that user, configures once, subscribes, logs in,
-mirrors `serverUntil`; with `userId={null}`, logs the SDK out and clears the
+`<PurchasesProvider client store userId serverUntil? serverPending? onBlocked?>`:
+with a user, hydrates the store for that user, configures once, subscribes,
+logs in (applying the result even when null), mirrors `serverUntil` once
+`serverPending` is false; with `userId={null}`, logs the SDK out and clears the
 store and snapshot.
 
 `useEntitlement(entitlement?)` → `{ isEntitled, until, source, hydrated,
 settled, isConfigured, isReady, sdkStatus, customer, restore, presentPaywall,
-presentPaywallIfNeeded }`; `settled` = scoped to this user, hydrated, and a
-source reported (`deviceReported`, `serverUntil`, `snapshot`) or the SDK is
-unavailable or there is no user. `useRequireEntitlement(feature)` → `() => boolean`
+presentPaywallIfNeeded }`; `settled` = scoped to this user, hydrated, and
+`deviceReported` or a snapshot or a server grant, or the SDK is unavailable and
+`serverReported`, or there is no user. `useRequireEntitlement(feature)` reports
+a block only when settled. A time-based grant re-evaluates when `until` passes. `useRequireEntitlement(feature)` → `() => boolean`
 (false also calls the provider's `onBlocked(feature)`).
 `<PaywallGate feature? entitlement? fallback? onBlocked?>` renders children when
 entitled, else fallback, reporting once per lock after hydration.
@@ -88,8 +91,9 @@ entitled, else fallback, reporting once per lock after hydration.
   `{ action: "set", next: { until, productId, updatedAt } }` for
   `GRANT_EVENT_TYPES` (later of current and event expiry; `LIFETIME_UNTIL` when
   none), `EXPIRATION` (event expiry unless the record runs longer), and a refund
-  `CANCELLATION` (event expiry, unconditionally); else `{ action: "skip",
-  reason: "not-entitlement" | "stale" | "no-op" }`. `revokedByTransfer(event)`.
+  `CANCELLATION` (event expiry or event time, unconditionally); else
+  `{ action: "skip", reason: "not-entitlement" | "stale" | "no-op" }` (TRANSFER
+  skips as not-entitlement). `revokedByTransfer(event)`.
 - `buildLedgerRows(event, { userId, previouslyExpired? })` → `LedgerRow[]` over
   `LEDGER_EVENT_TYPES` (`trial_started`, `trial_converted`, `purchased`,
   `renewed`, `cancel_scheduled`, `uncanceled`, `expired`, `billing_issue`,

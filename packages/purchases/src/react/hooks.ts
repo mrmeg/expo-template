@@ -2,11 +2,16 @@
  * Entitlement facts and the gate call for components. Lifted from Mindmap
  * `client/features/pro/usePro.ts`.
  */
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
-import { resolveEntitlement, type EntitlementResolution, type SdkStatus } from "../entitlementStore";
+import {
+  resolveEntitlement,
+  type EntitlementResolution,
+  type EntitlementState,
+  type SdkStatus,
+} from "../entitlementStore";
 import type { CustomerState, PaywallOutcome, PresentPaywallOptions, RestoreOutcome } from "../types";
 import { usePurchasesContext } from "./context";
 
@@ -15,9 +20,10 @@ export interface EntitlementView extends EntitlementResolution {
   hydrated: boolean;
   /**
    * The verdict is worth acting on: the store is scoped to the current user,
-   * hydrated, and either a source has reported (device, server, snapshot), the
-   * SDK is unavailable, or there is no user. Hold the splash screen and any
-   * automatic paywall until this is true.
+   * hydrated, and either the device reported (a state or its absence), a
+   * snapshot exists, the server granted, the SDK is unavailable and the server
+   * has reported, or there is no user. Hold the splash screen and any automatic
+   * paywall until this is true.
    */
   settled: boolean;
   /** A public SDK key exists for this platform. */
@@ -31,34 +37,56 @@ export interface EntitlementView extends EntitlementResolution {
   presentPaywallIfNeeded: (options?: PresentPaywallOptions) => Promise<PaywallOutcome>;
 }
 
+export function isSettled(state: EntitlementState, userId: string | null): boolean {
+  if (!state.hydrated || state.userId !== userId) return false;
+  if (userId === null) return true;
+  return (
+    state.deviceReported ||
+    state.snapshot !== null ||
+    state.serverUntil !== null ||
+    (state.sdkStatus === "unavailable" && state.serverReported)
+  );
+}
+
+const MAX_TIMEOUT_MS = 2_147_483_647;
+
 /**
  * Access facts for the configured entitlement, or for `entitlement` when it
  * names another one (checked against the device's active list only).
  */
 export function useEntitlement(entitlement?: string): EntitlementView {
   const { client, store, userId } = usePurchasesContext();
-  const customer = useStore(store, (state) => state.customer);
-  const hydrated = useStore(store, (state) => state.hydrated);
-  const sdkStatus = useStore(store, (state) => state.sdkStatus);
-  const settled = useStore(
+  const target = entitlement !== undefined && entitlement !== client.entitlement ? entitlement : undefined;
+
+  // One subscription; the clock is read inside the selector, not in render, and
+  // the result is shallow-compared (primitives plus the customer reference) so a
+  // fresh object never loops.
+  const view = useStore(
     store,
-    (state) =>
-      state.hydrated &&
-      state.userId === userId &&
-      (userId === null ||
-        state.deviceReported ||
-        state.serverUntil !== null ||
-        state.snapshot !== null ||
-        state.sdkStatus === "unavailable"),
+    useShallow((state) => {
+      const resolution = resolveEntitlement(state, Date.now(), target);
+      return {
+        isEntitled: resolution.isEntitled,
+        until: resolution.until,
+        source: resolution.source,
+        hydrated: state.hydrated,
+        settled: isSettled(state, userId),
+        sdkStatus: state.sdkStatus,
+        customer: state.customer,
+      };
+    }),
   );
 
-  const target = entitlement !== undefined && entitlement !== client.entitlement ? entitlement : undefined;
-  // The clock is read inside the selector, not in render, and the result is
-  // shallow-compared (three primitives) so a fresh object never loops.
-  const resolution = useStore(
-    store,
-    useShallow((state) => resolveEntitlement(state, Date.now(), target)),
-  );
+  // A time-based grant (server expiry, snapshot) can lapse while the screen is
+  // idle; re-render right after `until` so the verdict flips without a store
+  // update.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!view.isEntitled || view.until === null) return;
+    const delay = Math.min(Math.max(view.until - Date.now(), 0) + 1, MAX_TIMEOUT_MS);
+    const id = setTimeout(() => setTick((tick) => tick + 1), delay);
+    return () => clearTimeout(id);
+  }, [view.isEntitled, view.until]);
 
   const restore = useCallback(() => client.restore(), [client]);
   const presentPaywall = useCallback(
@@ -71,13 +99,9 @@ export function useEntitlement(entitlement?: string): EntitlementView {
   );
 
   return {
-    ...resolution,
-    hydrated,
-    settled,
+    ...view,
     isConfigured: client.isConfigured(),
-    isReady: sdkStatus === "ready",
-    sdkStatus,
-    customer,
+    isReady: view.sdkStatus === "ready",
     restore,
     presentPaywall,
     presentPaywallIfNeeded,
@@ -87,14 +111,16 @@ export function useEntitlement(entitlement?: string): EntitlementView {
 /**
  * The one call gate points make: returns true when the action may proceed and
  * otherwise reports `feature` to the provider's `onBlocked` (which opens the
- * paywall) and returns false.
+ * paywall) and returns false. Before the verdict is settled it returns false
+ * without reporting, so a paying user whose device has not answered yet is not
+ * sent to the paywall; disable the control on `!settled` if that matters.
  */
 export function useRequireEntitlement(feature: string): () => boolean {
   const { onBlocked } = usePurchasesContext();
-  const { isEntitled } = useEntitlement();
+  const { isEntitled, settled } = useEntitlement();
   return useCallback(() => {
     if (isEntitled) return true;
-    onBlocked?.(feature);
+    if (settled) onBlocked?.(feature);
     return false;
-  }, [feature, isEntitled, onBlocked]);
+  }, [feature, isEntitled, settled, onBlocked]);
 }

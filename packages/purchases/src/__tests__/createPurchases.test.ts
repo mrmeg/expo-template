@@ -284,6 +284,17 @@ describe("createPurchases (native)", () => {
     expect(mockSdk.removeCustomerInfoUpdateListener).not.toHaveBeenCalled();
   });
 
+  it("waits for a configure in flight instead of answering as unconfigured", async () => {
+    const client = makeClient();
+    const configuring = client.configure("user-1");
+    const attributes = client.setAttributes({ $campaign: "spring" });
+    const state = client.logIn("user-1");
+    await configuring;
+    await attributes;
+    expect(mockSdk.setAttributes).toHaveBeenCalledWith({ $campaign: "spring" });
+    expect(await state).toMatchObject({ appUserId: "user-1" });
+  });
+
   it("subscribe is inert before configure and attaches once configure succeeds", async () => {
     const client = makeClient();
     const listener = jest.fn();
@@ -333,8 +344,8 @@ describe("createPurchases (native)", () => {
 
     const signOut = client.logOut();
     const signIn = client.logIn("user-2");
-    await Promise.resolve();
-    await Promise.resolve();
+    for (let i = 0; i < 20 && !releaseLogOut; i += 1) await Promise.resolve();
+    expect(releaseLogOut).toBeDefined();
     expect(order).toEqual([]);
     releaseLogOut();
     await signOut;

@@ -157,6 +157,45 @@ describe("createEntitlementStore", () => {
     expect(store.getState().deviceReported).toBe(true);
   });
 
+  it("marks the server as reported even when it has no expiry", () => {
+    const store = createEntitlementStore();
+    expect(store.getState().serverReported).toBe(false);
+    store.getState().applyServerEntitlement(null);
+    expect(store.getState().serverReported).toBe(true);
+  });
+
+  it("does not persist a server-only verdict before the device has answered, unless the SDK is unavailable", async () => {
+    const storage = memoryStorage();
+    const store = createEntitlementStore({ storage });
+    await store.getState().hydrate("user-1");
+    store.getState().applyServerEntitlement(LATER);
+    await Promise.resolve();
+    expect(storage.data.size).toBe(0);
+
+    store.getState().setSdkStatus("unavailable");
+    await Promise.resolve();
+    expect(storage.data.size).toBe(1);
+    expect(JSON.parse(storage.data.get(entitlementSnapshotKey("purchases:snapshot:", "user-1"))!)).toMatchObject({
+      isActive: true,
+      until: LATER,
+    });
+  });
+
+  it("skips rewriting an unchanged verdict", async () => {
+    const storage = memoryStorage();
+    const setItem = jest.spyOn(storage, "setItem");
+    const store = createEntitlementStore({ storage });
+    await store.getState().hydrate("user-1");
+    store.getState().applyCustomerState(active);
+    store.getState().applyCustomerState({ ...active });
+    store.getState().applyCustomerState({ ...active });
+    await Promise.resolve();
+    expect(setItem).toHaveBeenCalledTimes(1);
+    store.getState().applyCustomerState(inactive);
+    await Promise.resolve();
+    expect(setItem).toHaveBeenCalledTimes(2);
+  });
+
   it("never persists for the signed-out scope", async () => {
     const storage = memoryStorage();
     const store = createEntitlementStore({ storage });
@@ -248,6 +287,7 @@ describe("createEntitlementStore", () => {
       snapshot: null,
       userId: null,
       deviceReported: false,
+      serverReported: false,
       hydrated: true,
       sdkStatus: "ready",
     });

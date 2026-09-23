@@ -80,14 +80,14 @@ export interface BuildLedgerRowsOptions {
 /**
  * True when a CANCELLATION is really a refund: RevenueCat has no REFUND event
  * type and delivers one as CANCELLATION with `cancel_reason: "CUSTOMER_SUPPORT"`
- * and `expiration_at_ms` moved back to the revocation time.
+ * and `expiration_at_ms` moved back to the revocation time — or absent, for a
+ * refunded one-time (non-renewing) purchase that never had an expiration.
  */
 export function isRefundCancellation(event: RevenueCatWebhookEvent): boolean {
   return (
     event.type === "CANCELLATION" &&
     event.cancelReason === "CUSTOMER_SUPPORT" &&
-    event.expirationAtMs !== null &&
-    event.expirationAtMs <= event.eventTimestampMs
+    (event.expirationAtMs === null || event.expirationAtMs <= event.eventTimestampMs)
   );
 }
 

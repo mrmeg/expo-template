@@ -9,7 +9,8 @@
  *  - the SDK is configured once (`sdkStatus` becomes `ready` or `unavailable`),
  *    the customer-info listener attached, and `logIn(userId)` applied — the
  *    result is applied even when null so `deviceReported` marks the attempt;
- *  - `serverUntil` (the app's webhook-synced expiry) is mirrored into the store.
+ *  - `serverUntil` (the app's webhook-synced expiry) is mirrored into the store
+ *    once `serverPending` is false.
  * When `userId` becomes null the SDK returns to anonymous and the store is
  * cleared, including the persisted snapshot. Mount it inside the auth boundary:
  * while `userId` is null every gate treats the visitor as settled and not
@@ -26,8 +27,18 @@ export interface PurchasesProviderProps {
   store: EntitlementStore;
   /** The app's auth subject; RevenueCat's `app_user_id`. Null while signed out. */
   userId: string | null;
-  /** Expiry the app's backend recorded from the webhook (ms since epoch), or null. */
+  /**
+   * Expiry the app's backend recorded from the webhook for `userId` (ms since
+   * epoch), or null when it has none. Omit when the app has no server source.
+   */
   serverUntil?: number | null;
+  /**
+   * True while the app is still loading `serverUntil` for this `userId`. The
+   * store then keeps `serverReported` false, so gates do not settle on a stale
+   * or missing server value. Pass it whenever your entitlement query is loading
+   * or still holds the previous user's record.
+   */
+  serverPending?: boolean;
   /** Receives the blocked feature from `useRequireEntitlement` / `PaywallGate`. */
   onBlocked?: (feature?: string) => void;
   children: ReactNode;
@@ -38,6 +49,7 @@ export function PurchasesProvider({
   store,
   userId,
   serverUntil = null,
+  serverPending = false,
   onBlocked,
   children,
 }: PurchasesProviderProps) {
@@ -78,9 +90,9 @@ export function PurchasesProvider({
   // Runs after the scope effect above (declaration order), so a user switch
   // re-applies the app's `serverUntil` into the freshly rescoped store.
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || serverPending) return;
     store.getState().applyServerEntitlement(serverUntil ?? null);
-  }, [store, serverUntil, userId]);
+  }, [store, serverUntil, serverPending, userId]);
 
   const value = useMemo<PurchasesContextValue>(
     () => ({ client, store, userId, onBlocked }),

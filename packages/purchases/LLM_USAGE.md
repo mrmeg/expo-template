@@ -41,7 +41,8 @@ Mount once, inside the auth boundary:
   client={purchases}
   store={entitlementStore}
   userId={user?.id ?? null}                 // RevenueCat app_user_id
-  serverUntil={entitlement?.until ?? null}  // from the app's webhook-backed record
+  serverUntil={entitlementQuery.data?.until ?? null}  // the app's webhook-backed record for userId
+  serverPending={entitlementQuery.isPending}          // hold settling while it loads
   onBlocked={(feature) => router.push({ pathname: "/paywall", params: feature ? { feature } : {} })}
 >
 ```
@@ -53,8 +54,11 @@ returns the SDK to anonymous and deletes the persisted snapshot.
 Read access with `useEntitlement()` → `{ isEntitled, until, source, hydrated,
 settled, isConfigured, isReady, customer, restore, presentPaywall,
 presentPaywallIfNeeded }`. Hold the splash screen and any automatic paywall
-until `settled` (store scoped to this user, snapshot read, and a source
-reported or none can); `hydrated` alone only says the snapshot read finished. Gate an
+until `settled` (store scoped to this user, snapshot read, and the device
+reported, a snapshot exists, the server granted, or the SDK is unavailable and
+the server reported); `hydrated` alone only says the snapshot read finished.
+`useRequireEntitlement(feature)()` returns false without opening the paywall
+while not settled. Gate an
 action with `const requireExport = useRequireEntitlement("export")` and
 `if (!requireExport()) return;`. Gate a subtree with
 `<PaywallGate feature="export" fallback={<Upsell />}>`. `presentPaywall()`
@@ -102,8 +106,9 @@ Ledger vocabulary (`LEDGER_EVENT_TYPES`): `trial_started`, `trial_converted`,
 `billing_issue`, `refunded`, `refund_reversed`, `product_changed`,
 `reactivated`. `NON_RENEWING_PURCHASE` is `purchased`. There is no REFUND
 webhook type: a refund is a CANCELLATION with `cancel_reason: CUSTOMER_SUPPORT`
-and the expiration moved back (`isRefundCancellation`); `reduceEntitlement`
-revokes on it immediately. Grants never shorten `until` (later of current and
+and the expiration moved back or absent (`isRefundCancellation`);
+`reduceEntitlement` revokes on it immediately, at the expiration or the event
+time. `TRANSFER` is skipped by the reducer; use `revokedByTransfer`. Grants never shorten `until` (later of current and
 event), `EXPIRATION` never cuts a record that runs longer, and a grant without
 expiration stores `LIFETIME_UNTIL`, never null. `amountCents` is RevenueCat's USD price in cents,
 pinned to 0 for `trial_started`. `occurredAt` is `event_timestamp_ms`. Rows are

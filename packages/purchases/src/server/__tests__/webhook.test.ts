@@ -247,6 +247,15 @@ describe("reduceEntitlement", () => {
         options,
       ),
     ).toEqual({ action: "set", next: { until: NOW - 1, productId: "app_pro_monthly", updatedAt: NOW } });
+    // A refunded one-time purchase carries no expiration: revoke at the event time.
+    const lifetime: EntitlementRecord = { until: LIFETIME_UNTIL, productId: "app_pro_lifetime", updatedAt: NOW - 10 };
+    expect(
+      reduceEntitlement(
+        lifetime,
+        event({ type: "CANCELLATION", cancelReason: "CUSTOMER_SUPPORT", expirationAtMs: null, productId: "app_pro_lifetime" }),
+        options,
+      ),
+    ).toEqual({ action: "set", next: { until: NOW, productId: "app_pro_lifetime", updatedAt: NOW } });
     // A support cancellation that keeps access to the period end is an ordinary cancellation.
     expect(
       reduceEntitlement(
@@ -282,6 +291,13 @@ describe("reduceEntitlement", () => {
     expect(reduceEntitlement(current, event({ type: "RENEWAL", productId: null }), options)).toEqual({
       action: "set",
       next: { until: LATER, productId: "app_pro_annual", updatedAt: NOW },
+    });
+  });
+
+  it("skips TRANSFER (no entitlement ids); revokedByTransfer is the TRANSFER path", () => {
+    expect(reduceEntitlement(empty, event({ type: "TRANSFER", entitlementIds: [], transferredFrom: ["sub-1"] }), options)).toEqual({
+      action: "skip",
+      reason: "not-entitlement",
     });
   });
 

@@ -21,7 +21,8 @@ Rules:
   out on sign-out.
 - Access is `resolveEntitlement`: device customer state, then the server's
   `until`, then the persisted snapshot (only until a live source reports). Pass
-  `serverUntil` from the app's webhook-backed record and hold the splash on
+  `serverUntil` from the app's webhook-backed record (with `serverPending` while
+  it loads) and hold the splash and any automatic paywall on `settled`, not
   `hydrated`.
 - Gate with `useRequireEntitlement(feature)()` or `<PaywallGate feature>`; the
   provider's `onBlocked(feature)` pushes the app's paywall route.
