@@ -4,7 +4,17 @@ const { getDefaultConfig } = require("expo/metro-config");
 const {
   wrapWithReanimatedMetroConfig,
 } = require("react-native-reanimated/metro-config");
-const { withSentryResolver } = require("@sentry/react-native/metro");
+const {
+  withSentryFeedbackResolver,
+  withSentryResolver,
+} = require("@sentry/react-native/metro");
+const {
+  SCOPED_DEDUPES,
+  describeOmittedIntegration,
+  getOmittedIntegrationFor,
+  getScopedDedupeTarget,
+  isUnusedRouteFile,
+} = require("./metro/resolverRules");
 const path = require("path");
 
 const config = getDefaultConfig(__dirname);
@@ -110,6 +120,35 @@ const passthroughModules = new Set(
     .map((key) => `react-native/${key.slice(2)}`)
 );
 
+// Scoped dedupes: nested copies collapsed onto the app-level install for the
+// one importer checked against that version (buffer, react-native-url-polyfill,
+// @react-native/normalize-colors — see SCOPED_DEDUPES in
+// metro/resolverRules.js, which also records why each is compatible and why the
+// first two apply only to bundles that include Amplify). An entry is skipped
+// when the app-level copy is not installed, e.g. after removing the dependency
+// that hoisted it.
+const scopedDedupes = SCOPED_DEDUPES.map((entry) => {
+  const packageDir = path.resolve(appNodeModules, entry.packageName);
+  return {
+    ...entry,
+    packagePath: fs.existsSync(packageDir) ? fs.realpathSync(packageDir) : null,
+  };
+});
+
+// Resolver stubs (metro/resolverRules.js, docs/bundle-analysis.md):
+// - Optional native integrations. In production iOS/Android bundles, the
+//   Sentry, Amplify, and Clerk imports inside their env-gated app modules
+//   resolve to an empty module while that SDK's env is blank; native has no
+//   code splitting, so otherwise every build shipped all three. Web keeps its
+//   lazy chunks, and dev keeps the SDKs so `.env` edits apply without a restart.
+// - Route files for other platforms. Expo Router's require.context lists every
+//   platform's route files, and ones the router ignores on this platform — a
+//   `.native.tsx` route on web, a `.web.tsx` route on iOS/Android — resolve to
+//   an empty module instead of becoming a web chunk or native bundle code.
+const projectRoots = Array.from(new Set([__dirname, fs.realpathSync(__dirname)]));
+const routerRoots = projectRoots.map((root) => path.join(root, "app"));
+const reportedOmissions = new Set();
+
 const originalResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const resolve = originalResolveRequest || context.resolveRequest;
@@ -118,9 +157,37 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     environment === "node" || environment === "react-server";
   const isDevServerEnvironment =
     isServerEnvironment && !context.customResolverOptions?.exporting;
+  const { originModulePath } = context;
+  const request = {
+    moduleName,
+    originModulePath,
+    platform,
+    dev: context.dev,
+    environment,
+    env: process.env,
+  };
 
   if (passthroughModules.has(moduleName)) {
     return resolve(context, moduleName, platform);
+  }
+
+  const omittedIntegration = getOmittedIntegrationFor({ ...request, projectRoots });
+  if (omittedIntegration) {
+    const report = `${platform}:${omittedIntegration.name}`;
+    if (!reportedOmissions.has(report)) {
+      reportedOmissions.add(report);
+      console.log(describeOmittedIntegration(omittedIntegration, platform, process.env));
+    }
+    return { type: "empty" };
+  }
+
+  if (isUnusedRouteFile({ moduleName, originModulePath, platform, routerRoots })) {
+    return { type: "empty" };
+  }
+
+  const scopedDedupeTarget = getScopedDedupeTarget(request, scopedDedupes);
+  if (scopedDedupeTarget) {
+    return resolve(context, scopedDedupeTarget, platform);
   }
 
   for (const [packageName, packagePath] of Object.entries(dedupePackages)) {
@@ -182,11 +249,15 @@ if (ffmpegWorkerAsset) {
 // END FFmpeg
 // ============================================================================
 
-// Strip Sentry Session Replay from every bundle. Sentry.init in
-// client/lib/sentry.ts never enables a replay integration, and the default
-// (flag undefined) only strips it on android/ios — passing `false` extends
-// that to web, dropping ~137 KB raw from the lazy Sentry chunk. The resolver
-// chains to the dedupe resolveRequest installed above.
+// Strip Sentry Session Replay and User Feedback from every bundle. Neither
+// Sentry wrapper (client/lib/sentry.ts, client/lib/sentry.web.ts) enables a
+// replay or feedback integration, and the default (flag undefined) only strips
+// them on android/ios — passing `false` extends that to web, dropping ~137 KB
+// (replay) and ~51 KB (feedback, including @sentry/browser's feedbackSync /
+// feedbackAsync wrappers) raw from the lazy Sentry chunk. `getFeedback` and
+// `sendFeedback` from @sentry/react are undefined as a result; drop the second
+// wrapper before adding a feedback widget. The resolvers chain to the
+// resolveRequest installed above.
 module.exports = wrapWithReanimatedMetroConfig(
-  withSentryResolver(config, false)
+  withSentryFeedbackResolver(withSentryResolver(config, false), false)
 );
