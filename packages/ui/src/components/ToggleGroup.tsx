@@ -113,13 +113,15 @@ function ToggleGroup({
   );
   const childCount = validChildren.length;
 
-  // Clone children with position props
-  let itemIndex = 0;
+  // Clone children with position props. The running item index lives on an
+  // object: the React Compiler can't compile a reassigned `let` captured by
+  // the callback, and skipped the component.
+  const position = { itemIndex: 0 };
   const enhancedChildren = React.Children.map(children, (child) => {
     if (React.isValidElement(child) && child.type === ToggleGroupItem) {
-      const isFirst = itemIndex === 0;
-      const isLast = itemIndex === childCount - 1;
-      itemIndex++;
+      const isFirst = position.itemIndex === 0;
+      const isLast = position.itemIndex === childCount - 1;
+      position.itemIndex += 1;
       return React.cloneElement(child as React.ReactElement<ToggleGroupItemProps>, {
         isFirst,
         isLast,
@@ -328,7 +330,7 @@ function ToggleGroupIcon({ name, size, color }: ToggleGroupIconProps) {
   return <Icon name={name} size={size || spacing.iconMd} color={color || contextColor} />;
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   item: {
     flexDirection: "row",
     alignItems: "center",

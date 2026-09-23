@@ -233,6 +233,6 @@ const createCardStyles = (theme: Theme) =>
     } as TextStyle,
   });
 
-const themedStyles = createThemedStyles(createCardStyles);
+const themedStyles = /*#__PURE__*/ createThemedStyles(createCardStyles);
 
 export { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription };

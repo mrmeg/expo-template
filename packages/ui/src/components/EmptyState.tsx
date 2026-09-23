@@ -144,4 +144,4 @@ const createStyles = (theme: Theme) =>
     },
   });
 
-const themedStyles = createThemedStyles(createStyles);
+const themedStyles = /*#__PURE__*/ createThemedStyles(createStyles);

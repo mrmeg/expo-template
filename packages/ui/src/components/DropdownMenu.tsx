@@ -496,7 +496,7 @@ function DropdownMenuShortcut({ children, text, style: styleOverride, ...props }
   );
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   item: {
     position: "relative",
     flexDirection: "row",

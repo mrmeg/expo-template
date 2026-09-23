@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Animated, Platform, Pressable, View, ViewStyle } from "react-native";
 import { Icon } from "./Icon";
 import { TextClassContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { spacing } from "../constants/spacing";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
 
@@ -229,7 +230,7 @@ function AccordionTrigger({
   const { theme } = useTheme();
   const reduceMotion = useReducedMotion();
   const { isExpanded } = AccordionPrimitive.useItemContext();
-  const rotation = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
+  const rotation = useAnimatedValue(isExpanded ? 1 : 0);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!disabled,
     scaleTo: 0.97,

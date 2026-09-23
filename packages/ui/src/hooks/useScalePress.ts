@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { Animated } from "react-native";
 import { hapticLight } from "../lib/haptics";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { useReducedMotion } from "./useReduceMotion";
 
 interface ScalePressOptions {
@@ -58,7 +59,7 @@ export function useScalePress(options: ScalePressOptions = {}) {
   } = options;
 
   const reduceMotion = useReducedMotion();
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale = useAnimatedValue(1);
 
   const animateTo = useCallback(
     (toValue: number) => {

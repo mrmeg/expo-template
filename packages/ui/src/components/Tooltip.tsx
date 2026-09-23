@@ -189,7 +189,7 @@ interface TooltipProps extends TooltipPrimitive.RootProps {
  * // With positioning
  * <Tooltip>
  *   <TooltipTrigger asChild>
- *     <Icon as={Info} size={20} />
+ *     <Icon name="info" size={20} />
  *   </TooltipTrigger>
  *   <TooltipContent side="bottom" align="start">
  *     <StyledText>Information tooltip</StyledText>

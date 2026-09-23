@@ -3,6 +3,7 @@ import path from "path";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
+import type LucideHouse from "lucide-react-native/icons/house";
 import { Icon, type IconName } from "../Icon";
 import iconNames from "../icon-names.json";
 
@@ -112,6 +113,31 @@ describe("Icon", () => {
     expect(node.props["aria-hidden"]).toBe(true);
     expect(StyleSheet.flatten(node.props.style)).toEqual(expect.objectContaining({ pointerEvents: "none" }));
     expect(Custom).toHaveBeenCalled();
+  });
+
+  it("sizes, colors, and hides a component icon exactly like a named one", () => {
+    const Custom = (props: { size: number; color: string }) => <View testID="custom-icon" {...props} />;
+
+    const custom = renderIcon(<Icon component={Custom} color="accent" style={{ marginLeft: 2 }} />)
+      .root.findByProps({ testID: "custom-icon" });
+    const named = renderIcon(<Icon name="box" color="accent" style={{ marginLeft: 2 }} />)
+      .root.findByProps({ testID: "icon-box" });
+
+    for (const key of ["size", "color", "accessible", "importantForAccessibility", "aria-hidden"]) {
+      expect(custom.props[key]).toEqual(named.props[key]);
+    }
+    expect(custom.props.size).toBe(24);
+    expect(custom.props.color).toBe("#14B8A6");
+    expect(StyleSheet.flatten(custom.props.style)).toEqual(StyleSheet.flatten(named.props.style));
+  });
+
+  it("accepts any lucide-react-native icon component through `component`", () => {
+    // Type-level: never called, compiled by `tsc` so a real Lucide export must
+    // fit `component` (it is typed LucideIcon, a forwardRef SVG component).
+    function typeOnly(House: typeof LucideHouse) {
+      return <Icon component={House} color="primary" size={16} decorative />;
+    }
+    expect(typeof typeOnly).toBe("function");
   });
 
   it("renders nothing and warns once for a name outside the registry at runtime", () => {

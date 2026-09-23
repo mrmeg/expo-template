@@ -29,6 +29,10 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "./src/state/themeStore.ts",
+    "./dist/state/themeStore.js"
+  ],
   "files": [
     "dist",
     "package.json",
