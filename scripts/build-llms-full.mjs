@@ -16,6 +16,12 @@ const sources = [
       "repo map, component selection, screen templates, feature patterns, migration order, anti-patterns",
   },
   {
+    path: "docs/brand.md",
+    title: "Brand System",
+    summary:
+      "positioning, semantic palette with contrast floors, type pairing, radii/elevation/8-pt rhythm, the mark's construction and SVG masters, what a fork replaces",
+  },
+  {
     path: "docs/migration-guide.md",
     title: "External App Migration Guide",
     summary:

@@ -17,6 +17,7 @@
     "gen:templates:check": "bun scripts/generate-template-registry.ts --check",
     "gen:blocks": "bun scripts/generate-block-registry.ts",
     "gen:blocks:check": "bun scripts/generate-block-registry.ts --check",
+    "brand:assets": "node scripts/build-brand-assets.mjs",
     "ui:icons": "node scripts/build-icon-registry.mjs",
     "ui:icons:check": "node scripts/build-icon-registry.mjs --check",
     "build": "EXPO_UNSTABLE_TREE_SHAKING=1 EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1 NODE_OPTIONS=--max-old-space-size=8192 expo export -p web --output-dir dist && node scripts/precompress.mjs dist/client",

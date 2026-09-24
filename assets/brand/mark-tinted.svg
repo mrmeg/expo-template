@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- @mrmeg/expo-ui mark: a component frame with the wordmark dot on its corner. Master for scripts/build-brand-assets.mjs; see docs/brand.md. -->
+  <defs>
+    <mask id="knockout">
+      <rect width="1024" height="1024" fill="#fff"/>
+      <circle cx="768" cy="768" r="136" fill="#000"/>
+    </mask>
+  </defs>
+  <g transform="translate(-22 -22)">
+    <rect x="236.0" y="236.0" width="552" height="552" rx="124" fill="none" stroke="#FAFAFA" stroke-width="64" mask="url(#knockout)"/>
+    <circle cx="768" cy="768" r="96" fill="#A1A1AA"/>
+  </g>
+</svg>
