@@ -267,17 +267,21 @@ function SelectItem({
   const hasCustomChildren = React.isValidElement(children) || Array.isArray(children);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!props.disabled,
-    scaleTo: 0.97,
+    scaleTo: interaction.pressedScale,
     haptic: false,
   });
+  // On web the primitive's item is a Radix `div` that forwards every prop to
+  // the DOM, so RN press handlers would land there as unknown attributes
+  // ("Unknown event handler property onPressIn"). Native renders a Pressable
+  // and keeps the press scale.
+  const itemPressHandlers = Platform.OS === "web" ? undefined : pressHandlers;
 
   return (
     <TextClassContext.Provider value="">
       <Animated.View style={scaleStyle}>
       <SelectPrimitive.Item
         {...props}
-        onPressIn={pressHandlers.onPressIn}
-        onPressOut={pressHandlers.onPressOut}
+        {...itemPressHandlers}
         style={{
           ...styles.item,
           ...(Platform.OS === "web" && {

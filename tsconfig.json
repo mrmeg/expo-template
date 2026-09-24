@@ -9,13 +9,6 @@
         "./*"
       ]
     },
-    // Workspace packages (`@mrmeg/expo-ui`, `@mrmeg/expo-media`,
-    // `@mrmeg/expo-purchases`) resolve through their own `exports` maps, whose
-    // repo-only `@mrmeg/source` condition points at `src` — the same condition
-    // Metro (metro.config.js) and Jest (test/resolver.js) enable. Consumers never
-    // set it and get `dist`. `react-native` is expo/tsconfig.base's own
-    // condition; listing `customConditions` here replaces that list rather than
-    // extending it.
     "customConditions": [
       "react-native",
       "@mrmeg/source"
@@ -35,21 +28,12 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".expo/types/**/*.ts"
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ],
   "exclude": [
     "node_modules",
-    // `expo start` and `expo export` regenerate this file with a reference to
-    // `expo/types`, whose react-native-web augmentation widens `ViewStyle.position`
-    // with `fixed` and `sticky`. React Native 0.88 types the `View` style prop
-    // through an internal alias the augmentation never reaches, so every
-    // `ViewStyle` handed to a `View` fails to typecheck once the file exists.
-    // Nothing here needs the file (the program is clean without it); drop this
-    // entry when Expo ships an augmentation that matches RN 0.88.
     "expo-env.d.ts",
-    // Deployable Cloudflare Workers are typechecked by their own standalone
-    // tsconfig (workerd lib + @cloudflare/workers-types), which is incompatible
-    // with this project's react-native/node type set.
-    "workers",
+    "workers"
   ]
 }
