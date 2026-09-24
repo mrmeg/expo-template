@@ -832,7 +832,7 @@ function NativeTextInput({
     borderColor,
     borderRadius: variant === "underlined" ? 0 : spacing.radiusMd,
     borderWidth: variant === "outline" ? 1 : 0,
-    opacity: editable === false ? 0.6 : 1,
+    opacity: editable === false ? interaction.disabledOpacity : 1,
     overflow: "hidden",
   };
 
