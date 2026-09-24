@@ -4,6 +4,7 @@ import { StyledText, TextProps } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { useScalePress } from "../hooks/useScalePress";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
 
@@ -62,7 +63,6 @@ function Card({ children, style: styleOverride, variant = "default", onPress, di
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !onPress || !!disabled,
     scaleTo: 0.98,
-    haptic: false,
   });
 
   const cardContent = (
@@ -89,7 +89,10 @@ function Card({ children, style: styleOverride, variant = "default", onPress, di
           accessibilityRole="button"
           accessibilityState={{ disabled: !!disabled }}
           {...pressHandlers}
-          style={Platform.OS === "web" ? { cursor: "pointer" as any } : undefined}
+          style={({ pressed }) => [
+            Platform.OS === "web" && { cursor: "pointer" as any },
+            pressed && { opacity: interaction.pressedOpacity },
+          ]}
         >
           <Animated.View style={scaleStyle}>
             {cardContent}

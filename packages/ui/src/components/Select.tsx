@@ -5,6 +5,7 @@ import { AnimatedView } from "./AnimatedView";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { useScalePress } from "../hooks/useScalePress";
 import * as SelectPrimitive from "@rn-primitives/select";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
@@ -119,7 +120,7 @@ function SelectTrigger({
             outlineStyle: "none" as any,
             userSelect: "none" as any,
           }),
-          ...(disabled && { opacity: 0.5 }),
+          ...(disabled && { opacity: interaction.disabledOpacity }),
           ...(focused && !disabled ? focusRingStyle : null),
           ...(styleOverride && typeof styleOverride !== "function"
             ? StyleSheet.flatten(styleOverride)
@@ -266,17 +267,21 @@ function SelectItem({
   const hasCustomChildren = React.isValidElement(children) || Array.isArray(children);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!props.disabled,
-    scaleTo: 0.97,
+    scaleTo: interaction.pressedScale,
     haptic: false,
   });
+  // On web the primitive's item is a Radix `div` that forwards every prop to
+  // the DOM, so RN press handlers would land there as unknown attributes
+  // ("Unknown event handler property onPressIn"). Native renders a Pressable
+  // and keeps the press scale.
+  const itemPressHandlers = Platform.OS === "web" ? undefined : pressHandlers;
 
   return (
     <TextClassContext.Provider value="">
       <Animated.View style={scaleStyle}>
       <SelectPrimitive.Item
         {...props}
-        onPressIn={pressHandlers.onPressIn}
-        onPressOut={pressHandlers.onPressOut}
+        {...itemPressHandlers}
         style={{
           ...styles.item,
           ...(Platform.OS === "web" && {
@@ -284,7 +289,7 @@ function SelectItem({
             outlineStyle: "none" as any,
             userSelect: "none" as any,
           }),
-          ...(props.disabled && { opacity: 0.5 }),
+          ...(props.disabled && { opacity: interaction.disabledOpacity }),
           ...(styleOverride && typeof styleOverride !== "function"
             ? StyleSheet.flatten(styleOverride)
             : {}),

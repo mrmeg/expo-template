@@ -13,6 +13,7 @@ import { Icon, type IconName, type ThemeColorName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
 import { useScalePress } from "../hooks/useScalePress";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 
 // Default ItemMedia footprint (see ItemMedia's `size` prop) — used to inset
 // the optional separator past the media slot without needing a context.
@@ -59,7 +60,6 @@ export function Item({ children, onPress, disabled, separator = false, style }: 
   const { animatedStyle, pressHandlers } = useScalePress({
     disabled: !onPress || !!disabled,
     scaleTo: 0.98,
-    haptic: false,
   });
 
   const row = (
@@ -85,7 +85,10 @@ export function Item({ children, onPress, disabled, separator = false, style }: 
         accessibilityRole="button"
         accessibilityState={{ disabled: !!disabled }}
         {...pressHandlers}
-        style={Platform.OS === "web" ? { cursor: "pointer" as const } : undefined}
+        style={({ pressed }) => [
+          Platform.OS === "web" && { cursor: "pointer" as const },
+          pressed && { opacity: interaction.pressedOpacity },
+        ]}
       >
         <Animated.View style={animatedStyle}>
           {content}

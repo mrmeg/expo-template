@@ -15,6 +15,7 @@ import {
   Animated,
 } from "react-native";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { StyledText, TextProps } from "./StyledText";
 import { Icon, type IconProps } from "./Icon";
 import { TextColorContext, TextSelectabilityContext, TextStyleContext } from "./StyledText.context";
@@ -143,6 +144,11 @@ export interface ButtonProps extends PressableProps {
    */
   disabledStyle?: StyleProp<ViewStyle>;
   /**
+   * Haptic on press-in. Omit it to follow the provider-level `haptics` setting
+   * (a light tap only under `"all"`); `true` always taps, `false` never does.
+   */
+  haptic?: boolean;
+  /**
    * Whether to show shadow.
    * @default true for the `default` preset, `false` for every other preset.
    */
@@ -212,6 +218,7 @@ function ButtonRoot(props: ButtonProps) {
     disabled,
     disabledStyle: disabledStyleOverride,
     withShadow: withShadowProp,
+    haptic,
     preset = "default",
     size = "md",
     loading = false,
@@ -287,8 +294,8 @@ function ButtonRoot(props: ButtonProps) {
   const isDisabled = disabled || loading;
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!isDisabled,
-    haptic: false,
-    scaleTo: preset === "link" ? 1 : 0.97,
+    haptic: haptic ?? "setting",
+    scaleTo: preset === "link" ? 1 : interaction.pressedScale,
   });
 
   const showFocusRing: PressableProps["onFocus"] = (event) => {
@@ -550,16 +557,16 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       userSelect: "none",
     } as TextStyle,
     pressed: {
-      opacity: 0.9,
+      opacity: interaction.pressedOpacity,
     } as ViewStyle,
     pressedMuted: {
       backgroundColor: theme.colors.muted,
     } as ViewStyle,
-    pressedText: {
-      opacity: 0.9,
-    } as TextStyle,
+    // The container's pressed opacity already dims the label; a second layer
+    // here would compound it.
+    pressedText: {} as TextStyle,
     disabled: {
-      opacity: 0.6,
+      opacity: interaction.disabledOpacity,
     } as ViewStyle,
     leftAccessory: {
       marginRight: spacing.sm,

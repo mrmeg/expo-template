@@ -3,6 +3,8 @@ import { Icon } from "./Icon";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
+import { hapticSelection } from "../lib/haptics";
 import { useScalePress } from "../hooks/useScalePress";
 import * as TogglePrimitive from "@rn-primitives/toggle";
 import { Platform, PressableProps, StyleSheet, ViewStyle, ActivityIndicator, StyleProp, Animated } from "react-native";
@@ -127,6 +129,7 @@ function Toggle({
   loading = false,
   iconOnly = false,
   style: styleOverride,
+  onPressedChange,
   ...props
 }: ToggleProps) {
   const { theme, getContrastingColor, getFocusRingStyle, withAlpha } = useTheme();
@@ -169,9 +172,16 @@ function Toggle({
 
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!isDisabled,
-    scaleTo: 0.92,
+    scaleTo: interaction.controlPressedScale,
     haptic: false,
   });
+
+  // A toggle is a selection control: its state change is the haptic moment,
+  // not the press, so it follows the `"selection"` setting like Switch does.
+  const handlePressedChange = (next: boolean) => {
+    hapticSelection();
+    onPressedChange?.(next);
+  };
 
   const showFocusRing: PressableProps["onFocus"] = (event) => {
     let ringVisible = true;
@@ -202,6 +212,7 @@ function Toggle({
         <TogglePrimitive.Root
           {...props}
           disabled={isDisabled}
+          onPressedChange={handlePressedChange}
           onPressIn={pressHandlers.onPressIn}
           onPressOut={pressHandlers.onPressOut}
           onFocus={showFocusRing}
@@ -231,7 +242,7 @@ function Toggle({
               borderColor: theme.colors.primary,
             }),
             // Disabled state
-            opacity: isDisabled ? 0.5 : 1,
+            opacity: isDisabled ? interaction.disabledOpacity : 1,
             // Web-specific styles
             ...(Platform.OS === "web" && {
               cursor: isDisabled ? "not-allowed" : ("pointer" as any),

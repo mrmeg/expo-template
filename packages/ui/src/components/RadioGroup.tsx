@@ -3,6 +3,7 @@ import { View, StyleSheet, StyleProp, ViewStyle, Pressable, PressableProps, Plat
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { hapticLight } from "../lib/haptics";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { useReducedMotion } from "../hooks/useReduceMotion";
@@ -311,7 +312,7 @@ const styles = /*#__PURE__*/ StyleSheet.create({
     fontSize: 14,
   },
   disabledLabel: {
-    opacity: 0.5,
+    opacity: interaction.disabledOpacity,
   },
   required: {
     fontWeight: "bold",
