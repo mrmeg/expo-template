@@ -14,7 +14,10 @@
  * Jest has no layout engine, so this locks the wrapper geometry instead of
  * simulating Android dispatch: every host View between the overlay and the
  * content must fill the overlay and pass touches through (`box-none`) so the
- * overlay's tap-away press still fires.
+ * overlay's tap-away press still fires. `PopoverContent` renders its native
+ * Overlay behind the card rather than around it (so no ancestor of the card
+ * claims the JS responder, see Popover.tsx); there the same holds for every
+ * host View between the card and the parent it shares with the Overlay.
  */
 
 import React from "react";
@@ -53,9 +56,10 @@ jest.mock("react-native-screens", () => ({
   FullWindowOverlay: ({ children }: any) => <>{children}</>,
 }));
 
-// Each primitive is mocked down to the five members these Content components
-// render: Root, Trigger, Portal (inline), Overlay (tagged so the test can find
-// it), Content (forwards style and testID). The real Overlay/Content only mount
+// Each primitive is mocked down to the members these Content components use:
+// Root, Trigger, Portal (inline), Overlay (tagged so the test can find it),
+// Content (forwards style and testID), and the root context PopoverContent
+// reads for placement (nothing measured). The real Overlay/Content only mount
 // while open; the mocks always mount, so no `open` state is needed.
 function mockPrimitive() {
   const React = require("react");
@@ -74,6 +78,7 @@ function mockPrimitive() {
         {children}
       </View>
     ),
+    useRootContext: () => ({ open: true, triggerPosition: null, contentLayout: null }),
   };
 }
 
@@ -87,52 +92,65 @@ const ABSOLUTE_FILL = { position: "absolute", top: 0, left: 0, right: 0, bottom:
 type Instance = ReturnType<typeof screen.getByTestId>;
 
 /**
- * Host Views strictly between `content` and `overlay`, nearest first. RNTL's
+ * Host Views strictly between `content` and `ancestor`, nearest first. RNTL's
  * tree holds host elements only, so every `.parent` step is a laid-out View.
  */
-function hostWrappersBetween(content: Instance, overlay: Instance) {
+function hostWrappersBetween(content: Instance, ancestor: Instance) {
   const wrappers: Instance[] = [];
   let node: Instance | null = content.parent;
-  while (node && node !== overlay) {
+  while (node && node !== ancestor) {
     wrappers.push(node);
     node = node.parent;
   }
-  if (node !== overlay) {
-    throw new Error("content is not a descendant of the overlay");
+  if (node !== ancestor) {
+    throw new Error("content is not a descendant of the expected ancestor");
   }
   return wrappers;
 }
 
+function isAncestor(candidate: Instance, node: Instance) {
+  for (let current = node.parent; current; current = current.parent) {
+    if (current === candidate) return true;
+  }
+  return false;
+}
+
 const control = <Switch testID="switch" value onValueChange={() => {}} />;
 
-const cases: Array<[string, React.ReactElement]> = [
+// `overlayWrapsContent`: false where the native Overlay is a sibling behind
+// the card (PopoverContent) rather than its ancestor.
+const cases: Array<[string, React.ReactElement, boolean]> = [
   [
     "PopoverContent",
     <Popover>
       <PopoverContent testID="content">{control}</PopoverContent>
     </Popover>,
+    false,
   ],
   [
     "DropdownMenuContent",
     <DropdownMenu>
       <DropdownMenuContent testID="content">{control}</DropdownMenuContent>
     </DropdownMenu>,
+    true,
   ],
   [
     "SelectContent",
     <Select>
       <SelectContent testID="content">{control}</SelectContent>
     </Select>,
+    true,
   ],
   [
     "TooltipContent",
     <Tooltip>
       <TooltipContent testID="content">{control}</TooltipContent>
     </Tooltip>,
+    true,
   ],
 ];
 
-describe.each(cases)("%s", (_name, element) => {
+describe.each(cases)("%s", (_name, element, overlayWrapsContent) => {
   it("keeps the absolutely positioned content inside an overlay-filling wrapper", async () => {
     await render(element);
 
@@ -142,7 +160,10 @@ describe.each(cases)("%s", (_name, element) => {
     // Precondition the fix relies on: the overlay itself spans the screen.
     expect(overlay).toHaveStyle(ABSOLUTE_FILL);
 
-    const wrappers = hostWrappersBetween(content, overlay);
+    expect(isAncestor(overlay, content)).toBe(overlayWrapsContent);
+    const boundary = overlayWrapsContent ? overlay : overlay.parent;
+    if (!boundary) throw new Error("overlay has no parent");
+    const wrappers = hostWrappersBetween(content, boundary);
     expect(wrappers.length).toBeGreaterThan(0);
     for (const wrapper of wrappers) {
       expect(wrapper).toHaveStyle(ABSOLUTE_FILL);
