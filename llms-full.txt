@@ -859,6 +859,13 @@ dialog and the keyboard with it, controls and fields fire on the first tap); do
 not wrap dialog content in `DismissKeyboard` for that. Android and web render dialog content inline into
 the portal host.
 
+`PopoverContent` treats `side` as a preference: on iOS and Android it opens on
+the other side when the content does not fit and there is more room there,
+caps its height to the room and scrolls the children (pass `scrollable={false}`
+for content with its own `FlatList`; it then stays on `side`). `insets` default
+to the safe area, and a `style` merges over the themed surface rather than
+replacing it. A `PopoverTrigger` ref (`PopoverTriggerRef`) has `open()` / `close()`.
+
 i18n is optional. Do not add app-level i18n setup just to use this package;
 plain children and `text` props work without `i18next` or `react-i18next`. `tx`
 props render their fallback text when provided, otherwise the key. Package-owned

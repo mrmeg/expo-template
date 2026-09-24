@@ -780,6 +780,19 @@ render from) is written once per page view and then once resizing settles.
   software keyboard). The platform close request
   (hardware back, TV menu) routes to the root's `onOpenChange(false)`. Android
   and web render dialog content inline into the portal host.
+- `PopoverContent` treats `side` as a preference. On iOS and Android it opens
+  on the other side when the content does not fit and there is more room
+  there, caps its height to the room it gets, and scrolls the children inside
+  that cap; `insets` default to the safe area, so the card stays clear of the
+  status bar and home indicator. Pass `scrollable={false}` when the content
+  brings its own `FlatList` (a VirtualizedList inside a vertical ScrollView
+  warns): the cap still applies, but the popover can no longer measure its full
+  height, so it stays on `side`. A `style` merges over the themed surface
+  (background, border, radius, shadow) instead of replacing it. On web, Radix
+  flips it and the card is capped to the space Radix measures; the primitive
+  cannot pass Radix a collision padding, so a card wider than the room beside
+  its trigger can sit flush against the viewport edge. A `PopoverTrigger` ref
+  (`PopoverTriggerRef`) exposes `open()` and `close()`.
 - `Carousel` renders every child (no virtualization), so slides survive into
   the exported HTML shell and the first client frame; use `FlatList` for large
   or unbounded data. An `itemWidth` below 1 (default `0.85`) is a fraction of

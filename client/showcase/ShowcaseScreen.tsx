@@ -981,6 +981,8 @@ function useShowcaseScreenContent() {
               </View>
             </SubSection>
 
+            <TallPopoverDemo styles={styles} />
+
             <SubSection label="Real-World Example: User Info Card">
               <Popover>
                 <PopoverTrigger asChild>
@@ -1389,6 +1391,77 @@ const TextInputSection = memo(function TextInputSection() {
         />
       </SubSection>
     </Section>
+  );
+});
+
+const TALL_POPOVER_ROWS = Array.from({ length: 20 }, (_, index) => `Row ${index + 1}`);
+const WIDE_POPOVER_ITEMS = [
+  "Colleague",
+  "Friend",
+  "Family",
+  "Client",
+  "Mentor",
+  "Partner",
+  "Neighbour",
+  "Other",
+];
+
+/**
+ * Tall and wide popover content: the tall one prefers `top` and opens below
+ * when there is no room above, caps to the room it gets and scrolls, with a
+ * native Switch inside; the wide one has a wrapping two-column row, which web
+ * used to lay out wider than a phone.
+ */
+const TallPopoverDemo = memo(function TallPopoverDemo({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
+  const [notify, setNotify] = useState(false);
+
+  return (
+    <SubSection label="Tall and wide content">
+      <View style={styles.buttonRow}>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button preset="default" size="sm">
+              <StyledText fontWeight="bold" size="sm">Tall (prefers top)</StyledText>
+            </Button>
+          </PopoverTrigger>
+          {/* A layout-only style: it merges over the themed surface. */}
+          <PopoverContent side="top" align="start" style={{ padding: spacing.md }}>
+            <View style={styles.switchRow}>
+              <StyledText>Notify me</StyledText>
+              <Switch checked={notify} onCheckedChange={setNotify} />
+            </View>
+            {TALL_POPOVER_ROWS.map((row) => (
+              <StyledText key={row} style={{ marginVertical: spacing.xs }}>
+                {row}
+              </StyledText>
+            ))}
+          </PopoverContent>
+        </Popover>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button preset="default" size="sm">
+              <StyledText fontWeight="bold" size="sm">Wide row</StyledText>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="bottom" align="end">
+            <PopoverBody>
+              <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                {WIDE_POPOVER_ITEMS.map((item) => (
+                  <View key={item} style={{ width: "50%", paddingVertical: spacing.xs }}>
+                    <StyledText>{item}</StyledText>
+                  </View>
+                ))}
+              </View>
+            </PopoverBody>
+          </PopoverContent>
+        </Popover>
+      </View>
+    </SubSection>
   );
 });
 

@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`PopoverContent` `scrollable` and a typed `PopoverTrigger` ref.**
+  `scrollable` (default `true`) wraps the children in the scroll body that
+  keeps a tall popover inside its room; pass `false` for content that brings
+  its own `FlatList` (the cap still applies; the popover then stays on `side`).
+  `PopoverTrigger` now types its `ref` and the new `PopoverTriggerRef` type
+  names what it holds (`open()` / `close()`), so apps drop their cast.
+
 - **One haptics setting for the kit: `<UIProvider haptics>` / `setHaptics()`.**
   `"off"`, `"selection"` (default) or `"all"`, stored in the new
   `useFeedbackStore` (`@mrmeg/expo-ui/state`) and read at event time.
@@ -123,6 +130,46 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   seed width. Native still follows `useWindowDimensions`.
 
 ### Fixed
+
+- **`PopoverContent` keeps its surface under a caller `style`, opens where there
+  is room, and scrolls when tall.** Four defects mindmap patched around in its
+  graph control panels and search results:
+  - A `style` replaced the whole surface (the props spread came after the
+    package style), so `style={{ padding: 16 }}` left a see-through card. The
+    caller's style now merges over the background, border, radius and shadow.
+  - On native the primitive never flips `side`; it clamps an oversized card to
+    the raw screen edge (no insets), so a popover opening up from a trigger
+    near the top sat under the status bar and one opening down from a trigger
+    near the bottom covered its own trigger. `side` is now a preference: the
+    card opens on the other side when its content does not fit and there is
+    more room there, is capped to the room between the trigger and the safe
+    area, and scrolls inside the cap. `insets` default to the safe area.
+  - A ScrollView inside the card never dragged on iOS: the primitive's content
+    claims the JS responder so presses do not reach the close-on-press
+    `Overlay` that wrapped it, and RN iOS will not drag a ScrollView while an
+    ancestor is the JS responder (`RCTScrollViewComponentView`
+    `_shouldDisableScrollInteraction`). On native the `Overlay` now sits behind
+    the card instead of around it and the card claims nothing, so any
+    ScrollView inside scrolls; presses on blank space in the card still do not
+    close it. The native-driven fade wrapper is non-collapsable, since without
+    it the wrapper sometimes stayed at opacity 0 on iOS once the card relaid
+    out.
+  - On web the primitive's content has no size cap, so a wrapping row (two
+    columns of `width: "50%"` items) laid out at the sum of its items' widths,
+    769 px in a 390 px viewport. The card is now capped to Radix's
+    `--radix-popover-content-available-width` / `-height`.
+  Verified with the showcase's new "Tall and wide content" row on the iPhone 17
+  Pro Max simulator (iOS 27): a `side="top"` trigger near the top opens below;
+  mid-screen, where neither side fits, it stays on top capped between the safe
+  area and the trigger; a drag that starts on a text row scrolls it (offset 0 →
+  69%, it stayed at 0 before); the `Switch` inside toggles; a tap on blank space
+  keeps it open and an outside tap closes it; ten consecutive opens rendered.
+  Android emulator (Pixel 10, API 36): the tall card opens below capped to the
+  room and scrolls, the `Switch` toggles, an outside tap closes it, and the
+  wide row stays inside the screen. Web (`bun run build`, 390×844 and
+  1280×800): the wide row stays inside the viewport, the tall card is capped
+  and scrolls to its last row, the surface is opaque with its border, and no
+  console errors.
 
 - **`Dialog` and `AlertDialog` keep their fields and footer above the keyboard
   on Android.** 0.27.1 gave the dialog its own keyboard avoidance on iOS only:
