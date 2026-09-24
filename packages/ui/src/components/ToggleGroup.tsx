@@ -2,6 +2,8 @@ import type { IconName } from "./Icon";
 import { Icon } from "./Icon";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
+import { hapticSelection } from "../lib/haptics";
 import { useTheme } from "../hooks/useTheme";
 import { useScalePress } from "../hooks/useScalePress";
 import * as ToggleGroupPrimitive from "@rn-primitives/toggle-group";
@@ -106,6 +108,17 @@ function ToggleGroup({
 
   const contextValue = React.useMemo(() => ({ variant, size }), [variant, size]);
 
+  // The primitive reports a change once per user selection (single or
+  // multiple), which is the selection-haptic moment; forward it unchanged.
+  const { onValueChange } = props;
+  const handleValueChange = React.useCallback(
+    (value: string | string[] | undefined) => {
+      hapticSelection();
+      (onValueChange as ((next: string | string[] | undefined) => void) | undefined)?.(value);
+    },
+    [onValueChange],
+  );
+
   // Count valid children for first/last detection
   const childrenArray = React.Children.toArray(children);
   const validChildren = childrenArray.filter(
@@ -133,6 +146,7 @@ function ToggleGroup({
   return (
     <ToggleGroupPrimitive.Root
       {...props}
+      onValueChange={handleValueChange}
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -181,7 +195,7 @@ function ToggleGroupItem({
   const [focused, setFocused] = React.useState(false);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!props.disabled,
-    scaleTo: 0.97,
+    scaleTo: interaction.pressedScale,
     haptic: false,
   });
 

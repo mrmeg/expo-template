@@ -4,7 +4,8 @@ import { Icon } from "./Icon";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
-import { hapticLight } from "../lib/haptics";
+import { hapticSelection } from "../lib/haptics";
+import { interaction } from "../constants/interaction";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
@@ -121,7 +122,7 @@ function Checkbox({
   }, [animateCheckOpacity, isVisuallyChecked]);
 
   const wrappedOnCheckedChange = (next: boolean) => {
-    if (next) hapticLight();
+    if (next) hapticSelection();
     animateCheckOpacity(next);
     onCheckedChange?.(next);
   };
@@ -258,7 +259,7 @@ const styles = /*#__PURE__*/ StyleSheet.create({
     fontSize: 14,
   },
   disabledLabel: {
-    opacity: 0.5,
+    opacity: interaction.disabledOpacity,
   },
   required: {
     fontWeight: "bold",

@@ -57,7 +57,7 @@ describe("hooks the React Compiler can't recognize", () => {
   const stores = zustandStores(files);
 
   it("finds the package's zustand stores", () => {
-    expect(stores.sort()).toEqual(["globalUIStore", "useThemeStore"]);
+    expect(stores.sort()).toEqual(["globalUIStore", "useFeedbackStore", "useThemeStore"]);
   });
 
   it("never calls a store whose name lacks the `use` prefix directly", () => {

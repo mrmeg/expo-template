@@ -29,6 +29,7 @@ import {
 import { NativeTextField, type NativeTextFieldProps } from "./nativeTextField";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { useFontStyle } from "../hooks/useFontStyle";
 import { StyledText } from "./StyledText";
 import { Icon } from "./Icon";
@@ -1036,7 +1037,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       borderBottomWidth: 2,
     },
     disabled: {
-      opacity: 0.6,
+      opacity: interaction.disabledOpacity,
       ...(Platform.OS === "web" && { cursor: "not-allowed" as any }),
     },
     error: {

@@ -1,7 +1,8 @@
 import { palette } from "../constants/colors";
 import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
-import { hapticLight } from "../lib/haptics";
+import { hapticSelection } from "../lib/haptics";
+import { interaction } from "../constants/interaction";
 import { stateSurfaceProps } from "../lib/stateSurface";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import * as SwitchPrimitives from "@rn-primitives/switch";
@@ -70,7 +71,7 @@ function Switch({
   const focusRingStyle = getFocusRingStyle();
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!props.disabled,
-    scaleTo: 0.92,
+    scaleTo: interaction.controlPressedScale,
     haptic: false,
   });
 
@@ -99,7 +100,7 @@ function Switch({
   // Fire haptic on user-initiated toggles (skip initial mount)
   const wrappedOnCheckedChange = useCallback(
     (checked: boolean) => {
-      if (hasMounted.current) hapticLight();
+      if (hasMounted.current) hapticSelection();
       onCheckedChange?.(checked);
     },
     [onCheckedChange],

@@ -5,6 +5,7 @@ import { AnimatedView } from "./AnimatedView";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { useScalePress } from "../hooks/useScalePress";
 import * as SelectPrimitive from "@rn-primitives/select";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
@@ -119,7 +120,7 @@ function SelectTrigger({
             outlineStyle: "none" as any,
             userSelect: "none" as any,
           }),
-          ...(disabled && { opacity: 0.5 }),
+          ...(disabled && { opacity: interaction.disabledOpacity }),
           ...(focused && !disabled ? focusRingStyle : null),
           ...(styleOverride && typeof styleOverride !== "function"
             ? StyleSheet.flatten(styleOverride)
@@ -284,7 +285,7 @@ function SelectItem({
             outlineStyle: "none" as any,
             userSelect: "none" as any,
           }),
-          ...(props.disabled && { opacity: 0.5 }),
+          ...(props.disabled && { opacity: interaction.disabledOpacity }),
           ...(styleOverride && typeof styleOverride !== "function"
             ? StyleSheet.flatten(styleOverride)
             : {}),

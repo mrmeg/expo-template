@@ -3,6 +3,7 @@ import * as LabelPrimitive from "@rn-primitives/label";
 import { useTheme } from "../hooks/useTheme";
 import { useFontStyle } from "../hooks/useFontStyle";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { StyledText } from "./StyledText";
 import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
@@ -167,7 +168,7 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.destructive,
     },
     disabledLabel: {
-      opacity: 0.6,
+      opacity: interaction.disabledOpacity,
     },
   });
 

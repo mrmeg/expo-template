@@ -7,6 +7,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **One haptics setting for the kit: `<UIProvider haptics>` / `setHaptics()`.**
+  `"off"`, `"selection"` (default) or `"all"`, stored in the new
+  `useFeedbackStore` (`@mrmeg/expo-ui/state`) and read at event time.
+  `"selection"` matches what shipped: Switch, Checkbox and SegmentedControl tap
+  on a state change; Toggle and ToggleGroup now join them (see Changed). `"all"`
+  adds a light tap on press-in for Button, pressable Card and Item and every
+  `useScalePress` consumer. Web never vibrates. `lib/haptics` gains
+  `hapticSelection()` and `hapticPress()`, the gated forms controls use;
+  `hapticLight/Medium/Success` stay unconditional. `Button` gains `haptic`
+  (`true` always, `false` never, omitted follows the setting) and
+  `useScalePress`'s `haptic` option accepts `"setting"` (its new default) next
+  to `true`/`false`.
+- **`interaction` tokens** in `@mrmeg/expo-ui/constants`: `pressedOpacity` 0.85,
+  `disabledOpacity` 0.5, `pressedScale` 0.97, `controlPressedScale` 0.92 — the
+  values every pressable now shares, for app code that builds its own.
+
 - **`BottomSheet` `onDismissed`: fires once per close after the sheet has fully
   dismissed on iOS, Android and web.** Closing a sheet and presenting a `Dialog`
   (an RN `Modal` on iOS since 0.27.1) from the same handler failed on iOS: the
@@ -28,6 +44,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Pressed and disabled states are consistent across the kit.** Button's
+  pressed opacity goes 0.9 → 0.85 and its label no longer dims a second time
+  on top of the container; pressable Card and Item dim to the same 0.85 while
+  pressed (they only scaled before). Disabled opacity is 0.5 everywhere it was
+  0.6 (Button, TextInput, Label) and stays 0.5 where it already was (Select,
+  RadioGroup, Checkbox, DropdownMenu items, Toggle). Under reduce motion,
+  `useScalePress` keeps the scale at 1 instead of jumping to the pressed scale.
+- **Toggle and ToggleGroup tap on a state change** (selection haptic), like
+  Switch and Checkbox. `useScalePress` consumers that never passed `haptic`
+  (the BottomSheet close button) now follow the setting and are silent by
+  default instead of tapping on every press; pass `haptic: true` to keep the
+  old behavior, or set `haptics="all"`.
 - **Native bundles ship four Inter files instead of 18, and web bundles ship
   none.** `useResources` imported the `@expo-google-fonts/inter` root entry,
   which `require`s every weight and italic, and a bundler ships every file a

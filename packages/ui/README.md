@@ -349,6 +349,35 @@ Precedence is caller-wins: a per-instance `style={{ borderRadius }}` or
 `withShadow` prop beats the global override, which beats the package default.
 `setShape({})` clears back to the defaults.
 
+### Press feedback and haptics
+
+Every pressable shares one pressed look: a 0.97 scale (0.92 on small controls)
+plus `interaction.pressedOpacity` (0.85) on filled surfaces, and
+`interaction.disabledOpacity` (0.5) when disabled — both from
+`@mrmeg/expo-ui/constants`. Under the OS reduce-motion setting the scale stays
+at 1 and only the opacity signals the press.
+
+Haptics are one provider-level setting, read at event time:
+
+```tsx
+<UIProvider haptics="all">…</UIProvider>
+// or, from startup code:
+import { setHaptics } from "@mrmeg/expo-ui/state";
+setHaptics("all");
+```
+
+| `haptics` | Fires on |
+|---|---|
+| `"off"` | nothing |
+| `"selection"` (default) | state changes: Switch, Checkbox, Toggle, ToggleGroup, SegmentedControl |
+| `"all"` | selection plus a light tap on press-in for Button, pressable Card and Item, and `useScalePress` consumers |
+
+Web never vibrates. A single `Button` can force either way with `haptic`
+(`<Button haptic />`, `<Button haptic={false} />`); `useScalePress({ haptic })`
+takes `true` (always), `false` (never) or `"setting"` (the default, follows the
+provider). `hapticSuccess()` from `@mrmeg/expo-ui/lib` is there for completion
+moments the app owns.
+
 ## Typography
 
 ```tsx

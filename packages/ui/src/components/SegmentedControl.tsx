@@ -2,7 +2,7 @@ import React, { useCallback, useRef } from "react";
 import { type StyleProp, type ViewStyle } from "react-native";
 import { SegmentedControl as NativeSegmentedControl } from "@expo/ui/community/segmented-control";
 import { useTheme } from "../hooks/useTheme";
-import { hapticLight } from "../lib/haptics";
+import { hapticSelection } from "../lib/haptics";
 
 /**
  * SegmentedControl — a horizontal single-select control backed by the
@@ -79,7 +79,7 @@ function SegmentedControl({
       const nextIndex = values.indexOf(next);
       if (nextIndex !== lastIndex.current) {
         lastIndex.current = nextIndex;
-        hapticLight();
+        hapticSelection();
       }
       if (!isControlled) setInternalValue(next);
       onValueChange?.(next);

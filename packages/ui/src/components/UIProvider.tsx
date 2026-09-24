@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Platform } from "react-native";
+import { useFeedbackStore, type HapticsSetting } from "../state/feedbackStore";
 import { PortalHost } from "@rn-primitives/portal";
 import { Notification } from "./Notification";
 import { StatusBar } from "./StatusBar";
@@ -38,6 +39,16 @@ export interface UIProviderProps {
    * Props forwarded to the keyboard-avoiding root when enabled.
    */
   keyboardAvoidingProps?: Omit<KeyboardAvoidingViewProps, "children">;
+  /**
+   * Which interactions may vibrate on native: `"off"`, `"selection"` (state
+   * changes on Switch, Checkbox, Toggle, ToggleGroup, SegmentedControl) or
+   * `"all"` (selection plus a light tap on press for Button, pressable Card
+   * and Item). Written to the feedback store on mount and whenever it changes;
+   * omit it to leave the store as it is. Web never vibrates.
+   *
+   * @default "selection"
+   */
+  haptics?: HapticsSetting;
 }
 
 export function UIProvider({
@@ -47,7 +58,14 @@ export function UIProvider({
   statusBar = true,
   keyboardAvoiding: keyboardAvoidingProp,
   keyboardAvoidingProps,
+  haptics,
 }: UIProviderProps) {
+  // Controls read the setting at event time (`hapticPress` / `hapticSelection`),
+  // so an effect is early enough; no child renders differently because of it.
+  React.useEffect(() => {
+    if (haptics !== undefined) useFeedbackStore.getState().setHaptics(haptics);
+  }, [haptics]);
+
   // Resolved in the body rather than as a default parameter: the React
   // Compiler can't reorder a computed default, and skipped the component.
   const keyboardAvoiding = keyboardAvoidingProp === undefined ? Platform.OS !== "web" : keyboardAvoidingProp;

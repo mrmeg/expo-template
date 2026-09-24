@@ -5,6 +5,7 @@ import { AnimatedView } from "./AnimatedView";
 import { TextClassContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { useScalePress } from "../hooks/useScalePress";
 import * as DropdownMenuPrimitive from "@rn-primitives/dropdown-menu";
 import type { IconName } from "./Icon";
@@ -254,7 +255,7 @@ function DropdownMenuItem({
                 outlineStyle: "none" as any,
                 userSelect: "none" as any,
               }),
-              ...(props.disabled && { opacity: 0.5 }),
+              ...(props.disabled && { opacity: interaction.disabledOpacity }),
               ...(inset && { paddingLeft: spacing.xl }),
               ...(styleOverride && typeof styleOverride !== "function"
                 ? StyleSheet.flatten(styleOverride)
@@ -300,7 +301,7 @@ function DropdownMenuCheckboxItem({
                 outlineStyle: "none" as any,
                 userSelect: "none" as any,
               }),
-              ...(props.disabled && { opacity: 0.5 }),
+              ...(props.disabled && { opacity: interaction.disabledOpacity }),
               ...(styleOverride && typeof styleOverride !== "function"
                 ? StyleSheet.flatten(styleOverride)
                 : {}),
@@ -366,7 +367,7 @@ function DropdownMenuRadioItem({
                 outlineStyle: "none" as any,
                 userSelect: "none" as any,
               }),
-              ...(props.disabled && { opacity: 0.5 }),
+              ...(props.disabled && { opacity: interaction.disabledOpacity }),
               ...(styleOverride && typeof styleOverride !== "function"
                 ? StyleSheet.flatten(styleOverride)
                 : {}),
