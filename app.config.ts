@@ -59,7 +59,13 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
         image: "./assets/images/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#FFFFFF",
+        // Each scheme launches on its own background (`background` /
+        // `surfaceSunken` from the package palette) with the matching mark.
+        dark: {
+          image: "./assets/images/splash-icon-dark.png",
+          backgroundColor: "#09090B",
+        },
       },
     ],
     [
@@ -114,11 +120,21 @@ export default function appConfig(_: ConfigContext): ExpoConfig {
     ios: {
       supportsTablet: true,
       bundleIdentifier: identity.iosBundleIdentifier,
+      // iOS 18 icon appearances: the light icon is the full mark on its dark
+      // tile, dark drops the tile (iOS supplies it), tinted is grayscale for
+      // the system to tint. All three render from assets/brand/ via
+      // `bun run brand:assets`.
+      icon: {
+        light: "./assets/images/icon.png",
+        dark: "./assets/images/icon-dark.png",
+        tinted: "./assets/images/icon-tinted.png",
+      },
     },
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffffff",
+        monochromeImage: "./assets/images/adaptive-icon-monochrome.png",
+        backgroundColor: "#09090B",
       },
       package: identity.androidPackage,
     },

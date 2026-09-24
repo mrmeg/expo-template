@@ -39,7 +39,7 @@ export default function ScreenHeroDemo() {
           eyebrow="Featured"
           title="Built for teams that ship"
           description="Everything you need to go from idea to production, wrapped in a design system that feels great out of the box."
-          image={require("@/assets/images/partial-react-logo.png")}
+          image={require("@/assets/images/splash-icon.png")}
           primaryAction={{ label: "Start free", onPress: () => showAlert("Start free") }}
           secondaryAction={{ label: "View demo", onPress: () => showAlert("View demo") }}
           style={styles.fullBleedScreen}

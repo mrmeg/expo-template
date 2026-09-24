@@ -22,6 +22,7 @@ unless the user asks for a plan.
 | Migration Guide | [`docs/migration-guide.md`](docs/migration-guide.md) | Portable, self-contained guide for migrating an external Expo app to this baseline |
 | Server Guide | [`docs/server-guide.md`](docs/server-guide.md) | Server output, rendering, API routes, data loaders, middleware, replication checklist |
 | Bundle Analysis | [`docs/bundle-analysis.md`](docs/bundle-analysis.md) | Bundle-size guard usage and baseline update steps |
+| Brand | [`docs/brand.md`](docs/brand.md) | Positioning, palette, type, radii/elevation/rhythm, the mark and its SVG masters, what a fork replaces |
 | Error Tracking | [`docs/error-tracking.md`](docs/error-tracking.md) | Sentry runtime (native + web) and native upload setup |
 | E2E Tests | [`docs/e2e.md`](docs/e2e.md) | Maestro blank-env smoke suite: flows, setup, selector conventions, CI status |
 | Media Worker Migration | [`docs/media-worker-migration.md`](docs/media-worker-migration.md) | Shared media Worker contract, consumer migration checklists, legacy-worker teardown |
