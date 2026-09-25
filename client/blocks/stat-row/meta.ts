@@ -3,9 +3,9 @@ import type { BlockEntry } from "../types";
 export const meta: BlockEntry = {
   id: "stat-row",
   label: "Stat row",
-  description: "StatCard row with change indicators",
+  description: "Metrics with change indicators, split by hairlines",
   category: "data",
-  recipe: ["StatCard", "SectionHeader"],
+  recipe: ["SectionHeader", "StyledText", "Icon"],
   icon: "chart-no-axes-column",
   order: 30,
 };

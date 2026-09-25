@@ -8,14 +8,24 @@ import {
   RefreshControl,
   StyleProp,
   ViewStyle,
+  DimensionValue,
 } from "react-native";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
-import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
+import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 import { StatCard, type StatChangeDirection } from "@mrmeg/expo-ui/components/StatCard";
+import {
+  Item,
+  ItemGroup,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+} from "@mrmeg/expo-ui/components/Item";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -97,7 +107,7 @@ function SkeletonBox({
   style,
   theme,
 }: {
-  width: number | string;
+  width: DimensionValue;
   height: number;
   radius?: number;
   style?: ViewStyle;
@@ -107,7 +117,7 @@ function SkeletonBox({
     <View
       style={[
         {
-          width: width as any,
+          width,
           height,
           borderRadius: radius ?? spacing.radiusSm,
           backgroundColor: theme.colors.muted,
@@ -135,23 +145,25 @@ function SkeletonSection({ theme, styles }: { theme: Theme; styles: ReturnType<t
         <SkeletonBox width={120} height={18} theme={theme} />
         <SkeletonBox width={50} height={14} theme={theme} />
       </View>
-      <View style={[styles.chartPlaceholder, { height: 120 }]}>
-        <SkeletonBox width={60} height={14} theme={theme} />
-      </View>
+      <SkeletonBox width="100%" height={120} radius={spacing.radiusMd} theme={theme} />
     </View>
   );
 }
 
-function SkeletonActivityRow({ theme, styles }: { theme: Theme; styles: ReturnType<typeof createStyles> }) {
+// A flat row shaped like an activity Item: the empty media slot is the icon
+// placeholder, and the ItemGroup around it draws the separators.
+function SkeletonActivityRow({ theme }: { theme: Theme }) {
   return (
-    <View style={styles.activityRow}>
-      <View style={[styles.activityIcon, { backgroundColor: theme.colors.muted }]} />
-      <View style={styles.activityContent}>
+    <Item>
+      <ItemMedia size={32} />
+      <ItemContent>
         <SkeletonBox width={140} height={14} theme={theme} />
-        <SkeletonBox width={200} height={12} theme={theme} style={{ marginTop: spacing.xs }} />
-      </View>
-      <SkeletonBox width={40} height={12} theme={theme} />
-    </View>
+        <SkeletonBox width={200} height={12} theme={theme} />
+      </ItemContent>
+      <ItemActions>
+        <SkeletonBox width={40} height={12} theme={theme} />
+      </ItemActions>
+    </Item>
   );
 }
 
@@ -174,7 +186,7 @@ export function DashboardScreen({
   header,
   style: styleOverride,
 }: DashboardScreenProps) {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme } = useTheme();
   const styles = themedStyles(theme);
 
   // Memoize the refresh control so the ScrollView doesn't get a fresh element
@@ -225,7 +237,7 @@ export function DashboardScreen({
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.metricsRow}
           >
-            {metrics.map((metric, index) => {
+            {metrics.map((metric) => {
               const delay = STAGGER_DELAY * staggerIndex++;
               return (
                 <AnimatedView key={metric.label} type="fadeSlideUp" delay={delay}>
@@ -305,7 +317,7 @@ export function DashboardScreen({
           </View>
         ) : sections && sections.length > 0 ? (
           <View style={styles.sectionsContainer}>
-            {sections.map((section, index) => {
+            {sections.map((section) => {
               const delay = STAGGER_DELAY * staggerIndex++;
               return (
                 <AnimatedView key={section.title} type="fadeSlideUp" delay={delay}>
@@ -317,7 +329,7 @@ export function DashboardScreen({
                       {section.viewAllLabel && section.onViewAll && (
                         <Pressable
                           onPress={section.onViewAll}
-                          style={Platform.OS === "web" ? { cursor: "pointer" as any } : undefined}
+                          style={Platform.OS === "web" ? { cursor: "pointer" as const } : undefined}
                         >
                           <SansSerifText size="base" fontWeight="medium" style={styles.viewAllText}>
                             {section.viewAllLabel}
@@ -333,51 +345,42 @@ export function DashboardScreen({
           </View>
         ) : null}
 
-        {/* Activity feed */}
+        {/* Activity feed: full-width rows that carry their own 16pt inset, so
+            only the title pads horizontally. */}
         {loading ? (
           <View style={styles.activityContainer}>
-            <SansSerifBoldText size="lg" style={styles.sectionTitle}>{activityTitle}</SansSerifBoldText>
-            <View style={[styles.activityCard, getShadowStyle("subtle")]}>
-              {[0, 1, 2].map((i) => (
-                <View key={i}>
-                  <SkeletonActivityRow theme={theme} styles={styles} />
-                  {i < 2 && <View style={styles.activityDivider} />}
-                </View>
-              ))}
+            <View style={styles.activityHeader}>
+              <SansSerifBoldText size="lg" style={styles.sectionTitle}>{activityTitle}</SansSerifBoldText>
             </View>
+            <ItemGroup>
+              {[0, 1, 2].map((i) => (
+                <SkeletonActivityRow key={i} theme={theme} />
+              ))}
+            </ItemGroup>
           </View>
         ) : activityFeed && activityFeed.length > 0 ? (
           <AnimatedView type="fadeSlideUp" delay={STAGGER_DELAY * staggerIndex++}>
             <View style={styles.activityContainer}>
-              <SansSerifBoldText size="lg" style={styles.sectionTitle}>{activityTitle}</SansSerifBoldText>
-              <View style={[styles.activityCard, getShadowStyle("subtle")]}>
-                {activityFeed.map((item, index) => (
-                  <View key={item.id}>
-                    <Pressable
-                      onPress={onActivityPress ? () => onActivityPress(item) : undefined}
-                      style={
-                        Platform.OS === "web" && onActivityPress
-                          ? { ...styles.activityRow, cursor: "pointer" as any }
-                          : styles.activityRow
-                      }
-                    >
-                      <View style={styles.activityIcon}>
-                        <Icon name={item.icon} size={16} color={theme.colors.foreground} />
-                      </View>
-                      <View style={styles.activityContent}>
-                        <SansSerifText size="base" style={styles.activityTitle}>{item.title}</SansSerifText>
-                        {item.description && (
-                          <SansSerifText size="sm" style={styles.activityDescription}>
-                            {item.description}
-                          </SansSerifText>
-                        )}
-                      </View>
-                      <SansSerifText size="sm" style={styles.activityTimestamp}>{item.timestamp}</SansSerifText>
-                    </Pressable>
-                    {index < activityFeed.length - 1 && <View style={styles.activityDivider} />}
-                  </View>
-                ))}
+              <View style={styles.activityHeader}>
+                <SansSerifBoldText size="lg" style={styles.sectionTitle}>{activityTitle}</SansSerifBoldText>
               </View>
+              <ItemGroup>
+                {activityFeed.map((item) => (
+                  <Item
+                    key={item.id}
+                    onPress={onActivityPress ? () => onActivityPress(item) : undefined}
+                  >
+                    <ItemMedia size={32} icon={item.icon} iconSize={16} iconColor="foreground" />
+                    <ItemContent>
+                      <ItemTitle>{item.title}</ItemTitle>
+                      {item.description && <ItemDescription>{item.description}</ItemDescription>}
+                    </ItemContent>
+                    <ItemActions>
+                      <ItemDescription>{item.timestamp}</ItemDescription>
+                    </ItemActions>
+                  </Item>
+                ))}
+              </ItemGroup>
             </View>
           </AnimatedView>
         ) : null}
@@ -390,6 +393,9 @@ export function DashboardScreen({
 // Styles
 // ---------------------------------------------------------------------------
 
+// Wide screens cap and centre the column instead of boxing it.
+const MAX_CONTENT_WIDTH = 960;
+
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
@@ -400,6 +406,9 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     scrollContent: {
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       paddingBottom: spacing.xxl,
     },
     // Margin, not padding: StyledText owns its box spacing, and margins
@@ -441,13 +450,13 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing.screenPadding,
       gap: spacing.md,
     },
+    // Stands in for the chart itself, so it spans the column on a plain fill
+    // rather than framing it in a bordered panel.
     chartPlaceholder: {
-      borderRadius: spacing.radiusLg,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
+      borderRadius: spacing.radiusMd,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: theme.colors.card,
+      backgroundColor: theme.colors.muted,
     },
     chartPlaceholderText: {
       color: theme.colors.mutedForeground,
@@ -474,52 +483,14 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.accent,
     },
 
-    // Activity feed
+    // Activity feed. No horizontal padding on the container: the rows carry
+    // the inset, and only the title wrapper pads to the gutter.
     activityContainer: {
-      paddingHorizontal: spacing.screenPadding,
       marginTop: spacing.lg,
       gap: spacing.sm,
     },
-    activityCard: {
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusLg,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      overflow: "hidden",
-    },
-    activityRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.md,
-    },
-    activityIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: spacing.radiusFull,
-      backgroundColor: theme.colors.muted,
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: spacing.md,
-    },
-    activityContent: {
-      flex: 1,
-      marginRight: spacing.sm,
-    },
-    activityTitle: {
-      color: theme.colors.foreground,
-    },
-    activityDescription: {
-      color: theme.colors.mutedForeground,
-      marginTop: spacing.xxs,
-    },
-    activityTimestamp: {
-      color: theme.colors.mutedForeground,
-    },
-    activityDivider: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: theme.colors.border,
-      marginLeft: spacing.md + 32 + spacing.md,
+    activityHeader: {
+      paddingHorizontal: spacing.screenPadding,
     },
   });
 
