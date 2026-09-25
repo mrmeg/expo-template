@@ -1,7 +1,8 @@
 # Feature grid block
 
-Icon + title + copy cards in a responsive grid: 1 column on phones, 2 on
-mid-width, 3 on wide viewports.
+Icon + title + copy features in a responsive grid: 1 column on phones, 2 on
+mid-width, 3 on wide viewports. Each feature sits flat on the container's
+gutter, separated by whitespace rather than boxed in a card.
 
 ## Files
 
@@ -21,6 +22,6 @@ import { FeatureGridBlock } from "@/client/blocks/feature-grid/Block";
 />
 ```
 
-`items` defaults to a six-card sample set so `<FeatureGridBlock />` previews without configuration. `icon` is a Lucide icon name (`IconName`) from `@mrmeg/expo-ui/components/Icon`.
+`items` defaults to a six-feature sample set so `<FeatureGridBlock />` previews without configuration. `icon` is a Lucide icon name (`IconName`) from `@mrmeg/expo-ui/components/Icon`.
 
 Column count comes from `useDimensions()` (seeded for the export-time prerender), not raw `useWindowDimensions()`, so the exported HTML shell and the client's first render agree — see "Enable Server Output" in `docs/server-guide.md`.

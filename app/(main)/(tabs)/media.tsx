@@ -6,10 +6,10 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
-  type ViewStyle,
+  type LayoutChangeEvent,
 } from "react-native";
 import { Image } from "expo-image";
-import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
+import { useDimensions, useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { palette, spacing } from "@mrmeg/expo-ui/constants";
 import {
   SansSerifText,
@@ -76,6 +76,21 @@ const MEDIA_FILTERS: { key: FilterType; label: string }[] = [
   { key: "uploads", label: "Uploads" },
 ];
 
+// Media is the content here, so it fills the width: a grid of square tiles
+// sized to the column (2 up on a phone), not fixed-size thumbnails in rows.
+// Wide screens cap and centre the column instead of boxing it.
+const MAX_CONTENT_WIDTH = 960;
+const GRID_GAP = spacing.sm;
+const MIN_TILE_WIDTH = 160;
+
+/** Columns and tile size for a list `width` (capped at the content column). */
+function mediaGrid(width: number): { columns: number; tileSize: number } {
+  const column = Math.min(width, MAX_CONTENT_WIDTH) - spacing.screenPadding * 2;
+  const columns = Math.max(2, Math.floor((column + GRID_GAP) / (MIN_TILE_WIDTH + GRID_GAP)));
+  const tileSize = Math.floor((column - GRID_GAP * (columns - 1)) / columns);
+  return { columns, tileSize };
+}
+
 function getDeletePayloadKeys(keys: string[]) {
   const payload = new Set<string>();
 
@@ -128,8 +143,16 @@ export default function MediaScreen() {
 }
 
 function useMediaScreenContent() {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme } = useTheme();
   const styles = themedStyles(theme);
+  // The window width seeds the grid until the list reports its own width (it
+  // is narrower beside the web nav rail).
+  const { width: windowWidth } = useDimensions();
+  const [listWidth, setListWidth] = useState(0);
+  const { columns, tileSize } = mediaGrid(listWidth || windowWidth);
+  const handleListLayout = useCallback((event: LayoutChangeEvent) => {
+    setListWidth(event.nativeEvent.layout.width);
+  }, []);
   const [filter, setFilter] = useState<FilterType>("all");
   const [isUploadingBatch, setIsUploadingBatch] = useState(false);
   const [selectedKeyCandidates, setSelectedKeyCandidates] = useState<Set<string>>(
@@ -600,8 +623,6 @@ function useMediaScreenContent() {
     });
   }, []);
 
-  const shadowStyle = useMemo(() => getShadowStyle("subtle"), [getShadowStyle]);
-
   // Memoize the refresh control so the FlatList doesn't get a brand-new element
   // every render.
   const refreshControl = useMemo(
@@ -615,9 +636,9 @@ function useMediaScreenContent() {
     [isRefetching, refetch, theme.colors.primary]
   );
 
-  // Stable renderItem so FlatList can window properly; MediaRow is memoized and
-  // receives only primitives + stable callbacks, so untouched rows skip
-  // re-rendering when selection or sibling rows change.
+  // Stable renderItem so FlatList can window properly; MediaTile is memoized and
+  // receives only primitives + stable callbacks, so untouched tiles skip
+  // re-rendering when selection or sibling tiles change.
   const renderMediaItem = useCallback(
     ({ item }: { item: MediaItem }) => {
       const isVideo = isVideoKey(item.key);
@@ -630,7 +651,7 @@ function useMediaScreenContent() {
         : null;
 
       return (
-        <MediaRow
+        <MediaTile
           itemKey={item.key}
           size={item.size}
           lastModified={item.lastModified}
@@ -638,9 +659,9 @@ function useMediaScreenContent() {
           signedUrl={signedUrl}
           thumbnailUrl={thumbnailUrl}
           isDeleteBusy={isDeleteBusy}
+          tileSize={tileSize}
           styles={styles}
           theme={theme}
-          shadowStyle={shadowStyle}
           onToggleSelect={toggleSelectedKey}
           onPreviewImage={handlePreviewImage}
           onPlayVideo={handlePlayVideo}
@@ -653,9 +674,9 @@ function useMediaScreenContent() {
       thumbnailUrlData,
       selectedKeys,
       isDeleteBusy,
+      tileSize,
       styles,
       theme,
-      shadowStyle,
       toggleSelectedKey,
       handlePreviewImage,
       handlePlayVideo,
@@ -666,58 +687,60 @@ function useMediaScreenContent() {
   return (
     <View style={styles.container}>
       <Seo title="Media - Expo Template" description="Upload, compress, and manage photos and videos with cloud storage." />
-      {/* Filter Tabs */}
-      <View style={styles.filterRow}>
-        {MEDIA_FILTERS.map((f) => (
-          <Pressable
-            key={f.key}
-            style={[
-              styles.filterTab,
-              filter === f.key && styles.filterTabActive,
-            ]}
-            onPress={() => {
-              setFilter(f.key);
-              clearSelection();
-            }}
-          >
-            <SansSerifText
-              size="sm"
+      <View style={styles.column}>
+        {/* Filter Tabs */}
+        <View style={styles.filterRow}>
+          {MEDIA_FILTERS.map((f) => (
+            <Pressable
+              key={f.key}
               style={[
-                styles.filterText,
-                filter === f.key && styles.filterTextActive,
+                styles.filterTab,
+                filter === f.key && styles.filterTabActive,
               ]}
+              onPress={() => {
+                setFilter(f.key);
+                clearSelection();
+              }}
             >
-              {f.label}
-            </SansSerifText>
-          </Pressable>
-        ))}
-      </View>
+              <SansSerifText
+                size="sm"
+                style={[
+                  styles.filterText,
+                  filter === f.key && styles.filterTextActive,
+                ]}
+              >
+                {f.label}
+              </SansSerifText>
+            </Pressable>
+          ))}
+        </View>
 
-      {/* Stats */}
-      <View style={[styles.statsRow, getShadowStyle("subtle")]}>
-        <View style={styles.stat}>
-          <SansSerifBoldText size="lg" style={styles.statValue}>
-            {data?.totalCount ?? 0}
-          </SansSerifBoldText>
-          <SansSerifText size="sm" style={styles.statLabel}>Files</SansSerifText>
+        {/* Summary + actions: a flat row on the gutter, no panel around it */}
+        <View style={styles.summaryRow}>
+          <View style={styles.stat}>
+            <SansSerifBoldText size="lg" style={styles.statValue}>
+              {data?.totalCount ?? 0}
+            </SansSerifBoldText>
+            <SansSerifText size="sm" style={styles.statLabel}>Files</SansSerifText>
+          </View>
+          <View style={styles.stat}>
+            <SansSerifBoldText size="lg" style={styles.statValue}>
+              {formatBytes(mediaItems.reduce((sum, i) => sum + i.size, 0))}
+            </SansSerifBoldText>
+            <SansSerifText size="sm" style={styles.statLabel}>Total Size</SansSerifText>
+          </View>
+          <Button preset="ghost" size="sm" onPress={() => refetch()}>
+            <Icon name="refresh-cw" size={16} color={theme.colors.primary} />
+          </Button>
+          <Button
+            preset="default"
+            size="sm"
+            onPress={handleUpload}
+            disabled={uploadDisabled}
+          >
+            <Icon name="upload" size={16} color={theme.colors.primaryForeground} />
+          </Button>
         </View>
-        <View style={styles.stat}>
-          <SansSerifBoldText size="lg" style={styles.statValue}>
-            {formatBytes(mediaItems.reduce((sum, i) => sum + i.size, 0))}
-          </SansSerifBoldText>
-          <SansSerifText size="sm" style={styles.statLabel}>Total Size</SansSerifText>
-        </View>
-        <Button preset="ghost" size="sm" onPress={() => refetch()}>
-          <Icon name="refresh-cw" size={16} color={theme.colors.primary} />
-        </Button>
-        <Button
-          preset="default"
-          size="sm"
-          onPress={handleUpload}
-          disabled={uploadDisabled}
-        >
-          <Icon name="upload" size={16} color={theme.colors.primaryForeground} />
-        </Button>
       </View>
 
       {/* File List */}
@@ -786,52 +809,59 @@ function useMediaScreenContent() {
         </View>
       ) : (
         <>
-          <View style={[styles.selectionToolbar, getShadowStyle("subtle")]}>
-            <Checkbox
-              checked={isAllVisibleSelected}
-              indeterminate={isPartiallyVisibleSelected}
-              onCheckedChange={toggleSelectAllVisible}
-              disabled={isDeleteBusy}
-              label={isAllVisibleSelected ? "Deselect all" : "Select all"}
-            />
-            <SansSerifText size="sm" style={styles.selectionSummary}>
-              {selectedCount > 0
-                ? `${selectedCount} selected`
-                : `${visibleKeys.length} visible`}
-            </SansSerifText>
-            <View style={styles.selectionActions}>
-              {selectedCount > 0 && (
-                <Button
-                  preset="ghost"
-                  size="sm"
-                  text="Clear"
-                  onPress={clearSelection}
-                  disabled={isDeleteBusy}
-                />
-              )}
-              <Button
-                preset="destructive"
-                size="sm"
-                text={selectedCount > 0 ? `Delete (${selectedCount})` : "Delete"}
-                onPress={handleDeleteSelected}
-                disabled={selectedCount === 0 || isDeleteBusy}
-                loading={isDeletingBatch}
-                LeftAccessory={() => (
-                  <Icon
-                    name="trash"
-                    size={14}
-                    color={theme.colors.destructiveForeground}
+          <View style={styles.column}>
+            <View style={styles.selectionToolbar}>
+              <Checkbox
+                checked={isAllVisibleSelected}
+                indeterminate={isPartiallyVisibleSelected}
+                onCheckedChange={toggleSelectAllVisible}
+                disabled={isDeleteBusy}
+                label={isAllVisibleSelected ? "Deselect all" : "Select all"}
+              />
+              <SansSerifText size="sm" style={styles.selectionSummary}>
+                {selectedCount > 0
+                  ? `${selectedCount} selected`
+                  : `${visibleKeys.length} visible`}
+              </SansSerifText>
+              <View style={styles.selectionActions}>
+                {selectedCount > 0 && (
+                  <Button
+                    preset="ghost"
+                    size="sm"
+                    text="Clear"
+                    onPress={clearSelection}
+                    disabled={isDeleteBusy}
                   />
                 )}
-              />
+                <Button
+                  preset="destructive"
+                  size="sm"
+                  text={selectedCount > 0 ? `Delete (${selectedCount})` : "Delete"}
+                  onPress={handleDeleteSelected}
+                  disabled={selectedCount === 0 || isDeleteBusy}
+                  loading={isDeletingBatch}
+                  LeftAccessory={() => (
+                    <Icon
+                      name="trash"
+                      size={14}
+                      color={theme.colors.destructiveForeground}
+                    />
+                  )}
+                />
+              </View>
             </View>
           </View>
 
           <FlatList
+            // numColumns can't change on a mounted list; a new key remounts it.
+            key={`grid-${columns}`}
             data={mediaItems}
             keyExtractor={(item) => item.key}
+            numColumns={columns}
             refreshControl={refreshControl}
+            onLayout={handleListLayout}
             contentContainerStyle={styles.listContent}
+            columnWrapperStyle={styles.gridRow}
             extraData={selectedKeys}
             style={styles.list}
             renderItem={renderMediaItem}
@@ -873,7 +903,7 @@ function formatDate(isoString: string): string {
   });
 }
 
-interface MediaRowProps {
+interface MediaTileProps {
   itemKey: string;
   size: number;
   lastModified: string;
@@ -881,19 +911,20 @@ interface MediaRowProps {
   signedUrl: string | undefined;
   thumbnailUrl: string | null | undefined;
   isDeleteBusy: boolean;
+  /** Tile edge in points: the column width split across the grid columns. */
+  tileSize: number;
   styles: ReturnType<typeof createStyles>;
   theme: Theme;
-  shadowStyle: ViewStyle;
   onToggleSelect: (key: string) => void;
   onPreviewImage: (filename: string, signedUrl: string) => void;
   onPlayVideo: (filename: string, signedUrl: string) => void;
   onDelete: (key: string) => void;
 }
 
-// Memoized row: with primitive props and stable callbacks, untouched rows skip
-// re-rendering when selection or sibling rows change, so FlatList windowing pays
-// off. Handlers stay inline here but only close over this row's own primitives.
-const MediaRow = memo(function MediaRow({
+// Memoized tile: with primitive props and stable callbacks, untouched tiles skip
+// re-rendering when selection or sibling tiles change, so FlatList windowing pays
+// off. Handlers stay inline here but only close over this tile's own primitives.
+const MediaTile = memo(function MediaTile({
   itemKey,
   size,
   lastModified,
@@ -901,17 +932,18 @@ const MediaRow = memo(function MediaRow({
   signedUrl,
   thumbnailUrl,
   isDeleteBusy,
+  tileSize,
   styles,
   theme,
-  shadowStyle,
   onToggleSelect,
   onPreviewImage,
   onPlayVideo,
   onDelete,
-}: MediaRowProps) {
+}: MediaTileProps) {
   const filename = itemKey.split("/").pop() || itemKey;
   const isImage = isImageKey(itemKey);
   const isVideo = isVideoKey(itemKey);
+  const square = { width: tileSize, height: tileSize };
   // Thumbnails are cached under their object key, not the signed URL: every
   // refetch re-signs the URL (new query string, same object), so keying on the
   // URL missed expo-image's cache and re-downloaded each thumbnail. Keys are
@@ -919,24 +951,8 @@ const MediaRow = memo(function MediaRow({
   // video's thumbnail is named after the video.
 
   return (
-    <View
-      style={[
-        styles.fileItem,
-        isSelected && styles.fileItemSelected,
-        shadowStyle,
-      ]}
-    >
-      <View style={styles.itemCheckbox}>
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={() => onToggleSelect(itemKey)}
-          disabled={isDeleteBusy}
-          accessibilityLabel={`Select ${filename}`}
-        />
-      </View>
-
-      {/* Thumbnail */}
-      <View style={styles.thumbnailContainer}>
+    <View style={{ width: tileSize }}>
+      <View style={[styles.thumbnail, square]}>
         {isImage && signedUrl ? (
           <Pressable
             onPress={() => onPreviewImage(filename, signedUrl)}
@@ -945,26 +961,22 @@ const MediaRow = memo(function MediaRow({
           >
             <Image
               source={{ uri: signedUrl, cacheKey: itemKey }}
-              style={styles.thumbnail}
+              style={square}
               contentFit="cover"
             />
           </Pressable>
         ) : isVideo && thumbnailUrl ? (
           <Image
             source={{ uri: thumbnailUrl, cacheKey: getVideoThumbnailKey(itemKey) }}
-            style={styles.thumbnail}
+            style={square}
             contentFit="cover"
           />
-        ) : isVideo ? (
-          <View style={styles.videoThumbnail}>
-            <Icon name="video" size={24} color={theme.colors.primary} />
-          </View>
         ) : (
-          <View style={styles.iconContainer}>
+          <View style={[styles.thumbnailIcon, square]}>
             <Icon
-              name="file"
-              size={24}
-              color={theme.colors.mutedForeground}
+              name={isVideo ? "video" : "file"}
+              size={32}
+              color={isVideo ? theme.colors.primary : theme.colors.mutedForeground}
             />
           </View>
         )}
@@ -978,36 +990,42 @@ const MediaRow = memo(function MediaRow({
             accessibilityLabel={`Play ${filename}`}
           >
             <View style={styles.playButton}>
-              <Icon name="play" size={16} color="primaryForeground" />
+              <Icon name="play" size={20} color="primaryForeground" />
             </View>
           </Pressable>
         )}
+
+        {/* Selection ring: drawn over the image so selecting doesn't resize it */}
+        {isSelected && <View pointerEvents="none" style={styles.selectedRing} />}
+
+        <View style={[styles.tileControl, styles.tileCheckbox]}>
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => onToggleSelect(itemKey)}
+            disabled={isDeleteBusy}
+            accessibilityLabel={`Select ${filename}`}
+          />
+        </View>
+
+        <Pressable
+          style={[styles.tileControl, styles.tileDelete]}
+          onPress={() => onDelete(itemKey)}
+          disabled={isDeleteBusy}
+          hitSlop={spacing.sm}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${filename}`}
+        >
+          <Icon name="trash" size={16} color={theme.colors.destructive} />
+        </Pressable>
       </View>
 
       {/* File info */}
-      <View style={styles.fileInfo}>
-        <SansSerifText style={styles.fileName} numberOfLines={1}>
-          {filename}
-        </SansSerifText>
-        <SansSerifText style={styles.fileMeta}>
-          {formatBytes(size)} • {formatDate(lastModified)}
-          {isVideo && " • Video"}
-        </SansSerifText>
-        <SansSerifText style={styles.filePath} numberOfLines={1}>
-          {itemKey}
-        </SansSerifText>
-      </View>
-
-      {/* Delete button */}
-      <Pressable
-        style={styles.deleteButton}
-        onPress={() => onDelete(itemKey)}
-        disabled={isDeleteBusy}
-        accessibilityRole="button"
-        accessibilityLabel={`Delete ${filename}`}
-      >
-        <Icon name="trash" size={18} color={theme.colors.destructive} />
-      </Pressable>
+      <SansSerifText size="base" fontWeight="medium" style={styles.fileName} numberOfLines={1}>
+        {filename}
+      </SansSerifText>
+      <SansSerifText size="sm" style={styles.fileMeta} numberOfLines={1}>
+        {formatBytes(size)} • {formatDate(lastModified)}
+      </SansSerifText>
     </View>
   );
 });
@@ -1039,16 +1057,18 @@ const createStyles = (theme: Theme) =>
     filterTextActive: {
       color: theme.colors.primaryForeground,
     },
-    statsRow: {
+    // The header rows sit in the same capped column as the grid.
+    column: {
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
+    },
+    summaryRow: {
       flexDirection: "row",
       alignItems: "center",
-      marginHorizontal: spacing.md,
-      marginBottom: spacing.md,
-      padding: spacing.md,
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusMd,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
+      gap: spacing.sm,
+      paddingHorizontal: spacing.screenPadding,
+      paddingVertical: spacing.sm,
     },
     stat: {
       flex: 1,
@@ -1089,18 +1109,16 @@ const createStyles = (theme: Theme) =>
     retryButton: {
       alignSelf: "center",
     },
+    // A flat toolbar row with a hairline under it, not a panel.
     selectionToolbar: {
       flexDirection: "row",
       alignItems: "center",
       flexWrap: "wrap",
       gap: spacing.sm,
-      marginHorizontal: spacing.md,
-      marginBottom: spacing.sm,
-      padding: spacing.sm,
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusMd,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
+      paddingHorizontal: spacing.screenPadding,
+      paddingVertical: spacing.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors.border,
     },
     selectionSummary: {
       flex: 1,
@@ -1115,53 +1133,23 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     listContent: {
-      padding: spacing.md,
-      gap: spacing.sm,
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
+      paddingHorizontal: spacing.screenPadding,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.xxl,
+      gap: spacing.md,
     },
-    fileItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      padding: spacing.sm,
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusMd,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      gap: spacing.sm,
-    },
-    fileItemSelected: {
-      borderColor: theme.colors.primary,
-      backgroundColor: theme.colors.muted,
-    },
-    itemCheckbox: {
-      width: 28,
-      alignItems: "center",
-      justifyContent: "center",
-      flexShrink: 0,
-    },
-    thumbnailContainer: {
-      position: "relative",
-      width: 56,
-      height: 56,
+    gridRow: {
+      gap: GRID_GAP,
     },
     thumbnail: {
-      width: 56,
-      height: 56,
       borderRadius: spacing.radiusSm,
+      overflow: "hidden",
       backgroundColor: theme.colors.muted,
     },
-    videoThumbnail: {
-      width: 56,
-      height: 56,
-      borderRadius: spacing.radiusSm,
-      backgroundColor: theme.colors.muted,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    iconContainer: {
-      width: 56,
-      height: 56,
-      borderRadius: spacing.radiusSm,
-      backgroundColor: theme.colors.muted,
+    thumbnailIcon: {
       justifyContent: "center",
       alignItems: "center",
     },
@@ -1169,40 +1157,44 @@ const createStyles = (theme: Theme) =>
       ...StyleSheet.absoluteFill,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: withAlpha(palette.black, 0.3),
-      borderRadius: spacing.radiusSm,
+      backgroundColor: withAlpha(palette.black, 0.25),
     },
     playButton: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
+      width: 40,
+      height: 40,
+      borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.primary,
       justifyContent: "center",
       alignItems: "center",
-      paddingLeft: 2, // Offset play icon slightly for visual center
+      paddingLeft: spacing.xxs, // Offset play icon slightly for visual center
     },
-    fileInfo: {
-      flex: 1,
+    selectedRing: {
+      ...StyleSheet.absoluteFill,
+      borderRadius: spacing.radiusSm,
+      borderWidth: 3,
+      borderColor: theme.colors.primary,
+    },
+    // Scrim chips behind the checkbox and delete control keep them legible on
+    // any photo.
+    tileControl: {
+      position: "absolute",
+      top: spacing.xs,
+      padding: spacing.xs,
+      borderRadius: spacing.radiusSm,
+      backgroundColor: withAlpha(palette.black, 0.45),
+    },
+    tileCheckbox: {
+      left: spacing.xs,
+    },
+    tileDelete: {
+      right: spacing.xs,
     },
     fileName: {
-      fontSize: 14,
       color: theme.colors.foreground,
-      fontWeight: "500",
+      marginTop: spacing.xs,
     },
     fileMeta: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
-      marginTop: 2,
-    },
-    filePath: {
-      fontSize: 11,
-      color: theme.colors.mutedForeground,
-      marginTop: 2,
-      fontFamily: "monospace",
-    },
-    deleteButton: {
-      padding: spacing.sm,
-      borderRadius: spacing.radiusSm,
     },
   });
 

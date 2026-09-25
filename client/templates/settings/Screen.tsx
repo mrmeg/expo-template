@@ -10,10 +10,17 @@ import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { SansSerifText, EyebrowText } from "@mrmeg/expo-ui/components/StyledText";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Switch } from "@mrmeg/expo-ui/components/Switch";
-import { Item, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from "@mrmeg/expo-ui/components/Item";
+import {
+  Item,
+  ItemGroup,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+} from "@mrmeg/expo-ui/components/Item";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -79,14 +86,16 @@ export interface SettingsScreenProps {
 // ---------------------------------------------------------------------------
 
 export function SettingsScreen({ sections, header, style: styleOverride }: SettingsScreenProps) {
-  const { theme, getShadowStyle, withAlpha } = useTheme();
+  const { theme, withAlpha } = useTheme();
   const styles = themedStyles(theme);
 
-  const renderItem = (item: SettingsItem, isLast: boolean) => {
+  // One element per row: a select item expands into one row per option, so
+  // the group can draw the hairline between options too.
+  const renderRows = (item: SettingsItem): React.ReactElement[] => {
     switch (item.type) {
     case "navigate":
-      return (
-        <Item key={item.label} onPress={item.onPress} separator={!isLast}>
+      return [
+        <Item key={item.label} onPress={item.onPress}>
           {item.icon && <ItemMedia icon={item.icon} iconColor="primary" />}
           <ItemContent>
             <ItemTitle>{item.label}</ItemTitle>
@@ -95,12 +104,12 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
             {item.value && <ItemDescription>{item.value}</ItemDescription>}
             <Icon name="chevron-right" color={theme.colors.mutedForeground} size={20} />
           </ItemActions>
-        </Item>
-      );
+        </Item>,
+      ];
 
     case "toggle":
-      return (
-        <Item key={item.label} separator={!isLast}>
+      return [
+        <Item key={item.label}>
           {item.icon && <ItemMedia icon={item.icon} iconColor="primary" />}
           <ItemContent>
             <ItemTitle>{item.label}</ItemTitle>
@@ -108,45 +117,36 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
           <ItemActions>
             <Switch checked={item.value} onCheckedChange={item.onValueChange} />
           </ItemActions>
-        </Item>
-      );
+        </Item>,
+      ];
 
     case "select":
-      return (
-        <View key={item.label}>
-          {item.options.map((option, optIndex) => {
-            const isSelected = option.value === item.selectedValue;
-            const isLastOpt = optIndex === item.options.length - 1;
-            return (
-              <Item
-                key={option.value}
-                onPress={() => item.onSelect(option.value)}
-                separator={!(isLastOpt && isLast)}
-              >
-                {item.icon && (
-                  <ItemMedia
-                    icon={optIndex === 0 ? item.icon : undefined}
-                    iconColor="primary"
-                    style={optIndex > 0 && styles.iconSpacer}
-                  />
-                )}
-                <ItemContent>
-                  <ItemTitle>{option.label}</ItemTitle>
-                </ItemContent>
-                <ItemActions>
-                  <View style={[styles.radio, isSelected && styles.radioSelected]}>
-                    {isSelected && <View style={styles.radioInner} />}
-                  </View>
-                </ItemActions>
-              </Item>
-            );
-          })}
-        </View>
-      );
+      return item.options.map((option, optIndex) => {
+        const isSelected = option.value === item.selectedValue;
+        return (
+          <Item key={`${item.label}:${option.value}`} onPress={() => item.onSelect(option.value)}>
+            {item.icon && (
+              <ItemMedia
+                icon={optIndex === 0 ? item.icon : undefined}
+                iconColor="primary"
+                style={optIndex > 0 && styles.iconSpacer}
+              />
+            )}
+            <ItemContent>
+              <ItemTitle>{option.label}</ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <View style={[styles.radio, isSelected && styles.radioSelected]}>
+                {isSelected && <View style={styles.radioInner} />}
+              </View>
+            </ItemActions>
+          </Item>
+        );
+      });
 
     case "info":
-      return (
-        <Item key={item.label} separator={!isLast}>
+      return [
+        <Item key={item.label}>
           {item.icon && <ItemMedia icon={item.icon} iconColor="primary" />}
           <ItemContent>
             <ItemTitle>{item.label}</ItemTitle>
@@ -154,12 +154,12 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
           <ItemActions>
             <ItemDescription>{item.value}</ItemDescription>
           </ItemActions>
-        </Item>
-      );
+        </Item>,
+      ];
 
     case "destructive":
-      return (
-        <Item key={item.label} onPress={item.onPress} separator={!isLast}>
+      return [
+        <Item key={item.label} onPress={item.onPress}>
           {item.icon && (
             <ItemMedia
               icon={item.icon}
@@ -173,33 +173,27 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
           <ItemContent>
             <ItemTitle style={{ color: theme.colors.destructive }}>{item.label}</ItemTitle>
           </ItemContent>
-        </Item>
-      );
+        </Item>,
+      ];
     }
   };
 
   return (
     <View style={[styles.container, styleOverride]}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {header}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Rows carry the screen's 16pt inset themselves, so only the
+            free-form header gets horizontal padding. */}
+        {header ? <View style={styles.header}>{header}</View> : null}
 
         {sections.map((section, sectionIndex) => (
           <AnimatedView key={section.title} type="fadeSlideUp" delay={STAGGER_DELAY * (sectionIndex + 1)}>
-            <View style={styles.section}>
-              <EyebrowText style={[styles.sectionTitle, { color: theme.colors.mutedForeground }]}>
-                {section.title}
-              </EyebrowText>
-
-              <View style={[styles.card, getShadowStyle("subtle")]}>
-                {section.items.map((item, index) =>
-                  renderItem(item, index === section.items.length - 1)
-                )}
-              </View>
-
-              {section.footer && (
-                <SansSerifText size="sm" style={styles.footer}>{section.footer}</SansSerifText>
-              )}
-            </View>
+            <ItemGroup title={section.title} footer={section.footer}>
+              {section.items.flatMap(renderRows)}
+            </ItemGroup>
           </AnimatedView>
         ))}
       </ScrollView>
@@ -211,6 +205,9 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
 // Styles
 // ---------------------------------------------------------------------------
 
+// Wide screens cap and centre the column instead of boxing it.
+const MAX_CONTENT_WIDTH = 640;
+
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
@@ -219,22 +216,17 @@ const createStyles = (theme: Theme) =>
     },
     scroll: {
       flex: 1,
-      paddingHorizontal: spacing.screenPadding,
+    },
+    content: {
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       paddingTop: spacing.md,
+      paddingBottom: spacing.xxl,
+      gap: spacing.sectionSpacing,
     },
-    section: {
-      marginBottom: spacing.sectionSpacing,
-    },
-    sectionTitle: {
-      marginBottom: spacing.sm + 2,
-      marginLeft: spacing.xxs,
-    },
-    card: {
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusMd,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      overflow: "hidden",
+    header: {
+      paddingHorizontal: spacing.screenPadding,
     },
     // Transparent placeholder matching ItemMedia's default footprint, so a
     // select row with no icon still aligns its label under the first row's
@@ -260,11 +252,6 @@ const createStyles = (theme: Theme) =>
       height: 12,
       borderRadius: spacing.radiusFull,
       backgroundColor: theme.colors.primary,
-    },
-    footer: {
-      color: theme.colors.mutedForeground,
-      marginTop: spacing.sm,
-      marginLeft: spacing.xxs,
     },
   });
 

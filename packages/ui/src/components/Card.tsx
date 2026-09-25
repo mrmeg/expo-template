@@ -14,6 +14,13 @@ import type { Theme } from "../constants/colors";
  * A themed container component with header, content, and footer sections.
  * Follows shadcn/ui patterns with consistent styling and theme integration.
  *
+ * Use a Card for one item in a collection (a feed entry, a grid tile, a
+ * carousel slide) or for a single tappable object. It is not a layout box:
+ * don't wrap a screen section, a form, or a group of rows in one (use
+ * `ItemGroup`, `SectionHeader`, or a `Separator`), and never nest Cards. The
+ * parts pad `spacing.cardPadding`, so a Card inside a padded box doubles the
+ * inset.
+ *
  * Usage:
  * ```tsx
  * <Card>

@@ -37,6 +37,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@mrmeg/expo-ui/components/Dialog";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@mrmeg/expo-ui/components/Item";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@mrmeg/expo-ui/components/Select";
 import { StatCard } from "@mrmeg/expo-ui/components/StatCard";
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
@@ -397,7 +407,8 @@ export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
   },
 
   Card: {
-    summary: "Surface container with header, content, and footer slots.",
+    summary:
+      "One item in a collection (a feed entry, a grid tile) or a single tappable object, with header, content, and footer slots. Not a layout box: group rows with ItemGroup instead.",
     variants: [
       {
         label: "default",
@@ -449,8 +460,88 @@ export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
 </Card>`,
   },
 
+  Item: {
+    summary:
+      "List and settings rows. Stack them in an ItemGroup: full-width rows, hairlines inset under the title, no box around the group.",
+    variants: [
+      {
+        label: "ItemGroup",
+        render: () => (
+          <View style={{ minWidth: 260 }}>
+            <ItemGroup title="Account" footer="Signed in as jane@example.com">
+              <Item onPress={() => {}}>
+                <ItemMedia icon="user" />
+                <ItemContent>
+                  <ItemTitle>Edit profile</ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  <Icon name="chevron-right" size={18} color="mutedForeground" />
+                </ItemActions>
+              </Item>
+              <Item>
+                <ItemMedia icon="bell" />
+                <ItemContent>
+                  <ItemTitle>Notifications</ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  <SwitchVariant initial />
+                </ItemActions>
+              </Item>
+            </ItemGroup>
+          </View>
+        ),
+      },
+      {
+        label: "without media",
+        render: () => (
+          <View style={{ minWidth: 260 }}>
+            <ItemGroup title="About">
+              <Item>
+                <ItemContent>
+                  <ItemTitle>Version</ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  <ItemDescription>2.1.0</ItemDescription>
+                </ItemActions>
+              </Item>
+              <Item>
+                <ItemContent>
+                  <ItemTitle>Build</ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  <ItemDescription>2026.09.25</ItemDescription>
+                </ItemActions>
+              </Item>
+            </ItemGroup>
+          </View>
+        ),
+      },
+    ],
+    usage: `<ItemGroup title="Account" footer="Signed in as jane@example.com">
+  <Item onPress={openProfile}>
+    <ItemMedia icon="user" />
+    <ItemContent>
+      <ItemTitle>Edit profile</ItemTitle>
+    </ItemContent>
+    <ItemActions>
+      <Icon name="chevron-right" size={18} color="mutedForeground" />
+    </ItemActions>
+  </Item>
+  <Item>
+    <ItemMedia icon="bell" />
+    <ItemContent>
+      <ItemTitle>Notifications</ItemTitle>
+    </ItemContent>
+    <ItemActions>
+      <Switch checked={enabled} onCheckedChange={setEnabled} />
+    </ItemActions>
+  </Item>
+</ItemGroup>`,
+  },
+
   StatCard: {
-    summary: "Dashboard metric: label, large value, optional unit and change line.",
+    summary:
+      "Metric tile: label, large value, optional unit and change line. A Card, so use it for tiles in a scrolling metrics rail or one tappable metric.",
     variants: [
       {
         label: "up",

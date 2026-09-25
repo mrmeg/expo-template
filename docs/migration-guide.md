@@ -166,7 +166,7 @@ Upgrade to `@mrmeg/expo-ui@^0.25.0`. Peer ranges: `expo`, `expo-font`, `expo-hap
 **Import only from public subpaths** (`.`, `/components`, `/hooks`, `/state`, `/constants`, `/lib`) — never `dist/` or a source checkout:
 
 ```ts
-import { Button, Card, StyledText, TextInput } from "@mrmeg/expo-ui/components";
+import { Button, ItemGroup, StyledText, TextInput } from "@mrmeg/expo-ui/components";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { notify } from "@mrmeg/expo-ui/state";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -194,9 +194,11 @@ await notify.promise(saveProfile(), {
 - `useTheme()` returns `{ theme, scheme, getShadowStyle, getFocusRingStyle, withAlpha, getContrastingColor, getTextColorForBackground, getContrastRatio }`; colors live at `theme.colors.*`. Use semantic tokens — no hard-coded palettes, shadows, radii, or spacing in general-purpose UI.
 - On web each `theme.colors.*` value is a CSS custom property, so hex-alpha concatenation (`theme.colors.x + "15"`) does not work. Use `withAlpha(theme.colors.x, 0.08)`.
 - `primary` is the neutral action color (dark gray in light mode, near-white in dark); `accent` (teal) is for highlights, active tabs, badges.
-- Use `getShadowStyle(type)` for elevation (`base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`, `cardHover`, `cardSubtle`) rather than the legacy `shadow*` props, which RN 0.85 and react-native-web 0.21 deprecate in favor of `boxShadow`. `Card`'s default variant already applies `getShadowStyle("subtle")`.
+- Use `getShadowStyle(type)` for elevation (`base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`, `cardHover`, `cardSubtle`) rather than the legacy `shadow*` props, which RN 0.85 and react-native-web 0.21 deprecate in favor of `boxShadow`. `Card`'s default variant already applies `getShadowStyle("subtle")`. Elevation is for collection tiles and overlays, not for boxing screen sections.
 
-**Component swaps.** Replace one-off primitives with package components: buttons, text inputs, switches/checkboxes, selects, tabs, dialogs, bottom sheets, dropdown menus, cards, badges, skeletons, empty states, icons. Full use-case index: `packages/ui/LLM_USAGE.md`.
+**Screen layout — flatten the card soup.** Screens get one horizontal inset, `spacing.screenPadding` (16), owned by the container or by its children, never both. Replace bordered, shadowed, or tinted panels around sections, forms, and row groups with flat content: lists and settings become `ItemGroup` + `Item` rows (full-width rows, inset hairlines; the scroll view then pads nothing horizontally), form fields span the column under section headers, and sections break on a header, `spacing.sectionSpacing`, or a `Separator`. Size photos, media, and charts to the column; on wide screens cap and centre the column (`maxWidth` + `alignSelf: "center"`) instead of boxing it. Keep `Card` for one item in a collection or one tappable object, never nested. Rules and a full screen: `packages/ui/LLM_USAGE.md`, Screen Layout.
+
+**Component swaps.** Replace one-off primitives with package components: buttons, text inputs, switches/checkboxes, selects, tabs, dialogs, bottom sheets, dropdown menus, grouped lists (`ItemGroup`), badges, skeletons, empty states, icons. Full use-case index: `packages/ui/LLM_USAGE.md`.
 
 - `Button` uses `preset`, not `variant`. Heights are compact: Button 28/32/40 (`sm`/`md`/`lg`), `TextInput`/`Select` 32/36/40, `Toggle` 32/36/40 (`sm`/`default`/`lg`), `Tabs` 32/36 (`sm`/`md`).
 - Smoke-test web after the UI migration; style shapes that work on native can break react-native-web.

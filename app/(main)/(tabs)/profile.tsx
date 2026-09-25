@@ -7,6 +7,15 @@ import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/Styl
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Switch } from "@mrmeg/expo-ui/components/Switch";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import {
+  Item,
+  ItemGroup,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+} from "@mrmeg/expo-ui/components/Item";
 import { Alert } from "@mrmeg/expo-ui/components/Alert";
 import { notify } from "@mrmeg/expo-ui/state";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
@@ -114,174 +123,159 @@ function ProfileScreen() {
       {/* Keep the ScrollView as the screen's first native child — the native
           tab bar finds it via first-subview traversal to drive
           minimizeBehavior and scroll edge effects on iOS 26. */}
-      <ScrollView testID="profile-screen" style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.content}>
-          {/* Profile Header */}
-          <View style={styles.headerSection}>
-            <Pressable onPress={handleEditProfile}>
-              <View style={[styles.avatar, getShadowStyle("soft")]}>
-                <Icon name="user" color={palette.white} size={48} />
-              </View>
-            </Pressable>
-            <SansSerifBoldText size="xl" style={styles.name}>
-              {user?.username || "User"}
-            </SansSerifBoldText>
-            <SansSerifText size="base" style={styles.email}>
-              {user?.email || "user@example.com"}
-            </SansSerifText>
-            <Button
-              preset="outline"
-              size="sm"
-              onPress={handleEditProfile}
-            >
-              <Icon name="pencil" size={14} color={theme.colors.primary} />
-              <SansSerifText size="base" style={styles.editButtonText}> Edit Profile</SansSerifText>
-            </Button>
-          </View>
-
-          <AccountInfoSection
-            styles={styles}
-            shadowStyle={getShadowStyle("subtle")}
-            theme={theme}
-            userId={user?.userId}
-            billing={billing}
-            entitled={entitled}
-            statusColor={statusColor}
-            statusLabel={statusLabel}
-            billingAction={billingAction}
-            isCreatingPortal={billingActions.isCreatingPortal}
-            onManageBilling={handleManageBilling}
-            onUpgrade={handleUpgrade}
-          />
-
-          {/* Account Settings */}
-          <View style={styles.section}>
-            <SansSerifBoldText size="body" style={styles.sectionTitle}>Account Settings</SansSerifBoldText>
-            <View style={[styles.card, getShadowStyle("subtle")]}>
-              <Pressable style={styles.settingsRow} onPress={handleChangePassword}>
-                <View style={styles.settingsRowLeft}>
-                  <Icon name="key" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText size="base" style={styles.settingsLabel}>Change Password</SansSerifText>
-                </View>
-                <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
-              </Pressable>
-              <View style={styles.divider} />
-              <Pressable style={styles.settingsRow} onPress={handlePrivacySettings}>
-                <View style={styles.settingsRowLeft}>
-                  <Icon name="shield" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText size="base" style={styles.settingsLabel}>Privacy Settings</SansSerifText>
-                </View>
-                <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
-              </Pressable>
+      <ScrollView
+        testID="profile-screen"
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Header: free-form, so it pads itself. The grouped rows below
+            carry the screen's 16pt inset, so the scroll view adds none. */}
+        <View style={styles.headerSection}>
+          <Pressable onPress={handleEditProfile}>
+            <View style={[styles.avatar, getShadowStyle("soft")]}>
+              <Icon name="user" color={palette.white} size={48} />
             </View>
-          </View>
-
-          {/* Notification Preferences */}
-          <View style={styles.section}>
-            <SansSerifBoldText size="body" style={styles.sectionTitle}>Notifications</SansSerifBoldText>
-            <View style={[styles.card, getShadowStyle("subtle")]}>
-              <View style={styles.switchRow}>
-                <View style={styles.switchRowLeft}>
-                  <Icon name="mail" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText size="base" style={styles.settingsLabel}>Email Notifications</SansSerifText>
-                </View>
-                <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.switchRow}>
-                <View style={styles.switchRowLeft}>
-                  <Icon name="bell" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText size="base" style={styles.settingsLabel}>Push Notifications</SansSerifText>
-                </View>
-                <Switch checked={pushNotifications} onCheckedChange={setPushNotifications} />
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.switchRow}>
-                <View style={styles.switchRowLeft}>
-                  <Icon name="mail" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText size="base" style={styles.settingsLabel}>Marketing Emails</SansSerifText>
-                </View>
-                <Switch checked={marketingEmails} onCheckedChange={setMarketingEmails} />
-              </View>
-            </View>
-          </View>
-
-          {/* Connected Accounts */}
-          <View style={styles.section}>
-            <SansSerifBoldText size="body" style={styles.sectionTitle}>Connected Accounts</SansSerifBoldText>
-            <View style={[styles.card, getShadowStyle("subtle")]}>
-              <Pressable style={styles.connectedRow} onPress={handleConnectGoogle}>
-                <View style={styles.connectedRowLeft}>
-                  <View
-                    style={[
-                      styles.providerIcon,
-                      // eslint-disable-next-line expo-ui/no-raw-colors -- Google brand color; must not follow the theme
-                      { backgroundColor: "#DB4437" },
-                    ]}
-                  >
-                    <SansSerifBoldText size="body" style={styles.providerLetter}>G</SansSerifBoldText>
-                  </View>
-                  <View>
-                    <SansSerifText size="base" style={styles.settingsLabel}>Google</SansSerifText>
-                    <SansSerifText size="sm" style={styles.connectedStatus}>Not connected</SansSerifText>
-                  </View>
-                </View>
-                <Icon name="link-2" size={18} color={theme.colors.primary} />
-              </Pressable>
-              <View style={styles.divider} />
-              <Pressable style={styles.connectedRow} onPress={handleConnectApple}>
-                <View style={styles.connectedRowLeft}>
-                  <View style={[styles.providerIcon, { backgroundColor: theme.colors.foreground }]}>
-                    <SansSerifBoldText size="body" style={[styles.providerLetter, { color: theme.colors.background }]}>
-                      A
-                    </SansSerifBoldText>
-                  </View>
-                  <View>
-                    <SansSerifText size="base" style={styles.settingsLabel}>Apple</SansSerifText>
-                    <SansSerifText size="sm" style={styles.connectedStatus}>Not connected</SansSerifText>
-                  </View>
-                </View>
-                <Icon name="link-2" size={18} color={theme.colors.primary} />
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Danger Zone */}
-          <View style={styles.section}>
-            <SansSerifBoldText size="body" style={[styles.sectionTitle, { color: theme.colors.destructive }]}>
-              Danger Zone
-            </SansSerifBoldText>
-            <View style={[styles.card, styles.dangerCard, getShadowStyle("subtle")]}>
-              {isAuthenticated && (
-                <>
-                  <Pressable style={styles.dangerRow} onPress={handleSignOut}>
-                    <View style={styles.dangerRowLeft}>
-                      <Icon name="log-out" size={18} color={theme.colors.destructive} />
-                      <SansSerifText size="base" style={styles.dangerLabel}>Sign Out</SansSerifText>
-                    </View>
-                  </Pressable>
-                  <View style={styles.divider} />
-                </>
-              )}
-              <Pressable style={styles.dangerRow} onPress={handleDeleteAccount}>
-                <View style={styles.dangerRowLeft}>
-                  <Icon name="trash" size={18} color={theme.colors.destructive} />
-                  <SansSerifText size="base" style={styles.dangerLabel}>Delete Account</SansSerifText>
-                </View>
-              </Pressable>
-            </View>
-          </View>
+          </Pressable>
+          <SansSerifBoldText size="xl" style={styles.name}>
+            {user?.username || "User"}
+          </SansSerifBoldText>
+          <SansSerifText size="base" style={styles.email}>
+            {user?.email || "user@example.com"}
+          </SansSerifText>
+          <Button
+            preset="outline"
+            size="sm"
+            onPress={handleEditProfile}
+          >
+            <Icon name="pencil" size={14} color={theme.colors.primary} />
+            <SansSerifText size="base" style={styles.editButtonText}> Edit Profile</SansSerifText>
+          </Button>
         </View>
+
+        <AccountInfoSection
+          theme={theme}
+          userId={user?.userId}
+          billing={billing}
+          entitled={entitled}
+          statusColor={statusColor}
+          statusLabel={statusLabel}
+          billingAction={billingAction}
+          isCreatingPortal={billingActions.isCreatingPortal}
+          onManageBilling={handleManageBilling}
+          onUpgrade={handleUpgrade}
+        />
+
+        <ItemGroup title="Account Settings">
+          <Item onPress={handleChangePassword}>
+            <ItemMedia size={36} icon="key" />
+            <ItemContent>
+              <ItemTitle>Change Password</ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
+            </ItemActions>
+          </Item>
+          <Item onPress={handlePrivacySettings}>
+            <ItemMedia size={36} icon="shield" />
+            <ItemContent>
+              <ItemTitle>Privacy Settings</ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
+            </ItemActions>
+          </Item>
+        </ItemGroup>
+
+        <ItemGroup title="Notifications">
+          <Item>
+            <ItemMedia size={36} icon="mail" />
+            <ItemContent>
+              <ItemTitle>Email Notifications</ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
+            </ItemActions>
+          </Item>
+          <Item>
+            <ItemMedia size={36} icon="bell" />
+            <ItemContent>
+              <ItemTitle>Push Notifications</ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <Switch checked={pushNotifications} onCheckedChange={setPushNotifications} />
+            </ItemActions>
+          </Item>
+          <Item>
+            <ItemMedia size={36} icon="mail" />
+            <ItemContent>
+              <ItemTitle>Marketing Emails</ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <Switch checked={marketingEmails} onCheckedChange={setMarketingEmails} />
+            </ItemActions>
+          </Item>
+        </ItemGroup>
+
+        <ItemGroup title="Connected Accounts">
+          <Item onPress={handleConnectGoogle}>
+            <ItemMedia size={36} style={styles.googleTile}>
+              <SansSerifBoldText size="body" style={styles.providerLetter}>G</SansSerifBoldText>
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>Google</ItemTitle>
+              <ItemDescription>Not connected</ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <Icon name="link-2" size={18} color={theme.colors.primary} />
+            </ItemActions>
+          </Item>
+          <Item onPress={handleConnectApple}>
+            <ItemMedia size={36} style={styles.appleTile}>
+              <SansSerifBoldText size="body" style={styles.appleLetter}>A</SansSerifBoldText>
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>Apple</ItemTitle>
+              <ItemDescription>Not connected</ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <Icon name="link-2" size={18} color={theme.colors.primary} />
+            </ItemActions>
+          </Item>
+        </ItemGroup>
+
+        <ItemGroup title="Danger Zone">
+          {isAuthenticated && (
+            <Item onPress={handleSignOut}>
+              <ItemMedia
+                size={36}
+                icon="log-out"
+                iconColor={theme.colors.destructive}
+                style={styles.destructiveTile}
+              />
+              <ItemContent>
+                <ItemTitle style={styles.destructiveLabel}>Sign Out</ItemTitle>
+              </ItemContent>
+            </Item>
+          )}
+          <Item onPress={handleDeleteAccount}>
+            <ItemMedia
+              size={36}
+              icon="trash"
+              iconColor={theme.colors.destructive}
+              style={styles.destructiveTile}
+            />
+            <ItemContent>
+              <ItemTitle style={styles.destructiveLabel}>Delete Account</ItemTitle>
+            </ItemContent>
+          </Item>
+        </ItemGroup>
       </ScrollView>
     </>
   );
 }
 
-type ProfileStyles = ReturnType<typeof createStyles>;
-
 function AccountInfoSection({
-  styles,
-  shadowStyle,
   theme,
   userId,
   billing,
@@ -293,8 +287,6 @@ function AccountInfoSection({
   onManageBilling,
   onUpgrade,
 }: {
-  styles: ProfileStyles;
-  shadowStyle: object;
   theme: Theme;
   userId?: string;
   billing?: BillingSummary;
@@ -307,107 +299,96 @@ function AccountInfoSection({
   onUpgrade: () => void;
 }) {
   return (
-    <View style={styles.section}>
-      <SansSerifBoldText size="body" style={styles.sectionTitle}>Account Info</SansSerifBoldText>
-      <View style={[styles.card, shadowStyle]}>
-        <View style={styles.infoRow}>
-          <View style={styles.infoRowLeft}>
-            <Icon name="user" size={18} color={theme.colors.mutedForeground} />
-            <SansSerifText style={styles.infoLabel}>User ID</SansSerifText>
-          </View>
-          <SansSerifText style={styles.infoValue}>
-            {userId ? userId.slice(0, 8) + "..." : "—"}
-          </SansSerifText>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.infoRow}>
-          <View style={styles.infoRowLeft}>
-            <Icon
-              name="award"
-              size={18}
-              color={entitled ? theme.colors.success : theme.colors.mutedForeground}
-            />
-            <SansSerifText style={styles.infoLabel}>Plan</SansSerifText>
-          </View>
-          <SansSerifText style={styles.infoValue}>
-            {billing?.planLabel ?? "Free"}
-          </SansSerifText>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.infoRow}>
-          <View style={styles.infoRowLeft}>
-            <Icon name="calendar" size={18} color={theme.colors.mutedForeground} />
-            <SansSerifText style={styles.infoLabel}>Renews</SansSerifText>
-          </View>
-          <SansSerifText style={styles.infoValue}>
+    <ItemGroup title="Account Info">
+      <Item>
+        <ItemMedia size={36} icon="user" />
+        <ItemContent>
+          <ItemTitle>User ID</ItemTitle>
+        </ItemContent>
+        <ItemActions>
+          <ItemDescription>{userId ? userId.slice(0, 8) + "..." : "—"}</ItemDescription>
+        </ItemActions>
+      </Item>
+      <Item>
+        <ItemMedia
+          size={36}
+          icon="award"
+          iconColor={entitled ? theme.colors.success : theme.colors.mutedForeground}
+        />
+        <ItemContent>
+          <ItemTitle>Plan</ItemTitle>
+        </ItemContent>
+        <ItemActions>
+          <ItemDescription>{billing?.planLabel ?? "Free"}</ItemDescription>
+        </ItemActions>
+      </Item>
+      <Item>
+        <ItemMedia size={36} icon="calendar" />
+        <ItemContent>
+          <ItemTitle>Renews</ItemTitle>
+        </ItemContent>
+        <ItemActions>
+          <ItemDescription>
             {formatPeriodEnd(billing?.currentPeriodEnd, billing?.cancelAtPeriodEnd)}
-          </SansSerifText>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.infoRow}>
-          <View style={styles.infoRowLeft}>
-            <Icon name="shield" size={18} color={statusColor} />
-            <SansSerifText style={styles.infoLabel}>Status</SansSerifText>
-          </View>
-          <SansSerifText style={[styles.infoValue, { color: statusColor }]}>
-            {statusLabel}
-          </SansSerifText>
-        </View>
-        {billing?.cancelAtPeriodEnd && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.notice}>
-              <Icon name="triangle-alert" size={16} color={theme.colors.warning} />
-              <SansSerifText style={styles.noticeText}>
-                Your plan is scheduled to end. Re-enable from Manage
-                subscription to keep access.
-              </SansSerifText>
-            </View>
-          </>
-        )}
-        {billing?.status === "past_due" && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.notice}>
-              <Icon name="triangle-alert" size={16} color={theme.colors.warning} />
-              <SansSerifText style={styles.noticeText}>
-                Your last payment failed. Update your payment method in Manage
-                subscription.
-              </SansSerifText>
-            </View>
-          </>
-        )}
-        {billingAction && (
-          <>
-            <View style={styles.divider} />
-            <Pressable
-              style={styles.settingsRow}
-              onPress={billingAction === "manage" ? onManageBilling : onUpgrade}
-              disabled={isCreatingPortal}
-            >
-              <View style={styles.settingsRowLeft}>
-                <Icon
-                  name={billingAction === "manage" ? "credit-card" : "zap"}
-                  size={18}
-                  color={theme.colors.accent}
-                />
-                <SansSerifText
-                  size="base"
-                  style={[styles.settingsLabel, { color: theme.colors.accent }]}
-                >
-                  {billingAction === "manage"
-                    ? isCreatingPortal
-                      ? "Opening…"
-                      : "Manage Subscription"
-                    : "Upgrade"}
-                </SansSerifText>
-              </View>
-              <Icon name="chevron-right" size={18} color={theme.colors.accent} />
-            </Pressable>
-          </>
-        )}
-      </View>
-    </View>
+          </ItemDescription>
+        </ItemActions>
+      </Item>
+      <Item>
+        <ItemMedia size={36} icon="shield" iconColor={statusColor} />
+        <ItemContent>
+          <ItemTitle>Status</ItemTitle>
+        </ItemContent>
+        <ItemActions>
+          <ItemDescription style={{ color: statusColor }}>{statusLabel}</ItemDescription>
+        </ItemActions>
+      </Item>
+      {billing?.cancelAtPeriodEnd && (
+        <Item>
+          <ItemMedia size={36} icon="triangle-alert" iconColor={theme.colors.warning} />
+          <ItemContent>
+            <ItemDescription>
+              Your plan is scheduled to end. Re-enable from Manage
+              subscription to keep access.
+            </ItemDescription>
+          </ItemContent>
+        </Item>
+      )}
+      {billing?.status === "past_due" && (
+        <Item>
+          <ItemMedia size={36} icon="triangle-alert" iconColor={theme.colors.warning} />
+          <ItemContent>
+            <ItemDescription>
+              Your last payment failed. Update your payment method in Manage
+              subscription.
+            </ItemDescription>
+          </ItemContent>
+        </Item>
+      )}
+      {billingAction && (
+        <Item
+          onPress={billingAction === "manage" ? onManageBilling : onUpgrade}
+          disabled={isCreatingPortal}
+        >
+          <ItemMedia
+            size={36}
+            icon={billingAction === "manage" ? "credit-card" : "zap"}
+            iconColor={theme.colors.accent}
+          />
+          <ItemContent>
+            <ItemTitle style={{ color: theme.colors.accent }}>
+              {billingAction === "manage"
+                ? isCreatingPortal
+                  ? "Opening…"
+                  : "Manage Subscription"
+                : "Upgrade"}
+            </ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <Icon name="chevron-right" size={18} color={theme.colors.accent} />
+          </ItemActions>
+        </Item>
+      )}
+    </ItemGroup>
   );
 }
 
@@ -494,6 +475,9 @@ function formatPeriodEnd(
   return cancelAtPeriodEnd ? `Ends ${formatted}` : formatted;
 }
 
+// Wide screens cap and centre the column instead of boxing it.
+const MAX_CONTENT_WIDTH = 640;
+
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     scrollView: {
@@ -501,14 +485,16 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
     content: {
-      flex: 1,
-      paddingHorizontal: spacing.screenPadding,
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       paddingTop: spacing.md,
       paddingBottom: spacing.xxl,
+      gap: spacing.sectionSpacing,
     },
     headerSection: {
       alignItems: "center",
-      marginBottom: spacing.sectionSpacing,
+      paddingHorizontal: spacing.screenPadding,
     },
     avatar: {
       width: 100,
@@ -530,122 +516,26 @@ const createStyles = (theme: Theme) =>
     editButtonText: {
       color: theme.colors.primary,
     },
-    section: {
-      marginBottom: spacing.lg,
+    googleTile: {
+      // eslint-disable-next-line expo-ui/no-restyle, expo-ui/no-raw-colors -- Google brand tile; must not follow the theme, and ItemMedia has no tint variant
+      backgroundColor: "#DB4437",
     },
-    sectionTitle: {
-      color: theme.colors.foreground,
-      marginBottom: spacing.sm,
-    },
-    card: {
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusMd,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      overflow: "hidden",
-    },
-    dangerCard: {
-      borderColor: withAlpha(theme.colors.destructive, 0.25),
-    },
-    infoRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: spacing.md,
-    },
-    infoRowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    infoLabel: {
-      fontSize: 14,
-      color: theme.colors.foreground,
-    },
-    infoValue: {
-      fontSize: 14,
-      color: theme.colors.foreground,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: theme.colors.border,
-      marginHorizontal: spacing.md,
-    },
-    settingsRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: spacing.md,
-    },
-    settingsRowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    settingsLabel: {
-      color: theme.colors.foreground,
-    },
-    switchRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: spacing.md,
-    },
-    switchRowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    connectedRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: spacing.md,
-    },
-    connectedRowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    providerIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: spacing.radiusSm,
-      alignItems: "center",
-      justifyContent: "center",
+    appleTile: {
+      // eslint-disable-next-line expo-ui/no-restyle -- Apple brand tile inverts with the theme; ItemMedia has no tint variant
+      backgroundColor: theme.colors.foreground,
     },
     providerLetter: {
       color: palette.white,
     },
-    connectedStatus: {
-      color: theme.colors.mutedForeground,
+    appleLetter: {
+      color: theme.colors.background,
     },
-    dangerRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: spacing.md,
+    destructiveTile: {
+      // eslint-disable-next-line expo-ui/no-restyle -- destructive icon tile tint; ItemMedia has no tint variant
+      backgroundColor: withAlpha(theme.colors.destructive, 0.12),
     },
-    dangerRowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    dangerLabel: {
+    destructiveLabel: {
       color: theme.colors.destructive,
-    },
-    notice: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-    },
-    noticeText: {
-      flex: 1,
-      fontSize: 13,
-      color: theme.colors.foreground,
-      lineHeight: 18,
     },
   });
 

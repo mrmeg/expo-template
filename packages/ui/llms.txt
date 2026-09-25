@@ -34,6 +34,13 @@ KeyboardAvoidingView inside a sheet. Open the next modal from the sheet's
 onDismissed callback (fires once the sheet is fully gone), not from
 onOpenChange(false).
 
+Screens are flat: one 16 pt horizontal inset (spacing.screenPadding), either
+on the container or on its children, never both. Lists and settings are
+ItemGroup + Item (full-width rows, inset hairlines), never rows inside a
+bordered, shadowed, or tinted panel. Card is for one item in a collection or one
+tappable object; never nest Cards. Media and charts fill the column width; wide
+screens cap and centre the column. LLM_USAGE.md "Screen Layout" has the rules.
+
 Use useTheme(), useStyles(), semantic tokens, StyledText, and package controls.
 Do not add app-local Appearance or matchMedia listeners for theme sync. On web
 theme colors are CSS variables: use withAlpha(color, alpha), never hex-suffix

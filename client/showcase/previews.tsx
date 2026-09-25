@@ -39,7 +39,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { InputOTP } from "@mrmeg/expo-ui/components/InputOTP";
-import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@mrmeg/expo-ui/components/Item";
+import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@mrmeg/expo-ui/components/Item";
 import { Label } from "@mrmeg/expo-ui/components/Label";
 import { Popover, PopoverBody, PopoverContent, PopoverTrigger } from "@mrmeg/expo-ui/components/Popover";
 import { Progress } from "@mrmeg/expo-ui/components/Progress";
@@ -407,13 +407,22 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
 
   Item: () => (
     <View style={{ alignSelf: "stretch" }}>
-      <Item>
-        <ItemMedia icon="calendar" />
-        <ItemContent>
-          <ItemTitle>Design review</ItemTitle>
-          <ItemDescription>Tomorrow · 10:00</ItemDescription>
-        </ItemContent>
-      </Item>
+      <ItemGroup>
+        <Item>
+          <ItemMedia icon="calendar" />
+          <ItemContent>
+            <ItemTitle>Design review</ItemTitle>
+            <ItemDescription>Tomorrow · 10:00</ItemDescription>
+          </ItemContent>
+        </Item>
+        <Item>
+          <ItemMedia icon="bell" />
+          <ItemContent>
+            <ItemTitle>Standup</ItemTitle>
+            <ItemDescription>Daily · 09:30</ItemDescription>
+          </ItemContent>
+        </Item>
+      </ItemGroup>
     </View>
   ),
 

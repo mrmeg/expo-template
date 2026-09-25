@@ -3,7 +3,9 @@ import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
-import { StatCard, type StatCardChange } from "@mrmeg/expo-ui/components/StatCard";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { EyebrowText, StyledText } from "@mrmeg/expo-ui/components/StyledText";
+import type { StatCardChange } from "@mrmeg/expo-ui/components/StatCard";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -12,8 +14,8 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 // ---------------------------------------------------------------------------
 
 /**
- * Same metric shape the `stats` and `dashboard` templates feed to `StatCard`,
- * so a screen can hand the identical array to either tier.
+ * Same metric shape the `stats` and `dashboard` templates use, so a screen can
+ * hand the identical array to either tier.
  */
 export interface StatRowMetric {
   label: string;
@@ -46,10 +48,11 @@ const DEFAULT_STATS: StatRowMetric[] = [
 /**
  * StatRowBlock
  *
- * A row of `StatCard`s with an optional `SectionHeader`. Cards use a
- * `flexBasis` two-up on phones and grow to fill wider rows, matching the grid
- * shape the `stats` and `dashboard` templates already use so the metric array
- * is interchangeable between them.
+ * A row of flat stats with an optional `SectionHeader`: each metric is a
+ * label, a tabular value, and an optional change line under a hairline rule,
+ * not a card. Stats use a `flexBasis` two-up on phones and grow to fill wider
+ * rows, matching the grid shape the `stats` and `dashboard` templates already
+ * use so the metric array is interchangeable between them.
  *
  * @example
  * ```tsx
@@ -74,18 +77,62 @@ export function StatRowBlock({
         <SectionHeader title={title} description={description} style={styles.header} />
       )}
 
-      <View style={styles.row}>
+      <View style={styles.grid}>
         {stats.map((stat) => (
-          <StatCard
-            key={stat.label}
-            label={stat.label}
-            value={stat.value}
-            unit={stat.unit}
-            change={stat.change}
-            style={styles.card}
-          />
+          <Stat key={stat.label} {...stat} />
         ))}
       </View>
+    </View>
+  );
+}
+
+/**
+ * One flat metric: a top hairline, an eyebrow label, the value with an
+ * optional muted unit, and an optional change line colored by direction
+ * (a trend icon for up/down, text only for neutral).
+ */
+function Stat({ label, value, unit, change }: StatRowMetric) {
+  const { theme } = useTheme();
+  const styles = themedStyles(theme);
+
+  const changeColor = !change
+    ? undefined
+    : change.direction === "up"
+      ? theme.colors.success
+      : change.direction === "down"
+        ? theme.colors.destructive
+        : theme.colors.textDim;
+
+  return (
+    <View style={styles.stat}>
+      <EyebrowText style={styles.label}>{label}</EyebrowText>
+
+      <View style={styles.valueRow}>
+        <StyledText size="xxl" fontWeight="bold" style={styles.value}>
+          {value}
+        </StyledText>
+        {!!unit && (
+          <StyledText size="base" style={styles.unit}>
+            {unit}
+          </StyledText>
+        )}
+      </View>
+
+      {!!change && (
+        <View style={styles.change}>
+          {change.direction !== "neutral" && (
+            <Icon
+              name={change.direction === "up" ? "trending-up" : "trending-down"}
+              size={spacing.iconXs}
+              color={changeColor}
+              decorative
+            />
+          )}
+          <StyledText size="sm" style={{ color: changeColor }}>
+            {change.value}
+          </StyledText>
+        </View>
+      )}
     </View>
   );
 }
@@ -107,17 +154,43 @@ const createStyles = (theme: Theme) =>
     header: {
       marginBottom: spacing.md,
     },
-    row: {
+    grid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: spacing.sm,
+      columnGap: spacing.md,
+      rowGap: spacing.lg,
     },
     // Two-up on phone: just under half a row so the gap fits without
-    // overflowing. flexBasis (not width) so cards still grow to fill a wider
+    // overflowing. flexBasis (not width) so stats still grow to fill a wider
     // row — same treatment as client/templates/stats.
-    card: {
+    stat: {
       flexGrow: 1,
       flexBasis: "47%",
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.colors.border,
+      paddingTop: spacing.smd,
+      gap: spacing.xs,
+    },
+    label: {
+      color: theme.colors.textDim,
+    },
+    valueRow: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+    },
+    value: {
+      color: theme.colors.foreground,
+      fontVariant: ["tabular-nums"],
+    },
+    unit: {
+      color: theme.colors.textDim,
+      marginLeft: spacing.xxs,
+      marginBottom: spacing.xxs,
+    },
+    change: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xxs,
     },
   });
 

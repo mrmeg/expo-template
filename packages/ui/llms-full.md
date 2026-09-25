@@ -90,6 +90,52 @@ When the saved theme preference is `system`, the package theme store owns OS
 color-scheme sync, including web `prefers-color-scheme`. Apps must not add their
 own `Appearance` or `matchMedia` listeners for package components.
 
+## Screen Layout
+
+Screens are flat. On a 390 pt phone each nested inset comes out of the content:
+rows boxed in a bordered group inside a padded screen start 33 pt from each edge
+(16 + 1 + 16) with 324 pt left for them; the same rows in an `ItemGroup` start
+16 pt in with 358 pt.
+
+- One horizontal inset per screen: `spacing.screenPadding` (16). Either a
+  container pads or its children do, never both. `Item` rows and `ItemGroup`
+  titles and footers carry the 16 themselves, so a scroll view of groups gets
+  no horizontal padding; text, forms, and buttons between them pad their own
+  wrapper.
+- No boxes as layout: no bordered, shadowed, or tinted rounded panel (or `Card`)
+  around a section, a form, or a group of rows. Separate sections with a header,
+  `spacing.sectionSpacing` (24), or a hairline (`Separator`).
+- Lists and settings are `ItemGroup` + `Item`: full-width rows and touch
+  targets, hairlines inset under the title, no card per row, no border around
+  the group. Rows are direct children; the group separates them.
+- Forms: fields span the column, grouped under section headers, not cards.
+- Primary content (photos, video, maps, QR codes, charts) sizes to the column
+  width, never a fixed size floating in whitespace.
+- Wide screens cap and centre the column (`width: "100%", maxWidth: 640,
+  alignSelf: "center"` on the scroll content; 960 for dense grids) instead of
+  boxing it.
+- `Card` is for one item in a collection (feed entry, grid tile, carousel slide)
+  or a single tappable object; `StatCard` likewise (a scrolling metrics rail, a
+  tappable metric). Never nest them.
+- Dialog, sheet, and popover chrome keep their surfaces.
+
+```tsx
+<ScrollView contentContainerStyle={{ width: "100%", maxWidth: 640, alignSelf: "center", paddingVertical: spacing.md, gap: spacing.sectionSpacing }}>
+  <ItemGroup title="Account" footer="Signed in as jane@example.com">
+    <Item onPress={openProfile}>
+      <ItemMedia icon="user" />
+      <ItemContent><ItemTitle>Edit profile</ItemTitle></ItemContent>
+      <ItemActions><Icon name="chevron-right" size={18} color="mutedForeground" /></ItemActions>
+    </Item>
+    <Item>
+      <ItemMedia icon="bell" />
+      <ItemContent><ItemTitle>Notifications</ItemTitle></ItemContent>
+      <ItemActions><Switch checked={enabled} onCheckedChange={setEnabled} /></ItemActions>
+    </Item>
+  </ItemGroup>
+</ScrollView>
+```
+
 ## Component Catalog
 
 Every component is exported from `@mrmeg/expo-ui/components`, and from
@@ -105,7 +151,7 @@ before creating a new app-local primitive.
 | `Badge` | Short status labels | Prefer over custom pill views. |
 | `BottomSheet` | Mobile-first modal sheets | Requires root `UIProvider`. Native sheet via `@expo/ui`; `swipeEnabled`, `avoidKeyboard`, `dismissKeyboardOnDrag` are accepted but ignored (the iOS sheet presentation and Android Material3 keep content above the keyboard; never nest a `KeyboardAvoidingView` in a sheet). |
 | `Button` | Commands and CTAs | Use `preset`, not `variant`; heights are 28/32/40. |
-| `Card` | Individual framed content groups | Do not wrap whole page sections in cards. |
+| `Card` | One item in a collection (feed entry, grid tile, carousel slide) or a single tappable object | Not a layout box: never around a section, form, or row group; never nested. Parts pad `spacing.cardPadding`. |
 | `Carousel` | Small known set of horizontally snapping slides | Renders every child (no virtualization); fractional `itemWidth` measures the viewport until first layout. |
 | `Checkbox` | Boolean selection in forms or lists | Prefer over custom checkmark controls. |
 | `Collapsible` | One-off disclosure | Use for advanced settings or helper sections. |
@@ -118,6 +164,7 @@ before creating a new app-local primitive.
 | `Icon` | Lucide or custom icons with theme tokens | `color` takes a theme color name; pass `decorative` to hide from a11y. |
 | `InputOTP` | Verification code entry | Prefer over manually managed text input groups. |
 | `Item` | List / settings rows | Applies the row density tokens and a 44px native hit area (40px on web). |
+| `ItemGroup` | A titled group of full-width `Item` rows | Props: `title`, `description`, `footer`, `style`, `testID`. Draws inset hairlines between rows; no border, fill, or horizontal padding, so the parent must not pad either. |
 | `KeyboardAvoidingView` | Native keyboard-aware roots, composer footers, form-heavy subtrees | `UIProvider` already mounts one root; use directly only for custom subtrees. |
 | `Label` | Accessible form labels | Two distinct ids: `nativeID` is the label's, `htmlFor` is the input's `nativeID`. Never reuse one id for both. |
 | `MaxWidthContainer` | Centered responsive width | Use for web and tablet constrained layouts. |
@@ -131,7 +178,7 @@ before creating a new app-local primitive.
 | `Separator` | Horizontal or vertical dividers | Prefer over border-only spacer views. |
 | `Skeleton` | Loading placeholders | Use stable dimensions to avoid layout shift. |
 | `Slider` | Numeric value selection | Backed by `@expo/ui`; prefer over custom pan gesture tracks. |
-| `StatCard` | Metric tile | Props: `label`, `value`, `unit`, `change` (`{ value, direction }`), `icon`, `onPress`. |
+| `StatCard` | Metric tile in a collection, or one tappable metric | Props: `label`, `value`, `unit`, `change` (`{ value, direction }`), `icon`, `onPress`. A Card, so the same rule applies. |
 | `StatusBar` | Theme-aware native status bar | Usually mounted through `UIProvider`. |
 | `StyledText` | Theme-aware typography | Prefer semantic aliases over raw `Text`. |
 | `Switch` | Binary settings | Prefer over custom toggles for on/off state. |
@@ -156,9 +203,10 @@ option sets.
 `Dialog` blocking decisions · `Popover` contextual controls · `Tooltip` short
 explanations · `DropdownMenu` action lists.
 
-`Card` individual repeated or framed items, never a wrapper around full page
-sections · `EmptyState` no-data or recoverable errors · `Skeleton` loading
-content with stable layout · `Progress` real or indeterminate progress.
+`ItemGroup` + `Item` lists and settings · `Card` one item in a collection or one
+tappable object, never a wrapper around a section, form, or row group, never
+nested · `EmptyState` no-data or recoverable errors · `Skeleton` loading content
+with stable layout · `Progress` real or indeterminate progress.
 
 ## Notifications
 

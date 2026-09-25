@@ -15,6 +15,7 @@ import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { Separator } from "@mrmeg/expo-ui/components/Separator";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -89,7 +90,7 @@ export function PricingScreen({
   footer,
   style: styleOverride,
 }: PricingScreenProps) {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme } = useTheme();
   const styles = themedStyles(theme);
 
   return (
@@ -128,25 +129,28 @@ export function PricingScreen({
           </View>
         )}
 
-        {/* Plans */}
+        {/* Plans: flat sections on the screen gutter, split by hairlines. The
+            badge, accent name, and primary CTA mark the highlighted plan, so it
+            needs no box of its own. */}
         <View style={styles.plansContainer}>
           {plans.map((plan, index) => (
             <AnimatedView
               key={plan.name}
               type="fadeSlideUp"
               delay={STAGGER_DELAY * (3 + index)}
+              style={styles.planSection}
             >
-              <View
-                style={[
-                  styles.planCard,
-                  getShadowStyle("subtle"),
-                  plan.highlighted && styles.planHighlighted,
-                ]}
-              >
+              {index > 0 && <Separator margin={0} />}
+              <View>
                 {/* Plan header */}
                 <View style={styles.planHeader}>
                   <View style={styles.planNameRow}>
-                    <SansSerifBoldText size="lg" style={styles.planName}>{plan.name}</SansSerifBoldText>
+                    <SansSerifBoldText
+                      size="lg"
+                      style={plan.highlighted ? styles.planNameHighlighted : styles.planName}
+                    >
+                      {plan.name}
+                    </SansSerifBoldText>
                     {plan.badge && (
                       <Badge variant={plan.highlighted ? "default" : "outline"}>
                         {plan.badge}
@@ -227,6 +231,9 @@ export function PricingScreen({
 // Styles
 // ---------------------------------------------------------------------------
 
+// Wide screens cap and centre the column instead of boxing it.
+const MAX_CONTENT_WIDTH = 640;
+
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
@@ -237,6 +244,9 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     scrollContent: {
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       paddingBottom: spacing.xxl,
     },
     header: {
@@ -251,18 +261,12 @@ const createStyles = (theme: Theme) =>
     },
     plansContainer: {
       paddingHorizontal: spacing.screenPadding,
-      gap: spacing.md,
+      gap: spacing.lg,
     },
-    planCard: {
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusLg,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      padding: spacing.cardPadding,
-    },
-    planHighlighted: {
-      borderColor: theme.colors.accent,
-      borderWidth: 2,
+    // Gap under each divider; plansContainer's matching gap sits above it, so
+    // the hairline splits the space between two plans evenly.
+    planSection: {
+      gap: spacing.lg,
     },
     planHeader: {
       marginBottom: spacing.md,
@@ -275,6 +279,9 @@ const createStyles = (theme: Theme) =>
     },
     planName: {
       color: theme.colors.foreground,
+    },
+    planNameHighlighted: {
+      color: theme.colors.accent,
     },
     priceRow: {
       flexDirection: "row",
