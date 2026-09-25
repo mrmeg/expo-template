@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`ItemGroup`, a flat grouped list** (from `components/Item` and the
+  barrels). `<ItemGroup title? description? footer? style? testID?>` stacks
+  `Item` rows edge to edge and draws an inset hairline under every row but the
+  last. The title is an uppercase muted eyebrow announced as a header (an h2 on
+  web), the description and footer are caption text, and the group paints no
+  border, radius, shadow, or fill and adds no horizontal padding: the rows and
+  the header carry the 16 pt screen inset (`spacing.rowPaddingX`) themselves.
+  It replaces the bordered, shadowed box apps wrapped around settings rows,
+  which put row content 33 pt from each edge of a 390 pt phone (16 screen + 1
+  border + 16 row, 324 pt wide); in a group it sits 16 pt in (358 pt wide).
+  Pass rows as direct children (a mapped array works; a Fragment is one row).
+
 - **`PopoverContent` `scrollable` and a typed `PopoverTrigger` ref.**
   `scrollable` (default `true`) wraps the children in the scroll body that
   keeps a tall popover inside its room; pass `false` for content that brings
@@ -51,6 +63,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **`Item`'s separator starts under the title.** The hairline now insets past
+  the row's `ItemMedia` at its real `size` (it assumed a 40 pt slot, so a
+  36 pt tile's line started 4 pt past the title) and to the row padding when
+  the row has no media (it started 68 pt in, under nothing). Rows with the
+  default 40 pt `ItemMedia` are unchanged. `separator` no longer defaults to
+  `false`: inside an `ItemGroup` the group sets it for every row but the last,
+  and an explicit `true` or `false` still wins.
+- **Docs teach flat screens; `Card` is for collection items and single
+  tappable objects.** `README.md` gains a Screen layout section, and
+  `LLM_USAGE.md` a Screen Layout section whose rules are one 16 pt horizontal
+  inset per screen, no bordered/shadowed/tinted panels as layout, lists and
+  settings as `ItemGroup` + `Item`, forms spanning the column, media sized to
+  the width, and a capped column on wide screens. The first `LLM_USAGE.md`
+  Minimal Example is now a flat settings screen, and `llms-full.md` and
+  `llms.txt` carry the same rules. `Card` and `StatCard` behave exactly as
+  before.
 - **Pressed and disabled states are consistent across the kit.** Button's
   pressed opacity goes 0.9 → 0.85 and its label no longer dims a second time
   on top of the container; pressable Card and Item dim to the same 0.85 while
