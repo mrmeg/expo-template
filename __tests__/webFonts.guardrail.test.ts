@@ -70,3 +70,41 @@ describe("self-hosted Inter", () => {
     expect(html).not.toMatch(/fonts\.googleapis\.com|fonts\.gstatic\.com/);
   });
 });
+
+const referencedNewsreader = Array.from(
+  new Set(Array.from(html.matchAll(/\/fonts\/newsreader\/([\w.-]+\.woff2)/g), (match) => match[1])),
+);
+
+describe("self-hosted Newsreader (the kit's serif preset)", () => {
+  it("references the three subsets, upright and italic", () => {
+    expect(referencedNewsreader.sort()).toEqual([
+      "newsreader-latin-ext-wght-italic.woff2",
+      "newsreader-latin-ext-wght-normal.woff2",
+      "newsreader-latin-wght-italic.woff2",
+      "newsreader-latin-wght-normal.woff2",
+      "newsreader-vietnamese-wght-italic.woff2",
+      "newsreader-vietnamese-wght-normal.woff2",
+    ]);
+  });
+
+  it.each(referencedNewsreader)("serves %s from public/, unchanged from the package", (file) => {
+    const served = join(root, "public/fonts/newsreader", file);
+    const source = join(root, "node_modules/@fontsource-variable/newsreader/files", file);
+
+    expect(existsSync(served)).toBe(true);
+    expect(readFileSync(served).equals(readFileSync(source))).toBe(true);
+  });
+
+  it("ships the font's license with the files", () => {
+    expect(existsSync(join(root, "public/fonts/newsreader/LICENSE.txt"))).toBe(true);
+  });
+
+  it("marks the faces with the id @mrmeg/expo-ui checks before injecting its own", () => {
+    const useResources = readFileSync(join(root, "packages/ui/src/hooks/useResources.ts"), "utf8");
+    const packageId = useResources.match(/NEWSREADER_STYLESHEET_ID = "([^"]+)"/)?.[1];
+
+    expect(packageId).toBe("mrmeg-expo-ui-newsreader");
+    expect(html).toContain(`<style id="${packageId}">{NEWSREADER_FONT_FACES}</style>`);
+    expect(html).toContain('font-family:"Newsreader";font-style:${style}');
+  });
+});

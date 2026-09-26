@@ -579,8 +579,10 @@ On native `useResources` registers the files and then sets the theme store's
 `Newsreader_400Regular` … `Newsreader_700Bold` (`light` shares the 400 file)
 and `italic` to `Newsreader_400Regular_Italic` at every weight. On web it
 injects one Google Fonts stylesheet (`Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400`)
-under the id `mrmeg-expo-ui-newsreader` — add that `<link>` to `+html.tsx`
-for first paint and the hook skips its own — and switches the preset at once
+under the id `mrmeg-expo-ui-newsreader` — put an element with that id in
+`+html.tsx` (the Google Fonts `<link>`, or self-hosted `@font-face` rules as
+this template does from `@fontsource-variable/newsreader`) and the hook skips
+its own — and switches the preset at once
 (the stack falls back to Georgia until the faces arrive); weight is numeric on
 the shared `"Newsreader"` family. A `setFonts` serif override wins over the
 preset and skips its load. Without `serifFonts` on native the hook warns once

@@ -131,6 +131,53 @@ const INTER_FONT_FACES = INTER_SUBSETS.map(
     `@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:optional;src:url(${url}) format("woff2");unicode-range:${unicodeRange}}`,
 ).join("\n");
 
+/**
+ * Self-hosted Newsreader, the web face of the kit's serif preset
+ * (`useResources({ serif: "newsreader" })` in RootLayout). Same policy as
+ * Inter above: variable weight (200 800) per unicode-range subset, upright and
+ * italic, served from public/ with `font-display: optional`, and the `<style>`
+ * id is the one useResources checks before injecting its Google Fonts
+ * stylesheet. Files come from @fontsource-variable/newsreader (see
+ * __tests__/webFonts.guardrail.test.ts, which pins them byte for byte).
+ */
+const NEWSREADER_SUBSETS: { url: string; style: "normal" | "italic"; unicodeRange: string }[] = [
+  {
+    url: "/fonts/newsreader/newsreader-vietnamese-wght-normal.woff2",
+    style: "normal",
+    unicodeRange: "U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB",
+  },
+  {
+    url: "/fonts/newsreader/newsreader-latin-ext-wght-normal.woff2",
+    style: "normal",
+    unicodeRange: "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+  },
+  {
+    url: "/fonts/newsreader/newsreader-latin-wght-normal.woff2",
+    style: "normal",
+    unicodeRange: "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+  },
+  {
+    url: "/fonts/newsreader/newsreader-vietnamese-wght-italic.woff2",
+    style: "italic",
+    unicodeRange: "U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB",
+  },
+  {
+    url: "/fonts/newsreader/newsreader-latin-ext-wght-italic.woff2",
+    style: "italic",
+    unicodeRange: "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+  },
+  {
+    url: "/fonts/newsreader/newsreader-latin-wght-italic.woff2",
+    style: "italic",
+    unicodeRange: "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+  },
+];
+
+const NEWSREADER_FONT_FACES = NEWSREADER_SUBSETS.map(
+  ({ url, style, unicodeRange }) =>
+    `@font-face{font-family:"Newsreader";font-style:${style};font-weight:200 800;font-display:optional;src:url(${url}) format("woff2-variations");unicode-range:${unicodeRange}}`,
+).join("\n");
+
 // Blocking script that resolves the visitor's color scheme before the app
 // bundle boots: it stamps `data-theme` on <html>, which switches the `--c-*`
 // variables above so the whole static shell paints in the right theme on the
@@ -234,15 +281,10 @@ export default function Root({ children }: PropsWithChildren) {
         />
         <style id="mrmeg-expo-ui-inter">{INTER_FONT_FACES}</style>
 
-        {/* Newsreader, the kit's serif preset (RootLayout passes
-            `useResources({ serif: "newsreader" })`): four weights and the 400
-            italic. The link's `id` is the one useResources looks for, so it
-            skips injecting a second copy after hydration. */}
-        <link
-          id="mrmeg-expo-ui-newsreader"
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
-        />
+        {/* Newsreader, self-hosted (see NEWSREADER_SUBSETS): the kit's serif
+            preset. No preload — headings are below the first fold's sans text
+            and the Georgia stack covers the optional-display miss. */}
+        <style id="mrmeg-expo-ui-newsreader">{NEWSREADER_FONT_FACES}</style>
 
         {/*
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native.
