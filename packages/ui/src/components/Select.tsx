@@ -4,6 +4,7 @@ import { Icon } from "./Icon";
 import { AnimatedView } from "./AnimatedView";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
+import { shapeRadius, useShape } from "../hooks/useShape";
 import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
@@ -70,6 +71,7 @@ function SelectTrigger({
   ...props
 }: SelectTriggerProps) {
   const { theme, getFocusRingStyle } = useTheme();
+  const inputShape = useShape("input");
   const sizeConfig = SIZE_CONFIGS[size];
   const focusRingStyle = getFocusRingStyle();
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
@@ -91,6 +93,7 @@ function SelectTrigger({
         onBlur={hideFocusRing}
         style={{
           ...styles.trigger,
+          ...shapeRadius(inputShape),
           height: sizeConfig.height,
           paddingHorizontal: sizeConfig.paddingHorizontal,
           borderColor: error ? theme.colors.destructive : theme.colors.border,

@@ -51,9 +51,36 @@ const palette = {
 } as const;
 
 /**
+ * Extra color tokens an app declares for itself, so it stops keeping a side
+ * palette. Empty here; an app augments it once and the keys become part of
+ * `ThemeColors` everywhere — `setColors`, `ThemeColorScope`,
+ * `useTheme().theme.colors`, `getThemeCssVariables`:
+ *
+ * ```ts
+ * declare module "@mrmeg/expo-ui/constants" {
+ *   interface ThemeColorExtensions {
+ *     brandGold: string;
+ *   }
+ * }
+ * useThemeStore.getState().setColors({
+ *   light: { brandGold: "#c9a227" },
+ *   dark: { brandGold: "#ffe066" },
+ * });
+ * ```
+ *
+ * The package ships no value for an extension key: provide it in both schemes
+ * or the token is `undefined` at runtime in the scheme that lacks it. On web
+ * the built-in tokens are `var(--c-*)` references and extension values are
+ * literals per scheme, so with any override `theme.colors` is a new object
+ * when the scheme changes (the identity caveat every override already has).
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- augmentation target; apps add members
+export interface ThemeColorExtensions {}
+
+/**
  * Semantic color interface - what colors mean in the UI
  */
-export interface ThemeColors {
+export interface ThemeColors extends ThemeColorExtensions {
   // Core surfaces
   // Elevation reads as layered tiers, not shadows:
   // `surfaceSunken` (app chrome) < `background` (content) < `card`/`popover`
@@ -120,7 +147,17 @@ export interface Colors {
   dark: Theme;
 }
 
-const lightTheme: Theme = {
+/**
+ * The package's own tokens: `ThemeColors` minus whatever an app added through
+ * `ThemeColorExtensions`. The default palettes, the CSS-variable table and
+ * `resolveRawColor` are typed on this, because the package has no value for an
+ * extension key.
+ */
+export type ThemeColorTokens = Omit<ThemeColors, keyof ThemeColorExtensions>;
+
+type BaseTheme = Omit<Theme, "colors"> & { colors: ThemeColorTokens };
+
+const lightTheme: BaseTheme = {
   dark: false,
   fonts: navigationFonts,
   colors: {
@@ -166,7 +203,7 @@ const lightTheme: Theme = {
   },
 };
 
-const darkTheme: Theme = {
+const darkTheme: BaseTheme = {
   dark: true,
   fonts: navigationFonts,
   colors: {
@@ -217,20 +254,22 @@ const darkTheme: Theme = {
  * these for sinks that cannot take CSS `var()` — e.g. `<meta name="theme-color">`,
  * color parsing/math — and for generating the CSS variable definitions below.
  */
-export const rawThemeColors: { light: ThemeColors; dark: ThemeColors } = {
+export const rawThemeColors: { light: ThemeColorTokens; dark: ThemeColorTokens } = {
   light: lightTheme.colors,
   dark: darkTheme.colors,
 };
 
-const themeColorTokens = Object.keys(lightTheme.colors) as (keyof ThemeColors)[];
+const themeColorTokens = Object.keys(lightTheme.colors) as (keyof ThemeColorTokens)[];
 
 // `surfaceSunken` → `--c-surface-sunken`
-function cssVarName(token: keyof ThemeColors): string {
+function cssVarName(token: string): string {
   return `--c-${token.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
 }
 
+const themeColorTokenSet = new Set<string>(themeColorTokens);
+
 // Reverse lookup: "var(--c-surface-sunken)" → "surfaceSunken"
-const varToToken = new Map<string, keyof ThemeColors>(
+const varToToken = new Map<string, keyof ThemeColorTokens>(
   themeColorTokens.map((token) => [`var(${cssVarName(token)})`, token])
 );
 
@@ -268,21 +307,35 @@ function toRgbTriplet(value: string): string | null {
  * paint before any theme script stamps `data-theme`.
  *
  * Apps that override brand colors can pass those overrides so the emitted
- * CSS matches their theme.
+ * CSS matches their theme. Extension tokens (`ThemeColorExtensions`) present
+ * in the overrides get a variable too, per scheme that names them; the
+ * package has no default to fall back to for those.
  */
 export function getThemeCssVariables(overrides?: {
   light?: Partial<ThemeColors>;
   dark?: Partial<ThemeColors>;
 }): string {
+  const extensionTokens = [
+    ...Object.keys(overrides?.light ?? {}),
+    ...Object.keys(overrides?.dark ?? {}),
+  ].filter((token, index, all) => !themeColorTokenSet.has(token) && all.indexOf(token) === index);
+
+  const declaration = (token: string, value: string): string => {
+    const name = cssVarName(token);
+    const rgb = toRgbTriplet(value);
+    return `${name}: ${value};${rgb ? ` ${name}-rgb: ${rgb};` : ""}`;
+  };
+
   const declarations = (scheme: "light" | "dark"): string =>
-    themeColorTokens
-      .map((token) => {
-        const value = overrides?.[scheme]?.[token] ?? rawThemeColors[scheme][token];
-        const name = cssVarName(token);
-        const rgb = toRgbTriplet(value);
-        return `${name}: ${value};${rgb ? ` ${name}-rgb: ${rgb};` : ""}`;
-      })
-      .join("\n      ");
+    [
+      ...themeColorTokens.map((token) =>
+        declaration(token, overrides?.[scheme]?.[token] ?? rawThemeColors[scheme][token]),
+      ),
+      ...extensionTokens.flatMap((token) => {
+        const value = (overrides?.[scheme] as Record<string, string | undefined> | undefined)?.[token];
+        return typeof value === "string" ? [declaration(token, value)] : [];
+      }),
+    ].join("\n      ");
 
   return `
     :root {
@@ -315,6 +368,8 @@ const webVarColors = Object.fromEntries(
 // anything memoized on it keeps its result; the CSS variables do the
 // re-theming. `colors.light` and `colors.dark` stay distinct objects:
 // `dark`, `navigation`, and `fonts` differ per scheme.
+// The base themes carry the package tokens only; extension keys (typed on
+// `ThemeColors` once an app augments it) arrive through `setColors`.
 export const colors: Colors =
   Platform.OS === "web"
     ? {
@@ -322,8 +377,8 @@ export const colors: Colors =
       dark: { ...darkTheme, colors: webVarColors },
     }
     : {
-      light: lightTheme,
-      dark: darkTheme,
+      light: lightTheme as Theme,
+      dark: darkTheme as Theme,
     };
 
 // Export palette for rare one-off cases

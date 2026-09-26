@@ -9,6 +9,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { useTheme } from "../hooks/useTheme";
+import { useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
 import { StyledText } from "./StyledText";
 import { createThemedStyles } from "../lib/themedStyles";
@@ -247,6 +248,8 @@ function OTPCell({
   // pass every frame. The 1↔2px and color changes read as instant for OTP
   // cells, so compute both during render.
   const borderWidth = isActive && !hasError ? 2 : 1;
+  // Host-app `setShape({ input })`: cells share the TextInput radius.
+  const inputShape = useShape("input");
   const borderColor = hasError
     ? theme.colors.destructive
     : isActive
@@ -267,7 +270,7 @@ function OTPCell({
           {
             width: CELL_WIDTH,
             height: CELL_HEIGHT,
-            borderRadius: spacing.radiusMd,
+            borderRadius: inputShape?.borderRadius ?? spacing.radiusMd,
             borderWidth,
             justifyContent: "center",
             alignItems: "center",

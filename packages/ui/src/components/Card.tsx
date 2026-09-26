@@ -2,6 +2,7 @@ import React, { createContext, use } from "react";
 import { View, Pressable, StyleSheet, ViewStyle, TextStyle, StyleProp, Platform, Animated } from "react-native";
 import { StyledText, TextProps } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
+import { useShape } from "../hooks/useShape";
 import { useScalePress } from "../hooks/useScalePress";
 import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
@@ -67,6 +68,8 @@ function Card({ children, style: styleOverride, variant = "default", onPress, di
   const { theme, getShadowStyle, getFocusRingStyle } = useTheme();
   const styles = themedStyles(theme);
   const shadowStyle = getShadowStyle("subtle");
+  // Host-app `setShape({ card })`, on the surface and on the pressable ring wrapper.
+  const cardRadius = useShape("card")?.borderRadius ?? spacing.radiusLg;
   const ctx = { theme, styles };
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !onPress || !!disabled,
@@ -78,6 +81,7 @@ function Card({ children, style: styleOverride, variant = "default", onPress, di
     <View
       style={[
         styles.card,
+        { borderRadius: cardRadius },
         variant === "default" && styles.cardDefault,
         variant === "default" && shadowStyle,
         variant === "outline" && styles.cardOutline,
@@ -103,7 +107,7 @@ function Card({ children, style: styleOverride, variant = "default", onPress, di
           style={({ pressed }) => [
             // The ring is a box shadow on this wrapper, so it needs the card's
             // radius; the browser outline is off because the ring replaces it.
-            { borderRadius: spacing.radiusLg },
+            { borderRadius: cardRadius },
             Platform.OS === "web" && { cursor: "pointer" as any, outlineStyle: "none" as any },
             pressed && { opacity: interaction.pressedOpacity },
             focus.focused && !disabled && getFocusRingStyle(),

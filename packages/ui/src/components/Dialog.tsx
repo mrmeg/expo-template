@@ -8,6 +8,7 @@ import { useKeyboardDismissResponder } from "./keyboardDismiss";
 import { TextClassContext, TextColorContext } from "./StyledText.context";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
+import { useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
 import { palette } from "../constants/colors";
 
@@ -199,6 +200,7 @@ function DialogContent({
   ...props
 }: DialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
+  const dialogRadius = useShape("dialog")?.borderRadius ?? spacing.radiusLg;
   const { open, onOpenChange } = DialogPrimitive.useRootContext();
   const dismissBoundaryProps = useDialogKeyboardDismissBoundary(true);
   const textColor = getContrastingColor(
@@ -242,7 +244,7 @@ function DialogContent({
                           backgroundColor: theme.colors.popover,
                           borderColor: theme.colors.border,
                           borderWidth: 1,
-                          borderRadius: spacing.radiusLg,
+                          borderRadius: dialogRadius,
                           padding: spacing.dialogPadding,
                           gap: spacing.md,
                           width: "100%",
@@ -393,6 +395,7 @@ function AlertDialogContent({
   ...props
 }: AlertDialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
+  const dialogRadius = useShape("dialog")?.borderRadius ?? spacing.radiusLg;
   const { open, onOpenChange } = AlertDialogPrimitive.useRootContext();
   const dismissBoundaryProps = useDialogKeyboardDismissBoundary();
   const textColor = getContrastingColor(
@@ -427,7 +430,7 @@ function AlertDialogContent({
                           backgroundColor: theme.colors.popover,
                           borderColor: theme.colors.border,
                           borderWidth: 1,
-                          borderRadius: spacing.radiusLg,
+                          borderRadius: dialogRadius,
                           padding: spacing.dialogPadding,
                           gap: spacing.md,
                           width: "100%",

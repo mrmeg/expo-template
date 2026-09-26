@@ -359,23 +359,73 @@ useThemeStore.getState().setColors({
 unwinds when that subtree unmounts. Nested scopes compose (inner keys win,
 outer fill in), and a scoped key beats the global brand inside it.
 
+#### Extending the palette
+
+An app with tokens the package does not have (a brand gold, a chart series)
+declares them once on `ThemeColorExtensions`, and they become part of
+`ThemeColors` everywhere: `setColors` and `ThemeColorScope` accept them,
+`useTheme().theme.colors.brandGold` is typed, and `getThemeCssVariables`
+emits a `--c-brand-gold` variable when the overrides you pass it name the
+key. No side palette, no cast.
+
+```ts
+// theme.d.ts (any file in the app's TypeScript program)
+declare module "@mrmeg/expo-ui/constants" {
+  interface ThemeColorExtensions {
+    brandGold: string;
+  }
+}
+
+// startup
+useThemeStore.getState().setColors({
+  light: { primary: "#7c3aed", brandGold: "#c9a227" },
+  dark: { primary: "#a78bfa", brandGold: "#ffe066" },
+});
+
+// anywhere
+const { theme } = useTheme();
+theme.colors.brandGold; // string
+```
+
+Two things to know. The package ships no value for an extension key, so
+provide it in both schemes or it is `undefined` at runtime in the scheme that
+lacks it. And on web the built-in tokens are `var(--c-*)` references while
+extension values are literals per scheme, so with any override `theme.colors`
+is a new object when the scheme changes (the identity caveat every override
+already has); the CSS variable from `getThemeCssVariables` is the way to use
+an extension token in an HTML shell.
+
 ### Shape overrides
 
-`setShape` is the geometry counterpart, grouped per component. It currently
-covers Button:
+`setShape` is the geometry counterpart, grouped per slot. Each slot takes a
+`borderRadius`; `button` also takes `withShadow`:
 
 ```tsx
 useThemeStore.getState().setShape({
-  button: {
-    borderRadius: 9999, // pill buttons everywhere; package default is 10 (spacing.radiusMd)
-    withShadow: false,  // flatten the `default` preset; package default is true
-  },
+  button: { borderRadius: 9999, withShadow: false }, // pills, flat `default` preset
+  input: { borderRadius: spacing.radiusXl },          // TextInput, Select, InputOTP
+  card: { borderRadius: spacing.radius2xl },          // Card, StatCard, EmptyState, SkeletonCard
+  sheet: { borderRadius: spacing.radius2xl },         // BottomSheet top corners
+  badge: { borderRadius: spacing.radiusSm },          // squarer badges
+  dialog: { borderRadius: spacing.radius2xl },        // Dialog and AlertDialog
 });
 ```
 
+| Slot | Reaches | Package default |
+|---|---|---|
+| `button` | Button, every preset (`withShadow` only affects `default`) | `spacing.radiusMd` (10), shadow on |
+| `input` | TextInput (`outline` and `filled`; `underlined` stays square), Select trigger, InputOTP cells | `spacing.radiusMd` (10) |
+| `card` | Card (surface and pressable focus ring), StatCard, EmptyState with `bordered`, SkeletonCard | `spacing.radiusLg` (14) |
+| `sheet` | BottomSheet top corners, where the platform lets the sheet draw them (web, Android); iOS system sheets keep the system radius | platform |
+| `badge` | Badge | `spacing.radiusFull` (pill) |
+| `dialog` | Dialog and AlertDialog content | `spacing.radiusLg` (14) |
+
 Precedence is caller-wins: a per-instance `style={{ borderRadius }}` or
 `withShadow` prop beats the global override, which beats the package default.
-`setShape({})` clears back to the defaults.
+`setShape({})` clears back to the defaults. A component reads its slot with
+`useShape(slot)` from `@mrmeg/expo-ui/hooks` and layers the radius after its
+static one; `shapeRadius(override)` turns the slot into a `{ borderRadius }`
+style or `undefined` for that layering.
 
 ### Press feedback and haptics
 

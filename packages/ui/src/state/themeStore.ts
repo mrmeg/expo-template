@@ -41,19 +41,29 @@ export type ColorOverrides = {
   dark?: Partial<ThemeColors>;
 };
 
+/** A radius override for one shape slot. `0` is square corners; `9999` is a pill. */
+export type ShapeSlotOverride = {
+  /** Border radius for every component in the slot. A caller `style` still wins. */
+  borderRadius?: number;
+};
+
 /**
- * Shape overrides a host app can inject, grouped per component so future
- * shape knobs (card radius, input radius, …) slot in without reshaping the
- * API. Every field is optional; omitted fields keep the package default.
+ * Shape overrides a host app can inject, grouped per slot. Every field is
+ * optional; omitted fields keep the package default. Components read their
+ * slot through `useShape(slot)` and layer it after the static radius, before
+ * the caller's `style`.
+ *
+ * | Slot | Components | Package default |
+ * |---|---|---|
+ * | `button` | Button (every preset) | `spacing.radiusMd` (10) |
+ * | `input` | TextInput (not `underlined`), Select trigger, InputOTP cells | `spacing.radiusMd` (10) |
+ * | `card` | Card, StatCard, EmptyState (`bordered`), SkeletonCard | `spacing.radiusLg` (14) |
+ * | `sheet` | BottomSheet top corners (where the platform lets the sheet draw them: web, Android) | platform |
+ * | `badge` | Badge | `spacing.radiusFull` |
+ * | `dialog` | Dialog and AlertDialog content | `spacing.radiusLg` (14) |
  */
 export type ShapeOverrides = {
-  button?: {
-    /**
-     * Border radius applied to every Button preset. Package default:
-     * `spacing.radiusMd` (10). Use 9999 for pill buttons. A caller `style`
-     * still wins over this, as it always has.
-     */
-    borderRadius?: number;
+  button?: ShapeSlotOverride & {
     /**
      * Whether the `default` preset renders its shadow. Package default: true.
      * Other presets stay flat regardless; the per-instance `withShadow` prop
@@ -61,7 +71,14 @@ export type ShapeOverrides = {
      */
     withShadow?: boolean;
   };
+  input?: ShapeSlotOverride;
+  card?: ShapeSlotOverride;
+  sheet?: ShapeSlotOverride;
+  badge?: ShapeSlotOverride;
+  dialog?: ShapeSlotOverride;
 };
+
+export type ShapeSlot = keyof ShapeOverrides;
 
 export type ThemeStore = {
   userTheme: ThemePreference;
@@ -87,9 +104,9 @@ export type ThemeStore = {
    */
   fontOverrides: FontOverrides;
   /**
-   * App-injected shape overrides (button radius, default-preset shadow).
-   * Same contract as the other override slots: empty by default, fully
-   * backward compatible when unset.
+   * App-injected shape overrides (radii per slot, the default Button preset's
+   * shadow). Same contract as the other override slots: empty by default,
+   * fully backward compatible when unset.
    */
   shapeOverrides: ShapeOverrides;
   setTheme: (theme: ThemePreference) => void;
@@ -111,7 +128,9 @@ export type ThemeStore = {
   setFonts: (overrides: FontOverrides) => void;
   /**
    * Replace the active shape overrides. Pass `{}` to clear them and fall back
-   * to the package defaults (button radius 10 = `spacing.radiusMd`, default-preset shadow on).
+   * to the package defaults (see the slot table on `ShapeOverrides`: button
+   * and input radius 10 = `spacing.radiusMd`, card and dialog 14 =
+   * `spacing.radiusLg`, badge pill, default-preset shadow on).
    */
   setShape: (overrides: ShapeOverrides) => void;
   loadTheme: () => void;

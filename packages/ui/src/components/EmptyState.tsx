@@ -4,6 +4,7 @@ import { SansSerifBoldText, SansSerifText } from "./StyledText";
 import { Button, type ButtonProps } from "./Button";
 import { Icon, type IconName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
+import { shapeRadius, useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
 import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
@@ -66,9 +67,11 @@ export function EmptyState({
 }: EmptyStateProps) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
+  // Host-app `setShape({ card })` shapes the bordered frame like a Card.
+  const cardRadius = shapeRadius(useShape("card"));
 
   return (
-    <View style={[styles.container, bordered && styles.bordered, style]}>
+    <View style={[styles.container, bordered && styles.bordered, bordered && cardRadius, style]}>
       {!!icon && (
         <View style={styles.iconWrapper}>
           <Icon name={icon} size={iconSize} color={theme.colors.mutedForeground} />

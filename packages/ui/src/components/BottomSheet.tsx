@@ -15,6 +15,7 @@ import {
 import { BottomSheet as NativeBottomSheet } from "@expo/ui/community/bottom-sheet";
 import { useSafeAreaInsets, initialWindowMetrics } from "react-native-safe-area-context";
 import { useTheme } from "../hooks/useTheme";
+import { useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
 import { useScalePress } from "../hooks/useScalePress";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
@@ -634,6 +635,7 @@ function BottomSheetContent({
   const { open, onOpenChange, snapPoints, snapIndex, setSnapIndex, hasHeader, notifyDismissed } =
     useBottomSheetContext();
   const { theme } = useTheme();
+  const sheetShape = useShape("sheet");
   const dismissDisabled = useDismissDisabled();
   const showClose = useShowClose();
   const { height: winH } = useWindowDimensions();
@@ -759,6 +761,13 @@ function BottomSheetContent({
       // expect a plain object (not a style array) keep working.
       backgroundStyle={StyleSheet.flatten([
         { backgroundColor: theme.colors.card },
+        // Host-app `setShape({ sheet })`: the top corners, where the platform
+        // lets the sheet draw them (web's drawer, Android). iOS system sheets
+        // keep the system corner radius.
+        sheetShape?.borderRadius !== undefined && {
+          borderTopLeftRadius: sheetShape.borderRadius,
+          borderTopRightRadius: sheetShape.borderRadius,
+        },
         backgroundStyleOverride,
       ])}
     >
