@@ -17,8 +17,16 @@ const fs = require("node:fs");
 
 const { emptyDesignSystem } = require("./source");
 
-/** Bumped when the payload shape changes; an unknown version is rejected. */
-const MANIFEST_SCHEMA_VERSION = 1;
+/**
+ * Bumped when the payload shape changes; a version this plugin does not know
+ * is rejected. Version 2 added `tokens.typography` (with `lineHeight` per
+ * entry) and `fonts.families`; a version 1 manifest still loads, with those two
+ * empty, and `no-raw-typography` says so once per file.
+ */
+const MANIFEST_SCHEMA_VERSION = 2;
+
+/** Every schema version the loader reads, oldest first. */
+const SUPPORTED_MANIFEST_SCHEMA_VERSIONS = [1, 2];
 
 /** Where a consumer's manifest lives, resolved through the UI package's exports. */
 const DEFAULT_MANIFEST_SPECIFIER = "@mrmeg/expo-ui/design-system.json";
@@ -34,12 +42,13 @@ const MTIME_CHECK_INTERVAL_MS = 2000;
  * @property {number} schemaVersion
  * @property {string} package the package that shipped the manifest
  * @property {string} version that package's version
- * @property {Record<string, {entries: {name: string, value: number}[]}>} tokens
+ * @property {Record<string, {entries: {name: string, value: number, lineHeight?: number}[]}>} tokens
  * @property {Record<string, string>} palette
  * @property {string[]} themeTokens
  * @property {Record<string, {paletteKey: string | null, value: string | null}>} lightTheme
  * @property {Record<string, {paletteKey: string | null, value: string | null}>} darkTheme
  * @property {string[] | null} fontVariants
+ * @property {{families: import("./source").FontFamilies}} fonts
  * @property {import("./source").ComponentInfo[]} components
  */
 
@@ -58,14 +67,15 @@ function serializeDesignSystem(design, { packageName, version }) {
     throw new Error("Cannot serialize a design system that was not loaded");
   }
 
-  /** @type {Record<string, {entries: {name: string, value: number}[]}>} */
+  /** @type {Record<string, {entries: {name: string, value: number, lineHeight?: number}[]}>} */
   const tokens = {};
   for (const group of Object.keys(design.tokens)) {
     tokens[group] = {
-      entries: design.tokens[group].entries.map((entry) => ({
-        name: entry.name,
-        value: entry.value,
-      })),
+      entries: design.tokens[group].entries.map((entry) =>
+        typeof entry.lineHeight === "number"
+          ? { name: entry.name, value: entry.value, lineHeight: entry.lineHeight }
+          : { name: entry.name, value: entry.value },
+      ),
     };
   }
 
@@ -79,6 +89,7 @@ function serializeDesignSystem(design, { packageName, version }) {
     lightTheme: { ...design.lightTheme },
     darkTheme: { ...design.darkTheme },
     fontVariants: design.fontVariants ? [...design.fontVariants] : null,
+    fonts: { families: copyFamilies(design.fonts && design.fonts.families) },
     // Extractor order, so the manifest reads like the source it came from.
     components: [...design.components.values()].map((info) => ({
       name: info.name,
@@ -149,11 +160,11 @@ function readManifest(manifestPath) {
   if (!raw || typeof raw !== "object") {
     return rejected(manifestPath, "the manifest is not a JSON object");
   }
-  if (raw.schemaVersion !== MANIFEST_SCHEMA_VERSION) {
+  if (!SUPPORTED_MANIFEST_SCHEMA_VERSIONS.includes(raw.schemaVersion)) {
     return rejected(
       manifestPath,
       `schemaVersion ${JSON.stringify(raw.schemaVersion)} is not supported ` +
-        `(this plugin reads ${MANIFEST_SCHEMA_VERSION})`,
+        `(this plugin reads ${SUPPORTED_MANIFEST_SCHEMA_VERSIONS.join(" and ")})`,
     );
   }
   if (!raw.tokens || typeof raw.tokens !== "object" || !Array.isArray(raw.components)) {
@@ -169,7 +180,11 @@ function readManifest(manifestPath) {
     const entries = Array.isArray(rawGroup && rawGroup.entries) ? rawGroup.entries : [];
     for (const entry of entries) {
       if (!entry || typeof entry.name !== "string" || typeof entry.value !== "number") continue;
-      design.tokens[group].entries.push({ name: entry.name, value: entry.value });
+      design.tokens[group].entries.push(
+        typeof entry.lineHeight === "number"
+          ? { name: entry.name, value: entry.value, lineHeight: entry.lineHeight }
+          : { name: entry.name, value: entry.value },
+      );
       if (!design.tokens[group].nameByValue.has(entry.value)) {
         design.tokens[group].nameByValue.set(entry.value, entry.name);
       }
@@ -189,6 +204,8 @@ function readManifest(manifestPath) {
   design.lightTheme = objectOrEmpty(raw.lightTheme);
   design.darkTheme = objectOrEmpty(raw.darkTheme);
   design.fontVariants = Array.isArray(raw.fontVariants) ? [...raw.fontVariants] : null;
+  // Absent from a schemaVersion 1 manifest: an empty map, never a throw.
+  design.fonts = { families: copyFamilies(raw.fonts && raw.fonts.families) };
   for (const info of raw.components) {
     if (!info || typeof info.name !== "string") continue;
     design.components.set(info.name, {
@@ -221,6 +238,30 @@ function objectOrEmpty(value) {
 }
 
 /**
+ * @param {unknown} families a `fonts.families` value, from the loader or a manifest
+ * @returns {import("./source").FontFamilies} a copy holding only the well-formed
+ *   part: variant → weight → a list of strings (a lone string becomes a list)
+ */
+function copyFamilies(families) {
+  /** @type {import("./source").FontFamilies} */
+  const copy = {};
+  if (!families || typeof families !== "object" || Array.isArray(families)) return copy;
+  for (const variant of Object.keys(families)) {
+    const weights = families[variant];
+    if (!weights || typeof weights !== "object" || Array.isArray(weights)) continue;
+    /** @type {Record<string, string[]>} */
+    const out = {};
+    for (const weight of Object.keys(weights)) {
+      const raw = weights[weight];
+      const list = (Array.isArray(raw) ? raw : [raw]).filter((family) => typeof family === "string");
+      if (list.length > 0) out[weight] = [...list];
+    }
+    if (Object.keys(out).length > 0) copy[variant] = out;
+  }
+  return copy;
+}
+
+/**
  * @param {string} manifestPath
  * @param {string} reason one line, ready to be quoted in a diagnostic
  * @returns {import("./source").DesignSystem}
@@ -234,6 +275,7 @@ function rejected(manifestPath, reason) {
 module.exports = {
   DEFAULT_MANIFEST_SPECIFIER,
   MANIFEST_SCHEMA_VERSION,
+  SUPPORTED_MANIFEST_SCHEMA_VERSIONS,
   loadDesignSystemFromManifest,
   serializeDesignSystem,
 };

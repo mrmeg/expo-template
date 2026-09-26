@@ -58,6 +58,8 @@ if (!design.loaded) {
   if (Object.keys(design.palette).length === 0) problems.push("no palette entries");
   if (design.themeTokens.length === 0) problems.push("no theme colors");
   if (!design.fontVariants || design.fontVariants.length === 0) problems.push("no font variants");
+  if (Object.keys(design.fonts.families).length === 0) problems.push("no font families");
+  if (design.tokens.typography.entries.length === 0) problems.push("no typography sizes");
   if (design.components.size === 0) problems.push("no components");
 }
 
@@ -92,5 +94,5 @@ await writeFile(outputPath, `${JSON.stringify(payload, null, 2)}\n`);
 console.log(
   `Wrote ${target.dir}/${target.output} — schemaVersion ${payload.schemaVersion}, ` +
     `${payload.components.length} components, ${payload.tokens.spacing.entries.length} spacing tokens, ` +
-    `${payload.icons.names.length} icon names`
+    `${payload.tokens.typography.entries.length} typography sizes, ${payload.icons.names.length} icon names`
 );

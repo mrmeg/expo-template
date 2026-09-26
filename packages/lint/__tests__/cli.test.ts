@@ -39,6 +39,7 @@ describe("expo-ui-lint", () => {
         "expo-ui/no-arbitrary-values",
         "expo-ui/no-restyle",
         "expo-ui/no-raw-primitives",
+        "expo-ui/no-raw-typography",
       ]) {
         expect(stdout).toContain(rule);
       }
@@ -53,8 +54,8 @@ describe("expo-ui-lint", () => {
       expect(stderr).toBe("");
       // In this repo the facts come from the sources, not from a manifest.
       expect(stdout).toContain(`design system: sources at ${path.join(ROOT, "packages", "ui", "src")}`);
-      // The fixture trips all four rules; the counts are the wiring check.
-      expect(stdout).toContain("= 1/1/2/2 (expected 1/1/2/2)");
+      // The fixture trips all five rules; the counts are the wiring check.
+      expect(stdout).toContain("= 1/1/3/2/1 (expected 1/1/3/2/1)");
       expect(stdout).not.toContain("FAIL");
       expect(status).toBe(0);
     },

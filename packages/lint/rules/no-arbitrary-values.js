@@ -8,6 +8,7 @@
  */
 
 const { RADIUS_SCALE_KEYS, SPACING_SCALE_KEYS } = require("../lib/categories");
+const { nearestTokens } = require("../lib/nearest");
 const { readSettings } = require("../lib/settings");
 const {
   DESIGN_SYSTEM_MISSING_MESSAGES,
@@ -34,36 +35,6 @@ function numericValue(node) {
     return -node.argument.value;
   }
   return null;
-}
-
-/**
- * The nearest token, then the nearest one on the other side of the value, so
- * the message brackets what was written and the reader can pick a direction.
- * When the value sits past either end of the scale, the second-nearest token on
- * the same side stands in.
- *
- * @param {number} value
- * @param {import("../lib/source").TokenGroup} group
- * @returns {{name: string, value: number}[]}
- */
-function nearestTokens(value, group) {
-  const target = Math.abs(value);
-  const ranked = group.values
-    .map((candidate) => ({
-      name: group.nameByValue.get(candidate) || "",
-      value: candidate,
-      distance: Math.abs(candidate - target),
-    }))
-    .sort((a, b) => a.distance - b.distance || a.value - b.value);
-
-  const nearest = ranked[0];
-  if (!nearest) return [];
-  const opposite = ranked.find((entry) =>
-    nearest.value < target ? entry.value > target : entry.value < target,
-  );
-  const second = opposite || ranked[1];
-  const picked = second ? [nearest, second] : [nearest];
-  return picked.map((entry) => ({ name: entry.name, value: entry.value }));
 }
 
 /** @type {import("eslint").Rule.RuleModule} */

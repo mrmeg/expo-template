@@ -34,6 +34,23 @@ Changes on top of the 0.1.0 notes below, which have not been published yet.
 
 ### Added
 
+- **`no-raw-typography`.** Numeric `fontSize` and `lineHeight` literals and
+  string `fontFamily` literals in a style are reported. The message names the
+  `StyledText` `size` whose font size or line height the literal matches, or
+  the two sizes that bracket it (`` `13` is a raw font size. Nearest
+  `StyledText` sizes: `sm` (12), `base` (14). ``), and a `fontFamily` that is
+  one of the kit's faces is named with its `variant` and weight, with
+  `useFontStyle` and `setFonts` for the rest. `0` and `undefined` are allowed;
+  `letterSpacing` and `fontWeight` are not policed. In `configs.recommended` at
+  `error`, in `--rules`, `--doctor` (whose fixture now trips five rules) and
+  `index.d.ts`.
+- **Manifest `schemaVersion` 2.** `design-system.json` gains
+  `tokens.typography` (each entry `{ name, value, lineHeight }`, read from
+  `StyledText`'s size map) and `fonts.families` (variant → weight → every
+  family that slot resolves to, read from `constants/fonts.ts` across its
+  platform branches). A `schemaVersion` 1 manifest still loads with both
+  empty, and `no-raw-typography` reports once per file that its facts are
+  missing; a manifest from a newer schema is still refused.
 - `@mrmeg/expo-ui` as an optional peer dependency (`>=0.25.0 <1.0.0`, the
   releases that ship `design-system.json`), `engines.node >= 18.18`, an
   `exports` map, `index.d.ts` for `eslint.config.ts`, and `LICENSE` (MIT).

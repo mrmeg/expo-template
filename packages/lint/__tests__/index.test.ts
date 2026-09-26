@@ -8,7 +8,13 @@ import type typedPlugin from "../index";
 
 const plugin = require("../index");
 
-const RULE_NAMES = ["no-arbitrary-values", "no-raw-colors", "no-raw-primitives", "no-restyle"];
+const RULE_NAMES = [
+  "no-arbitrary-values",
+  "no-raw-colors",
+  "no-raw-primitives",
+  "no-raw-typography",
+  "no-restyle",
+];
 
 describe("@mrmeg/eslint-plugin-expo-ui", () => {
   it("exports every rule under the `expo-ui` name", () => {
@@ -19,13 +25,14 @@ describe("@mrmeg/eslint-plugin-expo-ui", () => {
     }
   });
 
-  it("enables all four rules at `error` in `configs.recommended`", () => {
+  it("enables all five rules at `error` in `configs.recommended`", () => {
     const config = plugin.configs.recommended;
     expect(config.rules).toEqual({
       "expo-ui/no-raw-colors": "error",
       "expo-ui/no-arbitrary-values": "error",
       "expo-ui/no-restyle": "error",
       "expo-ui/no-raw-primitives": "error",
+      "expo-ui/no-raw-typography": "error",
     });
     // Every entry names a rule the plugin actually ships.
     for (const key of Object.keys(config.rules)) {
@@ -42,6 +49,7 @@ describe("@mrmeg/eslint-plugin-expo-ui", () => {
       "no-arbitrary-values",
       "no-restyle",
       "no-raw-primitives",
+      "no-raw-typography",
     ];
     expect(recommended).toBe(plugin.configs.recommended);
     expect([...rules].sort()).toEqual(RULE_NAMES);

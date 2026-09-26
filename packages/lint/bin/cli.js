@@ -5,7 +5,7 @@
  *
  * `bun run lint` (`expo lint`) covers `app/` only, caches results in
  * `.expo/cache/eslint/` under a key that ignores this plugin's rule bodies and
- * `packages/ui/src`, and reports every other ESLint rule alongside these four —
+ * `packages/ui/src`, and reports every other ESLint rule alongside these five —
  * which in `client/` means the design-system findings arrive buried in unrelated
  * react-hooks errors. This runs ESLint with the project's own flat config, never
  * from cache, and keeps only `expo-ui/*` messages.
@@ -21,21 +21,21 @@ const { resolveOrigin } = require("../lib/settings.js");
 const { designSystemNotFoundMessage, loadDesignSystemFor } = require("../lib/source.js");
 
 const RULE_PREFIX = "expo-ui/";
-const RULE_NAMES = ["no-raw-colors", "no-arbitrary-values", "no-restyle", "no-raw-primitives"];
+const RULE_NAMES = ["no-raw-colors", "no-arbitrary-values", "no-restyle", "no-raw-primitives", "no-raw-typography"];
 const DEFAULT_PATHS = ["app", "client", "shared"];
 const EXPO_LINT_CACHE = path.join(".expo", "cache", "eslint");
 
 /** Where the doctor's fixture claims to live: inside the design system's scope, unwritten. */
 const SMOKE_PATH = path.join("app", "__expo_ui_doctor__.tsx");
 
-/** One file that trips each of the four rules, with the counts it must produce. */
+/** One file that trips each of the five rules, with the counts it must produce. */
 const SMOKE_FIXTURE = [
   'import { Text } from "react-native";',
   'import { Slider } from "@expo/ui/community/slider";',
   'import { Button } from "@mrmeg/expo-ui";',
   "",
   "export default function Doctor() {",
-  '  return <Button style={{ backgroundColor: "#f00", padding: 13 }} />;',
+  '  return <Button style={{ backgroundColor: "#f00", padding: 13, fontSize: 13 }} />;',
   "}",
   "",
 ].join("\n");
@@ -43,8 +43,9 @@ const SMOKE_FIXTURE = [
 const SMOKE_EXPECTED = {
   "no-raw-colors": 1,
   "no-arbitrary-values": 1,
-  "no-restyle": 2,
+  "no-restyle": 3,
   "no-raw-primitives": 2,
+  "no-raw-typography": 1,
 };
 
 const USAGE = `expo-ui-lint — design-system lint for @mrmeg/expo-ui
@@ -373,7 +374,7 @@ async function doctor(cwd, requestedSample = null) {
     const expected = [...RULE_NAMES].sort();
     report(
       exported.join(",") === expected.join(","),
-      `rules exported: ${exported.length}/4 — ${exported.join(", ")}`,
+      `rules exported: ${exported.length}/${RULE_NAMES.length} — ${exported.join(", ")}`,
     );
   } catch (error) {
     report(false, `plugin: cannot resolve @mrmeg/eslint-plugin-expo-ui from ${cwd} — ${error.message}`);
@@ -396,7 +397,7 @@ async function doctor(cwd, requestedSample = null) {
     const errorCount = enabled.filter((entry) => entry.endsWith("=error")).length;
     report(
       errorCount >= 4,
-      `config: ${path.relative(cwd, sample)} — ${errorCount}/4 rules at error — ${enabled.join(", ") || "none enabled"}`,
+      `config: ${path.relative(cwd, sample)} — ${errorCount}/${RULE_NAMES.length} rules at error — ${enabled.join(", ") || "none enabled"}`,
     );
   }
 
@@ -432,7 +433,7 @@ async function doctor(cwd, requestedSample = null) {
     );
   }
 
-  // 4. The rules on a file that must trip all four: config, plugin, and design
+  // 4. The rules on a file that must trip all five: config, plugin, and design
   // system are only wired if this reports what it has always reported.
   try {
     const results = await eslint.lintText(SMOKE_FIXTURE, { filePath: path.join(cwd, SMOKE_PATH) });
