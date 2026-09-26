@@ -4,6 +4,7 @@ import { TextClassContext, TextSelectabilityContext } from "./StyledText.context
 import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
 import { useScalePress } from "../hooks/useScalePress";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import * as CollapsiblePrimitive from "@rn-primitives/collapsible";
 
 /**
@@ -57,12 +58,13 @@ function Collapsible({ children, ...props }: CollapsibleProps) {
 type CollapsibleTriggerProps = CollapsiblePrimitive.TriggerProps;
 
 function CollapsibleTrigger({ style: styleOverride, disabled, ...props }: CollapsibleTriggerProps) {
-  const { theme } = useTheme();
+  const { theme, getFocusRingStyle } = useTheme();
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!disabled,
     scaleTo: 0.97,
     haptic: false,
   });
+  const focus = useFocusVisible();
 
   return (
     <TextClassContext.Provider value="">
@@ -73,16 +75,20 @@ function CollapsibleTrigger({ style: styleOverride, disabled, ...props }: Collap
             {...props}
             onPressIn={pressHandlers.onPressIn}
             onPressOut={pressHandlers.onPressOut}
+            onFocus={focus.onFocus}
+            onBlur={focus.onBlur}
             style={{
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
               paddingVertical: spacing.sm,
+              borderRadius: spacing.radiusSm,
               ...(Platform.OS === "web" && {
                 cursor: "pointer" as any,
                 outlineStyle: "none" as any,
                 userSelect: "none" as any,
               }),
+              ...(focus.focused && !disabled ? getFocusRingStyle() : null),
               ...(styleOverride && typeof styleOverride !== "function"
                 ? StyleSheet.flatten(styleOverride)
                 : {}),

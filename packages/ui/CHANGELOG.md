@@ -41,6 +41,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`interaction` tokens** in `@mrmeg/expo-ui/constants`: `pressedOpacity` 0.85,
   `disabledOpacity` 0.5, `pressedScale` 0.97, `controlPressedScale` 0.92 — the
   values every pressable now shares, for app code that builds its own.
+- **`Icon` `accessibilityLabel`** for an icon that stands alone: `aria-label`
+  on web, `accessibilityLabel` on native.
+- **`useFocusVisible()`** (`@mrmeg/expo-ui/hooks`): the `:focus-visible` gate
+  every kit control used to copy, as one hook — `{ focused, onFocus, onBlur }`
+  to spread onto a `Pressable`, with `getFocusRingStyle()` layered while
+  `focused`. Button, Checkbox, RadioGroup, Select, Switch, Tabs, Toggle and
+  ToggleGroup use it (no behavior change), and pressable `Card`, `Item`,
+  `AccordionTrigger` and `CollapsibleTrigger` gain a keyboard focus ring on web
+  through it (see Changed).
 
 - **`BottomSheet` `onDismissed`: fires once per close after the sheet has fully
   dismissed on iOS, Android and web.** Closing a sheet and presenting a `Dialog`
@@ -79,6 +88,39 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Minimal Example is now a flat settings screen, and `llms-full.md` and
   `llms.txt` carry the same rules. `Card` and `StatCard` behave exactly as
   before.
+- **Skeleton reads on a white card.** The fill moves from `muted` (a 1.05:1
+  step on white; invisible in light, faint in dark) to `borderStrong`, the
+  pulse bottoms out at 0.55 instead of 0.3, and under reduce motion it holds a
+  static 0.8. `SkeletonText`, `SkeletonAvatar` and `SkeletonCard` inherit.
+- **SegmentedControl on web is the kit's own control.** `@expo/ui`'s vendored
+  web control paints every label white once a `tintColor` is passed, so the
+  unselected labels vanished on the light track and the disabled state was
+  unreadable. Web now draws a `muted` track, an accent pill (sliding, still
+  under reduce motion), `accentForeground` / `mutedForeground` labels, the
+  shared disabled opacity and the kit focus ring per segment. `appearance` is
+  ignored on web (the theme decides); iOS and Android are unchanged.
+- **Slider's unfilled track follows the theme on web.** The `<input
+  type="range">` only took `accent-color`, and Chromium then paints the
+  unfilled track dark in light mode. The kit now styles the input itself
+  (`appearance: none`, track/fill/thumb from CSS variables, one hoisted
+  `<style href="expo-ui-slider">`, scoped to `[data-expo-ui-slider]`). Light
+  inactive track is `border` on every platform (was `muted`); dark unchanged.
+- **Keyboard focus rings on pressable `Card`, `Item`, `AccordionTrigger` and
+  `CollapsibleTrigger` (web).** They had none; they now show the same
+  `getFocusRingStyle()` ring as Button on `:focus-visible`, with the browser
+  outline off. Pressable Card and Item also carry their radius on the pressable
+  wrapper so the ring follows the corners.
+- **Icon on web emits ARIA only.** The RN-only props (`accessible`,
+  `importantForAccessibility`, `accessibilityElementsHidden`) reached the SVG
+  DOM element and React warned on every page ("Received `true` for a
+  non-boolean attribute `accessible`", "React does not recognize the
+  `importantForAccessibility` prop"); web now gets `aria-hidden` (decorative)
+  or `role="img"` (+ `aria-label`). Native is unchanged.
+- **Radii on scale.** The BottomSheet close button and the DropdownMenu radio
+  indicator use `spacing.radiusFull` for their circles (they were `spacing.xl
+  / 2` and a literal `4`; same render). `setShape`'s docs and the README said
+  the default button radius is 12; it is 10 (`spacing.radiusMd`) and the docs
+  now say so.
 - **Pressed and disabled states are consistent across the kit.** Button's
   pressed opacity goes 0.9 → 0.85 and its label no longer dims a second time
   on top of the container; pressable Card and Item dim to the same 0.85 while

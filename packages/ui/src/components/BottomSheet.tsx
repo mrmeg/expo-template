@@ -452,7 +452,7 @@ function SheetCloseButton({ style }: { style?: StyleProp<ViewStyle> }) {
           {
             width: spacing.xl,
             height: spacing.xl,
-            borderRadius: spacing.xl / 2,
+            borderRadius: spacing.radiusFull,
             alignItems: "center",
             justifyContent: "center",
             // Higher-contrast than `muted`: a solid `secondary` fill with a

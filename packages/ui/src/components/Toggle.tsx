@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import { Icon } from "./Icon";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
 import { hapticSelection } from "../lib/haptics";
 import { useScalePress } from "../hooks/useScalePress";
 import * as TogglePrimitive from "@rn-primitives/toggle";
-import { Platform, PressableProps, StyleSheet, ViewStyle, ActivityIndicator, StyleProp, Animated } from "react-native";
+import { Platform, StyleSheet, ViewStyle, ActivityIndicator, StyleProp, Animated } from "react-native";
 import type { IconName } from "./Icon";
 import { palette } from "../constants/colors";
 
@@ -135,7 +136,6 @@ function Toggle({
   const { theme, getContrastingColor, getFocusRingStyle, withAlpha } = useTheme();
   const sizeConfig = TOGGLE_SIZES[size];
   const focusRingStyle = getFocusRingStyle();
-  const [focused, setFocused] = useState(false);
 
   // Calculate text color based on state and variant
   const getTextColor = () => {
@@ -183,27 +183,7 @@ function Toggle({
     onPressedChange?.(next);
   };
 
-  const showFocusRing: PressableProps["onFocus"] = (event) => {
-    let ringVisible = true;
-    if (Platform.OS === "web") {
-      const target = event?.nativeEvent?.target as unknown as
-        | { matches?: (selector: string) => boolean }
-        | null
-        | undefined;
-      if (target && typeof target.matches === "function") {
-        try {
-          ringVisible = target.matches(":focus-visible");
-        } catch {
-          ringVisible = true;
-        }
-      }
-    }
-    setFocused(ringVisible);
-  };
-
-  const hideFocusRing: PressableProps["onBlur"] = () => {
-    setFocused(false);
-  };
+  const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
 
   return (
     <TextColorContext.Provider value={textColor}>

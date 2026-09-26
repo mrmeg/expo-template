@@ -1,7 +1,8 @@
 import React, { createContext, use, useEffect, useState } from "react";
-import { View, StyleSheet, StyleProp, ViewStyle, Pressable, PressableProps, Platform, Animated } from "react-native";
+import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform, Animated } from "react-native";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
 import { hapticLight } from "../lib/haptics";
@@ -150,34 +151,13 @@ function RadioGroupItem({
   const { size, error, value: groupValue, onValueChange } = useRadioGroupContext();
   const sizeConfig = SIZE_CONFIGS[size];
   const focusRingStyle = getFocusRingStyle();
-  const [focused, setFocused] = useState(false);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!disabled,
     scaleTo: 0.92,
     haptic: false,
   });
 
-  const showFocusRing: PressableProps["onFocus"] = (event) => {
-    let ringVisible = true;
-    if (Platform.OS === "web") {
-      const target = event?.nativeEvent?.target as unknown as
-        | { matches?: (selector: string) => boolean }
-        | null
-        | undefined;
-      if (target && typeof target.matches === "function") {
-        try {
-          ringVisible = target.matches(":focus-visible");
-        } catch {
-          ringVisible = true;
-        }
-      }
-    }
-    setFocused(ringVisible);
-  };
-
-  const hideFocusRing: PressableProps["onBlur"] = () => {
-    setFocused(false);
-  };
+  const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
 
   const isChecked = groupValue === itemValue;
 

@@ -5,10 +5,11 @@ import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
 import { hapticSelection } from "../lib/haptics";
 import { useTheme } from "../hooks/useTheme";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { useScalePress } from "../hooks/useScalePress";
 import * as ToggleGroupPrimitive from "@rn-primitives/toggle-group";
 import * as React from "react";
-import { Animated, Platform, PressableProps, StyleSheet } from "react-native";
+import { Animated, Platform, StyleSheet } from "react-native";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -192,34 +193,13 @@ function ToggleGroupItem({
   const { value: groupValue } = ToggleGroupPrimitive.useRootContext();
   const sizeConfig = TOGGLE_GROUP_SIZES[context.size];
   const focusRingStyle = getFocusRingStyle();
-  const [focused, setFocused] = React.useState(false);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!props.disabled,
     scaleTo: interaction.pressedScale,
     haptic: false,
   });
 
-  const showFocusRing: PressableProps["onFocus"] = (event) => {
-    let ringVisible = true;
-    if (Platform.OS === "web") {
-      const target = event?.nativeEvent?.target as unknown as
-        | { matches?: (selector: string) => boolean }
-        | null
-        | undefined;
-      if (target && typeof target.matches === "function") {
-        try {
-          ringVisible = target.matches(":focus-visible");
-        } catch {
-          ringVisible = true;
-        }
-      }
-    }
-    setFocused(ringVisible);
-  };
-
-  const hideFocusRing: PressableProps["onBlur"] = () => {
-    setFocused(false);
-  };
+  const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
 
   // Check if this item is selected
   const isSelected = ToggleGroupPrimitive.utils.getIsSelected(groupValue, props.value);

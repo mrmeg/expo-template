@@ -389,7 +389,7 @@ function DropdownMenuRadioItem({
                     backgroundColor: theme.colors.text,
                     height: 8,
                     width: 8,
-                    borderRadius: 4,
+                    borderRadius: spacing.radiusFull,
                   }}
                 />
               </DropdownMenuPrimitive.ItemIndicator>

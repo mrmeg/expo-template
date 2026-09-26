@@ -367,7 +367,7 @@ covers Button:
 ```tsx
 useThemeStore.getState().setShape({
   button: {
-    borderRadius: 9999, // pill buttons everywhere; package default is 12
+    borderRadius: 9999, // pill buttons everywhere; package default is 10 (spacing.radiusMd)
     withShadow: false,  // flatten the `default` preset; package default is true
   },
 });
@@ -589,7 +589,11 @@ Feather in the same 24px, 2px round-stroke style. `name` is typed by
 (`src/components/icon-names.json`, about 150 names), so only the icons the package
 and its consumers name ship in the bundle: the root `lucide-react-native`
 entry (1,800+ icons) is never imported. `color` takes a theme color name or a
-literal; `decorative` hides the glyph from assistive tech. Instead of `name`,
+literal; `decorative` hides the glyph from assistive tech, and
+`accessibilityLabel` names an icon that stands alone (`aria-label` on web,
+`accessibilityLabel` on native; leave it off next to text that already says
+it). On web the SVG carries ARIA only (`aria-hidden` or `role="img"`), never
+the RN-only accessibility props. Instead of `name`,
 `Icon` and `Button.Icon` take `component`: any Lucide import (or another SVG
 component that accepts `size` and `color`), sized, colored, themed, and hidden
 from assistive tech exactly like a named icon. `Button.Icon` defaults its
@@ -667,6 +671,7 @@ are named exports only.
 | `useDimensions()` | `{ width, height, orientation, isSmallScreen, isMediumScreen, isLargeScreen }` against `SCREEN_SIZES` (768 / 1000 / 1200) |
 | `useFontStyle(weight?, variant?)` | `{ fontFamily, fontWeight? }` resolved through `setFonts` overrides |
 | `useReducedMotion()` | `true` when the OS asks for reduced motion |
+| `useFocusVisible(options?)` | `{ focused, onFocus, onBlur }` for a `Pressable`; on web `focused` follows `:focus-visible` (keyboard only), so layer `getFocusRingStyle()` while it is true — the gate every kit control uses |
 | `useScalePress(options?)` | Animated style plus `onPressIn`/`onPressOut` for a `Pressable` (`scaleTo`, `haptic`, `disabled`) |
 | `useStaggeredEntrance(options?)` | Entrance animated style for list rows (`delay`; `STAGGER_DELAY` is 30) |
 

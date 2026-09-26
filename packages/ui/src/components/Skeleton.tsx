@@ -11,6 +11,11 @@ import type { Theme } from "../constants/colors";
 // Base Skeleton
 // ============================================================================
 
+/** Low point of the pulse; high enough that the bar never disappears. */
+const PULSE_MIN = 0.55;
+/** Opacity held when the OS asks for reduced motion (no pulse at all). */
+const STATIC_OPACITY = 0.8;
+
 export interface SkeletonProps {
   /** Width of the skeleton element */
   width?: number | `${number}%`;
@@ -45,15 +50,15 @@ export function Skeleton({
 }: SkeletonProps) {
   const { theme } = useTheme();
   const reduceMotion = useReducedMotion();
-  const opacity = useAnimatedValue(reduceMotion ? 0.6 : 0.3);
+  const opacity = useAnimatedValue(reduceMotion ? STATIC_OPACITY : PULSE_MIN);
 
   useEffect(() => {
     if (reduceMotion) {
-      opacity.setValue(0.6);
+      opacity.setValue(STATIC_OPACITY);
       return;
     }
 
-    opacity.setValue(0.3);
+    opacity.setValue(PULSE_MIN);
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
@@ -62,7 +67,7 @@ export function Skeleton({
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
-          toValue: 0.3,
+          toValue: PULSE_MIN,
           duration: 800,
           useNativeDriver: true,
         }),
@@ -81,7 +86,9 @@ export function Skeleton({
           width: circle ? resolvedSize : width,
           height: circle ? resolvedSize : height,
           borderRadius: circle ? (resolvedSize! / 2) : borderRadius,
-          backgroundColor: theme.colors.muted,
+          // `borderStrong`, not `muted`: on a white card `muted` (#F4F4F5) is
+          // a 1.05:1 step and the pulse's low point made it vanish outright.
+          backgroundColor: theme.colors.borderStrong,
         },
         { opacity },
         style,

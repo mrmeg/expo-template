@@ -1,4 +1,5 @@
 export * from "./useDimensions";
+export * from "./useFocusVisible";
 export * from "./useFontStyle";
 export * from "./useReduceMotion";
 export * from "./useResources";

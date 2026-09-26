@@ -12,6 +12,7 @@ import { StyledText, CaptionText, EyebrowText, type TextProps } from "./StyledTe
 import { Icon, type IconName, type ThemeColorName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
 import { useScalePress } from "../hooks/useScalePress";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
 
@@ -87,13 +88,14 @@ export interface ItemProps {
  * ```
  */
 export function Item({ children, onPress, disabled, separator, style }: ItemProps) {
-  const { theme } = useTheme();
+  const { theme, getFocusRingStyle } = useTheme();
   const groupRow = use(ItemGroupRowContext);
   const showSeparator = separator ?? groupRow?.separator ?? false;
   const { animatedStyle, pressHandlers } = useScalePress({
     disabled: !onPress || !!disabled,
     scaleTo: 0.98,
   });
+  const focus = useFocusVisible();
 
   const row = (
     <View style={[styles.row, style]}>
@@ -123,9 +125,13 @@ export function Item({ children, onPress, disabled, separator, style }: ItemProp
         accessibilityRole="button"
         accessibilityState={{ disabled: !!disabled }}
         {...pressHandlers}
+        onFocus={focus.onFocus}
+        onBlur={focus.onBlur}
         style={({ pressed }) => [
-          Platform.OS === "web" && { cursor: "pointer" as const },
+          { borderRadius: spacing.radiusSm },
+          Platform.OS === "web" && { cursor: "pointer" as const, outlineStyle: "none" as any },
           pressed && { opacity: interaction.pressedOpacity },
+          focus.focused && !disabled && getFocusRingStyle(),
         ]}
       >
         <Animated.View style={animatedStyle}>

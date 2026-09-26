@@ -5,6 +5,7 @@ import { TextClassContext, TextSelectabilityContext } from "./StyledText.context
 import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { spacing } from "../constants/spacing";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
@@ -227,7 +228,7 @@ function AccordionTrigger({
 }: AccordionPrimitive.TriggerProps & {
   children?: React.ReactNode;
 } & React.RefAttributes<AccordionPrimitive.TriggerRef>) {
-  const { theme } = useTheme();
+  const { theme, getFocusRingStyle } = useTheme();
   const reduceMotion = useReducedMotion();
   const { isExpanded } = AccordionPrimitive.useItemContext();
   const rotation = useAnimatedValue(isExpanded ? 1 : 0);
@@ -236,6 +237,7 @@ function AccordionTrigger({
     scaleTo: 0.97,
     haptic: false,
   });
+  const focus = useFocusVisible();
 
   useEffect(() => {
     const target = isExpanded ? 1 : 0;
@@ -266,6 +268,8 @@ function AccordionTrigger({
               <Trigger
                 onPressIn={pressHandlers.onPressIn}
                 onPressOut={pressHandlers.onPressOut}
+                onFocus={focus.onFocus}
+                onBlur={focus.onBlur}
                 style={[
                   {
                     flexDirection: "row",
@@ -277,8 +281,10 @@ function AccordionTrigger({
                     ...(Platform.OS === "web" && {
                       cursor: "pointer" as any,
                       userSelect: "none" as any,
+                      outlineStyle: "none" as any,
                     }),
                   },
+                  focus.focused && !disabled && getFocusRingStyle(),
                   // Spread array styles from primitives to prevent nested arrays on web
                   ...(styleOverride && typeof styleOverride !== "function"
                     ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
