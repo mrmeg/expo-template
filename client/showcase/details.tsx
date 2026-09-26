@@ -447,6 +447,19 @@ export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
           </View>
         ),
       },
+      {
+        label: "pressable",
+        render: () => (
+          <View style={{ minWidth: 200 }}>
+            <Card onPress={() => {}}>
+              <CardHeader>
+                <CardTitle>Open report</CardTitle>
+                <CardDescription>Presses dim; keyboard focus shows the ring.</CardDescription>
+              </CardHeader>
+            </Card>
+          </View>
+        ),
+      },
     ],
     usage: `<Card>
   <CardHeader>
