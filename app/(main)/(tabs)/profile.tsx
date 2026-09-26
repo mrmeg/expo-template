@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, StyleSheet, ScrollView, Pressable } from "react-native";
+import type { StyleProp, TextStyle, ViewStyle } from "react-native";
 import { router } from "expo-router";
 import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -17,10 +18,20 @@ import {
   ItemActions,
 } from "@mrmeg/expo-ui/components/Item";
 import { Alert } from "@mrmeg/expo-ui/components/Alert";
+import { Collapsible, CollapsibleContent } from "@mrmeg/expo-ui/components/Collapsible";
 import { notify } from "@mrmeg/expo-ui/state";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
+import { isAuthError, type SocialAuthProviderName } from "@/client/features/auth/provider";
 import { AuthGate } from "@/client/features/app";
+import {
+  ChangePasswordSheet,
+  EditProfileSheet,
+  useAccountCapabilities,
+  useChangePassword,
+  useHydrateProfile,
+  useProfileStore,
+} from "@/client/features/profile";
 import Config from "@/client/config";
 import {
   useBillingActions,
@@ -69,12 +80,72 @@ function ProfileScreen() {
       ? ("manage" as const)
       : ("upgrade" as const);
 
-  // Mock preference states
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [marketingEmails, setMarketingEmails] = useState(false);
+  // Preferences persist in the profile store (device-local; the template ships
+  // no profile API). Web reads persistence after mount so SSR and the first
+  // client render agree.
+  useHydrateProfile();
+  const displayName = useProfileStore((s) => s.displayName);
+  const publicProfile = useProfileStore((s) => s.publicProfile);
+  const analytics = useProfileStore((s) => s.analytics);
+  const emailNotifications = useProfileStore((s) => s.emailNotifications);
+  const pushNotifications = useProfileStore((s) => s.pushNotifications);
+  const marketingEmails = useProfileStore((s) => s.marketingEmails);
+  const setPreference = useProfileStore((s) => s.setPreference);
+
+  const { signInWithProvider, deleteAccount } = useAuth();
+  const capabilities = useAccountCapabilities(user?.email);
+  const changePassword = useChangePassword(user?.email);
+  const [editOpen, setEditOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   const isAuthenticated = authState === "authenticated";
+  const fallbackName = user?.username || "Your profile";
+  const headerName = displayName || fallbackName;
+  const showDangerZone = isAuthenticated || capabilities.canDeleteAccount;
+
+  const handleEditProfile = () => setEditOpen(true);
+
+  const handleConnect = async (provider: SocialAuthProviderName) => {
+    try {
+      await signInWithProvider(provider);
+    } catch (err) {
+      notify({
+        type: "error",
+        messages: [
+          isAuthError(err) && err.message
+            ? err.message
+            : `We couldn't start ${PROVIDER_META[provider].label} sign-in.`,
+        ],
+        duration: 3000,
+      });
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.show({
+      title: "Delete Account",
+      message: "This action cannot be undone. Your account and its data will be permanently deleted.",
+      buttons: [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              notify({ type: "success", messages: ["Account deleted"], duration: 2000 });
+            } catch (err) {
+              notify({
+                type: "error",
+                messages: [isAuthError(err) && err.message ? err.message : "We couldn't delete your account. Try again."],
+                duration: 3000,
+              });
+            }
+          },
+        },
+      ],
+    });
+  };
 
   const handleManageBilling = async () => {
     const result = await billingActions.startPortal();
@@ -137,15 +208,18 @@ function ProfileScreen() {
               <Icon name="user" color={palette.white} size={48} />
             </View>
           </Pressable>
-          <SansSerifBoldText size="xl" style={styles.name}>
-            {user?.username || "User"}
+          <SansSerifBoldText size="xl" style={[styles.name, !user?.email && styles.nameSpaced]}>
+            {headerName}
           </SansSerifBoldText>
-          <SansSerifText size="base" style={styles.email}>
-            {user?.email || "user@example.com"}
-          </SansSerifText>
+          {user?.email ? (
+            <SansSerifText size="base" style={styles.email}>
+              {user.email}
+            </SansSerifText>
+          ) : null}
           <Button
             preset="outline"
             size="sm"
+            style={styles.editButton}
             onPress={handleEditProfile}
           >
             <Icon name="pencil" size={14} color={theme.colors.primary} />
@@ -166,26 +240,67 @@ function ProfileScreen() {
           onUpgrade={handleUpgrade}
         />
 
-        <ItemGroup title="Account Settings">
-          <Item onPress={handleChangePassword}>
-            <ItemMedia size={36} icon="key" />
-            <ItemContent>
-              <ItemTitle>Change Password</ItemTitle>
-            </ItemContent>
-            <ItemActions>
-              <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
-            </ItemActions>
-          </Item>
-          <Item onPress={handlePrivacySettings}>
-            <ItemMedia size={36} icon="shield" />
-            <ItemContent>
-              <ItemTitle>Privacy Settings</ItemTitle>
-            </ItemContent>
-            <ItemActions>
-              <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
-            </ItemActions>
-          </Item>
-        </ItemGroup>
+        <View>
+          <ItemGroup title="Account Settings">
+            {capabilities.canResetPassword && (
+              <Item onPress={changePassword.start}>
+                <ItemMedia size={36} icon="key" />
+                <ItemContent>
+                  <ItemTitle>Change Password</ItemTitle>
+                  <ItemDescription>We email a code to {user?.email}</ItemDescription>
+                </ItemContent>
+                <ItemActions>
+                  <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
+                </ItemActions>
+              </Item>
+            )}
+            <Item onPress={() => setPrivacyOpen((open) => !open)}>
+              <ItemMedia size={36} icon="shield" />
+              <ItemContent>
+                <ItemTitle>Privacy Settings</ItemTitle>
+              </ItemContent>
+              <ItemActions>
+                <Icon
+                  name={privacyOpen ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={theme.colors.mutedForeground}
+                />
+              </ItemActions>
+            </Item>
+          </ItemGroup>
+          <Collapsible open={privacyOpen} onOpenChange={setPrivacyOpen}>
+            <CollapsibleContent>
+              <ItemGroup testID="profile-privacy-settings">
+                <Item>
+                  <ItemMedia size={36} icon="eye" />
+                  <ItemContent>
+                    <ItemTitle>Public profile</ItemTitle>
+                    <ItemDescription>Let others find your profile</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <Switch
+                      checked={publicProfile}
+                      onCheckedChange={(value) => setPreference("publicProfile", value)}
+                    />
+                  </ItemActions>
+                </Item>
+                <Item>
+                  <ItemMedia size={36} icon="chart-no-axes-column" />
+                  <ItemContent>
+                    <ItemTitle>Share analytics</ItemTitle>
+                    <ItemDescription>Anonymous usage data helps improve the app</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <Switch
+                      checked={analytics}
+                      onCheckedChange={(value) => setPreference("analytics", value)}
+                    />
+                  </ItemActions>
+                </Item>
+              </ItemGroup>
+            </CollapsibleContent>
+          </Collapsible>
+        </View>
 
         <ItemGroup title="Notifications">
           <Item>
@@ -194,7 +309,10 @@ function ProfileScreen() {
               <ItemTitle>Email Notifications</ItemTitle>
             </ItemContent>
             <ItemActions>
-              <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
+              <Switch
+                checked={emailNotifications}
+                onCheckedChange={(value) => setPreference("emailNotifications", value)}
+              />
             </ItemActions>
           </Item>
           <Item>
@@ -203,77 +321,122 @@ function ProfileScreen() {
               <ItemTitle>Push Notifications</ItemTitle>
             </ItemContent>
             <ItemActions>
-              <Switch checked={pushNotifications} onCheckedChange={setPushNotifications} />
+              <Switch
+                checked={pushNotifications}
+                onCheckedChange={(value) => setPreference("pushNotifications", value)}
+              />
             </ItemActions>
           </Item>
           <Item>
-            <ItemMedia size={36} icon="mail" />
+            <ItemMedia size={36} icon="send" />
             <ItemContent>
               <ItemTitle>Marketing Emails</ItemTitle>
             </ItemContent>
             <ItemActions>
-              <Switch checked={marketingEmails} onCheckedChange={setMarketingEmails} />
-            </ItemActions>
-          </Item>
-        </ItemGroup>
-
-        <ItemGroup title="Connected Accounts">
-          <Item onPress={handleConnectGoogle}>
-            <ItemMedia size={36} style={styles.googleTile}>
-              <SansSerifBoldText size="body" style={styles.providerLetter}>G</SansSerifBoldText>
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle>Google</ItemTitle>
-              <ItemDescription>Not connected</ItemDescription>
-            </ItemContent>
-            <ItemActions>
-              <Icon name="link-2" size={18} color={theme.colors.primary} />
-            </ItemActions>
-          </Item>
-          <Item onPress={handleConnectApple}>
-            <ItemMedia size={36} style={styles.appleTile}>
-              <SansSerifBoldText size="body" style={styles.appleLetter}>A</SansSerifBoldText>
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle>Apple</ItemTitle>
-              <ItemDescription>Not connected</ItemDescription>
-            </ItemContent>
-            <ItemActions>
-              <Icon name="link-2" size={18} color={theme.colors.primary} />
-            </ItemActions>
-          </Item>
-        </ItemGroup>
-
-        <ItemGroup title="Danger Zone">
-          {isAuthenticated && (
-            <Item onPress={handleSignOut}>
-              <ItemMedia
-                size={36}
-                icon="log-out"
-                iconColor={theme.colors.destructive}
-                style={styles.destructiveTile}
+              <Switch
+                checked={marketingEmails}
+                onCheckedChange={(value) => setPreference("marketingEmails", value)}
               />
-              <ItemContent>
-                <ItemTitle style={styles.destructiveLabel}>Sign Out</ItemTitle>
-              </ItemContent>
-            </Item>
-          )}
-          <Item onPress={handleDeleteAccount}>
-            <ItemMedia
-              size={36}
-              icon="trash"
-              iconColor={theme.colors.destructive}
-              style={styles.destructiveTile}
-            />
-            <ItemContent>
-              <ItemTitle style={styles.destructiveLabel}>Delete Account</ItemTitle>
-            </ItemContent>
+            </ItemActions>
           </Item>
         </ItemGroup>
+
+        {capabilities.socialProviders.length > 0 && (
+          <ItemGroup
+            title="Connected Accounts"
+            footer="Signing in with a provider links it to this account."
+          >
+            {capabilities.socialProviders.map((provider) => {
+              const meta = PROVIDER_META[provider];
+              return (
+                <Item key={provider} onPress={() => handleConnect(provider)}>
+                  <ItemMedia size={36} style={meta.tile(styles)}>
+                    <SansSerifBoldText size="body" style={meta.letter(styles)}>
+                      {meta.initial}
+                    </SansSerifBoldText>
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemTitle>{meta.label}</ItemTitle>
+                    <ItemDescription>Connect with {meta.label} sign-in</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <Icon name="link-2" size={18} color={theme.colors.primary} />
+                  </ItemActions>
+                </Item>
+              );
+            })}
+          </ItemGroup>
+        )}
+
+        {showDangerZone && (
+          <ItemGroup title="Danger Zone">
+            {isAuthenticated && (
+              <Item onPress={handleSignOut}>
+                <ItemMedia
+                  size={36}
+                  icon="log-out"
+                  iconColor={theme.colors.destructive}
+                  style={styles.destructiveTile}
+                />
+                <ItemContent>
+                  <ItemTitle style={styles.destructiveLabel}>Sign Out</ItemTitle>
+                </ItemContent>
+              </Item>
+            )}
+            {capabilities.canDeleteAccount && (
+              <Item onPress={handleDeleteAccount}>
+                <ItemMedia
+                  size={36}
+                  icon="trash"
+                  iconColor={theme.colors.destructive}
+                  style={styles.destructiveTile}
+                />
+                <ItemContent>
+                  <ItemTitle style={styles.destructiveLabel}>Delete Account</ItemTitle>
+                </ItemContent>
+              </Item>
+            )}
+          </ItemGroup>
+        )}
       </ScrollView>
+      <EditProfileSheet
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        authEnabled={capabilities.authEnabled}
+        fallbackName={fallbackName}
+      />
+      {capabilities.canResetPassword && user?.email ? (
+        <ChangePasswordSheet flow={changePassword} email={user.email} />
+      ) : null}
     </>
   );
 }
+
+type ProfileStyles = ReturnType<typeof createStyles>;
+
+/** Brand tiles for the federated providers the env can list. */
+const PROVIDER_META: Record<
+  SocialAuthProviderName,
+  {
+    label: string;
+    initial: string;
+    tile: (styles: ProfileStyles) => StyleProp<ViewStyle>;
+    letter: (styles: ProfileStyles) => StyleProp<TextStyle>;
+  }
+> = {
+  google: {
+    label: "Google",
+    initial: "G",
+    tile: (styles) => styles.googleTile,
+    letter: (styles) => styles.providerLetter,
+  },
+  apple: {
+    label: "Apple",
+    initial: "A",
+    tile: (styles) => styles.appleTile,
+    letter: (styles) => styles.appleLetter,
+  },
+};
 
 function AccountInfoSection({
   theme,
@@ -392,53 +555,8 @@ function AccountInfoSection({
   );
 }
 
-function showInfoMessage(message: string) {
-  notify({
-    type: "info",
-    messages: [message],
-    duration: 2000,
-  });
-}
-
-function handleEditProfile() {
-  showInfoMessage("Edit profile functionality coming soon");
-}
-
-function handleChangePassword() {
-  showInfoMessage("Password change functionality coming soon");
-}
-
-function handlePrivacySettings() {
-  showInfoMessage("Privacy settings coming soon");
-}
-
-function handleConnectGoogle() {
-  showInfoMessage("Google account linking coming soon");
-}
-
-function handleConnectApple() {
-  showInfoMessage("Apple account linking coming soon");
-}
-
 function handleUpgrade() {
   router.push("/(main)/(demos)/screen-pricing");
-}
-
-function handleDeleteAccount() {
-  Alert.show({
-    title: "Delete Account",
-    message: "This action cannot be undone. All your data will be permanently deleted.",
-    buttons: [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => {
-          showInfoMessage("Account deletion coming soon");
-        },
-      },
-    ],
-  });
 }
 
 function statusToLabel(status: BillingSummary["status"] | undefined): string {
@@ -509,19 +627,28 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.foreground,
       marginBottom: spacing.xs,
     },
+    nameSpaced: {
+      marginBottom: spacing.md,
+    },
     email: {
       color: theme.colors.mutedForeground,
       marginBottom: spacing.md,
     },
+    // The header centres its children, but the button sizes to its label and
+    // sits at the start; centre it with the name above it.
+    editButton: {
+      alignSelf: "center",
+    },
     editButtonText: {
       color: theme.colors.primary,
     },
+    // Brand tiles for the provider rows; ItemMedia has no tint variant. They
+    // reach ItemMedia through PROVIDER_META, which no-restyle cannot follow.
     googleTile: {
-      // eslint-disable-next-line expo-ui/no-restyle, expo-ui/no-raw-colors -- Google brand tile; must not follow the theme, and ItemMedia has no tint variant
+      // eslint-disable-next-line expo-ui/no-raw-colors -- Google brand red; must not follow the theme
       backgroundColor: "#DB4437",
     },
     appleTile: {
-      // eslint-disable-next-line expo-ui/no-restyle -- Apple brand tile inverts with the theme; ItemMedia has no tint variant
       backgroundColor: theme.colors.foreground,
     },
     providerLetter: {

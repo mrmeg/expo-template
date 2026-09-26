@@ -174,6 +174,27 @@ export function useAuth() {
     await signOut();
   }, []);
 
+  /**
+   * Delete the account at the provider, then drop the local session. Rejects
+   * with `AuthError("unsupported")` when the active client cannot delete from
+   * the app; the profile screen hides its row in that case
+   * (`useAccountCapabilities`). The provider-side sign-out may fail after the
+   * user is gone; the store is reset regardless so the gate shows the sign-in
+   * screen.
+   */
+  const handleDeleteAccount = useCallback(async () => {
+    const client = await requireAuthClient();
+    if (!client.deleteAccount) {
+      throw new AuthError("unsupported", "This auth provider cannot delete accounts from the app");
+    }
+    await client.deleteAccount();
+    try {
+      await useAuthStore.getState().signOut();
+    } catch {
+      useAuthStore.getState().reset();
+    }
+  }, []);
+
   return {
     checkAuthState,
     signIn: handleSignIn,
@@ -186,5 +207,6 @@ export function useAuth() {
     forgotPassword: handleForgotPassword,
     resetPassword: handleResetPassword,
     signOut: handleSignOut,
+    deleteAccount: handleDeleteAccount,
   };
 }

@@ -130,6 +130,14 @@ export interface AuthClient {
   signOut(): Promise<void>;
 
   /**
+   * Delete the signed-in user's account at the provider. Optional: a provider
+   * that cannot do this from the app leaves it undefined, and the profile
+   * screen hides its Delete Account row. The session is gone afterwards either
+   * way; callers still sign out to clear local state.
+   */
+  deleteAccount?(): Promise<void>;
+
+  /**
    * Subscribe to session changes originating in the SDK (token refresh
    * failures, sign-out in another tab, OAuth redirects). Returns an
    * unsubscribe function.
