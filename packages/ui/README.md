@@ -182,26 +182,23 @@ import { StyledText } from "@mrmeg/expo-ui/components";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 
-export function Panel() {
-  const { theme, getShadowStyle } = useTheme();
+export function Intro() {
+  const { theme } = useTheme();
 
   return (
-    <View
-      style={[
-        { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
-        { borderWidth: StyleSheet.hairlineWidth, borderRadius: spacing.radiusLg },
-        { padding: spacing.cardPadding, gap: spacing.sm },
-        getShadowStyle("subtle"),
-      ]}
-    >
-      <StyledText semantic="heading">Theme-aware panel</StyledText>
+    <View style={{ paddingHorizontal: spacing.screenPadding, gap: spacing.sm }}>
+      <StyledText semantic="heading">Theme-aware section</StyledText>
       <StyledText semantic="body" style={{ color: theme.colors.mutedForeground }}>
         Uses package tokens instead of hardcoded colors.
       </StyledText>
+      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border }} />
     </View>
   );
 }
 ```
+
+Sections sit on the screen's 16 pt gutter and end in a hairline, not in a
+bordered, shadowed panel; see [Screen layout](#screen-layout).
 
 `useTheme()` returns the active `theme`, resolved `scheme`, persisted
 `currentTheme`, `setTheme`, `toggleTheme`, `getShadowStyle`,
@@ -240,10 +237,13 @@ helpers.
 import { useStyles } from "@mrmeg/expo-ui/hooks";
 
 const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
-  card: {
-    backgroundColor: withAlpha(theme.colors.primary, 0.08),
+  content: {
+    paddingVertical: spacing.md,
+    gap: spacing.sectionSpacing,
+  },
+  selectedIcon: {
+    backgroundColor: withAlpha(theme.colors.primary, 0.12),
     borderRadius: spacing.radiusMd,
-    padding: spacing.md,
   },
 }));
 ```
@@ -288,11 +288,11 @@ everywhere at once:
 
 | Token | Value | Use |
 |-------|-------|-----|
-| `screenPadding` | 16 | Horizontal gutter for screens, scroll content, landing blocks |
-| `sectionSpacing` | 24 | Gap between grouped lists, cards, settings groups |
-| `cardPadding` | 16 | `Card`, `StatCard`, any bordered panel |
+| `screenPadding` | 16 | The one horizontal inset per screen: scroll content, landing blocks, text and forms between row groups |
+| `sectionSpacing` | 24 | Gap between screen sections and `ItemGroup`s |
+| `cardPadding` | 16 | Inside `Card` and `StatCard` tiles; not a layout inset |
 | `dialogPadding` | 20 | `Dialog` and `AlertDialog` content |
-| `rowPaddingY` / `rowPaddingX` | 10 / 16 | `Item` rows and hand-rolled list rows |
+| `rowPaddingY` / `rowPaddingX` | 10 / 16 | `Item` rows; `rowPaddingX` is the row's copy of the screen inset |
 | `rowGap` | 12 | Gap between row media, content, actions |
 | `rowMinHeight` | 40 | Visual row height on web; native rows keep `touchTarget` |
 | `formRowMinHeight` | 32 | Checkbox and radio rows on web; native keeps `touchTarget` |
@@ -302,6 +302,34 @@ Controls size themselves from their own `size` prop and ignore these tokens:
 `Button` 28/32/40 (`sm`/`md`/`lg`), `TextInput` and `Select` 32/36/40
 (`sm`/`md`/`lg`), `Toggle` 32/36/40 (`sm`/`default`/`lg`), `Tabs` 32/36
 (`sm`/`md`).
+
+### Screen layout
+
+Phones are narrow, so every nested inset comes out of the content. Screens
+built from this package are flat:
+
+- **One horizontal inset: `spacing.screenPadding` (16).** Either a container
+  pads or its children do, never both. `Item` rows carry the inset themselves,
+  so a screen of `ItemGroup`s pads nothing horizontally; text, forms, and
+  buttons between the groups pad their own wrapper.
+- **No boxes as layout.** Don't wrap a section, a form, or a group of rows in
+  a bordered, shadowed, or tinted rounded panel. Separate sections with a
+  header, `spacing.sectionSpacing`, or a hairline (`Separator`).
+- **Lists and settings are `ItemGroup` + `Item`:** plain full-width rows,
+  inset hairlines, no card per row, no border around the group.
+- **Forms:** fields span the column, grouped under section headers.
+- **Primary content fills the width.** Photos, video, maps, QR codes, and
+  charts size to the column (`width: "100%"` plus `aspectRatio`), never a
+  fixed size in whitespace.
+- **Wide screens cap the column** instead of boxing it:
+  `contentContainerStyle={{ width: "100%", maxWidth: 640, alignSelf: "center" }}`.
+- **`Card` is for** one item in a collection (a feed entry, a grid tile, a
+  carousel slide) or a single tappable object. Never nest Cards.
+
+On a 390 pt phone a boxed settings group puts row content 33 pt from each edge
+(16 screen + 1 border + 16 row) and leaves 324 pt for it; the flat group puts
+it 16 pt in and leaves 358 pt. [`LLM_USAGE.md`](LLM_USAGE.md#screen-layout)
+has a complete screen.
 
 ### Color overrides
 
@@ -516,7 +544,7 @@ building a new primitive.
 | `Badge` | Short status labels | Draft/active state, counts, plan and role tags |
 | `BottomSheet` | Mobile-first modal sheets | Action pickers, mobile filters, quick edit forms |
 | `Button` | Commands and CTAs | Submit, save, delete, navigation CTAs; loading state keeps the resting width |
-| `Card` | Framed content groups | List items, pricing plans, settings sections, dashboards |
+| `Card` | One item in a collection, or a single tappable object; not a layout box | Feed entries, grid tiles, carousel slides, a tappable summary |
 | `Carousel` | Horizontally snapping slides with pressable dots | Testimonials, onboarding pages, image galleries |
 | `Checkbox` | Boolean selection | Terms consent, checklists, multi-select filters |
 | `Collapsible` | One-off disclosure | Advanced settings, hidden helper text |
@@ -529,20 +557,21 @@ building a new primitive.
 | `Icon` | Lucide or custom icons on theme tokens | Button accessories, menu icons, status glyphs |
 | `InputOTP` | Verification code entry | Email/SMS codes, MFA, invite codes |
 | `Item` | List and settings rows on the density tokens | Settings lists, inbox rows, pickers, detail rows |
+| `ItemGroup` | Flat grouped list: title, full-width `Item` rows with inset hairlines, footer | Settings sections, profile details, activity feeds |
 | `KeyboardAvoidingView` | Native keyboard-aware layout | Screen roots, composer footers, form-heavy subtrees |
 | `Label` | Accessible form labels | Required, disabled, and group labels |
-| `MaxWidthContainer` | Centered responsive width | Web pages, tablet layouts, auth panels |
+| `MaxWidthContainer` | Centered responsive width | Web pages, tablet layouts, auth forms |
 | `Notification` | Global toast surface | Saved/error/sync toasts, action toasts, loading toast |
 | `Popover` | Anchored contextual content | Inline help, quick previews, small forms |
 | `Progress` | Determinate or indeterminate progress | Upload progress, onboarding completion |
 | `RadioGroup` | Mutually exclusive choices | Plan interval, visibility choice, survey answer |
-| `SectionHeader` | Eyebrow / title / description section intro | Landing sections, settings groups, report headers |
+| `SectionHeader` | Eyebrow / title / description section intro | Landing sections, report headers, empty-screen intros |
 | `SegmentedControl` | Native segmented picker (`@expo/ui`) | Platform-native view switchers, iOS-style filters |
 | `Select` | Option menus | Country, category, status pickers; `label` drives default item text |
-| `Separator` | Horizontal or vertical dividers | Menu, section, and card dividers |
+| `Separator` | Horizontal or vertical dividers | Section, menu, and toolbar dividers |
 | `Skeleton` | Loading placeholders | List, profile card, dashboard loading |
 | `Slider` | Numeric value selection (`@expo/ui`) | Volume, percentage, rating, threshold |
-| `StatCard` | Metric tile: `label`, `value`, `unit`, `change`, `icon`, `onPress` | KPI rows, analytics summaries, usage meters |
+| `StatCard` | Metric tile: `label`, `value`, `unit`, `change`, `icon`, `onPress` | A scrolling KPI rail, one tappable metric |
 | `StatusBar` | Theme-aware native status bar | Root layout status styling |
 | `StyledText` and aliases | Theme-aware typography | Titles, labels, body copy, captions, translated text |
 | `Switch` | Binary settings | Notification, privacy, and feature toggles |
@@ -616,7 +645,7 @@ Lucide equivalent; use `component` with your own SVG.
 | `Dialog` | `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogFooter`, `DialogTitle`, `DialogDescription`, `DialogClose` |
 | `Drawer` | `DrawerTrigger`, `DrawerContent`, `DrawerHeader`, `DrawerBody`, `DrawerFooter`, `DrawerClose`, `DrawerToggleCollapse` |
 | `DropdownMenu` | `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuGroup`, `DropdownMenuItem`, `DropdownMenuCheckboxItem`, `DropdownMenuRadioGroup`, `DropdownMenuRadioItem`, `DropdownMenuLabel`, `DropdownMenuSeparator`, `DropdownMenuShortcut`, `DropdownMenuPortal`, `DropdownMenuSub`, `DropdownMenuSubTrigger`, `DropdownMenuSubContent` |
-| `Item` | `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` |
+| `Item` | `ItemGroup`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` |
 | `Popover` | `PopoverTrigger`, `PopoverContent`, `PopoverHeader`, `PopoverBody`, `PopoverFooter` |
 | `RadioGroup` | `RadioGroupItem` |
 | `Select` | `SelectTrigger`, `SelectValue`, `SelectContent`, `SelectItem`, `SelectGroup`, `SelectLabel`, `SelectSeparator` |
@@ -785,6 +814,19 @@ render from) is written once per page view and then once resizing settles.
   software keyboard). The platform close request
   (hardware back, TV menu) routes to the root's `onOpenChange(false)`. Android
   and web render dialog content inline into the portal host.
+- `PopoverContent` treats `side` as a preference. On iOS and Android it opens
+  on the other side when the content does not fit and there is more room
+  there, caps its height to the room it gets, and scrolls the children inside
+  that cap; `insets` default to the safe area, so the card stays clear of the
+  status bar and home indicator. Pass `scrollable={false}` when the content
+  brings its own `FlatList` (a VirtualizedList inside a vertical ScrollView
+  warns): the cap still applies, but the popover can no longer measure its full
+  height, so it stays on `side`. A `style` merges over the themed surface
+  (background, border, radius, shadow) instead of replacing it. On web, Radix
+  flips it and the card is capped to the space Radix measures; the primitive
+  cannot pass Radix a collision padding, so a card wider than the room beside
+  its trigger can sit flush against the viewport edge. A `PopoverTrigger` ref
+  (`PopoverTriggerRef`) exposes `open()` and `close()`.
 - `Carousel` renders every child (no virtualization), so slides survive into
   the exported HTML shell and the first client frame; use `FlatList` for large
   or unbounded data. An `itemWidth` below 1 (default `0.85`) is a fraction of
@@ -821,19 +863,39 @@ import { Drawer, Icon } from "@mrmeg/expo-ui/components";
 ### Quick Examples
 
 ```tsx
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@mrmeg/expo-ui/components";
+import {
+  Badge,
+  Icon,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@mrmeg/expo-ui/components";
 
-<Card variant="outline">
-  <CardHeader>
-    <CardTitle>Subscription</CardTitle>
-    <Badge variant="secondary">Active</Badge>
-  </CardHeader>
-  <CardContent>
-    <Button preset="default" fullWidth>
-      Manage billing
-    </Button>
-  </CardContent>
-</Card>
+<ItemGroup title="Subscription" footer="Renews on the 1st of each month.">
+  <Item>
+    <ItemMedia icon="award" />
+    <ItemContent>
+      <ItemTitle>Pro plan</ItemTitle>
+      <ItemDescription>$12 / month</ItemDescription>
+    </ItemContent>
+    <ItemActions>
+      <Badge variant="secondary">Active</Badge>
+    </ItemActions>
+  </Item>
+  <Item onPress={openBillingPortal}>
+    <ItemMedia icon="credit-card" />
+    <ItemContent>
+      <ItemTitle>Manage billing</ItemTitle>
+    </ItemContent>
+    <ItemActions>
+      <Icon name="chevron-right" size={18} color="mutedForeground" />
+    </ItemActions>
+  </Item>
+</ItemGroup>
 ```
 
 ```tsx

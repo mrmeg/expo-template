@@ -44,7 +44,9 @@ const DIRECTION_ICON: Record<"up" | "down", IconName> = {
  * Dashboard stat idiom: a tiny uppercase tracked label, a large
  * tabular-nums value (with an optional muted unit suffix), and an optional
  * signed change line (success/destructive/muted by direction). Builds on
- * `Card` for the container, default shadow, and press feedback.
+ * `Card` for the container, default shadow, and press feedback, so it follows
+ * Card's rule: a tile in a collection (a scrolling metrics rail) or one
+ * tappable metric, not a box around every number on a summary screen.
  *
  * @example
  * ```tsx

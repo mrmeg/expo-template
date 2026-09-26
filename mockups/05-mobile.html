@@ -111,15 +111,16 @@
   .m-switch { width: 30px; height: 17px; border-radius: 999px; background: var(--accent); position: relative; }
   .m-switch::after { content: ""; position: absolute; right: 2px; top: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; }
   .m-badge { font-family: ui-monospace, monospace; font-size: 9px; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 8px; }
-  .m-block { border: 1px solid var(--border); background: var(--card); border-radius: 12px; padding: 10px 12px; }
+  /* Flat: the app body's 16pt gutter is the only inset; a hairline, not a panel, marks the block. */
+  .m-block { border-top: 1px solid var(--border); padding-top: 10px; }
   .m-block .r { display: flex; justify-content: space-between; margin-bottom: 6px; }
   .m-block .r span { font-size: 10px; color: var(--dim); }
   .m-block .r i { font-style: normal; font-family: ui-monospace, monospace; font-size: 9px; color: var(--ok); }
   .m-block .v { font-family: ui-monospace, monospace; font-size: 18px; font-weight: 600; }
   .m-block .recipe { font-family: ui-monospace, monospace; font-size: 8.5px; color: var(--faint); margin-top: 7px; }
   .tgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .tthumb { border: 1px solid var(--border); background: var(--card); border-radius: 12px; padding: 8px; }
-  .tthumb .sc { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; height: 64px; padding: 6px; margin-bottom: 6px; }
+  /* A tile is its preview plus a caption: the preview fills the column, with no card around it. */
+  .tthumb .sc { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; aspect-ratio: 16 / 9; padding: 6px; margin-bottom: 6px; }
   .tthumb .sc i { display: block; height: 5px; border-radius: 3px; background: var(--raised); margin-bottom: 5px; }
   .tthumb .sc i.a { background: var(--accent-soft); width: 55%; }
   .tthumb b { font-size: 10.5px; font-weight: 500; display: block; }
@@ -193,7 +194,7 @@
   .m-hero-blk .bb .a { background: var(--text); color: var(--bg); }
   .m-hero-blk .bb .b { border: 1px solid var(--border-strong); }
   .m-stats-blk { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
-  .m-stats-blk div { border: 1px solid var(--border-strong); background: var(--card); border-radius: 8px; padding: 7px 9px; }
+  .m-stats-blk div { border-top: 1px solid var(--border-strong); padding-top: 6px; }
   .m-stats-blk span { font-size: 8px; color: var(--dim); display: block; }
   .m-stats-blk b { font-family: ui-monospace, monospace; font-size: 12px; }
   .m-stats-blk i { font-style: normal; font-family: ui-monospace, monospace; font-size: 7.5px; color: var(--ok); margin-left: 4px; }
@@ -278,7 +279,7 @@
           <div class="m-block">
             <div class="r"><span>Monthly revenue</span><i>▲ 12.4%</i></div>
             <div class="v">$48,210</div>
-            <div class="recipe">StatCard + SectionHeader</div>
+            <div class="recipe">SectionHeader + StyledText</div>
           </div>
           <div class="m-sec"><b>Templates</b><span>17 →</span></div>
           <div class="tgrid">
@@ -464,7 +465,7 @@
                 <div><span>Users</span><b>2,481</b><i>▲ 8%</i></div>
               </div>
             </div>
-            <div class="brecipe">StatCard ×4 + SectionHeader</div>
+            <div class="brecipe">SectionHeader + StyledText + Icon</div>
           </div>
         </div>
         <div class="home-bar"></div>

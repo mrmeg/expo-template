@@ -54,11 +54,19 @@ Reusable UI belongs in `packages/ui`; reusable media contracts and processing in
   `@mrmeg/expo-ui/constants`.
 - Use `useTheme()` and token exports for color, spacing, radius, shadow,
   typography, and contrast. No new hard-coded palettes.
-- Use the semantic density tokens for layout: `spacing.screenPadding` for screen
-  and block gutters, `spacing.cardPadding` for bordered panels,
-  `spacing.sectionSpacing` between grouped lists, and `Item` (or
-  `spacing.rowPaddingY` / `rowPaddingX`) for list rows. Not raw `spacing.lg` /
-  `spacing.xl` for those roles.
+- Use the semantic density tokens for layout: `spacing.screenPadding` for the one
+  horizontal inset of a screen or block, `spacing.sectionSpacing` between
+  sections and `ItemGroup`s, and `Item` (or `spacing.rowPaddingY` /
+  `rowPaddingX`) for list rows. Not raw `spacing.lg` / `spacing.xl` for those
+  roles. `spacing.cardPadding` is the inside of a `Card` tile, not a layout inset.
+- Build screens flat (`packages/ui/LLM_USAGE.md`, Screen Layout): one 16 pt
+  inset, owned by the container or by its children, never both; no bordered,
+  shadowed, or tinted panels as layout, so sections break on a header, spacing,
+  or a hairline; lists and settings as `ItemGroup` + `Item` rows; form fields
+  spanning the column; photos, media, and charts sized to the column; a capped,
+  centred column on wide screens. `Card` is for one item in a collection or one
+  tappable object, never nested. The settings template and the seeded settings
+  and profile tabs are the reference screens.
 - Keep package code app-agnostic: `packages/ui` must not import from
   `@/client/*`; `packages/media` must not depend on app route files or app env
   names.
@@ -115,7 +123,10 @@ Start with `packages/ui/src/components/index.ts` and
 | Menus and contextual commands | `DropdownMenu`, `Popover`, `Tooltip` |
 | Modal or transient surfaces | `Dialog`, `BottomSheet`, `Drawer` |
 | Status, progress, or async feedback | `Alert`, `Badge`, `Progress`, `Skeleton`, `EmptyState` |
-| Cards and repeated item containers | `Card`, `Separator`, `AnimatedView` |
+| Lists, settings, grouped rows | `ItemGroup` + `Item` |
+| Collection items (feed or grid tiles, carousel slides), a single tappable object | `Card` |
+| Section breaks | `ItemGroup` titles, `SectionHeader`, `Separator`, `spacing.sectionSpacing` |
+| Entrance animation for repeated items | `AnimatedView` |
 | Icons | `Icon`, with names typed by `IconName` |
 | App shell infrastructure | `UIProvider`, `ErrorBoundary`, `StatusBar`, `Notification` |
 
@@ -235,6 +246,10 @@ browser against `bun run build && bun run start` (see `docs/server-guide.md`).
 
 - App screens defining new button, input, menu, modal, card, or typography
   primitives when package components already exist.
+- Card soup: sections, forms, or row groups boxed in bordered, shadowed, or
+  tinted rounded panels with their own padding inside a screen that already
+  pads its edges, or a `Card` per list row. Use flat `ItemGroup` rows and
+  section headers instead.
 - Hard-coded colors, shadows, radius, and spacing in general-purpose UI.
 - Feature folders importing sibling feature internals outside documented boundary
   exceptions.

@@ -215,15 +215,21 @@ export function CardGridScreen<T>({
   // Pass a component (not an element) so FlatList builds the header JSX lazily —
   // never during an early-return render. renderCategoryTabs / renderSortRow are
   // memoized, so this callback identity is stable across unrelated renders.
+  //
+  // The tabs and sort row pad the 16pt gutter themselves (the chip rail
+  // scrolls edge to edge), so inside the list they bleed out of the grid's
+  // padding instead of insetting a second time.
   const ListHeader = useCallback(
     () => (
       <>
         {header}
-        {renderCategoryTabs()}
-        {renderSortRow()}
+        <View style={styles.headerBleed}>
+          {renderCategoryTabs()}
+          {renderSortRow()}
+        </View>
       </>
     ),
-    [header, renderCategoryTabs, renderSortRow]
+    [header, renderCategoryTabs, renderSortRow, styles.headerBleed]
   );
 
   const refreshControl = useMemo(
@@ -306,6 +312,8 @@ export function CardGridScreen<T>({
 // Styles
 // ---------------------------------------------------------------------------
 
+const MAX_CONTENT_WIDTH = 960;
+
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
@@ -348,14 +356,23 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.mutedForeground,
     },
 
-    // Grid
+    // Grid. Wide screens cap and centre the column instead of boxing it.
     gridContent: {
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       paddingHorizontal: spacing.screenPadding,
       paddingBottom: spacing.xxl,
+    },
+    headerBleed: {
+      marginHorizontal: -spacing.screenPadding,
     },
 
     // Skeleton loading
     skeletonGrid: {
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       flexDirection: "row",
       flexWrap: "wrap",
       paddingHorizontal: spacing.screenPadding,

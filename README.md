@@ -271,27 +271,29 @@ Runtime merges `client/config/config.base.ts` with `config.dev.ts` or
 ## Theming
 
 ```tsx
+import { StyleSheet, View } from "react-native";
+import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 
-function Card({ children }) {
-  // useTheme also returns getContrastingColor(bg, a?, b?)
-  const { theme, getShadowStyle } = useTheme();
+function SectionIntro({ title, children }) {
+  // useTheme also returns getShadowStyle, withAlpha, and getContrastingColor(bg, a?, b?)
+  const { theme } = useTheme();
   return (
-    <View style={[
-      {
-        backgroundColor: theme.colors.card,
-        borderColor: theme.colors.border,
-        borderRadius: spacing.radiusMd,
-        padding: spacing.md,
-      },
-      getShadowStyle("subtle"),
-    ]}>
-      <Text style={{ color: theme.colors.foreground }}>{children}</Text>
+    <View style={{ paddingHorizontal: spacing.screenPadding, gap: spacing.xs }}>
+      <StyledText semantic="heading">{title}</StyledText>
+      <StyledText style={{ color: theme.colors.mutedForeground }}>{children}</StyledText>
+      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border }} />
     </View>
   );
 }
 ```
+
+Screens are flat: one 16 pt horizontal inset, sections split by a header,
+spacing, or a hairline rather than boxed in bordered or shadowed panels, and
+lists and settings built from `ItemGroup` + `Item` rows. `Card` is for one item
+in a collection or one tappable object. The rules, with a full screen, are in
+[`packages/ui/LLM_USAGE.md`](packages/ui/LLM_USAGE.md#screen-layout).
 
 Color tokens live in `packages/ui/src/constants/colors.ts`, imported through
 `@mrmeg/expo-ui/constants`. The primitives, theme hooks, resource-loading hook,

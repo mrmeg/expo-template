@@ -7,6 +7,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`ItemGroup`, a flat grouped list** (from `components/Item` and the
+  barrels). `<ItemGroup title? description? footer? style? testID?>` stacks
+  `Item` rows edge to edge and draws an inset hairline under every row but the
+  last. The title is an uppercase muted eyebrow announced as a header (an h2 on
+  web), the description and footer are caption text, and the group paints no
+  border, radius, shadow, or fill and adds no horizontal padding: the rows and
+  the header carry the 16 pt screen inset (`spacing.rowPaddingX`) themselves.
+  It replaces the bordered, shadowed box apps wrapped around settings rows,
+  which put row content 33 pt from each edge of a 390 pt phone (16 screen + 1
+  border + 16 row, 324 pt wide); in a group it sits 16 pt in (358 pt wide).
+  Pass rows as direct children (a mapped array works; a Fragment is one row).
+
+- **`PopoverContent` `scrollable` and a typed `PopoverTrigger` ref.**
+  `scrollable` (default `true`) wraps the children in the scroll body that
+  keeps a tall popover inside its room; pass `false` for content that brings
+  its own `FlatList` (the cap still applies; the popover then stays on `side`).
+  `PopoverTrigger` now types its `ref` and the new `PopoverTriggerRef` type
+  names what it holds (`open()` / `close()`), so apps drop their cast.
+
 - **One haptics setting for the kit: `<UIProvider haptics>` / `setHaptics()`.**
   `"off"`, `"selection"` (default) or `"all"`, stored in the new
   `useFeedbackStore` (`@mrmeg/expo-ui/state`) and read at event time.
@@ -53,6 +72,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **`Item`'s separator starts under the title.** The hairline now insets past
+  the row's `ItemMedia` at its real `size` (it assumed a 40 pt slot, so a
+  36 pt tile's line started 4 pt past the title) and to the row padding when
+  the row has no media (it started 68 pt in, under nothing). Rows with the
+  default 40 pt `ItemMedia` are unchanged. `separator` no longer defaults to
+  `false`: inside an `ItemGroup` the group sets it for every row but the last,
+  and an explicit `true` or `false` still wins.
+- **Docs teach flat screens; `Card` is for collection items and single
+  tappable objects.** `README.md` gains a Screen layout section, and
+  `LLM_USAGE.md` a Screen Layout section whose rules are one 16 pt horizontal
+  inset per screen, no bordered/shadowed/tinted panels as layout, lists and
+  settings as `ItemGroup` + `Item`, forms spanning the column, media sized to
+  the width, and a capped column on wide screens. The first `LLM_USAGE.md`
+  Minimal Example is now a flat settings screen, and `llms-full.md` and
+  `llms.txt` carry the same rules. `Card` and `StatCard` behave exactly as
+  before.
 - **Skeleton reads on a white card.** The fill moves from `muted` (a 1.05:1
   step on white; invisible in light, faint in dark) to `borderStrong`, the
   pulse bottoms out at 0.55 instead of 0.3, and under reduce motion it holds a
@@ -165,6 +200,46 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   seed width. Native still follows `useWindowDimensions`.
 
 ### Fixed
+
+- **`PopoverContent` keeps its surface under a caller `style`, opens where there
+  is room, and scrolls when tall.** Four defects mindmap patched around in its
+  graph control panels and search results:
+  - A `style` replaced the whole surface (the props spread came after the
+    package style), so `style={{ padding: 16 }}` left a see-through card. The
+    caller's style now merges over the background, border, radius and shadow.
+  - On native the primitive never flips `side`; it clamps an oversized card to
+    the raw screen edge (no insets), so a popover opening up from a trigger
+    near the top sat under the status bar and one opening down from a trigger
+    near the bottom covered its own trigger. `side` is now a preference: the
+    card opens on the other side when its content does not fit and there is
+    more room there, is capped to the room between the trigger and the safe
+    area, and scrolls inside the cap. `insets` default to the safe area.
+  - A ScrollView inside the card never dragged on iOS: the primitive's content
+    claims the JS responder so presses do not reach the close-on-press
+    `Overlay` that wrapped it, and RN iOS will not drag a ScrollView while an
+    ancestor is the JS responder (`RCTScrollViewComponentView`
+    `_shouldDisableScrollInteraction`). On native the `Overlay` now sits behind
+    the card instead of around it and the card claims nothing, so any
+    ScrollView inside scrolls; presses on blank space in the card still do not
+    close it. The native-driven fade wrapper is non-collapsable, since without
+    it the wrapper sometimes stayed at opacity 0 on iOS once the card relaid
+    out.
+  - On web the primitive's content has no size cap, so a wrapping row (two
+    columns of `width: "50%"` items) laid out at the sum of its items' widths,
+    769 px in a 390 px viewport. The card is now capped to Radix's
+    `--radix-popover-content-available-width` / `-height`.
+  Verified with the showcase's new "Tall and wide content" row on the iPhone 17
+  Pro Max simulator (iOS 27): a `side="top"` trigger near the top opens below;
+  mid-screen, where neither side fits, it stays on top capped between the safe
+  area and the trigger; a drag that starts on a text row scrolls it (offset 0 →
+  69%, it stayed at 0 before); the `Switch` inside toggles; a tap on blank space
+  keeps it open and an outside tap closes it; ten consecutive opens rendered.
+  Android emulator (Pixel 10, API 36): the tall card opens below capped to the
+  room and scrolls, the `Switch` toggles, an outside tap closes it, and the
+  wide row stays inside the screen. Web (`bun run build`, 390×844 and
+  1280×800): the wide row stays inside the viewport, the tall card is capped
+  and scrolls to its last row, the surface is opaque with its border, and no
+  console errors.
 
 - **`Dialog` and `AlertDialog` keep their fields and footer above the keyboard
   on Android.** 0.27.1 gave the dialog its own keyboard avoidance on iOS only:

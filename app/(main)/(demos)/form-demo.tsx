@@ -58,7 +58,7 @@ const validatePassword = (password: string): string[] => {
  * Demonstrates common form validation patterns.
  */
 export default function FormDemoScreen() {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme } = useTheme();
   const styles = themedStyles(theme);
 
   // Form state
@@ -232,14 +232,14 @@ export default function FormDemoScreen() {
         style={styles.keyboardView}
       >
         <ScrollView
-          style={styles.content}
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <FormDemoHeader styles={styles} />
           <ValidationForm
             styles={styles}
-            shadowStyle={getShadowStyle("subtle")}
             formData={formData}
             errors={errors}
             touched={touched}
@@ -277,7 +277,6 @@ function FormDemoHeader({ styles }: { styles: FormDemoStyles }) {
 
 function ValidationForm({
   styles,
-  shadowStyle,
   formData,
   errors,
   touched,
@@ -290,7 +289,6 @@ function ValidationForm({
   onAgreeTouched,
 }: {
   styles: FormDemoStyles;
-  shadowStyle: object;
   formData: FormData;
   errors: FormErrors;
   touched: Record<string, boolean>;
@@ -302,8 +300,10 @@ function ValidationForm({
   onReset: () => void;
   onAgreeTouched: () => void;
 }) {
+  // No card around the form: the fields span the column on the screen's
+  // 16pt gutter.
   return (
-    <View style={[styles.form, shadowStyle]}>
+    <View>
       <View style={styles.field}>
         <TextInput
           label="Full Name"
@@ -454,6 +454,9 @@ function ValidationFeatures({ styles }: { styles: FormDemoStyles }) {
   );
 }
 
+// Wide screens cap and centre the column instead of boxing it.
+const MAX_CONTENT_WIDTH = 640;
+
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
@@ -463,8 +466,13 @@ const createStyles = (theme: Theme) =>
     keyboardView: {
       flex: 1,
     },
-    content: {
+    scroll: {
       flex: 1,
+    },
+    content: {
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       paddingHorizontal: spacing.screenPadding,
     },
     header: {
@@ -478,13 +486,6 @@ const createStyles = (theme: Theme) =>
     subtitle: {
       fontSize: 14,
       color: theme.colors.mutedForeground,
-    },
-    form: {
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusMd,
-      padding: spacing.cardPadding,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
     },
     field: {
       marginBottom: spacing.md,

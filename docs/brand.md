@@ -21,7 +21,7 @@ accent is teal, and status colors are Tailwind's defaults.
 |---|---|---|---|
 | `surfaceSunken` | `#FAFAFA` | `#050506` | App chrome (tab bar, rail) |
 | `background` | `#FFFFFF` | `#09090B` | Content; also each scheme's launch background |
-| `card` / `popover` | `#FFFFFF` | `#18181B` | Raised panels |
+| `card` / `popover` | `#FFFFFF` | `#18181B` | Raised surfaces: collection tiles, popovers, sheets |
 | `muted` | `#F4F4F5` | `#27272A` | Chips, insets, skeletons |
 | `text` / `foreground` | `#09090B` | `#F4F4F5` | Body text |
 | `textDim` / `mutedForeground` | `#52525B` | `#B0B0B8` | Secondary text |
@@ -62,22 +62,28 @@ Forks replace faces with `setFonts` — never by patching `node_modules`.
 
 ## Shape, elevation, rhythm
 
-- **Radii** (`spacing.radius*`): 4 chips/checkboxes, 8 menu items, 10 controls
-  (Button default, inputs), 14 cards and dialogs, 16 sheets (moving to the
-  scale's 18), 24 hero panels,
-  full for pills and avatars. Forks retune Button (and other slots as the
+- **Radii** (`spacing.radius*`): 4 chips/checkboxes, 8 menu items and
+  thumbnails, 10 controls (Button default, inputs), 14 collection tiles and
+  dialogs, 16 sheets (moving to the scale's 18), 24 hero media, full for pills
+  and avatars. Forks retune Button (and other slots as the
   package adds them) through `setShape`.
-- **Elevation:** `getShadowStyle("subtle")` on the `default` Button and cards;
-  everything else flat. Dark mode relies on surface tiers, not shadow.
+- **Elevation:** `getShadowStyle("subtle")` on the `default` Button and on
+  collection tiles (`Card`); screen content is flat. Dark mode relies on
+  surface tiers, not shadow.
 - **Rhythm:** 8-pt base (`spacing.sm` 8, `md` 16, `lg` 24, `xl` 32) with 4 and
   12 as half steps; screen gutter 16; section spacing 24; rows 10 × 16 padding;
   44-pt touch targets.
+- **Layout:** flat screens. One 16-pt gutter per screen; sections break on a
+  header, spacing, or a hairline, never on a bordered or shadowed panel; lists
+  are full-width rows with inset hairlines (`ItemGroup`); media fills the
+  column; wide screens cap and centre it. A card is one item in a collection
+  or one tappable object, never a layout box.
 
 ## The mark
 
 A component frame with the wordmark's dot on its corner: a rounded-square
-stroke (the "card" every screen is built from) interrupted at the bottom-right
-by a filled accent dot — the same dot that precedes `@mrmeg/expo-ui` in the web
+stroke (a component's frame) interrupted at the bottom-right by a filled accent
+dot — the same dot that precedes `@mrmeg/expo-ui` in the web
 rail. It reads at 29 px (one ring, one dot) and needs no text.
 
 Masters live in `assets/brand/`; `bun run brand:assets` renders every raster

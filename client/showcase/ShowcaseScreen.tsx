@@ -28,7 +28,7 @@ import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Skeleton, SkeletonText, SkeletonAvatar, SkeletonCard } from "@mrmeg/expo-ui/components/Skeleton";
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { StatCard } from "@mrmeg/expo-ui/components/StatCard";
-import { Item, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from "@mrmeg/expo-ui/components/Item";
+import { Item, ItemGroup, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from "@mrmeg/expo-ui/components/Item";
 import { BottomSheet } from "@mrmeg/expo-ui/components/BottomSheet";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Section, SubSection, ThemeToggle } from "@/client/showcase";
@@ -373,7 +373,7 @@ function useShowcaseScreenContent() {
                 </CardHeader>
                 <CardContent>
                   <SansSerifText style={{ color: theme.colors.text }}>
-                    Outline cards are useful for secondary content.
+                    A quieter tile for one item in a collection.
                   </SansSerifText>
                 </CardContent>
               </Card>
@@ -761,57 +761,69 @@ function useShowcaseScreenContent() {
           <InputOTPSection />
 
           <Section title="Item">
-            <SubSection label="Basic list">
-              <View style={styles.demoCard}>
-                <Item separator>
-                  <ItemMedia icon="bell" />
-                  <ItemContent>
-                    <ItemTitle>Notifications</ItemTitle>
-                    <ItemDescription>Push, email, and SMS alerts</ItemDescription>
-                  </ItemContent>
-                  <ItemActions>
-                    <Icon name="chevron-right" size={18} color="mutedForeground" />
-                  </ItemActions>
-                </Item>
-                <Item separator>
-                  <ItemMedia icon="globe" />
-                  <ItemContent>
-                    <ItemTitle>Language</ItemTitle>
-                    <ItemDescription>English (US)</ItemDescription>
-                  </ItemContent>
-                  <ItemActions>
-                    <Icon name="chevron-right" size={18} color="mutedForeground" />
-                  </ItemActions>
-                </Item>
-                <Item>
-                  <ItemMedia icon="shield" />
-                  <ItemContent>
-                    <ItemTitle>Privacy</ItemTitle>
-                    <ItemDescription>Control what others can see</ItemDescription>
-                  </ItemContent>
-                  <ItemActions>
-                    <Switch checked={showBookmarks} onCheckedChange={(value) => dispatchControls({ type: "showBookmarksChanged", showBookmarks: value })} />
-                  </ItemActions>
-                </Item>
+            {/*
+              Rows carry the screen's 16pt inset themselves, so the groups
+              bleed out of this page's padding (`styles.bleed`) the way they
+              sit edge to edge on a real screen.
+            */}
+            <SubSection label="ItemGroup">
+              <View style={styles.bleed}>
+                <ItemGroup title="Preferences" footer="Rows span the width; hairlines start under the title.">
+                  <Item onPress={() => notify.info("Item pressed", { messages: ["You tapped a list row."] })}>
+                    <ItemMedia icon="bell" />
+                    <ItemContent>
+                      <ItemTitle>Notifications</ItemTitle>
+                      <ItemDescription>Push, email, and SMS alerts</ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <Icon name="chevron-right" size={18} color="mutedForeground" />
+                    </ItemActions>
+                  </Item>
+                  <Item onPress={() => notify.info("Item pressed", { messages: ["You tapped a list row."] })}>
+                    <ItemMedia icon="globe" />
+                    <ItemContent>
+                      <ItemTitle>Language</ItemTitle>
+                      <ItemDescription>English (US)</ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <Icon name="chevron-right" size={18} color="mutedForeground" />
+                    </ItemActions>
+                  </Item>
+                  <Item>
+                    <ItemMedia icon="shield" />
+                    <ItemContent>
+                      <ItemTitle>Privacy</ItemTitle>
+                      <ItemDescription>Control what others can see</ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <Switch checked={showBookmarks} onCheckedChange={(value) => dispatchControls({ type: "showBookmarksChanged", showBookmarks: value })} />
+                    </ItemActions>
+                  </Item>
+                </ItemGroup>
               </View>
             </SubSection>
 
-            <SubSection label="Pressable row">
-              <View style={styles.demoCard}>
-                <Item
-                  onPress={() => notify.info("Item pressed", { messages: ["You tapped a list row."] })}
-                >
-                  <ItemMedia>
-                    <SansSerifBoldText style={{ color: theme.colors.foreground }}>JD</SansSerifBoldText>
-                  </ItemMedia>
-                  <ItemContent>
-                    <ItemTitle>Jane Doe</ItemTitle>
-                    <ItemDescription>jane@example.com</ItemDescription>
-                  </ItemContent>
-                  <ItemActions>
-                    <SansSerifText style={{ color: theme.colors.mutedForeground }}>Admin</SansSerifText>
-                  </ItemActions>
-                </Item>
+            <SubSection label="Rows without media">
+              <View style={styles.bleed}>
+                <ItemGroup title="About">
+                  <Item>
+                    <ItemContent>
+                      <ItemTitle>Version</ItemTitle>
+                    </ItemContent>
+                    <ItemActions>
+                      <SansSerifText style={{ color: theme.colors.mutedForeground }}>2.1.0</SansSerifText>
+                    </ItemActions>
+                  </Item>
+                  <Item>
+                    <ItemContent>
+                      <ItemTitle>Account</ItemTitle>
+                      <ItemDescription>jane@example.com</ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <SansSerifText style={{ color: theme.colors.mutedForeground }}>Admin</SansSerifText>
+                    </ItemActions>
+                  </Item>
+                </ItemGroup>
               </View>
             </SubSection>
           </Section>
@@ -980,6 +992,8 @@ function useShowcaseScreenContent() {
                 </Popover>
               </View>
             </SubSection>
+
+            <TallPopoverDemo styles={styles} />
 
             <SubSection label="Real-World Example: User Info Card">
               <Popover>
@@ -1389,6 +1403,77 @@ const TextInputSection = memo(function TextInputSection() {
         />
       </SubSection>
     </Section>
+  );
+});
+
+const TALL_POPOVER_ROWS = Array.from({ length: 20 }, (_, index) => `Row ${index + 1}`);
+const WIDE_POPOVER_ITEMS = [
+  "Colleague",
+  "Friend",
+  "Family",
+  "Client",
+  "Mentor",
+  "Partner",
+  "Neighbour",
+  "Other",
+];
+
+/**
+ * Tall and wide popover content: the tall one prefers `top` and opens below
+ * when there is no room above, caps to the room it gets and scrolls, with a
+ * native Switch inside; the wide one has a wrapping two-column row, which web
+ * used to lay out wider than a phone.
+ */
+const TallPopoverDemo = memo(function TallPopoverDemo({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
+  const [notify, setNotify] = useState(false);
+
+  return (
+    <SubSection label="Tall and wide content">
+      <View style={styles.buttonRow}>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button preset="default" size="sm">
+              <StyledText fontWeight="bold" size="sm">Tall (prefers top)</StyledText>
+            </Button>
+          </PopoverTrigger>
+          {/* A layout-only style: it merges over the themed surface. */}
+          <PopoverContent side="top" align="start" style={{ padding: spacing.md }}>
+            <View style={styles.switchRow}>
+              <StyledText>Notify me</StyledText>
+              <Switch checked={notify} onCheckedChange={setNotify} />
+            </View>
+            {TALL_POPOVER_ROWS.map((row) => (
+              <StyledText key={row} style={{ marginVertical: spacing.xs }}>
+                {row}
+              </StyledText>
+            ))}
+          </PopoverContent>
+        </Popover>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button preset="default" size="sm">
+              <StyledText fontWeight="bold" size="sm">Wide row</StyledText>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="bottom" align="end">
+            <PopoverBody>
+              <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                {WIDE_POPOVER_ITEMS.map((item) => (
+                  <View key={item} style={{ width: "50%", paddingVertical: spacing.xs }}>
+                    <StyledText>{item}</StyledText>
+                  </View>
+                ))}
+              </View>
+            </PopoverBody>
+          </PopoverContent>
+        </Popover>
+      </View>
+    </SubSection>
   );
 });
 
@@ -2611,6 +2696,12 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
+    },
+
+    // Full-bleed demos: cancel the page padding for content (ItemGroup rows)
+    // that carries its own 16pt inset.
+    bleed: {
+      marginHorizontal: -spacing.md,
     },
 
     // Empty State & Skeleton

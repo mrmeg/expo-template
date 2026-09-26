@@ -1,7 +1,8 @@
 # Sign-in form block
 
-Credential card: label + input pairs, a submit button, a separator, and one
-outline button per social provider.
+Credential form: label + input pairs, a submit button, a separator, and one
+outline button per social provider. The fields sit flat on the container's
+gutter, not in a card, in a column capped at 400pt and centred on wide screens.
 
 ## Files
 

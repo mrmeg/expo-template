@@ -41,9 +41,13 @@ review.
   branching. Only the former is seeded for the export-time prerender, so only it
   makes the exported HTML shell and the client's first render agree on the
   breakpoint. Per-item widths that depend on the breakpoint go in an *inline*
-  style (`style={[styles.card, { flexBasis }]}`), which always ships in the HTML.
+  style (`style={[styles.item, { flexBasis }]}`), which always ships in the HTML.
+- **One horizontal inset.** The block's container pads `spacing.screenPadding`
+  and is the only horizontal inset. Don't box the content in a bordered,
+  shadowed, or tinted panel — `Card` is for collection items or one tappable
+  object.
 
-Both are asserted against every block's source in
+The first two are asserted against every block's source in
 `client/blocks/__tests__/blocks.test.tsx`.
 
 ## Launch set
@@ -51,10 +55,10 @@ Both are asserted against every block's source in
 | Block | Category | Built from |
 |-------|----------|-----------|
 | `hero` | marketing | SectionHeader, Button |
-| `feature-grid` | marketing | Card, Icon, StyledText |
-| `stat-row` | data | StatCard, SectionHeader |
-| `cta-banner` | marketing | Card, Button, StyledText |
+| `feature-grid` | marketing | Icon, StyledText |
+| `stat-row` | data | SectionHeader, StyledText, Icon |
+| `cta-banner` | marketing | StyledText, Button |
 | `faq-section` | content | SectionHeader, Accordion, StyledText |
-| `sign-in-form` | auth | Card, Label, TextInput, Button, Separator |
+| `sign-in-form` | auth | Label, TextInput, Button, Separator, StyledText |
 
 Screen templates still carry their own copies of these patterns.

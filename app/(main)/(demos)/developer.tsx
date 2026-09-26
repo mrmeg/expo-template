@@ -4,11 +4,10 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
-  Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import {
   SansSerifText,
@@ -17,6 +16,15 @@ import {
 } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import {
+  Item,
+  ItemGroup,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+} from "@mrmeg/expo-ui/components/Item";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import Config from "@/client/config";
 import { getAllKeys, load, clear } from "@/client/lib/storage";
@@ -69,7 +77,7 @@ function storageReducer(state: StorageState, action: StorageAction): StorageStat
  * Only visible in development mode in a real app.
  */
 export default function DeveloperScreen() {
-  const { theme, scheme, getShadowStyle } = useTheme();
+  const { theme, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const styles = themedStyles(theme);
 
@@ -128,55 +136,40 @@ export default function DeveloperScreen() {
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
-      {/* Environment Info */}
-      <View style={[styles.section, getShadowStyle("subtle")]}>
-        <View style={styles.sectionHeader}>
-          <Icon name="settings" color={theme.colors.primary} size={20} />
-          <SansSerifBoldText size="body" style={styles.sectionTitle}>
-              Environment
-          </SansSerifBoldText>
-        </View>
+      {/* Flat grouped lists: the rows carry the screen's 16pt inset, so the
+          scroll view adds none and only free-form blocks pad themselves. */}
+      <ItemGroup title="Environment">
+        <InfoRow label="Mode" value={__DEV__ ? "Development" : "Production"} />
+        <InfoRow label="Platform" value={Platform.OS} />
+        <InfoRow label="Version" value={Platform.Version?.toString() ?? "N/A"} />
+        <InfoRow label="Theme" value={scheme ?? "system"} />
+        <InfoRow
+          label="Expo SDK"
+          value={Constants.expoConfig?.sdkVersion ?? "N/A"}
+        />
+        <InfoRow
+          label="App Version"
+          value={Constants.expoConfig?.version ?? "N/A"}
+        />
+      </ItemGroup>
 
-        <View style={styles.infoGrid}>
-          <InfoRow label="Mode" value={__DEV__ ? "Development" : "Production"} />
-          <InfoRow label="Platform" value={Platform.OS} />
-          <InfoRow label="Version" value={Platform.Version?.toString() ?? "N/A"} />
-          <InfoRow label="Theme" value={scheme ?? "system"} />
-          <InfoRow
-            label="Expo SDK"
-            value={Constants.expoConfig?.sdkVersion ?? "N/A"}
-          />
-          <InfoRow
-            label="App Version"
-            value={Constants.expoConfig?.version ?? "N/A"}
-          />
-        </View>
-      </View>
+      <ItemGroup title="Configuration">
+        <InfoRow label="API URL" value={Config.apiUrl || "(not set)"} />
+        <InfoRow label="Catch Errors" value={Config.catchErrors} />
+      </ItemGroup>
 
-      {/* Configuration */}
-      <View style={[styles.section, getShadowStyle("subtle")]}>
-        <View style={styles.sectionHeader}>
-          <Icon name="settings" color={theme.colors.primary} size={20} />
-          <SansSerifBoldText size="body" style={styles.sectionTitle}>
-              Configuration
-          </SansSerifBoldText>
-        </View>
-
-        <View style={styles.infoGrid}>
-          <InfoRow label="API URL" value={Config.apiUrl || "(not set)"} />
-          <InfoRow label="Catch Errors" value={Config.catchErrors} />
-        </View>
-      </View>
-
-      {/* Storage Inspector */}
-      <View style={[styles.section, getShadowStyle("subtle")]}>
-        <View style={styles.sectionHeader}>
-          <Icon name="database" color={theme.colors.primary} size={20} />
-          <SansSerifBoldText size="body" style={styles.sectionTitle}>
-              Storage Inspector
-          </SansSerifBoldText>
-        </View>
-
+      {/* The button row sits in the group's first row slot; it is not an Item,
+          so no hairline is drawn under it. */}
+      <ItemGroup
+        title="Storage Inspector"
+        footer={
+          storageKeys.length === 0
+            ? storageLoading
+              ? "Loading..."
+              : "No data in storage. Tap Refresh to scan."
+            : undefined
+        }
+      >
         <View style={styles.buttonRow}>
           <Button
             preset="outline"
@@ -199,147 +192,102 @@ export default function DeveloperScreen() {
             <SansSerifText size="base" style={styles.buttonTextLight}> Clear All</SansSerifText>
           </Button>
         </View>
+        {storageKeys.map((key) => (
+          <Item
+            key={key}
+            onPress={() => dispatchStorage({ type: "toggleExpanded", key })}
+          >
+            <ItemContent>
+              <View style={styles.storageKeyRow}>
+                <Icon
+                  name={expandedKey === key ? "chevron-down" : "chevron-right"}
+                  color={theme.colors.mutedForeground}
+                  size={16}
+                />
+                <MonoText size="sm" style={styles.storageKey} numberOfLines={1}>
+                  {key}
+                </MonoText>
+              </View>
+              {expandedKey === key && (
+                <MonoText size="xs" style={styles.storageValueText}>
+                  {JSON.stringify(storageData[key], null, 2)}
+                </MonoText>
+              )}
+            </ItemContent>
+          </Item>
+        ))}
+      </ItemGroup>
 
-        {storageKeys.length === 0 ? (
-          <View style={styles.emptyState}>
-            <SansSerifText size="base" style={styles.emptyText}>
-              {storageLoading ? "Loading..." : "No data in storage. Tap Refresh to scan."}
-            </SansSerifText>
-          </View>
-        ) : (
-          <View style={styles.storageList}>
-            {storageKeys.map((key) => (
-              <Pressable
-                key={key}
-                style={styles.storageItem}
-                onPress={() => dispatchStorage({ type: "toggleExpanded", key })}
-              >
-                <View style={styles.storageItemHeader}>
-                  <Icon
-                    name={expandedKey === key ? "chevron-down" : "chevron-right"}
-                    color={theme.colors.mutedForeground}
-                    size={16}
-                  />
-                  <MonoText size="sm" style={styles.storageKey} numberOfLines={1}>
-                    {key}
-                  </MonoText>
-                </View>
-                {expandedKey === key && (
-                  <View style={styles.storageValue}>
-                    <MonoText size="xs" style={styles.storageValueText}>
-                      {JSON.stringify(storageData[key], null, 2)}
-                    </MonoText>
-                  </View>
-                )}
-              </Pressable>
-            ))}
-          </View>
-        )}
-      </View>
+      <ItemGroup title="Auth Demo">
+        <Item onPress={() => router.push("/(main)/(demos)/auth-demo")}>
+          <ItemMedia size={36} icon="lock" iconColor={theme.colors.primary} />
+          <ItemContent>
+            <ItemTitle>Open Auth Demo</ItemTitle>
+            <ItemDescription>
+              Test the authentication flow with Cognito integration.
+            </ItemDescription>
+          </ItemContent>
+          <ItemActions>
+            <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
+          </ItemActions>
+        </Item>
+      </ItemGroup>
 
-      {/* Auth Demo */}
-      <View style={[styles.section, getShadowStyle("subtle")]}>
-        <View style={styles.sectionHeader}>
-          <Icon name="lock" color={theme.colors.primary} size={20} />
-          <SansSerifBoldText size="body" style={styles.sectionTitle}>
-              Auth Demo
+      <ItemGroup
+        title="Debug Tools"
+        footer={"The ErrorBoundary will catch this and show the error screen. Use the \"Try Again\" button to reset."}
+      >
+        <Item onPress={triggerError}>
+          <ItemMedia
+            size={36}
+            icon="triangle-alert"
+            iconColor={theme.colors.destructive}
+            style={styles.destructiveTile}
+          />
+          <ItemContent>
+            <ItemTitle style={styles.destructiveLabel}>Trigger Test Error</ItemTitle>
+            <ItemDescription>
+              Test the ErrorBoundary by triggering a controlled error.
+            </ItemDescription>
+          </ItemContent>
+        </Item>
+      </ItemGroup>
+
+      {__DEV__ && (
+        <View style={styles.reactotronNote}>
+          <SansSerifBoldText size="base" style={styles.reactotronTitle}>
+            Reactotron
           </SansSerifBoldText>
+          <SansSerifText size="sm" style={styles.reactotronText}>
+            Reactotron is enabled in development. Open the Reactotron app to see logs,
+            network requests, and AsyncStorage data.
+          </SansSerifText>
         </View>
-
-        <SansSerifText size="base" style={styles.debugDescription}>
-            Test the authentication flow with Cognito integration.
-        </SansSerifText>
-
-        <Button
-          preset="default"
-          onPress={() => router.push("/(main)/(demos)/auth-demo" as any)}
-          fullWidth
-        >
-          <Icon name="lock" color={theme.colors.primaryForeground} size={16} />
-          <SansSerifBoldText style={{ color: theme.colors.primaryForeground }}>
-            {" "}Open Auth Demo
-          </SansSerifBoldText>
-        </Button>
-      </View>
-
-      {/* Debug Tools */}
-      <View style={[styles.section, getShadowStyle("subtle")]}>
-        <View style={styles.sectionHeader}>
-          <Icon name="terminal" color={theme.colors.primary} size={20} />
-          <SansSerifBoldText size="body" style={styles.sectionTitle}>
-              Debug Tools
-          </SansSerifBoldText>
-        </View>
-
-        <SansSerifText size="base" style={styles.debugDescription}>
-            Test the ErrorBoundary by triggering a controlled error.
-        </SansSerifText>
-
-        <Button
-          preset="destructive"
-          onPress={triggerError}
-          fullWidth
-        >
-          <Icon name="triangle-alert" color={theme.colors.destructiveForeground} size={16} />
-          <SansSerifBoldText size="base" style={styles.buttonTextLight}>
-            {" "}Trigger Test Error
-          </SansSerifBoldText>
-        </Button>
-
-        <SansSerifText size="sm" style={styles.debugHint}>
-            The ErrorBoundary will catch this and show the error screen.
-            Use the "Try Again" button to reset.
-        </SansSerifText>
-
-        {__DEV__ && (
-          <View style={styles.reactotronNote}>
-            <SansSerifBoldText size="base" style={styles.reactotronTitle}>
-                Reactotron
-            </SansSerifBoldText>
-            <SansSerifText size="sm" style={styles.reactotronText}>
-                Reactotron is enabled in development. Open the Reactotron app to see logs,
-                network requests, and AsyncStorage data.
-            </SansSerifText>
-          </View>
-        )}
-      </View>
+      )}
     </ScrollView>
   );
 }
 
-// Helper component for info rows
+// Helper component for label/value rows
 function InfoRow({ label, value }: { label: string; value: string }) {
   const { theme } = useTheme();
+  const styles = themedStyles(theme);
   return (
-    <View style={infoRowStyles.row}>
-      <SansSerifText size="base" style={{ color: theme.colors.mutedForeground }}>
-        {label}
-      </SansSerifText>
-      <SansSerifText
-        size="base"
-        fontWeight="medium"
-        style={[infoRowStyles.value, { color: theme.colors.foreground }]}
-        numberOfLines={1}
-      >
-        {value}
-      </SansSerifText>
-    </View>
+    <Item>
+      <ItemContent>
+        <ItemTitle>{label}</ItemTitle>
+      </ItemContent>
+      <ItemActions>
+        <SansSerifText size="base" style={styles.infoValue} numberOfLines={1}>
+          {value}
+        </SansSerifText>
+      </ItemActions>
+    </Item>
   );
 }
 
-const infoRowStyles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: spacing.xs,
-  },
-  value: {
-    textAlign: "right",
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-});
+// Wide screens cap and centre the column instead of boxing it.
+const MAX_CONTENT_WIDTH = 640;
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
@@ -349,36 +297,21 @@ const createStyles = (theme: Theme) =>
     },
     content: {
       flexGrow: 1,
-      paddingHorizontal: spacing.screenPadding,
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       paddingTop: spacing.md,
+      gap: spacing.sectionSpacing,
     },
-    section: {
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusMd,
-      padding: spacing.md,
-      marginBottom: spacing.lg,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-    },
-    sectionHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginBottom: spacing.md,
-      paddingBottom: spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-    },
-    sectionTitle: {
-      color: theme.colors.foreground,
-      marginLeft: spacing.sm,
-    },
-    infoGrid: {
-      gap: spacing.xs,
+    infoValue: {
+      color: theme.colors.mutedForeground,
+      maxWidth: 180,
     },
     buttonRow: {
       flexDirection: "row",
       gap: spacing.sm,
-      marginBottom: spacing.md,
+      paddingHorizontal: spacing.screenPadding,
+      paddingVertical: spacing.xs,
     },
     flex1: {
       flex: 1,
@@ -389,23 +322,7 @@ const createStyles = (theme: Theme) =>
     buttonTextLight: {
       color: theme.colors.destructiveForeground,
     },
-    emptyState: {
-      padding: spacing.cardPadding,
-      alignItems: "center",
-    },
-    emptyText: {
-      color: theme.colors.mutedForeground,
-      textAlign: "center",
-    },
-    storageList: {
-      gap: spacing.xs,
-    },
-    storageItem: {
-      backgroundColor: theme.colors.muted,
-      borderRadius: spacing.radiusSm,
-      padding: spacing.sm,
-    },
-    storageItemHeader: {
+    storageKeyRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.xs,
@@ -414,28 +331,18 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.foreground,
       flex: 1,
     },
-    storageValue: {
-      marginTop: spacing.sm,
-      padding: spacing.sm,
-      backgroundColor: theme.colors.background,
-      borderRadius: spacing.radiusSm,
-    },
     storageValueText: {
-      color: theme.colors.foreground,
-    },
-    debugDescription: {
       color: theme.colors.mutedForeground,
-      marginBottom: spacing.md,
     },
-    debugHint: {
-      color: theme.colors.mutedForeground,
-      marginTop: spacing.sm,
+    destructiveTile: {
+      // eslint-disable-next-line expo-ui/no-restyle -- destructive icon tile tint; ItemMedia has no tint variant
+      backgroundColor: withAlpha(theme.colors.destructive, 0.12),
+    },
+    destructiveLabel: {
+      color: theme.colors.destructive,
     },
     reactotronNote: {
-      marginTop: spacing.lg,
-      padding: spacing.md,
-      backgroundColor: theme.colors.muted,
-      borderRadius: spacing.radiusSm,
+      paddingHorizontal: spacing.screenPadding,
     },
     reactotronTitle: {
       color: theme.colors.foreground,

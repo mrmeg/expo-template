@@ -2,7 +2,6 @@ import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { useDimensions, useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { Card } from "@mrmeg/expo-ui/components/Card";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
@@ -32,8 +31,9 @@ export interface CtaBannerBlockProps {
 /**
  * CtaBannerBlock
  *
- * Accent-bordered `Card` with copy on one side and a single `Button` on the
- * other; stacks to a column on phones. The row/column decision comes from
+ * Headline and copy on one side and a single `Button` on the other, laid flat
+ * on the container's gutter rather than boxed in a panel; stacks to a column
+ * on phones. The row/column decision comes from
  * `useDimensions()` (seeded for the export-time prerender) rather than raw
  * `useWindowDimensions()`, so the exported HTML shell and the client's first
  * render agree on the breakpoint.
@@ -61,24 +61,19 @@ export function CtaBannerBlock({
 
   return (
     <View style={[styles.container, styleOverride]}>
-      {/* The accent border and muted fill live on this wrapper, not on the
-          Card: Card owns its own surface colors through `variant`, so the
-          banner's treatment is composed around a `ghost` card instead. */}
-      <View style={styles.card}>
-        <Card variant="ghost">
-          <View style={[styles.body, isSmallScreen ? styles.bodyStacked : styles.bodyRow]}>
-            <View style={[styles.copy, !isSmallScreen && styles.copyRow]}>
-              <SansSerifBoldText size="lg">{title}</SansSerifBoldText>
-              {!!description && (
-                <SansSerifText size="sm" style={styles.description}>
-                  {description}
-                </SansSerifText>
-              )}
-            </View>
+      {/* No panel around the banner: the headline and the button carry the
+          emphasis, and the container's gutter is the only inset. */}
+      <View style={[styles.body, isSmallScreen ? styles.bodyStacked : styles.bodyRow]}>
+        <View style={[styles.copy, !isSmallScreen && styles.copyRow]}>
+          <SansSerifBoldText size="lg">{title}</SansSerifBoldText>
+          {!!description && (
+            <SansSerifText size="sm" style={styles.description}>
+              {description}
+            </SansSerifText>
+          )}
+        </View>
 
-            {!!actionLabel && <Button onPress={onAction} text={actionLabel} />}
-          </View>
-        </Card>
+        {!!actionLabel && <Button onPress={onAction} text={actionLabel} />}
       </View>
     </View>
   );
@@ -98,14 +93,7 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing.screenPadding,
       paddingVertical: spacing.xl,
     },
-    card: {
-      borderRadius: spacing.radiusLg,
-      borderWidth: 1,
-      borderColor: theme.colors.accent,
-      backgroundColor: theme.colors.muted,
-    },
     body: {
-      padding: spacing.cardPadding,
       gap: spacing.md,
     },
     bodyRow: {

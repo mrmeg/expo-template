@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Children, createContext, isValidElement, use } from "react";
 import {
   View,
   Pressable,
@@ -8,7 +8,7 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
-import { StyledText, CaptionText, type TextProps } from "./StyledText";
+import { StyledText, CaptionText, EyebrowText, type TextProps } from "./StyledText";
 import { Icon, type IconName, type ThemeColorName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
 import { useScalePress } from "../hooks/useScalePress";
@@ -16,10 +16,35 @@ import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
 
-// Default ItemMedia footprint (see ItemMedia's `size` prop) — used to inset
-// the optional separator past the media slot without needing a context.
+// Default ItemMedia footprint (see ItemMedia's `size` prop).
 const DEFAULT_MEDIA_SIZE = 40;
-const SEPARATOR_INSET = spacing.rowPaddingX + DEFAULT_MEDIA_SIZE + spacing.rowGap;
+
+/**
+ * What an `ItemGroup` tells each row it wraps: whether to draw the hairline
+ * under itself. `null` outside a group, where the row's own `separator` prop
+ * decides.
+ */
+interface ItemGroupRow {
+  separator: boolean;
+}
+
+const ItemGroupRowContext = createContext<ItemGroupRow | null>(null);
+const SEPARATED_ROW: ItemGroupRow = { separator: true };
+const LAST_ROW: ItemGroupRow = { separator: false };
+
+/**
+ * Where a row's hairline starts: under the title when the row leads with an
+ * `ItemMedia` (row padding + media + gap, so a custom `size` lines up too),
+ * otherwise at the row padding.
+ */
+function separatorInset(children: React.ReactNode): number {
+  for (const child of Children.toArray(children)) {
+    if (isValidElement<ItemMediaProps>(child) && child.type === ItemMedia) {
+      return spacing.rowPaddingX + (child.props.size ?? DEFAULT_MEDIA_SIZE) + spacing.rowGap;
+    }
+  }
+  return spacing.rowPaddingX;
+}
 
 export interface ItemProps {
   children?: React.ReactNode;
@@ -27,7 +52,11 @@ export interface ItemProps {
   onPress?: () => void;
   /** Disables press handling when `onPress` is set. */
   disabled?: boolean;
-  /** Renders a hairline divider below the row, inset past the media slot. */
+  /**
+   * Renders a hairline divider below the row, starting under the title (past
+   * the `ItemMedia` slot when there is one). Inside an `ItemGroup` the group
+   * sets this for every row but the last; pass `false` to drop one row's line.
+   */
   separator?: boolean;
   /** Custom style override for the row. */
   style?: StyleProp<ViewStyle>;
@@ -40,7 +69,9 @@ export interface ItemProps {
  * `spacing.rowPaddingX`) and gap, a 44pt min height on native (40 on web),
  * and an optional pressable scale interaction. Compose
  * with `ItemMedia`, `ItemContent` (+ `ItemTitle`/`ItemDescription`), and
- * `ItemActions`.
+ * `ItemActions`. Stack rows in an `ItemGroup`, which draws the separators;
+ * the row's own padding is the screen's only horizontal inset, so don't wrap
+ * rows in a padded or bordered container.
  *
  * @example
  * ```tsx
@@ -56,8 +87,10 @@ export interface ItemProps {
  * </Item>
  * ```
  */
-export function Item({ children, onPress, disabled, separator = false, style }: ItemProps) {
+export function Item({ children, onPress, disabled, separator, style }: ItemProps) {
   const { theme, getFocusRingStyle } = useTheme();
+  const groupRow = use(ItemGroupRowContext);
+  const showSeparator = separator ?? groupRow?.separator ?? false;
   const { animatedStyle, pressHandlers } = useScalePress({
     disabled: !onPress || !!disabled,
     scaleTo: 0.98,
@@ -70,10 +103,15 @@ export function Item({ children, onPress, disabled, separator = false, style }: 
     </View>
   );
 
-  const content = separator ? (
+  const content = showSeparator ? (
     <View>
       {row}
-      <View style={[styles.separator, { backgroundColor: theme.colors.border }]} />
+      <View
+        style={[
+          styles.separator,
+          { marginLeft: separatorInset(children), backgroundColor: theme.colors.border },
+        ]}
+      />
     </View>
   ) : (
     row
@@ -104,6 +142,105 @@ export function Item({ children, onPress, disabled, separator = false, style }: 
   }
 
   return content;
+}
+
+export interface ItemGroupProps {
+  /**
+   * Section label above the rows: an uppercase eyebrow in the muted color,
+   * announced as a header.
+   */
+  title?: string;
+  /** Supporting copy under the title. */
+  description?: string;
+  /** Helper text under the rows, e.g. what the settings above it do. */
+  footer?: string;
+  /**
+   * The rows: `Item`s, or components that render one. Each direct child is
+   * one row; the group draws the hairline under every row but the last.
+   */
+  children?: React.ReactNode;
+  /** Style override for the group container (outer margins, width). */
+  style?: StyleProp<ViewStyle>;
+  /** Test id for the group container. */
+  testID?: string;
+}
+
+/**
+ * ItemGroup
+ *
+ * A flat grouped list: an optional eyebrow title and description, full-width
+ * `Item` rows separated by inset hairlines, and optional footer text. No
+ * border, radius, shadow, or fill: the header and footer sit on the row
+ * padding (`spacing.rowPaddingX`), so the group needs no horizontal padding
+ * from its parent. Space groups apart with `spacing.sectionSpacing`.
+ *
+ * @example
+ * ```tsx
+ * <ItemGroup title="Account" footer="Signed in as jane@example.com">
+ *   <Item onPress={openProfile}>
+ *     <ItemMedia icon="user" />
+ *     <ItemContent>
+ *       <ItemTitle>Edit profile</ItemTitle>
+ *     </ItemContent>
+ *     <ItemActions>
+ *       <Icon name="chevron-right" size={18} color="mutedForeground" />
+ *     </ItemActions>
+ *   </Item>
+ *   <Item>
+ *     <ItemMedia icon="bell" />
+ *     <ItemContent>
+ *       <ItemTitle>Notifications</ItemTitle>
+ *     </ItemContent>
+ *     <ItemActions>
+ *       <Switch checked={enabled} onCheckedChange={setEnabled} />
+ *     </ItemActions>
+ *   </Item>
+ * </ItemGroup>
+ * ```
+ */
+export function ItemGroup({ title, description, footer, children, style, testID }: ItemGroupProps) {
+  const { theme } = useTheme();
+  const rows = Children.toArray(children);
+  // react-native-web renders an unlevelled header as h1; level the title as h2
+  // there. Native has no heading levels and takes the role alone. Read at render
+  // time (not module load) so tests can flip `Platform.OS`.
+  const headingLevel = Platform.OS === "web" ? { "aria-level": 2 } : undefined;
+
+  return (
+    <View style={style} testID={testID}>
+      {(!!title || !!description) && (
+        <View style={styles.groupHeader}>
+          {!!title && (
+            <EyebrowText
+              accessibilityRole="header"
+              {...headingLevel}
+              style={{ color: theme.colors.mutedForeground }}
+            >
+              {title}
+            </EyebrowText>
+          )}
+          {!!description && (
+            <CaptionText style={{ color: theme.colors.textDim }}>{description}</CaptionText>
+          )}
+        </View>
+      )}
+
+      {rows.map((row, index) => (
+        <ItemGroupRowContext.Provider
+          key={isValidElement(row) && row.key != null ? row.key : index}
+          value={index < rows.length - 1 ? SEPARATED_ROW : LAST_ROW}
+        >
+          {row}
+        </ItemGroupRowContext.Provider>
+      ))}
+
+      {!!footer && (
+        <View style={styles.groupFooter}>
+          <CaptionText style={{ color: theme.colors.mutedForeground }}>{footer}</CaptionText>
+        </View>
+      )}
+    </View>
+  );
 }
 
 export interface ItemMediaProps {
@@ -228,6 +365,14 @@ const styles = /*#__PURE__*/ StyleSheet.create({
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: SEPARATOR_INSET,
+  },
+  groupHeader: {
+    paddingHorizontal: spacing.rowPaddingX,
+    paddingBottom: spacing.xs,
+    gap: spacing.xxs,
+  },
+  groupFooter: {
+    paddingHorizontal: spacing.rowPaddingX,
+    paddingTop: spacing.xs,
   },
 });

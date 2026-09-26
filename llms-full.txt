@@ -90,11 +90,19 @@ Reusable UI belongs in `packages/ui`; reusable media contracts and processing in
   `@mrmeg/expo-ui/constants`.
 - Use `useTheme()` and token exports for color, spacing, radius, shadow,
   typography, and contrast. No new hard-coded palettes.
-- Use the semantic density tokens for layout: `spacing.screenPadding` for screen
-  and block gutters, `spacing.cardPadding` for bordered panels,
-  `spacing.sectionSpacing` between grouped lists, and `Item` (or
-  `spacing.rowPaddingY` / `rowPaddingX`) for list rows. Not raw `spacing.lg` /
-  `spacing.xl` for those roles.
+- Use the semantic density tokens for layout: `spacing.screenPadding` for the one
+  horizontal inset of a screen or block, `spacing.sectionSpacing` between
+  sections and `ItemGroup`s, and `Item` (or `spacing.rowPaddingY` /
+  `rowPaddingX`) for list rows. Not raw `spacing.lg` / `spacing.xl` for those
+  roles. `spacing.cardPadding` is the inside of a `Card` tile, not a layout inset.
+- Build screens flat (`packages/ui/LLM_USAGE.md`, Screen Layout): one 16 pt
+  inset, owned by the container or by its children, never both; no bordered,
+  shadowed, or tinted panels as layout, so sections break on a header, spacing,
+  or a hairline; lists and settings as `ItemGroup` + `Item` rows; form fields
+  spanning the column; photos, media, and charts sized to the column; a capped,
+  centred column on wide screens. `Card` is for one item in a collection or one
+  tappable object, never nested. The settings template and the seeded settings
+  and profile tabs are the reference screens.
 - Keep package code app-agnostic: `packages/ui` must not import from
   `@/client/*`; `packages/media` must not depend on app route files or app env
   names.
@@ -151,7 +159,10 @@ Start with `packages/ui/src/components/index.ts` and
 | Menus and contextual commands | `DropdownMenu`, `Popover`, `Tooltip` |
 | Modal or transient surfaces | `Dialog`, `BottomSheet`, `Drawer` |
 | Status, progress, or async feedback | `Alert`, `Badge`, `Progress`, `Skeleton`, `EmptyState` |
-| Cards and repeated item containers | `Card`, `Separator`, `AnimatedView` |
+| Lists, settings, grouped rows | `ItemGroup` + `Item` |
+| Collection items (feed or grid tiles, carousel slides), a single tappable object | `Card` |
+| Section breaks | `ItemGroup` titles, `SectionHeader`, `Separator`, `spacing.sectionSpacing` |
+| Entrance animation for repeated items | `AnimatedView` |
 | Icons | `Icon`, with names typed by `IconName` |
 | App shell infrastructure | `UIProvider`, `ErrorBoundary`, `StatusBar`, `Notification` |
 
@@ -271,6 +282,10 @@ browser against `bun run build && bun run start` (see `docs/server-guide.md`).
 
 - App screens defining new button, input, menu, modal, card, or typography
   primitives when package components already exist.
+- Card soup: sections, forms, or row groups boxed in bordered, shadowed, or
+  tinted rounded panels with their own padding inside a screen that already
+  pads its edges, or a `Card` per list row. Use flat `ItemGroup` rows and
+  section headers instead.
 - Hard-coded colors, shadows, radius, and spacing in general-purpose UI.
 - Feature folders importing sibling feature internals outside documented boundary
   exceptions.
@@ -321,7 +336,7 @@ accent is teal, and status colors are Tailwind's defaults.
 |---|---|---|---|
 | `surfaceSunken` | `#FAFAFA` | `#050506` | App chrome (tab bar, rail) |
 | `background` | `#FFFFFF` | `#09090B` | Content; also each scheme's launch background |
-| `card` / `popover` | `#FFFFFF` | `#18181B` | Raised panels |
+| `card` / `popover` | `#FFFFFF` | `#18181B` | Raised surfaces: collection tiles, popovers, sheets |
 | `muted` | `#F4F4F5` | `#27272A` | Chips, insets, skeletons |
 | `text` / `foreground` | `#09090B` | `#F4F4F5` | Body text |
 | `textDim` / `mutedForeground` | `#52525B` | `#B0B0B8` | Secondary text |
@@ -362,22 +377,28 @@ Forks replace faces with `setFonts` — never by patching `node_modules`.
 
 ## Shape, elevation, rhythm
 
-- **Radii** (`spacing.radius*`): 4 chips/checkboxes, 8 menu items, 10 controls
-  (Button default, inputs), 14 cards and dialogs, 16 sheets (moving to the
-  scale's 18), 24 hero panels,
-  full for pills and avatars. Forks retune Button (and other slots as the
+- **Radii** (`spacing.radius*`): 4 chips/checkboxes, 8 menu items and
+  thumbnails, 10 controls (Button default, inputs), 14 collection tiles and
+  dialogs, 16 sheets (moving to the scale's 18), 24 hero media, full for pills
+  and avatars. Forks retune Button (and other slots as the
   package adds them) through `setShape`.
-- **Elevation:** `getShadowStyle("subtle")` on the `default` Button and cards;
-  everything else flat. Dark mode relies on surface tiers, not shadow.
+- **Elevation:** `getShadowStyle("subtle")` on the `default` Button and on
+  collection tiles (`Card`); screen content is flat. Dark mode relies on
+  surface tiers, not shadow.
 - **Rhythm:** 8-pt base (`spacing.sm` 8, `md` 16, `lg` 24, `xl` 32) with 4 and
   12 as half steps; screen gutter 16; section spacing 24; rows 10 × 16 padding;
   44-pt touch targets.
+- **Layout:** flat screens. One 16-pt gutter per screen; sections break on a
+  header, spacing, or a hairline, never on a bordered or shadowed panel; lists
+  are full-width rows with inset hairlines (`ItemGroup`); media fills the
+  column; wide screens cap and centre it. A card is one item in a collection
+  or one tappable object, never a layout box.
 
 ## The mark
 
 A component frame with the wordmark's dot on its corner: a rounded-square
-stroke (the "card" every screen is built from) interrupted at the bottom-right
-by a filled accent dot — the same dot that precedes `@mrmeg/expo-ui` in the web
+stroke (a component's frame) interrupted at the bottom-right by a filled accent
+dot — the same dot that precedes `@mrmeg/expo-ui` in the web
 rail. It reads at 29 px (one ring, one dot) and needs no text.
 
 Masters live in `assets/brand/`; `bun run brand:assets` renders every raster
@@ -582,7 +603,7 @@ Upgrade to `@mrmeg/expo-ui@^0.25.0`. Peer ranges: `expo`, `expo-font`, `expo-hap
 **Import only from public subpaths** (`.`, `/components`, `/hooks`, `/state`, `/constants`, `/lib`) — never `dist/` or a source checkout:
 
 ```ts
-import { Button, Card, StyledText, TextInput } from "@mrmeg/expo-ui/components";
+import { Button, ItemGroup, StyledText, TextInput } from "@mrmeg/expo-ui/components";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { notify } from "@mrmeg/expo-ui/state";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -610,9 +631,11 @@ await notify.promise(saveProfile(), {
 - `useTheme()` returns `{ theme, scheme, getShadowStyle, getFocusRingStyle, withAlpha, getContrastingColor, getTextColorForBackground, getContrastRatio }`; colors live at `theme.colors.*`. Use semantic tokens — no hard-coded palettes, shadows, radii, or spacing in general-purpose UI.
 - On web each `theme.colors.*` value is a CSS custom property, so hex-alpha concatenation (`theme.colors.x + "15"`) does not work. Use `withAlpha(theme.colors.x, 0.08)`.
 - `primary` is the neutral action color (dark gray in light mode, near-white in dark); `accent` (teal) is for highlights, active tabs, badges.
-- Use `getShadowStyle(type)` for elevation (`base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`, `cardHover`, `cardSubtle`) rather than the legacy `shadow*` props, which RN 0.85 and react-native-web 0.21 deprecate in favor of `boxShadow`. `Card`'s default variant already applies `getShadowStyle("subtle")`.
+- Use `getShadowStyle(type)` for elevation (`base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`, `cardHover`, `cardSubtle`) rather than the legacy `shadow*` props, which RN 0.85 and react-native-web 0.21 deprecate in favor of `boxShadow`. `Card`'s default variant already applies `getShadowStyle("subtle")`. Elevation is for collection tiles and overlays, not for boxing screen sections.
 
-**Component swaps.** Replace one-off primitives with package components: buttons, text inputs, switches/checkboxes, selects, tabs, dialogs, bottom sheets, dropdown menus, cards, badges, skeletons, empty states, icons. Full use-case index: `packages/ui/LLM_USAGE.md`.
+**Screen layout — flatten the card soup.** Screens get one horizontal inset, `spacing.screenPadding` (16), owned by the container or by its children, never both. Replace bordered, shadowed, or tinted panels around sections, forms, and row groups with flat content: lists and settings become `ItemGroup` + `Item` rows (full-width rows, inset hairlines; the scroll view then pads nothing horizontally), form fields span the column under section headers, and sections break on a header, `spacing.sectionSpacing`, or a `Separator`. Size photos, media, and charts to the column; on wide screens cap and centre the column (`maxWidth` + `alignSelf: "center"`) instead of boxing it. Keep `Card` for one item in a collection or one tappable object, never nested. Rules and a full screen: `packages/ui/LLM_USAGE.md`, Screen Layout.
+
+**Component swaps.** Replace one-off primitives with package components: buttons, text inputs, switches/checkboxes, selects, tabs, dialogs, bottom sheets, dropdown menus, grouped lists (`ItemGroup`), badges, skeletons, empty states, icons. Full use-case index: `packages/ui/LLM_USAGE.md`.
 
 - `Button` uses `preset`, not `variant`. Heights are compact: Button 28/32/40 (`sm`/`md`/`lg`), `TextInput`/`Select` 32/36/40, `Toggle` 32/36/40 (`sm`/`default`/`lg`), `Tabs` 32/36 (`sm`/`md`).
 - Smoke-test web after the UI migration; style shapes that work on native can break react-native-web.
@@ -859,6 +882,13 @@ dialog and the keyboard with it, controls and fields fire on the first tap); do
 not wrap dialog content in `DismissKeyboard` for that. Android and web render dialog content inline into
 the portal host.
 
+`PopoverContent` treats `side` as a preference: on iOS and Android it opens on
+the other side when the content does not fit and there is more room there,
+caps its height to the room and scrolls the children (pass `scrollable={false}`
+for content with its own `FlatList`; it then stays on `side`). `insets` default
+to the safe area, and a `style` merges over the themed surface rather than
+replacing it. A `PopoverTrigger` ref (`PopoverTriggerRef`) has `open()` / `close()`.
+
 i18n is optional. Do not add app-level i18n setup just to use this package;
 plain children and `text` props work without `i18next` or `react-i18next`. `tx`
 props render their fallback text when provided, otherwise the key. Package-owned
@@ -922,19 +952,24 @@ Use `useStyles()` for memoized theme-aware local styles. Its factory receives
 
 ```tsx
 const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
-  card: {
-    backgroundColor: withAlpha(theme.colors.primary, 0.08),
-    padding: spacing.cardPadding,
+  content: {
+    paddingVertical: spacing.md,
+    gap: spacing.sectionSpacing,
+  },
+  selectedIcon: {
+    backgroundColor: withAlpha(theme.colors.primary, 0.12),
   },
 }));
 ```
 
 Layout spacing uses semantic density tokens, not raw scale steps:
-`spacing.screenPadding` (16) for screen and block gutters, `spacing.cardPadding`
-(16) for bordered panels, `spacing.sectionSpacing` (24) between grouped lists,
+`spacing.screenPadding` (16) for the one horizontal inset of a screen or block,
+`spacing.sectionSpacing` (24) between sections and `ItemGroup`s,
 `spacing.dialogPadding` (20) for dialogs, and `spacing.rowPaddingY`/`rowPaddingX`
 (10/16) with `spacing.rowGap` (12) for list rows. `Item` already applies the row
 tokens and keeps a 44px hit area on native while rendering 40px on web.
+`spacing.cardPadding` (16) is the inner padding of `Card` and `StatCard` tiles,
+not a layout inset. See Screen Layout below.
 
 When the saved theme preference is `system`, the package theme store owns the OS
 color-scheme subscription, including web `prefers-color-scheme`. Do not add
@@ -974,6 +1009,46 @@ added ship one: the installed release has it when
 settings:
 https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/lint/README.md
 
+## Screen Layout
+
+Build screens flat. On a 390 pt phone every nested inset comes out of the
+content: a settings group boxed inside a padded screen puts its rows 33 pt from
+each edge (16 screen + 1 border + 16 row) and leaves 324 pt for them; the same
+rows in an `ItemGroup` sit 16 pt in and get 358 pt.
+
+- **One horizontal inset per screen: `spacing.screenPadding` (16).** Either a
+  container pads or its children do, never both. `Item` rows, and `ItemGroup`
+  titles and footers, carry the 16 themselves, so a scroll view of
+  `ItemGroup`s gets no horizontal padding; text, forms, and buttons between the
+  groups pad their own wrapper.
+- **No boxes as layout.** Never wrap a section, a form, or a group of rows in a
+  bordered, shadowed, or tinted rounded `View`, or in a `Card`. Separate
+  sections with a header (an `ItemGroup` title, `SectionHeader`),
+  `spacing.sectionSpacing`, or a hairline (`Separator`).
+- **Lists and settings: `ItemGroup` + `Item`.** Full-width rows and touch
+  targets, hairlines inset under the title, no card per row, no border around
+  the group. Pass the rows as direct children (a mapped array works; a
+  Fragment counts as one row) and leave `separator` off: the group draws the
+  line under every row but the last.
+- **Forms:** fields span the column, grouped under section headers, not cards.
+- **Primary content fills the width.** QR codes, photos, maps, media, and
+  charts size to the column (`width: "100%"` with `aspectRatio`, or a size
+  computed from the column width), never a fixed size floating in whitespace.
+  A photo library is a grid of width-sized tiles, not rows of 56 pt thumbnails.
+- **Wide screens:** cap and centre the column instead of boxing it: `width:
+  "100%", maxWidth: 640, alignSelf: "center"` on the scroll view's
+  `contentContainerStyle` (960 for dense grids and dashboards).
+- **When a `Card` is right:** one item in a collection (a feed entry, a grid
+  tile, a carousel slide) or a single tappable object. Its parts pad
+  `spacing.cardPadding`, a tile's inner padding. Never nest Cards or put one in
+  a padded panel. `StatCard` follows the same rule (tiles in a scrolling
+  metrics rail, or one tappable metric); a summary of numbers is flat text on
+  the gutter.
+- Dialog, sheet, and popover chrome keep their own surfaces; these rules are
+  for screen content.
+
+The first Minimal Example below is a complete flat screen.
+
 ## Component Use-Case Index
 
 Check this before creating a new app-local primitive. All components come from
@@ -988,7 +1063,7 @@ Check this before creating a new app-local primitive. All components come from
 | `Badge` | Short status labels | Custom pill `View` + `Text` |
 | `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets |
 | `Button` | Commands and CTAs | Pressable plus custom text styling |
-| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Framed content groups | Ad hoc bordered panels |
+| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | One item in a collection (feed entry, grid tile, carousel slide) or a single tappable object | Hand-rolled bordered tiles; never a box around a section, form, or row group |
 | `Carousel` | Horizontally snapping slide row with pressable dots | Snap `ScrollView` plus manual offset math |
 | `Checkbox` | Boolean selection | Custom checkmark controls |
 | `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | One-off disclosure | Local animated height wrappers |
@@ -1001,6 +1076,7 @@ Check this before creating a new app-local primitive. All components come from
 | `Icon` | Lucide or custom icons with theme tokens | Raw vector icons with hardcoded colors |
 | `InputOTP` | Verification code entry | Several manually managed text inputs |
 | `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens | Hand-rolled row `View`s |
+| `ItemGroup` | A titled group of full-width `Item` rows with inset hairlines and an optional footer | Bordered or shadowed boxes around rows, a `Card` per row, hand-drawn dividers |
 | `KeyboardAvoidingView` | Native keyboard-aware layout root | Repeated app-local keyboard wrappers |
 | `Label` | Accessible form labels | Plain styled text labels |
 | `MaxWidthContainer` | Centered responsive width | Per-screen max-width wrappers |
@@ -1014,7 +1090,7 @@ Check this before creating a new app-local primitive. All components come from
 | `Separator` | Horizontal or vertical dividers | Border-only spacer views |
 | `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Blank space or generic spinners |
 | `Slider` | Numeric value selection (`@expo/ui`) | Custom pan gesture track |
-| `StatCard` | Metric tile with label, value, unit, change | Hand-rolled dashboard cards |
+| `StatCard` | Metric tile in a collection (a scrolling KPI rail) or one tappable metric | Hand-rolled dashboard tiles |
 | `StatusBar` | Theme-aware native status bar | Per-screen status-bar duplication |
 | `StyledText` and text aliases | Theme-aware typography | Raw `Text` with hardcoded styles |
 | `Switch` | Binary settings | Custom toggle switches |
@@ -1042,7 +1118,7 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 
 - `Button` commands · `Toggle` one pressed state · `ToggleGroup` a related set · `Switch` binary settings · `RadioGroup` few exclusive choices · `Select` longer option sets.
 - `Dialog` blocking decisions · `Popover` contextual controls · `Tooltip` short explanations · `DropdownMenu` action lists.
-- `Card` individual repeated or framed items, never a wrapper around full page sections · `EmptyState` no-data or recoverable errors · `Skeleton` loading content with stable layout · `Progress` real or indeterminate progress.
+- `ItemGroup` + `Item` lists and settings · `Card` one item in a collection or one tappable object, never a wrapper around a section, form, or row group, never nested · `EmptyState` no-data or recoverable errors · `Skeleton` loading content with stable layout · `Progress` real or indeterminate progress.
 - `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive into the exported HTML shell and the first client frame; use `FlatList` for large or unbounded data. Dots are pressable and jump to their slide. A fractional `itemWidth` (default `0.85`) measures the viewport until the first layout, so pass absolute pixels (`> 1`) when the parent is narrower than the window and the first frame matters.
 - `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent, still loading, or failed, plus the default accessibility label. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring; the group's count is a hidden summary node, so each member stays individually announceable and the group needs no `accessible` wrapper.
 - Pair a standalone `Label` with its control using two DISTINCT ids: `nativeID` is the label's own id, `htmlFor` is the input's id (`<Label nativeID="email-label" htmlFor="email-input">` + `<TextInput nativeID="email-input" />`). One id on both renders duplicate ids on web and associates nothing. Prefer `TextInput`'s own `label` prop when no separate label element is needed.
@@ -1053,20 +1129,85 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 
 ## Minimal Examples
 
-```tsx
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@mrmeg/expo-ui/components";
+A flat settings screen: groups of full-width rows, one 16 pt inset, a capped
+column on wide screens, no boxes.
 
-<Card variant="outline">
-  <CardHeader>
-    <CardTitle>Subscription</CardTitle>
-    <Badge variant="secondary">Active</Badge>
-  </CardHeader>
-  <CardContent>
-    <Button preset="default" fullWidth>
-      Manage billing
-    </Button>
-  </CardContent>
-</Card>
+```tsx
+import { useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
+import {
+  Button,
+  Icon,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+  Switch,
+} from "@mrmeg/expo-ui/components";
+import { spacing } from "@mrmeg/expo-ui/constants";
+
+export function SettingsScreen({ onEditProfile, onSignOut }: { onEditProfile: () => void; onSignOut: () => void }) {
+  const [push, setPush] = useState(true);
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <ItemGroup title="Account">
+        <Item onPress={onEditProfile}>
+          <ItemMedia icon="user" />
+          <ItemContent>
+            <ItemTitle>Edit profile</ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <Icon name="chevron-right" size={18} color="mutedForeground" />
+          </ItemActions>
+        </Item>
+        <Item>
+          <ItemMedia icon="bell" />
+          <ItemContent>
+            <ItemTitle>Push notifications</ItemTitle>
+            <ItemDescription>Replies and mentions</ItemDescription>
+          </ItemContent>
+          <ItemActions>
+            <Switch checked={push} onCheckedChange={setPush} />
+          </ItemActions>
+        </Item>
+      </ItemGroup>
+
+      <ItemGroup title="About" footer="Version 1.4.0">
+        <Item>
+          <ItemContent>
+            <ItemTitle>Build</ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <ItemDescription>2026.09.25</ItemDescription>
+          </ItemActions>
+        </Item>
+      </ItemGroup>
+
+      {/* Not rows, so it pads its own wrapper to the same 16 pt gutter. */}
+      <View style={styles.gutter}>
+        <Button preset="destructive" fullWidth text="Sign out" onPress={onSignOut} />
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  // No horizontal padding: the rows carry the screen's inset.
+  content: {
+    width: "100%",
+    maxWidth: 640,
+    alignSelf: "center",
+    paddingVertical: spacing.md,
+    gap: spacing.sectionSpacing,
+  },
+  gutter: {
+    paddingHorizontal: spacing.screenPadding,
+  },
+});
 ```
 
 ```tsx
