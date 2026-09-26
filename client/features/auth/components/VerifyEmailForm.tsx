@@ -108,7 +108,7 @@ export function VerifyEmailForm({
       footer={
         onBack && (
           <Pressable accessibilityRole="button" onPress={onBack} disabled={loading}>
-            <SansSerifText selectable={false} style={shared.linkText}>
+            <SansSerifText size="base" selectable={false} style={shared.linkText}>
               {t("auth.backToSignIn")}
             </SansSerifText>
           </Pressable>
@@ -148,16 +148,16 @@ export function VerifyEmailForm({
       </Button>
 
       <View style={styles.resendRow}>
-        <SansSerifText style={shared.mutedText}>
+        <SansSerifText size="base" style={shared.mutedText}>
           {t("auth.didntReceiveCode")}{" "}
         </SansSerifText>
         {cooldown > 0 ? (
-          <SansSerifText style={shared.mutedText}>
+          <SansSerifText size="base" style={shared.mutedText}>
             {t("auth.resendIn", { count: cooldown })}
           </SansSerifText>
         ) : (
           <Pressable accessibilityRole="button" onPress={handleResend} disabled={loading || resending}>
-            <SansSerifBoldText selectable={false} style={shared.linkText}>
+            <SansSerifBoldText size="base" selectable={false} style={shared.linkText}>
               {resending ? t("auth.sending") : t("auth.resendCodeLink")}
             </SansSerifBoldText>
           </Pressable>
@@ -166,7 +166,7 @@ export function VerifyEmailForm({
 
       {onChangeEmail && (
         <Pressable accessibilityRole="button" onPress={onChangeEmail} disabled={loading} style={styles.changeEmail}>
-          <SansSerifText selectable={false} style={shared.hintText}>
+          <SansSerifText size="base" selectable={false} style={shared.hintText}>
             {t("auth.wrongEmail")} <SansSerifBoldText selectable={false} style={styles.changeEmailLink}>{t("auth.changeIt")}</SansSerifBoldText>
           </SansSerifText>
         </Pressable>

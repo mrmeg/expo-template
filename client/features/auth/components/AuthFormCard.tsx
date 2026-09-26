@@ -73,7 +73,7 @@ export function AuthFormCard({
         <CardContent style={styles.content}>
           {!!error && (
             <View style={styles.errorContainer}>
-              <SansSerifText style={styles.errorText}>{error}</SansSerifText>
+              <SansSerifText size="base" style={styles.errorText}>{error}</SansSerifText>
             </View>
           )}
 

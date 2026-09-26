@@ -104,7 +104,7 @@ export function ResetPasswordForm({
       footer={
         onBack && (
           <Pressable accessibilityRole="button" onPress={onBack} disabled={loading}>
-            <SansSerifText selectable={false} style={shared.linkText}>
+            <SansSerifText size="base" selectable={false} style={shared.linkText}>
               {t("auth.backToSignIn")}
             </SansSerifText>
           </Pressable>
@@ -171,7 +171,7 @@ export function ResetPasswordForm({
       </View>
 
       <View style={styles.requirements}>
-        <SansSerifText style={shared.hintText}>
+        <SansSerifText size="base" style={shared.hintText}>
           {t("auth.passwordMinLength", { count: minPasswordLength })}
         </SansSerifText>
       </View>
