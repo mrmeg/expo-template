@@ -142,11 +142,11 @@ export function SignUpForm({
       footer={
         onSignIn && (
           <>
-            <SansSerifText style={shared.mutedText}>
+            <SansSerifText size="base" style={shared.mutedText}>
               {t("auth.hasAccount")}{" "}
             </SansSerifText>
             <Pressable accessibilityRole="button" onPress={onSignIn} disabled={loading}>
-              <SansSerifBoldText selectable={false} style={shared.linkText}>
+              <SansSerifBoldText size="base" selectable={false} style={shared.linkText}>
                 {t("auth.signIn")}
               </SansSerifBoldText>
             </Pressable>
@@ -280,7 +280,7 @@ export function SignUpForm({
           disabled={loading}
           style={styles.methodToggle}
         >
-          <SansSerifText selectable={false} style={shared.linkText}>
+          <SansSerifText size="base" selectable={false} style={shared.linkText}>
             {usePassword ? t("auth.signUpWithoutPasswordInstead") : t("auth.addAPassword")}
           </SansSerifText>
         </Pressable>
@@ -290,7 +290,7 @@ export function SignUpForm({
         <>
           <View style={shared.separatorRow}>
             <View style={shared.separatorLine} />
-            <SansSerifText style={shared.hintText}>{t("auth.or")}</SansSerifText>
+            <SansSerifText size="base" style={shared.hintText}>{t("auth.or")}</SansSerifText>
             <View style={shared.separatorLine} />
           </View>
 

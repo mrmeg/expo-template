@@ -1545,8 +1545,8 @@ const CarouselSection = memo(function CarouselSection({
   const renderSlides = (labels: string[] = CAROUSEL_SLIDES) =>
     labels.map((label, index) => (
       <View key={label} style={styles.carouselSlide}>
-        <SansSerifBoldText style={styles.carouselSlideTitle}>{label}</SansSerifBoldText>
-        <SansSerifText style={styles.carouselSlideMeta}>
+        <SansSerifBoldText size="body" style={styles.carouselSlideTitle}>{label}</SansSerifBoldText>
+        <SansSerifText size="sm" style={styles.carouselSlideMeta}>
           {`Slide ${index + 1} of ${labels.length}`}
         </SansSerifText>
       </View>
@@ -1586,7 +1586,7 @@ const CarouselSection = memo(function CarouselSection({
 
       <SubSection label="onIndexChange">
         <Carousel onIndexChange={setPage}>{renderSlides()}</Carousel>
-        <SansSerifText style={[styles.carouselReadout, { color: theme.colors.mutedForeground }]}>
+        <SansSerifText size="sm" style={[styles.carouselReadout, { color: theme.colors.mutedForeground }]}>
           {`Active slide: ${CAROUSEL_SLIDES[page]} (index ${page})`}
         </SansSerifText>
       </SubSection>
@@ -2045,14 +2045,14 @@ const SkeletonSection = memo(function SkeletonSection({
             <View style={styles.realCardBody}>
               <View style={styles.realAvatarRow}>
                 <View style={styles.realAvatar}>
-                  <SansSerifBoldText style={styles.realAvatarText}>JD</SansSerifBoldText>
+                  <SansSerifBoldText size="base" style={styles.realAvatarText}>JD</SansSerifBoldText>
                 </View>
                 <View>
-                  <SansSerifBoldText style={styles.realName}>Jane Doe</SansSerifBoldText>
-                  <SansSerifText style={styles.realMeta}>2 hours ago</SansSerifText>
+                  <SansSerifBoldText size="base" style={styles.realName}>Jane Doe</SansSerifBoldText>
+                  <SansSerifText size="sm" style={styles.realMeta}>2 hours ago</SansSerifText>
                 </View>
               </View>
-              <SansSerifText style={styles.realBodyText}>
+              <SansSerifText size="base" style={styles.realBodyText}>
                 This is the actual loaded content that replaces the skeleton placeholder.
               </SansSerifText>
             </View>
@@ -2140,10 +2140,10 @@ const BottomSheetSection = memo(function BottomSheetSection({
             <BottomSheet.Handle />
             <BottomSheet.Body>
               <View style={styles.sheetSection}>
-                <SansSerifBoldText style={styles.sheetTitle}>
+                <SansSerifBoldText size="xl" style={styles.sheetTitle}>
                   Hello from the bottom sheet
                 </SansSerifBoldText>
-                <SansSerifText style={styles.sheetDescription}>
+                <SansSerifText size="base" style={styles.sheetDescription}>
                   This is a basic bottom sheet. Swipe down or tap the backdrop to close.
                 </SansSerifText>
               </View>
@@ -2175,10 +2175,10 @@ const BottomSheetSection = memo(function BottomSheetSection({
           <BottomSheet.Content>
             <BottomSheet.Handle />
             <BottomSheet.Body>
-              <SansSerifBoldText style={styles.sheetTitle}>
+              <SansSerifBoldText size="xl" style={styles.sheetTitle}>
                 Snap Points
               </SansSerifBoldText>
-              <SansSerifText style={styles.sheetDescription}>
+              <SansSerifText size="base" style={styles.sheetDescription}>
                 This sheet has three snap points at 25%, 50%, and 90%.
                 On native, try swiping to snap between them.
               </SansSerifText>
@@ -2200,7 +2200,7 @@ const BottomSheetSection = memo(function BottomSheetSection({
             <BottomSheet.Handle />
             <BottomSheet.Header>
               <View style={styles.sheetHeaderRow}>
-                <SansSerifBoldText style={styles.sheetHeaderTitle}>
+                <SansSerifBoldText size="lg" style={styles.sheetHeaderTitle}>
                   Share with…
                 </SansSerifBoldText>
                 <BottomSheet.Close asChild>
@@ -2215,11 +2215,11 @@ const BottomSheetSection = memo(function BottomSheetSection({
                 (name) => (
                   <View key={name} style={styles.contactRow}>
                     <View style={styles.contactAvatar}>
-                      <SansSerifBoldText style={styles.contactInitial}>
+                      <SansSerifBoldText size="body" style={styles.contactInitial}>
                         {name[0]}
                       </SansSerifBoldText>
                     </View>
-                    <SansSerifText style={styles.contactName}>{name}</SansSerifText>
+                    <SansSerifText size="body" style={styles.contactName}>{name}</SansSerifText>
                   </View>
                 )
               )}
@@ -2250,13 +2250,13 @@ const BottomSheetSection = memo(function BottomSheetSection({
               {/* The Body scrolls, so the sheet drops pull-down-to-dismiss (it
                   would otherwise steal the scroll gesture on iOS) and the Header
                   surfaces a close X automatically — no manual Close needed. */}
-              <SansSerifBoldText style={styles.sheetHeaderTitle}>
+              <SansSerifBoldText size="lg" style={styles.sheetHeaderTitle}>
                 Terms of Service
               </SansSerifBoldText>
             </BottomSheet.Header>
             <BottomSheet.Body>
               {Array.from({ length: 12 }).map((_, i) => (
-                <SansSerifText key={i} style={styles.loremParagraph}>
+                <SansSerifText size="base" key={i} style={styles.loremParagraph}>
                   {i + 1}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
                   Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
                   Ut enim ad minim veniam, quis nostrud exercitation ullamco.
@@ -2287,7 +2287,7 @@ const BottomSheetSection = memo(function BottomSheetSection({
             <BottomSheet.Handle />
             <BottomSheet.Header>
               <View style={styles.sheetHeaderRow}>
-                <SansSerifBoldText style={styles.sheetHeaderTitle}>
+                <SansSerifBoldText size="lg" style={styles.sheetHeaderTitle}>
                   Edit reminder
                 </SansSerifBoldText>
                 <BottomSheet.Close asChild>
@@ -2655,15 +2655,12 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.muted,
     },
     carouselSlideTitle: {
-      fontSize: 16,
       color: theme.colors.foreground,
     },
     carouselSlideMeta: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     carouselReadout: {
-      fontSize: 12,
       marginTop: spacing.sm,
       textAlign: "center",
     },
@@ -2769,20 +2766,15 @@ const createStyles = (theme: Theme) =>
       justifyContent: "center",
     },
     realAvatarText: {
-      fontSize: 14,
       color: theme.colors.accentForeground,
     },
     realName: {
-      fontSize: 14,
       color: theme.colors.foreground,
     },
     realMeta: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     realBodyText: {
-      fontSize: 14,
-      lineHeight: 20,
       color: theme.colors.foreground,
     },
 
@@ -2797,15 +2789,11 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
     },
     sheetTitle: {
-      fontSize: 20,
-      lineHeight: 28,
       letterSpacing: -0.3,
       color: theme.colors.foreground,
       marginBottom: spacing.sm,
     },
     sheetDescription: {
-      fontSize: 14,
-      lineHeight: 20,
       color: theme.colors.mutedForeground,
     },
     sheetHeaderRow: {
@@ -2814,8 +2802,6 @@ const createStyles = (theme: Theme) =>
       alignItems: "center",
     },
     sheetHeaderTitle: {
-      fontSize: 18,
-      lineHeight: 24,
       letterSpacing: -0.3,
       color: theme.colors.foreground,
     },
@@ -2834,16 +2820,12 @@ const createStyles = (theme: Theme) =>
       justifyContent: "center",
     },
     contactInitial: {
-      fontSize: 16,
       color: theme.colors.foreground,
     },
     contactName: {
-      fontSize: 16,
       color: theme.colors.foreground,
     },
     loremParagraph: {
-      fontSize: 14,
-      lineHeight: 20,
       color: theme.colors.foreground,
       marginBottom: spacing.md,
     },

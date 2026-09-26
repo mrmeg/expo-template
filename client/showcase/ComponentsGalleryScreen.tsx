@@ -293,10 +293,10 @@ function ComponentCard({
           )}
         </View>
         <View style={styles.cardMeta}>
-          <SansSerifText style={styles.cardName} numberOfLines={1}>
+          <SansSerifText size="base" fontWeight="medium" style={styles.cardName} numberOfLines={1}>
             {entry.id}
           </SansSerifText>
-          <SansSerifText style={styles.cardCategory}>
+          <SansSerifText size="xs" style={styles.cardCategory}>
             {COMPONENT_CATEGORY_SHORT_LABELS[entry.category]}
           </SansSerifText>
         </View>
@@ -410,12 +410,9 @@ const createStyles = (theme: Theme) =>
     },
     cardName: {
       flexShrink: 1,
-      fontSize: 13,
-      fontWeight: "500",
       color: theme.colors.foreground,
     },
     cardCategory: {
-      fontSize: 10,
       textTransform: "uppercase",
       letterSpacing: 0.6,
       color: theme.colors.mutedForeground,
