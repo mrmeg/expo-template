@@ -12,6 +12,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { colors } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { useResources } from "@mrmeg/expo-ui/hooks";
+import { newsreaderFontMap } from "@/client/lib/fonts/newsreaderFonts";
 import { syncThemeFromEnvironment, SsrViewportContext } from "@mrmeg/expo-ui/state";
 import { UIProvider } from "@mrmeg/expo-ui/components/UIProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -91,7 +92,10 @@ export default function RootLayout() {
   ensureI18nInitialized();
 
   const { scheme } = useTheme();
-  const { loaded: fontsLoaded } = useResources();
+  // The kit's serif preset: Newsreader instead of single-face Georgia. Native
+  // registers the five files from client/lib/fonts; web gets the stylesheet
+  // (pre-linked in app/+html.tsx so useResources finds it already there).
+  const { loaded: fontsLoaded } = useResources({ serif: "newsreader", serifFonts: newsreaderFontMap });
   // Web-only inside (no-op elsewhere): keeps <meta name="theme-color"> — the
   // Safari/Chrome chrome tint — tracking the active theme after hydration.
   useSafariThemeColorSync();

@@ -234,6 +234,16 @@ export default function Root({ children }: PropsWithChildren) {
         />
         <style id="mrmeg-expo-ui-inter">{INTER_FONT_FACES}</style>
 
+        {/* Newsreader, the kit's serif preset (RootLayout passes
+            `useResources({ serif: "newsreader" })`): four weights and the 400
+            italic. The link's `id` is the one useResources looks for, so it
+            skips injecting a second copy after hydration. */}
+        <link
+          id="mrmeg-expo-ui-newsreader"
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+        />
+
         {/*
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native.
           However, body scrolling is often nice to have for mobile web. If you want to enable it, remove this line.

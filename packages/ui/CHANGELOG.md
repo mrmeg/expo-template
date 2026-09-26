@@ -7,6 +7,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`italic` on `StyledText`** and `useFontStyle(weight, variant, { italic })`.
+  `resolveFontStyle` takes `{ italic, serifPreset }`: an italic face wins and
+  emits no `fontStyle` — the app's `setFonts` `italic` map (new, per family
+  group: `italic: { regular, bold, … }`, missing weights fall back to the italic
+  `regular`), or the serif preset's italic file — otherwise `fontStyle:
+  "italic"` and the platform synthesizes. Native Inter stays four upright files;
+  the web Inter stylesheet now includes the 400 italic
+  (`Inter:ital,wght@0,400;0,500;0,600;0,700;1,400`).
+- **Newsreader serif preset.** `useResources({ serif: "newsreader", serifFonts })`
+  loads a real serif — `Newsreader_400Regular`, `500Medium`, `600SemiBold`,
+  `700Bold` and `400Regular_Italic` on native from the map the app passes
+  (its own `@expo-google-fonts/newsreader` dependency; the package adds none),
+  one Google Fonts stylesheet on web (`id="mrmeg-expo-ui-newsreader"`) — and
+  sets the new theme-store field `serifPreset` (`"georgia"` | `"newsreader"`,
+  `setSerifPreset`) that `resolveFontStyle` consults for the serif variant.
+  Georgia stays the default; a `setFonts` serif override wins over the preset.
+  `newsreaderFamilies` and `SerifPreset` are exported from `constants`.
+
 - **`setShape` slots for inputs, cards, sheets, badges and dialogs.**
   `ShapeOverrides` gains `input`, `card`, `sheet`, `badge` and `dialog`, each
   `{ borderRadius?: number }` (Button keeps `withShadow`). `input` reaches
