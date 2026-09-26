@@ -3,7 +3,7 @@ import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { ThemeColors } from "../constants/colors";
-import type { FontOverrides } from "../constants/fonts";
+import type { FontOverrides, SerifPreset } from "../constants/fonts";
 
 const THEME_KEY = "user-theme-preference";
 
@@ -109,6 +109,14 @@ export type ThemeStore = {
    * fully backward compatible when unset.
    */
   shapeOverrides: ShapeOverrides;
+  /**
+   * Which serif the `serif` variant resolves to when no `setFonts` serif
+   * override exists: `"georgia"` (default, the system face) or
+   * `"newsreader"`, set by `useResources({ serif: "newsreader" })` once its
+   * files or stylesheet are in place. Read by `resolveFontStyle` through
+   * `StyledText` and `useFontStyle`.
+   */
+  serifPreset: SerifPreset;
   setTheme: (theme: ThemePreference) => void;
   setSystemTheme: (theme: ResolvedTheme) => void;
   /**
@@ -133,6 +141,8 @@ export type ThemeStore = {
    * `spacing.radiusLg`, badge pill, default-preset shadow on).
    */
   setShape: (overrides: ShapeOverrides) => void;
+  /** Switch the serif preset. `useResources` calls this; apps rarely need to. */
+  setSerifPreset: (preset: SerifPreset) => void;
   loadTheme: () => void;
 };
 
@@ -172,6 +182,12 @@ export const useThemeStore = create<ThemeStore>((set) => ({
 
   // And again for shape: package geometry until a host app calls `setShape`.
   shapeOverrides: {},
+
+  serifPreset: "georgia",
+
+  setSerifPreset: (preset) => {
+    set({ serifPreset: preset ?? "georgia" });
+  },
 
   setColors: (overrides) => {
     set({ colorOverrides: overrides ?? {} });

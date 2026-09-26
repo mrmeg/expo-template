@@ -271,7 +271,14 @@ sansSerif?, serif?, mono? }, webWeightStrategy? })` replaces the bundled faces
 (Inter / Georgia / system-mono) everywhere text renders; groups and weights are
 partial, missing weights fall back to that group's `regular`, and an overridden
 `sansSerif` makes `useResources` skip downloading Inter (call `setFonts` before
-mount for the skip). Use `webWeightStrategy: "family"` when loading per-weight
+mount for the skip). Each group also takes `italic: { weight: face }`; `<StyledText
+italic>` (or `useFontStyle(weight, variant, { italic: true })`) uses that face,
+else the group's italic `regular`, else `fontStyle: "italic"` on the upright face.
+`useResources({ serif: "newsreader", serifFonts })` swaps Georgia for the
+Newsreader preset (four weights + a 400 italic): the app depends on
+`@expo-google-fonts/newsreader` and passes the five per-weight faces on native;
+web gets one stylesheet (`id="mrmeg-expo-ui-newsreader"`). A `setFonts` serif
+override still wins. Use `webWeightStrategy: "family"` when loading per-weight
 faces through `expo-font` / `@expo-google-fonts`, `"numeric"` (default) for one
 multi-weight CSS family. `setShape({ button?, input?, card?, sheet?, badge?,
 dialog? })` re-shapes a slot globally (`{ borderRadius }`; `button` also takes

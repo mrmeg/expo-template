@@ -28,6 +28,7 @@ jest.mock("@expo-google-fonts/inter", () => {
 });
 
 import * as Font from "expo-font";
+import { Platform } from "react-native";
 import { useResources } from "../useResources";
 import { interFontMap } from "../../lib/interFonts";
 import { useThemeStore } from "../../state/themeStore";
@@ -98,6 +99,116 @@ describe("useResources", () => {
       Inter_700Bold: "inter-700-asset",
     });
     expect(interLoadCalls()[0][0]).toBe(interFontMap);
+  });
+});
+
+describe("useResources serif preset", () => {
+  const NEWSREADER = {
+    Newsreader_400Regular: "nr-400",
+    Newsreader_500Medium: "nr-500",
+    Newsreader_600SemiBold: "nr-600",
+    Newsreader_700Bold: "nr-700",
+    Newsreader_400Regular_Italic: "nr-400i",
+  };
+
+  beforeEach(() => {
+    mockLoadAsync.mockClear();
+    useThemeStore.getState().setSerifPreset("georgia");
+  });
+
+  afterEach(() => {
+    useThemeStore.getState().setFonts({});
+    useThemeStore.getState().setSerifPreset("georgia");
+  });
+
+  it("leaves Georgia in place by default: no extra load, preset untouched", async () => {
+    const { result } = await renderHook(() => useResources());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(useThemeStore.getState().serifPreset).toBe("georgia");
+    expect(mockLoadAsync).toHaveBeenCalledTimes(interLoadCalls().length);
+  });
+
+  it("loads the app-supplied Newsreader files on native, then switches the preset", async () => {
+    const { result } = await renderHook(() => useResources({ serif: "newsreader", serifFonts: NEWSREADER }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(mockLoadAsync).toHaveBeenCalledWith(NEWSREADER);
+    expect(useThemeStore.getState().serifPreset).toBe("newsreader");
+  });
+
+  it("keeps Georgia on native when no files are supplied, and says so", async () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = await renderHook(() => useResources({ serif: "newsreader" }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(useThemeStore.getState().serifPreset).toBe("georgia");
+    expect(mockLoadAsync).toHaveBeenCalledTimes(interLoadCalls().length);
+    expect(warn.mock.calls.some(([message]) => String(message).includes("serifFonts"))).toBe(true);
+    warn.mockRestore();
+  });
+
+  it("skips the Newsreader load when the app overrides serif through setFonts", async () => {
+    useThemeStore.getState().setFonts({ families: { serif: { regular: "Brand_Serif" } } });
+    const { result } = await renderHook(() => useResources({ serif: "newsreader", serifFonts: NEWSREADER }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(mockLoadAsync).not.toHaveBeenCalledWith(NEWSREADER);
+    expect(useThemeStore.getState().serifPreset).toBe("georgia");
+  });
+});
+
+describe("useResources on web", () => {
+  const originalOS = Platform.OS;
+  type FakeLink = { id: string; rel: string; href: string; onload?: () => void; onerror?: () => void };
+  let links: FakeLink[];
+
+  beforeEach(() => {
+    mockLoadAsync.mockClear();
+    useThemeStore.getState().setSerifPreset("georgia");
+    links = [];
+    (Platform as { OS: string }).OS = "web";
+    (globalThis as unknown as { document: unknown }).document = {
+      getElementById: (id: string) => links.find((link) => link.id === id) ?? null,
+      createElement: () => ({ id: "", rel: "", href: "" }) as FakeLink,
+      head: {
+        appendChild: (link: FakeLink) => {
+          links.push(link);
+          link.onload?.();
+        },
+      },
+    };
+  });
+
+  afterEach(() => {
+    (Platform as { OS: string }).OS = originalOS;
+    delete (globalThis as unknown as { document?: unknown }).document;
+    useThemeStore.getState().setFonts({});
+    useThemeStore.getState().setSerifPreset("georgia");
+  });
+
+  it("injects the Inter stylesheet with the 400 italic, once", async () => {
+    const first = await renderHook(() => useResources());
+    await waitFor(() => expect(first.result.current.loaded).toBe(true));
+    const second = await renderHook(() => useResources());
+    await waitFor(() => expect(second.result.current.loaded).toBe(true));
+
+    const inter = links.filter((link) => link.id === "mrmeg-expo-ui-inter");
+    expect(inter).toHaveLength(1);
+    expect(inter[0].href).toContain("Inter:ital,wght@0,400;0,500;0,600;0,700;1,400");
+    expect(mockLoadAsync).not.toHaveBeenCalled();
+  });
+
+  it("injects the Newsreader stylesheet and switches the preset right away", async () => {
+    const { result } = await renderHook(() => useResources({ serif: "newsreader" }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    const newsreader = links.filter((link) => link.id === "mrmeg-expo-ui-newsreader");
+    expect(newsreader).toHaveLength(1);
+    expect(newsreader[0].href).toContain("Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400");
+    expect(useThemeStore.getState().serifPreset).toBe("newsreader");
+    // No native files on web, supplied or not.
+    expect(mockLoadAsync).not.toHaveBeenCalled();
   });
 });
 

@@ -472,6 +472,11 @@ import { BodyText, CaptionText, HeadingText, StyledText } from "@mrmeg/expo-ui/c
 - `semantic`: `title`, `heading`, `subheading`, `body`, `caption`, `label`, `eyebrow`
 - `size`: `xs`, `sm`, `base`, `body`, `lg`, `xl`, `xxl`, `display`
 - `fontWeight`: `light`, `regular`, `medium`, `semibold`, `bold`
+- `italic`: a real italic face where the family has one (an app's `setFonts`
+  `italic` map, or the Newsreader serif preset below), otherwise
+  `fontStyle: "italic"` and the platform synthesizes the slant. Inter ships no
+  italic file on native (four upright weights, by design); on web the injected
+  Inter stylesheet carries the 400 italic, so body-weight italic is real there
 - `variant`: `sansSerif`, `serif`, `mono`
 - `align`, `text`, `tx`, `txOptions`
 - `selectable`: defaults to `true` on iOS and web and to `false` on Android
@@ -508,8 +513,9 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 
 Inter is the sans face on every platform, in four static weights
 (`Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`, `Inter_700Bold`)
-from the bundled `@expo-google-fonts/inter`. Serif is Georgia; mono is the
-platform system monospace.
+from the bundled `@expo-google-fonts/inter`. Serif is Georgia by default, or
+Newsreader through the serif preset below; mono is the platform system
+monospace.
 
 `useResources()` loads those four weights on native, so `StyledText`'s
 `light`–`bold` range resolves to real files instead of a faked OS bold. Each
@@ -529,9 +535,81 @@ Expo Router web apps, add the links to app-owned `app/+html.tsx`:
 <link
   id="mrmeg-expo-ui-inter"
   rel="stylesheet"
-  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+  href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
 />
 ```
+
+### Serif preset: Newsreader
+
+Georgia is one face per platform, so `SerifText fontWeight="bold"` is a faux
+bold and `italic` a synthesized slant. Newsreader is a real serif family —
+four weights and a 400 italic — offered as an opt-in preset that costs an app
+nothing unless it opts in: the package does not depend on the font package, so
+the app adds it and hands the native files over.
+
+```bash
+bun add @expo-google-fonts/newsreader
+```
+
+```ts
+// lib/newsreaderFonts.native.ts — per-weight subpaths, so the native bundle
+// carries exactly these five files. The web twin exports `null`.
+import { Newsreader_400Regular } from "@expo-google-fonts/newsreader/400Regular";
+import { Newsreader_400Regular_Italic } from "@expo-google-fonts/newsreader/400Regular_Italic";
+import { Newsreader_500Medium } from "@expo-google-fonts/newsreader/500Medium";
+import { Newsreader_600SemiBold } from "@expo-google-fonts/newsreader/600SemiBold";
+import { Newsreader_700Bold } from "@expo-google-fonts/newsreader/700Bold";
+
+export const newsreaderFontMap = {
+  Newsreader_400Regular,
+  Newsreader_500Medium,
+  Newsreader_600SemiBold,
+  Newsreader_700Bold,
+  Newsreader_400Regular_Italic,
+};
+```
+
+```tsx
+// where the app already calls useResources
+const { loaded } = useResources({ serif: "newsreader", serifFonts: newsreaderFontMap });
+```
+
+On native `useResources` registers the files and then sets the theme store's
+`serifPreset` to `"newsreader"`, so serif text resolves to
+`Newsreader_400Regular` … `Newsreader_700Bold` (`light` shares the 400 file)
+and `italic` to `Newsreader_400Regular_Italic` at every weight. On web it
+injects one Google Fonts stylesheet (`Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400`)
+under the id `mrmeg-expo-ui-newsreader` — put an element with that id in
+`+html.tsx` (the Google Fonts `<link>`, or self-hosted `@font-face` rules as
+this template does from `@fontsource-variable/newsreader`) and the hook skips
+its own — and switches the preset at once
+(the stack falls back to Georgia until the faces arrive); weight is numeric on
+the shared `"Newsreader"` family. A `setFonts` serif override wins over the
+preset and skips its load. Without `serifFonts` on native the hook warns once
+and keeps Georgia. The family names are exported as `newsreaderFamilies` from
+`@mrmeg/expo-ui/constants`; `SerifPreset` and `useThemeStore().serifPreset` /
+`setSerifPreset` are the store side.
+
+### Italic faces through `setFonts`
+
+Each family group in `setFonts` takes an `italic` map beside the weights:
+
+```ts
+useThemeStore.getState().setFonts({
+  families: {
+    sansSerif: {
+      regular: "Brand_Regular",
+      bold: "Brand_Bold",
+      italic: { regular: "Brand_Italic", bold: "Brand_BoldItalic" },
+    },
+  },
+});
+```
+
+`italic` on `StyledText` (or `useFontStyle(weight, variant, { italic: true })`)
+then uses the italic face for its weight, falls back to the group's italic
+`regular` when that weight has none, and emits no `fontStyle`; a group with no
+`italic` map synthesizes on its upright face.
 
 ### Font overrides
 

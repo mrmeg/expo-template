@@ -91,6 +91,12 @@ export type TextProps = RNTextProps & {
    */
   fontWeight?: FontWeight;
   /**
+   * Italic. A real italic face when the family has one (an app's `setFonts`
+   * `italic` map, or the Newsreader serif preset); otherwise `fontStyle:
+   * "italic"` and the platform synthesizes the slant.
+   */
+  italic?: boolean;
+  /**
    * Font size variant
    */
   size?: FontSize;
@@ -154,6 +160,7 @@ export function StyledText(props: TextProps) {
     style,
     variant = "sansSerif",
     fontWeight,
+    italic,
     size,
     semantic,
     align,
@@ -167,6 +174,7 @@ export function StyledText(props: TextProps) {
   // Subscribed, not read via getState(), so a `setFonts` call after mount
   // re-renders text instead of leaving stale families on screen.
   const fontOverrides = useThemeStore((s) => s.fontOverrides);
+  const serifPreset = useThemeStore((s) => s.serifPreset);
 
   // Check if there's a color override from parent context (e.g., Button)
   const contextColor = use(TextColorContext);
@@ -189,10 +197,11 @@ export function StyledText(props: TextProps) {
   // faces via `setFonts`; resolution — including the per-group merge and the
   // numeric-vs-family weight strategy — lives in `resolveFontStyle`
   // (constants/fonts.ts), shared with the control components' `useFontStyle`.
-  const { fontFamily, fontWeight: resolvedFontWeight } = resolveFontStyle(
+  const { fontFamily, fontWeight: resolvedFontWeight, fontStyle } = resolveFontStyle(
     fontOverrides,
     variant,
     finalFontWeight,
+    { italic, serifPreset },
   );
 
   // Get fontSize and lineHeight from size variant
@@ -226,6 +235,7 @@ export function StyledText(props: TextProps) {
           fontFamily,
           fontSize,
           ...(resolvedFontWeight !== undefined && { fontWeight: resolvedFontWeight }),
+          ...(fontStyle !== undefined && { fontStyle }),
           ...(resolvedLineHeight !== undefined && { lineHeight: resolvedLineHeight }),
           userSelect: resolvedSelectable ? "auto" : "none",
           ...(letterSpacing !== undefined && { letterSpacing }),

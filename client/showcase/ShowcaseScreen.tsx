@@ -1330,6 +1330,12 @@ function useShowcaseScreenContent() {
               <StyledText variant="serif" style={styles.serifText}>Serif Text - Elegant headings</StyledText>
               <StyledText variant="serif" fontWeight="bold" style={styles.serifBoldText}>Serif Bold - Strong emphasis</StyledText>
             </SubSection>
+
+            <SubSection label="Italic (a real italic face where the family has one, synthesized elsewhere)">
+              <StyledText italic>Sans italic - a synthesized slant on Inter</StyledText>
+              <StyledText variant="serif" italic size="lg">Serif italic - Newsreader's own italic</StyledText>
+              <StyledText variant="serif" italic fontWeight="semibold">Serif semibold italic - the 400 italic face at every weight</StyledText>
+            </SubSection>
           </Section>
 
         </View>
