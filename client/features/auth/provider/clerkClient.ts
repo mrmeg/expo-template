@@ -339,6 +339,17 @@ export function createClerkAuthClient(): AuthClient {
       await clerk?.signOut();
     },
 
+    async deleteAccount(): Promise<void> {
+      await withAuthErrors(async () => {
+        const clerk = await requireClerk();
+        const user = clerk.user;
+        if (!user || !clerk.session) {
+          throw new AuthError("unknown", "No signed-in user to delete");
+        }
+        await user.delete();
+      });
+    },
+
     onAuthChange(callback: (event: AuthChangeEvent) => void) {
       let disposed = false;
       let removeListener: (() => void) | undefined;

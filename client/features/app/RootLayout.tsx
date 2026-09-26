@@ -161,7 +161,11 @@ export default function RootLayout() {
                   on each keyboard frame. Screens with text input own it —
                   KeyboardAwareScrollView, or DismissKeyboard's own avoiding
                   view — and dialogs and sheets already handle theirs. */}
-              <UIProvider keyboardAvoiding={false}>
+              {/* Haptics on: light impact on presses, selection ticks on
+                  toggles, success on saves — the kit's default is "selection",
+                  and the template demos primary actions, so it opts into all.
+                  Reduce-motion and web are respected by the kit. */}
+              <UIProvider keyboardAvoiding={false} haptics="all">
                 <KeyboardDismissBoundary style={styles.keyboardDismissScope}>
                   <ErrorBoundary
                     catchErrors={Config.catchErrors}

@@ -27,7 +27,7 @@ const KEYBOARD_OWNER = /<(?:KeyboardAwareScrollView|DismissKeyboard)\b/;
 describe("keyboard ownership", () => {
   it("keeps the root free of keyboard avoidance", () => {
     expect(read("client/features/app/RootLayout.tsx")).toMatch(
-      /<UIProvider\s+keyboardAvoiding=\{false\}>/,
+      /<UIProvider\b[^>]*\bkeyboardAvoiding=\{false\}/,
     );
   });
 
