@@ -1,7 +1,6 @@
 import { Stack } from "expo-router";
 import { useTheme, useDimensions } from "@mrmeg/expo-ui/hooks";
 import { MAIN_STACK_SCREENS } from "@/client/features/navigation/mainStackScreens";
-import { tabTitleFromRoute, type TabsRouteLike } from "@/client/features/navigation/tabTitle";
 
 export default function MainLayout() {
   const { theme } = useTheme();
@@ -35,21 +34,7 @@ export default function MainLayout() {
       }}
     >
       {MAIN_STACK_SCREENS.map(({ name, options }) => (
-        <Stack.Screen
-          key={name}
-          name={name}
-          // The tab bar draws no header, so this stack header is the tabs'
-          // only title: it follows the focused tab instead of the table's
-          // fixed "Explore". The table keeps a plain object for the web shell.
-          options={
-            name === "(tabs)"
-              ? ({ route }: { route: TabsRouteLike }) => ({
-                ...(options as object),
-                title: tabTitleFromRoute(route),
-              })
-              : options
-          }
-        />
+        <Stack.Screen key={name} name={name} options={options} />
       ))}
     </Stack>
   );

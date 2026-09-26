@@ -47,6 +47,7 @@ import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { logDev } from "@/client/lib/devtools";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import { Seo } from "@/client/components/Seo";
+import { useTabHeaderTitle } from "@/client/features/navigation/tabTitle";
 
 type FilterType = "all" | keyof typeof MEDIA_PATHS;
 type MediaViewerState =
@@ -139,6 +140,7 @@ function mediaViewerReducer(
 }
 
 export default function MediaScreen() {
+  useTabHeaderTitle("media");
   return useMediaScreenContent();
 }
 
