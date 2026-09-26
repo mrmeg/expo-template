@@ -219,6 +219,7 @@ function ProfileScreen() {
           <Button
             preset="outline"
             size="sm"
+            style={styles.editButton}
             onPress={handleEditProfile}
           >
             <Icon name="pencil" size={14} color={theme.colors.primary} />
@@ -633,15 +634,21 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.mutedForeground,
       marginBottom: spacing.md,
     },
+    // The header centres its children, but the button sizes to its label and
+    // sits at the start; centre it with the name above it.
+    editButton: {
+      alignSelf: "center",
+    },
     editButtonText: {
       color: theme.colors.primary,
     },
+    // Brand tiles for the provider rows; ItemMedia has no tint variant. They
+    // reach ItemMedia through PROVIDER_META, which no-restyle cannot follow.
     googleTile: {
-      // eslint-disable-next-line expo-ui/no-restyle, expo-ui/no-raw-colors -- Google brand tile; must not follow the theme, and ItemMedia has no tint variant
+      // eslint-disable-next-line expo-ui/no-raw-colors -- Google brand red; must not follow the theme
       backgroundColor: "#DB4437",
     },
     appleTile: {
-      // eslint-disable-next-line expo-ui/no-restyle -- Apple brand tile inverts with the theme; ItemMedia has no tint variant
       backgroundColor: theme.colors.foreground,
     },
     providerLetter: {

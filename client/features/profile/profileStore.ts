@@ -75,6 +75,16 @@ function hasLocalStorage(): boolean {
   return typeof window !== "undefined" && Boolean(window.localStorage);
 }
 
+/** The raw JSON from whichever backend this platform uses; null on any failure. */
+async function readStored(): Promise<string | null> {
+  try {
+    if (Platform.OS !== "web") return await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
+    return hasLocalStorage() ? localStorage.getItem(PROFILE_STORAGE_KEY) : null;
+  } catch {
+    return null;
+  }
+}
+
 function persist(preferences: ProfilePreferences): void {
   const serialized = JSON.stringify(preferences);
   if (Platform.OS !== "web") {
@@ -105,17 +115,7 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
   },
 
   loadProfile: async () => {
-    let raw: string | null = null;
-    try {
-      raw = Platform.OS !== "web"
-        ? await AsyncStorage.getItem(PROFILE_STORAGE_KEY)
-        : hasLocalStorage()
-          ? localStorage.getItem(PROFILE_STORAGE_KEY)
-          : null;
-    } catch {
-      raw = null;
-    }
-    set({ ...parseStored(raw), hasLoadedProfile: true });
+    set({ ...parseStored(await readStored()), hasLoadedProfile: true });
   },
 
   resetProfile: () => {

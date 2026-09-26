@@ -65,7 +65,7 @@ export function EditProfileSheet({ open, onOpenChange, authEnabled, fallbackName
           />
         </BottomSheet.Body>
         <BottomSheet.Footer>
-          <Button testID="edit-profile-save" text="Save" onPress={save} />
+          <Button testID="edit-profile-save" text="Save" fullWidth onPress={save} />
         </BottomSheet.Footer>
       </BottomSheet.Content>
     </BottomSheet>
