@@ -5,7 +5,7 @@
  *
  * `bun run lint` (`expo lint`) covers `app/` only, caches results in
  * `.expo/cache/eslint/` under a key that ignores this plugin's rule bodies and
- * `packages/ui/src`, and reports every other ESLint rule alongside these four —
+ * `packages/ui/src`, and reports every other ESLint rule alongside these five —
  * which in `client/` means the design-system findings arrive buried in unrelated
  * react-hooks errors. This runs ESLint with the project's own flat config, never
  * from cache, and keeps only `expo-ui/*` messages.
@@ -374,7 +374,7 @@ async function doctor(cwd, requestedSample = null) {
     const expected = [...RULE_NAMES].sort();
     report(
       exported.join(",") === expected.join(","),
-      `rules exported: ${exported.length}/4 — ${exported.join(", ")}`,
+      `rules exported: ${exported.length}/${RULE_NAMES.length} — ${exported.join(", ")}`,
     );
   } catch (error) {
     report(false, `plugin: cannot resolve @mrmeg/eslint-plugin-expo-ui from ${cwd} — ${error.message}`);
@@ -397,7 +397,7 @@ async function doctor(cwd, requestedSample = null) {
     const errorCount = enabled.filter((entry) => entry.endsWith("=error")).length;
     report(
       errorCount >= 4,
-      `config: ${path.relative(cwd, sample)} — ${errorCount}/4 rules at error — ${enabled.join(", ") || "none enabled"}`,
+      `config: ${path.relative(cwd, sample)} — ${errorCount}/${RULE_NAMES.length} rules at error — ${enabled.join(", ") || "none enabled"}`,
     );
   }
 
@@ -433,7 +433,7 @@ async function doctor(cwd, requestedSample = null) {
     );
   }
 
-  // 4. The rules on a file that must trip all four: config, plugin, and design
+  // 4. The rules on a file that must trip all five: config, plugin, and design
   // system are only wired if this reports what it has always reported.
   try {
     const results = await eslint.lintText(SMOKE_FIXTURE, { filePath: path.join(cwd, SMOKE_PATH) });
