@@ -265,10 +265,10 @@ type FormDemoStyles = ReturnType<typeof createStyles>;
 function FormDemoHeader({ styles }: { styles: FormDemoStyles }) {
   return (
     <View style={styles.header}>
-      <SansSerifBoldText style={styles.title}>
+      <SansSerifBoldText size="xl" style={styles.title}>
         Form Validation Demo
       </SansSerifBoldText>
-      <SansSerifText style={styles.subtitle}>
+      <SansSerifText size="base" style={styles.subtitle}>
         Demonstrates client-side validation patterns
       </SansSerifText>
     </View>
@@ -315,7 +315,7 @@ function ValidationForm({
           autoComplete="name"
         />
         {touched.name && errors.name && (
-          <SansSerifText style={styles.errorText}>{errors.name}</SansSerifText>
+          <SansSerifText size="sm" style={styles.errorText}>{errors.name}</SansSerifText>
         )}
       </View>
 
@@ -331,7 +331,7 @@ function ValidationForm({
           autoComplete="email"
         />
         {touched.email && errors.email && (
-          <SansSerifText style={styles.errorText}>{errors.email}</SansSerifText>
+          <SansSerifText size="sm" style={styles.errorText}>{errors.email}</SansSerifText>
         )}
       </View>
 
@@ -359,6 +359,8 @@ function ValidationForm({
               />
             </View>
             <SansSerifText
+              size="sm"
+              fontWeight="medium"
               style={[styles.strengthLabel, { color: passwordStrength.color }]}
             >
               {passwordStrength.label}
@@ -366,7 +368,7 @@ function ValidationForm({
           </View>
         )}
         {touched.password && errors.password && (
-          <SansSerifText style={styles.errorText}>{errors.password}</SansSerifText>
+          <SansSerifText size="sm" style={styles.errorText}>{errors.password}</SansSerifText>
         )}
       </View>
 
@@ -381,7 +383,7 @@ function ValidationForm({
           autoComplete="new-password"
         />
         {touched.confirmPassword && errors.confirmPassword && (
-          <SansSerifText style={styles.errorText}>
+          <SansSerifText size="sm" style={styles.errorText}>
             {errors.confirmPassword}
           </SansSerifText>
         )}
@@ -395,12 +397,12 @@ function ValidationForm({
             onAgreeTouched();
           }}
         />
-        <SansSerifText style={styles.checkboxLabel}>
+        <SansSerifText size="base" style={styles.checkboxLabel}>
           I agree to the Terms of Service and Privacy Policy
         </SansSerifText>
       </View>
       {touched.agreeToTerms && errors.agreeToTerms && (
-        <SansSerifText style={styles.errorText}>
+        <SansSerifText size="sm" style={styles.errorText}>
           {errors.agreeToTerms}
         </SansSerifText>
       )}
@@ -427,26 +429,26 @@ function ValidationForm({
 function ValidationFeatures({ styles }: { styles: FormDemoStyles }) {
   return (
     <View style={styles.infoSection}>
-      <SansSerifBoldText style={styles.infoTitle}>
+      <SansSerifBoldText size="lg" style={styles.infoTitle}>
         Validation Features
       </SansSerifBoldText>
       <View style={styles.infoList}>
-        <SansSerifText style={styles.infoItem}>
+        <SansSerifText size="base" style={styles.infoItem}>
           • Real-time validation on blur
         </SansSerifText>
-        <SansSerifText style={styles.infoItem}>
+        <SansSerifText size="base" style={styles.infoItem}>
           • Password strength indicator
         </SansSerifText>
-        <SansSerifText style={styles.infoItem}>
+        <SansSerifText size="base" style={styles.infoItem}>
           • Password confirmation matching
         </SansSerifText>
-        <SansSerifText style={styles.infoItem}>
+        <SansSerifText size="base" style={styles.infoItem}>
           • Email format validation
         </SansSerifText>
-        <SansSerifText style={styles.infoItem}>
+        <SansSerifText size="base" style={styles.infoItem}>
           • Required field checking
         </SansSerifText>
-        <SansSerifText style={styles.infoItem}>
+        <SansSerifText size="base" style={styles.infoItem}>
           • Clear error messages
         </SansSerifText>
       </View>
@@ -479,12 +481,10 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing.lg,
     },
     title: {
-      fontSize: 24,
       color: theme.colors.foreground,
       marginBottom: spacing.xs,
     },
     subtitle: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
     },
     field: {
@@ -492,7 +492,6 @@ const createStyles = (theme: Theme) =>
     },
     errorText: {
       color: theme.colors.destructive,
-      fontSize: 12,
       marginTop: spacing.xs,
     },
     strengthContainer: {
@@ -513,8 +512,6 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusXs,
     },
     strengthLabel: {
-      fontSize: 12,
-      fontWeight: "500",
       minWidth: 50,
     },
     checkboxField: {
@@ -526,9 +523,7 @@ const createStyles = (theme: Theme) =>
     },
     checkboxLabel: {
       flex: 1,
-      fontSize: 14,
       color: theme.colors.foreground,
-      lineHeight: 20,
     },
     buttonRow: {
       flexDirection: "row",
@@ -551,7 +546,6 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing.xl,
     },
     infoTitle: {
-      fontSize: 16,
       color: theme.colors.foreground,
       marginBottom: spacing.md,
     },
@@ -559,7 +553,6 @@ const createStyles = (theme: Theme) =>
       gap: spacing.xs,
     },
     infoItem: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
     },
   });

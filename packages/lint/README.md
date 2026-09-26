@@ -48,24 +48,28 @@ MIT-licensed ([`LICENSE`](LICENSE)).
 | `expo-ui/no-arbitrary-values` | Numeric literals off the `spacing` and radius scales in the `padding*`, `margin*`, `gap`, `rowGap`, `columnGap`, and `border*Radius` properties of a [style](#what-counts-as-a-style). `0` is allowed. |
 | `expo-ui/no-restyle` | `style` / `*Style` props on design-system components that override appearance the component owns. |
 | `expo-ui/no-raw-primitives` | Importing a primitive the design system already wraps: a `react-native` component the design system exports a same-named component for (`TextInput`, `Switch`, `Button`, `KeyboardAvoidingView`, `StatusBar` today — read from the design system, not listed in the rule), `Text` from `react-native`, anything from `@rn-primitives/*`, and the wrapped `@expo/ui` surfaces. React Native APIs (`Alert`, `Keyboard`, …) are not primitives. A type-only import (`import type { Text }`, `import { type Text as T }`) is ignored — it renders nothing, so it cannot render unthemed. |
+| `expo-ui/no-raw-typography` | Numeric `fontSize` and `lineHeight` literals and string `fontFamily` literals in a [style](#what-counts-as-a-style). The message names the `StyledText` `size` whose font size or line height the literal matches, or the two sizes that bracket it; a `fontFamily` that is one of the kit's faces is named with its `variant` and weight. `0` and `undefined` are allowed. |
 
 `no-raw-colors` and `no-arbitrary-values` read the real design system to build
 their advice: the nearest palette entry by Euclidean RGB distance, the light-
 theme tokens that resolve to it, and the two `spacing` tokens that bracket the
 number that was written. A negative offset is bracketed by negated tokens:
 `marginTop: -3` names `-spacing.xxs` (-2) and `-spacing.xs` (-4), because a
-positive token there would flip the offset.
+positive token there would flip the offset. `no-raw-typography` reads
+`StyledText`'s size map (`FONT_SIZES` / `LINE_HEIGHTS`) and the `fontFamilies`
+of `constants/fonts.ts` the same way, so a size added to the map reaches its
+messages without a plugin change.
 
-Out of scope by design: `fontSize`, `lineHeight`, `width`, `height`,
-`borderWidth`, and `Icon`'s numeric `size` prop are not on the spacing scale.
-`Pressable`, `TouchableOpacity`, `View`, `ScrollView`, and `Image` are not
+Out of scope by design: `width`, `height`, `borderWidth`, `letterSpacing`,
+`fontWeight`, and `Icon`'s numeric `size` prop are not on a scale the rules
+read. `Pressable`, `TouchableOpacity`, `View`, `ScrollView`, and `Image` are not
 wrapped, and `Pressable` is the sanctioned base for a custom interactive
 surface.
 
 ### What counts as a style
 
-`no-raw-colors` and `no-arbitrary-values` read a key only in an object the file
-uses as a style. Chart series (`{ label, color, value }`), a map theme, a
+`no-raw-colors`, `no-arbitrary-values`, and `no-raw-typography` read a key only
+in an object the file uses as a style. Chart series (`{ label, color, value }`), a map theme, a
 palette table, or a config object carries the same keys without being one, and
 is left alone. An object literal is a style when it reaches one of these,
 directly or through the arrays, conditionals, `&&`/`||`/`??`, variables, sheet
@@ -127,8 +131,10 @@ The manifest read instead, when no sources are on disk:
 - written by the UI package's own build
   ([`scripts/build-design-system-manifest.mjs`](../../scripts/build-design-system-manifest.mjs)),
   which serializes exactly the facts above out of `packages/ui/src`
-- `schemaVersion: 1`; a manifest from a newer schema is refused rather than
-  half-read
+- `schemaVersion: 2` — version 2 added `tokens.typography` and `fonts.families`;
+  a version 1 manifest still loads without them, and `no-raw-typography` reports
+  once per file what it lacks. A manifest from a newer schema is refused rather
+  than half-read
 - present in `@mrmeg/expo-ui` from the first release built after the manifest was
   added; `0.24.0` and earlier ship none, and the rules then report that they
   found neither sources nor one. `--doctor` prints the version it read the
@@ -227,7 +233,7 @@ work over.
 
    It fails loudly when the plugin does not resolve, the rules are not at `error`
    for that file, no design system could be read, or a fixture stops tripping all
-   four rules.
+   five rules.
 
 4. **Add it to CI** as `expo-ui-lint <paths>` (or
    `node node_modules/@mrmeg/eslint-plugin-expo-ui/bin/cli.js <paths>`). Name the
@@ -255,7 +261,7 @@ config and the resolution order are the same either way.
 
 ## CLI
 
-The same four rules on demand, over the paths the design system actually
+The same five rules on demand, over the paths the design system actually
 governs. In this repo, `bun lint:ui` (the root script runs
 `node packages/lint/bin/cli.js`):
 
@@ -287,9 +293,9 @@ the project's own flat config, never from cache, and reports `expo-ui/*` only.
 | `--changed` | Lint only changed `.ts`/`.tsx` files: the branch diff against the base, plus staged, unstaged, and untracked files. |
 | `--staged` | Lint only staged `.ts`/`.tsx` files — the pre-commit shape. |
 | `--base <ref>` | Base ref for `--changed`; defaults to `origin/dev`, else `dev`. |
-| `--rules` | List the four rules and what each catches. |
+| `--rules` | List the five rules and what each catches. |
 | `--clear-cache` | Delete `.expo/cache/eslint` so the next `bun run lint` re-reads the rules and the design system. |
-| `--doctor [file]` | Check that the plugin resolves, the config enables all four rules at `error`, a design system was found and parsed — sources or manifest — and a fixture still trips every rule. |
+| `--doctor [file]` | Check that the plugin resolves, the config enables all five rules at `error`, a design system was found and parsed — sources or manifest — and a fixture still trips every rule. |
 | `-h`, `--help` | Usage. |
 
 Default paths are `app client shared` — this repo's layout. Another project
@@ -395,7 +401,7 @@ because the project already said where the facts are:
 
 ```
 Design-system manifest could not be read at `/repo/design-system.json`:
-schemaVersion 2 is not supported (this plugin reads 1).
+schemaVersion 3 is not supported (this plugin reads 1 and 2).
 ```
 
 Those are the only messages about configuration in the plugin, and the one case
@@ -408,7 +414,7 @@ still reports `<Button>`, and compound members are spelled `Button.Text`.
 
 Reading the design system is best-effort and cached per directory, keyed on the
 mtimes of the files it read. Those mtimes are re-checked at most every two
-seconds — a full lint run asks four rules times every file for the same
+seconds — a full lint run asks five rules times every file for the same
 directory, and the design system changes between runs, not during one. If a file
 is missing or unparseable, the facts degrade to "unknown": the rules keep working
 with less specific advice, and `no-arbitrary-values` goes silent rather than
@@ -529,6 +535,24 @@ its typography. Render `<Button.Text size=… fontWeight=…>` as the child inst
 of `textStyle`.
 ```
 
+`no-raw-typography` names the `StyledText` size a literal matches, or the two
+that bracket it, and the kit face a `fontFamily` literal is:
+
+```
+`13` is a raw font size. Nearest `StyledText` sizes: `sm` (12), `base` (14).
+Use `size` or a `semantic` variant on `StyledText` instead of `fontSize` in a
+style.
+
+`18` is a raw line height. `StyledText size="sm"` sets it (12/18). Use `size`
+on `StyledText` instead of `lineHeight` in a style; every size carries its line
+height.
+
+`"Inter_500Medium"` is a raw font family. It is the kit's `sansSerif` face at
+`medium`: use `StyledText variant="sansSerif" fontWeight="medium"` or
+`useFontStyle("medium", "sansSerif")`. A brand face goes through `setFonts`,
+never a literal.
+```
+
 Every union in those messages is read out of the design system at lint time, so
 a renamed preset or a fourth font family shows up in the diagnostic without a
 plugin change.
@@ -579,7 +603,12 @@ label.
   system, or to the rule options if it is a property of one app.
 - **A new token group.** [`lib/source.js`](lib/source.js) groups `spacing`
   members by key prefix (`radius*`, `icon*`, everything else). A new prefix needs
-  a group there and a scale key set in `lib/categories.js`.
+  a group there and a scale key set in `lib/categories.js`. A group with another
+  source follows `typography`: a reader in `lib/source.js` (it reads
+  `StyledText.tsx`'s `FONT_SIZES` / `LINE_HEIGHTS`, and `fonts.families` comes
+  from `constants/fonts.ts`), the same entries in `lib/manifest.js`, a
+  `schemaVersion` bump when the manifest's shape changes, and a rule that says
+  what it lacks when an older manifest has no such group.
 
 ## Tests
 
@@ -602,7 +631,7 @@ exact text of the messages the design system documents, and the color and
 spacing suites pin both sides of [what counts as a style](#what-counts-as-a-style):
 chart data and config objects stay silent, every style position reports;
 [`__tests__/missing-design-system.test.ts`](__tests__/missing-design-system.test.ts)
-pins the one-per-file not-found report for each of the four rules — through
+pins the one-per-file not-found report for each of the five rules — through
 ESLint's `Linter` with a working directory outside this repo, since anywhere
 inside it the built manifest resolves and there is a design system to read — and
 [`__tests__/index.test.ts`](__tests__/index.test.ts) pins the shape of
@@ -651,7 +680,7 @@ covers `packages/lint/__tests__/*.ts` as TypeScript.
 
 `pkg lint consumer-smoke` is the interesting one: it packs *both* this package and
 `packages/ui`, installs them into a throwaway project with no design-system
-sources, and asserts the four rules fire with the right counts, that a message
+sources, and asserts the five rules fire with the right counts, that a message
 names `@mrmeg/expo-ui/components/Button.tsx`, and that `--doctor` reports
 `manifest @mrmeg/expo-ui@…`. That is the manifest path proven end to end from a
 consumer's position.

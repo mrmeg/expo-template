@@ -30,7 +30,13 @@ const NOT_FOUND =
 // design system itself, so "exactly one error" is the assertion.
 const CLEAN = 'import { Button } from "@mrmeg/expo-ui/components";\nconst x = <Button />;';
 
-const RULE_NAMES = ["no-raw-colors", "no-arbitrary-values", "no-restyle", "no-raw-primitives"];
+const RULE_NAMES = [
+  "no-raw-colors",
+  "no-arbitrary-values",
+  "no-restyle",
+  "no-raw-primitives",
+  "no-raw-typography",
+];
 
 /**
  * @param {string} rule

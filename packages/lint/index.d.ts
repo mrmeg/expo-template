@@ -11,10 +11,11 @@ declare const plugin: ESLint.Plugin & {
     "no-arbitrary-values": Rule.RuleModule;
     "no-restyle": Rule.RuleModule;
     "no-raw-primitives": Rule.RuleModule;
+    "no-raw-typography": Rule.RuleModule;
   };
   configs: {
     /**
-     * The four rules at `error` plus the default `settings["expo-ui"]`. Carries
+     * The five rules at `error` plus the default `settings["expo-ui"]`. Carries
      * no `files` key: spread it into a block that names the paths to govern.
      */
     recommended: Linter.Config;

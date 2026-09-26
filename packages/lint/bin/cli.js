@@ -21,21 +21,21 @@ const { resolveOrigin } = require("../lib/settings.js");
 const { designSystemNotFoundMessage, loadDesignSystemFor } = require("../lib/source.js");
 
 const RULE_PREFIX = "expo-ui/";
-const RULE_NAMES = ["no-raw-colors", "no-arbitrary-values", "no-restyle", "no-raw-primitives"];
+const RULE_NAMES = ["no-raw-colors", "no-arbitrary-values", "no-restyle", "no-raw-primitives", "no-raw-typography"];
 const DEFAULT_PATHS = ["app", "client", "shared"];
 const EXPO_LINT_CACHE = path.join(".expo", "cache", "eslint");
 
 /** Where the doctor's fixture claims to live: inside the design system's scope, unwritten. */
 const SMOKE_PATH = path.join("app", "__expo_ui_doctor__.tsx");
 
-/** One file that trips each of the four rules, with the counts it must produce. */
+/** One file that trips each of the five rules, with the counts it must produce. */
 const SMOKE_FIXTURE = [
   'import { Text } from "react-native";',
   'import { Slider } from "@expo/ui/community/slider";',
   'import { Button } from "@mrmeg/expo-ui";',
   "",
   "export default function Doctor() {",
-  '  return <Button style={{ backgroundColor: "#f00", padding: 13 }} />;',
+  '  return <Button style={{ backgroundColor: "#f00", padding: 13, fontSize: 13 }} />;',
   "}",
   "",
 ].join("\n");
@@ -43,8 +43,9 @@ const SMOKE_FIXTURE = [
 const SMOKE_EXPECTED = {
   "no-raw-colors": 1,
   "no-arbitrary-values": 1,
-  "no-restyle": 2,
+  "no-restyle": 3,
   "no-raw-primitives": 2,
+  "no-raw-typography": 1,
 };
 
 const USAGE = `expo-ui-lint — design-system lint for @mrmeg/expo-ui

@@ -21,9 +21,17 @@ const DEFAULT_UI_SOURCE_DIR = "packages/ui/src";
 
 /**
  * @typedef {object} TokenGroup
- * @property {{name: string, value: number}[]} entries source-ordered tokens
+ * @property {{name: string, value: number, lineHeight?: number}[]} entries
+ *   source-ordered tokens; the `typography` group's `value` is a font size and
+ *   each entry carries the `lineHeight` that size sets
  * @property {number[]} values de-duplicated, ascending
  * @property {Map<number, string>} nameByValue first token declared per value
+ */
+
+/**
+ * @typedef {Record<string, Record<string, string[]>>} FontFamilies
+ * variant (`sansSerif` | `serif` | `mono`) → weight → every family string that
+ * slot resolves to across platforms
  */
 
 /**
@@ -39,12 +47,13 @@ const DEFAULT_UI_SOURCE_DIR = "packages/ui/src";
 /**
  * @typedef {object} DesignSystem
  * @property {boolean} loaded false when nothing could be read
- * @property {Record<string, TokenGroup>} tokens keyed `spacing` | `radius` | `icon`
+ * @property {Record<string, TokenGroup>} tokens keyed `spacing` | `radius` | `icon` | `typography`
  * @property {Record<string, string>} palette palette key to literal color
  * @property {string[]} themeTokens `ThemeColors` keys
  * @property {Record<string, {paletteKey: string | null, value: string | null}>} lightTheme
  * @property {Record<string, {paletteKey: string | null, value: string | null}>} darkTheme
  * @property {string[] | null} fontVariants the `FontVariant` union, or null
+ * @property {{families: FontFamilies}} fonts the `fontFamilies` map of `constants/fonts.ts`
  * @property {Map<string, ComponentInfo>} components
  * @property {import("./settings").DesignSystemOrigin | null} origin where these
  *   facts came from; `origin.error` says why an empty one is empty
@@ -53,6 +62,7 @@ const DEFAULT_UI_SOURCE_DIR = "packages/ui/src";
 const SPACING_FILE = path.join("constants", "spacing.ts");
 const COLORS_FILE = path.join("constants", "colors.ts");
 const FONTS_FILE = path.join("constants", "fonts.ts");
+const STYLED_TEXT_FILE = path.join("components", "StyledText.tsx");
 const COMPONENTS_INDEX = path.join("components", "index.ts");
 
 /**
@@ -148,12 +158,14 @@ function emptyDesignSystem() {
       spacing: emptyTokenGroup(),
       radius: emptyTokenGroup(),
       icon: emptyTokenGroup(),
+      typography: emptyTokenGroup(),
     },
     palette: {},
     themeTokens: [],
     lightTheme: {},
     darkTheme: {},
     fontVariants: null,
+    fonts: { families: {} },
     components: new Map(),
     origin: null,
   };
@@ -293,6 +305,12 @@ function build(uiSourceDir) {
   const fontsProgram = parseFile(path.join(uiSourceDir, FONTS_FILE));
   if (fontsProgram) {
     readFontVariants(fontsProgram, result);
+    readFontFamilies(fontsProgram, result);
+    result.loaded = true;
+  }
+  const styledTextProgram = parseFile(path.join(uiSourceDir, STYLED_TEXT_FILE));
+  if (styledTextProgram) {
+    readTypography(styledTextProgram, result);
     result.loaded = true;
   }
   const componentsDir = path.join(uiSourceDir, "components");
@@ -449,6 +467,49 @@ function numericLiteral(node) {
 }
 
 /**
+ * `StyledText`'s size map. `FONT_SIZES` keys the `size` prop's values to a
+ * font size and `LINE_HEIGHTS` to the line height that size sets, so the
+ * typography group's `value` is the font size (what `nearestTokens` brackets a
+ * raw `fontSize` by) and each entry carries its `lineHeight`.
+ *
+ * @param {object} program parsed `components/StyledText.tsx`
+ * @param {DesignSystem} result
+ */
+function readTypography(program, result) {
+  const scope = collectModuleScope(program);
+  const sizes = numericMap(scope, "FONT_SIZES");
+  if (!sizes) return;
+  const lineHeights = numericMap(scope, "LINE_HEIGHTS");
+  const group = result.tokens.typography;
+  for (const [name, value] of sizes) {
+    const lineHeight = lineHeights && lineHeights.has(name) ? lineHeights.get(name) : null;
+    group.entries.push(lineHeight === null ? { name, value } : { name, value, lineHeight });
+    if (!group.nameByValue.has(value)) group.nameByValue.set(value, name);
+  }
+  group.values = [...group.nameByValue.keys()].sort((a, b) => a - b);
+}
+
+/**
+ * @param {{values: Map<string, object>}} scope
+ * @param {string} name a module-scope `const NAME = { key: number, … }`
+ * @returns {Map<string, number> | null} key to number, or null when absent
+ */
+function numericMap(scope, name) {
+  const declarator = scope.values.get(name);
+  if (!declarator || declarator.type !== "VariableDeclarator") return null;
+  const object = unwrap(declarator.init);
+  if (!object || object.type !== "ObjectExpression") return null;
+  /** @type {Map<string, number>} */
+  const map = new Map();
+  for (const property of object.properties) {
+    const key = propertyName(property);
+    const value = numericLiteral(unwrap(property.value));
+    if (key && value !== null) map.set(key, value);
+  }
+  return map.size > 0 ? map : null;
+}
+
+/**
  * @param {object} program
  * @param {DesignSystem} result
  */
@@ -539,6 +600,106 @@ function readFontVariants(program, result) {
   const declaration = scope.types.get("FontVariant");
   if (!declaration || declaration.type !== "TSTypeAliasDeclaration") return;
   result.fontVariants = stringUnion(scope, declaration.typeAnnotation, 0);
+}
+
+/**
+ * `fontFamilies` in `constants/fonts.ts`: variant → weight → family. Each
+ * variant's map is chosen per platform (`isWebRuntime ? {…} : {…}`) and a slot
+ * may itself be a conditional (`Platform.OS === "ios" ? "Menlo" : "monospace"`),
+ * so every branch is read and a slot lists every family it can resolve to. A
+ * raw `fontFamily` is matched against all of them.
+ *
+ * @param {object} program parsed `constants/fonts.ts`
+ * @param {DesignSystem} result
+ */
+function readFontFamilies(program, result) {
+  const scope = collectModuleScope(program);
+  const declarator = scope.values.get("fontFamilies");
+  if (!declarator || declarator.type !== "VariableDeclarator") return;
+  const object = unwrap(declarator.init);
+  if (!object || object.type !== "ObjectExpression") return;
+
+  for (const property of object.properties) {
+    const variant = propertyName(property);
+    if (!variant) continue;
+    /** @type {Record<string, string[]>} */
+    const weights = {};
+    for (const branch of objectBranches(scope, unwrap(property.value), 0)) {
+      for (const slot of branch.properties) {
+        const weight = propertyName(slot);
+        if (!weight) continue;
+        const list = weights[weight] || (weights[weight] = []);
+        for (const family of stringValues(scope, unwrap(slot.value), 0)) {
+          if (!list.includes(family)) list.push(family);
+        }
+      }
+    }
+    for (const weight of Object.keys(weights)) if (weights[weight].length === 0) delete weights[weight];
+    if (Object.keys(weights).length > 0) result.fonts.families[variant] = weights;
+  }
+}
+
+/**
+ * @param {{values: Map<string, object>}} scope
+ * @param {object | null | undefined} node
+ * @param {number} depth
+ * @returns {object[]} every ObjectExpression the node can evaluate to, through
+ *   conditionals and same-file identifiers
+ */
+function objectBranches(scope, node, depth) {
+  if (!node || depth > 6) return [];
+  if (node.type === "ObjectExpression") return [node];
+  if (node.type === "ConditionalExpression") {
+    return [
+      ...objectBranches(scope, unwrap(node.consequent), depth + 1),
+      ...objectBranches(scope, unwrap(node.alternate), depth + 1),
+    ];
+  }
+  if (node.type === "Identifier") {
+    const declarator = scope.values.get(node.name);
+    if (declarator && declarator.type === "VariableDeclarator") {
+      return objectBranches(scope, unwrap(declarator.init), depth + 1);
+    }
+  }
+  return [];
+}
+
+/**
+ * @param {{values: Map<string, object>}} scope
+ * @param {object | null | undefined} node
+ * @param {number} depth
+ * @returns {string[]} every string the node can evaluate to: literals,
+ *   template literals over same-file string constants, conditionals
+ */
+function stringValues(scope, node, depth) {
+  if (!node || depth > 6) return [];
+  if (node.type === "Literal" && typeof node.value === "string") return [node.value];
+  if (node.type === "TemplateLiteral") {
+    let texts = [""];
+    for (let index = 0; index < node.quasis.length; index += 1) {
+      const quasi = node.quasis[index].value.cooked || "";
+      texts = texts.map((text) => text + quasi);
+      if (index < node.expressions.length) {
+        const parts = stringValues(scope, unwrap(node.expressions[index]), depth + 1);
+        if (parts.length === 0) return [];
+        texts = texts.flatMap((text) => parts.map((part) => text + part));
+      }
+    }
+    return texts;
+  }
+  if (node.type === "ConditionalExpression") {
+    return [
+      ...stringValues(scope, unwrap(node.consequent), depth + 1),
+      ...stringValues(scope, unwrap(node.alternate), depth + 1),
+    ];
+  }
+  if (node.type === "Identifier") {
+    const declarator = scope.values.get(node.name);
+    if (declarator && declarator.type === "VariableDeclarator") {
+      return stringValues(scope, unwrap(declarator.init), depth + 1);
+    }
+  }
+  return [];
 }
 
 // ---------------------------------------------------------------------------

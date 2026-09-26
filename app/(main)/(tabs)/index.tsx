@@ -276,7 +276,7 @@ function SectionHead({
 }) {
   return (
     <View style={styles.sectionHead}>
-      <SansSerifBoldText style={styles.sectionTitle}>{title}</SansSerifBoldText>
+      <SansSerifBoldText size="lg" style={styles.sectionTitle}>{title}</SansSerifBoldText>
       <Link href={href as never} asChild>
         <Pressable
           onPressIn={blurActiveElementOnWeb}
@@ -285,7 +285,7 @@ function SectionHead({
           testID={testID}
           style={linkPressableStyle(styles.sectionLink)}
         >
-          <SansSerifText style={styles.sectionLinkText}>{count}</SansSerifText>
+          <SansSerifText size="sm" fontWeight="medium" style={styles.sectionLinkText}>{count}</SansSerifText>
           <Icon name="arrow-right" size={13} color={accent} />
         </Pressable>
       </Link>
@@ -317,7 +317,7 @@ function RailCard({ entry, styles }: { entry: ComponentEntry; styles: ExploreSty
             />
           </Suspense>
         </View>
-        <SansSerifText style={styles.railName} numberOfLines={1}>
+        <SansSerifText size="sm" fontWeight="medium" style={styles.railName} numberOfLines={1}>
           {entry.id}
         </SansSerifText>
       </Pressable>
@@ -369,17 +369,17 @@ function SearchResults({
                 style={linkPressableStyle(styles.hitRow)}
               >
                 <View style={styles.hitBody}>
-                  <SansSerifText style={styles.hitLabel} numberOfLines={1}>
+                  <SansSerifText size="body" style={styles.hitLabel} numberOfLines={1}>
                     {hit.label}
                   </SansSerifText>
                   {hit.description && (
-                    <SansSerifText style={styles.hitDesc} numberOfLines={1}>
+                    <SansSerifText size="sm" style={styles.hitDesc} numberOfLines={1}>
                       {hit.description}
                     </SansSerifText>
                   )}
                 </View>
                 <View style={styles.hitKind}>
-                  <SansSerifText style={styles.hitKindText}>{hit.kind}</SansSerifText>
+                  <SansSerifText size="xs" style={styles.hitKindText}>{hit.kind}</SansSerifText>
                 </View>
                 <Icon name="chevron-right" color={theme.colors.border} size={16} />
               </Pressable>
@@ -429,7 +429,6 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.sm + 2,
     },
     sectionTitle: {
-      fontSize: 17,
       letterSpacing: -0.3,
       color: theme.colors.foreground,
     },
@@ -441,8 +440,6 @@ const createStyles = (theme: Theme) =>
       paddingLeft: spacing.sm,
     },
     sectionLinkText: {
-      fontSize: 13,
-      fontWeight: "500",
       color: theme.colors.accent,
     },
     sectionLabel: {
@@ -476,8 +473,6 @@ const createStyles = (theme: Theme) =>
       borderBottomColor: theme.colors.border,
     },
     railName: {
-      fontSize: 12,
-      fontWeight: "500",
       color: theme.colors.foreground,
       paddingVertical: spacing.xs + 1,
       paddingHorizontal: spacing.sm,
@@ -592,11 +587,9 @@ const createStyles = (theme: Theme) =>
       minWidth: 0,
     },
     hitLabel: {
-      fontSize: 15,
       color: theme.colors.foreground,
     },
     hitDesc: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     hitKind: {
@@ -606,7 +599,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.muted,
     },
     hitKindText: {
-      fontSize: 10,
       textTransform: "uppercase",
       letterSpacing: 0.6,
       color: theme.colors.mutedForeground,

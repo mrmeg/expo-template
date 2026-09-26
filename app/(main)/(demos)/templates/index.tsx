@@ -14,7 +14,7 @@
  */
 
 import React, { useMemo, useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
@@ -169,13 +169,13 @@ function TemplateCard({
         </View>
         {/* `.tmeta` */}
         <View style={styles.meta}>
-          <SansSerifBoldText style={styles.metaLabel} numberOfLines={1}>
+          <SansSerifBoldText size="base" style={styles.metaLabel} numberOfLines={1}>
             {entry.label}
           </SansSerifBoldText>
-          <SansSerifText style={styles.metaDesc} numberOfLines={2}>
+          <SansSerifText size="xs" style={styles.metaDesc} numberOfLines={2}>
             {entry.description}
           </SansSerifText>
-          <SansSerifText style={styles.metaId}>{entry.id}</SansSerifText>
+          <MonoText size="xs" style={styles.metaId}>{entry.id}</MonoText>
         </View>
       </Pressable>
     </Link>
@@ -255,17 +255,12 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing.xxs,
     },
     metaLabel: {
-      fontSize: 13,
       color: theme.colors.foreground,
     },
     metaDesc: {
-      fontSize: 11.5,
-      lineHeight: 16,
       color: theme.colors.mutedForeground,
     },
     metaId: {
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      fontSize: 10,
       color: theme.colors.mutedForeground,
       marginTop: spacing.xxs,
     },

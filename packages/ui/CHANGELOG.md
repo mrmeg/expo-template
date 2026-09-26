@@ -72,6 +72,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **`design-system.json` is `schemaVersion` 2.** The lint manifest the build
+  writes to `dist/` gains `tokens.typography` (`StyledText`'s sizes with their
+  line heights) and `fonts.families` (`constants/fonts.ts`'s families per
+  variant and weight) for `@mrmeg/eslint-plugin-expo-ui`'s `no-raw-typography`.
+  Nothing else in the package changes.
+
 - **`Item`'s separator starts under the title.** The hairline now insets past
   the row's `ItemMedia` at its real `size` (it assumed a 40 pt slot, so a
   36 pt tile's line started 4 pt past the title) and to the row padding when
