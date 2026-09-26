@@ -994,8 +994,17 @@ partial, missing weights fall back to that group's `regular`, and an overridden
 `sansSerif` makes `useResources` skip downloading Inter (call `setFonts` before
 mount for the skip). Use `webWeightStrategy: "family"` when loading per-weight
 faces through `expo-font` / `@expo-google-fonts`, `"numeric"` (default) for one
-multi-weight CSS family. `setShape({ button: { borderRadius?, withShadow? } })`
-re-shapes Buttons globally. Per-instance props and caller `style` always win.
+multi-weight CSS family. `setShape({ button?, input?, card?, sheet?, badge?,
+dialog? })` re-shapes a slot globally (`{ borderRadius }`; `button` also takes
+`withShadow`): `input` reaches TextInput, Select and InputOTP; `card` reaches
+Card, StatCard, bordered EmptyState and SkeletonCard; `sheet` the BottomSheet's
+top corners; `dialog` Dialog and AlertDialog. Per-instance props and caller
+`style` always win. Extra color tokens are declared once by augmenting
+`ThemeColorExtensions` (`declare module "@mrmeg/expo-ui/constants" { interface
+ThemeColorExtensions { brandGold: string } }`); they then type through
+`setColors`, `ThemeColorScope`, `theme.colors`, and `getThemeCssVariables`
+emits `--c-brand-gold` when the overrides name it. Provide every extension key
+in both schemes.
 
 Enforce these rules mechanically with `@mrmeg/eslint-plugin-expo-ui`
 (`bun add -d @mrmeg/eslint-plugin-expo-ui`), which reports raw colors, off-scale
