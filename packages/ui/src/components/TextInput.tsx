@@ -28,6 +28,7 @@ import {
 } from "@expo/ui";
 import { NativeTextField, type NativeTextFieldProps } from "./nativeTextField";
 import { useTheme } from "../hooks/useTheme";
+import { shapeRadius, useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
 import { useFontStyle } from "../hooks/useFontStyle";
@@ -280,6 +281,8 @@ function WebTextInput({
   ...rest
 }: TextInputCustomProps) {
   const { theme, getContrastingColor, getFocusRingStyle } = useTheme();
+  // Host-app `setShape({ input })`; the underlined variant stays square.
+  const inputRadius = variant === "underlined" ? undefined : shapeRadius(useShape("input"));
   const styles = themedStyles(theme)[variant][size];
   const inputFont = useFontStyle("regular");
   const [focused, setFocused] = useState(false);
@@ -368,7 +371,7 @@ function WebTextInput({
       )}
 
       {/* Input Container */}
-      <View style={[styles.wrapper, focused && getFocusRingStyle()]}>
+      <View style={[styles.wrapper, inputRadius, focused && getFocusRingStyle()]}>
         {/* Left Element */}
         {leftElement && <View style={styles.leftElement}>{leftElement}</View>}
 
@@ -393,6 +396,7 @@ function WebTextInput({
           placeholderTextColor={theme.colors.textDim}
           style={[
             styles.input,
+            inputRadius,
             // Resolved through the theme store so `setFonts` overrides apply;
             // identical to the old hardcoded regular family by default.
             inputFont,
@@ -563,6 +567,7 @@ function NativeTextInput({
   ...rest
 }: TextInputCustomProps) {
   const { theme, getContrastingColor } = useTheme();
+  const inputShape = useShape("input");
   const styles = themedStyles(theme)[variant][size];
   const inputFont = useFontStyle("regular");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -830,7 +835,7 @@ function NativeTextInput({
   const surfaceStyle: ViewStyle = {
     backgroundColor,
     borderColor,
-    borderRadius: variant === "underlined" ? 0 : spacing.radiusMd,
+    borderRadius: variant === "underlined" ? 0 : inputShape?.borderRadius ?? spacing.radiusMd,
     borderWidth: variant === "outline" ? 1 : 0,
     opacity: editable === false ? interaction.disabledOpacity : 1,
     overflow: "hidden",

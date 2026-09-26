@@ -1,6 +1,7 @@
 import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
+import { shapeRadius, useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
 import { StyledText } from "./StyledText";
 import { createThemedStyles } from "../lib/themedStyles";
@@ -31,6 +32,8 @@ export interface BadgeProps {
 function Badge({ children, text, variant = "default", style: styleOverride }: BadgeProps) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
+  // Host-app `setShape({ badge })`; the default is a pill.
+  const badgeRadius = shapeRadius(useShape("badge"));
   const badgeContent = text ?? children;
   const textStyle = [
     styles.text,
@@ -64,6 +67,7 @@ function Badge({ children, text, variant = "default", style: styleOverride }: Ba
       accessibilityRole="text"
       style={[
         styles.badge,
+        badgeRadius,
         variant === "default" && styles.default,
         variant === "secondary" && styles.secondary,
         variant === "outline" && styles.outline,

@@ -12,7 +12,7 @@ import { Separator } from "@mrmeg/expo-ui/components/Separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@mrmeg/expo-ui/components/Tabs";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
-import { useThemeStore } from "@mrmeg/expo-ui/state";
+import { useThemeStore, type ShapeOverrides } from "@mrmeg/expo-ui/state";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme, ThemeColors } from "@mrmeg/expo-ui/constants";
@@ -39,6 +39,38 @@ type BrandPalette = {
   light: Partial<ThemeColors>;
   dark: Partial<ThemeColors>;
 };
+
+/**
+ * Shape presets, applied through `setShape`. `default` clears the override;
+ * the other two push every slot at once so the gallery shows how far the
+ * knobs reach (inputs, cards, badges, sheets, dialogs — not only Button).
+ */
+const SHAPES: Record<string, { label: string; overrides: ShapeOverrides } | null> = {
+  default: null,
+  rounded: {
+    label: "Rounded",
+    overrides: {
+      button: { borderRadius: spacing.radiusFull },
+      input: { borderRadius: spacing.radiusXl },
+      card: { borderRadius: spacing.radius2xl },
+      sheet: { borderRadius: spacing.radius2xl },
+      badge: { borderRadius: spacing.radiusFull },
+      dialog: { borderRadius: spacing.radius2xl },
+    },
+  },
+  square: {
+    label: "Square",
+    overrides: {
+      button: { borderRadius: spacing.radiusXs, withShadow: false },
+      input: { borderRadius: spacing.radiusXs },
+      card: { borderRadius: spacing.radiusXs },
+      sheet: { borderRadius: 0 },
+      badge: { borderRadius: spacing.radiusXs },
+      dialog: { borderRadius: spacing.radiusXs },
+    },
+  },
+};
+const SHAPE_ORDER = Object.keys(SHAPES);
 
 // `default` intentionally has no overrides — selecting it clears `setColors`
 // and the gallery falls back to the package's built-in zinc + teal palette.
@@ -121,6 +153,7 @@ const SWATCH_KEYS: (keyof ThemeColors)[] = [
 
 type ShowcaseState = {
   palette: string;
+  shape: string;
   switchOn: boolean;
   checked: boolean;
   tab: string;
@@ -129,6 +162,7 @@ type ShowcaseState = {
 
 type ShowcaseAction =
   | { type: "paletteChanged"; palette: string }
+  | { type: "shapeChanged"; shape: string }
   | { type: "switchChanged"; switchOn: boolean }
   | { type: "checkedChanged"; checked: boolean }
   | { type: "tabChanged"; tab: string }
@@ -136,6 +170,7 @@ type ShowcaseAction =
 
 const INITIAL_SHOWCASE_STATE: ShowcaseState = {
   palette: "violet",
+  shape: "default",
   switchOn: true,
   checked: true,
   tab: "buttons",
@@ -149,6 +184,8 @@ function showcaseReducer(
   switch (action.type) {
   case "paletteChanged":
     return { ...state, palette: action.palette };
+  case "shapeChanged":
+    return { ...state, shape: action.shape };
   case "switchChanged":
     return { ...state, switchOn: action.switchOn };
   case "checkedChanged":
@@ -163,13 +200,14 @@ function showcaseReducer(
 export default function ThemedShowcaseScreen() {
   const { theme, scheme } = useTheme();
   const setColors = useThemeStore((s) => s.setColors);
+  const setShape = useThemeStore((s) => s.setShape);
   const styles = themedStyles(theme);
 
   const [state, dispatch] = useReducer(
     showcaseReducer,
     INITIAL_SHOWCASE_STATE
   );
-  const { palette, switchOn, checked, tab, name } = state;
+  const { palette, shape, switchOn, checked, tab, name } = state;
 
   // Push the selected brand palette into the package theme store. Selecting
   // "default" clears the override so components fall back to the package
@@ -179,10 +217,16 @@ export default function ThemedShowcaseScreen() {
     setColors(selected ? { light: selected.light, dark: selected.dark } : {});
   }, [palette, setColors]);
 
+  // Same for the shape preset: `default` clears `setShape`.
+  useEffect(() => {
+    setShape(SHAPES[shape]?.overrides ?? {});
+  }, [shape, setShape]);
+
   // Leave the app on package defaults once this screen is gone.
   useEffect(() => {
     return () => {
       useThemeStore.getState().setColors({});
+      useThemeStore.getState().setShape({});
     };
   }, []);
 
@@ -210,6 +254,24 @@ export default function ThemedShowcaseScreen() {
                     <StyledText>
                       {PALETTES[key]?.label ?? "Package Default"}
                     </StyledText>
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </SubSection>
+
+            <SubSection label="Choose a shape preset (applied via setShape)">
+              <ToggleGroup
+                type="single"
+                value={shape}
+                onValueChange={(val) => {
+                  if (val) {
+                    dispatch({ type: "shapeChanged", shape: val });
+                  }
+                }}
+              >
+                {SHAPE_ORDER.map((key) => (
+                  <ToggleGroupItem key={key} value={key}>
+                    <StyledText>{SHAPES[key]?.label ?? "Package Default"}</StyledText>
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>

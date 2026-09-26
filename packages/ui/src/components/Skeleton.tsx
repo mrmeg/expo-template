@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Animated } from "react-native";
 import { useTheme } from "../hooks/useTheme";
+import { shapeRadius, useShape } from "../hooks/useShape";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { spacing } from "../constants/spacing";
 import { createThemedStyles } from "../lib/themedStyles";
@@ -183,9 +184,11 @@ export function SkeletonCard({
 }: SkeletonCardProps) {
   const { theme, getShadowStyle } = useTheme();
   const styles = themedStyles(theme);
+  // Host-app `setShape({ card })`: the placeholder keeps the Card's corners.
+  const cardRadius = shapeRadius(useShape("card"));
 
   return (
-    <View style={[styles.card, getShadowStyle("subtle"), style]}>
+    <View style={[styles.card, cardRadius, getShadowStyle("subtle"), style]}>
       {showImage && (
         <Skeleton
           width="100%"

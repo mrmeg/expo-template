@@ -7,6 +7,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`setShape` slots for inputs, cards, sheets, badges and dialogs.**
+  `ShapeOverrides` gains `input`, `card`, `sheet`, `badge` and `dialog`, each
+  `{ borderRadius?: number }` (Button keeps `withShadow`). `input` reaches
+  TextInput (not `underlined`), the Select trigger and InputOTP cells; `card`
+  reaches Card (surface and pressable ring), StatCard, `bordered` EmptyState
+  and SkeletonCard; `sheet` the BottomSheet's top corners where the platform
+  draws them (web, Android); `badge` Badge; `dialog` Dialog and AlertDialog
+  content. Layered after the static radius and before the caller's `style`, so
+  precedence stays caller → app → package. `useShape(slot)` and
+  `shapeRadius(override)` in `@mrmeg/expo-ui/hooks` are how a component reads
+  its slot.
+- **`ThemeColorExtensions`** in `@mrmeg/expo-ui/constants`: an empty interface
+  `ThemeColors` extends, for apps to augment with their own tokens
+  (`declare module "@mrmeg/expo-ui/constants" { interface ThemeColorExtensions
+  { brandGold: string } }`). The keys type through `setColors`,
+  `ThemeColorScope` and `useTheme().theme.colors`, and
+  `getThemeCssVariables(overrides)` emits `--c-<kebab>` (and `-rgb`) for any
+  extension key the overrides name. Values are literals per scheme; the
+  package ships none.
+
 - **`ItemGroup`, a flat grouped list** (from `components/Item` and the
   barrels). `<ItemGroup title? description? footer? style? testID?>` stacks
   `Item` rows edge to edge and draws an inset hairline under every row but the
