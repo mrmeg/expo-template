@@ -1,9 +1,10 @@
 import * as React from "react";
-import { Animated, Platform, PressableProps, StyleSheet, type TextStyle, View } from "react-native";
+import { Animated, Platform, StyleSheet, type TextStyle, View } from "react-native";
 import { Icon } from "./Icon";
 import { AnimatedView } from "./AnimatedView";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
 import { useScalePress } from "../hooks/useScalePress";
@@ -71,34 +72,13 @@ function SelectTrigger({
   const { theme, getFocusRingStyle } = useTheme();
   const sizeConfig = SIZE_CONFIGS[size];
   const focusRingStyle = getFocusRingStyle();
-  const [focused, setFocused] = React.useState(false);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!disabled,
     scaleTo: 0.97,
     haptic: false,
   });
 
-  const showFocusRing: PressableProps["onFocus"] = (event) => {
-    let ringVisible = true;
-    if (Platform.OS === "web") {
-      const target = event?.nativeEvent?.target as unknown as
-        | { matches?: (selector: string) => boolean }
-        | null
-        | undefined;
-      if (target && typeof target.matches === "function") {
-        try {
-          ringVisible = target.matches(":focus-visible");
-        } catch {
-          ringVisible = true;
-        }
-      }
-    }
-    setFocused(ringVisible);
-  };
-
-  const hideFocusRing: PressableProps["onBlur"] = () => {
-    setFocused(false);
-  };
+  const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
 
   return (
     <Animated.View style={scaleStyle}>

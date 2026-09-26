@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { View, StyleSheet, StyleProp, ViewStyle, Pressable, PressableProps, Platform, Animated } from "react-native";
+import React, { useCallback, useEffect } from "react";
+import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform, Animated } from "react-native";
 import { Icon } from "./Icon";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
 import { hapticSelection } from "../lib/haptics";
 import { interaction } from "../constants/interaction";
@@ -73,34 +74,13 @@ function Checkbox({
   const reduceMotion = useReducedMotion();
   const sizeConfig = SIZE_CONFIGS[size];
   const focusRingStyle = getFocusRingStyle();
-  const [focused, setFocused] = useState(false);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!disabled,
     scaleTo: 0.92,
     haptic: false,
   });
 
-  const showFocusRing: PressableProps["onFocus"] = (event) => {
-    let ringVisible = true;
-    if (Platform.OS === "web") {
-      const target = event?.nativeEvent?.target as unknown as
-        | { matches?: (selector: string) => boolean }
-        | null
-        | undefined;
-      if (target && typeof target.matches === "function") {
-        try {
-          ringVisible = target.matches(":focus-visible");
-        } catch {
-          ringVisible = true;
-        }
-      }
-    }
-    setFocused(ringVisible);
-  };
-
-  const hideFocusRing: PressableProps["onBlur"] = () => {
-    setFocused(false);
-  };
+  const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
 
   // Simple fast opacity for the checkmark icon
   const checkOpacity = useAnimatedValue(checked || indeterminate ? 1 : 0);

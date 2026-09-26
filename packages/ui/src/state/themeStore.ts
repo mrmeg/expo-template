@@ -111,7 +111,7 @@ export type ThemeStore = {
   setFonts: (overrides: FontOverrides) => void;
   /**
    * Replace the active shape overrides. Pass `{}` to clear them and fall back
-   * to the package defaults (button radius 12, default-preset shadow on).
+   * to the package defaults (button radius 10 = `spacing.radiusMd`, default-preset shadow on).
    */
   setShape: (overrides: ShapeOverrides) => void;
   loadTheme: () => void;

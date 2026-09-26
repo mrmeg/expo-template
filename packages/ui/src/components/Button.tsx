@@ -22,6 +22,7 @@ import { TextColorContext, TextSelectabilityContext, TextStyleContext } from "./
 import type { Theme } from "../constants/colors";
 import { palette } from "../constants/colors";
 import { useTheme } from "../hooks/useTheme";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { useFontStyle } from "../hooks/useFontStyle";
 import { useScalePress } from "../hooks/useScalePress";
 import { useThemeStore } from "../state/themeStore";
@@ -289,7 +290,6 @@ function ButtonRoot(props: ButtonProps) {
               ? theme.colors.secondaryForeground
               : getContrastingColor(backgroundColor, palette.white, palette.black);
 
-  const [focused, setFocused] = useState(false);
   const [restingWidth, setRestingWidth] = useState<number>();
   const isDisabled = disabled || loading;
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
@@ -298,33 +298,7 @@ function ButtonRoot(props: ButtonProps) {
     scaleTo: preset === "link" ? 1 : interaction.pressedScale,
   });
 
-  const showFocusRing: PressableProps["onFocus"] = (event) => {
-    // On web, pointer taps focus the element too, which left the ring visible
-    // after every click. :focus-visible is only true for keyboard-driven
-    // focus, so gate the ring on it; fall back to showing the ring when the
-    // target can't be queried (non-DOM targets, older engines).
-    let ringVisible = true;
-    if (Platform.OS === "web") {
-      const target = event?.nativeEvent?.target as unknown as
-        | { matches?: (selector: string) => boolean }
-        | null
-        | undefined;
-      if (target && typeof target.matches === "function") {
-        try {
-          ringVisible = target.matches(":focus-visible");
-        } catch {
-          ringVisible = true;
-        }
-      }
-    }
-    setFocused(ringVisible);
-    onFocus?.(event);
-  };
-
-  const hideFocusRing: PressableProps["onBlur"] = (event) => {
-    setFocused(false);
-    onBlur?.(event);
-  };
+  const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible({ onFocus, onBlur });
 
   const handlePressIn: PressableProps["onPressIn"] = (event) => {
     pressHandlers.onPressIn();

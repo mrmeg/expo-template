@@ -3,6 +3,7 @@ import { View, Pressable, StyleSheet, ViewStyle, TextStyle, StyleProp, Platform,
 import { StyledText, TextProps } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
 import { useScalePress } from "../hooks/useScalePress";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
 import { createThemedStyles } from "../lib/themedStyles";
@@ -56,7 +57,7 @@ export interface CardProps {
 }
 
 function Card({ children, style: styleOverride, variant = "default", onPress, disabled }: CardProps) {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme, getShadowStyle, getFocusRingStyle } = useTheme();
   const styles = themedStyles(theme);
   const shadowStyle = getShadowStyle("subtle");
   const ctx = { theme, styles };
@@ -64,6 +65,7 @@ function Card({ children, style: styleOverride, variant = "default", onPress, di
     disabled: !onPress || !!disabled,
     scaleTo: 0.98,
   });
+  const focus = useFocusVisible();
 
   const cardContent = (
     <View
@@ -89,9 +91,15 @@ function Card({ children, style: styleOverride, variant = "default", onPress, di
           accessibilityRole="button"
           accessibilityState={{ disabled: !!disabled }}
           {...pressHandlers}
+          onFocus={focus.onFocus}
+          onBlur={focus.onBlur}
           style={({ pressed }) => [
-            Platform.OS === "web" && { cursor: "pointer" as any },
+            // The ring is a box shadow on this wrapper, so it needs the card's
+            // radius; the browser outline is off because the ring replaces it.
+            { borderRadius: spacing.radiusLg },
+            Platform.OS === "web" && { cursor: "pointer" as any, outlineStyle: "none" as any },
             pressed && { opacity: interaction.pressedOpacity },
+            focus.focused && !disabled && getFocusRingStyle(),
           ]}
         >
           <Animated.View style={scaleStyle}>
