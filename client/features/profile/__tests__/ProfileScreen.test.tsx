@@ -44,6 +44,9 @@ jest.mock("@/client/features/auth/components", () => ({
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
   useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+  // The tab screen retitles the parent stack header on focus.
+  useNavigation: () => ({ getParent: () => ({ setOptions: jest.fn() }) }),
+  useFocusEffect: () => {},
   usePathname: () => "/profile",
   useSegments: () => ["(main)", "(tabs)"],
   Link: ({ children }: { children: React.ReactNode }) => children,

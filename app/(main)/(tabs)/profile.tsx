@@ -44,11 +44,13 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 import { palette } from "@mrmeg/expo-ui/constants";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { Seo } from "@/client/components/Seo";
+import { useTabHeaderTitle } from "@/client/features/navigation/tabTitle";
 
 /**
  * Profile screen - displays user information and account settings.
  */
 export default function ProfileRoute() {
+  useTabHeaderTitle("profile");
   return (
     <AuthGate>
       <ProfileScreen />

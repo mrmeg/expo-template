@@ -278,6 +278,9 @@ jest.mock("expo-router", () => ({
   useGlobalSearchParams: () => ({}),
   useSegments: () => [],
   usePathname: () => "/",
+  // Tab screens retitle the parent stack header on focus (useTabHeaderTitle).
+  useNavigation: () => ({ getParent: () => ({ setOptions: jest.fn() }), setOptions: jest.fn() }),
+  useFocusEffect: () => {},
   Link: "Link",
   Stack: {
     Screen: "Screen",

@@ -49,8 +49,10 @@ import {
   type ScreenTemplateEntry,
 } from "@/client/showcase/registry";
 import type { Theme } from "@mrmeg/expo-ui/constants";
+import { useTabHeaderTitle } from "@/client/features/navigation/tabTitle";
 
 export default function ExploreScreen() {
+  useTabHeaderTitle("index");
   const { theme } = useTheme();
   const styles = themedStyles(theme);
   const [query, setQuery] = useState("");

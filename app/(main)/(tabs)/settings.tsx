@@ -20,6 +20,7 @@ import { setLanguage } from "@/client/features/i18n";
 import Config from "@/client/config";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 import { Seo } from "@/client/components/Seo";
+import { useTabHeaderTitle } from "@/client/features/navigation/tabTitle";
 
 const LANGUAGES = [
   { code: "en", label: "English", nativeLabel: "English" },
@@ -34,6 +35,7 @@ function handleLanguageChange(langCode: string) {
  * Settings screen - app preferences and configuration.
  */
 export default function SettingsRoute() {
+  useTabHeaderTitle("settings");
   const { theme, scheme } = useTheme();
   const { userTheme, setTheme } = useThemeStore();
   const { t, i18n } = useTranslation();
