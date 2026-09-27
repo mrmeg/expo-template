@@ -7,6 +7,7 @@ import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Card } from "@mrmeg/expo-ui/components/Card";
 import { Carousel } from "@mrmeg/expo-ui/components/Carousel";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -28,6 +29,9 @@ export interface TestimonialsScreenProps {
   description?: string;
   testimonials: Testimonial[];
   style?: StyleProp<ViewStyle>;
+  /** Safe-area edges this screen owns (see `Screen`); default bottom only (under a Stack header). */
+  edges?: ScreenEdges;
+  testID?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,12 +73,14 @@ export function TestimonialsScreen({
   description,
   testimonials,
   style: styleOverride,
+  edges = ["bottom"],
+  testID = "testimonials-screen",
 }: TestimonialsScreenProps) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
 
   return (
-    <View style={[styles.container, styleOverride]}>
+    <Screen edges={edges} padded={false} style={styleOverride} contentContainerStyle={styles.content} testID={testID}>
       <SectionHeader eyebrow={eyebrow} title={title} description={description} style={styles.header} />
 
       {/*
@@ -126,7 +132,7 @@ export function TestimonialsScreen({
           </Card>
         ))}
       </Carousel>
-    </View>
+    </Screen>
   );
 }
 
@@ -138,9 +144,8 @@ const AVATAR_SIZE = 40;
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
+    /** Vertical rhythm; Screen adds the safe-area insets and the background. */
+    content: {
       paddingVertical: spacing.xl,
     },
     header: {

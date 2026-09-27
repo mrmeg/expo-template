@@ -15,14 +15,47 @@ import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
+import { CardGridScreen } from "../card-grid/Screen";
 import { ErrorScreen } from "../error/Screen";
 import { FaqScreen } from "../faq/Screen";
+import { NotificationListScreen } from "../notifications/Screen";
+import { PricingScreen } from "../pricing/Screen";
+import { SearchResultsScreen } from "../search/Screen";
 import { HeroScreen } from "../hero/Screen";
 import { ListScreen } from "../list/Screen";
 import { SettingsScreen } from "../settings/Screen";
 import { StatsScreen } from "../stats/Screen";
 import { TestimonialsScreen } from "../testimonials/Screen";
 import { WelcomeScreen } from "../welcome/Screen";
+
+const ISLAND_INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
+
+/**
+ * Every template owns its safe-area edges through `Screen` (#130 converted
+ * settings/list/dashboard/profile; the rest followed). Under a Stack header the
+ * default is `["bottom"]`: the scrolling surface's content clears the home
+ * indicator and nothing pads the top; `["top", "bottom"]` takes the island too.
+ * The node under test carries the bottom inset (a `Screen scroll`'s or a list's
+ * `contentContainerStyle`, or the `Screen` view's `style`); a list screen keeps
+ * the top inset on its `Screen` view. Each template registers its two cases
+ * inside its own `describe` so `scripts/init.ts` strips them with the import.
+ */
+const insetCarrier = (testID: string) => {
+  const node = screen.getByTestId(testID);
+  return StyleSheet.flatten(node.props.contentContainerStyle ?? node.props.style) as Record<string, number>;
+};
+
+async function expectBottomInsetOnContent(element: React.ReactElement, testID: string) {
+  await render(<SafeAreaInsetsContext.Provider value={ISLAND_INSETS}>{element}</SafeAreaInsetsContext.Provider>);
+  const style = insetCarrier(testID);
+  expect(style.paddingBottom).toBeGreaterThanOrEqual(ISLAND_INSETS.bottom);
+  expect(style.paddingTop ?? 0).toBeLessThan(ISLAND_INSETS.top);
+}
+
+async function expectTopInsetWhenHeaderless(element: React.ReactElement, testID: string) {
+  await render(<SafeAreaInsetsContext.Provider value={ISLAND_INSETS}>{element}</SafeAreaInsetsContext.Provider>);
+  expect(insetCarrier(testID).paddingTop).toBeGreaterThanOrEqual(ISLAND_INSETS.top);
+}
 
 describe("WelcomeScreen", () => {
   it("renders title, subtitle, primary action, and footer", async () => {
@@ -192,6 +225,14 @@ describe("HeroScreen", () => {
 });
 
 describe("StatsScreen", () => {
+  it("puts the bottom inset on its content and leaves the top to the header by default", async () => {
+    await expectBottomInsetOnContent(<StatsScreen title="Numbers" stats={[{ label: "Revenue", value: "1" }]} />, "stats-screen");
+  });
+
+  it("takes the top too when told it has no header", async () => {
+    await expectTopInsetWhenHeaderless(<StatsScreen edges={["top", "bottom"]} title="Numbers" stats={[{ label: "Revenue", value: "1" }]} />, "stats-screen");
+  });
+
   it("renders the section header, stat cards, and footer note", async () => {
     await render(
       <StatsScreen
@@ -217,6 +258,14 @@ describe("StatsScreen", () => {
 });
 
 describe("TestimonialsScreen", () => {
+  it("puts the bottom inset on its content and leaves the top to the header by default", async () => {
+    await expectBottomInsetOnContent(<TestimonialsScreen title="Loved" testimonials={[{ quote: "Great", name: "Ada", role: "CTO" }]} />, "testimonials-screen");
+  });
+
+  it("takes the top too when told it has no header", async () => {
+    await expectTopInsetWhenHeaderless(<TestimonialsScreen edges={["top", "bottom"]} title="Loved" testimonials={[{ quote: "Great", name: "Ada", role: "CTO" }]} />, "testimonials-screen");
+  });
+
   const TESTIMONIALS = [
     { quote: "This cut our setup time from days to hours.", name: "Jamie Lee", role: "CTO, Acme", rating: 5 },
     { quote: "Our team shipped an MVP in two weeks.", name: "Marcus Chen", role: "Founder, Loopwork" },
@@ -253,6 +302,14 @@ describe("TestimonialsScreen", () => {
 });
 
 describe("FaqScreen", () => {
+  it("puts the bottom inset on its content and leaves the top to the header by default", async () => {
+    await expectBottomInsetOnContent(<FaqScreen title="FAQ" items={[{ question: "Q?", answer: "A." }]} />, "faq-screen");
+  });
+
+  it("takes the top too when told it has no header", async () => {
+    await expectTopInsetWhenHeaderless(<FaqScreen edges={["top", "bottom"]} title="FAQ" items={[{ question: "Q?", answer: "A." }]} />, "faq-screen");
+  });
+
   it("renders questions collapsed and expands an answer on press", async () => {
     await render(
       <FaqScreen
@@ -292,7 +349,6 @@ describe("FaqScreen", () => {
   });
 });
 
-const ISLAND_INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
 
 describe("SettingsScreen", () => {
   it("adds the home-indicator inset to its bottom padding and leaves the top to the header", async () => {
@@ -318,5 +374,48 @@ describe("SettingsScreen", () => {
 
     const content = StyleSheet.flatten(screen.getByTestId("settings-screen").props.contentContainerStyle) as Record<string, number>;
     expect(content.paddingTop).toBeGreaterThanOrEqual(59);
+  });
+});
+
+describe("PricingScreen", () => {
+  it("puts the bottom inset on its content and leaves the top to the header by default", async () => {
+    await expectBottomInsetOnContent(<PricingScreen plans={[{ name: "Free", price: "$0", features: [], onSelect: () => {} }]} />, "pricing-screen");
+  });
+
+  it("takes the top too when told it has no header", async () => {
+    await expectTopInsetWhenHeaderless(<PricingScreen edges={["top", "bottom"]} plans={[{ name: "Free", price: "$0", features: [], onSelect: () => {} }]} />, "pricing-screen");
+  });
+});
+
+describe("CardGridScreen", () => {
+  const row = (label: string) => <Text>{label}</Text>;
+  it("puts the bottom inset on its content and leaves the top to the header by default", async () => {
+    await expectBottomInsetOnContent(<CardGridScreen data={["a"]} renderCard={row} keyExtractor={(x) => x} />, "card-grid-list");
+  });
+
+  it("takes the top too when told it has no header", async () => {
+    await expectTopInsetWhenHeaderless(<CardGridScreen edges={["top", "bottom"]} data={["a"]} renderCard={row} keyExtractor={(x) => x} />, "card-grid-screen");
+  });
+});
+
+describe("SearchResultsScreen", () => {
+  const row = (label: string) => <Text>{label}</Text>;
+  it("puts the bottom inset on its content and leaves the top to the header by default", async () => {
+    await expectBottomInsetOnContent(<SearchResultsScreen data={["a"]} renderItem={row} keyExtractor={(x) => x} />, "search-list");
+  });
+
+  it("takes the top too when told it has no header", async () => {
+    await expectTopInsetWhenHeaderless(<SearchResultsScreen edges={["top", "bottom"]} data={["a"]} renderItem={row} keyExtractor={(x) => x} />, "search-screen");
+  });
+});
+
+describe("NotificationListScreen", () => {
+  const item = { id: "n1", icon: "bell" as const, title: "Welcome", body: "Hi", timestamp: new Date(0), read: false };
+  it("puts the bottom inset on its content and leaves the top to the header by default", async () => {
+    await expectBottomInsetOnContent(<NotificationListScreen notifications={[item]} />, "notifications-list");
+  });
+
+  it("takes the top too when told it has no header", async () => {
+    await expectTopInsetWhenHeaderless(<NotificationListScreen edges={["top", "bottom"]} notifications={[item]} />, "notifications-screen");
   });
 });

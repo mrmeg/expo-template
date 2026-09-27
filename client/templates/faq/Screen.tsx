@@ -1,11 +1,12 @@
 import React from "react";
-import { View, ScrollView, StyleSheet, StyleProp, ViewStyle } from "react-native";
+import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { BodyText } from "@mrmeg/expo-ui/components/StyledText";
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@mrmeg/expo-ui/components/Accordion";
 import { Button } from "@mrmeg/expo-ui/components/Button";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -29,6 +30,9 @@ export interface FaqScreenProps {
   footerActionLabel?: string;
   onFooterAction?: () => void;
   style?: StyleProp<ViewStyle>;
+  /** Safe-area edges this screen owns (see `Screen`); default bottom only (under a Stack header). */
+  edges?: ScreenEdges;
+  testID?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -65,17 +69,22 @@ export function FaqScreen({
   footerActionLabel,
   onFooterAction,
   style: styleOverride,
+  edges = ["bottom"],
+  testID = "faq-screen",
 }: FaqScreenProps) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
 
   return (
-    <View style={[styles.container, styleOverride]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <Screen
+      edges={edges}
+      scroll
+      padded={false}
+      style={styleOverride}
+      contentContainerStyle={styles.scrollContent}
+      scrollProps={{ showsVerticalScrollIndicator: false }}
+      testID={testID}
+    >
         <SectionHeader eyebrow={eyebrow} title={title} description={description} style={styles.header} />
 
         {/* The list's top hairline lives on this wrapper: Accordion owns its
@@ -103,8 +112,7 @@ export function FaqScreen({
             )}
           </View>
         )}
-      </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -114,13 +122,6 @@ export function FaqScreen({
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    scroll: {
-      flex: 1,
-    },
     scrollContent: {
       paddingHorizontal: spacing.screenPadding,
       paddingTop: spacing.xl,

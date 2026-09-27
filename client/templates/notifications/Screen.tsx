@@ -10,7 +10,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, useWindowInsets } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText, SansSerifBoldText, EyebrowText } from "@mrmeg/expo-ui/components/StyledText";
@@ -18,6 +18,7 @@ import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Skeleton } from "@mrmeg/expo-ui/components/Skeleton";
 import { ItemMedia, ItemContent, ItemTitle, ItemDescription } from "@mrmeg/expo-ui/components/Item";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -55,6 +56,9 @@ export interface NotificationListScreenProps {
   refreshing?: boolean;
   header?: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Safe-area edges this screen owns (see `Screen`); default bottom only (under a Stack header). */
+  edges?: ScreenEdges;
+  testID?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -140,9 +144,18 @@ export function NotificationListScreen({
   refreshing = false,
   header,
   style: styleOverride,
+  edges = ["bottom"],
+  testID = "notifications-screen",
 }: NotificationListScreenProps) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
+
+  // The list owns the scroll, so the bottom inset goes on its content (the
+  // last row scrolls up out from under the home indicator); Screen takes the
+  // other edges and paints the background.
+  const insets = useWindowInsets();
+  const bottomInset = edges.includes("bottom") ? insets.bottom : 0;
+  const listEdges = edges.filter((edge) => edge !== "bottom");
 
   const sections = useMemo(
     () => groupNotifications(notifications),
@@ -183,7 +196,7 @@ export function NotificationListScreen({
 
   if (loading) {
     return (
-      <View style={[styles.container, styleOverride]}>
+      <Screen edges={edges} padded={false} style={styleOverride} testID={testID}>
         {header}
         <View style={styles.skeletonList}>
           {Array.from({ length: skeletonCount }).map((_, i) => (
@@ -196,7 +209,7 @@ export function NotificationListScreen({
             </View>
           ))}
         </View>
-      </View>
+      </Screen>
     );
   }
 
@@ -301,22 +314,24 @@ export function NotificationListScreen({
   );
 
   return (
-    <View style={[styles.container, styleOverride]}>
+    <Screen edges={listEdges} padded={false} style={styleOverride} testID={testID}>
       <SectionList
+        testID="notifications-list"
         sections={sections}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         renderSectionHeader={renderSectionHeader}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={
-          notifications.length === 0 ? styles.emptyList : styles.listContent
-        }
+        contentContainerStyle={[
+          notifications.length === 0 ? styles.emptyList : styles.listContent,
+          { paddingBottom: (notifications.length === 0 ? 0 : spacing.xxl) + bottomInset },
+        ]}
         showsVerticalScrollIndicator={false}
         stickySectionHeadersEnabled={false}
         refreshControl={refreshControl}
       />
-    </View>
+    </Screen>
   );
 }
 
@@ -326,10 +341,6 @@ export function NotificationListScreen({
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
     listContent: {
       paddingBottom: spacing.xxl,
     },

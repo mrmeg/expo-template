@@ -220,6 +220,12 @@ Use these as starting points, not as containers for unrelated product logic. Dom
 behavior sits in a feature folder and passes data and callbacks into the screen
 template.
 
+Every template renders on the kit's `Screen` and takes `edges` (default
+`["bottom"]`, for a screen under a Stack header): the scrolling surface's content
+clears the home indicator, nothing pads the top, and a headerless screen passes
+`edges={["top", "bottom"]}`. Insets come from `Screen` / `useWindowInsets`, never
+literal numbers, and each template keeps its own single 16 pt horizontal inset.
+
 ## App And Feature Patterns
 
 | Pattern | Source | Notes |
