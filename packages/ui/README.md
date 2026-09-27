@@ -112,6 +112,14 @@ render: `<InitialSchemeProvider scheme={cookieScheme}>` around the root layout
 and the client — see the template's `shared/ssrColorScheme.ts`. `useTheme()`
 paints it until the persisted preference has loaded.
 
+A Radix-backed component (`Tabs`, `Accordion`, `Collapsible`, `Select`,
+`DropdownMenu`, `Popover`) inside a server-rendered route logs a `useId`
+hydration mismatch in development, because Expo Router's server renders the app
+inside `+html.tsx` while the client hydrates `#root`. Wrap that subtree in
+`<Hydrated fallback={…}>` (from `@mrmeg/expo-ui/components`): the fallback holds
+the layout in the server HTML and the children mount in the first client render.
+Keep content that must be server-rendered outside the gate.
+
 `UIProvider` is required before `Dialog`, `AlertDialog`, `BottomSheet`,
 `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, and package
 notifications.
