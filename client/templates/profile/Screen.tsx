@@ -8,6 +8,7 @@ import {
   Animated,
 } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { useStaggeredEntrance, STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
@@ -64,6 +65,8 @@ export interface ProfileScreenProps {
   stats?: ProfileStat[];
   actions?: ProfileAction[];
   sections?: ProfileSection[];
+  /** Safe-area edges this screen owns (see `Screen`); default bottom only (under a Stack header). */
+  edges?: ScreenEdges;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -79,6 +82,7 @@ export function ProfileScreen({
   stats,
   actions,
   sections,
+  edges = ["bottom"],
   style: styleOverride,
 }: ProfileScreenProps) {
   const { theme } = useTheme();
@@ -91,12 +95,15 @@ export function ProfileScreen({
   const actionsEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY * 3 });
 
   return (
-    <View style={[styles.container, styleOverride]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+    <Screen
+      edges={edges}
+      scroll
+      padded={false}
+      style={styleOverride}
+      contentContainerStyle={styles.content}
+      scrollProps={{ showsVerticalScrollIndicator: false }}
+      testID="profile-screen"
+    >
         {/* Avatar + Name */}
         <View style={styles.hero}>
           <Animated.View style={avatarEntrance}>
@@ -191,8 +198,7 @@ export function ProfileScreen({
             ))}
           </ItemGroup>
         ))}
-      </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -205,13 +211,6 @@ const MAX_CONTENT_WIDTH = 640;
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    scroll: {
-      flex: 1,
-    },
     // No horizontal padding here: the hero, stats, and actions pad themselves
     // and the rows carry their own inset, so the screen has one 16pt gutter.
     content: {

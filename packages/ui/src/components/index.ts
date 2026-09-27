@@ -23,6 +23,7 @@ export * from "./KeyboardAvoidingView";
 export * from "./Label";
 export * from "./MaxWidthContainer";
 export * from "./Notification";
+export * from "./Screen";
 export * from "./Popover";
 export * from "./Progress";
 export * from "./RadioGroup";

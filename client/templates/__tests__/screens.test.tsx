@@ -11,13 +11,15 @@
 import "@/test/mockTheme";
 
 import React from "react";
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import { ErrorScreen } from "../error/Screen";
 import { FaqScreen } from "../faq/Screen";
 import { HeroScreen } from "../hero/Screen";
 import { ListScreen } from "../list/Screen";
+import { SettingsScreen } from "../settings/Screen";
 import { StatsScreen } from "../stats/Screen";
 import { TestimonialsScreen } from "../testimonials/Screen";
 import { WelcomeScreen } from "../welcome/Screen";
@@ -126,6 +128,24 @@ describe("ListScreen", () => {
       />,
     );
     expect(screen.queryByText("Nothing yet")).toBeNull();
+  });
+
+  it("pads the list content, not the list, for the home indicator", async () => {
+    await render(
+      <SafeAreaInsetsContext.Provider value={{ top: 59, bottom: 34, left: 0, right: 0 }}>
+        <ListScreen
+          data={[{ id: "1", title: "One" }]}
+          keyExtractor={(item) => item.id}
+          renderItem={(item) => <Text>{item.title}</Text>}
+        />
+      </SafeAreaInsetsContext.Provider>,
+    );
+
+    const list = screen.getByTestId("list-screen-list");
+    const content = StyleSheet.flatten(list.props.contentContainerStyle) as Record<string, number>;
+    expect(content.paddingBottom).toBeGreaterThanOrEqual(34);
+    const outer = StyleSheet.flatten(screen.getByTestId("list-screen").props.style) as Record<string, unknown>;
+    expect(outer.paddingBottom).toBeUndefined();
   });
 });
 
@@ -269,5 +289,34 @@ describe("FaqScreen", () => {
     expect(screen.getByText("Still need help?")).toBeTruthy();
     await fireEvent.press(screen.getByText("Contact support"));
     expect(onFooterAction).toHaveBeenCalledTimes(1);
+  });
+});
+
+const ISLAND_INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
+
+describe("SettingsScreen", () => {
+  it("adds the home-indicator inset to its bottom padding and leaves the top to the header", async () => {
+    await render(
+      <SafeAreaInsetsContext.Provider value={ISLAND_INSETS}>
+        <SettingsScreen
+          sections={[{ title: "Account", items: [{ type: "navigate", label: "Edit profile", onPress: () => {} }] }]}
+        />
+      </SafeAreaInsetsContext.Provider>,
+    );
+
+    const content = StyleSheet.flatten(screen.getByTestId("settings-screen").props.contentContainerStyle) as Record<string, number>;
+    expect(content.paddingBottom).toBeGreaterThanOrEqual(34);
+    expect(content.paddingTop).toBeLessThan(59);
+  });
+
+  it("takes the top too when told it has no header", async () => {
+    await render(
+      <SafeAreaInsetsContext.Provider value={ISLAND_INSETS}>
+        <SettingsScreen edges={["top", "bottom"]} sections={[]} />
+      </SafeAreaInsetsContext.Provider>,
+    );
+
+    const content = StyleSheet.flatten(screen.getByTestId("settings-screen").props.contentContainerStyle) as Record<string, number>;
+    expect(content.paddingTop).toBeGreaterThanOrEqual(59);
   });
 });

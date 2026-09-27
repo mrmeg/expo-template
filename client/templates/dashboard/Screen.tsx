@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
@@ -81,6 +82,8 @@ export interface DashboardScreenProps {
   onRefresh?: () => void;
   refreshing?: boolean;
   header?: ReactNode;
+  /** Safe-area edges this screen owns (see `Screen`); default bottom only (under a Stack header). */
+  edges?: ScreenEdges;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -184,6 +187,7 @@ export function DashboardScreen({
   onRefresh,
   refreshing = false,
   header,
+  edges = ["bottom"],
   style: styleOverride,
 }: DashboardScreenProps) {
   const { theme } = useTheme();
@@ -203,13 +207,15 @@ export function DashboardScreen({
   let staggerIndex = 0;
 
   return (
-    <View style={[styles.container, styleOverride]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={refreshControl}
-      >
+    <Screen
+      edges={edges}
+      scroll
+      padded={false}
+      style={styleOverride}
+      contentContainerStyle={styles.scrollContent}
+      scrollProps={{ showsVerticalScrollIndicator: false, refreshControl }}
+      testID="dashboard-screen"
+    >
         {/* Header */}
         {header}
 
@@ -384,8 +390,7 @@ export function DashboardScreen({
             </View>
           </AnimatedView>
         ) : null}
-      </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -398,13 +403,6 @@ const MAX_CONTENT_WIDTH = 960;
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    scroll: {
-      flex: 1,
-    },
     scrollContent: {
       width: "100%",
       maxWidth: MAX_CONTENT_WIDTH,

@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
@@ -78,6 +79,11 @@ export interface SettingsSection {
 export interface SettingsScreenProps {
   sections: SettingsSection[];
   header?: ReactNode;
+  /**
+   * Safe-area edges this screen owns (see `Screen`). Defaults to the bottom
+   * only: the demos sit under a Stack header, which insets the top.
+   */
+  edges?: ScreenEdges;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -85,7 +91,7 @@ export interface SettingsScreenProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function SettingsScreen({ sections, header, style: styleOverride }: SettingsScreenProps) {
+export function SettingsScreen({ sections, header, edges = ["bottom"], style: styleOverride }: SettingsScreenProps) {
   const { theme, withAlpha } = useTheme();
   const styles = themedStyles(theme);
 
@@ -179,12 +185,15 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
   };
 
   return (
-    <View style={[styles.container, styleOverride]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+    <Screen
+      edges={edges}
+      scroll
+      padded={false}
+      style={styleOverride}
+      contentContainerStyle={styles.content}
+      scrollProps={{ showsVerticalScrollIndicator: false }}
+      testID="settings-screen"
+    >
         {/* Rows carry the screen's 16pt inset themselves, so only the
             free-form header gets horizontal padding. */}
         {header ? <View style={styles.header}>{header}</View> : null}
@@ -196,8 +205,7 @@ export function SettingsScreen({ sections, header, style: styleOverride }: Setti
             </ItemGroup>
           </AnimatedView>
         ))}
-      </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -210,13 +218,6 @@ const MAX_CONTENT_WIDTH = 640;
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    scroll: {
-      flex: 1,
-    },
     content: {
       width: "100%",
       maxWidth: MAX_CONTENT_WIDTH,
