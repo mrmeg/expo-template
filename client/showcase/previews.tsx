@@ -89,9 +89,10 @@ function CheckboxPreview({ label }: { label: string }) {
   return <Checkbox checked={checked} onCheckedChange={setChecked} label={label} />;
 }
 
-function SwitchPreview({ initial }: { initial: boolean }) {
+function SwitchPreview({ label, initial }: { label: string; initial: boolean }) {
   const [checked, setChecked] = React.useState(initial);
-  return <Switch checked={checked} onCheckedChange={setChecked} />;
+  // A bare switch has no visible text; outside an Item row it must be named.
+  return <Switch checked={checked} onCheckedChange={setChecked} accessibilityLabel={label} />;
 }
 
 function TogglePreview({ icon, label, initial }: { icon: IconName; label: string; initial: boolean }) {
@@ -160,8 +161,8 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
 
   Switch: () => (
     <Row>
-      <SwitchPreview initial />
-      <SwitchPreview initial={false} />
+      <SwitchPreview label="Notifications" initial />
+      <SwitchPreview label="Dark mode" initial={false} />
     </Row>
   ),
 

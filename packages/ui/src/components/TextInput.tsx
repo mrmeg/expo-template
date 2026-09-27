@@ -1019,6 +1019,10 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
     },
     nativePasswordToggle: {
       paddingHorizontal: spacing.xs,
+      minWidth: spacing.minTarget,
+      minHeight: spacing.minTarget,
+      alignItems: "center",
+      justifyContent: "center",
     },
     wrapper: {
       width: "100%",
@@ -1086,11 +1090,17 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       transform: [{ translateY: -10 }],
       zIndex: 1,
     },
+    // The eye/clear buttons draw a 16-20px glyph; the pressable itself is at
+    // least `spacing.minTarget` square (WCAG 2.5.8 — `hitSlop` is inert on web).
     passwordToggle: {
       position: "absolute",
-      right: spacing.sm,
+      right: spacing.sm - (spacing.minTarget - 20) / 2,
       top: "50%",
-      transform: [{ translateY: Platform.OS === "web" ? -10 : -12 }],
+      minWidth: spacing.minTarget,
+      minHeight: spacing.minTarget,
+      alignItems: "center",
+      justifyContent: "center",
+      transform: [{ translateY: -spacing.minTarget / 2 }],
       zIndex: 1,
       ...(Platform.OS === "web" && { cursor: "pointer" as any }),
     },
@@ -1103,9 +1113,13 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
     },
     clearButton: {
       position: "absolute",
-      right: spacing.sm,
+      right: spacing.sm - (spacing.minTarget - 20) / 2,
       top: "50%",
-      transform: [{ translateY: Platform.OS === "web" ? -10 : -12 }],
+      minWidth: spacing.minTarget,
+      minHeight: spacing.minTarget,
+      alignItems: "center",
+      justifyContent: "center",
+      transform: [{ translateY: -spacing.minTarget / 2 }],
       zIndex: 1,
       ...(Platform.OS === "web" && { cursor: "pointer" as any }),
     },

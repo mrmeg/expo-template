@@ -159,7 +159,11 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
   const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
 
   const triggerBaseStyle: ViewStyle = {
-    flex: 1,
+    // The wrapper below shares the list's width (`flex: 1` on the row axis);
+    // the trigger only fills it. `flex: 1` here would act on the wrapper's
+    // column axis, where a 0% basis in an indefinite-height parent collapses
+    // the trigger to its text (16px tall on web, under the 36px it declares).
+    alignSelf: "stretch",
     // Allow the trigger to shrink below its content's intrinsic width so long
     // labels are constrained to the trigger's flex share (and can ellipsize)
     // instead of overflowing and clipping at the screen edge.

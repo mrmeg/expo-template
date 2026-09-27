@@ -289,7 +289,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   kit now passes the role explicitly (see Added).
 - **`TextInput`'s password eye icon is decorative** on every platform — the
   Show/Hide password button already carries the name — instead of an unnamed
-  image inside a button.
+  image inside a button. The eye and clear buttons are also at least
+  `spacing.minTarget` (24 px) square instead of their 20 px glyph.
+- **`Tabs` triggers were 16 px tall on web.** The trigger declared `height` but
+  also `flex: 1` inside its column-direction wrapper, whose 0% basis in a parent
+  of indefinite height collapsed it to the text; every `underline` tab list was
+  a 16 px target. The trigger now stretches across the wrapper instead.
 
 - **`PopoverContent` keeps its surface under a caller `style`, opens where there
   is room, and scrolls when tall.** Four defects mindmap patched around in its
