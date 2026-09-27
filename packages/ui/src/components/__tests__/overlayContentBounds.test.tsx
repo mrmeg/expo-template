@@ -167,7 +167,10 @@ describe.each(cases)("%s", (_name, element, overlayWrapsContent) => {
     expect(wrappers.length).toBeGreaterThan(0);
     for (const wrapper of wrappers) {
       expect(wrapper).toHaveStyle(ABSOLUTE_FILL);
-      expect(wrapper).toHaveProp("pointerEvents", "box-none");
+      // Pass-through as a style: the `pointerEvents` prop is deprecated on web
+      // (see src/__tests__/webConsoleContracts.test.ts).
+      expect(wrapper).toHaveStyle({ pointerEvents: "box-none" });
+      expect(wrapper).not.toHaveProp("pointerEvents");
     }
 
     // The case that broke: a natively handled control inside the content.
