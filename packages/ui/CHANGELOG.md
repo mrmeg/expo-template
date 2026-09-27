@@ -7,6 +7,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`useNotificationOffset()`** (`@mrmeg/expo-ui/hooks`) and
+  **`selectNotificationOffset`** / `setNotificationOffset` /
+  `clearNotificationOffset` on `globalUIStore`: a layout that owns a bar tells
+  global toasts where it ends. `Notification` sits `spacing.sm` past the largest
+  of the safe-area inset, the registered offsets and its 12 pt floor, so a
+  `notify(..., { position: "bottom" })` toast clears the tab bar instead of
+  covering its labels. An offset is measured from the window edge and includes
+  the inset there, so a JS tab layout passes `useBottomTabBarHeight()` as-is
+  (`useNotificationOffset({ bottom: useBottomTabBarHeight() })` in a child of
+  `<Tabs>`); a `NativeTabs` layout passes the platform bar height plus
+  `useWindowInsets().bottom` (the template: `client/features/navigation/tabBarMetrics.ts`).
+  Pass `null` while the bar is hidden. Several layouts may register; the
+  largest value per edge wins; nothing registered keeps today's positions.
 - **`InitialSchemeProvider` / `useInitialScheme()`** (`@mrmeg/expo-ui/state`)
   and **`<UIProvider initialScheme>`**: a first-render scheme hint. `useTheme()`
   renders the hinted `"light"` / `"dark"` until the store's `hasLoadedTheme`

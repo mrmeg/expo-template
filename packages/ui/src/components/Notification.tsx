@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useEffectEvent, useRef } from "react";
+import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef } from "react";
 import { Animated, Easing, StyleSheet, View, ActivityIndicator, Pressable, Platform } from "react-native";
 import { useStore } from "zustand";
 import { Icon } from "./Icon";
@@ -15,7 +15,7 @@ import { translateText } from "../lib/i18n";
 import { createThemedStyles } from "../lib/themedStyles";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { shouldUseNativeDriver } from "../lib/animations";
-import { globalUIStore } from "../state/globalUIStore";
+import { globalUIStore, selectNotificationOffset } from "../state/globalUIStore";
 
 const timingIn = { duration: durations.fast, easing: Easing.out(Easing.quad), useNativeDriver: shouldUseNativeDriver };
 const timingOut = { duration: durations.instant, easing: Easing.in(Easing.quad), useNativeDriver: shouldUseNativeDriver };
@@ -63,6 +63,15 @@ export const Notification = () => {
   // `use` prefix, so it treated that call as a plain function, cached its
   // result, and skipped the hook on the next render (React error #311).
   const { alert, hide } = useStore(globalUIStore);
+  // Bars a layout registered with `useNotificationOffset` (a tab bar, a
+  // floating header), measured from the window edge like the insets. Select
+  // the stable record and derive the maxima here: a selector that built a new
+  // object per call would never satisfy `useSyncExternalStore`'s snapshot check.
+  const notificationOffsets = useStore(globalUIStore, (state) => state.notificationOffsets);
+  const offset = useMemo(
+    () => selectNotificationOffset({ notificationOffsets }),
+    [notificationOffsets]
+  );
   const styles = themedStyles(theme);
 
   const position = alert?.position ?? "top";
@@ -181,9 +190,10 @@ export const Notification = () => {
     transform: [{ translateY }],
   };
 
-  // 8 pt of air past the inset; without one, 20 pt from the edge (as before).
-  const topPosition = Math.max(insets.top, spacing.smd) + spacing.sm;
-  const bottomPosition = Math.max(insets.bottom, spacing.smd) + spacing.sm;
+  // 8 pt of air past the inset or a registered bar, whichever reaches further;
+  // without either, 20 pt from the edge (as before).
+  const topPosition = Math.max(insets.top, spacing.smd, offset.top) + spacing.sm;
+  const bottomPosition = Math.max(insets.bottom, spacing.smd, offset.bottom) + spacing.sm;
 
   const getIconProps = (): { icon: IconName; color: string; bgColor: string } => {
     switch (alert?.type) {

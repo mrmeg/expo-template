@@ -1099,6 +1099,27 @@ after 4s (`DEFAULT_NOTIFICATION_DURATION`) unless a `duration` is given;
 auto-dismisses. `position` is `"top"` (default) or `"bottom"`. `globalUIStore`
 stays available for reactive selectors and tests.
 
+A bottom toast renders in the root layout, above every navigator, so a layout
+that owns a bar registers where it ends with `useNotificationOffset` from
+`@mrmeg/expo-ui/hooks`; the toast then sits 8 pt past the larger of the
+safe-area inset and the offset. The offset is measured from the window edge and
+includes the inset, so a JS tab layout passes `useBottomTabBarHeight()` as-is
+and a `NativeTabs` layout passes the platform bar height plus
+`useWindowInsets().bottom`. Pass `null` while the bar is hidden (keyboard up).
+
+```tsx
+import { Tabs } from "expo-router";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useNotificationOffset } from "@mrmeg/expo-ui/hooks";
+
+function ToastOffset() {
+  useNotificationOffset({ bottom: useBottomTabBarHeight() });
+  return null;
+}
+
+// Render <ToastOffset /> inside a tab screen (it must be a descendant of <Tabs>).
+```
+
 ## Package Release
 
 ```sh
