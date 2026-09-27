@@ -188,6 +188,7 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 - `disabled` blocks the press (no `onPress`, no scale/haptic, out of the web tab order). To keep a button focusable and pressable while announced and dimmed as disabled — so the press can explain why — use `aria-disabled` (or `accessibilityState={{ disabled: true }}`), never a hand-rolled opacity style.
 - Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36).
 - Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the Button size.
+- Web SSR paints the visitor's scheme: wrap the root layout in `<InitialSchemeProvider scheme>` (`@mrmeg/expo-ui/state`) with the `"light"`/`"dark"` value read from a cookie on both server and client (template: `shared/ssrColorScheme.ts`, written by `+html.tsx` and `client/features/app/colorSchemeCookie.ts`); `useTheme()` uses it until `hasLoadedTheme`. Never read `localStorage` for the first render.
 - Web console hygiene: animate with `useNativeDriver: shouldUseNativeDriver` (`@mrmeg/expo-ui/lib`), never `true`; set `pointerEvents` in `style`, never as a prop (react-native-web deprecates the prop, and its lazy warning module has overflowed the first SSR render of deep routes). `AnimatedView` folds a `pointerEvents` prop into style for you.
 - Haptics are one setting: `<UIProvider haptics="off" | "selection" | "all">` (default `"selection"`: Switch/Checkbox/Toggle/ToggleGroup/SegmentedControl tap on change; `"all"` adds a light tap on press for Button, pressable Card and Item). Do not call `expo-haptics` per control; force one Button with `haptic`. Pressed/disabled looks come from `interaction.pressedOpacity` / `interaction.disabledOpacity` in `@mrmeg/expo-ui/constants`.
 - Use `notify` plus a root `UIProvider` for transient global feedback. (`globalUIStore` stays available for reactive subscriptions and tests. In a component, read it with zustand's `useStore(globalUIStore, selector)`, never `globalUIStore()`: the React Compiler only treats `use*` calls as hooks, caches the bare call, and the next render crashes with React error #311.)
@@ -313,6 +314,16 @@ content: a settings group boxed inside a padded screen puts its rows 33 pt from
 each edge (16 screen + 1 border + 16 row) and leaves 324 pt for them; the same
 rows in an `ItemGroup` sit 16 pt in and get 358 pt.
 
+- **Every screen root is `Screen`, with explicit `edges`.** `<Screen
+  edges={["bottom"]} scroll>` under a Stack header; `edges={["top"]}` above a
+  tab bar; `["top", "bottom"]` for a headerless screen or a modal; `[]` when the
+  navigator insets both. Never pad `insets.top` under a header or
+  `insets.bottom` above a tab bar (double padding), and never leave a headerless
+  screen without `"top"` (content under the Dynamic Island). `scroll` puts the
+  insets on the content container; `padded={false}` for full-bleed `ItemGroup`
+  rows; `contentContainerStyle` padding adds to the insets. Read insets with
+  `useWindowInsets()` (works inside modals and native sheets too), not
+  `useSafeAreaInsets()`.
 - **One horizontal inset per screen: `spacing.screenPadding` (16).** Either a
   container pads or its children do, never both. `Item` rows, and `ItemGroup`
   titles and footers, carry the 16 themselves, so a scroll view of
@@ -327,9 +338,10 @@ rows in an `ItemGroup` sit 16 pt in and get 358 pt.
   the group. Pass the rows as direct children (a mapped array works; a
   Fragment counts as one row) and leave `separator` off: the group draws the
   line under every row but the last. A `Switch`, `Checkbox` or `Toggle` in
-  `ItemActions` is named by the row's `ItemTitle` automatically (web
-  `aria-labelledby`, native `accessibilityLabel`); pass `accessibilityLabel`
-  only when the title is not the right name or is not plain text.
+  `ItemActions` is named by the row's `ItemTitle` automatically (its text as
+  `accessibilityLabel` / `aria-label`; a composed title links by id after
+  hydration); pass `accessibilityLabel` only when the title is not the right
+  name.
 - **Forms:** fields span the column, grouped under section headers, not cards.
 - **Primary content fills the width.** QR codes, photos, maps, media, and
   charts size to the column (`width: "100%"` with `aspectRatio`, or a size
@@ -381,6 +393,7 @@ Check this before creating a new app-local primitive. All components come from
 | `Label` | Accessible form labels | Plain styled text labels |
 | `MaxWidthContainer` | Centered responsive width | Per-screen max-width wrappers |
 | `Notification` | Global toast surface | Screen-local toast state |
+| `Screen` | Page container with required safe-area `edges`, one horizontal inset, optional scroll | Hand-rolled `useSafeAreaInsets` padding, `SafeAreaView` per screen |
 | `Popover` | Anchored contextual content | Custom anchored views |
 | `Progress` | Determinate or indeterminate progress | Layout-shifting spinners |
 | `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows |

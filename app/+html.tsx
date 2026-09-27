@@ -1,6 +1,7 @@
 import { Children, isValidElement, type PropsWithChildren, type ReactElement } from "react";
 import { getThemeCssVariables } from "@mrmeg/expo-ui/constants";
 import { ScrollViewStyleReset, useServerDocumentContext } from "expo-router/html";
+import { detectColorSchemeFromRequestScope } from "@/shared/ssrColorScheme";
 
 // This file is web-only and configures the root HTML document for every web
 // page during server rendering. It runs in Node per request (and during
@@ -182,9 +183,11 @@ const NEWSREADER_FONT_FACES = NEWSREADER_SUBSETS.map(
 // bundle boots: it stamps `data-theme` on <html>, which switches the `--c-*`
 // variables above so the whole static shell paints in the right theme on the
 // first frame. (Persisted in-app preference overrides the OS scheme, which
-// the prefers-color-scheme fallback alone cannot know about.)
+// the prefers-color-scheme fallback alone cannot know about.) It also mirrors
+// the resolved scheme into the `color-scheme` cookie `shared/ssrColorScheme.ts`
+// reads, so from the NEXT request on the server renders that theme itself.
 const COLOR_SCHEME_SCRIPT =
-  "(function(){try{var root=document.documentElement;var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;}catch(e){}})()";
+  "(function(){try{var root=document.documentElement;var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;document.cookie=\"color-scheme=\"+resolved+\"; path=/; max-age=31536000; SameSite=Lax\";}catch(e){}})()";
 
 const REACT_SCAN_SCRIPT = `
   (function () {
@@ -207,6 +210,12 @@ export default function Root({ children }: PropsWithChildren) {
   // into document.styleSheets after JS hydrates → FOUC.
   const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
   const cssStyles = getRootCssStyles();
+  // The scheme THIS render was painted with (from the request's `color-scheme`
+  // cookie; absent on a first visit and in the static export). The client's
+  // first render reads it back off <html> — never the cookie, which the
+  // pre-boot script below may have just written for the NEXT request — so
+  // the hydrating tree always matches the HTML. See shared/ssrColorScheme.ts.
+  const ssrScheme = detectColorSchemeFromRequestScope();
 
   // Drop the framework's react-native-stylesheet snapshot from headNodes.
   // It's captured BEFORE route modules load, so it's incomplete (missing any
@@ -231,7 +240,7 @@ export default function Root({ children }: PropsWithChildren) {
   );
 
   return (
-    <html lang="en" {...htmlAttributes}>
+    <html lang="en" data-ssr-scheme={ssrScheme} {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />

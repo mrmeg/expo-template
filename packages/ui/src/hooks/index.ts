@@ -8,3 +8,4 @@ export * from "./useShape";
 export * from "./useStaggeredEntrance";
 export * from "./useTheme";
 export { useHydrated } from "./useHydrated";
+export { useWindowInsets } from "./useWindowInsets";

@@ -908,6 +908,7 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 - Use `Button.preset`, not `variant`.
 - Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36).
 - Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the Button size.
+- Web SSR paints the visitor's scheme: wrap the root layout in `<InitialSchemeProvider scheme>` (`@mrmeg/expo-ui/state`) with the `"light"`/`"dark"` value read from a cookie on both server and client (template: `shared/ssrColorScheme.ts`, written by `+html.tsx` and `client/features/app/colorSchemeCookie.ts`); `useTheme()` uses it until `hasLoadedTheme`. Never read `localStorage` for the first render.
 - Web console hygiene: animate with `useNativeDriver: shouldUseNativeDriver` (`@mrmeg/expo-ui/lib`), never `true`; set `pointerEvents` in `style`, never as a prop (react-native-web deprecates the prop, and its lazy warning module has overflowed the first SSR render of deep routes). `AnimatedView` folds a `pointerEvents` prop into style for you.
 - Haptics are one setting: `<UIProvider haptics="off" | "selection" | "all">` (default `"selection"`: Switch/Checkbox/Toggle/ToggleGroup/SegmentedControl tap on change; `"all"` adds a light tap on press for Button, pressable Card and Item). Do not call `expo-haptics` per control; force one Button with `haptic`. Pressed/disabled looks come from `interaction.pressedOpacity` / `interaction.disabledOpacity` in `@mrmeg/expo-ui/constants`.
 - Use `notify` plus a root `UIProvider` for transient global feedback. (`globalUIStore` stays available for reactive subscriptions and tests. In a component, read it with zustand's `useStore(globalUIStore, selector)`, never `globalUIStore()`: the React Compiler only treats `use*` calls as hooks, caches the bare call, and the next render crashes with React error #311.)
@@ -1033,6 +1034,16 @@ content: a settings group boxed inside a padded screen puts its rows 33 pt from
 each edge (16 screen + 1 border + 16 row) and leaves 324 pt for them; the same
 rows in an `ItemGroup` sit 16 pt in and get 358 pt.
 
+- **Every screen root is `Screen`, with explicit `edges`.** `<Screen
+  edges={["bottom"]} scroll>` under a Stack header; `edges={["top"]}` above a
+  tab bar; `["top", "bottom"]` for a headerless screen or a modal; `[]` when the
+  navigator insets both. Never pad `insets.top` under a header or
+  `insets.bottom` above a tab bar (double padding), and never leave a headerless
+  screen without `"top"` (content under the Dynamic Island). `scroll` puts the
+  insets on the content container; `padded={false}` for full-bleed `ItemGroup`
+  rows; `contentContainerStyle` padding adds to the insets. Read insets with
+  `useWindowInsets()` (works inside modals and native sheets too), not
+  `useSafeAreaInsets()`.
 - **One horizontal inset per screen: `spacing.screenPadding` (16).** Either a
   container pads or its children do, never both. `Item` rows, and `ItemGroup`
   titles and footers, carry the 16 themselves, so a scroll view of
@@ -1047,9 +1058,10 @@ rows in an `ItemGroup` sit 16 pt in and get 358 pt.
   the group. Pass the rows as direct children (a mapped array works; a
   Fragment counts as one row) and leave `separator` off: the group draws the
   line under every row but the last. A `Switch`, `Checkbox` or `Toggle` in
-  `ItemActions` is named by the row's `ItemTitle` automatically (web
-  `aria-labelledby`, native `accessibilityLabel`); pass `accessibilityLabel`
-  only when the title is not the right name or is not plain text.
+  `ItemActions` is named by the row's `ItemTitle` automatically (its text as
+  `accessibilityLabel` / `aria-label`; a composed title links by id after
+  hydration); pass `accessibilityLabel` only when the title is not the right
+  name.
 - **Forms:** fields span the column, grouped under section headers, not cards.
 - **Primary content fills the width.** QR codes, photos, maps, media, and
   charts size to the column (`width: "100%"` with `aspectRatio`, or a size
@@ -1101,6 +1113,7 @@ Check this before creating a new app-local primitive. All components come from
 | `Label` | Accessible form labels | Plain styled text labels |
 | `MaxWidthContainer` | Centered responsive width | Per-screen max-width wrappers |
 | `Notification` | Global toast surface | Screen-local toast state |
+| `Screen` | Page container with required safe-area `edges`, one horizontal inset, optional scroll | Hand-rolled `useSafeAreaInsets` padding, `SafeAreaView` per screen |
 | `Popover` | Anchored contextual content | Custom anchored views |
 | `Progress` | Determinate or indeterminate progress | Layout-shifting spinners |
 | `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows |
@@ -2343,7 +2356,7 @@ The first render runs in Node: no DOM, no browser storage. Five constraints foll
 - **Register styles at module scope.** The framework's head snapshot (`useServerDocumentContext()` → the `<style id="react-native-stylesheet">` node) is taken before route modules load, so later-registered rules are missing and the HTML references classes with no rules — unstyled paint until hydration. It misses whenever the module cache is cold: every dev request, and the first request after a production cold start. `createThemedStyles` hoists rules to module scope. `client/features/app/SsrStyleFlush.tsx` renders last in the root layout, after the whole subtree, so `StyleSheet.getSheet()` sees every rule the page uses; it emits them as a React 19 style resource (`href` + `precedence`) and renders nothing on the client (resources dedupe by `href` outside the reconciled tree, so hydration still matches). The sheet is server-wide and only grows, so the flush caches its serialized text and rebuilds it only after a `StyleSheet.create` call — the one path that adds rules, which the flush counts on the server — so a request that registers new rules still flushes them. Call `create` through `StyleSheet`; a reference captured before the flush module loads bypasses the counter.
 - **The flush doubles atomic selectors** (`hardenFlushedSheet`: `.r-x` → `.r-x.r-x`). React hoists the flushed node into the head preamble, ahead of `app/+html.tsx`, so the client sheet wins ties — required, because the flush carries classic base resets that would zero out client-only atomics. react-native-web fills the client sheet with resets at bundle boot while a route's atomics arrive only with its async chunk; two-class specificity holds the flushed atomics across that gap. Classic `.css-*` resets, element rules, group markers, and keyframes stay single-class so client atomics beat them.
 - **`app/+html.tsx` filters the snapshot.** It drops the framework's `<style id="react-native-stylesheet">` node from `headNodes` and renders exactly one empty element with that id for react-native-web to adopt as its client sheet. Head order: filtered nodes, anchor, scripts. Both sheets are single-class, so keeping the snapshot would let its resets win over later atomics.
-- **Take first-render state off the request.** `shared/ssrViewport.ts` derives a viewport width from a `mrmeg-vw` cookie, then a User-Agent heuristic, then a desktop default (without it react-native-web lays out at width 0). `shared/ssrOnboarding.ts` reads a `has-seen-onboarding` cookie, where only `"1"` counts as seen. Both live in `shared/` because the server render and the browser's first render both run them. Each module exports a request form for loaders (`detectSsrViewportWidth`, `detectOnboardingSeen`) and an ambient form reading `expo-server`'s request scope (`detectSsrViewportFromRequestScope`, `detectOnboardingSeenFromRequestScope`). The app uses the ambient form: both values land in the root layout (`SafeAreaProvider`'s `initialMetrics`, the onboarding gate), and layouts cannot export loaders. `requestHeaders()` throws with no active scope, so both modules try/catch to their default (desktop, `false`). Never cache the viewport in module scope — concurrent requests at different widths would overwrite it. Both cookies mirror client state, not sources of truth: `client/features/app/ssrViewportMetrics.ts` re-derives the same values from the same bytes so hydration matches. A request with no cookies renders the onboarding variant.
+- **Take first-render state off the request.** `shared/ssrViewport.ts` derives a viewport width from a `mrmeg-vw` cookie, then a User-Agent heuristic, then a desktop default (without it react-native-web lays out at width 0). `shared/ssrOnboarding.ts` reads a `has-seen-onboarding` cookie, where only `"1"` counts as seen. `shared/ssrColorScheme.ts` reads a `color-scheme` cookie (`light` | `dark`, the *resolved* scheme — never `system`, which the server could not resolve) that the `+html.tsx` pre-boot script and `client/features/app/colorSchemeCookie.ts` write; the root layout hands it to the kit as `<InitialSchemeProvider scheme>` so `useTheme()` paints that scheme until the persisted preference loads, on the server and in the hydrating client alike. All three live in `shared/` because the server render and the browser's first render both run them. Each module exports a request form for loaders (`detectSsrViewportWidth`, `detectOnboardingSeen`) and an ambient form reading `expo-server`'s request scope (`detectSsrViewportFromRequestScope`, `detectOnboardingSeenFromRequestScope`). The app uses the ambient form: both values land in the root layout (`SafeAreaProvider`'s `initialMetrics`, the onboarding gate), and layouts cannot export loaders. `requestHeaders()` throws with no active scope, so both modules try/catch to their default (desktop, `false`). Never cache the viewport in module scope — concurrent requests at different widths would overwrite it. Both cookies mirror client state, not sources of truth: `client/features/app/ssrViewportMetrics.ts` re-derives the same values from the same bytes so hydration matches. A request with no cookies renders the onboarding variant.
 - **Dev SSR shares one React copy.** Expo externalizes `react` and `react-dom` in `node`/`react-server` dev bundles, so `metro.config.js` skips its dedupe rewrite for those packages there; rewriting them would bundle a second React and give externalized packages a null hooks dispatcher.
 
 Two route-level rules follow. `expo-server` answers every unmatched `GET` with `+not-found` at status 404, so `app/+not-found.tsx` must render a real page — `ErrorScreen` from `client/templates/error/Screen.tsx`, `variant="not-found"`, "Go home" action — not a redirect; a 404 body that bounces to `/` reads as a soft redirect to crawlers. And each web path must map to exactly one route file: the server-side matcher keeps "previous segments" in a process-wide store, so two files matching one path flip between requests. Platform variants like `_layout.web.tsx` are fine.
@@ -2723,6 +2736,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/Popover.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Popover.tsx
 - packages/ui/src/components/Progress.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Progress.tsx
 - packages/ui/src/components/RadioGroup.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/RadioGroup.tsx
+- packages/ui/src/components/Screen.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Screen.tsx
 - packages/ui/src/components/SectionHeader.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/SectionHeader.tsx
 - packages/ui/src/components/SegmentedControl.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/SegmentedControl.tsx
 - packages/ui/src/components/Select.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Select.tsx

@@ -13,7 +13,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { BottomSheet as NativeBottomSheet } from "@expo/ui/community/bottom-sheet";
-import { useSafeAreaInsets, initialWindowMetrics } from "react-native-safe-area-context";
+import { useWindowInsets } from "../hooks/useWindowInsets";
 import { useTheme } from "../hooks/useTheme";
 import { useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
@@ -387,24 +387,13 @@ function useBottomSheetContext() {
 }
 
 /**
- * Safe-area insets for content *inside* the sheet.
- *
- * The native sheet (SwiftUI `.sheet()` / Material `ModalBottomSheet`) is
- * presented outside the React tree's `SafeAreaProvider`, so `useSafeAreaInsets()`
- * reads all-zero in here. Fall back to `initialWindowMetrics` — the same trick
- * the app uses for its full-screen Modals — so bottom padding actually clears
- * the home indicator and the last row of a scroll body is reachable.
+ * Safe-area insets for content *inside* the sheet. The native sheet (SwiftUI
+ * `.sheet()` / Material `ModalBottomSheet`) is presented outside the React
+ * tree's `SafeAreaProvider`, where the provider context reads all-zero;
+ * `useWindowInsets` falls back to `initialWindowMetrics` so bottom padding
+ * clears the home indicator and the last row of a scroll body is reachable.
  */
-function useSheetInsets() {
-  const insets = useSafeAreaInsets();
-  const fallback = initialWindowMetrics?.insets;
-  return {
-    top: insets.top || fallback?.top || 0,
-    bottom: insets.bottom || fallback?.bottom || 0,
-    left: insets.left || fallback?.left || 0,
-    right: insets.right || fallback?.right || 0,
-  };
-}
+const useSheetInsets = useWindowInsets;
 
 /**
  * Interactive (pull-down / backdrop) dismiss is off only when the consumer

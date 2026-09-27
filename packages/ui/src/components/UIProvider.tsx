@@ -1,6 +1,8 @@
 import * as React from "react";
 import { Platform } from "react-native";
 import { useFeedbackStore, type HapticsSetting } from "../state/feedbackStore";
+import { InitialSchemeProvider } from "../state/initialScheme";
+import type { ResolvedTheme } from "../state/themeStore";
 import { PortalHost } from "@rn-primitives/portal";
 import { Notification } from "./Notification";
 import { StatusBar } from "./StatusBar";
@@ -49,6 +51,14 @@ export interface UIProviderProps {
    * @default "selection"
    */
   haptics?: HapticsSetting;
+  /**
+   * The scheme the first render should use before the persisted preference
+   * has been read (a web SSR hint — see `InitialSchemeProvider` in
+   * `@mrmeg/expo-ui/state`). Only reaches `useTheme()` calls BELOW this
+   * provider; a root layout that reads the theme above it should wrap itself
+   * in `InitialSchemeProvider` instead. Native ignores it.
+   */
+  initialScheme?: ResolvedTheme;
 }
 
 export function UIProvider({
@@ -59,6 +69,7 @@ export function UIProvider({
   keyboardAvoiding: keyboardAvoidingProp,
   keyboardAvoidingProps,
   haptics,
+  initialScheme,
 }: UIProviderProps) {
   // Controls read the setting at event time (`hapticPress` / `hapticSelection`),
   // so an effect is early enough; no child renders differently because of it.
@@ -83,11 +94,11 @@ export function UIProvider({
   );
 
   return (
-    <>
+    <InitialSchemeProvider scheme={initialScheme}>
       {content}
       {notification ? <Notification /> : null}
       {portalHost ? <PortalHost /> : null}
       {statusBar ? <StatusBar /> : null}
-    </>
+    </InitialSchemeProvider>
   );
 }

@@ -25,6 +25,8 @@
 
 import React from "react";
 import { Platform, Pressable, Text, View } from "react-native";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
+import { StyleSheet } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
 import { PortalHost } from "@rn-primitives/portal";
@@ -195,6 +197,24 @@ describe("iOS", () => {
     );
     expect(screen.getByTestId("dialog-content")).toBeTruthy();
     expect(screen.getByText("Start trip")).toBeTruthy();
+  });
+
+  it("pads the centered container with the window insets so a tall dialog clears the island and home indicator", async () => {
+    await render(
+      <SafeAreaInsetsContext.Provider value={{ top: 59, bottom: 34, left: 0, right: 0 }}>
+        <View>
+          <Dialog open onOpenChange={jest.fn()}>
+            <DialogContent testID="dialog-content">
+              <DialogTitle>Tall</DialogTitle>
+            </DialogContent>
+          </Dialog>
+          <PortalHost />
+        </View>
+      </SafeAreaInsetsContext.Provider>
+    );
+
+    const container = StyleSheet.flatten(screen.getByTestId("dialog-safe-area").props.style) as Record<string, unknown>;
+    expect(container).toMatchObject({ paddingTop: 59, paddingBottom: 34 });
   });
 
   it("owns keyboard avoidance inside the Modal", async () => {
