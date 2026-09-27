@@ -40,7 +40,7 @@ Verified on `dev` `3474414` (react-native 0.88.0-rc.0, react-native-web 0.21.2):
 - `role="button"` renders a real `<button>` (`dist/modules/AccessibilityUtil/propsToAccessibilityComponent.js`). When `aria-disabled` or `accessibilityDisabled` is true, `dist/modules/createDOMProps/index.js` (~314) also adds the native `disabled` attribute, which blocks clicks and focus.
 - So no prop can produce a `<button aria-disabled="true">` that still clicks; the attribute has to be set on the host node. RNW's `PressResponder` reads only the `role` attribute, never `aria-disabled`, so the attribute does not block presses.
 
-**Refs.** Under React 19, `ref` reaches `ButtonRoot` as a prop and is forwarded to the Pressable through `rest`. `asChild` triggers pass one via `@rn-primitives/slot`, e.g. `client/showcase/details.tsx:245` `<DialogTrigger asChild><Button … /></DialogTrigger>`. The kit has no ref-composition helper: `grep -rn "composeRefs\|mergeRefs" packages/ui/src` is empty. `TextInput.tsx` and `BottomSheet.tsx` already use plain `useLayoutEffect`.
+**Refs.** Under React 19, `ref` reaches `ButtonRoot` as a prop and is forwarded to the Pressable through `rest`. `asChild` triggers pass one via `@rn-primitives/slot`, e.g. `client/showcase/details.tsx:246` `<DialogTrigger asChild><Button … /></DialogTrigger>`. The kit has no ref-composition helper: `grep -rn "composeRefs\|mergeRefs" packages/ui/src` is empty. `TextInput.tsx` and `BottomSheet.tsx` already use plain `useLayoutEffect`.
 
 **Tests.**
 - `packages/ui/src/components/__tests__/Button.test.tsx` uses RNTL with the native renderer and mocks `useScalePress` (`mockScalePressIn`/`mockScalePressOut`, line 77). Its "Accessibility" and "Interactions" blocks are the patterns to extend.
@@ -48,17 +48,11 @@ Verified on `dev` `3474414` (react-native 0.88.0-rc.0, react-native-web 0.21.2):
 - Web tests import `./forceWebPlatform` first. Jest still renders RN's `Pressable`, not RNW's, so the DOM contract is proven by the browser check.
 
 **Showcase and docs.**
-- Showcase: `COMPONENT_DETAILS.Button` in `client/showcase/details.tsx:138` (its variants include `disabled`), served at `/components/Button`.
+- Showcase: `COMPONENT_DETAILS.Button` in `client/showcase/details.tsx:139` (its variants include `disabled`), served at `/components/Button`.
 - Docs: `packages/ui/README.md` "Press feedback and haptics" (~430), the `packages/ui/LLM_USAGE.md` rules (~187–190), and `packages/ui/CHANGELOG.md` `## [Unreleased]`.
 - `Card` and `Item` take fixed props with no `rest` spread, so they are unaffected.
 
-**In flight.** `agent/web-aria-roles-names-and-targets` (fleet worktree `~/.fleet/wt/expo-ui-audit`) edits:
-- `Checkbox`, `Icon`, `Item`, `RadioGroup`, `Switch`, `TextInput`, `Toggle` and `ToggleGroup`;
-- `constants/spacing.ts`;
-- `client/showcase/previews.tsx`;
-- the kit CHANGELOG, README and LLM_USAGE.
-
-Do not touch those component files. Only the docs overlap, and those conflicts are mechanical.
+**In flight.** `web-aria-roles-names-and-targets` merged as #128 (09-27), so branch from current `dev`. The fleet is now on `agent/web-console-hygiene-and-ssr-first-render` (worktree `~/.fleet/wt/expo-ui-audit`). That branch changes `useNativeDriver` in `hooks/useScalePress.ts` and in many components, and `pointerEvents` props, but not `Button.tsx`. It also edits the kit CHANGELOG, README and LLM_USAGE. Leave `useScalePress.ts` alone. Only the docs overlap, and those conflicts are mechanical.
 
 ## Work
 1. **Separate press blocking from the announced state** in `ButtonRoot`. Destructure `accessibilityState` and `"aria-disabled": ariaDisabled` out of the props.
@@ -119,7 +113,7 @@ Write the RED tests first, in `Button.test.tsx` and `Button.haptics.test.tsx`:
 
 ## Merge plan
 - Base: `dev`.
-- If `agent/web-aria-roles-names-and-targets` merges first, merge `origin/dev` into this branch and keep both sides in the CHANGELOG, README and LLM_USAGE hunks.
+- If `agent/web-console-hygiene-and-ssr-first-render` or `agent/ssr-color-scheme-hint` merges first, merge `origin/dev` into this branch and keep both sides in the CHANGELOG, README and LLM_USAGE hunks.
 - Then rerun `bun run docs:llms`.
 
 ## Open questions
