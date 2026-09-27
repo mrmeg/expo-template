@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState, useEffect } from "react";
-import { View, StyleSheet, Pressable, Platform } from "react-native";
+import { View, StyleSheet, Platform } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
@@ -9,6 +9,7 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 import { AuthFormCard } from "./AuthFormCard";
+import { AuthLink } from "./AuthLink";
 import { authFormStyles } from "./authFormStyles";
 
 export interface VerifyEmailFormProps {
@@ -107,11 +108,11 @@ export function VerifyEmailForm({
       description={description ?? t("auth.verifyEmailDescription", { email })}
       footer={
         onBack && (
-          <Pressable accessibilityRole="button" onPress={onBack} disabled={loading}>
+          <AuthLink onPress={onBack} disabled={loading}>
             <SansSerifText size="base" selectable={false} style={shared.linkText}>
               {t("auth.backToSignIn")}
             </SansSerifText>
-          </Pressable>
+          </AuthLink>
         )
       }
     >
@@ -156,20 +157,20 @@ export function VerifyEmailForm({
             {t("auth.resendIn", { count: cooldown })}
           </SansSerifText>
         ) : (
-          <Pressable accessibilityRole="button" onPress={handleResend} disabled={loading || resending}>
+          <AuthLink onPress={handleResend} disabled={loading || resending}>
             <SansSerifBoldText size="base" selectable={false} style={shared.linkText}>
               {resending ? t("auth.sending") : t("auth.resendCodeLink")}
             </SansSerifBoldText>
-          </Pressable>
+          </AuthLink>
         )}
       </View>
 
       {onChangeEmail && (
-        <Pressable accessibilityRole="button" onPress={onChangeEmail} disabled={loading} style={styles.changeEmail}>
+        <AuthLink onPress={onChangeEmail} disabled={loading} style={styles.changeEmail}>
           <SansSerifText size="base" selectable={false} style={shared.hintText}>
             {t("auth.wrongEmail")} <SansSerifBoldText selectable={false} style={styles.changeEmailLink}>{t("auth.changeIt")}</SansSerifBoldText>
           </SansSerifText>
-        </Pressable>
+        </AuthLink>
       )}
     </AuthFormCard>
   );
