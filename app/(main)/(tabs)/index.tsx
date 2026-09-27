@@ -12,7 +12,7 @@
  * clearing the field restores them.
  */
 
-import { Suspense, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { View, StyleSheet, Pressable, ScrollView } from "react-native";
 import { KeyboardAwareScrollView } from "@/client/features/keyboard/platform";
 import { Link } from "expo-router";
@@ -163,9 +163,11 @@ export default function ExploreScreen() {
                     {/* The block owns its own screen-section padding; the
                         spotlight card supplies its own, so override it. */}
                     <View style={styles.passThrough}>
-                      <Suspense fallback={<View style={styles.spotlightStage} />}>
-                        <LazyBlockStage id={spotlight.id} style={styles.spotlightStage} />
-                      </Suspense>
+                      <LazyBlockStage
+                        id={spotlight.id}
+                        style={styles.spotlightStage}
+                        fallback={<View style={styles.spotlightStage} />}
+                      />
                     </View>
                     {/* `.recipe` — the block doubles as a recipe. */}
                     <MonoText size="xs" style={styles.spotlightRecipe}>
@@ -311,13 +313,11 @@ function RailCard({ entry, styles }: { entry: ComponentEntry; styles: ExploreSty
         style={linkPressableStyle(styles.railCard)}
       >
         <View style={[styles.railPreview, styles.passThrough]}>
-          {/* The well has a fixed height, so the lazy fallback costs no layout. */}
-          <Suspense fallback={null}>
-            <LazyPreview
-              id={entry.id}
-              missing={<Icon name="box" size={20} color="mutedForeground" decorative />}
-            />
-          </Suspense>
+          {/* The well has a fixed height, so the client-only preview costs no layout. */}
+          <LazyPreview
+            id={entry.id}
+            missing={<Icon name="box" size={20} color="mutedForeground" decorative />}
+          />
         </View>
         <SansSerifText size="sm" fontWeight="medium" style={styles.railName} numberOfLines={1}>
           {entry.id}

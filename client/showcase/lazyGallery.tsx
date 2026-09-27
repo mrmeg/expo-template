@@ -5,16 +5,22 @@
  * five gallery routes) shares a single async chunk instead of each hoisting the
  * shared previews into `__common`.
  *
- * Every export renders inside a `Suspense` boundary. On the server the import
- * resolves synchronously, so streamed HTML already carries the previews; the
- * browser keeps that markup in place while the chunk downloads and hydrates
- * the boundary when it lands. A client-side navigation shows the fallback for
- * the first fetch only.
+ * Every shell is client-only: it renders its fallback on the server and during
+ * the hydration pass, and mounts the lazy chunk in the first client render
+ * after hydration. The previews used to be server-rendered too, but under Expo
+ * Router's SSR the server renders the app inside `app/+html.tsx` while the
+ * client hydrates `#root`, so React's `useId()` walks a different tree on each
+ * side and every id differs. The kit defers its own ids (`useHydrated`); the
+ * Radix-backed previews (Tabs, Accordion, Collapsible…) emit theirs on both
+ * sides and logged "A tree hydrated but some attributes … didn't match" on
+ * every gallery route. Rendering the cluster only on the client removes the
+ * ids from the server HTML; see `docs/server-guide.md` → "useId diverges".
+ * A client-side navigation shows the fallback for the first fetch only.
  */
 
 import React, { Suspense } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useHydrated, useTheme } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -25,15 +31,44 @@ const loadGallery = () => import("@/client/showcase/gallery");
 
 type GalleryModule = Awaited<ReturnType<typeof loadGallery>>;
 
-/** A live component preview from the registry id, loaded on demand. */
-export const LazyPreview = React.lazy(async () => ({
+/**
+ * Server render and hydration pass: the fallback. First client render after
+ * hydration: the lazy child inside its own `Suspense`, so the chunk request
+ * starts once the tree is live and its ids are the client's.
+ */
+export function ClientOnly({ fallback = null, children }: { fallback?: React.ReactNode; children: React.ReactNode }) {
+  const hydrated = useHydrated();
+  if (!hydrated) return <>{fallback}</>;
+  return <Suspense fallback={fallback}>{children}</Suspense>;
+}
+
+const PreviewLazy = React.lazy(async () => ({
   default: (await loadGallery()).Preview,
 }));
 
-/** A live block stage from the block id, loaded on demand. */
-export const LazyBlockStage = React.lazy(async () => ({
+const BlockStageLazy = React.lazy(async () => ({
   default: (await loadGallery()).BlockStage,
 }));
+
+type ClientOnlyProps = { fallback?: React.ReactNode };
+
+/** A live component preview from the registry id, loaded on demand (client-only). */
+export function LazyPreview({ fallback, ...props }: PreviewProps & ClientOnlyProps) {
+  return (
+    <ClientOnly fallback={fallback}>
+      <PreviewLazy {...props} />
+    </ClientOnly>
+  );
+}
+
+/** A live block stage from the block id, loaded on demand (client-only). */
+export function LazyBlockStage({ fallback, ...props }: BlockStageProps & ClientOnlyProps) {
+  return (
+    <ClientOnly fallback={fallback}>
+      <BlockStageLazy {...props} />
+    </ClientOnly>
+  );
+}
 
 export type { BlockStageProps, PreviewProps };
 
@@ -68,9 +103,9 @@ const SCREENS: Record<GalleryScreenName, React.LazyExoticComponent<GalleryScreen
 export function GalleryRoute({ screen }: { screen: GalleryScreenName }) {
   const Screen = SCREENS[screen];
   return (
-    <Suspense fallback={<GalleryLoading />}>
+    <ClientOnly fallback={<GalleryLoading />}>
       <Screen />
-    </Suspense>
+    </ClientOnly>
   );
 }
 
