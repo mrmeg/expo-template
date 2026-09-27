@@ -79,6 +79,21 @@ export interface ComponentDetail {
 // Controlled-preview wrappers
 // ---------------------------------------------------------------------------
 
+/**
+ * `aria-disabled` keeps the button focusable and pressable while it is
+ * announced and drawn as disabled; the press explains itself instead of
+ * silently doing nothing.
+ */
+function AriaDisabledButton() {
+  const [reason, setReason] = React.useState<string | null>(null);
+  return (
+    <View style={{ alignItems: "flex-start", gap: spacing.xs }}>
+      <Button preset="default" size="sm" text="Publish" aria-disabled onPress={() => setReason("Add a title first")} />
+      {reason ? <CaptionText>{reason}</CaptionText> : null}
+    </View>
+  );
+}
+
 /** `Switch` has no uncontrolled mode; a dead switch would read as broken. */
 function SwitchVariant({ initial, disabled, label }: { initial: boolean; disabled?: boolean; label?: string }) {
   const [checked, setChecked] = React.useState(initial);
@@ -137,7 +152,7 @@ function DialogFormVariant() {
 
 export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
   Button: {
-    summary: "Six presets and three sizes, with loading and full-width states.",
+    summary: "Six presets and three sizes, with loading, disabled and announced-disabled (aria-disabled) states.",
     variants: [
       { label: "default", render: () => <Button preset="default" size="sm" text="Save" /> },
       { label: "outline", render: () => <Button preset="outline" size="sm" text="Cancel" /> },
@@ -147,12 +162,16 @@ export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
       { label: "link", render: () => <Button preset="link" size="sm" text="Learn more" /> },
       { label: "loading", render: () => <Button preset="default" size="sm" text="Saving" loading /> },
       { label: "disabled", render: () => <Button preset="default" size="sm" text="Save" disabled /> },
+      { label: "aria-disabled", render: () => <AriaDisabledButton /> },
     ],
     usage: `<Button
   preset="default"
   text="Save changes"
   onPress={handleSave}
-/>`,
+/>
+
+// Announced and dimmed but still pressable, so the press can say why:
+<Button text="Publish" aria-disabled={!title} onPress={() => (title ? publish() : notify.info("Add a title first"))} />`,
   },
 
   TextInput: {

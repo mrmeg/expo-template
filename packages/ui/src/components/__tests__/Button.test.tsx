@@ -74,8 +74,10 @@ function getAllHostNodes(): TestInstance[] {
   return [root, ...root.queryAll(() => true)];
 }
 
+const mockUseScalePressOptions: Array<Record<string, unknown>> = [];
 jest.mock("../../hooks/useScalePress", () => ({
-  useScalePress: () => ({
+  useScalePress: (options: Record<string, unknown>) => ({
+    ...(mockUseScalePressOptions.push(options) && {}),
     animatedStyle: {},
     pressHandlers: {
       onPressIn: mockScalePressIn,
@@ -356,6 +358,52 @@ describe("Button", () => {
           busy: true,
         })
       );
+    });
+
+    describe("aria-disabled: announced and dimmed, still pressable", () => {
+      it.each([
+        ["aria-disabled", { "aria-disabled": true } as const],
+        ["accessibilityState.disabled", { accessibilityState: { disabled: true } } as const],
+      ])("%s announces disabled, fires onPress and skips the press scale", async (_name, props) => {
+        const onPress = jest.fn();
+        await render(<Button text="Publish" onPress={onPress} {...props} />);
+
+        const button = screen.getByRole("button");
+        expect(button.props.accessibilityState).toEqual(expect.objectContaining({ disabled: true }));
+        // Pressable's own `disabled` stays unset so the press still fires.
+        expect(button.props.disabled).toBeFalsy();
+        await fireEvent.press(button);
+        expect(onPress).toHaveBeenCalledTimes(1);
+        expect(mockUseScalePressOptions.at(-1)).toEqual(expect.objectContaining({ disabled: true }));
+      });
+
+      it("draws the disabled look (opacity, no shadow) like a blocked button", async () => {
+        await render(<Button text="Publish" aria-disabled withShadow />);
+        const dimmed = screen.UNSAFE_root.findAll((node) => {
+          if (typeof node.type !== "string") return false;
+          const style = StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined;
+          return style?.opacity === 0.5;
+        });
+        expect(dimmed.length).toBeGreaterThan(0);
+        const style = StyleSheet.flatten(dimmed[0].props.style) as Record<string, unknown>;
+        expect(style.boxShadow ?? style.shadowOpacity).toBeUndefined();
+      });
+
+      it("keeps blocking presses under `disabled` even with aria-disabled={false}", async () => {
+        const onPress = jest.fn();
+        await render(<Button text="Save" disabled aria-disabled={false} onPress={onPress} />);
+        const button = screen.getByRole("button");
+        expect(button.props.disabled).toBe(true);
+        await fireEvent.press(button);
+        expect(onPress).not.toHaveBeenCalled();
+      });
+
+      it("merges a consumer accessibilityState instead of replacing it", async () => {
+        await render(<Button text="Tab" loading accessibilityState={{ selected: true }} />);
+        expect(screen.getByRole("button").props.accessibilityState).toEqual(
+          expect.objectContaining({ selected: true, busy: true, disabled: true })
+        );
+      });
     });
   });
 
