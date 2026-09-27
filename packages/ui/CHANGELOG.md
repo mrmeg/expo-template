@@ -7,6 +7,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`InitialSchemeProvider` / `useInitialScheme()`** (`@mrmeg/expo-ui/state`)
+  and **`<UIProvider initialScheme>`**: a first-render scheme hint. `useTheme()`
+  renders the hinted `"light"` / `"dark"` until the store's `hasLoadedTheme`
+  is true, then the persisted preference and OS scheme as before. For web SSR:
+  an app that knows the visitor's scheme on both sides (the template mirrors
+  it into a `color-scheme` cookie the server reads from the request and the
+  browser from `document.cookie`) paints dark HTML for dark visitors and
+  hydrates without a flash or a scheme-dependent mismatch. Mount it above the
+  first `useTheme()` caller — the root layout usually reads the theme for the
+  navigation `ThemeProvider`, so wrap the layout, not only `UIProvider`. Native
+  never hydrates and ignores it; without a hint nothing changes.
 - **`Screen`, the page container.** `<Screen edges={["bottom"]} scroll padded>`
   pads the safe-area insets of the edges it owns (`edges` is required, so a
   screen never double-pads under a navigator header or above a tab bar), adds

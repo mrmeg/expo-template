@@ -105,6 +105,13 @@ export default function RootLayout() {
 }
 ```
 
+On web with server rendering, tell the kit the visitor's scheme for the first
+render: `<InitialSchemeProvider scheme={cookieScheme}>` around the root layout
+(or `<UIProvider initialScheme>` when nothing above it reads the theme), where
+`cookieScheme` is `"light"` / `"dark"` read from the same cookie on the server
+and the client — see the template's `shared/ssrColorScheme.ts`. `useTheme()`
+paints it until the persisted preference has loaded.
+
 `UIProvider` is required before `Dialog`, `AlertDialog`, `BottomSheet`,
 `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, and package
 notifications.

@@ -13,7 +13,8 @@ import { colors } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { useResources } from "@mrmeg/expo-ui/hooks";
 import { newsreaderFontMap } from "@/client/lib/fonts/newsreaderFonts";
-import { syncThemeFromEnvironment, SsrViewportContext } from "@mrmeg/expo-ui/state";
+import { InitialSchemeProvider, syncThemeFromEnvironment, SsrViewportContext } from "@mrmeg/expo-ui/state";
+import { startColorSchemeCookieSync, useSsrColorScheme } from "@/client/features/app/colorSchemeCookie";
 import { UIProvider } from "@mrmeg/expo-ui/components/UIProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -82,7 +83,23 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * The scheme the first render paints, from the `color-scheme` cookie the
+ * server and the browser both read (see shared/ssrColorScheme.ts). Wrapped
+ * around the whole layout — not just `UIProvider` — because the layout itself
+ * reads the theme below for the navigation `ThemeProvider`; a hint that only
+ * covered the app subtree would leave the navigator light.
+ */
 export default function RootLayout() {
+  const initialScheme = useSsrColorScheme();
+  return (
+    <InitialSchemeProvider scheme={initialScheme}>
+      <RootLayoutContent />
+    </InitialSchemeProvider>
+  );
+}
+
+function RootLayoutContent() {
   // Initialize English synchronously, during render, so i18next is ready for
   // the very first render of any screen (effects run too late, and web's HTML
   // shell is rendered in Node at export time where effects never run at all).
@@ -129,6 +146,10 @@ export default function RootLayout() {
   useEffect(() => {
     return syncThemeFromEnvironment();
   }, []);
+
+  // Keep the `color-scheme` cookie on the resolved scheme so the NEXT server
+  // render paints the visitor's theme (client/features/app/colorSchemeCookie.ts).
+  useEffect(() => startColorSchemeCookieSync(), []);
 
   // Hide splash screen once the full startup gate has resolved — fonts, i18n,
   // onboarding persistence, and (when configured) auth bootstrap.
