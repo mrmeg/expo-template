@@ -283,6 +283,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A quiet web console, and a clean first server render.** Every kit
+  animation passed `useNativeDriver: true`, which RN's Animated on web answers
+  with "`useNativeDriver` is not supported…" per animation; they now use
+  `shouldUseNativeDriver` (`@mrmeg/expo-ui/lib`, already `Platform.OS !==
+  "web"`). Overlay layers in `Popover`, `Tooltip`, `Select`, `DropdownMenu` and
+  the `SegmentedControl` pill passed the deprecated `pointerEvents` *prop*;
+  react-native-web logs "props.pointerEvents is deprecated" for it and lazily
+  `require`s its warning module inside `createDOMProps` — on the dev server's
+  first SSR render of a deep route (the template's `/` and `/showcase`) that
+  module load overflowed the stack and the page fell back to client rendering.
+  They now set `style.pointerEvents`. `AnimatedView` still accepts the
+  `pointerEvents` prop but folds it into `style`; a source-contract test
+  (`src/__tests__/webConsoleContracts.test.ts`) keeps both out of the kit.
 - **`ToggleGroup` items no longer put `aria-checked` on a `button`** on web:
   the rn-primitives web item hard-codes `role='button'` before spreading
   props, so Radix's radio role was lost while its `aria-checked` survived. The

@@ -14,10 +14,11 @@ import type { Theme } from "../constants/colors";
 import { translateText } from "../lib/i18n";
 import { createThemedStyles } from "../lib/themedStyles";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
+import { shouldUseNativeDriver } from "../lib/animations";
 import { globalUIStore } from "../state/globalUIStore";
 
-const timingIn = { duration: durations.fast, easing: Easing.out(Easing.quad), useNativeDriver: true };
-const timingOut = { duration: durations.instant, easing: Easing.in(Easing.quad), useNativeDriver: true };
+const timingIn = { duration: durations.fast, easing: Easing.out(Easing.quad), useNativeDriver: shouldUseNativeDriver };
+const timingOut = { duration: durations.instant, easing: Easing.in(Easing.quad), useNativeDriver: shouldUseNativeDriver };
 
 /**
  * Run an action's handler, then dismiss, even when the handler throws. A

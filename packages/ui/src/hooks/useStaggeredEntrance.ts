@@ -3,6 +3,7 @@ import { Animated, Easing } from "react-native";
 import { useReducedMotion } from "./useReduceMotion";
 import { durations } from "../constants/motion";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
+import { shouldUseNativeDriver } from "../lib/animations";
 
 type EntranceType = "fade" | "fadeSlideUp" | "fadeSlideDown" | "scale";
 
@@ -99,7 +100,7 @@ export function useStaggeredEntrance(options: StaggeredEntranceOptions = {}) {
     const timingConfig = {
       duration,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: shouldUseNativeDriver,
     };
 
     const animations = [
@@ -124,7 +125,7 @@ export function useStaggeredEntrance(options: StaggeredEntranceOptions = {}) {
           toValue: 1,
           damping: 14,
           stiffness: 250,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         })
       );
     }

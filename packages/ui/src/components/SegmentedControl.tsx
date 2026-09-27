@@ -17,6 +17,7 @@ import { hapticSelection } from "../lib/haptics";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
+import { shouldUseNativeDriver } from "../lib/animations";
 import { StyledText } from "./StyledText";
 
 /**
@@ -165,7 +166,7 @@ function WebSegmentedControl({ values, selectedIndex, disabled, tintColor, onSel
       toValue: selectedIndex,
       duration: reduceMotion ? 0 : 200,
       easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
+      useNativeDriver: shouldUseNativeDriver,
     }).start();
   }, [position, reduceMotion, selectedIndex]);
 
@@ -197,8 +198,8 @@ function WebSegmentedControl({ values, selectedIndex, disabled, tintColor, onSel
     >
       {segmentWidth > 0 && (
         <Animated.View
-          pointerEvents="none"
           style={{
+            pointerEvents: "none",
             position: "absolute",
             top: PILL_INSET,
             bottom: PILL_INSET,

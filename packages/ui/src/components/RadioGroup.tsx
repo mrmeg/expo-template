@@ -9,6 +9,7 @@ import { hapticLight } from "../lib/haptics";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
+import { shouldUseNativeDriver } from "../lib/animations";
 import * as RadioGroupPrimitive from "@rn-primitives/radio-group";
 
 const DEFAULT_HIT_SLOP = 8;
@@ -168,7 +169,7 @@ function RadioGroupItem({
     Animated.timing(dotScale, {
       toValue: isChecked ? 1 : 0,
       duration: reduceMotion ? 0 : 60,
-      useNativeDriver: true,
+      useNativeDriver: shouldUseNativeDriver,
     }).start();
   }, [isChecked, reduceMotion, dotScale]);
 

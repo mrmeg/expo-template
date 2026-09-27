@@ -998,7 +998,7 @@ const MediaTile = memo(function MediaTile({
         )}
 
         {/* Selection ring: drawn over the image so selecting doesn't resize it */}
-        {isSelected && <View pointerEvents="none" style={styles.selectedRing} />}
+        {isSelected && <View style={styles.selectedRing} />}
 
         <View style={[styles.tileControl, styles.tileCheckbox]}>
           <Checkbox
@@ -1172,6 +1172,7 @@ const createStyles = (theme: Theme) =>
     },
     selectedRing: {
       ...StyleSheet.absoluteFill,
+      pointerEvents: "none",
       borderRadius: spacing.radiusSm,
       borderWidth: 3,
       borderColor: theme.colors.primary,

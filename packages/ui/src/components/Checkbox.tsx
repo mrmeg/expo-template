@@ -10,6 +10,7 @@ import { interaction } from "../constants/interaction";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
+import { shouldUseNativeDriver } from "../lib/animations";
 import * as CheckboxPrimitive from "@rn-primitives/checkbox";
 import { useItemControlLabel } from "./Item";
 
@@ -92,7 +93,7 @@ function Checkbox({
       Animated.timing(checkOpacity, {
         toValue: nextVisible ? 1 : 0,
         duration: reduceMotion ? 0 : 60,
-        useNativeDriver: true,
+        useNativeDriver: shouldUseNativeDriver,
       }).start();
     },
     [checkOpacity, reduceMotion],

@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import { Animated } from "react-native";
 import { hapticLight, hapticPress } from "../lib/haptics";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
+import { shouldUseNativeDriver } from "../lib/animations";
 import { useReducedMotion } from "./useReduceMotion";
 
 interface ScalePressOptions {
@@ -79,7 +80,7 @@ export function useScalePress(options: ScalePressOptions = {}) {
         toValue,
         damping,
         stiffness,
-        useNativeDriver: true,
+        useNativeDriver: shouldUseNativeDriver,
       }).start();
     },
     [damping, reduceMotion, scale, stiffness],

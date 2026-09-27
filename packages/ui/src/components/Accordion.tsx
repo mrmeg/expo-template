@@ -8,6 +8,7 @@ import { useScalePress } from "../hooks/useScalePress";
 import { useFocusVisible } from "../hooks/useFocusVisible";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { spacing } from "../constants/spacing";
+import { shouldUseNativeDriver } from "../lib/animations";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
 
 type BaseAccordionRootProps = Omit<React.ComponentProps<typeof View>, "style"> &
@@ -244,7 +245,7 @@ function AccordionTrigger({
     Animated.timing(rotation, {
       toValue: target,
       duration: reduceMotion ? 0 : isExpanded ? 200 : 150,
-      useNativeDriver: true,
+      useNativeDriver: shouldUseNativeDriver,
     }).start();
   }, [isExpanded, reduceMotion, rotation]);
 

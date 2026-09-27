@@ -61,6 +61,7 @@ export function AnimatedView({
   enterDuration = 200,
   delay = 0,
   style,
+  pointerEvents,
   ...props
 }: AnimatedViewProps) {
   const entranceStyle = useStaggeredEntrance({
@@ -69,8 +70,11 @@ export function AnimatedView({
     duration: enterDuration,
   });
 
+  // The `pointerEvents` prop is deprecated on web (react-native-web warns and
+  // lazily loads its warning module mid-render, which overflowed the first SSR
+  // render of deep routes); keep accepting it for consumers, but as a style.
   return (
-    <Animated.View style={[style, entranceStyle]} {...props}>
+    <Animated.View style={[style, pointerEvents ? { pointerEvents } : null, entranceStyle]} {...props}>
       {children}
     </Animated.View>
   );
