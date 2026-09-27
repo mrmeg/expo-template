@@ -12,6 +12,7 @@ import { ActivityIndicator, Platform, StyleProp, StyleSheet, View, ViewStyle, An
 import { StyledText } from "./StyledText";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
+import { useItemControlLabel } from "./Item";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -76,6 +77,9 @@ function Switch({
   });
 
   const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
+  // Inside an Item row with no label of its own, the switch is named by the
+  // row title (aria-labelledby on web, accessibilityLabel on native).
+  const rowLabel = useItemControlLabel(props);
 
   // Fire haptic on user-initiated toggles (skip initial mount)
   const wrappedOnCheckedChange = useCallback(
@@ -149,6 +153,7 @@ function Switch({
   return (
     <Animated.View style={scaleStyle}>
     <SwitchPrimitives.Root
+      {...rowLabel}
       {...props}
       onCheckedChange={wrappedOnCheckedChange}
       onPressIn={pressHandlers.onPressIn}

@@ -7,6 +7,7 @@ import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
 import { hapticSelection } from "../lib/haptics";
 import { useScalePress } from "../hooks/useScalePress";
+import { useItemControlLabel } from "./Item";
 import * as TogglePrimitive from "@rn-primitives/toggle";
 import { Platform, StyleSheet, ViewStyle, ActivityIndicator, StyleProp, Animated } from "react-native";
 import type { IconName } from "./Icon";
@@ -123,6 +124,9 @@ interface ToggleProps extends Omit<TogglePrimitive.RootProps, "style"> {
  * </Toggle>
  * ```
  */
+// Dev-only, once per session: the same unnamed toggle re-renders constantly.
+let warnedIconOnly = false;
+
 function Toggle({
   variant = "default",
   size = "default",
@@ -184,12 +188,31 @@ function Toggle({
   };
 
   const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
+  const rowLabel = useItemControlLabel(props);
+
+  if (
+    process.env.NODE_ENV !== "production" &&
+    iconOnly &&
+    !warnedIconOnly &&
+    props.accessibilityLabel === undefined &&
+    props["aria-label"] === undefined &&
+    props["aria-labelledby"] === undefined &&
+    rowLabel.accessibilityLabel === undefined &&
+    rowLabel["aria-labelledby"] === undefined
+  ) {
+    warnedIconOnly = true;
+    console.warn(
+      "Toggle: an icon-only toggle (`iconOnly`) has no accessible name. Pass `accessibilityLabel` " +
+        "(what the toggle turns on, e.g. \"Bold\") so screen readers announce more than \"button\".",
+    );
+  }
 
   return (
     <TextColorContext.Provider value={textColor}>
       <TextClassContext.Provider value="">
         <Animated.View style={scaleStyle}>
         <TogglePrimitive.Root
+          {...rowLabel}
           {...props}
           disabled={isDisabled}
           onPressedChange={handlePressedChange}

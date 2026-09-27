@@ -154,7 +154,55 @@ describe("Checkbox", () => {
   it("uses radiusXs for the box (steps down from radiusSm post radius-rebase to avoid an over-rounded control)", async () => {
     await render(<Checkbox checked={false} onCheckedChange={() => {}} />);
 
-    const checkbox = screen.getByRole("checkbox");
-    expect(checkbox.props.style.borderRadius).toBe(spacing.radiusXs);
+    // The control (role) wraps the drawn box, which carries the radius.
+    const box = screen.getByRole("checkbox").children[0] as unknown as { props: { style: { borderRadius: number } } };
+    expect(box.props.style.borderRadius).toBe(spacing.radiusXs);
+  });
+});
+
+describe("Checkbox as one control with a 24px web target", () => {
+  it("exposes a single checkbox role when a label is given, named by the label", async () => {
+    await render(<Checkbox checked={false} onCheckedChange={() => {}} label="Remember me" />);
+
+    const boxes = screen.getAllByRole("checkbox");
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0].props.accessibilityLabel).toBe("Remember me");
+  });
+
+  it("still toggles when the label text is pressed", async () => {
+    const onCheckedChange = jest.fn();
+    await render(<Checkbox checked={false} onCheckedChange={onCheckedChange} label="Remember me" />);
+
+    await fireEvent.press(screen.getByText("Remember me"));
+    expect(onCheckedChange).toHaveBeenCalledWith(true);
+  });
+
+  describe("on web", () => {
+    const { Platform, StyleSheet } = jest.requireActual("react-native");
+    const originalOS = Platform.OS;
+    beforeAll(() => {
+      Platform.OS = "web";
+    });
+    afterAll(() => {
+      Platform.OS = originalOS;
+    });
+
+    it("gives the control a hit box of at least spacing.minTarget (WCAG 2.5.8) without growing the row", async () => {
+      await render(<Checkbox checked={false} onCheckedChange={() => {}} size="md" />);
+
+      const style = StyleSheet.flatten(screen.getByRole("checkbox").props.style);
+      expect(style.minWidth).toBeGreaterThanOrEqual(spacing.minTarget);
+      expect(style.minHeight).toBeGreaterThanOrEqual(spacing.minTarget);
+      // md draws a 20px box: the extra 4px sit in negative margins so layouts don't shift.
+      expect(style.margin).toBe(-(spacing.minTarget - 20) / 2);
+    });
+
+    it("leaves a control that already meets the minimum alone", async () => {
+      await render(<Checkbox checked={false} onCheckedChange={() => {}} size="lg" />);
+
+      const style = StyleSheet.flatten(screen.getByRole("checkbox").props.style);
+      expect(style.minWidth).toBe(24);
+      expect(style.margin ?? 0).toBe(0);
+    });
   });
 });

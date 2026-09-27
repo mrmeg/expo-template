@@ -473,6 +473,7 @@ function WebTextInput({
               name={passwordVisible ? "eye-off" : "eye"}
               size={spacing.iconSm + 4}
               color="textDim"
+              decorative
             />
           </Pressable>
         )}
@@ -975,6 +976,7 @@ function NativeTextInput({
               name={passwordVisible ? "eye-off" : "eye"}
               size={spacing.iconSm + 4}
               color="textDim"
+              decorative
             />
           </Pressable>
         )}

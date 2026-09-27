@@ -44,12 +44,18 @@ type IconBaseProps = {
   color?: string | ThemeColorName;
   /** Additional styles for positioning, transforms, etc. */
   style?: StyleProp<TextStyle>;
-  /** When true, hides the icon from the accessibility tree. @default false */
+  /**
+   * Hides the icon from the accessibility tree. An icon with no
+   * `accessibilityLabel` is already hidden (see below), so this is only
+   * needed to silence a labelled icon. @default false
+   */
   decorative?: boolean;
   /**
-   * What the icon means, for a non-decorative icon that stands alone (no
-   * visible label next to it). `aria-label` on web, `accessibilityLabel` on
-   * native. Omit it when the icon sits beside text that already says it.
+   * What the icon means, for an icon that stands alone (no visible label next
+   * to it): `role="img"` + `aria-label` on web, `accessible` +
+   * `accessibilityLabel` on native. Omit it when the icon sits beside text
+   * that already says it — an unlabeled icon is hidden from assistive tech,
+   * which would otherwise announce an unnamed image.
    */
   accessibilityLabel?: string;
 };
@@ -71,13 +77,18 @@ type IconAccessibilityProps = Pick<
  * `importantForAccessibility`, `accessibilityElementsHidden`) surface as
  * "unknown prop" warnings on every page. Web gets ARIA only; native keeps
  * the RN props.
+ *
+ * Only a labelled icon is exposed. An icon without a label used to render as
+ * an unnamed `role="img"` (web) or an `accessible` element with nothing to
+ * say (native) — dozens per screen, each a WCAG 1.1.1 failure — so no label
+ * now means decorative.
  */
 function iconAccessibilityProps(decorative: boolean, label: string | undefined): IconAccessibilityProps {
+  const hidden = decorative || label === undefined;
   if (Platform.OS === "web") {
-    if (decorative) return { "aria-hidden": true };
-    return label === undefined ? { role: "img" } : { role: "img", "aria-label": label };
+    return hidden ? { "aria-hidden": true } : { role: "img", "aria-label": label };
   }
-  if (decorative) {
+  if (hidden) {
     return {
       accessible: false,
       importantForAccessibility: "no-hide-descendants",
@@ -85,7 +96,7 @@ function iconAccessibilityProps(decorative: boolean, label: string | undefined):
       "aria-hidden": true,
     };
   }
-  return label === undefined ? { accessible: true } : { accessible: true, accessibilityLabel: label };
+  return { accessible: true, accessibilityLabel: label };
 }
 
 /**

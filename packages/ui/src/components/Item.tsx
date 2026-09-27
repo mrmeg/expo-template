@@ -1,4 +1,4 @@
-import React, { Children, createContext, isValidElement, use } from "react";
+import React, { Children, createContext, isValidElement, use, useId } from "react";
 import {
   View,
   Pressable,
@@ -31,6 +31,86 @@ interface ItemGroupRow {
 const ItemGroupRowContext = createContext<ItemGroupRow | null>(null);
 const SEPARATED_ROW: ItemGroupRow = { separator: true };
 const LAST_ROW: ItemGroupRow = { separator: false };
+
+/**
+ * What a row tells the controls inside it: the id its `ItemTitle` renders
+ * under (`nativeID`, so web `aria-labelledby` can point at it) and the title's
+ * text when it is a plain string (what native `accessibilityLabel` needs).
+ */
+export interface ItemLabel {
+  titleId: string;
+  title: string | undefined;
+}
+
+const ItemLabelContext = createContext<ItemLabel | null>(null);
+/** True inside `ItemContent`, where the row's title lives. */
+const ItemContentContext = createContext(false);
+
+/**
+ * The title text of a row, read synchronously from its element tree: the
+ * first `ItemTitle` inside `ItemContent` whose children are strings (or
+ * numbers). Composed titles (`<ItemTitle>{name} <Badge/></ItemTitle>`) give
+ * `undefined`; web still links by id, native then needs an explicit label.
+ */
+function titleText(children: React.ReactNode): string | undefined {
+  for (const child of Children.toArray(children)) {
+    if (!isValidElement<{ children?: React.ReactNode }>(child)) continue;
+    if (child.type === ItemContent) {
+      for (const inner of Children.toArray(child.props.children)) {
+        if (isValidElement<{ children?: React.ReactNode }>(inner) && inner.type === ItemTitle) {
+          const parts = Children.toArray(inner.props.children);
+          if (parts.length > 0 && parts.every((part) => typeof part === "string" || typeof part === "number")) {
+            return parts.join("");
+          }
+          return undefined;
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The row label a control inside an `Item` can borrow, or `null` outside a
+ * row. `Switch`, `Checkbox` and `Toggle` use it when they have no label of
+ * their own: `aria-labelledby={titleId}` on web, `accessibilityLabel={title}`
+ * on native. Apps composing their own controls can do the same.
+ */
+export function useItemLabel(): ItemLabel | null {
+  return use(ItemLabelContext);
+}
+
+type OwnLabelProps = {
+  accessibilityLabel?: string;
+  "aria-label"?: string;
+  "aria-labelledby"?: string;
+  accessibilityLabelledBy?: string | string[];
+};
+
+/**
+ * Accessibility props a control inside an `Item` should spread when it has no
+ * label of its own — its own props always win, so this returns `{}` whenever
+ * any label prop is set, or outside a row. Web links to the title by id (no
+ * text is copied, so a title edit stays in one place); native gets the title
+ * text as `accessibilityLabel` (VoiceOver has no labelled-by) plus
+ * `accessibilityLabelledBy` for TalkBack.
+ */
+export function useItemControlLabel(own: OwnLabelProps): OwnLabelProps {
+  const label = use(ItemLabelContext);
+  if (
+    !label ||
+    own.accessibilityLabel !== undefined ||
+    own["aria-label"] !== undefined ||
+    own["aria-labelledby"] !== undefined ||
+    own.accessibilityLabelledBy !== undefined
+  ) {
+    return {};
+  }
+  if (Platform.OS === "web") return { "aria-labelledby": label.titleId };
+  return label.title === undefined
+    ? { accessibilityLabelledBy: label.titleId }
+    : { accessibilityLabel: label.title, accessibilityLabelledBy: label.titleId };
+}
 
 /**
  * Where a row's hairline starts: under the title when the row leads with an
@@ -91,6 +171,9 @@ export function Item({ children, onPress, disabled, separator, style }: ItemProp
   const { theme, getFocusRingStyle } = useTheme();
   const groupRow = use(ItemGroupRowContext);
   const showSeparator = separator ?? groupRow?.separator ?? false;
+  const titleId = useId();
+  const title = titleText(children);
+  const label = React.useMemo<ItemLabel>(() => ({ titleId, title }), [titleId, title]);
   const { animatedStyle, pressHandlers } = useScalePress({
     disabled: !onPress || !!disabled,
     scaleTo: 0.98,
@@ -99,7 +182,7 @@ export function Item({ children, onPress, disabled, separator, style }: ItemProp
 
   const row = (
     <View style={[styles.row, style]}>
-      {children}
+      <ItemLabelContext.Provider value={label}>{children}</ItemLabelContext.Provider>
     </View>
   );
 
@@ -298,7 +381,11 @@ export interface ItemContentProps {
  * content). Sits between `ItemMedia` and `ItemActions`.
  */
 export function ItemContent({ children, style }: ItemContentProps) {
-  return <View style={[styles.content, style]}>{children}</View>;
+  return (
+    <View style={[styles.content, style]}>
+      <ItemContentContext.Provider value={true}>{children}</ItemContentContext.Provider>
+    </View>
+  );
 }
 
 /**
@@ -307,8 +394,14 @@ export function ItemContent({ children, style }: ItemContentProps) {
  * `Item` row title — label weight (medium) at body size.
  */
 export function ItemTitle({ children, style, ...props }: TextProps) {
+  // The row's title (the one inside ItemContent) carries the id the row hands
+  // to its controls; titles used elsewhere (ItemMedia initials, a value in
+  // ItemActions) render without it.
+  const label = use(ItemLabelContext);
+  const inContent = use(ItemContentContext);
+  const nativeID = inContent && label ? label.titleId : undefined;
   return (
-    <StyledText size="body" fontWeight="medium" {...props} style={style}>
+    <StyledText size="body" fontWeight="medium" nativeID={nativeID} {...props} style={style}>
       {children}
     </StyledText>
   );

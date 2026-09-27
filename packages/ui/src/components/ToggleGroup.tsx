@@ -144,9 +144,17 @@ function ToggleGroup({
     return child;
   });
 
+  // The web primitive's Root/Item render generic roles (Radix's `group`, then
+  // `role='button'` on every item) while Radix still emits `aria-checked` for a
+  // single-select item — invalid on a button. Name the roles the way native
+  // already does: a radiogroup of radios, or a group of (aria-pressed) buttons.
+  const webRoles =
+    Platform.OS === "web" ? { role: props.type === "single" ? ("radiogroup" as const) : ("group" as const) } : undefined;
+
   return (
     <ToggleGroupPrimitive.Root
       {...props}
+      {...webRoles}
       onValueChange={handleValueChange}
       style={{
         flexDirection: "row",
@@ -190,7 +198,10 @@ function ToggleGroupItem({
 }: ToggleGroupItemProps) {
   const { theme, withAlpha, getContrastingColor, getFocusRingStyle } = useTheme();
   const context = useToggleGroupContext();
-  const { value: groupValue } = ToggleGroupPrimitive.useRootContext();
+  const { value: groupValue, type: groupType } = ToggleGroupPrimitive.useRootContext();
+  // See ToggleGroup: give the web item the role its aria state is valid on.
+  const webRole =
+    Platform.OS === "web" ? { role: groupType === "single" ? ("radio" as const) : ("button" as const) } : undefined;
   const sizeConfig = TOGGLE_GROUP_SIZES[context.size];
   const focusRingStyle = getFocusRingStyle();
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
@@ -222,6 +233,7 @@ function ToggleGroupItem({
         <Animated.View style={scaleStyle}>
         <ToggleGroupPrimitive.Item
           {...props}
+          {...webRole}
           onPressIn={pressHandlers.onPressIn}
           onPressOut={pressHandlers.onPressOut}
           onFocus={showFocusRing}

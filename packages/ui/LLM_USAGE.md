@@ -324,7 +324,10 @@ rows in an `ItemGroup` sit 16 pt in and get 358 pt.
   targets, hairlines inset under the title, no card per row, no border around
   the group. Pass the rows as direct children (a mapped array works; a
   Fragment counts as one row) and leave `separator` off: the group draws the
-  line under every row but the last.
+  line under every row but the last. A `Switch`, `Checkbox` or `Toggle` in
+  `ItemActions` is named by the row's `ItemTitle` automatically (web
+  `aria-labelledby`, native `accessibilityLabel`); pass `accessibilityLabel`
+  only when the title is not the right name or is not plain text.
 - **Forms:** fields span the column, grouped under section headers, not cards.
 - **Primary content fills the width.** QR codes, photos, maps, media, and
   charts size to the column (`width: "100%"` with `aspectRatio`, or a size
@@ -391,7 +394,7 @@ Check this before creating a new app-local primitive. All components come from
 | `Switch` | Binary settings | Custom toggle switches |
 | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | In-page tabbed views | Custom segmented/tab controls |
 | `TextInput` | Text entry with label, helper/error text, clear, password reveal | Raw `TextInput` plus repeated label/error code |
-| `Toggle`, `ToggleIcon` | Pressed/unpressed control | Button with local selected styling |
+| `Toggle`, `ToggleIcon` | Pressed/unpressed control; an `iconOnly` toggle needs `accessibilityLabel` (dev warns once) | Button with local selected styling |
 | `ToggleGroup`, `ToggleGroupItem`, `ToggleGroupIcon` | Single or multi toggle groups | Custom segmented controls |
 | `Tooltip` | Short hover/focus help | Persistent helper text or custom hover cards |
 
@@ -420,7 +423,7 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 - A plain `View` whose `opacity`/`pointerEvents` follows state must be `collapsable={false}` on Android (Fabric re-parents its children on the flip; a flip racing a navigation pop crashes). Package surfaces are pinned; spread `stateSurfaceProps()` from `@mrmeg/expo-ui/lib` on app-owned ones. `Pressable` already pins itself.
 - `TextInput` `onBlur` fires only after a real focus on Android (the native field's first-composition blur is dropped in the package); validate on blur directly and do not add a touched-fields guard in app code.
 - `Drawer.Header` takes `icon`, `title`, and `action` slots for a compact app-brand row; put `Drawer.ToggleCollapse` in `action` for a trailing rail control. `Drawer.Content` owns safe-area top/bottom padding — do not duplicate it in children.
-- `Icon` and `Button.Icon` take `name` (a kebab-case name from the package registry, typed `IconName`) or `component` (any Lucide import such as `import House from "lucide-react-native/icons/house"`, or another SVG component taking `size` and `color`). Both are sized, colored with theme tokens, and hidden by `decorative` the same way; `Button.Icon` inherits the button's label color and is decorative by default. Use `component` for icons outside the registry instead of rendering raw Lucide components.
+- `Icon` and `Button.Icon` take `name` (a kebab-case name from the package registry, typed `IconName`) or `component` (any Lucide import such as `import House from "lucide-react-native/icons/house"`, or another SVG component taking `size` and `color`). Both are sized, colored with theme tokens, and hidden from assistive tech unless `accessibilityLabel` names a standalone icon (`decorative` only silences a labelled one); `Button.Icon` inherits the button's label color and is decorative by default. Use `component` for icons outside the registry instead of rendering raw Lucide components.
 
 ## Minimal Examples
 

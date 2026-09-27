@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useId } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform, Animated } from "react-native";
 import { Icon } from "./Icon";
 import { StyledText } from "./StyledText";
@@ -11,6 +11,7 @@ import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
 import * as CheckboxPrimitive from "@rn-primitives/checkbox";
+import { useItemControlLabel } from "./Item";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -121,9 +122,26 @@ function Checkbox({
   // Flatten style override for web compatibility
   const flattenedStyle = styleOverride ? StyleSheet.flatten(styleOverride) : undefined;
 
+  // The primitive Root is the ONE control (role, state, name); the visual box
+  // is a child so the control can be larger than what it draws. On web, where
+  // `hitSlop` does nothing, a 16/20px box is below the 24px WCAG 2.5.8 minimum,
+  // so the control grows to `spacing.minTarget` and takes the extra back in
+  // negative margins — the row's layout does not move.
+  const hitSize = Platform.OS === "web" ? Math.max(sizeConfig.size, spacing.minTarget) : sizeConfig.size;
+  const hitOverflow = (hitSize - sizeConfig.size) / 2;
+  const labelId = useId();
+  const rowLabel = useItemControlLabel({ ...props, accessibilityLabel: label });
+  const labelLink =
+    label !== undefined
+      ? Platform.OS === "web"
+        ? { "aria-labelledby": labelId }
+        : { accessibilityLabel: label, accessibilityLabelledBy: labelId }
+      : rowLabel;
+
   const checkboxElement = (
     <Animated.View style={scaleStyle}>
       <CheckboxPrimitive.Root
+        {...labelLink}
         {...props}
         checked={checked}
         onCheckedChange={wrappedOnCheckedChange}
@@ -133,15 +151,11 @@ function Checkbox({
         onFocus={showFocusRing}
         onBlur={hideFocusRing}
         style={{
-          ...styles.box,
-          borderColor,
-          backgroundColor: isVisuallyChecked ? theme.colors.primary : theme.colors.background,
-          width: sizeConfig.size,
-          height: sizeConfig.size,
-          opacity: disabled ? 0.5 : 1,
+          ...styles.control,
+          minWidth: hitSize,
+          minHeight: hitSize,
+          ...(hitOverflow > 0 && { margin: -hitOverflow }),
           ...(Platform.OS === "web" && { cursor: disabled ? "not-allowed" : ("pointer" as any) }),
-          ...(focused && !disabled ? focusRingStyle : null),
-          ...(flattenedStyle || {}),
         }}
         hitSlop={DEFAULT_HIT_SLOP}
         accessibilityRole="checkbox"
@@ -149,30 +163,42 @@ function Checkbox({
           checked: indeterminate ? "mixed" : checked,
           disabled: !!disabled,
         }}
-        accessibilityLabel={label}
       >
-        <CheckboxPrimitive.Indicator
+        <View
           style={{
-            justifyContent: "center",
-            alignItems: "center",
+            ...styles.box,
+            borderColor,
+            backgroundColor: isVisuallyChecked ? theme.colors.primary : theme.colors.background,
+            width: sizeConfig.size,
+            height: sizeConfig.size,
+            opacity: disabled ? 0.5 : 1,
+            ...(focused && !disabled ? focusRingStyle : null),
+            ...(flattenedStyle || {}),
           }}
         >
-          <Animated.View style={{ opacity: checkOpacity }}>
-            {indeterminate ? (
-              <Icon
-                name="minus"
-                size={sizeConfig.iconSize}
-                color={theme.colors.primaryForeground}
-              />
-            ) : (
-              <Icon
-                name="check"
-                size={sizeConfig.iconSize}
-                color={theme.colors.primaryForeground}
-              />
-            )}
-          </Animated.View>
-        </CheckboxPrimitive.Indicator>
+          <CheckboxPrimitive.Indicator
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Animated.View style={{ opacity: checkOpacity }}>
+              {indeterminate ? (
+                <Icon
+                  name="minus"
+                  size={sizeConfig.iconSize}
+                  color={theme.colors.primaryForeground}
+                />
+              ) : (
+                <Icon
+                  name="check"
+                  size={sizeConfig.iconSize}
+                  color={theme.colors.primaryForeground}
+                />
+              )}
+            </Animated.View>
+          </CheckboxPrimitive.Indicator>
+        </View>
       </CheckboxPrimitive.Root>
     </Animated.View>
   );
@@ -182,22 +208,21 @@ function Checkbox({
     return checkboxElement;
   }
 
-  // With label, wrap in a container
+  // With a label, a non-accessible wrapper extends the tap area to the text.
+  // It carries no role or state: the primitive Root above is the only control
+  // a screen reader meets, and it points at the label text by id.
   return (
     <Pressable
       onPress={() => !disabled && wrappedOnCheckedChange(!checked)}
       style={[styles.container, labelStyle]}
       disabled={disabled}
-      accessibilityRole="checkbox"
-      accessibilityState={{
-        checked: indeterminate ? "mixed" : checked,
-        disabled: !!disabled,
-      }}
-      accessibilityLabel={label}
+      accessible={false}
+      focusable={false}
     >
       {checkboxElement}
       <View style={styles.labelContainer}>
         <StyledText
+          nativeID={labelId}
           selectable={false}
           style={[
             styles.label,
@@ -217,6 +242,10 @@ function Checkbox({
 }
 
 const styles = /*#__PURE__*/ StyleSheet.create({
+  control: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
   box: {
     // radiusXs (not radiusSm) — at the checkbox's 16-24px sizes, radiusSm
     // post-rebase (8px) reads as over-rounded; radiusXs keeps the same

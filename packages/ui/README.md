@@ -297,6 +297,7 @@ everywhere at once:
 | `rowMinHeight` | 40 | Visual row height on web; native rows keep `touchTarget` |
 | `formRowMinHeight` | 32 | Checkbox and radio rows on web; native keeps `touchTarget` |
 | `touchTarget` | 44 | Minimum native hit area; pair a smaller visual height with `hitSlop` |
+| `minTarget` | 24 | Smallest pointer target the kit draws on web (WCAG 2.5.8); `Checkbox`/`RadioGroup` grow their hit box to it around a smaller drawn box |
 
 Controls size themselves from their own `size` prop and ignore these tokens:
 `Button` 28/32/40 (`sm`/`md`/`lg`), `TextInput` and `Select` 32/36/40
@@ -316,7 +317,9 @@ built from this package are flat:
   a bordered, shadowed, or tinted rounded panel. Separate sections with a
   header, `spacing.sectionSpacing`, or a hairline (`Separator`).
 - **Lists and settings are `ItemGroup` + `Item`:** plain full-width rows,
-  inset hairlines, no card per row, no border around the group.
+  inset hairlines, no card per row, no border around the group. A `Switch`,
+  `Checkbox` or `Toggle` in `ItemActions` takes its accessible name from the
+  row's `ItemTitle` (`useItemControlLabel` does the same for a custom control).
 - **Forms:** fields span the column, grouped under section headers.
 - **Primary content fills the width.** Photos, video, maps, QR codes, and
   charts size to the column (`width: "100%"` plus `aspectRatio`), never a
@@ -717,11 +720,12 @@ Feather in the same 24px, 2px round-stroke style. `name` is typed by
 (`src/components/icon-names.json`, about 150 names), so only the icons the package
 and its consumers name ship in the bundle: the root `lucide-react-native`
 entry (1,800+ icons) is never imported. `color` takes a theme color name or a
-literal; `decorative` hides the glyph from assistive tech, and
-`accessibilityLabel` names an icon that stands alone (`aria-label` on web,
-`accessibilityLabel` on native; leave it off next to text that already says
-it). On web the SVG carries ARIA only (`aria-hidden` or `role="img"`), never
-the RN-only accessibility props. Instead of `name`,
+literal. `accessibilityLabel` names an icon that stands alone (`role="img"` +
+`aria-label` on web, `accessible` + `accessibilityLabel` on native); an icon
+without one is hidden from assistive tech — the glyph beside text that already
+says it would otherwise be announced as an unnamed image — and `decorative`
+only remains to silence a labelled icon. On web the SVG carries ARIA only
+(`aria-hidden` or `role="img"`), never the RN-only accessibility props. Instead of `name`,
 `Icon` and `Button.Icon` take `component`: any Lucide import (or another SVG
 component that accepts `size` and `color`), sized, colored, themed, and hidden
 from assistive tech exactly like a named icon. `Button.Icon` defaults its

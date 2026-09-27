@@ -94,10 +94,10 @@ function SwitchPreview({ initial }: { initial: boolean }) {
   return <Switch checked={checked} onCheckedChange={setChecked} />;
 }
 
-function TogglePreview({ icon, initial }: { icon: IconName; initial: boolean }) {
+function TogglePreview({ icon, label, initial }: { icon: IconName; label: string; initial: boolean }) {
   const [pressed, setPressed] = React.useState(initial);
   return (
-    <Toggle pressed={pressed} onPressedChange={setPressed} size="sm" iconOnly>
+    <Toggle pressed={pressed} onPressedChange={setPressed} size="sm" iconOnly accessibilityLabel={label}>
       <Icon name={icon} size={14} color={pressed ? "foreground" : "mutedForeground"} />
     </Toggle>
   );
@@ -171,9 +171,9 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
 
   Toggle: () => (
     <Row gap={spacing.xs}>
-      <TogglePreview icon="bold" initial />
-      <TogglePreview icon="italic" initial={false} />
-      <TogglePreview icon="underline" initial={false} />
+      <TogglePreview icon="bold" label="Bold" initial />
+      <TogglePreview icon="italic" label="Italic" initial={false} />
+      <TogglePreview icon="underline" label="Underline" initial={false} />
     </Row>
   ),
 
