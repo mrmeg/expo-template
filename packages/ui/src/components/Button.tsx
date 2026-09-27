@@ -84,6 +84,12 @@ export interface ButtonAccessoryProps {
 
 export interface ButtonProps extends PressableProps {
   /**
+   * Reaches the underlying `Pressable`. React 19 passes `ref` as a prop; the
+   * button composes it with its own host ref (web `aria-disabled`), so
+   * `asChild` slots and consumers keep theirs.
+   */
+  ref?: React.Ref<React.ComponentRef<typeof Pressable>>;
+  /**
    * Text which is looked up via i18n.
    */
   tx?: TextProps["tx"];
@@ -320,13 +326,14 @@ function ButtonRoot(props: ButtonProps) {
   // focus). So the announced-but-pressable state is set on the host node
   // itself, after mount — on a server-rendered page it appears at hydration.
   // When presses are blocked RNW owns the attribute and this stays out.
-  const hostRef = useRef<{ setAttribute?: (n: string, v: string) => void; removeAttribute?: (n: string) => void } | null>(null);
+  type DomLike = { setAttribute?: (n: string, v: string) => void; removeAttribute?: (n: string) => void };
+  const hostRef = useRef<React.ComponentRef<typeof Pressable> | null>(null);
   const pressBlockedRef = useRef(pressBlocked);
   pressBlockedRef.current = pressBlocked;
   const announceOnly = isDisabled && !pressBlocked;
   useLayoutEffect(() => {
     if (Platform.OS !== "web" || !announceOnly) return;
-    const node = hostRef.current;
+    const node = hostRef.current as unknown as DomLike | null;
     if (!node?.setAttribute) return;
     node.setAttribute("aria-disabled", "true");
     return () => {

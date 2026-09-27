@@ -379,21 +379,23 @@ describe("Button", () => {
 
       it("draws the disabled look (opacity, no shadow) like a blocked button", async () => {
         await render(<Button text="Publish" aria-disabled withShadow />);
-        const dimmed = screen.UNSAFE_root.findAll((node) => {
-          if (typeof node.type !== "string") return false;
-          const style = StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined;
-          return style?.opacity === 0.5;
-        });
-        expect(dimmed.length).toBeGreaterThan(0);
-        const style = StyleSheet.flatten(dimmed[0].props.style) as Record<string, unknown>;
-        expect(style.boxShadow ?? style.shadowOpacity).toBeUndefined();
+        // Walk up from the label to the surface that carries the disabled opacity.
+        let node: TestInstance | null = screen.getByText("Publish") as unknown as TestInstance;
+        let style: Record<string, unknown> | undefined;
+        for (let depth = 0; node && depth < 8; depth++) {
+          const flat = StyleSheet.flatten(node.props?.style) as Record<string, unknown> | undefined;
+          if (flat?.opacity === 0.5) { style = flat; break; }
+          node = node.parent as TestInstance | null;
+        }
+        expect(style).toBeDefined();
+        expect(style?.boxShadow ?? style?.shadowOpacity).toBeUndefined();
       });
 
       it("keeps blocking presses under `disabled` even with aria-disabled={false}", async () => {
         const onPress = jest.fn();
         await render(<Button text="Save" disabled aria-disabled={false} onPress={onPress} />);
         const button = screen.getByRole("button");
-        expect(button.props.disabled).toBe(true);
+        expect(button.props.accessibilityState).toEqual(expect.objectContaining({ disabled: true }));
         await fireEvent.press(button);
         expect(onPress).not.toHaveBeenCalled();
       });
