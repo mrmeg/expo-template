@@ -1,8 +1,9 @@
 import { Platform } from "react-native";
 import { NativeTabs } from "expo-router/native-tabs";
 import Feather from "@expo/vector-icons/Feather";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useNotificationOffset, useTheme } from "@mrmeg/expo-ui/hooks";
 import { NAV_DESTINATIONS } from "@/client/features/navigation/navDestinations";
+import { useNativeTabBarOffset } from "@/client/features/navigation/tabBarMetrics";
 import { useKeyboardVisible } from "@/client/features/keyboard/platform";
 
 /**
@@ -35,6 +36,12 @@ export default function TabLayout() {
   // Reveal only after keyboard dismissal completes: a transient hide/show
   // during input focus handoff must not trigger tab-bar layout mid-transition.
   const keyboardVisible = useKeyboardVisible();
+
+  // Bottom toasts (`notify(..., { position: "bottom" })`) render in the root
+  // layout, above this navigator, so tell them where the tab bar ends. While
+  // the bar is hidden behind the keyboard the toast returns to the inset.
+  const tabBarOffset = useNativeTabBarOffset();
+  useNotificationOffset(keyboardVisible ? null : { bottom: tabBarOffset });
 
   // On Android the selected icon is drawn on top of the accent indicator
   // pill, so it must use the accent's *contrast* color — accent-on-accent

@@ -5,6 +5,7 @@ import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { globalUIStore } from "../../state/globalUIStore";
 import { spacing } from "../../constants/spacing";
 import { Notification } from "../Notification";
+import { useNotificationOffset } from "../../hooks/useNotificationOffset";
 
 jest.mock("../../hooks/useReduceMotion", () => ({
   useReducedMotion: () => true,
@@ -111,6 +112,81 @@ describe("Notification placement", () => {
       </SafeAreaInsetsContext.Provider>,
     );
     expect(containerStyle().bottom).toBe(34 + spacing.sm);
+  });
+
+  function RegisterOffset({ offset }: { offset: { top?: number; bottom?: number } | null }) {
+    useNotificationOffset(offset);
+    return null;
+  }
+
+  it("sits 8pt above a registered bottom offset (a tab bar) instead of the inset", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Bottom", position: "bottom" });
+    });
+    await render(
+      <SafeAreaInsetsContext.Provider value={ISLAND}>
+        <RegisterOffset offset={{ bottom: 83 }} />
+        <Notification />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(containerStyle().bottom).toBe(83 + spacing.sm);
+  });
+
+  it("sits 8pt below a registered top offset", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Top" });
+    });
+    await render(
+      <SafeAreaInsetsContext.Provider value={ISLAND}>
+        <RegisterOffset offset={{ top: 100 }} />
+        <Notification />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(containerStyle().top).toBe(100 + spacing.sm);
+  });
+
+  it("keeps the inset when the registered offset is smaller, and the largest registrant wins", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Bottom", position: "bottom" });
+    });
+    await render(
+      <SafeAreaInsetsContext.Provider value={ISLAND}>
+        <RegisterOffset offset={{ bottom: 20 }} />
+        <RegisterOffset offset={{ bottom: 60 }} />
+        <RegisterOffset offset={{ bottom: 40 }} />
+        <Notification />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(containerStyle().bottom).toBe(60 + spacing.sm);
+  });
+
+  it("drops the offset when the registering screen unmounts or passes null", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Bottom", position: "bottom" });
+    });
+    const { rerender } = await render(
+      <SafeAreaInsetsContext.Provider value={ISLAND}>
+        <RegisterOffset offset={{ bottom: 83 }} />
+        <Notification />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(containerStyle().bottom).toBe(83 + spacing.sm);
+
+    await rerender(
+      <SafeAreaInsetsContext.Provider value={ISLAND}>
+        <RegisterOffset offset={null} />
+        <Notification />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(containerStyle().bottom).toBe(34 + spacing.sm);
+
+    await rerender(
+      <SafeAreaInsetsContext.Provider value={ISLAND}>
+        <Notification />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(containerStyle().bottom).toBe(34 + spacing.sm);
+    expect(globalUIStore.getState().notificationOffsets).toEqual({});
   });
 
   it("keeps 20pt from the edge when no inset is known (no provider, web)", async () => {
