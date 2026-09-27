@@ -1,6 +1,9 @@
 import React from "react";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { globalUIStore } from "../../state/globalUIStore";
+import { spacing } from "../../constants/spacing";
 import { Notification } from "../Notification";
 
 jest.mock("../../hooks/useReduceMotion", () => ({
@@ -73,5 +76,57 @@ describe("Notification", () => {
     expect(screen.getByText("Saved")).toBeTruthy();
     expect(screen.getByText("Your changes are live.")).toBeTruthy();
     expect(screen.queryByText("Retry")).toBeNull();
+  });
+});
+
+describe("Notification placement", () => {
+  const ISLAND = { top: 59, bottom: 34, left: 0, right: 0 };
+  // The Animated.View carries the role but is not an accessibility element, so
+  // RNTL's role query skips it; find the host view by its props instead.
+  const containerStyle = () => {
+    const nodes = screen.UNSAFE_root.findAllByProps({ accessibilityRole: "alert" });
+    const host = nodes.find((node) => typeof node.type === "string") ?? nodes[0];
+    return StyleSheet.flatten(host.props.style) as Record<string, unknown>;
+  };
+
+  afterEach(async () => {
+    cleanup();
+    globalUIStore.setState({ alert: null });
+  });
+
+  it("sits 8pt below the Dynamic Island inset for a top toast", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Top" });
+    });
+    await render(
+      <SafeAreaInsetsContext.Provider value={ISLAND}>
+        <Notification />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(containerStyle().top).toBe(59 + spacing.sm);
+  });
+
+  it("sits 8pt above the home indicator for a bottom toast", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Bottom", position: "bottom" });
+    });
+    await render(
+      <SafeAreaInsetsContext.Provider value={ISLAND}>
+        <Notification />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(containerStyle().bottom).toBe(34 + spacing.sm);
+  });
+
+  it("keeps 20pt from the edge when no inset is known (no provider, web)", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Plain" });
+    });
+    await render(
+      <SafeAreaInsetsContext.Provider value={null}>
+        <Notification />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(containerStyle().top).toBe(20);
   });
 });
