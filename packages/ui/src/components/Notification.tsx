@@ -248,6 +248,7 @@ export const Notification = () => {
 
   return (
     <Animated.View
+      testID="ui-notification"
       accessibilityLiveRegion="polite"
       accessibilityRole="alert"
       style={[

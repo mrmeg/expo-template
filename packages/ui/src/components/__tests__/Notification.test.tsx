@@ -81,13 +81,8 @@ describe("Notification", () => {
 
 describe("Notification placement", () => {
   const ISLAND = { top: 59, bottom: 34, left: 0, right: 0 };
-  // The Animated.View carries the role but is not an accessibility element, so
-  // RNTL's role query skips it; find the host view by its props instead.
-  const containerStyle = () => {
-    const nodes = screen.UNSAFE_root.findAllByProps({ accessibilityRole: "alert" });
-    const host = nodes.find((node) => typeof node.type === "string") ?? nodes[0];
-    return StyleSheet.flatten(host.props.style) as Record<string, unknown>;
-  };
+  const containerStyle = () =>
+    StyleSheet.flatten(screen.getByTestId("ui-notification").props.style) as Record<string, unknown>;
 
   afterEach(async () => {
     cleanup();
