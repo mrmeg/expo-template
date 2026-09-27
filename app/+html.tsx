@@ -1,6 +1,7 @@
 import { Children, isValidElement, type PropsWithChildren, type ReactElement } from "react";
 import { getThemeCssVariables } from "@mrmeg/expo-ui/constants";
 import { ScrollViewStyleReset, useServerDocumentContext } from "expo-router/html";
+import { detectColorSchemeFromRequestScope } from "@/shared/ssrColorScheme";
 
 // This file is web-only and configures the root HTML document for every web
 // page during server rendering. It runs in Node per request (and during
@@ -209,6 +210,12 @@ export default function Root({ children }: PropsWithChildren) {
   // into document.styleSheets after JS hydrates → FOUC.
   const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
   const cssStyles = getRootCssStyles();
+  // The scheme THIS render was painted with (from the request's `color-scheme`
+  // cookie; absent on a first visit and in the static export). The client's
+  // first render reads it back off <html> — never the cookie, which the
+  // pre-boot script below may have just written for the NEXT request — so
+  // the hydrating tree always matches the HTML. See shared/ssrColorScheme.ts.
+  const ssrScheme = detectColorSchemeFromRequestScope();
 
   // Drop the framework's react-native-stylesheet snapshot from headNodes.
   // It's captured BEFORE route modules load, so it's incomplete (missing any
@@ -233,7 +240,7 @@ export default function Root({ children }: PropsWithChildren) {
   );
 
   return (
-    <html lang="en" {...htmlAttributes}>
+    <html lang="en" data-ssr-scheme={ssrScheme} {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />

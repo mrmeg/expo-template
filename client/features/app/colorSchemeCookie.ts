@@ -44,15 +44,27 @@ export function startColorSchemeCookieSync(): () => void {
 }
 
 /**
- * The scheme the FIRST render must use on web — server and client alike: the
- * server reads the cookie off Expo Server's request scope, the browser off
- * `document.cookie`, the same bytes, so the hydrated tree matches the HTML.
- * `undefined` (no cookie yet, native) leaves the kit's default in place.
+ * The scheme the FIRST render must use on web — server and client alike. The
+ * server reads the `color-scheme` cookie off Expo Server's request scope and
+ * `app/+html.tsx` stamps what it used on `<html data-ssr-scheme>`; the browser
+ * reads that attribute back, never the cookie: the pre-boot script may have
+ * just written the cookie for the NEXT request, and a hint the server did not
+ * paint with would mismatch at hydration. `undefined` (no cookie yet, the
+ * static export, native) leaves the kit's default in place.
  */
-export function readColorSchemeCookie(): SsrColorScheme | undefined {
+export function readSsrColorScheme(): SsrColorScheme | undefined {
   if (Platform.OS !== "web") return undefined;
-  if (typeof document !== "undefined") return parseColorSchemeCookie(document.cookie);
+  if (typeof document !== "undefined") {
+    const stamped = document.documentElement?.dataset?.ssrScheme;
+    return stamped === "light" || stamped === "dark" ? stamped : undefined;
+  }
   return detectColorSchemeFromRequestScope();
+}
+
+/** The cookie as the browser sees it (diagnostics; the first render uses `readSsrColorScheme`). */
+export function readColorSchemeCookie(): SsrColorScheme | undefined {
+  if (Platform.OS !== "web" || typeof document === "undefined") return undefined;
+  return parseColorSchemeCookie(document.cookie);
 }
 
 /**
@@ -61,6 +73,6 @@ export function readColorSchemeCookie(): SsrColorScheme | undefined {
  * one request's scheme into another's render.
  */
 export function useSsrColorScheme(): SsrColorScheme | undefined {
-  const [scheme] = useState(readColorSchemeCookie);
+  const [scheme] = useState(readSsrColorScheme);
   return scheme;
 }

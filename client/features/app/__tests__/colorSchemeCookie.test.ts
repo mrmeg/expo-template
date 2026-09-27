@@ -7,6 +7,7 @@ import { useThemeStore } from "@mrmeg/expo-ui/state";
 
 import {
   readColorSchemeCookie,
+  readSsrColorScheme,
   startColorSchemeCookieSync,
   writeColorSchemeCookie,
 } from "../colorSchemeCookie";
@@ -18,6 +19,7 @@ beforeAll(() => {
   Object.defineProperty(globalThis, "document", {
     configurable: true,
     value: {
+      documentElement: { dataset: {} as Record<string, string | undefined> },
       get cookie() {
         return cookieJar;
       },
@@ -85,5 +87,27 @@ describe("readColorSchemeCookie", () => {
     Platform.OS = "ios";
     cookieJar = "color-scheme=dark";
     expect(readColorSchemeCookie()).toBeUndefined();
+  });
+});
+
+describe("readSsrColorScheme (the first-render hint)", () => {
+  const dataset = () => (globalThis.document as unknown as { documentElement: { dataset: Record<string, string | undefined> } }).documentElement.dataset;
+  afterEach(() => {
+    delete dataset().ssrScheme;
+  });
+
+  it("reads what the server stamped on <html>, not the cookie the pre-boot script just wrote", () => {
+    cookieJar = "color-scheme=dark"; // written for the NEXT request
+    expect(readSsrColorScheme()).toBeUndefined(); // this render was painted without a hint
+    dataset().ssrScheme = "dark";
+    expect(readSsrColorScheme()).toBe("dark");
+  });
+
+  it("ignores garbage and is undefined off web", () => {
+    dataset().ssrScheme = "system";
+    expect(readSsrColorScheme()).toBeUndefined();
+    dataset().ssrScheme = "dark";
+    Platform.OS = "ios";
+    expect(readSsrColorScheme()).toBeUndefined();
   });
 });
