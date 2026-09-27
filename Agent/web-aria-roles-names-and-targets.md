@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/128
 ---
 
 # Web ARIA roles, names and hit targets for the form controls
@@ -50,7 +50,7 @@ Write the RED tests first (kit): ToggleGroup web roles (single → radio, multip
 
 ## Out of scope
 - Publishing or bumping `@mrmeg/expo-ui`; adopting the changes in consumer apps.
-- `Tabs` trigger heights (the 16 px reading came from scaled previews; the trigger itself is 36 px).
+- ~~`Tabs` trigger heights~~ — the `/showcase` measurement proved the 16 px trigger real (`flex: 1` in the column wrapper collapsed the declared height); fixed in the PR.
 - Console warnings (`useNativeDriver`, `pointerEvents`) and the SSR first-render overflow — separate spec.
 
 ## Open questions
