@@ -1,4 +1,4 @@
-import React, { createContext, use, useEffect, useState } from "react";
+import React, { createContext, use, useEffect, useId, useState } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform, Animated } from "react-native";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
@@ -185,9 +185,24 @@ function RadioGroupItem({
 
   const flattenedStyle = styleOverride ? StyleSheet.flatten(styleOverride) : undefined;
 
+  // The primitive Item is the ONE control; the drawn circle is a child so the
+  // control can be bigger than it looks. `hitSlop` is inert on web, where a
+  // 16/20px circle sits under the 24px WCAG 2.5.8 minimum: the control grows
+  // to `spacing.minTarget` and takes the extra back in negative margins.
+  const hitSize = Platform.OS === "web" ? Math.max(sizeConfig.outer, spacing.minTarget) : sizeConfig.outer;
+  const hitOverflow = (hitSize - sizeConfig.outer) / 2;
+  const labelId = useId();
+  const labelLink =
+    label !== undefined
+      ? Platform.OS === "web"
+        ? { "aria-labelledby": labelId }
+        : { accessibilityLabel: label, accessibilityLabelledBy: labelId }
+      : undefined;
+
   const radioElement = (
     <Animated.View style={scaleStyle}>
       <RadioGroupPrimitive.Item
+        {...labelLink}
         {...props}
         value={itemValue}
         disabled={disabled}
@@ -197,35 +212,43 @@ function RadioGroupItem({
         onFocus={showFocusRing}
         onBlur={hideFocusRing}
         style={{
-          ...styles.radio,
-          borderColor,
-          backgroundColor: theme.colors.background,
-          borderRadius: sizeConfig.outer / 2,
-          borderWidth: sizeConfig.borderWidth,
-          width: sizeConfig.outer,
-          height: sizeConfig.outer,
-          opacity: disabled ? 0.5 : 1,
+          ...styles.control,
+          minWidth: hitSize,
+          minHeight: hitSize,
+          ...(hitOverflow > 0 && { margin: -hitOverflow }),
           ...(Platform.OS === "web" && { cursor: disabled ? "not-allowed" : ("pointer" as any) }),
-          ...(focused && !disabled ? focusRingStyle : null),
-          ...(flattenedStyle || {}),
         }}
         hitSlop={DEFAULT_HIT_SLOP}
-        accessibilityLabel={label}
       >
-        {/* Render the dot outside the Indicator so animation works on both
-            mount and unmount. The primitive Item already handles aria-checked
-            and accessibility state for screen readers. */}
-        <Animated.View
-          style={[
-            { transform: [{ scale: dotScale }] },
-            {
-              width: sizeConfig.inner,
-              height: sizeConfig.inner,
-              borderRadius: sizeConfig.inner / 2,
-              backgroundColor: theme.colors.primary,
-            },
-          ]}
-        />
+        <View
+          style={{
+            ...styles.radio,
+            borderColor,
+            backgroundColor: theme.colors.background,
+            borderRadius: sizeConfig.outer / 2,
+            borderWidth: sizeConfig.borderWidth,
+            width: sizeConfig.outer,
+            height: sizeConfig.outer,
+            opacity: disabled ? 0.5 : 1,
+            ...(focused && !disabled ? focusRingStyle : null),
+            ...(flattenedStyle || {}),
+          }}
+        >
+          {/* Render the dot outside the Indicator so animation works on both
+              mount and unmount. The primitive Item already handles aria-checked
+              and accessibility state for screen readers. */}
+          <Animated.View
+            style={[
+              { transform: [{ scale: dotScale }] },
+              {
+                width: sizeConfig.inner,
+                height: sizeConfig.inner,
+                borderRadius: sizeConfig.inner / 2,
+                backgroundColor: theme.colors.primary,
+              },
+            ]}
+          />
+        </View>
       </RadioGroupPrimitive.Item>
     </Animated.View>
   );
@@ -235,7 +258,9 @@ function RadioGroupItem({
     return radioElement;
   }
 
-  // With label, wrap in a pressable row — tapping the label selects the item
+  // With a label, a non-accessible wrapper extends the tap area to the text;
+  // the primitive Item above stays the only radio a screen reader meets, and
+  // it points at the label text by id.
   return (
     <Pressable
       onPress={() => {
@@ -246,16 +271,13 @@ function RadioGroupItem({
       }}
       style={[styles.container, labelStyle]}
       disabled={disabled}
-      accessibilityRole="radio"
-      accessibilityState={{
-        checked: isChecked,
-        disabled: !!disabled,
-      }}
-      accessibilityLabel={label}
+      accessible={false}
+      focusable={false}
     >
       {radioElement}
       <View style={styles.labelContainer}>
         <StyledText
+          nativeID={labelId}
           selectable={false}
           style={[
             styles.label,
@@ -275,6 +297,10 @@ function RadioGroupItem({
 }
 
 const styles = /*#__PURE__*/ StyleSheet.create({
+  control: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
   radio: {
     justifyContent: "center",
     alignItems: "center",

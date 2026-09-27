@@ -42,10 +42,12 @@ describe("Icon on web", () => {
     expect(props).not.toHaveProperty("aria-hidden");
   });
 
-  it("omits aria-label when no label is given", () => {
+  it("hides an unlabeled icon like a decorative one (no unnamed role=img)", () => {
     const props = propsOf(<Icon name="mic" />, "icon-mic");
-    expect(props.role).toBe("img");
+    expect(props["aria-hidden"]).toBe(true);
+    expect(props).not.toHaveProperty("role");
     expect(props).not.toHaveProperty("aria-label");
+    for (const key of RN_ONLY) expect(props).not.toHaveProperty(key);
   });
 
   it("hands a component icon the same web props", () => {

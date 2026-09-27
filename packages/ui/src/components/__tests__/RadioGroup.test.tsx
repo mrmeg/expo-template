@@ -49,3 +49,43 @@ describe("RadioGroup", () => {
     errorSpy.mockRestore();
   });
 });
+
+describe("RadioGroup.Item as one control with a 24px web target", () => {
+  it("exposes one radio role per labelled item, named by its label", async () => {
+    await render(
+      <RadioGroup value="a" onValueChange={() => {}}>
+        <RadioGroup.Item value="a" label="Alpha" />
+        <RadioGroup.Item value="b" label="Bravo" />
+      </RadioGroup>,
+    );
+
+    const radios = screen.getAllByRole("radio");
+    expect(radios).toHaveLength(2);
+    expect(radios.map((r) => r.props.accessibilityLabel)).toEqual(["Alpha", "Bravo"]);
+  });
+
+  describe("on web", () => {
+    const { Platform, StyleSheet } = jest.requireActual("react-native");
+    const { spacing } = jest.requireActual("../../constants/spacing");
+    const originalOS = Platform.OS;
+    beforeAll(() => {
+      Platform.OS = "web";
+    });
+    afterAll(() => {
+      Platform.OS = originalOS;
+    });
+
+    it("gives each radio a hit box of at least spacing.minTarget without growing the row", async () => {
+      await render(
+        <RadioGroup value="a" onValueChange={() => {}} size="md">
+          <RadioGroup.Item value="a" />
+        </RadioGroup>,
+      );
+
+      const style = StyleSheet.flatten(screen.getByRole("radio").props.style);
+      expect(style.minWidth).toBeGreaterThanOrEqual(spacing.minTarget);
+      expect(style.minHeight).toBeGreaterThanOrEqual(spacing.minTarget);
+      expect(style.margin).toBe(-(spacing.minTarget - 20) / 2);
+    });
+  });
+});

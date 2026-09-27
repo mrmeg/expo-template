@@ -38,6 +38,7 @@ export const spacing = {
   cardPadding: 16,       // Default card / stat card padding
   dialogPadding: 20,     // Default dialog / alert dialog padding
   touchTarget: 44,       // Minimum comfortable native touch target
+  minTarget: 24,         // Smallest pointer target the kit draws on web (WCAG 2.5.8 minimum)
 
   // Component-specific
   buttonPadding: 10,      // Default button padding
@@ -87,6 +88,7 @@ export const {
   cardPadding,
   dialogPadding,
   touchTarget,
+  minTarget,
   buttonPadding,
   inputPadding,
   listItemSpacing,

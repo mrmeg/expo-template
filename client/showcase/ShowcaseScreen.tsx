@@ -333,13 +333,14 @@ function useShowcaseScreenContent() {
 
             <SubSection label="Icon Only">
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Button preset="default" onPress={() => { }}>
+                {/* An icon-only button has no text to announce: name it. */}
+                <Button preset="default" onPress={() => { }} accessibilityLabel="Like">
                   <Icon name="heart" size={18} color={theme.colors.primaryForeground} />
                 </Button>
-                <Button preset="outline" onPress={() => { }}>
+                <Button preset="outline" onPress={() => { }} accessibilityLabel="Like">
                   <Icon name="heart" size={18} color={theme.colors.primary} />
                 </Button>
-                <Button preset="ghost" onPress={() => { }}>
+                <Button preset="ghost" onPress={() => { }} accessibilityLabel="Like">
                   <Icon name="heart" size={18} color={theme.colors.foreground} />
                 </Button>
               </View>
@@ -1245,7 +1246,8 @@ function useShowcaseScreenContent() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <View style={{ padding: spacing.xs }}>
+                    {/* The trigger is the button; the glyph inside is hidden, so the name goes here. */}
+                    <View style={{ padding: spacing.xs }} accessibilityLabel="What is this?">
                       <Icon name="circle-question-mark" size={24} color={theme.colors.primary} />
                     </View>
                   </TooltipTrigger>
@@ -1450,7 +1452,7 @@ const TallPopoverDemo = memo(function TallPopoverDemo({
           <PopoverContent side="top" align="start" style={{ padding: spacing.md }}>
             <View style={styles.switchRow}>
               <StyledText>Notify me</StyledText>
-              <Switch checked={notify} onCheckedChange={setNotify} />
+              <Switch checked={notify} onCheckedChange={setNotify} accessibilityLabel="Notify me" />
             </View>
             {TALL_POPOVER_ROWS.map((row) => (
               <StyledText key={row} style={{ marginVertical: spacing.xs }}>
@@ -1495,7 +1497,7 @@ const SwitchSection = memo(function SwitchSection({
       <SubSection label="Basic">
         <View style={styles.switchRow}>
           <StyledText>Basic Switch</StyledText>
-          <Switch checked={toggleValue} onCheckedChange={setToggleValue} />
+          <Switch checked={toggleValue} onCheckedChange={setToggleValue} accessibilityLabel="Basic Switch" />
         </View>
       </SubSection>
 
@@ -1503,6 +1505,7 @@ const SwitchSection = memo(function SwitchSection({
         <View style={styles.switchRow}>
           <StyledText>Switch with Labels</StyledText>
           <Switch
+            accessibilityLabel="Switch with Labels"
             size={{ width: 60, height: 32 }}
             checked={toggleValue}
             onCheckedChange={setToggleValue}
@@ -1516,6 +1519,7 @@ const SwitchSection = memo(function SwitchSection({
         <View style={styles.switchRow}>
           <StyledText>Large Switch</StyledText>
           <Switch
+            accessibilityLabel="Large Switch"
             checked={toggleValue}
             onCheckedChange={setToggleValue}
             size={{ width: 70, height: 36 }}

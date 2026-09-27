@@ -7,6 +7,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Rows name their controls: `useItemLabel()` / `useItemControlLabel(props)`**
+  (from `components/Item` and the barrels). An `Item` hands the `ItemTitle`
+  inside its `ItemContent` a `nativeID` and exposes `{ titleId, title }` to the
+  row; `Switch`, `Checkbox` (no `label`) and `Toggle` with no label of their own
+  use it — `aria-labelledby={titleId}` on web, `accessibilityLabel={title}` (+
+  `accessibilityLabelledBy` for TalkBack) on native — so a settings row's switch
+  is announced as "Public profile, switch, on" instead of "switch, on". Explicit
+  `accessibilityLabel` / `aria-label` / `aria-labelledby` props always win;
+  `title` is `undefined` for a composed title (elements inside `ItemTitle`),
+  where web still links by id. Apps composing their own controls can spread
+  `useItemControlLabel(props)` the same way.
+- **`ToggleGroup` web roles.** A `type="single"` group renders
+  `role="radiogroup"` with `role="radio"` items (`aria-checked` is valid there);
+  a `type="multiple"` group stays a `group` of `aria-pressed` buttons. Native
+  already used these roles through the primitive.
+- **`spacing.minTarget` (24)** — the smallest pointer target the kit draws on
+  web (WCAG 2.5.8); `touchTarget` (44) stays the native minimum.
+- **`Toggle` warns once in development** when an `iconOnly` toggle has no
+  accessible name (`accessibilityLabel`, `aria-label(ledby)`, or a row title).
+
 - **`italic` on `StyledText`** and `useFontStyle(weight, variant, { italic })`.
   `resolveFontStyle` takes `{ italic, serifPreset }`: an italic face wins and
   emits no `fontStyle` — the app's `setFonts` `italic` map (new, per family
@@ -109,6 +129,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a user dismissal. Present the next modal from `onDismissed`; drop timers.
 
 ### Changed
+
+- **An `Icon` with no `accessibilityLabel` is hidden from assistive tech**, on
+  web (`aria-hidden`) and native (`accessible={false}`), exactly like
+  `decorative`. It used to render as an unnamed `role="img"` — about 77 per
+  gallery page, one per glyph beside its own text, each a WCAG 1.1.1 failure.
+  A standalone icon still needs `accessibilityLabel`, which keeps `role="img"`
+  + `aria-label` / `accessible` + `accessibilityLabel`; `decorative` now only
+  matters to silence a labelled icon. Consumers that relied on an unlabeled
+  icon being focusable by a screen reader must add the label.
+- **`Checkbox` and `RadioGroup.Item` are one control each.** With a `label`,
+  the wrapper that extends the tap area to the text is no longer a second
+  checkbox/radio (`accessible={false}`, no role): the primitive control is the
+  only one announced and it points at the label text with `aria-labelledby`
+  (web) / `accessibilityLabel` + `accessibilityLabelledBy` (native). On web
+  the control's hit box grows to `spacing.minTarget` (24) around the 16/20 px
+  drawn box — `hitSlop` is inert on react-native-web — and takes the extra back
+  in negative margins, so rows keep their layout; the drawn box, border, focus
+  ring and any caller `style` now sit on a child `View` inside the control.
 
 - **`design-system.json` is `schemaVersion` 2.** The lint manifest the build
   writes to `dist/` gains `tokens.typography` (`StyledText`'s sizes with their
@@ -244,6 +282,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   seed width. Native still follows `useWindowDimensions`.
 
 ### Fixed
+
+- **`ToggleGroup` items no longer put `aria-checked` on a `button`** on web:
+  the rn-primitives web item hard-codes `role='button'` before spreading
+  props, so Radix's radio role was lost while its `aria-checked` survived. The
+  kit now passes the role explicitly (see Added).
+- **`TextInput`'s password eye icon is decorative** on every platform — the
+  Show/Hide password button already carries the name — instead of an unnamed
+  image inside a button. The eye and clear buttons are also at least
+  `spacing.minTarget` (24 px) square instead of their 20 px glyph.
+- **`Tabs` triggers were 16 px tall on web.** The trigger declared `height` but
+  also `flex: 1` inside its column-direction wrapper, whose 0% basis in a parent
+  of indefinite height collapsed it to the text; every `underline` tab list was
+  a 16 px target. The trigger now stretches across the wrapper instead.
 
 - **`PopoverContent` keeps its surface under a caller `style`, opens where there
   is room, and scrolls when tall.** Four defects mindmap patched around in its

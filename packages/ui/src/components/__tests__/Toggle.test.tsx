@@ -152,3 +152,36 @@ describe("Toggle", () => {
     });
   });
 });
+
+describe("Toggle icon-only naming", () => {
+  // The dev warning fires once per module load; this file renders no other
+  // unnamed icon-only toggle, so the named case runs first to prove it stays
+  // quiet, then the unnamed case proves it fires exactly once for two toggles.
+  it("does not warn when the icon-only toggle is named", async () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    await render(
+      <Toggle pressed={false} onPressedChange={() => {}} iconOnly accessibilityLabel="Bold">
+        <Text>B</Text>
+      </Toggle>,
+    );
+
+    expect(warn.mock.calls.filter((args) => String(args[0]).includes("accessibilityLabel"))).toHaveLength(0);
+    expect(screen.getByLabelText("Bold")).toBeTruthy();
+    warn.mockRestore();
+  });
+
+  it("warns once in development when an icon-only toggle has no accessible name", async () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    await render(
+      <>
+        <Toggle pressed={false} onPressedChange={() => {}} iconOnly><Text>★</Text></Toggle>
+        <Toggle pressed onPressedChange={() => {}} iconOnly><Text>☆</Text></Toggle>
+      </>,
+    );
+
+    const calls = warn.mock.calls.filter((args) => String(args[0]).includes("accessibilityLabel"));
+    expect(calls).toHaveLength(1);
+    expect(String(calls[0][0])).toMatch(/icon-only|iconOnly/);
+    warn.mockRestore();
+  });
+});

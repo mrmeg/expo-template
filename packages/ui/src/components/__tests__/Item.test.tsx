@@ -86,3 +86,154 @@ describe("Item", () => {
     expect(screen.getByText("Row with separator")).toBeTruthy();
   });
 });
+
+jest.mock("../../lib/haptics", () => ({
+  hapticLight: jest.fn(),
+  hapticSelection: jest.fn(),
+  hapticPress: jest.fn(),
+}));
+
+jest.mock("@rn-primitives/switch", () => {
+  const React = require("react");
+  const { Pressable, View } = require("react-native");
+  return {
+    Root: ({ checked, onCheckedChange, disabled, children, style, ...props }: any) => (
+      <Pressable
+        accessibilityRole="switch"
+        accessibilityState={{ checked: !!checked, disabled: !!disabled }}
+        onPress={() => !disabled && onCheckedChange?.(!checked)}
+        disabled={disabled}
+        style={style}
+        {...props}
+      >
+        {children}
+      </Pressable>
+    ),
+    Thumb: ({ style, ...props }: any) => <View style={style} {...props} />,
+  };
+});
+
+// eslint-disable-next-line import/first -- the mocks above must be registered before these load
+import { Platform, Text } from "react-native";
+// eslint-disable-next-line import/first
+import { Switch } from "../Switch";
+// eslint-disable-next-line import/first
+import { useItemLabel } from "../Item";
+
+function LabelProbe() {
+  const label = useItemLabel();
+  return <Text testID="probe">{label ? `${label.titleId}|${label.title ?? ""}` : "none"}</Text>;
+}
+
+describe("Item labels its trailing controls", () => {
+  it("exposes the row title (and its id) to controls inside the row", async () => {
+    await render(
+      <Item>
+        <ItemContent>
+          <ItemTitle>Public profile</ItemTitle>
+          <ItemDescription>Let others find you</ItemDescription>
+        </ItemContent>
+        <ItemActions>
+          <LabelProbe />
+        </ItemActions>
+      </Item>,
+    );
+
+    const [titleId, title] = screen.getByTestId("probe").props.children.split("|");
+    expect(title).toBe("Public profile");
+    expect(titleId).not.toBe("");
+    expect(screen.getByText("Public profile").props.nativeID).toBe(titleId);
+  });
+
+  it("returns null outside a row", async () => {
+    await render(<LabelProbe />);
+    expect(screen.getByTestId("probe").props.children).toBe("none");
+  });
+
+  it("returns null in a row without an ItemTitle, so nothing points at a missing id", async () => {
+    await render(
+      <Item>
+        <ItemMedia icon="bell" />
+        <ItemActions>
+          <LabelProbe />
+        </ItemActions>
+      </Item>,
+    );
+    expect(screen.getByTestId("probe").props.children).toBe("none");
+  });
+
+  it("links by id but passes no text for a composed title", async () => {
+    await render(
+      <Item>
+        <ItemContent>
+          <ItemTitle>{"Jane"} <ItemDescription>(you)</ItemDescription></ItemTitle>
+        </ItemContent>
+        <ItemActions>
+          <LabelProbe />
+        </ItemActions>
+      </Item>,
+    );
+    const [titleId, title] = screen.getByTestId("probe").props.children.split("|");
+    expect(titleId).not.toBe("");
+    expect(title).toBe("");
+  });
+
+  it("names an unlabeled Switch after the row title on native", async () => {
+    await render(
+      <Item>
+        <ItemContent>
+          <ItemTitle>Share analytics</ItemTitle>
+        </ItemContent>
+        <ItemActions>
+          <Switch checked onCheckedChange={() => {}} />
+        </ItemActions>
+      </Item>,
+    );
+
+    expect(screen.getByRole("switch").props.accessibilityLabel).toBe("Share analytics");
+  });
+
+  it("lets the control's own label win", async () => {
+    await render(
+      <Item>
+        <ItemContent>
+          <ItemTitle>Share analytics</ItemTitle>
+        </ItemContent>
+        <ItemActions>
+          <Switch checked onCheckedChange={() => {}} accessibilityLabel="Analytics sharing" />
+        </ItemActions>
+      </Item>,
+    );
+
+    expect(screen.getByRole("switch").props.accessibilityLabel).toBe("Analytics sharing");
+  });
+
+  describe("on web", () => {
+    const originalOS = Platform.OS;
+    beforeAll(() => {
+      Platform.OS = "web";
+    });
+    afterAll(() => {
+      Platform.OS = originalOS;
+    });
+
+    it("links the Switch to the title with aria-labelledby instead of copying the text", async () => {
+      await render(
+        <Item>
+          <ItemContent>
+            <ItemTitle>Public profile</ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <Switch checked onCheckedChange={() => {}} />
+          </ItemActions>
+        </Item>,
+      );
+
+      const control = screen.getByRole("switch");
+      const titleId = screen.getByText("Public profile").props.nativeID;
+      expect(titleId).toBeTruthy();
+      expect(control.props["aria-labelledby"]).toBe(titleId);
+      expect(control.props.accessibilityLabel).toBeUndefined();
+    });
+  });
+});

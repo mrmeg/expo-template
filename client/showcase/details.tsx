@@ -80,9 +80,10 @@ export interface ComponentDetail {
 // ---------------------------------------------------------------------------
 
 /** `Switch` has no uncontrolled mode; a dead switch would read as broken. */
-function SwitchVariant({ initial, disabled }: { initial: boolean; disabled?: boolean }) {
+function SwitchVariant({ initial, disabled, label }: { initial: boolean; disabled?: boolean; label?: string }) {
   const [checked, setChecked] = React.useState(initial);
-  return <Switch checked={checked} onCheckedChange={setChecked} disabled={disabled} />;
+  // Inside an Item row the title names the switch; a bare variant needs its own.
+  return <Switch checked={checked} onCheckedChange={setChecked} disabled={disabled} accessibilityLabel={label} />;
 }
 
 /**
@@ -182,9 +183,9 @@ export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
   Switch: {
     summary: "Controlled toggle with an optional iOS-styled variant.",
     variants: [
-      { label: "on", render: () => <SwitchVariant initial /> },
-      { label: "off", render: () => <SwitchVariant initial={false} /> },
-      { label: "disabled", render: () => <SwitchVariant initial disabled /> },
+      { label: "on", render: () => <SwitchVariant initial label="On" /> },
+      { label: "off", render: () => <SwitchVariant initial={false} label="Off" /> },
+      { label: "disabled", render: () => <SwitchVariant initial disabled label="Disabled" /> },
     ],
     usage: `const [enabled, setEnabled] = useState(false);
 

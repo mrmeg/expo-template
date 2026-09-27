@@ -79,7 +79,10 @@ describe("Icon", () => {
       })
     );
     expect(mic[0].props.size).toBe(24);
-    expect(mic[0].props.accessible).toBe(true);
+    // Neither icon carries a label, so both are hidden from assistive tech: an
+    // unlabeled icon beside its text would otherwise be announced as nothing.
+    expect(mic[0].props.accessible).toBe(false);
+    expect(mic[0].props["aria-hidden"]).toBe(true);
     expect(micOff[0].props.accessible).toBe(false);
     expect(micOff[0].props.importantForAccessibility).toBe("no-hide-descendants");
     expect(micOff[0].props.accessibilityElementsHidden).toBe(true);
