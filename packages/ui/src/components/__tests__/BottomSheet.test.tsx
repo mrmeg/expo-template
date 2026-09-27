@@ -13,6 +13,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { BottomSheet, bottomSheetAncestorClaimWarning } from "../BottomSheet";
+import { spacing } from "../../constants/spacing";
 import { resetAncestorClaimWarningForTests } from "../keyboardDismiss";
 import {
   clearKeyboardFocusedInput,
@@ -894,6 +895,53 @@ describe("BottomSheet onDismissed", () => {
       await fireNativeClose();
 
       expect(onDismissed).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+describe("BottomSheet safe-area padding inside the sheet", () => {
+  const INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
+
+  async function renderParts(withFooter: boolean) {
+    await render(
+      <SafeAreaInsetsContext.Provider value={INSETS}>
+        <BottomSheet open snapPoints={["60%"]}>
+          <BottomSheet.Content>
+            <BottomSheet.Body testID="sheet-body">
+              <Text>Row</Text>
+            </BottomSheet.Body>
+            {withFooter && (
+              <BottomSheet.Footer testID="sheet-footer">
+                <Text>Share</Text>
+              </BottomSheet.Footer>
+            )}
+          </BottomSheet.Content>
+        </BottomSheet>
+      </SafeAreaInsetsContext.Provider>
+    );
+  }
+
+  const bodyPaddingBottom = () =>
+    (StyleSheet.flatten(screen.getByTestId("sheet-body").props.contentContainerStyle) as Record<string, number>)
+      .paddingBottom;
+  const footerPaddingBottom = () =>
+    (StyleSheet.flatten(screen.getByTestId("sheet-footer").props.style) as Record<string, number>).paddingBottom;
+
+  it("iOS: the footer pads no bottom inset — the SwiftUI host already keeps the column inside the safe area", async () => {
+    await renderParts(true);
+    expect(footerPaddingBottom()).toBe(spacing.md);
+    expect(bodyPaddingBottom()).toBe(spacing.md);
+  });
+
+  it("iOS: a footer-less body pads only its own spacing", async () => {
+    await renderParts(false);
+    expect(bodyPaddingBottom()).toBe(spacing.md);
+  });
+
+  it("Android: the footer still clears the bottom inset for the Material host", async () => {
+    await withPlatform("android", async () => {
+      await renderParts(true);
+      expect(footerPaddingBottom()).toBe(spacing.md + INSETS.bottom);
     });
   });
 });
