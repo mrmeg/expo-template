@@ -1,7 +1,6 @@
 import React, { ReactNode } from "react";
 import {
   View,
-  ScrollView,
   StyleSheet,
   StyleProp,
   ViewStyle,
@@ -17,6 +16,7 @@ import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { Separator } from "@mrmeg/expo-ui/components/Separator";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -76,6 +76,9 @@ export interface PricingScreenProps {
   periodToggle?: PricingPeriodToggle;
   footer?: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Safe-area edges this screen owns (see `Screen`); default bottom only (under a Stack header). */
+  edges?: ScreenEdges;
+  testID?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -89,17 +92,22 @@ export function PricingScreen({
   periodToggle,
   footer,
   style: styleOverride,
+  edges = ["bottom"],
+  testID = "pricing-screen",
 }: PricingScreenProps) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
 
   return (
-    <View style={[styles.container, styleOverride]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <Screen
+      edges={edges}
+      scroll
+      padded={false}
+      style={styleOverride}
+      contentContainerStyle={styles.scrollContent}
+      scrollProps={{ showsVerticalScrollIndicator: false }}
+      testID={testID}
+    >
         {/* Header */}
         <AnimatedView type="fadeSlideUp" delay={0}>
           <View style={styles.header}>
@@ -222,8 +230,7 @@ export function PricingScreen({
 
         {/* Footer */}
         {footer && <View style={styles.footerContainer}>{footer}</View>}
-      </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -236,13 +243,6 @@ const MAX_CONTENT_WIDTH = 640;
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    scroll: {
-      flex: 1,
-    },
     scrollContent: {
       width: "100%",
       maxWidth: MAX_CONTENT_WIDTH,

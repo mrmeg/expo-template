@@ -15,8 +15,12 @@ import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
+import { CardGridScreen } from "../card-grid/Screen";
 import { ErrorScreen } from "../error/Screen";
 import { FaqScreen } from "../faq/Screen";
+import { NotificationListScreen } from "../notifications/Screen";
+import { PricingScreen } from "../pricing/Screen";
+import { SearchResultsScreen } from "../search/Screen";
 import { HeroScreen } from "../hero/Screen";
 import { ListScreen } from "../list/Screen";
 import { SettingsScreen } from "../settings/Screen";
@@ -318,5 +322,95 @@ describe("SettingsScreen", () => {
 
     const content = StyleSheet.flatten(screen.getByTestId("settings-screen").props.contentContainerStyle) as Record<string, number>;
     expect(content.paddingTop).toBeGreaterThanOrEqual(59);
+  });
+});
+
+/**
+ * Every template owns its safe-area edges through `Screen` (#130 converted
+ * settings/list/dashboard/profile; this table covers the rest). Under a Stack
+ * header the default is `["bottom"]`: the scrolling surface's content clears
+ * the home indicator and nothing pads the top; `["top", "bottom"]` takes the
+ * island too. The node under test is the one that carries the inset: a
+ * `Screen scroll`'s `contentContainerStyle`, a list's `contentContainerStyle`,
+ * or the `Screen` view's `style`.
+ */
+describe("templates own their safe-area edges", () => {
+  const insetCarrier = (testID: string) => {
+    const node = screen.getByTestId(testID);
+    return StyleSheet.flatten(node.props.contentContainerStyle ?? node.props.style) as Record<string, number>;
+  };
+  const row = (label: string) => <Text>{label}</Text>;
+  const item = { id: "n1", icon: "bell" as const, title: "Welcome", body: "Hi", timestamp: new Date(0), read: false };
+
+  describe.each([
+    {
+      name: "faq",
+      testID: "faq-screen",
+      render: (edges?: ("top" | "bottom")[]) => (
+        <FaqScreen edges={edges} title="FAQ" items={[{ question: "Q?", answer: "A." }]} />
+      ),
+    },
+    {
+      name: "pricing",
+      testID: "pricing-screen",
+      render: (edges?: ("top" | "bottom")[]) => (
+        <PricingScreen edges={edges} plans={[{ name: "Free", price: "$0", features: [], onSelect: () => {} }]} />
+      ),
+    },
+    {
+      name: "stats",
+      testID: "stats-screen",
+      render: (edges?: ("top" | "bottom")[]) => (
+        <StatsScreen edges={edges} title="Numbers" stats={[{ label: "Revenue", value: "1" }]} />
+      ),
+    },
+    {
+      name: "testimonials",
+      testID: "testimonials-screen",
+      render: (edges?: ("top" | "bottom")[]) => (
+        <TestimonialsScreen edges={edges} title="Loved" testimonials={[{ quote: "Great", name: "Ada", role: "CTO" }]} />
+      ),
+    },
+    {
+      name: "card grid",
+      testID: "card-grid-list",
+      topTestID: "card-grid-screen",
+      render: (edges?: ("top" | "bottom")[]) => (
+        <CardGridScreen edges={edges} data={["a"]} renderCard={row} keyExtractor={(x) => x} />
+      ),
+    },
+    {
+      name: "search",
+      testID: "search-list",
+      topTestID: "search-screen",
+      render: (edges?: ("top" | "bottom")[]) => (
+        <SearchResultsScreen edges={edges} data={["a"]} renderItem={row} keyExtractor={(x) => x} />
+      ),
+    },
+    {
+      name: "notifications",
+      testID: "notifications-list",
+      topTestID: "notifications-screen",
+      render: (edges?: ("top" | "bottom")[]) => (
+        <NotificationListScreen edges={edges} notifications={[item]} />
+      ),
+    },
+  ])("$name", ({ testID, topTestID = testID, render: renderScreen }: { name: string; testID: string; topTestID?: string; render: (edges?: ("top" | "bottom")[]) => React.ReactElement }) => {
+    it("puts the bottom inset on its content and leaves the top to the header by default", async () => {
+      await render(
+        <SafeAreaInsetsContext.Provider value={ISLAND_INSETS}>{renderScreen()}</SafeAreaInsetsContext.Provider>,
+      );
+      const style = insetCarrier(testID);
+      expect(style.paddingBottom).toBeGreaterThanOrEqual(ISLAND_INSETS.bottom);
+      expect(style.paddingTop ?? 0).toBeLessThan(ISLAND_INSETS.top);
+    });
+
+    it("takes the top too when told it has no header", async () => {
+      await render(
+        <SafeAreaInsetsContext.Provider value={ISLAND_INSETS}>{renderScreen(["top", "bottom"])}</SafeAreaInsetsContext.Provider>,
+      );
+      // A list screen keeps the top inset on the Screen view; its list carries only the bottom.
+      expect(insetCarrier(topTestID).paddingTop).toBeGreaterThanOrEqual(ISLAND_INSETS.top);
+    });
   });
 });

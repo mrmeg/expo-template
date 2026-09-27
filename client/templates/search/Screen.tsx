@@ -10,7 +10,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, useWindowInsets } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
@@ -18,6 +18,7 @@ import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Skeleton } from "@mrmeg/expo-ui/components/Skeleton";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -70,6 +71,9 @@ export interface SearchResultsScreenProps<T> {
   refreshing?: boolean;
   header?: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Safe-area edges this screen owns (see `Screen`); default bottom only (under a Stack header). */
+  edges?: ScreenEdges;
+  testID?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -105,9 +109,18 @@ export function SearchResultsScreen<T>({
   refreshing = false,
   header,
   style: styleOverride,
+  edges = ["bottom"],
+  testID = "search-screen",
 }: SearchResultsScreenProps<T>) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
+
+  // The list owns the scroll, so the bottom inset goes on its content (the
+  // last row scrolls up out from under the home indicator); Screen takes the
+  // other edges and paints the background.
+  const insets = useWindowInsets();
+  const bottomInset = edges.includes("bottom") ? insets.bottom : 0;
+  const listEdges = edges.filter((edge) => edge !== "bottom");
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const handleSearch = useCallback(
@@ -224,7 +237,7 @@ export function SearchResultsScreen<T>({
 
   if (loading) {
     return (
-      <View style={[styles.container, styleOverride]}>
+      <Screen edges={edges} padded={false} style={styleOverride} testID={testID}>
         {header}
         {renderHeaderContent(false)}
         <View style={styles.skeletonList}>
@@ -252,7 +265,7 @@ export function SearchResultsScreen<T>({
             ))
           )}
         </View>
-      </View>
+      </Screen>
     );
   }
 
@@ -294,8 +307,9 @@ export function SearchResultsScreen<T>({
   // ---------------------------------------------------------------------------
 
   return (
-    <View style={[styles.container, styleOverride]}>
+    <Screen edges={listEdges} padded={false} style={styleOverride} testID={testID}>
       <FlatList
+        testID="search-list"
         key={viewMode}
         data={data}
         keyExtractor={keyExtractor}
@@ -303,12 +317,15 @@ export function SearchResultsScreen<T>({
         renderItem={renderRow}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={data.length === 0 ? styles.emptyFlatList : styles.listContent}
+        contentContainerStyle={[
+          data.length === 0 ? styles.emptyFlatList : styles.listContent,
+          { paddingBottom: (data.length === 0 ? 0 : spacing.xxl) + bottomInset },
+        ]}
         columnWrapperStyle={isGrid && data.length > 0 ? styles.gridRow : undefined}
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
       />
-    </View>
+    </Screen>
   );
 }
 
@@ -464,10 +481,6 @@ const SearchResultsHeader = React.memo(function SearchResultsHeader({
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
 
     // Search
     searchContainer: {

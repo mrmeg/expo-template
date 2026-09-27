@@ -1,11 +1,12 @@
 import React from "react";
-import { View, ScrollView, StyleSheet, StyleProp, ViewStyle } from "react-native";
+import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { EyebrowText, SansSerifText, StyledText } from "@mrmeg/expo-ui/components/StyledText";
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import type { StatCardChange } from "@mrmeg/expo-ui/components/StatCard";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -28,6 +29,9 @@ export interface StatsScreenProps {
   /** Optional note rendered below the grid (e.g. data freshness, a source link). */
   footerNote?: string;
   style?: StyleProp<ViewStyle>;
+  /** Safe-area edges this screen owns (see `Screen`); default bottom only (under a Stack header). */
+  edges?: ScreenEdges;
+  testID?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -118,17 +122,22 @@ export function StatsScreen({
   stats,
   footerNote,
   style: styleOverride,
+  edges = ["bottom"],
+  testID = "stats-screen",
 }: StatsScreenProps) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
 
   return (
-    <View style={[styles.container, styleOverride]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <Screen
+      edges={edges}
+      scroll
+      padded={false}
+      style={styleOverride}
+      contentContainerStyle={styles.scrollContent}
+      scrollProps={{ showsVerticalScrollIndicator: false }}
+      testID={testID}
+    >
         <SectionHeader eyebrow={eyebrow} title={title} description={description} style={styles.header} />
 
         <View style={styles.grid}>
@@ -144,8 +153,7 @@ export function StatsScreen({
         </View>
 
         {!!footerNote && <SansSerifText size="sm" style={styles.footerNote}>{footerNote}</SansSerifText>}
-      </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -158,13 +166,6 @@ const MAX_CONTENT_WIDTH = 640;
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    scroll: {
-      flex: 1,
-    },
     // The screen's one horizontal inset: nothing inside pads horizontally.
     scrollContent: {
       width: "100%",
