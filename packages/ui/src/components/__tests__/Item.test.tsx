@@ -150,6 +150,34 @@ describe("Item labels its trailing controls", () => {
     expect(screen.getByTestId("probe").props.children).toBe("none");
   });
 
+  it("returns null in a row without an ItemTitle, so nothing points at a missing id", async () => {
+    await render(
+      <Item>
+        <ItemMedia icon="bell" />
+        <ItemActions>
+          <LabelProbe />
+        </ItemActions>
+      </Item>,
+    );
+    expect(screen.getByTestId("probe").props.children).toBe("none");
+  });
+
+  it("links by id but passes no text for a composed title", async () => {
+    await render(
+      <Item>
+        <ItemContent>
+          <ItemTitle>{"Jane"} <ItemDescription>(you)</ItemDescription></ItemTitle>
+        </ItemContent>
+        <ItemActions>
+          <LabelProbe />
+        </ItemActions>
+      </Item>,
+    );
+    const [titleId, title] = screen.getByTestId("probe").props.children.split("|");
+    expect(titleId).not.toBe("");
+    expect(title).toBe("");
+  });
+
   it("names an unlabeled Switch after the row title on native", async () => {
     await render(
       <Item>

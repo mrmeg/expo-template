@@ -47,27 +47,27 @@ const ItemLabelContext = createContext<ItemLabel | null>(null);
 const ItemContentContext = createContext(false);
 
 /**
- * The title text of a row, read synchronously from its element tree: the
- * first `ItemTitle` inside `ItemContent` whose children are strings (or
- * numbers). Composed titles (`<ItemTitle>{name} <Badge/></ItemTitle>`) give
- * `undefined`; web still links by id, native then needs an explicit label.
+ * The row's title, read synchronously from its element tree: the first
+ * `ItemTitle` directly inside a direct `ItemContent`. `found` is false when
+ * the row has no such title (a media-only or custom row), so controls in it
+ * borrow nothing. `text` is the title when its children are strings (or
+ * numbers); a composed title (`<ItemTitle>{name} <Badge/></ItemTitle>`) gives
+ * `undefined` — web still links by id, native then needs an explicit label.
  */
-function titleText(children: React.ReactNode): string | undefined {
+function scanTitle(children: React.ReactNode): { found: boolean; text: string | undefined } {
   for (const child of Children.toArray(children)) {
     if (!isValidElement<{ children?: React.ReactNode }>(child)) continue;
     if (child.type === ItemContent) {
       for (const inner of Children.toArray(child.props.children)) {
         if (isValidElement<{ children?: React.ReactNode }>(inner) && inner.type === ItemTitle) {
           const parts = Children.toArray(inner.props.children);
-          if (parts.length > 0 && parts.every((part) => typeof part === "string" || typeof part === "number")) {
-            return parts.join("");
-          }
-          return undefined;
+          const plain = parts.length > 0 && parts.every((part) => typeof part === "string" || typeof part === "number");
+          return { found: true, text: plain ? parts.join("") : undefined };
         }
       }
     }
   }
-  return undefined;
+  return { found: false, text: undefined };
 }
 
 /**
@@ -172,8 +172,11 @@ export function Item({ children, onPress, disabled, separator, style }: ItemProp
   const groupRow = use(ItemGroupRowContext);
   const showSeparator = separator ?? groupRow?.separator ?? false;
   const titleId = useId();
-  const title = titleText(children);
-  const label = React.useMemo<ItemLabel>(() => ({ titleId, title }), [titleId, title]);
+  const { found: hasTitle, text: title } = scanTitle(children);
+  const label = React.useMemo<ItemLabel | null>(
+    () => (hasTitle ? { titleId, title } : null),
+    [hasTitle, titleId, title],
+  );
   const { animatedStyle, pressHandlers } = useScalePress({
     disabled: !onPress || !!disabled,
     scaleTo: 0.98,
