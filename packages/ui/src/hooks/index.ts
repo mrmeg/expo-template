@@ -7,3 +7,4 @@ export * from "./useScalePress";
 export * from "./useShape";
 export * from "./useStaggeredEntrance";
 export * from "./useTheme";
+export { useHydrated } from "./useHydrated";

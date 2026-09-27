@@ -9,6 +9,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { StyledText, CaptionText, EyebrowText, type TextProps } from "./StyledText";
+import { useHydrated } from "../hooks/useHydrated";
 import { Icon, type IconName, type ThemeColorName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
 import { useScalePress } from "../hooks/useScalePress";
@@ -33,12 +34,17 @@ const SEPARATED_ROW: ItemGroupRow = { separator: true };
 const LAST_ROW: ItemGroupRow = { separator: false };
 
 /**
- * What a row tells the controls inside it: the id its `ItemTitle` renders
- * under (`nativeID`, so web `aria-labelledby` can point at it) and the title's
- * text when it is a plain string (what native `accessibilityLabel` needs).
+ * What a row tells the controls inside it: the title's text when it is a plain
+ * string (the accessible name on every platform), and — once ids can be
+ * trusted — the id its `ItemTitle` renders under (`nativeID`), so a composed
+ * title can still be linked with `aria-labelledby`.
+ *
+ * `titleId` is `undefined` during SSR and the hydration pass on web: `useId()`
+ * values do not survive Expo Router's streamed hydration (see `useHydrated`),
+ * so ids only appear in the first client render after it.
  */
 export interface ItemLabel {
-  titleId: string;
+  titleId: string | undefined;
   title: string | undefined;
 }
 
@@ -90,10 +96,12 @@ type OwnLabelProps = {
 /**
  * Accessibility props a control inside an `Item` should spread when it has no
  * label of its own — its own props always win, so this returns `{}` whenever
- * any label prop is set, or outside a row. Web links to the title by id (no
- * text is copied, so a title edit stays in one place); native gets the title
- * text as `accessibilityLabel` (VoiceOver has no labelled-by) plus
- * `accessibilityLabelledBy` for TalkBack.
+ * any label prop is set, or outside a row. A plain-text title becomes the
+ * control's `accessibilityLabel` (`aria-label` on web) on every platform, in
+ * the server HTML too. A composed title has no text to copy, so the control
+ * points at the title's id instead — `aria-labelledby` on web,
+ * `accessibilityLabelledBy` on Android — once that id exists (after hydration
+ * on web; see `ItemLabel`).
  */
 export function useItemControlLabel(own: OwnLabelProps): OwnLabelProps {
   const label = use(ItemLabelContext);
@@ -106,10 +114,9 @@ export function useItemControlLabel(own: OwnLabelProps): OwnLabelProps {
   ) {
     return {};
   }
-  if (Platform.OS === "web") return { "aria-labelledby": label.titleId };
-  return label.title === undefined
-    ? { accessibilityLabelledBy: label.titleId }
-    : { accessibilityLabel: label.title, accessibilityLabelledBy: label.titleId };
+  if (label.title !== undefined) return { accessibilityLabel: label.title };
+  if (label.titleId === undefined) return {};
+  return Platform.OS === "web" ? { "aria-labelledby": label.titleId } : { accessibilityLabelledBy: label.titleId };
 }
 
 /**
@@ -171,8 +178,11 @@ export function Item({ children, onPress, disabled, separator, style }: ItemProp
   const { theme, getFocusRingStyle } = useTheme();
   const groupRow = use(ItemGroupRowContext);
   const showSeparator = separator ?? groupRow?.separator ?? false;
-  const titleId = useId();
+  const reactId = useId();
+  const hydrated = useHydrated();
   const { found: hasTitle, text: title } = scanTitle(children);
+  // Ids only after hydration on web (see ItemLabel); native has no hydration.
+  const titleId = Platform.OS !== "web" || hydrated ? reactId : undefined;
   const label = React.useMemo<ItemLabel | null>(
     () => (hasTitle ? { titleId, title } : null),
     [hasTitle, titleId, title],
@@ -402,7 +412,7 @@ export function ItemTitle({ children, style, ...props }: TextProps) {
   // ItemActions) render without it.
   const label = use(ItemLabelContext);
   const inContent = use(ItemContentContext);
-  const nativeID = inContent && label ? label.titleId : undefined;
+  const nativeID = inContent ? label?.titleId : undefined;
   return (
     <StyledText size="body" fontWeight="medium" nativeID={nativeID} {...props} style={style}>
       {children}

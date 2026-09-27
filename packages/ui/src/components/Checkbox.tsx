@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId } from "react";
+import React, { useCallback, useEffect } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform, Animated } from "react-native";
 import { Icon } from "./Icon";
 import { StyledText } from "./StyledText";
@@ -130,14 +130,11 @@ function Checkbox({
   // negative margins — the row's layout does not move.
   const hitSize = Platform.OS === "web" ? Math.max(sizeConfig.size, spacing.minTarget) : sizeConfig.size;
   const hitOverflow = (hitSize - sizeConfig.size) / 2;
-  const labelId = useId();
+  // The label text names the control on every platform (react-native-web
+  // maps `accessibilityLabel` to `aria-label`); no `useId` link, because ids
+  // do not survive Expo Router's streamed hydration (see hooks/useHydrated).
   const rowLabel = useItemControlLabel({ ...props, accessibilityLabel: label });
-  const labelLink =
-    label !== undefined
-      ? Platform.OS === "web"
-        ? { "aria-labelledby": labelId }
-        : { accessibilityLabel: label, accessibilityLabelledBy: labelId }
-      : rowLabel;
+  const labelLink = label !== undefined ? { accessibilityLabel: label } : rowLabel;
 
   const checkboxElement = (
     <Animated.View style={scaleStyle}>
@@ -211,7 +208,7 @@ function Checkbox({
 
   // With a label, a non-accessible wrapper extends the tap area to the text.
   // It carries no role or state: the primitive Root above is the only control
-  // a screen reader meets, and it points at the label text by id.
+  // a screen reader meets, and it carries the label text as its name.
   return (
     <Pressable
       onPress={() => !disabled && wrappedOnCheckedChange(!checked)}
@@ -223,7 +220,6 @@ function Checkbox({
       {checkboxElement}
       <View style={styles.labelContainer}>
         <StyledText
-          nativeID={labelId}
           selectable={false}
           style={[
             styles.label,

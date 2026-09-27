@@ -8,16 +8,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - **Rows name their controls: `useItemLabel()` / `useItemControlLabel(props)`**
-  (from `components/Item` and the barrels). An `Item` hands the `ItemTitle`
-  inside its `ItemContent` a `nativeID` and exposes `{ titleId, title }` to the
-  row; `Switch`, `Checkbox` (no `label`) and `Toggle` with no label of their own
-  use it — `aria-labelledby={titleId}` on web, `accessibilityLabel={title}` (+
-  `accessibilityLabelledBy` for TalkBack) on native — so a settings row's switch
-  is announced as "Public profile, switch, on" instead of "switch, on". Explicit
-  `accessibilityLabel` / `aria-label` / `aria-labelledby` props always win;
-  `title` is `undefined` for a composed title (elements inside `ItemTitle`),
-  where web still links by id. Apps composing their own controls can spread
-  `useItemControlLabel(props)` the same way.
+  (from `components/Item` and the barrels). An `Item` exposes `{ title,
+  titleId }` to the row: a plain-text `ItemTitle` inside `ItemContent` becomes
+  the `accessibilityLabel` (`aria-label` on web) of a `Switch`, `Checkbox` (no
+  `label`) or `Toggle` that has no label of its own, so a settings row's switch
+  is announced as "Public profile, switch, on" instead of "switch, on" — in the
+  server HTML too. A composed title (elements inside `ItemTitle`) has no text to
+  copy, so the title renders a `nativeID` and the control links to it
+  (`aria-labelledby` / `accessibilityLabelledBy`) — on web only after hydration
+  (`useHydrated`, below), because `useId()` values do not survive Expo Router's
+  streamed hydration. Explicit `accessibilityLabel` / `aria-label` /
+  `aria-labelledby` props always win. Apps composing their own controls can
+  spread `useItemControlLabel(props)` the same way.
+- **`useHydrated()`** (`@mrmeg/expo-ui/hooks`): `false` during SSR and the
+  hydration pass, `true` once the client tree is live (always `true` on
+  native). For DOM output the server cannot reproduce, such as `useId()`-based
+  `id`/`aria-labelledby` pairs.
 - **`ToggleGroup` web roles.** A `type="single"` group renders
   `role="radiogroup"` with `role="radio"` items (`aria-checked` is valid there);
   a `type="multiple"` group stays a `group` of `aria-pressed` buttons. Native
@@ -141,8 +147,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`Checkbox` and `RadioGroup.Item` are one control each.** With a `label`,
   the wrapper that extends the tap area to the text is no longer a second
   checkbox/radio (`accessible={false}`, no role): the primitive control is the
-  only one announced and it points at the label text with `aria-labelledby`
-  (web) / `accessibilityLabel` + `accessibilityLabelledBy` (native). On web
+  only one announced and it carries the label text as its `accessibilityLabel`
+  (`aria-label` on web). On web
   the control's hit box grows to `spacing.minTarget` (24) around the 16/20 px
   drawn box — `hitSlop` is inert on react-native-web — and takes the extra back
   in negative margins, so rows keep their layout; the drawn box, border, focus
