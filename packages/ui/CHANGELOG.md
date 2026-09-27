@@ -328,6 +328,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **iOS `BottomSheet` no longer clips its last row at a snap point.** Two
+  causes, both fixed. The content inside the sheet padded the bottom safe-area
+  inset a second time: SwiftUI already lays the hosted column out inside the
+  sheet's safe area (34 pt above the home indicator on an iPhone), and inside a
+  tab screen the provider context even reported the tab bar (83 pt), so
+  `BottomSheet.Footer` sat up to 99 pt above the sheet's edge and the `Body`
+  above it was squeezed until its last row was cut. `Body` and `Footer` now pad
+  only their own spacing on iOS (Android's Material host still receives the
+  inset from the kit). And the column's iOS height cap was `fraction × window
+  height`, while `@expo/ui` maps `"50%"` to SwiftUI's `.fraction(0.5)` of the
+  sheet's *maximum* height (the window minus the top safe-area inset minus
+  UIKit's 10 pt gap) and pads the hosted column 16 pt under the native
+  grabber; the cap now follows the real detent (fraction or clamped fixed
+  height of the available height, less the grabber padding unless
+  `BottomSheet.Handle` replaces the native indicator), so a host that does not
+  clamp the column no longer overshoots the sheet by about 52 pt at 50 %.
+  Verified on an iPhone 17 Pro simulator (iOS 26): a 60 % sheet with header,
+  four rows and a footer shows every row and its footer 16 pt above the safe
+  area. Web is unchanged.
 - **`Button` honours `aria-disabled` and `accessibilityState.disabled`.** A
   button with either (and no `disabled`) is announced as disabled, drawn with
   the disabled look (opacity, no shadow, no press scale or haptic), yet stays

@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { BottomSheet as NativeBottomSheet } from "@expo/ui/community/bottom-sheet";
 import { useWindowInsets } from "../hooks/useWindowInsets";
+import type { EdgeInsets } from "react-native-safe-area-context";
 import { useTheme } from "../hooks/useTheme";
 import { useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
@@ -135,6 +136,18 @@ import { awaitDialogClose } from "./bottomSheetDismiss";
 type SnapPoint = number | `${number}%`;
 
 const DEFAULT_SNAP_POINTS: SnapPoint[] = ["50%"];
+
+/**
+ * UIKit keeps a `.large` sheet's top edge 10 pt below the top safe-area inset;
+ * SwiftUI's `.fraction()` detents are fractions of the height that remains.
+ */
+const IOS_SHEET_TOP_GAP = 10;
+
+/**
+ * `@expo/ui` pads the hosted RN column 16 pt below the native drag indicator
+ * (`paddingTop: 16` in its iOS `BottomSheet` when `handleComponent !== null`).
+ */
+const IOS_HOST_HANDLE_PADDING = 16;
 
 interface BottomSheetContextValue {
   open: boolean;
@@ -389,11 +402,20 @@ function useBottomSheetContext() {
 /**
  * Safe-area insets for content *inside* the sheet. The native sheet (SwiftUI
  * `.sheet()` / Material `ModalBottomSheet`) is presented outside the React
- * tree's `SafeAreaProvider`, where the provider context reads all-zero;
- * `useWindowInsets` falls back to `initialWindowMetrics` so bottom padding
- * clears the home indicator and the last row of a scroll body is reachable.
+ * tree's `SafeAreaProvider`, and inside a tab screen the provider context even
+ * carries the tab bar (83 pt on an iPhone with a home indicator), so the raw
+ * context is the wrong number here. `useWindowInsets` gives the window's
+ * insets; `top` sizes the iOS detent cap below. On iOS the hosted column is
+ * already laid out inside the sheet's safe area — SwiftUI keeps `RNHostView`
+ * 34 pt above the home indicator — so `bottom` is 0 there: padding it again
+ * pushed the footer up by the inset (plus the tab bar's height inside a tab
+ * screen) and squeezed the body until its last row was clipped. Android's
+ * Material host still gets the bottom inset from us.
  */
-const useSheetInsets = useWindowInsets;
+function useSheetInsets(): EdgeInsets {
+  const insets = useWindowInsets();
+  return Platform.OS === "ios" ? { ...insets, bottom: 0 } : insets;
+}
 
 /**
  * Interactive (pull-down / backdrop) dismiss is off only when the consumer
@@ -628,6 +650,9 @@ function BottomSheetContent({
   const dismissDisabled = useDismissDisabled();
   const showClose = useShowClose();
   const { height: winH } = useWindowDimensions();
+  // Window insets (not the provider context, which reads zero inside the
+  // native sheet's window): the top inset sizes the iOS detent cap below.
+  const insets = useSheetInsets();
 
   // Tap-away keyboard dismissal inside the sheet. The native sheet (SwiftUI
   // `.sheet()` / Material `ModalBottomSheet`) hosts its RN children in a separate
@@ -677,17 +702,29 @@ function BottomSheetContent({
   // with `imePadding()` and `RNHostView` re-reports its Compose size to the
   // shadow tree, which needs `expo-modules-core` >= 57.0.4 to always land
   // (expo/expo#47778) — see `warnIfBottomSheetHostDropsResize` above.
+  //
+  // The cap has to be the height SwiftUI really gives the sheet, not a share
+  // of the window. `@expo/ui` maps "50%" to `.fraction(0.5)`, a fraction of
+  // the *maximum* sheet height — the window minus the top safe-area inset
+  // minus UIKit's 10 pt gap above a `.large` sheet — and a numeric snap to
+  // `.height(n)`, clamped to that maximum. `@expo/ui` then pads the hosted
+  // column 16 pt below the native grabber whenever that grabber is shown. A
+  // cap of `fraction × window height` overshot by `fraction × (inset + 10) +
+  // 16` ≈ 52 pt on a Dynamic Island phone at 50 %, so the sheet clipped its
+  // last row on every such device.
+  const hasInteractiveHandle = containsHandle(children);
   const expandedSnap = snapPoints[snapPoints.length - 1];
-  const detentHeight =
+  const availableSheetHeight = winH - insets.top - IOS_SHEET_TOP_GAP;
+  const sheetHeight =
     typeof expandedSnap === "number"
-      ? expandedSnap
-      : (parseFloat(expandedSnap) / 100) * winH;
+      ? Math.min(expandedSnap, availableSheetHeight)
+      : (parseFloat(expandedSnap) / 100) * availableSheetHeight;
+  const detentHeight = sheetHeight - (hasInteractiveHandle ? 0 : IOS_HOST_HANDLE_PADDING);
 
   // When there's no Header to host the X (so a close affordance is wanted —
   // dismiss is off, or the body scrolls), float one over the top-right corner.
   // A Header, when present, renders its own (see BottomSheetHeader).
   const showFloatingClose = showClose && !hasHeader;
-  const hasInteractiveHandle = containsHandle(children);
 
   const handleChange = (newIndex: number) => {
     // Native fires onChange(-1) on dismiss (swipe / backdrop / back button).
