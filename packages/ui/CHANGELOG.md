@@ -325,6 +325,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   difference, a fix: a component that mounts after hydration now reads the
   current viewport on its first render instead of rendering one frame at the
   seed width. Native still follows `useWindowDimensions`.
+- `exports` entries list a repo-only `@mrmeg/source` condition first, pointing
+  at `src`, and gain exact keys for the nine modules the `components/*`,
+  `hooks/*`, and `state/*` patterns cannot map to a source file (a `.ts` module
+  under a `*.tsx` pattern, and the reverse). Without the condition — every
+  consumer toolchain — each key resolves to the same `dist` files as before.
 
 ### Fixed
 
@@ -550,14 +555,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   they now end in `.js`, so Node can load `components/*` outside a bundler.
   Platform-split imports (`./keyboardController`, `./nativeTextField`) stay
   extension-less, as Metro needs. Nothing to change for consumers.
-
-### Changed
-
-- `exports` entries list a repo-only `@mrmeg/source` condition first, pointing
-  at `src`, and gain exact keys for the nine modules the `components/*`,
-  `hooks/*`, and `state/*` patterns cannot map to a source file (a `.ts` module
-  under a `*.tsx` pattern, and the reverse). Without the condition — every
-  consumer toolchain — each key resolves to the same `dist` files as before.
 
 ## [0.27.1]
 
