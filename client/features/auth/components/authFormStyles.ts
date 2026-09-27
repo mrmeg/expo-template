@@ -60,6 +60,8 @@ const createStyles = (theme: Theme) =>
     },
     footer: {
       justifyContent: "center",
+      // The link owns a 44 pt row; centre the sentence beside it on that row.
+      alignItems: "center",
     },
 
     // --- Form bodies ---

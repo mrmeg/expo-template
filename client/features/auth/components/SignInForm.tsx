@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -8,6 +8,7 @@ import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/Styl
 import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 import { AuthFormCard } from "./AuthFormCard";
+import { AuthLink } from "./AuthLink";
 import { authFormStyles } from "./authFormStyles";
 import { getSocialLabel, validateEmail, validatePassword } from "./validators";
 
@@ -109,11 +110,11 @@ export function SignInForm({
             <SansSerifText size="base" style={shared.mutedText}>
               {t("auth.noAccount")}{" "}
             </SansSerifText>
-            <Pressable accessibilityRole="button" onPress={onSignUp} disabled={loading}>
+            <AuthLink onPress={onSignUp} disabled={loading}>
               <SansSerifBoldText size="base" selectable={false} style={shared.linkText}>
                 {t("auth.signUp")}
               </SansSerifBoldText>
-            </Pressable>
+            </AuthLink>
           </>
         )
       }
@@ -160,8 +161,7 @@ export function SignInForm({
       )}
 
       {showPasswordField && onForgotPassword && (
-        <Pressable
-          accessibilityRole="button"
+        <AuthLink
           onPress={onForgotPassword}
           disabled={loading}
           style={styles.forgotPassword}
@@ -169,7 +169,7 @@ export function SignInForm({
           <SansSerifText size="base" selectable={false} style={shared.linkText}>
             {t("auth.forgotPassword")}
           </SansSerifText>
-        </Pressable>
+        </AuthLink>
       )}
 
       {showPasswordField ? (
@@ -197,9 +197,8 @@ export function SignInForm({
       )}
 
       {onEmailCodeSignIn && (
-        <Pressable
+        <AuthLink
           testID={usePassword ? "sign-in-use-code-button" : "sign-in-use-password-button"}
-          accessibilityRole="button"
           onPress={() => setUsePassword((current) => !current)}
           disabled={loading}
           style={styles.methodToggle}
@@ -207,7 +206,7 @@ export function SignInForm({
           <SansSerifText size="base" selectable={false} style={shared.linkText}>
             {usePassword ? t("auth.useEmailCodeInstead") : t("auth.usePasswordInstead")}
           </SansSerifText>
-        </Pressable>
+        </AuthLink>
       )}
 
       {socialProviders.length > 0 && (

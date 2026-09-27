@@ -12,11 +12,19 @@
 import "@/test/mockTheme";
 
 import React from "react";
-import { KeyboardAvoidingView as RNKeyboardAvoidingView, Platform, Text } from "react-native";
+import {
+  KeyboardAvoidingView as RNKeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 import { render, screen } from "@testing-library/react-native";
 import type { ReactTestRendererJSON } from "react-test-renderer";
 import { KeyboardAvoidingView } from "@mrmeg/expo-ui/components/KeyboardAvoidingView";
 import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
+import { spacing } from "@mrmeg/expo-ui/constants";
 
 import { AuthFormCard } from "../AuthFormCard";
 import {
@@ -282,5 +290,59 @@ describe("VerifyEmailForm title", () => {
     expect(screen.getByText("Verify your email first")).toBeTruthy();
     expect(screen.getByText("Custom description")).toBeTruthy();
     expect(screen.queryByText("auth.verifyEmailTitle")).toBeNull();
+  });
+});
+
+describe("auth link targets", () => {
+  const minHeightOf = (node: { props: { style?: StyleProp<ViewStyle> } }) =>
+    (StyleSheet.flatten(node.props.style) as { minHeight?: number }).minHeight ?? 0;
+  /** The passwordless toggles swap their testID with the mode; accept either. */
+  const byEitherTestID = (a: string, b: string) => screen.queryByTestId(a) ?? screen.getByTestId(b);
+
+  it.each([
+    {
+      name: "sign in (password)",
+      form: <SignInForm embedded onSignUp={() => {}} onForgotPassword={() => {}} />,
+      labels: ["auth.signUp", "auth.forgotPassword"],
+      testIDs: [] as [string, string][],
+    },
+    {
+      name: "sign in (email code toggle)",
+      form: <SignInForm embedded onSignUp={() => {}} onEmailCodeSignIn={async () => {}} />,
+      labels: ["auth.signUp"],
+      testIDs: [["sign-in-use-code-button", "sign-in-use-password-button"]],
+    },
+    {
+      name: "sign up",
+      form: <SignUpForm embedded onSignIn={() => {}} onPasswordlessSignUp={async () => {}} />,
+      labels: ["auth.signIn"],
+      testIDs: [["sign-up-use-passwordless-button", "sign-up-add-password-button"]],
+    },
+    {
+      name: "verify email",
+      form: <VerifyEmailForm embedded email="ada@example.com" onBack={() => {}} onChangeEmail={() => {}} />,
+      labels: ["auth.backToSignIn", "auth.resendCodeLink", "auth.wrongEmail auth.changeIt"],
+      testIDs: [] as [string, string][],
+    },
+    {
+      name: "forgot password",
+      form: <ForgotPasswordForm embedded onBack={() => {}} />,
+      labels: ["auth.backToSignIn"],
+      testIDs: [],
+    },
+    {
+      name: "reset password",
+      form: <ResetPasswordForm embedded onBack={() => {}} />,
+      labels: ["auth.backToSignIn"],
+      testIDs: [],
+    },
+  ])("gives every $name text link a 44 pt target", async ({ form, labels, testIDs }) => {
+    await render(form);
+    for (const label of labels) {
+      expect(minHeightOf(screen.getByRole("button", { name: label }))).toBeGreaterThanOrEqual(spacing.touchTarget);
+    }
+    for (const [a, b] of testIDs) {
+      expect(minHeightOf(byEitherTestID(a, b))).toBeGreaterThanOrEqual(spacing.touchTarget);
+    }
   });
 });
