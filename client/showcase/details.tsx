@@ -49,7 +49,7 @@ import {
 } from "@mrmeg/expo-ui/components/Item";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@mrmeg/expo-ui/components/Select";
 import { StatCard } from "@mrmeg/expo-ui/components/StatCard";
-import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { CaptionText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { Switch } from "@mrmeg/expo-ui/components/Switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mrmeg/expo-ui/components/Tabs";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
