@@ -18,6 +18,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   first `useTheme()` caller — the root layout usually reads the theme for the
   navigation `ThemeProvider`, so wrap the layout, not only `UIProvider`. Native
   never hydrates and ignores it; without a hint nothing changes.
+- **`Screen`, the page container.** `<Screen edges={["bottom"]} scroll padded>`
+  pads the safe-area insets of the edges it owns (`edges` is required, so a
+  screen never double-pads under a navigator header or above a tab bar), adds
+  the one 16 pt horizontal inset (`padded={false}` for full-bleed `ItemGroup`
+  rows), paints the theme background, and either renders a `View` or, with
+  `scroll`, a `ScrollView` whose content container carries the insets so
+  content scrolls under the Dynamic Island and home indicator. Its
+  `contentContainerStyle` padding is added to the insets, never replaced.
+  `ScreenEdge` / `ScreenEdges` types are exported.
+- **`useWindowInsets()`** (`@mrmeg/expo-ui/hooks`): the safe-area insets from
+  the `SafeAreaProvider` context with an `initialWindowMetrics` fallback per
+  edge, so content the system presents outside the provider (an iOS `Modal`, a
+  native bottom sheet, a `UIProvider` mounted above the provider) still clears
+  the island and home indicator. `BottomSheet`, `Notification` and `Dialog`
+  read it.
 - **Rows name their controls: `useItemLabel()` / `useItemControlLabel(props)`**
   (from `components/Item` and the barrels). An `Item` exposes `{ title,
   titleId }` to the row: a plain-text `ItemTitle` inside `ItemContent` becomes
@@ -300,6 +315,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Toasts clear the Dynamic Island and home indicator.** `Notification` read
+  only the provider context and fell back to a fixed 20 pt when it was `null`
+  (a `UIProvider` above the app's `SafeAreaProvider`, a toast host in a
+  modal), putting top toasts under the island and bottom toasts over the home
+  indicator; with an inset it sat flush against it. It now uses
+  `useWindowInsets()` and sits `spacing.sm` (8) past the inset — 20 pt from the
+  edge when there is none, as before.
+- **Dialogs stay inside the safe area.** `Dialog` / `AlertDialog` centered
+  their card in the full window, so the 85 % max height was 85 % of the screen;
+  the centered container now pads the window insets on native.
 - **A quiet web console, and a clean first server render.** Every kit
   animation passed `useNativeDriver: true`, which RN's Animated on web answers
   with "`useNativeDriver` is not supported…" per animation; they now use

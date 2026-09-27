@@ -316,6 +316,17 @@ Controls size themselves from their own `size` prop and ignore these tokens:
 Phones are narrow, so every nested inset comes out of the content. Screens
 built from this package are flat:
 
+- **Start from `Screen`.** `<Screen edges={["bottom"]} scroll>` is the page
+  container: safe-area insets on the edges the screen owns (`edges` is
+  required — `["bottom"]` under a Stack header, `["top"]` above a tab bar,
+  `["top", "bottom"]` headerless, `[]` when the navigator owns both), the one
+  horizontal inset, the theme background under all of it. `scroll` puts the
+  insets on the `ScrollView`'s content so it scrolls under the island and home
+  indicator; `padded={false}` for full-bleed `ItemGroup` rows. Its
+  `contentContainerStyle` padding is added to the insets, never replaced.
+  Insets come from `useWindowInsets()` (`@mrmeg/expo-ui/hooks`), which also
+  covers content the system presents outside the app's `SafeAreaProvider`
+  (modals, native sheets), as `Notification`, `Dialog` and `BottomSheet` do.
 - **One horizontal inset: `spacing.screenPadding` (16).** Either a container
   pads or its children do, never both. `Item` rows carry the inset themselves,
   so a screen of `ItemGroup`s pads nothing horizontally; text, forms, and
@@ -700,6 +711,7 @@ building a new primitive.
 | `Label` | Accessible form labels | Required, disabled, and group labels |
 | `MaxWidthContainer` | Centered responsive width | Web pages, tablet layouts, auth forms |
 | `Notification` | Global toast surface | Saved/error/sync toasts, action toasts, loading toast |
+| `Screen` | Page container: safe-area `edges`, one horizontal inset, theme background, optional scroll | Every screen root; under a header pass `edges={["bottom"]}` |
 | `Popover` | Anchored contextual content | Inline help, quick previews, small forms |
 | `Progress` | Determinate or indeterminate progress | Upload progress, onboarding completion |
 | `RadioGroup` | Mutually exclusive choices | Plan interval, visibility choice, survey answer |

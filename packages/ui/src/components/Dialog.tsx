@@ -1,9 +1,10 @@
 import * as React from "react";
-import { GestureResponderEvent, Modal, Platform, StyleSheet, View, ViewProps } from "react-native";
+import { GestureResponderEvent, Modal, Platform, StyleSheet, View, ViewProps, type ViewStyle } from "react-native";
 import * as DialogPrimitive from "@rn-primitives/dialog";
 import * as AlertDialogPrimitive from "@rn-primitives/alert-dialog";
 import { AnimatedView } from "./AnimatedView";
 import { KeyboardAvoidingView } from "./KeyboardAvoidingView";
+import { useWindowInsets } from "../hooks/useWindowInsets";
 import { useKeyboardDismissResponder } from "./keyboardDismiss";
 import { TextClassContext, TextColorContext } from "./StyledText.context";
 import { StyledText } from "./StyledText";
@@ -113,6 +114,23 @@ function DialogPresentation({
  *
  * Web has no software keyboard and keeps the portal-host tree unchanged.
  */
+/**
+ * On native the overlay (an iOS `Modal`, the Android portal) covers the whole
+ * window, so the centered container pads the safe-area insets: `sizer`'s 85 %
+ * is then 85 % of the area between the Dynamic Island and the home indicator,
+ * not of the screen. Web's overlay is the viewport; nothing to pad.
+ */
+function useDialogSafeAreaPadding(): ViewStyle | null {
+  const insets = useWindowInsets();
+  if (Platform.OS === "web") return null;
+  return {
+    paddingTop: insets.top,
+    paddingBottom: insets.bottom,
+    paddingLeft: insets.left,
+    paddingRight: insets.right,
+  };
+}
+
 function DialogKeyboardAvoidance({ children }: { children: React.ReactNode }) {
   if (Platform.OS === "web") {
     return <>{children}</>;
@@ -201,6 +219,7 @@ function DialogContent({
 }: DialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
   const dialogRadius = useShape("dialog")?.borderRadius ?? spacing.radiusLg;
+  const safeAreaPadding = useDialogSafeAreaPadding();
   const { open, onOpenChange } = DialogPrimitive.useRootContext();
   const dismissBoundaryProps = useDialogKeyboardDismissBoundary(true);
   const textColor = getContrastingColor(
@@ -234,7 +253,7 @@ function DialogContent({
       >
         <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
           <DialogKeyboardAvoidance>
-            <View style={overlayStyles.centeredContainer}>
+            <View style={[overlayStyles.centeredContainer, safeAreaPadding]} testID="dialog-safe-area">
               <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
                 <TextColorContext.Provider value={textColor}>
                   <TextClassContext.Provider value="">
@@ -396,6 +415,7 @@ function AlertDialogContent({
 }: AlertDialogContentProps) {
   const { theme, getShadowStyle, getContrastingColor } = useTheme();
   const dialogRadius = useShape("dialog")?.borderRadius ?? spacing.radiusLg;
+  const safeAreaPadding = useDialogSafeAreaPadding();
   const { open, onOpenChange } = AlertDialogPrimitive.useRootContext();
   const dismissBoundaryProps = useDialogKeyboardDismissBoundary();
   const textColor = getContrastingColor(
@@ -420,7 +440,7 @@ function AlertDialogContent({
       >
         <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
           <DialogKeyboardAvoidance>
-            <View style={overlayStyles.centeredContainer} {...dismissBoundaryProps}>
+            <View style={[overlayStyles.centeredContainer, safeAreaPadding]} {...dismissBoundaryProps}>
               <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
                 <TextColorContext.Provider value={textColor}>
                   <TextClassContext.Provider value="">

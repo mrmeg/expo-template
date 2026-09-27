@@ -1,11 +1,11 @@
-import React, { useCallback, use, useEffect, useEffectEvent, useRef } from "react";
+import React, { useCallback, useEffect, useEffectEvent, useRef } from "react";
 import { Animated, Easing, StyleSheet, View, ActivityIndicator, Pressable, Platform } from "react-native";
-import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { useStore } from "zustand";
 import { Icon } from "./Icon";
 import type { IconName } from "./Icon";
 import { useTheme, withAlpha } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
+import { useWindowInsets } from "../hooks/useWindowInsets";
 import { spacing } from "../constants/spacing";
 import { durations } from "../constants/motion";
 import { StyledText } from "./StyledText";
@@ -54,7 +54,10 @@ function runThenDismiss(run: () => void, dismiss: () => void): void {
 export const Notification = () => {
   const { theme, getShadowStyle } = useTheme();
   const reduceMotion = useReducedMotion();
-  const insets = use(SafeAreaInsetsContext);
+  // Window insets, not the provider context alone: a toast host above the
+  // app's SafeAreaProvider (or inside a Modal) used to fall back to 20 pt and
+  // sit under the Dynamic Island.
+  const insets = useWindowInsets();
   // Read the store through zustand's `useStore`, not by calling
   // `globalUIStore()` directly: the React Compiler recognizes hooks by their
   // `use` prefix, so it treated that call as a plain function, cached its
@@ -178,8 +181,9 @@ export const Notification = () => {
     transform: [{ translateY }],
   };
 
-  const topPosition = insets?.top ? insets.top : 20;
-  const bottomPosition = insets?.bottom ? insets.bottom : 20;
+  // 8 pt of air past the inset; without one, 20 pt from the edge (as before).
+  const topPosition = Math.max(insets.top, spacing.smd) + spacing.sm;
+  const bottomPosition = Math.max(insets.bottom, spacing.smd) + spacing.sm;
 
   const getIconProps = (): { icon: IconName; color: string; bgColor: string } => {
     switch (alert?.type) {
@@ -244,6 +248,7 @@ export const Notification = () => {
 
   return (
     <Animated.View
+      testID="ui-notification"
       accessibilityLiveRegion="polite"
       accessibilityRole="alert"
       style={[
