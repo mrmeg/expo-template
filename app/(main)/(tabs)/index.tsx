@@ -162,7 +162,7 @@ export default function ExploreScreen() {
                   >
                     {/* The block owns its own screen-section padding; the
                         spotlight card supplies its own, so override it. */}
-                    <View pointerEvents="none">
+                    <View style={styles.passThrough}>
                       <Suspense fallback={<View style={styles.spotlightStage} />}>
                         <LazyBlockStage id={spotlight.id} style={styles.spotlightStage} />
                       </Suspense>
@@ -297,7 +297,7 @@ function SectionHead({
 
 /**
  * One card in the component rail. The preview is a live instance behind
- * `pointerEvents="none"` — a tap should open the component's detail screen, not
+ * `pointerEvents: "none"` (as a style) — a tap should open the component's detail screen, not
  * half-operate the preview inside it (same rule as the gallery cards).
  */
 function RailCard({ entry, styles }: { entry: ComponentEntry; styles: ExploreStyles }) {
@@ -310,7 +310,7 @@ function RailCard({ entry, styles }: { entry: ComponentEntry; styles: ExploreSty
         testID={`explore-rail-${entry.id}`}
         style={linkPressableStyle(styles.railCard)}
       >
-        <View style={styles.railPreview} pointerEvents="none">
+        <View style={[styles.railPreview, styles.passThrough]}>
           {/* The well has a fixed height, so the lazy fallback costs no layout. */}
           <Suspense fallback={null}>
             <LazyPreview
@@ -465,6 +465,10 @@ const createStyles = (theme: Theme) =>
       borderColor: theme.colors.border,
       overflow: "hidden",
     },
+    // Previews are decorative: taps go to the card/link around them. A style,
+    // not the deprecated `pointerEvents` prop (react-native-web warns, and its
+    // lazy warning module overflowed the first SSR render of this route).
+    passThrough: { pointerEvents: "none" },
     railPreview: {
       height: 68,
       alignItems: "center",

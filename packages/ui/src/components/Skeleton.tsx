@@ -7,6 +7,7 @@ import { spacing } from "../constants/spacing";
 import { createThemedStyles } from "../lib/themedStyles";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import type { Theme } from "../constants/colors";
+import { shouldUseNativeDriver } from "../lib/animations";
 
 // ============================================================================
 // Base Skeleton
@@ -65,12 +66,12 @@ export function Skeleton({
         Animated.timing(opacity, {
           toValue: 1,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
         Animated.timing(opacity, {
           toValue: PULSE_MIN,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
       ])
     );

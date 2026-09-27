@@ -113,6 +113,9 @@ jest.mock("@rn-primitives/switch", () => {
   };
 });
 
+const mockHydrated = jest.fn(() => true);
+jest.mock("../../hooks/useHydrated", () => ({ useHydrated: () => mockHydrated() }));
+
 // eslint-disable-next-line import/first -- the mocks above must be registered before these load
 import { Platform, Text } from "react-native";
 // eslint-disable-next-line import/first
@@ -122,7 +125,7 @@ import { useItemLabel } from "../Item";
 
 function LabelProbe() {
   const label = useItemLabel();
-  return <Text testID="probe">{label ? `${label.titleId}|${label.title ?? ""}` : "none"}</Text>;
+  return <Text testID="probe">{label ? `${label.titleId ?? ""}|${label.title ?? ""}` : "none"}</Text>;
 }
 
 describe("Item labels its trailing controls", () => {
@@ -217,7 +220,7 @@ describe("Item labels its trailing controls", () => {
       Platform.OS = originalOS;
     });
 
-    it("links the Switch to the title with aria-labelledby instead of copying the text", async () => {
+    it("names the Switch after a plain-text title (aria-label via accessibilityLabel), no id needed", async () => {
       await render(
         <Item>
           <ItemContent>
@@ -230,10 +233,59 @@ describe("Item labels its trailing controls", () => {
       );
 
       const control = screen.getByRole("switch");
-      const titleId = screen.getByText("Public profile").props.nativeID;
+      expect(control.props.accessibilityLabel).toBe("Public profile");
+      expect(control.props["aria-labelledby"]).toBeUndefined();
+    });
+
+    it("links a composed title by id with aria-labelledby once hydrated", async () => {
+      await render(
+        <Item>
+          <ItemContent>
+            <ItemTitle>{"Jane"} <ItemDescription>(you)</ItemDescription></ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <Switch checked onCheckedChange={() => {}} />
+          </ItemActions>
+        </Item>,
+      );
+
+      const control = screen.getByRole("switch");
+      const titleId = screen.getByText(/Jane/).props.nativeID;
       expect(titleId).toBeTruthy();
       expect(control.props["aria-labelledby"]).toBe(titleId);
       expect(control.props.accessibilityLabel).toBeUndefined();
+    });
+  });
+
+  describe("on web before hydration (server render and the hydration pass)", () => {
+    const originalOS = Platform.OS;
+    beforeEach(() => {
+      Platform.OS = "web";
+      mockHydrated.mockReturnValue(false);
+    });
+    afterEach(() => {
+      Platform.OS = originalOS;
+      mockHydrated.mockReturnValue(true);
+    });
+
+    it("emits no useId-based id or labelledby, but still names by title text", async () => {
+      await render(
+        <Item>
+          <ItemContent>
+            <ItemTitle>Public profile</ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <LabelProbe />
+            <Switch checked onCheckedChange={() => {}} />
+          </ItemActions>
+        </Item>,
+      );
+
+      const [titleId, title] = screen.getByTestId("probe").props.children.split("|");
+      expect(title).toBe("Public profile");
+      expect(titleId).toBe("");
+      expect(screen.getByText("Public profile").props.nativeID).toBeUndefined();
+      expect(screen.getByRole("switch").props.accessibilityLabel).toBe("Public profile");
     });
   });
 });

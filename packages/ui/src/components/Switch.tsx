@@ -12,6 +12,7 @@ import { ActivityIndicator, Platform, StyleProp, StyleSheet, View, ViewStyle, An
 import { StyledText } from "./StyledText";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
+import { shouldUseNativeDriver } from "../lib/animations";
 import { useItemControlLabel } from "./Item";
 
 const DEFAULT_HIT_SLOP = 8;
@@ -102,7 +103,7 @@ function Switch({
     Animated.timing(progress, {
       toValue: target,
       duration: reduceMotion ? 0 : 120,
-      useNativeDriver: true,
+      useNativeDriver: shouldUseNativeDriver,
     }).start();
   }, [props.checked, reduceMotion, progress]);
 

@@ -1,4 +1,4 @@
-import React, { createContext, use, useEffect, useId, useState } from "react";
+import React, { createContext, use, useEffect, useState } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Pressable, Platform, Animated } from "react-native";
 import { StyledText } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
@@ -9,6 +9,7 @@ import { hapticLight } from "../lib/haptics";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
+import { shouldUseNativeDriver } from "../lib/animations";
 import * as RadioGroupPrimitive from "@rn-primitives/radio-group";
 
 const DEFAULT_HIT_SLOP = 8;
@@ -168,7 +169,7 @@ function RadioGroupItem({
     Animated.timing(dotScale, {
       toValue: isChecked ? 1 : 0,
       duration: reduceMotion ? 0 : 60,
-      useNativeDriver: true,
+      useNativeDriver: shouldUseNativeDriver,
     }).start();
   }, [isChecked, reduceMotion, dotScale]);
 
@@ -191,13 +192,9 @@ function RadioGroupItem({
   // to `spacing.minTarget` and takes the extra back in negative margins.
   const hitSize = Platform.OS === "web" ? Math.max(sizeConfig.outer, spacing.minTarget) : sizeConfig.outer;
   const hitOverflow = (hitSize - sizeConfig.outer) / 2;
-  const labelId = useId();
-  const labelLink =
-    label !== undefined
-      ? Platform.OS === "web"
-        ? { "aria-labelledby": labelId }
-        : { accessibilityLabel: label, accessibilityLabelledBy: labelId }
-      : undefined;
+  // The label text names the control on every platform; no `useId` link (ids
+  // do not survive Expo Router's streamed hydration — see hooks/useHydrated).
+  const labelLink = label !== undefined ? { accessibilityLabel: label } : undefined;
 
   const radioElement = (
     <Animated.View style={scaleStyle}>
@@ -260,7 +257,7 @@ function RadioGroupItem({
 
   // With a label, a non-accessible wrapper extends the tap area to the text;
   // the primitive Item above stays the only radio a screen reader meets, and
-  // it points at the label text by id.
+  // it carries the label text as its name.
   return (
     <Pressable
       onPress={() => {
@@ -277,7 +274,6 @@ function RadioGroupItem({
       {radioElement}
       <View style={styles.labelContainer}>
         <StyledText
-          nativeID={labelId}
           selectable={false}
           style={[
             styles.label,

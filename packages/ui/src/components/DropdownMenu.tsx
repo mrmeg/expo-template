@@ -180,7 +180,7 @@ function DropdownMenuContent({
           })}
         >
           {/* Fills the overlay so Android hit-tests the absolute Content; see Popover.tsx. */}
-          <AnimatedView type="fade" style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          <AnimatedView type="fade" style={[StyleSheet.absoluteFill, styles.passThrough]}>
             <TextClassContext.Provider value="">
               <TextSelectabilityContext.Provider value={false}>
                 <DropdownMenuPrimitive.Content
@@ -498,6 +498,9 @@ function DropdownMenuShortcut({ children, text, style: styleOverride, ...props }
 }
 
 const styles = /*#__PURE__*/ StyleSheet.create({
+  // Overlay layer: covers the screen without swallowing touches (style, not the
+  // deprecated `pointerEvents` prop).
+  passThrough: { pointerEvents: "box-none" },
   item: {
     position: "relative",
     flexDirection: "row",

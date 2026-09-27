@@ -8,6 +8,13 @@ import * as TooltipPrimitive from "@rn-primitives/tooltip";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { palette } from "../constants/colors";
 
+// The overlay layer covers the screen but must not swallow touches around the
+// content; a style, not the deprecated `pointerEvents` prop (web warns and
+// lazily loads its warning module mid-render).
+const styles = /*#__PURE__*/ StyleSheet.create({
+  passThrough: { pointerEvents: "box-none" },
+});
+
 /**
  * Tooltip Trigger Component
  * The element that triggers the tooltip to appear on hover (web) or press (native)
@@ -109,8 +116,7 @@ function TooltipContent({
           <AnimatedView
             type="fade"
             enterDuration={150}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="box-none"
+            style={[StyleSheet.absoluteFill, styles.passThrough]}
           >
             <TextColorContext.Provider value={colors.text}>
               <TextClassContext.Provider value="">

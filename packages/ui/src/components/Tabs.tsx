@@ -10,6 +10,7 @@ import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { spacing } from "../constants/spacing";
+import { shouldUseNativeDriver } from "../lib/animations";
 
 // ============================================================================
 // Size configs
@@ -139,7 +140,7 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
     Animated.timing(activeOpacity, {
       toValue: isSelected ? 1 : 0,
       duration: reduceMotion ? 0 : 200,
-      useNativeDriver: true,
+      useNativeDriver: shouldUseNativeDriver,
     }).start();
   }, [isSelected, reduceMotion, activeOpacity]);
 
