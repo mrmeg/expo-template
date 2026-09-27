@@ -16,6 +16,7 @@ export * from "./Drawer";
 export * from "./DropdownMenu";
 export * from "./EmptyState";
 export * from "./ErrorBoundary";
+export * from "./Hydrated";
 export * from "./Icon";
 export * from "./InputOTP";
 export * from "./Item";

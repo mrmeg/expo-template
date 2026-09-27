@@ -11,8 +11,9 @@ import { Text } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 
 const mockHydrated = { value: false };
-jest.mock("@mrmeg/expo-ui/hooks", () => ({
-  ...jest.requireActual("@mrmeg/expo-ui/hooks"),
+// The kit's `Hydrated` imports the hook module directly, so mock that module
+// (the barrel re-exports it) rather than the barrel alone.
+jest.mock("@mrmeg/expo-ui/hooks/useHydrated", () => ({
   useHydrated: () => mockHydrated.value,
 }));
 

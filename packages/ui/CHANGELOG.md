@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`Hydrated`** (`@mrmeg/expo-ui/components`): renders `fallback` on the
+  server and through the hydration pass, then its children — the gate for
+  markup the server cannot reproduce. Under Expo Router's SSR the server renders
+  inside `+html.tsx` while the client hydrates `#root`, so every `useId()`
+  differs; the kit defers its own ids, but a Radix-backed component (`Tabs`,
+  `Accordion`, `Collapsible`, `Select`, `DropdownMenu`, `Popover`) inside a
+  server-rendered route logs "A tree hydrated but some attributes … didn't
+  match". Wrap that subtree with a layout-holding fallback and keep the rest of
+  the page's server HTML. Built on `useHydrated()`; a no-op gate on native.
 - **`useNotificationOffset()`** (`@mrmeg/expo-ui/hooks`) and
   **`selectNotificationOffset`** / `setNotificationOffset` /
   `clearNotificationOffset` on `globalUIStore`: a layout that owns a bar tells

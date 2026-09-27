@@ -20,7 +20,8 @@
 
 import React, { Suspense } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { useHydrated, useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { Hydrated } from "@mrmeg/expo-ui/components/Hydrated";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -32,14 +33,17 @@ const loadGallery = () => import("@/client/showcase/gallery");
 type GalleryModule = Awaited<ReturnType<typeof loadGallery>>;
 
 /**
- * Server render and hydration pass: the fallback. First client render after
- * hydration: the lazy child inside its own `Suspense`, so the chunk request
- * starts once the tree is live and its ids are the client's.
+ * Server render and hydration pass: the fallback (the kit's `Hydrated` gate).
+ * First client render after hydration: the lazy child inside its own
+ * `Suspense`, so the chunk request starts once the tree is live and its ids
+ * are the client's.
  */
 export function ClientOnly({ fallback = null, children }: { fallback?: React.ReactNode; children: React.ReactNode }) {
-  const hydrated = useHydrated();
-  if (!hydrated) return <>{fallback}</>;
-  return <Suspense fallback={fallback}>{children}</Suspense>;
+  return (
+    <Hydrated fallback={fallback}>
+      <Suspense fallback={fallback}>{children}</Suspense>
+    </Hydrated>
+  );
 }
 
 const PreviewLazy = React.lazy(async () => ({
