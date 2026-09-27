@@ -315,6 +315,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`Button` honours `aria-disabled` and `accessibilityState.disabled`.** A
+  button with either (and no `disabled`) is announced as disabled, drawn with
+  the disabled look (opacity, no shadow, no press scale or haptic), yet stays
+  focusable and fires `onPress`, so the app can explain why the action is
+  unavailable — ARIA's contract. Before, the kit's own `disabled={false}`
+  overwrote the consumer's state on every platform (screen readers heard an
+  enabled button) and apps faked the look with their own opacity. On web the
+  attribute is set on the host `<button>` after mount, because react-native-web
+  both overwrites `aria-disabled` from its `disabled` prop and turns a
+  prop-driven `aria-disabled` into the native `disabled` attribute (no clicks,
+  no focus); on a server-rendered page it appears at hydration. `disabled` and
+  `loading` block presses exactly as before, and a consumer `accessibilityState`
+  is merged (it no longer drops `busy`). `composeRefs` is exported from
+  `@mrmeg/expo-ui/lib`.
 - **Toasts clear the Dynamic Island and home indicator.** `Notification` read
   only the provider context and fell back to a fixed 20 pt when it was `null`
   (a `UIProvider` above the app's `SafeAreaProvider`, a toast host in a

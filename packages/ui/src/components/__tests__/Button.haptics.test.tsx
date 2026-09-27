@@ -55,4 +55,14 @@ describe("Button haptics", () => {
     await pressIn("Off");
     expect(mockImpactAsync).not.toHaveBeenCalled();
   });
+
+  it("does not tap while announced disabled (aria-disabled), though the press still fires", async () => {
+    useFeedbackStore.setState({ haptics: "all" });
+    const onPress = jest.fn();
+    await render(<Button text="Publish" aria-disabled onPress={onPress} />);
+    await pressIn("Publish");
+    expect(mockImpactAsync).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByText("Publish"));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
 });

@@ -471,6 +471,17 @@ setHaptics("all");
 | `"selection"` (default) | state changes: Switch, Checkbox, Toggle, ToggleGroup, SegmentedControl |
 | `"all"` | selection plus a light tap on press-in for Button, pressable Card and Item, and `useScalePress` consumers |
 
+Two ways to disable a `Button`. `disabled` swallows presses, skips the scale
+and haptic, dims, and leaves the web tab order — for actions that cannot run.
+`aria-disabled` (or `accessibilityState={{ disabled: true }}`) is announced
+and dimmed the same way but stays focusable and pressable, so the press can say
+why: a required question's "Next", a "Publish" without a title. Prefer it
+whenever the user could otherwise wonder why nothing happens.
+
+```tsx
+<Button text="Publish" aria-disabled={!title} onPress={() => (title ? publish() : notify.info("Add a title first"))} />
+```
+
 Web never vibrates. A single `Button` can force either way with `haptic`
 (`<Button haptic />`, `<Button haptic={false} />`); `useScalePress({ haptic })`
 takes `true` (always), `false` (never) or `"setting"` (the default, follows the
