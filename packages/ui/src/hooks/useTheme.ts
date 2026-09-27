@@ -4,6 +4,7 @@ import { Colors, colors, resolveRawColor } from "../constants/colors";
 import { ImageStyle, TextStyle, ViewStyle, Platform, StyleSheet } from "react-native";
 import { resolveThemePreference, useThemeStore, type ThemeStore } from "../state/themeStore";
 import { useThemeColorScope } from "../state/themeColorScope";
+import { useInitialScheme } from "../state/initialScheme";
 import { spacing as spacingConstants } from "../constants/spacing";
 
 type ShadowType =
@@ -109,18 +110,25 @@ export function useTheme(): ExtendedColorScheme & {
   } {
   // One store subscription per consumer, re-rendering only when one of these
   // four fields changes (shallow compare), instead of four subscriptions.
-  const { userTheme, systemTheme, setTheme, colorOverrides } = useThemeStore(
+  const { userTheme, systemTheme, hasLoadedTheme, setTheme, colorOverrides } = useThemeStore(
     useShallow((s) => ({
       userTheme: s.userTheme,
       systemTheme: s.systemTheme,
+      hasLoadedTheme: s.hasLoadedTheme,
       setTheme: s.setTheme,
       colorOverrides: s.colorOverrides,
     }))
   );
   const scoped = useThemeColorScope();
+  const initialScheme = useInitialScheme();
 
-  // Determine which theme to use (user preference or system)
-  const effectiveScheme = resolveThemePreference(userTheme, systemTheme);
+  // Determine which theme to use: the app's first-render hint until the
+  // persisted preference has been read (server render, hydration), then the
+  // user preference or system scheme. See state/initialScheme.tsx.
+  const effectiveScheme =
+    initialScheme !== undefined && !hasLoadedTheme
+      ? initialScheme
+      : resolveThemePreference(userTheme, systemTheme);
   const base = colors[effectiveScheme];
 
   // Layer overrides on top of the package defaults for the active scheme, in

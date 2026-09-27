@@ -182,9 +182,11 @@ const NEWSREADER_FONT_FACES = NEWSREADER_SUBSETS.map(
 // bundle boots: it stamps `data-theme` on <html>, which switches the `--c-*`
 // variables above so the whole static shell paints in the right theme on the
 // first frame. (Persisted in-app preference overrides the OS scheme, which
-// the prefers-color-scheme fallback alone cannot know about.)
+// the prefers-color-scheme fallback alone cannot know about.) It also mirrors
+// the resolved scheme into the `color-scheme` cookie `shared/ssrColorScheme.ts`
+// reads, so from the NEXT request on the server renders that theme itself.
 const COLOR_SCHEME_SCRIPT =
-  "(function(){try{var root=document.documentElement;var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;}catch(e){}})()";
+  "(function(){try{var root=document.documentElement;var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;document.cookie=\"color-scheme=\"+resolved+\"; path=/; max-age=31536000; SameSite=Lax\";}catch(e){}})()";
 
 const REACT_SCAN_SCRIPT = `
   (function () {
