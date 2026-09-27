@@ -1,4 +1,4 @@
-import React, { createContext, use } from "react";
+import { createContext, createElement, use, type ReactNode } from "react";
 import type { ResolvedTheme } from "./themeStore";
 
 const InitialSchemeContext = createContext<ResolvedTheme | undefined>(undefined);
@@ -27,9 +27,10 @@ export function InitialSchemeProvider({
   children,
 }: {
   scheme: ResolvedTheme | undefined;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-  return <InitialSchemeContext.Provider value={scheme}>{children}</InitialSchemeContext.Provider>;
+  // `state/*` modules are `.ts` (the package's source export pattern), hence no JSX.
+  return createElement(InitialSchemeContext.Provider, { value: scheme }, children);
 }
 
 /** The first-render scheme hint, or `undefined` outside an `InitialSchemeProvider`. */
