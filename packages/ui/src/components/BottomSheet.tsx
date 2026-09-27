@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { BottomSheet as NativeBottomSheet } from "@expo/ui/community/bottom-sheet";
 import { useWindowInsets } from "../hooks/useWindowInsets";
+import type { EdgeInsets } from "react-native-safe-area-context";
 import { useTheme } from "../hooks/useTheme";
 import { useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
@@ -401,11 +402,20 @@ function useBottomSheetContext() {
 /**
  * Safe-area insets for content *inside* the sheet. The native sheet (SwiftUI
  * `.sheet()` / Material `ModalBottomSheet`) is presented outside the React
- * tree's `SafeAreaProvider`, where the provider context reads all-zero;
- * `useWindowInsets` falls back to `initialWindowMetrics` so bottom padding
- * clears the home indicator and the last row of a scroll body is reachable.
+ * tree's `SafeAreaProvider`, and inside a tab screen the provider context even
+ * carries the tab bar (83 pt on an iPhone with a home indicator), so the raw
+ * context is the wrong number here. `useWindowInsets` gives the window's
+ * insets; `top` sizes the iOS detent cap below. On iOS the hosted column is
+ * already laid out inside the sheet's safe area — SwiftUI keeps `RNHostView`
+ * 34 pt above the home indicator — so `bottom` is 0 there: padding it again
+ * pushed the footer up by the inset (plus the tab bar's height inside a tab
+ * screen) and squeezed the body until its last row was clipped. Android's
+ * Material host still gets the bottom inset from us.
  */
-const useSheetInsets = useWindowInsets;
+function useSheetInsets(): EdgeInsets {
+  const insets = useWindowInsets();
+  return Platform.OS === "ios" ? { ...insets, bottom: 0 } : insets;
+}
 
 /**
  * Interactive (pull-down / backdrop) dismiss is off only when the consumer
