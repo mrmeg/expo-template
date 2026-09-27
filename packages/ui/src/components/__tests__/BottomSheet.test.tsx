@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { BottomSheet, bottomSheetAncestorClaimWarning } from "../BottomSheet";
 import { resetAncestorClaimWarningForTests } from "../keyboardDismiss";
 import {
@@ -469,13 +470,20 @@ describe("BottomSheet.Content keyboard dismiss boundary", () => {
 describe("BottomSheet.Content column height", () => {
   type SnapPoints = NonNullable<React.ComponentProps<typeof BottomSheet>["snapPoints"]>;
 
-  async function columnStyle(snapPoints: SnapPoints) {
+  // A Dynamic Island phone: the sheet's top edge sits 10 pt under the top inset.
+  const INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
+  const available = () => Dimensions.get("window").height - INSETS.top - 10;
+
+  async function columnStyle(snapPoints: SnapPoints, options: { handle?: boolean } = {}) {
     await render(
-      <BottomSheet open snapPoints={snapPoints}>
-        <BottomSheet.Content testID="sheet-column">
-          <Text>Sheet content</Text>
-        </BottomSheet.Content>
-      </BottomSheet>
+      <SafeAreaInsetsContext.Provider value={INSETS}>
+        <BottomSheet open snapPoints={snapPoints}>
+          <BottomSheet.Content testID="sheet-column">
+            {options.handle && <BottomSheet.Handle />}
+            <Text>Sheet content</Text>
+          </BottomSheet.Content>
+        </BottomSheet>
+      </SafeAreaInsetsContext.Provider>
     );
     return StyleSheet.flatten(screen.getByTestId("sheet-column").props.style) as Record<
       string,
@@ -483,16 +491,26 @@ describe("BottomSheet.Content column height", () => {
     >;
   }
 
-  it("caps the column at a percentage detent of the window on iOS", async () => {
+  it("caps the column at the fraction of the sheet's available height on iOS, less the host's grabber padding", async () => {
     const style = await columnStyle(["55%"]);
     expect(style.flex).toBe(1);
-    expect(style.maxHeight).toBe(0.55 * Dimensions.get("window").height);
+    expect(style.maxHeight).toBe(0.55 * available() - 16);
   });
 
-  it("caps the column at a fixed detent on iOS", async () => {
+  it("caps the column at a fixed detent on iOS, less the host's grabber padding", async () => {
     const style = await columnStyle([320]);
     expect(style.flex).toBe(1);
-    expect(style.maxHeight).toBe(320);
+    expect(style.maxHeight).toBe(320 - 16);
+  });
+
+  it("clamps a fixed detent to the height UIKit can give the sheet", async () => {
+    const style = await columnStyle([available() + 200]);
+    expect(style.maxHeight).toBe(available() - 16);
+  });
+
+  it("keeps the full detent when the kit Handle replaces the native grabber", async () => {
+    const style = await columnStyle(["55%"], { handle: true });
+    expect(style.maxHeight).toBe(0.55 * available());
   });
 
   it("lets the column fill the Material host on Android with no maxHeight", async () => {

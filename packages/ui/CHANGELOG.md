@@ -315,6 +315,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **iOS `BottomSheet` no longer clips its last row at a snap point.** The
+  content column's iOS height cap was `fraction × window height`, but
+  `@expo/ui` maps `"50%"` to SwiftUI's `.fraction(0.5)`, a fraction of the
+  sheet's *maximum* height (the window minus the top safe-area inset minus
+  UIKit's 10 pt gap), and pads the hosted column 16 pt under the native grabber.
+  The column overshot the sheet by about 52 pt on a Dynamic Island phone at 50 %
+  and SwiftUI clipped the tail — the last quick action, the footer padding. The
+  cap now follows the real detent (fraction or clamped fixed height of the
+  available height, less the grabber padding unless `BottomSheet.Handle`
+  replaces the native indicator). Android and web are unchanged.
 - **`Button` honours `aria-disabled` and `accessibilityState.disabled`.** A
   button with either (and no `disabled`) is announced as disabled, drawn with
   the disabled look (opacity, no shadow, no press scale or haptic), yet stays
