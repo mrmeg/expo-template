@@ -162,12 +162,16 @@ function WebSegmentedControl({ values, selectedIndex, disabled, tintColor, onSel
   const position = useAnimatedValue(selectedIndex);
 
   useEffect(() => {
-    Animated.timing(position, {
+    const slide = Animated.timing(position, {
       toValue: selectedIndex,
       duration: reduceMotion ? 0 : 200,
       easing: Easing.out(Easing.quad),
       useNativeDriver: shouldUseNativeDriver,
-    }).start();
+    });
+    slide.start();
+    // Stop on unmount (and before the next selection starts its own slide) so
+    // no animation frame outlives the control.
+    return () => slide.stop();
   }, [position, reduceMotion, selectedIndex]);
 
   const onLayout = (event: LayoutChangeEvent) => setTrackWidth(event.nativeEvent.layout.width);

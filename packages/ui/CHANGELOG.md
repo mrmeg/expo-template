@@ -555,6 +555,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Platform-split imports (`./keyboardController`, `./nativeTextField`) stay
   extension-less, as Metro needs. Nothing to change for consumers.
 
+- **`SegmentedControl` stops its sliding pill when it unmounts** (web, Android
+  JS driver): the slide started in an effect with no cleanup, so its animation
+  frames outlived the control and a Jest suite that rendered it logged "You are
+  trying to access a property or method of the Jest environment after it has
+  been torn down" 76 times, which fails `--runInBand` runs. The next selection
+  also stops the previous slide before starting its own; nothing visible changes.
+
 ### Documentation
 
 - **`Button.Icon` documents and tests its `component` prop.** `Icon` has taken
