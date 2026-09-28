@@ -19,6 +19,11 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 
 const CONTROL_ZONE_SPACE = 128;
 
+// FlatList requires `viewabilityConfig` to keep one identity for the list's
+// lifetime. Module scope gives it that without reading a ref during render,
+// which would make React Compiler skip this component.
+const VIEWABILITY_CONFIG = { viewAreaCoveragePercentThreshold: 50 };
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -123,8 +128,6 @@ export function OnboardingFlow({
     [dotWidths]
   );
 
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
-
   const handleNext = () => {
     if (isLastPage) {
       onComplete();
@@ -185,7 +188,7 @@ export function OnboardingFlow({
         showsHorizontalScrollIndicator={false}
         bounces={false}
         onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
+        viewabilityConfig={VIEWABILITY_CONFIG}
         getItemLayout={(_, index) => ({
           length: screenWidth,
           offset: screenWidth * index,

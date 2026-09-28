@@ -1,6 +1,7 @@
 import {
   resolveFontStyle,
   type FontFamilyWeight,
+  type FontStyleOptions,
   type FontVariant,
   type ResolvedFontStyle,
 } from "../constants/fonts";
@@ -18,9 +19,11 @@ import { useThemeStore } from "../state/themeStore";
 export function useFontStyle(
   weight: FontFamilyWeight = "regular",
   variant: FontVariant = "sansSerif",
+  options: Pick<FontStyleOptions, "italic"> = {},
 ): ResolvedFontStyle {
   // Subscribed, not read via getState(), so a `setFonts` call after mount
   // re-renders instead of leaving stale families on screen.
   const fontOverrides = useThemeStore((s) => s.fontOverrides);
-  return resolveFontStyle(fontOverrides, variant, weight);
+  const serifPreset = useThemeStore((s) => s.serifPreset);
+  return resolveFontStyle(fontOverrides, variant, weight, { italic: options.italic, serifPreset });
 }

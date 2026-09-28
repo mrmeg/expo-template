@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
@@ -10,6 +10,7 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 import { AuthFormCard } from "./AuthFormCard";
+import { AuthLink } from "./AuthLink";
 import { authFormStyles } from "./authFormStyles";
 import { validateEmail } from "./validators";
 
@@ -95,11 +96,11 @@ export function ForgotPasswordForm({
       description={description ?? t("auth.forgotPasswordDescription")}
       footer={
         onBack && (
-          <Pressable accessibilityRole="button" onPress={onBack} disabled={loading}>
-            <SansSerifText selectable={false} style={shared.linkText}>
+          <AuthLink onPress={onBack} disabled={loading}>
+            <SansSerifText size="base" selectable={false} style={shared.linkText}>
               {t("auth.backToSignIn")}
             </SansSerifText>
-          </Pressable>
+          </AuthLink>
         )
       }
     >

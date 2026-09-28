@@ -13,12 +13,27 @@
  * the eagerly `<script>`-loaded `__common` bundle. Keep this module reachable
  * only through `clerkClient`.
  *
+ * The root layout mounts it while the native splash is still up, and the
+ * status bridge below tells `clerkClient` when the load has settled — that is
+ * what the startup gate waits on (see `./clerkLoadSignal.ts`).
+ *
  * Default-exported because `React.lazy` resolves a module's `default`.
  */
 
-import React from "react";
-import { ClerkProvider } from "@clerk/clerk-expo";
+import React, { useEffect } from "react";
+import { ClerkProvider, useClerk } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
+import { reportClerkStatus } from "./clerkLoadSignal";
+
+/**
+ * The options every `getClerkInstance()` call shares with the provider. On
+ * native the first call builds the singleton, so a call that ran before the
+ * provider with different options (or none) would keep them for the process.
+ */
+export const CLERK_INSTANCE_OPTIONS = {
+  publishableKey: process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY as string,
+  tokenCache,
+};
 
 interface ClerkProviderBoundaryProps {
   children: React.ReactNode;
@@ -27,10 +42,28 @@ interface ClerkProviderBoundaryProps {
 export default function ClerkProviderBoundary({ children }: ClerkProviderBoundaryProps) {
   return (
     <ClerkProvider
-      publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY as string}
-      tokenCache={tokenCache}
+      publishableKey={CLERK_INSTANCE_OPTIONS.publishableKey}
+      tokenCache={CLERK_INSTANCE_OPTIONS.tokenCache}
     >
+      <ClerkStatusBridge />
       {children}
     </ClerkProvider>
   );
+}
+
+/**
+ * Forwards the provider's Clerk status to `clerkLoadSignal`. `notify` replays
+ * the latest status, so a load that settled before this effect ran still
+ * counts.
+ */
+function ClerkStatusBridge() {
+  const clerk = useClerk();
+
+  useEffect(() => {
+    const onStatus = (status: unknown) => reportClerkStatus(status);
+    clerk.on("status", onStatus, { notify: true });
+    return () => clerk.off("status", onStatus);
+  }, [clerk]);
+
+  return null;
 }

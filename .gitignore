@@ -5,9 +5,9 @@ node_modules/
 
 # Expo
 .expo/
+# Every dist, including packages/*/dist: package builds are produced by
+# `bun run <pkg>:build`, never committed.
 dist/
-!packages/media/dist/
-!packages/media/dist/**
 web-build/
 .build/
 expo-env.d.ts

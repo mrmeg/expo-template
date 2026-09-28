@@ -27,6 +27,8 @@ jest.mock("../../hooks/useTheme", () => ({
 // Mock haptics
 jest.mock("../../lib/haptics", () => ({
   hapticLight: jest.fn(),
+  hapticSelection: jest.fn(),
+  hapticPress: jest.fn(),
   hapticMedium: jest.fn(),
   hapticHeavy: jest.fn(),
 }));

@@ -2,6 +2,10 @@
  * @fileoverview Colors belong to the theme, not to a call site. A hex or
  * `rgba()` literal in a style property or a color prop cannot follow the color
  * scheme, so it is either wrong in light mode or wrong in dark mode.
+ *
+ * Only styles are policed: a `color` key in an object the file never uses as a
+ * style — chart series, a map theme, a palette table — is data, not a style
+ * (see `lib/stylePositions.js` for what counts as one).
  */
 
 const { isColorKey } = require("../lib/categories");
@@ -19,6 +23,8 @@ const {
   loadDesignSystemFor,
   reportMissingDesignSystem,
 } = require("../lib/source");
+const { styleObjectVisitors } = require("../lib/stylePositions");
+const { staticPropertyName } = require("../lib/styles");
 
 /** JSX props whose value is a color. */
 const COLOR_PROP = /(?:^color$|Color$)/;
@@ -96,27 +102,26 @@ module.exports = {
       });
     };
 
+    const styleVisitors = styleObjectVisitors(context, (styleObject) => {
+      for (const property of styleObject.properties) {
+        const key = staticPropertyName(property);
+        if (!key || !isColorKey(key)) continue;
+        const raw = literalStringValue(property.value);
+        if (raw === null || !isRawColorString(raw)) continue;
+        report(property.value, raw);
+      }
+    });
+
     return {
+      ...styleVisitors,
+
       Program: reportMissingDesignSystem(context, design, settings),
 
-      // Style objects anywhere in the file: inline JSX styles,
-      // `StyleSheet.create({...})`, and `createThemedStyles` factories.
-      Property(node) {
-        if (node.computed) return;
-        const key =
-          node.key.type === "Identifier"
-            ? node.key.name
-            : node.key.type === "Literal" && typeof node.key.value === "string"
-              ? node.key.value
-              : null;
-        if (!key || !isColorKey(key)) return;
-        const raw = literalStringValue(node.value);
-        if (raw === null || !isRawColorString(raw)) return;
-        report(node.value, raw);
-      },
-
-      // Color-valued props on design-system elements: `<Icon color="#fff" />`.
       JSXAttribute(node) {
+        // `style` / `*Style` props: their objects are styles.
+        styleVisitors.JSXAttribute(node);
+
+        // Color-valued props on design-system elements: `<Icon color="#fff" />`.
         if (!node.name || node.name.type !== "JSXIdentifier") return;
         if (!COLOR_PROP.test(node.name.name)) return;
         if (!node.value) return;

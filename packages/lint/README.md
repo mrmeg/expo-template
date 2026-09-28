@@ -21,7 +21,8 @@ are on disk, and otherwise the `design-system.json` manifest an installed
 Status: publishable, first release pending. `private: false` with a full
 [release path](#release), not yet on npm. Unbuilt CommonJS `.js` with JSDoc
 types, so it loads in whatever Node runs ESLint — there is no build step and no
-`dist`.
+`dist`. `index.d.ts` types the plugin for an `eslint.config.ts`; the package is
+MIT-licensed ([`LICENSE`](LICENSE)).
 
 ## Contents
 
@@ -43,23 +44,55 @@ types, so it loads in whatever Node runs ESLint — there is no build step and n
 
 | Rule | What it catches |
 |---|---|
-| `expo-ui/no-raw-colors` | Hex, `rgb()`/`rgba()`/`hsl()`/`hsla()`, or CSS color keywords in a color style property or a color-valued prop. `"transparent"` is allowed. |
-| `expo-ui/no-arbitrary-values` | Numeric literals off the `spacing` and radius scales in `padding*`, `margin*`, `gap`, `rowGap`, `columnGap`, and `border*Radius`. `0` is allowed. |
+| `expo-ui/no-raw-colors` | Hex, `rgb()`/`rgba()`/`hsl()`/`hsla()`, or CSS color keywords in a color property of a [style](#what-counts-as-a-style), or in a color-valued prop of a design-system component. `"transparent"` is allowed. |
+| `expo-ui/no-arbitrary-values` | Numeric literals off the `spacing` and radius scales in the `padding*`, `margin*`, `gap`, `rowGap`, `columnGap`, and `border*Radius` properties of a [style](#what-counts-as-a-style). `0` is allowed. |
 | `expo-ui/no-restyle` | `style` / `*Style` props on design-system components that override appearance the component owns. |
-| `expo-ui/no-raw-primitives` | Importing a primitive the design system already wraps: `Text` from `react-native`, anything from `@rn-primitives/*`, and the wrapped `@expo/ui` surfaces. A type-only import (`import type { Text }`, `import { type Text as T }`) is ignored — it renders nothing, so it cannot render unthemed. |
+| `expo-ui/no-raw-primitives` | Importing a primitive the design system already wraps: a `react-native` component the design system exports a same-named component for (`TextInput`, `Switch`, `Button`, `KeyboardAvoidingView`, `StatusBar` today — read from the design system, not listed in the rule), `Text` from `react-native`, anything from `@rn-primitives/*`, and the wrapped `@expo/ui` surfaces. React Native APIs (`Alert`, `Keyboard`, …) are not primitives. A type-only import (`import type { Text }`, `import { type Text as T }`) is ignored — it renders nothing, so it cannot render unthemed. |
+| `expo-ui/no-raw-typography` | Numeric `fontSize` and `lineHeight` literals and string `fontFamily` literals in a [style](#what-counts-as-a-style). The message names the `StyledText` `size` whose font size or line height the literal matches, or the two sizes that bracket it; a `fontFamily` that is one of the kit's faces is named with its `variant` and weight. `0` and `undefined` are allowed. |
 
 `no-raw-colors` and `no-arbitrary-values` read the real design system to build
 their advice: the nearest palette entry by Euclidean RGB distance, the light-
 theme tokens that resolve to it, and the two `spacing` tokens that bracket the
 number that was written. A negative offset is bracketed by negated tokens:
 `marginTop: -3` names `-spacing.xxs` (-2) and `-spacing.xs` (-4), because a
-positive token there would flip the offset.
+positive token there would flip the offset. `no-raw-typography` reads
+`StyledText`'s size map (`FONT_SIZES` / `LINE_HEIGHTS`) and the `fontFamilies`
+of `constants/fonts.ts` the same way, so a size added to the map reaches its
+messages without a plugin change.
 
-Out of scope by design: `fontSize`, `lineHeight`, `width`, `height`,
-`borderWidth`, and `Icon`'s numeric `size` prop are not on the spacing scale.
-`Pressable`, `TouchableOpacity`, `View`, and `react-native`'s `TextInput` are
-not wrapped, and `Pressable` is the sanctioned base for a custom interactive
+Out of scope by design: `width`, `height`, `borderWidth`, `letterSpacing`,
+`fontWeight`, and `Icon`'s numeric `size` prop are not on a scale the rules
+read. `Pressable`, `TouchableOpacity`, `View`, `ScrollView`, and `Image` are not
+wrapped, and `Pressable` is the sanctioned base for a custom interactive
 surface.
+
+### What counts as a style
+
+`no-raw-colors`, `no-arbitrary-values`, and `no-raw-typography` read a key only
+in an object the file uses as a style. Chart series (`{ label, color, value }`), a map theme, a
+palette table, or a config object carries the same keys without being one, and
+is left alone. An object literal is a style when it reaches one of these,
+directly or through the arrays, conditionals, `&&`/`||`/`??`, variables, sheet
+members (`styles.card`), `useMemo`, Pressable style functions, and local helper
+functions that lead to it:
+
+- a `style` or `*Style` JSX prop, on any element (`contentContainerStyle`,
+  `labelStyle`, …);
+- a `style` or `*Style` property of an object — navigation options such as
+  `headerStyle`, `tabBarStyle`, `contentStyle`;
+- a named style of `StyleSheet.create({...})`, or of a
+  `createThemedStyles((theme) => ({...}))` factory;
+- an argument of `StyleSheet.flatten` / `StyleSheet.compose`, or what a
+  `useAnimatedStyle` worklet returns;
+- a value typed as a style — `const s: ViewStyle = {...}`, `{...} as TextStyle`,
+  `{...} satisfies ViewStyle`, `StyleProp<…>`, or a function declared to return
+  one.
+
+A style that maps states to styles instead of properties to values —
+`labelStyle={{ default: { color }, selected: { color } }}` on native tabs — has
+each state checked. What the resolver cannot follow is skipped: an object
+imported from another file is checked where it is declared only if it is a
+`StyleSheet`/`createThemedStyles` style or typed as one there.
 
 ### `@expo/ui` and `@rn-primitives` are not design-system components
 
@@ -77,9 +110,12 @@ skips the font, the colors, and the shared props. Where it exports no wrapper
 | ESLint >= 9.30, flat config | `configs.recommended` is a flat-config object spread into a `files` block. Declared as a peer dependency; this repo runs ESLint 10. |
 | `@typescript-eslint/parser` >= 8 | Two jobs: the linted files must be parsed by a TypeScript-capable parser, and the plugin loads the parser itself to read the design-system sources. Declared as a peer dependency. This repo depends on it directly and sets `languageOptions.parser` in [`eslint.config.mjs`](../../eslint.config.mjs); a project on `eslint-config-expo` gets the parser from that config instead. |
 | The design system's facts — its sources **or** its manifest | The messages quote the tokens, presets, sizes, and font families that exist today. Read from the sources at lint time where they are on disk, and from `@mrmeg/expo-ui/design-system.json` otherwise. |
-| Node — whatever runs ESLint | CommonJS with JSDoc types. No build, no transpile, no `dist`. |
+| Node — whatever runs ESLint, 18.18 or later (`engines`) | CommonJS with JSDoc types. No build, no transpile, no `dist`. |
+| `@mrmeg/expo-ui` >= 0.25 — optional | Declared as an optional peer dependency: it is where the manifest comes from in a project without the sources, and 0.25.0 is the first release that ships one. A project that points the rules at vendored sources or a manifest of its own does not need it installed. |
 
-The sources read under `uiSourceDir` (default `packages/ui/src`):
+The sources read under `uiSourceDir` (default `packages/ui/src`) — only when the
+`package.json` beside them (`packages/ui/package.json`) names `@mrmeg/expo-ui`,
+so a project's own `packages/ui` is never mistaken for the design system:
 
 - `constants/spacing.ts` — the spacing, radius, and icon scales
 - `constants/colors.ts` — the palette and the light and dark themes
@@ -95,8 +131,10 @@ The manifest read instead, when no sources are on disk:
 - written by the UI package's own build
   ([`scripts/build-design-system-manifest.mjs`](../../scripts/build-design-system-manifest.mjs)),
   which serializes exactly the facts above out of `packages/ui/src`
-- `schemaVersion: 1`; a manifest from a newer schema is refused rather than
-  half-read
+- `schemaVersion: 2` — version 2 added `tokens.typography` and `fonts.families`;
+  a version 1 manifest still loads without them, and `no-raw-typography` reports
+  once per file what it lacks. A manifest from a newer schema is refused rather
+  than half-read
 - present in `@mrmeg/expo-ui` from the first release built after the manifest was
   added; `0.24.0` and earlier ship none, and the rules then report that they
   found neither sources nor one. `--doctor` prints the version it read the
@@ -156,8 +194,9 @@ work over.
    ```
 
    Bring `eslint >= 9.30` and `@typescript-eslint/parser >= 8` with them. The
-   plugin does **not** declare `@mrmeg/expo-ui` as a peer dependency: a project
-   may point the rules at vendored sources or a manifest of its own instead.
+   plugin declares `@mrmeg/expo-ui` as an *optional* peer dependency: installed,
+   it supplies the manifest; a project that points the rules at vendored
+   sources or a manifest of its own can leave it out.
 
 2. **Add the config block.** No `uiSourceDir`: with no sources on disk, the rules
    resolve `@mrmeg/expo-ui/design-system.json` out of `node_modules` and quote
@@ -194,7 +233,7 @@ work over.
 
    It fails loudly when the plugin does not resolve, the rules are not at `error`
    for that file, no design system could be read, or a fixture stops tripping all
-   four rules.
+   five rules.
 
 4. **Add it to CI** as `expo-ui-lint <paths>` (or
    `node node_modules/@mrmeg/eslint-plugin-expo-ui/bin/cli.js <paths>`). Name the
@@ -204,13 +243,15 @@ work over.
 Two alternatives to step 2, for a project that would rather not depend on the
 manifest of a published release:
 
-- **Vendor the sources.** Copy `packages/ui/src` into the project and point
-  `settings["expo-ui"].uiSourceDir` at the copy. Sources win over any manifest.
+- **Vendor the sources.** Copy `packages/ui` — `src` *and* its `package.json`,
+  whose `name` is how the rules tell `@mrmeg/expo-ui`'s sources from any other
+  — into the project, and point `settings["expo-ui"].uiSourceDir` at the copy's
+  `src`. Sources win over any manifest.
 - **Consume this monorepo.** As a workspace or a git dependency, where
   `packages/ui/src` is already on disk and the default `uiSourceDir` resolves.
 
 A checked-in manifest is a third option: build one with
-`bun run ui:build` in a checkout of this repo, commit
+`bun run pkg ui build` in a checkout of this repo, commit
 `dist/design-system.json` into the project, and point
 `settings["expo-ui"].manifestPath` at it.
 
@@ -220,7 +261,7 @@ config and the resolution order are the same either way.
 
 ## CLI
 
-The same four rules on demand, over the paths the design system actually
+The same five rules on demand, over the paths the design system actually
 governs. In this repo, `bun lint:ui` (the root script runs
 `node packages/lint/bin/cli.js`):
 
@@ -252,9 +293,9 @@ the project's own flat config, never from cache, and reports `expo-ui/*` only.
 | `--changed` | Lint only changed `.ts`/`.tsx` files: the branch diff against the base, plus staged, unstaged, and untracked files. |
 | `--staged` | Lint only staged `.ts`/`.tsx` files — the pre-commit shape. |
 | `--base <ref>` | Base ref for `--changed`; defaults to `origin/dev`, else `dev`. |
-| `--rules` | List the four rules and what each catches. |
+| `--rules` | List the five rules and what each catches. |
 | `--clear-cache` | Delete `.expo/cache/eslint` so the next `bun run lint` re-reads the rules and the design system. |
-| `--doctor [file]` | Check that the plugin resolves, the config enables all four rules at `error`, a design system was found and parsed — sources or manifest — and a fixture still trips every rule. |
+| `--doctor [file]` | Check that the plugin resolves, the config enables all five rules at `error`, a design system was found and parsed — sources or manifest — and a fixture still trips every rule. |
 | `-h`, `--help` | Usage. |
 
 Default paths are `app client shared` — this repo's layout. Another project
@@ -327,8 +368,13 @@ most likely to mean:
 
 1. `manifestPath`, if set. An explicit answer, right or wrong: a typo is
    reported rather than quietly falling through to some other design system.
-2. `uiSourceDir`, if it resolves to a directory that exists. Sources beat any
-   manifest — they are what the manifest is generated from.
+2. `uiSourceDir`, if it resolves to a directory that exists **and** the
+   `package.json` beside it names `@mrmeg/expo-ui`. Sources beat any manifest —
+   they are what the manifest is generated from. A directory that is some other
+   package's (a consumer's own `packages/ui/src` at the default path) is passed
+   over; `--doctor` prints an `ok   skipped sources at …` line naming its
+   package, and the not-found message names it too. The upward search keeps
+   going past it, so `@mrmeg/expo-ui` sources further up still win.
 3. `@mrmeg/expo-ui/design-system.json`, resolved with `require.resolve` from the
    linted file's directory first and then the ESLint working directory, so the
    nearest installed copy wins the way Node itself would resolve the import.
@@ -355,7 +401,7 @@ because the project already said where the facts are:
 
 ```
 Design-system manifest could not be read at `/repo/design-system.json`:
-schemaVersion 2 is not supported (this plugin reads 1).
+schemaVersion 3 is not supported (this plugin reads 1 and 2).
 ```
 
 Those are the only messages about configuration in the plugin, and the one case
@@ -368,7 +414,7 @@ still reports `<Button>`, and compound members are spelled `Button.Text`.
 
 Reading the design system is best-effort and cached per directory, keyed on the
 mtimes of the files it read. Those mtimes are re-checked at most every two
-seconds — a full lint run asks four rules times every file for the same
+seconds — a full lint run asks five rules times every file for the same
 directory, and the design system changes between runs, not during one. If a file
 is missing or unparseable, the facts degrade to "unknown": the rules keep working
 with less specific advice, and `no-arbitrary-values` goes silent rather than
@@ -489,6 +535,24 @@ its typography. Render `<Button.Text size=… fontWeight=…>` as the child inst
 of `textStyle`.
 ```
 
+`no-raw-typography` names the `StyledText` size a literal matches, or the two
+that bracket it, and the kit face a `fontFamily` literal is:
+
+```
+`13` is a raw font size. Nearest `StyledText` sizes: `sm` (12), `base` (14).
+Use `size` or a `semantic` variant on `StyledText` instead of `fontSize` in a
+style.
+
+`18` is a raw line height. `StyledText size="sm"` sets it (12/18). Use `size`
+on `StyledText` instead of `lineHeight` in a style; every size carries its line
+height.
+
+`"Inter_500Medium"` is a raw font family. It is the kit's `sansSerif` face at
+`medium`: use `StyledText variant="sansSerif" fontWeight="medium"` or
+`useFontStyle("medium", "sansSerif")`. A brand face goes through `setFonts`,
+never a literal.
+```
+
 Every union in those messages is read out of the design system at lint time, so
 a renamed preset or a fourth font family shows up in the diagnostic without a
 plugin change.
@@ -508,6 +572,7 @@ label.
 | The rules are silent everywhere, no errors of any kind | The config block does not govern the file, or the plugin is not loaded | `bun lint:ui --doctor <the file>`: it prints the rules and severities computed for that exact path. `0/4 rules at error` means the `files` globs, not the rules |
 | Every file reports "Design-system facts were not found" | Neither step of the resolution order landed: no directory at `uiSourceDir`, and no `@mrmeg/expo-ui/design-system.json` in `node_modules` | In this repo, point `settings["expo-ui"].uiSourceDir` at the real sources. In a consumer, install `@mrmeg/expo-ui`, or set `manifestPath`. `--doctor` prints what it looked for |
 | Every file reports "Design-system manifest could not be read at …" | The manifest that was found is not usable — no file at a configured `manifestPath`, invalid JSON, or a `schemaVersion` this plugin does not read | The message ends with the reason. A newer `schemaVersion` means the plugin is older than the design system: upgrade `@mrmeg/eslint-plugin-expo-ui` |
+| `--doctor` prints `skipped sources at …/packages/ui/src: they belong to @acme/ui`, or the not-found message says the sources are another package's | The project has a `packages/ui` of its own at the default `uiSourceDir` | Expected: those are not the design system, so the rules use the installed `@mrmeg/expo-ui` manifest. Install `@mrmeg/expo-ui` if the not-found message fires |
 | A consumer reports "Design-system facts were not found" although `@mrmeg/expo-ui` is installed | The installed release predates the manifest (0.24.0 or earlier), so its `exports` has no `./design-system.json` to resolve | Upgrade `@mrmeg/expo-ui` to a release that ships it; `--doctor` names the version it read the manifest from |
 | `bun run lint` shows the old message text after you edited a rule or renamed a token | The `expo lint` result cache is keyed on the file and the config, not on plugin rule bodies or `packages/ui/src` | `bun run lint --no-cache`, or `bun lint:ui --clear-cache` once. `bun lint:ui` never reads that cache |
 | `--changed` prints `no changed .ts/.tsx files` though you just edited files | The files you touched are outside the config's `files` globs — tests, `packages/**`, non-TypeScript files | Expected. Lint them by path if you want the config's other rules, or widen the globs if the design system really should govern them |
@@ -516,9 +581,17 @@ label.
 
 ## Extending
 
-- **A new wrapped primitive.** Add the module to `EXPO_UI_MODULES` (or the
-  specifier to `EXPO_UI_SPECIFIERS`) in
+- **A new wrapped primitive.** A `react-native` component is picked up from
+  the design system: export a component of the same name from
+  `packages/ui/src/components` and `no-raw-primitives` enforces it, in this repo
+  and in the manifest the next release ships. A component React Native does not
+  have yet goes into `REACT_NATIVE_COMPONENTS`, and an `@expo/ui` surface into
+  `EXPO_UI_MODULES` (or `EXPO_UI_SPECIFIERS`), in
   [`rules/no-raw-primitives.js`](rules/no-raw-primitives.js).
+- **A new style helper.** Add it to the tables at the top of
+  [`lib/stylePositions.js`](lib/stylePositions.js) — `MEMO_HOOKS`,
+  `STYLE_WORKLETS`, `STYLE_SHEET_STYLE_ARGUMENTS` — so the objects it takes or
+  returns count as styles.
 - **A new style key.** Add it to the right table in
   [`lib/categories.js`](lib/categories.js). A key in no table is ignored, which
   is the safe default.
@@ -530,7 +603,12 @@ label.
   system, or to the rule options if it is a property of one app.
 - **A new token group.** [`lib/source.js`](lib/source.js) groups `spacing`
   members by key prefix (`radius*`, `icon*`, everything else). A new prefix needs
-  a group there and a scale key set in `lib/categories.js`.
+  a group there and a scale key set in `lib/categories.js`. A group with another
+  source follows `typography`: a reader in `lib/source.js` (it reads
+  `StyledText.tsx`'s `FONT_SIZES` / `LINE_HEIGHTS`, and `fonts.families` comes
+  from `constants/fonts.ts`), the same entries in `lib/manifest.js`, a
+  `schemaVersion` bump when the manifest's shape changes, and a rule that says
+  what it lacks when an older manifest has no such group.
 
 ## Tests
 
@@ -545,10 +623,15 @@ subdirectory. [`__tests__/manifest.test.ts`](__tests__/manifest.test.ts) is the
 manifest half: it serializes the real design system, reads it back, and asserts
 the two loaders agree fact for fact, then lints through a manifest to pin the
 package-labelled message text, the auto-resolution of an installed
-`@mrmeg/expo-ui`, and the rejection of an unsupported `schemaVersion`. The rule
-suites pin the exact text of the messages the design system documents;
+`@mrmeg/expo-ui`, and the rejection of an unsupported `schemaVersion`.
+[`__tests__/settings.test.ts`](__tests__/settings.test.ts) builds projects whose
+`packages/ui` is `@mrmeg/expo-ui`, or some other package with or without an
+installed manifest, and pins which one the rules read. The rule suites pin the
+exact text of the messages the design system documents, and the color and
+spacing suites pin both sides of [what counts as a style](#what-counts-as-a-style):
+chart data and config objects stay silent, every style position reports;
 [`__tests__/missing-design-system.test.ts`](__tests__/missing-design-system.test.ts)
-pins the one-per-file not-found report for each of the four rules — through
+pins the one-per-file not-found report for each of the five rules — through
 ESLint's `Linter` with a working directory outside this repo, since anywhere
 inside it the built manifest resolves and there is a design system to read — and
 [`__tests__/index.test.ts`](__tests__/index.test.ts) pins the shape of
@@ -572,39 +655,42 @@ The plugin has the same release path as the other two workspace packages, driven
 by [`scripts/release-package.mjs`](../../scripts/release-package.mjs):
 
 ```sh
-bun run lint:typecheck        # tsc -p packages/lint/tsconfig.json
-bun run lint:test             # jest packages/lint
-bun run lint:build            # require("./index.js") — the load smoke
-bun run lint:pack             # bun pm pack --dry-run
-bun run lint:consumer-smoke   # both tarballs in a temp project
-bun run lint:release -- --patch --publish
+bun run pkg lint typecheck        # tsc -p packages/lint/tsconfig.json
+bun run pkg lint test             # jest packages/lint
+bun run pkg lint build            # require("./index.js") — the load smoke
+bun run pkg lint pack             # bun pm pack --dry-run
+bun run pkg lint consumer-smoke   # both tarballs in a temp project
+bun run pkg lint release -- --patch --publish
 ```
 
-`lint:release` bumps the version, updates `bun.lock`, runs
-`packages:peer-check` and the five gates above in order, then publishes with
-`npm publish --access public`. Without `--publish` it is a dry run. (The
-unrelated `bun run lint` and `bun lint:ui` scripts run ESLint; they are not part
-of this.)
+`pkg lint release` bumps the version, updates `bun.lock`, runs
+`packages:peer-check` and the typecheck, test, and build gates in order, packs
+one tarball, runs the consumer smoke against it, then publishes that tarball
+with `npm publish <tarball> --access public`. Without `--publish` it is a dry
+run. (The unrelated `bun run lint` and `bun lint:ui` scripts run ESLint; they
+are not part of this.)
 
-Two notes on the gates. `lint:build` is a load smoke, not a build — the package
-ships the `.js` it is written in. `lint:typecheck` runs with `checkJs: false`
+Two notes on the gates. `pkg lint build` is a load smoke, not a build — the package
+ships the `.js` it is written in. `pkg lint typecheck` runs with `checkJs: false`
 ([`tsconfig.json`](tsconfig.json)): the rules and AST helpers annotate ESTree
 nodes as `object` and index string keys into literal maps, so checking the JSDoc
 reports dozens of type errors that are not defects; the gate is a
 parse-and-resolve pass over the shipped files instead. The repo's own `bun run typecheck`
 covers `packages/lint/__tests__/*.ts` as TypeScript.
 
-`lint:consumer-smoke` is the interesting one: it packs *both* this package and
+`pkg lint consumer-smoke` is the interesting one: it packs *both* this package and
 `packages/ui`, installs them into a throwaway project with no design-system
-sources, and asserts the four rules fire with the right counts, that a message
+sources, and asserts the five rules fire with the right counts, that a message
 names `@mrmeg/expo-ui/components/Button.tsx`, and that `--doctor` reports
 `manifest @mrmeg/expo-ui@…`. That is the manifest path proven end to end from a
 consumer's position.
 
-[`.github/workflows/publish-lint.yml`](../../.github/workflows/publish-lint.yml)
-runs the same gates in CI. It is **`workflow_dispatch` only**: the sibling
-workflows also trigger on a push that changes their package's `package.json`,
-which is added here once the first release exists on npm. The first publish needs
-npm access configured — an `NPM_TOKEN` secret with publish rights, since
-package-level trusted publishing cannot be set up for a package npm does not have
-yet.
+[`.github/workflows/publish-packages.yml`](../../.github/workflows/publish-packages.yml)
+runs the same release in CI for every workspace package, publishes the smoked
+tarball with provenance, and tags `eslint-plugin-expo-ui-v<version>`. A push to
+`main` never makes a package's first publish, so this one's first release is a
+manual run (`package=lint`, `version=0.1.0`) and needs npm access configured — an
+`NPM_TOKEN` secret with publish rights, since package-level trusted publishing
+cannot be set up for a package npm does not have yet. After that, configure
+trusted publishing with workflow filename `publish-packages.yml`; later version
+bumps on `main` publish on push.

@@ -1,4 +1,4 @@
-import React, { createContext, use, useState, useReducer, useRef } from "react";
+import React, { createContext, use, useEffectEvent, useLayoutEffect, useState, useReducer, useRef } from "react";
 import {
   View,
   ViewProps,
@@ -18,6 +18,7 @@ import { Pressable as SlotPressable } from "@rn-primitives/slot";
 import { useTheme } from "../hooks/useTheme";
 import { useDimensions } from "../hooks/useDimensions";
 import { shouldUseNativeDriver } from "../lib/animations";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { spacing } from "../constants/spacing";
 import { durations } from "../constants/motion";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
@@ -227,12 +228,16 @@ function DrawerRoot({
   variant = "overlay",
   collapsedWidth = 72,
   expandedWidth = 240,
-  expandOnHover = Platform.OS === "web",
+  expandOnHover: expandOnHoverProp,
   defaultExpanded = false,
   expanded: controlledExpanded,
   onExpandedChange: controlledOnExpandedChange,
   children,
 }: DrawerProps) {
+  // Resolved in the body rather than as a default parameter: the React
+  // Compiler can't reorder a computed default, and skipped the component.
+  const expandOnHover = expandOnHoverProp === undefined ? Platform.OS === "web" : expandOnHoverProp;
+
   // Use reducer for stable state management - dispatch is stable and reducer always gets current state
   const [internalOpen, dispatch] = useReducer(drawerReducer, defaultOpen);
 
@@ -430,22 +435,25 @@ function DrawerOverlayContent({
   const { theme, getShadowStyle } = useTheme();
   const insets = useSafeAreaInsets();
 
-  // Animation values - initialize lazily so the Animated.Value is allocated
-  // once on first render instead of being rebuilt and discarded every render.
+  // Animation values, allocated once. Both start closed: a drawer that mounts
+  // open slides in from there (see the open-change effect below).
   const closedPosition = side === "left" ? -width : width;
-  const translateXRef = useRef<Animated.Value | null>(null);
-  if (translateXRef.current === null) {
-    translateXRef.current = new Animated.Value(open ? 0 : closedPosition);
-  }
-  const translateX = translateXRef.current;
-  const backdropOpacityRef = useRef<Animated.Value | null>(null);
-  if (backdropOpacityRef.current === null) {
-    backdropOpacityRef.current = new Animated.Value(open ? 1 : 0);
-  }
-  const backdropOpacity = backdropOpacityRef.current;
+  const translateX = useAnimatedValue(closedPosition);
+  const backdropOpacity = useAnimatedValue(0);
 
   // Track if drawer is actually visible (for unmounting after close animation)
   const [isVisible, setIsVisible] = useState(open);
+
+  // Opening marks the panel visible in the same render, so it stays mounted
+  // through the close animation that follows. State adjusted during render
+  // (React re-runs the render before committing it), keyed on `open` changing.
+  const [previousOpenProp, setPreviousOpenProp] = useState(open);
+  if (open !== previousOpenProp) {
+    setPreviousOpenProp(open);
+    if (open && !isVisible) {
+      setIsVisible(true);
+    }
+  }
 
   // Track what we last animated to - persists across renders
   const lastOpenRef = useRef<boolean | null>(null);
@@ -456,10 +464,12 @@ function DrawerOverlayContent({
   // Use semantic foreground color for text on background
   const textColor = theme.colors.foreground;
 
-  // Trigger animation during render if open changed
-  if (open !== lastOpenRef.current) {
+  // Animate when `open` changes. Runs in the commit's layout phase, before
+  // the frame paints, and reads that commit's position and width.
+  const animateOpenChange = useEffectEvent((nextOpen: boolean) => {
     const previousOpen = lastOpenRef.current;
-    lastOpenRef.current = open;
+    if (nextOpen === previousOpen) return;
+    lastOpenRef.current = nextOpen;
 
     // Stop any running animations immediately
     if (runningAnimationRef.current) {
@@ -467,13 +477,8 @@ function DrawerOverlayContent({
       runningAnimationRef.current = null;
     }
 
-    if (open) {
-      // Opening - set visible immediately
-      if (!isVisible) {
-        setIsVisible(true);
-      }
-
-      // If this is first render (previousOpen is null), set initial position
+    if (nextOpen) {
+      // If this is the first run (previousOpen is null), start from closed.
       // Otherwise animate from current position (handles mid-animation toggle)
       if (previousOpen === null) {
         translateX.setValue(closedPosition);
@@ -524,10 +529,15 @@ function DrawerOverlayContent({
         }
       });
     }
-  }
+  });
 
-  // Create pan responder for swipe gestures (native only)
-  const panResponder = useRef(
+  useLayoutEffect(() => {
+    animateOpenChange(open);
+  }, [open]);
+
+  // Create pan responder for swipe gestures (native only). Built once, from
+  // the first render's props, like the ref it replaces.
+  const [panResponder] = useState(() =>
     Platform.OS !== "web" && swipeEnabled
       ? PanResponder.create({
         onStartShouldSetPanResponder: () => false,
@@ -616,7 +626,7 @@ function DrawerOverlayContent({
         },
       })
       : null
-  ).current;
+  );
 
   // Handle backdrop press
   const handleBackdropPress = () => {
@@ -750,49 +760,50 @@ function DrawerRailContent({
   // `expanded` true→false) while the pointer is still over it, the active hover
   // would instantly re-expand it and the collapse would look like a no-op.
   // Suppress the current hover session in that case; a fresh mouse-enter clears
-  // the suppression so peek-on-hover works again. Tracked in a ref, read during
-  // the re-render that the `expanded` change already triggers (same pattern as
-  // `lastExpandedRef` below).
-  const hoverSuppressedRef = useRef(false);
-  const prevExpandedRef = useRef(expanded);
-  if (prevExpandedRef.current !== expanded) {
-    const wasExpanded = prevExpandedRef.current;
-    prevExpandedRef.current = expanded;
-    if (wasExpanded && !expanded && hovered) {
-      hoverSuppressedRef.current = true;
+  // the suppression so peek-on-hover works again. State adjusted during the
+  // render that the `expanded` change already triggers: React re-runs that
+  // render with the suppression applied before committing it.
+  const [hoverSuppressed, setHoverSuppressed] = useState(false);
+  const [previousExpanded, setPreviousExpanded] = useState(expanded);
+  if (previousExpanded !== expanded) {
+    setPreviousExpanded(expanded);
+    if (previousExpanded && !expanded && hovered) {
+      setHoverSuppressed(true);
     }
   }
 
   const effectiveExpanded =
-    expanded || (expandOnHover && hovered && !hoverSuppressedRef.current);
+    expanded || (expandOnHover && hovered && !hoverSuppressed);
 
   const textColor = theme.colors.foreground;
   const targetWidth = effectiveExpanded ? expandedWidth : collapsedWidth;
 
   // Native animates width via Animated.Value (layout prop → useNativeDriver: false).
   // Web sets the width directly and lets the inline CSS `transition` animate it.
-  const widthRef = useRef<Animated.Value | null>(null);
-  if (widthRef.current === null) {
-    widthRef.current = new Animated.Value(targetWidth);
-  }
-  const widthAnim = widthRef.current;
+  const widthAnim = useAnimatedValue(targetWidth);
 
-  // Trigger the native width animation during render when expansion changes,
-  // mirroring the overlay's lastOpenRef pattern above. Skip the first render:
-  // the Animated.Value is already initialized to the current target, so there is
-  // nothing to animate toward on mount.
+  // Start the native width animation when expansion changes, in the commit's
+  // layout phase (before the frame paints), mirroring the overlay's open-change
+  // effect above. Skip the first run: the Animated.Value is already
+  // initialized to the current target, so there is nothing to animate toward
+  // on mount.
   const lastExpandedRef = useRef<boolean | null>(null);
-  if (Platform.OS !== "web" && effectiveExpanded !== lastExpandedRef.current) {
-    const previousExpanded = lastExpandedRef.current;
-    lastExpandedRef.current = effectiveExpanded;
-    if (previousExpanded !== null) {
+  const animateExpandedChange = useEffectEvent((nextExpanded: boolean) => {
+    if (Platform.OS === "web" || nextExpanded === lastExpandedRef.current) return;
+    const previousAnimatedExpanded = lastExpandedRef.current;
+    lastExpandedRef.current = nextExpanded;
+    if (previousAnimatedExpanded !== null) {
       Animated.timing(widthAnim, {
         toValue: targetWidth,
         duration: durations.normal,
         useNativeDriver: false,
       }).start();
     }
-  }
+  });
+
+  useLayoutEffect(() => {
+    animateExpandedChange(effectiveExpanded);
+  }, [effectiveExpanded]);
 
   const shadowStyle = effectiveExpanded
     ? StyleSheet.flatten(getShadowStyle("elevated"))
@@ -822,11 +833,11 @@ function DrawerRailContent({
     Platform.OS === "web" && expandOnHover
       ? {
         onMouseEnter: () => {
-          hoverSuppressedRef.current = false;
+          setHoverSuppressed(false);
           setHovered(true);
         },
         onMouseLeave: () => {
-          hoverSuppressedRef.current = false;
+          setHoverSuppressed(false);
           setHovered(false);
         },
       }

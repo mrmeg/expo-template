@@ -3,9 +3,9 @@ import type { BlockEntry } from "../types";
 export const meta: BlockEntry = {
   id: "cta-banner",
   label: "CTA banner",
-  description: "Accent card with copy and a single action",
+  description: "Headline, copy, and a single action",
   category: "marketing",
-  recipe: ["Card", "Button", "StyledText"],
+  recipe: ["StyledText", "Button"],
   icon: "arrow-right",
   order: 40,
 };

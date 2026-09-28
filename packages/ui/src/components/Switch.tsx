@@ -1,14 +1,19 @@
 import { palette } from "../constants/colors";
 import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
-import { hapticLight } from "../lib/haptics";
+import { useFocusVisible } from "../hooks/useFocusVisible";
+import { hapticSelection } from "../lib/haptics";
+import { interaction } from "../constants/interaction";
 import { stateSurfaceProps } from "../lib/stateSurface";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import * as SwitchPrimitives from "@rn-primitives/switch";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Platform, PressableProps, StyleProp, StyleSheet, View, ViewStyle, Animated } from "react-native";
+import React, { useCallback, useEffect, useRef } from "react";
+import { ActivityIndicator, Platform, StyleProp, StyleSheet, View, ViewStyle, Animated } from "react-native";
 import { StyledText } from "./StyledText";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
+import { shouldUseNativeDriver } from "../lib/animations";
+import { useItemControlLabel } from "./Item";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -59,48 +64,31 @@ function Switch({
   thumbSize = 20,
   loading = false,
   style: styleOverride,
+  onCheckedChange,
   ...props
 }: SwitchProps) {
   const { theme, getContrastingColor, getShadowStyle, getFocusRingStyle, withAlpha } = useTheme();
   const reduceMotion = useReducedMotion();
   const hasMounted = useRef(false);
-  const [focused, setFocused] = useState(false);
   const focusRingStyle = getFocusRingStyle();
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!props.disabled,
-    scaleTo: 0.92,
+    scaleTo: interaction.controlPressedScale,
     haptic: false,
   });
 
-  const showFocusRing: PressableProps["onFocus"] = (event) => {
-    let ringVisible = true;
-    if (Platform.OS === "web") {
-      const target = event?.nativeEvent?.target as unknown as
-        | { matches?: (selector: string) => boolean }
-        | null
-        | undefined;
-      if (target && typeof target.matches === "function") {
-        try {
-          ringVisible = target.matches(":focus-visible");
-        } catch {
-          ringVisible = true;
-        }
-      }
-    }
-    setFocused(ringVisible);
-  };
-
-  const hideFocusRing: PressableProps["onBlur"] = () => {
-    setFocused(false);
-  };
+  const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
+  // Inside an Item row with no label of its own, the switch is named by the
+  // row title (aria-labelledby on web, accessibilityLabel on native).
+  const rowLabel = useItemControlLabel(props);
 
   // Fire haptic on user-initiated toggles (skip initial mount)
   const wrappedOnCheckedChange = useCallback(
     (checked: boolean) => {
-      if (hasMounted.current) hapticLight();
-      props.onCheckedChange?.(checked);
+      if (hasMounted.current) hapticSelection();
+      onCheckedChange?.(checked);
     },
-    [props.onCheckedChange],
+    [onCheckedChange],
   );
 
   useEffect(() => {
@@ -108,14 +96,14 @@ function Switch({
   }, []);
 
   // Single animated value drives everything: 0 = off, 1 = on
-  const progress = useRef(new Animated.Value(props.checked ? 1 : 0)).current;
+  const progress = useAnimatedValue(props.checked ? 1 : 0);
 
   useEffect(() => {
     const target = props.checked ? 1 : 0;
     Animated.timing(progress, {
       toValue: target,
       duration: reduceMotion ? 0 : 120,
-      useNativeDriver: true,
+      useNativeDriver: shouldUseNativeDriver,
     }).start();
   }, [props.checked, reduceMotion, progress]);
 
@@ -166,6 +154,7 @@ function Switch({
   return (
     <Animated.View style={scaleStyle}>
     <SwitchPrimitives.Root
+      {...rowLabel}
       {...props}
       onCheckedChange={wrappedOnCheckedChange}
       onPressIn={pressHandlers.onPressIn}
@@ -285,7 +274,7 @@ function Switch({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   label: {
     position: "absolute",
     top: 0,

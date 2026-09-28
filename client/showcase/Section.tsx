@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
+import { Separator } from "@mrmeg/expo-ui/components/Separator";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 
@@ -9,21 +10,19 @@ interface SectionProps {
   children: React.ReactNode;
 }
 
+/**
+ * One showcase section: a divider, a serif title, then the demos.
+ *
+ * Flat on purpose. The showcase screen already pads the page, so a bordered,
+ * padded panel here would inset every demo a second time and render the Card
+ * demos as cards inside a card.
+ */
 export function Section({ title, children }: SectionProps) {
-  const { theme, getShadowStyle } = useTheme();
-  const shadowStyle = getShadowStyle("soft");
+  const { theme } = useTheme();
 
   return (
-    <View
-      style={[
-        styles.section,
-        {
-          backgroundColor: theme.colors.card,
-          borderColor: theme.colors.border,
-        },
-        shadowStyle,
-      ]}
-    >
+    <View style={styles.section}>
+      <Separator margin={0} />
       <StyledText
         variant="serif"
         size="xl"
@@ -38,12 +37,10 @@ export function Section({ title, children }: SectionProps) {
 
 const styles = StyleSheet.create({
   section: {
-    padding: spacing.cardPadding,
-    borderRadius: spacing.radiusMd,
-    borderWidth: 1,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sectionSpacing,
   },
   sectionTitle: {
+    marginTop: spacing.lg,
     marginBottom: spacing.lg,
   },
 });

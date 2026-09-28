@@ -8,14 +8,23 @@ import {
   Animated,
 } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { useStaggeredEntrance, STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { SansSerifText, SansSerifBoldText, EyebrowText } from "@mrmeg/expo-ui/components/StyledText";
+import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
-import { Item, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from "@mrmeg/expo-ui/components/Item";
+import {
+  Item,
+  ItemGroup,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+} from "@mrmeg/expo-ui/components/Item";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -56,6 +65,8 @@ export interface ProfileScreenProps {
   stats?: ProfileStat[];
   actions?: ProfileAction[];
   sections?: ProfileSection[];
+  /** Safe-area edges this screen owns (see `Screen`); default bottom only (under a Stack header). */
+  edges?: ScreenEdges;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -71,9 +82,10 @@ export function ProfileScreen({
   stats,
   actions,
   sections,
+  edges = ["bottom"],
   style: styleOverride,
 }: ProfileScreenProps) {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme } = useTheme();
   const styles = themedStyles(theme);
 
   // Staggered entrance animations
@@ -83,8 +95,15 @@ export function ProfileScreen({
   const actionsEntrance = useStaggeredEntrance({ type: "fadeSlideUp", delay: STAGGER_DELAY * 3 });
 
   return (
-    <View style={[styles.container, styleOverride]}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+    <Screen
+      edges={edges}
+      scroll
+      padded={false}
+      style={styleOverride}
+      contentContainerStyle={styles.content}
+      scrollProps={{ showsVerticalScrollIndicator: false }}
+      testID="profile-screen"
+    >
         {/* Avatar + Name */}
         <View style={styles.hero}>
           <Animated.View style={avatarEntrance}>
@@ -108,9 +127,9 @@ export function ProfileScreen({
           </Animated.View>
         </View>
 
-        {/* Stats Row */}
+        {/* Stats Row: flat, on the screen gutter; no panel around it */}
         {stats && stats.length > 0 && (
-          <Animated.View style={[statsEntrance, styles.statsCard, getShadowStyle("subtle")]}>
+          <Animated.View style={[statsEntrance, styles.statsRow]}>
             {stats.map((stat) => (
               <View key={stat.label} style={styles.statItem}>
                 <Icon name={stat.icon} size={20} color={theme.colors.accent} />
@@ -160,36 +179,26 @@ export function ProfileScreen({
           </Animated.View>
         )}
 
-        {/* Info Sections */}
+        {/* Info Sections: full-width rows that carry their own 16pt inset */}
         {sections?.map((section) => (
-          <View key={section.title} style={styles.section}>
-            <EyebrowText style={[styles.sectionTitle, { color: theme.colors.mutedForeground }]}>
-              {section.title}
-            </EyebrowText>
-
-            <View style={[styles.card, getShadowStyle("subtle")]}>
-              {section.items.map((item, index) => {
-                const isLast = index === section.items.length - 1;
-                return (
-                  <Item key={item.label} onPress={item.onPress} separator={!isLast}>
-                    {item.icon && <ItemMedia icon={item.icon} iconColor="primary" />}
-                    <ItemContent>
-                      <ItemTitle>{item.label}</ItemTitle>
-                    </ItemContent>
-                    <ItemActions>
-                      {item.value && <ItemDescription>{item.value}</ItemDescription>}
-                      {item.onPress && (
-                        <Icon name="chevron-right" color={theme.colors.mutedForeground} size={20} />
-                      )}
-                    </ItemActions>
-                  </Item>
-                );
-              })}
-            </View>
-          </View>
+          <ItemGroup key={section.title} title={section.title}>
+            {section.items.map((item) => (
+              <Item key={item.label} onPress={item.onPress}>
+                {item.icon && <ItemMedia icon={item.icon} iconColor="primary" />}
+                <ItemContent>
+                  <ItemTitle>{item.label}</ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  {item.value && <ItemDescription>{item.value}</ItemDescription>}
+                  {item.onPress && (
+                    <Icon name="chevron-right" color={theme.colors.mutedForeground} size={20} />
+                  )}
+                </ItemActions>
+              </Item>
+            ))}
+          </ItemGroup>
         ))}
-      </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -197,19 +206,24 @@ export function ProfileScreen({
 // Styles
 // ---------------------------------------------------------------------------
 
+// Wide screens cap and centre the column instead of boxing it.
+const MAX_CONTENT_WIDTH = 640;
+
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    scroll: {
-      flex: 1,
+    // No horizontal padding here: the hero, stats, and actions pad themselves
+    // and the rows carry their own inset, so the screen has one 16pt gutter.
+    content: {
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
+      paddingTop: spacing.xl,
+      paddingBottom: spacing.xxl,
+      gap: spacing.sectionSpacing,
     },
     hero: {
       alignItems: "center",
-      paddingTop: spacing.xl,
-      paddingBottom: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
     },
     avatar: {
       width: 88,
@@ -227,18 +241,12 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing.sm,
       alignSelf: "center",
     },
-    statsCard: {
+    statsRow: {
       flexDirection: "row",
-      justifyContent: "space-around",
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusMd,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      paddingVertical: spacing.md,
-      marginHorizontal: spacing.lg,
-      marginBottom: spacing.lg,
+      paddingHorizontal: spacing.screenPadding,
     },
     statItem: {
+      flex: 1,
       alignItems: "center",
       gap: spacing.xxs,
     },
@@ -252,25 +260,9 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       gap: spacing.sm,
       paddingHorizontal: spacing.screenPadding,
-      marginBottom: spacing.lg,
     },
     actionButton: {
       flex: 1,
-    },
-    section: {
-      marginBottom: spacing.sectionSpacing,
-      paddingHorizontal: spacing.screenPadding,
-    },
-    sectionTitle: {
-      marginBottom: spacing.sm + 2,
-      marginLeft: spacing.xxs,
-    },
-    card: {
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusMd,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      overflow: "hidden",
     },
   });
 

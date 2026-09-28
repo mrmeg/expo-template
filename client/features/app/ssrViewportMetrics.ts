@@ -34,7 +34,7 @@ import {
   detectSsrViewportHeight,
   resolveSsrViewportWidth,
   type SsrViewport,
-} from "@/server/lib/ssrViewport";
+} from "@/shared/ssrViewport";
 
 /** The `initialMetrics` shape `react-native-safe-area-context` reads. */
 export type SsrInitialMetrics = {

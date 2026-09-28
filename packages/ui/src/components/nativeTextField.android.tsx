@@ -33,7 +33,7 @@
  * Only `@expo/ui/jetpack-compose` and `@expo/ui/jetpack-compose/modifiers` are
  * imported, both in the peer's export map since SDK 56.
  */
-import { useImperativeHandle, useRef } from "react";
+import { useImperativeHandle, useRef, useState } from "react";
 import type { KeyboardTypeOptions, ReturnKeyTypeOptions } from "react-native";
 import type { TextInputProps } from "@expo/ui";
 import {
@@ -211,8 +211,10 @@ export function NativeTextField({
   const keyboardType = keyboardTypeProp ?? inputModeToKeyboardType(inputMode);
   const returnKeyType = returnKeyTypeProp ?? enterKeyHintToReturnKeyType(enterKeyHint);
 
-  const initialFallbackRef = useRef(defaultValue ?? "");
-  const fallback = useNativeState<string>(initialFallbackRef.current);
+  // Pinned to the first render's `defaultValue`, as an uncontrolled default
+  // is, whatever `useNativeState` does with a later argument.
+  const [initialFallback] = useState(defaultValue ?? "");
+  const fallback = useNativeState<string>(initialFallback);
   const state = (value ?? fallback) as typeof fallback;
 
   const innerRef = useRef<TextFieldRef>(null);
@@ -248,11 +250,13 @@ export function NativeTextField({
   // Sticky for the life of the mounted field: revealing a password
   // (`secureTextEntry` -> false on the same element) must keep the password
   // keyboard options unchanged so the IME neither restarts nor starts
-  // suggesting/learning the now-visible text. Written during render like the
-  // wrapper's own `activeSecureRef`; a fresh mount starts from the prop.
-  const everSecureRef = useRef(!!secureTextEntry);
-  if (secureTextEntry) everSecureRef.current = true;
-  const passwordField = everSecureRef.current;
+  // suggesting/learning the now-visible text. The latch is state adjusted
+  // during render (React re-runs this render before committing it), and the
+  // `||` makes the very render that turns secure on already read as a password
+  // field; a fresh mount starts from the prop.
+  const [everSecure, setEverSecure] = useState(!!secureTextEntry);
+  if (secureTextEntry && !everSecure) setEverSecure(true);
+  const passwordField = everSecure || !!secureTextEntry;
 
   const mappedKeyboardType = keyboardType ? mapKeyboardType(keyboardType) : undefined;
   const resolvedKeyboardType = passwordField

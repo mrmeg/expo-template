@@ -2,11 +2,14 @@ import type { IconName } from "./Icon";
 import { Icon } from "./Icon";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
+import { hapticSelection } from "../lib/haptics";
 import { useTheme } from "../hooks/useTheme";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { useScalePress } from "../hooks/useScalePress";
 import * as ToggleGroupPrimitive from "@rn-primitives/toggle-group";
 import * as React from "react";
-import { Animated, Platform, PressableProps, StyleSheet } from "react-native";
+import { Animated, Platform, StyleSheet } from "react-native";
 
 const DEFAULT_HIT_SLOP = 8;
 
@@ -106,6 +109,17 @@ function ToggleGroup({
 
   const contextValue = React.useMemo(() => ({ variant, size }), [variant, size]);
 
+  // The primitive reports a change once per user selection (single or
+  // multiple), which is the selection-haptic moment; forward it unchanged.
+  const { onValueChange } = props;
+  const handleValueChange = React.useCallback(
+    (value: string | string[] | undefined) => {
+      hapticSelection();
+      (onValueChange as ((next: string | string[] | undefined) => void) | undefined)?.(value);
+    },
+    [onValueChange],
+  );
+
   // Count valid children for first/last detection
   const childrenArray = React.Children.toArray(children);
   const validChildren = childrenArray.filter(
@@ -113,13 +127,15 @@ function ToggleGroup({
   );
   const childCount = validChildren.length;
 
-  // Clone children with position props
-  let itemIndex = 0;
+  // Clone children with position props. The running item index lives on an
+  // object: the React Compiler can't compile a reassigned `let` captured by
+  // the callback, and skipped the component.
+  const position = { itemIndex: 0 };
   const enhancedChildren = React.Children.map(children, (child) => {
     if (React.isValidElement(child) && child.type === ToggleGroupItem) {
-      const isFirst = itemIndex === 0;
-      const isLast = itemIndex === childCount - 1;
-      itemIndex++;
+      const isFirst = position.itemIndex === 0;
+      const isLast = position.itemIndex === childCount - 1;
+      position.itemIndex += 1;
       return React.cloneElement(child as React.ReactElement<ToggleGroupItemProps>, {
         isFirst,
         isLast,
@@ -128,9 +144,18 @@ function ToggleGroup({
     return child;
   });
 
+  // The web primitive's Root/Item render generic roles (Radix's `group`, then
+  // `role='button'` on every item) while Radix still emits `aria-checked` for a
+  // single-select item — invalid on a button. Name the roles the way native
+  // already does: a radiogroup of radios, or a group of (aria-pressed) buttons.
+  const webRoles =
+    Platform.OS === "web" ? { role: props.type === "single" ? ("radiogroup" as const) : ("group" as const) } : undefined;
+
   return (
     <ToggleGroupPrimitive.Root
       {...props}
+      {...webRoles}
+      onValueChange={handleValueChange}
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -173,37 +198,19 @@ function ToggleGroupItem({
 }: ToggleGroupItemProps) {
   const { theme, withAlpha, getContrastingColor, getFocusRingStyle } = useTheme();
   const context = useToggleGroupContext();
-  const { value: groupValue } = ToggleGroupPrimitive.useRootContext();
+  const { value: groupValue, type: groupType } = ToggleGroupPrimitive.useRootContext();
+  // See ToggleGroup: give the web item the role its aria state is valid on.
+  const webRole =
+    Platform.OS === "web" ? { role: groupType === "single" ? ("radio" as const) : ("button" as const) } : undefined;
   const sizeConfig = TOGGLE_GROUP_SIZES[context.size];
   const focusRingStyle = getFocusRingStyle();
-  const [focused, setFocused] = React.useState(false);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!props.disabled,
-    scaleTo: 0.97,
+    scaleTo: interaction.pressedScale,
     haptic: false,
   });
 
-  const showFocusRing: PressableProps["onFocus"] = (event) => {
-    let ringVisible = true;
-    if (Platform.OS === "web") {
-      const target = event?.nativeEvent?.target as unknown as
-        | { matches?: (selector: string) => boolean }
-        | null
-        | undefined;
-      if (target && typeof target.matches === "function") {
-        try {
-          ringVisible = target.matches(":focus-visible");
-        } catch {
-          ringVisible = true;
-        }
-      }
-    }
-    setFocused(ringVisible);
-  };
-
-  const hideFocusRing: PressableProps["onBlur"] = () => {
-    setFocused(false);
-  };
+  const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
 
   // Check if this item is selected
   const isSelected = ToggleGroupPrimitive.utils.getIsSelected(groupValue, props.value);
@@ -226,6 +233,7 @@ function ToggleGroupItem({
         <Animated.View style={scaleStyle}>
         <ToggleGroupPrimitive.Item
           {...props}
+          {...webRole}
           onPressIn={pressHandlers.onPressIn}
           onPressOut={pressHandlers.onPressOut}
           onFocus={showFocusRing}
@@ -328,7 +336,7 @@ function ToggleGroupIcon({ name, size, color }: ToggleGroupIconProps) {
   return <Icon name={name} size={size || spacing.iconMd} color={color || contextColor} />;
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   item: {
     flexDirection: "row",
     alignItems: "center",

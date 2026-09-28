@@ -3,16 +3,9 @@
  * These values are shared across all environments.
  */
 
-export interface ConfigBaseProps {
-  /**
-   * When to persist navigation state (useful for dev to restore on refresh)
-   * - "always": Always persist
-   * - "dev": Only in development
-   * - "prod": Only in production
-   * - "never": Never persist
-   */
-  persistNavigation: "always" | "dev" | "prod" | "never";
+import { describeApiBaseUrl } from "@/client/lib/api/apiOrigin";
 
+export interface ConfigBaseProps {
   /**
    * When to catch errors with ErrorBoundary
    * - "always": Catch in all environments
@@ -23,19 +16,15 @@ export interface ConfigBaseProps {
   catchErrors: "always" | "dev" | "prod" | "never";
 
   /**
-   * Routes where pressing back should exit the app (Android)
-   */
-  exitRoutes: string[];
-
-  /**
-   * Base URL for API requests
+   * Where `/api/*` requests go, for display (settings, developer screen).
+   * Requests resolve through `client/lib/api/apiOrigin.ts`, which this mirrors:
+   * - web: `"/api"` — same-origin relative requests
+   * - native: `<EXPO_PUBLIC_API_URL origin>/api`; in development without it,
+   *   the dev server that served the bundle
+   * - native release build without `EXPO_PUBLIC_API_URL`: `""` — API requests
+   *   fail closed
    */
   apiUrl: string;
-
-  /**
-   * Request timeout in milliseconds
-   */
-  apiTimeout: number;
 
   /**
    * Feature flag for the hosted-external Stripe billing surface.
@@ -57,11 +46,8 @@ function parseBooleanEnv(value: string | undefined): boolean {
 }
 
 const BaseConfig: ConfigBaseProps = {
-  persistNavigation: "dev",
   catchErrors: "always",
-  exitRoutes: ["index", "(main)"],
-  apiUrl: "",
-  apiTimeout: 10000,
+  apiUrl: describeApiBaseUrl(),
   billingEnabled: parseBooleanEnv(process.env.EXPO_PUBLIC_BILLING_ENABLED),
 };
 

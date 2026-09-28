@@ -3,34 +3,6 @@ import { getAppIdentity } from "./app.identity";
 
 const withNativeBuildSettings = require("./plugins/withNativeBuildSettings");
 
-const CHANNEL_BY_PROFILE: Record<string, string> = {
-  development: "development",
-  preview: "preview",
-  production: "production",
-};
-
-function resolveUpdatesChannel(): string {
-  const explicitChannel = process.env.EXPO_UPDATES_CHANNEL?.trim();
-
-  if (explicitChannel) {
-    return explicitChannel;
-  }
-
-  const publicChannel = process.env.EXPO_PUBLIC_CHANNEL?.trim();
-
-  if (publicChannel) {
-    return publicChannel;
-  }
-
-  const easBuildProfile = process.env.EAS_BUILD_PROFILE?.trim();
-
-  if (easBuildProfile && CHANNEL_BY_PROFILE[easBuildProfile]) {
-    return CHANNEL_BY_PROFILE[easBuildProfile];
-  }
-
-  return process.env.NODE_ENV === "development" ? "development" : "production";
-}
-
 function resolveBuildNodeHeapMb(): string {
   const configuredHeapMb = process.env.EXPO_BUILD_NODE_HEAP_MB?.trim();
 
@@ -87,7 +59,13 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
         image: "./assets/images/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#FFFFFF",
+        // Each scheme launches on its own background (`background` /
+        // `surfaceSunken` from the package palette) with the matching mark.
+        dark: {
+          image: "./assets/images/splash-icon-dark.png",
+          backgroundColor: "#09090B",
+        },
       },
     ],
     [
@@ -127,7 +105,6 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
 
 export default function appConfig(_: ConfigContext): ExpoConfig {
   const identity = getAppIdentity();
-  const updatesChannel = resolveUpdatesChannel();
   const buildNodeHeapMb = resolveBuildNodeHeapMb();
   const buildNodeOptions = `--max-old-space-size=${buildNodeHeapMb}`;
   const easProjectId = readOptionalEnv("EAS_PROJECT_ID");
@@ -143,11 +120,21 @@ export default function appConfig(_: ConfigContext): ExpoConfig {
     ios: {
       supportsTablet: true,
       bundleIdentifier: identity.iosBundleIdentifier,
+      // iOS 18 icon appearances: the light icon is the full mark on its dark
+      // tile, dark drops the tile (iOS supplies it), tinted is grayscale for
+      // the system to tint. All three render from assets/brand/ via
+      // `bun run brand:assets`.
+      icon: {
+        light: "./assets/images/icon.png",
+        dark: "./assets/images/icon-dark.png",
+        tinted: "./assets/images/icon-tinted.png",
+      },
     },
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffffff",
+        monochromeImage: "./assets/images/adaptive-icon-monochrome.png",
+        backgroundColor: "#09090B",
       },
       package: identity.androidPackage,
     },
@@ -162,7 +149,6 @@ export default function appConfig(_: ConfigContext): ExpoConfig {
       reactCompiler: true,
     },
     extra: {
-      updatesChannel,
       buildNodeHeapMb,
       // Surface the active scheme on `Constants.expoConfig.extra.appScheme`
       // for any code path that prefers ExpoConfig over EXPO_PUBLIC_* env.

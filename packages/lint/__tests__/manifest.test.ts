@@ -13,6 +13,7 @@ const tsParser = require("@typescript-eslint/parser");
 
 const {
   MANIFEST_SCHEMA_VERSION,
+  SUPPORTED_MANIFEST_SCHEMA_VERSIONS,
   loadDesignSystemFromManifest,
   serializeDesignSystem,
 } = require("../lib/manifest");
@@ -51,6 +52,7 @@ function comparable(design) {
     lightTheme: design.lightTheme,
     darkTheme: design.darkTheme,
     fontVariants: design.fontVariants,
+    fonts: design.fonts,
     components: [...design.components.entries()],
   };
 }
@@ -70,13 +72,34 @@ describe("design-system manifest round trip", () => {
 
   it("declares the schema version the loader accepts", () => {
     expect(payload.schemaVersion).toBe(MANIFEST_SCHEMA_VERSION);
-    expect(payload.schemaVersion).toBe(1);
+    // 2 added `tokens.typography` and `fonts.families`; 1 still loads.
+    expect(payload.schemaVersion).toBe(2);
+    expect(SUPPORTED_MANIFEST_SCHEMA_VERSIONS).toEqual([1, 2]);
     expect(payload.package).toBe("@mrmeg/expo-ui");
     expect(payload.version).toBe("9.9.9");
   });
 
   it("says exactly what the source loader says", () => {
     expect(comparable(loaded)).toEqual(comparable(source));
+  });
+
+  it("carries the typography sizes with their line heights, and the font families", () => {
+    expect(payload.tokens.typography.entries).toContainEqual({ name: "base", value: 14, lineHeight: 21 });
+    expect(loaded.tokens.typography.nameByValue.get(14)).toBe("base");
+    expect(loaded.fonts.families.sansSerif.medium).toContain("Inter_500Medium");
+  });
+
+  it("still loads a schemaVersion 1 manifest, with empty typography and families", () => {
+    // Written by a release before `no-raw-typography`: the other four rules
+    // keep their facts, and that rule reports what is missing once per file.
+    const legacy = { ...payload, schemaVersion: 1, tokens: { ...payload.tokens } };
+    delete legacy.tokens.typography;
+    delete legacy.fonts;
+    const design = loadDesignSystemFromManifest(writeManifest("legacy-v1.json", legacy));
+    expect(design.loaded).toBe(true);
+    expect(design.tokens.spacing.values).toEqual(source.tokens.spacing.values);
+    expect(design.tokens.typography.values).toEqual([]);
+    expect(design.fonts.families).toEqual({});
   });
 
   it("records where the facts came from", () => {
@@ -239,7 +262,7 @@ const REJECTED_MANIFEST = writeManifest("rejected.json", {
     packageName: "@mrmeg/expo-ui",
     version: "9.9.9",
   }),
-  schemaVersion: 2,
+  schemaVersion: 3,
 });
 
 afterAll(() => {
@@ -376,7 +399,7 @@ emptyFactsTester.run("no-restyle (empty manifest)", require("../rules/no-restyle
   ],
 });
 
-const REJECTION_MESSAGE = `Design-system manifest could not be read at \`${REJECTED_MANIFEST}\`: schemaVersion 2 is not supported (this plugin reads 1).`;
+const REJECTION_MESSAGE = `Design-system manifest could not be read at \`${REJECTED_MANIFEST}\`: schemaVersion 3 is not supported (this plugin reads 1 and 2).`;
 
 const rejectionTester = new RuleTester({
   languageOptions: {
@@ -393,6 +416,7 @@ const RULES = {
   "no-arbitrary-values": require("../rules/no-arbitrary-values"),
   "no-restyle": require("../rules/no-restyle"),
   "no-raw-primitives": require("../rules/no-raw-primitives"),
+  "no-raw-typography": require("../rules/no-raw-typography"),
 };
 
 // A manifest from a newer schema is a dead end, not a reason to lint silently.

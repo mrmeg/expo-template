@@ -37,9 +37,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@mrmeg/expo-ui/components/Dialog";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@mrmeg/expo-ui/components/Item";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@mrmeg/expo-ui/components/Select";
 import { StatCard } from "@mrmeg/expo-ui/components/StatCard";
-import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
+import { CaptionText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { Switch } from "@mrmeg/expo-ui/components/Switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@mrmeg/expo-ui/components/Tabs";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
@@ -69,10 +79,26 @@ export interface ComponentDetail {
 // Controlled-preview wrappers
 // ---------------------------------------------------------------------------
 
+/**
+ * `aria-disabled` keeps the button focusable and pressable while it is
+ * announced and drawn as disabled; the press explains itself instead of
+ * silently doing nothing.
+ */
+function AriaDisabledButton() {
+  const [reason, setReason] = React.useState<string | null>(null);
+  return (
+    <View style={{ alignItems: "flex-start", gap: spacing.xs }}>
+      <Button preset="default" size="sm" text="Publish" aria-disabled onPress={() => setReason("Add a title first")} />
+      {reason ? <CaptionText>{reason}</CaptionText> : null}
+    </View>
+  );
+}
+
 /** `Switch` has no uncontrolled mode; a dead switch would read as broken. */
-function SwitchVariant({ initial, disabled }: { initial: boolean; disabled?: boolean }) {
+function SwitchVariant({ initial, disabled, label }: { initial: boolean; disabled?: boolean; label?: string }) {
   const [checked, setChecked] = React.useState(initial);
-  return <Switch checked={checked} onCheckedChange={setChecked} disabled={disabled} />;
+  // Inside an Item row the title names the switch; a bare variant needs its own.
+  return <Switch checked={checked} onCheckedChange={setChecked} disabled={disabled} accessibilityLabel={label} />;
 }
 
 /**
@@ -126,7 +152,7 @@ function DialogFormVariant() {
 
 export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
   Button: {
-    summary: "Six presets and three sizes, with loading and full-width states.",
+    summary: "Six presets and three sizes, with loading, disabled and announced-disabled (aria-disabled) states.",
     variants: [
       { label: "default", render: () => <Button preset="default" size="sm" text="Save" /> },
       { label: "outline", render: () => <Button preset="outline" size="sm" text="Cancel" /> },
@@ -136,12 +162,16 @@ export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
       { label: "link", render: () => <Button preset="link" size="sm" text="Learn more" /> },
       { label: "loading", render: () => <Button preset="default" size="sm" text="Saving" loading /> },
       { label: "disabled", render: () => <Button preset="default" size="sm" text="Save" disabled /> },
+      { label: "aria-disabled", render: () => <AriaDisabledButton /> },
     ],
     usage: `<Button
   preset="default"
   text="Save changes"
   onPress={handleSave}
-/>`,
+/>
+
+// Announced and dimmed but still pressable, so the press can say why:
+<Button text="Publish" aria-disabled={!title} onPress={() => (title ? publish() : notify.info("Add a title first"))} />`,
   },
 
   TextInput: {
@@ -172,9 +202,9 @@ export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
   Switch: {
     summary: "Controlled toggle with an optional iOS-styled variant.",
     variants: [
-      { label: "on", render: () => <SwitchVariant initial /> },
-      { label: "off", render: () => <SwitchVariant initial={false} /> },
-      { label: "disabled", render: () => <SwitchVariant initial disabled /> },
+      { label: "on", render: () => <SwitchVariant initial label="On" /> },
+      { label: "off", render: () => <SwitchVariant initial={false} label="Off" /> },
+      { label: "disabled", render: () => <SwitchVariant initial disabled label="Disabled" /> },
     ],
     usage: `const [enabled, setEnabled] = useState(false);
 
@@ -397,7 +427,8 @@ export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
   },
 
   Card: {
-    summary: "Surface container with header, content, and footer slots.",
+    summary:
+      "One item in a collection (a feed entry, a grid tile) or a single tappable object, with header, content, and footer slots. Not a layout box: group rows with ItemGroup instead.",
     variants: [
       {
         label: "default",
@@ -436,6 +467,19 @@ export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
           </View>
         ),
       },
+      {
+        label: "pressable",
+        render: () => (
+          <View style={{ minWidth: 200 }}>
+            <Card onPress={() => {}}>
+              <CardHeader>
+                <CardTitle>Open report</CardTitle>
+                <CardDescription>Presses dim; keyboard focus shows the ring.</CardDescription>
+              </CardHeader>
+            </Card>
+          </View>
+        ),
+      },
     ],
     usage: `<Card>
   <CardHeader>
@@ -449,8 +493,88 @@ export const COMPONENT_DETAILS: Record<string, ComponentDetail> = {
 </Card>`,
   },
 
+  Item: {
+    summary:
+      "List and settings rows. Stack them in an ItemGroup: full-width rows, hairlines inset under the title, no box around the group.",
+    variants: [
+      {
+        label: "ItemGroup",
+        render: () => (
+          <View style={{ minWidth: 260 }}>
+            <ItemGroup title="Account" footer="Signed in as jane@example.com">
+              <Item onPress={() => {}}>
+                <ItemMedia icon="user" />
+                <ItemContent>
+                  <ItemTitle>Edit profile</ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  <Icon name="chevron-right" size={18} color="mutedForeground" />
+                </ItemActions>
+              </Item>
+              <Item>
+                <ItemMedia icon="bell" />
+                <ItemContent>
+                  <ItemTitle>Notifications</ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  <SwitchVariant initial />
+                </ItemActions>
+              </Item>
+            </ItemGroup>
+          </View>
+        ),
+      },
+      {
+        label: "without media",
+        render: () => (
+          <View style={{ minWidth: 260 }}>
+            <ItemGroup title="About">
+              <Item>
+                <ItemContent>
+                  <ItemTitle>Version</ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  <ItemDescription>2.1.0</ItemDescription>
+                </ItemActions>
+              </Item>
+              <Item>
+                <ItemContent>
+                  <ItemTitle>Build</ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  <ItemDescription>2026.09.25</ItemDescription>
+                </ItemActions>
+              </Item>
+            </ItemGroup>
+          </View>
+        ),
+      },
+    ],
+    usage: `<ItemGroup title="Account" footer="Signed in as jane@example.com">
+  <Item onPress={openProfile}>
+    <ItemMedia icon="user" />
+    <ItemContent>
+      <ItemTitle>Edit profile</ItemTitle>
+    </ItemContent>
+    <ItemActions>
+      <Icon name="chevron-right" size={18} color="mutedForeground" />
+    </ItemActions>
+  </Item>
+  <Item>
+    <ItemMedia icon="bell" />
+    <ItemContent>
+      <ItemTitle>Notifications</ItemTitle>
+    </ItemContent>
+    <ItemActions>
+      <Switch checked={enabled} onCheckedChange={setEnabled} />
+    </ItemActions>
+  </Item>
+</ItemGroup>`,
+  },
+
   StatCard: {
-    summary: "Dashboard metric: label, large value, optional unit and change line.",
+    summary:
+      "Metric tile: label, large value, optional unit and change line. A Card, so use it for tiles in a scrolling metrics rail or one tappable metric.",
     variants: [
       {
         label: "up",

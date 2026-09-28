@@ -1,7 +1,6 @@
 import React, { ReactNode } from "react";
 import {
   View,
-  ScrollView,
   StyleSheet,
   StyleProp,
   ViewStyle,
@@ -15,7 +14,9 @@ import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { Separator } from "@mrmeg/expo-ui/components/Separator";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -75,6 +76,9 @@ export interface PricingScreenProps {
   periodToggle?: PricingPeriodToggle;
   footer?: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Safe-area edges this screen owns (see `Screen`); default bottom only (under a Stack header). */
+  edges?: ScreenEdges;
+  testID?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -88,17 +92,22 @@ export function PricingScreen({
   periodToggle,
   footer,
   style: styleOverride,
+  edges = ["bottom"],
+  testID = "pricing-screen",
 }: PricingScreenProps) {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme } = useTheme();
   const styles = themedStyles(theme);
 
   return (
-    <View style={[styles.container, styleOverride]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <Screen
+      edges={edges}
+      scroll
+      padded={false}
+      style={styleOverride}
+      contentContainerStyle={styles.scrollContent}
+      scrollProps={{ showsVerticalScrollIndicator: false }}
+      testID={testID}
+    >
         {/* Header */}
         <AnimatedView type="fadeSlideUp" delay={0}>
           <View style={styles.header}>
@@ -128,25 +137,28 @@ export function PricingScreen({
           </View>
         )}
 
-        {/* Plans */}
+        {/* Plans: flat sections on the screen gutter, split by hairlines. The
+            badge, accent name, and primary CTA mark the highlighted plan, so it
+            needs no box of its own. */}
         <View style={styles.plansContainer}>
           {plans.map((plan, index) => (
             <AnimatedView
               key={plan.name}
               type="fadeSlideUp"
               delay={STAGGER_DELAY * (3 + index)}
+              style={styles.planSection}
             >
-              <View
-                style={[
-                  styles.planCard,
-                  getShadowStyle("subtle"),
-                  plan.highlighted && styles.planHighlighted,
-                ]}
-              >
+              {index > 0 && <Separator margin={0} />}
+              <View>
                 {/* Plan header */}
                 <View style={styles.planHeader}>
                   <View style={styles.planNameRow}>
-                    <SansSerifBoldText size="lg" style={styles.planName}>{plan.name}</SansSerifBoldText>
+                    <SansSerifBoldText
+                      size="lg"
+                      style={plan.highlighted ? styles.planNameHighlighted : styles.planName}
+                    >
+                      {plan.name}
+                    </SansSerifBoldText>
                     {plan.badge && (
                       <Badge variant={plan.highlighted ? "default" : "outline"}>
                         {plan.badge}
@@ -218,8 +230,7 @@ export function PricingScreen({
 
         {/* Footer */}
         {footer && <View style={styles.footerContainer}>{footer}</View>}
-      </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -227,16 +238,15 @@ export function PricingScreen({
 // Styles
 // ---------------------------------------------------------------------------
 
+// Wide screens cap and centre the column instead of boxing it.
+const MAX_CONTENT_WIDTH = 640;
+
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    scroll: {
-      flex: 1,
-    },
     scrollContent: {
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       paddingBottom: spacing.xxl,
     },
     header: {
@@ -251,18 +261,12 @@ const createStyles = (theme: Theme) =>
     },
     plansContainer: {
       paddingHorizontal: spacing.screenPadding,
-      gap: spacing.md,
+      gap: spacing.lg,
     },
-    planCard: {
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusLg,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      padding: spacing.cardPadding,
-    },
-    planHighlighted: {
-      borderColor: theme.colors.accent,
-      borderWidth: 2,
+    // Gap under each divider; plansContainer's matching gap sits above it, so
+    // the hairline splits the space between two plans evenly.
+    planSection: {
+      gap: spacing.lg,
     },
     planHeader: {
       marginBottom: spacing.md,
@@ -275,6 +279,9 @@ const createStyles = (theme: Theme) =>
     },
     planName: {
       color: theme.colors.foreground,
+    },
+    planNameHighlighted: {
+      color: theme.colors.accent,
     },
     priceRow: {
       flexDirection: "row",

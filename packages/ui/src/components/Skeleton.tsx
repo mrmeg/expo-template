@@ -1,14 +1,22 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, Animated } from "react-native";
 import { useTheme } from "../hooks/useTheme";
+import { shapeRadius, useShape } from "../hooks/useShape";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { spacing } from "../constants/spacing";
 import { createThemedStyles } from "../lib/themedStyles";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import type { Theme } from "../constants/colors";
+import { shouldUseNativeDriver } from "../lib/animations";
 
 // ============================================================================
 // Base Skeleton
 // ============================================================================
+
+/** Low point of the pulse; high enough that the bar never disappears. */
+const PULSE_MIN = 0.55;
+/** Opacity held when the OS asks for reduced motion (no pulse at all). */
+const STATIC_OPACITY = 0.8;
 
 export interface SkeletonProps {
   /** Width of the skeleton element */
@@ -44,26 +52,26 @@ export function Skeleton({
 }: SkeletonProps) {
   const { theme } = useTheme();
   const reduceMotion = useReducedMotion();
-  const opacity = useRef(new Animated.Value(reduceMotion ? 0.6 : 0.3)).current;
+  const opacity = useAnimatedValue(reduceMotion ? STATIC_OPACITY : PULSE_MIN);
 
   useEffect(() => {
     if (reduceMotion) {
-      opacity.setValue(0.6);
+      opacity.setValue(STATIC_OPACITY);
       return;
     }
 
-    opacity.setValue(0.3);
+    opacity.setValue(PULSE_MIN);
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
           toValue: 1,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
         Animated.timing(opacity, {
-          toValue: 0.3,
+          toValue: PULSE_MIN,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: shouldUseNativeDriver,
         }),
       ])
     );
@@ -80,7 +88,9 @@ export function Skeleton({
           width: circle ? resolvedSize : width,
           height: circle ? resolvedSize : height,
           borderRadius: circle ? (resolvedSize! / 2) : borderRadius,
-          backgroundColor: theme.colors.muted,
+          // `borderStrong`, not `muted`: on a white card `muted` (#F4F4F5) is
+          // a 1.05:1 step and the pulse's low point made it vanish outright.
+          backgroundColor: theme.colors.borderStrong,
         },
         { opacity },
         style,
@@ -175,9 +185,11 @@ export function SkeletonCard({
 }: SkeletonCardProps) {
   const { theme, getShadowStyle } = useTheme();
   const styles = themedStyles(theme);
+  // Host-app `setShape({ card })`: the placeholder keeps the Card's corners.
+  const cardRadius = shapeRadius(useShape("card"));
 
   return (
-    <View style={[styles.card, getShadowStyle("subtle"), style]}>
+    <View style={[styles.card, cardRadius, getShadowStyle("subtle"), style]}>
       {showImage && (
         <Skeleton
           width="100%"
@@ -227,4 +239,4 @@ const createCardStyles = (theme: Theme) =>
     },
   });
 
-const themedStyles = createThemedStyles(createCardStyles);
+const themedStyles = /*#__PURE__*/ createThemedStyles(createCardStyles);

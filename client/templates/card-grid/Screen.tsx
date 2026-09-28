@@ -10,13 +10,14 @@ import {
   ViewStyle,
 } from "react-native";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, useWindowInsets } from "@mrmeg/expo-ui/hooks";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { SkeletonCard } from "@mrmeg/expo-ui/components/Skeleton";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
@@ -62,6 +63,9 @@ export interface CardGridScreenProps<T> {
   refreshing?: boolean;
   header?: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Safe-area edges this screen owns (see `Screen`); default bottom only (under a Stack header). */
+  edges?: ScreenEdges;
+  testID?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,9 +95,18 @@ export function CardGridScreen<T>({
   refreshing = false,
   header,
   style: styleOverride,
+  edges = ["bottom"],
+  testID = "card-grid-screen",
 }: CardGridScreenProps<T>) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
+
+  // The list owns the scroll, so the bottom inset goes on its content (the
+  // last row scrolls up out from under the home indicator); Screen takes the
+  // other edges and paints the background.
+  const insets = useWindowInsets();
+  const bottomInset = edges.includes("bottom") ? insets.bottom : 0;
+  const listEdges = edges.filter((edge) => edge !== "bottom");
 
   // Hoist per-column flex objects so renderItem hands stable style references to
   // each row instead of allocating fresh ones every render.
@@ -215,15 +228,21 @@ export function CardGridScreen<T>({
   // Pass a component (not an element) so FlatList builds the header JSX lazily —
   // never during an early-return render. renderCategoryTabs / renderSortRow are
   // memoized, so this callback identity is stable across unrelated renders.
+  //
+  // The tabs and sort row pad the 16pt gutter themselves (the chip rail
+  // scrolls edge to edge), so inside the list they bleed out of the grid's
+  // padding instead of insetting a second time.
   const ListHeader = useCallback(
     () => (
       <>
         {header}
-        {renderCategoryTabs()}
-        {renderSortRow()}
+        <View style={styles.headerBleed}>
+          {renderCategoryTabs()}
+          {renderSortRow()}
+        </View>
       </>
     ),
-    [header, renderCategoryTabs, renderSortRow]
+    [header, renderCategoryTabs, renderSortRow, styles.headerBleed]
   );
 
   const refreshControl = useMemo(
@@ -244,7 +263,7 @@ export function CardGridScreen<T>({
 
   if (loading) {
     return (
-      <View style={[styles.container, styleOverride]}>
+      <Screen edges={edges} padded={false} style={styleOverride} testID={testID}>
         {header}
         {renderCategoryTabs()}
         {renderSortRow()}
@@ -255,7 +274,7 @@ export function CardGridScreen<T>({
             </View>
           ))}
         </View>
-      </View>
+      </Screen>
     );
   }
 
@@ -283,8 +302,9 @@ export function CardGridScreen<T>({
   // -------------------------------------------------------------------------
 
   return (
-    <View style={[styles.container, styleOverride]}>
+    <Screen edges={listEdges} padded={false} style={styleOverride} testID={testID}>
       <FlatList
+        testID="card-grid-list"
         data={data}
         keyExtractor={keyExtractor}
         numColumns={columns}
@@ -292,13 +312,14 @@ export function CardGridScreen<T>({
         renderItem={renderItem}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={
-          data.length === 0 ? styles.emptyFlatList : [styles.gridContent, cardGapStyle]
-        }
+        contentContainerStyle={[
+          data.length === 0 ? styles.emptyFlatList : [styles.gridContent, cardGapStyle],
+          { paddingBottom: (data.length === 0 ? 0 : spacing.xxl) + bottomInset },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
       />
-    </View>
+    </Screen>
   );
 }
 
@@ -306,12 +327,10 @@ export function CardGridScreen<T>({
 // Styles
 // ---------------------------------------------------------------------------
 
+const MAX_CONTENT_WIDTH = 960;
+
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
 
     // Category tabs
     categoryScroll: {
@@ -348,14 +367,23 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.mutedForeground,
     },
 
-    // Grid
+    // Grid. Wide screens cap and centre the column instead of boxing it.
     gridContent: {
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       paddingHorizontal: spacing.screenPadding,
       paddingBottom: spacing.xxl,
+    },
+    headerBleed: {
+      marginHorizontal: -spacing.screenPadding,
     },
 
     // Skeleton loading
     skeletonGrid: {
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       flexDirection: "row",
       flexWrap: "wrap",
       paddingHorizontal: spacing.screenPadding,

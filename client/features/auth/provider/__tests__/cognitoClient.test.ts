@@ -39,6 +39,7 @@ function createFakeSdk() {
     getCurrentUser: jest.fn(),
     fetchAuthSession: jest.fn(),
     signOut: jest.fn(),
+    deleteUser: jest.fn(),
   };
 
   return {
@@ -433,5 +434,47 @@ describe("cognito social sign-in", () => {
     }
 
     expect(events).toEqual(["signedIn", "sessionExpired"]);
+  });
+});
+
+describe("cognito account deletion", () => {
+  const original: Record<string, string | undefined> = {};
+  let sdk: FakeSdk;
+
+  beforeAll(() => {
+    for (const key of POOL_ENV_KEYS) original[key] = process.env[key];
+  });
+
+  afterAll(() => {
+    for (const key of POOL_ENV_KEYS) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+  });
+
+  beforeEach(() => {
+    for (const key of POOL_ENV_KEYS) delete process.env[key];
+    process.env.EXPO_PUBLIC_USER_POOL_ID = "us-east-1_test";
+    process.env.EXPO_PUBLIC_USER_POOL_CLIENT_ID = "client123";
+    sdk = createFakeSdk();
+  });
+
+  it("deleteAccount deletes the signed-in Cognito user", async () => {
+    sdk.module.amplifyAuth.deleteUser.mockResolvedValue(undefined);
+    const client = subject(sdk);
+
+    expect(typeof client.deleteAccount).toBe("function");
+    await client.deleteAccount!();
+
+    expect(sdk.module.amplifyAuth.deleteUser).toHaveBeenCalledTimes(1);
+  });
+
+  it("normalizes a deletion failure into an AuthError", async () => {
+    sdk.module.amplifyAuth.deleteUser.mockRejectedValue(amplifyException("NotAuthorizedException", "Expired"));
+
+    const error = await subject(sdk).deleteAccount!().catch((err) => err as unknown);
+
+    expect(isAuthError(error)).toBe(true);
+    expect((error as AuthError).message).toBe("Expired");
   });
 });

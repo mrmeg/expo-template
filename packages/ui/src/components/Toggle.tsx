@@ -2,10 +2,14 @@ import React, { useState } from "react";
 import { Icon } from "./Icon";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
+import { hapticSelection } from "../lib/haptics";
 import { useScalePress } from "../hooks/useScalePress";
+import { useItemControlLabel } from "./Item";
 import * as TogglePrimitive from "@rn-primitives/toggle";
-import { Platform, PressableProps, StyleSheet, ViewStyle, ActivityIndicator, StyleProp, Animated } from "react-native";
+import { Platform, StyleSheet, ViewStyle, ActivityIndicator, StyleProp, Animated } from "react-native";
 import type { IconName } from "./Icon";
 import { palette } from "../constants/colors";
 
@@ -120,6 +124,9 @@ interface ToggleProps extends Omit<TogglePrimitive.RootProps, "style"> {
  * </Toggle>
  * ```
  */
+// Dev-only, once per session: the same unnamed toggle re-renders constantly.
+let warnedIconOnly = false;
+
 function Toggle({
   variant = "default",
   size = "default",
@@ -127,12 +134,12 @@ function Toggle({
   loading = false,
   iconOnly = false,
   style: styleOverride,
+  onPressedChange,
   ...props
 }: ToggleProps) {
   const { theme, getContrastingColor, getFocusRingStyle, withAlpha } = useTheme();
   const sizeConfig = TOGGLE_SIZES[size];
   const focusRingStyle = getFocusRingStyle();
-  const [focused, setFocused] = useState(false);
 
   // Calculate text color based on state and variant
   const getTextColor = () => {
@@ -169,39 +176,46 @@ function Toggle({
 
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!isDisabled,
-    scaleTo: 0.92,
+    scaleTo: interaction.controlPressedScale,
     haptic: false,
   });
 
-  const showFocusRing: PressableProps["onFocus"] = (event) => {
-    let ringVisible = true;
-    if (Platform.OS === "web") {
-      const target = event?.nativeEvent?.target as unknown as
-        | { matches?: (selector: string) => boolean }
-        | null
-        | undefined;
-      if (target && typeof target.matches === "function") {
-        try {
-          ringVisible = target.matches(":focus-visible");
-        } catch {
-          ringVisible = true;
-        }
-      }
-    }
-    setFocused(ringVisible);
+  // A toggle is a selection control: its state change is the haptic moment,
+  // not the press, so it follows the `"selection"` setting like Switch does.
+  const handlePressedChange = (next: boolean) => {
+    hapticSelection();
+    onPressedChange?.(next);
   };
 
-  const hideFocusRing: PressableProps["onBlur"] = () => {
-    setFocused(false);
-  };
+  const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
+  const rowLabel = useItemControlLabel(props);
+
+  if (
+    process.env.NODE_ENV !== "production" &&
+    iconOnly &&
+    !warnedIconOnly &&
+    props.accessibilityLabel === undefined &&
+    props["aria-label"] === undefined &&
+    props["aria-labelledby"] === undefined &&
+    rowLabel.accessibilityLabel === undefined &&
+    rowLabel["aria-labelledby"] === undefined
+  ) {
+    warnedIconOnly = true;
+    console.warn(
+      "Toggle: an icon-only toggle (`iconOnly`) has no accessible name. Pass `accessibilityLabel` " +
+        "(what the toggle turns on, e.g. \"Bold\") so screen readers announce more than \"button\".",
+    );
+  }
 
   return (
     <TextColorContext.Provider value={textColor}>
       <TextClassContext.Provider value="">
         <Animated.View style={scaleStyle}>
         <TogglePrimitive.Root
+          {...rowLabel}
           {...props}
           disabled={isDisabled}
+          onPressedChange={handlePressedChange}
           onPressIn={pressHandlers.onPressIn}
           onPressOut={pressHandlers.onPressOut}
           onFocus={showFocusRing}
@@ -231,7 +245,7 @@ function Toggle({
               borderColor: theme.colors.primary,
             }),
             // Disabled state
-            opacity: isDisabled ? 0.5 : 1,
+            opacity: isDisabled ? interaction.disabledOpacity : 1,
             // Web-specific styles
             ...(Platform.OS === "web" && {
               cursor: isDisabled ? "not-allowed" : ("pointer" as any),
@@ -295,7 +309,7 @@ function ToggleIcon({ name, size, color }: ToggleIconProps) {
   return <Icon name={name} size={size || spacing.iconMd} color={color || contextColor} />;
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   root: {
     flexDirection: "row",
     alignItems: "center",

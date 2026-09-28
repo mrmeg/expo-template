@@ -144,8 +144,41 @@ export type FontFamilyMap = Record<FontVariant, Record<FontFamilyWeight, string>
  * A per-variant override group. Partial per weight: missing weights fall back
  * to the group's own `regular` (not the package default), so an app that
  * registers only Regular + Medium never leaks a package face into its brand.
+ *
+ * `italic` maps weights to real italic faces. An italic weight that is missing
+ * falls back to the group's italic `regular`; a group with no `italic` map
+ * renders italic as `fontStyle: "italic"` on the upright face (the OS or
+ * browser synthesizes the slant).
  */
-export type FontFamilyOverride = Partial<Record<FontFamilyWeight, string>>;
+export type FontFamilyOverride = Partial<Record<FontFamilyWeight, string>> & {
+  italic?: Partial<Record<FontFamilyWeight, string>>;
+};
+
+/**
+ * The package's serif. `"georgia"` (default) is the single system face on
+ * every platform; `"newsreader"` is a real serif family — four weights and a
+ * 400 italic — that `useResources({ serif: "newsreader" })` loads and turns on.
+ * Nothing about Newsreader ships to an app that keeps the default.
+ */
+export type SerifPreset = "georgia" | "newsreader";
+
+/**
+ * The Newsreader faces the `"newsreader"` preset resolves to. Native names
+ * match `@expo-google-fonts/newsreader`'s per-weight exports, which the app
+ * registers through `useResources({ serif: "newsreader", serifFonts })`; web
+ * is one stack the injected Google Fonts stylesheet serves, weight numeric.
+ */
+export const newsreaderFamilies = {
+  web: "\"Newsreader\", Georgia, 'Times New Roman', serif",
+  native: {
+    light: "Newsreader_400Regular",
+    regular: "Newsreader_400Regular",
+    medium: "Newsreader_500Medium",
+    semibold: "Newsreader_600SemiBold",
+    bold: "Newsreader_700Bold",
+  } satisfies Record<FontFamilyWeight, string>,
+  nativeItalic: "Newsreader_400Regular_Italic",
+} as const;
 
 /**
  * Font overrides a host app can inject to brand the package.
@@ -197,6 +230,15 @@ export type ResolvedFontStyle = {
   fontFamily: string;
   /** Present only under the `"numeric"` weight strategy (web). */
   fontWeight?: "400" | "500" | "600" | "700";
+  /** Present only when italic was asked for and no italic face exists. */
+  fontStyle?: "italic";
+};
+
+export type FontStyleOptions = {
+  /** Render italic: a real italic face when one exists, else a synthesized slant. */
+  italic?: boolean;
+  /** The active serif preset (`useThemeStore().serifPreset`); defaults to Georgia. */
+  serifPreset?: SerifPreset;
 };
 
 /**
@@ -219,20 +261,46 @@ export function resolveFontStyle(
   overrides: FontOverrides,
   variant: FontVariant,
   weight: FontFamilyWeight,
+  options: FontStyleOptions = {},
 ): ResolvedFontStyle {
-  const defaults = fontFamilies[variant];
+  const { italic = false, serifPreset = "georgia" } = options;
+  const isWeb = Platform.OS === "web";
   const overrideGroup = overrides.families?.[variant];
-  const fontFamily = overrideGroup
+  // Precedence for the upright face: app override → serif preset → package default.
+  const preset = variant === "serif" && serifPreset === "newsreader" && !overrideGroup;
+  const defaults: Record<FontFamilyWeight, string> = preset
+    ? isWeb
+      ? { light: newsreaderFamilies.web, regular: newsreaderFamilies.web, medium: newsreaderFamilies.web, semibold: newsreaderFamilies.web, bold: newsreaderFamilies.web }
+      : newsreaderFamilies.native
+    : fontFamilies[variant];
+
+  const upright = overrideGroup
     ? overrideGroup[weight] ?? overrideGroup.regular ?? defaults[weight]
     : defaults[weight];
 
-  const strategy = Platform.OS === "web"
+  // A real italic face: the app's for this weight, else its italic regular,
+  // else the preset's native italic file. Web preset italics ride on
+  // `fontStyle` (the stylesheet serves the 400 italic under one family).
+  const italicFace = !italic
+    ? undefined
+    : overrideGroup?.italic
+      ? overrideGroup.italic[weight] ?? overrideGroup.italic.regular
+      : preset && !isWeb
+        ? newsreaderFamilies.nativeItalic
+        : undefined;
+
+  const fontFamily = italicFace ?? upright;
+  const synthesized = italic && italicFace === undefined;
+
+  const strategy = isWeb
     ? overrides.webWeightStrategy ?? defaultWebWeightStrategy
     : "family";
 
-  return strategy === "numeric"
-    ? { fontFamily, fontWeight: WEB_FONT_WEIGHTS[weight] }
-    : { fontFamily };
+  return {
+    fontFamily,
+    ...(strategy === "numeric" && { fontWeight: WEB_FONT_WEIGHTS[weight] }),
+    ...(synthesized && { fontStyle: "italic" as const }),
+  };
 }
 
 // Navigation theme fonts configuration

@@ -28,7 +28,7 @@ import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Skeleton, SkeletonText, SkeletonAvatar, SkeletonCard } from "@mrmeg/expo-ui/components/Skeleton";
 import { SectionHeader } from "@mrmeg/expo-ui/components/SectionHeader";
 import { StatCard } from "@mrmeg/expo-ui/components/StatCard";
-import { Item, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from "@mrmeg/expo-ui/components/Item";
+import { Item, ItemGroup, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions } from "@mrmeg/expo-ui/components/Item";
 import { BottomSheet } from "@mrmeg/expo-ui/components/BottomSheet";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Section, SubSection, ThemeToggle } from "@/client/showcase";
@@ -333,13 +333,14 @@ function useShowcaseScreenContent() {
 
             <SubSection label="Icon Only">
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Button preset="default" onPress={() => { }}>
+                {/* An icon-only button has no text to announce: name it. */}
+                <Button preset="default" onPress={() => { }} accessibilityLabel="Like">
                   <Icon name="heart" size={18} color={theme.colors.primaryForeground} />
                 </Button>
-                <Button preset="outline" onPress={() => { }}>
+                <Button preset="outline" onPress={() => { }} accessibilityLabel="Like">
                   <Icon name="heart" size={18} color={theme.colors.primary} />
                 </Button>
-                <Button preset="ghost" onPress={() => { }}>
+                <Button preset="ghost" onPress={() => { }} accessibilityLabel="Like">
                   <Icon name="heart" size={18} color={theme.colors.foreground} />
                 </Button>
               </View>
@@ -373,7 +374,7 @@ function useShowcaseScreenContent() {
                 </CardHeader>
                 <CardContent>
                   <SansSerifText style={{ color: theme.colors.text }}>
-                    Outline cards are useful for secondary content.
+                    A quieter tile for one item in a collection.
                   </SansSerifText>
                 </CardContent>
               </Card>
@@ -761,57 +762,69 @@ function useShowcaseScreenContent() {
           <InputOTPSection />
 
           <Section title="Item">
-            <SubSection label="Basic list">
-              <View style={styles.demoCard}>
-                <Item separator>
-                  <ItemMedia icon="bell" />
-                  <ItemContent>
-                    <ItemTitle>Notifications</ItemTitle>
-                    <ItemDescription>Push, email, and SMS alerts</ItemDescription>
-                  </ItemContent>
-                  <ItemActions>
-                    <Icon name="chevron-right" size={18} color="mutedForeground" />
-                  </ItemActions>
-                </Item>
-                <Item separator>
-                  <ItemMedia icon="globe" />
-                  <ItemContent>
-                    <ItemTitle>Language</ItemTitle>
-                    <ItemDescription>English (US)</ItemDescription>
-                  </ItemContent>
-                  <ItemActions>
-                    <Icon name="chevron-right" size={18} color="mutedForeground" />
-                  </ItemActions>
-                </Item>
-                <Item>
-                  <ItemMedia icon="shield" />
-                  <ItemContent>
-                    <ItemTitle>Privacy</ItemTitle>
-                    <ItemDescription>Control what others can see</ItemDescription>
-                  </ItemContent>
-                  <ItemActions>
-                    <Switch checked={showBookmarks} onCheckedChange={(value) => dispatchControls({ type: "showBookmarksChanged", showBookmarks: value })} />
-                  </ItemActions>
-                </Item>
+            {/*
+              Rows carry the screen's 16pt inset themselves, so the groups
+              bleed out of this page's padding (`styles.bleed`) the way they
+              sit edge to edge on a real screen.
+            */}
+            <SubSection label="ItemGroup">
+              <View style={styles.bleed}>
+                <ItemGroup title="Preferences" footer="Rows span the width; hairlines start under the title.">
+                  <Item onPress={() => notify.info("Item pressed", { messages: ["You tapped a list row."] })}>
+                    <ItemMedia icon="bell" />
+                    <ItemContent>
+                      <ItemTitle>Notifications</ItemTitle>
+                      <ItemDescription>Push, email, and SMS alerts</ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <Icon name="chevron-right" size={18} color="mutedForeground" />
+                    </ItemActions>
+                  </Item>
+                  <Item onPress={() => notify.info("Item pressed", { messages: ["You tapped a list row."] })}>
+                    <ItemMedia icon="globe" />
+                    <ItemContent>
+                      <ItemTitle>Language</ItemTitle>
+                      <ItemDescription>English (US)</ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <Icon name="chevron-right" size={18} color="mutedForeground" />
+                    </ItemActions>
+                  </Item>
+                  <Item>
+                    <ItemMedia icon="shield" />
+                    <ItemContent>
+                      <ItemTitle>Privacy</ItemTitle>
+                      <ItemDescription>Control what others can see</ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <Switch checked={showBookmarks} onCheckedChange={(value) => dispatchControls({ type: "showBookmarksChanged", showBookmarks: value })} />
+                    </ItemActions>
+                  </Item>
+                </ItemGroup>
               </View>
             </SubSection>
 
-            <SubSection label="Pressable row">
-              <View style={styles.demoCard}>
-                <Item
-                  onPress={() => notify.info("Item pressed", { messages: ["You tapped a list row."] })}
-                >
-                  <ItemMedia>
-                    <SansSerifBoldText style={{ color: theme.colors.foreground }}>JD</SansSerifBoldText>
-                  </ItemMedia>
-                  <ItemContent>
-                    <ItemTitle>Jane Doe</ItemTitle>
-                    <ItemDescription>jane@example.com</ItemDescription>
-                  </ItemContent>
-                  <ItemActions>
-                    <SansSerifText style={{ color: theme.colors.mutedForeground }}>Admin</SansSerifText>
-                  </ItemActions>
-                </Item>
+            <SubSection label="Rows without media">
+              <View style={styles.bleed}>
+                <ItemGroup title="About">
+                  <Item>
+                    <ItemContent>
+                      <ItemTitle>Version</ItemTitle>
+                    </ItemContent>
+                    <ItemActions>
+                      <SansSerifText style={{ color: theme.colors.mutedForeground }}>2.1.0</SansSerifText>
+                    </ItemActions>
+                  </Item>
+                  <Item>
+                    <ItemContent>
+                      <ItemTitle>Account</ItemTitle>
+                      <ItemDescription>jane@example.com</ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <SansSerifText style={{ color: theme.colors.mutedForeground }}>Admin</SansSerifText>
+                    </ItemActions>
+                  </Item>
+                </ItemGroup>
               </View>
             </SubSection>
           </Section>
@@ -980,6 +993,8 @@ function useShowcaseScreenContent() {
                 </Popover>
               </View>
             </SubSection>
+
+            <TallPopoverDemo styles={styles} />
 
             <SubSection label="Real-World Example: User Info Card">
               <Popover>
@@ -1231,7 +1246,8 @@ function useShowcaseScreenContent() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <View style={{ padding: spacing.xs }}>
+                    {/* The trigger is the button; the glyph inside is hidden, so the name goes here. */}
+                    <View style={{ padding: spacing.xs }} accessibilityLabel="What is this?">
                       <Icon name="circle-question-mark" size={24} color={theme.colors.primary} />
                     </View>
                   </TooltipTrigger>
@@ -1316,6 +1332,12 @@ function useShowcaseScreenContent() {
               <StyledText variant="serif" style={styles.serifText}>Serif Text - Elegant headings</StyledText>
               <StyledText variant="serif" fontWeight="bold" style={styles.serifBoldText}>Serif Bold - Strong emphasis</StyledText>
             </SubSection>
+
+            <SubSection label="Italic (a real italic face where the family has one, synthesized elsewhere)">
+              <StyledText italic>Sans italic - a synthesized slant on Inter</StyledText>
+              <StyledText variant="serif" italic size="lg">Serif italic - Newsreader's own italic</StyledText>
+              <StyledText variant="serif" italic fontWeight="semibold">Serif semibold italic - the 400 italic face at every weight</StyledText>
+            </SubSection>
           </Section>
 
         </View>
@@ -1392,6 +1414,77 @@ const TextInputSection = memo(function TextInputSection() {
   );
 });
 
+const TALL_POPOVER_ROWS = Array.from({ length: 20 }, (_, index) => `Row ${index + 1}`);
+const WIDE_POPOVER_ITEMS = [
+  "Colleague",
+  "Friend",
+  "Family",
+  "Client",
+  "Mentor",
+  "Partner",
+  "Neighbour",
+  "Other",
+];
+
+/**
+ * Tall and wide popover content: the tall one prefers `top` and opens below
+ * when there is no room above, caps to the room it gets and scrolls, with a
+ * native Switch inside; the wide one has a wrapping two-column row, which web
+ * used to lay out wider than a phone.
+ */
+const TallPopoverDemo = memo(function TallPopoverDemo({
+  styles,
+}: {
+  styles: ShowcaseStyles;
+}) {
+  const [notify, setNotify] = useState(false);
+
+  return (
+    <SubSection label="Tall and wide content">
+      <View style={styles.buttonRow}>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button preset="default" size="sm">
+              <StyledText fontWeight="bold" size="sm">Tall (prefers top)</StyledText>
+            </Button>
+          </PopoverTrigger>
+          {/* A layout-only style: it merges over the themed surface. */}
+          <PopoverContent side="top" align="start" style={{ padding: spacing.md }}>
+            <View style={styles.switchRow}>
+              <StyledText>Notify me</StyledText>
+              <Switch checked={notify} onCheckedChange={setNotify} accessibilityLabel="Notify me" />
+            </View>
+            {TALL_POPOVER_ROWS.map((row) => (
+              <StyledText key={row} style={{ marginVertical: spacing.xs }}>
+                {row}
+              </StyledText>
+            ))}
+          </PopoverContent>
+        </Popover>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button preset="default" size="sm">
+              <StyledText fontWeight="bold" size="sm">Wide row</StyledText>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="bottom" align="end">
+            <PopoverBody>
+              <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                {WIDE_POPOVER_ITEMS.map((item) => (
+                  <View key={item} style={{ width: "50%", paddingVertical: spacing.xs }}>
+                    <StyledText>{item}</StyledText>
+                  </View>
+                ))}
+              </View>
+            </PopoverBody>
+          </PopoverContent>
+        </Popover>
+      </View>
+    </SubSection>
+  );
+});
+
 const SwitchSection = memo(function SwitchSection({
   styles,
 }: {
@@ -1404,7 +1497,7 @@ const SwitchSection = memo(function SwitchSection({
       <SubSection label="Basic">
         <View style={styles.switchRow}>
           <StyledText>Basic Switch</StyledText>
-          <Switch checked={toggleValue} onCheckedChange={setToggleValue} />
+          <Switch checked={toggleValue} onCheckedChange={setToggleValue} accessibilityLabel="Basic Switch" />
         </View>
       </SubSection>
 
@@ -1412,6 +1505,7 @@ const SwitchSection = memo(function SwitchSection({
         <View style={styles.switchRow}>
           <StyledText>Switch with Labels</StyledText>
           <Switch
+            accessibilityLabel="Switch with Labels"
             size={{ width: 60, height: 32 }}
             checked={toggleValue}
             onCheckedChange={setToggleValue}
@@ -1425,6 +1519,7 @@ const SwitchSection = memo(function SwitchSection({
         <View style={styles.switchRow}>
           <StyledText>Large Switch</StyledText>
           <Switch
+            accessibilityLabel="Large Switch"
             checked={toggleValue}
             onCheckedChange={setToggleValue}
             size={{ width: 70, height: 36 }}
@@ -1454,8 +1549,8 @@ const CarouselSection = memo(function CarouselSection({
   const renderSlides = (labels: string[] = CAROUSEL_SLIDES) =>
     labels.map((label, index) => (
       <View key={label} style={styles.carouselSlide}>
-        <SansSerifBoldText style={styles.carouselSlideTitle}>{label}</SansSerifBoldText>
-        <SansSerifText style={styles.carouselSlideMeta}>
+        <SansSerifBoldText size="body" style={styles.carouselSlideTitle}>{label}</SansSerifBoldText>
+        <SansSerifText size="sm" style={styles.carouselSlideMeta}>
           {`Slide ${index + 1} of ${labels.length}`}
         </SansSerifText>
       </View>
@@ -1495,7 +1590,7 @@ const CarouselSection = memo(function CarouselSection({
 
       <SubSection label="onIndexChange">
         <Carousel onIndexChange={setPage}>{renderSlides()}</Carousel>
-        <SansSerifText style={[styles.carouselReadout, { color: theme.colors.mutedForeground }]}>
+        <SansSerifText size="sm" style={[styles.carouselReadout, { color: theme.colors.mutedForeground }]}>
           {`Active slide: ${CAROUSEL_SLIDES[page]} (index ${page})`}
         </SansSerifText>
       </SubSection>
@@ -1954,14 +2049,14 @@ const SkeletonSection = memo(function SkeletonSection({
             <View style={styles.realCardBody}>
               <View style={styles.realAvatarRow}>
                 <View style={styles.realAvatar}>
-                  <SansSerifBoldText style={styles.realAvatarText}>JD</SansSerifBoldText>
+                  <SansSerifBoldText size="base" style={styles.realAvatarText}>JD</SansSerifBoldText>
                 </View>
                 <View>
-                  <SansSerifBoldText style={styles.realName}>Jane Doe</SansSerifBoldText>
-                  <SansSerifText style={styles.realMeta}>2 hours ago</SansSerifText>
+                  <SansSerifBoldText size="base" style={styles.realName}>Jane Doe</SansSerifBoldText>
+                  <SansSerifText size="sm" style={styles.realMeta}>2 hours ago</SansSerifText>
                 </View>
               </View>
-              <SansSerifText style={styles.realBodyText}>
+              <SansSerifText size="base" style={styles.realBodyText}>
                 This is the actual loaded content that replaces the skeleton placeholder.
               </SansSerifText>
             </View>
@@ -2049,10 +2144,10 @@ const BottomSheetSection = memo(function BottomSheetSection({
             <BottomSheet.Handle />
             <BottomSheet.Body>
               <View style={styles.sheetSection}>
-                <SansSerifBoldText style={styles.sheetTitle}>
+                <SansSerifBoldText size="xl" style={styles.sheetTitle}>
                   Hello from the bottom sheet
                 </SansSerifBoldText>
-                <SansSerifText style={styles.sheetDescription}>
+                <SansSerifText size="base" style={styles.sheetDescription}>
                   This is a basic bottom sheet. Swipe down or tap the backdrop to close.
                 </SansSerifText>
               </View>
@@ -2084,10 +2179,10 @@ const BottomSheetSection = memo(function BottomSheetSection({
           <BottomSheet.Content>
             <BottomSheet.Handle />
             <BottomSheet.Body>
-              <SansSerifBoldText style={styles.sheetTitle}>
+              <SansSerifBoldText size="xl" style={styles.sheetTitle}>
                 Snap Points
               </SansSerifBoldText>
-              <SansSerifText style={styles.sheetDescription}>
+              <SansSerifText size="base" style={styles.sheetDescription}>
                 This sheet has three snap points at 25%, 50%, and 90%.
                 On native, try swiping to snap between them.
               </SansSerifText>
@@ -2109,7 +2204,7 @@ const BottomSheetSection = memo(function BottomSheetSection({
             <BottomSheet.Handle />
             <BottomSheet.Header>
               <View style={styles.sheetHeaderRow}>
-                <SansSerifBoldText style={styles.sheetHeaderTitle}>
+                <SansSerifBoldText size="lg" style={styles.sheetHeaderTitle}>
                   Share with…
                 </SansSerifBoldText>
                 <BottomSheet.Close asChild>
@@ -2124,11 +2219,11 @@ const BottomSheetSection = memo(function BottomSheetSection({
                 (name) => (
                   <View key={name} style={styles.contactRow}>
                     <View style={styles.contactAvatar}>
-                      <SansSerifBoldText style={styles.contactInitial}>
+                      <SansSerifBoldText size="body" style={styles.contactInitial}>
                         {name[0]}
                       </SansSerifBoldText>
                     </View>
-                    <SansSerifText style={styles.contactName}>{name}</SansSerifText>
+                    <SansSerifText size="body" style={styles.contactName}>{name}</SansSerifText>
                   </View>
                 )
               )}
@@ -2159,13 +2254,13 @@ const BottomSheetSection = memo(function BottomSheetSection({
               {/* The Body scrolls, so the sheet drops pull-down-to-dismiss (it
                   would otherwise steal the scroll gesture on iOS) and the Header
                   surfaces a close X automatically — no manual Close needed. */}
-              <SansSerifBoldText style={styles.sheetHeaderTitle}>
+              <SansSerifBoldText size="lg" style={styles.sheetHeaderTitle}>
                 Terms of Service
               </SansSerifBoldText>
             </BottomSheet.Header>
             <BottomSheet.Body>
               {Array.from({ length: 12 }).map((_, i) => (
-                <SansSerifText key={i} style={styles.loremParagraph}>
+                <SansSerifText size="base" key={i} style={styles.loremParagraph}>
                   {i + 1}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
                   Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
                   Ut enim ad minim veniam, quis nostrud exercitation ullamco.
@@ -2196,7 +2291,7 @@ const BottomSheetSection = memo(function BottomSheetSection({
             <BottomSheet.Handle />
             <BottomSheet.Header>
               <View style={styles.sheetHeaderRow}>
-                <SansSerifBoldText style={styles.sheetHeaderTitle}>
+                <SansSerifBoldText size="lg" style={styles.sheetHeaderTitle}>
                   Edit reminder
                 </SansSerifBoldText>
                 <BottomSheet.Close asChild>
@@ -2564,15 +2659,12 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.muted,
     },
     carouselSlideTitle: {
-      fontSize: 16,
       color: theme.colors.foreground,
     },
     carouselSlideMeta: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     carouselReadout: {
-      fontSize: 12,
       marginTop: spacing.sm,
       textAlign: "center",
     },
@@ -2611,6 +2703,12 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
+    },
+
+    // Full-bleed demos: cancel the page padding for content (ItemGroup rows)
+    // that carries its own 16pt inset.
+    bleed: {
+      marginHorizontal: -spacing.md,
     },
 
     // Empty State & Skeleton
@@ -2672,20 +2770,15 @@ const createStyles = (theme: Theme) =>
       justifyContent: "center",
     },
     realAvatarText: {
-      fontSize: 14,
       color: theme.colors.accentForeground,
     },
     realName: {
-      fontSize: 14,
       color: theme.colors.foreground,
     },
     realMeta: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     realBodyText: {
-      fontSize: 14,
-      lineHeight: 20,
       color: theme.colors.foreground,
     },
 
@@ -2700,15 +2793,11 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
     },
     sheetTitle: {
-      fontSize: 20,
-      lineHeight: 28,
       letterSpacing: -0.3,
       color: theme.colors.foreground,
       marginBottom: spacing.sm,
     },
     sheetDescription: {
-      fontSize: 14,
-      lineHeight: 20,
       color: theme.colors.mutedForeground,
     },
     sheetHeaderRow: {
@@ -2717,8 +2806,6 @@ const createStyles = (theme: Theme) =>
       alignItems: "center",
     },
     sheetHeaderTitle: {
-      fontSize: 18,
-      lineHeight: 24,
       letterSpacing: -0.3,
       color: theme.colors.foreground,
     },
@@ -2737,16 +2824,12 @@ const createStyles = (theme: Theme) =>
       justifyContent: "center",
     },
     contactInitial: {
-      fontSize: 16,
       color: theme.colors.foreground,
     },
     contactName: {
-      fontSize: 16,
       color: theme.colors.foreground,
     },
     loremParagraph: {
-      fontSize: 14,
-      lineHeight: 20,
       color: theme.colors.foreground,
       marginBottom: spacing.md,
     },

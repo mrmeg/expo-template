@@ -7,50 +7,12 @@
     "paths": {
       "@/*": [
         "./*"
-      ],
-      "@mrmeg/expo-ui": [
-        "./packages/ui/src/index.ts"
-      ],
-      "@mrmeg/expo-ui/components": [
-        "./packages/ui/src/components/index.ts"
-      ],
-      "@mrmeg/expo-ui/components/*": [
-        "./packages/ui/src/components/*"
-      ],
-      "@mrmeg/expo-ui/constants": [
-        "./packages/ui/src/constants/index.ts"
-      ],
-      "@mrmeg/expo-ui/hooks": [
-        "./packages/ui/src/hooks/index.ts"
-      ],
-      "@mrmeg/expo-ui/state": [
-        "./packages/ui/src/state/index.ts"
-      ],
-      "@mrmeg/expo-ui/state/*": [
-        "./packages/ui/src/state/*"
-      ],
-      "@mrmeg/expo-ui/lib": [
-        "./packages/ui/src/lib/index.ts"
-      ],
-      "@mrmeg/expo-media": [
-        "./packages/media/src/index.ts"
-      ],
-      "@mrmeg/expo-media/client": [
-        "./packages/media/src/client/index.ts"
-      ],
-      "@mrmeg/expo-media/react-query": [
-        "./packages/media/src/react-query/index.ts"
-      ],
-      "@mrmeg/expo-media/processing": [
-        "./packages/media/src/processing/index.ts"
-      ],
-      "@mrmeg/expo-media/server": [
-        "./packages/media/src/server/index.ts"
-      ],
-      "@mrmeg/expo-media/worker": [
-        "./packages/media/src/worker/index.ts"
       ]
     },
+    "customConditions": [
+      "react-native",
+      "@mrmeg/source"
+    ],
     "noImplicitAny": false,
     "jsx": "react-native",
     "types": [
@@ -67,21 +29,11 @@
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
-    "nativewind-env.d.ts"
+    "expo-env.d.ts"
   ],
   "exclude": [
     "node_modules",
-    // `expo start` and `expo export` regenerate this file with a reference to
-    // `expo/types`, whose react-native-web augmentation widens `ViewStyle.position`
-    // with `fixed` and `sticky`. React Native 0.88 types the `View` style prop
-    // through an internal alias the augmentation never reaches, so every
-    // `ViewStyle` handed to a `View` fails to typecheck once the file exists.
-    // Nothing here needs the file (the program is clean without it); drop this
-    // entry when Expo ships an augmentation that matches RN 0.88.
     "expo-env.d.ts",
-    // Deployable Cloudflare Workers are typechecked by their own standalone
-    // tsconfig (workerd lib + @cloudflare/workers-types), which is incompatible
-    // with this project's react-native/node type set.
-    "workers",
+    "workers"
   ]
 }

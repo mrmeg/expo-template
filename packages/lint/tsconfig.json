@@ -15,5 +15,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["index.js", "bin", "lib", "rules"]
+  "include": ["index.js", "index.d.ts", "bin", "lib", "rules"]
 }

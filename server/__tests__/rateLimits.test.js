@@ -7,13 +7,39 @@
  * into the stricter side-effect budget.
  */
 
+const fs = require("fs");
+const path = require("path");
+
 const {
   GENERAL_LIMIT,
+  MAX_BUCKETS_PER_LIMITER,
   MEDIA_SIGNER_LIMIT,
   MEDIA_SIGNER_LIMIT_PATHS,
   STRICT_LIMIT,
   STRICT_LIMIT_PATHS,
 } = require("../rateLimits");
+
+const API_ROOT = path.resolve(__dirname, "../../app/api");
+
+/**
+ * Whether `/api/...` is served by a route under `app/api`: a static
+ * `<name>+api.ts`, an `index+api.ts`, or a dynamic `[param]+api.ts` whose
+ * dispatcher lists the segment as an action key.
+ */
+function apiRouteExists(urlPath) {
+  const segments = urlPath.replace(/^\/api\/?/, "").split("/").filter(Boolean);
+  const last = segments.pop();
+  const dir = path.join(API_ROOT, ...segments);
+  if (!last || !fs.existsSync(dir)) return false;
+  if (fs.existsSync(path.join(dir, `${last}+api.ts`))) return true;
+  if (fs.existsSync(path.join(dir, last, "index+api.ts"))) return true;
+
+  const dynamic = fs.readdirSync(dir).find((name) => /^\[[^.\]]+\]\+api\.ts$/.test(name));
+  if (!dynamic) return false;
+  const source = fs.readFileSync(path.join(dir, dynamic), "utf8");
+  const escaped = last.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[\\s{,])(["']?)${escaped}\\2\\s*:`, "m").test(source);
+}
 
 describe("server/rateLimits", () => {
   it("keeps the documented 10-requests-per-minute strict budget", () => {
@@ -51,5 +77,25 @@ describe("server/rateLimits", () => {
 
   it("does NOT strict-limit the Stripe webhook (Stripe retries burst past 10/min)", () => {
     expect(STRICT_LIMIT_PATHS).not.toContain("/api/billing/webhook");
+  });
+
+  it("names only routes that exist", () => {
+    // A path with no route is dead config that reads like protection.
+    for (const urlPath of [...STRICT_LIMIT_PATHS, ...MEDIA_SIGNER_LIMIT_PATHS]) {
+      expect({ urlPath, exists: apiRouteExists(urlPath) }).toEqual({ urlPath, exists: true });
+    }
+  });
+
+  it("resolves route paths the way the drift guard claims", () => {
+    expect(apiRouteExists("/api/template/status")).toBe(true);
+    expect(apiRouteExists("/api/billing/webhook")).toBe(true);
+    expect(apiRouteExists("/api/media/delete")).toBe(true);
+    expect(apiRouteExists("/api/reports")).toBe(false);
+    expect(apiRouteExists("/api/billing/refund")).toBe(false);
+  });
+
+  it("bounds each limiter's bucket map", () => {
+    expect(Number.isInteger(MAX_BUCKETS_PER_LIMITER)).toBe(true);
+    expect(MAX_BUCKETS_PER_LIMITER).toBeGreaterThan(0);
   });
 });

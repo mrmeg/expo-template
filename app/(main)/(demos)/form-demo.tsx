@@ -3,6 +3,7 @@ import {
   View,
   StyleSheet,
   ScrollView,
+  // eslint-disable-next-line expo-ui/no-raw-primitives -- moving this screen to the design-system KeyboardAvoidingView changes native keyboard handling and needs an on-device check first
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -57,7 +58,7 @@ const validatePassword = (password: string): string[] => {
  * Demonstrates common form validation patterns.
  */
 export default function FormDemoScreen() {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme } = useTheme();
   const styles = themedStyles(theme);
 
   // Form state
@@ -231,14 +232,14 @@ export default function FormDemoScreen() {
         style={styles.keyboardView}
       >
         <ScrollView
-          style={styles.content}
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <FormDemoHeader styles={styles} />
           <ValidationForm
             styles={styles}
-            shadowStyle={getShadowStyle("subtle")}
             formData={formData}
             errors={errors}
             touched={touched}
@@ -264,10 +265,10 @@ type FormDemoStyles = ReturnType<typeof createStyles>;
 function FormDemoHeader({ styles }: { styles: FormDemoStyles }) {
   return (
     <View style={styles.header}>
-      <SansSerifBoldText style={styles.title}>
+      <SansSerifBoldText size="xl" style={styles.title}>
         Form Validation Demo
       </SansSerifBoldText>
-      <SansSerifText style={styles.subtitle}>
+      <SansSerifText size="base" style={styles.subtitle}>
         Demonstrates client-side validation patterns
       </SansSerifText>
     </View>
@@ -276,7 +277,6 @@ function FormDemoHeader({ styles }: { styles: FormDemoStyles }) {
 
 function ValidationForm({
   styles,
-  shadowStyle,
   formData,
   errors,
   touched,
@@ -289,7 +289,6 @@ function ValidationForm({
   onAgreeTouched,
 }: {
   styles: FormDemoStyles;
-  shadowStyle: object;
   formData: FormData;
   errors: FormErrors;
   touched: Record<string, boolean>;
@@ -301,8 +300,10 @@ function ValidationForm({
   onReset: () => void;
   onAgreeTouched: () => void;
 }) {
+  // No card around the form: the fields span the column on the screen's
+  // 16pt gutter.
   return (
-    <View style={[styles.form, shadowStyle]}>
+    <View>
       <View style={styles.field}>
         <TextInput
           label="Full Name"
@@ -314,7 +315,7 @@ function ValidationForm({
           autoComplete="name"
         />
         {touched.name && errors.name && (
-          <SansSerifText style={styles.errorText}>{errors.name}</SansSerifText>
+          <SansSerifText size="sm" style={styles.errorText}>{errors.name}</SansSerifText>
         )}
       </View>
 
@@ -330,7 +331,7 @@ function ValidationForm({
           autoComplete="email"
         />
         {touched.email && errors.email && (
-          <SansSerifText style={styles.errorText}>{errors.email}</SansSerifText>
+          <SansSerifText size="sm" style={styles.errorText}>{errors.email}</SansSerifText>
         )}
       </View>
 
@@ -358,6 +359,8 @@ function ValidationForm({
               />
             </View>
             <SansSerifText
+              size="sm"
+              fontWeight="medium"
               style={[styles.strengthLabel, { color: passwordStrength.color }]}
             >
               {passwordStrength.label}
@@ -365,7 +368,7 @@ function ValidationForm({
           </View>
         )}
         {touched.password && errors.password && (
-          <SansSerifText style={styles.errorText}>{errors.password}</SansSerifText>
+          <SansSerifText size="sm" style={styles.errorText}>{errors.password}</SansSerifText>
         )}
       </View>
 
@@ -380,7 +383,7 @@ function ValidationForm({
           autoComplete="new-password"
         />
         {touched.confirmPassword && errors.confirmPassword && (
-          <SansSerifText style={styles.errorText}>
+          <SansSerifText size="sm" style={styles.errorText}>
             {errors.confirmPassword}
           </SansSerifText>
         )}
@@ -394,12 +397,12 @@ function ValidationForm({
             onAgreeTouched();
           }}
         />
-        <SansSerifText style={styles.checkboxLabel}>
+        <SansSerifText size="base" style={styles.checkboxLabel}>
           I agree to the Terms of Service and Privacy Policy
         </SansSerifText>
       </View>
       {touched.agreeToTerms && errors.agreeToTerms && (
-        <SansSerifText style={styles.errorText}>
+        <SansSerifText size="sm" style={styles.errorText}>
           {errors.agreeToTerms}
         </SansSerifText>
       )}
@@ -426,32 +429,35 @@ function ValidationForm({
 function ValidationFeatures({ styles }: { styles: FormDemoStyles }) {
   return (
     <View style={styles.infoSection}>
-      <SansSerifBoldText style={styles.infoTitle}>
+      <SansSerifBoldText size="lg" style={styles.infoTitle}>
         Validation Features
       </SansSerifBoldText>
       <View style={styles.infoList}>
-        <SansSerifText style={styles.infoItem}>
+        <SansSerifText size="base" style={styles.infoItem}>
           • Real-time validation on blur
         </SansSerifText>
-        <SansSerifText style={styles.infoItem}>
+        <SansSerifText size="base" style={styles.infoItem}>
           • Password strength indicator
         </SansSerifText>
-        <SansSerifText style={styles.infoItem}>
+        <SansSerifText size="base" style={styles.infoItem}>
           • Password confirmation matching
         </SansSerifText>
-        <SansSerifText style={styles.infoItem}>
+        <SansSerifText size="base" style={styles.infoItem}>
           • Email format validation
         </SansSerifText>
-        <SansSerifText style={styles.infoItem}>
+        <SansSerifText size="base" style={styles.infoItem}>
           • Required field checking
         </SansSerifText>
-        <SansSerifText style={styles.infoItem}>
+        <SansSerifText size="base" style={styles.infoItem}>
           • Clear error messages
         </SansSerifText>
       </View>
     </View>
   );
 }
+
+// Wide screens cap and centre the column instead of boxing it.
+const MAX_CONTENT_WIDTH = 640;
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
@@ -462,35 +468,30 @@ const createStyles = (theme: Theme) =>
     keyboardView: {
       flex: 1,
     },
-    content: {
+    scroll: {
       flex: 1,
+    },
+    content: {
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       paddingHorizontal: spacing.screenPadding,
     },
     header: {
       paddingVertical: spacing.lg,
     },
     title: {
-      fontSize: 24,
       color: theme.colors.foreground,
       marginBottom: spacing.xs,
     },
     subtitle: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
-    },
-    form: {
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusMd,
-      padding: spacing.cardPadding,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
     },
     field: {
       marginBottom: spacing.md,
     },
     errorText: {
       color: theme.colors.destructive,
-      fontSize: 12,
       marginTop: spacing.xs,
     },
     strengthContainer: {
@@ -511,8 +512,6 @@ const createStyles = (theme: Theme) =>
       borderRadius: spacing.radiusXs,
     },
     strengthLabel: {
-      fontSize: 12,
-      fontWeight: "500",
       minWidth: 50,
     },
     checkboxField: {
@@ -524,9 +523,7 @@ const createStyles = (theme: Theme) =>
     },
     checkboxLabel: {
       flex: 1,
-      fontSize: 14,
       color: theme.colors.foreground,
-      lineHeight: 20,
     },
     buttonRow: {
       flexDirection: "row",
@@ -549,7 +546,6 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing.xl,
     },
     infoTitle: {
-      fontSize: 16,
       color: theme.colors.foreground,
       marginBottom: spacing.md,
     },
@@ -557,7 +553,6 @@ const createStyles = (theme: Theme) =>
       gap: spacing.xs,
     },
     infoItem: {
-      fontSize: 14,
       color: theme.colors.mutedForeground,
     },
   });

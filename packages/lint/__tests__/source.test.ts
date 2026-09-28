@@ -41,6 +41,42 @@ describe("design-system source loader", () => {
     expect(design.fontVariants).toEqual(["sansSerif", "serif", "mono"]);
   });
 
+  it("reads StyledText's size map as the typography group", () => {
+    // `no-raw-typography` names these; a size added to `FONT_SIZES` has to
+    // reach the message, and its line height rides on the same entry.
+    const typography = design.tokens.typography;
+    expect(typography.values).toEqual([11, 12, 14, 15, 18, 22, 28, 34]);
+    expect(typography.nameByValue.get(14)).toBe("base");
+    expect(typography.entries.find((entry) => entry.name === "base")).toEqual({
+      name: "base",
+      value: 14,
+      lineHeight: 21,
+    });
+    expect(typography.entries.map((entry) => entry.name)).toEqual([
+      "xs",
+      "sm",
+      "base",
+      "body",
+      "lg",
+      "xl",
+      "xxl",
+      "display",
+    ]);
+  });
+
+  it("reads every family a font slot resolves to, across platform branches", () => {
+    const { families } = design.fonts;
+    expect(Object.keys(families).sort()).toEqual(["mono", "sansSerif", "serif"]);
+    // Web stack, native static file, and the fallback branch all count.
+    expect(families.sansSerif.medium).toEqual(
+      expect.arrayContaining(["Inter_500Medium", "sans-serif"]),
+    );
+    expect(families.sansSerif.medium.some((family) => family.startsWith("\"Inter\","))).toBe(true);
+    expect(families.serif.bold).toEqual(expect.arrayContaining(["Georgia"]));
+    // `Platform.OS === "ios" ? "Menlo" : "monospace"` is two families.
+    expect(families.mono.regular).toEqual(expect.arrayContaining(["Menlo", "monospace"]));
+  });
+
   it("indexes components, compounds, and their variant props", () => {
     const button = design.components.get("Button");
     expect(button.file).toBe("Button.tsx");
@@ -83,6 +119,8 @@ describe("design-system source loader", () => {
     expect(missing.loaded).toBe(false);
     expect(missing.components.size).toBe(0);
     expect(missing.tokens.spacing.values).toEqual([]);
+    expect(missing.tokens.typography.values).toEqual([]);
+    expect(missing.fonts.families).toEqual({});
     expect(missing.palette).toEqual({});
   });
 

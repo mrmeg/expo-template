@@ -1,4 +1,4 @@
-import React, { ComponentType, use, useCallback, useMemo, useState } from "react";
+import React, { ComponentType, use, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   PressableProps,
@@ -15,17 +15,20 @@ import {
   Animated,
 } from "react-native";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { StyledText, TextProps } from "./StyledText";
 import { Icon, type IconProps } from "./Icon";
 import { TextColorContext, TextSelectabilityContext, TextStyleContext } from "./StyledText.context";
 import type { Theme } from "../constants/colors";
 import { palette } from "../constants/colors";
 import { useTheme } from "../hooks/useTheme";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { useFontStyle } from "../hooks/useFontStyle";
 import { useScalePress } from "../hooks/useScalePress";
 import { useThemeStore } from "../state/themeStore";
 import { createThemedStyles } from "../lib/themedStyles";
 import { stateSurfaceProps } from "../lib/stateSurface";
+import { composeRefs } from "../lib/composeRefs";
 
 /**
  * Button variants
@@ -81,6 +84,12 @@ export interface ButtonAccessoryProps {
 
 export interface ButtonProps extends PressableProps {
   /**
+   * Reaches the underlying `Pressable`. React 19 passes `ref` as a prop; the
+   * button composes it with its own host ref (web `aria-disabled`), so
+   * `asChild` slots and consumers keep theirs.
+   */
+  ref?: React.Ref<React.ComponentRef<typeof Pressable>>;
+  /**
    * Text which is looked up via i18n.
    */
   tx?: TextProps["tx"];
@@ -135,13 +144,23 @@ export interface ButtonProps extends PressableProps {
    */
   children?: React.ReactNode;
   /**
-   * disabled prop, accessed directly for declarative styling reasons.
+   * Blocks presses: no `onPress`, no scale, no haptic, dimmed, and out of the
+   * web tab order. To announce and dim a button that must stay pressable so
+   * the press can say why the action is unavailable ("Add a title first"),
+   * pass `aria-disabled` (or `accessibilityState={{ disabled: true }}`)
+   * instead — ARIA's contract: announced as disabled, still focusable, still
+   * fires `onPress`.
    */
   disabled?: boolean;
   /**
    * An optional style override for the disabled state
    */
   disabledStyle?: StyleProp<ViewStyle>;
+  /**
+   * Haptic on press-in. Omit it to follow the provider-level `haptics` setting
+   * (a light tap only under `"all"`); `true` always taps, `false` never does.
+   */
+  haptic?: boolean;
   /**
    * Whether to show shadow.
    * @default true for the `default` preset, `false` for every other preset.
@@ -212,6 +231,7 @@ function ButtonRoot(props: ButtonProps) {
     disabled,
     disabledStyle: disabledStyleOverride,
     withShadow: withShadowProp,
+    haptic,
     preset = "default",
     size = "md",
     loading = false,
@@ -220,6 +240,9 @@ function ButtonRoot(props: ButtonProps) {
     onBlur,
     onPressIn,
     onPressOut,
+    accessibilityState,
+    "aria-disabled": ariaDisabled,
+    ref: forwardedRef,
     ...rest
   } = props;
 
@@ -282,42 +305,42 @@ function ButtonRoot(props: ButtonProps) {
               ? theme.colors.secondaryForeground
               : getContrastingColor(backgroundColor, palette.white, palette.black);
 
-  const [focused, setFocused] = useState(false);
   const [restingWidth, setRestingWidth] = useState<number>();
-  const isDisabled = disabled || loading;
+  // Two kinds of disabled. `pressBlocked` (the `disabled` prop, or loading)
+  // swallows presses. `isDisabled` is what is ANNOUNCED and drawn: that, or a
+  // consumer `aria-disabled` / `accessibilityState.disabled`, which keeps the
+  // button focusable and pressable so the press can explain itself.
+  const pressBlocked = !!disabled || loading;
+  const isDisabled = pressBlocked || (ariaDisabled ?? accessibilityState?.disabled) === true;
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!isDisabled,
-    haptic: false,
-    scaleTo: preset === "link" ? 1 : 0.97,
+    haptic: haptic ?? "setting",
+    scaleTo: preset === "link" ? 1 : interaction.pressedScale,
   });
 
-  const showFocusRing: PressableProps["onFocus"] = (event) => {
-    // On web, pointer taps focus the element too, which left the ring visible
-    // after every click. :focus-visible is only true for keyboard-driven
-    // focus, so gate the ring on it; fall back to showing the ring when the
-    // target can't be queried (non-DOM targets, older engines).
-    let ringVisible = true;
-    if (Platform.OS === "web") {
-      const target = event?.nativeEvent?.target as unknown as
-        | { matches?: (selector: string) => boolean }
-        | null
-        | undefined;
-      if (target && typeof target.matches === "function") {
-        try {
-          ringVisible = target.matches(":focus-visible");
-        } catch {
-          ringVisible = true;
-        }
-      }
-    }
-    setFocused(ringVisible);
-    onFocus?.(event);
-  };
+  const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible({ onFocus, onBlur });
 
-  const hideFocusRing: PressableProps["onBlur"] = (event) => {
-    setFocused(false);
-    onBlur?.(event);
-  };
+  // Web: react-native-web's Pressable writes `aria-disabled` from its own
+  // `disabled` prop, overwriting a consumer's, and a `<button aria-disabled>`
+  // built from props also gets the native `disabled` attribute (no clicks, no
+  // focus). So the announced-but-pressable state is set on the host node
+  // itself, after mount — on a server-rendered page it appears at hydration.
+  // When presses are blocked RNW owns the attribute and this stays out.
+  type DomLike = { setAttribute?: (n: string, v: string) => void; removeAttribute?: (n: string) => void };
+  const hostRef = useRef<React.ComponentRef<typeof Pressable> | null>(null);
+  const pressBlockedRef = useRef(pressBlocked);
+  pressBlockedRef.current = pressBlocked;
+  const announceOnly = isDisabled && !pressBlocked;
+  useLayoutEffect(() => {
+    if (Platform.OS !== "web" || !announceOnly) return;
+    const node = hostRef.current as unknown as DomLike | null;
+    if (!node?.setAttribute) return;
+    node.setAttribute("aria-disabled", "true");
+    return () => {
+      if (!pressBlockedRef.current) node.removeAttribute?.("aria-disabled");
+    };
+  }, [announceOnly]);
+  const composedRef = useMemo(() => composeRefs(hostRef, forwardedRef), [forwardedRef]);
 
   const handlePressIn: PressableProps["onPressIn"] = (event) => {
     pressHandlers.onPressIn();
@@ -329,6 +352,12 @@ function ButtonRoot(props: ButtonProps) {
     onPressOut?.(event);
   };
 
+  // The resting width is only read while `loading`, to keep the button from
+  // resizing when its label changes under the spinner (the label stays
+  // mounted at opacity 0, so an unchanged label already keeps the width). A
+  // button that is never given a `loading` prop can't enter that state, so it
+  // skips the layout callback and the extra render it caused on every mount.
+  const measuresRestingWidth = props.loading !== undefined && !fullWidth;
   const handleButtonLayout = useCallback((event: LayoutChangeEvent) => {
     if (loading || fullWidth) return;
 
@@ -349,8 +378,9 @@ function ButtonRoot(props: ButtonProps) {
       <TextSelectabilityContext.Provider value={false}>
         <TextStyleContext.Provider value={labelTextStyle}>
           <Pressable
+            ref={composedRef}
             accessibilityRole="button"
-            accessibilityState={{ disabled: !!isDisabled, busy: loading }}
+            accessibilityState={{ ...accessibilityState, disabled: !!isDisabled, busy: loading }}
             {...rest}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
@@ -358,7 +388,9 @@ function ButtonRoot(props: ButtonProps) {
             onBlur={hideFocusRing}
             style={{ alignSelf: fullWidth ? "stretch" : (flattenedStyle?.alignSelf as ViewStyle["alignSelf"]) ?? "flex-start" }}
             hitSlop={rest.hitSlop ?? (Platform.OS === "web" ? undefined : getNativeHitSlop(sizeConfig))}
-            disabled={isDisabled}
+            // Never `false`: RN's Pressable would overwrite a consumer
+            // `accessibilityState.disabled` with it.
+            disabled={pressBlocked || undefined}
           >
             {(state) => (
               <Animated.View style={scaleStyle}>
@@ -386,12 +418,13 @@ function ButtonRoot(props: ButtonProps) {
                     state.pressed && pressedStyleOverride,
                     isDisabled && styles.disabled,
                     isDisabled && disabledStyleOverride,
-                    focused && !isDisabled && focusRingStyle,
+                    // An announce-only disabled button is still focusable: show its ring.
+                    focused && !pressBlocked && focusRingStyle,
                     loading && restingWidth !== undefined && !fullWidth && { width: restingWidth },
                     // Spread array styles from Slot to prevent nested arrays on web
                     ...(Array.isArray(styleOverride) ? styleOverride : [styleOverride]),
                   ]}
-                  onLayout={handleButtonLayout}
+                  onLayout={measuresRestingWidth ? handleButtonLayout : undefined}
                 >
                   {loading && (
                     <View style={[styles.loaderOverlay, { pointerEvents: "none" }]}>
@@ -544,16 +577,16 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       userSelect: "none",
     } as TextStyle,
     pressed: {
-      opacity: 0.9,
+      opacity: interaction.pressedOpacity,
     } as ViewStyle,
     pressedMuted: {
       backgroundColor: theme.colors.muted,
     } as ViewStyle,
-    pressedText: {
-      opacity: 0.9,
-    } as TextStyle,
+    // The container's pressed opacity already dims the label; a second layer
+    // here would compound it.
+    pressedText: {} as TextStyle,
     disabled: {
-      opacity: 0.6,
+      opacity: interaction.disabledOpacity,
     } as ViewStyle,
     leftAccessory: {
       marginRight: spacing.sm,
@@ -569,7 +602,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
   });
 };
 
-const themedStyles = createThemedStyles((theme: Theme) => ({
+const themedStyles = /*#__PURE__*/ createThemedStyles((theme: Theme) => ({
   sm: createStyles(theme, "sm"),
   md: createStyles(theme, "md"),
   lg: createStyles(theme, "lg"),

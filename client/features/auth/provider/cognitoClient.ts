@@ -417,6 +417,13 @@ export function createCognitoAuthClient(
       await signOut();
     },
 
+    async deleteAccount(): Promise<void> {
+      await withAuthErrors(async () => {
+        const { deleteUser } = await auth();
+        await deleteUser();
+      });
+    },
+
     onAuthChange(callback) {
       listeners.add(callback);
       return () => {

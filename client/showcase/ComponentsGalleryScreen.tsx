@@ -238,7 +238,7 @@ export default function ComponentsGalleryScreen() {
 type GalleryStyles = ReturnType<typeof createStyles>;
 
 /**
- * One preview card. The preview is rendered inside a `pointerEvents="none"`
+ * One preview card. The preview is rendered inside a `pointerEvents: "none"` (style)
  * wrapper on purpose: several previews are real interactive components (a
  * `Switch`, a `Dialog` trigger), and a tap on the card should open the detail
  * screen rather than half-operate the preview. The detail screen is where the
@@ -277,7 +277,7 @@ function ComponentCard({
         testID={`component-card-${entry.id}`}
         style={linkPressableStyle(styles.card, { flexBasis: basis })}
       >
-        <View style={styles.cardPreview} pointerEvents="none">
+        <View style={styles.cardPreview}>
           {live ? (
             preview ?? <Icon name="box" size={22} color="mutedForeground" decorative />
           ) : (
@@ -293,10 +293,10 @@ function ComponentCard({
           )}
         </View>
         <View style={styles.cardMeta}>
-          <SansSerifText style={styles.cardName} numberOfLines={1}>
+          <SansSerifText size="base" fontWeight="medium" style={styles.cardName} numberOfLines={1}>
             {entry.id}
           </SansSerifText>
-          <SansSerifText style={styles.cardCategory}>
+          <SansSerifText size="xs" style={styles.cardCategory}>
             {COMPONENT_CATEGORY_SHORT_LABELS[entry.category]}
           </SansSerifText>
         </View>
@@ -384,6 +384,9 @@ const createStyles = (theme: Theme) =>
     // `.pv` — the preview well sits on the sunken surface so the card's own
     // components (which use `card`) stay legible against it.
     cardPreview: {
+      // Decorative preview: the card around it takes the tap (style, not the
+      // deprecated `pointerEvents` prop).
+      pointerEvents: "none",
       minHeight: 110,
       alignItems: "center",
       justifyContent: "center",
@@ -410,12 +413,9 @@ const createStyles = (theme: Theme) =>
     },
     cardName: {
       flexShrink: 1,
-      fontSize: 13,
-      fontWeight: "500",
       color: theme.colors.foreground,
     },
     cardCategory: {
-      fontSize: 10,
       textTransform: "uppercase",
       letterSpacing: 0.6,
       color: theme.colors.mutedForeground,

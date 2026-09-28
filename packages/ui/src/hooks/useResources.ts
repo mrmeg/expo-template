@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
 import * as Font from "expo-font";
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from "@expo-google-fonts/inter";
 import { Platform } from "react-native";
 
+import type { SerifPreset } from "../constants/fonts";
+import { interFontMap } from "../lib/interFonts";
 import { useThemeStore } from "../state/themeStore";
 
 interface LoadResourcesResult {
@@ -15,109 +11,148 @@ interface LoadResourcesResult {
   error: Error | null;
 }
 
-// The four static Inter weights StyledText's native family keys point at
-// (see constants/fonts.ts). Native-only: web never renders these family names
-// ("Inter_400Regular" etc.) — fontFamilies.sansSerif resolves every weight to
-// the single "Inter" CSS family on web (loaded via ensureWebFontStylesheet
-// below), so fetching these .ttf assets there would just be ~1.3MB of dead
-// weight with nothing pointing at them.
-const interFontMap = {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-};
+export interface UseResourcesOptions {
+  /**
+   * Which serif to load and switch the `serif` variant to. `"georgia"`
+   * (default) loads nothing: the system face. `"newsreader"` injects the
+   * Google Fonts Newsreader stylesheet on web and, on native, registers the
+   * files passed as `serifFonts`, then sets the theme store's `serifPreset`
+   * so serif text resolves to Newsreader. An app `setFonts` serif override
+   * skips the preset entirely (the override wins anyway).
+   */
+  serif?: SerifPreset;
+  /**
+   * Native font map for the serif preset, from the app's own dependency:
+   * `@expo-google-fonts/newsreader/400Regular` … `700Bold` and
+   * `400Regular_Italic` (the names `newsreaderFamilies.native` expects). The
+   * package does not depend on the font package, so an app that never opts in
+   * ships none of it; on web this is ignored (the stylesheet serves the faces).
+   */
+  serifFonts?: Record<string, number | string> | null;
+}
 
 function loadNativeInterFonts(): Promise<void> {
-  if (Platform.OS === "web") {
+  if (Platform.OS === "web" || !interFontMap) {
     return Promise.resolve();
   }
   return Font.loadAsync(interFontMap);
 }
 
 const INTER_STYLESHEET_ID = "mrmeg-expo-ui-inter";
-const INTER_STYLESHEET_URL = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
+// Four upright weights plus the 400 italic, so `italic` renders a real italic
+// on web at body weight (other weights synthesize).
+const INTER_STYLESHEET_URL =
+  "https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap";
 
-function ensureWebFontStylesheet(): Promise<void> {
+const NEWSREADER_STYLESHEET_ID = "mrmeg-expo-ui-newsreader";
+const NEWSREADER_STYLESHEET_URL =
+  "https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap";
+
+function ensureWebFontStylesheet(id: string, href: string, label: string): Promise<void> {
   if (Platform.OS !== "web" || typeof document === "undefined") {
     return Promise.resolve();
   }
 
-  if (document.getElementById(INTER_STYLESHEET_ID)) {
+  if (document.getElementById(id)) {
     return Promise.resolve();
   }
 
   return new Promise((resolve, reject) => {
     const link = document.createElement("link");
-    link.id = INTER_STYLESHEET_ID;
+    link.id = id;
     link.rel = "stylesheet";
-    link.href = INTER_STYLESHEET_URL;
+    link.href = href;
     link.onload = () => resolve();
-    link.onerror = () => reject(new Error("Inter stylesheet failed to load"));
+    link.onerror = () => reject(new Error(`${label} stylesheet failed to load`));
     document.head.appendChild(link);
   });
 }
 
+let warnedMissingSerifFonts = false;
+
 /**
- * Loads essential app resources on startup.
- *
- * Native platforms load four static Inter weights (via
- * @expo-google-fonts/inter) so StyledText's weight range resolves to real
- * font files. Web loads Inter from Google Fonts as a single CSS family;
- * weight differentiation there comes from a numeric fontWeight instead.
- *
- * Icons need nothing here: `Icon` renders `lucide-react-native` SVGs, which
- * have no font face to register on any platform, so server-rendered HTML
- * carries the glyph markup and hydrates without a font round trip.
- *
- * A host app that overrides the sans-serif families via `setFonts` owns
- * loading its own faces (typically through `expo-font`), so the Inter fetch
- * is skipped entirely — nothing would reference those files. For the skip to
- * apply, call `setFonts` before this hook mounts (module scope or ahead of
- * rendering the root); a later call still re-skins text, it just doesn't
- * un-download Inter.
+ * The Newsreader preset: the stylesheet on web (the preset switches at once;
+ * the stack falls back to Georgia until the faces arrive), the app-supplied
+ * files on native (the preset switches after they register, since a native
+ * font name that is not loaded is an error, not a fallback).
  */
-export const useResources = (): LoadResourcesResult => {
+async function loadSerifPreset(options: UseResourcesOptions): Promise<void> {
+  if (options.serif !== "newsreader") return;
+  if (useThemeStore.getState().fontOverrides.families?.serif) return;
+
+  if (Platform.OS === "web") {
+    useThemeStore.getState().setSerifPreset("newsreader");
+    await ensureWebFontStylesheet(NEWSREADER_STYLESHEET_ID, NEWSREADER_STYLESHEET_URL, "Newsreader");
+    return;
+  }
+
+  if (!options.serifFonts) {
+    if (!warnedMissingSerifFonts) {
+      warnedMissingSerifFonts = true;
+      console.warn(
+        "useResources({ serif: \"newsreader\" }) needs `serifFonts` on native: pass the map of " +
+          "@expo-google-fonts/newsreader faces (400Regular, 500Medium, 600SemiBold, 700Bold, " +
+          "400Regular_Italic). Keeping Georgia.",
+      );
+    }
+    return;
+  }
+
+  await Font.loadAsync(options.serifFonts);
+  useThemeStore.getState().setSerifPreset("newsreader");
+}
+
+export const useResources = (options: UseResourcesOptions = {}): LoadResourcesResult => {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const { serif, serifFonts } = options;
 
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-    // Read once at mount, not subscribed: font loading is a one-shot startup
-    // effect and cannot be undone by a later override.
-    const sansSerifOverridden =
-      !!useThemeStore.getState().fontOverrides.families?.sansSerif;
-
-    async function loadResourcesAndDataAsync() {
-      try {
-        const fontPromise = Promise.all([
-          sansSerifOverridden ? Promise.resolve() : loadNativeInterFonts(),
-          sansSerifOverridden ? Promise.resolve() : ensureWebFontStylesheet(),
-        ]);
-
-        // Timeout after 5 seconds — proceed with system fallback fonts
-        const timeoutPromise = new Promise<void>((_, reject) => {
-          timeoutId = setTimeout(
-            () => reject(new Error("Font loading timed out after 5s")),
-            5000
-          );
-        });
-
-        await Promise.race([fontPromise, timeoutPromise]);
-      } catch (e: unknown) {
-        const error = e instanceof Error ? e : new Error(String(e));
-        console.warn("Font loading issue (proceeding with fallback):", error.message);
-        setError(error);
-      } finally {
-        clearTimeout(timeoutId);
-        setLoaded(true);
-      }
-    }
-    loadResourcesAndDataAsync();
-
-    return () => clearTimeout(timeoutId);
-  }, []);
+  useEffect(
+    () => startResourceLoad({ serif, serifFonts }, setError, () => setLoaded(true)),
+    [serif, serifFonts],
+  );
 
   return { loaded, error };
 };
+
+function startResourceLoad(
+  options: UseResourcesOptions,
+  onError: (error: Error) => void,
+  onLoaded: () => void,
+): () => void {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const sansSerifOverridden =
+    !!useThemeStore.getState().fontOverrides.families?.sansSerif;
+
+  async function loadResourcesAndDataAsync() {
+    try {
+      const fontPromise = Promise.all([
+        sansSerifOverridden ? Promise.resolve() : loadNativeInterFonts(),
+        sansSerifOverridden
+          ? Promise.resolve()
+          : ensureWebFontStylesheet(INTER_STYLESHEET_ID, INTER_STYLESHEET_URL, "Inter"),
+        loadSerifPreset(options),
+      ]);
+
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error("Font loading timed out after 5s")),
+          5000
+        );
+      });
+
+      await Promise.race([fontPromise, timeoutPromise]);
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      console.warn("Font loading issue (proceeding with fallback):", error.message);
+      onError(error);
+    } finally {
+      clearTimeout(timeoutId);
+      onLoaded();
+    }
+  }
+  loadResourcesAndDataAsync();
+
+  return () => clearTimeout(timeoutId);
+}

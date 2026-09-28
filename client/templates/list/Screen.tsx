@@ -8,7 +8,8 @@ import {
   ViewStyle,
 } from "react-native";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
-import { useTheme } from "@mrmeg/expo-ui/hooks";
+import { useTheme, useWindowInsets } from "@mrmeg/expo-ui/hooks";
+import { Screen, type ScreenEdges } from "@mrmeg/expo-ui/components/Screen";
 import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
@@ -43,6 +44,8 @@ export interface ListScreenProps<T> {
   loading?: boolean;
   skeletonCount?: number;
   header?: ReactNode;
+  /** Safe-area edges this screen owns (see `Screen`); default bottom only (under a Stack header). */
+  edges?: ScreenEdges;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -66,6 +69,7 @@ export function ListScreen<T>({
   loading = false,
   skeletonCount = 5,
   header,
+  edges = ["bottom"],
   style: styleOverride,
 }: ListScreenProps<T>) {
   const { theme } = useTheme();
@@ -127,10 +131,17 @@ export function ListScreen<T>({
     [onRefresh, refreshing, theme.colors.primary]
   );
 
+  // The FlatList owns the scroll, so the bottom inset goes on its content (the
+  // last row scrolls up out from under the home indicator); Screen takes the
+  // other edges and paints the background.
+  const insets = useWindowInsets();
+  const bottomInset = edges.includes("bottom") ? insets.bottom : 0;
+  const screenEdges = edges.filter((edge) => edge !== "bottom");
+
   // Loading state
   if (loading) {
     return (
-      <View style={[styles.container, styleOverride]}>
+      <Screen edges={edges} padded={false} style={styleOverride} testID="list-screen">
         {header}
         {searchable && (
           <View style={styles.searchContainer}>
@@ -153,7 +164,7 @@ export function ListScreen<T>({
             </View>
           ))}
         </View>
-      </View>
+      </Screen>
     );
   }
 
@@ -171,18 +182,22 @@ export function ListScreen<T>({
   );
 
   return (
-    <View style={[styles.container, styleOverride]}>
+    <Screen edges={screenEdges} padded={false} style={styleOverride} testID="list-screen">
       <FlatList
         data={data}
         keyExtractor={keyExtractor}
         renderItem={renderRow}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={data.length === 0 ? styles.emptyFlatList : styles.listContent}
+        contentContainerStyle={[
+          data.length === 0 ? styles.emptyFlatList : styles.listContent,
+          { paddingBottom: (data.length === 0 ? 0 : spacing.xxl) + bottomInset },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
+        testID="list-screen-list"
       />
-    </View>
+    </Screen>
   );
 }
 
@@ -192,18 +207,12 @@ export function ListScreen<T>({
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
     searchContainer: {
       paddingHorizontal: spacing.screenPadding,
       paddingTop: spacing.md,
       paddingBottom: spacing.sm,
     },
-    listContent: {
-      paddingBottom: spacing.xxl,
-    },
+    listContent: {},
     emptyFlatList: {
       flexGrow: 1,
     },

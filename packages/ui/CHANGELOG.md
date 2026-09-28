@@ -5,6 +5,575 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.28.0]
+
+### Added
+
+- **`Hydrated`** (`@mrmeg/expo-ui/components`): renders `fallback` on the
+  server and through the hydration pass, then its children — the gate for
+  markup the server cannot reproduce. Under Expo Router's SSR the server renders
+  inside `+html.tsx` while the client hydrates `#root`, so every `useId()`
+  differs; the kit defers its own ids, but a Radix-backed component (`Tabs`,
+  `Accordion`, `Collapsible`, `Select`, `DropdownMenu`, `Popover`) inside a
+  server-rendered route logs "A tree hydrated but some attributes … didn't
+  match". Wrap that subtree with a layout-holding fallback and keep the rest of
+  the page's server HTML. Built on `useHydrated()`; a no-op gate on native.
+- **`useNotificationOffset()`** (`@mrmeg/expo-ui/hooks`) and
+  **`selectNotificationOffset`** / `setNotificationOffset` /
+  `clearNotificationOffset` on `globalUIStore`: a layout that owns a bar tells
+  global toasts where it ends. `Notification` sits `spacing.sm` past the largest
+  of the safe-area inset, the registered offsets and its 12 pt floor, so a
+  `notify(..., { position: "bottom" })` toast clears the tab bar instead of
+  covering its labels. An offset is measured from the window edge and includes
+  the inset there, so a JS tab layout passes `useBottomTabBarHeight()` as-is
+  (`useNotificationOffset({ bottom: useBottomTabBarHeight() })` in a child of
+  `<Tabs>`); a `NativeTabs` layout passes the platform bar height plus
+  `useWindowInsets().bottom` (the template: `client/features/navigation/tabBarMetrics.ts`).
+  Pass `null` while the bar is hidden. Several layouts may register; the
+  largest value per edge wins; nothing registered keeps today's positions.
+- **`InitialSchemeProvider` / `useInitialScheme()`** (`@mrmeg/expo-ui/state`)
+  and **`<UIProvider initialScheme>`**: a first-render scheme hint. `useTheme()`
+  renders the hinted `"light"` / `"dark"` until the store's `hasLoadedTheme`
+  is true, then the persisted preference and OS scheme as before. For web SSR:
+  an app that knows the visitor's scheme on both sides (the template mirrors
+  it into a `color-scheme` cookie the server reads from the request and the
+  browser from `document.cookie`) paints dark HTML for dark visitors and
+  hydrates without a flash or a scheme-dependent mismatch. Mount it above the
+  first `useTheme()` caller — the root layout usually reads the theme for the
+  navigation `ThemeProvider`, so wrap the layout, not only `UIProvider`. Native
+  never hydrates and ignores it; without a hint nothing changes.
+- **`Screen`, the page container.** `<Screen edges={["bottom"]} scroll padded>`
+  pads the safe-area insets of the edges it owns (`edges` is required, so a
+  screen never double-pads under a navigator header or above a tab bar), adds
+  the one 16 pt horizontal inset (`padded={false}` for full-bleed `ItemGroup`
+  rows), paints the theme background, and either renders a `View` or, with
+  `scroll`, a `ScrollView` whose content container carries the insets so
+  content scrolls under the Dynamic Island and home indicator. Its
+  `contentContainerStyle` padding is added to the insets, never replaced.
+  `ScreenEdge` / `ScreenEdges` types are exported.
+- **`useWindowInsets()`** (`@mrmeg/expo-ui/hooks`): the safe-area insets from
+  the `SafeAreaProvider` context with an `initialWindowMetrics` fallback per
+  edge, so content the system presents outside the provider (an iOS `Modal`, a
+  native bottom sheet, a `UIProvider` mounted above the provider) still clears
+  the island and home indicator. `BottomSheet`, `Notification` and `Dialog`
+  read it.
+- **Rows name their controls: `useItemLabel()` / `useItemControlLabel(props)`**
+  (from `components/Item` and the barrels). An `Item` exposes `{ title,
+  titleId }` to the row: a plain-text `ItemTitle` inside `ItemContent` becomes
+  the `accessibilityLabel` (`aria-label` on web) of a `Switch`, `Checkbox` (no
+  `label`) or `Toggle` that has no label of its own, so a settings row's switch
+  is announced as "Public profile, switch, on" instead of "switch, on" — in the
+  server HTML too. A composed title (elements inside `ItemTitle`) has no text to
+  copy, so the title renders a `nativeID` and the control links to it
+  (`aria-labelledby` / `accessibilityLabelledBy`) — on web only after hydration
+  (`useHydrated`, below), because `useId()` values do not survive Expo Router's
+  streamed hydration. Explicit `accessibilityLabel` / `aria-label` /
+  `aria-labelledby` props always win. Apps composing their own controls can
+  spread `useItemControlLabel(props)` the same way.
+- **`useHydrated()`** (`@mrmeg/expo-ui/hooks`): `false` during SSR and the
+  hydration pass, `true` once the client tree is live (always `true` on
+  native). For DOM output the server cannot reproduce, such as `useId()`-based
+  `id`/`aria-labelledby` pairs.
+- **`ToggleGroup` web roles.** A `type="single"` group renders
+  `role="radiogroup"` with `role="radio"` items (`aria-checked` is valid there);
+  a `type="multiple"` group stays a `group` of `aria-pressed` buttons. Native
+  already used these roles through the primitive.
+- **`spacing.minTarget` (24)** — the smallest pointer target the kit draws on
+  web (WCAG 2.5.8); `touchTarget` (44) stays the native minimum.
+- **`Toggle` warns once in development** when an `iconOnly` toggle has no
+  accessible name (`accessibilityLabel`, `aria-label(ledby)`, or a row title).
+
+- **`italic` on `StyledText`** and `useFontStyle(weight, variant, { italic })`.
+  `resolveFontStyle` takes `{ italic, serifPreset }`: an italic face wins and
+  emits no `fontStyle` — the app's `setFonts` `italic` map (new, per family
+  group: `italic: { regular, bold, … }`, missing weights fall back to the italic
+  `regular`), or the serif preset's italic file — otherwise `fontStyle:
+  "italic"` and the platform synthesizes. Native Inter stays four upright files;
+  the web Inter stylesheet now includes the 400 italic
+  (`Inter:ital,wght@0,400;0,500;0,600;0,700;1,400`).
+- **Newsreader serif preset.** `useResources({ serif: "newsreader", serifFonts })`
+  loads a real serif — `Newsreader_400Regular`, `500Medium`, `600SemiBold`,
+  `700Bold` and `400Regular_Italic` on native from the map the app passes
+  (its own `@expo-google-fonts/newsreader` dependency; the package adds none),
+  one Google Fonts stylesheet on web (`id="mrmeg-expo-ui-newsreader"`) — and
+  sets the new theme-store field `serifPreset` (`"georgia"` | `"newsreader"`,
+  `setSerifPreset`) that `resolveFontStyle` consults for the serif variant.
+  Georgia stays the default; a `setFonts` serif override wins over the preset.
+  `newsreaderFamilies` and `SerifPreset` are exported from `constants`.
+
+- **`setShape` slots for inputs, cards, sheets, badges and dialogs.**
+  `ShapeOverrides` gains `input`, `card`, `sheet`, `badge` and `dialog`, each
+  `{ borderRadius?: number }` (Button keeps `withShadow`). `input` reaches
+  TextInput (not `underlined`), the Select trigger and InputOTP cells; `card`
+  reaches Card (surface and pressable ring), StatCard, `bordered` EmptyState
+  and SkeletonCard; `sheet` the BottomSheet's top corners where the platform
+  draws them (web, Android); `badge` Badge; `dialog` Dialog and AlertDialog
+  content. Layered after the static radius and before the caller's `style`, so
+  precedence stays caller → app → package. `useShape(slot)` and
+  `shapeRadius(override)` in `@mrmeg/expo-ui/hooks` are how a component reads
+  its slot.
+- **`ThemeColorExtensions`** in `@mrmeg/expo-ui/constants`: an empty interface
+  `ThemeColors` extends, for apps to augment with their own tokens
+  (`declare module "@mrmeg/expo-ui/constants" { interface ThemeColorExtensions
+  { brandGold: string } }`). The keys type through `setColors`,
+  `ThemeColorScope` and `useTheme().theme.colors`, and
+  `getThemeCssVariables(overrides)` emits `--c-<kebab>` (and `-rgb`) for any
+  extension key the overrides name. Values are literals per scheme; the
+  package ships none.
+
+- **`ItemGroup`, a flat grouped list** (from `components/Item` and the
+  barrels). `<ItemGroup title? description? footer? style? testID?>` stacks
+  `Item` rows edge to edge and draws an inset hairline under every row but the
+  last. The title is an uppercase muted eyebrow announced as a header (an h2 on
+  web), the description and footer are caption text, and the group paints no
+  border, radius, shadow, or fill and adds no horizontal padding: the rows and
+  the header carry the 16 pt screen inset (`spacing.rowPaddingX`) themselves.
+  It replaces the bordered, shadowed box apps wrapped around settings rows,
+  which put row content 33 pt from each edge of a 390 pt phone (16 screen + 1
+  border + 16 row, 324 pt wide); in a group it sits 16 pt in (358 pt wide).
+  Pass rows as direct children (a mapped array works; a Fragment is one row).
+
+- **`PopoverContent` `scrollable` and a typed `PopoverTrigger` ref.**
+  `scrollable` (default `true`) wraps the children in the scroll body that
+  keeps a tall popover inside its room; pass `false` for content that brings
+  its own `FlatList` (the cap still applies; the popover then stays on `side`).
+  `PopoverTrigger` now types its `ref` and the new `PopoverTriggerRef` type
+  names what it holds (`open()` / `close()`), so apps drop their cast.
+
+- **One haptics setting for the kit: `<UIProvider haptics>` / `setHaptics()`.**
+  `"off"`, `"selection"` (default) or `"all"`, stored in the new
+  `useFeedbackStore` (`@mrmeg/expo-ui/state`) and read at event time.
+  `"selection"` matches what shipped: Switch, Checkbox and SegmentedControl tap
+  on a state change; Toggle and ToggleGroup now join them (see Changed). `"all"`
+  adds a light tap on press-in for Button, pressable Card and Item and every
+  `useScalePress` consumer. Web never vibrates. `lib/haptics` gains
+  `hapticSelection()` and `hapticPress()`, the gated forms controls use;
+  `hapticLight/Medium/Success` stay unconditional. `Button` gains `haptic`
+  (`true` always, `false` never, omitted follows the setting) and
+  `useScalePress`'s `haptic` option accepts `"setting"` (its new default) next
+  to `true`/`false`.
+- **`interaction` tokens** in `@mrmeg/expo-ui/constants`: `pressedOpacity` 0.85,
+  `disabledOpacity` 0.5, `pressedScale` 0.97, `controlPressedScale` 0.92 — the
+  values every pressable now shares, for app code that builds its own.
+- **`Icon` `accessibilityLabel`** for an icon that stands alone: `aria-label`
+  on web, `accessibilityLabel` on native.
+- **`useFocusVisible()`** (`@mrmeg/expo-ui/hooks`): the `:focus-visible` gate
+  every kit control used to copy, as one hook — `{ focused, onFocus, onBlur }`
+  to spread onto a `Pressable`, with `getFocusRingStyle()` layered while
+  `focused`. Button, Checkbox, RadioGroup, Select, Switch, Tabs, Toggle and
+  ToggleGroup use it (no behavior change), and pressable `Card`, `Item`,
+  `AccordionTrigger` and `CollapsibleTrigger` gain a keyboard focus ring on web
+  through it (see Changed).
+
+- **`BottomSheet` `onDismissed`: fires once per close after the sheet has fully
+  dismissed on iOS, Android and web.** Closing a sheet and presenting a `Dialog`
+  (an RN `Modal` on iOS since 0.27.1) from the same handler failed on iOS: the
+  `UISheetPresentationController` was still dismissing when the `Modal` asked the
+  same presenter to present, UIKit rejected it ("already presenting") and RN does
+  not retry, so fieldnest #42 opened its Start Trip dialog on a 500 ms timer.
+  `onOpenChange(false)` fires when the close is requested, not when the sheet is
+  gone; `onDismissed` fires when it is. iOS: `@expo/ui` raises its close callback
+  from the native `onDismiss` event of SwiftUI `.sheet(isPresented:onDismiss:)`,
+  which runs after the dismissal transition, and the package forwards it.
+  Android: `@expo/ui` raises that callback after Material's hide animation for a
+  swipe / back / scrim dismissal, and with the removal of the Compose sheet for a
+  prop-driven close, which has no exit animation; forwarded the same way. Web:
+  `@expo/ui` raises it before its exit animation, so the package instead waits
+  for the `close` event of the HTML `<dialog>` that hosts the sheet, which
+  `@expo/ui` closes when the animation ends (at once under reduced motion). Fires
+  once per close (re-armed on reopen) and always after `onOpenChange(false)` for
+  a user dismissal. Present the next modal from `onDismissed`; drop timers.
+
+### Changed
+
+- **An `Icon` with no `accessibilityLabel` is hidden from assistive tech**, on
+  web (`aria-hidden`) and native (`accessible={false}`), exactly like
+  `decorative`. It used to render as an unnamed `role="img"` — about 77 per
+  gallery page, one per glyph beside its own text, each a WCAG 1.1.1 failure.
+  A standalone icon still needs `accessibilityLabel`, which keeps `role="img"`
+  + `aria-label` / `accessible` + `accessibilityLabel`; `decorative` now only
+  matters to silence a labelled icon. Consumers that relied on an unlabeled
+  icon being focusable by a screen reader must add the label.
+- **`Checkbox` and `RadioGroup.Item` are one control each.** With a `label`,
+  the wrapper that extends the tap area to the text is no longer a second
+  checkbox/radio (`accessible={false}`, no role): the primitive control is the
+  only one announced and it carries the label text as its `accessibilityLabel`
+  (`aria-label` on web). On web
+  the control's hit box grows to `spacing.minTarget` (24) around the 16/20 px
+  drawn box — `hitSlop` is inert on react-native-web — and takes the extra back
+  in negative margins, so rows keep their layout; the drawn box, border, focus
+  ring and any caller `style` now sit on a child `View` inside the control.
+
+- **`design-system.json` is `schemaVersion` 2.** The lint manifest the build
+  writes to `dist/` gains `tokens.typography` (`StyledText`'s sizes with their
+  line heights) and `fonts.families` (`constants/fonts.ts`'s families per
+  variant and weight) for `@mrmeg/eslint-plugin-expo-ui`'s `no-raw-typography`.
+  Nothing else in the package changes.
+
+- **`Item`'s separator starts under the title.** The hairline now insets past
+  the row's `ItemMedia` at its real `size` (it assumed a 40 pt slot, so a
+  36 pt tile's line started 4 pt past the title) and to the row padding when
+  the row has no media (it started 68 pt in, under nothing). Rows with the
+  default 40 pt `ItemMedia` are unchanged. `separator` no longer defaults to
+  `false`: inside an `ItemGroup` the group sets it for every row but the last,
+  and an explicit `true` or `false` still wins.
+- **Docs teach flat screens; `Card` is for collection items and single
+  tappable objects.** `README.md` gains a Screen layout section, and
+  `LLM_USAGE.md` a Screen Layout section whose rules are one 16 pt horizontal
+  inset per screen, no bordered/shadowed/tinted panels as layout, lists and
+  settings as `ItemGroup` + `Item`, forms spanning the column, media sized to
+  the width, and a capped column on wide screens. The first `LLM_USAGE.md`
+  Minimal Example is now a flat settings screen, and `llms-full.md` and
+  `llms.txt` carry the same rules. `Card` and `StatCard` behave exactly as
+  before.
+- **Skeleton reads on a white card.** The fill moves from `muted` (a 1.05:1
+  step on white; invisible in light, faint in dark) to `borderStrong`, the
+  pulse bottoms out at 0.55 instead of 0.3, and under reduce motion it holds a
+  static 0.8. `SkeletonText`, `SkeletonAvatar` and `SkeletonCard` inherit.
+- **SegmentedControl on web is the kit's own control.** `@expo/ui`'s vendored
+  web control paints every label white once a `tintColor` is passed, so the
+  unselected labels vanished on the light track and the disabled state was
+  unreadable. Web now draws a `muted` track, an accent pill (sliding, still
+  under reduce motion), `accentForeground` / `mutedForeground` labels, the
+  shared disabled opacity and the kit focus ring per segment. `appearance` is
+  ignored on web (the theme decides); iOS and Android are unchanged.
+- **Slider's unfilled track follows the theme on web.** The `<input
+  type="range">` only took `accent-color`, and Chromium then paints the
+  unfilled track dark in light mode. The kit now styles the input itself
+  (`appearance: none`, track/fill/thumb from CSS variables, one hoisted
+  `<style href="expo-ui-slider">`, scoped to `[data-expo-ui-slider]`). Light
+  inactive track is `border` on every platform (was `muted`); dark unchanged.
+- **Keyboard focus rings on pressable `Card`, `Item`, `AccordionTrigger` and
+  `CollapsibleTrigger` (web).** They had none; they now show the same
+  `getFocusRingStyle()` ring as Button on `:focus-visible`, with the browser
+  outline off. Pressable Card and Item also carry their radius on the pressable
+  wrapper so the ring follows the corners.
+- **Icon on web emits ARIA only.** The RN-only props (`accessible`,
+  `importantForAccessibility`, `accessibilityElementsHidden`) reached the SVG
+  DOM element and React warned on every page ("Received `true` for a
+  non-boolean attribute `accessible`", "React does not recognize the
+  `importantForAccessibility` prop"); web now gets `aria-hidden` (decorative)
+  or `role="img"` (+ `aria-label`). Native is unchanged.
+- **Radii on scale.** The BottomSheet close button and the DropdownMenu radio
+  indicator use `spacing.radiusFull` for their circles (they were `spacing.xl
+  / 2` and a literal `4`; same render). `setShape`'s docs and the README said
+  the default button radius is 12; it is 10 (`spacing.radiusMd`) and the docs
+  now say so.
+- **Pressed and disabled states are consistent across the kit.** Button's
+  pressed opacity goes 0.9 → 0.85 and its label no longer dims a second time
+  on top of the container; pressable Card and Item dim to the same 0.85 while
+  pressed (they only scaled before). Disabled opacity is 0.5 everywhere it was
+  0.6 (Button, TextInput, Label) and stays 0.5 where it already was (Select,
+  RadioGroup, Checkbox, DropdownMenu items, Toggle). Under reduce motion,
+  `useScalePress` keeps the scale at 1 instead of jumping to the pressed scale.
+- **Toggle and ToggleGroup tap on a state change** (selection haptic), like
+  Switch and Checkbox. `useScalePress` consumers that never passed `haptic`
+  (the BottomSheet close button) now follow the setting and are silent by
+  default instead of tapping on every press; pass `haptic: true` to keep the
+  old behavior, or set `haptics="all"`.
+- **Native bundles ship four Inter files instead of 18, and web bundles ship
+  none.** `useResources` imported the `@expo-google-fonts/inter` root entry,
+  which `require`s every weight and italic, and a bundler ships every file a
+  bundle requires, so each app carried 14 faces nothing referenced (4,844,592
+  bytes) on native and all 18 (6,217,596 bytes) as web export assets. Native
+  now imports `Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`, and
+  `Inter_700Bold` from their per-weight subpaths (1,373,004 bytes), and web
+  imports no TTF: it keeps loading Inter as one CSS family from Google Fonts.
+  `useResources` keeps its export and `{ loaded, error }` result, and the
+  registered family names are unchanged. An app that rendered another Inter
+  weight or an italic by family name (`Inter_300Light`, `Inter_400Regular_Italic`)
+  was relying on a file the package never loaded; it must load that face
+  itself, as before.
+- **`package.json` declares `sideEffects`, so barrel imports tree-shake.**
+  Without the field a bundler has to assume every module does work when
+  imported, and keeps it. The field lists the one module that does,
+  `state/themeStore` (its native branch loads the saved theme and starts the
+  OS color-scheme listener at module load), as `./src/state/themeStore.ts` and
+  `./dist/state/themeStore.js`; everything else is side-effect free, and
+  module-scope `StyleSheet.create` / `createThemedStyles` calls are marked
+  `/*#__PURE__*/`. A package test fails if a module gains an import-time
+  statement the field does not list. Measured with esbuild (web, peers
+  external), `import { Button } from "@mrmeg/expo-ui"` went from 199 modules
+  (71 of this package's) and 281,990 bytes minified to 20 modules (19) and
+  30,076 bytes, about what the `components/Button` deep import costs. Metro
+  bundles everything reachable unless Expo's tree shaking is on
+  (`EXPO_UNSTABLE_TREE_SHAKING=1`), which was already dropping unused
+  re-exports and still does. Nothing to change in apps.
+- **`Button` measures itself only when it can show a spinner.** Every button
+  attached an `onLayout` to record its resting width, which cost a layout
+  callback (a `ResizeObserver` on web) and a second render on every mount,
+  but the width is only read while `loading` is true, to keep the button's
+  size when its label changes under the spinner. A button that never
+  receives a `loading` prop no longer measures; one that does (including
+  `loading={false}`) and isn't `fullWidth` measures as before, so the loading
+  state still keeps the resting width. Nothing to change in apps; a button
+  whose `loading` toggles between `undefined` and `true` should pass a
+  boolean to keep the width lock.
+- **Web: a theme switch no longer churns every `useTheme()` consumer.** The
+  two schemes' `colors` hold the same `var(--c-*)` references but were
+  separate objects; they are now one shared object on web
+  (`colors.light.colors === colors.dark.colors`), so `theme.colors` keeps its
+  identity across a switch. `colors.light` and `colors.dark` stay distinct
+  (`dark`, `navigation`, and `fonts` differ). `useTheme()` reads the theme
+  store through one subscription (`useShallow`) instead of four, and the
+  `<html data-theme>` / `color-scheme` write that ran as an effect in every
+  consumer on every switch is one app-wide store subscription, started by the
+  first consumer to mount and writing only when the resolved scheme changes.
+  `useTheme()`'s return shape and values are unchanged. Consumer note: code
+  that mutated `colors.light.colors` or `colors.dark.colors` on web now
+  changes both schemes; brand through `setColors` instead.
+- **Web `useDimensions()` shares one window store.** Every consumer added its
+  own `resize` listener, set state on every resize event (a new object even
+  when nothing changed, so every consumer re-rendered), and wrote the
+  `mrmeg-vw` SSR cookie on mount and on every resize event. One listener now
+  serves all consumers while any is mounted, consumers re-render only when the
+  width or height changes, and the cookie is written once per page view and
+  then 250 ms after resizing settles (a pending write is flushed when the last
+  consumer unmounts). The returned fields and values are unchanged, and the
+  server render and hydration pass still seed from `SsrViewportContext` (or
+  the 1280 × 800 default); the real viewport now arrives in a synchronous
+  re-render right after hydration instead of a passive effect. One visible
+  difference, a fix: a component that mounts after hydration now reads the
+  current viewport on its first render instead of rendering one frame at the
+  seed width. Native still follows `useWindowDimensions`.
+- `exports` entries list a repo-only `@mrmeg/source` condition first, pointing
+  at `src`, and gain exact keys for the nine modules the `components/*`,
+  `hooks/*`, and `state/*` patterns cannot map to a source file (a `.ts` module
+  under a `*.tsx` pattern, and the reverse). Without the condition — every
+  consumer toolchain — each key resolves to the same `dist` files as before.
+
+### Fixed
+
+- **iOS `BottomSheet` no longer clips its last row at a snap point.** Two
+  causes, both fixed. The content inside the sheet padded the bottom safe-area
+  inset a second time: SwiftUI already lays the hosted column out inside the
+  sheet's safe area (34 pt above the home indicator on an iPhone), and inside a
+  tab screen the provider context even reported the tab bar (83 pt), so
+  `BottomSheet.Footer` sat up to 99 pt above the sheet's edge and the `Body`
+  above it was squeezed until its last row was cut. `Body` and `Footer` now pad
+  only their own spacing on iOS (Android's Material host still receives the
+  inset from the kit). And the column's iOS height cap was `fraction × window
+  height`, while `@expo/ui` maps `"50%"` to SwiftUI's `.fraction(0.5)` of the
+  sheet's *maximum* height (the window minus the top safe-area inset minus
+  UIKit's 10 pt gap) and pads the hosted column 16 pt under the native
+  grabber; the cap now follows the real detent (fraction or clamped fixed
+  height of the available height, less the grabber padding unless
+  `BottomSheet.Handle` replaces the native indicator), so a host that does not
+  clamp the column no longer overshoots the sheet by about 52 pt at 50 %.
+  Verified on an iPhone 17 Pro simulator (iOS 26): a 60 % sheet with header,
+  four rows and a footer shows every row and its footer 16 pt above the safe
+  area. Web is unchanged.
+- **`Button` honours `aria-disabled` and `accessibilityState.disabled`.** A
+  button with either (and no `disabled`) is announced as disabled, drawn with
+  the disabled look (opacity, no shadow, no press scale or haptic), yet stays
+  focusable and fires `onPress`, so the app can explain why the action is
+  unavailable — ARIA's contract. Before, the kit's own `disabled={false}`
+  overwrote the consumer's state on every platform (screen readers heard an
+  enabled button) and apps faked the look with their own opacity. On web the
+  attribute is set on the host `<button>` after mount, because react-native-web
+  both overwrites `aria-disabled` from its `disabled` prop and turns a
+  prop-driven `aria-disabled` into the native `disabled` attribute (no clicks,
+  no focus); on a server-rendered page it appears at hydration. `disabled` and
+  `loading` block presses exactly as before, and a consumer `accessibilityState`
+  is merged (it no longer drops `busy`). `composeRefs` is exported from
+  `@mrmeg/expo-ui/lib`.
+- **Toasts clear the Dynamic Island and home indicator.** `Notification` read
+  only the provider context and fell back to a fixed 20 pt when it was `null`
+  (a `UIProvider` above the app's `SafeAreaProvider`, a toast host in a
+  modal), putting top toasts under the island and bottom toasts over the home
+  indicator; with an inset it sat flush against it. It now uses
+  `useWindowInsets()` and sits `spacing.sm` (8) past the inset — 20 pt from the
+  edge when there is none, as before.
+- **Dialogs stay inside the safe area.** `Dialog` / `AlertDialog` centered
+  their card in the full window, so the 85 % max height was 85 % of the screen;
+  the centered container now pads the window insets on native.
+- **A quiet web console, and a clean first server render.** Every kit
+  animation passed `useNativeDriver: true`, which RN's Animated on web answers
+  with "`useNativeDriver` is not supported…" per animation; they now use
+  `shouldUseNativeDriver` (`@mrmeg/expo-ui/lib`, already `Platform.OS !==
+  "web"`). Overlay layers in `Popover`, `Tooltip`, `Select`, `DropdownMenu` and
+  the `SegmentedControl` pill passed the deprecated `pointerEvents` *prop*;
+  react-native-web logs "props.pointerEvents is deprecated" for it and lazily
+  `require`s its warning module inside `createDOMProps` — on the dev server's
+  first SSR render of a deep route (the template's `/` and `/showcase`) that
+  module load overflowed the stack and the page fell back to client rendering.
+  They now set `style.pointerEvents`. `AnimatedView` still accepts the
+  `pointerEvents` prop but folds it into `style`; a source-contract test
+  (`src/__tests__/webConsoleContracts.test.ts`) keeps both out of the kit.
+- **`ToggleGroup` items no longer put `aria-checked` on a `button`** on web:
+  the rn-primitives web item hard-codes `role='button'` before spreading
+  props, so Radix's radio role was lost while its `aria-checked` survived. The
+  kit now passes the role explicitly (see Added).
+- **`TextInput`'s password eye icon is decorative** on every platform — the
+  Show/Hide password button already carries the name — instead of an unnamed
+  image inside a button. The eye and clear buttons are also at least
+  `spacing.minTarget` (24 px) square instead of their 20 px glyph.
+- **`Tabs` triggers were 16 px tall on web.** The trigger declared `height` but
+  also `flex: 1` inside its column-direction wrapper, whose 0% basis in a parent
+  of indefinite height collapsed it to the text; every `underline` tab list was
+  a 16 px target. The trigger now stretches across the wrapper instead.
+
+- **`PopoverContent` keeps its surface under a caller `style`, opens where there
+  is room, and scrolls when tall.** Four defects mindmap patched around in its
+  graph control panels and search results:
+  - A `style` replaced the whole surface (the props spread came after the
+    package style), so `style={{ padding: 16 }}` left a see-through card. The
+    caller's style now merges over the background, border, radius and shadow.
+  - On native the primitive never flips `side`; it clamps an oversized card to
+    the raw screen edge (no insets), so a popover opening up from a trigger
+    near the top sat under the status bar and one opening down from a trigger
+    near the bottom covered its own trigger. `side` is now a preference: the
+    card opens on the other side when its content does not fit and there is
+    more room there, is capped to the room between the trigger and the safe
+    area, and scrolls inside the cap. `insets` default to the safe area.
+  - A ScrollView inside the card never dragged on iOS: the primitive's content
+    claims the JS responder so presses do not reach the close-on-press
+    `Overlay` that wrapped it, and RN iOS will not drag a ScrollView while an
+    ancestor is the JS responder (`RCTScrollViewComponentView`
+    `_shouldDisableScrollInteraction`). On native the `Overlay` now sits behind
+    the card instead of around it and the card claims nothing, so any
+    ScrollView inside scrolls; presses on blank space in the card still do not
+    close it. The native-driven fade wrapper is non-collapsable, since without
+    it the wrapper sometimes stayed at opacity 0 on iOS once the card relaid
+    out.
+  - On web the primitive's content has no size cap, so a wrapping row (two
+    columns of `width: "50%"` items) laid out at the sum of its items' widths,
+    769 px in a 390 px viewport. The card is now capped to Radix's
+    `--radix-popover-content-available-width` / `-height`.
+  Verified with the showcase's new "Tall and wide content" row on the iPhone 17
+  Pro Max simulator (iOS 27): a `side="top"` trigger near the top opens below;
+  mid-screen, where neither side fits, it stays on top capped between the safe
+  area and the trigger; a drag that starts on a text row scrolls it (offset 0 →
+  69%, it stayed at 0 before); the `Switch` inside toggles; a tap on blank space
+  keeps it open and an outside tap closes it; ten consecutive opens rendered.
+  Android emulator (Pixel 10, API 36): the tall card opens below capped to the
+  room and scrolls, the `Switch` toggles, an outside tap closes it, and the
+  wide row stays inside the screen. Web (`bun run build`, 390×844 and
+  1280×800): the wide row stays inside the viewport, the tall card is capped
+  and scrolls to its last row, the surface is opaque with its border, and no
+  console errors.
+
+- **`Dialog` and `AlertDialog` keep their fields and footer above the keyboard
+  on Android.** 0.27.1 gave the dialog its own keyboard avoidance on iOS only:
+  Android renders dialog content through the primitive `Portal` into
+  `UIProvider`'s `PortalHost`, a sibling of the root `KeyboardAvoidingView`, so
+  nothing padded it, and with `KeyboardProvider` above `UIProvider` the RN root
+  does not shrink for the keyboard either (keyboard-controller consumes the IME
+  insets), so a dialog with a focused field stayed centered behind the keyboard.
+  `DialogKeyboardAvoidance` now wraps the centered container in the package
+  `KeyboardAvoidingView` (`behavior="padding"`, `keyboardVerticalOffset={0}`)
+  on Android as well as iOS: keyboard-controller observes the main window's IME,
+  which is where the portal-hosted dialog lives, so the container shrinks by the
+  keyboard height and the card (capped at 85% of what is left) recenters above
+  it. `useKeyboardAvoidance()` is now `true` inside dialog content on Android,
+  so a `DismissKeyboard` there adds no second layer; do not wrap dialog content
+  in another `KeyboardAvoidingView`. Device-verified on a Pixel 6a (Android 16,
+  `@expo/ui` 58.0.2, `KeyboardProvider` above `UIProvider`) with the showcase
+  `Dialog` form variant: before, the card stayed centered and its footer sat
+  under the keyboard; after, focusing either field moves the card up (title
+  from 35.5% to 16.8% of the screen height), both fields and the Cancel /
+  Start footer stay above the keyboard, typing lands, and the card recenters
+  when the keyboard hides. Cancel and Start fire on the first tap with the
+  keyboard up, the fieldless `Dialog` and an `AlertDialog` render as before,
+  and a dialog opened from a screen wrapped in `DismissKeyboard` lands at the
+  same positions (one shift, not two). Web is unchanged (no software keyboard,
+  no avoidance owner).
+- **A tap on dead space inside `Dialog` / `AlertDialog` content dismisses the
+  keyboard (iOS, Android).** With a dialog field focused, tapping the card's
+  padding, a label or the gap between fields and footer left the keyboard up
+  (fieldnest start-trip matrix B3): the iOS `Modal` and the Android portal tree
+  sit outside any app-level `DismissKeyboard`, and the dialog mounted no
+  boundary of its own. `DialogContent` and `AlertDialogContent` now carry the
+  package tap-away boundary (`useKeyboardDismissResponder`, the one
+  `DismissKeyboard` and `BottomSheet.Content` use). `Close`, `Action`,
+  `Cancel`, buttons and fields win the negotiation and fire on the first tap, a
+  tap that begins on a package `TextInput` is left to the field, and the
+  boundary dismisses on release of an otherwise unclaimed single-finger tap
+  within 10 logical units through the focused field's own blur handle, with a
+  `KeyboardController.dismiss()` fallback for RN or third-party inputs. Where it
+  sits follows the primitive: `@rn-primitives/dialog`'s native content claims
+  every touch inside the card (so the backdrop's close-on-press never fires
+  there), and that claim ends the negotiation before any ancestor is asked — a
+  boundary on the centered container never armed for a card tap (Pixel 6a, this
+  branch's first device check: dead-space taps left the keyboard up). `Dialog`
+  therefore carries the boundary on the card itself and keeps the primitive's
+  claim; `AlertDialog`, whose primitive content claims nothing, keeps the
+  never-claiming boundary on its centered container, which also covers its
+  backdrop. A `Dialog` backdrop tap still closes the dialog through the
+  primitive `Overlay` and drops the keyboard with it. Nothing new is added
+  inside the card, so its `gap` layout is unchanged. Device-verified on the
+  Pixel 6a (Android 16, `@expo/ui` 58.0.2): with the odometer field focused, a
+  tap on the description text hid the keyboard, the dialog stayed open and the
+  card recentered; Cancel closed the dialog on the first tap with the keyboard
+  up. Web is untouched (no software keyboard; the boundary returns no handlers
+  there).
+- **`syncThemeFromEnvironment()` and `startSystemThemeListener()` are safe to
+  call more than once.** Every call after the first returned the same stop
+  function, so the first caller to clean up removed the OS color-scheme
+  listener for everyone, a cleanup run twice could orphan a later caller's
+  listener and let the next call stack a second one, and on native an app's
+  `useEffect(() => syncThemeFromEnvironment(), [])` cleanup (StrictMode's
+  double effects included) removed the listener the package installs at
+  startup. Calls now share one listener, each returns its own idempotent
+  release, and the listener is removed when the last holder releases; the
+  package's native startup hold is never released. Consumer note: a release
+  now drops only that call's hold, so code that relied on one stop function
+  ending OS tracking for every caller must release each call. The web setup
+  (`getThemeCssVariables()` in `+html.tsx`, `syncThemeFromEnvironment()` in a
+  root effect) is now documented in the README and `LLM_USAGE.md`; `UIProvider`
+  still does not call it, so apps that skip it keep their current appearance.
+- **Every package component and hook now compiles under the React Compiler.**
+  The compiler skipped any function that read or wrote a ref during render,
+  mutated a hook result, or used syntax it can't lower, and 134
+  `react-hooks/refs` plus 4 `react-hooks/immutability` findings covered
+  `Drawer`, `TextInput` (native), `Notification`, `Progress`, `RadioGroup`,
+  `Skeleton`, `Switch`, `Tabs`, `Accordion`, `Checkbox`, `BottomSheet`, the
+  Android text field, `keyboardDismiss`'s hooks, `useStaggeredEntrance`, and
+  `useScalePress` (so every `Button`); computed default props,
+  `try`/`finally`, and a reassigned captured counter kept `Drawer`,
+  `KeyboardAvoidingView`, `UIProvider`, `Notification`, `ToggleGroup`, and
+  `useResources` out as well. Animated values are created once through a
+  lazy initializer instead of `useRef(new Animated.Value(x)).current` (which
+  also allocated and discarded a value every render), "latest value" refs are
+  synced in a layout effect, animations that started during render start in
+  a layout effect before the frame paints, and render-time latches are state.
+  `Notification` reads `globalUIStore` through zustand's `useStore`: the
+  compiler recognizes hooks only by a `use` prefix, so a bare
+  `globalUIStore()` call would be cached and skipped on the next render
+  (React error #311), and a package test now rejects such calls. Behavior is
+  unchanged; apps whose bundler runs the compiler over the package now get
+  memoized components. Apps compiling their own components should read
+  `globalUIStore` the same way.
+
+- **Built output resolves under Node ESM and `moduleResolution: nodenext`.**
+  The build left 97 relative imports in the `.d.ts` files extension-less, which
+  NodeNext cannot resolve: `skipLibCheck` hid the errors and the symbols behind
+  them became `any`. They now carry `.js` or `/index.js`. In the JavaScript, the
+  15 imports of dotted module names (`./StyledText.context`,
+  `./iconRegistry.generated`) kept no extension because `.context` read as one;
+  they now end in `.js`, so Node can load `components/*` outside a bundler.
+  Platform-split imports (`./keyboardController`, `./nativeTextField`) stay
+  extension-less, as Metro needs. Nothing to change for consumers.
+
+- **`SegmentedControl` stops its sliding pill when it unmounts** (web, Android
+  JS driver): the slide started in an effect with no cleanup, so its animation
+  frames outlived the control and a Jest suite that rendered it logged "You are
+  trying to access a property or method of the Jest environment after it has
+  been torn down" 76 times, which fails `--runInBand` runs. The next selection
+  also stops the previous slide before starting its own; nothing visible changes.
+
+### Documentation
+
+- **`Button.Icon` documents and tests its `component` prop.** `Icon` has taken
+  a component through `component` (any `LucideIcon`) since before 0.26, and
+  `Button.Icon` forwards every `Icon` prop, so `<Button.Icon component={House} />`
+  already rendered with the button's label color; the docs only showed `name`,
+  and two doc comments showed an `as` prop that never existed. The README,
+  `LLM_USAGE.md`, and those comments now use `component`, and tests pin that a
+  real Lucide export type-checks for both and renders sized, colored, and
+  decorative exactly like a named icon. No API change: `component` is the name
+  the package already used, so there is no `as` alias.
+
 ## [0.27.1]
 
 ### Fixed

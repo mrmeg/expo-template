@@ -12,8 +12,9 @@
  * clearing the field restores them.
  */
 
-import { Suspense, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { View, StyleSheet, Pressable, ScrollView } from "react-native";
+import { KeyboardAwareScrollView } from "@/client/features/keyboard/platform";
 import { Link } from "expo-router";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -48,8 +49,10 @@ import {
   type ScreenTemplateEntry,
 } from "@/client/showcase/registry";
 import type { Theme } from "@mrmeg/expo-ui/constants";
+import { useTabHeaderTitle } from "@/client/features/navigation/tabTitle";
 
 export default function ExploreScreen() {
+  useTabHeaderTitle("index");
   const { theme } = useTheme();
   const styles = themedStyles(theme);
   const [query, setQuery] = useState("");
@@ -77,8 +80,12 @@ export default function ExploreScreen() {
       <Seo title="Explore - Expo Template" description="Browse UI components, composed blocks, screen templates, and interactive demos built with Expo and React Native." />
       {/* The ScrollView must be the screen's first native child: the native tab
           bar (and stack header) locate it by walking first subviews, and that
-          hookup drives minimizeBehavior + scroll edge effects on iOS 26. */}
-      <ScrollView
+          hookup drives minimizeBehavior + scroll edge effects on iOS 26.
+          KeyboardAwareScrollView keeps it first — its wrapper's first subview
+          is the scroll view — and pads the content by the keyboard, so search
+          results stay reachable above it now that the app root no longer
+          avoids the keyboard. */}
+      <KeyboardAwareScrollView
         testID="explore-screen"
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -155,10 +162,12 @@ export default function ExploreScreen() {
                   >
                     {/* The block owns its own screen-section padding; the
                         spotlight card supplies its own, so override it. */}
-                    <View pointerEvents="none">
-                      <Suspense fallback={<View style={styles.spotlightStage} />}>
-                        <LazyBlockStage id={spotlight.id} style={styles.spotlightStage} />
-                      </Suspense>
+                    <View style={styles.passThrough}>
+                      <LazyBlockStage
+                        id={spotlight.id}
+                        style={styles.spotlightStage}
+                        fallback={<View style={styles.spotlightStage} />}
+                      />
                     </View>
                     {/* `.recipe` — the block doubles as a recipe. */}
                     <MonoText size="xs" style={styles.spotlightRecipe}>
@@ -242,7 +251,7 @@ export default function ExploreScreen() {
             </AnimatedView>
           </>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </>
   );
 }
@@ -271,7 +280,7 @@ function SectionHead({
 }) {
   return (
     <View style={styles.sectionHead}>
-      <SansSerifBoldText style={styles.sectionTitle}>{title}</SansSerifBoldText>
+      <SansSerifBoldText size="lg" style={styles.sectionTitle}>{title}</SansSerifBoldText>
       <Link href={href as never} asChild>
         <Pressable
           onPressIn={blurActiveElementOnWeb}
@@ -280,7 +289,7 @@ function SectionHead({
           testID={testID}
           style={linkPressableStyle(styles.sectionLink)}
         >
-          <SansSerifText style={styles.sectionLinkText}>{count}</SansSerifText>
+          <SansSerifText size="sm" fontWeight="medium" style={styles.sectionLinkText}>{count}</SansSerifText>
           <Icon name="arrow-right" size={13} color={accent} />
         </Pressable>
       </Link>
@@ -290,7 +299,7 @@ function SectionHead({
 
 /**
  * One card in the component rail. The preview is a live instance behind
- * `pointerEvents="none"` — a tap should open the component's detail screen, not
+ * `pointerEvents: "none"` (as a style) — a tap should open the component's detail screen, not
  * half-operate the preview inside it (same rule as the gallery cards).
  */
 function RailCard({ entry, styles }: { entry: ComponentEntry; styles: ExploreStyles }) {
@@ -303,16 +312,14 @@ function RailCard({ entry, styles }: { entry: ComponentEntry; styles: ExploreSty
         testID={`explore-rail-${entry.id}`}
         style={linkPressableStyle(styles.railCard)}
       >
-        <View style={styles.railPreview} pointerEvents="none">
-          {/* The well has a fixed height, so the lazy fallback costs no layout. */}
-          <Suspense fallback={null}>
-            <LazyPreview
-              id={entry.id}
-              missing={<Icon name="box" size={20} color="mutedForeground" decorative />}
-            />
-          </Suspense>
+        <View style={[styles.railPreview, styles.passThrough]}>
+          {/* The well has a fixed height, so the client-only preview costs no layout. */}
+          <LazyPreview
+            id={entry.id}
+            missing={<Icon name="box" size={20} color="mutedForeground" decorative />}
+          />
         </View>
-        <SansSerifText style={styles.railName} numberOfLines={1}>
+        <SansSerifText size="sm" fontWeight="medium" style={styles.railName} numberOfLines={1}>
           {entry.id}
         </SansSerifText>
       </Pressable>
@@ -364,17 +371,17 @@ function SearchResults({
                 style={linkPressableStyle(styles.hitRow)}
               >
                 <View style={styles.hitBody}>
-                  <SansSerifText style={styles.hitLabel} numberOfLines={1}>
+                  <SansSerifText size="body" style={styles.hitLabel} numberOfLines={1}>
                     {hit.label}
                   </SansSerifText>
                   {hit.description && (
-                    <SansSerifText style={styles.hitDesc} numberOfLines={1}>
+                    <SansSerifText size="sm" style={styles.hitDesc} numberOfLines={1}>
                       {hit.description}
                     </SansSerifText>
                   )}
                 </View>
                 <View style={styles.hitKind}>
-                  <SansSerifText style={styles.hitKindText}>{hit.kind}</SansSerifText>
+                  <SansSerifText size="xs" style={styles.hitKindText}>{hit.kind}</SansSerifText>
                 </View>
                 <Icon name="chevron-right" color={theme.colors.border} size={16} />
               </Pressable>
@@ -424,7 +431,6 @@ const createStyles = (theme: Theme) =>
       marginBottom: spacing.sm + 2,
     },
     sectionTitle: {
-      fontSize: 17,
       letterSpacing: -0.3,
       color: theme.colors.foreground,
     },
@@ -436,8 +442,6 @@ const createStyles = (theme: Theme) =>
       paddingLeft: spacing.sm,
     },
     sectionLinkText: {
-      fontSize: 13,
-      fontWeight: "500",
       color: theme.colors.accent,
     },
     sectionLabel: {
@@ -461,6 +465,10 @@ const createStyles = (theme: Theme) =>
       borderColor: theme.colors.border,
       overflow: "hidden",
     },
+    // Previews are decorative: taps go to the card/link around them. A style,
+    // not the deprecated `pointerEvents` prop (react-native-web warns, and its
+    // lazy warning module overflowed the first SSR render of this route).
+    passThrough: { pointerEvents: "none" },
     railPreview: {
       height: 68,
       alignItems: "center",
@@ -471,8 +479,6 @@ const createStyles = (theme: Theme) =>
       borderBottomColor: theme.colors.border,
     },
     railName: {
-      fontSize: 12,
-      fontWeight: "500",
       color: theme.colors.foreground,
       paddingVertical: spacing.xs + 1,
       paddingHorizontal: spacing.sm,
@@ -587,11 +593,9 @@ const createStyles = (theme: Theme) =>
       minWidth: 0,
     },
     hitLabel: {
-      fontSize: 15,
       color: theme.colors.foreground,
     },
     hitDesc: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     hitKind: {
@@ -601,7 +605,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.muted,
     },
     hitKindText: {
-      fontSize: 10,
       textTransform: "uppercase",
       letterSpacing: 0.6,
       color: theme.colors.mutedForeground,

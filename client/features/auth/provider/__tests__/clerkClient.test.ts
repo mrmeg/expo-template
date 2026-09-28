@@ -20,6 +20,7 @@ jest.mock("../ClerkProviderBoundary", () => ({ __esModule: true, default: () => 
 
 import { getClerkInstance } from "@clerk/clerk-expo";
 import { createClerkAuthClient } from "../clerkClient";
+import { reportClerkStatus, resetClerkLoadSignalForTests } from "../clerkLoadSignal";
 import { AuthError, isAuthError } from "../types";
 
 const mockGetClerkInstance = getClerkInstance as jest.MockedFunction<typeof getClerkInstance>;
@@ -90,5 +91,46 @@ describe("createClerkAuthClient — unsupported flows", () => {
     ]);
 
     expect(mockGetClerkInstance).not.toHaveBeenCalled();
+  });
+});
+
+describe("createClerkAuthClient — account deletion", () => {
+  beforeEach(() => {
+    mockGetClerkInstance.mockReset();
+    resetClerkLoadSignalForTests();
+    reportClerkStatus("ready");
+  });
+
+  afterAll(() => {
+    resetClerkLoadSignalForTests();
+  });
+
+  it("deleteAccount deletes the signed-in Clerk user", async () => {
+    const deleteUser = jest.fn().mockResolvedValue(undefined);
+    mockGetClerkInstance.mockReturnValue({
+      loaded: true,
+      session: { id: "sess_1" },
+      user: { delete: deleteUser },
+    } as unknown as ReturnType<typeof getClerkInstance>);
+    const client = createClerkAuthClient();
+
+    expect(typeof client.deleteAccount).toBe("function");
+    await client.deleteAccount!();
+
+    expect(deleteUser).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects deletion without a signed-in user as a normalized error", async () => {
+    mockGetClerkInstance.mockReturnValue({
+      loaded: true,
+      session: null,
+      user: null,
+    } as unknown as ReturnType<typeof getClerkInstance>);
+    const client = createClerkAuthClient();
+
+    const error = await client.deleteAccount!().catch((err) => err as unknown);
+
+    expect(isAuthError(error)).toBe(true);
+    expect((error as AuthError).code).toBe("unknown");
   });
 });

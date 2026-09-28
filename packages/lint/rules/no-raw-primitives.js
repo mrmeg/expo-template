@@ -4,6 +4,12 @@
  * and the platform behaviour live. Primitives the design system deliberately
  * does not cover — `Pressable`, `View`, `@expo/ui`'s `Host` and `Picker` — stay
  * available.
+ *
+ * Which `react-native` components count is read from the design system, not
+ * listed here: any React Native component the design system exports a
+ * component of the same name for (`TextInput`, `Switch`, `Button`,
+ * `KeyboardAvoidingView`, `StatusBar` today) is wrapped, so a new wrapper is
+ * enforced the release it ships. `Text` is the one wrapper with another name.
  */
 
 const { readSettings } = require("../lib/settings");
@@ -14,6 +20,55 @@ const {
 } = require("../lib/source");
 
 const COMPONENTS_ENTRY = '"@mrmeg/expo-ui/components"';
+
+/**
+ * React Native's components: the primitives a design-system component can wrap.
+ * Its APIs (`Alert`, `Animated`, `Keyboard`, …) render nothing and are not
+ * primitives, even where the design system has a same-named helper.
+ */
+const REACT_NATIVE_COMPONENTS = new Set([
+  "ActivityIndicator",
+  "Button",
+  "DrawerLayoutAndroid",
+  "FlatList",
+  "Image",
+  "ImageBackground",
+  "InputAccessoryView",
+  "KeyboardAvoidingView",
+  "Modal",
+  "Pressable",
+  "RefreshControl",
+  "SafeAreaView",
+  "ScrollView",
+  "SectionList",
+  "StatusBar",
+  "Switch",
+  "Text",
+  "TextInput",
+  "TouchableHighlight",
+  "TouchableNativeFeedback",
+  "TouchableOpacity",
+  "TouchableWithoutFeedback",
+  "View",
+  "VirtualizedList",
+  "VirtualizedSectionList",
+]);
+
+/**
+ * The React Native components the loaded design system wraps: those it exports
+ * a component of the same name for. Empty when no design system was found — the
+ * missing-design-system report says why.
+ *
+ * @param {import("../lib/source").DesignSystem} design
+ * @returns {Set<string>}
+ */
+function wrappedReactNativeComponents(design) {
+  const wrapped = new Set();
+  for (const name of REACT_NATIVE_COMPONENTS) {
+    if (design.components.has(name)) wrapped.add(name);
+  }
+  return wrapped;
+}
 
 /** `@expo/ui` subpaths the design system wraps, and the wrapper to use. */
 const EXPO_UI_MODULES = {
@@ -70,7 +125,7 @@ module.exports = {
     type: "problem",
     docs: {
       description:
-        "Import the design-system component instead of the raw primitive it wraps.",
+        "Import the design-system component instead of the raw primitive it wraps: `react-native` components the design system has a same-named component for, `Text`, `@rn-primitives/*`, and the wrapped `@expo/ui` surfaces.",
     },
     schema: [],
     messages: {
@@ -80,11 +135,12 @@ module.exports = {
   },
 
   create(context) {
-    // This rule needs no facts from the design system — the wrapper names are
-    // its own table. It loads it anyway so a missing design system is reported
-    // here too: whichever expo-ui rule fires first, the reason is the same.
+    // The design system says which React Native components it wraps; the
+    // `@rn-primitives` and `@expo/ui` tables are this rule's own, because those
+    // wrappers do not share a name with the module they wrap.
     const settings = readSettings(context);
     const design = loadDesignSystemFor(settings);
+    const wrappedReactNative = wrappedReactNativeComponents(design);
 
     /**
      * @param {object} node
@@ -104,12 +160,20 @@ module.exports = {
 
         if (source === "react-native") {
           for (const specifier of node.specifiers) {
-            if (importedName(specifier) !== "Text") continue;
-            report(
-              specifier,
-              "`Text` from `\"react-native\"` is a raw primitive: it renders with the platform font and no theme color. " +
-                `Use \`StyledText\` or a semantic alias (\`TitleText\`, \`BodyText\`, \`CaptionText\`, ...) from \`${COMPONENTS_ENTRY}\`.`,
-            );
+            const name = importedName(specifier);
+            if (name === "Text") {
+              report(
+                specifier,
+                "`Text` from `\"react-native\"` is a raw primitive: it renders with the platform font and no theme color. " +
+                  `Use \`StyledText\` or a semantic alias (\`TitleText\`, \`BodyText\`, \`CaptionText\`, ...) from \`${COMPONENTS_ENTRY}\`.`,
+              );
+            } else if (name && wrappedReactNative.has(name)) {
+              report(
+                specifier,
+                `\`${name}\` from \`"react-native"\` is wrapped by the design system. ` +
+                  `Use \`${name}\` from \`${COMPONENTS_ENTRY}\`, which applies the theme and the shared props.`,
+              );
+            }
           }
           return;
         }

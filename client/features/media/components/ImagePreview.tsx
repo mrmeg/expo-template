@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  // eslint-disable-next-line expo-ui/no-raw-primitives -- full-screen viewer over black forces light status-bar content; the design-system StatusBar follows the theme
   StatusBar,
   StyleSheet,
   View,

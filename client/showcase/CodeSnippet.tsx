@@ -43,6 +43,7 @@ export function CodeSnippet({ label, code, testID }: CodeSnippetProps) {
           accessibilityRole="button"
           accessibilityLabel={`Copy ${label.toLowerCase()}`}
           testID={testID ? `${testID}-copy` : undefined}
+          hitSlop={spacing.xs}
           style={[styles.copy, Platform.OS === "web" ? { cursor: "pointer" as never } : null]}
         >
           <Icon
@@ -80,9 +81,12 @@ const createStyles = (theme: Theme) =>
     copy: {
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "center",
       gap: spacing.xs,
-      paddingVertical: spacing.xxs,
-      paddingHorizontal: spacing.xs,
+      // A text-height button is a 22px target; 32 clears the 24px WCAG 2.5.8
+      // minimum and matches the kit's form-row height.
+      minHeight: spacing.formRowMinHeight,
+      paddingHorizontal: spacing.sm,
     },
     copyText: {
       color: theme.colors.mutedForeground,

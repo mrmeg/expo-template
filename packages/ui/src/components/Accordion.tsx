@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Animated, Platform, Pressable, View, ViewStyle } from "react-native";
 import { Icon } from "./Icon";
 import { TextClassContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
+import { useFocusVisible } from "../hooks/useFocusVisible";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { spacing } from "../constants/spacing";
+import { shouldUseNativeDriver } from "../lib/animations";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
 
 type BaseAccordionRootProps = Omit<React.ComponentProps<typeof View>, "style"> &
@@ -226,22 +229,23 @@ function AccordionTrigger({
 }: AccordionPrimitive.TriggerProps & {
   children?: React.ReactNode;
 } & React.RefAttributes<AccordionPrimitive.TriggerRef>) {
-  const { theme } = useTheme();
+  const { theme, getFocusRingStyle } = useTheme();
   const reduceMotion = useReducedMotion();
   const { isExpanded } = AccordionPrimitive.useItemContext();
-  const rotation = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
+  const rotation = useAnimatedValue(isExpanded ? 1 : 0);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!disabled,
     scaleTo: 0.97,
     haptic: false,
   });
+  const focus = useFocusVisible();
 
   useEffect(() => {
     const target = isExpanded ? 1 : 0;
     Animated.timing(rotation, {
       toValue: target,
       duration: reduceMotion ? 0 : isExpanded ? 200 : 150,
-      useNativeDriver: true,
+      useNativeDriver: shouldUseNativeDriver,
     }).start();
   }, [isExpanded, reduceMotion, rotation]);
 
@@ -265,6 +269,8 @@ function AccordionTrigger({
               <Trigger
                 onPressIn={pressHandlers.onPressIn}
                 onPressOut={pressHandlers.onPressOut}
+                onFocus={focus.onFocus}
+                onBlur={focus.onBlur}
                 style={[
                   {
                     flexDirection: "row",
@@ -276,8 +282,10 @@ function AccordionTrigger({
                     ...(Platform.OS === "web" && {
                       cursor: "pointer" as any,
                       userSelect: "none" as any,
+                      outlineStyle: "none" as any,
                     }),
                   },
+                  focus.focused && !disabled && getFocusRingStyle(),
                   // Spread array styles from primitives to prevent nested arrays on web
                   ...(styleOverride && typeof styleOverride !== "function"
                     ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])

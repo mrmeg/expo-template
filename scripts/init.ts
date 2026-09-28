@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env bun
 /**
  * Project init CLI — turns a fresh clone of the template into a named project.
  *
@@ -522,7 +522,7 @@ export interface StrippedTestFile {
 
 /**
  * Drop `import { XScreen } from "../<id>/Screen";` plus the matching
- * `describe("XScreen", …)` block for each pruned id. Only 7 of the 17
+ * `describe("XScreen", …)` block for each pruned id. Eleven of the 17
  * templates appear in this suite, so unknown ids are a no-op.
  */
 export function stripTemplateTests(source: string, prunedIds: string[]): StrippedTestFile {

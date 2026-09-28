@@ -35,7 +35,13 @@ export function FormTextInput<
   shouldUnregister,
   ...inputProps
 }: FormTextInputProps<TFieldValues, TName>) {
-  const { field, fieldState } = useController({
+  // Destructured, not read off `field`: passing `field.ref` as a JSX ref makes
+  // the React Compiler infer `field` itself is a ref, so every `field.*` read
+  // during render counted as a ref access and it skipped this component.
+  const {
+    field: { ref, value, onChange, onBlur },
+    fieldState,
+  } = useController({
     name,
     control,
     rules,
@@ -46,10 +52,10 @@ export function FormTextInput<
   return (
     <TextInput
       {...inputProps}
-      ref={field.ref}
-      value={field.value ?? ""}
-      onChangeText={field.onChange}
-      onBlur={field.onBlur}
+      ref={ref}
+      value={value ?? ""}
+      onChangeText={onChange}
+      onBlur={onBlur}
       error={!!fieldState.error || inputProps.error}
       errorText={fieldState.error?.message ?? inputProps.errorText}
     />

@@ -1,6 +1,8 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { Animated } from "react-native";
-import { hapticLight } from "../lib/haptics";
+import { hapticLight, hapticPress } from "../lib/haptics";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
+import { shouldUseNativeDriver } from "../lib/animations";
 import { useReducedMotion } from "./useReduceMotion";
 
 interface ScalePressOptions {
@@ -10,10 +12,12 @@ interface ScalePressOptions {
    */
   scaleTo?: number;
   /**
-   * Whether to fire haptic feedback on press
-   * @default true
+   * Haptic on press-in. `"setting"` follows the provider-level `haptics`
+   * setting (a light tap only under `"all"`); `true` always taps; `false`
+   * never does.
+   * @default "setting"
    */
-  haptic?: boolean;
+  haptic?: boolean | "setting";
   /**
    * Spring damping for bounce-back
    * @default 20
@@ -34,8 +38,9 @@ interface ScalePressOptions {
 /**
  * Hook for press-feedback scale animation using React Native Animated.
  *
- * Returns an animated style and onPressIn/onPressOut handlers to spread onto a Pressable.
- * Respects reduced motion preferences.
+ * Returns an animated style and onPressIn/onPressOut handlers to spread onto a
+ * Pressable. Under reduced motion the scale stays at 1 — the pressed opacity
+ * the components layer on carries the feedback instead.
  *
  * @example
  * ```tsx
@@ -51,21 +56,23 @@ interface ScalePressOptions {
 export function useScalePress(options: ScalePressOptions = {}) {
   const {
     scaleTo = 0.97,
-    haptic = true,
+    haptic = "setting",
     damping = 20,
     stiffness = 300,
     disabled = false,
   } = options;
 
   const reduceMotion = useReducedMotion();
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale = useAnimatedValue(1);
 
   const animateTo = useCallback(
     (toValue: number) => {
       scale.stopAnimation();
 
+      // Reduced motion: no scale change at all (not even an instant jump), so
+      // the surface stays still while its pressed opacity does the signalling.
       if (reduceMotion) {
-        scale.setValue(toValue);
+        scale.setValue(1);
         return;
       }
 
@@ -73,7 +80,7 @@ export function useScalePress(options: ScalePressOptions = {}) {
         toValue,
         damping,
         stiffness,
-        useNativeDriver: true,
+        useNativeDriver: shouldUseNativeDriver,
       }).start();
     },
     [damping, reduceMotion, scale, stiffness],
@@ -81,7 +88,8 @@ export function useScalePress(options: ScalePressOptions = {}) {
 
   const onPressIn = useCallback(() => {
     if (disabled) return;
-    if (haptic) hapticLight();
+    if (haptic === true) hapticLight();
+    else if (haptic === "setting") hapticPress();
     animateTo(scaleTo);
   }, [animateTo, disabled, haptic, scaleTo]);
 

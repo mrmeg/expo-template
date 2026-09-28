@@ -2,7 +2,6 @@ import React from "react";
 import { View, StyleSheet, StyleProp, ViewStyle, type DimensionValue } from "react-native";
 import { useDimensions, useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { Card } from "@mrmeg/expo-ui/components/Card";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
@@ -19,7 +18,7 @@ export interface FeatureGridItem {
 }
 
 export interface FeatureGridBlockProps {
-  /** Feature cards, rendered in order. */
+  /** Features, rendered in order. */
   items?: FeatureGridItem[];
   /** Container style override. */
   style?: StyleProp<ViewStyle>;
@@ -65,12 +64,13 @@ const DEFAULT_ITEMS: FeatureGridItem[] = [
 /**
  * FeatureGridBlock
  *
- * Icon + title + copy cards in a responsive grid: one column on phones, two
- * on mid-width, three on wide viewports. Column count comes from
- * `useDimensions()` (seeded for the export-time prerender) rather than
- * `useWindowDimensions()`, and the per-card width is an inline `flexBasis` so
- * the value always ships in the exported HTML shell, which the client's first
- * render must match.
+ * Icon + title + copy features in a responsive grid: one column on phones, two
+ * on mid-width, three on wide viewports. Each feature sits flat on the
+ * container's gutter, separated by whitespace rather than boxed in a card.
+ * Column count comes from `useDimensions()` (seeded for the export-time
+ * prerender) rather than `useWindowDimensions()`, and the per-item width is an
+ * inline `flexBasis` so the value always ships in the exported HTML shell,
+ * which the client's first render must match.
  *
  * @example
  * ```tsx
@@ -86,24 +86,23 @@ export function FeatureGridBlock({ items = DEFAULT_ITEMS, style: styleOverride }
 
   const columns = isSmallScreen ? 1 : isMediumScreen ? 2 : 3;
   // Percentage basis rather than a measured pixel width: no onLayout pass, and
-  // the subtraction keeps `columns` cards plus their gaps inside one row.
-  const cardBasis: DimensionValue = `${100 / columns - (columns > 1 ? 2 : 0)}%`;
+  // the subtraction keeps `columns` items plus their `spacing.lg` column gaps
+  // inside one row down to a ~400pt-wide host; flexGrow takes up the slack.
+  const itemBasis: DimensionValue = `${100 / columns - (columns > 1 ? 4 : 0)}%`;
 
   return (
     <View style={[styles.container, styleOverride]}>
       <View style={styles.grid}>
         {items.map((item) => (
-          <Card key={item.title} style={[styles.card, { flexBasis: cardBasis }]}>
-            <View style={styles.cardBody}>
-              <View style={styles.iconWrap}>
-                <Icon name={item.icon} size={spacing.iconSm} color={theme.colors.accent} decorative />
-              </View>
-              <SansSerifBoldText size="base">{item.title}</SansSerifBoldText>
-              <SansSerifText size="sm" style={styles.description}>
-                {item.description}
-              </SansSerifText>
+          <View key={item.title} style={[styles.item, { flexBasis: itemBasis }]}>
+            <View style={styles.iconWrap}>
+              <Icon name={item.icon} size={spacing.iconSm} color={theme.colors.accent} decorative />
             </View>
-          </Card>
+            <SansSerifBoldText size="base">{item.title}</SansSerifBoldText>
+            <SansSerifText size="sm" style={styles.description}>
+              {item.description}
+            </SansSerifText>
+          </View>
         ))}
       </View>
     </View>
@@ -129,13 +128,11 @@ const createStyles = (theme: Theme) =>
     grid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: spacing.sm,
+      rowGap: spacing.lg,
+      columnGap: spacing.lg,
     },
-    card: {
+    item: {
       flexGrow: 1,
-    },
-    cardBody: {
-      padding: spacing.md,
       gap: spacing.xs,
     },
     iconWrap: {

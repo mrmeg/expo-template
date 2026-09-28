@@ -119,3 +119,23 @@ describe("Tabs", () => {
     expect(getByText("Tab 1")).toBeTruthy();
   });
 });
+
+describe("TabsTrigger hit area", () => {
+  it("declares its height without a column-axis flex that would collapse it to the text", async () => {
+    const { StyleSheet } = jest.requireActual("react-native");
+    await render(
+      <Tabs value="account" onValueChange={() => {}}>
+        <TabsList>
+          <TabsTrigger value="account"><TabsTrigger.Text>Account</TabsTrigger.Text></TabsTrigger>
+          <TabsTrigger value="password"><TabsTrigger.Text>Password</TabsTrigger.Text></TabsTrigger>
+        </TabsList>
+        <TabsContent value="account"><TabsTrigger.Text>Body</TabsTrigger.Text></TabsContent>
+      </Tabs>,
+    );
+
+    const style = StyleSheet.flatten(screen.getAllByRole("tab")[0].props.style);
+    expect(style.flex).toBeUndefined();
+    expect(style.alignSelf).toBe("stretch");
+    expect(style.height).toBeGreaterThanOrEqual(36);
+  });
+});

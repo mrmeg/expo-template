@@ -59,6 +59,14 @@ Importable paths: root, `components`, `components/*`, `constants`,
 `constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`. Never import from
 `dist/*` or a source checkout path.
 
+The package declares `sideEffects`: only `state/themeStore` does work at import
+time (on native it loads the saved theme and starts the OS color-scheme
+listener). A bundler that tree-shakes (Expo with `EXPO_UNSTABLE_TREE_SHAKING=1`,
+esbuild, Rollup, webpack) keeps only the modules a barrel import actually uses,
+so `import { Button } from "@mrmeg/expo-ui"` costs about what the
+`components/Button` deep import does. Metro without tree shaking bundles
+everything a file imports, so the deep imports stay the smaller choice there.
+
 ## App Startup
 
 Call `useResources()` once near the Expo app root before hiding the splash
@@ -97,6 +105,21 @@ export default function RootLayout() {
 }
 ```
 
+On web with server rendering, tell the kit the visitor's scheme for the first
+render: `<InitialSchemeProvider scheme={cookieScheme}>` around the root layout
+(or `<UIProvider initialScheme>` when nothing above it reads the theme), where
+`cookieScheme` is `"light"` / `"dark"` read from the same cookie on the server
+and the client — see the template's `shared/ssrColorScheme.ts`. `useTheme()`
+paints it until the persisted preference has loaded.
+
+A Radix-backed component (`Tabs`, `Accordion`, `Collapsible`, `Select`,
+`DropdownMenu`, `Popover`) inside a server-rendered route logs a `useId`
+hydration mismatch in development, because Expo Router's server renders the app
+inside `+html.tsx` while the client hydrates `#root`. Wrap that subtree in
+`<Hydrated fallback={…}>` (from `@mrmeg/expo-ui/components`): the fallback holds
+the layout in the server HTML and the children mount in the first client render.
+Keep content that must be server-rendered outside the gate.
+
 `UIProvider` is required before `Dialog`, `AlertDialog`, `BottomSheet`,
 `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`, and package
 notifications.
@@ -112,6 +135,45 @@ notifications.
 For a subtree with custom keyboard behavior, use `KeyboardAvoidingView`
 directly (`behavior`, `automaticOffset`, `contentContainerStyle`,
 `keyboardVerticalOffset`).
+
+### Web setup
+
+Web needs two more pieces, because every web theme color is a CSS variable
+(see [Web theming is CSS variables](#web-theming-is-css-variables)) and the
+theme store boots at `"system"`/light so the first client render matches the
+server-rendered or exported HTML:
+
+1. **`app/+html.tsx`: define the variables.** Put `getThemeCssVariables()` (from
+   `constants`) in the document's global `<style>`, passing the same overrides
+   you give `setColors` if you re-brand. Without it every `var(--c-*)` color is
+   unset. A blocking inline script that stamps `data-theme` on `<html>` from
+   the persisted preference (`THEME_STORAGE_KEY`, from `state`) or
+   `prefers-color-scheme` makes the first frame paint in the visitor's scheme
+   before any JS runs.
+2. **Root layout: sync the store after the first commit.** Call
+   `syncThemeFromEnvironment()` (from `state`) in a top-level `useEffect` and
+   return its result as the cleanup. It reads the persisted preference and
+   starts following the OS color scheme. Never call it during render or at
+   module scope: the server has no `window`, and reading it while hydrating
+   would disagree with the markup. It is safe to call more than once
+   (StrictMode's double effects, several roots): the calls share one OS
+   listener, and each cleanup releases only its own call. `UIProvider` does not
+   call it. A web app that skips it stays on the boot default until the user
+   picks a theme. Native loads the preference and follows the OS at startup, so
+   the call is optional there.
+
+```tsx
+// app/+html.tsx (head)
+import { getThemeCssVariables } from "@mrmeg/expo-ui/constants";
+
+<style>{`${getThemeCssVariables()} body { background-color: var(--c-background); }`}</style>
+
+// Root layout
+import { useEffect } from "react";
+import { syncThemeFromEnvironment } from "@mrmeg/expo-ui/state";
+
+useEffect(() => syncThemeFromEnvironment(), []);
+```
 
 ### Keyboard dismissal
 
@@ -135,26 +197,23 @@ import { StyledText } from "@mrmeg/expo-ui/components";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 
-export function Panel() {
-  const { theme, getShadowStyle } = useTheme();
+export function Intro() {
+  const { theme } = useTheme();
 
   return (
-    <View
-      style={[
-        { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
-        { borderWidth: StyleSheet.hairlineWidth, borderRadius: spacing.radiusLg },
-        { padding: spacing.cardPadding, gap: spacing.sm },
-        getShadowStyle("subtle"),
-      ]}
-    >
-      <StyledText semantic="heading">Theme-aware panel</StyledText>
+    <View style={{ paddingHorizontal: spacing.screenPadding, gap: spacing.sm }}>
+      <StyledText semantic="heading">Theme-aware section</StyledText>
       <StyledText semantic="body" style={{ color: theme.colors.mutedForeground }}>
         Uses package tokens instead of hardcoded colors.
       </StyledText>
+      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border }} />
     </View>
   );
 }
 ```
+
+Sections sit on the screen's 16 pt gutter and end in a hairline, not in a
+bordered, shadowed panel; see [Screen layout](#screen-layout).
 
 `useTheme()` returns the active `theme`, resolved `scheme`, persisted
 `currentTheme`, `setTheme`, `toggleTheme`, `getShadowStyle`,
@@ -193,10 +252,13 @@ helpers.
 import { useStyles } from "@mrmeg/expo-ui/hooks";
 
 const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
-  card: {
-    backgroundColor: withAlpha(theme.colors.primary, 0.08),
+  content: {
+    paddingVertical: spacing.md,
+    gap: spacing.sectionSpacing,
+  },
+  selectedIcon: {
+    backgroundColor: withAlpha(theme.colors.primary, 0.12),
     borderRadius: spacing.radiusMd,
-    padding: spacing.md,
   },
 }));
 ```
@@ -206,7 +268,13 @@ const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
 On web every `theme.colors.*` value resolves to a CSS custom property
 (`var(--c-<kebab-token>)`), so styles built from the theme — including HTML
 shells baked at export time — re-theme purely in CSS when `html[data-theme]`
-changes. Native keeps literal values.
+changes. Native keeps literal values. Because the references are the same in
+both schemes, web shares one object between them (`colors.light.colors ===
+colors.dark.colors`), so a scheme switch keeps `theme.colors` identical and
+anything memoized on it keeps its result. Re-brand through `setColors`, not by
+mutating that object. The package keeps `html[data-theme]` on the resolved
+scheme with one store subscription, started by the first `useTheme()` consumer
+to mount.
 
 Consequence: hex-suffix alpha (`theme.colors.x + "15"`) does not work. Use
 `withAlpha(theme.colors.x, 0.08)`, exported standalone from `hooks` as well as
@@ -235,20 +303,62 @@ everywhere at once:
 
 | Token | Value | Use |
 |-------|-------|-----|
-| `screenPadding` | 16 | Horizontal gutter for screens, scroll content, landing blocks |
-| `sectionSpacing` | 24 | Gap between grouped lists, cards, settings groups |
-| `cardPadding` | 16 | `Card`, `StatCard`, any bordered panel |
+| `screenPadding` | 16 | The one horizontal inset per screen: scroll content, landing blocks, text and forms between row groups |
+| `sectionSpacing` | 24 | Gap between screen sections and `ItemGroup`s |
+| `cardPadding` | 16 | Inside `Card` and `StatCard` tiles; not a layout inset |
 | `dialogPadding` | 20 | `Dialog` and `AlertDialog` content |
-| `rowPaddingY` / `rowPaddingX` | 10 / 16 | `Item` rows and hand-rolled list rows |
+| `rowPaddingY` / `rowPaddingX` | 10 / 16 | `Item` rows; `rowPaddingX` is the row's copy of the screen inset |
 | `rowGap` | 12 | Gap between row media, content, actions |
 | `rowMinHeight` | 40 | Visual row height on web; native rows keep `touchTarget` |
 | `formRowMinHeight` | 32 | Checkbox and radio rows on web; native keeps `touchTarget` |
 | `touchTarget` | 44 | Minimum native hit area; pair a smaller visual height with `hitSlop` |
+| `minTarget` | 24 | Smallest pointer target the kit draws on web (WCAG 2.5.8); `Checkbox`/`RadioGroup` grow their hit box to it around a smaller drawn box |
 
 Controls size themselves from their own `size` prop and ignore these tokens:
 `Button` 28/32/40 (`sm`/`md`/`lg`), `TextInput` and `Select` 32/36/40
 (`sm`/`md`/`lg`), `Toggle` 32/36/40 (`sm`/`default`/`lg`), `Tabs` 32/36
 (`sm`/`md`).
+
+### Screen layout
+
+Phones are narrow, so every nested inset comes out of the content. Screens
+built from this package are flat:
+
+- **Start from `Screen`.** `<Screen edges={["bottom"]} scroll>` is the page
+  container: safe-area insets on the edges the screen owns (`edges` is
+  required — `["bottom"]` under a Stack header, `["top"]` above a tab bar,
+  `["top", "bottom"]` headerless, `[]` when the navigator owns both), the one
+  horizontal inset, the theme background under all of it. `scroll` puts the
+  insets on the `ScrollView`'s content so it scrolls under the island and home
+  indicator; `padded={false}` for full-bleed `ItemGroup` rows. Its
+  `contentContainerStyle` padding is added to the insets, never replaced.
+  Insets come from `useWindowInsets()` (`@mrmeg/expo-ui/hooks`), which also
+  covers content the system presents outside the app's `SafeAreaProvider`
+  (modals, native sheets), as `Notification`, `Dialog` and `BottomSheet` do.
+- **One horizontal inset: `spacing.screenPadding` (16).** Either a container
+  pads or its children do, never both. `Item` rows carry the inset themselves,
+  so a screen of `ItemGroup`s pads nothing horizontally; text, forms, and
+  buttons between the groups pad their own wrapper.
+- **No boxes as layout.** Don't wrap a section, a form, or a group of rows in
+  a bordered, shadowed, or tinted rounded panel. Separate sections with a
+  header, `spacing.sectionSpacing`, or a hairline (`Separator`).
+- **Lists and settings are `ItemGroup` + `Item`:** plain full-width rows,
+  inset hairlines, no card per row, no border around the group. A `Switch`,
+  `Checkbox` or `Toggle` in `ItemActions` takes its accessible name from the
+  row's `ItemTitle` (`useItemControlLabel` does the same for a custom control).
+- **Forms:** fields span the column, grouped under section headers.
+- **Primary content fills the width.** Photos, video, maps, QR codes, and
+  charts size to the column (`width: "100%"` plus `aspectRatio`), never a
+  fixed size in whitespace.
+- **Wide screens cap the column** instead of boxing it:
+  `contentContainerStyle={{ width: "100%", maxWidth: 640, alignSelf: "center" }}`.
+- **`Card` is for** one item in a collection (a feed entry, a grid tile, a
+  carousel slide) or a single tappable object. Never nest Cards.
+
+On a 390 pt phone a boxed settings group puts row content 33 pt from each edge
+(16 screen + 1 border + 16 row) and leaves 324 pt for it; the flat group puts
+it 16 pt in and leaves 358 pt. [`LLM_USAGE.md`](LLM_USAGE.md#screen-layout)
+has a complete screen.
 
 ### Color overrides
 
@@ -278,23 +388,113 @@ useThemeStore.getState().setColors({
 unwinds when that subtree unmounts. Nested scopes compose (inner keys win,
 outer fill in), and a scoped key beats the global brand inside it.
 
+#### Extending the palette
+
+An app with tokens the package does not have (a brand gold, a chart series)
+declares them once on `ThemeColorExtensions`, and they become part of
+`ThemeColors` everywhere: `setColors` and `ThemeColorScope` accept them,
+`useTheme().theme.colors.brandGold` is typed, and `getThemeCssVariables`
+emits a `--c-brand-gold` variable when the overrides you pass it name the
+key. No side palette, no cast.
+
+```ts
+// theme.d.ts (any file in the app's TypeScript program)
+declare module "@mrmeg/expo-ui/constants" {
+  interface ThemeColorExtensions {
+    brandGold: string;
+  }
+}
+
+// startup
+useThemeStore.getState().setColors({
+  light: { primary: "#7c3aed", brandGold: "#c9a227" },
+  dark: { primary: "#a78bfa", brandGold: "#ffe066" },
+});
+
+// anywhere
+const { theme } = useTheme();
+theme.colors.brandGold; // string
+```
+
+Two things to know. The package ships no value for an extension key, so
+provide it in both schemes or it is `undefined` at runtime in the scheme that
+lacks it. And on web the built-in tokens are `var(--c-*)` references while
+extension values are literals per scheme, so with any override `theme.colors`
+is a new object when the scheme changes (the identity caveat every override
+already has); the CSS variable from `getThemeCssVariables` is the way to use
+an extension token in an HTML shell.
+
 ### Shape overrides
 
-`setShape` is the geometry counterpart, grouped per component. It currently
-covers Button:
+`setShape` is the geometry counterpart, grouped per slot. Each slot takes a
+`borderRadius`; `button` also takes `withShadow`:
 
 ```tsx
 useThemeStore.getState().setShape({
-  button: {
-    borderRadius: 9999, // pill buttons everywhere; package default is 12
-    withShadow: false,  // flatten the `default` preset; package default is true
-  },
+  button: { borderRadius: 9999, withShadow: false }, // pills, flat `default` preset
+  input: { borderRadius: spacing.radiusXl },          // TextInput, Select, InputOTP
+  card: { borderRadius: spacing.radius2xl },          // Card, StatCard, EmptyState, SkeletonCard
+  sheet: { borderRadius: spacing.radius2xl },         // BottomSheet top corners
+  badge: { borderRadius: spacing.radiusSm },          // squarer badges
+  dialog: { borderRadius: spacing.radius2xl },        // Dialog and AlertDialog
 });
 ```
 
+| Slot | Reaches | Package default |
+|---|---|---|
+| `button` | Button, every preset (`withShadow` only affects `default`) | `spacing.radiusMd` (10), shadow on |
+| `input` | TextInput (`outline` and `filled`; `underlined` stays square), Select trigger, InputOTP cells | `spacing.radiusMd` (10) |
+| `card` | Card (surface and pressable focus ring), StatCard, EmptyState with `bordered`, SkeletonCard | `spacing.radiusLg` (14) |
+| `sheet` | BottomSheet top corners, where the platform lets the sheet draw them (web, Android); iOS system sheets keep the system radius | platform |
+| `badge` | Badge | `spacing.radiusFull` (pill) |
+| `dialog` | Dialog and AlertDialog content | `spacing.radiusLg` (14) |
+
 Precedence is caller-wins: a per-instance `style={{ borderRadius }}` or
 `withShadow` prop beats the global override, which beats the package default.
-`setShape({})` clears back to the defaults.
+`setShape({})` clears back to the defaults. A component reads its slot with
+`useShape(slot)` from `@mrmeg/expo-ui/hooks` and layers the radius after its
+static one; `shapeRadius(override)` turns the slot into a `{ borderRadius }`
+style or `undefined` for that layering.
+
+### Press feedback and haptics
+
+Every pressable shares one pressed look: a 0.97 scale (0.92 on small controls)
+plus `interaction.pressedOpacity` (0.85) on filled surfaces, and
+`interaction.disabledOpacity` (0.5) when disabled — both from
+`@mrmeg/expo-ui/constants`. Under the OS reduce-motion setting the scale stays
+at 1 and only the opacity signals the press.
+
+Haptics are one provider-level setting, read at event time:
+
+```tsx
+<UIProvider haptics="all">…</UIProvider>
+// or, from startup code:
+import { setHaptics } from "@mrmeg/expo-ui/state";
+setHaptics("all");
+```
+
+| `haptics` | Fires on |
+|---|---|
+| `"off"` | nothing |
+| `"selection"` (default) | state changes: Switch, Checkbox, Toggle, ToggleGroup, SegmentedControl |
+| `"all"` | selection plus a light tap on press-in for Button, pressable Card and Item, and `useScalePress` consumers |
+
+Two ways to disable a `Button`. `disabled` swallows presses, skips the scale
+and haptic, dims, and leaves the web tab order — for actions that cannot run.
+`aria-disabled` (or `accessibilityState={{ disabled: true }}`) is announced
+and dimmed the same way but stays focusable and pressable, so the press can say
+why: a required question's "Next", a "Publish" without a title. Prefer it
+whenever the user could otherwise wonder why nothing happens.
+
+```tsx
+<Button text="Publish" aria-disabled={!title} onPress={() => (title ? publish() : notify.info("Add a title first"))} />
+```
+
+Web never vibrates. A single `Button` can force either way with `haptic`
+(`<Button haptic />`, `<Button haptic={false} />`); `useScalePress({ haptic })`
+takes `true` (always), `false` (never) or `"setting"` (the default, follows the
+provider). `hapticSuccess()` from `@mrmeg/expo-ui/lib` is there for completion
+moments the app owns.
 
 ## Typography
 
@@ -312,6 +512,11 @@ import { BodyText, CaptionText, HeadingText, StyledText } from "@mrmeg/expo-ui/c
 - `semantic`: `title`, `heading`, `subheading`, `body`, `caption`, `label`, `eyebrow`
 - `size`: `xs`, `sm`, `base`, `body`, `lg`, `xl`, `xxl`, `display`
 - `fontWeight`: `light`, `regular`, `medium`, `semibold`, `bold`
+- `italic`: a real italic face where the family has one (an app's `setFonts`
+  `italic` map, or the Newsreader serif preset below), otherwise
+  `fontStyle: "italic"` and the platform synthesizes the slant. Inter ships no
+  italic file on native (four upright weights, by design); on web the injected
+  Inter stylesheet carries the 400 italic, so body-weight italic is real there
 - `variant`: `sansSerif`, `serif`, `mono`
 - `align`, `text`, `tx`, `txOptions`
 - `selectable`: defaults to `true` on iOS and web and to `false` on Android
@@ -348,11 +553,15 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 
 Inter is the sans face on every platform, in four static weights
 (`Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`, `Inter_700Bold`)
-from the bundled `@expo-google-fonts/inter`. Serif is Georgia; mono is the
-platform system monospace.
+from the bundled `@expo-google-fonts/inter`. Serif is Georgia by default, or
+Newsreader through the serif preset below; mono is the platform system
+monospace.
 
 `useResources()` loads those four weights on native, so `StyledText`'s
-`light`–`bold` range resolves to real files instead of a faked OS bold. Icons
+`light`–`bold` range resolves to real files instead of a faked OS bold. Each
+weight is imported from its own `@expo-google-fonts/inter/<weight>` subpath, so
+a native bundle carries those four files and no other Inter face, and a web
+bundle carries no Inter file at all. Icons
 are SVG (`lucide-react-native`), so there is no icon font to load on any
 platform. On web
 it injects one Google Fonts Inter stylesheet (all four weights) after hydration
@@ -366,9 +575,81 @@ Expo Router web apps, add the links to app-owned `app/+html.tsx`:
 <link
   id="mrmeg-expo-ui-inter"
   rel="stylesheet"
-  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+  href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
 />
 ```
+
+### Serif preset: Newsreader
+
+Georgia is one face per platform, so `SerifText fontWeight="bold"` is a faux
+bold and `italic` a synthesized slant. Newsreader is a real serif family —
+four weights and a 400 italic — offered as an opt-in preset that costs an app
+nothing unless it opts in: the package does not depend on the font package, so
+the app adds it and hands the native files over.
+
+```bash
+bun add @expo-google-fonts/newsreader
+```
+
+```ts
+// lib/newsreaderFonts.native.ts — per-weight subpaths, so the native bundle
+// carries exactly these five files. The web twin exports `null`.
+import { Newsreader_400Regular } from "@expo-google-fonts/newsreader/400Regular";
+import { Newsreader_400Regular_Italic } from "@expo-google-fonts/newsreader/400Regular_Italic";
+import { Newsreader_500Medium } from "@expo-google-fonts/newsreader/500Medium";
+import { Newsreader_600SemiBold } from "@expo-google-fonts/newsreader/600SemiBold";
+import { Newsreader_700Bold } from "@expo-google-fonts/newsreader/700Bold";
+
+export const newsreaderFontMap = {
+  Newsreader_400Regular,
+  Newsreader_500Medium,
+  Newsreader_600SemiBold,
+  Newsreader_700Bold,
+  Newsreader_400Regular_Italic,
+};
+```
+
+```tsx
+// where the app already calls useResources
+const { loaded } = useResources({ serif: "newsreader", serifFonts: newsreaderFontMap });
+```
+
+On native `useResources` registers the files and then sets the theme store's
+`serifPreset` to `"newsreader"`, so serif text resolves to
+`Newsreader_400Regular` … `Newsreader_700Bold` (`light` shares the 400 file)
+and `italic` to `Newsreader_400Regular_Italic` at every weight. On web it
+injects one Google Fonts stylesheet (`Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400`)
+under the id `mrmeg-expo-ui-newsreader` — put an element with that id in
+`+html.tsx` (the Google Fonts `<link>`, or self-hosted `@font-face` rules as
+this template does from `@fontsource-variable/newsreader`) and the hook skips
+its own — and switches the preset at once
+(the stack falls back to Georgia until the faces arrive); weight is numeric on
+the shared `"Newsreader"` family. A `setFonts` serif override wins over the
+preset and skips its load. Without `serifFonts` on native the hook warns once
+and keeps Georgia. The family names are exported as `newsreaderFamilies` from
+`@mrmeg/expo-ui/constants`; `SerifPreset` and `useThemeStore().serifPreset` /
+`setSerifPreset` are the store side.
+
+### Italic faces through `setFonts`
+
+Each family group in `setFonts` takes an `italic` map beside the weights:
+
+```ts
+useThemeStore.getState().setFonts({
+  families: {
+    sansSerif: {
+      regular: "Brand_Regular",
+      bold: "Brand_Bold",
+      italic: { regular: "Brand_Italic", bold: "Brand_BoldItalic" },
+    },
+  },
+});
+```
+
+`italic` on `StyledText` (or `useFontStyle(weight, variant, { italic: true })`)
+then uses the italic face for its weight, falls back to the group's italic
+`regular` when that weight has none, and emits no `fontStyle`; a group with no
+`italic` map synthesizes on its upright face.
 
 ### Font overrides
 
@@ -431,7 +712,7 @@ building a new primitive.
 | `Badge` | Short status labels | Draft/active state, counts, plan and role tags |
 | `BottomSheet` | Mobile-first modal sheets | Action pickers, mobile filters, quick edit forms |
 | `Button` | Commands and CTAs | Submit, save, delete, navigation CTAs; loading state keeps the resting width |
-| `Card` | Framed content groups | List items, pricing plans, settings sections, dashboards |
+| `Card` | One item in a collection, or a single tappable object; not a layout box | Feed entries, grid tiles, carousel slides, a tappable summary |
 | `Carousel` | Horizontally snapping slides with pressable dots | Testimonials, onboarding pages, image galleries |
 | `Checkbox` | Boolean selection | Terms consent, checklists, multi-select filters |
 | `Collapsible` | One-off disclosure | Advanced settings, hidden helper text |
@@ -444,20 +725,22 @@ building a new primitive.
 | `Icon` | Lucide or custom icons on theme tokens | Button accessories, menu icons, status glyphs |
 | `InputOTP` | Verification code entry | Email/SMS codes, MFA, invite codes |
 | `Item` | List and settings rows on the density tokens | Settings lists, inbox rows, pickers, detail rows |
+| `ItemGroup` | Flat grouped list: title, full-width `Item` rows with inset hairlines, footer | Settings sections, profile details, activity feeds |
 | `KeyboardAvoidingView` | Native keyboard-aware layout | Screen roots, composer footers, form-heavy subtrees |
 | `Label` | Accessible form labels | Required, disabled, and group labels |
-| `MaxWidthContainer` | Centered responsive width | Web pages, tablet layouts, auth panels |
+| `MaxWidthContainer` | Centered responsive width | Web pages, tablet layouts, auth forms |
 | `Notification` | Global toast surface | Saved/error/sync toasts, action toasts, loading toast |
+| `Screen` | Page container: safe-area `edges`, one horizontal inset, theme background, optional scroll | Every screen root; under a header pass `edges={["bottom"]}` |
 | `Popover` | Anchored contextual content | Inline help, quick previews, small forms |
 | `Progress` | Determinate or indeterminate progress | Upload progress, onboarding completion |
 | `RadioGroup` | Mutually exclusive choices | Plan interval, visibility choice, survey answer |
-| `SectionHeader` | Eyebrow / title / description section intro | Landing sections, settings groups, report headers |
+| `SectionHeader` | Eyebrow / title / description section intro | Landing sections, report headers, empty-screen intros |
 | `SegmentedControl` | Native segmented picker (`@expo/ui`) | Platform-native view switchers, iOS-style filters |
 | `Select` | Option menus | Country, category, status pickers; `label` drives default item text |
-| `Separator` | Horizontal or vertical dividers | Menu, section, and card dividers |
+| `Separator` | Horizontal or vertical dividers | Section, menu, and toolbar dividers |
 | `Skeleton` | Loading placeholders | List, profile card, dashboard loading |
 | `Slider` | Numeric value selection (`@expo/ui`) | Volume, percentage, rating, threshold |
-| `StatCard` | Metric tile: `label`, `value`, `unit`, `change`, `icon`, `onPress` | KPI rows, analytics summaries, usage meters |
+| `StatCard` | Metric tile: `label`, `value`, `unit`, `change`, `icon`, `onPress` | A scrolling KPI rail, one tappable metric |
 | `StatusBar` | Theme-aware native status bar | Root layout status styling |
 | `StyledText` and aliases | Theme-aware typography | Titles, labels, body copy, captions, translated text |
 | `Switch` | Binary settings | Notification, privacy, and feature toggles |
@@ -475,14 +758,28 @@ Feather in the same 24px, 2px round-stroke style. `name` is typed by
 (`src/components/icon-names.json`, about 150 names), so only the icons the package
 and its consumers name ship in the bundle: the root `lucide-react-native`
 entry (1,800+ icons) is never imported. `color` takes a theme color name or a
-literal; `decorative` hides the glyph from assistive tech.
+literal. `accessibilityLabel` names an icon that stands alone (`role="img"` +
+`aria-label` on web, `accessible` + `accessibilityLabel` on native); an icon
+without one is hidden from assistive tech — the glyph beside text that already
+says it would otherwise be announced as an unnamed image — and `decorative`
+only remains to silence a labelled icon. On web the SVG carries ARIA only
+(`aria-hidden` or `role="img"`), never the RN-only accessibility props. Instead of `name`,
+`Icon` and `Button.Icon` take `component`: any Lucide import (or another SVG
+component that accepts `size` and `color`), sized, colored, themed, and hidden
+from assistive tech exactly like a named icon. `Button.Icon` defaults its
+color to the button's label color either way.
 
 ```tsx
-import { Icon } from "@mrmeg/expo-ui/components";
+import { Button, Icon } from "@mrmeg/expo-ui/components";
+import House from "lucide-react-native/icons/house";
 import Rocket from "lucide-react-native/icons/rocket";
 
 <Icon name="circle-check-big" color="success" size={16} />
 <Icon component={Rocket} color="accent" />
+<Button onPress={goHome}>
+  <Button.Icon component={House} />
+  <Button.Text>Home</Button.Text>
+</Button>
 ```
 
 Adding an icon: in this repo, add the kebab-case Lucide name to
@@ -518,7 +815,7 @@ Lucide equivalent; use `component` with your own SVG.
 | `Dialog` | `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogFooter`, `DialogTitle`, `DialogDescription`, `DialogClose` |
 | `Drawer` | `DrawerTrigger`, `DrawerContent`, `DrawerHeader`, `DrawerBody`, `DrawerFooter`, `DrawerClose`, `DrawerToggleCollapse` |
 | `DropdownMenu` | `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuGroup`, `DropdownMenuItem`, `DropdownMenuCheckboxItem`, `DropdownMenuRadioGroup`, `DropdownMenuRadioItem`, `DropdownMenuLabel`, `DropdownMenuSeparator`, `DropdownMenuShortcut`, `DropdownMenuPortal`, `DropdownMenuSub`, `DropdownMenuSubTrigger`, `DropdownMenuSubContent` |
-| `Item` | `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` |
+| `Item` | `ItemGroup`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` |
 | `Popover` | `PopoverTrigger`, `PopoverContent`, `PopoverHeader`, `PopoverBody`, `PopoverFooter` |
 | `RadioGroup` | `RadioGroupItem` |
 | `Select` | `SelectTrigger`, `SelectValue`, `SelectContent`, `SelectItem`, `SelectGroup`, `SelectLabel`, `SelectSeparator` |
@@ -544,11 +841,17 @@ are named exports only.
 | `useDimensions()` | `{ width, height, orientation, isSmallScreen, isMediumScreen, isLargeScreen }` against `SCREEN_SIZES` (768 / 1000 / 1200) |
 | `useFontStyle(weight?, variant?)` | `{ fontFamily, fontWeight? }` resolved through `setFonts` overrides |
 | `useReducedMotion()` | `true` when the OS asks for reduced motion |
+| `useFocusVisible(options?)` | `{ focused, onFocus, onBlur }` for a `Pressable`; on web `focused` follows `:focus-visible` (keyboard only), so layer `getFocusRingStyle()` while it is true — the gate every kit control uses |
 | `useScalePress(options?)` | Animated style plus `onPressIn`/`onPressOut` for a `Pressable` (`scaleTo`, `haptic`, `disabled`) |
 | `useStaggeredEntrance(options?)` | Entrance animated style for list rows (`delay`; `STAGGER_DELAY` is 30) |
 
 `SsrViewportContext` (from `state`) supplies the first-render viewport width on
-web, where the window cannot be read during export or hydration.
+web, where the window cannot be read during export or hydration. Right after
+hydration `useDimensions()` switches to the real window. On web every consumer
+shares one `resize` listener and one snapshot, re-renders only when the width or
+height changes, and a component that mounts later reads the current viewport
+straight away. The `mrmeg-vw` cookie (the width a server can seed the next
+render from) is written once per page view and then once resizing settles.
 
 ### Patterns And Gotchas
 
@@ -601,6 +904,18 @@ web, where the window cannot be read during export or hydration.
   rebuild; the sheet warns once in development on Android when the native core
   is older. Web has none. Do not wrap sheet content in another
   `KeyboardAvoidingView`: it would lift twice.
+  `onDismissed` (root prop) fires once per close after the sheet is fully gone;
+  present the next modal — a `Dialog` (an RN `Modal` on iOS), a native stack
+  modal — from it, not from `onOpenChange(false)` or a timer: on iOS the sheet
+  is still dismissing when `onOpenChange` fires and UIKit rejects a `Modal`
+  presented then ("already presenting") with no retry. Detection per platform:
+  iOS uses `@expo/ui`'s native `onDismiss` event, raised by SwiftUI
+  `.sheet(isPresented:onDismiss:)` after the dismissal transition; Android uses
+  `@expo/ui`'s close callback, raised after Material's hide animation for a
+  swipe / back / scrim dismissal and with the removal of the Compose sheet for a
+  prop-driven close (which has no exit animation); web derives it from the HTML
+  `<dialog>`'s `close` event, which `@expo/ui` raises when its exit animation
+  ends (immediately under reduced motion).
   The sheet hosts its content in a separate
   native window outside the app's `DismissKeyboard`, so `BottomSheet.Content`
   mounts its own tap-away keyboard-dismiss boundary on the content column: it
@@ -647,16 +962,41 @@ web, where the window cannot be read during export or hydration.
   not put `@expo/ui`-hosted controls inside them yet, and do not place a
   `Dialog` inside their content either — it has no view controller to present
   from there; render it at screen level and open it from the item's
-  `onPress`. The iOS Modal is outside `UIProvider`'s root
-  keyboard avoidance, so the dialog owns it there: the centered container is a
-  package `KeyboardAvoidingView` (`behavior="padding"`), the card recenters
-  above the keyboard with its fields and footer visible, and
-  `useKeyboardAvoidance()` is `true` inside dialog content. Do not wrap dialog
-  content in another `KeyboardAvoidingView`. The platform close request
+  `onPress`. Dialog content sits outside `UIProvider`'s root keyboard
+  avoidance on both native platforms (the iOS Modal is presented outside it;
+  the Android portal host is a sibling of it), so the dialog owns keyboard
+  avoidance on iOS and Android: the centered container is a package
+  `KeyboardAvoidingView` (`behavior="padding"`), the card recenters above the
+  keyboard with its fields and footer visible, and `useKeyboardAvoidance()` is
+  `true` inside dialog content. Do not wrap dialog content in another
+  `KeyboardAvoidingView`. Web has no software keyboard and no avoidance owner
+  (`useKeyboardAvoidance()` is `false` there). Dialog content also owns tap-away
+  keyboard dismissal on iOS and Android with the same boundary as
+  `DismissKeyboard` and `BottomSheet.Content`: `Dialog` carries it on the card
+  itself (the primitive's native content claims every touch inside the card so
+  the backdrop's close-on-press never fires there, and that claim would stop a
+  boundary on any ancestor from ever being asked), `AlertDialog` on its
+  centered container. A tap on the card's dead space (padding, labels, the gap
+  between fields and footer) hides the keyboard on release, a `Dialog` backdrop
+  tap closes the dialog and the keyboard with it, and `Close`, `Action`,
+  `Cancel`, buttons and fields still fire on the first tap; no
+  `DismissKeyboard` is needed inside a dialog (inert on web, which has no
+  software keyboard). The platform close request
   (hardware back, TV menu) routes to the root's `onOpenChange(false)`. Android
-  and web render dialog content inline into the portal host, which sits
-  outside the root avoidance, so an Android dialog does not avoid the keyboard
-  yet.
+  and web render dialog content inline into the portal host.
+- `PopoverContent` treats `side` as a preference. On iOS and Android it opens
+  on the other side when the content does not fit and there is more room
+  there, caps its height to the room it gets, and scrolls the children inside
+  that cap; `insets` default to the safe area, so the card stays clear of the
+  status bar and home indicator. Pass `scrollable={false}` when the content
+  brings its own `FlatList` (a VirtualizedList inside a vertical ScrollView
+  warns): the cap still applies, but the popover can no longer measure its full
+  height, so it stays on `side`. A `style` merges over the themed surface
+  (background, border, radius, shadow) instead of replacing it. On web, Radix
+  flips it and the card is capped to the space Radix measures; the primitive
+  cannot pass Radix a collision padding, so a card wider than the room beside
+  its trigger can sit flush against the viewport edge. A `PopoverTrigger` ref
+  (`PopoverTriggerRef`) exposes `open()` and `close()`.
 - `Carousel` renders every child (no virtualization), so slides survive into
   the exported HTML shell and the first client frame; use `FlatList` for large
   or unbounded data. An `itemWidth` below 1 (default `0.85`) is a fraction of
@@ -693,19 +1033,39 @@ import { Drawer, Icon } from "@mrmeg/expo-ui/components";
 ### Quick Examples
 
 ```tsx
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@mrmeg/expo-ui/components";
+import {
+  Badge,
+  Icon,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@mrmeg/expo-ui/components";
 
-<Card variant="outline">
-  <CardHeader>
-    <CardTitle>Subscription</CardTitle>
-    <Badge variant="secondary">Active</Badge>
-  </CardHeader>
-  <CardContent>
-    <Button preset="default" fullWidth>
-      Manage billing
-    </Button>
-  </CardContent>
-</Card>
+<ItemGroup title="Subscription" footer="Renews on the 1st of each month.">
+  <Item>
+    <ItemMedia icon="award" />
+    <ItemContent>
+      <ItemTitle>Pro plan</ItemTitle>
+      <ItemDescription>$12 / month</ItemDescription>
+    </ItemContent>
+    <ItemActions>
+      <Badge variant="secondary">Active</Badge>
+    </ItemActions>
+  </Item>
+  <Item onPress={openBillingPortal}>
+    <ItemMedia icon="credit-card" />
+    <ItemContent>
+      <ItemTitle>Manage billing</ItemTitle>
+    </ItemContent>
+    <ItemActions>
+      <Icon name="chevron-right" size={18} color="mutedForeground" />
+    </ItemActions>
+  </Item>
+</ItemGroup>
 ```
 
 ```tsx
@@ -747,23 +1107,45 @@ after 4s (`DEFAULT_NOTIFICATION_DURATION`) unless a `duration` is given;
 auto-dismisses. `position` is `"top"` (default) or `"bottom"`. `globalUIStore`
 stays available for reactive selectors and tests.
 
+A bottom toast renders in the root layout, above every navigator, so a layout
+that owns a bar registers where it ends with `useNotificationOffset` from
+`@mrmeg/expo-ui/hooks`; the toast then sits 8 pt past the larger of the
+safe-area inset and the offset. The offset is measured from the window edge and
+includes the inset, so a JS tab layout passes `useBottomTabBarHeight()` as-is
+and a `NativeTabs` layout passes the platform bar height plus
+`useWindowInsets().bottom`. Pass `null` while the bar is hidden (keyboard up).
+
+```tsx
+import { Tabs } from "expo-router";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useNotificationOffset } from "@mrmeg/expo-ui/hooks";
+
+function ToastOffset() {
+  useNotificationOffset({ bottom: useBottomTabBarHeight() });
+  return null;
+}
+
+// Render <ToastOffset /> inside a tab screen (it must be a descendant of <Tabs>).
+```
+
 ## Package Release
 
 ```sh
-bun run ui:release -- --patch --publish
+bun run pkg ui release -- --patch --publish
 ```
 
-Use `--patch`, `--minor`, `--major`, or an exact version such as `0.2.0`. The
-command updates `packages/ui/package.json` and `bun.lock`, runs
-`bun run packages:peer-check` then the `ui:typecheck`, `ui:test`, `ui:build`,
-`ui:pack`, and `ui:consumer-smoke` gates, and publishes with
-`npm publish --access public` only when `--publish` is present (which also
-requires a working `npm whoami`). Without `--publish` it is the same bump and
-gate run as a dry run.
+Use `--patch`, `--minor`, `--major`, or an exact version such as `0.2.0` (the
+committed version itself releases without a bump). The command updates
+`packages/ui/package.json` and `bun.lock`, runs `bun run packages:peer-check`
+then `bun run pkg ui typecheck`, `test`, and `build`, packs one tarball, runs
+`bun run pkg ui consumer-smoke -- --tarball <that tarball>`, and publishes that
+same tarball with `npm publish <tarball> --access public` only when
+`--publish` is present (which also requires a working `npm whoami`). Without
+`--publish` it is the same bump and gate run as a dry run.
 
 A clean working tree is required; commit first or pass `--allow-dirty`.
 
-CI also installs and exports packed consumers against Expo 56 and 57
+CI also installs and exports packed consumers against Expo 56, 57, and 58
 (`.github/workflows/package-compatibility.yml`).
 
 ### GitHub Publishing
@@ -773,18 +1155,20 @@ publishing:
 
 1. In npm package settings for `@mrmeg/expo-ui`, add a trusted publisher:
    GitHub Actions, owner `mrmeg`, repository `expo-template`, workflow filename
-   `publish-ui.yml`.
+   `publish-packages.yml`.
 2. Bump `packages/ui/package.json` in a commit and push it to `main`.
 
-`publish-ui.yml` runs on a push to `main` touching `packages/ui/package.json`
-and on `workflow_dispatch`, using npm OIDC rather than a checked-in token or
-local npm login. On push it reads the committed version, skips cleanly if that
-version is already published, otherwise runs the gates and publishes from
-`packages/ui`. Manual runs take `version` (`patch`, `minor`, `major`, or exact
-`x.y.z`) and `ref` (default `main`); they bump the version, update `bun.lock`,
-run the gates, publish, then commit and push the bump. If a manual run fails
-after the bump landed, rerun it with the exact current version (e.g.
-`version=0.1.3`) — exact versions do not bump again.
+`publish-packages.yml` publishes every workspace package. It runs on a push to
+`main` that changes a `packages/*/package.json` and on `workflow_dispatch`, using
+npm OIDC rather than a checked-in token or local npm login. On push it releases
+the committed version when that version changed in the push and npm does not
+have it yet, through the same release script as the local command, then
+publishes the smoked tarball with provenance and tags `expo-ui-v<version>`.
+Manual runs take `package=ui`, `version` (`patch`, `minor`, `major`, or exact
+`x.y.z`), and `ref` (default `main`); they bump the version and commit it to
+`ref`, run the gates, publish, and tag. If a manual run fails after the bump
+landed, rerun it with the exact current version (e.g. `version=0.1.3`) — the
+committed version does not bump again.
 
 Keep `repository.url` in `package.json` as
 `git+https://github.com/mrmeg/expo-template.git`: npm trusted publishing checks
@@ -799,22 +1183,30 @@ CI configuration, never in the repository.
 
 ```sh
 bun run packages:peer-check
-bun run ui:typecheck
-bun run ui:test
-bun run ui:build
-bun run ui:pack
-bun run ui:consumer-smoke
+bun run pkg ui typecheck
+bun run pkg ui test
+bun run pkg ui build
+bun run pkg ui pack
+bun run pkg ui consumer-smoke
 ```
 
-`ui:pack` is a dry pack, so the published file list and package size can be
-inspected before release. `ui:consumer-smoke` installs the packed tarball into
-a clean fixture, checks every documented export-map target resolves,
-type-checks all public entrypoints, and runs an iOS `expo export` against the
-packed package at the workspace's Expo version, without a custom Metro config.
+`pkg ui pack` is a dry pack, so the published file list and package size can be
+inspected before release. `pkg ui consumer-smoke` installs the packed tarball
+into a clean fixture, checks every documented export-map target resolves,
+type-checks all public entrypoints, imports the Node-safe subpaths
+(`constants/spacing`, `constants/motion`, `components/keyboardFocusRegistry`,
+`state/notify` with `state/globalUIStore`, `state/SsrViewportContext`) in plain
+Node, and runs iOS, Android, and web `expo export`s against the packed package
+at the workspace's Expo version, without a custom Metro config. The web export's
+source maps must show one copy of React, react-dom, react-native-web, and every
+`@radix-ui/*` / `@rn-primitives/*` module: a consumer install that resolves two
+copies of `@radix-ui/react-slot` crashes the web `AlertDialog` with
+`React.Children.only expected to receive a single React element child`. Pass
+`-- --tarball <file>` to smoke an existing tarball instead of building one.
 
 ### Design-system manifest
 
-`ui:build` also writes `dist/design-system.json`
+`pkg ui build` also writes `dist/design-system.json`
 ([`scripts/build-design-system-manifest.mjs`](../../scripts/build-design-system-manifest.mjs)):
 the spacing, radius and icon scales, the palette, the light and dark themes, the
 font variants, every component's variant and size values, and `icons.names` (the
@@ -823,7 +1215,7 @@ rules use. It is exported as
 `@mrmeg/expo-ui/design-system.json`, and `@mrmeg/eslint-plugin-expo-ui` reads it
 in projects that install this package instead of checking out its sources — which
 is what lets the design-system rules quote this release's presets and tokens.
-`ui:consumer-smoke` asserts the packed tarball carries it and that it parses at
+`pkg ui consumer-smoke` asserts the packed tarball carries it and that it parses at
 `schemaVersion: 1` with a non-empty component list. The build fails rather than
 writing an empty manifest, so a broken extractor cannot ship as "no rules to
 enforce".

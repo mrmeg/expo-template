@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { StyleProp, TextStyle, ViewProps, ViewStyle } from "react-native";
+import { Platform, type StyleProp, type TextStyle, type ViewProps, type ViewStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import type { ThemeColors } from "../constants/colors";
 import { ICONS, type IconName } from "./iconRegistry.generated";
@@ -44,14 +44,60 @@ type IconBaseProps = {
   color?: string | ThemeColorName;
   /** Additional styles for positioning, transforms, etc. */
   style?: StyleProp<TextStyle>;
-  /** When true, hides the icon from the accessibility tree. @default false */
+  /**
+   * Hides the icon from the accessibility tree. An icon with no
+   * `accessibilityLabel` is already hidden (see below), so this is only
+   * needed to silence a labelled icon. @default false
+   */
   decorative?: boolean;
+  /**
+   * What the icon means, for an icon that stands alone (no visible label next
+   * to it): `role="img"` + `aria-label` on web, `accessible` +
+   * `accessibilityLabel` on native. Omit it when the icon sits beside text
+   * that already says it — an unlabeled icon is hidden from assistive tech,
+   * which would otherwise announce an unnamed image.
+   */
+  accessibilityLabel?: string;
 };
 
 type IconAccessibilityProps = Pick<
   ViewProps,
-  "accessible" | "importantForAccessibility" | "accessibilityElementsHidden" | "aria-hidden"
+  | "accessible"
+  | "importantForAccessibility"
+  | "accessibilityElementsHidden"
+  | "accessibilityLabel"
+  | "aria-hidden"
+  | "aria-label"
+  | "role"
 >;
+
+/**
+ * On web the SVG root is a DOM element and React forwards every prop to it,
+ * so the RN-only accessibility props (`accessible`,
+ * `importantForAccessibility`, `accessibilityElementsHidden`) surface as
+ * "unknown prop" warnings on every page. Web gets ARIA only; native keeps
+ * the RN props.
+ *
+ * Only a labelled icon is exposed. An icon without a label used to render as
+ * an unnamed `role="img"` (web) or an `accessible` element with nothing to
+ * say (native) — dozens per screen, each a WCAG 1.1.1 failure — so no label
+ * now means decorative.
+ */
+function iconAccessibilityProps(decorative: boolean, label: string | undefined): IconAccessibilityProps {
+  const hidden = decorative || label === undefined;
+  if (Platform.OS === "web") {
+    return hidden ? { "aria-hidden": true } : { role: "img", "aria-label": label };
+  }
+  if (hidden) {
+    return {
+      accessible: false,
+      importantForAccessibility: "no-hide-descendants",
+      accessibilityElementsHidden: true,
+      "aria-hidden": true,
+    };
+  }
+  return { accessible: true, accessibilityLabel: label };
+}
 
 /**
  * Props handed to a `component`. Wide enough that any `lucide-react-native`
@@ -107,20 +153,13 @@ function warnUnknownIconName(name: string) {
 }
 
 export function Icon(props: IconProps) {
-  const { size = 24, color, style, decorative = false } = props;
+  const { size = 24, color, style, decorative = false, accessibilityLabel } = props;
   const { theme } = useTheme();
   const iconColor = resolveIconColor(color, theme.colors);
 
   const CustomComponent = "component" in props ? props.component : undefined;
 
-  const accessibilityProps: IconAccessibilityProps = decorative
-    ? {
-      accessible: false,
-      importantForAccessibility: "no-hide-descendants",
-      accessibilityElementsHidden: true,
-      "aria-hidden": true,
-    }
-    : { accessible: true };
+  const accessibilityProps = iconAccessibilityProps(decorative, accessibilityLabel);
 
   // `style` stays a text style on the public prop for source compatibility
   // with the font-icon era; SVG roots take a view style, and every layout

@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
-import { View, Pressable, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -8,6 +8,7 @@ import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/Styl
 import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 import { AuthFormCard } from "./AuthFormCard";
+import { AuthLink } from "./AuthLink";
 import { authFormStyles } from "./authFormStyles";
 import {
   getSocialLabel,
@@ -142,14 +143,14 @@ export function SignUpForm({
       footer={
         onSignIn && (
           <>
-            <SansSerifText style={shared.mutedText}>
+            <SansSerifText size="base" style={shared.mutedText}>
               {t("auth.hasAccount")}{" "}
             </SansSerifText>
-            <Pressable accessibilityRole="button" onPress={onSignIn} disabled={loading}>
-              <SansSerifBoldText selectable={false} style={shared.linkText}>
+            <AuthLink onPress={onSignIn} disabled={loading}>
+              <SansSerifBoldText size="base" selectable={false} style={shared.linkText}>
                 {t("auth.signIn")}
               </SansSerifBoldText>
-            </Pressable>
+            </AuthLink>
           </>
         )
       }
@@ -271,26 +272,25 @@ export function SignUpForm({
       )}
 
       {onPasswordlessSignUp && (
-        <Pressable
+        <AuthLink
           testID={
             usePassword ? "sign-up-use-passwordless-button" : "sign-up-add-password-button"
           }
-          accessibilityRole="button"
           onPress={() => setUsePassword((current) => !current)}
           disabled={loading}
           style={styles.methodToggle}
         >
-          <SansSerifText selectable={false} style={shared.linkText}>
+          <SansSerifText size="base" selectable={false} style={shared.linkText}>
             {usePassword ? t("auth.signUpWithoutPasswordInstead") : t("auth.addAPassword")}
           </SansSerifText>
-        </Pressable>
+        </AuthLink>
       )}
 
       {socialProviders.length > 0 && (
         <>
           <View style={shared.separatorRow}>
             <View style={shared.separatorLine} />
-            <SansSerifText style={shared.hintText}>{t("auth.or")}</SansSerifText>
+            <SansSerifText size="base" style={shared.hintText}>{t("auth.or")}</SansSerifText>
             <View style={shared.separatorLine} />
           </View>
 

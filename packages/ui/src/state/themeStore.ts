@@ -3,7 +3,7 @@ import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { ThemeColors } from "../constants/colors";
-import type { FontOverrides } from "../constants/fonts";
+import type { FontOverrides, SerifPreset } from "../constants/fonts";
 
 const THEME_KEY = "user-theme-preference";
 
@@ -41,19 +41,29 @@ export type ColorOverrides = {
   dark?: Partial<ThemeColors>;
 };
 
+/** A radius override for one shape slot. `0` is square corners; `9999` is a pill. */
+export type ShapeSlotOverride = {
+  /** Border radius for every component in the slot. A caller `style` still wins. */
+  borderRadius?: number;
+};
+
 /**
- * Shape overrides a host app can inject, grouped per component so future
- * shape knobs (card radius, input radius, …) slot in without reshaping the
- * API. Every field is optional; omitted fields keep the package default.
+ * Shape overrides a host app can inject, grouped per slot. Every field is
+ * optional; omitted fields keep the package default. Components read their
+ * slot through `useShape(slot)` and layer it after the static radius, before
+ * the caller's `style`.
+ *
+ * | Slot | Components | Package default |
+ * |---|---|---|
+ * | `button` | Button (every preset) | `spacing.radiusMd` (10) |
+ * | `input` | TextInput (not `underlined`), Select trigger, InputOTP cells | `spacing.radiusMd` (10) |
+ * | `card` | Card, StatCard, EmptyState (`bordered`), SkeletonCard | `spacing.radiusLg` (14) |
+ * | `sheet` | BottomSheet top corners (where the platform lets the sheet draw them: web, Android) | platform |
+ * | `badge` | Badge | `spacing.radiusFull` |
+ * | `dialog` | Dialog and AlertDialog content | `spacing.radiusLg` (14) |
  */
 export type ShapeOverrides = {
-  button?: {
-    /**
-     * Border radius applied to every Button preset. Package default:
-     * `spacing.radiusMd` (10). Use 9999 for pill buttons. A caller `style`
-     * still wins over this, as it always has.
-     */
-    borderRadius?: number;
+  button?: ShapeSlotOverride & {
     /**
      * Whether the `default` preset renders its shadow. Package default: true.
      * Other presets stay flat regardless; the per-instance `withShadow` prop
@@ -61,7 +71,14 @@ export type ShapeOverrides = {
      */
     withShadow?: boolean;
   };
+  input?: ShapeSlotOverride;
+  card?: ShapeSlotOverride;
+  sheet?: ShapeSlotOverride;
+  badge?: ShapeSlotOverride;
+  dialog?: ShapeSlotOverride;
 };
+
+export type ShapeSlot = keyof ShapeOverrides;
 
 export type ThemeStore = {
   userTheme: ThemePreference;
@@ -87,11 +104,19 @@ export type ThemeStore = {
    */
   fontOverrides: FontOverrides;
   /**
-   * App-injected shape overrides (button radius, default-preset shadow).
-   * Same contract as the other override slots: empty by default, fully
-   * backward compatible when unset.
+   * App-injected shape overrides (radii per slot, the default Button preset's
+   * shadow). Same contract as the other override slots: empty by default,
+   * fully backward compatible when unset.
    */
   shapeOverrides: ShapeOverrides;
+  /**
+   * Which serif the `serif` variant resolves to when no `setFonts` serif
+   * override exists: `"georgia"` (default, the system face) or
+   * `"newsreader"`, set by `useResources({ serif: "newsreader" })` once its
+   * files or stylesheet are in place. Read by `resolveFontStyle` through
+   * `StyledText` and `useFontStyle`.
+   */
+  serifPreset: SerifPreset;
   setTheme: (theme: ThemePreference) => void;
   setSystemTheme: (theme: ResolvedTheme) => void;
   /**
@@ -111,9 +136,13 @@ export type ThemeStore = {
   setFonts: (overrides: FontOverrides) => void;
   /**
    * Replace the active shape overrides. Pass `{}` to clear them and fall back
-   * to the package defaults (button radius 12, default-preset shadow on).
+   * to the package defaults (see the slot table on `ShapeOverrides`: button
+   * and input radius 10 = `spacing.radiusMd`, card and dialog 14 =
+   * `spacing.radiusLg`, badge pill, default-preset shadow on).
    */
   setShape: (overrides: ShapeOverrides) => void;
+  /** Switch the serif preset. `useResources` calls this; apps rarely need to. */
+  setSerifPreset: (preset: SerifPreset) => void;
   loadTheme: () => void;
 };
 
@@ -153,6 +182,12 @@ export const useThemeStore = create<ThemeStore>((set) => ({
 
   // And again for shape: package geometry until a host app calls `setShape`.
   shapeOverrides: {},
+
+  serifPreset: "georgia",
+
+  setSerifPreset: (preset) => {
+    set({ serifPreset: preset ?? "georgia" });
+  },
 
   setColors: (overrides) => {
     set({ colorOverrides: overrides ?? {} });
@@ -211,19 +246,17 @@ export const useThemeStore = create<ThemeStore>((set) => ({
   }
 }));
 
-let stopSystemThemeListener: (() => void) | null = null;
+// The OS color-scheme listener is shared: one subscription however many
+// callers hold it, removed when the last holder releases. Each
+// `startSystemThemeListener()` call takes a hold and gets its own release.
+let systemThemeSubscription: { remove: () => void } | null = null;
+let systemThemeHolds = 0;
 
 export function syncSystemTheme(): void {
   useThemeStore.getState().setSystemTheme(getSystemTheme());
 }
 
-export function startSystemThemeListener(): () => void {
-  if (stopSystemThemeListener) {
-    return stopSystemThemeListener;
-  }
-
-  syncSystemTheme();
-
+function subscribeToSystemTheme(): { remove: () => void } {
   if (Platform.OS === "web" && typeof window !== "undefined" && typeof window.matchMedia === "function") {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
@@ -232,53 +265,75 @@ export function startSystemThemeListener(): () => void {
 
     if (typeof mediaQuery.addEventListener === "function") {
       mediaQuery.addEventListener("change", onChange);
-      stopSystemThemeListener = () => {
-        mediaQuery.removeEventListener("change", onChange);
-        stopSystemThemeListener = null;
-      };
-    } else {
-      mediaQuery.addListener(onChange);
-      stopSystemThemeListener = () => {
-        mediaQuery.removeListener(onChange);
-        stopSystemThemeListener = null;
-      };
+      return { remove: () => mediaQuery.removeEventListener("change", onChange) };
     }
-
-    return stopSystemThemeListener;
+    mediaQuery.addListener(onChange);
+    return { remove: () => mediaQuery.removeListener(onChange) };
   }
 
-  const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+  return Appearance.addChangeListener(({ colorScheme }) => {
     useThemeStore.getState().setSystemTheme(colorScheme === "dark" ? "dark" : "light");
   });
-
-  stopSystemThemeListener = () => {
-    subscription.remove();
-    stopSystemThemeListener = null;
-  };
-
-  return stopSystemThemeListener;
 }
 
-// Single entry point for host apps to populate the store from the
-// environment (persisted preference + OS color scheme listener). Safe to
-// call multiple times — `startSystemThemeListener` is idempotent — and
-// returns the unsubscribe so it can be used directly inside `useEffect`.
-//
-// The listener starts BEFORE `loadTheme()` on purpose: reading the real OS
-// scheme first means a `system` user resolves straight from the boot-default
-// "light" to their actual scheme in one commit.
+/**
+ * Keep `systemTheme` following the OS color scheme (`prefers-color-scheme` on
+ * web, `Appearance` on native). The first holder reads the current scheme and
+ * attaches the one listener; later calls share it.
+ *
+ * Returns this caller's release: once every holder has released, the
+ * listener is removed. Calling a release again is a no-op, so an effect
+ * cleanup that runs twice can't drop another caller's hold. On native the
+ * package holds the listener for the app's lifetime (see the module-load
+ * init below), so an app's release never stops OS tracking there.
+ */
+export function startSystemThemeListener(): () => void {
+  systemThemeHolds += 1;
+  if (systemThemeHolds === 1) {
+    syncSystemTheme();
+    systemThemeSubscription = subscribeToSystemTheme();
+  }
+
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    systemThemeHolds -= 1;
+    if (systemThemeHolds === 0) {
+      systemThemeSubscription?.remove();
+      systemThemeSubscription = null;
+    }
+  };
+}
+
+/**
+ * Single entry point for host apps to populate the store from the
+ * environment: the OS color-scheme listener plus the persisted preference.
+ *
+ * Web apps call it once, from a top-level `useEffect` (never during render or
+ * at module scope — see below), and return its result as the cleanup:
+ * `useEffect(() => syncThemeFromEnvironment(), [])`. Safe to call more than
+ * once (StrictMode's double effects, two roots): every call shares the one
+ * OS listener, re-reads the persisted preference, and returns its own
+ * cleanup, which releases only that call's hold on the listener.
+ *
+ * The listener starts BEFORE `loadTheme()` on purpose: reading the real OS
+ * scheme first means a `system` user resolves straight from the boot-default
+ * "light" to their actual scheme in one commit.
+ */
 export function syncThemeFromEnvironment(): () => void {
-  const stop = startSystemThemeListener();
+  const release = startSystemThemeListener();
   useThemeStore.getState().loadTheme();
-  return stop;
+  return release;
 }
 
 // Native can read persistence at module load, so keep the historical
-// auto-init behavior there. On web the host app must call
-// `syncThemeFromEnvironment()` from a top-level `useEffect`: web bundles are
-// also evaluated in Node when `expo export` renders the HTML shell, where
-// `window`/`localStorage` don't exist, and reading them during the browser's
-// first render would disagree with the markup being hydrated.
+// auto-init behavior there, with a hold on the OS listener that is never
+// released. On web the host app must call `syncThemeFromEnvironment()` from a
+// top-level `useEffect`: web bundles are also evaluated in Node when
+// `expo export` renders the HTML shell, where `window`/`localStorage` don't
+// exist, and reading them during the browser's first render would disagree
+// with the markup being hydrated.
 if (Platform.OS !== "web") {
   useThemeStore.getState().loadTheme();
   startSystemThemeListener();

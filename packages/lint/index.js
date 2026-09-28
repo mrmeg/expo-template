@@ -13,6 +13,7 @@ const rules = {
   "no-arbitrary-values": require("./rules/no-arbitrary-values"),
   "no-restyle": require("./rules/no-restyle"),
   "no-raw-primitives": require("./rules/no-raw-primitives"),
+  "no-raw-typography": require("./rules/no-raw-typography"),
 };
 
 /** @type {{meta: {name: string}, rules: object, configs: object}} */
@@ -34,6 +35,7 @@ plugin.configs.recommended = {
     "expo-ui/no-arbitrary-values": "error",
     "expo-ui/no-restyle": "error",
     "expo-ui/no-raw-primitives": "error",
+    "expo-ui/no-raw-typography": "error",
   },
 };
 

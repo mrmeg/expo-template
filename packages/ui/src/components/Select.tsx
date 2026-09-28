@@ -1,10 +1,13 @@
 import * as React from "react";
-import { Animated, Platform, PressableProps, StyleSheet, type TextStyle, View } from "react-native";
+import { Animated, Platform, StyleSheet, type TextStyle, View } from "react-native";
 import { Icon } from "./Icon";
 import { AnimatedView } from "./AnimatedView";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
+import { shapeRadius, useShape } from "../hooks/useShape";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { useScalePress } from "../hooks/useScalePress";
 import * as SelectPrimitive from "@rn-primitives/select";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
@@ -68,36 +71,16 @@ function SelectTrigger({
   ...props
 }: SelectTriggerProps) {
   const { theme, getFocusRingStyle } = useTheme();
+  const inputShape = useShape("input");
   const sizeConfig = SIZE_CONFIGS[size];
   const focusRingStyle = getFocusRingStyle();
-  const [focused, setFocused] = React.useState(false);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!disabled,
     scaleTo: 0.97,
     haptic: false,
   });
 
-  const showFocusRing: PressableProps["onFocus"] = (event) => {
-    let ringVisible = true;
-    if (Platform.OS === "web") {
-      const target = event?.nativeEvent?.target as unknown as
-        | { matches?: (selector: string) => boolean }
-        | null
-        | undefined;
-      if (target && typeof target.matches === "function") {
-        try {
-          ringVisible = target.matches(":focus-visible");
-        } catch {
-          ringVisible = true;
-        }
-      }
-    }
-    setFocused(ringVisible);
-  };
-
-  const hideFocusRing: PressableProps["onBlur"] = () => {
-    setFocused(false);
-  };
+  const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
 
   return (
     <Animated.View style={scaleStyle}>
@@ -110,6 +93,7 @@ function SelectTrigger({
         onBlur={hideFocusRing}
         style={{
           ...styles.trigger,
+          ...shapeRadius(inputShape),
           height: sizeConfig.height,
           paddingHorizontal: sizeConfig.paddingHorizontal,
           borderColor: error ? theme.colors.destructive : theme.colors.border,
@@ -119,7 +103,7 @@ function SelectTrigger({
             outlineStyle: "none" as any,
             userSelect: "none" as any,
           }),
-          ...(disabled && { opacity: 0.5 }),
+          ...(disabled && { opacity: interaction.disabledOpacity }),
           ...(focused && !disabled ? focusRingStyle : null),
           ...(styleOverride && typeof styleOverride !== "function"
             ? StyleSheet.flatten(styleOverride)
@@ -206,7 +190,7 @@ function SelectContent({
           })}
         >
           {/* Fills the overlay so Android hit-tests the absolute Content; see Popover.tsx. */}
-          <AnimatedView type="fade" style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          <AnimatedView type="fade" style={[StyleSheet.absoluteFill, styles.passThrough]}>
             <TextColorContext.Provider value={theme.colors.popoverForeground}>
               <TextClassContext.Provider value="">
                 <TextSelectabilityContext.Provider value={false}>
@@ -266,17 +250,21 @@ function SelectItem({
   const hasCustomChildren = React.isValidElement(children) || Array.isArray(children);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!props.disabled,
-    scaleTo: 0.97,
+    scaleTo: interaction.pressedScale,
     haptic: false,
   });
+  // On web the primitive's item is a Radix `div` that forwards every prop to
+  // the DOM, so RN press handlers would land there as unknown attributes
+  // ("Unknown event handler property onPressIn"). Native renders a Pressable
+  // and keeps the press scale.
+  const itemPressHandlers = Platform.OS === "web" ? undefined : pressHandlers;
 
   return (
     <TextClassContext.Provider value="">
       <Animated.View style={scaleStyle}>
       <SelectPrimitive.Item
         {...props}
-        onPressIn={pressHandlers.onPressIn}
-        onPressOut={pressHandlers.onPressOut}
+        {...itemPressHandlers}
         style={{
           ...styles.item,
           ...(Platform.OS === "web" && {
@@ -284,7 +272,7 @@ function SelectItem({
             outlineStyle: "none" as any,
             userSelect: "none" as any,
           }),
-          ...(props.disabled && { opacity: 0.5 }),
+          ...(props.disabled && { opacity: interaction.disabledOpacity }),
           ...(styleOverride && typeof styleOverride !== "function"
             ? StyleSheet.flatten(styleOverride)
             : {}),
@@ -408,7 +396,10 @@ function SelectSeparator({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
+  // Overlay layer: covers the screen without swallowing touches (style, not the
+  // deprecated `pointerEvents` prop).
+  passThrough: { pointerEvents: "box-none" },
   trigger: {
     flexDirection: "row",
     justifyContent: "space-between",

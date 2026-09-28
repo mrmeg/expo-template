@@ -39,7 +39,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { InputOTP } from "@mrmeg/expo-ui/components/InputOTP";
-import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@mrmeg/expo-ui/components/Item";
+import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@mrmeg/expo-ui/components/Item";
 import { Label } from "@mrmeg/expo-ui/components/Label";
 import { Popover, PopoverBody, PopoverContent, PopoverTrigger } from "@mrmeg/expo-ui/components/Popover";
 import { Progress } from "@mrmeg/expo-ui/components/Progress";
@@ -89,15 +89,16 @@ function CheckboxPreview({ label }: { label: string }) {
   return <Checkbox checked={checked} onCheckedChange={setChecked} label={label} />;
 }
 
-function SwitchPreview({ initial }: { initial: boolean }) {
+function SwitchPreview({ label, initial }: { label: string; initial: boolean }) {
   const [checked, setChecked] = React.useState(initial);
-  return <Switch checked={checked} onCheckedChange={setChecked} />;
+  // A bare switch has no visible text; outside an Item row it must be named.
+  return <Switch checked={checked} onCheckedChange={setChecked} accessibilityLabel={label} />;
 }
 
-function TogglePreview({ icon, initial }: { icon: IconName; initial: boolean }) {
+function TogglePreview({ icon, label, initial }: { icon: IconName; label: string; initial: boolean }) {
   const [pressed, setPressed] = React.useState(initial);
   return (
-    <Toggle pressed={pressed} onPressedChange={setPressed} size="sm" iconOnly>
+    <Toggle pressed={pressed} onPressedChange={setPressed} size="sm" iconOnly accessibilityLabel={label}>
       <Icon name={icon} size={14} color={pressed ? "foreground" : "mutedForeground"} />
     </Toggle>
   );
@@ -160,8 +161,8 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
 
   Switch: () => (
     <Row>
-      <SwitchPreview initial />
-      <SwitchPreview initial={false} />
+      <SwitchPreview label="Notifications" initial />
+      <SwitchPreview label="Dark mode" initial={false} />
     </Row>
   ),
 
@@ -171,9 +172,9 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
 
   Toggle: () => (
     <Row gap={spacing.xs}>
-      <TogglePreview icon="bold" initial />
-      <TogglePreview icon="italic" initial={false} />
-      <TogglePreview icon="underline" initial={false} />
+      <TogglePreview icon="bold" label="Bold" initial />
+      <TogglePreview icon="italic" label="Italic" initial={false} />
+      <TogglePreview icon="underline" label="Underline" initial={false} />
     </Row>
   ),
 
@@ -407,13 +408,22 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
 
   Item: () => (
     <View style={{ alignSelf: "stretch" }}>
-      <Item>
-        <ItemMedia icon="calendar" />
-        <ItemContent>
-          <ItemTitle>Design review</ItemTitle>
-          <ItemDescription>Tomorrow · 10:00</ItemDescription>
-        </ItemContent>
-      </Item>
+      <ItemGroup>
+        <Item>
+          <ItemMedia icon="calendar" />
+          <ItemContent>
+            <ItemTitle>Design review</ItemTitle>
+            <ItemDescription>Tomorrow · 10:00</ItemDescription>
+          </ItemContent>
+        </Item>
+        <Item>
+          <ItemMedia icon="bell" />
+          <ItemContent>
+            <ItemTitle>Standup</ItemTitle>
+            <ItemDescription>Daily · 09:30</ItemDescription>
+          </ItemContent>
+        </Item>
+      </ItemGroup>
     </View>
   ),
 

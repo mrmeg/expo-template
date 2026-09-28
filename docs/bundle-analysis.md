@@ -102,13 +102,124 @@ For built package output, the suffix must be listed in `platformSuffixes` in
 `native`) so the built specifier stays extension-less — Metro resolves an
 explicit `./foo.js` to that exact file and never considers `foo.native.js`.
 
+Route files under `app/` work differently: Expo Router lists every platform's
+files, so a platform route only stays out of other bundles through the resolver
+rule in [Route files for other platforms](#route-files-for-other-platforms).
+
 ## Sentry on Web
 
 `client/lib/sentry.web.ts` replaces the RN SDK with `@sentry/react` (the same
 version the RN SDK pins) and defers the chunk fetch to `requestIdleCallback`
 (3 s cap) so it never competes with hydration; global errors thrown before the
 SDK is up are buffered and forwarded after `init`. The lazy Sentry chunk went
-from ~706 kB to ~521 kB raw (~128 kB gzip). See `docs/error-tracking.md`.
+from ~706 kB with the RN SDK to ~547 kB raw (~128 kB gzip), with Session Replay
+and User Feedback stubbed out of it (see below). See `docs/error-tracking.md`.
+
+## Resolver Stubs and Dedupes
+
+`metro.config.js` resolves a few modules differently from Node. The selection
+logic lives in `metro/resolverRules.js`, unit-tested in `metro/__tests__/`, and
+every rule errs toward shipping code: when a condition is not certain, the real
+module resolves. Sizes below come from `expo export` with the tree-shaking
+flags (`--no-bytecode` on iOS) and a blank env unless a column says otherwise,
+attributed per package from the source maps.
+
+### Optional SDKs in native bundles
+
+Native bundles have no code splitting, so the one `import()` that keeps each
+optional SDK lazy on web is inlined into the iOS/Android bundle: every native
+build shipped Sentry, Amplify, and Clerk even when their env was blank and the
+runtime gate could never load them. In production iOS/Android bundles, the SDK
+imports inside the gated modules now resolve to an empty module while that
+SDK's env is blank:
+
+| SDK (and what only it pulls in) | Left out while blank | Stubbed importers | iOS JS when enabled |
+|---------------------------------|----------------------|-------------------|---------------------|
+| `@sentry/react-native` (`@sentry/core`, `@sentry/browser`, `expo-updates` JS) | `EXPO_PUBLIC_SENTRY_DSN` | `client/lib/sentry.ts` | ~740 kB raw / ~190 kB gzip |
+| `aws-amplify` (`@aws-amplify/*`, `rxjs`, `buffer`, URL polyfill) | `EXPO_PUBLIC_USER_POOL_ID` or `EXPO_PUBLIC_USER_POOL_CLIENT_ID` | `client/features/auth/provider/cognitoSdk.ts` | ~615 kB / ~136 kB |
+| `@clerk/clerk-expo` (`@clerk/clerk-js` headless, `swr`, `expo-auth-session`) | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | `client/features/auth/provider/clerkClient.ts`, `ClerkProviderBoundary.tsx` | ~571 kB / ~149 kB |
+
+A blank-env iOS bundle dropped from 6.38 MB to 4.48 MB raw (1.50 → 1.03 MB
+gzip). The build log names each omission, e.g.
+`› Sentry left out of the ios bundle: EXPO_PUBLIC_SENTRY_DSN is blank`.
+
+- **Blank** means unset or empty in the environment Metro runs with — the same
+  values Expo inlines into the bundle. Whitespace-only values keep the SDK.
+- **Runtime behavior is unchanged**: with blank env the gates never evaluate the
+  SDK, stubbed or not. With the env set the real SDK resolves as before.
+- **Production only.** `expo export`, `expo export:embed` (Xcode/Gradle release
+  builds), and `eas update` apply the stubs; dev bundles keep the SDKs so a
+  `.env` edit still takes effect without restarting Metro. An update exported
+  with the env set carries the SDK again — the native modules are autolinked
+  into every binary either way.
+- **Only the listed importers are stubbed.** An SDK imported anywhere else
+  (`Sentry.wrap` in a layout, `Amplify.configure` at module scope) gets the real
+  package, which also puts the whole SDK back into every native bundle.
+  `resolverRules.test.js` fails when that happens, and when a listed importer
+  moves or stops importing its SDK.
+- **Web is untouched**: each SDK stays a lazy chunk behind its split point.
+
+To gate another optional SDK the same way, add an entry to
+`OPTIONAL_NATIVE_INTEGRATIONS` naming the env its runtime gate reads, the
+package, and the gated modules that import it.
+
+### Sentry Session Replay and User Feedback
+
+`withSentryResolver(config, false)` and `withSentryFeedbackResolver(config,
+false)` resolve `@sentry/replay*` and `@sentry/feedback` (plus
+`@sentry/browser`'s `feedbackSync` / `feedbackAsync` wrappers, which build the
+integration at module load) to an empty module on every platform; the Sentry
+default strips them on native only. Neither Sentry wrapper enables them.
+Feedback was ~51 kB of the lazy web Sentry chunk (598 → 547 kB raw, 146 →
+128 kB gzip). `getFeedback` and `sendFeedback` are `undefined` as a result:
+drop the feedback resolver before adding a feedback widget.
+
+### Route files for other platforms
+
+Expo Router's `require.context` filter matches every platform's route files and
+Metro does not filter them by platform, so a `.native.tsx` route became a web
+chunk referenced from the entry (never fetched — the router ignores it on web)
+and every `.web.tsx` route was compiled into the native bundles.
+`isUnusedRouteFile` resolves each route file the router ignores on the bundle's
+platform — another platform's extension, or `.native` on web, mirroring
+`getFileMeta` in `expo-router/build/getRoutesCore.js` — to an empty module.
+
+The router still requires a non-platform sibling as the fallback, so the file
+with the platform-only code must carry the extension:
+
+- `app/(main)/(tabs)/_layout.native.tsx` holds `NativeTabs`; `_layout.tsx` is
+  the web stack (and fallback). Web lost the ~55 kB raw / ~17 kB gzip NativeTabs
+  chunk (its Radix Tabs web view, the Feather glyph map) and the render-blocking
+  `native-tabs.module-*.css` stylesheet (2.5 kB) that every page linked.
+- `app/(main)/_layout.web.tsx` (`WebMainLayout`, `WebNavShell`,
+  `DrawerNavContent`) is out of the native bundles: ~15 kB raw on iOS.
+
+A plain route shadowed by a `.web` sibling, like `app/(main)/_layout.tsx`, still
+emits a web chunk that no page fetches; it is tiny today, and the same
+inversion (move its code to `.native.tsx`) removes it.
+
+### Scoped dedupes
+
+`SCOPED_DEDUPES` collapses a nested copy onto the app-level install for the one
+importer whose usage was checked against that version, so a future dependency
+that pins another major keeps its own copy. An entry is skipped when the
+app-level copy is not installed.
+
+| Package | Importer (declared range) | Collapsed onto | Why it is compatible | Saved |
+|---------|---------------------------|----------------|----------------------|-------|
+| `buffer` 5.7.1 | `whatwg-url-without-unicode` (^5.4.3) | 6.0.3 (from `@aws-amplify/react-native`) | Calls only `Buffer.from` and `toString`, identical in 6.x. Client bundles only: server bundles resolve `buffer` to Node's built-in | ~21 kB raw on iOS with Cognito enabled |
+| `react-native-url-polyfill` 2.0.0 | `@clerk/clerk-expo` (pinned) | 3.0.0 (from `@aws-amplify/react-native`) | Same `/auto` globals; 3.0.0 adds `URL.canParse` and reads BlobModule constants through `getConstants()`, as the New Architecture requires | ~3 kB raw on iOS with Clerk and Cognito both enabled |
+| `@react-native/normalize-colors` 0.74.89 | `react-native-web` (^0.74.1) | 0.88 (react-native, expo-router) | Same `normalizeColor()` and packed integers, plus an LRU cache and CSS Color 4 alpha syntax. Server bundles too, so server-rendered styles match hydration | ~7.5 kB raw / ~2.7 kB gzip from the web entry (first load) |
+
+The first two apply only while the bundle includes Amplify (`withIntegration`):
+`@aws-amplify/react-native` is what brings the app-level copies, so in a bundle
+that leaves Amplify out the nested copy is the only one, and collapsing it would
+swap it for the larger newer release (+4 kB in a Clerk-only iOS bundle).
+
+These are Metro rewrites, not `overrides`: the install tree (and Jest) keeps the
+nested copies, and no version is pinned globally — an override of
+`@react-native/normalize-colors` would also freeze react-native's own copy on
+the next React Native upgrade.
 
 ## Common Large Dependencies
 
@@ -116,7 +227,7 @@ Watch for these in `source-map-explorer`:
 
 | Package | Typical size | Notes |
 |---------|--------------|-------|
-| `aws-amplify` | ~510 kB raw / ~105 kB gzip | Lazy in the `cognitoSdk-*` chunk; keep it to one split point |
+| `aws-amplify` | ~510 kB raw / ~105 kB gzip | Lazy in the `cognitoSdk-*` chunk; keep it to one split point. Left out of native bundles while the Cognito env is blank |
 | `zod` | ~475 kB raw in the `screen-form-*` chunk | `import * as z from "zod/mini"` is a namespace import, so tree shaking keeps every export: all locales, `toJSONSchema`, `zod/v4/core`. Lazy (form routes only), but named imports would let the optimizer drop most of it |
 | `react-hook-form` | ~43 kB | Form state |
 | `@rn-primitives/*` | ~5–10 kB each | 18 packages, declared in `packages/ui/package.json` |

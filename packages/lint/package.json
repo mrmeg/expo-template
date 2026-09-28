@@ -25,17 +25,27 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
-  "main": "index.js",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "bin": {
     "expo-ui-lint": "./bin/cli.js"
   },
   "files": [
     "index.js",
+    "index.d.ts",
     "bin",
     "lib",
     "rules",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -43,8 +53,17 @@
     "build": "node -e \"require('./index.js')\"",
     "publish:dry-run": "bun pm pack --dry-run"
   },
+  "engines": {
+    "node": ">=18.18.0"
+  },
   "peerDependencies": {
+    "@mrmeg/expo-ui": ">=0.25.0 <1.0.0",
     "@typescript-eslint/parser": ">=8",
     "eslint": ">=9.30"
+  },
+  "peerDependenciesMeta": {
+    "@mrmeg/expo-ui": {
+      "optional": true
+    }
   }
 }

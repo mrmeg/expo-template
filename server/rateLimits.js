@@ -1,13 +1,17 @@
 /**
- * Rate-limit configuration for the Bun production server (`server.bun.ts`).
+ * Rate-limit configuration for the Bun production server
+ * (`server/http/createHandler.ts`, mounted by `server.bun.ts`).
  *
  * Kept as plain data so tests can assert the mapping between routes and
- * limiters without loading the full server (which binds a port).
+ * limiters without building a handler.
  *
  * The upload signer uses a media-specific budget so batch uploads do not hit
  * the more conservative strict limiter used by endpoints with heavier side
  * effects. The general limiter covers all /api traffic and stacks with both
  * scoped limiters.
+ *
+ * Buckets are keyed by client address — the direct peer unless `TRUST_PROXY`
+ * says how many proxies sit in front (see `docs/server-guide.md`).
  */
 
 const GENERAL_LIMIT = {
@@ -38,11 +42,11 @@ const MEDIA_SIGNER_LIMIT_PATHS = [
 ];
 
 /**
- * Paths that receive the strict (10/min) limiter.
+ * Paths that receive the strict (10/min) limiter. Every entry must name a
+ * route that exists — `server/__tests__/rateLimits.test.js` resolves each one
+ * against `app/api`.
  */
 const STRICT_LIMIT_PATHS = [
-  "/api/reports",
-  "/api/corrections",
   // Hosted-external billing session routes — session creation is abuse-prone
   // and has real-money side effects on Stripe. The webhook path is NOT
   // included here because Stripe bursts retries faster than 10/min and the
@@ -51,8 +55,17 @@ const STRICT_LIMIT_PATHS = [
   "/api/billing/portal-session",
 ];
 
+/**
+ * Most buckets any one limiter holds. Expired buckets are swept as new ones
+ * are created; at the cap the oldest bucket is evicted (that client's count
+ * restarts), so memory stays bounded — roughly 150 bytes a bucket — however
+ * many addresses show up.
+ */
+const MAX_BUCKETS_PER_LIMITER = 50000;
+
 module.exports = {
   GENERAL_LIMIT,
+  MAX_BUCKETS_PER_LIMITER,
   MEDIA_SIGNER_LIMIT,
   MEDIA_SIGNER_LIMIT_PATHS,
   STRICT_LIMIT,

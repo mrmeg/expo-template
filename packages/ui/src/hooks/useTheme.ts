@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { Colors, colors, resolveRawColor } from "../constants/colors";
 import { ImageStyle, TextStyle, ViewStyle, Platform, StyleSheet } from "react-native";
-import { resolveThemePreference, useThemeStore } from "../state/themeStore";
+import { resolveThemePreference, useThemeStore, type ThemeStore } from "../state/themeStore";
 import { useThemeColorScope } from "../state/themeColorScope";
+import { useInitialScheme } from "../state/initialScheme";
 import { spacing as spacingConstants } from "../constants/spacing";
 
 type ShadowType =
@@ -34,6 +36,36 @@ function getCachedOrCompute(key: string, compute: () => string): string {
   const result = compute();
   contrastCache.set(key, result);
   return result;
+}
+
+/**
+ * Web: keeps `<html data-theme>` and `color-scheme` — what the CSS variables
+ * from `getThemeCssVariables()` key on — on the store's resolved scheme.
+ *
+ * One store subscription for the whole app, started by the first `useTheme`
+ * consumer to mount (the same moment the old per-consumer effect first
+ * wrote), writing only when the resolved scheme changes. It used to be an
+ * effect in every consumer, which re-ran in each of them on every scheme
+ * switch.
+ */
+let documentThemeSyncStarted = false;
+let documentScheme: "light" | "dark" | null = null;
+
+function writeDocumentScheme(state: Pick<ThemeStore, "userTheme" | "systemTheme">): void {
+  const scheme = resolveThemePreference(state.userTheme, state.systemTheme);
+  if (scheme === documentScheme) return;
+  documentScheme = scheme;
+  document.documentElement.dataset.theme = scheme;
+  document.documentElement.style.colorScheme = scheme;
+}
+
+function startDocumentThemeSync(): void {
+  if (documentThemeSyncStarted || Platform.OS !== "web" || typeof document === "undefined") {
+    return;
+  }
+  documentThemeSyncStarted = true;
+  writeDocumentScheme(useThemeStore.getState());
+  useThemeStore.subscribe(writeDocumentScheme);
 }
 
 interface ExtendedColorScheme {
@@ -76,14 +108,27 @@ export function useTheme(): ExtendedColorScheme & {
   setTheme: (theme: "system" | "light" | "dark") => void;
   currentTheme: "system" | "light" | "dark";
   } {
-  const userTheme = useThemeStore((s) => s.userTheme);
-  const systemTheme = useThemeStore((s) => s.systemTheme);
-  const setTheme = useThemeStore((s) => s.setTheme);
-  const colorOverrides = useThemeStore((s) => s.colorOverrides);
+  // One store subscription per consumer, re-rendering only when one of these
+  // four fields changes (shallow compare), instead of four subscriptions.
+  const { userTheme, systemTheme, hasLoadedTheme, setTheme, colorOverrides } = useThemeStore(
+    useShallow((s) => ({
+      userTheme: s.userTheme,
+      systemTheme: s.systemTheme,
+      hasLoadedTheme: s.hasLoadedTheme,
+      setTheme: s.setTheme,
+      colorOverrides: s.colorOverrides,
+    }))
+  );
   const scoped = useThemeColorScope();
+  const initialScheme = useInitialScheme();
 
-  // Determine which theme to use (user preference or system)
-  const effectiveScheme = resolveThemePreference(userTheme, systemTheme);
+  // Determine which theme to use: the app's first-render hint until the
+  // persisted preference has been read (server render, hydration), then the
+  // user preference or system scheme. See state/initialScheme.tsx.
+  const effectiveScheme =
+    initialScheme !== undefined && !hasLoadedTheme
+      ? initialScheme
+      : resolveThemePreference(userTheme, systemTheme);
   const base = colors[effectiveScheme];
 
   // Layer overrides on top of the package defaults for the active scheme, in
@@ -106,13 +151,9 @@ export function useTheme(): ExtendedColorScheme & {
     };
   }, [base, storeOverride, scopedOverride]);
 
-  // Sync theme to DOM so CSS in +html.tsx follows the app's runtime theme
-  useEffect(() => {
-    if (Platform.OS === "web" && typeof document !== "undefined") {
-      document.documentElement.dataset.theme = effectiveScheme;
-      document.documentElement.style.colorScheme = effectiveScheme;
-    }
-  }, [effectiveScheme]);
+  // Sync theme to DOM so CSS in +html.tsx follows the app's runtime theme.
+  // Starts the app-wide sync on the first mount; a no-op in every later one.
+  useEffect(startDocumentThemeSync, []);
 
   // Toggle between light, dark, and system themes
   const toggleTheme = useCallback(() => {

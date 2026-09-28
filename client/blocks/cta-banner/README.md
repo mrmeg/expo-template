@@ -1,7 +1,7 @@
 # CTA banner block
 
-Accent-bordered card with copy on one side and a single action on the other;
-stacks to a column on phones.
+Headline and copy on one side and a single action on the other, flat on the
+container's gutter rather than boxed in a panel; stacks to a column on phones.
 
 ## Files
 

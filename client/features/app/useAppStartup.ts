@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useOnboardingStore } from "@/client/features/onboarding/onboardingStore";
-import { initAuth } from "@/client/features/auth/stores/authStore";
-import { useAuthStore } from "@/client/features/auth/stores/authStore";
+import { initAuth, useAuthStore } from "@/client/features/auth/stores/authStore";
+import { logDev } from "@/client/lib/devtools";
 import { isAuthEnabled } from "./isAuthEnabled";
 
 /**
@@ -11,12 +11,17 @@ import { isAuthEnabled } from "./isAuthEnabled";
  * - i18n initialization (passed in — already owned by the root layout)
  * - fonts / resources (passed in — already owned by the root layout)
  * - onboarding state has been loaded from persistence
- * - auth Hub listener is registered and the initial auth state has resolved
- *   (only when auth is configured; otherwise we short-circuit)
+ * - auth change listener is registered and the initial auth state has resolved
+ *   (only when auth is configured; otherwise we short-circuit). With Clerk this
+ *   waits for the `ClerkProvider` that `StartupGate` mounts under the splash.
  *
  * Doing this once here prevents the historical foot-gun where auth bootstrap
  * only ran when the auth-demo route mounted, so account surfaces were built
  * on an undefined shell contract.
+ *
+ * `ready` latches: every input only ever flips to true, so a later session
+ * refresh (sign-in, sign-out, a provider event) never sends the native tree
+ * back behind the splash. Auth surfaces show those as `AuthGate`'s spinner.
  */
 export interface StartupInputs {
   fontsLoaded: boolean;
@@ -30,7 +35,6 @@ export interface StartupResult {
 
 export function useAppStartup({ fontsLoaded, i18nReady }: StartupInputs): StartupResult {
   const authEnabled = isAuthEnabled();
-  const authState = useAuthStore((s) => s.state);
   const [onboardingLoaded, setOnboardingLoaded] = useState(false);
   const [authBootstrapped, setAuthBootstrapped] = useState(!authEnabled);
 
@@ -49,18 +53,22 @@ export function useAppStartup({ fontsLoaded, i18nReady }: StartupInputs): Startu
     };
   }, []);
 
-  // Register the Hub listener and resolve initial auth state exactly once.
-  // When auth is disabled the flag is set synchronously above.
+  // Register the change listener and resolve the initial auth state exactly
+  // once. When auth is disabled the flag is set synchronously above.
   useEffect(() => {
     if (!authEnabled) return;
     let cancelled = false;
     (async () => {
       try {
         await initAuth();
-        await useAuthStore.getState().initialize();
-      } catch {
-        // initialize() already funnels errors into `unauthenticated`
+      } catch (error) {
+        logDev("Auth bootstrap failed; continuing signed out:", error);
       }
+      // Forced so the startup read can never be throttled away, and awaited
+      // through any read already in flight: once it settles the store is out
+      // of "loading", which is what keeps a signed-in user from flashing the
+      // signed-out shell. It never rejects — errors land in "unauthenticated".
+      await useAuthStore.getState().initialize({ force: true });
       if (!cancelled) setAuthBootstrapped(true);
     })();
     return () => {
@@ -68,15 +76,7 @@ export function useAppStartup({ fontsLoaded, i18nReady }: StartupInputs): Startu
     };
   }, [authEnabled]);
 
-  const ready =
-    fontsLoaded &&
-    i18nReady &&
-    onboardingLoaded &&
-    authBootstrapped &&
-    // When auth is enabled, also wait for the initial state to resolve out
-    // of "loading". This prevents a flash of the unauthenticated shell for
-    // users who have a valid session.
-    (!authEnabled || authState !== "loading");
+  const ready = fontsLoaded && i18nReady && onboardingLoaded && authBootstrapped;
 
   return { ready, authEnabled };
 }

@@ -7,7 +7,7 @@
  *
  * Two runtimes have to agree on this contract:
  *   - metro.config.js serves the worker during `expo start` (dev)
- *   - server.bun.ts `serveFfmpegWorker()` serves it from the export (prod)
+ *   - server/http/createHandler.ts serves it in production (`server.bun.ts`)
  *
  * Drift between those two sites has already caused one regression where the
  * worker path pointed at a folder that no longer existed, so the production

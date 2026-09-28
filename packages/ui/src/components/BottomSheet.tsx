@@ -1,4 +1,4 @@
-import React, { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import React, { createContext, use, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef } from "react";
 import {
   View,
   ViewProps,
@@ -13,14 +13,17 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { BottomSheet as NativeBottomSheet } from "@expo/ui/community/bottom-sheet";
-import { useSafeAreaInsets, initialWindowMetrics } from "react-native-safe-area-context";
+import { useWindowInsets } from "../hooks/useWindowInsets";
+import type { EdgeInsets } from "react-native-safe-area-context";
 import { useTheme } from "../hooks/useTheme";
+import { useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
 import { useScalePress } from "../hooks/useScalePress";
 import { TextColorContext, TextClassContext } from "./StyledText.context";
 import { Icon } from "./Icon";
 import { useAncestorClaimWarning, useKeyboardDismissResponder } from "./keyboardDismiss";
 import { warnIfBottomSheetHostDropsResize } from "./bottomSheetHostSupport";
+import { awaitDialogClose } from "./bottomSheetDismiss";
 
 /**
  * BottomSheet — a sliding bottom sheet with a compound API, backed by the
@@ -83,6 +86,18 @@ import { warnIfBottomSheetHostDropsResize } from "./bottomSheetHostSupport";
  *     `keyboardShouldPersistTaps="always"` / `"handled"` on scroll views that
  *     contain a sheet, or `DismissKeyboard`, which already sets it.
  *
+ * Dismiss completion: `onDismissed` (root prop) fires once per close after the
+ * sheet is fully gone, so the next modal (an RN `Modal`-backed `Dialog`, a
+ * native stack modal) can be presented from it without UIKit rejecting the
+ * presentation while the sheet is still animating out. iOS: `@expo/ui` raises
+ * its close callback from the native `onDismiss` event of SwiftUI
+ * `.sheet(isPresented:onDismiss:)`, which runs after the dismissal transition.
+ * Android: `@expo/ui` raises it after Material's hide animation for a swipe /
+ * back / scrim dismissal, and with the removal of the Compose sheet for a
+ * prop-driven close (which has no exit animation). Web: `@expo/ui` raises it
+ * before its exit animation, so the package waits for the HTML `<dialog>`'s
+ * `close` event instead (`bottomSheetDismiss.ts`).
+ *
  * Scrollable bodies: the native sheet doesn't bound the hosted RN content to
  * the detent height, so a tall `Body` overflows and clips its footer/tail. When
  * `Body` detects overflow, `Content` caps the column to the detent height so the
@@ -122,6 +137,18 @@ type SnapPoint = number | `${number}%`;
 
 const DEFAULT_SNAP_POINTS: SnapPoint[] = ["50%"];
 
+/**
+ * UIKit keeps a `.large` sheet's top edge 10 pt below the top safe-area inset;
+ * SwiftUI's `.fraction()` detents are fractions of the height that remains.
+ */
+const IOS_SHEET_TOP_GAP = 10;
+
+/**
+ * `@expo/ui` pads the hosted RN column 16 pt below the native drag indicator
+ * (`paddingTop: 16` in its iOS `BottomSheet` when `handleComponent !== null`).
+ */
+const IOS_HOST_HANDLE_PADDING = 16;
+
 interface BottomSheetContextValue {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -146,6 +173,8 @@ interface BottomSheetContextValue {
   /** Whether a `Footer` is mounted, so `Body` can own the bottom safe-area inset when it isn't. */
   hasFooter: boolean;
   setHasFooter: (present: boolean) => void;
+  /** Called by `Content` once the native sheet has fully dismissed; invokes the root's `onDismissed`. */
+  notifyDismissed: () => void;
 }
 
 interface BottomSheetProps {
@@ -153,6 +182,20 @@ interface BottomSheetProps {
   open?: boolean;
   /** Callback when open state changes. */
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Called once per close, after the sheet has fully dismissed on every
+   * platform. Present the next modal (a `Dialog`, a native stack modal) from
+   * here rather than from `onOpenChange(false)` or a timer: on iOS the
+   * `UISheetPresentationController` is still dismissing when `onOpenChange`
+   * fires, and a `Modal` presented then is rejected ("already presenting")
+   * without retry. Detection — iOS: `@expo/ui`'s native `onDismiss` event
+   * (SwiftUI `.sheet(onDismiss:)`, after the transition). Android: `@expo/ui`'s
+   * close callback (after Material's hide animation for swipe / back / scrim; a
+   * prop-driven close removes the Compose sheet with no exit animation). Web:
+   * the HTML `<dialog>`'s `close` event, which `@expo/ui` raises when its exit
+   * animation ends.
+   */
+  onDismissed?: () => void;
   /** Initial open state for uncontrolled mode. Default: false. */
   defaultOpen?: boolean;
   /** Snap point heights (px or percentage strings). Default: ["50%"]. */
@@ -357,23 +400,21 @@ function useBottomSheetContext() {
 }
 
 /**
- * Safe-area insets for content *inside* the sheet.
- *
- * The native sheet (SwiftUI `.sheet()` / Material `ModalBottomSheet`) is
- * presented outside the React tree's `SafeAreaProvider`, so `useSafeAreaInsets()`
- * reads all-zero in here. Fall back to `initialWindowMetrics` — the same trick
- * the app uses for its full-screen Modals — so bottom padding actually clears
- * the home indicator and the last row of a scroll body is reachable.
+ * Safe-area insets for content *inside* the sheet. The native sheet (SwiftUI
+ * `.sheet()` / Material `ModalBottomSheet`) is presented outside the React
+ * tree's `SafeAreaProvider`, and inside a tab screen the provider context even
+ * carries the tab bar (83 pt on an iPhone with a home indicator), so the raw
+ * context is the wrong number here. `useWindowInsets` gives the window's
+ * insets; `top` sizes the iOS detent cap below. On iOS the hosted column is
+ * already laid out inside the sheet's safe area — SwiftUI keeps `RNHostView`
+ * 34 pt above the home indicator — so `bottom` is 0 there: padding it again
+ * pushed the footer up by the inset (plus the tab bar's height inside a tab
+ * screen) and squeezed the body until its last row was clipped. Android's
+ * Material host still gets the bottom inset from us.
  */
-function useSheetInsets() {
-  const insets = useSafeAreaInsets();
-  const fallback = initialWindowMetrics?.insets;
-  return {
-    top: insets.top || fallback?.top || 0,
-    bottom: insets.bottom || fallback?.bottom || 0,
-    left: insets.left || fallback?.left || 0,
-    right: insets.right || fallback?.right || 0,
-  };
+function useSheetInsets(): EdgeInsets {
+  const insets = useWindowInsets();
+  return Platform.OS === "ios" ? { ...insets, bottom: 0 } : insets;
 }
 
 /**
@@ -423,7 +464,7 @@ function SheetCloseButton({ style }: { style?: StyleProp<ViewStyle> }) {
           {
             width: spacing.xl,
             height: spacing.xl,
-            borderRadius: spacing.xl / 2,
+            borderRadius: spacing.radiusFull,
             alignItems: "center",
             justifyContent: "center",
             // Higher-contrast than `muted`: a solid `secondary` fill with a
@@ -449,6 +490,7 @@ function SheetCloseButton({ style }: { style?: StyleProp<ViewStyle> }) {
 function BottomSheetRoot({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
+  onDismissed,
   defaultOpen = false,
   snapPoints = DEFAULT_SNAP_POINTS,
   closeOnBackdropPress = true,
@@ -490,6 +532,17 @@ function BottomSheetRoot({
 
   const toggle = useCallback(() => onOpenChange(!open), [onOpenChange, open]);
 
+  // Latest callback without re-creating the context value on every render.
+  // Synced after each commit (the sheet reports its dismissal from a native
+  // or DOM event, never during render) instead of written during render.
+  const onDismissedRef = useRef(onDismissed);
+  useLayoutEffect(() => {
+    onDismissedRef.current = onDismissed;
+  });
+  const notifyDismissed = useCallback(() => {
+    onDismissedRef.current?.();
+  }, []);
+
   const setScrollable = useCallback((scrollable: boolean) => {
     dispatch({ type: "setScrollable", scrollable });
   }, []);
@@ -518,6 +571,7 @@ function BottomSheetRoot({
       setHasHeader,
       hasFooter: state.hasFooter,
       setHasFooter,
+      notifyDismissed,
     }),
     [
       open,
@@ -534,6 +588,7 @@ function BottomSheetRoot({
       setHasHeader,
       state.hasFooter,
       setHasFooter,
+      notifyDismissed,
     ]
   );
 
@@ -588,12 +643,16 @@ function BottomSheetContent({
   testID,
   children,
 }: BottomSheetContentProps) {
-  const { open, onOpenChange, snapPoints, snapIndex, setSnapIndex, hasHeader } =
+  const { open, onOpenChange, snapPoints, snapIndex, setSnapIndex, hasHeader, notifyDismissed } =
     useBottomSheetContext();
   const { theme } = useTheme();
+  const sheetShape = useShape("sheet");
   const dismissDisabled = useDismissDisabled();
   const showClose = useShowClose();
   const { height: winH } = useWindowDimensions();
+  // Window insets (not the provider context, which reads zero inside the
+  // native sheet's window): the top inset sizes the iOS detent cap below.
+  const insets = useSheetInsets();
 
   // Tap-away keyboard dismissal inside the sheet. The native sheet (SwiftUI
   // `.sheet()` / Material `ModalBottomSheet`) hosts its RN children in a separate
@@ -643,26 +702,73 @@ function BottomSheetContent({
   // with `imePadding()` and `RNHostView` re-reports its Compose size to the
   // shadow tree, which needs `expo-modules-core` >= 57.0.4 to always land
   // (expo/expo#47778) — see `warnIfBottomSheetHostDropsResize` above.
+  //
+  // The cap has to be the height SwiftUI really gives the sheet, not a share
+  // of the window. `@expo/ui` maps "50%" to `.fraction(0.5)`, a fraction of
+  // the *maximum* sheet height — the window minus the top safe-area inset
+  // minus UIKit's 10 pt gap above a `.large` sheet — and a numeric snap to
+  // `.height(n)`, clamped to that maximum. `@expo/ui` then pads the hosted
+  // column 16 pt below the native grabber whenever that grabber is shown. A
+  // cap of `fraction × window height` overshot by `fraction × (inset + 10) +
+  // 16` ≈ 52 pt on a Dynamic Island phone at 50 %, so the sheet clipped its
+  // last row on every such device.
+  const hasInteractiveHandle = containsHandle(children);
   const expandedSnap = snapPoints[snapPoints.length - 1];
-  const detentHeight =
+  const availableSheetHeight = winH - insets.top - IOS_SHEET_TOP_GAP;
+  const sheetHeight =
     typeof expandedSnap === "number"
-      ? expandedSnap
-      : (parseFloat(expandedSnap) / 100) * winH;
+      ? Math.min(expandedSnap, availableSheetHeight)
+      : (parseFloat(expandedSnap) / 100) * availableSheetHeight;
+  const detentHeight = sheetHeight - (hasInteractiveHandle ? 0 : IOS_HOST_HANDLE_PADDING);
 
   // When there's no Header to host the X (so a close affordance is wanted —
   // dismiss is off, or the body scrolls), float one over the top-right corner.
   // A Header, when present, renders its own (see BottomSheetHeader).
   const showFloatingClose = showClose && !hasHeader;
-  const hasInteractiveHandle = containsHandle(children);
 
   const handleChange = (newIndex: number) => {
     // Native fires onChange(-1) on dismiss (swipe / backdrop / back button).
+    // The same close also reaches `handleNativeClose`, which owns `onDismissed`.
     if (newIndex < 0) {
       if (open) onOpenChange(false);
       return;
     }
 
     setSnapIndex(newIndex);
+  };
+
+  // `onDismissed`: once per close. `@expo/ui` fires `onClose` once per close
+  // itself (post-dismissal on iOS and Android, see the header); the guard here
+  // is defensive and is re-armed when the sheet opens again. On web the close
+  // callback precedes the exit animation, so completion is the enclosing
+  // `<dialog>`'s `close` event, found from the content column's DOM node.
+  const columnRef = useRef<React.ComponentRef<typeof View>>(null);
+  const dismissedRef = useRef(false);
+  const cancelDismissWaitRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (open) dismissedRef.current = false;
+  }, [open]);
+  useEffect(
+    () => () => {
+      cancelDismissWaitRef.current?.();
+      cancelDismissWaitRef.current = null;
+    },
+    []
+  );
+
+  const handleNativeClose = () => {
+    if (open) onOpenChange(false);
+    if (dismissedRef.current) return;
+    dismissedRef.current = true;
+    if (Platform.OS !== "web") {
+      notifyDismissed();
+      return;
+    }
+    cancelDismissWaitRef.current?.();
+    cancelDismissWaitRef.current = awaitDialogClose(columnRef.current, () => {
+      cancelDismissWaitRef.current = null;
+      notifyDismissed();
+    });
   };
 
   return (
@@ -675,20 +781,26 @@ function BottomSheetContent({
       handleComponent={hasInteractiveHandle ? null : undefined}
       enablePanDownToClose={!dismissDisabled}
       onChange={handleChange}
-      onClose={() => {
-        if (open) onOpenChange(false);
-      }}
+      onClose={handleNativeClose}
       // Themes the scrim/background on web (vaul), Android (containerColor),
       // and iOS (presentationBackground). Flattened so native readers that
       // expect a plain object (not a style array) keep working.
       backgroundStyle={StyleSheet.flatten([
         { backgroundColor: theme.colors.card },
+        // Host-app `setShape({ sheet })`: the top corners, where the platform
+        // lets the sheet draw them (web's drawer, Android). iOS system sheets
+        // keep the system corner radius.
+        sheetShape?.borderRadius !== undefined && {
+          borderTopLeftRadius: sheetShape.borderRadius,
+          borderTopRightRadius: sheetShape.borderRadius,
+        },
         backgroundStyleOverride,
       ])}
     >
       <TextColorContext.Provider value={theme.colors.foreground}>
         <TextClassContext.Provider value="">
           <View
+            ref={columnRef}
             testID={testID}
             style={[
               // No fill of its own: the native surface (`backgroundStyle`) is

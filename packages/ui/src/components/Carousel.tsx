@@ -386,7 +386,7 @@ const DOT_HIT_SLOP = {
 // site (it tracks the contentPadding prop) so the leading inset survives the
 // browser snapping slide 0 to the scrollport start — which also makes page `i`
 // land on `i * interval`, matching the native snap offsets.
-const webStyles = StyleSheet.create({
+const webStyles = /*#__PURE__*/ StyleSheet.create({
   scroller: { scrollSnapType: "x mandatory" } as ViewStyle,
   item: { scrollSnapAlign: "start" } as ViewStyle,
 });
@@ -437,4 +437,4 @@ const createStyles = (theme: Theme) =>
     },
   });
 
-const themedStyles = createThemedStyles(createStyles);
+const themedStyles = /*#__PURE__*/ createThemedStyles(createStyles);

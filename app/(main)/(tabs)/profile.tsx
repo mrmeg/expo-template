@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, StyleSheet, ScrollView, Pressable } from "react-native";
+import type { StyleProp, TextStyle, ViewStyle } from "react-native";
 import { router } from "expo-router";
 import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -7,11 +8,30 @@ import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/Styl
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Switch } from "@mrmeg/expo-ui/components/Switch";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import {
+  Item,
+  ItemGroup,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+} from "@mrmeg/expo-ui/components/Item";
 import { Alert } from "@mrmeg/expo-ui/components/Alert";
+import { Collapsible, CollapsibleContent } from "@mrmeg/expo-ui/components/Collapsible";
 import { notify } from "@mrmeg/expo-ui/state";
 import { useAuthStore } from "@/client/features/auth/stores/authStore";
 import { useAuth } from "@/client/features/auth/hooks/useAuth";
+import { isAuthError, type SocialAuthProviderName } from "@/client/features/auth/provider";
 import { AuthGate } from "@/client/features/app";
+import {
+  ChangePasswordSheet,
+  EditProfileSheet,
+  useAccountCapabilities,
+  useChangePassword,
+  useHydrateProfile,
+  useProfileStore,
+} from "@/client/features/profile";
 import Config from "@/client/config";
 import {
   useBillingActions,
@@ -24,11 +44,13 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 import { palette } from "@mrmeg/expo-ui/constants";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { Seo } from "@/client/components/Seo";
+import { useTabHeaderTitle } from "@/client/features/navigation/tabTitle";
 
 /**
  * Profile screen - displays user information and account settings.
  */
 export default function ProfileRoute() {
+  useTabHeaderTitle("profile");
   return (
     <AuthGate>
       <ProfileScreen />
@@ -60,12 +82,72 @@ function ProfileScreen() {
       ? ("manage" as const)
       : ("upgrade" as const);
 
-  // Mock preference states
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [marketingEmails, setMarketingEmails] = useState(false);
+  // Preferences persist in the profile store (device-local; the template ships
+  // no profile API). Web reads persistence after mount so SSR and the first
+  // client render agree.
+  useHydrateProfile();
+  const displayName = useProfileStore((s) => s.displayName);
+  const publicProfile = useProfileStore((s) => s.publicProfile);
+  const analytics = useProfileStore((s) => s.analytics);
+  const emailNotifications = useProfileStore((s) => s.emailNotifications);
+  const pushNotifications = useProfileStore((s) => s.pushNotifications);
+  const marketingEmails = useProfileStore((s) => s.marketingEmails);
+  const setPreference = useProfileStore((s) => s.setPreference);
+
+  const { signInWithProvider, deleteAccount } = useAuth();
+  const capabilities = useAccountCapabilities(user?.email);
+  const changePassword = useChangePassword(user?.email);
+  const [editOpen, setEditOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   const isAuthenticated = authState === "authenticated";
+  const fallbackName = user?.username || "Your profile";
+  const headerName = displayName || fallbackName;
+  const showDangerZone = isAuthenticated || capabilities.canDeleteAccount;
+
+  const handleEditProfile = () => setEditOpen(true);
+
+  const handleConnect = async (provider: SocialAuthProviderName) => {
+    try {
+      await signInWithProvider(provider);
+    } catch (err) {
+      notify({
+        type: "error",
+        messages: [
+          isAuthError(err) && err.message
+            ? err.message
+            : `We couldn't start ${PROVIDER_META[provider].label} sign-in.`,
+        ],
+        duration: 3000,
+      });
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.show({
+      title: "Delete Account",
+      message: "This action cannot be undone. Your account and its data will be permanently deleted.",
+      buttons: [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              notify({ type: "success", messages: ["Account deleted"], duration: 2000 });
+            } catch (err) {
+              notify({
+                type: "error",
+                messages: [isAuthError(err) && err.message ? err.message : "We couldn't delete your account. Try again."],
+                duration: 3000,
+              });
+            }
+          },
+        },
+      ],
+    });
+  };
 
   const handleManageBilling = async () => {
     const result = await billingActions.startPortal();
@@ -114,174 +196,251 @@ function ProfileScreen() {
       {/* Keep the ScrollView as the screen's first native child — the native
           tab bar finds it via first-subview traversal to drive
           minimizeBehavior and scroll edge effects on iOS 26. */}
-      <ScrollView testID="profile-screen" style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.content}>
-          {/* Profile Header */}
-          <View style={styles.headerSection}>
-            <Pressable onPress={handleEditProfile}>
-              <View style={[styles.avatar, getShadowStyle("soft")]}>
-                <Icon name="user" color={palette.white} size={48} />
-              </View>
-            </Pressable>
-            <SansSerifBoldText size="xl" style={styles.name}>
-              {user?.username || "User"}
-            </SansSerifBoldText>
+      <ScrollView
+        testID="profile-screen"
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Header: free-form, so it pads itself. The grouped rows below
+            carry the screen's 16pt inset, so the scroll view adds none. */}
+        <View style={styles.headerSection}>
+          <Pressable onPress={handleEditProfile}>
+            <View style={[styles.avatar, getShadowStyle("soft")]}>
+              <Icon name="user" color={palette.white} size={48} />
+            </View>
+          </Pressable>
+          <SansSerifBoldText size="xl" style={[styles.name, !user?.email && styles.nameSpaced]}>
+            {headerName}
+          </SansSerifBoldText>
+          {user?.email ? (
             <SansSerifText size="base" style={styles.email}>
-              {user?.email || "user@example.com"}
+              {user.email}
             </SansSerifText>
-            <Button
-              preset="outline"
-              size="sm"
-              onPress={handleEditProfile}
-            >
-              <Icon name="pencil" size={14} color={theme.colors.primary} />
-              <SansSerifText size="base" style={styles.editButtonText}> Edit Profile</SansSerifText>
-            </Button>
-          </View>
-
-          <AccountInfoSection
-            styles={styles}
-            shadowStyle={getShadowStyle("subtle")}
-            theme={theme}
-            userId={user?.userId}
-            billing={billing}
-            entitled={entitled}
-            statusColor={statusColor}
-            statusLabel={statusLabel}
-            billingAction={billingAction}
-            isCreatingPortal={billingActions.isCreatingPortal}
-            onManageBilling={handleManageBilling}
-            onUpgrade={handleUpgrade}
-          />
-
-          {/* Account Settings */}
-          <View style={styles.section}>
-            <SansSerifBoldText size="body" style={styles.sectionTitle}>Account Settings</SansSerifBoldText>
-            <View style={[styles.card, getShadowStyle("subtle")]}>
-              <Pressable style={styles.settingsRow} onPress={handleChangePassword}>
-                <View style={styles.settingsRowLeft}>
-                  <Icon name="key" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText size="base" style={styles.settingsLabel}>Change Password</SansSerifText>
-                </View>
-                <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
-              </Pressable>
-              <View style={styles.divider} />
-              <Pressable style={styles.settingsRow} onPress={handlePrivacySettings}>
-                <View style={styles.settingsRowLeft}>
-                  <Icon name="shield" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText size="base" style={styles.settingsLabel}>Privacy Settings</SansSerifText>
-                </View>
-                <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Notification Preferences */}
-          <View style={styles.section}>
-            <SansSerifBoldText size="body" style={styles.sectionTitle}>Notifications</SansSerifBoldText>
-            <View style={[styles.card, getShadowStyle("subtle")]}>
-              <View style={styles.switchRow}>
-                <View style={styles.switchRowLeft}>
-                  <Icon name="mail" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText size="base" style={styles.settingsLabel}>Email Notifications</SansSerifText>
-                </View>
-                <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.switchRow}>
-                <View style={styles.switchRowLeft}>
-                  <Icon name="bell" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText size="base" style={styles.settingsLabel}>Push Notifications</SansSerifText>
-                </View>
-                <Switch checked={pushNotifications} onCheckedChange={setPushNotifications} />
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.switchRow}>
-                <View style={styles.switchRowLeft}>
-                  <Icon name="mail" size={18} color={theme.colors.mutedForeground} />
-                  <SansSerifText size="base" style={styles.settingsLabel}>Marketing Emails</SansSerifText>
-                </View>
-                <Switch checked={marketingEmails} onCheckedChange={setMarketingEmails} />
-              </View>
-            </View>
-          </View>
-
-          {/* Connected Accounts */}
-          <View style={styles.section}>
-            <SansSerifBoldText size="body" style={styles.sectionTitle}>Connected Accounts</SansSerifBoldText>
-            <View style={[styles.card, getShadowStyle("subtle")]}>
-              <Pressable style={styles.connectedRow} onPress={handleConnectGoogle}>
-                <View style={styles.connectedRowLeft}>
-                  <View
-                    style={[
-                      styles.providerIcon,
-                      // eslint-disable-next-line expo-ui/no-raw-colors -- Google brand color; must not follow the theme
-                      { backgroundColor: "#DB4437" },
-                    ]}
-                  >
-                    <SansSerifBoldText size="body" style={styles.providerLetter}>G</SansSerifBoldText>
-                  </View>
-                  <View>
-                    <SansSerifText size="base" style={styles.settingsLabel}>Google</SansSerifText>
-                    <SansSerifText size="sm" style={styles.connectedStatus}>Not connected</SansSerifText>
-                  </View>
-                </View>
-                <Icon name="link-2" size={18} color={theme.colors.primary} />
-              </Pressable>
-              <View style={styles.divider} />
-              <Pressable style={styles.connectedRow} onPress={handleConnectApple}>
-                <View style={styles.connectedRowLeft}>
-                  <View style={[styles.providerIcon, { backgroundColor: theme.colors.foreground }]}>
-                    <SansSerifBoldText size="body" style={[styles.providerLetter, { color: theme.colors.background }]}>
-                      A
-                    </SansSerifBoldText>
-                  </View>
-                  <View>
-                    <SansSerifText size="base" style={styles.settingsLabel}>Apple</SansSerifText>
-                    <SansSerifText size="sm" style={styles.connectedStatus}>Not connected</SansSerifText>
-                  </View>
-                </View>
-                <Icon name="link-2" size={18} color={theme.colors.primary} />
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Danger Zone */}
-          <View style={styles.section}>
-            <SansSerifBoldText size="body" style={[styles.sectionTitle, { color: theme.colors.destructive }]}>
-              Danger Zone
-            </SansSerifBoldText>
-            <View style={[styles.card, styles.dangerCard, getShadowStyle("subtle")]}>
-              {isAuthenticated && (
-                <>
-                  <Pressable style={styles.dangerRow} onPress={handleSignOut}>
-                    <View style={styles.dangerRowLeft}>
-                      <Icon name="log-out" size={18} color={theme.colors.destructive} />
-                      <SansSerifText size="base" style={styles.dangerLabel}>Sign Out</SansSerifText>
-                    </View>
-                  </Pressable>
-                  <View style={styles.divider} />
-                </>
-              )}
-              <Pressable style={styles.dangerRow} onPress={handleDeleteAccount}>
-                <View style={styles.dangerRowLeft}>
-                  <Icon name="trash" size={18} color={theme.colors.destructive} />
-                  <SansSerifText size="base" style={styles.dangerLabel}>Delete Account</SansSerifText>
-                </View>
-              </Pressable>
-            </View>
-          </View>
+          ) : null}
+          <Button
+            preset="outline"
+            size="sm"
+            style={styles.editButton}
+            onPress={handleEditProfile}
+          >
+            <Icon name="pencil" size={14} color={theme.colors.primary} />
+            <SansSerifText size="base" style={styles.editButtonText}> Edit Profile</SansSerifText>
+          </Button>
         </View>
+
+        <AccountInfoSection
+          theme={theme}
+          userId={user?.userId}
+          billing={billing}
+          entitled={entitled}
+          statusColor={statusColor}
+          statusLabel={statusLabel}
+          billingAction={billingAction}
+          isCreatingPortal={billingActions.isCreatingPortal}
+          onManageBilling={handleManageBilling}
+          onUpgrade={handleUpgrade}
+        />
+
+        <View>
+          <ItemGroup title="Account Settings">
+            {capabilities.canResetPassword && (
+              <Item onPress={changePassword.start}>
+                <ItemMedia size={36} icon="key" />
+                <ItemContent>
+                  <ItemTitle>Change Password</ItemTitle>
+                  <ItemDescription>We email a code to {user?.email}</ItemDescription>
+                </ItemContent>
+                <ItemActions>
+                  <Icon name="chevron-right" size={18} color={theme.colors.mutedForeground} />
+                </ItemActions>
+              </Item>
+            )}
+            <Item onPress={() => setPrivacyOpen((open) => !open)}>
+              <ItemMedia size={36} icon="shield" />
+              <ItemContent>
+                <ItemTitle>Privacy Settings</ItemTitle>
+              </ItemContent>
+              <ItemActions>
+                <Icon
+                  name={privacyOpen ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={theme.colors.mutedForeground}
+                />
+              </ItemActions>
+            </Item>
+          </ItemGroup>
+          <Collapsible open={privacyOpen} onOpenChange={setPrivacyOpen}>
+            <CollapsibleContent>
+              <ItemGroup testID="profile-privacy-settings">
+                <Item>
+                  <ItemMedia size={36} icon="eye" />
+                  <ItemContent>
+                    <ItemTitle>Public profile</ItemTitle>
+                    <ItemDescription>Let others find your profile</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <Switch
+                      checked={publicProfile}
+                      onCheckedChange={(value) => setPreference("publicProfile", value)}
+                    />
+                  </ItemActions>
+                </Item>
+                <Item>
+                  <ItemMedia size={36} icon="chart-no-axes-column" />
+                  <ItemContent>
+                    <ItemTitle>Share analytics</ItemTitle>
+                    <ItemDescription>Anonymous usage data helps improve the app</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <Switch
+                      checked={analytics}
+                      onCheckedChange={(value) => setPreference("analytics", value)}
+                    />
+                  </ItemActions>
+                </Item>
+              </ItemGroup>
+            </CollapsibleContent>
+          </Collapsible>
+        </View>
+
+        <ItemGroup title="Notifications">
+          <Item>
+            <ItemMedia size={36} icon="mail" />
+            <ItemContent>
+              <ItemTitle>Email Notifications</ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <Switch
+                checked={emailNotifications}
+                onCheckedChange={(value) => setPreference("emailNotifications", value)}
+              />
+            </ItemActions>
+          </Item>
+          <Item>
+            <ItemMedia size={36} icon="bell" />
+            <ItemContent>
+              <ItemTitle>Push Notifications</ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <Switch
+                checked={pushNotifications}
+                onCheckedChange={(value) => setPreference("pushNotifications", value)}
+              />
+            </ItemActions>
+          </Item>
+          <Item>
+            <ItemMedia size={36} icon="send" />
+            <ItemContent>
+              <ItemTitle>Marketing Emails</ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <Switch
+                checked={marketingEmails}
+                onCheckedChange={(value) => setPreference("marketingEmails", value)}
+              />
+            </ItemActions>
+          </Item>
+        </ItemGroup>
+
+        {capabilities.socialProviders.length > 0 && (
+          <ItemGroup
+            title="Connected Accounts"
+            footer="Signing in with a provider links it to this account."
+          >
+            {capabilities.socialProviders.map((provider) => {
+              const meta = PROVIDER_META[provider];
+              return (
+                <Item key={provider} onPress={() => handleConnect(provider)}>
+                  <ItemMedia size={36} style={meta.tile(styles)}>
+                    <SansSerifBoldText size="body" style={meta.letter(styles)}>
+                      {meta.initial}
+                    </SansSerifBoldText>
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemTitle>{meta.label}</ItemTitle>
+                    <ItemDescription>Connect with {meta.label} sign-in</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <Icon name="link-2" size={18} color={theme.colors.primary} />
+                  </ItemActions>
+                </Item>
+              );
+            })}
+          </ItemGroup>
+        )}
+
+        {showDangerZone && (
+          <ItemGroup title="Danger Zone">
+            {isAuthenticated && (
+              <Item onPress={handleSignOut}>
+                <ItemMedia
+                  size={36}
+                  icon="log-out"
+                  iconColor={theme.colors.destructive}
+                  style={styles.destructiveTile}
+                />
+                <ItemContent>
+                  <ItemTitle style={styles.destructiveLabel}>Sign Out</ItemTitle>
+                </ItemContent>
+              </Item>
+            )}
+            {capabilities.canDeleteAccount && (
+              <Item onPress={handleDeleteAccount}>
+                <ItemMedia
+                  size={36}
+                  icon="trash"
+                  iconColor={theme.colors.destructive}
+                  style={styles.destructiveTile}
+                />
+                <ItemContent>
+                  <ItemTitle style={styles.destructiveLabel}>Delete Account</ItemTitle>
+                </ItemContent>
+              </Item>
+            )}
+          </ItemGroup>
+        )}
       </ScrollView>
+      <EditProfileSheet
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        authEnabled={capabilities.authEnabled}
+        fallbackName={fallbackName}
+      />
+      {capabilities.canResetPassword && user?.email ? (
+        <ChangePasswordSheet flow={changePassword} email={user.email} />
+      ) : null}
     </>
   );
 }
 
 type ProfileStyles = ReturnType<typeof createStyles>;
 
+/** Brand tiles for the federated providers the env can list. */
+const PROVIDER_META: Record<
+  SocialAuthProviderName,
+  {
+    label: string;
+    initial: string;
+    tile: (styles: ProfileStyles) => StyleProp<ViewStyle>;
+    letter: (styles: ProfileStyles) => StyleProp<TextStyle>;
+  }
+> = {
+  google: {
+    label: "Google",
+    initial: "G",
+    tile: (styles) => styles.googleTile,
+    letter: (styles) => styles.providerLetter,
+  },
+  apple: {
+    label: "Apple",
+    initial: "A",
+    tile: (styles) => styles.appleTile,
+    letter: (styles) => styles.appleLetter,
+  },
+};
+
 function AccountInfoSection({
-  styles,
-  shadowStyle,
   theme,
   userId,
   billing,
@@ -293,8 +452,6 @@ function AccountInfoSection({
   onManageBilling,
   onUpgrade,
 }: {
-  styles: ProfileStyles;
-  shadowStyle: object;
   theme: Theme;
   userId?: string;
   billing?: BillingSummary;
@@ -307,157 +464,101 @@ function AccountInfoSection({
   onUpgrade: () => void;
 }) {
   return (
-    <View style={styles.section}>
-      <SansSerifBoldText size="body" style={styles.sectionTitle}>Account Info</SansSerifBoldText>
-      <View style={[styles.card, shadowStyle]}>
-        <View style={styles.infoRow}>
-          <View style={styles.infoRowLeft}>
-            <Icon name="user" size={18} color={theme.colors.mutedForeground} />
-            <SansSerifText style={styles.infoLabel}>User ID</SansSerifText>
-          </View>
-          <SansSerifText style={styles.infoValue}>
-            {userId ? userId.slice(0, 8) + "..." : "—"}
-          </SansSerifText>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.infoRow}>
-          <View style={styles.infoRowLeft}>
-            <Icon
-              name="award"
-              size={18}
-              color={entitled ? theme.colors.success : theme.colors.mutedForeground}
-            />
-            <SansSerifText style={styles.infoLabel}>Plan</SansSerifText>
-          </View>
-          <SansSerifText style={styles.infoValue}>
-            {billing?.planLabel ?? "Free"}
-          </SansSerifText>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.infoRow}>
-          <View style={styles.infoRowLeft}>
-            <Icon name="calendar" size={18} color={theme.colors.mutedForeground} />
-            <SansSerifText style={styles.infoLabel}>Renews</SansSerifText>
-          </View>
-          <SansSerifText style={styles.infoValue}>
+    <ItemGroup title="Account Info">
+      <Item>
+        <ItemMedia size={36} icon="user" />
+        <ItemContent>
+          <ItemTitle>User ID</ItemTitle>
+        </ItemContent>
+        <ItemActions>
+          <ItemDescription>{userId ? userId.slice(0, 8) + "..." : "—"}</ItemDescription>
+        </ItemActions>
+      </Item>
+      <Item>
+        <ItemMedia
+          size={36}
+          icon="award"
+          iconColor={entitled ? theme.colors.success : theme.colors.mutedForeground}
+        />
+        <ItemContent>
+          <ItemTitle>Plan</ItemTitle>
+        </ItemContent>
+        <ItemActions>
+          <ItemDescription>{billing?.planLabel ?? "Free"}</ItemDescription>
+        </ItemActions>
+      </Item>
+      <Item>
+        <ItemMedia size={36} icon="calendar" />
+        <ItemContent>
+          <ItemTitle>Renews</ItemTitle>
+        </ItemContent>
+        <ItemActions>
+          <ItemDescription>
             {formatPeriodEnd(billing?.currentPeriodEnd, billing?.cancelAtPeriodEnd)}
-          </SansSerifText>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.infoRow}>
-          <View style={styles.infoRowLeft}>
-            <Icon name="shield" size={18} color={statusColor} />
-            <SansSerifText style={styles.infoLabel}>Status</SansSerifText>
-          </View>
-          <SansSerifText style={[styles.infoValue, { color: statusColor }]}>
-            {statusLabel}
-          </SansSerifText>
-        </View>
-        {billing?.cancelAtPeriodEnd && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.notice}>
-              <Icon name="triangle-alert" size={16} color={theme.colors.warning} />
-              <SansSerifText style={styles.noticeText}>
-                Your plan is scheduled to end. Re-enable from Manage
-                subscription to keep access.
-              </SansSerifText>
-            </View>
-          </>
-        )}
-        {billing?.status === "past_due" && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.notice}>
-              <Icon name="triangle-alert" size={16} color={theme.colors.warning} />
-              <SansSerifText style={styles.noticeText}>
-                Your last payment failed. Update your payment method in Manage
-                subscription.
-              </SansSerifText>
-            </View>
-          </>
-        )}
-        {billingAction && (
-          <>
-            <View style={styles.divider} />
-            <Pressable
-              style={styles.settingsRow}
-              onPress={billingAction === "manage" ? onManageBilling : onUpgrade}
-              disabled={isCreatingPortal}
-            >
-              <View style={styles.settingsRowLeft}>
-                <Icon
-                  name={billingAction === "manage" ? "credit-card" : "zap"}
-                  size={18}
-                  color={theme.colors.accent}
-                />
-                <SansSerifText
-                  size="base"
-                  style={[styles.settingsLabel, { color: theme.colors.accent }]}
-                >
-                  {billingAction === "manage"
-                    ? isCreatingPortal
-                      ? "Opening…"
-                      : "Manage Subscription"
-                    : "Upgrade"}
-                </SansSerifText>
-              </View>
-              <Icon name="chevron-right" size={18} color={theme.colors.accent} />
-            </Pressable>
-          </>
-        )}
-      </View>
-    </View>
+          </ItemDescription>
+        </ItemActions>
+      </Item>
+      <Item>
+        <ItemMedia size={36} icon="shield" iconColor={statusColor} />
+        <ItemContent>
+          <ItemTitle>Status</ItemTitle>
+        </ItemContent>
+        <ItemActions>
+          <ItemDescription style={{ color: statusColor }}>{statusLabel}</ItemDescription>
+        </ItemActions>
+      </Item>
+      {billing?.cancelAtPeriodEnd && (
+        <Item>
+          <ItemMedia size={36} icon="triangle-alert" iconColor={theme.colors.warning} />
+          <ItemContent>
+            <ItemDescription>
+              Your plan is scheduled to end. Re-enable from Manage
+              subscription to keep access.
+            </ItemDescription>
+          </ItemContent>
+        </Item>
+      )}
+      {billing?.status === "past_due" && (
+        <Item>
+          <ItemMedia size={36} icon="triangle-alert" iconColor={theme.colors.warning} />
+          <ItemContent>
+            <ItemDescription>
+              Your last payment failed. Update your payment method in Manage
+              subscription.
+            </ItemDescription>
+          </ItemContent>
+        </Item>
+      )}
+      {billingAction && (
+        <Item
+          onPress={billingAction === "manage" ? onManageBilling : onUpgrade}
+          disabled={isCreatingPortal}
+        >
+          <ItemMedia
+            size={36}
+            icon={billingAction === "manage" ? "credit-card" : "zap"}
+            iconColor={theme.colors.accent}
+          />
+          <ItemContent>
+            <ItemTitle style={{ color: theme.colors.accent }}>
+              {billingAction === "manage"
+                ? isCreatingPortal
+                  ? "Opening…"
+                  : "Manage Subscription"
+                : "Upgrade"}
+            </ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <Icon name="chevron-right" size={18} color={theme.colors.accent} />
+          </ItemActions>
+        </Item>
+      )}
+    </ItemGroup>
   );
-}
-
-function showInfoMessage(message: string) {
-  notify({
-    type: "info",
-    messages: [message],
-    duration: 2000,
-  });
-}
-
-function handleEditProfile() {
-  showInfoMessage("Edit profile functionality coming soon");
-}
-
-function handleChangePassword() {
-  showInfoMessage("Password change functionality coming soon");
-}
-
-function handlePrivacySettings() {
-  showInfoMessage("Privacy settings coming soon");
-}
-
-function handleConnectGoogle() {
-  showInfoMessage("Google account linking coming soon");
-}
-
-function handleConnectApple() {
-  showInfoMessage("Apple account linking coming soon");
 }
 
 function handleUpgrade() {
   router.push("/(main)/(demos)/screen-pricing");
-}
-
-function handleDeleteAccount() {
-  Alert.show({
-    title: "Delete Account",
-    message: "This action cannot be undone. All your data will be permanently deleted.",
-    buttons: [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => {
-          showInfoMessage("Account deletion coming soon");
-        },
-      },
-    ],
-  });
 }
 
 function statusToLabel(status: BillingSummary["status"] | undefined): string {
@@ -494,6 +595,9 @@ function formatPeriodEnd(
   return cancelAtPeriodEnd ? `Ends ${formatted}` : formatted;
 }
 
+// Wide screens cap and centre the column instead of boxing it.
+const MAX_CONTENT_WIDTH = 640;
+
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     scrollView: {
@@ -501,14 +605,16 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
     content: {
-      flex: 1,
-      paddingHorizontal: spacing.screenPadding,
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
       paddingTop: spacing.md,
       paddingBottom: spacing.xxl,
+      gap: spacing.sectionSpacing,
     },
     headerSection: {
       alignItems: "center",
-      marginBottom: spacing.sectionSpacing,
+      paddingHorizontal: spacing.screenPadding,
     },
     avatar: {
       width: 100,
@@ -523,129 +629,42 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.foreground,
       marginBottom: spacing.xs,
     },
+    nameSpaced: {
+      marginBottom: spacing.md,
+    },
     email: {
       color: theme.colors.mutedForeground,
       marginBottom: spacing.md,
     },
+    // The header centres its children, but the button sizes to its label and
+    // sits at the start; centre it with the name above it.
+    editButton: {
+      alignSelf: "center",
+    },
     editButtonText: {
       color: theme.colors.primary,
     },
-    section: {
-      marginBottom: spacing.lg,
+    // Brand tiles for the provider rows; ItemMedia has no tint variant. They
+    // reach ItemMedia through PROVIDER_META, which no-restyle cannot follow.
+    googleTile: {
+      // eslint-disable-next-line expo-ui/no-raw-colors -- Google brand red; must not follow the theme
+      backgroundColor: "#DB4437",
     },
-    sectionTitle: {
-      color: theme.colors.foreground,
-      marginBottom: spacing.sm,
-    },
-    card: {
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusMd,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      overflow: "hidden",
-    },
-    dangerCard: {
-      borderColor: withAlpha(theme.colors.destructive, 0.25),
-    },
-    infoRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: spacing.md,
-    },
-    infoRowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    infoLabel: {
-      fontSize: 14,
-      color: theme.colors.foreground,
-    },
-    infoValue: {
-      fontSize: 14,
-      color: theme.colors.foreground,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: theme.colors.border,
-      marginHorizontal: spacing.md,
-    },
-    settingsRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: spacing.md,
-    },
-    settingsRowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    settingsLabel: {
-      color: theme.colors.foreground,
-    },
-    switchRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: spacing.md,
-    },
-    switchRowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    connectedRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: spacing.md,
-    },
-    connectedRowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    providerIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: spacing.radiusSm,
-      alignItems: "center",
-      justifyContent: "center",
+    appleTile: {
+      backgroundColor: theme.colors.foreground,
     },
     providerLetter: {
       color: palette.white,
     },
-    connectedStatus: {
-      color: theme.colors.mutedForeground,
+    appleLetter: {
+      color: theme.colors.background,
     },
-    dangerRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: spacing.md,
+    destructiveTile: {
+      // eslint-disable-next-line expo-ui/no-restyle -- destructive icon tile tint; ItemMedia has no tint variant
+      backgroundColor: withAlpha(theme.colors.destructive, 0.12),
     },
-    dangerRowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-    },
-    dangerLabel: {
+    destructiveLabel: {
       color: theme.colors.destructive,
-    },
-    notice: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-    },
-    noticeText: {
-      flex: 1,
-      fontSize: 13,
-      color: theme.colors.foreground,
-      lineHeight: 18,
     },
   });
 

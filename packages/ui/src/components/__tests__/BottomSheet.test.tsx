@@ -11,7 +11,9 @@ import {
 } from "react-native";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { BottomSheet, bottomSheetAncestorClaimWarning } from "../BottomSheet";
+import { spacing } from "../../constants/spacing";
 import { resetAncestorClaimWarningForTests } from "../keyboardDismiss";
 import {
   clearKeyboardFocusedInput,
@@ -69,12 +71,16 @@ jest.mock("@expo/ui/community/bottom-sheet", () => {
   const { View } = require("react-native");
 
   return {
-    BottomSheet: ({ children, index, handleComponent, backgroundStyle }: any) => (
+    // `onClose` / `onChange` are kept on the mock so tests can fire the native
+    // close the way @expo/ui does after its dismissal (see "onDismissed").
+    BottomSheet: ({ children, index, handleComponent, backgroundStyle, onClose, onChange }: any) => (
       <View
         testID="native-bottom-sheet"
         accessibilityLabel={handleComponent === null ? "custom-handle" : "native-handle"}
         accessibilityValue={{ now: index }}
         backgroundStyle={backgroundStyle}
+        onClose={onClose}
+        onChange={onChange}
       >
         {children}
       </View>
@@ -465,13 +471,20 @@ describe("BottomSheet.Content keyboard dismiss boundary", () => {
 describe("BottomSheet.Content column height", () => {
   type SnapPoints = NonNullable<React.ComponentProps<typeof BottomSheet>["snapPoints"]>;
 
-  async function columnStyle(snapPoints: SnapPoints) {
+  // A Dynamic Island phone: the sheet's top edge sits 10 pt under the top inset.
+  const INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
+  const available = () => Dimensions.get("window").height - INSETS.top - 10;
+
+  async function columnStyle(snapPoints: SnapPoints, options: { handle?: boolean } = {}) {
     await render(
-      <BottomSheet open snapPoints={snapPoints}>
-        <BottomSheet.Content testID="sheet-column">
-          <Text>Sheet content</Text>
-        </BottomSheet.Content>
-      </BottomSheet>
+      <SafeAreaInsetsContext.Provider value={INSETS}>
+        <BottomSheet open snapPoints={snapPoints}>
+          <BottomSheet.Content testID="sheet-column">
+            {options.handle && <BottomSheet.Handle />}
+            <Text>Sheet content</Text>
+          </BottomSheet.Content>
+        </BottomSheet>
+      </SafeAreaInsetsContext.Provider>
     );
     return StyleSheet.flatten(screen.getByTestId("sheet-column").props.style) as Record<
       string,
@@ -479,16 +492,26 @@ describe("BottomSheet.Content column height", () => {
     >;
   }
 
-  it("caps the column at a percentage detent of the window on iOS", async () => {
+  it("caps the column at the fraction of the sheet's available height on iOS, less the host's grabber padding", async () => {
     const style = await columnStyle(["55%"]);
     expect(style.flex).toBe(1);
-    expect(style.maxHeight).toBe(0.55 * Dimensions.get("window").height);
+    expect(style.maxHeight).toBe(0.55 * available() - 16);
   });
 
-  it("caps the column at a fixed detent on iOS", async () => {
+  it("caps the column at a fixed detent on iOS, less the host's grabber padding", async () => {
     const style = await columnStyle([320]);
     expect(style.flex).toBe(1);
-    expect(style.maxHeight).toBe(320);
+    expect(style.maxHeight).toBe(320 - 16);
+  });
+
+  it("clamps a fixed detent to the height UIKit can give the sheet", async () => {
+    const style = await columnStyle([available() + 200]);
+    expect(style.maxHeight).toBe(available() - 16);
+  });
+
+  it("keeps the full detent when the kit Handle replaces the native grabber", async () => {
+    const style = await columnStyle(["55%"], { handle: true });
+    expect(style.maxHeight).toBe(0.55 * available());
   });
 
   it("lets the column fill the Material host on Android with no maxHeight", async () => {
@@ -758,5 +781,167 @@ describe("BottomSheet.Content ancestor claim diagnostic", () => {
     expect(warn).not.toHaveBeenCalled();
     // The boundary itself is unchanged on iOS: an unarmed start never dismisses.
     expect(blur).not.toHaveBeenCalled();
+  });
+});
+
+describe("BottomSheet onDismissed", () => {
+  type NativeSheet = { props: { accessibilityValue: { now: number }; onClose: () => void; onChange: (index: number) => void } };
+  const nativeSheet = () => screen.getByTestId("native-bottom-sheet") as unknown as NativeSheet;
+
+  /** @expo/ui fires onClose, then onChange(-1), once the native sheet has dismissed. */
+  async function fireNativeClose() {
+    await act(async () => {
+      nativeSheet().props.onClose();
+      nativeSheet().props.onChange(-1);
+    });
+  }
+
+  function sheet(props: { open?: boolean; defaultOpen?: boolean; onOpenChange?: (open: boolean) => void; onDismissed?: () => void }) {
+    return (
+      <BottomSheet {...props}>
+        <BottomSheet.Content>
+          <Text>Sheet content</Text>
+          <BottomSheet.Close>
+            <Text>Close</Text>
+          </BottomSheet.Close>
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+  }
+
+  it("fires once after the native sheet reports its dismissal, not when open flips to false", async () => {
+    const onDismissed = jest.fn();
+    const onOpenChange = jest.fn();
+    const { rerender } = await render(sheet({ open: true, onOpenChange, onDismissed }));
+
+    await rerender(sheet({ open: false, onOpenChange, onDismissed }));
+
+    expect(nativeSheet().props.accessibilityValue.now).toBe(-1);
+    expect(onDismissed).not.toHaveBeenCalled();
+
+    await fireNativeClose();
+
+    expect(onDismissed).toHaveBeenCalledTimes(1);
+    // The sheet was already closed by its owner: no redundant onOpenChange(false).
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("reports a user dismissal to onOpenChange(false) first, then onDismissed, once", async () => {
+    const onDismissed = jest.fn();
+    const onOpenChange = jest.fn();
+    // The owner never flips `open`, so every native report re-requests the
+    // close (unchanged behavior); `onDismissed` must still fire once.
+    await render(sheet({ open: true, onOpenChange, onDismissed }));
+
+    await fireNativeClose();
+    // A second native report for the same close (defensive: @expo/ui guards this itself).
+    await act(async () => {
+      nativeSheet().props.onClose();
+    });
+
+    expect(onOpenChange).toHaveBeenCalled();
+    expect(onOpenChange.mock.calls.every(([next]) => next === false)).toBe(true);
+    expect(onDismissed).toHaveBeenCalledTimes(1);
+    expect(onOpenChange.mock.invocationCallOrder[0]).toBeLessThan(
+      onDismissed.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("fires again for the next close after the sheet reopens", async () => {
+    const onDismissed = jest.fn();
+    const { rerender } = await render(sheet({ open: true, onDismissed }));
+
+    await rerender(sheet({ open: false, onDismissed }));
+    await fireNativeClose();
+    await rerender(sheet({ open: true, onDismissed }));
+    await rerender(sheet({ open: false, onDismissed }));
+    await fireNativeClose();
+
+    expect(onDismissed).toHaveBeenCalledTimes(2);
+  });
+
+  it("calls the latest onDismissed prop", async () => {
+    const stale = jest.fn();
+    const latest = jest.fn();
+    const { rerender } = await render(sheet({ open: true, onDismissed: stale }));
+
+    await rerender(sheet({ open: false, onDismissed: latest }));
+    await fireNativeClose();
+
+    expect(stale).not.toHaveBeenCalled();
+    expect(latest).toHaveBeenCalledTimes(1);
+  });
+
+  it("fires once for an uncontrolled sheet closed through BottomSheet.Close", async () => {
+    const onDismissed = jest.fn();
+    await render(sheet({ defaultOpen: true, onDismissed }));
+
+    await fireEvent.press(screen.getByText("Close"));
+
+    expect(nativeSheet().props.accessibilityValue.now).toBe(-1);
+    expect(onDismissed).not.toHaveBeenCalled();
+
+    await fireNativeClose();
+
+    expect(onDismissed).toHaveBeenCalledTimes(1);
+  });
+
+  it("fires on the same tick on web when no dialog element encloses the column", async () => {
+    await withPlatform("web", async () => {
+      const onDismissed = jest.fn();
+      const { rerender } = await render(sheet({ open: true, onDismissed }));
+
+      await rerender(sheet({ open: false, onDismissed }));
+      await fireNativeClose();
+
+      expect(onDismissed).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+describe("BottomSheet safe-area padding inside the sheet", () => {
+  const INSETS = { top: 59, bottom: 34, left: 0, right: 0 };
+
+  async function renderParts(withFooter: boolean) {
+    await render(
+      <SafeAreaInsetsContext.Provider value={INSETS}>
+        <BottomSheet open snapPoints={["60%"]}>
+          <BottomSheet.Content>
+            <BottomSheet.Body testID="sheet-body">
+              <Text>Row</Text>
+            </BottomSheet.Body>
+            {withFooter && (
+              <BottomSheet.Footer testID="sheet-footer">
+                <Text>Share</Text>
+              </BottomSheet.Footer>
+            )}
+          </BottomSheet.Content>
+        </BottomSheet>
+      </SafeAreaInsetsContext.Provider>
+    );
+  }
+
+  const bodyPaddingBottom = () =>
+    (StyleSheet.flatten(screen.getByTestId("sheet-body").props.contentContainerStyle) as Record<string, number>)
+      .paddingBottom;
+  const footerPaddingBottom = () =>
+    (StyleSheet.flatten(screen.getByTestId("sheet-footer").props.style) as Record<string, number>).paddingBottom;
+
+  it("iOS: the footer pads no bottom inset — the SwiftUI host already keeps the column inside the safe area", async () => {
+    await renderParts(true);
+    expect(footerPaddingBottom()).toBe(spacing.md);
+    expect(bodyPaddingBottom()).toBe(spacing.md);
+  });
+
+  it("iOS: a footer-less body pads only its own spacing", async () => {
+    await renderParts(false);
+    expect(bodyPaddingBottom()).toBe(spacing.md);
+  });
+
+  it("Android: the footer still clears the bottom inset for the Material host", async () => {
+    await withPlatform("android", async () => {
+      await renderParts(true);
+      expect(footerPaddingBottom()).toBe(spacing.md + INSETS.bottom);
+    });
   });
 });

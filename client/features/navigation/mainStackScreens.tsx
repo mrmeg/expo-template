@@ -24,7 +24,9 @@ export interface MainStackScreen {
  */
 export const MAIN_STACK_SCREENS: readonly MainStackScreen[] = [
   /* The `(tabs)` group uses a native tab bar (see (tabs)/_layout.tsx), so the
-     stack header is the only top chrome and shows at every width. */
+     stack header is the only top chrome and shows at every width. "Explore" is
+     the tab the app opens on; each tab screen retitles the header on focus
+     through `useTabHeaderTitle`. */
   { name: "(tabs)", options: { headerShown: true, title: "Explore", headerBackTitle: " " } },
   /* Three-scale galleries. `components/[id]` sets its own title from the
      component's registry id, so it only declares the web back button. */

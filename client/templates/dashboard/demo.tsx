@@ -64,10 +64,12 @@ const DATE_RANGE_OPTIONS = [
   { value: "90d", label: "90 days" },
 ];
 
-function PlaceholderCard({ text, theme }: { text: string; theme: Theme }) {
+// Section content sits on the section's gutter as plain copy: a bordered,
+// padded box here would inset it a second time.
+function PlaceholderNote({ text, theme }: { text: string; theme: Theme }) {
   const styles = themedStyles(theme);
   return (
-    <View style={styles.placeholderCard}>
+    <View style={styles.placeholder}>
       <SansSerifText size="base" style={styles.placeholderText}>{text}</SansSerifText>
     </View>
   );
@@ -89,7 +91,7 @@ export default function ScreenDashboardDemo() {
       viewAllLabel: "View all",
       onViewAll: () => {},
       content: (
-        <PlaceholderCard
+        <PlaceholderNote
           text="Product performance breakdown will appear here. Connect your data source to populate this section."
           theme={theme}
         />
@@ -100,7 +102,7 @@ export default function ScreenDashboardDemo() {
       viewAllLabel: "Details",
       onViewAll: () => {},
       content: (
-        <PlaceholderCard
+        <PlaceholderNote
           text="Customer demographics and behavior analytics. Integrate your analytics provider to see real data."
           theme={theme}
         />
@@ -122,12 +124,7 @@ export default function ScreenDashboardDemo() {
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    placeholderCard: {
-      backgroundColor: theme.colors.card,
-      borderRadius: spacing.radiusLg,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      padding: spacing.cardPadding,
+    placeholder: {
       minHeight: 80,
       justifyContent: "center",
     },

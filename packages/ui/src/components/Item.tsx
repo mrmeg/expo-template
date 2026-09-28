@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Children, createContext, isValidElement, use, useId } from "react";
 import {
   View,
   Pressable,
@@ -8,16 +8,130 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
-import { StyledText, CaptionText, type TextProps } from "./StyledText";
+import { StyledText, CaptionText, EyebrowText, type TextProps } from "./StyledText";
+import { useHydrated } from "../hooks/useHydrated";
 import { Icon, type IconName, type ThemeColorName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
 import { useScalePress } from "../hooks/useScalePress";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 
-// Default ItemMedia footprint (see ItemMedia's `size` prop) — used to inset
-// the optional separator past the media slot without needing a context.
+// Default ItemMedia footprint (see ItemMedia's `size` prop).
 const DEFAULT_MEDIA_SIZE = 40;
-const SEPARATOR_INSET = spacing.rowPaddingX + DEFAULT_MEDIA_SIZE + spacing.rowGap;
+
+/**
+ * What an `ItemGroup` tells each row it wraps: whether to draw the hairline
+ * under itself. `null` outside a group, where the row's own `separator` prop
+ * decides.
+ */
+interface ItemGroupRow {
+  separator: boolean;
+}
+
+const ItemGroupRowContext = createContext<ItemGroupRow | null>(null);
+const SEPARATED_ROW: ItemGroupRow = { separator: true };
+const LAST_ROW: ItemGroupRow = { separator: false };
+
+/**
+ * What a row tells the controls inside it: the title's text when it is a plain
+ * string (the accessible name on every platform), and — once ids can be
+ * trusted — the id its `ItemTitle` renders under (`nativeID`), so a composed
+ * title can still be linked with `aria-labelledby`.
+ *
+ * `titleId` is `undefined` during SSR and the hydration pass on web: `useId()`
+ * values do not survive Expo Router's streamed hydration (see `useHydrated`),
+ * so ids only appear in the first client render after it.
+ */
+export interface ItemLabel {
+  titleId: string | undefined;
+  title: string | undefined;
+}
+
+const ItemLabelContext = createContext<ItemLabel | null>(null);
+/** True inside `ItemContent`, where the row's title lives. */
+const ItemContentContext = createContext(false);
+
+/**
+ * The row's title, read synchronously from its element tree: the first
+ * `ItemTitle` directly inside a direct `ItemContent`. `found` is false when
+ * the row has no such title (a media-only or custom row), so controls in it
+ * borrow nothing. `text` is the title when its children are strings (or
+ * numbers); a composed title (`<ItemTitle>{name} <Badge/></ItemTitle>`) gives
+ * `undefined` — web still links by id, native then needs an explicit label.
+ */
+function scanTitle(children: React.ReactNode): { found: boolean; text: string | undefined } {
+  for (const child of Children.toArray(children)) {
+    if (!isValidElement<{ children?: React.ReactNode }>(child)) continue;
+    if (child.type === ItemContent) {
+      for (const inner of Children.toArray(child.props.children)) {
+        if (isValidElement<{ children?: React.ReactNode }>(inner) && inner.type === ItemTitle) {
+          const parts = Children.toArray(inner.props.children);
+          const plain = parts.length > 0 && parts.every((part) => typeof part === "string" || typeof part === "number");
+          return { found: true, text: plain ? parts.join("") : undefined };
+        }
+      }
+    }
+  }
+  return { found: false, text: undefined };
+}
+
+/**
+ * The row label a control inside an `Item` can borrow, or `null` outside a
+ * row. `Switch`, `Checkbox` and `Toggle` use it when they have no label of
+ * their own: `aria-labelledby={titleId}` on web, `accessibilityLabel={title}`
+ * on native. Apps composing their own controls can do the same.
+ */
+export function useItemLabel(): ItemLabel | null {
+  return use(ItemLabelContext);
+}
+
+type OwnLabelProps = {
+  accessibilityLabel?: string;
+  "aria-label"?: string;
+  "aria-labelledby"?: string;
+  accessibilityLabelledBy?: string | string[];
+};
+
+/**
+ * Accessibility props a control inside an `Item` should spread when it has no
+ * label of its own — its own props always win, so this returns `{}` whenever
+ * any label prop is set, or outside a row. A plain-text title becomes the
+ * control's `accessibilityLabel` (`aria-label` on web) on every platform, in
+ * the server HTML too. A composed title has no text to copy, so the control
+ * points at the title's id instead — `aria-labelledby` on web,
+ * `accessibilityLabelledBy` on Android — once that id exists (after hydration
+ * on web; see `ItemLabel`).
+ */
+export function useItemControlLabel(own: OwnLabelProps): OwnLabelProps {
+  const label = use(ItemLabelContext);
+  if (
+    !label ||
+    own.accessibilityLabel !== undefined ||
+    own["aria-label"] !== undefined ||
+    own["aria-labelledby"] !== undefined ||
+    own.accessibilityLabelledBy !== undefined
+  ) {
+    return {};
+  }
+  if (label.title !== undefined) return { accessibilityLabel: label.title };
+  if (label.titleId === undefined) return {};
+  return Platform.OS === "web" ? { "aria-labelledby": label.titleId } : { accessibilityLabelledBy: label.titleId };
+}
+
+/**
+ * Where a row's hairline starts: under the title when the row leads with an
+ * `ItemMedia` (row padding + media + gap, so a custom `size` lines up too),
+ * otherwise at the row padding.
+ */
+function separatorInset(children: React.ReactNode): number {
+  for (const child of Children.toArray(children)) {
+    if (isValidElement<ItemMediaProps>(child) && child.type === ItemMedia) {
+      return spacing.rowPaddingX + (child.props.size ?? DEFAULT_MEDIA_SIZE) + spacing.rowGap;
+    }
+  }
+  return spacing.rowPaddingX;
+}
 
 export interface ItemProps {
   children?: React.ReactNode;
@@ -25,7 +139,11 @@ export interface ItemProps {
   onPress?: () => void;
   /** Disables press handling when `onPress` is set. */
   disabled?: boolean;
-  /** Renders a hairline divider below the row, inset past the media slot. */
+  /**
+   * Renders a hairline divider below the row, starting under the title (past
+   * the `ItemMedia` slot when there is one). Inside an `ItemGroup` the group
+   * sets this for every row but the last; pass `false` to drop one row's line.
+   */
   separator?: boolean;
   /** Custom style override for the row. */
   style?: StyleProp<ViewStyle>;
@@ -38,7 +156,9 @@ export interface ItemProps {
  * `spacing.rowPaddingX`) and gap, a 44pt min height on native (40 on web),
  * and an optional pressable scale interaction. Compose
  * with `ItemMedia`, `ItemContent` (+ `ItemTitle`/`ItemDescription`), and
- * `ItemActions`.
+ * `ItemActions`. Stack rows in an `ItemGroup`, which draws the separators;
+ * the row's own padding is the screen's only horizontal inset, so don't wrap
+ * rows in a padded or bordered container.
  *
  * @example
  * ```tsx
@@ -54,24 +174,40 @@ export interface ItemProps {
  * </Item>
  * ```
  */
-export function Item({ children, onPress, disabled, separator = false, style }: ItemProps) {
-  const { theme } = useTheme();
+export function Item({ children, onPress, disabled, separator, style }: ItemProps) {
+  const { theme, getFocusRingStyle } = useTheme();
+  const groupRow = use(ItemGroupRowContext);
+  const showSeparator = separator ?? groupRow?.separator ?? false;
+  const reactId = useId();
+  const hydrated = useHydrated();
+  const { found: hasTitle, text: title } = scanTitle(children);
+  // Ids only after hydration on web (see ItemLabel); native has no hydration.
+  const titleId = Platform.OS !== "web" || hydrated ? reactId : undefined;
+  const label = React.useMemo<ItemLabel | null>(
+    () => (hasTitle ? { titleId, title } : null),
+    [hasTitle, titleId, title],
+  );
   const { animatedStyle, pressHandlers } = useScalePress({
     disabled: !onPress || !!disabled,
     scaleTo: 0.98,
-    haptic: false,
   });
+  const focus = useFocusVisible();
 
   const row = (
     <View style={[styles.row, style]}>
-      {children}
+      <ItemLabelContext.Provider value={label}>{children}</ItemLabelContext.Provider>
     </View>
   );
 
-  const content = separator ? (
+  const content = showSeparator ? (
     <View>
       {row}
-      <View style={[styles.separator, { backgroundColor: theme.colors.border }]} />
+      <View
+        style={[
+          styles.separator,
+          { marginLeft: separatorInset(children), backgroundColor: theme.colors.border },
+        ]}
+      />
     </View>
   ) : (
     row
@@ -85,7 +221,14 @@ export function Item({ children, onPress, disabled, separator = false, style }: 
         accessibilityRole="button"
         accessibilityState={{ disabled: !!disabled }}
         {...pressHandlers}
-        style={Platform.OS === "web" ? { cursor: "pointer" as const } : undefined}
+        onFocus={focus.onFocus}
+        onBlur={focus.onBlur}
+        style={({ pressed }) => [
+          { borderRadius: spacing.radiusSm },
+          Platform.OS === "web" && { cursor: "pointer" as const, outlineStyle: "none" as any },
+          pressed && { opacity: interaction.pressedOpacity },
+          focus.focused && !disabled && getFocusRingStyle(),
+        ]}
       >
         <Animated.View style={animatedStyle}>
           {content}
@@ -95,6 +238,105 @@ export function Item({ children, onPress, disabled, separator = false, style }: 
   }
 
   return content;
+}
+
+export interface ItemGroupProps {
+  /**
+   * Section label above the rows: an uppercase eyebrow in the muted color,
+   * announced as a header.
+   */
+  title?: string;
+  /** Supporting copy under the title. */
+  description?: string;
+  /** Helper text under the rows, e.g. what the settings above it do. */
+  footer?: string;
+  /**
+   * The rows: `Item`s, or components that render one. Each direct child is
+   * one row; the group draws the hairline under every row but the last.
+   */
+  children?: React.ReactNode;
+  /** Style override for the group container (outer margins, width). */
+  style?: StyleProp<ViewStyle>;
+  /** Test id for the group container. */
+  testID?: string;
+}
+
+/**
+ * ItemGroup
+ *
+ * A flat grouped list: an optional eyebrow title and description, full-width
+ * `Item` rows separated by inset hairlines, and optional footer text. No
+ * border, radius, shadow, or fill: the header and footer sit on the row
+ * padding (`spacing.rowPaddingX`), so the group needs no horizontal padding
+ * from its parent. Space groups apart with `spacing.sectionSpacing`.
+ *
+ * @example
+ * ```tsx
+ * <ItemGroup title="Account" footer="Signed in as jane@example.com">
+ *   <Item onPress={openProfile}>
+ *     <ItemMedia icon="user" />
+ *     <ItemContent>
+ *       <ItemTitle>Edit profile</ItemTitle>
+ *     </ItemContent>
+ *     <ItemActions>
+ *       <Icon name="chevron-right" size={18} color="mutedForeground" />
+ *     </ItemActions>
+ *   </Item>
+ *   <Item>
+ *     <ItemMedia icon="bell" />
+ *     <ItemContent>
+ *       <ItemTitle>Notifications</ItemTitle>
+ *     </ItemContent>
+ *     <ItemActions>
+ *       <Switch checked={enabled} onCheckedChange={setEnabled} />
+ *     </ItemActions>
+ *   </Item>
+ * </ItemGroup>
+ * ```
+ */
+export function ItemGroup({ title, description, footer, children, style, testID }: ItemGroupProps) {
+  const { theme } = useTheme();
+  const rows = Children.toArray(children);
+  // react-native-web renders an unlevelled header as h1; level the title as h2
+  // there. Native has no heading levels and takes the role alone. Read at render
+  // time (not module load) so tests can flip `Platform.OS`.
+  const headingLevel = Platform.OS === "web" ? { "aria-level": 2 } : undefined;
+
+  return (
+    <View style={style} testID={testID}>
+      {(!!title || !!description) && (
+        <View style={styles.groupHeader}>
+          {!!title && (
+            <EyebrowText
+              accessibilityRole="header"
+              {...headingLevel}
+              style={{ color: theme.colors.mutedForeground }}
+            >
+              {title}
+            </EyebrowText>
+          )}
+          {!!description && (
+            <CaptionText style={{ color: theme.colors.textDim }}>{description}</CaptionText>
+          )}
+        </View>
+      )}
+
+      {rows.map((row, index) => (
+        <ItemGroupRowContext.Provider
+          key={isValidElement(row) && row.key != null ? row.key : index}
+          value={index < rows.length - 1 ? SEPARATED_ROW : LAST_ROW}
+        >
+          {row}
+        </ItemGroupRowContext.Provider>
+      ))}
+
+      {!!footer && (
+        <View style={styles.groupFooter}>
+          <CaptionText style={{ color: theme.colors.mutedForeground }}>{footer}</CaptionText>
+        </View>
+      )}
+    </View>
+  );
 }
 
 export interface ItemMediaProps {
@@ -152,7 +394,11 @@ export interface ItemContentProps {
  * content). Sits between `ItemMedia` and `ItemActions`.
  */
 export function ItemContent({ children, style }: ItemContentProps) {
-  return <View style={[styles.content, style]}>{children}</View>;
+  return (
+    <View style={[styles.content, style]}>
+      <ItemContentContext.Provider value={true}>{children}</ItemContentContext.Provider>
+    </View>
+  );
 }
 
 /**
@@ -161,8 +407,14 @@ export function ItemContent({ children, style }: ItemContentProps) {
  * `Item` row title — label weight (medium) at body size.
  */
 export function ItemTitle({ children, style, ...props }: TextProps) {
+  // The row's title (the one inside ItemContent) carries the id the row hands
+  // to its controls; titles used elsewhere (ItemMedia initials, a value in
+  // ItemActions) render without it.
+  const label = use(ItemLabelContext);
+  const inContent = use(ItemContentContext);
+  const nativeID = inContent ? label?.titleId : undefined;
   return (
-    <StyledText size="body" fontWeight="medium" {...props} style={style}>
+    <StyledText size="body" fontWeight="medium" nativeID={nativeID} {...props} style={style}>
       {children}
     </StyledText>
   );
@@ -198,7 +450,7 @@ export function ItemActions({ children, style }: ItemActionsProps) {
   return <View style={[styles.actions, style]}>{children}</View>;
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -219,6 +471,14 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: SEPARATOR_INSET,
+  },
+  groupHeader: {
+    paddingHorizontal: spacing.rowPaddingX,
+    paddingBottom: spacing.xs,
+    gap: spacing.xxs,
+  },
+  groupFooter: {
+    paddingHorizontal: spacing.rowPaddingX,
+    paddingTop: spacing.xs,
   },
 });

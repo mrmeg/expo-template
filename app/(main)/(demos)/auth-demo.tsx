@@ -5,9 +5,17 @@ import { useAuth } from "@/client/features/auth/hooks/useAuth";
 import { useAuthStore, AuthState } from "@/client/features/auth/stores/authStore";
 import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { Button } from "@mrmeg/expo-ui/components/Button";
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@mrmeg/expo-ui/components/Card";
-import { SansSerifText, SansSerifBoldText, MonoText } from "@mrmeg/expo-ui/components/StyledText";
+import { SansSerifText, SansSerifBoldText, MonoText, EyebrowText } from "@mrmeg/expo-ui/components/StyledText";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import {
+  Item,
+  ItemGroup,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+} from "@mrmeg/expo-ui/components/Item";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -68,34 +76,23 @@ function AuthStateBadge({ state }: { state: AuthState }) {
 // Protected content section
 function ProtectedSection() {
   const { theme } = useTheme();
-  const dynamicStyles = themedStyles(theme);
 
   return (
-    <Card style={dynamicStyles.card}>
-      <CardHeader>
-        <View style={dynamicStyles.cardHeaderRow}>
-          <Icon name="lock" size={20} color={theme.colors.success} />
-          <CardTitle style={{ marginLeft: spacing.sm }}>Protected Content</CardTitle>
-        </View>
-        <CardDescription>
-          This section is only visible when authenticated.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <View style={dynamicStyles.successBox}>
-          <Icon name="circle-check-big" size={24} color={theme.colors.success} />
-          <View style={dynamicStyles.successTextContainer}>
-            <SansSerifBoldText size="base" style={[dynamicStyles.successTitle, { color: theme.colors.success }]}>
-              Access Granted
-            </SansSerifBoldText>
-            <SansSerifText size="sm" style={dynamicStyles.successMessage}>
-              The AuthWrapper successfully validated your authentication state
-              and is rendering this protected content.
-            </SansSerifText>
-          </View>
-        </View>
-      </CardContent>
-    </Card>
+    <ItemGroup
+      title="Protected Content"
+      description="This section is only visible when authenticated."
+    >
+      <Item>
+        <ItemMedia size={36} icon="circle-check-big" iconColor={theme.colors.success} />
+        <ItemContent>
+          <ItemTitle style={{ color: theme.colors.success }}>Access Granted</ItemTitle>
+          <ItemDescription>
+            The AuthWrapper successfully validated your authentication state
+            and is rendering this protected content.
+          </ItemDescription>
+        </ItemContent>
+      </Item>
+    </ItemGroup>
   );
 }
 
@@ -119,64 +116,60 @@ function UserInfoSection() {
   if (!user) return null;
 
   return (
-    <Card style={dynamicStyles.card}>
-      <CardHeader>
-        <View style={dynamicStyles.cardHeaderRow}>
-          <Icon name="user" size={20} color={theme.colors.primary} />
-          <CardTitle style={{ marginLeft: spacing.sm }}>User Details</CardTitle>
-        </View>
-        <CardDescription>
-          Current authenticated user information from Cognito.
-        </CardDescription>
-      </CardHeader>
-      <CardContent style={dynamicStyles.cardContent}>
-        <View style={dynamicStyles.infoRow}>
-          <View style={dynamicStyles.infoLabel}>
-            <Icon name="key" size={14} color={theme.colors.mutedForeground} />
-            <SansSerifText size="base" style={dynamicStyles.labelText}>User ID</SansSerifText>
-          </View>
-          <MonoText size="base" style={dynamicStyles.infoValue} numberOfLines={1}>
-            {user.userId}
-          </MonoText>
-        </View>
-
-        <View style={dynamicStyles.infoRow}>
-          <View style={dynamicStyles.infoLabel}>
-            <Icon name="user" size={14} color={theme.colors.mutedForeground} />
-            <SansSerifText size="base" style={dynamicStyles.labelText}>Username</SansSerifText>
-          </View>
-          <MonoText size="base" style={dynamicStyles.infoValue} numberOfLines={1}>
-            {user.username}
-          </MonoText>
-        </View>
-
-        {user.email && (
-          <View style={dynamicStyles.infoRow}>
-            <View style={dynamicStyles.infoLabel}>
-              <Icon name="mail" size={14} color={theme.colors.mutedForeground} />
-              <SansSerifText size="base" style={dynamicStyles.labelText}>Email</SansSerifText>
-            </View>
-            <MonoText size="base" style={dynamicStyles.infoValue} numberOfLines={1}>
-              {user.email}
+    <View style={dynamicStyles.section}>
+      {/* Values stack under their labels: ids and emails are too long to
+          share a row with them on a phone. */}
+      <ItemGroup
+        title="User Details"
+        description="Current authenticated user information from Cognito."
+      >
+        <Item>
+          <ItemMedia size={36} icon="key" />
+          <ItemContent>
+            <ItemTitle>User ID</ItemTitle>
+            <MonoText size="sm" style={dynamicStyles.infoValue} numberOfLines={1}>
+              {user.userId}
             </MonoText>
-          </View>
-        )}
+          </ItemContent>
+        </Item>
 
-        <View style={dynamicStyles.signOutContainer}>
-          <Button
-            preset="destructive"
-            onPress={handleSignOut}
-            disabled={signingOut}
-            fullWidth
-          >
-            <Icon name="log-out" size={16} color={theme.colors.destructiveForeground} />
-            <SansSerifBoldText style={{ color: theme.colors.destructiveForeground, marginLeft: spacing.xs }}>
-              {signingOut ? "Signing Out..." : "Sign Out"}
-            </SansSerifBoldText>
-          </Button>
-        </View>
-      </CardContent>
-    </Card>
+        <Item>
+          <ItemMedia size={36} icon="user" />
+          <ItemContent>
+            <ItemTitle>Username</ItemTitle>
+            <MonoText size="sm" style={dynamicStyles.infoValue} numberOfLines={1}>
+              {user.username}
+            </MonoText>
+          </ItemContent>
+        </Item>
+
+        {!!user.email && (
+          <Item>
+            <ItemMedia size={36} icon="mail" />
+            <ItemContent>
+              <ItemTitle>Email</ItemTitle>
+              <MonoText size="sm" style={dynamicStyles.infoValue} numberOfLines={1}>
+                {user.email}
+              </MonoText>
+            </ItemContent>
+          </Item>
+        )}
+      </ItemGroup>
+
+      <View style={dynamicStyles.actions}>
+        <Button
+          preset="destructive"
+          onPress={handleSignOut}
+          disabled={signingOut}
+          fullWidth
+        >
+          <Icon name="log-out" size={16} color={theme.colors.destructiveForeground} />
+          <SansSerifBoldText style={{ color: theme.colors.destructiveForeground, marginLeft: spacing.xs }}>
+            {signingOut ? "Signing Out..." : "Sign Out"}
+          </SansSerifBoldText>
+        </Button>
+      </View>
+    </View>
   );
 }
 
@@ -212,73 +205,62 @@ function AuthStateMonitor() {
   };
 
   return (
-    <Card style={dynamicStyles.card}>
-      <CardHeader>
-        <View style={dynamicStyles.cardHeaderRow}>
-          <Icon name="shield" size={20} color={theme.colors.primary} />
-          <CardTitle style={{ marginLeft: spacing.sm }}>Auth State Monitor</CardTitle>
-        </View>
-        <CardDescription>
-          Real-time authentication state tracking and diagnostics.
-        </CardDescription>
-      </CardHeader>
-      <CardContent style={dynamicStyles.cardContent}>
-        {/* Current State */}
-        <View style={dynamicStyles.stateContainer}>
-          <SansSerifText size="base" style={dynamicStyles.stateLabel}>Current State</SansSerifText>
-          <AuthStateBadge state={state} />
-        </View>
+    <View style={dynamicStyles.section}>
+      <ItemGroup
+        title="Auth State Monitor"
+        description="Real-time authentication state tracking and diagnostics."
+      >
+        <Item>
+          <ItemContent>
+            <ItemTitle>Current State</ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <AuthStateBadge state={state} />
+          </ItemActions>
+        </Item>
 
-        {/* Pending Verification */}
-        {pendingVerificationEmail && (
-          <View style={dynamicStyles.warningBox}>
-            <Icon name="clock" size={16} color={theme.colors.warning} />
-            <View style={{ marginLeft: spacing.sm, flex: 1 }}>
-              <SansSerifBoldText size="sm" style={{ color: theme.colors.warning }}>
-                Pending Verification
-              </SansSerifBoldText>
-              <SansSerifText size="sm" style={{ color: theme.colors.mutedForeground }}>
-                {pendingVerificationEmail}
-              </SansSerifText>
-            </View>
-          </View>
+        {!!pendingVerificationEmail && (
+          <Item>
+            <ItemMedia size={36} icon="clock" iconColor={theme.colors.warning} />
+            <ItemContent>
+              <ItemTitle style={{ color: theme.colors.warning }}>Pending Verification</ItemTitle>
+              <ItemDescription>{pendingVerificationEmail}</ItemDescription>
+            </ItemContent>
+          </Item>
         )}
 
-        {/* Error */}
-        {error && (
-          <View style={dynamicStyles.errorBox}>
-            <Icon name="circle-x" size={16} color={theme.colors.destructive} />
-            <View style={{ marginLeft: spacing.sm, flex: 1 }}>
-              <SansSerifBoldText size="sm" style={{ color: theme.colors.destructive }}>
-                Error
-              </SansSerifBoldText>
-              <SansSerifText size="sm" style={{ color: theme.colors.mutedForeground }}>
-                {error}
-              </SansSerifText>
-            </View>
-          </View>
+        {!!error && (
+          <Item>
+            <ItemMedia size={36} icon="circle-x" iconColor={theme.colors.destructive} />
+            <ItemContent>
+              <ItemTitle style={{ color: theme.colors.destructive }}>Error</ItemTitle>
+              <ItemDescription>{error}</ItemDescription>
+            </ItemContent>
+          </Item>
         )}
+      </ItemGroup>
 
-        {/* State History */}
-        <View style={dynamicStyles.historyContainer}>
-          <SansSerifText semantic="eyebrow" style={dynamicStyles.historyTitle}>State History</SansSerifText>
-          {stateHistory.length === 0 ? (
-            <SansSerifText size="sm" style={dynamicStyles.historyEmpty}>No state changes yet</SansSerifText>
-          ) : (
-            stateHistory.map((entry) => (
-              <View key={entry.id} style={dynamicStyles.historyItem}>
-                <MonoText size="xs" style={dynamicStyles.historyTime}>
-                  {entry.timestamp.toLocaleTimeString()}
-                </MonoText>
-                <MonoText size="sm" style={dynamicStyles.historyState}>
-                  {entry.state}
-                </MonoText>
-              </View>
-            ))
-          )}
-        </View>
+      <ItemGroup
+        title="State History"
+        footer={stateHistory.length === 0 ? "No state changes yet" : undefined}
+      >
+        {stateHistory.map((entry) => (
+          <Item key={entry.id}>
+            <ItemContent>
+              <MonoText size="xs" style={dynamicStyles.historyTime}>
+                {entry.timestamp.toLocaleTimeString()}
+              </MonoText>
+            </ItemContent>
+            <ItemActions>
+              <MonoText size="sm" style={dynamicStyles.historyState}>
+                {entry.state}
+              </MonoText>
+            </ItemActions>
+          </Item>
+        ))}
+      </ItemGroup>
 
-        {/* Refresh Button */}
+      <View style={dynamicStyles.actions}>
         <Button
           preset="outline"
           onPress={handleRefresh}
@@ -290,70 +272,67 @@ function AuthStateMonitor() {
             {refreshing ? "Refreshing..." : "Refresh Auth State"}
           </SansSerifText>
         </Button>
-      </CardContent>
-    </Card>
+      </View>
+    </View>
   );
 }
 
-// How It Works section
+// How It Works section: explanatory copy, so a flat padded block under a
+// section header rather than rows.
 function HowItWorksSection() {
   const { theme } = useTheme();
   const dynamicStyles = themedStyles(theme);
 
   return (
-    <Card style={dynamicStyles.card}>
-      <CardHeader>
-        <View style={dynamicStyles.cardHeaderRow}>
-          <Icon name="lock-open" size={20} color={theme.colors.primary} />
-          <CardTitle style={{ marginLeft: spacing.sm }}>How It Works</CardTitle>
-        </View>
-      </CardHeader>
-      <CardContent style={dynamicStyles.cardContent}>
-        <View style={dynamicStyles.stepItem}>
-          <View style={[dynamicStyles.stepNumber, { backgroundColor: theme.colors.primary }]}>
-            <SansSerifBoldText size="sm" style={{ color: theme.colors.primaryForeground }}>1</SansSerifBoldText>
-          </View>
-          <View style={dynamicStyles.stepContent}>
-            <SansSerifBoldText size="base" style={dynamicStyles.stepTitle}>AuthWrapper Component</SansSerifBoldText>
-            <SansSerifText size="sm" style={dynamicStyles.stepDescription}>
-              Wrap any content with AuthWrapper to protect it. Shows loading state, then auth screen or content.
-            </SansSerifText>
-          </View>
-        </View>
+    <View style={dynamicStyles.flatSection}>
+      <EyebrowText accessibilityRole="header" style={{ color: theme.colors.mutedForeground }}>
+        How It Works
+      </EyebrowText>
 
-        <View style={dynamicStyles.stepItem}>
-          <View style={[dynamicStyles.stepNumber, { backgroundColor: theme.colors.primary }]}>
-            <SansSerifBoldText size="sm" style={{ color: theme.colors.primaryForeground }}>2</SansSerifBoldText>
-          </View>
-          <View style={dynamicStyles.stepContent}>
-            <SansSerifBoldText size="base" style={dynamicStyles.stepTitle}>Auth Store (Zustand)</SansSerifBoldText>
-            <SansSerifText size="sm" style={dynamicStyles.stepDescription}>
-              Centralized state management. Tracks user, auth state, and pending verification.
-            </SansSerifText>
-          </View>
+      <View style={dynamicStyles.stepItem}>
+        <View style={[dynamicStyles.stepNumber, { backgroundColor: theme.colors.primary }]}>
+          <SansSerifBoldText size="sm" style={{ color: theme.colors.primaryForeground }}>1</SansSerifBoldText>
         </View>
-
-        <View style={dynamicStyles.stepItem}>
-          <View style={[dynamicStyles.stepNumber, { backgroundColor: theme.colors.primary }]}>
-            <SansSerifBoldText size="sm" style={{ color: theme.colors.primaryForeground }}>3</SansSerifBoldText>
-          </View>
-          <View style={dynamicStyles.stepContent}>
-            <SansSerifBoldText size="base" style={dynamicStyles.stepTitle}>AWS Amplify + Cognito</SansSerifBoldText>
-            <SansSerifText size="sm" style={dynamicStyles.stepDescription}>
-              Handles sign in, sign up, email verification, password reset, and token management.
-            </SansSerifText>
-          </View>
+        <View style={dynamicStyles.stepContent}>
+          <SansSerifBoldText size="base" style={dynamicStyles.stepTitle}>AuthWrapper Component</SansSerifBoldText>
+          <SansSerifText size="sm" style={dynamicStyles.stepDescription}>
+            Wrap any content with AuthWrapper to protect it. Shows loading state, then auth screen or content.
+          </SansSerifText>
         </View>
+      </View>
 
-        <View style={dynamicStyles.codeBlock}>
-          <MonoText size="sm" style={dynamicStyles.codeText}>
-            {`<AuthWrapper>
+      <View style={dynamicStyles.stepItem}>
+        <View style={[dynamicStyles.stepNumber, { backgroundColor: theme.colors.primary }]}>
+          <SansSerifBoldText size="sm" style={{ color: theme.colors.primaryForeground }}>2</SansSerifBoldText>
+        </View>
+        <View style={dynamicStyles.stepContent}>
+          <SansSerifBoldText size="base" style={dynamicStyles.stepTitle}>Auth Store (Zustand)</SansSerifBoldText>
+          <SansSerifText size="sm" style={dynamicStyles.stepDescription}>
+            Centralized state management. Tracks user, auth state, and pending verification.
+          </SansSerifText>
+        </View>
+      </View>
+
+      <View style={dynamicStyles.stepItem}>
+        <View style={[dynamicStyles.stepNumber, { backgroundColor: theme.colors.primary }]}>
+          <SansSerifBoldText size="sm" style={{ color: theme.colors.primaryForeground }}>3</SansSerifBoldText>
+        </View>
+        <View style={dynamicStyles.stepContent}>
+          <SansSerifBoldText size="base" style={dynamicStyles.stepTitle}>AWS Amplify + Cognito</SansSerifBoldText>
+          <SansSerifText size="sm" style={dynamicStyles.stepDescription}>
+            Handles sign in, sign up, email verification, password reset, and token management.
+          </SansSerifText>
+        </View>
+      </View>
+
+      <View style={dynamicStyles.codeBlock}>
+        <MonoText size="sm" style={dynamicStyles.codeText}>
+          {`<AuthWrapper>
   <ProtectedContent />
 </AuthWrapper>`}
-          </MonoText>
-        </View>
-      </CardContent>
-    </Card>
+        </MonoText>
+      </View>
+    </View>
   );
 }
 
@@ -373,6 +352,8 @@ function AuthenticatedContent() {
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
+      {/* The grouped rows carry the screen's 16pt inset, so the scroll view
+          adds none; buttons and prose pad their own blocks. */}
       <AuthStateMonitor />
       <ProtectedSection />
       <UserInfoSection />
@@ -402,6 +383,9 @@ const styles = StyleSheet.create({
   },
 });
 
+// Wide screens cap and centre the column instead of boxing it.
+const MAX_CONTENT_WIDTH = 640;
+
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
@@ -409,111 +393,33 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
     scrollContent: {
-      padding: spacing.md,
+      width: "100%",
+      maxWidth: MAX_CONTENT_WIDTH,
+      alignSelf: "center",
+      paddingTop: spacing.md,
       paddingBottom: spacing.xxxl,
+      gap: spacing.sectionSpacing,
     },
-    card: {
-      marginBottom: spacing.md,
-    },
-    cardHeaderRow: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    cardContent: {
+    // A section's groups and its action button sit closer to each other than
+    // to the next section.
+    section: {
       gap: spacing.md,
     },
-    stateContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    stateLabel: {
-      color: theme.colors.mutedForeground,
-    },
-    infoRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: spacing.xs,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-    },
-    infoLabel: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.xs,
-    },
-    labelText: {
-      color: theme.colors.mutedForeground,
+    actions: {
+      paddingHorizontal: spacing.screenPadding,
     },
     infoValue: {
-      color: theme.colors.foreground,
-      flex: 1,
-      textAlign: "right",
-    },
-    signOutContainer: {
-      marginTop: spacing.sm,
-    },
-    successBox: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      backgroundColor: withAlpha(theme.colors.success, 0.08),
-      padding: spacing.md,
-      borderRadius: spacing.radiusMd,
-      borderWidth: 1,
-      borderColor: withAlpha(theme.colors.success, 0.19),
-    },
-    successTextContainer: {
-      flex: 1,
-      marginLeft: spacing.sm,
-    },
-    successTitle: {
-      marginBottom: spacing.xs,
-    },
-    successMessage: {
       color: theme.colors.mutedForeground,
-    },
-    warningBox: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      backgroundColor: withAlpha(theme.colors.warning, 0.08),
-      padding: spacing.sm,
-      borderRadius: spacing.radiusSm,
-      borderWidth: 1,
-      borderColor: withAlpha(theme.colors.warning, 0.19),
-    },
-    errorBox: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      backgroundColor: withAlpha(theme.colors.destructive, 0.08),
-      padding: spacing.sm,
-      borderRadius: spacing.radiusSm,
-      borderWidth: 1,
-      borderColor: withAlpha(theme.colors.destructive, 0.19),
-    },
-    historyContainer: {
-      backgroundColor: theme.colors.muted,
-      padding: spacing.sm,
-      borderRadius: spacing.radiusSm,
-    },
-    historyTitle: {
-      color: theme.colors.mutedForeground,
-      marginBottom: spacing.xs,
-    },
-    historyEmpty: {
-      color: theme.colors.mutedForeground,
-    },
-    historyItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: spacing.xs / 2,
     },
     historyTime: {
       color: theme.colors.mutedForeground,
     },
     historyState: {
       color: theme.colors.foreground,
+    },
+    flatSection: {
+      paddingHorizontal: spacing.screenPadding,
+      gap: spacing.md,
     },
     stepItem: {
       flexDirection: "row",
@@ -532,7 +438,7 @@ const createStyles = (theme: Theme) =>
     },
     stepTitle: {
       color: theme.colors.foreground,
-      marginBottom: spacing.xs / 2,
+      marginBottom: spacing.xxs,
     },
     stepDescription: {
       color: theme.colors.mutedForeground,
@@ -541,8 +447,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.muted,
       padding: spacing.md,
       borderRadius: spacing.radiusSm,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
     },
     codeText: {
       color: theme.colors.foreground,

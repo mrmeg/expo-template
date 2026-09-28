@@ -2,7 +2,7 @@
  * FFmpeg worker asset contract regression tests.
  *
  * The web video-conversion path hinges on two runtimes (metro.config.js and
- * server/index.ts) serving the same worker file at the same URL. A previous
+ * server/http/createHandler.ts) serving the same worker file at the same URL. A previous
  * regression shipped with both files pointing at a path that had been
  * refactored away, so the route silently never registered and web conversion
  * broke in production. These assertions lock the path contract in place.

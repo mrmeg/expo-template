@@ -8,12 +8,12 @@ import {
   ONBOARDING_SEEN_COOKIE_VALUE,
   detectOnboardingSeenFromRequestScope,
   parseOnboardingSeenCookie,
-} from "@/server/lib/ssrOnboarding";
+} from "@/shared/ssrOnboarding";
 
 const ONBOARDING_KEY = "has-seen-onboarding";
 
 // Mirror of the persisted flag, written on web only so the SSR server can tell
-// returning visitors apart from new ones. See server/lib/ssrOnboarding.ts.
+// returning visitors apart from new ones. See shared/ssrOnboarding.ts.
 // localStorage remains the source of truth; the cookie is a render hint the
 // client reconciles away after mount.
 const ONBOARDING_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year

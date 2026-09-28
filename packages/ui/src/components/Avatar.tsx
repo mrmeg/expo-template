@@ -435,7 +435,7 @@ const SIZE_TOKEN_FOR_PX: Record<number, AvatarSizeToken | undefined> = {
 // Geometry carries no theme values, so a plain module-scope sheet is enough to
 // get these rules into the prerendered <head>. Only colors go through
 // createThemedStyles below. See "Enable Server Output" in docs/server-guide.md.
-const geometry = StyleSheet.create({
+const geometry = /*#__PURE__*/ StyleSheet.create({
   base: {
     alignItems: "center",
     justifyContent: "center",
@@ -512,6 +512,6 @@ const createStyles = (theme: Theme) =>
     },
   });
 
-const themedStyles = createThemedStyles(createStyles);
+const themedStyles = /*#__PURE__*/ createThemedStyles(createStyles);
 
 export { Avatar, AvatarGroup };

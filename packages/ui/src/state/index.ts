@@ -3,3 +3,5 @@ export * from "./notify";
 export * from "./SsrViewportContext";
 export * from "./themeStore";
 export * from "./themeColorScope";
+export * from "./initialScheme";
+export * from "./feedbackStore";

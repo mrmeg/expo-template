@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env bun
 /**
  * Render the Cognito email templates in `scripts/cognito-email/` for this app and
  * store them on a user pool.

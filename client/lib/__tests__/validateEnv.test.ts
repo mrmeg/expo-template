@@ -78,8 +78,9 @@ describe("validateClientEnv", () => {
   });
 
   it("does not warn about a missing API URL", () => {
-    // Template uses local Expo Router api routes by default; an external
-    // EXPO_PUBLIC_API_URL is project-specific and never required.
+    // Web uses the same-origin Expo Router api routes and native development
+    // the dev server; only a native release build with billing needs
+    // EXPO_PUBLIC_API_URL (covered below).
     load().validateClientEnv();
     expect(warnSpy).not.toHaveBeenCalled();
     // Even with auth fully configured, missing API_URL is silent.
@@ -125,6 +126,72 @@ describe("validateClientEnv", () => {
     process.env.EXPO_PUBLIC_APP_URL = "https://example.com";
     load().validateClientEnv();
     expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  describe("native release builds", () => {
+    const globalWithDev = globalThis as unknown as { __DEV__: boolean };
+    const originalDev = globalWithDev.__DEV__;
+
+    /**
+     * Patch the `react-native` instance `load()` will see: the outer
+     * `beforeEach` resets the module registry, so it has to be required here,
+     * after the reset, rather than once at the top of the file.
+     */
+    function releaseBuildOn(os: "ios" | "web") {
+      const { Platform } = require("react-native") as typeof import("react-native");
+      Object.defineProperty(Platform, "OS", { value: os, configurable: true });
+      globalWithDev.__DEV__ = false;
+    }
+
+    afterEach(() => {
+      globalWithDev.__DEV__ = originalDev;
+    });
+
+    function apiOriginWarnings(): string[] {
+      return warnSpy.mock.calls
+        .map((call) => String(call[0]))
+        .filter((message) => message.includes("EXPO_PUBLIC_API_URL"));
+    }
+
+    it("warns when billing is on but no API origin is configured", () => {
+      releaseBuildOn("ios");
+      process.env.EXPO_PUBLIC_BILLING_ENABLED = "true";
+      process.env.EXPO_PUBLIC_APP_URL = "https://example.com";
+
+      load().validateClientEnv();
+
+      expect(apiOriginWarnings()).toHaveLength(1);
+      expect(apiOriginWarnings()[0]).toContain("billing requests will fail");
+    });
+
+    it("stays quiet once EXPO_PUBLIC_API_URL is set", () => {
+      releaseBuildOn("ios");
+      process.env.EXPO_PUBLIC_BILLING_ENABLED = "true";
+      process.env.EXPO_PUBLIC_APP_URL = "https://example.com";
+      process.env.EXPO_PUBLIC_API_URL = "https://example.com";
+
+      load().validateClientEnv();
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it("stays quiet on web, which calls the same-origin routes", () => {
+      releaseBuildOn("web");
+      process.env.EXPO_PUBLIC_BILLING_ENABLED = "true";
+      process.env.EXPO_PUBLIC_APP_URL = "https://example.com";
+
+      load().validateClientEnv();
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it("stays quiet with billing off", () => {
+      releaseBuildOn("ios");
+
+      load().validateClientEnv();
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
   });
 
   it("does not warn when billing is disabled (\"false\") with empty APP_URL", () => {

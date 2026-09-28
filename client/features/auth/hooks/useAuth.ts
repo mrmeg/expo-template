@@ -15,6 +15,12 @@ async function requireAuthClient(): Promise<AuthClient> {
   return client;
 }
 
+/**
+ * The provider just established a session, so the store must re-read it even
+ * inside the throttle window (see `InitializeOptions.force`).
+ */
+const SESSION_CHANGED = { force: true } as const;
+
 export function useAuth() {
   const { initialize, setPendingVerificationEmail } = useAuthStore();
 
@@ -34,7 +40,7 @@ export function useAuth() {
     const result = await client.signIn({ email, password });
 
     if (result.status === "complete") {
-      await initialize();
+      await initialize(SESSION_CHANGED);
     }
 
     return result;
@@ -50,7 +56,7 @@ export function useAuth() {
     const result = await client.signInWithEmailCode({ email });
 
     if (result.status === "complete") {
-      await initialize();
+      await initialize(SESSION_CHANGED);
     }
 
     return result;
@@ -65,7 +71,7 @@ export function useAuth() {
     const client = await requireAuthClient();
     const result = await client.confirmSignInCode({ code });
 
-    await initialize();
+    await initialize(SESSION_CHANGED);
 
     return result;
   }, [initialize]);
@@ -98,7 +104,7 @@ export function useAuth() {
     const result = await client.signUp({ email, password });
 
     if (result.status === "complete") {
-      await initialize();
+      await initialize(SESSION_CHANGED);
     } else {
       // Store email for verification screen
       setPendingVerificationEmail(email);
@@ -122,7 +128,7 @@ export function useAuth() {
 
     setPendingVerificationEmail(null);
     if (result.autoSignedIn) {
-      await initialize();
+      await initialize(SESSION_CHANGED);
     }
 
     return result;
@@ -168,6 +174,27 @@ export function useAuth() {
     await signOut();
   }, []);
 
+  /**
+   * Delete the account at the provider, then drop the local session. Rejects
+   * with `AuthError("unsupported")` when the active client cannot delete from
+   * the app; the profile screen hides its row in that case
+   * (`useAccountCapabilities`). The provider-side sign-out may fail after the
+   * user is gone; the store is reset regardless so the gate shows the sign-in
+   * screen.
+   */
+  const handleDeleteAccount = useCallback(async () => {
+    const client = await requireAuthClient();
+    if (!client.deleteAccount) {
+      throw new AuthError("unsupported", "This auth provider cannot delete accounts from the app");
+    }
+    await client.deleteAccount();
+    try {
+      await useAuthStore.getState().signOut();
+    } catch {
+      useAuthStore.getState().reset();
+    }
+  }, []);
+
   return {
     checkAuthState,
     signIn: handleSignIn,
@@ -180,5 +207,6 @@ export function useAuth() {
     forgotPassword: handleForgotPassword,
     resetPassword: handleResetPassword,
     signOut: handleSignOut,
+    deleteAccount: handleDeleteAccount,
   };
 }

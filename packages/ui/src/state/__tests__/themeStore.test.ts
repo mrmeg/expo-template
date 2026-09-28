@@ -276,3 +276,162 @@ describe("themeStore", () => {
     });
   });
 });
+
+/**
+ * `syncThemeFromEnvironment()` / `startSystemThemeListener()` share one OS
+ * listener between every caller and hand each caller its own release. Each
+ * test loads a fresh copy of the store (and of react-native, whose platform
+ * the store reads at module load) so the listener bookkeeping starts clean.
+ */
+describe("system theme listener sharing", () => {
+  type StoreModule = typeof import("../themeStore");
+  type ReactNativeModule = typeof import("react-native");
+
+  function freshStore(os: "web" | "ios", setup: (rn: ReactNativeModule) => void = () => {}): StoreModule {
+    let store: StoreModule | undefined;
+    jest.isolateModules(() => {
+      const rn = require("react-native") as ReactNativeModule;
+      (rn.Platform as { OS: string }).OS = os;
+      setup(rn);
+      store = require("../themeStore") as StoreModule;
+    });
+    return store!;
+  }
+
+  describe("web", () => {
+    const originalOS = Platform.OS;
+    const originalWindow = (globalThis as { window?: unknown }).window;
+    const originalLocalStorage = (globalThis as { localStorage?: unknown }).localStorage;
+    let addEventListener: jest.Mock;
+    let removeEventListener: jest.Mock;
+    let changeListeners: Set<() => void>;
+    let prefersDark: boolean;
+
+    beforeEach(() => {
+      // The store reads the platform at call time too, and jest-expo resets
+      // `Platform.OS` when an isolated registry is left.
+      (Platform as { OS: string }).OS = "web";
+      changeListeners = new Set();
+      prefersDark = false;
+      addEventListener = jest.fn((_: string, listener: () => void) => changeListeners.add(listener));
+      removeEventListener = jest.fn((_: string, listener: () => void) => changeListeners.delete(listener));
+      const mediaQuery = {
+        get matches() {
+          return prefersDark;
+        },
+        addEventListener,
+        removeEventListener,
+      };
+      installLocalStorage();
+      (globalThis as unknown as { window: Record<string, unknown> }).window.matchMedia = () => mediaQuery;
+    });
+
+    afterEach(() => {
+      (Platform as { OS: string }).OS = originalOS;
+      (globalThis as { window?: unknown }).window = originalWindow;
+      (globalThis as { localStorage?: unknown }).localStorage = originalLocalStorage;
+    });
+
+    function emitSchemeChange(dark: boolean) {
+      prefersDark = dark;
+      for (const listener of [...changeListeners]) listener();
+    }
+
+    it("attaches one listener however many times it is called", () => {
+      const store = freshStore("web");
+
+      const releaseA = store.syncThemeFromEnvironment();
+      const releaseB = store.syncThemeFromEnvironment();
+      const releaseC = store.startSystemThemeListener();
+
+      expect(addEventListener).toHaveBeenCalledTimes(1);
+      expect(changeListeners.size).toBe(1);
+
+      releaseA();
+      releaseB();
+      releaseC();
+      expect(removeEventListener).toHaveBeenCalledTimes(1);
+      expect(changeListeners.size).toBe(0);
+    });
+
+    it("keeps following the OS for the callers still holding it", () => {
+      const store = freshStore("web");
+
+      const releaseA = store.syncThemeFromEnvironment();
+      const releaseB = store.syncThemeFromEnvironment();
+
+      releaseA();
+      expect(removeEventListener).not.toHaveBeenCalled();
+
+      emitSchemeChange(true);
+      expect(store.useThemeStore.getState().systemTheme).toBe("dark");
+
+      releaseB();
+      expect(removeEventListener).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores a release called twice instead of dropping another caller's hold", () => {
+      const store = freshStore("web");
+
+      const releaseA = store.syncThemeFromEnvironment();
+      releaseA();
+      const releaseB = store.syncThemeFromEnvironment();
+      expect(addEventListener).toHaveBeenCalledTimes(2);
+
+      // A StrictMode-style double cleanup of the first call.
+      releaseA();
+      expect(changeListeners.size).toBe(1);
+
+      // The next caller shares B's listener rather than stacking a second one.
+      const releaseC = store.syncThemeFromEnvironment();
+      expect(addEventListener).toHaveBeenCalledTimes(2);
+
+      releaseB();
+      releaseC();
+      expect(changeListeners.size).toBe(0);
+    });
+
+    it("reads the OS scheme and the persisted preference on every call", () => {
+      const store = freshStore("web");
+      prefersDark = true;
+      localStorage.setItem(THEME_STORAGE_KEY, "light");
+
+      const release = store.syncThemeFromEnvironment();
+
+      expect(store.useThemeStore.getState()).toEqual(
+        expect.objectContaining({ systemTheme: "dark", userTheme: "light", hasLoadedTheme: true })
+      );
+
+      localStorage.setItem(THEME_STORAGE_KEY, "dark");
+      const releaseAgain = store.syncThemeFromEnvironment();
+      expect(store.useThemeStore.getState().userTheme).toBe("dark");
+
+      release();
+      releaseAgain();
+    });
+  });
+
+  describe("native", () => {
+    it("keeps the package's own OS listener when an app releases its call", () => {
+      const remove = jest.fn();
+      let addChangeListener: jest.SpyInstance | undefined;
+      const store = freshStore("ios", (rn) => {
+        addChangeListener = jest
+          .spyOn(rn.Appearance, "addChangeListener")
+          .mockImplementation(
+            () => ({ remove }) as unknown as ReturnType<ReactNativeModule["Appearance"]["addChangeListener"]>
+          );
+      });
+
+      // The module-load init already holds the listener.
+      expect(addChangeListener).toHaveBeenCalledTimes(1);
+
+      const release = store.syncThemeFromEnvironment();
+      expect(addChangeListener).toHaveBeenCalledTimes(1);
+
+      release();
+      release();
+      expect(remove).not.toHaveBeenCalled();
+    });
+  });
+});

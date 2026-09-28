@@ -12,6 +12,7 @@ import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import type { TestInstance } from "test-renderer";
+import type LucideHouse from "lucide-react-native/icons/house";
 import { Button, type ButtonAccessoryProps } from "../Button";
 import { Icon } from "../Icon";
 import { StyledText } from "../StyledText";
@@ -73,8 +74,10 @@ function getAllHostNodes(): TestInstance[] {
   return [root, ...root.queryAll(() => true)];
 }
 
+const mockUseScalePressOptions: Array<Record<string, unknown>> = [];
 jest.mock("../../hooks/useScalePress", () => ({
-  useScalePress: () => ({
+  useScalePress: (options: Record<string, unknown>) => ({
+    ...(mockUseScalePressOptions.push(options) && {}),
     animatedStyle: {},
     pressHandlers: {
       onPressIn: mockScalePressIn,
@@ -299,6 +302,32 @@ describe("Button", () => {
       expect(loadingButtonSurface).toEqual(expect.objectContaining({ width: 128 }));
       expect(screen.getByText("Loading...")).toBeTruthy();
     });
+
+    function surfaceNode(): TestInstance | undefined {
+      return getAllHostNodes().find((node) => {
+        const style = StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined;
+        return style?.backgroundColor === "#18181B";
+      });
+    }
+
+    it("does not measure itself when it is never given a loading prop", async () => {
+      await render(<Button text="Plain" />);
+
+      expect(surfaceNode()).toBeTruthy();
+      expect(surfaceNode()!.props.onLayout).toBeUndefined();
+    });
+
+    it("measures its resting width once a loading prop is passed, even false", async () => {
+      await render(<Button loading={false} text="Save" />);
+
+      expect(typeof surfaceNode()!.props.onLayout).toBe("function");
+    });
+
+    it("never measures a full-width button, whose width the container sets", async () => {
+      await render(<Button fullWidth loading={false} text="Submit" />);
+
+      expect(surfaceNode()!.props.onLayout).toBeUndefined();
+    });
   });
 
   describe("Accessibility", () => {
@@ -329,6 +358,54 @@ describe("Button", () => {
           busy: true,
         })
       );
+    });
+
+    describe("aria-disabled: announced and dimmed, still pressable", () => {
+      it.each([
+        ["aria-disabled", { "aria-disabled": true } as const],
+        ["accessibilityState.disabled", { accessibilityState: { disabled: true } } as const],
+      ])("%s announces disabled, fires onPress and skips the press scale", async (_name, props) => {
+        const onPress = jest.fn();
+        await render(<Button text="Publish" onPress={onPress} {...props} />);
+
+        const button = screen.getByRole("button");
+        expect(button.props.accessibilityState).toEqual(expect.objectContaining({ disabled: true }));
+        // Pressable's own `disabled` stays unset so the press still fires.
+        expect(button.props.disabled).toBeFalsy();
+        await fireEvent.press(button);
+        expect(onPress).toHaveBeenCalledTimes(1);
+        expect(mockUseScalePressOptions.at(-1)).toEqual(expect.objectContaining({ disabled: true }));
+      });
+
+      it("draws the disabled look (opacity, no shadow) like a blocked button", async () => {
+        await render(<Button text="Publish" aria-disabled withShadow />);
+        // Walk up from the label to the surface that carries the disabled opacity.
+        let node: TestInstance | null = screen.getByText("Publish") as unknown as TestInstance;
+        let style: Record<string, unknown> | undefined;
+        for (let depth = 0; node && depth < 8; depth++) {
+          const flat = StyleSheet.flatten(node.props?.style) as Record<string, unknown> | undefined;
+          if (flat?.opacity === 0.5) { style = flat; break; }
+          node = node.parent as TestInstance | null;
+        }
+        expect(style).toBeDefined();
+        expect(style?.boxShadow ?? style?.shadowOpacity).toBeUndefined();
+      });
+
+      it("keeps blocking presses under `disabled` even with aria-disabled={false}", async () => {
+        const onPress = jest.fn();
+        await render(<Button text="Save" disabled aria-disabled={false} onPress={onPress} />);
+        const button = screen.getByRole("button");
+        expect(button.props.accessibilityState).toEqual(expect.objectContaining({ disabled: true }));
+        await fireEvent.press(button);
+        expect(onPress).not.toHaveBeenCalled();
+      });
+
+      it("merges a consumer accessibilityState instead of replacing it", async () => {
+        await render(<Button text="Tab" loading accessibilityState={{ selected: true }} />);
+        expect(screen.getByRole("button").props.accessibilityState).toEqual(
+          expect.objectContaining({ selected: true, busy: true, disabled: true })
+        );
+      });
     });
   });
 
@@ -488,6 +565,36 @@ describe("Button", () => {
 
       expect(screen.getByTestId("icon-check", { includeHiddenElements: true })).toBeTruthy();
       expect(screen.getByText("With Icon")).toBeTruthy();
+    });
+
+    it("renders Button.Icon from a component with the button's text color, like a named icon", async () => {
+      const Custom = (props: { size: number; color: string }) => <View testID="custom-glyph" {...props} />;
+
+      await render(
+        <Button preset="default">
+          <Button.Icon component={Custom} />
+          <Button.Icon name="heart" />
+          <Button.Text>Like</Button.Text>
+        </Button>
+      );
+
+      const custom = screen.getByTestId("custom-glyph", { includeHiddenElements: true });
+      const named = screen.getByTestId("icon-heart", { includeHiddenElements: true });
+      // Default preset label color, from the button's text-color context.
+      expect(custom.props.color).toBe("#FAFAFA");
+      expect(custom.props.color).toBe(named.props.color);
+      expect(custom.props.size).toBe(named.props.size);
+      // Decorative by default: the label carries the meaning.
+      expect(custom.props["aria-hidden"]).toBe(true);
+      expect(named.props["aria-hidden"]).toBe(true);
+    });
+
+    it("lets Button.Icon take a Lucide component at the type level", () => {
+      // Never called: `tsc` checks that a real Lucide export fits `component`.
+      function typeOnly(House: typeof LucideHouse) {
+        return <Button.Icon component={House} size={16} />;
+      }
+      expect(typeof typeOnly).toBe("function");
     });
 
     it("keeps accessories mounted but hidden when loading", async () => {

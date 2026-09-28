@@ -37,6 +37,11 @@ const ALLOWED_DEPENDENCIES = {
       "Identity-only — billing hooks read `useAuthStore` to learn whether the viewer is signed in. They never touch auth UI components.",
   },
   // No entry == no allowed cross-feature imports.
+  profile: {
+    allowed: ["auth"],
+    reason:
+      "Account flows — the profile sheets and capability hook call `useAuth` and the provider gate for password reset, social linking, and deletion. They never render auth screens.",
+  },
   auth: { allowed: [], reason: "Self-contained." },
   onboarding: { allowed: [], reason: "Self-contained." },
   media: { allowed: [], reason: "Self-contained." },

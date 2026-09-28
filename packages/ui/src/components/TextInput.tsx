@@ -2,6 +2,7 @@ import {
   useEffect,
   useCallback,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -27,7 +28,9 @@ import {
 } from "@expo/ui";
 import { NativeTextField, type NativeTextFieldProps } from "./nativeTextField";
 import { useTheme } from "../hooks/useTheme";
+import { shapeRadius, useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { useFontStyle } from "../hooks/useFontStyle";
 import { StyledText } from "./StyledText";
 import { Icon } from "./Icon";
@@ -54,6 +57,24 @@ export type TextInputSize = "sm" | "md" | "lg";
 export type TextInputVariant = "outline" | "filled" | "underlined";
 
 const NUMERIC_REGEX = /^[0-9]*$/;
+
+/**
+ * Write the `@expo/ui` observable text buffer. `set()` is the React
+ * Compiler-friendly writer (`@expo/ui` >= 56.0.17); earlier releases in the
+ * peer range only have the `value` setter, which calls the same native
+ * `setValue`. Kept outside the component so the compiler doesn't see a hook
+ * result being mutated, which made it skip `NativeTextInput` entirely.
+ */
+function writeNativeText(
+  state: { value: string; set?: (value: string) => void },
+  text: string
+): void {
+  if (typeof state.set === "function") {
+    state.set(text);
+  } else {
+    state.value = text;
+  }
+}
 
 /** Platform touch-target guideline (pt); the compact fields sit below it. */
 const MIN_TOUCH_TARGET = 44;
@@ -212,7 +233,7 @@ interface TextInputCustomProps extends TextInputProps {
  * // With custom elements
  * <TextInput
  *   label="Search"
- *   leftElement={<Icon as={Search} size={20} />}
+ *   leftElement={<Icon name="search" size={20} />}
  * />
  * ```
  */
@@ -260,6 +281,8 @@ function WebTextInput({
   ...rest
 }: TextInputCustomProps) {
   const { theme, getContrastingColor, getFocusRingStyle } = useTheme();
+  // Host-app `setShape({ input })`; the underlined variant stays square.
+  const inputRadius = variant === "underlined" ? undefined : shapeRadius(useShape("input"));
   const styles = themedStyles(theme)[variant][size];
   const inputFont = useFontStyle("regular");
   const [focused, setFocused] = useState(false);
@@ -348,7 +371,7 @@ function WebTextInput({
       )}
 
       {/* Input Container */}
-      <View style={[styles.wrapper, focused && getFocusRingStyle()]}>
+      <View style={[styles.wrapper, inputRadius, focused && getFocusRingStyle()]}>
         {/* Left Element */}
         {leftElement && <View style={styles.leftElement}>{leftElement}</View>}
 
@@ -373,6 +396,7 @@ function WebTextInput({
           placeholderTextColor={theme.colors.textDim}
           style={[
             styles.input,
+            inputRadius,
             // Resolved through the theme store so `setFonts` overrides apply;
             // identical to the old hardcoded regular family by default.
             inputFont,
@@ -449,6 +473,7 @@ function WebTextInput({
               name={passwordVisible ? "eye-off" : "eye"}
               size={spacing.iconSm + 4}
               color="textDim"
+              decorative
             />
           </Pressable>
         )}
@@ -543,6 +568,7 @@ function NativeTextInput({
   ...rest
 }: TextInputCustomProps) {
   const { theme, getContrastingColor } = useTheme();
+  const inputShape = useShape("input");
   const styles = themedStyles(theme)[variant][size];
   const inputFont = useFontStyle("regular");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -567,8 +593,13 @@ function NativeTextInput({
     null
   );
   const isFocusedRef = useRef(false);
+  // Latest flavour for the focus/blur/toggle handlers and the handoff timer,
+  // synced after each commit (before any native event can be dispatched)
+  // instead of written during render.
   const activeSecureRef = useRef(effectiveSecureTextEntry);
-  activeSecureRef.current = effectiveSecureTextEntry;
+  useLayoutEffect(() => {
+    activeSecureRef.current = effectiveSecureTextEntry;
+  });
   // Taps that land while a handoff is in flight are counted and applied (by
   // parity) once it settles.
   const queuedTogglesRef = useRef(0);
@@ -576,7 +607,9 @@ function NativeTextInput({
   // iOS-only per-flavour mount generation. Bumped whenever a flavour becomes
   // the incoming view so React mounts a FRESH native view (whose `autoFocus`
   // will run) instead of reusing one still unmounting from the previous handoff.
-  const generationRef = useRef({ secure: 0, plain: 0 });
+  // State, not a ref: it keys the rendered Host, and the bump lands in the same
+  // batch as the `passwordVisible` flip that makes that flavour incoming.
+  const [generation, setGeneration] = useState({ secure: 0, plain: 0 });
   // Last text the JS side knows about; see handleChangeText.
   const lastTextRef = useRef<string>(value ?? defaultValue ?? "");
   // Armed when the hide toggle hands focus to the SecureField (iOS); see
@@ -591,7 +624,7 @@ function NativeTextInput({
   // programmatic sets); typing already updated `state` natively.
   useEffect(() => {
     if (value !== undefined && value !== state.value) {
-      state.value = value;
+      writeNativeText(state, value);
     }
     if (value !== undefined) lastTextRef.current = value;
   }, [value, state]);
@@ -682,8 +715,11 @@ function NativeTextInput({
     restoreAfterSecureHandoffRef.current = false;
     const outgoingSecure = activeSecureRef.current;
     if (Platform.OS === "ios") {
-      if (outgoingSecure) generationRef.current.plain += 1;
-      else generationRef.current.secure += 1;
+      setGeneration((current) =>
+        outgoingSecure
+          ? { ...current, plain: current.plain + 1 }
+          : { ...current, secure: current.secure + 1 }
+      );
     }
     if (Platform.OS === "ios" && isFocusedRef.current) {
       const timer = setTimeout(() => {
@@ -709,7 +745,11 @@ function NativeTextInput({
     }
     setPasswordVisible((v) => !v);
   }, [activeInput, finishHandoff, focusRegistryToken, parentOnBlur]);
-  toggleRef.current = togglePasswordVisible;
+  // `finishHandoff` replays queued taps through this ref (it is declared
+  // before the toggle it calls). Synced after commit, like `activeSecureRef`.
+  useLayoutEffect(() => {
+    toggleRef.current = togglePasswordVisible;
+  }, [togglePasswordVisible]);
 
   // iOS clears a secure field's existing text on the first keystroke after it
   // becomes first responder (text it did not see typed). Right after the hide
@@ -729,7 +769,7 @@ function NativeTextInput({
       restoreAfterSecureHandoffRef.current = false;
       const next = wipedByKey ? previous + text : wipedByBackspace ? previous.slice(0, -1) : text;
       lastTextRef.current = next;
-      if (wiped) state.value = next;
+      if (wiped) writeNativeText(state, next);
       onChangeText?.(next);
     },
     [onChangeText, state]
@@ -755,13 +795,13 @@ function NativeTextInput({
     focus: () => activeInput()?.focus(),
     blur: () => blurAll(),
     clear: () => {
-      state.value = "";
+      writeNativeText(state, "");
       lastTextRef.current = "";
     },
     isFocused: () => activeInput()?.isFocused() ?? false,
     setNativeProps: (props: { text?: string }) => {
       if (typeof props?.text === "string") {
-        state.value = props.text;
+        writeNativeText(state, props.text);
         lastTextRef.current = props.text;
       }
     },
@@ -796,9 +836,9 @@ function NativeTextInput({
   const surfaceStyle: ViewStyle = {
     backgroundColor,
     borderColor,
-    borderRadius: variant === "underlined" ? 0 : spacing.radiusMd,
+    borderRadius: variant === "underlined" ? 0 : inputShape?.borderRadius ?? spacing.radiusMd,
     borderWidth: variant === "outline" ? 1 : 0,
-    opacity: editable === false ? 0.6 : 1,
+    opacity: editable === false ? interaction.disabledOpacity : 1,
     overflow: "hidden",
   };
 
@@ -888,8 +928,8 @@ function NativeTextInput({
                 Platform.OS === "android"
                   ? "android"
                   : secure
-                    ? `secure-${generationRef.current.secure}`
-                    : `plain-${generationRef.current.plain}`
+                    ? `secure-${generation.secure}`
+                    : `plain-${generation.plain}`
               }
               matchContents={{ vertical: true }}
               style={
@@ -936,6 +976,7 @@ function NativeTextInput({
               name={passwordVisible ? "eye-off" : "eye"}
               size={spacing.iconSm + 4}
               color="textDim"
+              decorative
             />
           </Pressable>
         )}
@@ -978,6 +1019,10 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
     },
     nativePasswordToggle: {
       paddingHorizontal: spacing.xs,
+      minWidth: spacing.minTarget,
+      minHeight: spacing.minTarget,
+      alignItems: "center",
+      justifyContent: "center",
     },
     wrapper: {
       width: "100%",
@@ -1003,7 +1048,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       borderBottomWidth: 2,
     },
     disabled: {
-      opacity: 0.6,
+      opacity: interaction.disabledOpacity,
       ...(Platform.OS === "web" && { cursor: "not-allowed" as any }),
     },
     error: {
@@ -1045,11 +1090,17 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       transform: [{ translateY: -10 }],
       zIndex: 1,
     },
+    // The eye/clear buttons draw a 16-20px glyph; the pressable itself is at
+    // least `spacing.minTarget` square (WCAG 2.5.8 — `hitSlop` is inert on web).
     passwordToggle: {
       position: "absolute",
-      right: spacing.sm,
+      right: spacing.sm - (spacing.minTarget - 20) / 2,
       top: "50%",
-      transform: [{ translateY: Platform.OS === "web" ? -10 : -12 }],
+      minWidth: spacing.minTarget,
+      minHeight: spacing.minTarget,
+      alignItems: "center",
+      justifyContent: "center",
+      transform: [{ translateY: -spacing.minTarget / 2 }],
       zIndex: 1,
       ...(Platform.OS === "web" && { cursor: "pointer" as any }),
     },
@@ -1062,9 +1113,13 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
     },
     clearButton: {
       position: "absolute",
-      right: spacing.sm,
+      right: spacing.sm - (spacing.minTarget - 20) / 2,
       top: "50%",
-      transform: [{ translateY: Platform.OS === "web" ? -10 : -12 }],
+      minWidth: spacing.minTarget,
+      minHeight: spacing.minTarget,
+      alignItems: "center",
+      justifyContent: "center",
+      transform: [{ translateY: -spacing.minTarget / 2 }],
       zIndex: 1,
       ...(Platform.OS === "web" && { cursor: "pointer" as any }),
     },
@@ -1083,7 +1138,7 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
 const VARIANT_KEYS: TextInputVariant[] = ["outline", "filled", "underlined"];
 const SIZE_KEYS: TextInputSize[] = ["sm", "md", "lg"];
 
-const themedStyles = createThemedStyles((theme: Theme) =>
+const themedStyles = /*#__PURE__*/ createThemedStyles((theme: Theme) =>
   Object.fromEntries(
     VARIANT_KEYS.map((variant) => [
       variant,

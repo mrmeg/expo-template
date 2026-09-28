@@ -136,12 +136,12 @@ echo "    $POOL_ID"
 # repo afterwards. See scripts/cognito-email/README.md.
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "$SCRIPT_DIR/apply-cognito-email-templates.ts" ] && command -v npx >/dev/null 2>&1; then
+if [ -f "$SCRIPT_DIR/apply-cognito-email-templates.ts" ] && command -v bun >/dev/null 2>&1; then
   echo "==> Applying email templates..."
-  (cd "$SCRIPT_DIR/.." && npx tsx scripts/apply-cognito-email-templates.ts \
+  (cd "$SCRIPT_DIR/.." && bun scripts/apply-cognito-email-templates.ts \
     --pool "$POOL_ID" --app-name "$APP_NAME" --region "$REGION")
 else
-  echo "!! Email templates not applied (repo files or npx missing). Run later:"
+  echo "!! Email templates not applied (repo files or bun missing). Run later:"
   echo "   bun run auth:emails --pool $POOL_ID --app-name \"$APP_NAME\" --region $REGION"
 fi
 

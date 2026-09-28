@@ -41,7 +41,7 @@ export interface BlockEntry {
   category: BlockCategory;
   /**
    * Component ids from the showcase registry (`COMPONENTS`) that this block
-   * composes, e.g. `["StatCard", "SectionHeader"]`. Data, not UI: the gallery
+   * composes, e.g. `["SectionHeader", "Button"]`. Data, not UI: the gallery
    * renders it as the "built from" strip beneath the preview, which is what
    * makes a block teach its own composition.
    */

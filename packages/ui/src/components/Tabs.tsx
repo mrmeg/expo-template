@@ -1,13 +1,16 @@
 import * as React from "react";
-import { Animated, Platform, PressableProps, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { Animated, Platform, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import * as TabsPrimitive from "@rn-primitives/tabs";
 import { StyledText } from "./StyledText";
 import { TextClassContext, TextColorContext } from "./StyledText.context";
 import { Icon, type IconName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
+import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { spacing } from "../constants/spacing";
+import { shouldUseNativeDriver } from "../lib/animations";
 
 // ============================================================================
 // Size configs
@@ -131,13 +134,13 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
   const rootContext = TabsPrimitive.useRootContext();
   const isSelected = rootContext.value === value;
 
-  const activeOpacity = React.useRef(new Animated.Value(isSelected ? 1 : 0)).current;
+  const activeOpacity = useAnimatedValue(isSelected ? 1 : 0);
 
   React.useEffect(() => {
     Animated.timing(activeOpacity, {
       toValue: isSelected ? 1 : 0,
       duration: reduceMotion ? 0 : 200,
-      useNativeDriver: true,
+      useNativeDriver: shouldUseNativeDriver,
     }).start();
   }, [isSelected, reduceMotion, activeOpacity]);
 
@@ -148,37 +151,20 @@ function TabsTriggerInner({ icon, style, children, value, ...props }: TabsTrigge
       : theme.colors.mutedForeground;
 
   const focusRingStyle = getFocusRingStyle();
-  const [focused, setFocused] = React.useState(false);
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: isDisabled,
     scaleTo: 0.97,
     haptic: false,
   });
 
-  const showFocusRing: PressableProps["onFocus"] = (event) => {
-    let ringVisible = true;
-    if (Platform.OS === "web") {
-      const target = event?.nativeEvent?.target as unknown as
-        | { matches?: (selector: string) => boolean }
-        | null
-        | undefined;
-      if (target && typeof target.matches === "function") {
-        try {
-          ringVisible = target.matches(":focus-visible");
-        } catch {
-          ringVisible = true;
-        }
-      }
-    }
-    setFocused(ringVisible);
-  };
-
-  const hideFocusRing: PressableProps["onBlur"] = () => {
-    setFocused(false);
-  };
+  const { focused, onFocus: showFocusRing, onBlur: hideFocusRing } = useFocusVisible();
 
   const triggerBaseStyle: ViewStyle = {
-    flex: 1,
+    // The wrapper below shares the list's width (`flex: 1` on the row axis);
+    // the trigger only fills it. `flex: 1` here would act on the wrapper's
+    // column axis, where a 0% basis in an indefinite-height parent collapses
+    // the trigger to its text (16px tall on web, under the 36px it declares).
+    alignSelf: "stretch",
     // Allow the trigger to shrink below its content's intrinsic width so long
     // labels are constrained to the trigger's flex share (and can ellipsize)
     // instead of overflowing and clipping at the screen edge.
@@ -304,7 +290,7 @@ function TabsContent({ style, children, ...props }: TabsContentProps) {
 // Styles
 // ============================================================================
 
-const triggerContentStyles = StyleSheet.create({
+const triggerContentStyles = /*#__PURE__*/ StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",

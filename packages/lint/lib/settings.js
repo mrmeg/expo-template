@@ -10,7 +10,10 @@
  *   working directory — and then from the linted file's directory — until a
  *   directory exists at that relative path. Without the walk, a lint run
  *   started anywhere but the repo root would silently load nothing and every
- *   rule would degrade to a no-op. Defaults to `packages/ui/src`.
+ *   rule would degrade to a no-op. Defaults to `packages/ui/src`. A directory
+ *   counts only when the `package.json` beside it names `@mrmeg/expo-ui`: a
+ *   consumer's own `packages/ui/src` is some other package's sources, not the
+ *   design system.
  * - `componentImports`: regex strings matched against an import source to
  *   decide whether a JSX element is a design-system component. Defaults to
  *   `@mrmeg/expo-ui` and its subpaths.
@@ -82,13 +85,39 @@ function isFile(file) {
 }
 
 /**
+ * The package a sources directory belongs to: the `name` in the `package.json`
+ * beside it (`packages/ui/src` → `packages/ui/package.json`).
+ *
+ * @param {string} dir
+ * @returns {string | null} the name, or null when there is none to read
+ */
+function sourcesPackageName(dir) {
+  try {
+    const manifest = JSON.parse(fs.readFileSync(path.join(path.dirname(dir), "package.json"), "utf8"));
+    return manifest && typeof manifest.name === "string" ? manifest.name : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {string} dir
+ * @returns {boolean} true when `dir` exists and belongs to `@mrmeg/expo-ui`
+ */
+function isDesignSystemSources(dir) {
+  return isDirectory(dir) && sourcesPackageName(dir) === DEFAULT_UI_PACKAGE;
+}
+
+/**
  * Resolves `uiSourceDir` to an absolute path.
  *
  * An absolute setting is taken as written. A relative one is looked for from
  * each start directory upwards, so `packages/ui/src` resolves whether ESLint
  * runs at the repo root, in `app/`, or from an editor whose working directory
- * is some other folder. When no candidate exists, the first start directory
- * wins so the not-found diagnostic can name a concrete path.
+ * is some other folder. The first candidate that is `@mrmeg/expo-ui`'s sources
+ * wins; failing that, the first directory that merely exists, so the caller can
+ * say whose sources it found instead. When nothing exists, the first start
+ * directory names a concrete path for the not-found diagnostic.
  *
  * @param {string} uiSourceDir the configured value
  * @param {(string | undefined)[]} startDirs directories to search from, in order
@@ -104,17 +133,22 @@ function resolveUiSourceDir(uiSourceDir, startDirs) {
   }
   if (starts.length === 0) starts.push(process.cwd());
 
+  /** @type {string | null} */
+  let firstExisting = null;
   for (const start of starts) {
     let dir = start;
     for (;;) {
       const candidate = path.join(dir, uiSourceDir);
-      if (isDirectory(candidate)) return candidate;
+      if (isDirectory(candidate)) {
+        if (isDesignSystemSources(candidate)) return candidate;
+        if (!firstExisting) firstExisting = candidate;
+      }
       const parent = path.dirname(dir);
       if (parent === dir) break;
       dir = parent;
     }
   }
-  return path.resolve(starts[0], uiSourceDir);
+  return firstExisting || path.resolve(starts[0], uiSourceDir);
 }
 
 /**
@@ -158,12 +192,14 @@ function resolveManifestPath(manifestPath, startDirs) {
  * @property {string} [package] the package that shipped a loaded manifest
  * @property {string} [version] that package's version
  * @property {string} [error] why a manifest could not be read
+ * @property {{path: string, packageName: string | null}} [skippedSources] a
+ *   `uiSourceDir` that exists but is not `@mrmeg/expo-ui`, and was passed over
  */
 
 /**
  * Where this lint run's design-system facts come from, in the order a project is
- * most likely to mean: an explicit manifest, then sources on disk, then whatever
- * `@mrmeg/expo-ui` is installed.
+ * most likely to mean: an explicit manifest, then `@mrmeg/expo-ui` sources on
+ * disk, then whatever `@mrmeg/expo-ui` is installed.
  *
  * @param {{rawSettings?: object, cwd?: string, filename?: string}} input
  * @returns {DesignSystemOrigin}
@@ -183,20 +219,29 @@ function resolveOrigin({ rawSettings, cwd, filename }) {
       : { kind: "manifest", path: resolved, missing: true };
   }
 
-  // 2. Sources on disk: this repo, or a project that vendors `packages/ui/src`.
+  // 2. Sources on disk: this repo, or a project that vendors `packages/ui` —
+  // but only `@mrmeg/expo-ui`'s. A consumer's own `packages/ui/src` sits at the
+  // default path and would otherwise be linted against as the design system.
   const uiSourceDir = resolveUiSourceDir(raw.uiSourceDir || DEFAULT_UI_SOURCE_DIR, startDirs);
-  if (isDirectory(uiSourceDir)) return { kind: "source", path: uiSourceDir };
+  if (isDesignSystemSources(uiSourceDir)) return { kind: "source", path: uiSourceDir };
+  const skipped = isDirectory(uiSourceDir)
+    ? { skippedSources: { path: uiSourceDir, packageName: sourcesPackageName(uiSourceDir) } }
+    : {};
 
   // 3. An installed release ships the manifest. The linted file's directory goes
   // first so the nearest install wins, the way Node would resolve the import.
   const paths = [fileDir, base].filter(Boolean);
   try {
-    return { kind: "manifest", path: require.resolve(DEFAULT_MANIFEST_SPECIFIER, { paths }) };
+    return {
+      kind: "manifest",
+      path: require.resolve(DEFAULT_MANIFEST_SPECIFIER, { paths }),
+      ...skipped,
+    };
   } catch {
     // Not installed, or installed without the manifest export.
   }
 
-  return { kind: "none", uiSourceDir };
+  return { kind: "none", uiSourceDir, ...skipped };
 }
 
 /**
@@ -272,6 +317,7 @@ function readSettings(context) {
 module.exports = {
   DEFAULT_UI_SOURCE_DIR,
   DEFAULT_COMPONENT_IMPORTS,
+  isDesignSystemSources,
   readSettings,
   resolveOrigin,
   resolveUiSourceDir,

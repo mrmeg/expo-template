@@ -74,6 +74,25 @@ avoidance is `react-native-keyboard-controller`, so mount its `KeyboardProvider`
 above `UIProvider`; use `KeyboardAvoidingView` directly only for a subtree with
 custom behavior.
 
+Web setup, two more steps (every web theme color is a `var(--c-*)`, and the
+theme store boots at `"system"`/light so the first client render matches the
+server or exported HTML):
+
+1. `app/+html.tsx`: put `getThemeCssVariables()` (from `constants`) in the
+   global `<style>`, with the same overrides passed to `setColors` if the app
+   re-brands; without it every theme color is unset. Optionally add a blocking
+   inline script that sets `document.documentElement.dataset.theme` from
+   `localStorage[THEME_STORAGE_KEY]` (from `state`) or `prefers-color-scheme`,
+   so the first frame paints in the visitor's scheme.
+2. Root layout: `useEffect(() => syncThemeFromEnvironment(), []);`
+   (`syncThemeFromEnvironment` from `state`). It reads the persisted preference
+   and follows the OS color scheme, and returns its cleanup. Never call it
+   during render or at module scope. Safe to call more than once: calls share
+   one OS listener and each cleanup releases only its own call. `UIProvider`
+   does not call it; without it a web app stays on the boot default until the
+   user picks a theme. Optional on native, which loads the preference at
+   startup.
+
 `DismissKeyboard` owns tap dismissal; its ScrollView uses
 `keyboardShouldPersistTaps="always"` so RN cannot independently blur a hosted
 field after a non-scrolling drag. Use `always` for your own scroll view inside
@@ -105,6 +124,14 @@ give scroll views that contain a sheet `keyboardShouldPersistTaps="always"` (or
 when it sees such a tap. `Slider` and `SegmentedControl` are also
 `@expo/ui`-backed.
 
+`BottomSheet` `onDismissed` fires once per close after the sheet is fully gone
+on every platform (iOS: `@expo/ui`'s native SwiftUI `onDismiss` event, after
+the transition; Android: `@expo/ui`'s post-animation close callback; web: the
+HTML `<dialog>` `close` event at the end of the exit animation). Open the next
+modal — a `Dialog`, a native stack modal — from `onDismissed`, never from
+`onOpenChange(false)` or a timer: on iOS the sheet is still dismissing when
+`onOpenChange` fires and a `Modal` presented then is rejected.
+
 `BottomSheet.Content` themes the native sheet surface with the card color. Pass
 `backgroundStyle={{ backgroundColor: "transparent" }}`, plus a `style` clearing
 the content column's card fill, when custom chrome such as a glass backdrop must
@@ -120,12 +147,26 @@ unfocusable boxes inside react-native-screens' `FullWindowOverlay`, which
 `Drawer`, `Popover`, `Select`, `DropdownMenu` and `Tooltip` still use on iOS —
 keep hosted controls out of those, and do not place a `Dialog` inside their
 content (no view controller to present from; render it at screen level and open
-it from the item's `onPress`). The dialog owns keyboard avoidance inside its Modal (package
-`KeyboardAvoidingView`, `behavior="padding"`; the card recenters above the
-keyboard and `useKeyboardAvoidance()` is `true` in dialog content); do not wrap
-dialog content in another `KeyboardAvoidingView`. Android and web render dialog
-content inline into the portal host, outside the root avoidance, so an Android
-dialog does not avoid the keyboard yet.
+it from the item's `onPress`). The dialog owns keyboard avoidance on iOS and
+Android (its content sits outside `UIProvider`'s root avoidance on both: the iOS
+Modal and the Android portal host): the centered container is a package
+`KeyboardAvoidingView` (`behavior="padding"`), the card recenters above the
+keyboard with fields and footer visible, and `useKeyboardAvoidance()` is `true`
+in dialog content; do not wrap dialog content in another `KeyboardAvoidingView`.
+Web has no software keyboard and no avoidance owner. Dialog content owns tap-away
+keyboard dismissal on iOS and Android (the same boundary as `DismissKeyboard`,
+on the `Dialog` card itself and on the `AlertDialog` centered container:
+dead-space taps hide the keyboard on release, a `Dialog` backdrop tap closes the
+dialog and the keyboard with it, controls and fields fire on the first tap); do
+not wrap dialog content in `DismissKeyboard` for that. Android and web render dialog content inline into
+the portal host.
+
+`PopoverContent` treats `side` as a preference: on iOS and Android it opens on
+the other side when the content does not fit and there is more room there,
+caps its height to the room and scrolls the children (pass `scrollable={false}`
+for content with its own `FlatList`; it then stays on `side`). `insets` default
+to the safe area, and a `style` merges over the themed surface rather than
+replacing it. A `PopoverTrigger` ref (`PopoverTriggerRef`) has `open()` / `close()`.
 
 i18n is optional. Do not add app-level i18n setup just to use this package;
 plain children and `text` props work without `i18next` or `react-i18next`. `tx`
@@ -144,9 +185,15 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 - Use `useTheme()` and semantic tokens instead of hardcoded colors.
 - Use `StyledText` or its semantic aliases instead of raw `Text` for app UI.
 - Use `Button.preset`, not `variant`.
+- `disabled` blocks the press (no `onPress`, no scale/haptic, out of the web tab order). To keep a button focusable and pressable while announced and dimmed as disabled — so the press can explain why — use `aria-disabled` (or `accessibilityState={{ disabled: true }}`), never a hand-rolled opacity style.
 - Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36).
 - Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the Button size.
-- Use `notify` plus a root `UIProvider` for transient global feedback. (`globalUIStore` stays available for reactive subscriptions and tests.)
+- Web SSR paints the visitor's scheme: wrap the root layout in `<InitialSchemeProvider scheme>` (`@mrmeg/expo-ui/state`) with the `"light"`/`"dark"` value read from a cookie on both server and client (template: `shared/ssrColorScheme.ts`, written by `+html.tsx` and `client/features/app/colorSchemeCookie.ts`); `useTheme()` uses it until `hasLoadedTheme`. Never read `localStorage` for the first render.
+- A Radix-backed component (`Tabs`, `Accordion`, `Collapsible`, `Select`, `DropdownMenu`, `Popover`) on a server-rendered web route logs a `useId` hydration mismatch (Expo Router hydrates `#root`, the server rendered `+html.tsx`). Wrap that subtree — not the page — in `<Hydrated fallback={…}>` (`@mrmeg/expo-ui/components`) with a fallback that holds its height; never branch on `typeof window`. Content that must be in the server HTML stays outside the gate.
+- Web console hygiene: animate with `useNativeDriver: shouldUseNativeDriver` (`@mrmeg/expo-ui/lib`), never `true`; set `pointerEvents` in `style`, never as a prop (react-native-web deprecates the prop, and its lazy warning module has overflowed the first SSR render of deep routes). `AnimatedView` folds a `pointerEvents` prop into style for you.
+- Haptics are one setting: `<UIProvider haptics="off" | "selection" | "all">` (default `"selection"`: Switch/Checkbox/Toggle/ToggleGroup/SegmentedControl tap on change; `"all"` adds a light tap on press for Button, pressable Card and Item). Do not call `expo-haptics` per control; force one Button with `haptic`. Pressed/disabled looks come from `interaction.pressedOpacity` / `interaction.disabledOpacity` in `@mrmeg/expo-ui/constants`.
+- Bottom toasts must clear the tab bar: the layout that owns a bar calls `useNotificationOffset({ bottom })` (`@mrmeg/expo-ui/hooks`) with the bar's distance from the window edge, inset included — `useBottomTabBarHeight()` for a JS `<Tabs>` layout, platform bar height + `useWindowInsets().bottom` for `NativeTabs` — and `null` while the bar is hidden. Never position a toast yourself.
+- Use `notify` plus a root `UIProvider` for transient global feedback. (`globalUIStore` stays available for reactive subscriptions and tests. In a component, read it with zustand's `useStore(globalUIStore, selector)`, never `globalUIStore()`: the React Compiler only treats `use*` calls as hooks, caches the bare call, and the next render crashes with React error #311.)
 - Keep app monitoring, auth, API, and domain behavior outside this package.
 
 Semantic color tokens on `theme.colors`: `surfaceSunken`, `background`,
@@ -167,7 +214,9 @@ Elevation is a surface-tier ladder, not shadow depth: `surfaceSunken` (chrome) <
 `background` (content) < `card`/`popover` (raised) < `muted` (chips, insets).
 
 On web every `theme.colors.*` value is a CSS custom property (`var(--c-*)`), so
-themes swap in CSS when `html[data-theme]` changes; native keeps literals. Hex
+themes swap in CSS when `html[data-theme]` changes; native keeps literals. Both
+web schemes share one `colors` object (`colors.light.colors ===
+colors.dark.colors`); re-brand with `setColors`, never by mutating it. Hex
 alpha concatenation (`theme.colors.x + "15"`) does **not** work — use
 `withAlpha(theme.colors.x, 0.08)`, exported standalone from `hooks` and from
 `useTheme()`. For sinks that cannot take `var()` (e.g. `<meta name="theme-color">`)
@@ -187,19 +236,24 @@ Use `useStyles()` for memoized theme-aware local styles. Its factory receives
 
 ```tsx
 const { styles } = useStyles(({ theme, spacing, withAlpha }) => ({
-  card: {
-    backgroundColor: withAlpha(theme.colors.primary, 0.08),
-    padding: spacing.cardPadding,
+  content: {
+    paddingVertical: spacing.md,
+    gap: spacing.sectionSpacing,
+  },
+  selectedIcon: {
+    backgroundColor: withAlpha(theme.colors.primary, 0.12),
   },
 }));
 ```
 
 Layout spacing uses semantic density tokens, not raw scale steps:
-`spacing.screenPadding` (16) for screen and block gutters, `spacing.cardPadding`
-(16) for bordered panels, `spacing.sectionSpacing` (24) between grouped lists,
+`spacing.screenPadding` (16) for the one horizontal inset of a screen or block,
+`spacing.sectionSpacing` (24) between sections and `ItemGroup`s,
 `spacing.dialogPadding` (20) for dialogs, and `spacing.rowPaddingY`/`rowPaddingX`
 (10/16) with `spacing.rowGap` (12) for list rows. `Item` already applies the row
 tokens and keeps a 44px hit area on native while rendering 40px on web.
+`spacing.cardPadding` (16) is the inner padding of `Card` and `StatCard` tiles,
+not a layout inset. See Screen Layout below.
 
 When the saved theme preference is `system`, the package theme store owns the OS
 color-scheme subscription, including web `prefers-color-scheme`. Do not add
@@ -222,10 +276,26 @@ sansSerif?, serif?, mono? }, webWeightStrategy? })` replaces the bundled faces
 (Inter / Georgia / system-mono) everywhere text renders; groups and weights are
 partial, missing weights fall back to that group's `regular`, and an overridden
 `sansSerif` makes `useResources` skip downloading Inter (call `setFonts` before
-mount for the skip). Use `webWeightStrategy: "family"` when loading per-weight
+mount for the skip). Each group also takes `italic: { weight: face }`; `<StyledText
+italic>` (or `useFontStyle(weight, variant, { italic: true })`) uses that face,
+else the group's italic `regular`, else `fontStyle: "italic"` on the upright face.
+`useResources({ serif: "newsreader", serifFonts })` swaps Georgia for the
+Newsreader preset (four weights + a 400 italic): the app depends on
+`@expo-google-fonts/newsreader` and passes the five per-weight faces on native;
+web gets one stylesheet (`id="mrmeg-expo-ui-newsreader"`). A `setFonts` serif
+override still wins. Use `webWeightStrategy: "family"` when loading per-weight
 faces through `expo-font` / `@expo-google-fonts`, `"numeric"` (default) for one
-multi-weight CSS family. `setShape({ button: { borderRadius?, withShadow? } })`
-re-shapes Buttons globally. Per-instance props and caller `style` always win.
+multi-weight CSS family. `setShape({ button?, input?, card?, sheet?, badge?,
+dialog? })` re-shapes a slot globally (`{ borderRadius }`; `button` also takes
+`withShadow`): `input` reaches TextInput, Select and InputOTP; `card` reaches
+Card, StatCard, bordered EmptyState and SkeletonCard; `sheet` the BottomSheet's
+top corners; `dialog` Dialog and AlertDialog. Per-instance props and caller
+`style` always win. Extra color tokens are declared once by augmenting
+`ThemeColorExtensions` (`declare module "@mrmeg/expo-ui/constants" { interface
+ThemeColorExtensions { brandGold: string } }`); they then type through
+`setColors`, `ThemeColorScope`, `theme.colors`, and `getThemeCssVariables`
+emits `--c-brand-gold` when the overrides name it. Provide every extension key
+in both schemes.
 
 Enforce these rules mechanically with `@mrmeg/eslint-plugin-expo-ui`
 (`bun add -d @mrmeg/eslint-plugin-expo-ui`), which reports raw colors, off-scale
@@ -238,6 +308,60 @@ added ship one: the installed release has it when
 `node_modules/@mrmeg/expo-ui/dist/design-system.json` exists. Config block and
 settings:
 https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/lint/README.md
+
+## Screen Layout
+
+Build screens flat. On a 390 pt phone every nested inset comes out of the
+content: a settings group boxed inside a padded screen puts its rows 33 pt from
+each edge (16 screen + 1 border + 16 row) and leaves 324 pt for them; the same
+rows in an `ItemGroup` sit 16 pt in and get 358 pt.
+
+- **Every screen root is `Screen`, with explicit `edges`.** `<Screen
+  edges={["bottom"]} scroll>` under a Stack header; `edges={["top"]}` above a
+  tab bar; `["top", "bottom"]` for a headerless screen or a modal; `[]` when the
+  navigator insets both. Never pad `insets.top` under a header or
+  `insets.bottom` above a tab bar (double padding), and never leave a headerless
+  screen without `"top"` (content under the Dynamic Island). `scroll` puts the
+  insets on the content container; `padded={false}` for full-bleed `ItemGroup`
+  rows; `contentContainerStyle` padding adds to the insets. Read insets with
+  `useWindowInsets()` (works inside modals and native sheets too), not
+  `useSafeAreaInsets()`.
+- **One horizontal inset per screen: `spacing.screenPadding` (16).** Either a
+  container pads or its children do, never both. `Item` rows, and `ItemGroup`
+  titles and footers, carry the 16 themselves, so a scroll view of
+  `ItemGroup`s gets no horizontal padding; text, forms, and buttons between the
+  groups pad their own wrapper.
+- **No boxes as layout.** Never wrap a section, a form, or a group of rows in a
+  bordered, shadowed, or tinted rounded `View`, or in a `Card`. Separate
+  sections with a header (an `ItemGroup` title, `SectionHeader`),
+  `spacing.sectionSpacing`, or a hairline (`Separator`).
+- **Lists and settings: `ItemGroup` + `Item`.** Full-width rows and touch
+  targets, hairlines inset under the title, no card per row, no border around
+  the group. Pass the rows as direct children (a mapped array works; a
+  Fragment counts as one row) and leave `separator` off: the group draws the
+  line under every row but the last. A `Switch`, `Checkbox` or `Toggle` in
+  `ItemActions` is named by the row's `ItemTitle` automatically (its text as
+  `accessibilityLabel` / `aria-label`; a composed title links by id after
+  hydration); pass `accessibilityLabel` only when the title is not the right
+  name.
+- **Forms:** fields span the column, grouped under section headers, not cards.
+- **Primary content fills the width.** QR codes, photos, maps, media, and
+  charts size to the column (`width: "100%"` with `aspectRatio`, or a size
+  computed from the column width), never a fixed size floating in whitespace.
+  A photo library is a grid of width-sized tiles, not rows of 56 pt thumbnails.
+- **Wide screens:** cap and centre the column instead of boxing it: `width:
+  "100%", maxWidth: 640, alignSelf: "center"` on the scroll view's
+  `contentContainerStyle` (960 for dense grids and dashboards).
+- **When a `Card` is right:** one item in a collection (a feed entry, a grid
+  tile, a carousel slide) or a single tappable object. Its parts pad
+  `spacing.cardPadding`, a tile's inner padding. Never nest Cards or put one in
+  a padded panel. `StatCard` follows the same rule (tiles in a scrolling
+  metrics rail, or one tappable metric); a summary of numbers is flat text on
+  the gutter.
+- Dialog, sheet, and popover chrome keep their own surfaces; these rules are
+  for screen content.
+
+The first Minimal Example below is a complete flat screen.
 
 ## Component Use-Case Index
 
@@ -253,7 +377,7 @@ Check this before creating a new app-local primitive. All components come from
 | `Badge` | Short status labels | Custom pill `View` + `Text` |
 | `BottomSheet` | Mobile-first modal sheets | Custom absolute-position sheets |
 | `Button` | Commands and CTAs | Pressable plus custom text styling |
-| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | Framed content groups | Ad hoc bordered panels |
+| `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` | One item in a collection (feed entry, grid tile, carousel slide) or a single tappable object | Hand-rolled bordered tiles; never a box around a section, form, or row group |
 | `Carousel` | Horizontally snapping slide row with pressable dots | Snap `ScrollView` plus manual offset math |
 | `Checkbox` | Boolean selection | Custom checkmark controls |
 | `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` | One-off disclosure | Local animated height wrappers |
@@ -266,10 +390,12 @@ Check this before creating a new app-local primitive. All components come from
 | `Icon` | Lucide or custom icons with theme tokens | Raw vector icons with hardcoded colors |
 | `InputOTP` | Verification code entry | Several manually managed text inputs |
 | `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens | Hand-rolled row `View`s |
+| `ItemGroup` | A titled group of full-width `Item` rows with inset hairlines and an optional footer | Bordered or shadowed boxes around rows, a `Card` per row, hand-drawn dividers |
 | `KeyboardAvoidingView` | Native keyboard-aware layout root | Repeated app-local keyboard wrappers |
 | `Label` | Accessible form labels | Plain styled text labels |
 | `MaxWidthContainer` | Centered responsive width | Per-screen max-width wrappers |
 | `Notification` | Global toast surface | Screen-local toast state |
+| `Screen` | Page container with required safe-area `edges`, one horizontal inset, optional scroll | Hand-rolled `useSafeAreaInsets` padding, `SafeAreaView` per screen |
 | `Popover` | Anchored contextual content | Custom anchored views |
 | `Progress` | Determinate or indeterminate progress | Layout-shifting spinners |
 | `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows |
@@ -279,13 +405,13 @@ Check this before creating a new app-local primitive. All components come from
 | `Separator` | Horizontal or vertical dividers | Border-only spacer views |
 | `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Blank space or generic spinners |
 | `Slider` | Numeric value selection (`@expo/ui`) | Custom pan gesture track |
-| `StatCard` | Metric tile with label, value, unit, change | Hand-rolled dashboard cards |
+| `StatCard` | Metric tile in a collection (a scrolling KPI rail) or one tappable metric | Hand-rolled dashboard tiles |
 | `StatusBar` | Theme-aware native status bar | Per-screen status-bar duplication |
 | `StyledText` and text aliases | Theme-aware typography | Raw `Text` with hardcoded styles |
 | `Switch` | Binary settings | Custom toggle switches |
 | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | In-page tabbed views | Custom segmented/tab controls |
 | `TextInput` | Text entry with label, helper/error text, clear, password reveal | Raw `TextInput` plus repeated label/error code |
-| `Toggle`, `ToggleIcon` | Pressed/unpressed control | Button with local selected styling |
+| `Toggle`, `ToggleIcon` | Pressed/unpressed control; an `iconOnly` toggle needs `accessibilityLabel` (dev warns once) | Button with local selected styling |
 | `ToggleGroup`, `ToggleGroupItem`, `ToggleGroupIcon` | Single or multi toggle groups | Custom segmented controls |
 | `Tooltip` | Short hover/focus help | Persistent helper text or custom hover cards |
 
@@ -307,30 +433,96 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 
 - `Button` commands · `Toggle` one pressed state · `ToggleGroup` a related set · `Switch` binary settings · `RadioGroup` few exclusive choices · `Select` longer option sets.
 - `Dialog` blocking decisions · `Popover` contextual controls · `Tooltip` short explanations · `DropdownMenu` action lists.
-- `Card` individual repeated or framed items, never a wrapper around full page sections · `EmptyState` no-data or recoverable errors · `Skeleton` loading content with stable layout · `Progress` real or indeterminate progress.
+- `ItemGroup` + `Item` lists and settings · `Card` one item in a collection or one tappable object, never a wrapper around a section, form, or row group, never nested · `EmptyState` no-data or recoverable errors · `Skeleton` loading content with stable layout · `Progress` real or indeterminate progress.
 - `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive into the exported HTML shell and the first client frame; use `FlatList` for large or unbounded data. Dots are pressable and jump to their slide. A fractional `itemWidth` (default `0.85`) measures the viewport until the first layout, so pass absolute pixels (`> 1`) when the parent is narrower than the window and the first frame matters.
 - `Avatar` with both `source` and `name` whenever both exist: `name` supplies the initials shown when the image is absent, still loading, or failed, plus the default accessibility label. Inside `AvatarGroup`, set `size`/`shape` on the group — children inherit them and gain the ring; the group's count is a hidden summary node, so each member stays individually announceable and the group needs no `accessible` wrapper.
 - Pair a standalone `Label` with its control using two DISTINCT ids: `nativeID` is the label's own id, `htmlFor` is the input's id (`<Label nativeID="email-label" htmlFor="email-input">` + `<TextInput nativeID="email-input" />`). One id on both renders duplicate ids on web and associates nothing. Prefer `TextInput`'s own `label` prop when no separate label element is needed.
 - A plain `View` whose `opacity`/`pointerEvents` follows state must be `collapsable={false}` on Android (Fabric re-parents its children on the flip; a flip racing a navigation pop crashes). Package surfaces are pinned; spread `stateSurfaceProps()` from `@mrmeg/expo-ui/lib` on app-owned ones. `Pressable` already pins itself.
 - `TextInput` `onBlur` fires only after a real focus on Android (the native field's first-composition blur is dropped in the package); validate on blur directly and do not add a touched-fields guard in app code.
 - `Drawer.Header` takes `icon`, `title`, and `action` slots for a compact app-brand row; put `Drawer.ToggleCollapse` in `action` for a trailing rail control. `Drawer.Content` owns safe-area top/bottom padding — do not duplicate it in children.
+- `Icon` and `Button.Icon` take `name` (a kebab-case name from the package registry, typed `IconName`) or `component` (any Lucide import such as `import House from "lucide-react-native/icons/house"`, or another SVG component taking `size` and `color`). Both are sized, colored with theme tokens, and hidden from assistive tech unless `accessibilityLabel` names a standalone icon (`decorative` only silences a labelled one); `Button.Icon` inherits the button's label color and is decorative by default. Use `component` for icons outside the registry instead of rendering raw Lucide components.
 
 ## Minimal Examples
 
-```tsx
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@mrmeg/expo-ui/components";
+A flat settings screen: groups of full-width rows, one 16 pt inset, a capped
+column on wide screens, no boxes.
 
-<Card variant="outline">
-  <CardHeader>
-    <CardTitle>Subscription</CardTitle>
-    <Badge variant="secondary">Active</Badge>
-  </CardHeader>
-  <CardContent>
-    <Button preset="default" fullWidth>
-      Manage billing
-    </Button>
-  </CardContent>
-</Card>
+```tsx
+import { useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
+import {
+  Button,
+  Icon,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+  Switch,
+} from "@mrmeg/expo-ui/components";
+import { spacing } from "@mrmeg/expo-ui/constants";
+
+export function SettingsScreen({ onEditProfile, onSignOut }: { onEditProfile: () => void; onSignOut: () => void }) {
+  const [push, setPush] = useState(true);
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <ItemGroup title="Account">
+        <Item onPress={onEditProfile}>
+          <ItemMedia icon="user" />
+          <ItemContent>
+            <ItemTitle>Edit profile</ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <Icon name="chevron-right" size={18} color="mutedForeground" />
+          </ItemActions>
+        </Item>
+        <Item>
+          <ItemMedia icon="bell" />
+          <ItemContent>
+            <ItemTitle>Push notifications</ItemTitle>
+            <ItemDescription>Replies and mentions</ItemDescription>
+          </ItemContent>
+          <ItemActions>
+            <Switch checked={push} onCheckedChange={setPush} />
+          </ItemActions>
+        </Item>
+      </ItemGroup>
+
+      <ItemGroup title="About" footer="Version 1.4.0">
+        <Item>
+          <ItemContent>
+            <ItemTitle>Build</ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <ItemDescription>2026.09.25</ItemDescription>
+          </ItemActions>
+        </Item>
+      </ItemGroup>
+
+      {/* Not rows, so it pads its own wrapper to the same 16 pt gutter. */}
+      <View style={styles.gutter}>
+        <Button preset="destructive" fullWidth text="Sign out" onPress={onSignOut} />
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  // No horizontal padding: the rows carry the screen's inset.
+  content: {
+    width: "100%",
+    maxWidth: 640,
+    alignSelf: "center",
+    paddingVertical: spacing.md,
+    gap: spacing.sectionSpacing,
+  },
+  gutter: {
+    paddingHorizontal: spacing.screenPadding,
+  },
+});
 ```
 
 ```tsx

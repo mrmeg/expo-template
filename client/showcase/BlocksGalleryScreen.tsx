@@ -159,9 +159,9 @@ function BlockCard({
   return (
     <View style={styles.block} testID={`block-card-${entry.id}`}>
       <View style={styles.blockHead}>
-        <SansSerifBoldText style={styles.blockLabel}>{entry.label}</SansSerifBoldText>
+        <SansSerifBoldText size="base" style={styles.blockLabel}>{entry.label}</SansSerifBoldText>
         <View style={styles.blockCategory}>
-          <SansSerifText style={styles.blockCategoryText}>
+          <SansSerifText size="xs" style={styles.blockCategoryText}>
             {BLOCK_CATEGORY_LABELS[entry.category]}
           </SansSerifText>
         </View>
@@ -183,7 +183,7 @@ function BlockCard({
       </View>
 
       <View style={styles.recipe}>
-        <SansSerifText style={styles.recipeLabel}>Recipe</SansSerifText>
+        <SansSerifText size="xs" style={styles.recipeLabel}>Recipe</SansSerifText>
         {entry.recipe.map((componentId) => (
           <RecipeChip key={componentId} componentId={componentId} styles={styles} />
         ))}
@@ -210,7 +210,7 @@ function RecipeChip({
   if (!known) {
     return (
       <View style={styles.recipeChip}>
-        <SansSerifText style={styles.recipeChipText}>{componentId}</SansSerifText>
+        <SansSerifText size="sm" style={styles.recipeChipText}>{componentId}</SansSerifText>
       </View>
     );
   }
@@ -224,7 +224,7 @@ function RecipeChip({
         testID={`recipe-chip-${componentId}`}
         style={linkPressableStyle(styles.recipeChip)}
       >
-        <SansSerifText style={styles.recipeChipLink}>{componentId}</SansSerifText>
+        <SansSerifText size="sm" style={styles.recipeChipLink}>{componentId}</SansSerifText>
       </Pressable>
     </Link>
   );
@@ -276,7 +276,6 @@ const createStyles = (theme: Theme) =>
       borderBottomColor: theme.colors.border,
     },
     blockLabel: {
-      fontSize: 14,
       color: theme.colors.foreground,
     },
     blockCategory: {
@@ -286,7 +285,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.muted,
     },
     blockCategoryText: {
-      fontSize: 10,
       textTransform: "uppercase",
       letterSpacing: 0.9,
       color: theme.colors.mutedForeground,
@@ -318,7 +316,6 @@ const createStyles = (theme: Theme) =>
       borderTopColor: theme.colors.border,
     },
     recipeLabel: {
-      fontSize: 11,
       textTransform: "uppercase",
       letterSpacing: 0.8,
       color: theme.colors.mutedForeground,
@@ -330,11 +327,9 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.muted,
     },
     recipeChipText: {
-      fontSize: 12,
       color: theme.colors.mutedForeground,
     },
     recipeChipLink: {
-      fontSize: 12,
       color: theme.colors.accent,
     },
   });

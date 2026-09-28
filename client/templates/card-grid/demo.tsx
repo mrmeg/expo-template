@@ -4,6 +4,7 @@ import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/StyledText";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { Card } from "@mrmeg/expo-ui/components/Card";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { CardGridScreen, type CardGridCategory } from "./Screen";
 import type { Theme } from "@mrmeg/expo-ui/constants";
@@ -48,7 +49,7 @@ export default function ScreenCardGridDemo() {
   }, []);
 
   const renderCard = (item: Product) => (
-    <View style={styles.card}>
+    <Card style={styles.card}>
       <View style={styles.cardImage}>
         <Icon name="package" size={28} color={theme.colors.mutedForeground} />
       </View>
@@ -60,7 +61,7 @@ export default function ScreenCardGridDemo() {
           {item.price}
         </SansSerifBoldText>
       </View>
-    </View>
+    </Card>
   );
 
   return (
@@ -81,15 +82,14 @@ export default function ScreenCardGridDemo() {
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
+    // Clips the image placeholder to Card's rounded corners.
     card: {
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      borderRadius: spacing.radiusLg,
-      backgroundColor: theme.colors.card,
       overflow: "hidden",
     },
+    // Sized from the tile width, so the image scales with the column instead
+    // of sitting at a fixed height.
     cardImage: {
-      height: 100,
+      aspectRatio: 4 / 3,
       backgroundColor: theme.colors.muted,
       alignItems: "center",
       justifyContent: "center",

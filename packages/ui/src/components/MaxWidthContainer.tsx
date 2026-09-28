@@ -104,7 +104,7 @@ export function MaxWidthContainer({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
   container: {
     flex: 1,
   },

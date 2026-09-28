@@ -1,6 +1,7 @@
 import { Children, isValidElement, type PropsWithChildren, type ReactElement } from "react";
 import { getThemeCssVariables } from "@mrmeg/expo-ui/constants";
 import { ScrollViewStyleReset, useServerDocumentContext } from "expo-router/html";
+import { detectColorSchemeFromRequestScope } from "@/shared/ssrColorScheme";
 
 // This file is web-only and configures the root HTML document for every web
 // page during server rendering. It runs in Node per request (and during
@@ -77,13 +78,116 @@ function getRootCssStyles() {
 
 const DEFAULT_DOCUMENT_TITLE = "Expo Template";
 
+/**
+ * Self-hosted Inter, the web face of @mrmeg/expo-ui's sans-serif family.
+ *
+ * `public/fonts/inter/` holds the variable font (weights 100–900) in the same
+ * unicode-range subsets Google Fonts serves, copied from the pinned
+ * `@fontsource-variable/inter` devDependency (`__tests__/webFonts.guardrail.test.ts`
+ * fails if a copy drifts from the package). Served same-origin, so no
+ * third-party stylesheet sits between the HTML and first paint, as the Google
+ * Fonts `<link rel="stylesheet">` this replaces did.
+ *
+ * Only Latin is preloaded; the other subsets download only when a page uses a
+ * character in their range. `font-display: optional` keeps the no-layout-shift
+ * behavior: a preloaded font that arrives within the short block period
+ * renders from the first frame, otherwise the fallback stack stays for the
+ * page's lifetime instead of swapping in later.
+ */
+const INTER_PRELOAD_URL = "/fonts/inter/inter-latin-wght-normal.woff2";
+
+const INTER_SUBSETS: { url: string; unicodeRange: string }[] = [
+  {
+    url: "/fonts/inter/inter-cyrillic-ext-wght-normal.woff2",
+    unicodeRange: "U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F",
+  },
+  {
+    url: "/fonts/inter/inter-cyrillic-wght-normal.woff2",
+    unicodeRange: "U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116",
+  },
+  {
+    url: "/fonts/inter/inter-greek-ext-wght-normal.woff2",
+    unicodeRange: "U+1F00-1FFF",
+  },
+  {
+    url: "/fonts/inter/inter-greek-wght-normal.woff2",
+    unicodeRange: "U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF",
+  },
+  {
+    url: "/fonts/inter/inter-vietnamese-wght-normal.woff2",
+    unicodeRange: "U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB",
+  },
+  {
+    url: "/fonts/inter/inter-latin-ext-wght-normal.woff2",
+    unicodeRange: "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+  },
+  {
+    url: INTER_PRELOAD_URL,
+    unicodeRange: "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+  },
+];
+
+const INTER_FONT_FACES = INTER_SUBSETS.map(
+  ({ url, unicodeRange }) =>
+    `@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:optional;src:url(${url}) format("woff2");unicode-range:${unicodeRange}}`,
+).join("\n");
+
+/**
+ * Self-hosted Newsreader, the web face of the kit's serif preset
+ * (`useResources({ serif: "newsreader" })` in RootLayout). Same policy as
+ * Inter above: variable weight (200 800) per unicode-range subset, upright and
+ * italic, served from public/ with `font-display: optional`, and the `<style>`
+ * id is the one useResources checks before injecting its Google Fonts
+ * stylesheet. Files come from @fontsource-variable/newsreader (see
+ * __tests__/webFonts.guardrail.test.ts, which pins them byte for byte).
+ */
+const NEWSREADER_SUBSETS: { url: string; style: "normal" | "italic"; unicodeRange: string }[] = [
+  {
+    url: "/fonts/newsreader/newsreader-vietnamese-wght-normal.woff2",
+    style: "normal",
+    unicodeRange: "U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB",
+  },
+  {
+    url: "/fonts/newsreader/newsreader-latin-ext-wght-normal.woff2",
+    style: "normal",
+    unicodeRange: "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+  },
+  {
+    url: "/fonts/newsreader/newsreader-latin-wght-normal.woff2",
+    style: "normal",
+    unicodeRange: "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+  },
+  {
+    url: "/fonts/newsreader/newsreader-vietnamese-wght-italic.woff2",
+    style: "italic",
+    unicodeRange: "U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB",
+  },
+  {
+    url: "/fonts/newsreader/newsreader-latin-ext-wght-italic.woff2",
+    style: "italic",
+    unicodeRange: "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+  },
+  {
+    url: "/fonts/newsreader/newsreader-latin-wght-italic.woff2",
+    style: "italic",
+    unicodeRange: "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+  },
+];
+
+const NEWSREADER_FONT_FACES = NEWSREADER_SUBSETS.map(
+  ({ url, style, unicodeRange }) =>
+    `@font-face{font-family:"Newsreader";font-style:${style};font-weight:200 800;font-display:optional;src:url(${url}) format("woff2-variations");unicode-range:${unicodeRange}}`,
+).join("\n");
+
 // Blocking script that resolves the visitor's color scheme before the app
 // bundle boots: it stamps `data-theme` on <html>, which switches the `--c-*`
 // variables above so the whole static shell paints in the right theme on the
 // first frame. (Persisted in-app preference overrides the OS scheme, which
-// the prefers-color-scheme fallback alone cannot know about.)
+// the prefers-color-scheme fallback alone cannot know about.) It also mirrors
+// the resolved scheme into the `color-scheme` cookie `shared/ssrColorScheme.ts`
+// reads, so from the NEXT request on the server renders that theme itself.
 const COLOR_SCHEME_SCRIPT =
-  "(function(){try{var root=document.documentElement;var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;}catch(e){}})()";
+  "(function(){try{var root=document.documentElement;var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;document.cookie=\"color-scheme=\"+resolved+\"; path=/; max-age=31536000; SameSite=Lax\";}catch(e){}})()";
 
 const REACT_SCAN_SCRIPT = `
   (function () {
@@ -106,6 +210,12 @@ export default function Root({ children }: PropsWithChildren) {
   // into document.styleSheets after JS hydrates → FOUC.
   const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
   const cssStyles = getRootCssStyles();
+  // The scheme THIS render was painted with (from the request's `color-scheme`
+  // cookie; absent on a first visit and in the static export). The client's
+  // first render reads it back off <html> — never the cookie, which the
+  // pre-boot script below may have just written for the NEXT request — so
+  // the hydrating tree always matches the HTML. See shared/ssrColorScheme.ts.
+  const ssrScheme = detectColorSchemeFromRequestScope();
 
   // Drop the framework's react-native-stylesheet snapshot from headNodes.
   // It's captured BEFORE route modules load, so it's incomplete (missing any
@@ -130,7 +240,7 @@ export default function Root({ children }: PropsWithChildren) {
   );
 
   return (
-    <html lang="en" {...htmlAttributes}>
+    <html lang="en" data-ssr-scheme={ssrScheme} {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -166,19 +276,24 @@ export default function Root({ children }: PropsWithChildren) {
             hydration. */}
         <style id="react-native-stylesheet" />
 
-        {/* Inter is loaded by @mrmeg/expo-ui's useResources after mount, but
-            preloading here means it starts downloading on byte 1 instead of
-            after the bundle boots. `display=optional` avoids any swap reflow
-            if the font hasn't arrived in ~100ms (system fallback used
-            instead). The `id` matches what useResources looks for, so the JS
-            injection becomes a no-op. */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Inter, self-hosted (see INTER_SUBSETS): the preload starts the
+            Latin file on byte 1 and the @font-face rules are inline, so no
+            stylesheet request stands between the HTML and first paint. The
+            style element's `id` is the one @mrmeg/expo-ui's useResources
+            looks for, so it skips injecting its Google Fonts stylesheet. */}
         <link
-          id="mrmeg-expo-ui-inter"
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=optional"
+          rel="preload"
+          href={INTER_PRELOAD_URL}
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
         />
+        <style id="mrmeg-expo-ui-inter">{INTER_FONT_FACES}</style>
+
+        {/* Newsreader, self-hosted (see NEWSREADER_SUBSETS): the kit's serif
+            preset. No preload — headings are below the first fold's sans text
+            and the Georgia stack covers the optional-display miss. */}
+        <style id="mrmeg-expo-ui-newsreader">{NEWSREADER_FONT_FACES}</style>
 
         {/*
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native.

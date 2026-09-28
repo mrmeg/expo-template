@@ -57,6 +57,34 @@ export const packageCompatibilityProfiles = {
       },
     },
   ],
+  purchases: [
+    {
+      name: "Expo 57",
+      sdk: 57,
+      // Not a peer: the package never imports expo. The fixture still needs it
+      // for `registerRootComponent` and `expo export`.
+      fixtureDependencies: { expo: "57.0.4" },
+      versions: {
+        react: "19.2.3",
+        "react-native": "0.86.0",
+        "react-native-purchases": "10.10.1",
+        "react-native-purchases-ui": "10.10.1",
+        zustand: "5.0.14",
+      },
+    },
+    {
+      name: "Expo 58",
+      sdk: 58,
+      fixtureDependencies: { expo: "58.0.0-preview.2" },
+      versions: {
+        react: "19.2.3",
+        "react-native": "0.88.0-rc.0",
+        "react-native-purchases": "10.10.1",
+        "react-native-purchases-ui": "10.10.1",
+        zustand: "5.0.15",
+      },
+    },
+  ],
   ui: [
     {
       name: "Expo 56",

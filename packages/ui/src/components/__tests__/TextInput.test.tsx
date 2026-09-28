@@ -114,6 +114,26 @@ describe("TextInput", () => {
       expect(input.props.secureTextEntry).toBe(true);
     });
 
+    it("marks the eye icon decorative — the button already says Show/Hide password", async () => {
+      await render(
+        <TextInput
+          placeholder="Password"
+          secureTextEntry
+          showSecureEntryToggle
+          value=""
+          onChangeText={() => {}}
+        />
+      );
+
+      expect(screen.getByLabelText("Show password")).toBeTruthy();
+      // Hidden from the accessibility tree: invisible to the default queries…
+      expect(screen.queryByTestId("icon-eye")).toBeNull();
+      // …and present with the hiding props when hidden elements are included.
+      const eye = screen.getByTestId("icon-eye", { includeHiddenElements: true });
+      expect(eye.props["aria-hidden"]).toBe(true);
+      expect(eye.props.accessible).toBe(false);
+    });
+
     it("toggles visibility via the secure entry toggle", async () => {
       await render(
         <TextInput

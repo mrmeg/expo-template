@@ -16,6 +16,12 @@ const sources = [
       "repo map, component selection, screen templates, feature patterns, migration order, anti-patterns",
   },
   {
+    path: "docs/brand.md",
+    title: "Brand System",
+    summary:
+      "positioning, semantic palette with contrast floors, type pairing, radii/elevation/8-pt rhythm, the mark's construction and SVG masters, what a fork replaces",
+  },
+  {
     path: "docs/migration-guide.md",
     title: "External App Migration Guide",
     summary:
@@ -32,6 +38,12 @@ const sources = [
     title: "@mrmeg/expo-media Usage",
     summary:
       "import paths, required app setup, media contracts, client hooks, server handlers, processing presets",
+  },
+  {
+    path: "packages/purchases/LLM_USAGE.md",
+    title: "@mrmeg/expo-purchases Usage",
+    summary:
+      "import paths, RevenueCat client and provider setup, entitlement resolution, gating, pure webhook and ledger helpers, identifier contract",
   },
   {
     path: "packages/lint/README.md",
@@ -75,14 +87,15 @@ const exampleDirs = [
 const serverFiles = [
   "app.config.ts",
   "server.bun.ts",
+  "server/http/createHandler.ts",
   "server/rateLimits.js",
   "app/+middleware.ts",
   "app/+html.tsx",
   "app/+not-found.tsx",
   "client/features/app/SsrStyleFlush.tsx",
   "client/features/app/ssrViewportMetrics.ts",
-  "server/lib/ssrViewport.ts",
-  "server/lib/ssrOnboarding.ts",
+  "shared/ssrViewport.ts",
+  "shared/ssrOnboarding.ts",
   "__tests__/ssrHydration.guardrail.test.ts",
   "client/features/server-alpha/loaders.ts",
   "client/features/server-alpha/ServerAlphaDemoScreen.tsx",

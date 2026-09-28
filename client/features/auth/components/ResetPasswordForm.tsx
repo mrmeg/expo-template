@@ -1,5 +1,5 @@
 import React, { useCallback, useRef } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
@@ -8,6 +8,7 @@ import { SansSerifText, SansSerifBoldText } from "@mrmeg/expo-ui/components/Styl
 import { dismissKeyboard } from "@mrmeg/expo-ui/components/keyboardDismiss";
 import { AuthTextField, type AuthTextFieldHandle } from "./AuthTextField";
 import { AuthFormCard } from "./AuthFormCard";
+import { AuthLink } from "./AuthLink";
 import { authFormStyles } from "./authFormStyles";
 import { validateConfirmPassword, validatePassword } from "./validators";
 
@@ -103,11 +104,11 @@ export function ResetPasswordForm({
       description={description ?? t("auth.resetYourPasswordDescription")}
       footer={
         onBack && (
-          <Pressable accessibilityRole="button" onPress={onBack} disabled={loading}>
-            <SansSerifText selectable={false} style={shared.linkText}>
+          <AuthLink onPress={onBack} disabled={loading}>
+            <SansSerifText size="base" selectable={false} style={shared.linkText}>
               {t("auth.backToSignIn")}
             </SansSerifText>
-          </Pressable>
+          </AuthLink>
         )
       }
     >
@@ -171,7 +172,7 @@ export function ResetPasswordForm({
       </View>
 
       <View style={styles.requirements}>
-        <SansSerifText style={shared.hintText}>
+        <SansSerifText size="base" style={shared.hintText}>
           {t("auth.passwordMinLength", { count: minPasswordLength })}
         </SansSerifText>
       </View>

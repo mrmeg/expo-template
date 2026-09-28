@@ -11,7 +11,7 @@
  *
  * Web is server-rendered on this branch, so the web writes are a DUAL write —
  * localStorage plus a `has-seen-onboarding` cookie the server reads to skip
- * the gate for returning visitors (server/lib/ssrOnboarding.ts). A missing
+ * the gate for returning visitors (shared/ssrOnboarding.ts). A missing
  * cookie write silently reverts every returning visitor to a server-rendered
  * gate, so the cookie assertions below are load-bearing.
  *

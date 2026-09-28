@@ -56,11 +56,12 @@ const createStyles = (theme: Theme) =>
     },
     errorText: {
       color: theme.colors.destructive,
-      fontSize: 14,
       textAlign: "center",
     },
     footer: {
       justifyContent: "center",
+      // The link owns a 44 pt row; centre the sentence beside it on that row.
+      alignItems: "center",
     },
 
     // --- Form bodies ---
@@ -70,17 +71,14 @@ const createStyles = (theme: Theme) =>
     /** Tappable text: "Forgot password?", "Sign up", "Back to sign in". */
     linkText: {
       color: theme.colors.primary,
-      fontSize: 14,
     },
     /** Body-sized secondary copy that sits next to a `linkText`. */
     mutedText: {
       color: theme.colors.textDim,
-      fontSize: 14,
     },
     /** Small secondary copy: separator label, password requirements. */
     hintText: {
       color: theme.colors.textDim,
-      fontSize: 13,
     },
     /** "or" divider above the social buttons (sign-in and sign-up). */
     separatorRow: {

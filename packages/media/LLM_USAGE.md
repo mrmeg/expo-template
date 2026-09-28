@@ -67,7 +67,11 @@ const hooks = createMediaQueryHooks({ client: mediaClient });
 Hooks: `useMediaUpload` (web `Blob`/`File` and native URI uploads),
 `useMediaList`, `useSignedMediaUrls`, `useMediaDelete`, `useMediaDeleteBatch`.
 The app provides the single `QueryClientProvider` so hooks share its query
-context.
+context. `useSignedMediaUrls` caches URLs per object key: a changed key list
+signs only keys without a fresh cached URL (unchanged items keep theirs and are
+not re-downloaded), shows the cached ones as placeholder data meanwhile, and
+stays fresh for the URLs' own lifetime less a margin. Invalidating
+`queryKeys.signedUrls(keys, path)` still re-signs every key.
 
 Always send `size`; it is what the server's `maxBytes` check reads. Omitted,
 `upload()` measures the payload, native file URIs included (`resolveUploadSize`
@@ -110,8 +114,11 @@ default), `highQuality`, `none`; the app picks its own product default.
 
 Web video conversion needs `FFMPEG_WORKER_URL`
 (`/_expo/static/js/web/ffmpeg-worker.js`) served same-origin by Metro and
-production; it falls back to the original when unavailable and the source type is
-allowlisted, otherwise rejects the asset. `convertVideo()` throws on native.
+production; the script ships as
+`@mrmeg/expo-media/processing/video-conversion/ffmpeg-worker.js`
+(`require.resolve` it, serve its text). It falls back to the original when
+unavailable and the source type is allowlisted, otherwise rejects the asset.
+`convertVideo()` throws on native.
 
 Heavy features load lazily: `heic2any` only in web HEIC conversion; `expo-video`
 and `expo-image-manipulator` only from the native-only thumbnail dependency
@@ -123,13 +130,14 @@ server entrypoints need no React or Expo peer. Test seams:
 
 ## Repo Validation And Publishing
 
-Run `packages:peer-check`, `media:typecheck`, `media:test`, `media:build`,
-`media:pack`, `media:consumer-smoke` in order; the smoke covers a minimal
-core/server/worker install plus a fully provisioned packed package, and CI covers
-Expo 55, 56, and 57 consumers. Release with
-`bun run media:release -- --patch [--publish]`.
-`.github/workflows/publish-media.yml` reruns those gates then `npm publish` on
-pushes to `main` that change `packages/media/package.json`, or on
-`workflow_dispatch`, using trusted publishing with an `NPM_TOKEN` fallback. Before
-the package exists on npm, push runs skip unless `NPM_TOKEN` is set: make the
-first publish a manual run with `NPM_TOKEN`, then configure trusted publishing.
+Run `bun run packages:peer-check`, then `bun run pkg media <gate>` for
+`typecheck`, `test`, `build`, `pack`, `consumer-smoke` in order; the smoke covers
+a minimal core/server/worker install plus a fully provisioned packed package, and
+CI covers Expo 55, 56, 57, and 58 consumers. Release with
+`bun run pkg media release -- --patch [--publish]`, which packs one tarball,
+smokes it, and publishes that file. `.github/workflows/publish-packages.yml` runs
+the same release on pushes to `main` that change the media version, or on a
+manual run with `package=media`, then publishes the tarball with provenance
+through trusted publishing (workflow filename `publish-packages.yml`) with an
+`NPM_TOKEN` fallback. Changing the manifest's dependencies, peers, exports, or
+files needs a version bump: `packages:drift-check` fails otherwise.

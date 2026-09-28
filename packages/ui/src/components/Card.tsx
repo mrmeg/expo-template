@@ -2,8 +2,11 @@ import React, { createContext, use } from "react";
 import { View, Pressable, StyleSheet, ViewStyle, TextStyle, StyleProp, Platform, Animated } from "react-native";
 import { StyledText, TextProps } from "./StyledText";
 import { useTheme } from "../hooks/useTheme";
+import { useShape } from "../hooks/useShape";
 import { useScalePress } from "../hooks/useScalePress";
+import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { createThemedStyles } from "../lib/themedStyles";
 import type { Theme } from "../constants/colors";
 
@@ -12,6 +15,13 @@ import type { Theme } from "../constants/colors";
  *
  * A themed container component with header, content, and footer sections.
  * Follows shadcn/ui patterns with consistent styling and theme integration.
+ *
+ * Use a Card for one item in a collection (a feed entry, a grid tile, a
+ * carousel slide) or for a single tappable object. It is not a layout box:
+ * don't wrap a screen section, a form, or a group of rows in one (use
+ * `ItemGroup`, `SectionHeader`, or a `Separator`), and never nest Cards. The
+ * parts pad `spacing.cardPadding`, so a Card inside a padded box doubles the
+ * inset.
  *
  * Usage:
  * ```tsx
@@ -55,20 +65,23 @@ export interface CardProps {
 }
 
 function Card({ children, style: styleOverride, variant = "default", onPress, disabled }: CardProps) {
-  const { theme, getShadowStyle } = useTheme();
+  const { theme, getShadowStyle, getFocusRingStyle } = useTheme();
   const styles = themedStyles(theme);
   const shadowStyle = getShadowStyle("subtle");
+  // Host-app `setShape({ card })`, on the surface and on the pressable ring wrapper.
+  const cardRadius = useShape("card")?.borderRadius ?? spacing.radiusLg;
   const ctx = { theme, styles };
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !onPress || !!disabled,
     scaleTo: 0.98,
-    haptic: false,
   });
+  const focus = useFocusVisible();
 
   const cardContent = (
     <View
       style={[
         styles.card,
+        { borderRadius: cardRadius },
         variant === "default" && styles.cardDefault,
         variant === "default" && shadowStyle,
         variant === "outline" && styles.cardOutline,
@@ -89,7 +102,16 @@ function Card({ children, style: styleOverride, variant = "default", onPress, di
           accessibilityRole="button"
           accessibilityState={{ disabled: !!disabled }}
           {...pressHandlers}
-          style={Platform.OS === "web" ? { cursor: "pointer" as any } : undefined}
+          onFocus={focus.onFocus}
+          onBlur={focus.onBlur}
+          style={({ pressed }) => [
+            // The ring is a box shadow on this wrapper, so it needs the card's
+            // radius; the browser outline is off because the ring replaces it.
+            { borderRadius: cardRadius },
+            Platform.OS === "web" && { cursor: "pointer" as any, outlineStyle: "none" as any },
+            pressed && { opacity: interaction.pressedOpacity },
+            focus.focused && !disabled && getFocusRingStyle(),
+          ]}
         >
           <Animated.View style={scaleStyle}>
             {cardContent}
@@ -233,6 +255,6 @@ const createCardStyles = (theme: Theme) =>
     } as TextStyle,
   });
 
-const themedStyles = createThemedStyles(createCardStyles);
+const themedStyles = /*#__PURE__*/ createThemedStyles(createCardStyles);
 
 export { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription };

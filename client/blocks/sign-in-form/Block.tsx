@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { Card } from "@mrmeg/expo-ui/components/Card";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Label } from "@mrmeg/expo-ui/components/Label";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
@@ -23,7 +22,7 @@ export interface SignInFormSocialProvider {
 }
 
 export interface SignInFormBlockProps {
-  /** Card heading. */
+  /** Form heading. */
   title?: string;
   /** Supporting copy below the heading. */
   description?: string;
@@ -51,10 +50,11 @@ const DEFAULT_SOCIAL_PROVIDERS: SignInFormSocialProvider[] = [
 /**
  * SignInFormBlock
  *
- * The credential-form *section*: a `Card` holding `Label` + `TextInput` pairs,
- * a submit `Button`, a `Separator` divider, and one outline button per social
- * provider. Deliberately presentational — it owns only the two field values
- * and hands them to `onSubmit`.
+ * The credential-form *section*: `Label` + `TextInput` pairs, a submit
+ * `Button`, a `Separator` divider, and one outline button per social provider,
+ * laid flat on the container's gutter in a column capped at 400pt and centred
+ * on wide screens. Deliberately presentational — it owns only the two field
+ * values and hands them to `onSubmit`.
  *
  * For a production sign-in with validation, i18n, error states, and keyboard
  * handling, use `client/features/auth/components/SignInForm`; this block is
@@ -86,78 +86,76 @@ export function SignInFormBlock({
 
   return (
     <View style={[styles.container, styleOverride]}>
-      <Card style={styles.card}>
-        <View style={styles.body}>
-          <View style={styles.heading}>
-            <SansSerifBoldText size="lg" style={styles.title}>
-              {title}
-            </SansSerifBoldText>
-            {!!description && (
-              <SansSerifText size="sm" style={styles.description}>
-                {description}
-              </SansSerifText>
-            )}
-          </View>
-
-          {/*
-            Label/input association takes TWO distinct ids: `nativeID` is the
-            label's own id, `htmlFor` is the input's. Reusing one value for both
-            renders duplicate ids on web and associates nothing.
-          */}
-          <View style={styles.field}>
-            <Label nativeID="block-sign-in-email-label" htmlFor="block-sign-in-email">
-              Email
-            </Label>
-            <TextInput
-              nativeID="block-sign-in-email"
-              testID="block-sign-in-email"
-              placeholder="you@example.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect={false}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Label nativeID="block-sign-in-password-label" htmlFor="block-sign-in-password">
-              Password
-            </Label>
-            <TextInput
-              nativeID="block-sign-in-password"
-              testID="block-sign-in-password"
-              placeholder="••••••••"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              showSecureEntryToggle
-              autoCapitalize="none"
-              autoComplete="password"
-            />
-          </View>
-
-          <Button fullWidth onPress={() => onSubmit?.({ email, password })} text={submitLabel} />
-
-          {socialProviders.length > 0 && (
-            <>
-              <Separator margin={spacing.xs} />
-              <View style={styles.social}>
-                {socialProviders.map((provider) => (
-                  <Button
-                    key={provider.id}
-                    preset="outline"
-                    fullWidth
-                    onPress={() => onSocialPress?.(provider.id)}
-                    text={provider.label}
-                  />
-                ))}
-              </View>
-            </>
+      <View style={styles.form}>
+        <View style={styles.heading}>
+          <SansSerifBoldText size="lg" style={styles.title}>
+            {title}
+          </SansSerifBoldText>
+          {!!description && (
+            <SansSerifText size="sm" style={styles.description}>
+              {description}
+            </SansSerifText>
           )}
         </View>
-      </Card>
+
+        {/*
+          Label/input association takes TWO distinct ids: `nativeID` is the
+          label's own id, `htmlFor` is the input's. Reusing one value for both
+          renders duplicate ids on web and associates nothing.
+        */}
+        <View style={styles.field}>
+          <Label nativeID="block-sign-in-email-label" htmlFor="block-sign-in-email">
+            Email
+          </Label>
+          <TextInput
+            nativeID="block-sign-in-email"
+            testID="block-sign-in-email"
+            placeholder="you@example.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            autoCorrect={false}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Label nativeID="block-sign-in-password-label" htmlFor="block-sign-in-password">
+            Password
+          </Label>
+          <TextInput
+            nativeID="block-sign-in-password"
+            testID="block-sign-in-password"
+            placeholder="••••••••"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            showSecureEntryToggle
+            autoCapitalize="none"
+            autoComplete="password"
+          />
+        </View>
+
+        <Button fullWidth onPress={() => onSubmit?.({ email, password })} text={submitLabel} />
+
+        {socialProviders.length > 0 && (
+          <>
+            <Separator margin={spacing.xs} />
+            <View style={styles.social}>
+              {socialProviders.map((provider) => (
+                <Button
+                  key={provider.id}
+                  preset="outline"
+                  fullWidth
+                  onPress={() => onSocialPress?.(provider.id)}
+                  text={provider.label}
+                />
+              ))}
+            </View>
+          </>
+        )}
+      </View>
     </View>
   );
 }
@@ -176,13 +174,10 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing.screenPadding,
       paddingVertical: spacing.xl,
     },
-    card: {
+    form: {
       width: "100%",
       maxWidth: 400,
       alignSelf: "center",
-    },
-    body: {
-      padding: spacing.cardPadding,
       gap: spacing.md,
     },
     heading: {

@@ -19,9 +19,12 @@ import { InputOTP } from "../InputOTP";
 import { Slider } from "../Slider";
 import { Switch } from "../Switch";
 import { TextInput } from "../TextInput";
+import { interaction } from "../../constants/interaction";
 
 jest.mock("../../lib/haptics", () => ({
   hapticLight: jest.fn(),
+  hapticSelection: jest.fn(),
+  hapticPress: jest.fn(),
   hapticMedium: jest.fn(),
   hapticHeavy: jest.fn(),
 }));
@@ -77,7 +80,7 @@ describe("Android state surfaces stay collapsable={false}", () => {
       await render(<Button disabled text="Save" onPress={() => {}} />);
 
       const surfaces = expectOpacityViewsPinned();
-      expect(surfaces.some((node) => styleOf(node).opacity === 0.6)).toBe(true);
+      expect(surfaces.some((node) => styleOf(node).opacity === interaction.disabledOpacity)).toBe(true);
     });
 
     it("pins the surface and the content while loading", async () => {
@@ -109,7 +112,7 @@ describe("Android state surfaces stay collapsable={false}", () => {
       await render(<TextInput value="" onChangeText={() => {}} editable={false} />);
 
       const surfaces = expectOpacityViewsPinned();
-      expect(surfaces.some((node) => styleOf(node).opacity === 0.6 && styleOf(node).overflow === "hidden")).toBe(true);
+      expect(surfaces.some((node) => styleOf(node).opacity === interaction.disabledOpacity && styleOf(node).overflow === "hidden")).toBe(true);
     });
 
     it("keeps the surface pinned while editable", async () => {

@@ -28,7 +28,7 @@
  * slop; release coordinates also enforce it when move delivery was missed.
  * Cancellation and multitouch drop the tap without rearming another finger.
  */
-import { useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { Platform, type GestureResponderEvent, type ViewProps } from "react-native";
 import { KeyboardController, useKeyboardState } from "./keyboardController";
 import { dismissKeyboardFocusedInput, hasKeyboardFocusedInput } from "./keyboardFocusRegistry";
@@ -186,8 +186,12 @@ export type TextInputSurfaceResponderProps = Pick<
  * for that.
  */
 export function useTextInputSurfaceResponder(focus: () => void): TextInputSurfaceResponderProps {
+  // Latest `focus` for the memoized handlers, synced after each commit (before
+  // any touch can be dispatched) instead of written during render.
   const focusRef = useRef(focus);
-  focusRef.current = focus;
+  useLayoutEffect(() => {
+    focusRef.current = focus;
+  });
   return useMemo<TextInputSurfaceResponderProps>(() => {
     const tap = createTapTracker();
     return {
@@ -250,7 +254,9 @@ export function useAncestorClaimWarning<P extends Pick<ViewProps, "onTouchStart"
   message: string
 ): P & AncestorClaimWarningProps {
   const messageRef = useRef(message);
-  messageRef.current = message;
+  useLayoutEffect(() => {
+    messageRef.current = message;
+  });
   return useMemo(() => {
     if (!__DEV__ || Platform.OS !== "android") return inner;
     let captured: TouchKey | null = null;
@@ -285,7 +291,9 @@ export type KeyboardDismissResponderProps = Pick<
 export function useKeyboardDismissResponder(): KeyboardDismissResponderProps {
   const isVisible = useKeyboardState((state) => state.isVisible);
   const isVisibleRef = useRef(isVisible);
-  isVisibleRef.current = isVisible;
+  useLayoutEffect(() => {
+    isVisibleRef.current = isVisible;
+  });
 
   return useMemo<KeyboardDismissResponderProps>(() => {
     if (Platform.OS === "web") return {};

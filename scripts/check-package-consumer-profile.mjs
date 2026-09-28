@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { tarballName } from "./lib/workspacePackages.mjs";
 import { packageCompatibilityProfiles } from "./package-compatibility-profiles.mjs";
 
 const root = process.cwd();
@@ -22,16 +23,12 @@ function run(command, commandArgs, options = {}) {
   }
 }
 
-function tarballNameForPackage(packageName, version) {
-  return `${packageName.replace(/^@/, "").replace("/", "-")}-${version}.tgz`;
-}
-
 const packageKey = option("--package");
 const sdk = Number(option("--sdk"));
 
 if (!packageCompatibilityProfiles[packageKey] || !Number.isInteger(sdk)) {
   throw new Error(
-    "Usage: bun run packages:compatibility -- --package [media|ui] --sdk [55|56|57|58]",
+    "Usage: bun run packages:compatibility -- --package [media|purchases|ui] --sdk [55|56|57|58]",
   );
 }
 
@@ -49,7 +46,7 @@ let tarball;
 try {
   run("bun", ["run", "build"], { cwd: packageDir });
   run("bun", ["pm", "pack"], { cwd: packageDir });
-  tarball = join(packageDir, tarballNameForPackage(manifest.name, manifest.version));
+  tarball = join(packageDir, tarballName(manifest.name, manifest.version));
 
   await writeFile(
     join(fixture, "package.json"),
@@ -61,6 +58,7 @@ try {
         main: "index.ts",
         dependencies: {
           [manifest.name]: tarball,
+          ...(profile.fixtureDependencies ?? {}),
           ...profile.versions,
         },
         devDependencies: {
@@ -131,6 +129,28 @@ try {
         "        <Button text='Check' />",
         "      </View>",
         "    </UIProvider>",
+        "  );",
+        "}",
+        "",
+      ].join("\n"),
+    );
+  } else if (packageKey === "purchases") {
+    await writeFile(
+      join(fixture, "App.tsx"),
+      [
+        "import { View } from 'react-native';",
+        "import { createEntitlementStore, createPurchases, PurchasesProvider } from '@mrmeg/expo-purchases';",
+        "import { buildLedgerRows, parseRevenueCatWebhook } from '@mrmeg/expo-purchases/server';",
+        "",
+        "const purchases = createPurchases({ entitlement: 'pro', iosKey: 'appl_test' });",
+        "const store = createEntitlementStore();",
+        "void buildLedgerRows; void parseRevenueCatWebhook;",
+        "",
+        "export default function App() {",
+        "  return (",
+        "    <PurchasesProvider client={purchases} store={store} userId={null}>",
+        "      <View />",
+        "    </PurchasesProvider>",
         "  );",
         "}",
         "",

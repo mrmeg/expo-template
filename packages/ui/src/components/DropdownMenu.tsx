@@ -5,6 +5,7 @@ import { AnimatedView } from "./AnimatedView";
 import { TextClassContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
+import { interaction } from "../constants/interaction";
 import { useScalePress } from "../hooks/useScalePress";
 import * as DropdownMenuPrimitive from "@rn-primitives/dropdown-menu";
 import type { IconName } from "./Icon";
@@ -179,7 +180,7 @@ function DropdownMenuContent({
           })}
         >
           {/* Fills the overlay so Android hit-tests the absolute Content; see Popover.tsx. */}
-          <AnimatedView type="fade" style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          <AnimatedView type="fade" style={[StyleSheet.absoluteFill, styles.passThrough]}>
             <TextClassContext.Provider value="">
               <TextSelectabilityContext.Provider value={false}>
                 <DropdownMenuPrimitive.Content
@@ -254,7 +255,7 @@ function DropdownMenuItem({
                 outlineStyle: "none" as any,
                 userSelect: "none" as any,
               }),
-              ...(props.disabled && { opacity: 0.5 }),
+              ...(props.disabled && { opacity: interaction.disabledOpacity }),
               ...(inset && { paddingLeft: spacing.xl }),
               ...(styleOverride && typeof styleOverride !== "function"
                 ? StyleSheet.flatten(styleOverride)
@@ -300,7 +301,7 @@ function DropdownMenuCheckboxItem({
                 outlineStyle: "none" as any,
                 userSelect: "none" as any,
               }),
-              ...(props.disabled && { opacity: 0.5 }),
+              ...(props.disabled && { opacity: interaction.disabledOpacity }),
               ...(styleOverride && typeof styleOverride !== "function"
                 ? StyleSheet.flatten(styleOverride)
                 : {}),
@@ -366,7 +367,7 @@ function DropdownMenuRadioItem({
                 outlineStyle: "none" as any,
                 userSelect: "none" as any,
               }),
-              ...(props.disabled && { opacity: 0.5 }),
+              ...(props.disabled && { opacity: interaction.disabledOpacity }),
               ...(styleOverride && typeof styleOverride !== "function"
                 ? StyleSheet.flatten(styleOverride)
                 : {}),
@@ -388,7 +389,7 @@ function DropdownMenuRadioItem({
                     backgroundColor: theme.colors.text,
                     height: 8,
                     width: 8,
-                    borderRadius: 4,
+                    borderRadius: spacing.radiusFull,
                   }}
                 />
               </DropdownMenuPrimitive.ItemIndicator>
@@ -496,7 +497,10 @@ function DropdownMenuShortcut({ children, text, style: styleOverride, ...props }
   );
 }
 
-const styles = StyleSheet.create({
+const styles = /*#__PURE__*/ StyleSheet.create({
+  // Overlay layer: covers the screen without swallowing touches (style, not the
+  // deprecated `pointerEvents` prop).
+  passThrough: { pointerEvents: "box-none" },
   item: {
     position: "relative",
     flexDirection: "row",
