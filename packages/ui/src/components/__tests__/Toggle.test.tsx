@@ -193,7 +193,7 @@ describe("Toggle icon-only naming", () => {
         </Toggle>
       );
 
-      expect(screen.getByRole("button").props.hitSlop).toBe(8);
+      expect(screen.getByRole("switch").props.hitSlop).toBe(8);
       expect(screen.queryByTestId("hit-target", { includeHiddenElements: true })).toBeNull();
     });
   });

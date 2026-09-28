@@ -83,7 +83,7 @@ describe("Toggle pointer target (web)", () => {
     const el = hit();
     expect(el.props["aria-hidden"]).toBe(true);
     expect(el.props.focusable).toBe(false);
-    const buttons = screen.getAllByRole("button");
+    const buttons = screen.getAllByRole("switch");
     expect(buttons).toHaveLength(1);
     expect(flat(buttons[0]).height).toBe(32);
   });
