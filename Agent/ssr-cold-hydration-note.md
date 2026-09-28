@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/143
 ---
 
 # Server guide: replace the "cold Metro first request" hydration claim with what was actually observed
