@@ -5,6 +5,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **`Button` has a 44pt pointer target on web.** react-native-web ignores
+  `hitSlop`, so the target was the drawn box: 28/32/40px for `sm`/`md`/`lg`.
+  A transparent, absolutely positioned child inside the drawn box now extends
+  the target vertically to `spacing.touchTarget` (44); the drawn box, layout
+  and the Pressable root's rect (popover and tooltip anchors) do not change.
+  A caller `hitSlop` is honoured on web the same way (numbers on all four
+  sides, insets as given; `hitSlop={0}` opts out). Native is unchanged.
+
 ## [0.28.0]
 
 ### Added

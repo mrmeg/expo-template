@@ -311,7 +311,7 @@ everywhere at once:
 | `rowGap` | 12 | Gap between row media, content, actions |
 | `rowMinHeight` | 40 | Visual row height on web; native rows keep `touchTarget` |
 | `formRowMinHeight` | 32 | Checkbox and radio rows on web; native keeps `touchTarget` |
-| `touchTarget` | 44 | Minimum native hit area; pair a smaller visual height with `hitSlop` |
+| `touchTarget` | 44 | Minimum hit area for a control. `Button` reaches it on every platform: native through computed `hitSlop`, web through a transparent hit extender inside the drawn box (react-native-web ignores `hitSlop`) |
 | `minTarget` | 24 | Smallest pointer target the kit draws on web (WCAG 2.5.8); `Checkbox`/`RadioGroup` grow their hit box to it around a smaller drawn box |
 
 Controls size themselves from their own `size` prop and ignore these tokens:
@@ -858,8 +858,11 @@ render from) is written once per page view and then once resizing settles.
 - Use `Button.preset`, not `variant`: `default` is the neutral primary action,
   `secondary` a neutral secondary surface, `outline` lower emphasis, `ghost`
   compact toolbars, `link` text-like commands, `destructive` dangerous actions.
-  Native targets add computed hit slop up to 44px. Nested `StyledText` inherits
-  the Button size, so use `size="sm"` for popover, tooltip, and toolbar
+  Every platform gives a Button a 44pt vertical target: native through computed
+  `hitSlop`, web through a transparent hit extender inside the drawn 28/32/40pt
+  box, so the visual size, layout and popover anchoring do not change; a caller
+  `hitSlop` replaces both (on web it is honoured too). Nested `StyledText`
+  inherits the Button size, so use `size="sm"` for popover, tooltip, and toolbar
   triggers.
 - A plain `View` whose `opacity` or `pointerEvents` follows state (`disabled`,
   `loading`, `checked`, `editable`) must be `collapsable={false}` on Android.
