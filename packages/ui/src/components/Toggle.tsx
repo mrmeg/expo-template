@@ -4,6 +4,7 @@ import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./
 import { useTheme } from "../hooks/useTheme";
 import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
+import { getWebHitInsets, WebHitTarget } from "../lib/webHitTarget";
 import { interaction } from "../constants/interaction";
 import { hapticSelection } from "../lib/haptics";
 import { useScalePress } from "../hooks/useScalePress";
@@ -207,6 +208,15 @@ function Toggle({
     );
   }
 
+  // Web pointer target: 44pt tall through a transparent child inside the drawn
+  // box (react-native-web ignores `hitSlop`); native keeps DEFAULT_HIT_SLOP.
+  const hitTarget = (
+    <WebHitTarget
+      insets={Platform.OS === "web" ? getWebHitInsets(undefined, sizeConfig.height) : null}
+      border={styles.root.borderWidth}
+    />
+  );
+
   return (
     <TextColorContext.Provider value={textColor}>
       <TextClassContext.Provider value="">
@@ -265,19 +275,28 @@ function Toggle({
           }}
         >
           {loading ? (
-            <TextSelectabilityContext.Provider value={false}>
-              <ActivityIndicator size="small" color={textColor} />
-            </TextSelectabilityContext.Provider>
+            <>
+              <TextSelectabilityContext.Provider value={false}>
+                <ActivityIndicator size="small" color={textColor} />
+              </TextSelectabilityContext.Provider>
+              {hitTarget}
+            </>
           ) : typeof children === "function" ? (
             (state: any) => (
-              <TextSelectabilityContext.Provider value={false}>
-                {children(state)}
-              </TextSelectabilityContext.Provider>
+              <>
+                <TextSelectabilityContext.Provider value={false}>
+                  {children(state)}
+                </TextSelectabilityContext.Provider>
+                {hitTarget}
+              </>
             )
           ) : (
-            <TextSelectabilityContext.Provider value={false}>
-              {children}
-            </TextSelectabilityContext.Provider>
+            <>
+              <TextSelectabilityContext.Provider value={false}>
+                {children}
+              </TextSelectabilityContext.Provider>
+              {hitTarget}
+            </>
           )}
         </TogglePrimitive.Root>
         </Animated.View>
