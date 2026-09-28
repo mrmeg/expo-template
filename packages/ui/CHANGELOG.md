@@ -5,6 +5,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.28.0]
+
 ### Added
 
 - **`Hydrated`** (`@mrmeg/expo-ui/components`): renders `fallback` on the
@@ -543,6 +545,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   memoized components. Apps compiling their own components should read
   `globalUIStore` the same way.
 
+- **Built output resolves under Node ESM and `moduleResolution: nodenext`.**
+  The build left 97 relative imports in the `.d.ts` files extension-less, which
+  NodeNext cannot resolve: `skipLibCheck` hid the errors and the symbols behind
+  them became `any`. They now carry `.js` or `/index.js`. In the JavaScript, the
+  15 imports of dotted module names (`./StyledText.context`,
+  `./iconRegistry.generated`) kept no extension because `.context` read as one;
+  they now end in `.js`, so Node can load `components/*` outside a bundler.
+  Platform-split imports (`./keyboardController`, `./nativeTextField`) stay
+  extension-less, as Metro needs. Nothing to change for consumers.
+
 ### Documentation
 
 - **`Button.Icon` documents and tests its `component` prop.** `Icon` has taken
@@ -554,16 +566,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   real Lucide export type-checks for both and renders sized, colored, and
   decorative exactly like a named icon. No API change: `component` is the name
   the package already used, so there is no `as` alias.
-
-- **Built output resolves under Node ESM and `moduleResolution: nodenext`.**
-  The build left 97 relative imports in the `.d.ts` files extension-less, which
-  NodeNext cannot resolve: `skipLibCheck` hid the errors and the symbols behind
-  them became `any`. They now carry `.js` or `/index.js`. In the JavaScript, the
-  15 imports of dotted module names (`./StyledText.context`,
-  `./iconRegistry.generated`) kept no extension because `.context` read as one;
-  they now end in `.js`, so Node can load `components/*` outside a bundler.
-  Platform-split imports (`./keyboardController`, `./nativeTextField`) stay
-  extension-less, as Metro needs. Nothing to change for consumers.
 
 ## [0.27.1]
 
