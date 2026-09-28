@@ -405,16 +405,18 @@ function useBottomSheetContext() {
  * tree's `SafeAreaProvider`, and inside a tab screen the provider context even
  * carries the tab bar (83 pt on an iPhone with a home indicator), so the raw
  * context is the wrong number here. `useWindowInsets` gives the window's
- * insets; `top` sizes the iOS detent cap below. On iOS the hosted column is
- * already laid out inside the sheet's safe area — SwiftUI keeps `RNHostView`
- * 34 pt above the home indicator — so `bottom` is 0 there: padding it again
- * pushed the footer up by the inset (plus the tab bar's height inside a tab
- * screen) and squeezed the body until its last row was clipped. Android's
- * Material host still gets the bottom inset from us.
+ * insets; `top` sizes the iOS detent cap below. Both native hosts already lay
+ * the column out inside the safe area — SwiftUI keeps `RNHostView` 34 pt above
+ * the home indicator, and Material3's `ModalBottomSheet` applies the system
+ * bars as `contentWindowInsets`, so on an edge-to-edge Pixel the hosted column
+ * ends exactly at the navigation bar's top — so `bottom` is 0 on iOS and
+ * Android: padding it again pushed the footer up by the inset (measured 64 dp
+ * under Save instead of 40 on a Pixel 6a) and squeezed the body. Web is the
+ * kit's own overlay inside the React tree and keeps the window's bottom inset.
  */
 function useSheetInsets(): EdgeInsets {
   const insets = useWindowInsets();
-  return Platform.OS === "ios" ? { ...insets, bottom: 0 } : insets;
+  return Platform.OS === "web" ? insets : { ...insets, bottom: 0 };
 }
 
 /**
