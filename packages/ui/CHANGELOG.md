@@ -15,6 +15,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   A caller `hitSlop` is honoured on web the same way (numbers on all four
   sides, insets as given; `hitSlop={0}` opts out). Native is unchanged.
 
+### Fixed
+
+- **Android `BottomSheet.Footer` and a footer-less `Body` no longer pad the
+  navigation-bar inset a second time.** Material3's `ModalBottomSheet` already
+  keeps the hosted column above the navigation bar (measured on a Pixel 6a: the
+  column ends at the bar's top, and the footer sat 64 dp above the screen edge
+  instead of 40), so `useSheetInsets` now zeroes `bottom` on Android as it did
+  on iOS since 0.28.0; web keeps the window inset. Footers sit 16 dp above the
+  navigation bar and bodies gain the inset. Apps that hand-padded an Android
+  sheet footer can drop it.
+
 ## [0.28.0]
 
 ### Added
