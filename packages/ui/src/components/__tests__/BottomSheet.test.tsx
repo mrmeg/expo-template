@@ -938,8 +938,23 @@ describe("BottomSheet safe-area padding inside the sheet", () => {
     expect(bodyPaddingBottom()).toBe(spacing.md);
   });
 
-  it("Android: the footer still clears the bottom inset for the Material host", async () => {
+  it("Android: the footer pads no bottom inset — Material's host already keeps the column above the navigation bar", async () => {
     await withPlatform("android", async () => {
+      await renderParts(true);
+      expect(footerPaddingBottom()).toBe(spacing.md);
+      expect(bodyPaddingBottom()).toBe(spacing.md);
+    });
+  });
+
+  it("Android: a footer-less body pads only its own spacing", async () => {
+    await withPlatform("android", async () => {
+      await renderParts(false);
+      expect(bodyPaddingBottom()).toBe(spacing.md);
+    });
+  });
+
+  it("web: the kit's own overlay sheet still clears the window's bottom inset", async () => {
+    await withPlatform("web", async () => {
       await renderParts(true);
       expect(footerPaddingBottom()).toBe(spacing.md + INSETS.bottom);
     });
