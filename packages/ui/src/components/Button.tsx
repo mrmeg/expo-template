@@ -61,6 +61,10 @@ const SIZE_CONFIGS: Record<ButtonSize, { paddingVertical: number; paddingHorizon
   },
 };
 
+/** `outline` border. The web hit extender adds it back: an absolutely positioned
+ * child is placed against the padding box, inside the border. */
+const OUTLINE_BORDER_WIDTH = 1;
+
 const getNativeHitSlop = (sizeConfig: { height: number }) =>
   Math.ceil(Math.max(0, spacing.touchTarget - sizeConfig.height) / 2);
 
@@ -335,6 +339,7 @@ function ButtonRoot(props: ButtonProps) {
   const pressBlocked = !!disabled || loading;
   // Web only: see `getWebHitInsets`. Native keeps `hitSlop` on the Pressable.
   const webHitInsets = Platform.OS === "web" ? getWebHitInsets(rest.hitSlop, sizeConfig) : null;
+  const hitBorder = preset === "outline" ? OUTLINE_BORDER_WIDTH : 0;
   const isDisabled = pressBlocked || (ariaDisabled ?? accessibilityState?.disabled) === true;
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!isDisabled,
@@ -508,10 +513,10 @@ function ButtonRoot(props: ButtonProps) {
                       focusable={false}
                       style={{
                         position: "absolute",
-                        top: 0 - webHitInsets.top,
-                        bottom: 0 - webHitInsets.bottom,
-                        left: 0 - webHitInsets.left,
-                        right: 0 - webHitInsets.right,
+                        top: 0 - (webHitInsets.top + hitBorder),
+                        bottom: 0 - (webHitInsets.bottom + hitBorder),
+                        left: 0 - (webHitInsets.left + hitBorder),
+                        right: 0 - (webHitInsets.right + hitBorder),
                       }}
                     />
                   )}
@@ -594,7 +599,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
     } as ViewStyle,
     buttonOutline: {
       backgroundColor: "transparent",
-      borderWidth: 1,
+      borderWidth: OUTLINE_BORDER_WIDTH,
       borderColor: theme.colors.input,
     } as ViewStyle,
     buttonGhost: {

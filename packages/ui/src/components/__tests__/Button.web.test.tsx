@@ -59,6 +59,12 @@ describe("Button pointer target (web)", () => {
     expect(insets()).toEqual({ top: slop, bottom: slop, left: 0, right: 0 });
   });
 
+  it("the outline preset adds its border back, so the target still spans 44pt of the border box", async () => {
+    await render(<Button preset="outline" text="Go" />);
+
+    expect(insets()).toEqual({ top: -7, bottom: -7, left: -1, right: -1 });
+  });
+
   it("a caller hitSlop object replaces the default, missing sides are 0", async () => {
     await render(<Button hitSlop={{ top: 10, left: 4 }} text="Go" />);
 
