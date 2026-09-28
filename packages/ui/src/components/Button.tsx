@@ -64,6 +64,28 @@ const SIZE_CONFIGS: Record<ButtonSize, { paddingVertical: number; paddingHorizon
 const getNativeHitSlop = (sizeConfig: { height: number }) =>
   Math.ceil(Math.max(0, spacing.touchTarget - sizeConfig.height) / 2);
 
+type HitInsets = { top: number; bottom: number; left: number; right: number };
+
+/**
+ * Web pointer target. react-native-web ignores `hitSlop`, so on web the
+ * button grows its target with a transparent absolutely positioned child
+ * inside the drawn box (the Pressable root keeps its rect, so popovers and
+ * tooltips anchored to a Button do not move). The default extends vertically
+ * only, up to `spacing.touchTarget`: two buttons in an 8pt-gap row must never
+ * share a hit region. A caller `hitSlop` is used as given, like native.
+ * `null` when nothing extends.
+ */
+const getWebHitInsets = (hitSlop: PressableProps["hitSlop"], sizeConfig: { height: number }): HitInsets | null => {
+  if (hitSlop === undefined || hitSlop === null) {
+    const slop = getNativeHitSlop(sizeConfig);
+    return slop > 0 ? { top: slop, bottom: slop, left: 0, right: 0 } : null;
+  }
+  const insets = typeof hitSlop === "number"
+    ? { top: hitSlop, bottom: hitSlop, left: hitSlop, right: hitSlop }
+    : { top: hitSlop.top ?? 0, bottom: hitSlop.bottom ?? 0, left: hitSlop.left ?? 0, right: hitSlop.right ?? 0 };
+  return insets.top || insets.bottom || insets.left || insets.right ? insets : null;
+};
+
 export type ButtonAccessoryStyle = {
   margin?: DimensionValue;
   marginHorizontal?: DimensionValue;
@@ -311,6 +333,8 @@ function ButtonRoot(props: ButtonProps) {
   // consumer `aria-disabled` / `accessibilityState.disabled`, which keeps the
   // button focusable and pressable so the press can explain itself.
   const pressBlocked = !!disabled || loading;
+  // Web only: see `getWebHitInsets`. Native keeps `hitSlop` on the Pressable.
+  const webHitInsets = Platform.OS === "web" ? getWebHitInsets(rest.hitSlop, sizeConfig) : null;
   const isDisabled = pressBlocked || (ariaDisabled ?? accessibilityState?.disabled) === true;
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!isDisabled,
@@ -472,6 +496,25 @@ function ButtonRoot(props: ButtonProps) {
                       />
                     )}
                   </View>
+
+                  {webHitInsets && (
+                    // Transparent hit extender (web). Last child so it paints
+                    // above the content; a click on it bubbles to the Pressable.
+                    // Hidden from assistive tech: the button is the control.
+                    <View
+                      testID="button-hit-target"
+                      aria-hidden={true}
+                      importantForAccessibility="no-hide-descendants"
+                      focusable={false}
+                      style={{
+                        position: "absolute",
+                        top: 0 - webHitInsets.top,
+                        bottom: 0 - webHitInsets.bottom,
+                        left: 0 - webHitInsets.left,
+                        right: 0 - webHitInsets.right,
+                      }}
+                    />
+                  )}
                 </View>
               </Animated.View>
             )}

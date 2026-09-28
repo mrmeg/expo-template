@@ -682,4 +682,14 @@ describe("Button", () => {
       expect(textStyle.fontFamily).toBe("Brand_Medium");
     });
   });
+
+  describe("Hit target (native)", () => {
+    it("keeps the computed hitSlop on the Pressable and renders no web hit extender", async () => {
+      await render(<Button text="Go" />);
+
+      // md draws 32pt; native reaches spacing.touchTarget (44) through hitSlop.
+      expect(screen.getByRole("button").props.hitSlop).toBe(6);
+      expect(screen.queryByTestId("button-hit-target", { includeHiddenElements: true })).toBeNull();
+    });
+  });
 });
