@@ -20,8 +20,14 @@ import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { bundledPackages, findDuplicatePackages, readSourceMapSources } from "./lib/bundleSingletons.mjs";
 import { tarballName } from "./lib/workspacePackages.mjs";
+
+// The lint plugin's manifest schema: the tarball must carry the version the
+// plugin writes today (`packages/lint/lib/manifest.js`, CommonJS), read from the
+// source tree rather than repeated here, so a schema bump cannot fail the smoke.
+const { MANIFEST_SCHEMA_VERSION } = createRequire(import.meta.url)("../packages/lint/lib/manifest.js");
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -597,8 +603,8 @@ const PACKAGES = {
               "-e",
               [
                 'const manifest = require("@mrmeg/expo-ui/design-system.json");',
-                "if (manifest.schemaVersion !== 1) {",
-                "  throw new Error(`design-system.json schemaVersion ${manifest.schemaVersion} !== 1`);",
+                `if (manifest.schemaVersion !== ${MANIFEST_SCHEMA_VERSION}) {`,
+                `  throw new Error(\`design-system.json schemaVersion \${manifest.schemaVersion} !== ${MANIFEST_SCHEMA_VERSION}\`);`,
                 "}",
                 "if (!Array.isArray(manifest.components) || manifest.components.length === 0) {",
                 '  throw new Error("design-system.json lists no components");',

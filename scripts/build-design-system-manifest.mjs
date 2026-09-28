@@ -82,7 +82,7 @@ const payload = {
     version: manifest.version,
   }),
   // The `Icon` registry (`IconName` union), so the lint plugin can validate
-  // icon names against an installed release. An added key keeps schemaVersion 1:
+  // icon names against an installed release. An added key needs no schema bump:
   // the plugin's loader ignores keys it does not read.
   icons: { names: iconNames },
 };
