@@ -311,7 +311,7 @@ everywhere at once:
 | `rowGap` | 12 | Gap between row media, content, actions |
 | `rowMinHeight` | 40 | Visual row height on web; native rows keep `touchTarget` |
 | `formRowMinHeight` | 32 | Checkbox and radio rows on web; native keeps `touchTarget` |
-| `touchTarget` | 44 | Minimum hit area for a control. `Button` reaches it on every platform: native through computed `hitSlop`, web through a transparent hit extender inside the drawn box (react-native-web ignores `hitSlop`) |
+| `touchTarget` | 44 | Minimum hit area for a control. `Button`, `Toggle` and `ToggleGroup` items reach it on every platform: native through computed `hitSlop`, web through a transparent hit extender inside the drawn box (react-native-web ignores `hitSlop`) |
 | `minTarget` | 24 | Smallest pointer target the kit draws on web (WCAG 2.5.8); `Checkbox`/`RadioGroup` grow their hit box to it around a smaller drawn box |
 
 Controls size themselves from their own `size` prop and ignore these tokens:

@@ -7,13 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- **`Button` has a 44pt pointer target on web.** react-native-web ignores
-  `hitSlop`, so the target was the drawn box: 28/32/40px for `sm`/`md`/`lg`.
-  A transparent, absolutely positioned child inside the drawn box now extends
-  the target vertically to `spacing.touchTarget` (44); the drawn box, layout
-  and the Pressable root's rect (popover and tooltip anchors) do not change.
-  A caller `hitSlop` is honoured on web the same way (numbers on all four
-  sides, insets as given; `hitSlop={0}` opts out). Native is unchanged.
+- **`Button`, `Toggle` and `ToggleGroup` items have a 44pt pointer target on
+  web.** react-native-web ignores `hitSlop`, so the target was the drawn box:
+  28/32/40px for Button `sm`/`md`/`lg`, 32/36/40px for Toggle and ToggleGroup
+  sizes. A transparent, absolutely positioned child inside the drawn box now
+  extends the target vertically to `spacing.touchTarget` (44); the drawn box,
+  layout and the Pressable root's rect (popover and tooltip anchors) do not
+  change. On `Button` a caller `hitSlop` is honoured on web the same way
+  (numbers on all four sides, insets as given; `hitSlop={0}` opts out). Native
+  is unchanged.
 
 ### Fixed
 

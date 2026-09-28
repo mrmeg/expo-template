@@ -2,6 +2,7 @@ import type { IconName } from "./Icon";
 import { Icon } from "./Icon";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { spacing } from "../constants/spacing";
+import { getWebHitInsets, WebHitTarget } from "../lib/webHitTarget";
 import { interaction } from "../constants/interaction";
 import { hapticSelection } from "../lib/haptics";
 import { useTheme } from "../hooks/useTheme";
@@ -227,6 +228,15 @@ function ToggleGroupItem({
     ? getContrastingColor(itemBgColor, theme.colors.foreground, theme.colors.background)
     : theme.colors.foreground;
 
+  // Web pointer target, as in Toggle: 44pt tall through a transparent child
+  // inside the drawn box; native keeps DEFAULT_HIT_SLOP.
+  const hitTarget = (
+    <WebHitTarget
+      insets={Platform.OS === "web" ? getWebHitInsets(undefined, sizeConfig.height) : null}
+      border={styles.item.borderWidth}
+    />
+  );
+
   return (
     <TextColorContext.Provider value={textColor}>
       <TextClassContext.Provider value="">
@@ -297,14 +307,20 @@ function ToggleGroupItem({
         >
           {typeof children === "function" ? (
             (state: any) => (
-              <TextSelectabilityContext.Provider value={false}>
-                {children(state)}
-              </TextSelectabilityContext.Provider>
+              <>
+                <TextSelectabilityContext.Provider value={false}>
+                  {children(state)}
+                </TextSelectabilityContext.Provider>
+                {hitTarget}
+              </>
             )
           ) : (
-            <TextSelectabilityContext.Provider value={false}>
-              {children}
-            </TextSelectabilityContext.Provider>
+            <>
+              <TextSelectabilityContext.Provider value={false}>
+                {children}
+              </TextSelectabilityContext.Provider>
+              {hitTarget}
+            </>
           )}
         </ToggleGroupPrimitive.Item>
         </Animated.View>
