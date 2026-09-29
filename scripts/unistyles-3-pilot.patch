@@ -1,0 +1,127 @@
+diff --git a/babel.config.js b/babel.config.js
+new file mode 100644
+index 0000000..d2da7e6
+--- /dev/null
++++ b/babel.config.js
+@@ -0,0 +1,7 @@
++module.exports = function (api) {
++  api.cache(true);
++  return {
++    presets: ["babel-preset-expo"],
++    plugins: [["react-native-unistyles/plugin", { root: "packages/ui/src" }]],
++  };
++};
+diff --git a/client/features/app/SsrStyleFlush.tsx b/client/features/app/SsrStyleFlush.tsx
+index 506aeea..ca0dc3c 100644
+--- a/client/features/app/SsrStyleFlush.tsx
++++ b/client/features/app/SsrStyleFlush.tsx
+@@ -1,4 +1,6 @@
+ import { Platform, StyleSheet } from "react-native";
++import { useEffect } from "react";
++import { getServerUnistyles, hydrateServerUnistyles, resetServerUnistyles } from "react-native-unistyles/server";
+ 
+ /**
+  * Server-only flush of the react-native-web stylesheet into the SSR stream.
+@@ -42,14 +44,22 @@ import { Platform, StyleSheet } from "react-native";
+  * rule on every request.
+  */
+ export function SsrStyleFlush() {
++  useEffect(() => {
++    if (Platform.OS === "web") hydrateServerUnistyles();
++  }, []);
+   if (Platform.OS !== "web" || typeof document !== "undefined") {
+     return null;
+   }
+ 
++  const unistyles = getServerUnistyles({ includeRNWStyles: false });
++  resetServerUnistyles();
+   return (
+-    <style href="rnw-ssr-flush" precedence="rnw-ssr">
+-      {readFlushedSheet(StyleSheet as unknown as FlushableStyleSheet)}
+-    </style>
++    <>
++      <style href="rnw-ssr-flush" precedence="rnw-ssr">
++        {readFlushedSheet(StyleSheet as unknown as FlushableStyleSheet)}
++      </style>
++      {unistyles}
++    </>
+   );
+ }
+ 
+diff --git a/packages/ui/src/components/Badge.tsx b/packages/ui/src/components/Badge.tsx
+index 281ecc3..16f00c2 100644
+--- a/packages/ui/src/components/Badge.tsx
++++ b/packages/ui/src/components/Badge.tsx
+@@ -1,5 +1,6 @@
+ import React from "react";
+-import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
++import { View, StyleProp, ViewStyle } from "react-native";
++import { StyleSheet } from "react-native-unistyles";
+ import { useTheme } from "../hooks/useTheme";
+ import { shapeRadius, useShape } from "../hooks/useShape";
+ import { spacing } from "../constants/spacing";
+diff --git a/packages/ui/src/components/Button.tsx b/packages/ui/src/components/Button.tsx
+index e4b11a3..659c6bf 100644
+--- a/packages/ui/src/components/Button.tsx
++++ b/packages/ui/src/components/Button.tsx
+@@ -8,12 +8,13 @@ import {
+   StyleProp,
+   TextStyle,
+   ViewStyle,
+-  StyleSheet,
++  StyleSheet as NativeStyleSheet,
+   View,
+   Platform,
+   ActivityIndicator,
+   Animated,
+ } from "react-native";
++import { StyleSheet } from "react-native-unistyles";
+ import { spacing } from "../constants/spacing";
+ import { interaction } from "../constants/interaction";
+ import { StyledText, TextProps } from "./StyledText";
+@@ -275,7 +276,7 @@ function ButtonRoot(props: ButtonProps) {
+ 
+   // Pre-compute background color for contrast calculation
+   // Always flatten to handle both array styles (from Slot) and RegisteredStyle
+-  const flattenedStyle = styleOverride ? StyleSheet.flatten(styleOverride) : undefined;
++  const flattenedStyle = styleOverride ? NativeStyleSheet.flatten(styleOverride) : undefined;
+   const customBgColor = flattenedStyle?.backgroundColor;
+ 
+   // Calculate background color for each preset
+@@ -604,7 +605,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
+       marginLeft: spacing.sm,
+     } as ViewStyle,
+     loaderOverlay: {
+-      ...StyleSheet.absoluteFill,
++      ...NativeStyleSheet.absoluteFill,
+       alignItems: "center",
+       justifyContent: "center",
+     } as ViewStyle,
+diff --git a/packages/ui/src/components/Item.tsx b/packages/ui/src/components/Item.tsx
+index 955c18a..ccfa370 100644
+--- a/packages/ui/src/components/Item.tsx
++++ b/packages/ui/src/components/Item.tsx
+@@ -2,12 +2,13 @@ import React, { Children, createContext, isValidElement, use, useId } from "reac
+ import {
+   View,
+   Pressable,
+-  StyleSheet,
++  StyleSheet as NativeStyleSheet,
+   Platform,
+   Animated,
+   StyleProp,
+   ViewStyle,
+ } from "react-native";
++import { StyleSheet } from "react-native-unistyles";
+ import { StyledText, CaptionText, EyebrowText, type TextProps } from "./StyledText";
+ import { useHydrated } from "../hooks/useHydrated";
+ import { Icon, type IconName, type ThemeColorName } from "./Icon";
+@@ -470,7 +471,7 @@ const styles = /*#__PURE__*/ StyleSheet.create({
+     gap: spacing.sm,
+   },
+   separator: {
+-    height: StyleSheet.hairlineWidth,
++    height: NativeStyleSheet.hairlineWidth,
+   },
+   groupHeader: {
+     paddingHorizontal: spacing.rowPaddingX,

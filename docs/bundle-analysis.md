@@ -1,5 +1,7 @@
 # Bundle Size Analysis
 
+For measured styling-engine pilots and the decision to retain `StyleSheet`, see [Styling engine comparison](styling-engine-comparison.md).
+
 ## Commands
 
 | Command | Does |
