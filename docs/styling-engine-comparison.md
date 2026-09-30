@@ -4,7 +4,7 @@
 
 Keep React Native `StyleSheet` in `@mrmeg/expo-ui` for now. None of the tested alternatives reduced shipped bytes on an equivalent, usable slice of this template. NativeWind 4 was the most complete package-consumer pilot: its app bundle grew by 6,841 bytes Brotli and its fresh Badge-only consumer grew by 55,431 bytes Brotli. The other pilots expose compatibility or migration work that prevents a like-for-like saving claim. This is a decision about this pinned Expo 58 beta template, not a general ranking of styling libraries.
 
-The blocked migration spec, `Agent/styling-engine-migration.md`, should remain blocked unless a later candidate clears the acceptance criteria below. Do not start a kit-wide rewrite from the small Strict DOM probe's apparent near-zero app delta: that probe added a route and left all kit components on React Native Web.
+The conditional styling migration spec was closed after the decision to keep `StyleSheet`. A future candidate should clear the acceptance criteria below before opening a new migration spec. Do not start a kit-wide rewrite from the small Strict DOM probe's apparent near-zero app delta: that probe added a route and left all kit components on React Native Web.
 
 ## Baseline and method
 
