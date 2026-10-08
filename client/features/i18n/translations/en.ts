@@ -20,10 +20,11 @@ const en = {
     signInDescription: "Enter your credentials to access your account",
     signIn: "Sign in",
     signUp: "Sign up",
-    emailMeACode: "Email me a code",
+    continueWithEmail: "Continue",
     usePasswordInstead: "Use password instead",
     useEmailCodeInstead: "Email me a code instead",
-    signInWithCodeDescription: "Enter your email and we'll send you a sign-in code",
+    signInWithCodeDescription:
+      "Enter your email and we'll send you a code. New here? This also creates your account.",
     checkEmailForCode: "Check your email",
     checkEmailForCodeDescription: "We sent a sign-in code to {{email}}",
     signInWithCodeButton: "Sign in",

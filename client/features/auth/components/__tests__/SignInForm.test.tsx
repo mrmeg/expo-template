@@ -34,6 +34,20 @@ describe("SignInForm", () => {
     expect(screen.queryByTestId("sign-in-password-input")).toBeNull();
     expect(screen.queryByTestId("sign-in-submit-button")).toBeNull();
     expect(screen.queryByText("auth.forgotPassword")).toBeNull();
+    expect(screen.getByText("auth.continueWithEmail")).toBeTruthy();
+  });
+
+  it("shows the sign-up footer only in the password layout", async () => {
+    await render(
+      <SignInForm embedded onEmailCodeSignIn={() => {}} onSignUp={() => {}} onSignIn={() => {}} />,
+    );
+
+    // Continue creates accounts in code mode, so there is nothing to sign up for.
+    expect(screen.queryByText("auth.signUp")).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("sign-in-use-password-button"));
+
+    expect(screen.getByText("auth.signUp")).toBeTruthy();
   });
 
   it("submits the email to the code handler", async () => {

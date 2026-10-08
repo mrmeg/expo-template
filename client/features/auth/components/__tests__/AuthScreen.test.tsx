@@ -69,6 +69,14 @@ async function submitSignIn(email = EMAIL, password = PASSWORD) {
   await fireEvent.press(screen.getByTestId("sign-in-submit-button"));
 }
 
+/**
+ * Continue on the sign-in view tries sign-up first; a known address answers
+ * with `userExists`, which is what sends a sign-in code.
+ */
+function mockExistingAccount() {
+  mockAuth.signUp.mockRejectedValue(new AuthError("userExists", "exists"));
+}
+
 async function requestEmailCode(email = EMAIL) {
   await fireEvent.changeText(screen.getByTestId("sign-in-email-input"), email);
   await fireEvent.press(screen.getByTestId("sign-in-email-code-button"));
@@ -186,6 +194,9 @@ describe("AuthScreen", () => {
   it("navigates from sign-in to sign-up and back", async () => {
     await render(<AuthScreen />);
 
+    // Code mode hides the sign-up footer: Continue creates accounts itself.
+    expect(screen.queryByText("auth.signUp")).toBeNull();
+    await fireEvent.press(screen.getByTestId("sign-in-use-password-button"));
     await fireEvent.press(screen.getByText("auth.signUp"));
     expect(screen.getByTestId("sign-up-passwordless-button")).toBeTruthy();
 
@@ -194,6 +205,7 @@ describe("AuthScreen", () => {
   });
 
   it("moves to the code view and signs in with the emailed code", async () => {
+    mockExistingAccount();
     mockAuth.signInWithEmailCode.mockResolvedValue({ status: "needsConfirmation" });
     mockAuth.confirmSignInCode.mockResolvedValue({ status: "complete" });
     const onAuthenticated = jest.fn();
@@ -217,6 +229,7 @@ describe("AuthScreen", () => {
   });
 
   it("skips the code view when the provider already has a session", async () => {
+    mockExistingAccount();
     mockAuth.signInWithEmailCode.mockResolvedValue({ status: "complete" });
     const onAuthenticated = jest.fn();
 
@@ -228,6 +241,7 @@ describe("AuthScreen", () => {
   });
 
   it("resends a sign-in code by requesting a new one for the pending email", async () => {
+    mockExistingAccount();
     mockAuth.signInWithEmailCode.mockResolvedValue({ status: "needsConfirmation" });
 
     await render(<AuthScreen />);
@@ -243,6 +257,7 @@ describe("AuthScreen", () => {
   });
 
   it("maps a rejected sign-in code to friendly copy", async () => {
+    mockExistingAccount();
     mockAuth.signInWithEmailCode.mockResolvedValue({ status: "needsConfirmation" });
     mockAuth.confirmSignInCode.mockRejectedValue(new AuthError("codeMismatch", "raw message"));
 
@@ -256,6 +271,7 @@ describe("AuthScreen", () => {
   });
 
   it("returns to sign-in from the code view", async () => {
+    mockExistingAccount();
     mockAuth.signInWithEmailCode.mockResolvedValue({ status: "needsConfirmation" });
 
     await render(<AuthScreen />);
@@ -264,6 +280,100 @@ describe("AuthScreen", () => {
     await fireEvent.press(screen.getByText("auth.backToSignIn"));
 
     expect(screen.getByTestId("sign-in-email-code-button")).toBeTruthy();
+  });
+
+  describe("Continue with email", () => {
+    it("creates an account for an unknown email and confirms it before any sign-in code", async () => {
+      mockAuth.signUp.mockResolvedValue({ status: "needsConfirmation" });
+      mockAuth.confirmSignUp.mockResolvedValue({ status: "complete", autoSignedIn: false });
+      mockAuth.signInWithEmailCode.mockResolvedValue({ status: "needsConfirmation" });
+
+      await render(<AuthScreen />);
+      await requestEmailCode();
+
+      // Existence hiding makes a sign-in code request for an unknown address a
+      // silent no-op, so the sign-up is what sends the first email.
+      expect(mockAuth.signUp).toHaveBeenCalledWith({ email: EMAIL });
+      expect(screen.getByText("auth.verifyEmailButton")).toBeTruthy();
+      expect(mockAuth.signInWithEmailCode).not.toHaveBeenCalled();
+
+      await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "654321");
+      await fireEvent.press(screen.getByTestId("verify-email-submit-button"));
+
+      expect(mockAuth.confirmSignUp).toHaveBeenCalledWith({ email: EMAIL, code: "654321" });
+      expect(mockAuth.signInWithEmailCode).toHaveBeenCalledWith({ email: EMAIL });
+      expect(screen.getByText("auth.signInWithCodeButton")).toBeTruthy();
+    });
+
+    it("sends a sign-in code to a known address", async () => {
+      mockExistingAccount();
+      mockAuth.signInWithEmailCode.mockResolvedValue({ status: "needsConfirmation" });
+
+      await render(<AuthScreen />);
+      await requestEmailCode();
+
+      expect(mockAuth.signInWithEmailCode).toHaveBeenCalledWith({ email: EMAIL });
+      expect(screen.getByText("auth.signInWithCodeButton")).toBeTruthy();
+      expect(screen.queryByText("exists")).toBeNull();
+    });
+
+    it("resends the confirmation code for a known but unconfirmed address", async () => {
+      mockExistingAccount();
+      mockAuth.signInWithEmailCode
+        .mockRejectedValueOnce(new AuthError("userNotConfirmed", "not confirmed"))
+        .mockResolvedValueOnce({ status: "needsConfirmation" });
+      mockAuth.confirmSignUp.mockResolvedValue({ status: "complete", autoSignedIn: false });
+
+      await render(<AuthScreen />);
+      await requestEmailCode();
+
+      expect(mockAuth.resendCode).toHaveBeenCalledWith(EMAIL);
+      expect(screen.getByText("auth.verifyEmailButton")).toBeTruthy();
+
+      await fireEvent.changeText(screen.getByTestId("verify-email-code-input"), "654321");
+      await fireEvent.press(screen.getByTestId("verify-email-submit-button"));
+
+      // Confirmation leads to a sign-in code, not the password view.
+      expect(mockAuth.signIn).not.toHaveBeenCalled();
+      expect(mockAuth.signInWithEmailCode).toHaveBeenNthCalledWith(2, { email: EMAIL });
+      expect(screen.getByText("auth.signInWithCodeButton")).toBeTruthy();
+    });
+
+    it("requests a sign-in code directly when passwordless sign-up is unsupported", async () => {
+      mockAuth.signUp.mockRejectedValue(new AuthError("unsupported", "no passwordless"));
+      mockAuth.signInWithEmailCode.mockRejectedValue(
+        new AuthError("unsupported", "Email codes need Cognito."),
+      );
+
+      await render(<AuthScreen />);
+      await requestEmailCode();
+
+      expect(mockAuth.signInWithEmailCode).toHaveBeenCalledWith({ email: EMAIL });
+      // The same message the code request surfaced before Continue existed.
+      expect(screen.getByText("Email codes need Cognito.")).toBeTruthy();
+      expect(screen.queryByText("no passwordless")).toBeNull();
+    });
+
+    it("maps a rate-limited sign-up to friendly copy", async () => {
+      mockAuth.signUp.mockRejectedValue(new AuthError("limitExceeded", "raw message"));
+
+      await render(<AuthScreen />);
+      await requestEmailCode();
+
+      expect(screen.getByText("Too many attempts. Please try again later.")).toBeTruthy();
+      expect(mockAuth.signInWithEmailCode).not.toHaveBeenCalled();
+    });
+
+    it("returns to sign-in when the email is changed during confirmation", async () => {
+      mockAuth.signUp.mockResolvedValue({ status: "needsConfirmation" });
+
+      await render(<AuthScreen />);
+      await requestEmailCode();
+      await fireEvent.press(screen.getByText("auth.changeIt"));
+
+      expect(screen.getByTestId("sign-in-email-code-button")).toBeTruthy();
+      expect(screen.queryByTestId("sign-up-passwordless-button")).toBeNull();
+    });
   });
 
   describe("social sign-in", () => {
@@ -365,6 +475,16 @@ describe("AuthScreen", () => {
 
     expect(onAuthenticated).not.toHaveBeenCalled();
     expect(screen.getByTestId("sign-in-email-code-button")).toBeTruthy();
+  });
+
+  it("returns to sign-up when the email is changed during sign-up confirmation", async () => {
+    mockAuth.signUp.mockResolvedValue({ status: "needsConfirmation" });
+
+    await render(<AuthScreen initialView="sign-up" />);
+    await submitPasswordlessSignUp();
+    await fireEvent.press(screen.getByText("auth.changeIt"));
+
+    expect(screen.getByTestId("sign-up-passwordless-button")).toBeTruthy();
   });
 
   it("maps sign-up error codes to friendly copy", async () => {
