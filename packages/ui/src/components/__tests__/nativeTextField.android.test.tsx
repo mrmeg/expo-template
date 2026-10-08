@@ -303,7 +303,9 @@ describe("NativeTextField (Android) field parity", () => {
   });
 
   it("binds the shared buffer and maps multiline, editable, maxLength and textStyle", async () => {
-    const value = { value: "hello" };
+    // `ObservableState` carries `get`/`set` beside `value` (`@expo/ui` 58), so
+    // build the full shape; the field only passes the buffer through by identity.
+    const value = { value: "hello", get: () => "hello", set: jest.fn() };
     await render(
       <NativeTextField
         value={value}
