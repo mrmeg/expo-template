@@ -33,14 +33,20 @@ accent is teal, and status colors are Tailwind's defaults.
 | `ring` | `#A1A1AA` | `#A1A1AA` | Web focus ring |
 
 Contrast is tested, not hoped for: `packages/ui/src/constants/__tests__/colors.test.ts`
-holds `text` on `background`/`card` at ≥ 7:1 and `textDim`/`mutedForeground` at
-≥ 6:1 in both schemes (WCAG AA asks 4.5:1 for body text and 3:1 for large text
-and UI parts). A fork that re-brands through `setColors` should keep those
-floors; the same test file is the place to pin them.
+holds `text` at ≥ 12:1 and `textDim`/`mutedForeground` at ≥ 7:1 on
+`background`, `card`, and `popover` (≥ 6:1 on `muted`/`secondary`) in both
+schemes (WCAG AA asks 4.5:1 for body text and 3:1 for large text and UI
+parts). A fork that re-brands through `setColors` should keep those floors; the
+same test file is the place to pin them. A fork that overrides `background`,
+`card`, or `popover` should re-check its values against the Surface Lab
+(`/surface-lab`), which shows the tier ladder and the specimens it has to read
+on.
 
-Rules: elevation is layered surfaces, not shadows (`surfaceSunken` <
-`background` < `card` < `muted`); the accent appears once per view as the
-thing to look at, never as a large fill; status colors mean status.
+Rules: elevation is layered surfaces (`surfaceSunken` < `background` < `card` <
+`muted`) plus, in dark, an edge highlight (see
+[Shape, elevation, rhythm](#shape-elevation-rhythm)); the accent appears once
+per view as the thing to look at, never as a large fill; status colors mean
+status.
 
 ## Type
 
@@ -67,9 +73,17 @@ Forks replace faces with `setFonts` — never by patching `node_modules`.
   dialogs, 16 sheets (moving to the scale's 18), 24 hero media, full for pills
   and avatars. Forks retune Button (and other slots as the
   package adds them) through `setShape`.
-- **Elevation:** `getShadowStyle("subtle")` on the `default` Button and on
-  collection tiles (`Card`); screen content is flat. Dark mode relies on
-  surface tiers, not shadow.
+- **Elevation:** surface tiers first, then light. In dark, raised surfaces
+  carry a 1px inset white highlight on the top edge (5 to 6 %) plus a deeper,
+  larger black shadow: the "lit from above" cue. On a near-black base a faint
+  drop shadow is invisible, so the highlight carries the depth and the shadow
+  only grounds the surface. Light has no highlight; the shadow does the work, at
+  about twice the alpha it once had. `getShadowStyle("subtle")` goes on the
+  `default` Button and on collection tiles (`Card`); overlays (`Popover`,
+  `Dialog`, `DropdownMenu`, `Select`, `Tooltip`) use `soft`, `Notification`
+  uses `elevated`; screen content is flat. The Surface Lab (`/surface-lab`)
+  shows the tier ladder, alternate surface ramps for forks, and the previous
+  shadows next to the current ones.
 - **Rhythm:** 8-pt base (`spacing.sm` 8, `md` 16, `lg` 24, `xl` 32) with 4 and
   12 as half steps; screen gutter 16; section spacing 24; rows 10 × 16 padding;
   44-pt touch targets.

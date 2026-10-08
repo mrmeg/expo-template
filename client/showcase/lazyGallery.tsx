@@ -2,7 +2,7 @@
  * Lazy entry points into the showcase cluster — see `gallery.tsx` for why the
  * cluster is one chunk. This is the ONLY module allowed to `import()` it, and
  * it does so through one specifier, so every consumer (the Explore tab and the
- * five gallery routes) shares a single async chunk instead of each hoisting the
+ * six gallery routes) shares a single async chunk instead of each hoisting the
  * shared previews into `__common`.
  *
  * Every shell is client-only: it renders its fallback on the server and during
@@ -81,7 +81,8 @@ export type GalleryScreenName =
   | "ComponentDetailScreen"
   | "BlocksGalleryScreen"
   | "ShowcaseScreen"
-  | "ThemedShowcaseScreen";
+  | "ThemedShowcaseScreen"
+  | "SurfaceLabScreen";
 
 type GalleryScreenComponent = React.ComponentType<Record<string, never>>;
 
@@ -98,6 +99,7 @@ const SCREENS: Record<GalleryScreenName, React.LazyExoticComponent<GalleryScreen
   BlocksGalleryScreen: lazyScreen("BlocksGalleryScreen"),
   ShowcaseScreen: lazyScreen("ShowcaseScreen"),
   ThemedShowcaseScreen: lazyScreen("ThemedShowcaseScreen"),
+  SurfaceLabScreen: lazyScreen("SurfaceLabScreen"),
 };
 
 /**
