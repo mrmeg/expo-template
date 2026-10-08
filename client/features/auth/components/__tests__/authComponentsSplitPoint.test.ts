@@ -28,7 +28,6 @@ const SOURCE_TREES = ["app", "client", "server", "shared"];
 const LAZY_CONSUMERS = [
   "client/features/app/AuthGate.tsx",
   "app/(main)/(demos)/auth-demo.tsx",
-  "client/showcase/ShowcaseScreen.tsx",
 ];
 
 /**

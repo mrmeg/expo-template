@@ -185,6 +185,18 @@ describe("WebNavShell breakpoint selection", () => {
     expect(screen.getByTestId("drawer-nav-content")).toBeTruthy();
   });
 
+  it("collapses the rail from its header toggle and docks it again from the top bar", async () => {
+    await renderShellAt(1280);
+
+    await fireEvent.press(screen.getByTestId("drawer-sidebar-toggle"));
+    expect(screen.getByTestId("web-nav-shell-collapsed")).toBeTruthy();
+    expect(screen.queryByTestId("web-nav-rail")).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("web-nav-rail-open"));
+    expect(screen.getByTestId("web-nav-shell-rail")).toBeTruthy();
+    expect(screen.getByTestId("drawer-sidebar-toggle")).toBeTruthy();
+  });
+
   it("uses the top bar + overlay below the breakpoint", async () => {
     await renderShellAt(390);
 

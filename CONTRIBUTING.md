@@ -121,7 +121,7 @@ Docs index: `AGENTS.md`. Modernization reference:
 
 1. Scaffold: `bun run generate component <Name>`.
 2. Implement in `packages/ui/src/components/<Name>.tsx`.
-3. Add a showcase demo to `client/showcase/ShowcaseScreen.tsx` (the kitchen sink; its `app/(main)/(demos)/showcase/index.tsx` route is a one-line lazy shell) and a card preview to `client/showcase/previews.tsx`. Optionally seed variants + a usage snippet in `client/showcase/details.tsx` — an id with no entry falls back to its live preview plus import path.
+3. Add a card preview to `client/showcase/previews.tsx` (the components gallery and detail screen render it). Optionally seed variants + a usage snippet in `client/showcase/details.tsx` — an id with no entry falls back to its live preview plus import path.
 4. Export from `packages/ui/src/components/index.ts` and add an entry to `COMPONENTS` in `client/showcase/registry.ts`; the Explore tab's count and filtering read from there. `client/showcase/__tests__/registry.test.ts` verifies the import path resolves on disk.
 
 ## Adding a New Screen Template Or Demo

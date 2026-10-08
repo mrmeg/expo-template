@@ -42,7 +42,6 @@ import {
   COMPONENT_CATEGORY_DESCRIPTIONS,
   COMPONENT_CATEGORY_LABELS,
   COMPONENT_CATEGORY_SHORT_LABELS,
-  SHOWCASE_ROUTES,
   componentDetailRoute,
   countByCategory,
   filterComponents,
@@ -165,24 +164,9 @@ export default function ComponentsGalleryScreen() {
             Tap a card for variants and a copyable snippet.
           </SansSerifText>
 
-          <View style={styles.headerRow}>
-            <SansSerifText size="sm" style={styles.count}>
-              {COMPONENTS.length} components
-            </SansSerifText>
-            <Link href={SHOWCASE_ROUTES.kitchenSink as never} asChild>
-              <Pressable
-                onPressIn={blurActiveElementOnWeb}
-                accessibilityRole="link"
-                testID="components-kitchen-sink-link"
-                style={linkPressableStyle(styles.kitchenSink)}
-              >
-                <SansSerifText semantic="label" style={styles.kitchenSinkText}>
-                  Full showcase
-                </SansSerifText>
-                <Icon name="arrow-right" size={13} color={theme.colors.accent} />
-              </Pressable>
-            </Link>
-          </View>
+          <SansSerifText size="sm" style={styles.count}>
+            {COMPONENTS.length} components
+          </SansSerifText>
         </AnimatedView>
 
         <AnimatedView type="fadeSlideUp" delay={STAGGER_DELAY}>
@@ -324,23 +308,9 @@ const createStyles = (theme: Theme) =>
     intro: {
       color: theme.colors.mutedForeground,
     },
-    headerRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginTop: spacing.md,
-    },
     count: {
+      marginTop: spacing.md,
       color: theme.colors.mutedForeground,
-    },
-    kitchenSink: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.xs,
-      paddingVertical: spacing.xs,
-    },
-    kitchenSinkText: {
-      color: theme.colors.accent,
     },
 
     section: {

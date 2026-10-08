@@ -19,7 +19,6 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Link, Stack, useLocalSearchParams } from "expo-router";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
-import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { STAGGER_DELAY, useTheme } from "@mrmeg/expo-ui/hooks";
@@ -69,6 +68,7 @@ export default function ComponentDetailScreen() {
             <Pressable
               onPressIn={blurActiveElementOnWeb}
               accessibilityRole="link"
+              testID="component-detail-back"
               style={linkPressableStyle(styles.cta)}
             >
               <SansSerifText semantic="label" style={styles.ctaText}>
@@ -169,26 +169,6 @@ export default function ComponentDetailScreen() {
             />
           </AnimatedView>
         )}
-
-        {/* Mockup 05 frame 3's "Open full demo": the kitchen sink is still the
-            exhaustive per-component reference. */}
-        <AnimatedView type="fadeSlideUp" delay={STAGGER_DELAY * 4}>
-          <Link href={SHOWCASE_ROUTES.kitchenSink as never} asChild>
-            <Pressable
-              onPressIn={blurActiveElementOnWeb}
-              accessibilityRole="link"
-              testID="component-detail-full-demo"
-              style={linkPressableStyle(styles.cta)}
-            >
-              <SansSerifText semantic="label" style={styles.ctaText}>Open full demo</SansSerifText>
-              <Icon
-                name="arrow-right"
-                size={14}
-                color={theme.colors.primaryForeground}
-              />
-            </Pressable>
-          </Link>
-        </AnimatedView>
       </ScrollView>
     </>
   );

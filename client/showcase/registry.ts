@@ -9,8 +9,7 @@
  * Keep entries small, typed, and serializable — this is data, not UI, and a
  * script or a server route has to be able to read it. UI lives in
  * `app/(main)/(tabs)/index.tsx` (Explore), the galleries under
- * `app/(main)/(demos)/{components,blocks,templates}/`, and
- * `client/showcase/ShowcaseScreen.tsx` (the exhaustive kitchen sink).
+ * `app/(main)/(demos)/{components,blocks,templates}/`.
  * Anything that renders JSX per id lives beside it in `client/showcase/`
  * (`previews.tsx`, `blockStages.tsx`, `details.tsx`), keyed by the same id.
  */

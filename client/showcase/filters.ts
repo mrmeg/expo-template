@@ -241,8 +241,7 @@ export function pickSpotlightBlock(
 // ---------------------------------------------------------------------------
 
 /**
- * The gallery screens, one per scale, plus the original kitchen-sink showcase
- * (still linked from the components gallery header).
+ * The gallery screens, one per scale.
  *
  * Template destinations are NOT here — every screen template carries its own
  * `route` in `meta.ts`, and navigating by that field is what keeps the
@@ -252,7 +251,6 @@ export const SHOWCASE_ROUTES = {
   components: "/(main)/(demos)/components",
   blocks: "/(main)/(demos)/blocks",
   templates: "/(main)/(demos)/templates",
-  kitchenSink: "/(main)/(demos)/showcase",
 } as const;
 
 /** Detail route for one component id, e.g. `Button` → `.../components/Button`. */

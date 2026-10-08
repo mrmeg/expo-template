@@ -15,7 +15,7 @@ explorable there (see `AGENTS.md`), so the flows need zero secrets.
 | [`.maestro/launch.yml`](../.maestro/launch.yml) | Cold launch resolves `useAppStartup` (fonts, i18n, onboarding persistence, auth bootstrap), the splash hides, the onboarding gate renders. A provider crash or an unresolved gate fails here. |
 | [`.maestro/onboarding.yml`](../.maestro/onboarding.yml) | Both exits from the gate — paging all three pages, and Skip from page 1 — flip the persisted flag and swap the shell to the `(main)` Stack. |
 | [`.maestro/tabs.yml`](../.maestro/tabs.yml) | All four `NAV_DESTINATIONS` tabs (`client/features/navigation/navDestinations.ts`) mount and render: Explore, Media (fails closed), Profile, Settings. |
-| [`.maestro/templates.yml`](../.maestro/templates.yml) | Tapping the Pricing card on Explore reaches the rendered template, validating `client/templates/registry.generated` end to end. Also walks Explore → components gallery → the Button detail, and that the kitchen-sink showcase is still reachable from the gallery header. |
+| [`.maestro/templates.yml`](../.maestro/templates.yml) | Tapping the Pricing card on Explore reaches the rendered template, validating `client/templates/registry.generated` end to end. Also walks Explore → components gallery → the Button detail. |
 
 Every flow is independent and launches with `clearState: true`, wiping
 AsyncStorage including `has-seen-onboarding`, so the suite is idempotent and
@@ -86,7 +86,7 @@ Read before adding a flow.
   `media-disabled`, `media-auth-required`, `media-error`; onboarding
   `onboarding-gate`, `onboarding-flow`, `onboarding-title`,
   `onboarding-next-button`, `onboarding-skip-button` and friends; showcase
-  `explore-components-link`, `components-gallery`, `components-kitchen-sink-link`,
+  `explore-components-link`, `components-gallery`,
   `component-card-<id>`, `component-detail`.
 
 - **Tab bar items match by visible label.** `(tabs)/_layout.tsx` uses `NativeTabs`
@@ -135,10 +135,9 @@ simulator, runs `bunx expo run:ios --configuration Release`, and calls
 ## Android keyboard regression checks
 
 These are separate from the Maestro smoke suite above. Use an exclusively owned
-device/emulator. The `/showcase` auth forms use demo callbacks, so submission and
-resend checks can run without real credentials. `/auth-demo` uses `AuthWrapper`
-and the configured auth provider: use it for focus, typing, mode-switching, and
-scroll checks; submissions there require a configured test account/provider.
+device/emulator. `/auth-demo` uses `AuthWrapper` and the configured auth
+provider: use it for focus, typing, mode-switching, and scroll checks;
+submissions there require a configured test account/provider.
 
 The Android input fixes were reproduced against UI 0.25.0 and rechecked with the
 fixed package dist on an Android 16/API 36 arm64 emulator, Expo SDK 58/RN 0.88 RC,
@@ -156,7 +155,7 @@ at 300 and 420 dpi:
 - Tap the same empty space: it must dismiss once. Actually scroll vertically:
   it must dismiss through the configured scroll handler. `interactive` alone
   only covers iOS; Android needs its explicit scroll-begin handler.
-- Verify field-to-field handoff, long-press selection, and the showcase resend
+- Verify field-to-field handoff, long-press selection, and the resend
   callback while its code field remains focused. Control labels are
   nonselectable; ordinary content and input text remain selectable (that run
   predates `@mrmeg/expo-ui` 0.27.0; on Android `StyledText` is now

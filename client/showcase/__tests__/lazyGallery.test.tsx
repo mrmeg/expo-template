@@ -23,7 +23,7 @@ jest.mock("@/client/showcase/gallery", () => {
   return {
     Preview: ({ id }: { id: string }) => React.createElement(Text, null, `preview:${id}`),
     BlockStage: ({ id }: { id: string }) => React.createElement(Text, null, `stage:${id}`),
-    ShowcaseScreen: () => React.createElement(Text, null, "showcase"),
+    ComponentsGalleryScreen: () => React.createElement(Text, null, "components-gallery"),
   };
 });
 
@@ -32,7 +32,7 @@ import { ClientOnly, GalleryRoute, LazyBlockStage, LazyPreview } from "../lazyGa
 function Shells() {
   return (
     <>
-      <GalleryRoute screen="ShowcaseScreen" />
+      <GalleryRoute screen="ComponentsGalleryScreen" />
       <LazyPreview id="Button" fallback={<Text>preview-fallback</Text>} />
       <LazyBlockStage id="stat-row" fallback={<Text>stage-fallback</Text>} />
     </>
@@ -49,7 +49,7 @@ describe("lazy gallery shells", () => {
     expect(screen.getByTestId("gallery-loading")).toBeTruthy();
     expect(screen.getByText("preview-fallback")).toBeTruthy();
     expect(screen.getByText("stage-fallback")).toBeTruthy();
-    expect(screen.queryByText("showcase")).toBeNull();
+    expect(screen.queryByText("components-gallery")).toBeNull();
     expect(screen.queryByText("preview:Button")).toBeNull();
     expect(screen.queryByText("stage:stat-row")).toBeNull();
   });

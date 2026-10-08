@@ -134,7 +134,7 @@ describe("design-system source loader", () => {
     // And from a working directory outside the repo, via the linted file.
     const fromFile = readSettings({
       cwd: path.sep,
-      filename: path.join(REPO_ROOT, "client", "showcase", "ShowcaseScreen.tsx"),
+      filename: path.join(REPO_ROOT, "client", "showcase", "ComponentsGalleryScreen.tsx"),
       settings: {},
     });
     expect(fromFile.uiSourceDir).toBe(UI_SRC);

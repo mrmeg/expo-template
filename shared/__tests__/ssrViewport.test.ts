@@ -26,7 +26,7 @@ import {
 
 function requestWith(headers: Record<string, string | null>) {
   return {
-    url: "http://localhost/showcase",
+    url: "http://localhost/components",
     headers: { get: (name: string) => headers[name.toLowerCase()] ?? null },
   };
 }

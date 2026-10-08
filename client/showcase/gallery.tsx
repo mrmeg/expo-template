@@ -3,14 +3,14 @@
  *
  * Everything that renders a live `@mrmeg/expo-ui` instance for the sake of
  * showing it off — the preview map, the block stages, the seeded component
- * details, and the six gallery screens — is reachable from here and ONLY from
+ * details, and the five gallery screens — is reachable from here and ONLY from
  * here. Consumers never import this module statically; they go through
  * `client/showcase/lazyGallery.tsx`, which holds the one `import()` of this
  * specifier.
  *
  * Why it matters: Metro hoists any module reachable from two or more async
  * route chunks into the eagerly loaded `__common` chunk. The Explore tab, the
- * component gallery, the detail screen and the kitchen sink all render the same
+ * component gallery and the detail screen both render the same
  * previews, so before this barrel existed the 36 previewed components (plus
  * Radix, vaul, floating-ui and the rest of their web engines) were downloaded by
  * every route on first render — the settings tab paid for `DropdownMenu`. With
@@ -35,7 +35,6 @@ export { getComponentDetail, importSnippet, COMPONENT_DETAILS } from "./details"
 export { default as ComponentsGalleryScreen } from "./ComponentsGalleryScreen";
 export { default as ComponentDetailScreen } from "./ComponentDetailScreen";
 export { default as BlocksGalleryScreen } from "./BlocksGalleryScreen";
-export { default as ShowcaseScreen } from "./ShowcaseScreen";
 export { default as ThemedShowcaseScreen } from "./ThemedShowcaseScreen";
 export { default as SurfaceLabScreen } from "./SurfaceLabScreen";
 
