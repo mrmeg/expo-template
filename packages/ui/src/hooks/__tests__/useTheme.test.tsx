@@ -426,22 +426,89 @@ describe("useTheme", () => {
       expect(style.boxShadow).toEqual(expect.stringContaining("0.4"));
     });
 
-    it("boosts ambient-shadow alpha in dark mode without exceeding 1", async () => {
-      useThemeStore.setState({ userTheme: "dark", systemTheme: "dark" });
-      const { result } = await renderHook(() => useTheme());
+    describe("edge-lit dark presets", () => {
+      const boxShadow = async (type: Parameters<ReturnType<typeof useTheme>["getShadowStyle"]>[0], scheme: "light" | "dark") => {
+        useThemeStore.setState({ userTheme: scheme, systemTheme: scheme });
+        const { result } = await renderHook(() => useTheme());
+        return (result.current.getShadowStyle(type) as Record<string, unknown>).boxShadow as string;
+      };
 
-      const style = result.current.getShadowStyle("elevated") as Record<string, unknown>;
-      const alphas = [...(style.boxShadow as string).matchAll(/rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/g)]
-        .map((match) => Number(match[1]));
+      const alphas = (value: string) =>
+        [...value.matchAll(/rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/g)].map((match) => Number(match[1]));
 
-      expect(alphas.length).toBe(2);
-      alphas.forEach((alpha) => {
-        expect(alpha).toBeLessThanOrEqual(1);
-        expect(alpha).toBeGreaterThan(0);
+      it("draws subtle as an inset top highlight plus deeper black layers in dark", async () => {
+        expect(await boxShadow("subtle", "dark")).toBe(
+          "inset 0px 1px 0px rgba(255, 255, 255, 0.05), " +
+          "0px 1px 2px rgba(0, 0, 0, 0.4), " +
+          "0px 8px 24px rgba(0, 0, 0, 0.35)"
+        );
       });
-      // elevated dark boost: 0.08 * 3 and 0.05 * 3, both under the 1.0 cap.
-      expect(alphas[0]).toBeCloseTo(0.24, 5);
-      expect(alphas[1]).toBeCloseTo(0.15, 5);
+
+      it("draws soft and elevated with the stronger highlight in dark", async () => {
+        expect(await boxShadow("soft", "dark")).toBe(
+          "inset 0px 1px 0px rgba(255, 255, 255, 0.06), " +
+          "0px 2px 4px rgba(0, 0, 0, 0.45), " +
+          "0px 14px 36px rgba(0, 0, 0, 0.45)"
+        );
+        expect(await boxShadow("elevated", "dark")).toBe(
+          "inset 0px 1px 0px rgba(255, 255, 255, 0.06), " +
+          "0px 4px 8px rgba(0, 0, 0, 0.5), " +
+          "0px 24px 56px rgba(0, 0, 0, 0.55)"
+        );
+      });
+
+      it("puts the highlight first on every raised preset in dark, and nowhere else", async () => {
+        const raised = ["subtle", "soft", "elevated", "card", "cardSubtle", "cardHover", "glass"] as const;
+        for (const type of raised) {
+          const value = await boxShadow(type, "dark");
+          expect(value.startsWith("inset 0px 1px 0px rgba(255, 255, 255, ")).toBe(true);
+          expect(value.match(/inset/g)).toHaveLength(1);
+        }
+
+        for (const type of ["base", "sharp", "glow"] as const) {
+          expect(await boxShadow(type, "dark")).not.toContain("inset");
+        }
+      });
+
+      it("uses black at real alpha in dark, not the old tripled alpha", async () => {
+        const value = await boxShadow("subtle", "dark");
+        // The old dark subtle was 0.04 * 3 and 0.03 * 3 (0.12, 0.09).
+        expect(alphas(value).slice(1)).toEqual([0.4, 0.35]);
+        for (const type of ["subtle", "base", "soft", "card", "cardSubtle", "cardHover", "elevated", "glass"] as const) {
+          for (const alpha of alphas(await boxShadow(type, "dark"))) {
+            expect(alpha).toBeGreaterThan(0);
+            expect(alpha).toBeLessThanOrEqual(1);
+          }
+        }
+      });
+
+      it("has no highlight in light and roughly doubles the old alpha", async () => {
+        for (const type of ["subtle", "base", "soft", "card", "cardSubtle", "cardHover", "elevated", "glass"] as const) {
+          expect(await boxShadow(type, "light")).not.toContain("inset");
+        }
+        expect(await boxShadow("subtle", "light")).toBe(
+          "0px 1px 3px rgba(0, 0, 0, 0.08), 0px 2px 8px rgba(0, 0, 0, 0.06)"
+        );
+        expect(await boxShadow("soft", "light")).toBe(
+          "0px 4px 10px rgba(0, 0, 0, 0.1), 0px 8px 20px rgba(0, 0, 0, 0.06)"
+        );
+        expect(await boxShadow("elevated", "light")).toBe(
+          "0px 16px 48px rgba(0, 0, 0, 0.16), 0px 32px 96px rgba(0, 0, 0, 0.1)"
+        );
+      });
+
+      it("keeps sharp at its original alphas in both schemes", async () => {
+        expect(await boxShadow("sharp", "light")).toBe("0px 1px 1px rgba(0, 0, 0, 0.15)");
+        expect(await boxShadow("sharp", "dark")).toBe("0px 1px 1px rgba(0, 0, 0, 0.45)");
+      });
+
+      it("keeps each dark preset's layers larger than its light layers", async () => {
+        for (const type of ["subtle", "soft", "elevated"] as const) {
+          const light = alphas(await boxShadow(type, "light"));
+          const dark = alphas(await boxShadow(type, "dark")).slice(1);
+          dark.forEach((alpha, index) => expect(alpha).toBeGreaterThan(light[index]));
+        }
+      });
     });
   });
 

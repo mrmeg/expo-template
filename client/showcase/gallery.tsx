@@ -3,7 +3,7 @@
  *
  * Everything that renders a live `@mrmeg/expo-ui` instance for the sake of
  * showing it off — the preview map, the block stages, the seeded component
- * details, and the five gallery screens — is reachable from here and ONLY from
+ * details, and the six gallery screens — is reachable from here and ONLY from
  * here. Consumers never import this module statically; they go through
  * `client/showcase/lazyGallery.tsx`, which holds the one `import()` of this
  * specifier.
@@ -37,6 +37,7 @@ export { default as ComponentDetailScreen } from "./ComponentDetailScreen";
 export { default as BlocksGalleryScreen } from "./BlocksGalleryScreen";
 export { default as ShowcaseScreen } from "./ShowcaseScreen";
 export { default as ThemedShowcaseScreen } from "./ThemedShowcaseScreen";
+export { default as SurfaceLabScreen } from "./SurfaceLabScreen";
 
 export interface PreviewProps {
   /** Registry id, e.g. `"Button"`. */

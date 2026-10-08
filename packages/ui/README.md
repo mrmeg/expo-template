@@ -221,7 +221,11 @@ bordered, shadowed panel; see [Screen layout](#screen-layout).
 `getTextColorForBackground`, and `withAlpha`. `getShadowStyle(type)` takes
 `base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`,
 `cardHover`, or `cardSubtle` and returns a cross-platform `boxShadow` (RN 0.85
-and react-native-web 0.21 deprecate the legacy `shadow*` props).
+and react-native-web 0.21 deprecate the legacy `shadow*` props). The layers
+follow the scheme: in dark the raised presets add a 1px inset white top
+highlight to black shadows at real alpha (a faint drop shadow is invisible on a
+near-black base); in light it is the shadow alone, at about twice the original
+alpha.
 
 Semantic tokens on `theme.colors`: `surfaceSunken`, `background`, `foreground`,
 `card`, `cardForeground`, `popover`, `popoverForeground`, `text`, `textDim`,
@@ -231,12 +235,13 @@ Semantic tokens on `theme.colors`: `surfaceSunken`, `background`, `foreground`,
 `secondary` a neutral secondary surface, `accent` the teal highlight, `input`
 the default form-control border, `ring` the focus outline.
 
-Surfaces are layered tiers, not shadow depths: `surfaceSunken` (app chrome such
-as the Drawer rail) < `background` (content) < `card`/`popover` (raised panels)
-< `muted` (chips, insets). `border` is the hairline on `background`/`card`; use
+Surfaces are layered tiers, with an edge highlight in dark: `surfaceSunken` (app
+chrome such as the Drawer rail) < `background` (content) < `card`/`popover`
+(raised panels) < `muted` (chips, insets). `border` is the hairline on `background`/`card`; use
 `borderStrong` on filled surfaces. `textDim`/`mutedForeground` hold at least
 7:1 against `background`/`card` and 6:1 against `muted` in both schemes,
-enforced by a package test.
+enforced by a package test. If you override `background`, `card`, or `popover`,
+re-check them against the template's Surface Lab (`/surface-lab`).
 
 When `currentTheme` is `"system"` the package tracks the OS color scheme and
 updates every `useTheme()`/`useStyles()` consumer through the theme store. Do

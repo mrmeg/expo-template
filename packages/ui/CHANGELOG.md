@@ -7,6 +7,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **`getShadowStyle` is edge-lit in dark and stronger in light.** Dark mode
+  read flat: the old presets tripled a 0.04 alpha, and black at that alpha is
+  invisible on a near-black base, so cards, popovers and sheets did not feel
+  raised. The presets now have their own layers per scheme. In dark the raised
+  presets (`subtle`, `soft`, `elevated`, `card`, `cardSubtle`, `cardHover`,
+  `glass`) start with a 1px inset white top highlight (5 to 6 %), the "lit from
+  above" cue, followed by black layers at real alpha, deeper and larger than
+  before (`subtle` is `inset 0 1px 0 rgba(255,255,255,0.05), 0 1px 2px
+  rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.35)`). In light the layers keep
+  their shape at about double the alpha. `base` has no highlight, and `sharp`
+  and `glow` render as before. The dark boost multiplier is gone. Surface
+  colors are unchanged.
+
 - **`Button`, `Toggle` and `ToggleGroup` items have a 44pt pointer target on
   web.** react-native-web ignores `hitSlop`, so the target was the drawn box:
   28/32/40px for Button `sm`/`md`/`lg`, 32/36/40px for Toggle and ToggleGroup

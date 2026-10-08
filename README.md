@@ -207,8 +207,8 @@ does not collect it. The lint plugin's own suites live in
 /test                         # Jest setup
 ```
 
-Five gallery routes — `showcase/index.tsx`, `themed-showcase.tsx`,
-`components/index.tsx`, `components/[id].tsx`, `blocks/index.tsx` under
+Six gallery routes — `showcase/index.tsx`, `themed-showcase.tsx`,
+`surface-lab.tsx`, `components/index.tsx`, `components/[id].tsx`, `blocks/index.tsx` under
 `app/(main)/(demos)` — are one-line lazy shells. Their bodies live in
 `client/showcase/*Screen.tsx` behind the single split point
 `client/showcase/gallery.tsx` / `lazyGallery.tsx`.
