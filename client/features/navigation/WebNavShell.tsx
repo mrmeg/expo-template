@@ -25,10 +25,10 @@ import {
  * native app = tabs, mobile web = overlay, desktop web = rail
  * (mockups/05-mobile.html "Surfaces").
  *
- * Breakpoint: `useDimensions().isLargeScreen` (width > SCREEN_SIZES.MEDIUM =
- * 1000 — the closest existing token to the 900px mockup; the spec forbids a
- * new constant). `useDimensions` is SSR-aware, so the server and the first
- * client render pick the same mode and hydration doesn't flash between them.
+ * Breakpoint: anything wider than a phone (`!useDimensions().isSmallScreen`,
+ * width > SCREEN_SIZES.SMALL = 768) can dock the rail. `useDimensions` is
+ * SSR-aware, so the server and the first client render pick the same mode and
+ * hydration doesn't flash between them.
  *
  * The rail starts open and its header carries a sidebar toggle. Collapsing it
  * swaps in the same slim top bar the overlay mode uses, whose toggle docks the
@@ -89,7 +89,8 @@ function TopBar({
 }
 
 export function WebNavShell({ children }: PropsWithChildren) {
-  const { isLargeScreen } = useDimensions();
+  const { isSmallScreen } = useDimensions();
+  const canDock = !isSmallScreen;
   const { theme } = useTheme();
   const styles = themedStyles(theme);
   const pathname = usePathname();
@@ -112,7 +113,10 @@ export function WebNavShell({ children }: PropsWithChildren) {
     setDrawerOpen(false);
   }
 
-  if (isLargeScreen && railCollapsed) {
+  // Docked rail, collapsed rail, or phone overlay. Above SCREEN_SIZES.SMALL
+  // the sidebar can dock beside the content; it starts docked and the header
+  // toggle collapses it to a top bar whose button docks it again.
+  if (canDock && railCollapsed) {
     return (
       <View style={styles.overlayRoot} testID="web-nav-shell-collapsed">
         <TopBar
@@ -126,13 +130,12 @@ export function WebNavShell({ children }: PropsWithChildren) {
     );
   }
 
-  if (isLargeScreen) {
+  if (canDock) {
     return (
       <View style={styles.railRow} testID="web-nav-shell-rail">
-        {/* The rail is pinned expanded: the mockups' desktop drawer is a
-            permanent 248px sidebar, not an icon strip, so hover-expand and
-            collapse are switched off (collapsed width = expanded width means
-            even a stray `expanded` flip can't change layout). */}
+        {/* The library rail's own collapse would leave a 72px icon strip; the
+            nav content isn't built for that, so collapsing swaps the whole
+            rail for the top bar instead and the rail stays pinned expanded. */}
         <Drawer
           variant="rail"
           side="left"
@@ -172,8 +175,6 @@ export function WebNavShell({ children }: PropsWithChildren) {
         <Drawer.Content style={styles.overlayContent} testID="web-nav-overlay">
           <DrawerNavContent
             onNavigate={() => setDrawerOpen(false)}
-            onToggleSidebar={() => setDrawerOpen(false)}
-            toggleSidebarLabel="Close navigation"
           />
         </Drawer.Content>
       </Drawer>
