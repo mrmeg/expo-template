@@ -104,18 +104,21 @@ Put these in the Lab explainer and `docs/brand.md`, briefly:
    AGENTS.md's "Five gallery routes" note to six, and run `bun run gen` and
    `bun run docs:llms` (demo routes feed `llms-examples.txt`).
 2. Candidates, applied live via `setColors` (cleared on unmount, as in
-   ThemedShowcase). Values below were generated from OKLCH (dark hue 286 C 0.004
+   ThemedShowcase). Matt wants dark mode to stay very dark for contrast, so
+   Dark D "deep" (near-black base, wider tier spacing; OKLCH L .11/.145/.195/.235/.265)
+   is the lead candidate and the Lab's default; on it the edge highlight, not the
+   shadow, carries depth. Values were generated from OKLCH (dark hue 286 C 0.004
    and hue 264 C 0.012; light hue 286 C 0.003) — use them as given:
 
-   | Token | Dark: current | Dark A "lifted neutral" | Dark B "slate" | Light: current | Light C "canvas" |
-   |---|---|---|---|---|---|
-   | surfaceSunken | #050506 | #0B0B0D | #090B10 | #FAFAFA | #F0F0F2 |
-   | background | #09090B | #111113 | #0F1217 | #FFFFFF | #F9F9FB |
-   | card | #18181B | #19191B | #17191F | #FFFFFF | #FFFFFF |
-   | popover | #18181B | #212123 | #1F2228 | #FFFFFF | #FFFFFF |
-   | muted / secondary | #27272A | #27272A | #25282E | #F4F4F5 | #F0F0F2 |
-   | border / input | #27272A | #2B2B2D | #282B31 | #E4E4E7 | #E4E4E6 |
-   | borderStrong | #3F3F46 | #3A3A3D | #373B41 | #D4D4D8 | #D4D4D6 |
+   | Token | Dark: current | Dark D "deep" | Dark A "lifted neutral" | Dark B "slate" | Light: current | Light C "canvas" |
+   |---|---|---|---|---|---|---|
+   | surfaceSunken | #040405 | #050506 | #0B0B0D | #090B10 | #FAFAFA | #F0F0F2 |
+   | background | #0A0A0C | #09090B | #111113 | #0F1217 | #FFFFFF | #F9F9FB |
+   | card | #151517 | #18181B | #19191B | #17191F | #FFFFFF | #FFFFFF |
+   | popover | #1E1E20 | #18181B | #212123 | #1F2228 | #FFFFFF | #FFFFFF |
+   | muted / secondary | #252527 | #27272A | #27272A | #25282E | #F4F4F5 | #F0F0F2 |
+   | border / input | #27272A | #27272A | #2B2B2D | #282B31 | #E4E4E7 | #E4E4E6 |
+   | borderStrong | #363639 | #3F3F46 | #3A3A3D | #373B41 | #D4D4D8 | #D4D4D6 |
 
    Text tokens stay as they are; if a candidate fails a contrast floor from
    `colors.test.ts`, adjust that candidate's text token, don't drop the floor.
