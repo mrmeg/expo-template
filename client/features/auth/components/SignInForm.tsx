@@ -17,7 +17,8 @@ const MIN_PASSWORD_LENGTH = 6;
 export interface SignInFormProps {
   onSignIn?: (data: { email: string; password: string }) => void | Promise<void>;
   /**
-   * Passwordless path: send a one-time code to the address entered above.
+   * Passwordless path: continue with the address entered above. AuthScreen
+   * creates the account when none exists and otherwise sends a sign-in code.
    * Providing it makes the form lead with the code layout and hide the password
    * field behind a "use password instead" toggle; without it the form is
    * password-only, which is what the showcase and template blocks render.
@@ -105,7 +106,9 @@ export function SignInForm({
         (showPasswordField ? t("auth.signInDescription") : t("auth.signInWithCodeDescription"))
       }
       footer={
-        onSignUp && (
+        // In code mode Continue already creates accounts; the sign-up screen
+        // stays reachable through "Use password instead".
+        onSignUp && showPasswordField && (
           <>
             <SansSerifText size="base" style={shared.mutedText}>
               {t("auth.noAccount")}{" "}
@@ -192,7 +195,7 @@ export function SignInForm({
           disabled={loading}
           fullWidth
         >
-          <SansSerifBoldText>{t("auth.emailMeACode")}</SansSerifBoldText>
+          <SansSerifBoldText>{t("auth.continueWithEmail")}</SansSerifBoldText>
         </Button>
       )}
 

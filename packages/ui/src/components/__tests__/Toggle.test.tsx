@@ -184,4 +184,17 @@ describe("Toggle icon-only naming", () => {
     expect(String(calls[0][0])).toMatch(/icon-only|iconOnly/);
     warn.mockRestore();
   });
+
+  describe("hit target (native)", () => {
+    it("keeps hitSlop on the primitive root and renders no web hit extender", async () => {
+      await render(
+        <Toggle pressed={false} onPressedChange={() => {}} accessibilityLabel="Bold">
+          <Text>Bold</Text>
+        </Toggle>
+      );
+
+      expect(screen.getByRole("switch").props.hitSlop).toBe(8);
+      expect(screen.queryByTestId("hit-target", { includeHiddenElements: true })).toBeNull();
+    });
+  });
 });

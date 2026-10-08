@@ -29,6 +29,7 @@ import { useThemeStore } from "../state/themeStore";
 import { createThemedStyles } from "../lib/themedStyles";
 import { stateSurfaceProps } from "../lib/stateSurface";
 import { composeRefs } from "../lib/composeRefs";
+import { getWebHitInsets, verticalSlopFor, WebHitTarget } from "../lib/webHitTarget";
 
 /**
  * Button variants
@@ -61,8 +62,10 @@ const SIZE_CONFIGS: Record<ButtonSize, { paddingVertical: number; paddingHorizon
   },
 };
 
-const getNativeHitSlop = (sizeConfig: { height: number }) =>
-  Math.ceil(Math.max(0, spacing.touchTarget - sizeConfig.height) / 2);
+/** `outline` border. The web hit extender adds it back (see `WebHitTarget`). */
+const OUTLINE_BORDER_WIDTH = 1;
+
+const getNativeHitSlop = (sizeConfig: { height: number }) => verticalSlopFor(sizeConfig.height);
 
 export type ButtonAccessoryStyle = {
   margin?: DimensionValue;
@@ -311,6 +314,9 @@ function ButtonRoot(props: ButtonProps) {
   // consumer `aria-disabled` / `accessibilityState.disabled`, which keeps the
   // button focusable and pressable so the press can explain itself.
   const pressBlocked = !!disabled || loading;
+  // Web only: see `lib/webHitTarget`. Native keeps `hitSlop` on the Pressable.
+  const webHitInsets = Platform.OS === "web" ? getWebHitInsets(rest.hitSlop, sizeConfig.height) : null;
+  const hitBorder = preset === "outline" ? OUTLINE_BORDER_WIDTH : 0;
   const isDisabled = pressBlocked || (ariaDisabled ?? accessibilityState?.disabled) === true;
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
     disabled: !!isDisabled,
@@ -472,6 +478,9 @@ function ButtonRoot(props: ButtonProps) {
                       />
                     )}
                   </View>
+
+                  {/* Transparent hit extender (web); last child so it paints above the content. */}
+                  <WebHitTarget insets={webHitInsets} border={hitBorder} testID="button-hit-target" />
                 </View>
               </Animated.View>
             )}
@@ -551,7 +560,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
     } as ViewStyle,
     buttonOutline: {
       backgroundColor: "transparent",
-      borderWidth: 1,
+      borderWidth: OUTLINE_BORDER_WIDTH,
       borderColor: theme.colors.input,
     } as ViewStyle,
     buttonGhost: {

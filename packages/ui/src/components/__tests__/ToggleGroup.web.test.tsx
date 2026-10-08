@@ -12,8 +12,8 @@ import "./forceWebPlatform";
 import "@/test/mockTheme";
 
 import React from "react";
-import { Text } from "react-native";
-import { render } from "@testing-library/react-native";
+import { StyleSheet, Text } from "react-native";
+import { render, screen, fireEvent } from "@testing-library/react-native";
 
 const mockItemProps: Array<Record<string, unknown>> = [];
 const mockRootProps: Array<Record<string, unknown>> = [];
@@ -76,5 +76,41 @@ describe("ToggleGroup on web", () => {
     expect(mockItemProps).toHaveLength(2);
     for (const props of mockItemProps) expect(props.role).toBe("button");
     expect(mockRootProps[0]?.role).toBe("group");
+  });
+
+  describe("pointer target (web)", () => {
+    const flat = (el: any) => StyleSheet.flatten(el.props.style) as Record<string, unknown>;
+
+    it("items extend their target to 44pt vertically, border included, without changing the drawn height", async () => {
+      await render(
+        <ToggleGroup type="single" value="left" onValueChange={() => {}} size="sm">
+          <ToggleGroupItem value="left"><Text>Left</Text></ToggleGroupItem>
+          <ToggleGroupItem value="right"><Text>Right</Text></ToggleGroupItem>
+        </ToggleGroup>
+      );
+
+      const hits = screen.getAllByTestId("hit-target", { includeHiddenElements: true });
+      expect(hits).toHaveLength(2);
+      for (const el of hits) {
+        const s = flat(el);
+        expect({ top: s.top, bottom: s.bottom, left: s.left, right: s.right }).toEqual({ top: -7, bottom: -7, left: -1, right: -1 });
+        expect(el.props["aria-hidden"]).toBe(true);
+      }
+    });
+
+    it("a press on an item's extender selects it", async () => {
+      const onValueChange = jest.fn();
+      await render(
+        <ToggleGroup type="single" value="left" onValueChange={onValueChange} size="sm">
+          <ToggleGroupItem value="left"><Text>Left</Text></ToggleGroupItem>
+          <ToggleGroupItem value="right"><Text>Right</Text></ToggleGroupItem>
+        </ToggleGroup>
+      );
+
+      const hits = screen.getAllByTestId("hit-target", { includeHiddenElements: true });
+      await fireEvent.press(hits[1]);
+
+      expect(onValueChange).toHaveBeenCalledWith("right");
+    });
   });
 });

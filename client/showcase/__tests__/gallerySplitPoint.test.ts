@@ -2,7 +2,7 @@
  * Single-split-point guard for the showcase cluster (web bundle layout).
  *
  * Metro hoists any module reachable from two or more async route chunks into the
- * eagerly loaded `__common` chunk. The Explore tab and the five gallery routes
+ * eagerly loaded `__common` chunk. The Explore tab and the six gallery routes
  * all render the same live previews, so the 36 previewed `@mrmeg/expo-ui`
  * components (and their Radix / vaul / floating-ui web engines) stay off every
  * other route's first-render download only while ALL of those consumers reach
@@ -40,6 +40,7 @@ const CLUSTER_MODULES = [
   "BlocksGalleryScreen",
   "ShowcaseScreen",
   "ThemedShowcaseScreen",
+  "SurfaceLabScreen",
   "Section",
   "SubSection",
   "ThemeToggle",
@@ -50,6 +51,7 @@ const CLUSTER_MODULES = [
 const GALLERY_ROUTES: Record<string, string> = {
   "app/(main)/(demos)/showcase/index.tsx": "ShowcaseScreen",
   "app/(main)/(demos)/themed-showcase.tsx": "ThemedShowcaseScreen",
+  "app/(main)/(demos)/surface-lab.tsx": "SurfaceLabScreen",
   "app/(main)/(demos)/components/index.tsx": "ComponentsGalleryScreen",
   "app/(main)/(demos)/components/[id].tsx": "ComponentDetailScreen",
   "app/(main)/(demos)/blocks/index.tsx": "BlocksGalleryScreen",

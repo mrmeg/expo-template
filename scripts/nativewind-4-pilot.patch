@@ -1,0 +1,192 @@
+diff --git a/app/_layout.tsx b/app/_layout.tsx
+index e660aef..7eafba6 100644
+--- a/app/_layout.tsx
++++ b/app/_layout.tsx
+@@ -1,2 +1,4 @@
++import "../global.css";
++
+ export { rootUnstableSettings as unstable_settings } from "@/client/config/routerSettings";
+ export { default } from "@/client/features/app/RootLayout";
+diff --git a/babel.config.js b/babel.config.js
+new file mode 100644
+index 0000000..f3c649b
+--- /dev/null
++++ b/babel.config.js
+@@ -0,0 +1,9 @@
++module.exports = function (api) {
++  api.cache(true);
++  return {
++    presets: [
++      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
++      "nativewind/babel",
++    ],
++  };
++};
+diff --git a/global.css b/global.css
+new file mode 100644
+index 0000000..b5c61c9
+--- /dev/null
++++ b/global.css
+@@ -0,0 +1,3 @@
++@tailwind base;
++@tailwind components;
++@tailwind utilities;
+diff --git a/metro.config.js b/metro.config.js
+index 7dac07c..f5ad1b1 100644
+--- a/metro.config.js
++++ b/metro.config.js
+@@ -1,6 +1,7 @@
+ /* eslint-disable no-undef */
+ const fs = require("fs");
+ const { getDefaultConfig } = require("expo/metro-config");
++const { withNativeWind } = require("nativewind/metro");
+ const {
+   wrapWithReanimatedMetroConfig,
+ } = require("react-native-reanimated/metro-config");
+@@ -277,6 +278,9 @@ if (ffmpegWorkerAsset) {
+ // `sendFeedback` from @sentry/react are undefined as a result; drop the second
+ // wrapper before adding a feedback widget. The resolvers chain to the
+ // resolveRequest installed above.
+-module.exports = wrapWithReanimatedMetroConfig(
+-  withSentryFeedbackResolver(withSentryResolver(config, false), false)
++module.exports = withNativeWind(
++  wrapWithReanimatedMetroConfig(
++    withSentryFeedbackResolver(withSentryResolver(config, false), false)
++  ),
++  { input: "./global.css" }
+ );
+diff --git a/nativewind-env.d.ts b/nativewind-env.d.ts
+new file mode 100644
+index 0000000..a13e313
+--- /dev/null
++++ b/nativewind-env.d.ts
+@@ -0,0 +1 @@
++/// <reference types="nativewind/types" />
+diff --git a/packages/ui/src/components/Badge.tsx b/packages/ui/src/components/Badge.tsx
+index 281ecc3..19822ff 100644
+--- a/packages/ui/src/components/Badge.tsx
++++ b/packages/ui/src/components/Badge.tsx
+@@ -2,7 +2,6 @@ import React from "react";
+ import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
+ import { useTheme } from "../hooks/useTheme";
+ import { shapeRadius, useShape } from "../hooks/useShape";
+-import { spacing } from "../constants/spacing";
+ import { StyledText } from "./StyledText";
+ import { createThemedStyles } from "../lib/themedStyles";
+ import type { Theme } from "../constants/colors";
+@@ -65,8 +64,8 @@ function Badge({ children, text, variant = "default", style: styleOverride }: Ba
+   return (
+     <View
+       accessibilityRole="text"
++      className="!self-start rounded-full !px-[10px] !py-[2px]"
+       style={[
+-        styles.badge,
+         badgeRadius,
+         variant === "default" && styles.default,
+         variant === "secondary" && styles.secondary,
+@@ -82,12 +81,6 @@ function Badge({ children, text, variant = "default", style: styleOverride }: Ba
+ 
+ const createStyles = (theme: Theme) =>
+   StyleSheet.create({
+-    badge: {
+-      alignSelf: "flex-start",
+-      borderRadius: spacing.radiusFull,
+-      paddingHorizontal: 10,
+-      paddingVertical: 2,
+-    },
+     default: {
+       backgroundColor: theme.colors.primary,
+     },
+diff --git a/packages/ui/src/components/Button.tsx b/packages/ui/src/components/Button.tsx
+index e4b11a3..56006a8 100644
+--- a/packages/ui/src/components/Button.tsx
++++ b/packages/ui/src/components/Button.tsx
+@@ -404,6 +404,7 @@ function ButtonRoot(props: ButtonProps) {
+                   // Android: fixed native tree across disabled/pressed/loading
+                   // flips (see `stateSurfaceProps`).
+                   {...stateSurfaceProps()}
++                  className="!relative !flex-row !items-center !justify-center !shrink-0"
+                   style={[
+                     styles.button,
+                     // Host-app radius override (see `setShape`). Sits right
+@@ -529,15 +530,10 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
+ 
+   return StyleSheet.create({
+     button: {
+-      position: "relative",
+-      flexDirection: "row",
+-      alignItems: "center",
+-      justifyContent: "center",
+       borderRadius: spacing.radiusMd,
+       paddingVertical: sizeConfig.paddingVertical,
+       paddingHorizontal: sizeConfig.paddingHorizontal,
+       minHeight: sizeConfig.height,
+-      flexShrink: 0,
+       ...(Platform.OS === "web" && { cursor: "pointer" as any }),
+     } as ViewStyle,
+     content: {
+diff --git a/packages/ui/src/components/Item.tsx b/packages/ui/src/components/Item.tsx
+index 955c18a..8d7ded2 100644
+--- a/packages/ui/src/components/Item.tsx
++++ b/packages/ui/src/components/Item.tsx
+@@ -194,7 +194,7 @@ export function Item({ children, onPress, disabled, separator, style }: ItemProp
+   const focus = useFocusVisible();
+ 
+   const row = (
+-    <View style={[styles.row, style]}>
++    <View className="!flex-row !items-center" style={[styles.row, style]}>
+       <ItemLabelContext.Provider value={label}>{children}</ItemLabelContext.Provider>
+     </View>
+   );
+@@ -452,8 +452,6 @@ export function ItemActions({ children, style }: ItemActionsProps) {
+ 
+ const styles = /*#__PURE__*/ StyleSheet.create({
+   row: {
+-    flexDirection: "row",
+-    alignItems: "center",
+     minHeight: Platform.select({ web: spacing.rowMinHeight, default: spacing.touchTarget }),
+     paddingVertical: spacing.rowPaddingY,
+     paddingHorizontal: spacing.rowPaddingX,
+diff --git a/packages/ui/src/nativewind-env.d.ts b/packages/ui/src/nativewind-env.d.ts
+new file mode 100644
+index 0000000..a13e313
+--- /dev/null
++++ b/packages/ui/src/nativewind-env.d.ts
+@@ -0,0 +1 @@
++/// <reference types="nativewind/types" />
+diff --git a/tailwind.config.js b/tailwind.config.js
+new file mode 100644
+index 0000000..2f824c0
+--- /dev/null
++++ b/tailwind.config.js
+@@ -0,0 +1,10 @@
++module.exports = {
++  content: [
++    "./app/**/*.{js,jsx,ts,tsx}",
++    "./client/**/*.{js,jsx,ts,tsx}",
++    "./packages/ui/src/**/*.{js,jsx,ts,tsx}",
++  ],
++  presets: [require("nativewind/preset")],
++  theme: { extend: {} },
++  plugins: [],
++};
+diff --git a/tsconfig.json b/tsconfig.json
+index 05aff42..8e3e6b7 100644
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -29,11 +29,12 @@
+     "**/*.ts",
+     "**/*.tsx",
+     ".expo/types/**/*.ts",
+-    "expo-env.d.ts"
++    "expo-env.d.ts",
++    "nativewind-env.d.ts"
+   ],
+   "exclude": [
+     "node_modules",
+     "expo-env.d.ts",
+     "workers"
+   ]
+-}
++}
+\ No newline at end of file

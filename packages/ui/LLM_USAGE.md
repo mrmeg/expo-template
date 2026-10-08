@@ -210,8 +210,14 @@ Token intent:
 - `surfaceSunken`: app-chrome surface one tier below `background`
 - `borderStrong`: hairline for elements on filled surfaces, where `border` blends in
 
-Elevation is a surface-tier ladder, not shadow depth: `surfaceSunken` (chrome) <
-`background` (content) < `card`/`popover` (raised) < `muted` (chips, insets).
+Elevation is a surface-tier ladder plus, in dark, an edge highlight:
+`surfaceSunken` (chrome) < `background` (content) < `card`/`popover` (raised) <
+`muted` (chips, insets). `getShadowStyle` is scheme-aware: in dark the raised
+presets (`subtle`, `soft`, `elevated`, `card`, `cardSubtle`, `cardHover`,
+`glass`) start with a 1px inset white top highlight and use black shadows at
+real alpha; in light it is the shadow alone, at about twice the old alpha. A
+fork that overrides `background`, `card`, or `popover` should re-check against
+the template's `/surface-lab`.
 
 On web every `theme.colors.*` value is a CSS custom property (`var(--c-*)`), so
 themes swap in CSS when `html[data-theme]` changes; native keeps literals. Both

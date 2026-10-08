@@ -221,7 +221,11 @@ bordered, shadowed panel; see [Screen layout](#screen-layout).
 `getTextColorForBackground`, and `withAlpha`. `getShadowStyle(type)` takes
 `base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`,
 `cardHover`, or `cardSubtle` and returns a cross-platform `boxShadow` (RN 0.85
-and react-native-web 0.21 deprecate the legacy `shadow*` props).
+and react-native-web 0.21 deprecate the legacy `shadow*` props). The layers
+follow the scheme: in dark the raised presets add a 1px inset white top
+highlight to black shadows at real alpha (a faint drop shadow is invisible on a
+near-black base); in light it is the shadow alone, at about twice the original
+alpha.
 
 Semantic tokens on `theme.colors`: `surfaceSunken`, `background`, `foreground`,
 `card`, `cardForeground`, `popover`, `popoverForeground`, `text`, `textDim`,
@@ -231,12 +235,13 @@ Semantic tokens on `theme.colors`: `surfaceSunken`, `background`, `foreground`,
 `secondary` a neutral secondary surface, `accent` the teal highlight, `input`
 the default form-control border, `ring` the focus outline.
 
-Surfaces are layered tiers, not shadow depths: `surfaceSunken` (app chrome such
-as the Drawer rail) < `background` (content) < `card`/`popover` (raised panels)
-< `muted` (chips, insets). `border` is the hairline on `background`/`card`; use
+Surfaces are layered tiers, with an edge highlight in dark: `surfaceSunken` (app
+chrome such as the Drawer rail) < `background` (content) < `card`/`popover`
+(raised panels) < `muted` (chips, insets). `border` is the hairline on `background`/`card`; use
 `borderStrong` on filled surfaces. `textDim`/`mutedForeground` hold at least
 7:1 against `background`/`card` and 6:1 against `muted` in both schemes,
-enforced by a package test.
+enforced by a package test. If you override `background`, `card`, or `popover`,
+re-check them against the template's Surface Lab (`/surface-lab`).
 
 When `currentTheme` is `"system"` the package tracks the OS color scheme and
 updates every `useTheme()`/`useStyles()` consumer through the theme store. Do
@@ -311,7 +316,7 @@ everywhere at once:
 | `rowGap` | 12 | Gap between row media, content, actions |
 | `rowMinHeight` | 40 | Visual row height on web; native rows keep `touchTarget` |
 | `formRowMinHeight` | 32 | Checkbox and radio rows on web; native keeps `touchTarget` |
-| `touchTarget` | 44 | Minimum native hit area; pair a smaller visual height with `hitSlop` |
+| `touchTarget` | 44 | Minimum hit area for a control. `Button`, `Toggle` and `ToggleGroup` items reach it on every platform: native through computed `hitSlop`, web through a transparent hit extender inside the drawn box (react-native-web ignores `hitSlop`) |
 | `minTarget` | 24 | Smallest pointer target the kit draws on web (WCAG 2.5.8); `Checkbox`/`RadioGroup` grow their hit box to it around a smaller drawn box |
 
 Controls size themselves from their own `size` prop and ignore these tokens:
@@ -755,9 +760,10 @@ building a new primitive.
 `Icon` renders `lucide-react-native` — Lucide is a maintained superset of
 Feather in the same 24px, 2px round-stroke style. `name` is typed by
 `IconName`, the union of kebab-case Lucide names in the package registry
-(`src/components/icon-names.json`, about 150 names), so only the icons the package
-and its consumers name ship in the bundle: the root `lucide-react-native`
-entry (1,800+ icons) is never imported. `color` takes a theme color name or a
+(`src/components/icon-names.json`, about 150 names). Importing `Icon` includes
+that named registry because `name` is looked up at runtime, even when a caller
+uses `component`; the root `lucide-react-native` entry (1,800+ icons) is never
+imported. `color` takes a theme color name or a
 literal. `accessibilityLabel` names an icon that stands alone (`role="img"` +
 `aria-label` on web, `accessible` + `accessibilityLabel` on native); an icon
 without one is hidden from assistive tech — the glyph beside text that already
@@ -858,8 +864,11 @@ render from) is written once per page view and then once resizing settles.
 - Use `Button.preset`, not `variant`: `default` is the neutral primary action,
   `secondary` a neutral secondary surface, `outline` lower emphasis, `ghost`
   compact toolbars, `link` text-like commands, `destructive` dangerous actions.
-  Native targets add computed hit slop up to 44px. Nested `StyledText` inherits
-  the Button size, so use `size="sm"` for popover, tooltip, and toolbar
+  Every platform gives a Button a 44pt vertical target: native through computed
+  `hitSlop`, web through a transparent hit extender inside the drawn 28/32/40pt
+  box, so the visual size, layout and popover anchoring do not change; a caller
+  `hitSlop` replaces both (on web it is honoured too). Nested `StyledText`
+  inherits the Button size, so use `size="sm"` for popover, tooltip, and toolbar
   triggers.
 - A plain `View` whose `opacity` or `pointerEvents` follows state (`disabled`,
   `loading`, `checked`, `editable`) must be `collapsable={false}` on Android.

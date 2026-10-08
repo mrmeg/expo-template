@@ -77,6 +77,7 @@ export { BLOCKS };
 
 export const DEMOS: DemoEntry[] = [
   { id: "themed-showcase", route: "/(main)/(demos)/themed-showcase", icon: "droplet", label: "Themed Showcase" },
+  { id: "surface-lab", route: "/(main)/(demos)/surface-lab", icon: "layers", label: "Surface Lab" },
   { id: "form-validation", route: "/(main)/(demos)/form-demo", icon: "pencil", label: "Form Validation" },
   { id: "auth", route: "/(main)/(demos)/auth-demo", icon: "shield", label: "Auth Demo" },
   { id: "server-alpha", route: "/(main)/(demos)/server-alpha", icon: "server", label: "Server Alpha" },

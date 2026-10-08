@@ -15,7 +15,12 @@ import { ResetPasswordForm } from "./ResetPasswordForm";
 import { DismissKeyboard } from "@mrmeg/expo-ui/components/DismissKeyboard";
 import { SerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { useAuth } from "../hooks/useAuth";
-import { getSocialAuthProviders, isAuthError, type SocialAuthProviderName } from "../provider";
+import {
+  getSocialAuthProviders,
+  isAuthError,
+  type AuthFlowResult,
+  type SocialAuthProviderName,
+} from "../provider";
 import { useAuthStore } from "../stores/authStore";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
@@ -32,6 +37,8 @@ type AuthView =
   | "confirm-sign-in-code"
   | "reset-password";
 type PostVerifyDestination = "sign-in" | "forgot-password";
+/** The view a verify-email flow started from, which "Wrong email? Change it" returns to. */
+type VerifyOrigin = "sign-in" | "sign-up";
 
 type AuthScreenState = {
   view: AuthView;
@@ -49,6 +56,7 @@ type AuthScreenState = {
   resetPasswordSuccess: boolean;
   resending: boolean;
   postVerifyDestination: PostVerifyDestination;
+  verifyOrigin: VerifyOrigin;
   /** A federated redirect is in flight; the session arrives asynchronously. */
   socialPending: boolean;
 };
@@ -65,6 +73,7 @@ function createInitialAuthScreenState(initialView: AuthView): AuthScreenState {
     resetPasswordSuccess: false,
     resending: false,
     postVerifyDestination: "sign-in",
+    verifyOrigin: "sign-up",
     socialPending: false,
   };
 }
@@ -85,6 +94,15 @@ async function resendVerificationCode(
   } catch (resendErr: any) {
     logDev("Resend verification code error:", resendErr.name, resendErr.message);
   }
+}
+
+/** Copy for a failed sign-in code request, shared by every path that asks for one. */
+function signInCodeRequestError(err: any): string {
+  const code = isAuthError(err) ? err.code : "unknown";
+  if (code === "userNotFound") return "No account found with this email.";
+  if (code === "limitExceeded") return "Too many attempts. Please try again later.";
+  if (code === "unsupported") return err.message || "Email codes are not available here.";
+  return err.message || "Failed to send a sign-in code. Please try again.";
 }
 
 export function AuthScreen({
@@ -127,6 +145,7 @@ export function AuthScreen({
     resetPasswordSuccess,
     resending,
     postVerifyDestination,
+    verifyOrigin,
     socialPending,
   } = authScreenState;
 
@@ -177,6 +196,7 @@ export function AuthScreen({
           pendingEmail: data.email,
           pendingPassword: data.password,
           postVerifyDestination: "sign-in",
+          verifyOrigin: "sign-in",
         });
         await resendVerificationCode(resendCode, data.email);
         update({ view: "verify-email" });
@@ -190,6 +210,7 @@ export function AuthScreen({
           pendingEmail: data.email,
           pendingPassword: data.password,
           postVerifyDestination: "sign-in",
+          verifyOrigin: "sign-in",
         });
         await resendVerificationCode(resendCode, data.email);
         update({ view: "verify-email" });
@@ -209,31 +230,81 @@ export function AuthScreen({
     }
   };
 
-  // Email-code (passwordless) sign-in — request the code
+  /** Request a sign-in code for a known account and move to the code view; throws on failure. */
+  const requestSignInCode = async (email: string) => {
+    const result = await signInWithEmailCode({ email });
+
+    if (result.status === "complete") {
+      onAuthenticated?.();
+      return;
+    }
+    update({ pendingEmail: email, view: "confirm-sign-in-code" });
+  };
+
+  // Email-code (passwordless) sign-in — request the code for a known account.
+  // Used after confirming a passwordless sign-up and as the Continue fallback.
   const handleEmailCodeSignIn = async ({ email }: { email: string }) => {
     update({ loading: true, error: "" });
 
     try {
-      const result = await signInWithEmailCode({ email });
+      await requestSignInCode(email);
+    } catch (err: any) {
+      update({ error: signInCodeRequestError(err) });
+    } finally {
+      update({ loading: false });
+    }
+  };
 
-      if (result.status === "complete") {
-        onAuthenticated?.();
-        return;
-      }
-      update({ pendingEmail: email, view: "confirm-sign-in-code" });
+  /**
+   * The sign-in screen's Continue: sign-up first, sign-in on `userExists`.
+   * Cognito pools hide user existence, so a sign-in code request for an unknown
+   * address "succeeds" without sending anything; a sign-up never does, and it
+   * names a known address instead, which is when a sign-in code goes out.
+   */
+  const handleContinueWithEmail = async ({ email }: { email: string }) => {
+    update({ loading: true, error: "", passwordlessSignUp: true, verifyOrigin: "sign-in" });
+
+    try {
+      const result = await signUp({ email });
+      await finishSignUp(result, email, true);
     } catch (err: any) {
       const code = isAuthError(err) ? err.code : "unknown";
-      if (code === "userNotFound") {
-        update({ error: "No account found with this email." });
-      } else if (code === "limitExceeded") {
-        update({ error: "Too many attempts. Please try again later." });
+      if (code === "userExists") {
+        await continueWithExistingAccount(email);
       } else if (code === "unsupported") {
-        update({ error: err.message || "Email codes are not available here." });
+        // Clerk and pools without EMAIL_OTP as a first factor cannot create a
+        // passwordless account: request a sign-in code exactly as before.
+        update({ passwordlessSignUp: false });
+        await handleEmailCodeSignIn({ email });
       } else {
-        update({ error: err.message || "Failed to send a sign-in code. Please try again." });
+        update({ error: signInCodeRequestError(err) });
       }
     } finally {
       update({ loading: false });
+    }
+  };
+
+  /**
+   * Continue for an address that already has an account. An account that was
+   * never confirmed cannot take a sign-in code, so its confirmation code is
+   * resent; confirming it then requests the sign-in code (`passwordlessSignUp`).
+   */
+  const continueWithExistingAccount = async (email: string) => {
+    try {
+      await requestSignInCode(email);
+    } catch (err: any) {
+      if (isAuthError(err) && err.code === "userNotConfirmed") {
+        update({
+          pendingEmail: email,
+          passwordlessSignUp: true,
+          postVerifyDestination: "sign-in",
+          verifyOrigin: "sign-in",
+        });
+        await resendVerificationCode(resendCode, email);
+        update({ view: "verify-email" });
+        return;
+      }
+      update({ error: signInCodeRequestError(err) });
     }
   };
 
@@ -295,37 +366,50 @@ export function AuthScreen({
   };
 
   /**
+   * Where a successful `signUp` leads, shared by the sign-up form and Continue.
+   * `passwordless` accounts have no password view to land on, so they move on
+   * to a sign-in code.
+   */
+  const finishSignUp = async (result: AuthFlowResult, email: string, passwordless: boolean) => {
+    if (result.status === "complete") {
+      // Clerk establishes a session on completed sign-up; Cognito may not
+      // (auto-verified pools). handleSignUp already re-initialized the
+      // store, so its state tells us which happened.
+      if (useAuthStore.getState().state === "authenticated") {
+        onAuthenticated?.();
+      } else if (passwordless) {
+        // Confirmed with no session and no password to offer: the emailed
+        // sign-in code is the only way in.
+        await handleEmailCodeSignIn({ email });
+      } else {
+        update({ view: "sign-in" });
+      }
+    } else if (result.status === "needsConfirmation") {
+      update({
+        pendingEmail: email,
+        postVerifyDestination: "sign-in",
+        view: "verify-email",
+      });
+    }
+  };
+
+  /**
    * Sign Up — password-optional. Omitting `password` creates a passwordless
    * account: the emailed code confirms it and email-code sign-in is how it gets
    * a session, so the flag rides along to `handleVerify`.
    */
   const submitSignUp = async (data: { email: string; password?: string }) => {
     const passwordless = data.password === undefined;
-    update({ loading: true, error: "", passwordlessSignUp: passwordless });
+    update({
+      loading: true,
+      error: "",
+      passwordlessSignUp: passwordless,
+      verifyOrigin: "sign-up",
+    });
 
     try {
       const result = await signUp({ email: data.email, password: data.password });
-
-      if (result.status === "complete") {
-        // Clerk establishes a session on completed sign-up; Cognito may not
-        // (auto-verified pools). handleSignUp already re-initialized the
-        // store, so its state tells us which happened.
-        if (useAuthStore.getState().state === "authenticated") {
-          onAuthenticated?.();
-        } else if (passwordless) {
-          // Confirmed with no session and no password to offer: the emailed
-          // sign-in code is the only way in.
-          await handleEmailCodeSignIn({ email: data.email });
-        } else {
-          update({ view: "sign-in" });
-        }
-      } else if (result.status === "needsConfirmation") {
-        update({
-          pendingEmail: data.email,
-          postVerifyDestination: "sign-in",
-          view: "verify-email",
-        });
-      }
+      await finishSignUp(result, data.email, passwordless);
     } catch (err: any) {
       const code = isAuthError(err) ? err.code : "unknown";
       if (code === "userExists") {
@@ -527,7 +611,7 @@ export function AuthScreen({
       pendingPassword: "",
       passwordlessSignUp: false,
       postVerifyDestination: "sign-in",
-      view: "sign-up",
+      view: verifyOrigin,
     });
 
   return (
@@ -544,7 +628,7 @@ export function AuthScreen({
         socialPending={socialPending}
         socialProviders={socialProviders}
         onSignIn={handleSignIn}
-        onEmailCodeSignIn={handleEmailCodeSignIn}
+        onEmailCodeSignIn={handleContinueWithEmail}
         onConfirmSignInCode={handleConfirmSignInCode}
         onResendSignInCode={handleResendSignInCode}
         onSocialSignIn={handleSocialSignIn}

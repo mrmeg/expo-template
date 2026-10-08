@@ -341,6 +341,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `hooks/*`, and `state/*` patterns cannot map to a source file (a `.ts` module
   under a `*.tsx` pattern, and the reverse). Without the condition — every
   consumer toolchain — each key resolves to the same `dist` files as before.
+- **`getShadowStyle` is edge-lit in dark and stronger in light.** Dark mode
+  read flat: the old presets tripled a 0.04 alpha, and black at that alpha is
+  invisible on a near-black base, so cards, popovers and sheets did not feel
+  raised. The presets now have their own layers per scheme. In dark the raised
+  presets (`subtle`, `soft`, `elevated`, `card`, `cardSubtle`, `cardHover`,
+  `glass`) start with a 1px inset white top highlight (5 to 6 %), the "lit from
+  above" cue, followed by black layers at real alpha, deeper and larger than
+  before (`subtle` is `inset 0 1px 0 rgba(255,255,255,0.05), 0 1px 2px
+  rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.35)`). In light the layers keep
+  their shape at about double the alpha. `base` has no highlight, and `sharp`
+  and `glow` render as before. The dark boost multiplier is gone. Surface
+  colors are unchanged.
+- **`Button`, `Toggle` and `ToggleGroup` items have a 44pt pointer target on
+  web.** react-native-web ignores `hitSlop`, so the target was the drawn box:
+  28/32/40px for Button `sm`/`md`/`lg`, 32/36/40px for Toggle and ToggleGroup
+  sizes. A transparent, absolutely positioned child inside the drawn box now
+  extends the target vertically to `spacing.touchTarget` (44); the drawn box,
+  layout and the Pressable root's rect (popover and tooltip anchors) do not
+  change. On `Button` a caller `hitSlop` is honoured on web the same way
+  (numbers on all four sides, insets as given; `hitSlop={0}` opts out). Native
+  is unchanged.
 
 ### Fixed
 
@@ -351,18 +372,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   tab screen the provider context even reported the tab bar (83 pt), so
   `BottomSheet.Footer` sat up to 99 pt above the sheet's edge and the `Body`
   above it was squeezed until its last row was cut. `Body` and `Footer` now pad
-  only their own spacing on iOS (Android's Material host still receives the
-  inset from the kit). And the column's iOS height cap was `fraction × window
-  height`, while `@expo/ui` maps `"50%"` to SwiftUI's `.fraction(0.5)` of the
-  sheet's *maximum* height (the window minus the top safe-area inset minus
-  UIKit's 10 pt gap) and pads the hosted column 16 pt under the native
-  grabber; the cap now follows the real detent (fraction or clamped fixed
-  height of the available height, less the grabber padding unless
-  `BottomSheet.Handle` replaces the native indicator), so a host that does not
-  clamp the column no longer overshoots the sheet by about 52 pt at 50 %.
+  only their own spacing on iOS (Android: see the next entry). And the
+  column's iOS height cap was `fraction × window height`, while `@expo/ui`
+  maps `"50%"` to SwiftUI's `.fraction(0.5)` of the sheet's *maximum* height
+  (the window minus the top safe-area inset minus UIKit's 10 pt gap) and pads
+  the hosted column 16 pt under the native grabber; the cap now follows the
+  real detent (fraction or clamped fixed height of the available height, less
+  the grabber padding unless `BottomSheet.Handle` replaces the native
+  indicator), so a host that does not clamp the column no longer overshoots the
+  sheet by about 52 pt at 50 %.
   Verified on an iPhone 17 Pro simulator (iOS 26): a 60 % sheet with header,
   four rows and a footer shows every row and its footer 16 pt above the safe
   area. Web is unchanged.
+- **Android `BottomSheet.Footer` and a footer-less `Body` no longer pad the
+  navigation-bar inset a second time.** Material3's `ModalBottomSheet` already
+  keeps the hosted column above the navigation bar (measured on a Pixel 6a: the
+  column ends at the bar's top, and the footer sat 64 dp above the screen edge
+  instead of 40), so `useSheetInsets` now zeroes `bottom` on Android as it does
+  on iOS; web keeps the window inset. Footers sit 16 dp above the navigation
+  bar and bodies gain the inset. Apps that hand-padded an Android sheet footer
+  can drop it.
 - **`Button` honours `aria-disabled` and `accessibilityState.disabled`.** A
   button with either (and no `disabled`) is announced as disabled, drawn with
   the disabled look (opacity, no shadow, no press scale or haptic), yet stays

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { Colors, colors, resolveRawColor } from "../constants/colors";
+import { Colors, colors, palette, resolveRawColor } from "../constants/colors";
 import { ImageStyle, TextStyle, ViewStyle, Platform, StyleSheet } from "react-native";
 import { resolveThemePreference, useThemeStore, type ThemeStore } from "../state/themeStore";
 import { useThemeColorScope } from "../state/themeColorScope";
@@ -68,6 +68,135 @@ function startDocumentThemeSync(): void {
   useThemeStore.subscribe(writeDocumentScheme);
 }
 
+/** One shadow layer: offsets and blur in px, `opacity` folded into the color's alpha. */
+interface ShadowLayer {
+  x: number;
+  y: number;
+  blur: number;
+  opacity: number;
+}
+
+interface ShadowConfig {
+  light: ShadowLayer[];
+  dark: ShadowLayer[];
+  /**
+   * Alpha of the white 1px inset top highlight drawn in dark mode, on the
+   * raised presets only. Omitted: no highlight.
+   */
+  highlight?: number;
+}
+
+/**
+ * Shadow presets, per scheme.
+ *
+ * Light: the shadow does the work, at about twice the alpha the original
+ * presets used (0.04 became 0.08). Dark: the original presets tripled a 0.04
+ * alpha, which is invisible on the near-black base; these are black at real
+ * alpha, with the edge highlight in front. `subtle`, `soft` and `elevated`
+ * were tuned in the Surface Lab (`client/showcase/SurfaceLabScreen.tsx`); the
+ * other raised presets sit between them. `sharp` keeps its original light
+ * alpha and its original tripled dark alpha; `glow` is one vivid layer in both.
+ */
+const SHADOW_CONFIGS: Record<ShadowType, ShadowConfig> = {
+  subtle: {
+    light: [
+      { x: 0, y: 1, blur: 3, opacity: 0.08 },
+      { x: 0, y: 2, blur: 8, opacity: 0.06 },
+    ],
+    dark: [
+      { x: 0, y: 1, blur: 2, opacity: 0.4 },
+      { x: 0, y: 8, blur: 24, opacity: 0.35 },
+    ],
+    highlight: 0.05,
+  },
+  base: {
+    light: [
+      { x: 0, y: 2, blur: 6, opacity: 0.1 },
+      { x: 0, y: 4, blur: 12, opacity: 0.06 },
+    ],
+    dark: [
+      { x: 0, y: 2, blur: 3, opacity: 0.4 },
+      { x: 0, y: 10, blur: 28, opacity: 0.38 },
+    ],
+  },
+  soft: {
+    light: [
+      { x: 0, y: 4, blur: 10, opacity: 0.1 },
+      { x: 0, y: 8, blur: 20, opacity: 0.06 },
+    ],
+    dark: [
+      { x: 0, y: 2, blur: 4, opacity: 0.45 },
+      { x: 0, y: 14, blur: 36, opacity: 0.45 },
+    ],
+    highlight: 0.06,
+  },
+  card: {
+    light: [
+      { x: 0, y: 4, blur: 12, opacity: 0.1 },
+      { x: 0, y: 8, blur: 24, opacity: 0.06 },
+    ],
+    dark: [
+      { x: 0, y: 2, blur: 4, opacity: 0.42 },
+      { x: 0, y: 10, blur: 30, opacity: 0.4 },
+    ],
+    highlight: 0.05,
+  },
+  cardSubtle: {
+    light: [
+      { x: 0, y: 1, blur: 3, opacity: 0.1 },
+      { x: 0, y: 3, blur: 9, opacity: 0.06 },
+    ],
+    dark: [
+      { x: 0, y: 1, blur: 2, opacity: 0.4 },
+      { x: 0, y: 4, blur: 12, opacity: 0.3 },
+    ],
+    highlight: 0.05,
+  },
+  cardHover: {
+    light: [
+      { x: 0, y: 8, blur: 24, opacity: 0.12 },
+      { x: 0, y: 16, blur: 48, opacity: 0.08 },
+    ],
+    dark: [
+      { x: 0, y: 3, blur: 6, opacity: 0.48 },
+      { x: 0, y: 18, blur: 48, opacity: 0.5 },
+    ],
+    highlight: 0.06,
+  },
+  elevated: {
+    light: [
+      { x: 0, y: 16, blur: 48, opacity: 0.16 },
+      { x: 0, y: 32, blur: 96, opacity: 0.1 },
+    ],
+    dark: [
+      { x: 0, y: 4, blur: 8, opacity: 0.5 },
+      { x: 0, y: 24, blur: 56, opacity: 0.55 },
+    ],
+    highlight: 0.06,
+  },
+  glass: {
+    light: [
+      { x: 0, y: 4, blur: 30, opacity: 0.1 },
+      { x: 0, y: 8, blur: 60, opacity: 0.06 },
+    ],
+    dark: [
+      { x: 0, y: 4, blur: 30, opacity: 0.4 },
+      { x: 0, y: 8, blur: 60, opacity: 0.3 },
+    ],
+    highlight: 0.05,
+  },
+  // Single layer — intentional crispness, not a soft dual-layer shadow.
+  sharp: {
+    light: [{ x: 0, y: 1, blur: 1, opacity: 0.15 }],
+    dark: [{ x: 0, y: 1, blur: 1, opacity: 0.45 }],
+  },
+  // Single layer — already a deliberate, vivid accent glow.
+  glow: {
+    light: [{ x: 0, y: 4, blur: 20, opacity: 0.4 }],
+    dark: [{ x: 0, y: 4, blur: 20, opacity: 0.4 }],
+  },
+};
+
 interface ExtendedColorScheme {
   theme: Colors["light" | "dark"];
   scheme: "light" | "dark";
@@ -101,7 +230,7 @@ interface ExtendedColorScheme {
  * - getTextColorForBackground("#000") → "light"
  * - getContrastingColor("#f4f4f4", "#222", "#fff") → "#222"
  * - withAlpha("#336699", 0.6) → "rgba(51,102,153,0.6)"
- * - getShadowStyle('base') → { boxShadow: "0px 2px 6px rgba(0, 0, 0, 0.05), 0px 4px 12px rgba(0, 0, 0, 0.03)" }
+ * - getShadowStyle('base') → { boxShadow: "0px 2px 6px rgba(0, 0, 0, 0.1), 0px 4px 12px rgba(0, 0, 0, 0.06)" } (light)
  */
 export function useTheme(): ExtendedColorScheme & {
   toggleTheme: () => void;
@@ -180,66 +309,31 @@ export function useTheme(): ExtendedColorScheme & {
    * single-layer) is a dual-layer shadow: a tight "contact" layer plus a
    * wider, softer "ambient" layer, pitsi-ui-style. Layers are comma-joined
    * into one `boxShadow` value.
+   *
+   * Light and dark have their own layers. Light is the shadow alone. Dark is
+   * edge-lit: a 1px inset white highlight along the top edge, plus black
+   * layers at real alpha, deeper and larger than light's. On the near-black
+   * dark base a faint drop shadow is invisible, so the highlight carries the
+   * "lit from above" cue and the shadow only grounds the surface. The
+   * highlight is on the raised presets; `sharp` and `glow` have none.
    */
   const getShadowStyle = useCallback((type: ShadowType): ViewStyle => {
-    // Each preset is one or more layers of [offsetX, offsetY, blurRadius, color, opacity].
-    // Darker themes get a stronger alpha so shadows stay visible.
-    const boost = theme.dark ? 3 : 1;
     const overlay = theme.colors.overlay;
-    const shadowConfigs: Record<
-      ShadowType,
-      { x: number; y: number; blur: number; color: string; opacity: number }[]
-    > = {
-      subtle: [
-        { x: 0, y: 1, blur: 3, color: overlay, opacity: 0.04 },
-        { x: 0, y: 2, blur: 8, color: overlay, opacity: 0.03 },
-      ],
-      base: [
-        { x: 0, y: 2, blur: 6, color: overlay, opacity: 0.05 },
-        { x: 0, y: 4, blur: 12, color: overlay, opacity: 0.03 },
-      ],
-      soft: [
-        { x: 0, y: 4, blur: 10, color: overlay, opacity: 0.05 },
-        { x: 0, y: 8, blur: 20, color: overlay, opacity: 0.03 },
-      ],
-      card: [
-        { x: 0, y: 4, blur: 12, color: overlay, opacity: 0.05 },
-        { x: 0, y: 8, blur: 24, color: overlay, opacity: 0.03 },
-      ],
-      cardSubtle: [
-        { x: 0, y: 1, blur: 3, color: overlay, opacity: 0.05 },
-        { x: 0, y: 3, blur: 9, color: overlay, opacity: 0.03 },
-      ],
-      cardHover: [
-        { x: 0, y: 8, blur: 24, color: overlay, opacity: 0.06 },
-        { x: 0, y: 16, blur: 48, color: overlay, opacity: 0.04 },
-      ],
-      elevated: [
-        { x: 0, y: 16, blur: 48, color: overlay, opacity: 0.08 },
-        { x: 0, y: 32, blur: 96, color: overlay, opacity: 0.05 },
-      ],
-      glass: [
-        { x: 0, y: 4, blur: 30, color: overlay, opacity: 0.05 },
-        { x: 0, y: 8, blur: 60, color: overlay, opacity: 0.03 },
-      ],
-      // Single layer — intentional crispness, not a soft dual-layer shadow.
-      sharp: [
-        { x: 0, y: 1, blur: 1, color: overlay, opacity: 0.15 },
-      ],
-      // Single layer — already a deliberate, vivid accent glow.
-      glow: [
-        { x: 0, y: 4, blur: 20, color: theme.colors.primary, opacity: 0.4 },
-      ],
-    };
+    const config = SHADOW_CONFIGS[type];
+    const layers: ShadowLayer[] = theme.dark ? config.dark : config.light;
 
-    const layers = shadowConfigs[type].map(({ x, y, blur, color, opacity }) => {
-      // Don't boost the glow accent — it's already a deliberate, vivid alpha.
-      const alpha = color === theme.colors.primary ? opacity : Math.min(opacity * boost, 1);
-      return `${x}px ${y}px ${blur}px ${withAlpha(color, alpha)}`;
-    });
+    // Don't tint `glow` with the overlay: it is a deliberate, vivid accent glow.
+    const color = type === "glow" ? theme.colors.primary : overlay;
+    const parts = layers.map(({ x, y, blur, opacity }) =>
+      `${x}px ${y}px ${blur}px ${withAlpha(color, opacity)}`
+    );
+
+    if (theme.dark && config.highlight !== undefined) {
+      parts.unshift(`inset 0px 1px 0px ${withAlpha(palette.white, config.highlight)}`);
+    }
 
     return {
-      boxShadow: layers.join(", "),
+      boxShadow: parts.join(", "),
     } as ViewStyle;
   }, [theme]);
 
