@@ -309,7 +309,8 @@ describe("auth link targets", () => {
     {
       name: "sign in (email code toggle)",
       form: <SignInForm embedded onSignUp={() => {}} onEmailCodeSignIn={async () => {}} />,
-      labels: ["auth.signUp"],
+      // Code mode hides the sign-up footer; the password case above covers it.
+      labels: [] as string[],
       testIDs: [["sign-in-use-code-button", "sign-in-use-password-button"]],
     },
     {
