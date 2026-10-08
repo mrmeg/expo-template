@@ -37,19 +37,6 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
       "expo-router",
       {
         origin: "",
-        // Render routes on the server per request instead of shipping the
-        // export-time HTML shell, and enable route `loader` exports. SDK 58
-        // stabilized middleware (`app/+middleware.ts` runs with no flag), but
-        // @expo/cli 58 still reads these two flags in its dev server, static
-        // export, and server-route middleware, so they stay until Expo
-        // promotes them.
-        unstable_useServerRendering: true,
-        unstable_useServerDataLoaders: true,
-        // Split route code into per-route chunks on web production exports so
-        // the entry bundle stops statically containing every route (and its
-        // route-only dependencies). Still opt-in on SDK 58: unset resolves to
-        // false. Omitting `ios`/`android`/`default` keeps dev servers and
-        // native builds on synchronous routes.
         asyncRoutes: { web: "production" },
       },
     ],

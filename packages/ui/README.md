@@ -755,9 +755,10 @@ building a new primitive.
 `Icon` renders `lucide-react-native` — Lucide is a maintained superset of
 Feather in the same 24px, 2px round-stroke style. `name` is typed by
 `IconName`, the union of kebab-case Lucide names in the package registry
-(`src/components/icon-names.json`, about 150 names), so only the icons the package
-and its consumers name ship in the bundle: the root `lucide-react-native`
-entry (1,800+ icons) is never imported. `color` takes a theme color name or a
+(`src/components/icon-names.json`, about 150 names). Importing `Icon` includes
+that named registry because `name` is looked up at runtime, even when a caller
+uses `component`; the root `lucide-react-native` entry (1,800+ icons) is never
+imported. `color` takes a theme color name or a
 literal. `accessibilityLabel` names an icon that stands alone (`role="img"` +
 `aria-label` on web, `accessible` + `accessibilityLabel` on native); an icon
 without one is hidden from assistive tech — the glyph beside text that already
