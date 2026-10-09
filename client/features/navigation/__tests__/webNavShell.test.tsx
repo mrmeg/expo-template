@@ -205,12 +205,12 @@ describe("WebNavShell breakpoint selection", () => {
     expect(screen.queryByTestId("web-nav-shell-rail")).toBeNull();
   });
 
-  it("switches exactly at SCREEN_SIZES.MEDIUM (isLargeScreen is strict >)", async () => {
-    const atBoundary = await renderShellAt(SCREEN_SIZES.MEDIUM);
+  it("docks above SCREEN_SIZES.SMALL (isSmallScreen is <=)", async () => {
+    const atBoundary = await renderShellAt(SCREEN_SIZES.SMALL);
     expect(screen.getByTestId("web-nav-shell-overlay")).toBeTruthy();
     await atBoundary.unmount();
 
-    await renderShellAt(SCREEN_SIZES.MEDIUM + 1);
+    await renderShellAt(SCREEN_SIZES.SMALL + 1);
     expect(screen.getByTestId("web-nav-shell-rail")).toBeTruthy();
   });
 
