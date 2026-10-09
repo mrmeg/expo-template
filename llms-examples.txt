@@ -147,6 +147,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/Switch.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Switch.tsx
 - packages/ui/src/components/Tabs.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Tabs.tsx
 - packages/ui/src/components/TextInput.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/TextInput.tsx
+- packages/ui/src/components/ThemeSelector.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ThemeSelector.tsx
 - packages/ui/src/components/Toggle.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Toggle.tsx
 - packages/ui/src/components/ToggleGroup.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ToggleGroup.tsx
 - packages/ui/src/components/Tooltip.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Tooltip.tsx

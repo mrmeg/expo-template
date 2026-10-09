@@ -93,15 +93,15 @@ const en = {
     passwordMinLength: "Password must be at least {{count}} characters",
   },
   settings: {
-    appearance: "Appearance",
+    preferences: "Preferences",
+    themeTitle: "Theme",
     theme: {
       system: "System",
       light: "Light",
       dark: "Dark",
     },
-    currentTheme: "Current theme",
+    matchesDevice: "Matches your device: {{scheme}}",
     language: "Language",
-    languageHint: "Choose your preferred language",
     about: "About",
     version: "Version",
     environment: "Environment",

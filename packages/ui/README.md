@@ -481,7 +481,7 @@ setHaptics("all");
 | `haptics` | Fires on |
 |---|---|
 | `"off"` | nothing |
-| `"selection"` (default) | state changes: Switch, Checkbox, Toggle, ToggleGroup, SegmentedControl |
+| `"selection"` (default) | state changes: Switch, Checkbox, Toggle, ToggleGroup, SegmentedControl, ThemeSelector |
 | `"all"` | selection plus a light tap on press-in for Button, pressable Card and Item, and `useScalePress` consumers |
 
 Two ways to disable a `Button`. `disabled` swallows presses, skips the scale
@@ -751,6 +751,7 @@ building a new primitive.
 | `Switch` | Binary settings | Notification, privacy, and feature toggles |
 | `Tabs` | In-page tabbed views | Profile sections, report views, settings categories |
 | `TextInput` | Text entry with label, helper/error text, clear button, password reveal, numeric filtering, left/right elements | Email/password, search, multiline notes |
+| `ThemeSelector` | Compact System / Light / Dark switch bound to the theme store (icon-only, or `showLabels`) | The appearance row of a settings screen |
 | `Toggle` | Pressed/unpressed control | Favorite, mute, bold/italic, view mode |
 | `ToggleGroup` | Single or multi toggle groups | Alignment, formatting toolbar, filter chips |
 | `Tooltip` | Short hover/focus help | Icon button labels, field hints, disabled-action reasons |

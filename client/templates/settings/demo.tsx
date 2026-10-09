@@ -28,6 +28,7 @@ export default function ScreenSettingsDemo() {
     {
       title: "Preferences",
       items: [
+        { type: "appearance", icon: "sun", label: "Theme" },
         { type: "toggle", icon: "bell", label: "Notifications", value: notifications, onValueChange: setNotifications },
         { type: "toggle", icon: "lock", label: "Biometric Login", value: biometrics, onValueChange: setBiometrics },
         { type: "toggle", icon: "refresh-cw", label: "Auto-Update", value: autoUpdate, onValueChange: setAutoUpdate },

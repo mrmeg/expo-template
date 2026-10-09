@@ -40,6 +40,7 @@ export * from "./StyledText";
 export * from "./Switch";
 export * from "./Tabs";
 export * from "./TextInput";
+export * from "./ThemeSelector";
 export * from "./Toggle";
 export * from "./ToggleGroup";
 export * from "./Tooltip";

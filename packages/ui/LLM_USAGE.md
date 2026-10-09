@@ -191,7 +191,7 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 - Web SSR paints the visitor's scheme: wrap the root layout in `<InitialSchemeProvider scheme>` (`@mrmeg/expo-ui/state`) with the `"light"`/`"dark"` value read from a cookie on both server and client (template: `shared/ssrColorScheme.ts`, written by `+html.tsx` and `client/features/app/colorSchemeCookie.ts`); `useTheme()` uses it until `hasLoadedTheme`. Never read `localStorage` for the first render.
 - A Radix-backed component (`Tabs`, `Accordion`, `Collapsible`, `Select`, `DropdownMenu`, `Popover`) on a server-rendered web route logs a `useId` hydration mismatch (Expo Router hydrates `#root`, the server rendered `+html.tsx`). Wrap that subtree — not the page — in `<Hydrated fallback={…}>` (`@mrmeg/expo-ui/components`) with a fallback that holds its height; never branch on `typeof window`. Content that must be in the server HTML stays outside the gate.
 - Web console hygiene: animate with `useNativeDriver: shouldUseNativeDriver` (`@mrmeg/expo-ui/lib`), never `true`; set `pointerEvents` in `style`, never as a prop (react-native-web deprecates the prop, and its lazy warning module has overflowed the first SSR render of deep routes). `AnimatedView` folds a `pointerEvents` prop into style for you.
-- Haptics are one setting: `<UIProvider haptics="off" | "selection" | "all">` (default `"selection"`: Switch/Checkbox/Toggle/ToggleGroup/SegmentedControl tap on change; `"all"` adds a light tap on press for Button, pressable Card and Item). Do not call `expo-haptics` per control; force one Button with `haptic`. Pressed/disabled looks come from `interaction.pressedOpacity` / `interaction.disabledOpacity` in `@mrmeg/expo-ui/constants`.
+- Haptics are one setting: `<UIProvider haptics="off" | "selection" | "all">` (default `"selection"`: Switch/Checkbox/Toggle/ToggleGroup/SegmentedControl/ThemeSelector tap on change; `"all"` adds a light tap on press for Button, pressable Card and Item). Do not call `expo-haptics` per control; force one Button with `haptic`. Pressed/disabled looks come from `interaction.pressedOpacity` / `interaction.disabledOpacity` in `@mrmeg/expo-ui/constants`.
 - Bottom toasts must clear the tab bar: the layout that owns a bar calls `useNotificationOffset({ bottom })` (`@mrmeg/expo-ui/hooks`) with the bar's distance from the window edge, inset included — `useBottomTabBarHeight()` for a JS `<Tabs>` layout, platform bar height + `useWindowInsets().bottom` for `NativeTabs` — and `null` while the bar is hidden. Never position a toast yourself.
 - Use `notify` plus a root `UIProvider` for transient global feedback. (`globalUIStore` stays available for reactive subscriptions and tests. In a component, read it with zustand's `useStore(globalUIStore, selector)`, never `globalUIStore()`: the React Compiler only treats `use*` calls as hooks, caches the bare call, and the next render crashes with React error #311.)
 - Keep app monitoring, auth, API, and domain behavior outside this package.
@@ -260,6 +260,11 @@ Layout spacing uses semantic density tokens, not raw scale steps:
 tokens and keeps a 44px hit area on native while rendering 40px on web.
 `spacing.cardPadding` (16) is the inner padding of `Card` and `StatCard` tiles,
 not a layout inset. See Screen Layout below.
+
+A settings screen picks the theme with one row: `ThemeSelector` in the row's
+`ItemActions`, with translated `labels`. It reads and writes `useThemeStore`, so
+it needs no state of its own. Describe the resolved scheme under the title only
+while the preference is `system`.
 
 When the saved theme preference is `system`, the package theme store owns the OS
 color-scheme subscription, including web `prefers-color-scheme`. Do not add
@@ -417,6 +422,7 @@ Check this before creating a new app-local primitive. All components come from
 | `Switch` | Binary settings | Custom toggle switches |
 | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | In-page tabbed views | Custom segmented/tab controls |
 | `TextInput` | Text entry with label, helper/error text, clear, password reveal | Raw `TextInput` plus repeated label/error code |
+| `ThemeSelector` | System / Light / Dark switch wired to the theme store; icon-only fits an `ItemActions` slot, `showLabels` stretches | Three radio rows or a hand-rolled theme picker |
 | `Toggle`, `ToggleIcon` | Pressed/unpressed control; an `iconOnly` toggle needs `accessibilityLabel` (dev warns once) | Button with local selected styling |
 | `ToggleGroup`, `ToggleGroupItem`, `ToggleGroupIcon` | Single or multi toggle groups | Custom segmented controls |
 | `Tooltip` | Short hover/focus help | Persistent helper text or custom hover cards |
