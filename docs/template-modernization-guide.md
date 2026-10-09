@@ -98,8 +98,7 @@ Pick the largest scale that fits before dropping to the one below.
 
 The Explore tab (`app/(main)/(tabs)/index.tsx`) is the entry point: a search field
 filtering all three registries at once, then one section per scale.
-`client/showcase/ShowcaseScreen.tsx` is the exhaustive per-component kitchen sink,
-linked from the components gallery header. The gallery route files under
+The gallery route files under
 `app/(main)/(demos)` are one-line lazy shells; their bodies live in
 `client/showcase/*Screen.tsx` behind a single split point
 (`client/showcase/gallery.tsx`), keeping previews out of every other route's
@@ -108,8 +107,7 @@ first-render download — see `docs/bundle-analysis.md`.
 ## Component Selection
 
 Start with `packages/ui/src/components/index.ts` and
-`client/showcase/ComponentsGalleryScreen.tsx` (or the exhaustive
-`client/showcase/ShowcaseScreen.tsx`).
+`client/showcase/ComponentsGalleryScreen.tsx`.
 
 | Use case | Prefer |
 |----------|--------|
@@ -117,7 +115,7 @@ Start with `packages/ui/src/components/index.ts` and
 | Primary, secondary, outline, destructive actions | `Button` |
 | Text entry | `TextInput`, app form wrappers under `client/lib/form/` |
 | Boolean input | `Switch`, `Checkbox`, `Toggle` |
-| One-of-many or few-of-many choice | `RadioGroup`, `SegmentedControl`, `Select`, `ToggleGroup` |
+| One-of-many or few-of-many choice | `RadioGroup`, `SegmentedControl`, `Select`, `ToggleGroup` (theme preference: `ThemeSelector`) |
 | Numeric selection | `Slider`, or an app-specific stepper built from package primitives |
 | Navigation inside a surface | `Tabs`, `Accordion`, `Collapsible` |
 | Menus and contextual commands | `DropdownMenu`, `Popover`, `Tooltip` |

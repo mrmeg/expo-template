@@ -9,8 +9,7 @@
  * Keep entries small, typed, and serializable — this is data, not UI, and a
  * script or a server route has to be able to read it. UI lives in
  * `app/(main)/(tabs)/index.tsx` (Explore), the galleries under
- * `app/(main)/(demos)/{components,blocks,templates}/`, and
- * `client/showcase/ShowcaseScreen.tsx` (the exhaustive kitchen sink).
+ * `app/(main)/(demos)/{components,blocks,templates}/`.
  * Anything that renders JSX per id lives beside it in `client/showcase/`
  * (`previews.tsx`, `blockStages.tsx`, `details.tsx`), keyed by the same id.
  */
@@ -131,6 +130,7 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "Switch", importPath: "@mrmeg/expo-ui/components/Switch", category: "form" },
   { id: "Tabs", importPath: "@mrmeg/expo-ui/components/Tabs", category: "navigation" },
   { id: "TextInput", importPath: "@mrmeg/expo-ui/components/TextInput", category: "form" },
+  { id: "ThemeSelector", importPath: "@mrmeg/expo-ui/components/ThemeSelector", category: "form" },
   { id: "Toggle", importPath: "@mrmeg/expo-ui/components/Toggle", category: "form" },
   { id: "ToggleGroup", importPath: "@mrmeg/expo-ui/components/ToggleGroup", category: "form" },
   { id: "Tooltip", importPath: "@mrmeg/expo-ui/components/Tooltip", category: "overlay" },

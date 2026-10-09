@@ -8,6 +8,7 @@ import {
   Pressable,
   type ListViewToken,
   type DimensionValue,
+  type ViewProps,
 } from "react-native";
 import { SansSerifBoldText, SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { Button } from "@mrmeg/expo-ui/components/Button";
@@ -18,6 +19,7 @@ import { spacing } from "@mrmeg/expo-ui/constants";
 import type { Theme } from "@mrmeg/expo-ui/constants";
 
 const CONTROL_ZONE_SPACE = 128;
+const MAX_CONTROLS_WIDTH = 420;
 
 // FlatList requires `viewabilityConfig` to keep one identity for the list's
 // lifetime. Module scope gives it that without reading a ref during render,
@@ -38,6 +40,17 @@ export interface OnboardingPage {
   /** Page description */
   description: string;
 }
+
+// Horizontal list cells size to their content's height, so a page's
+// `justifyContent: "center"` would only center within its own content. Letting
+// the cell fill the list's height centers each page in the viewport.
+function OnboardingCell({ style, ...props }: ViewProps) {
+  return <View {...props} style={[style, cellStyles.cell]} />;
+}
+
+const cellStyles = StyleSheet.create({
+  cell: { flex: 1 },
+});
 
 function getOnboardingPageKey(page: OnboardingPage): string {
   return page.id ?? `${page.icon}:${page.title}:${page.description}`;
@@ -182,6 +195,7 @@ export function OnboardingFlow({
         contentContainerStyle={styles.pagesContent}
         data={pages}
         renderItem={renderPage}
+        CellRendererComponent={OnboardingCell}
         keyExtractor={getOnboardingPageKey}
         horizontal
         pagingEnabled
@@ -202,44 +216,46 @@ export function OnboardingFlow({
 
       {/* Bottom controls */}
       <View testID="onboarding-controls" style={styles.bottomControls}>
-        {/* Dot indicators */}
-        <View testID="onboarding-dots" style={styles.dotsContainer}>
-          {pages.map((page, index) => (
-            <Pressable
-              key={getOnboardingPageKey(page)}
-              testID={`onboarding-step-${index}`}
-              accessibilityRole="button"
-              accessibilityLabel={`Go to step ${index + 1} of ${pages.length}: ${page.title}`}
-              accessibilityState={{ selected: index === currentIndex }}
-              onPress={() => handleStepPress(index)}
-              style={styles.dotButton}
-            >
-              <Animated.View
-                testID="onboarding-dot"
-                style={[
-                  styles.dot,
-                  {
-                    width: dotWidths[index],
-                    backgroundColor:
-                      index === currentIndex
-                        ? theme.colors.accent
-                        : theme.colors.muted,
-                  },
-                ]}
-              />
-            </Pressable>
-          ))}
-        </View>
+        <View style={styles.controlsColumn}>
+          {/* Dot indicators */}
+          <View testID="onboarding-dots" style={styles.dotsContainer}>
+            {pages.map((page, index) => (
+              <Pressable
+                key={getOnboardingPageKey(page)}
+                testID={`onboarding-step-${index}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Go to step ${index + 1} of ${pages.length}: ${page.title}`}
+                accessibilityState={{ selected: index === currentIndex }}
+                onPress={() => handleStepPress(index)}
+                style={styles.dotButton}
+              >
+                <Animated.View
+                  testID="onboarding-dot"
+                  style={[
+                    styles.dot,
+                    {
+                      width: dotWidths[index],
+                      backgroundColor:
+                        index === currentIndex
+                          ? theme.colors.accent
+                          : theme.colors.muted,
+                    },
+                  ]}
+                />
+              </Pressable>
+            ))}
+          </View>
 
-        {/* Next / Done button */}
-        <Button
-          testID="onboarding-next-button"
-          preset="default"
-          fullWidth
-          onPress={handleNext}
-          style={styles.nextButton}
-          text={isLastPage ? doneLabel : nextLabel}
-        />
+          {/* Next / Done button */}
+          <Button
+            testID="onboarding-next-button"
+            preset="default"
+            fullWidth
+            onPress={handleNext}
+            style={styles.nextButton}
+            text={isLastPage ? doneLabel : nextLabel}
+          />
+        </View>
       </View>
     </View>
   );
@@ -307,8 +323,13 @@ const createStyles = (theme: Theme) =>
       left: 0,
       right: 0,
       bottom: 0,
+      alignItems: "center",
       paddingHorizontal: spacing.screenPadding,
       paddingBottom: spacing.xxl,
+    },
+    controlsColumn: {
+      width: "100%",
+      maxWidth: MAX_CONTROLS_WIDTH,
       gap: spacing.lg,
     },
     dotsContainer: {

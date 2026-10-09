@@ -10,8 +10,8 @@
  * Every preview is a real instance of the shipped component, not a mock: that's
  * the point of the gallery, and it means a component that regresses shows the
  * regression in the card. Previews are deliberately small and mostly
- * uncontrolled — a card is a glance, not a demo. The full kitchen sink
- * (`client/showcase/ShowcaseScreen.tsx`) still owns the exhaustive variants.
+ * uncontrolled — a card is a glance, not a demo. The detail screen
+ * (`ComponentDetailScreen.tsx`) shows the interactive variants.
  *
  * Components with no meaningful static preview (imperative APIs like `Alert`,
  * or overlays that only exist while open) render a small trigger or a static
@@ -55,6 +55,7 @@ import { CaptionText, MonoText, SansSerifText, SerifText } from "@mrmeg/expo-ui/
 import { Switch } from "@mrmeg/expo-ui/components/Switch";
 import { Tabs, TabsList, TabsTrigger } from "@mrmeg/expo-ui/components/Tabs";
 import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
+import { ThemeSelector } from "@mrmeg/expo-ui/components/ThemeSelector";
 import { Toggle } from "@mrmeg/expo-ui/components/Toggle";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@mrmeg/expo-ui/components/Tooltip";
@@ -158,6 +159,15 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
   ),
 
   Slider: () => <View style={{ alignSelf: "stretch" }}><Slider value={62} /></View>,
+
+  ThemeSelector: () => (
+    <View style={{ alignSelf: "stretch", alignItems: "center", gap: spacing.md }}>
+      <Row>
+        <ThemeSelector />
+      </Row>
+      <ThemeSelector showLabels />
+    </View>
+  ),
 
   Switch: () => (
     <Row>

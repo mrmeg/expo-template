@@ -100,7 +100,7 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `npx expo start` | Expo dev server (interactive) |
 | `bun run web` | Expo web dev server |
 | `bun run ios` / `bun run android` | Build + run on simulator / emulator |
-| `bun run scan:showcase` | Open React Scan against the local showcase route on port 8081 |
+| `bun run scan:showcase` | Open React Scan against the local components gallery on port 8081 |
 | `bun run build` | Production web export → `dist/` (client bundle + server output), tree-shaken |
 | `bun run start` | Run the Bun production server (`server.bun.ts`); Bun loads `.env` itself |
 | `bun run typecheck` | `tsc --noEmit` |
@@ -121,7 +121,7 @@ The web document injects React Scan only when a local URL includes `?scan`:
 
 ```bash
 bun run web
-# open http://localhost:8081/showcase?scan
+# open http://localhost:8081/components?scan
 bun run scan:showcase   # same, against an already-running dev server
 ```
 
@@ -207,7 +207,7 @@ does not collect it. The lint plugin's own suites live in
 /test                         # Jest setup
 ```
 
-Six gallery routes — `showcase/index.tsx`, `themed-showcase.tsx`,
+Five gallery routes — `themed-showcase.tsx`,
 `surface-lab.tsx`, `components/index.tsx`, `components/[id].tsx`, `blocks/index.tsx` under
 `app/(main)/(demos)` — are one-line lazy shells. Their bodies live in
 `client/showcase/*Screen.tsx` behind the single split point

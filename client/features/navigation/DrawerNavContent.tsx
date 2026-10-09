@@ -38,6 +38,13 @@ interface DrawerNavContentProps {
    * the drawer; the rail passes nothing (it's persistent).
    */
   onNavigate?: () => void;
+  /**
+   * Renders the sidebar toggle beside the wordmark. The rail collapses itself;
+   * the overlay closes.
+   */
+  onToggleSidebar?: () => void;
+  /** Accessible label for the sidebar toggle. */
+  toggleSidebarLabel?: string;
 }
 
 interface NavItemProps {
@@ -79,7 +86,11 @@ function SectionTitle({ children }: { children: string }) {
   return <SansSerifBoldText semantic="eyebrow" style={styles.sectionTitle}>{children}</SansSerifBoldText>;
 }
 
-export function DrawerNavContent({ onNavigate }: DrawerNavContentProps) {
+export function DrawerNavContent({
+  onNavigate,
+  onToggleSidebar,
+  toggleSidebarLabel = "Close sidebar",
+}: DrawerNavContentProps) {
   const { theme, toggleTheme, currentTheme, scheme } = useTheme();
   const styles = themedStyles(theme);
   const pathname = usePathname();
@@ -109,18 +120,31 @@ export function DrawerNavContent({ onNavigate }: DrawerNavContentProps) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Wordmark — accent dot + package name, links home like the mockups'. */}
-        <Link href={"/(main)/(tabs)" as never} asChild>
-          <Pressable
-            accessibilityRole="link"
-            testID="drawer-wordmark"
-            onPress={onNavigate}
-            style={linkPressableStyle(styles.wordmark)}
-          >
-            <View style={styles.wordmarkDot} />
-            <SansSerifBoldText size="base" style={styles.wordmarkText}>@mrmeg/expo-ui</SansSerifBoldText>
-          </Pressable>
-        </Link>
+        <View style={styles.header}>
+          {/* Wordmark — accent dot + package name, links home like the mockups'. */}
+          <Link href={"/(main)/(tabs)" as never} asChild>
+            <Pressable
+              accessibilityRole="link"
+              testID="drawer-wordmark"
+              onPress={onNavigate}
+              style={linkPressableStyle(styles.wordmark)}
+            >
+              <View style={styles.wordmarkDot} />
+              <SansSerifBoldText size="base" style={styles.wordmarkText}>@mrmeg/expo-ui</SansSerifBoldText>
+            </Pressable>
+          </Link>
+          {onToggleSidebar && (
+            <Pressable
+              onPress={onToggleSidebar}
+              accessibilityRole="button"
+              accessibilityLabel={toggleSidebarLabel}
+              testID="drawer-sidebar-toggle"
+              style={styles.sidebarToggle}
+            >
+              <Icon name="panel-left" size={18} color={theme.colors.textDim} />
+            </Pressable>
+          )}
+        </View>
 
         {/* Search affordance. The real search field lives on Explore (the ⌘K
             palette is explicitly out of scope), so this navigates there. */}
@@ -248,6 +272,18 @@ const createStyles = (theme: Theme) =>
     scrollContent: {
       padding: spacing.md,
       gap: spacing.xs,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    sidebarToggle: {
+      width: 32,
+      height: 32,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: spacing.radiusSm,
     },
     wordmark: {
       flexDirection: "row",

@@ -1,19 +1,19 @@
-import { View, StyleSheet, ScrollView } from "react-native";
-import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
+import { StyleSheet, ScrollView } from "react-native";
+import { useTheme } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
-import { useThemeStore } from "@mrmeg/expo-ui/state";
 import { SansSerifText, MonoText } from "@mrmeg/expo-ui/components/StyledText";
-import { Icon } from "@mrmeg/expo-ui/components/Icon";
-import type { IconName } from "@mrmeg/expo-ui/components/Icon";
 import {
   Item,
   ItemGroup,
-  ItemMedia,
   ItemContent,
   ItemTitle,
   ItemDescription,
   ItemActions,
 } from "@mrmeg/expo-ui/components/Item";
+import { ThemeSelector } from "@mrmeg/expo-ui/components/ThemeSelector";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@mrmeg/expo-ui/components/Select";
+import { Hydrated } from "@mrmeg/expo-ui/components/Hydrated";
+import { useThemeStore } from "@mrmeg/expo-ui/state";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { useTranslation } from "react-i18next";
 import { setLanguage } from "@/client/features/i18n";
@@ -22,14 +22,12 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 import { Seo } from "@/client/components/Seo";
 import { useTabHeaderTitle } from "@/client/features/navigation/tabTitle";
 
+// Each language is labelled in its own language, so it stays findable whatever
+// the app is currently set to.
 const LANGUAGES = [
-  { code: "en", label: "English", nativeLabel: "English" },
-  { code: "es", label: "Spanish", nativeLabel: "Español" },
+  { value: "en", label: "English" },
+  { value: "es", label: "Español" },
 ] as const;
-
-function handleLanguageChange(langCode: string) {
-  setLanguage(langCode);
-}
 
 /**
  * Settings screen - app preferences and configuration.
@@ -37,15 +35,13 @@ function handleLanguageChange(langCode: string) {
 export default function SettingsRoute() {
   useTabHeaderTitle("settings");
   const { theme, scheme } = useTheme();
-  const { userTheme, setTheme } = useThemeStore();
+  const userTheme = useThemeStore((state) => state.userTheme);
   const { t, i18n } = useTranslation();
   const styles = themedStyles(theme);
 
-  const themeOptions: { value: "system" | "light" | "dark"; label: string; icon: IconName }[] = [
-    { value: "system", label: t("settings.theme.system"), icon: "smartphone" },
-    { value: "light", label: t("settings.theme.light"), icon: "sun" },
-    { value: "dark", label: t("settings.theme.dark"), icon: "moon" },
-  ];
+  const language =
+    LANGUAGES.find((lang) => i18n.language === lang.value || i18n.language?.startsWith(lang.value + "-")) ??
+    LANGUAGES[0];
 
   return (
     <>
@@ -60,60 +56,49 @@ export default function SettingsRoute() {
         showsVerticalScrollIndicator={false}
       >
         {/* Flat grouped lists: the rows carry the screen's 16pt inset, so
-            neither the scroll view nor the groups add horizontal padding. */}
-        <ItemGroup
-          title={t("settings.appearance")}
-          footer={`${t("settings.currentTheme")}: ${scheme}`}
-        >
-          {themeOptions.map((option) => {
-            const isSelected = userTheme === option.value;
-
-            return (
-              <Item key={option.value} onPress={() => setTheme(option.value)}>
-                <ItemMedia
-                  size={36}
-                  icon={option.icon}
-                  iconColor={isSelected ? theme.colors.primary : theme.colors.foreground}
-                  style={isSelected && styles.mediaActive}
-                />
-                <ItemContent>
-                  <ItemTitle>{option.label}</ItemTitle>
-                </ItemContent>
-                <ItemActions>
-                  <View style={[styles.radio, isSelected && styles.radioSelected]}>
-                    {isSelected && <View style={styles.radioInner} />}
-                  </View>
-                </ItemActions>
-              </Item>
-            );
-          })}
-        </ItemGroup>
-
-        <ItemGroup title={t("settings.language")} footer={t("settings.languageHint")}>
-          {LANGUAGES.map((lang) => {
-            const isSelected = i18n.language === lang.code ||
-              (i18n.language?.startsWith(lang.code + "-"));
-
-            return (
-              <Item key={lang.code} onPress={() => handleLanguageChange(lang.code)}>
-                <ItemMedia
-                  size={36}
-                  icon="globe"
-                  iconColor={isSelected ? theme.colors.primary : theme.colors.foreground}
-                  style={isSelected && styles.mediaActive}
-                />
-                <ItemContent>
-                  <ItemTitle>{lang.nativeLabel}</ItemTitle>
-                  <ItemDescription>{lang.label}</ItemDescription>
-                </ItemContent>
-                {isSelected && (
-                  <ItemActions>
-                    <Icon name="check" color={theme.colors.primary} size={20} />
-                  </ItemActions>
-                )}
-              </Item>
-            );
-          })}
+            neither the scroll view nor the groups add horizontal padding.
+            Each preference is one row with its control trailing. */}
+        <ItemGroup title={t("settings.preferences")}>
+          <Item>
+            <ItemContent>
+              <ItemTitle>{t("settings.themeTitle")}</ItemTitle>
+              {userTheme === "system" && (
+                <ItemDescription>
+                  {t("settings.matchesDevice", { scheme: t(`settings.theme.${scheme}`) })}
+                </ItemDescription>
+              )}
+            </ItemContent>
+            <ItemActions>
+              <ThemeSelector
+                labels={{
+                  system: t("settings.theme.system"),
+                  light: t("settings.theme.light"),
+                  dark: t("settings.theme.dark"),
+                }}
+              />
+            </ItemActions>
+          </Item>
+          <Item>
+            <ItemContent>
+              <ItemTitle>{t("settings.language")}</ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              {/* The Radix-backed Select mints useId()s the server can't
+                  reproduce; render it after hydration. */}
+              <Hydrated fallback={<SansSerifText size="base" style={styles.settingValue}>{language.label}</SansSerifText>}>
+                <Select value={language} onValueChange={(option) => option && setLanguage(option.value)}>
+                  <SelectTrigger size="sm" accessibilityLabel={t("settings.language")}>
+                    <SelectValue placeholder={language.label} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANGUAGES.map((lang) => (
+                      <SelectItem key={lang.value} value={lang.value} label={lang.label} />
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Hydrated>
+            </ItemActions>
+          </Item>
         </ItemGroup>
 
         <ItemGroup title={t("settings.about")}>
@@ -169,31 +154,9 @@ const createStyles = (theme: Theme) =>
       paddingBottom: spacing.xxl,
       gap: spacing.sectionSpacing,
     },
-    mediaActive: {
-      // eslint-disable-next-line expo-ui/no-restyle -- colored icon tile; ItemMedia has no tint variant
-      backgroundColor: withAlpha(theme.colors.primary, 0.13),
-    },
     settingValue: {
       color: theme.colors.mutedForeground,
       maxWidth: 180,
-    },
-    radio: {
-      width: 22,
-      height: 22,
-      borderRadius: spacing.radiusFull,
-      borderWidth: 2,
-      borderColor: theme.colors.border,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    radioSelected: {
-      borderColor: theme.colors.primary,
-    },
-    radioInner: {
-      width: 12,
-      height: 12,
-      borderRadius: spacing.radiusFull,
-      backgroundColor: theme.colors.primary,
     },
   });
 

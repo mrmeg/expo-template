@@ -363,11 +363,6 @@ describe("components gallery", () => {
     expect(screen.getByTestId("component-card-Button")).toBeTruthy();
   });
 
-  it("keeps the kitchen-sink showcase reachable from the header", async () => {
-    await render(<ComponentsGalleryScreen />);
-    expect(screen.getByTestId("components-kitchen-sink-link")).toBeTruthy();
-  });
-
   it("shows the registry count, not a hardcoded one", async () => {
     await render(<ComponentsGalleryScreen />);
     expect(screen.getByText(`${COMPONENTS.length} components`)).toBeTruthy();
@@ -573,12 +568,6 @@ describe("component detail", () => {
     await render(<ComponentDetailScreen />);
     expect(screen.getByTestId("component-detail-missing")).toBeTruthy();
   });
-
-  it("links on to the kitchen sink for the exhaustive demo", async () => {
-    routeParams.id = "Button";
-    await render(<ComponentDetailScreen />);
-    expect(screen.getByTestId("component-detail-full-demo")).toBeTruthy();
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -649,15 +638,8 @@ describe("Link asChild style flattening", () => {
     });
   });
 
-  it("covers the component detail screen, including the search-result rows", async () => {
-    routeParams.id = "Button";
-    const recorded = await stylesFrom(<ComponentDetailScreen />);
-
-    for (const entry of recorded) {
-      expect(Array.isArray(entry.style)).toBe(false);
-    }
-  });
-
+  // A resolved detail screen renders no Link; its only `asChild` child is the
+  // "Back to components" link on the missing-component state.
   it("covers the detail screen's missing-component state", async () => {
     routeParams.id = "NotAComponent";
     const recorded = await stylesFrom(<ComponentDetailScreen />);
@@ -701,17 +683,18 @@ describe("Link asChild style flattening", () => {
 
   /**
    * The dark-mode symptom that made this visible: the detail screen's primary
-   * CTA rendered with no fill. The `backgroundColor` lived in `styles.cta`, the
+   * CTA (now the "Back to components" link on the unknown-id state) rendered
+   * with no fill. The `backgroundColor` lived in `styles.cta`, the
    * first entry of the array — the entry the collapse buries under key `"0"`,
    * where nothing reads it.
    */
   it("paints the detail CTA's primary fill in both schemes", async () => {
     for (const scheme of SCHEMES) {
       setScheme(scheme);
-      routeParams.id = "Button";
+      routeParams.id = "NotAComponent";
       const view = await render(<ComponentDetailScreen />);
 
-      const style = screen.getByTestId("component-detail-full-demo").props
+      const style = screen.getByTestId("component-detail-back").props
         .style as Record<string, unknown>;
       expect(style.backgroundColor).toBe(colors[scheme].colors.primary);
 

@@ -13,6 +13,7 @@ import { STAGGER_DELAY } from "@mrmeg/expo-ui/hooks";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { Switch } from "@mrmeg/expo-ui/components/Switch";
+import { ThemeSelector, type ThemeSelectorLabels } from "@mrmeg/expo-ui/components/ThemeSelector";
 import {
   Item,
   ItemGroup,
@@ -53,6 +54,13 @@ export interface SettingsSelectItem extends SettingsItemBase {
   onSelect: (value: string) => void;
 }
 
+/** One row that switches System / Light / Dark through the theme store. */
+export interface SettingsAppearanceItem extends SettingsItemBase {
+  type: "appearance";
+  /** Translated segment labels (screen readers). */
+  labels?: Partial<ThemeSelectorLabels>;
+}
+
 export interface SettingsInfoItem extends SettingsItemBase {
   type: "info";
   value: string;
@@ -67,6 +75,7 @@ export type SettingsItem =
   | SettingsNavigateItem
   | SettingsToggleItem
   | SettingsSelectItem
+  | SettingsAppearanceItem
   | SettingsInfoItem
   | SettingsDestructiveItem;
 
@@ -149,6 +158,19 @@ export function SettingsScreen({ sections, header, edges = ["bottom"], style: st
           </Item>
         );
       });
+
+    case "appearance":
+      return [
+        <Item key={item.label}>
+          {item.icon && <ItemMedia icon={item.icon} iconColor="primary" />}
+          <ItemContent>
+            <ItemTitle>{item.label}</ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <ThemeSelector labels={item.labels} />
+          </ItemActions>
+        </Item>,
+      ];
 
     case "info":
       return [

@@ -5,6 +5,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`ThemeSelector`** (`@mrmeg/expo-ui/components`): a compact System / Light /
+  Dark switch bound to `useThemeStore`, so a settings screen needs one row for
+  appearance instead of three radio rows. Icon-only by default (about 116 pt,
+  sized for `ItemActions`); `showLabels` stretches it with text. Translated
+  `labels` name each segment for screen readers. Drawn in RN on every platform,
+  with a 44 pt vertical hit area and a selection haptic; `value` /
+  `onValueChange` make it controlled.
+
 ## [0.28.0]
 
 ### Added

@@ -14,8 +14,6 @@
 #
 # The second pass covers the components gallery, which replaced the old
 # "Component Library" featured card: Explore → Components → a component detail.
-# `/(main)/(demos)/showcase` (the kitchen sink) is still reachable from that
-# gallery's header and is asserted there.
 #
 # Two notes on selectors, both learned from real runs on iOS:
 #
@@ -55,7 +53,7 @@ env:
 - assertNotVisible:
     id: "explore-screen"
 
-# ── Components gallery → detail → kitchen sink ──────────────────────────
+# ── Components gallery → detail ──────────────────────────
 - launchApp:
     clearState: true
 - assertVisible:
@@ -82,20 +80,3 @@ env:
 - assertVisible: "Variants"
 - assertVisible: "Import"
 - assertVisible: "Usage"
-
-# ── Kitchen sink still reachable from the gallery header ────────────────
-- launchApp:
-    clearState: true
-- assertVisible:
-    id: "onboarding-gate"
-- tapOn:
-    id: "onboarding-skip-button"
-- tapOn:
-    id: "explore-components-link"
-- assertVisible:
-    id: "components-gallery"
-
-- tapOn:
-    id: "components-kitchen-sink-link"
-- assertVisible: "UI Components"
-- assertVisible: "Accordion"

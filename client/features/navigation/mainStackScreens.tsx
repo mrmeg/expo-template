@@ -34,7 +34,6 @@ export const MAIN_STACK_SCREENS: readonly MainStackScreen[] = [
   { name: "(demos)/components/[id]", options: { ...webHeaderLeft } },
   { name: "(demos)/blocks/index", options: { title: "Blocks", ...webHeaderLeft } },
   { name: "(demos)/templates/index", options: { title: "Screen Templates", ...webHeaderLeft } },
-  { name: "(demos)/showcase/index", options: { title: "UI Components", ...webHeaderLeft } },
   { name: "(demos)/themed-showcase", options: { title: "Themed Showcase", ...webHeaderLeft } },
   { name: "(demos)/surface-lab", options: { title: "Surface Lab", ...webHeaderLeft } },
   { name: "(demos)/developer", options: { title: "Developer Tools", ...webHeaderLeft } },

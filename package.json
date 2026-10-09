@@ -11,7 +11,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "scan:showcase": "node -e \"const { spawnSync } = require('node:child_process'); const port = process.env.EXPO_DEV_SERVER_PORT || process.env.PORT || '8081'; spawnSync('open', ['http://localhost:' + port + '/showcase?scan'], { stdio: 'inherit' });\"",
+    "scan:showcase": "node -e \"const { spawnSync } = require('node:child_process'); const port = process.env.EXPO_DEV_SERVER_PORT || process.env.PORT || '8081'; spawnSync('open', ['http://localhost:' + port + '/components?scan'], { stdio: 'inherit' });\"",
     "gen": "node scripts/gen.mjs",
     "gen:templates": "bun scripts/generate-template-registry.ts",
     "gen:templates:check": "bun scripts/generate-template-registry.ts --check",

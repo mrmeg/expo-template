@@ -97,15 +97,15 @@ const es = {
     passwordMinLength: "La contrase\u00f1a debe tener al menos {{count}} caracteres",
   },
   settings: {
-    appearance: "Apariencia",
+    preferences: "Preferencias",
+    themeTitle: "Tema",
     theme: {
       system: "Sistema",
       light: "Claro",
       dark: "Oscuro",
     },
-    currentTheme: "Tema actual",
+    matchesDevice: "Igual que tu dispositivo: {{scheme}}",
     language: "Idioma",
-    languageHint: "Elige tu idioma preferido",
     about: "Acerca de",
     version: "Versión",
     environment: "Entorno",
