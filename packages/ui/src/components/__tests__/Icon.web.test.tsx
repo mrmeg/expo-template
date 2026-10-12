@@ -23,27 +23,28 @@ function propsOf(element: React.ReactElement, testID: string) {
   act(() => {
     renderer = TestRenderer.create(element);
   });
-  return renderer!.root.findAllByProps({ testID }).filter((n) => n.type === View)[0].props;
+  // The host element: the SVG root for a named icon, the View for a component.
+  return renderer!.root.findAllByProps({ testID }).filter((n) => typeof n.type === "string")[0].props;
 }
 
 describe("Icon on web", () => {
   it("hides a decorative icon with aria-hidden only", () => {
-    const props = propsOf(<Icon name="mic-off" decorative />, "icon-mic-off");
+    const props = propsOf(<Icon name="eye-off" decorative />, "icon-eye-off");
     expect(props["aria-hidden"]).toBe(true);
     for (const key of RN_ONLY) expect(props).not.toHaveProperty(key);
     expect(props).not.toHaveProperty("role");
   });
 
   it("exposes a meaningful icon as an image with its label", () => {
-    const props = propsOf(<Icon name="mic" accessibilityLabel="Microphone" />, "icon-mic");
+    const props = propsOf(<Icon name="eye" accessibilityLabel="Visible" />, "icon-eye");
     expect(props.role).toBe("img");
-    expect(props["aria-label"]).toBe("Microphone");
+    expect(props["aria-label"]).toBe("Visible");
     for (const key of RN_ONLY) expect(props).not.toHaveProperty(key);
     expect(props).not.toHaveProperty("aria-hidden");
   });
 
   it("hides an unlabeled icon like a decorative one (no unnamed role=img)", () => {
-    const props = propsOf(<Icon name="mic" />, "icon-mic");
+    const props = propsOf(<Icon name="eye" />, "icon-eye");
     expect(props["aria-hidden"]).toBe(true);
     expect(props).not.toHaveProperty("role");
     expect(props).not.toHaveProperty("aria-label");

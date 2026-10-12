@@ -16,6 +16,8 @@ import { newsreaderFontMap } from "@/client/lib/fonts/newsreaderFonts";
 import { InitialSchemeProvider, syncThemeFromEnvironment, SsrViewportContext } from "@mrmeg/expo-ui/state";
 import { startColorSchemeCookieSync, useSsrColorScheme } from "@/client/features/app/colorSchemeCookie";
 import { UIProvider } from "@mrmeg/expo-ui/components/UIProvider";
+import { registerIcons } from "@mrmeg/expo-ui/components/Icon";
+import { appIcons } from "@/client/icons.generated";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { KeyboardDismissBoundary, KeyboardProvider } from "@/client/features/keyboard/platform";
@@ -48,6 +50,10 @@ setupSentry();
 // Give the API client its bearer-token source before any screen can issue a
 // request (no token when auth is disabled). client/lib/api never imports auth.
 registerApiTokenGetter();
+
+// Make the app's icons (client/icons.json → `bun run icons`) drawable by name
+// before any route renders, on the server as well as the client.
+registerIcons(appIcons);
 
 function reportBoundaryError(error: Error, errorInfo: ErrorInfo) {
   captureException(error, {

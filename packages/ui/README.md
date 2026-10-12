@@ -32,9 +32,10 @@ Web 0.21. Install these peers at the versions your Expo SDK recommends: `expo`,
 `react-native-web`, `react-native-gesture-handler`,
 `react-native-keyboard-controller`, `react-native-safe-area-context`,
 `react-native-screens`, `@react-native-async-storage/async-storage`, `zustand`.
-`Icon` renders [Lucide](https://lucide.dev/icons) SVGs, so also install its two
-peers: `npx expo install react-native-svg` (a native module, pinned by your
-SDK) and `bun add lucide-react-native` (`>=1.46 <2`).
+`Icon` draws SVG, so also install `react-native-svg` (a native module, pinned
+by your SDK): `npx expo install react-native-svg`. The icons themselves are
+[Lucide](https://lucide.dev/icons) glyph data the package ships and renders;
+no icon library is a peer (see [Icons](#icons)).
 
 `@rn-primitives/*` and `@expo-google-fonts/inter` are package dependencies, not
 peers. Animations use React Native `Animated`. `BottomSheet`, `Slider`, and
@@ -567,7 +568,7 @@ monospace.
 weight is imported from its own `@expo-google-fonts/inter/<weight>` subpath, so
 a native bundle carries those four files and no other Inter face, and a web
 bundle carries no Inter file at all. Icons
-are SVG (`lucide-react-native`), so there is no icon font to load on any
+are SVG drawn from glyph data, so there is no icon font to load on any
 platform. On web
 it injects one Google Fonts Inter stylesheet (all four weights) after hydration
 unless the app already added it; web weight differentiation then comes from a
@@ -727,7 +728,7 @@ building a new primitive.
 | `DropdownMenu` | Menus and command lists | Row actions, account menu, sort menu, checkbox/radio groups |
 | `EmptyState` | No-data or recoverable error regions | Empty inbox, no results, failed list load |
 | `ErrorBoundary` | React render error fallback | Route-level and feature-level fallbacks |
-| `Icon` | Lucide or custom icons on theme tokens | Button accessories, menu icons, status glyphs |
+| `Icon` | Registered Lucide glyphs or custom art on theme tokens | Button accessories, menu icons, status glyphs |
 | `InputOTP` | Verification code entry | Email/SMS codes, MFA, invite codes |
 | `Item` | List and settings rows on the density tokens | Settings lists, inbox rows, pickers, detail rows |
 | `ItemGroup` | Flat grouped list: title, full-width `Item` rows with inset hairlines, footer | Settings sections, profile details, activity feeds |
@@ -758,55 +759,106 @@ building a new primitive.
 
 ### Icons
 
-`Icon` renders `lucide-react-native` — Lucide is a maintained superset of
-Feather in the same 24px, 2px round-stroke style. `name` is typed by
-`IconName`, the union of kebab-case Lucide names in the package registry
-(`src/components/icon-names.json`, about 150 names). Importing `Icon` includes
-that named registry because `name` is looked up at runtime, even when a caller
-uses `component`; the root `lucide-react-native` entry (1,800+ icons) is never
-imported. `color` takes a theme color name or a
-literal. `accessibilityLabel` names an icon that stands alone (`role="img"` +
-`aria-label` on web, `accessible` + `accessibilityLabel` on native); an icon
-without one is hidden from assistive tech — the glyph beside text that already
-says it would otherwise be announced as an unnamed image — and `decorative`
-only remains to silence a labelled icon. On web the SVG carries ARIA only
-(`aria-hidden` or `role="img"`), never the RN-only accessibility props. Instead of `name`,
-`Icon` and `Button.Icon` take `component`: any Lucide import (or another SVG
-component that accepts `size` and `color`), sized, colored, themed, and hidden
-from assistive tech exactly like a named icon. `Button.Icon` defaults its
-color to the button's label color either way.
+`Icon` draws Lucide glyphs from plain data: each icon is a list of
+`[tag, attrs]` SVG nodes on a 24×24 grid, stroked 2 px with round caps and
+joins. The package owns both renderers: an inline `<svg>` on web and in
+server-rendered HTML (stroked `currentColor` with the color as a style, so a
+theme change recolors it through CSS and server and client markup match), and
+`react-native-svg` on iOS and Android, drawn the way Lucide's own native
+component draws it. No icon runtime or font ships, and each registered glyph
+adds about 40 bytes (brotli) to the bundle.
+
+`name` is typed by `IconName`: the 19 names the package's own components draw
+(`src/components/icon-names.json`: the chevrons, `check`, `x`, the status and
+theme-mode glyphs) plus every name the app registers. An app lists the Lucide
+names it uses in `client/icons.json` and compiles them with the package's
+`expo-ui-icons` CLI:
+
+```json
+{ "icons": ["archive", "bell", "compass"], "tabIcons": ["compass"] }
+```
+
+```sh
+bunx expo-ui-icons init          # seed client/icons.json from name="…" / icon="…" literals in app/, client/, shared/
+bunx expo-ui-icons add calendar  # add names; an alias is replaced by its canonical name
+bunx expo-ui-icons               # write client/icons.generated.ts (--check: exit 1 when stale)
+bunx expo-ui-icons tabs          # rasterize tabIcons to 1x/2x/3x template PNGs (--check never rasterizes)
+```
+
+The generated module exports the glyphs as `appIcons` and augments the
+`IconRegistry` interface, so the new names type-check everywhere. Register them
+once at module scope in the root layout, so they are in place before any route
+renders, on the server as well as the client:
+
+```tsx
+import { registerIcons } from "@mrmeg/expo-ui/components/Icon";
+import { appIcons } from "@/client/icons.generated";
+
+registerIcons(appIcons);
+```
+
+An unregistered literal is a type error. A name that arrives at runtime (a
+database field, a server payload) renders nothing and warns once in
+development; check it with `isIconName(value)`, which narrows to `IconName`.
+The CLI rejects a name that is not in the snapshot, and an alias with its
+canonical name (`home → house`); the alias map also ships in
+`design-system.json` as `icons.aliases`. Brand glyphs (`github`, `chrome`,
+`facebook`, `instagram`, `linkedin`, `twitter`) have no Lucide equivalent.
+
+`tabs` writes `assets/icons/tabs/<name>.png` (plus `@2x` and `@3x`) and
+`client/tabIcons.generated.ts` (`TAB_ICONS`, `TabIconName`) for a native tab
+bar: `<NativeTabs.Trigger.Icon src={TAB_ICONS.compass} renderingMode="template" />`.
+The PNGs are black on transparent and the platform tints them. Freshness is a
+hash of each glyph's SVG in `assets/icons/tabs/manifest.json`, so `tabs --check`
+and an up-to-date `tabs` need no rasterizer; only a changed tab icon needs
+`rsvg-convert` (`brew install librsvg`, or point `RSVG_CONVERT` at it).
+
+`color` takes a theme color name or a literal. `accessibilityLabel` names an
+icon that stands alone (`role="img"` + `aria-label` on web, `accessible` +
+`accessibilityLabel` on native); an icon without one is hidden from assistive
+tech — the glyph beside text that already says it would otherwise be announced
+as an unnamed image — and `decorative` only remains to silence a labelled icon.
+On web the SVG carries ARIA only (`aria-hidden` or `role="img"`), never the
+RN-only accessibility props. A named icon's SVG root takes `testID`, which
+defaults to `icon-<name>` in development. Instead of `name`, `Icon` and
+`Button.Icon` take `component` (an `IconComponent`) for art that is not a
+Lucide icon, such as a brand mark: any component that accepts `size` and
+`color`, sized, colored, themed, and hidden from assistive tech exactly like a
+named icon. `Button.Icon`, `ToggleIcon`, and `ToggleGroupIcon` take the same
+props, default their color to the control's label color, and are decorative.
 
 ```tsx
 import { Button, Icon } from "@mrmeg/expo-ui/components";
-import House from "lucide-react-native/icons/house";
-import Rocket from "lucide-react-native/icons/rocket";
+import { GitHubMark } from "@/client/components/GitHubMark";
 
 <Icon name="circle-check-big" color="success" size={16} />
-<Icon component={Rocket} color="accent" />
+<Icon component={GitHubMark} color="accent" />
 <Button onPress={goHome}>
-  <Button.Icon component={House} />
+  <Button.Icon name="house" />
   <Button.Text>Home</Button.Text>
 </Button>
 ```
 
-Adding an icon: in this repo, add the kebab-case Lucide name to
-`packages/ui/src/components/icon-names.json` (keep it sorted), run
-`bun run ui:icons`, and commit both files — an unknown name fails with the
-alias lines from Lucide's root entry that point at its current name
-(`bun run ui:icons:check` guards freshness in CI). From a consuming app, pass
-any Lucide component through `component` instead; it needs no registry entry.
-Feather-era names that Lucide renamed: `alert-circle` → `circle-alert`,
-`check-circle` → `circle-check-big`, `x-circle` → `circle-x`,
-`alert-triangle` → `triangle-alert`, `help-circle` → `circle-question-mark`,
-`edit` → `square-pen`, `edit-2` → `pen`, `edit-3` → `pencil`,
-`sliders` → `sliders-horizontal`, `grid` → `layout-grid`, `home` → `house`,
-`unlock` → `lock-open`, `trash-2` → `trash`, `tool` → `wrench`,
-`layout` → `panels-top-left`, `bar-chart-2` → `chart-no-axes-column`,
-`plus-circle` → `circle-plus`, `stop-circle` → `circle-stop`,
-`more-vertical` → `ellipsis-vertical`, `more-horizontal` → `ellipsis`,
-`sidebar` → `panel-left`, `smile` → `face-slightly-smiling`. Brand glyphs
-(`github`, `chrome`, `facebook`, `instagram`, `linkedin`, `twitter`) have no
-Lucide equivalent; use `component` with your own SVG.
+The Lucide snapshot ships as `dist/icons/lucide.json` (Lucide 1.55.0: every
+icon plus the alias map) and the CLI compiles against it, so adding a name needs
+no package release. Lucide renames about one name in six minor releases and
+sometimes redraws a glyph under a stable name, so the snapshot is pinned
+exactly and moves only in a package release: after upgrading, run
+`bunx expo-ui-icons` and `bunx expo-ui-icons tabs`, review the glyph diff, and
+replace any name the CLI now rejects. Lucide is ISC-licensed (its
+Feather-derived icons MIT); the license ships as `dist/icons/LICENSE.lucide`.
+
+Tests need no icon mock and no Lucide module mapping: glyphs are plain objects
+drawn with `react-native-svg`. Register `appIcons` in the Jest setup (lazily, in
+a `beforeAll`, so test-file mocks still apply to `Icon`) and query a named icon
+by its `icon-<name>` test id.
+
+In this repository, `bun run ui:icons` regenerates `iconBuiltins.generated.ts`,
+`src/icons/lucide.json`, and `src/icons/LICENSE.lucide` from the exactly pinned
+`lucide-static` devDependency and `icon-names.json`. A Lucide bump changes that
+pin, then `bun install`, `bun run ui:icons`, `bun run icons`, and
+`bun run icons:tabs`. The template app's own list is `client/icons.json`
+(`bun run icons`, `bun run icons:tabs`).
 
 ### Compound Parts
 
@@ -842,7 +894,7 @@ are named exports only.
 
 | Hook | Returns |
 |------|---------|
-| `useResources()` | `{ loaded, error }` — loads the Inter faces (icons are SVG, nothing to load) |
+| `useResources()` | `{ loaded, error }` — loads the Inter faces (icons are SVG drawn from glyph data, nothing to load) |
 | `useTheme()` | Active theme, scheme helpers, shadow/contrast/alpha helpers |
 | `useStyles(factory)` | Memoized theme-aware styles plus the `useTheme()` helpers |
 | `useDimensions()` | `{ width, height, orientation, isSmallScreen, isMediumScreen, isLargeScreen }` against `SCREEN_SIZES` (768 / 1000 / 1200) |
@@ -1034,7 +1086,7 @@ import { Drawer, Icon } from "@mrmeg/expo-ui/components";
   title="Acme"
   action={
     <Drawer.ToggleCollapse>
-      <Icon name="sidebar" decorative />
+      <Icon name="panel-left" decorative />
     </Drawer.ToggleCollapse>
   }
 />
@@ -1219,9 +1271,10 @@ copies of `@radix-ui/react-slot` crashes the web `AlertDialog` with
 `pkg ui build` also writes `dist/design-system.json`
 ([`scripts/build-design-system-manifest.mjs`](../../scripts/build-design-system-manifest.mjs)):
 the spacing, radius and icon scales, the palette, the light and dark themes, the
-font variants, every component's variant and size values, and `icons.names` (the
-`IconName` registry), serialized out of `src` by the same extractor the lint
-rules use. It is exported as
+font variants, every component's variant and size values, and `icons` (the
+builtin `IconName` list as `names`, Lucide's renamed-name `aliases`, and the
+snapshot's `lucide` version), serialized out of `src` by the same extractor the
+lint rules use. It is exported as
 `@mrmeg/expo-ui/design-system.json`, and `@mrmeg/eslint-plugin-expo-ui` reads it
 in projects that install this package instead of checking out its sources — which
 is what lets the design-system rules quote this release's presets and tokens.

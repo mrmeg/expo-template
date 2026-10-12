@@ -308,7 +308,8 @@ devDependency; a guardrail test fails if they drift) and inlines the
 
 Consumer Expo apps install `@mrmeg/expo-ui` plus the native and Expo peer
 dependencies listed in `packages/ui/package.json` (including `react-native-svg`
-and `lucide-react-native` for `Icon`); implementation details such as
+for `Icon`, which draws the Lucide glyphs an app lists in `client/icons.json`);
+implementation details such as
 `@rn-primitives/*` are managed by the package. Full design system:
 `packages/ui/README.md`.
 
@@ -513,7 +514,7 @@ GitHub Actions CI to EAS Workflows are not configured here.
 - AWS S3 client + presigner (R2-compatible)
 - react-hook-form 7 + Zod 4 + `@hookform/resolvers`
 - React Native `Animated` for package UI motion
-- `lucide-react-native` + `react-native-svg` (SVG icon set in `Icon`; `@expo/vector-icons` Feather only for the native tab bar)
+- Lucide glyph data (`client/icons.json`, pinned `lucide-static` snapshot) drawn by `Icon` as inline SVG on web and with `react-native-svg` on native; native tab icons are PNGs rasterized from the same glyphs
 - Jest 29 + jest-expo + RNTL 14
 - ESLint 10 flat config
 - Bun + Expo Server (production web server), Bun as package manager + script runner

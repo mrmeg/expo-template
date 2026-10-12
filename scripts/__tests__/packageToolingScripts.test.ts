@@ -13,7 +13,7 @@
  * "already published?" question where one is needed).
  */
 import { execFile, execFileSync } from "child_process";
-import { readFileSync } from "fs";
+import { readFileSync, statSync } from "fs";
 import { createServer, type Server } from "http";
 import type { AddressInfo } from "net";
 import { join } from "path";
@@ -228,5 +228,40 @@ describe("fix-package-esm.mjs package argument", () => {
     expect(result.status).toBe(1);
     expect(output(result)).toMatch(/unknown package/i);
     expect(output(result)).toContain("media, purchases, ui");
+  });
+});
+
+describe("UI package pack contents", () => {
+  const uiDir = join(root, "packages", "ui");
+  const manifest = JSON.parse(readFileSync(join(uiDir, "package.json"), "utf8")) as {
+    bin?: Record<string, string>;
+    files: string[];
+    scripts: Record<string, string>;
+  };
+  const binPath = join(uiDir, "bin", "expo-ui-icons.mjs");
+
+  it("ships the expo-ui-icons CLI as an executable bin", () => {
+    expect(manifest.bin).toEqual({ "expo-ui-icons": "./bin/expo-ui-icons.mjs" });
+    expect(manifest.files).toContain("bin");
+    expect(statSync(binPath).mode & 0o111).not.toBe(0);
+    expect(readFileSync(binPath, "utf8").startsWith("#!/usr/bin/env node\n")).toBe(true);
+  });
+
+  it("lists the bin in `bun run pkg ui pack`", () => {
+    const listing = execFileSync("bun", ["pm", "pack", "--dry-run"], {
+      cwd: uiDir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    expect(listing).toMatch(/packed .* bin\/expo-ui-icons\.mjs$/m);
+  });
+
+  it("copies the Lucide snapshot and its license into dist/icons after tsc", () => {
+    // `dist` only exists after a build, so CI's pack check is the consumer
+    // smoke, which asserts both files are in the tarball; this pins the step.
+    const build = manifest.scripts.build;
+    const copy = build.indexOf("cp src/icons/lucide.json src/icons/LICENSE.lucide dist/icons/");
+    expect(copy).toBeGreaterThan(build.indexOf("tsc -p tsconfig.build.json"));
+    expect(build.indexOf("rm -rf dist")).toBeLessThan(copy);
   });
 });

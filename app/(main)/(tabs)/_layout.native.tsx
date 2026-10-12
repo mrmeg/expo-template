@@ -1,8 +1,8 @@
 import { Platform } from "react-native";
 import { NativeTabs } from "expo-router/native-tabs";
-import Feather from "@expo/vector-icons/Feather";
 import { useNotificationOffset, useTheme } from "@mrmeg/expo-ui/hooks";
 import { NAV_DESTINATIONS } from "@/client/features/navigation/navDestinations";
+import { TAB_ICONS } from "@/client/tabIcons.generated";
 import { useNativeTabBarOffset } from "@/client/features/navigation/tabBarMetrics";
 import { useKeyboardVisible } from "@/client/features/keyboard/platform";
 
@@ -14,14 +14,13 @@ import { useKeyboardVisible } from "@/client/features/keyboard/platform";
  * file: the `.native` extension makes Expo Router pick the sibling `_layout.tsx`
  * there (a plain stack inside the drawer shell), and `metro.config.js` resolves
  * it to an empty module in web bundles, so NativeTabs' web implementation (Radix
- * Tabs), the Feather glyph map, and its stylesheet stay out of the web export.
+ * Tabs), the tab PNGs, and its stylesheet stay out of the web export.
  *
- * Destinations come from the shared `NAV_DESTINATIONS` list and draw their icons
- * through `NativeTabs.Trigger.VectorIcon`. `VectorIcon` needs an icon-font
- * family, so the tab bar stays on `@expo/vector-icons/Feather` (a root
- * dependency) while `Icon` elsewhere renders `lucide-react-native` SVGs; Lucide
- * is a superset of Feather in the same 24px, 2px-stroke style, so the two match.
- * Destination icon names must therefore exist in both sets.
+ * Destinations come from the shared `NAV_DESTINATIONS` list. Each icon is a
+ * template PNG rasterized from the same Lucide glyph `Icon` draws in the rail
+ * (`tabIcons` in `client/icons.json`, `bun run icons:tabs`), so both surfaces
+ * show identical geometry. The platform tints it: iOS renders `src` as a
+ * template image, and Android applies the default and selected `iconColor`.
  *
  * Colors are derived from `useTheme()` inside this component so they re-render on
  * theme toggle — important because `babel-plugin-react-compiler` (via
@@ -79,14 +78,7 @@ export default function TabLayout() {
       {NAV_DESTINATIONS.map((destination) => (
         <NativeTabs.Trigger key={destination.name} name={destination.name}>
           <NativeTabs.Trigger.Label>{destination.label}</NativeTabs.Trigger.Label>
-          <NativeTabs.Trigger.Icon
-            src={
-              <NativeTabs.Trigger.VectorIcon
-                family={Feather}
-                name={destination.icon}
-              />
-            }
-          />
+          <NativeTabs.Trigger.Icon src={TAB_ICONS[destination.icon]} renderingMode="template" />
         </NativeTabs.Trigger>
       ))}
     </NativeTabs>

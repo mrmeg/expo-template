@@ -1,10 +1,9 @@
-import fs from "fs";
-import path from "path";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import TestRenderer, { act } from "react-test-renderer";
-import type LucideHouse from "lucide-react-native/icons/house";
-import { Icon, type IconName } from "../Icon";
+import { Icon, isIconName, registerIcons, type IconGlyph as IconGlyphData, type IconName } from "../Icon";
+import { IconGlyph } from "../IconGlyph";
+import { BUILTIN_ICONS } from "../iconBuiltins.generated";
 import iconNames from "../icon-names.json";
 
 jest.mock("../../hooks/useTheme", () => ({
@@ -35,13 +34,20 @@ function renderIcon(element: React.ReactElement): TestRenderer.ReactTestRenderer
   return renderer!;
 }
 
-/** Color the registry mock (see test/setup.ts) received for `<Icon name>`. */
-function iconColorOf(element: React.ReactElement, name: string): string {
-  return renderIcon(element).root.findByProps({ testID: `icon-${name}` }).props.color;
+/** The SVG root host a named icon renders (`testID: icon-<name>`). */
+function svgRootOf(element: React.ReactElement, name: string): TestRenderer.ReactTestInstance {
+  return renderIcon(element)
+    .root.findAllByProps({ testID: `icon-${name}` })
+    .filter((node) => typeof node.type === "string")[0];
+}
+
+/** Color `Icon` resolved and handed to the glyph renderer. */
+function glyphColorOf(element: React.ReactElement): string {
+  return renderIcon(element).root.findByType(IconGlyph).props.color;
 }
 
 describe("Icon", () => {
-  it("renders SVG icons inside a View without raw text-node warnings", () => {
+  it("renders an SVG root sized, styled, and hidden from assistive tech without raw text nodes", () => {
     const consoleError = jest.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
       const message = args.map(String).join(" ");
       if (message.includes("Unexpected text node")) {
@@ -54,8 +60,8 @@ describe("Icon", () => {
     act(() => {
       testRenderer = TestRenderer.create(
         <View>
-          <Icon name="mic" style={{ marginRight: 4 }} />
-          <Icon name="mic-off" decorative />
+          <Icon name="eye" style={{ marginRight: 4 }} />
+          <Icon name="eye-off" decorative />
         </View>
       );
     });
@@ -66,40 +72,55 @@ describe("Icon", () => {
       )
     ).toBe(false);
 
-    const mic = testRenderer!.root.findAllByProps({ testID: "icon-mic" }).filter((node) => node.type === View);
-    const micOff = testRenderer!.root
-      .findAllByProps({ testID: "icon-mic-off" })
-      .filter((node) => node.type === View);
-    expect(mic).toHaveLength(1);
-    expect(micOff).toHaveLength(1);
-    expect(StyleSheet.flatten(mic[0].props.style)).toEqual(
+    const hosts = (testID: string) =>
+      testRenderer!.root.findAllByProps({ testID }).filter((node) => typeof node.type === "string");
+    const eye = hosts("icon-eye");
+    const eyeOff = hosts("icon-eye-off");
+    expect(eye).toHaveLength(1);
+    expect(eyeOff).toHaveLength(1);
+    expect(StyleSheet.flatten(eye[0].props.style)).toEqual(
       expect.objectContaining({
         marginRight: 4,
         pointerEvents: "none",
       })
     );
-    expect(mic[0].props.size).toBe(24);
+    expect(eye[0].props.width).toBe(24);
+    expect(eye[0].props.height).toBe(24);
     // Neither icon carries a label, so both are hidden from assistive tech: an
     // unlabeled icon beside its text would otherwise be announced as nothing.
-    expect(mic[0].props.accessible).toBe(false);
-    expect(mic[0].props["aria-hidden"]).toBe(true);
-    expect(micOff[0].props.accessible).toBe(false);
-    expect(micOff[0].props.importantForAccessibility).toBe("no-hide-descendants");
-    expect(micOff[0].props.accessibilityElementsHidden).toBe(true);
-    expect(micOff[0].props["aria-hidden"]).toBe(true);
+    expect(eye[0].props.accessible).toBe(false);
+    expect(eye[0].props["aria-hidden"]).toBe(true);
+    expect(eyeOff[0].props.accessible).toBe(false);
+    expect(eyeOff[0].props.importantForAccessibility).toBe("no-hide-descendants");
+    expect(eyeOff[0].props.accessibilityElementsHidden).toBe(true);
+    expect(eyeOff[0].props["aria-hidden"]).toBe(true);
+  });
+
+  it("hands the renderer the registered glyph", () => {
+    const glyph = renderIcon(<Icon name="check" />).root.findByType(IconGlyph);
+    // Deep equality: the app may register a builtin name again (same data).
+    expect(glyph.props.glyph).toEqual(BUILTIN_ICONS.check);
+    expect(glyph.props.size).toBe(24);
   });
 
   it("resolves any theme color name to its semantic value", () => {
     // Includes tokens beyond the old hard-coded shortcut list (foreground, accent),
     // which previously fell through as invalid literal strings.
-    expect(iconColorOf(<Icon name="box" color="accent" />, "box")).toBe("#14B8A6");
-    expect(iconColorOf(<Icon name="house" color="foreground" />, "house")).toBe("#0A0A0A");
-    expect(iconColorOf(<Icon name="check" color="primary" />, "check")).toBe("#0F172A");
+    expect(glyphColorOf(<Icon name="sun" color="accent" />)).toBe("#14B8A6");
+    expect(glyphColorOf(<Icon name="moon" color="foreground" />)).toBe("#0A0A0A");
+    expect(glyphColorOf(<Icon name="check" color="primary" />)).toBe("#0F172A");
+    expect(svgRootOf(<Icon name="check" color="primary" />, "check").props.stroke).toBe("#0F172A");
   });
 
   it("defaults to the theme text color and passes literal colors through", () => {
-    expect(iconColorOf(<Icon name="mic" />, "mic")).toBe("#111827");
-    expect(iconColorOf(<Icon name="mic" color="#FF0000" />, "mic")).toBe("#FF0000");
+    expect(glyphColorOf(<Icon name="eye" />)).toBe("#111827");
+    expect(glyphColorOf(<Icon name="eye" color="#FF0000" />)).toBe("#FF0000");
+  });
+
+  it("puts a caller's testID on the SVG root", () => {
+    const renderer = renderIcon(<Icon name="check" testID="saved-mark" />);
+    expect(renderer.root.findAllByProps({ testID: "saved-mark" }).length).toBeGreaterThan(0);
+    expect(renderer.root.findAllByProps({ testID: "icon-check" })).toHaveLength(0);
   });
 
   it("renders a custom component with the resolved color, size, and a11y props", () => {
@@ -123,8 +144,8 @@ describe("Icon", () => {
 
     const custom = renderIcon(<Icon component={Custom} color="accent" style={{ marginLeft: 2 }} />)
       .root.findByProps({ testID: "custom-icon" });
-    const named = renderIcon(<Icon name="box" color="accent" style={{ marginLeft: 2 }} />)
-      .root.findByProps({ testID: "icon-box" });
+    const named = renderIcon(<Icon name="sun" color="accent" style={{ marginLeft: 2 }} />)
+      .root.findByType(IconGlyph);
 
     for (const key of ["size", "color", "accessible", "importantForAccessibility", "aria-hidden"]) {
       expect(custom.props[key]).toEqual(named.props[key]);
@@ -134,16 +155,7 @@ describe("Icon", () => {
     expect(StyleSheet.flatten(custom.props.style)).toEqual(StyleSheet.flatten(named.props.style));
   });
 
-  it("accepts any lucide-react-native icon component through `component`", () => {
-    // Type-level: never called, compiled by `tsc` so a real Lucide export must
-    // fit `component` (it is typed LucideIcon, a forwardRef SVG component).
-    function typeOnly(House: typeof LucideHouse) {
-      return <Icon component={House} color="primary" size={16} decorative />;
-    }
-    expect(typeof typeOnly).toBe("function");
-  });
-
-  it("renders nothing and warns once for a name outside the registry at runtime", () => {
+  it("renders nothing and warns once for an unregistered name at runtime", () => {
     const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const missing = "missing-glyph" as unknown as IconName;
@@ -151,53 +163,78 @@ describe("Icon", () => {
       expect(renderIcon(<Icon name={missing} />).toJSON()).toBeNull();
       expect(warn).toHaveBeenCalledTimes(1);
       expect(warn.mock.calls[0][0]).toContain('"missing-glyph"');
+      expect(warn.mock.calls[0][0]).toContain("client/icons.json");
+      expect(warn.mock.calls[0][0]).toContain("registerIcons(appIcons)");
       // A registered name still renders after the miss.
-      expect(iconColorOf(<Icon name="check" color="primary" />, "check")).toBe("#0F172A");
+      expect(glyphColorOf(<Icon name="check" color="primary" />)).toBe("#0F172A");
     } finally {
       warn.mockRestore();
     }
   });
 
-  it("rejects names outside the registry at compile time", () => {
-    // @ts-expect-error -- "not-an-icon" is not listed in icon-names.json
+  it("rejects unregistered names at compile time", () => {
+    // @ts-expect-error -- "not-an-icon" is neither a builtin nor registered by the app
     const element = <Icon name="not-an-icon" />;
     expect(element).toBeTruthy();
   });
 });
 
 describe("icon registry", () => {
-  // The global setup mock stands in for the generated module, and Jest cannot
-  // load the real one (Lucide ships ESM `.mjs` that the RN transform does not
-  // cover), so read the generated source and the installed package directly.
-  // `bun run ui:icons:check` is the byte-exact freshness gate; this guards the
-  // contract the mock hides: every listed name is a key, and nothing else is.
-  const generatedPath = path.join(__dirname, "..", "iconRegistry.generated.ts");
-  const generated = fs.readFileSync(generatedPath, "utf8");
-  const registryKeys = [...generated.matchAll(/^ {2}"([a-z0-9-]+)": [A-Za-z0-9]+,$/gm)].map((m) => m[1]);
-  const importedNames = [...generated.matchAll(/^import [A-Za-z0-9]+ from "lucide-react-native\/icons\/([a-z0-9-]+)";$/gm)].map((m) => m[1]);
-  const lucideIconsDir = path.join(__dirname, "..", "..", "..", "..", "..", "node_modules", "lucide-react-native", "dist", "esm", "icons");
-
-  it("keys ICONS by every icon-names.json entry, and nothing else", () => {
+  it("builds BUILTIN_ICONS from every icon-names.json entry, and nothing else", () => {
     expect(iconNames.length).toBeGreaterThan(0);
-    expect(registryKeys).toEqual(iconNames);
-    expect(importedNames).toEqual(iconNames);
-    expect(generated).toContain("export type IconName = keyof typeof ICONS;");
+    expect(Object.keys(BUILTIN_ICONS)).toEqual(iconNames);
   });
 
   it("keeps icon-names.json sorted and unique", () => {
     expect(iconNames).toEqual([...new Set(iconNames)].sort());
   });
 
-  it("imports a per-icon subpath that exists in the installed lucide-react-native", () => {
-    expect(generated).not.toMatch(/from "lucide-react-native"/);
-    for (const name of iconNames) {
-      expect(fs.existsSync(path.join(lucideIconsDir, `${name}.mjs`))).toBe(true);
+  it("carries every name the package's own components draw", () => {
+    for (const name of [
+      "check",
+      "chevron-down",
+      "chevron-right",
+      "chevron-up",
+      "circle-alert",
+      "circle-check-big",
+      "eye",
+      "eye-off",
+      "info",
+      "minus",
+      "monitor",
+      "moon",
+      "smartphone",
+      "sun",
+      "trending-down",
+      "trending-up",
+      "triangle-alert",
+      "user",
+      "x",
+    ]) {
+      expect(isIconName(name)).toBe(true);
+      expect(iconNames).toContain(name);
     }
   });
 
-  it("carries the package's own names after the Feather → Lucide renames", () => {
-    for (const name of ["check", "x", "chevron-down", "chevron-right", "chevron-up", "circle-alert", "circle-check-big", "triangle-alert", "info", "trending-up", "trending-down", "user"]) {
-      expect(iconNames).toContain(name);
+  it("registers app glyphs idempotently, later keys winning, and narrows with isIconName", () => {
+    const first: IconGlyphData = [["circle", { cx: "12", cy: "12", r: "10" }]];
+    const second: IconGlyphData = [["path", { d: "M2 2h20" }]];
+    const value: unknown = "registry-test-glyph";
+
+    expect(isIconName(value)).toBe(false);
+    registerIcons({ "registry-test-glyph": first });
+    registerIcons({ "registry-test-glyph": first });
+    expect(isIconName(value)).toBe(true);
+    if (isIconName(value)) {
+      // Narrowed: usable as `name` without a cast.
+      expect(renderIcon(<Icon name={value} />).root.findByType(IconGlyph).props.glyph).toBe(first);
     }
+
+    registerIcons({ "registry-test-glyph": second });
+    const glyph = renderIcon(<Icon name={value as IconName} />).root.findByType(IconGlyph);
+    expect(glyph.props.glyph).toBe(second);
+
+    expect(isIconName(42)).toBe(false);
+    expect(isIconName(undefined)).toBe(false);
   });
 });

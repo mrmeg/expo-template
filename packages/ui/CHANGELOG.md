@@ -14,6 +14,64 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `labels` name each segment for screen readers. Drawn in RN on every platform,
   with a 44 pt vertical hit area and a selection haptic; `value` /
   `onValueChange` make it controlled.
+- **`registerIcons(icons)`** and **`isIconName(value)`**
+  (`@mrmeg/expo-ui/components/Icon`): register an app's glyphs once at module
+  scope in the root layout, and narrow a runtime string to `IconName`. The
+  `IconRegistry` interface they back is what an app's generated module
+  augments. Also exported: the `IconGlyph`, `IconTag`, `IconComponent`,
+  `IconAccessibilityProps`, and `NamedIconProps` types, and a `testID` prop on
+  `Icon` (a named icon defaults to `icon-<name>` in development).
+- **`expo-ui-icons` bin**: compiles `client/icons.json` against the shipped
+  Lucide snapshot (`dist/icons/lucide.json`, Lucide 1.55.0, ISC license in
+  `dist/icons/LICENSE.lucide`) into `client/icons.generated.ts` (`appIcons` plus
+  the `IconRegistry` augmentation). `init` seeds the manifest from the app's
+  `name="…"` / `icon="…"` literals, `add` inserts names (an alias becomes its
+  canonical name), `--check` fails on a stale module, and `tabs` rasterizes the
+  `tabIcons` subset to 1x/2x/3x template PNGs for a native tab bar, with a
+  hash manifest so `tabs --check` needs no rasterizer.
+- `design-system.json` `icons` gains `aliases` (Lucide's renamed names →
+  canonical) and `lucide` (the snapshot version).
+- Exact `./components/iconTypes` (the glyph types) and
+  `./components/iconBuiltins.generated` (`BUILTIN_ICONS`) subpaths. `Icon`
+  re-exports everything an app needs; these exist so every `.ts` module the
+  `./components/*` pattern exposes also resolves through the repo's source
+  condition.
+
+### Changed
+
+- **`Icon` renders package-owned glyph data instead of `lucide-react-native`.**
+  Glyphs are plain `[tag, attrs]` data drawn by the package: an inline `<svg>`
+  on web and in server HTML (stroked `currentColor`, so theme changes recolor
+  through CSS), `react-native-svg` on native with Lucide's own geometry and
+  stroke handling. The web bundle no longer carries `react-native-svg` or the
+  Lucide runtime, and Jest needs no icon mocks.
+- **`IconName` is the 19 builtins plus app-registered names.** The package
+  registers only what its components draw (`check`, `x`, the chevrons, the
+  status and theme-mode glyphs, `eye`/`eye-off`, `user`, …); every other name
+  comes from the app's `client/icons.json`. `<Icon name>` call sites do not
+  change once the names are registered.
+- `ToggleIcon` and `ToggleGroupIcon` take `IconProps` (`name` or `component`,
+  plus `size`, `style`, `accessibilityLabel`, …) like `Button.Icon`: color from
+  the control's text color and decorative by default.
+- `Icon`'s `component` prop is typed `IconComponent` (`size`, `color`, `style`,
+  accessibility props); any component taking `size` and `color` still fits.
+
+Upgrading from 0.28: run `bunx expo-ui-icons init` once, typecheck, and
+`bunx expo-ui-icons add` each name it reports (names built at runtime are not
+found by the scan); add `registerIcons(appIcons)` at module scope in the root
+layout (`import { appIcons } from "@/client/icons.generated"`); register
+`appIcons` in the Jest setup too; delete the Lucide Jest module mapping or
+`transformIgnorePatterns` entry and any `iconRegistry.generated` mock; and
+remove `lucide-react-native` from `package.json` once nothing imports it.
+Optionally list `tabIcons` and run `bunx expo-ui-icons tabs` to replace
+`@expo/vector-icons` tab glyphs with template PNGs. Add
+`bunx expo-ui-icons --check` to CI.
+
+### Removed
+
+- The `lucide-react-native` peer dependency.
+- The `./components/iconRegistry.generated` export (`ICONS`); glyphs are
+  registered data now, and `IconName` comes from `@mrmeg/expo-ui/components/Icon`.
 
 ## [0.28.0]
 

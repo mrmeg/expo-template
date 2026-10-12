@@ -398,7 +398,7 @@ Check this before creating a new app-local primitive. All components come from
 | `DropdownMenu` | Menus and command lists | Homemade popover menus |
 | `EmptyState` | No-data or recoverable error regions | One-off empty placeholders |
 | `ErrorBoundary` | React render error fallback | Unhandled screen crashes |
-| `Icon` | Lucide or custom icons with theme tokens | Raw vector icons with hardcoded colors |
+| `Icon` | Registered Lucide glyphs or custom art with theme tokens | Raw vector icons with hardcoded colors |
 | `InputOTP` | Verification code entry | Several manually managed text inputs |
 | `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens | Hand-rolled row `View`s |
 | `ItemGroup` | A titled group of full-width `Item` rows with inset hairlines and an optional footer | Bordered or shadowed boxes around rows, a `Card` per row, hand-drawn dividers |
@@ -452,7 +452,7 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 - A plain `View` whose `opacity`/`pointerEvents` follows state must be `collapsable={false}` on Android (Fabric re-parents its children on the flip; a flip racing a navigation pop crashes). Package surfaces are pinned; spread `stateSurfaceProps()` from `@mrmeg/expo-ui/lib` on app-owned ones. `Pressable` already pins itself.
 - `TextInput` `onBlur` fires only after a real focus on Android (the native field's first-composition blur is dropped in the package); validate on blur directly and do not add a touched-fields guard in app code.
 - `Drawer.Header` takes `icon`, `title`, and `action` slots for a compact app-brand row; put `Drawer.ToggleCollapse` in `action` for a trailing rail control. `Drawer.Content` owns safe-area top/bottom padding — do not duplicate it in children.
-- `Icon` and `Button.Icon` take `name` (a kebab-case name from the package registry, typed `IconName`) or `component` (any Lucide import such as `import House from "lucide-react-native/icons/house"`, or another SVG component taking `size` and `color`). Both are sized, colored with theme tokens, and hidden from assistive tech unless `accessibilityLabel` names a standalone icon (`decorative` only silences a labelled one); `Button.Icon` inherits the button's label color and is decorative by default. Use `component` for icons outside the registry instead of rendering raw Lucide components.
+- `Icon` and `Button.Icon` take `name` (a kebab-case Lucide name typed `IconName`: the package builtins plus the names the app lists in `client/icons.json`, compiled with `bunx expo-ui-icons` and registered once with `registerIcons(appIcons)` at module scope in the root layout) or `component` (an `IconComponent` taking `size` and `color`, for art that is not a Lucide icon). Both are sized, colored with theme tokens, and hidden from assistive tech unless `accessibilityLabel` names a standalone icon (`decorative` only silences a labelled one); `Button.Icon` inherits the button's label color and is decorative by default. A missing name is a type error: run `bunx expo-ui-icons add <name>` (it maps an alias such as `home` to `house`) rather than importing an icon library. Check a name that arrives at runtime with `isIconName`.
 
 ## Minimal Examples
 
@@ -563,7 +563,7 @@ import { Drawer, Icon } from "@mrmeg/expo-ui/components";
   title="Acme"
   action={
     <Drawer.ToggleCollapse>
-      <Icon name="sidebar" decorative />
+      <Icon name="panel-left" decorative />
     </Drawer.ToggleCollapse>
   }
 />

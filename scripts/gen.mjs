@@ -16,11 +16,18 @@
 import { spawnSync } from "node:child_process";
 
 /**
- * In run order. The icon registry feeds the UI build; the LLM docs walk the
- * demo routes, screens, and components, so they go last.
+ * In run order. The Lucide snapshot and builtins feed the UI build and the
+ * app's icon module, which the tab icons follow; the LLM docs walk the demo
+ * routes, screens, and components, so they go last.
  */
 const GENERATORS = [
-  { script: "ui:icons", artifacts: "packages/ui/src/components/iconRegistry.generated.ts" },
+  {
+    script: "ui:icons",
+    artifacts:
+      "packages/ui/src/components/iconBuiltins.generated.ts, packages/ui/src/icons/lucide.json, packages/ui/src/icons/LICENSE.lucide",
+  },
+  { script: "icons", artifacts: "client/icons.generated.ts" },
+  { script: "icons:tabs", artifacts: "client/tabIcons.generated.ts, assets/icons/tabs/manifest.json" },
   { script: "gen:templates", artifacts: "client/templates/registry.generated.ts" },
   { script: "gen:blocks", artifacts: "client/blocks/registry.generated.ts" },
   { script: "docs:llms", artifacts: "llms-full.txt, llms-examples.txt" },

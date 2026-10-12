@@ -1,4 +1,4 @@
-import type { IconName } from "./Icon";
+import type { IconProps } from "./Icon";
 import { Icon } from "./Icon";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { spacing } from "../constants/spacing";
@@ -332,7 +332,8 @@ function ToggleGroupItem({
 /**
  * ToggleGroupIcon Component
  * Icon wrapper for use inside ToggleGroup items
- * Automatically inherits sizing from parent ToggleGroup
+ * Takes `Icon`'s props; the color defaults to the ToggleGroup's text color, and the
+ * icon is decorative (the control's label names it).
  *
  * Usage:
  * ```tsx
@@ -341,15 +342,9 @@ function ToggleGroupItem({
  * </ToggleGroupItem>
  * ```
  */
-interface ToggleGroupIconProps {
-  name: IconName;
-  size?: number;
-  color?: string;
-}
-
-function ToggleGroupIcon({ name, size, color }: ToggleGroupIconProps) {
+function ToggleGroupIcon(props: IconProps) {
   const contextColor = React.use(TextColorContext);
-  return <Icon name={name} size={size || spacing.iconMd} color={color || contextColor} />;
+  return <Icon decorative color={contextColor} {...props} />;
 }
 
 const styles = /*#__PURE__*/ StyleSheet.create({

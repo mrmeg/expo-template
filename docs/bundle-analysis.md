@@ -191,7 +191,7 @@ with the platform-only code must carry the extension:
 
 - `app/(main)/(tabs)/_layout.native.tsx` holds `NativeTabs`; `_layout.tsx` is
   the web stack (and fallback). Web lost the ~55 kB raw / ~17 kB gzip NativeTabs
-  chunk (its Radix Tabs web view, the Feather glyph map) and the render-blocking
+  chunk (its Radix Tabs web view and tab-icon code) and the render-blocking
   `native-tabs.module-*.css` stylesheet (2.5 kB) that every page linked.
 - `app/(main)/_layout.web.tsx` (`WebMainLayout`, `WebNavShell`,
   `DrawerNavContent`) is out of the native bundles: ~15 kB raw on iOS.
