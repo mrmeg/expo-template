@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/152
 ---
 
 # Icons as app-owned glyph data: package renderers, `client/icons.json`, Lucide PNG tab icons; open `@mrmeg/expo-ui` 0.29.0
