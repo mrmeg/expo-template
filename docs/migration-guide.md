@@ -163,6 +163,8 @@ Upgrade to `@mrmeg/expo-ui@^0.25.0`. Peer ranges: `expo`, `expo-font`, `expo-hap
 - Mount `UIProvider` once (props `notification`, `portalHost`, `statusBar` are opt-out). It renders the `@rn-primitives` portal host that `Dialog`, `Drawer`, `DropdownMenu`, `Popover`, `Select`, and `Tooltip` need, plus `Notification` and `StatusBar`.
 - Call `const { loaded } = useResources()` once near the root and hold rendering until `loaded`.
 
+**Icons (`@mrmeg/expo-ui` 0.29.0+).** `Icon` draws Lucide glyph data the package ships; no icon library is a peer. Run `bunx expo-ui-icons init` once (it seeds `client/icons.json` from the `name="…"` / `icon="…"` literals in `app/`, `client/`, `shared/` and writes `client/icons.generated.ts`), typecheck, and `bunx expo-ui-icons add` every name it reports. Call `registerIcons(appIcons)` at module scope in the root layout (`registerIcons` from `@mrmeg/expo-ui/components/Icon`, `appIcons` from `@/client/icons.generated`) and in the Jest setup (in a `beforeAll`, so test-file mocks still reach `Icon`); delete the Lucide Jest module mapping and any `iconRegistry.generated` mock. Replace direct `lucide-react-native` imports with `<Icon name>` (or `component` for non-Lucide art), and `@expo/vector-icons` tab glyphs with template PNGs: list them as `tabIcons`, run `bunx expo-ui-icons tabs`, and pass `src={TAB_ICONS.<name>} renderingMode="template"` to `NativeTabs.Trigger.Icon`. Then drop both packages from `package.json` and add `bunx expo-ui-icons --check` and `bunx expo-ui-icons tabs --check` to CI.
+
 **Import only from public subpaths** (`.`, `/components`, `/hooks`, `/state`, `/constants`, `/lib`) — never `dist/` or a source checkout:
 
 ```ts

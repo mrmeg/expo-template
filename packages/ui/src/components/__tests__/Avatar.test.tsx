@@ -107,9 +107,9 @@ describe("Avatar", () => {
   });
 
   it("shows the icon while a nameless avatar's image is loading", async () => {
-    await render(<Avatar source={REMOTE} icon="camera" />);
+    await render(<Avatar source={REMOTE} icon="monitor" />);
 
-    expect(screen.getByTestId("icon-camera", HIDDEN)).toBeTruthy();
+    expect(screen.getByTestId("icon-monitor", HIDDEN)).toBeTruthy();
 
     await fireEvent(images()[0], "load");
 
@@ -244,16 +244,16 @@ describe("Avatar", () => {
   });
 
   it("prefers initials over the icon when both a name and an icon are given", async () => {
-    await render(<Avatar name="Ada Lovelace" icon="camera" />);
+    await render(<Avatar name="Ada Lovelace" icon="monitor" />);
 
     expect(screen.getByText("AL", HIDDEN)).toBeTruthy();
     expect(screen.queryByTestId(/^icon-/, HIDDEN)).toBeNull();
   });
 
   it("renders the given icon when there is no name", async () => {
-    await render(<Avatar icon="camera" />);
+    await render(<Avatar icon="monitor" />);
 
-    expect(screen.getByTestId("icon-camera", HIDDEN)).toBeTruthy();
+    expect(screen.getByTestId("icon-monitor", HIDDEN)).toBeTruthy();
   });
 
   it("renders the default user icon when there is no source, name, or icon", async () => {
@@ -263,9 +263,9 @@ describe("Avatar", () => {
   });
 
   it("falls back to the icon when a name has no derivable initials", async () => {
-    await render(<Avatar name="   " icon="camera" />);
+    await render(<Avatar name="   " icon="monitor" />);
 
-    expect(screen.getByTestId("icon-camera", HIDDEN)).toBeTruthy();
+    expect(screen.getByTestId("icon-monitor", HIDDEN)).toBeTruthy();
   });
 
   it("labels itself with the name by default", async () => {
@@ -283,7 +283,7 @@ describe("Avatar", () => {
   });
 
   it("stays out of the accessibility tree when there is nothing to announce", async () => {
-    await render(<Avatar icon="camera" />);
+    await render(<Avatar icon="monitor" />);
 
     expect(screen.queryByRole("img")).toBeNull();
   });

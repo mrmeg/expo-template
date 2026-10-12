@@ -12,9 +12,8 @@ import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import type { TestInstance } from "test-renderer";
-import type LucideHouse from "lucide-react-native/icons/house";
 import { Button, type ButtonAccessoryProps } from "../Button";
-import { Icon } from "../Icon";
+import { Icon, type IconComponent } from "../Icon";
 import { StyledText } from "../StyledText";
 import { useThemeStore } from "../../state/themeStore";
 
@@ -573,26 +572,27 @@ describe("Button", () => {
       await render(
         <Button preset="default">
           <Button.Icon component={Custom} />
-          <Button.Icon name="heart" />
+          <Button.Icon name="check" />
           <Button.Text>Like</Button.Text>
         </Button>
       );
 
       const custom = screen.getByTestId("custom-glyph", { includeHiddenElements: true });
-      const named = screen.getByTestId("icon-heart", { includeHiddenElements: true });
+      // The named icon's SVG root: the color is its `color`, the size its width.
+      const named = screen.getByTestId("icon-check", { includeHiddenElements: true });
       // Default preset label color, from the button's text-color context.
       expect(custom.props.color).toBe("#FAFAFA");
       expect(custom.props.color).toBe(named.props.color);
-      expect(custom.props.size).toBe(named.props.size);
+      expect(custom.props.size).toBe(named.props.width);
       // Decorative by default: the label carries the meaning.
       expect(custom.props["aria-hidden"]).toBe(true);
       expect(named.props["aria-hidden"]).toBe(true);
     });
 
-    it("lets Button.Icon take a Lucide component at the type level", () => {
-      // Never called: `tsc` checks that a real Lucide export fits `component`.
-      function typeOnly(House: typeof LucideHouse) {
-        return <Button.Icon component={House} size={16} />;
+    it("lets Button.Icon take an IconComponent at the type level", () => {
+      // Never called: `tsc` checks that any `IconComponent` fits `component`.
+      function typeOnly(Glyph: IconComponent) {
+        return <Button.Icon component={Glyph} size={16} />;
       }
       expect(typeof typeOnly).toBe("function");
     });

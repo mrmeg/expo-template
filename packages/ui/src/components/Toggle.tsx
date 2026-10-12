@@ -11,7 +11,7 @@ import { useScalePress } from "../hooks/useScalePress";
 import { useItemControlLabel } from "./Item";
 import * as TogglePrimitive from "@rn-primitives/toggle";
 import { Platform, StyleSheet, ViewStyle, ActivityIndicator, StyleProp, Animated } from "react-native";
-import type { IconName } from "./Icon";
+import type { IconProps } from "./Icon";
 import { palette } from "../constants/colors";
 
 const DEFAULT_HIT_SLOP = 8;
@@ -308,7 +308,8 @@ function Toggle({
 /**
  * ToggleIcon Component
  * Icon wrapper for use inside Toggle buttons
- * Automatically inherits sizing from parent Toggle
+ * Takes `Icon`'s props; the color defaults to the Toggle's text color, and the
+ * icon is decorative (the control's label names it).
  *
  * Usage:
  * ```tsx
@@ -317,15 +318,9 @@ function Toggle({
  * </Toggle>
  * ```
  */
-interface ToggleIconProps {
-  name: IconName;
-  size?: number;
-  color?: string;
-}
-
-function ToggleIcon({ name, size, color }: ToggleIconProps) {
+function ToggleIcon(props: IconProps) {
   const contextColor = React.use(TextColorContext);
-  return <Icon name={name} size={size || spacing.iconMd} color={color || contextColor} />;
+  return <Icon decorative color={contextColor} {...props} />;
 }
 
 const styles = /*#__PURE__*/ StyleSheet.create({

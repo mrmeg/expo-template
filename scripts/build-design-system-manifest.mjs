@@ -75,16 +75,22 @@ if (!Array.isArray(iconNames) || iconNames.length === 0) {
   console.error("build-design-system-manifest: no icon names in components/icon-names.json");
   process.exit(1);
 }
+const lucideSnapshot = JSON.parse(await readFile(join(sourceDir, "icons", "lucide.json"), "utf8"));
+if (typeof lucideSnapshot.lucide !== "string" || !lucideSnapshot.aliases) {
+  console.error("build-design-system-manifest: icons/lucide.json is not a Lucide snapshot; run `bun run ui:icons`");
+  process.exit(1);
+}
 
 const payload = {
   ...serializeDesignSystem(design, {
     packageName: manifest.name,
     version: manifest.version,
   }),
-  // The `Icon` registry (`IconName` union), so the lint plugin can validate
-  // icon names against an installed release. An added key needs no schema bump:
-  // the plugin's loader ignores keys it does not read.
-  icons: { names: iconNames },
+  // The package's builtin `Icon` names, Lucide's renamed-name aliases, and the
+  // snapshot version, so the lint plugin can check icon names and sources
+  // against an installed release. An added key needs no schema bump: the
+  // plugin's loader ignores keys it does not read.
+  icons: { names: iconNames, aliases: lucideSnapshot.aliases, lucide: lucideSnapshot.lucide },
 };
 const outputPath = join(packageDir, target.output);
 // `dist` exists when this runs inside the package build; not when run on its own.

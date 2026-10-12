@@ -38,7 +38,7 @@ function separators(): TestInstance[] {
 function Row({ label, media = false }: { label: string; media?: boolean }) {
   return (
     <Item>
-      {media && <ItemMedia icon="bell" />}
+      {media && <ItemMedia icon="info" />}
       <ItemContent>
         <ItemTitle>{label}</ItemTitle>
       </ItemContent>
@@ -167,7 +167,7 @@ describe("ItemGroup", () => {
     await render(
       <>
         <Item separator>
-          <ItemMedia icon="bell" />
+          <ItemMedia icon="info" />
           <ItemContent>
             <ItemTitle>Standalone</ItemTitle>
           </ItemContent>

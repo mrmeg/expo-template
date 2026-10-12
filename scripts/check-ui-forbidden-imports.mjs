@@ -11,6 +11,11 @@ const scanRoots = [
 const forbidden = [
   "react-native-reanimated",
   "react-native-worklets",
+  // Icons are package-owned glyph data; nothing in the package may reach for a
+  // vector-icon or Lucide runtime.
+  "lucide-react-native",
+  "lucide-react",
+  "@expo/vector-icons",
 ];
 const extensions = new Set([".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"]);
 

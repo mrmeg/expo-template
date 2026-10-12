@@ -1,16 +1,53 @@
 import * as React from "react";
-import { Platform, type StyleProp, type TextStyle, type ViewProps, type ViewStyle } from "react-native";
+import { Platform, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { useTheme } from "../hooks/useTheme";
 import type { ThemeColors } from "../constants/colors";
-import { ICONS, type IconName } from "./iconRegistry.generated";
+import { BUILTIN_ICONS, type BuiltinIconName } from "./iconBuiltins.generated";
+import { IconGlyph as GlyphRenderer } from "./IconGlyph";
+import type { IconAccessibilityProps, IconComponent, IconGlyph } from "./iconTypes";
+
+export type { IconAccessibilityProps, IconComponent, IconGlyph, IconTag } from "./iconTypes";
 
 /**
- * Kebab-case Lucide icon names the package bundles, served from
- * `icon-names.json` through the generated registry. Add a name there and run
- * `bun run ui:icons` to extend the union; pass any other Lucide component
- * through `component` without touching the registry.
+ * Every name `Icon` accepts, as keys. The package registers the names its own
+ * components draw (`icon-names.json`); an app adds the rest by listing them in
+ * `client/icons.json` and running `expo-ui-icons`, whose generated module
+ * augments this interface and exports the glyphs for `registerIcons`:
+ *
+ * ```ts
+ * declare module "@mrmeg/expo-ui/components/Icon" {
+ *   interface IconRegistry { "archive": true }
+ * }
+ * ```
  */
-export type { IconName };
+export interface IconRegistry extends Record<BuiltinIconName, true> {}
+
+/**
+ * Kebab-case Lucide names `Icon` can draw: the package builtins plus every
+ * name the app registered. An unregistered literal is a type error.
+ */
+export type IconName = Extract<keyof IconRegistry, string>;
+
+/** Glyphs by name: the builtins, then whatever `registerIcons` adds. */
+const registry = new Map<string, IconGlyph>(Object.entries(BUILTIN_ICONS));
+
+/**
+ * Make glyphs drawable by name. Call it once at module scope in the root
+ * layout with the module `expo-ui-icons` generates
+ * (`registerIcons(appIcons)`), so it has run before any route renders, on the
+ * server too. Idempotent; a later call wins for a name it repeats.
+ */
+export function registerIcons(icons: Readonly<Record<string, IconGlyph>>): void {
+  for (const [name, glyph] of Object.entries(icons)) registry.set(name, glyph);
+}
+
+/**
+ * Whether a runtime value (a database field, a server payload) names a
+ * registered icon. Narrows it to `IconName` for `<Icon name>`.
+ */
+export function isIconName(value: unknown): value is IconName {
+  return typeof value === "string" && registry.has(value);
+}
 
 /**
  * Theme color names that can be used as shortcuts.
@@ -58,18 +95,9 @@ type IconBaseProps = {
    * which would otherwise announce an unnamed image.
    */
   accessibilityLabel?: string;
+  /** Test id for a named icon's SVG root. Defaults to `icon-<name>` in development. */
+  testID?: string;
 };
-
-type IconAccessibilityProps = Pick<
-  ViewProps,
-  | "accessible"
-  | "importantForAccessibility"
-  | "accessibilityElementsHidden"
-  | "accessibilityLabel"
-  | "aria-hidden"
-  | "aria-label"
-  | "role"
->;
 
 /**
  * On web the SVG root is a DOM element and React forwards every prop to it,
@@ -99,59 +127,50 @@ function iconAccessibilityProps(decorative: boolean, label: string | undefined):
   return { accessible: true, accessibilityLabel: label };
 }
 
-/**
- * Props handed to a `component`. Wide enough that any `lucide-react-native`
- * component type-checks as-is (`LucideProps` extends `SvgProps`, whose `style`
- * is a view style), and any component that accepts `size` and `color` works.
- */
-type CustomIconComponentProps = {
-  size: number;
-  color: string;
-  style?: StyleProp<ViewStyle>;
-} & Partial<IconAccessibilityProps>;
-
-type RegistryIconProps = IconBaseProps & {
-  /** The icon name to render (a Lucide name from the package registry) */
+export type NamedIconProps = IconBaseProps & {
+  /** A registered icon name: a package builtin or one listed in the app's `client/icons.json`. */
   name: IconName;
   component?: never;
 };
 
-type CustomIconProps = IconBaseProps & {
-  name?: never;
-  /**
-   * Custom component to render instead of a registry icon. Receives size and
-   * color as props — any `lucide-react-native` icon import works here.
-   */
-  component: React.ComponentType<CustomIconComponentProps>;
-};
+export type IconProps =
+  | NamedIconProps
+  | (IconBaseProps & {
+      name?: never;
+      /**
+       * A component to render instead of a registered glyph, for art that is
+       * not a Lucide icon. Receives the resolved size, color, style, and
+       * accessibility props, exactly like a named icon.
+       */
+      component: IconComponent;
+    });
 
-export type IconProps = RegistryIconProps | CustomIconProps;
-
-/**
- * Universal Icon Component
- * Renders `lucide-react-native` SVG icons with theme integration and style
- * support. Icons are SVG on every platform: no font to load, and server markup
- * carries the glyph.
- *
- * Usage:
- * ```tsx
- * <Icon name="check" color="primary" size={16} />
- * <Icon name="calendar" color="#FF0000" size={24} />
- * <Icon name="terminal" style={{ marginRight: 8 }} />
- * <Icon component={Rocket} color="accent" /> // any Lucide import
- * ```
- */
 const warnedUnknownIconNames = new Set<string>();
 
 function warnUnknownIconName(name: string) {
   if (!__DEV__ || warnedUnknownIconNames.has(name)) return;
   warnedUnknownIconNames.add(name);
   console.warn(
-    `Icon: "${name}" is not in the package icon registry, so nothing was rendered. ` +
-      "Add it to icon-names.json and run `bun run ui:icons`, or pass a Lucide component through `component`."
+    `Icon: "${name}" is not a registered icon, so nothing was rendered. ` +
+      "Add it to client/icons.json, run `bun run icons`, and make sure " +
+      "`registerIcons(appIcons)` runs in the root layout."
   );
 }
 
+/**
+ * Universal Icon Component
+ * Draws a registered glyph as SVG with theme integration and style support:
+ * an inline `<svg>` on web and the server, `react-native-svg` on iOS and
+ * Android. No font to load, and server markup carries the glyph.
+ *
+ * Usage:
+ * ```tsx
+ * <Icon name="check" color="primary" size={16} />
+ * <Icon name="calendar" color="#FF0000" size={24} />
+ * <Icon name="terminal" style={{ marginRight: 8 }} />
+ * <Icon component={BrandMark} color="accent" /> // non-Lucide art
+ * ```
+ */
 export function Icon(props: IconProps) {
   const { size = 24, color, style, decorative = false, accessibilityLabel } = props;
   const { theme } = useTheme();
@@ -177,22 +196,24 @@ export function Icon(props: IconProps) {
     );
   }
 
-  const name = (props as RegistryIconProps).name;
-  const Lucide = ICONS[name] as (typeof ICONS)[IconName] | undefined;
+  const { name, testID } = props as NamedIconProps;
+  const glyph = registry.get(name);
 
   // `IconName` makes an unknown name a type error, but names also arrive at
-  // runtime (a database field, a config file). Rendering `undefined` would
-  // throw; draw nothing and say so once per name in development instead.
-  if (!Lucide) {
+  // runtime (a database field, a config file) and an app can forget to
+  // register. Draw nothing and say so once per name in development.
+  if (!glyph) {
     warnUnknownIconName(name);
     return null;
   }
 
   return (
-    <Lucide
+    <GlyphRenderer
+      glyph={glyph}
       size={size}
       color={iconColor}
       style={iconStyle}
+      testID={testID ?? (__DEV__ ? `icon-${name}` : undefined)}
       {...accessibilityProps}
     />
   );
