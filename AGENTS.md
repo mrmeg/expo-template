@@ -64,14 +64,18 @@ unless the user asks for a plan.
 - Changing a package's `dependencies`, `peerDependencies`, `peerDependenciesMeta`, `exports`, or `files` needs a version bump: `packages:drift-check` fails once npm has that version.
 
 
+
 ## Agent Workflow
 
-<!-- agent-framework:v4 -->
+<!-- agent-framework:v9 -->
 
 Use this workflow only for planned work. Normal coding requests proceed directly.
 
-- `write-spec` creates a self-contained spec in the tracked `Agent/` folder; `review-spec` marks it ready or blocked.
-- `shift` implements ready specs. `dayshift` pins interactive mode; `nightshift` runs ready AFK specs without questions.
+- `grill` stress-tests a plan in one session; `wayfinder` charts bigger efforts as a decision map (`Agent/{slug}.map.md`), resolved one ticket per session and handed to `write-spec` when clear.
+- `write-spec` creates a self-contained spec in the tracked `Agent/` folder and self-reviews it to ready or blocked; `review-spec` is an optional deeper review.
+- `shift` implements ready specs: day mode by default, night mode (ready AFK specs, no questions) on request.
 - Each spec becomes one `agent/*` branch and draft PR against its declared `base-branch`. After the PR opens, set the spec's `status: in-review` and its `pr` link, and commit that on the base branch. Never include `Agent/` files in `agent/*` PR diffs.
-- `review-shift` reviews and merges those PRs.
+- `review-shift` reviews and merges those PRs, then deletes each merged spec in a commit on the base branch so `Agent/` holds only live work.
+- `Agent/`, `agent/*` branches, and their worktrees hold only live work; `shift` and `review-shift` sweep whatever has outlived its PR. Create no report, plan, or summary files; that content belongs in the reply or the PR description.
+- Project memory lives in this repo's note in the Obsidian vault (`mrmeg/obsidian-vault`, `Notes/Projects/`, matched by `repo`): actions only the owner can take, issues not yet specced, and quirks. Read it before work and follow its `Notes/System.md` → Agents rules: every edit trims the note (delete what is done or false, current facts only, no history, lines under 200 characters; status only in the `state` field, replaced whole, never appended). Account, team, app, and domain identifiers live in the vault's `Notes/Reference/`: look there before asking, record new non-secret ones there, never secrets. Create no handoff files.
 - Keep target branches clean and synchronized. Verify with fresh command output.
