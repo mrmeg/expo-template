@@ -839,7 +839,7 @@ import { GitHubMark } from "@/client/components/GitHubMark";
 </Button>
 ```
 
-The Lucide snapshot ships as `dist/icons/lucide.json` (Lucide 1.55.0: every
+The Lucide snapshot ships as `dist/icons/lucide.json` (Lucide 1.57.0: every
 icon plus the alias map) and the CLI compiles against it, so adding a name needs
 no package release. Lucide renames about one name in six minor releases and
 sometimes redraws a glyph under a stable name, so the snapshot is pinned

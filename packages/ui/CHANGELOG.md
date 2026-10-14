@@ -5,6 +5,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.29.1]
+
+### Changed
+
+- The shipped Lucide snapshot (`dist/icons/lucide.json`) moves from Lucide
+  1.55.0 to 1.57.0: 13 new glyphs (among them `cpu-ai`, `folder-user`,
+  `message-circle-text`, `server-nas`, `users-collaboration`), no removals or
+  alias changes. After upgrading, run `bunx expo-ui-icons` and
+  `bunx expo-ui-icons tabs`.
+
+## [0.29.0]
+
 ### Added
 
 - **`ThemeSelector`** (`@mrmeg/expo-ui/components`): a compact System / Light /
