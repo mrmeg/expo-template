@@ -22,12 +22,9 @@ jest.mock("expo-router/native-tabs", () => {
   const Trigger = ({ children }: { children: React.ReactNode }) => <View>{children}</View>;
   Trigger.Label = () => null;
   Trigger.Icon = () => null;
-  Trigger.VectorIcon = () => null;
   NativeTabs.Trigger = Trigger;
   return { NativeTabs };
 });
-
-jest.mock("@expo/vector-icons/Feather", () => ({}));
 
 import TabLayout from "@/app/(main)/(tabs)/_layout.native";
 

@@ -119,6 +119,8 @@ function resolveExportTargets(exportValue, wildcardReplacement = "") {
  */
 const UI_APP_TSX = [
   "import { View } from \"react-native\";",
+  "import { Icon, registerIcons } from \"@mrmeg/expo-ui/components/Icon\";",
+  "import { appIcons } from \"./client/icons.generated\";",
   "import { colors } from \"@mrmeg/expo-ui/constants\";",
   "import { colors as leafColors } from \"@mrmeg/expo-ui/constants/colors\";",
   "import { spacing } from \"@mrmeg/expo-ui/constants/spacing\";",
@@ -138,6 +140,9 @@ const UI_APP_TSX = [
   "import { UIProvider } from \"@mrmeg/expo-ui/components/UIProvider\";",
   "import { StyledText } from \"@mrmeg/expo-ui/components/StyledText\";",
   "",
+  "// `expo-ui-icons` wrote ./client/icons.generated.ts from client/icons.json.",
+  "registerIcons(appIcons);",
+  "",
   "export default function App() {",
   "  const { theme } = useTheme();",
   "  const { scheme } = useThemeLeaf();",
@@ -148,6 +153,7 @@ const UI_APP_TSX = [
   "      <View style={{ flex: 1, backgroundColor: colors.light.colors.background, padding: spacing.lg }}>",
   "        <StyledText text={`${loaded}-${theme.colors.background}-${leafColors[scheme].colors.background}`} />",
   "        <Button text=\"Smoke\" onPress={dismissKeyboard} />",
+  "        <Icon name=\"archive\" color=\"accent\" />",
   "        <AlertDialog>",
   "          <AlertDialogTrigger asChild>",
   "            <Button text=\"Delete project\" />",
@@ -538,7 +544,7 @@ const PACKAGES = {
         wildcardReplacement: "",
       },
     ],
-    requiredDocs: ["dist/design-system.json"],
+    requiredDocs: ["dist/design-system.json", "dist/icons/lucide.json", "dist/icons/LICENSE.lucide", "bin/expo-ui-icons.mjs"],
     fixtures: [
       {
         prefix: "expo-ui-consumer-",
@@ -589,9 +595,20 @@ const PACKAGES = {
           "App.tsx": UI_APP_TSX,
           "index.tsx": UI_INDEX_TSX,
           "runtime-check.mjs": UI_RUNTIME_CHECK_MJS,
+          // A name outside the package builtins: the installed bin compiles it
+          // from the shipped snapshot, and `tsc` proves the generated
+          // `IconRegistry` augmentation merges with the shipped declarations.
+          "client/icons.json": json({ icons: ["archive"], tabIcons: [] }),
         }),
         steps: [
           { kind: "assert-surface" },
+          {
+            kind: "run",
+            command: "bun",
+            args: ["x", "expo-ui-icons"],
+            expectStdout: "Wrote client/icons.generated.ts (1 icon,",
+          },
+          { kind: "run", command: "bun", args: ["x", "expo-ui-icons", "--check"] },
           { kind: "run", command: "bun", args: ["x", "tsc", "--noEmit"] },
           { kind: "run", command: "node", args: ["runtime-check.mjs"] },
           {

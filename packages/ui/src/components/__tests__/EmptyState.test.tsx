@@ -23,11 +23,11 @@ describe("EmptyState", () => {
     expect(screen.getByText("Try a different filter")).toBeTruthy();
   });
 
-  it("renders the icon when provided (testID exposed by the Icon mock)", async () => {
-    await render(<EmptyState title="No inbox" icon="inbox" />);
+  it("renders the icon when provided (the SVG root carries `icon-<name>`)", async () => {
+    await render(<EmptyState title="No inbox" icon="info" />);
     // The glyph illustrates the title, so it is hidden from assistive tech;
     // include hidden elements to reach it.
-    expect(screen.getByTestId("icon-inbox", { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByTestId("icon-info", { includeHiddenElements: true })).toBeTruthy();
   });
 
   it("calls onAction when the CTA button is pressed", async () => {
@@ -82,8 +82,8 @@ describe("EmptyState", () => {
   });
 
   it("renders the icon inside a fixed-size media slot", async () => {
-    await render(<EmptyState title="No inbox" icon="inbox" />);
-    const icon = screen.getByTestId("icon-inbox", { includeHiddenElements: true });
+    await render(<EmptyState title="No inbox" icon="info" />);
+    const icon = screen.getByTestId("icon-info", { includeHiddenElements: true });
     const wrapperStyle = StyleSheet.flatten(icon.parent?.props.style) as Record<string, unknown>;
     expect(wrapperStyle).toMatchObject({
       width: 56,

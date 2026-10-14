@@ -87,7 +87,7 @@ describe("bun run gen", () => {
       .split("\n")
       .map((line) => line.split("\t")[0]);
 
-    expect(generators).toEqual(["ui:icons", "gen:templates", "gen:blocks", "docs:llms"]);
+    expect(generators).toEqual(["ui:icons", "icons", "icons:tabs", "gen:templates", "gen:blocks", "docs:llms"]);
     for (const name of generators) {
       expect(scripts[name]).toBeDefined();
       expect(scripts[`${name}:check`]).toBeDefined();

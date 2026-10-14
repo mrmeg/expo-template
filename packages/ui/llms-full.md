@@ -37,7 +37,8 @@ import { Button, colors, UIProvider, useTheme } from "@mrmeg/expo-ui";
 
 Call `useResources()` once near the Expo app root; it resolves `{ loaded, error }`
 and loads the four static Inter weights (web gets a single Google Fonts Inter
-stylesheet). Icons are `lucide-react-native` SVGs, so there is no icon font to load.
+stylesheet). Icons are SVG drawn from glyph data, so there is no icon font to load;
+call `registerIcons(appIcons)` once at module scope in the root layout (see `Icon`).
 
 Mount `UIProvider` once near the root. It owns the package `Notification`,
 `StatusBar`, default `@rn-primitives` portal host, and native keyboard-avoiding
@@ -161,7 +162,7 @@ before creating a new app-local primitive.
 | `DropdownMenu` | Menus and command lists | Requires root `UIProvider` portal host. |
 | `EmptyState` | No-data or recoverable error regions | Props: `icon`, `title`, `description`, `actionLabel`, `onAction`, `actionPreset`. |
 | `ErrorBoundary` | React render error fallback | Use for route or feature boundaries. |
-| `Icon` | Lucide or custom icons with theme tokens | `color` takes a theme color name; pass `decorative` to hide from a11y. |
+| `Icon` | Registered Lucide glyphs or custom art with theme tokens | `name` is a builtin or a name in `client/icons.json` (`bunx expo-ui-icons add <name>`); `color` takes a theme color name; an unlabeled icon is hidden from a11y. |
 | `InputOTP` | Verification code entry | Prefer over manually managed text input groups. |
 | `Item` | List / settings rows | Applies the row density tokens and a 44px native hit area (40px on web). |
 | `ItemGroup` | A titled group of full-width `Item` rows | Props: `title`, `description`, `footer`, `style`, `testID`. Draws inset hairlines between rows; no border, fill, or horizontal padding, so the parent must not pad either. |

@@ -7,6 +7,7 @@ import { spacing } from "@mrmeg/expo-ui/constants";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@mrmeg/expo-ui/components/Card";
+import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import {
   SansSerifBoldText,
@@ -67,7 +68,33 @@ function apiDemoReducer(state: ApiDemoState, action: ApiDemoAction): ApiDemoStat
   }
 }
 
+/**
+ * The overview loader only has a source on web, where the server renders the
+ * route and serves `/_expo/loaders/server-alpha`. Native has no server origin
+ * (`origin: ""` in app.config.ts), so `useLoaderData` there would fetch a
+ * relative URL and throw during render. Native gets a notice instead and never
+ * calls the hook; `Platform.OS` is constant, so the branch is stable.
+ */
 export default function ServerAlphaDemo() {
+  return Platform.OS === "web" ? <ServerAlphaWebDemo /> : <ServerAlphaNativeNotice />;
+}
+
+function ServerAlphaNativeNotice() {
+  const { theme } = useTheme();
+  const styles = themedStyles(theme);
+
+  return (
+    <View style={styles.nativeContainer}>
+      <EmptyState
+        icon="server"
+        title="Server features run on web"
+        description="Data loaders, API routes, and middleware need the template's web server. Open this demo in the web build to see them."
+      />
+    </View>
+  );
+}
+
+function ServerAlphaWebDemo() {
   const catalog = useLoaderData<typeof serverAlphaLoader>();
   const { status, examples } = catalog;
   const { theme } = useTheme();
@@ -86,10 +113,6 @@ export default function ServerAlphaDemo() {
   } = apiDemo;
 
   const refreshApiStatus = useCallback(async () => {
-    if (Platform.OS !== "web") {
-      return;
-    }
-
     dispatchApiDemo({ type: "apiStatusLoading", loading: true });
     try {
       const response = await fetch("/api/template/status");
@@ -103,10 +126,6 @@ export default function ServerAlphaDemo() {
   }, []);
 
   const refreshApiCatalog = useCallback(async () => {
-    if (Platform.OS !== "web") {
-      return;
-    }
-
     dispatchApiDemo({ type: "apiCatalogLoading", loading: true });
     try {
       const response = await fetch("/api/template/examples");
@@ -120,10 +139,6 @@ export default function ServerAlphaDemo() {
   }, []);
 
   const postEchoSample = useCallback(async () => {
-    if (Platform.OS !== "web") {
-      return;
-    }
-
     dispatchApiDemo({ type: "echoLoading", loading: true });
     try {
       const response = await fetch("/api/template/echo", {
@@ -232,7 +247,7 @@ export default function ServerAlphaDemo() {
                 preset="outline"
                 size="sm"
                 onPress={refreshApiStatus}
-                disabled={apiLoading || Platform.OS !== "web"}
+                disabled={apiLoading}
                 style={styles.actionButton}
               >
                 <Icon name="refresh-cw" color={theme.colors.primary} size={14} />
@@ -244,7 +259,7 @@ export default function ServerAlphaDemo() {
                 preset="outline"
                 size="sm"
                 onPress={refreshApiCatalog}
-                disabled={catalogLoading || Platform.OS !== "web"}
+                disabled={catalogLoading}
                 style={styles.actionButton}
               >
                 <Icon name="list" color={theme.colors.primary} size={14} />
@@ -256,7 +271,7 @@ export default function ServerAlphaDemo() {
                 preset="outline"
                 size="sm"
                 onPress={postEchoSample}
-                disabled={echoLoading || Platform.OS !== "web"}
+                disabled={echoLoading}
                 style={styles.actionButton}
               >
                 <Icon name="send" color={theme.colors.primary} size={14} />
@@ -304,6 +319,12 @@ const createStyles = (theme: Theme) =>
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
+    },
+    nativeContainer: {
+      flex: 1,
+      justifyContent: "center",
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: spacing.screenPadding,
     },
     content: {
       gap: spacing.md,

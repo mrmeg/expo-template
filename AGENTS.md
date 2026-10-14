@@ -60,18 +60,22 @@ unless the user asks for a plan.
 - Auth, billing, media, and Sentry must fail closed when env is missing; a blank `.env` keeps the template explorable.
 - Web is server-rendered per request: `web.output: "server"` plus `unstable_useServerRendering` runs routes, loaders, middleware, and API routes on the server, so the first response carries real route markup. The server has no DOM: anything the first render needs comes off the request (`shared/ssrViewport.ts`, `shared/ssrOnboarding.ts`), and styles must be registered at module scope for `client/features/app/SsrStyleFlush.tsx` to serialize them — see [`docs/server-guide.md`](docs/server-guide.md). Verify web changes in a browser against `bun run build && bun run start`, not only Jest or `tsc`.
 - Five gallery routes under `app/(main)/(demos)` — `themed-showcase.tsx`, `surface-lab.tsx`, `components/index.tsx`, `components/[id].tsx`, `blocks/index.tsx` — are one-line lazy shells; edit the bodies in `client/showcase/*Screen.tsx`. Live previews stay out of the eager web bundle because they are reachable only through `client/showcase/gallery.tsx`, via the single `import()` in `client/showcase/lazyGallery.tsx`; `client/showcase/__tests__/gallerySplitPoint.test.ts` fails on a static import from outside `client/showcase/`.
-- Generated artifacts, all gated by `bun run verify` and CI (`bun run gen --check`) — regenerate and commit, never hand-edit; `bun run gen` regenerates all of them: `packages/ui/src/components/iconRegistry.generated.ts` (`bun run ui:icons`); `client/templates/registry.generated.ts` and `client/blocks/registry.generated.ts` (`bun run gen:templates` / `gen:blocks`); `llms-full.txt` and `llms-examples.txt` (`bun run docs:llms`, built by `scripts/build-llms-full.mjs` from its source-doc list and directory walks — rerun after editing those docs or adding/removing demo routes, screens, components, or form wrappers). `bun run docs:versions:check` holds `README.md`'s version claims to `package.json`.
+- Generated artifacts, all gated by `bun run verify` and CI (`bun run gen --check`) — regenerate and commit, never hand-edit; `bun run gen` regenerates all of them: `packages/ui/src/components/iconBuiltins.generated.ts` and `packages/ui/src/icons/lucide.json` + `LICENSE.lucide` (`bun run ui:icons`, from the pinned `lucide-static` and `icon-names.json`); `client/icons.generated.ts` (`bun run icons`, from `client/icons.json`; add a name with `bun run icons add <name>`); `client/tabIcons.generated.ts`, `assets/icons/tabs/manifest.json`, and the tab PNGs (`bun run icons:tabs`; rasterizing needs `rsvg-convert`, the check does not); `client/templates/registry.generated.ts` and `client/blocks/registry.generated.ts` (`bun run gen:templates` / `gen:blocks`); `llms-full.txt` and `llms-examples.txt` (`bun run docs:llms`, built by `scripts/build-llms-full.mjs` from its source-doc list and directory walks — rerun after editing those docs or adding/removing demo routes, screens, components, or form wrappers). `bun run docs:versions:check` holds `README.md`'s version claims to `package.json`.
 - Changing a package's `dependencies`, `peerDependencies`, `peerDependenciesMeta`, `exports`, or `files` needs a version bump: `packages:drift-check` fails once npm has that version.
+
 
 
 ## Agent Workflow
 
-<!-- agent-framework:v4 -->
+<!-- agent-framework:v9 -->
 
 Use this workflow only for planned work. Normal coding requests proceed directly.
 
-- `write-spec` creates a self-contained spec in the tracked `Agent/` folder; `review-spec` marks it ready or blocked.
-- `shift` implements ready specs. `dayshift` pins interactive mode; `nightshift` runs ready AFK specs without questions.
+- `grill` stress-tests a plan in one session; `wayfinder` charts bigger efforts as a decision map (`Agent/{slug}.map.md`), resolved one ticket per session and handed to `write-spec` when clear.
+- `write-spec` creates a self-contained spec in the tracked `Agent/` folder and self-reviews it to ready or blocked; `review-spec` is an optional deeper review.
+- `shift` implements ready specs: day mode by default, night mode (ready AFK specs, no questions) on request.
 - Each spec becomes one `agent/*` branch and draft PR against its declared `base-branch`. After the PR opens, set the spec's `status: in-review` and its `pr` link, and commit that on the base branch. Never include `Agent/` files in `agent/*` PR diffs.
-- `review-shift` reviews and merges those PRs.
+- `review-shift` reviews and merges those PRs, then deletes each merged spec in a commit on the base branch so `Agent/` holds only live work.
+- `Agent/`, `agent/*` branches, and their worktrees hold only live work; `shift` and `review-shift` sweep whatever has outlived its PR. Create no report, plan, or summary files; that content belongs in the reply or the PR description.
+- Project memory lives in this repo's note in the Obsidian vault (`mrmeg/obsidian-vault`, `Notes/Projects/`, matched by `repo`): actions only the owner can take, issues not yet specced, and quirks. Read it before work and follow its `Notes/System.md` → Agents rules: every edit trims the note (delete what is done or false, current facts only, no history, lines under 200 characters; status only in the `state` field, replaced whole, never appended). Account, team, app, and domain identifiers live in the vault's `Notes/Reference/`: look there before asking, record new non-secret ones there, never secrets. Create no handoff files.
 - Keep target branches clean and synchronized. Verify with fresh command output.

@@ -39,7 +39,7 @@ describe("Toggle pointer target (web)", () => {
   ] as const)("size %s extends the target to 44pt vertically, border included", async (size, slop) => {
     await render(
       <Toggle size={size} pressed={false} onPressedChange={() => {}} accessibilityLabel="Bold">
-        <ToggleIcon name="bold" />
+        <ToggleIcon name="check" />
       </Toggle>
     );
 
@@ -51,7 +51,7 @@ describe("Toggle pointer target (web)", () => {
     const onPressedChange = jest.fn();
     await render(
       <Toggle pressed={false} onPressedChange={onPressedChange} accessibilityLabel="Bold">
-        <ToggleIcon name="bold" />
+        <ToggleIcon name="check" />
       </Toggle>
     );
 
@@ -64,7 +64,7 @@ describe("Toggle pointer target (web)", () => {
     const onPressedChange = jest.fn();
     await render(
       <Toggle pressed={false} onPressedChange={onPressedChange} disabled accessibilityLabel="Bold">
-        <ToggleIcon name="bold" />
+        <ToggleIcon name="check" />
       </Toggle>
     );
 
@@ -76,7 +76,7 @@ describe("Toggle pointer target (web)", () => {
   it("the extender is hidden from assistive tech, never focusable, and the drawn box keeps its height", async () => {
     await render(
       <Toggle size="sm" pressed={false} onPressedChange={() => {}} accessibilityLabel="Bold">
-        <ToggleIcon name="bold" />
+        <ToggleIcon name="check" />
       </Toggle>
     );
 

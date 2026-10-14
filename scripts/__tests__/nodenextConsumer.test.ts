@@ -296,7 +296,7 @@ describe("NodeNext consumer of the built packages", () => {
     expect(specifiers).toEqual(
       expect.arrayContaining([
         "@mrmeg/expo-ui/components/Button",
-        "@mrmeg/expo-ui/components/iconRegistry.generated",
+        "@mrmeg/expo-ui/components/Icon",
         "@mrmeg/expo-media/processing/image-compression/config",
         "@mrmeg/expo-media/server",
         "@mrmeg/expo-purchases/server",

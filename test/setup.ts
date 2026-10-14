@@ -32,38 +32,21 @@ jest.mock("expo-font", () => ({
   },
 }));
 
-// Mock the Icon registry — every name renders as a plain View tagged
-// `icon-<name>` so tests find icons by name without loading any Lucide module
-// or react-native-svg. Jest maps `@mrmeg/expo-ui/components/*` to
-// `packages/ui/src/components/*` (jest.config.js), so this one mock covers the
-// package suites and the app suites alike. The Proxy answers for any name: an
-// unknown name is a type error at the call site, not a runtime miss.
-jest.mock("../packages/ui/src/components/iconRegistry.generated", () => {
-  const React = require("react");
-  const { View } = require("react-native");
-  const cache = new Map<string, React.ComponentType<any>>();
-  const iconFor = (name: string) => {
-    let MockIcon = cache.get(name);
-    if (!MockIcon) {
-      MockIcon = function MockLucideIcon(props: any) {
-        return React.createElement(View, { ...props, testID: props.testID ?? `icon-${name}` });
-      };
-      (MockIcon as any).displayName = `MockIcon(${name})`;
-      cache.set(name, MockIcon);
-    }
-    return MockIcon;
-  };
-  const ICONS = new Proxy(
-    {},
-    {
-      // Names prefixed `missing-` stay undefined so tests can exercise the
-      // runtime fallback for a name outside the registry.
-      get: (_target, name) =>
-        typeof name === "string" && !name.startsWith("missing-") ? iconFor(name) : undefined,
-      has: (_target, name) => typeof name === "string" && !name.startsWith("missing-"),
-    }
-  );
-  return { __esModule: true, ICONS };
+// Register the app's icons (client/icons.json → `bun run icons`) so `Icon`
+// draws them, as the root layout does. Glyphs are plain data rendered through
+// react-native-svg, so no icon mock is needed; a named icon's SVG root carries
+// `testID: icon-<name>`.
+//
+// Lazily, in `beforeAll`: this file shares the test file's module registry, so
+// importing `Icon` here would load it (and the theme and font modules behind
+// it) before the test file's own `jest.mock(...)` calls and its
+// `forceWebPlatform` import run, binding `Icon` to the real modules. By
+// `beforeAll` the test file has loaded its graph, and this registers into the
+// same `Icon` module it imported.
+beforeAll(() => {
+  const { registerIcons } = require("@mrmeg/expo-ui/components/Icon");
+  const { appIcons } = require("@/client/icons.generated");
+  registerIcons(appIcons);
 });
 
 // Mock @expo/ui (bare entry) — jest-expo reports Platform.OS === "ios", so the

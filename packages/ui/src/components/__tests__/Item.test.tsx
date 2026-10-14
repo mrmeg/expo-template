@@ -15,7 +15,7 @@ describe("Item", () => {
   it("renders a full composition (media, title, description, actions)", async () => {
     await render(
       <Item>
-        <ItemMedia icon="bell" />
+        <ItemMedia icon="info" />
         <ItemContent>
           <ItemTitle>Notifications</ItemTitle>
           <ItemDescription>Push, email, and SMS alerts</ItemDescription>
@@ -156,7 +156,7 @@ describe("Item labels its trailing controls", () => {
   it("returns null in a row without an ItemTitle, so nothing points at a missing id", async () => {
     await render(
       <Item>
-        <ItemMedia icon="bell" />
+        <ItemMedia icon="info" />
         <ItemActions>
           <LabelProbe />
         </ItemActions>

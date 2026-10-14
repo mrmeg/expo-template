@@ -124,6 +124,8 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/ErrorBoundary.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ErrorBoundary.tsx
 - packages/ui/src/components/Hydrated.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Hydrated.tsx
 - packages/ui/src/components/Icon.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Icon.tsx
+- packages/ui/src/components/IconGlyph.native.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconGlyph.native.tsx
+- packages/ui/src/components/IconGlyph.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconGlyph.tsx
 - packages/ui/src/components/InputOTP.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/InputOTP.tsx
 - packages/ui/src/components/Item.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Item.tsx
 - packages/ui/src/components/KeyboardAvoidingView.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/KeyboardAvoidingView.tsx
@@ -154,7 +156,8 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/UIProvider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/UIProvider.tsx
 - packages/ui/src/components/bottomSheetDismiss.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/bottomSheetDismiss.ts
 - packages/ui/src/components/bottomSheetHostSupport.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/bottomSheetHostSupport.ts
-- packages/ui/src/components/iconRegistry.generated.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/iconRegistry.generated.ts
+- packages/ui/src/components/iconBuiltins.generated.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/iconBuiltins.generated.ts
+- packages/ui/src/components/iconTypes.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/iconTypes.ts
 - packages/ui/src/components/index.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/index.ts
 - packages/ui/src/components/keyboardController.native.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/keyboardController.native.ts
 - packages/ui/src/components/keyboardController.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/keyboardController.ts
