@@ -39,7 +39,8 @@ no icon library is a peer (see [Icons](#icons)).
 
 `@rn-primitives/*` and `@expo-google-fonts/inter` are package dependencies, not
 peers. Animations use React Native `Animated`. `BottomSheet`, `Slider`, and
-`SegmentedControl` render native `@expo/ui` controls. i18n is optional.
+`SegmentedControl` render native `@expo/ui` controls (`SegmentedControl` is
+native except `size="lg"`, which the kit draws). i18n is optional.
 
 ## Imports
 

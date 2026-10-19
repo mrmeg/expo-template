@@ -27,25 +27,30 @@ import { StyledText } from "./StyledText";
  *
  *   - iOS:     SwiftUI segmented `Picker` (system-styled).
  *   - Android: a Material segmented control, accent-tinted via `tintColor`.
- *   - Web:     the kit's own themed control (see `WebSegmentedControl`).
+ *   - Web:     the kit's own themed control (see `DrawnSegmentedControl`).
+ *
+ * `size="lg"` draws the kit's own control (`DrawnSegmentedControl`) on every
+ * platform at `spacing.touchTarget` (44 pt), because the native control's
+ * height is fixed by the system at about 32 pt.
  *
  * The API is value-based to match the rest of the design system (RadioGroup /
  * Tabs / Select): pass the segment `values` plus a controlled `value` (or
  * `defaultValue` for uncontrolled), and read selections back as the chosen
- * string. A selection haptic fires on each change, matching Switch / Checkbox
- * (see `hapticSelection`).
+ * string. A `value` that is not in `values` selects no segment. A selection
+ * haptic fires on each change, matching Switch / Checkbox (see
+ * `hapticSelection`).
  *
- * Theming: the accent color tints the selected segment on Android and web. iOS
- * draws the system segmented control, which ignores a custom tint — pass
- * `appearance` to force light/dark there.
+ * Theming: the accent color tints the selected segment on Android, web and
+ * `size="lg"`. The native iOS control draws the system segmented control,
+ * which ignores a custom tint — pass `appearance` to force light/dark there.
  *
- * Web: `@expo/ui`'s vendored web control paints every label white once a
- * `tintColor` is passed, so unselected labels vanished on the light track and
- * the disabled state was unreadable; it also exposes no label styling. The
- * kit draws the control itself on web from theme tokens (`muted` track,
- * accent pill, `accentForeground` / `mutedForeground` labels, the shared
- * disabled opacity and focus ring). `appearance` is ignored there; the theme
- * decides.
+ * Drawn control: `@expo/ui`'s vendored web control paints every label white
+ * once a `tintColor` is passed, so unselected labels vanished on the light
+ * track and the disabled state was unreadable; it also exposes no label
+ * styling. The kit draws the control itself on web, and for `size="lg"` on iOS
+ * and Android, from theme tokens (`muted` track, accent pill,
+ * `accentForeground` / `mutedForeground` labels, the shared disabled opacity
+ * and focus ring). `appearance` is ignored there; the theme decides.
  *
  * @example
  * ```tsx
@@ -60,20 +65,39 @@ import { StyledText } from "./StyledText";
 export interface SegmentedControlProps {
   /** Segment labels, in display order. */
   values: string[];
-  /** Controlled selected value. Omit to use uncontrolled mode with `defaultValue`. */
+  /**
+   * Controlled selected value. Omit to use uncontrolled mode with
+   * `defaultValue`. A value that is not in `values` selects no segment.
+   */
   value?: string;
-  /** Initial selected value for uncontrolled mode. Defaults to the first segment. */
+  /**
+   * Initial selected value for uncontrolled mode. Defaults to the first
+   * segment. A value not in `values` selects none.
+   */
   defaultValue?: string;
   /** Called with the selected segment's value. */
   onValueChange?: (value: string) => void;
   /** Disable interaction. @default false */
   disabled?: boolean;
   /**
+   * Control size. `md` is the platform control (system height, about 32 pt on
+   * iOS). `lg` is the kit-drawn control at `spacing.touchTarget` (44) on every
+   * platform, for screens that need 44 pt targets. On `lg`, `tintColor`
+   * applies on iOS too, and `appearance` is ignored (the theme decides), as on
+   * web today.
+   * @default "md"
+   */
+  size?: "md" | "lg";
+  /**
    * Accent color for the selected segment. Defaults to the theme accent.
-   * Applied on Android and web; iOS uses the system style.
+   * Applied on Android, web and `size="lg"`; the native iOS control uses the
+   * system style.
    */
   tintColor?: string;
-  /** Force a color scheme irrespective of the system theme (iOS/Android; web follows the theme). */
+  /**
+   * Force a color scheme irrespective of the system theme (native iOS/Android;
+   * web and `size="lg"` follow the theme).
+   */
   appearance?: "light" | "dark";
   /** Style override for the control. */
   style?: StyleProp<ViewStyle>;
@@ -85,6 +109,7 @@ function SegmentedControl({
   defaultValue,
   onValueChange,
   disabled = false,
+  size = "md",
   tintColor,
   appearance,
   style,
@@ -95,7 +120,9 @@ function SegmentedControl({
   const isControlled = controlledValue !== undefined;
   const value = isControlled ? controlledValue : internalValue;
 
-  const selectedIndex = Math.max(0, values.indexOf(value ?? values[0]));
+  // Uncontrolled with no `defaultValue` selects the first segment; a value that
+  // is not in `values` gives -1, which selects no segment.
+  const selectedIndex = value === undefined ? 0 : values.indexOf(value);
 
   const lastIndex = useRef(selectedIndex);
   const handleValueChange = useCallback(
@@ -111,11 +138,12 @@ function SegmentedControl({
     [isControlled, onValueChange, values],
   );
 
-  if (Platform.OS === "web") {
+  if (Platform.OS === "web" || size === "lg") {
     return (
-      <WebSegmentedControl
+      <DrawnSegmentedControl
         values={values}
         selectedIndex={selectedIndex}
+        height={TRACK_HEIGHTS[size]}
         disabled={disabled}
         tintColor={tintColor}
         onSelect={handleValueChange}
@@ -138,30 +166,50 @@ function SegmentedControl({
 }
 
 // ---------------------------------------------------------------------------
-// Web
+// Drawn (web, and `size="lg"` on native)
 // ---------------------------------------------------------------------------
 
-/** Matches the Button `md` / vendored control height. */
-const TRACK_HEIGHT = 32;
+/** `md` matches the Button `md` / vendored control height; `lg` is a touch target. */
+const TRACK_HEIGHTS = { md: 32, lg: spacing.touchTarget };
 /** Gap between the track edge and the selected pill. */
 const PILL_INSET = 2;
 
-interface WebSegmentedControlProps {
+interface DrawnSegmentedControlProps {
   values: string[];
+  /** Selected segment, or -1 for none. */
   selectedIndex: number;
+  height: number;
   disabled: boolean;
   tintColor?: string;
   onSelect: (value: string) => void;
   style?: StyleProp<ViewStyle>;
 }
 
-function WebSegmentedControl({ values, selectedIndex, disabled, tintColor, onSelect, style }: WebSegmentedControlProps) {
+function DrawnSegmentedControl({
+  values,
+  selectedIndex,
+  height,
+  disabled,
+  tintColor,
+  onSelect,
+  style,
+}: DrawnSegmentedControlProps) {
   const { theme, getContrastingColor } = useTheme();
   const reduceMotion = useReducedMotion();
   const [trackWidth, setTrackWidth] = useState(0);
   const position = useAnimatedValue(selectedIndex);
+  const previousIndex = useRef(selectedIndex);
 
   useEffect(() => {
+    const from = previousIndex.current;
+    previousIndex.current = selectedIndex;
+    // Nothing is selected, so the pill is not drawn and there is nothing to slide.
+    if (selectedIndex < 0) return;
+    // The pill was hidden: place it on the new segment instead of sliding in from 0.
+    if (from < 0) {
+      position.setValue(selectedIndex);
+      return;
+    }
     const slide = Animated.timing(position, {
       toValue: selectedIndex,
       duration: reduceMotion ? 0 : 200,
@@ -190,7 +238,7 @@ function WebSegmentedControl({ values, selectedIndex, disabled, tintColor, onSel
       onLayout={onLayout}
       style={[
         {
-          height: TRACK_HEIGHT,
+          height,
           borderRadius: spacing.radiusMd,
           backgroundColor: theme.colors.muted,
           opacity: disabled ? interaction.disabledOpacity : 1,
@@ -200,8 +248,9 @@ function WebSegmentedControl({ values, selectedIndex, disabled, tintColor, onSel
         style,
       ]}
     >
-      {segmentWidth > 0 && (
+      {segmentWidth > 0 && selectedIndex >= 0 && (
         <Animated.View
+          testID="segmented-control-pill"
           style={{
             pointerEvents: "none",
             position: "absolute",
@@ -224,7 +273,7 @@ function WebSegmentedControl({ values, selectedIndex, disabled, tintColor, onSel
       )}
       <View style={{ position: "absolute", top: PILL_INSET, bottom: PILL_INSET, left: PILL_INSET, right: PILL_INSET, flexDirection: "row" }}>
         {values.map((label, index) => (
-          <WebSegment
+          <DrawnSegment
             key={`${index}-${label}`}
             label={label}
             selected={index === selectedIndex}
@@ -238,7 +287,7 @@ function WebSegmentedControl({ values, selectedIndex, disabled, tintColor, onSel
   );
 }
 
-interface WebSegmentProps {
+interface DrawnSegmentProps {
   label: string;
   selected: boolean;
   disabled: boolean;
@@ -246,7 +295,7 @@ interface WebSegmentProps {
   onPress: () => void;
 }
 
-function WebSegment({ label, selected, disabled, color, onPress }: WebSegmentProps) {
+function DrawnSegment({ label, selected, disabled, color, onPress }: DrawnSegmentProps) {
   const { getFocusRingStyle } = useTheme();
   const focus = useFocusVisible();
 

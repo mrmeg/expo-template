@@ -5,6 +5,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `SegmentedControl` `size="lg"`: a 44 pt control drawn by the kit on iOS,
+  Android and web (the native control's height is fixed by the system at about
+  32 pt).
+
+### Fixed
+
+- `SegmentedControl` no longer shows the first segment selected when `value`
+  (or `defaultValue`) is not one of `values`; no segment is selected.
+
 ## [0.29.1]
 
 ### Changed
