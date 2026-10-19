@@ -373,10 +373,10 @@ Two families at most.
 
 - **Sans (everything):** Inter, weights 400/500/600/700, loaded by
   `useResources()` (four static files on native, one Google Fonts family on
-  web). Body 16/24, captions 14/20 and 12/16, headings from the `StyledText`
-  size scale (`xs`…`display`) and semantics (`title`, `heading`, `subheading`,
-  `body`, `caption`, `label`, `eyebrow`). Eyebrows are 12 px, uppercase,
-  tracked, `mutedForeground`.
+  web). Roles (`StyledText` `semantic`): body 15/24.75, label 14/21 medium,
+  caption 12/18, subheading 18/27 medium, heading 22/26.4 semibold, title
+  28/33.6 semibold; eyebrows 12 px, uppercase, tracked, `mutedForeground`.
+  Sizes beyond the roles come from the `size` scale (`xs` 11 … `display` 34).
 - **Serif (display accents):** the `serif` variant. Georgia by default; the
   package's opt-in Newsreader preset (see the package README, Typography) is
   the recommended pairing for display text and section titles.
