@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/159
 ---
 
 # SegmentedControl: a 44 pt `size="lg"`, and no selection for an unmatched value
