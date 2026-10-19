@@ -5,6 +5,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- `Item` passes `accessibilityLabel`, `accessibilityHint`, `accessibilityActions`,
+  `onAccessibilityAction`, `testID` and `ref` to its row (the `Pressable` when
+  `onPress` is set). They were silently dropped, so apps wrapped `Item` in
+  their own Pressable and lost its press feedback.
+
 ## [0.29.1]
 
 ### Changed

@@ -7,6 +7,7 @@ import {
   Animated,
   StyleProp,
   ViewStyle,
+  type PressableProps,
 } from "react-native";
 import { StyledText, CaptionText, EyebrowText, type TextProps } from "./StyledText";
 import { useHydrated } from "../hooks/useHydrated";
@@ -147,6 +148,38 @@ export interface ItemProps {
   separator?: boolean;
   /** Custom style override for the row. */
   style?: StyleProp<ViewStyle>;
+  /**
+   * What a screen reader announces for the row. Applies to a pressable row
+   * (`onPress` set), which is one accessible element: the label replaces the
+   * text read from its children. A static row is not an accessible element,
+   * so this is ignored there and the controls inside stay reachable. Without
+   * it the row reads its children.
+   */
+  accessibilityLabel?: string;
+  /**
+   * What pressing the row does, announced after the label. Pressable rows
+   * only. Native-only: react-native-web drops it.
+   */
+  accessibilityHint?: string;
+  /**
+   * Custom actions for the screen reader's actions rotor (iOS) or actions menu
+   * (Android); handle them in `onAccessibilityAction`. Pressable rows only.
+   * Native-only: react-native-web drops them.
+   */
+  accessibilityActions?: PressableProps["accessibilityActions"];
+  /** Called when the user picks one of `accessibilityActions`. Pressable rows only. */
+  onAccessibilityAction?: PressableProps["onAccessibilityAction"];
+  /**
+   * Test id for the row. On a pressable row it is the `Pressable`; on a static
+   * row it is the outermost `View` (the wrapper holding the row and its
+   * hairline when `separator` shows, otherwise the row).
+   */
+  testID?: string;
+  /**
+   * Reaches the row's host view: the `Pressable` when `onPress` is set, else
+   * the outermost `View`, as for `testID`. React 19 passes `ref` as a prop.
+   */
+  ref?: React.Ref<React.ComponentRef<typeof View>>;
 }
 
 /**
@@ -160,6 +193,10 @@ export interface ItemProps {
  * the row's own padding is the screen's only horizontal inset, so don't wrap
  * rows in a padded or bordered container.
  *
+ * A pressable row (`onPress` set) is one accessible button: give it an
+ * `accessibilityLabel` (and a hint or custom actions) when what it reads from
+ * its children is not enough. `testID` and `ref` reach the row on both kinds.
+ *
  * @example
  * ```tsx
  * <Item onPress={() => {}} separator>
@@ -172,9 +209,33 @@ export interface ItemProps {
  *     <Icon name="chevron-right" size={18} color="mutedForeground" />
  *   </ItemActions>
  * </Item>
+ *
+ * <Item
+ *   onPress={() => openContact(id)}
+ *   accessibilityLabel="Ada Lovelace, Acme"
+ *   accessibilityHint="Opens the contact"
+ *   testID="contact-row"
+ * >
+ *   <ItemContent>
+ *     <ItemTitle>Ada Lovelace</ItemTitle>
+ *     <ItemDescription>Acme</ItemDescription>
+ *   </ItemContent>
+ * </Item>
  * ```
  */
-export function Item({ children, onPress, disabled, separator, style }: ItemProps) {
+export function Item({
+  children,
+  onPress,
+  disabled,
+  separator,
+  style,
+  accessibilityLabel,
+  accessibilityHint,
+  accessibilityActions,
+  onAccessibilityAction,
+  testID,
+  ref,
+}: ItemProps) {
   const { theme, getFocusRingStyle } = useTheme();
   const groupRow = use(ItemGroupRowContext);
   const showSeparator = separator ?? groupRow?.separator ?? false;
@@ -193,14 +254,19 @@ export function Item({ children, onPress, disabled, separator, style }: ItemProp
   });
   const focus = useFocusVisible();
 
+  // A pressable row hands `testID` and `ref` to its Pressable. A static row puts
+  // them on its outermost View — the wrapper when the separator shows, else the
+  // row — and sets no accessibility props, so it stays out of the a11y tree.
+  const outerProps = onPress ? undefined : { ref, testID };
+
   const row = (
-    <View style={[styles.row, style]}>
+    <View {...(showSeparator ? undefined : outerProps)} style={[styles.row, style]}>
       <ItemLabelContext.Provider value={label}>{children}</ItemLabelContext.Provider>
     </View>
   );
 
   const content = showSeparator ? (
-    <View>
+    <View {...outerProps}>
       {row}
       <View
         style={[
@@ -216,8 +282,14 @@ export function Item({ children, onPress, disabled, separator, style }: ItemProp
   if (onPress) {
     return (
       <Pressable
+        ref={ref}
+        testID={testID}
         onPress={onPress}
         disabled={disabled}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        accessibilityActions={accessibilityActions}
+        onAccessibilityAction={onAccessibilityAction}
         accessibilityRole="button"
         accessibilityState={{ disabled: !!disabled }}
         {...pressHandlers}
