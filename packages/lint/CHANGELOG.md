@@ -38,7 +38,10 @@ Changes on top of the 0.1.0 notes below, which have not been published yet.
   React packages (`lucide-react-native`, `lucide-react`) and of the vector-icon
   fonts (`@expo/vector-icons`, `react-native-vector-icons`,
   `@react-native-vector-icons/*`), each with its subpaths, is reported — by
-  `import`, re-export, `import()`, or `require()`, and type-only imports too. The
+  `import`, re-export, `import()`, or `require()`, by the TypeScript-only forms
+  (`import X = require("…")` and the `import("…")` type), and type-only imports
+  too. Type exports of the Lucide packages (`LucideIconNode`, `LucideIconData`,
+  `SVGAttributes`, …) are the library, not icons. The
   message names `<Icon name="<canonical>" />` and how to register the name, with
   the canonical name resolved from the component (`Home` is `house`,
   `AlertCircle` is `circle-alert`). `eslint --fix` rewrites Lucide's old (alias)

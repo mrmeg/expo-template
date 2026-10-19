@@ -354,6 +354,132 @@ ruleTester.run("icon-source", rule, {
 });
 
 // ---------------------------------------------------------------------------
+// TypeScript-only forms, and exports of the Lucide packages that are not icons
+// ---------------------------------------------------------------------------
+
+ruleTester.run("icon-source (TypeScript forms)", rule, {
+  valid: [
+    // Another package's type, and a path that only starts like a banned one.
+    'type P = import("react").ComponentProps<"div">;',
+    'type P = import("lucide-react-nativex").Home;',
+    'import Lucide = require("lucide-static");',
+    'import Local = require("./lucide-react-native");',
+    "import Alias = Namespace.Member;",
+  ],
+  invalid: [
+    {
+      // `import type` and an inline `type` modifier are reported like the value import.
+      code: 'import type { Home } from "lucide-react-native";',
+      errors: [{ message: sources.component("Home", "lucide-react-native", "home", "house") }],
+    },
+    {
+      code: 'import { type Home } from "lucide-react-native";',
+      errors: [{ message: sources.component("Home", "lucide-react-native", "home", "house") }],
+    },
+    {
+      code: 'import Lucide = require("lucide-react-native");',
+      errors: [{ message: sources.library("lucide-react-native"), line: 1, column: 25 }],
+    },
+    {
+      code: 'import type Lucide = require("lucide-react");',
+      errors: [{ message: sources.library("lucide-react") }],
+    },
+    {
+      code: 'export import Lucide = require("lucide-react-native/icons");',
+      errors: [{ message: sources.library("lucide-react-native/icons") }],
+    },
+    {
+      code: 'import I = require("@expo/vector-icons");',
+      errors: [{ message: sources.font("@expo/vector-icons") }],
+    },
+    {
+      code: 'import F = require("@expo/vector-icons/Feather");',
+      errors: [{ message: sources.font("@expo/vector-icons/Feather") }],
+    },
+    {
+      code: 'import I = require("@react-native-vector-icons/ionicons");',
+      errors: [{ message: sources.font("@react-native-vector-icons/ionicons") }],
+    },
+    {
+      code: 'type P = React.ComponentProps<typeof import("lucide-react-native").Home>;',
+      errors: [{ message: sources.library("lucide-react-native"), line: 1, column: 45 }],
+    },
+    {
+      code: 'type L = import("lucide-react").LucideIcon;',
+      errors: [{ message: sources.library("lucide-react") }],
+    },
+    {
+      code: 'type I = import("@expo/vector-icons").Ionicons;',
+      errors: [{ message: sources.font("@expo/vector-icons") }],
+    },
+    {
+      code: 'type I = typeof import("react-native-vector-icons/Feather");',
+      errors: [{ message: sources.font("react-native-vector-icons/Feather") }],
+    },
+  ],
+});
+
+// Type exports of Lucide's packages are the library, not icons: the one report
+// is on the source, and no icon name is made up from them.
+const NON_ICON_TYPE_CASES = [
+  'import type { LucideIconNode } from "lucide-react-native";',
+  'import { type LucideIconNode } from "lucide-react-native";',
+  'import type { LucideIconData } from "lucide-react-native";',
+  'import { type LucideIconData } from "lucide-react-native";',
+  'import type { LucideIconNode } from "lucide-react";',
+  'import type { LucideIconNode, LucideIconData } from "lucide-react-native";',
+];
+
+ruleTester.run("icon-source (non-icon exports)", rule, {
+  valid: [],
+  invalid: NON_ICON_TYPE_CASES.map((code) => ({
+    code,
+    errors: [
+      {
+        message: sources.library(/"lucide-react"/.test(code) ? "lucide-react" : "lucide-react-native"),
+      },
+    ],
+  })),
+});
+
+describe("icon-source names Lucide aliases that have their own codepoints", () => {
+  const linter = new Linter({ cwd: path.resolve(__dirname, "../../..") });
+  const config = {
+    files: ["**/*.tsx"],
+    plugins: { "expo-ui": plugin },
+    languageOptions,
+    rules: { "expo-ui/icon-source": "error" },
+  };
+  const file = path.resolve(__dirname, "../../../client/file.tsx");
+
+  // Lucide 1.57 keeps these four names with glyph files identical to a canonical icon.
+  it.each([
+    ["Trash2", "trash-2", "trash"],
+    ["FlipHorizontal", "flip-horizontal", "square-centerline-dashed-horizontal"],
+    ["FlipVertical", "flip-vertical", "square-centerline-dashed-vertical"],
+    ["TextSelection", "text-selection", "square-dashed-text"],
+  ])("%s resolves to a name the registry has", (component, kebab, canonical) => {
+    const result = linter.verify(`import { ${component} } from "lucide-react-native";`, config, file);
+    expect(result).toHaveLength(1);
+    const message = result[0].message;
+    // The name the reader is told to add is one the registry (and so the bin) accepts.
+    const registered = /add ([a-z0-9-]+)`/.exec(message)?.[1];
+    expect(registered).toBeDefined();
+    expect(Object.keys(snapshot.icons)).toContain(registered);
+    expect(message).toBe(sources.component(component, "lucide-react-native", kebab, canonical));
+    expect(snapshot.aliases[kebab]).toBe(canonical);
+  });
+
+  it.each([
+    ["trash-2", "trash"],
+    ["flip-horizontal", "square-centerline-dashed-horizontal"],
+  ])("rewrites name=%s to %s", (alias, canonical) => {
+    const result = linter.verifyAndFix(`${COMPONENTS}const a = <Icon name="${alias}" />;`, config, file);
+    expect(result.output).toBe(`${COMPONENTS}const a = <Icon name="${canonical}" />;`);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // A manifest instead of sources
 // ---------------------------------------------------------------------------
 

@@ -16,7 +16,10 @@
  * thing (the UI package's own sources, and it also bans the reanimated family).
  *
  * Type-only imports are reported too, unlike `no-raw-primitives`: the goal is to
- * drop the package from `package.json`, and a type import still needs it.
+ * drop the package from `package.json`, and a type import still needs it. That
+ * covers the TypeScript-only module forms: `import X = require("…")` and the
+ * `import("…")` type (`typeof import("lucide-react-native").Home`). Neither has
+ * specifiers to read, so a banned package is one report on the module string.
  */
 
 const { designSystemComponent } = require("../lib/components");
@@ -40,16 +43,25 @@ const FONT_PACKAGES = ["@expo/vector-icons", "react-native-vector-icons"];
 const FONT_SCOPE = "@react-native-vector-icons/";
 
 /**
- * Uppercase exports of Lucide's packages that are not icon components. A
- * lowercase export (`icons`, `createLucideIcon`) is excluded by its case.
+ * Uppercase exports of Lucide's packages that are not icon components (types
+ * included: `lucide-react` / `lucide-react-native` 1.59 export `IconNode`,
+ * `LucideIcon`, `LucideIconData`, `LucideIconNode`, `LucideProps`, and
+ * `lucide-react` adds `SVGAttributes`; `lucide-react/dynamic` exports
+ * `DynamicIcon`, `DynamicIconModule`, and `IconName`). A lowercase export
+ * (`icons`, `createLucideIcon`) is excluded by its case.
  */
 const NON_ICON_EXPORTS = new Set([
   "Icon",
   "LucideIcon",
   "LucideProps",
+  "LucideIconNode",
+  "LucideIconData",
   "IconNode",
   "LucideProvider",
   "DynamicIcon",
+  "DynamicIconModule",
+  "IconName",
+  "SVGAttributes",
 ]);
 
 const KEBAB_CASE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -253,8 +265,9 @@ module.exports = {
     };
 
     /**
-     * A source that is not an `ImportDeclaration`'s: a re-export, `import()`, or
-     * `require()`. No specifiers to read, so a banned package is one report.
+     * A source that is not an `ImportDeclaration`'s: a re-export, `import()`,
+     * `require()`, `import X = require()`, or an `import()` type. No specifiers
+     * to read, so a banned package is one report.
      *
      * @param {object | null | undefined} literal the string literal naming the module
      */
@@ -372,6 +385,26 @@ module.exports = {
 
       ImportExpression(node) {
         checkModuleLiteral(node.source);
+      },
+
+      // `import Lucide = require("lucide-react-native");` — TypeScript-only.
+      TSImportEqualsDeclaration(node) {
+        const reference = node.moduleReference;
+        if (!reference || reference.type !== "TSExternalModuleReference") return;
+        checkModuleLiteral(reference.expression);
+      },
+
+      // `typeof import("lucide-react-native").Home` — the parser puts the module
+      // in `source` (typescript-eslint 8.5x and later); older ones in
+      // `argument`, a `TSLiteralType` wrapping the string `Literal`.
+      TSImportType(node) {
+        // `argument` warns on read in newer parsers, so it is read only as a fallback.
+        if (node.source) {
+          checkModuleLiteral(node.source);
+          return;
+        }
+        const argument = node.argument;
+        checkModuleLiteral(argument && argument.type === "TSLiteralType" ? argument.literal : argument);
       },
 
       CallExpression(node) {

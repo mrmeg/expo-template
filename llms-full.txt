@@ -1677,7 +1677,7 @@ MIT-licensed ([`LICENSE`](LICENSE)).
 | `expo-ui/no-restyle` | `style` / `*Style` props on design-system components that override appearance the component owns. |
 | `expo-ui/no-raw-primitives` | Importing a primitive the design system already wraps: a `react-native` component the design system exports a same-named component for (`TextInput`, `Switch`, `Button`, `KeyboardAvoidingView`, `StatusBar` today — read from the design system, not listed in the rule), `Text` from `react-native`, anything from `@rn-primitives/*`, and the wrapped `@expo/ui` surfaces. React Native APIs (`Alert`, `Keyboard`, …) are not primitives. A type-only import (`import type { Text }`, `import { type Text as T }`) is ignored — it renders nothing, so it cannot render unthemed. |
 | `expo-ui/no-raw-typography` | Numeric `fontSize` and `lineHeight` literals and string `fontFamily` literals in a [style](#what-counts-as-a-style). The message names the `StyledText` `size` whose font size or line height the literal matches, or the two sizes that bracket it; a `fontFamily` that is one of the kit's faces is named with its `variant` and weight. `0` and `undefined` are allowed. |
-| `expo-ui/icon-source` | Importing an icon library: `lucide-react-native`, `lucide-react`, `@expo/vector-icons`, `react-native-vector-icons`, or `@react-native-vector-icons/*`, by `import`, re-export, `import()`, or `require()`. The message names the replacement, `<Icon name="…" />`, and how to register the name. Also **fixable**: Lucide's old (alias) icon names in a `name` or `icon` JSX attribute are rewritten to the canonical name. |
+| `expo-ui/icon-source` | Importing an icon library: `lucide-react-native`, `lucide-react`, `@expo/vector-icons`, `react-native-vector-icons`, or `@react-native-vector-icons/*`, by `import`, re-export, `import()`, `require()`, `import X = require()`, or an `import()` type (`typeof import("lucide-react-native").Home`). The message names the replacement, `<Icon name="…" />`, and how to register the name. Also **fixable**: Lucide's old (alias) icon names in a `name` or `icon` JSX attribute are rewritten to the canonical name. |
 
 `icon-source` is the plugin's only autofixing rule. `Icon` draws glyph data the
 app registers and no icon library is a peer, so this keeps those imports from
@@ -1686,6 +1686,10 @@ coming back. It bans Lucide's React packages (`lucide-react-native`,
 `react-native-vector-icons`, `@react-native-vector-icons/*`), each with every
 subpath. A type-only import is reported too, unlike `no-raw-primitives`: the aim
 is to drop the package from `package.json`, and a type import still needs it.
+The TypeScript-only forms are reported too (`import Lucide = require("lucide-react-native")`,
+`type P = typeof import("lucide-react-native").Home`), once each, on the module string.
+Lucide's own type exports (`LucideIcon`, `LucideProps`, `LucideIconNode`, …) are the
+library, not icons: they are never turned into an icon name.
 `lucide-static` and `lucide` are not banned.
 
 - **Names.** A Lucide component import is named with its canonical icon name: the
