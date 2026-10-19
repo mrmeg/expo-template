@@ -5,9 +5,10 @@
  * (`@expo/ui` 58.0.2, `src/universal/TextInput/index.android.tsx`, MIT
  * licensed, Copyright (c) 650 Industries, Inc.), built on the public
  * `@expo/ui/jetpack-compose` `BasicTextField`. It keeps the universal field's
- * prop surface (`NativeTextFieldProps` *is* `@expo/ui`'s `TextInputProps`), its
- * `useNativeState` fallback buffer, its ref handle, its slot layout and its
- * modifier order, and differs in exactly two places:
+ * prop surface (`NativeTextFieldProps` is `@expo/ui`'s `TextInputProps` plus the
+ * two accessibility props below), its `useNativeState` fallback buffer, its ref
+ * handle, its slot layout and its modifier order, and differs in exactly three
+ * places:
  *
  * 1. **Secure fields declare a password keyboard.** The universal field maps
  *    `secureTextEntry` to `visualTransformation="password"` only, so the IME
@@ -29,6 +30,11 @@
  *    paddingVertical }` and paints the surface (fill, border, radius) on its RN
  *    wrapper, so `styleToModifiers` below handles the padding cascade and
  *    ignores `backgroundColor`.
+ * 3. **The field is named and described for TalkBack.** The universal field has
+ *    no accessibility props. `accessibilityLabel` and `accessibilityHint` become
+ *    one `semantics({ contentDescription })` modifier reading
+ *    `"<label>, <hint>"` (Compose semantics has no hint key), merged with the
+ *    `autoComplete` `contentType` into a single `semantics` call when both apply.
  *
  * Only `@expo/ui/jetpack-compose` and `@expo/ui/jetpack-compose/modifiers` are
  * imported, both in the peer's export map since SDK 56.
@@ -56,7 +62,11 @@ import {
   type ModifierConfig,
 } from "@expo/ui/jetpack-compose/modifiers";
 
-export type NativeTextFieldProps = TextInputProps;
+// The default file owns the shared type (it adds the accessibility props to
+// `TextInputProps`). Type-only, so it never loads that module at runtime.
+import type { NativeTextFieldProps } from "./nativeTextField";
+
+export type { NativeTextFieldProps };
 
 type InputMode = NonNullable<TextInputProps["inputMode"]>;
 type EnterKeyHint = NonNullable<TextInputProps["enterKeyHint"]>;
@@ -169,6 +179,8 @@ function passwordKeyboardType(mapped: TextFieldKeyboardType | undefined): TextFi
 
 export function NativeTextField({
   ref,
+  accessibilityLabel,
+  accessibilityHint,
   value,
   onChangeText,
   placeholder,
@@ -286,6 +298,10 @@ export function NativeTextField({
     }
     : undefined;
 
+  // Compose semantics has no hint key, so the description is folded into the
+  // content description TalkBack reads for the field.
+  const contentDescription = [accessibilityLabel, accessibilityHint].filter(Boolean).join(", ");
+
   return (
     <BasicTextField
       ref={innerRef}
@@ -293,7 +309,14 @@ export function NativeTextField({
         ...(userModifiers ?? []),
         ...styleToModifiers(style),
         ...(testID ? [testIDModifier(testID)] : []),
-        ...(autoComplete ? [semantics({ contentType: autoComplete })] : []),
+        ...(autoComplete || contentDescription
+          ? [
+            semantics({
+              ...(autoComplete ? { contentType: autoComplete } : null),
+              ...(contentDescription ? { contentDescription } : null),
+            }),
+          ]
+          : []),
         ...(onContentSizeChange ? [onSizeChanged(onContentSizeChange)] : []),
       ]}
       value={state}
