@@ -1353,6 +1353,7 @@ Check this before creating a new app-local primitive. All components come from
 | `EmptyState` | No-data or recoverable error regions | One-off empty placeholders |
 | `ErrorBoundary` | React render error fallback | Unhandled screen crashes |
 | `Icon` | Registered Lucide glyphs or custom art with theme tokens | Raw vector icons with hardcoded colors |
+| `IconButton` | Icon-only command; `accessibilityLabel` required; ≥44 pt hit area | `Button` with only an `Icon` child, or a raw `Pressable` + `Icon` |
 | `InputOTP` | Verification code entry | Several manually managed text inputs |
 | `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens | Hand-rolled row `View`s |
 | `ItemGroup` | A titled group of full-width `Item` rows with inset hairlines and an optional footer | Bordered or shadowed boxes around rows, a `Card` per row, hand-drawn dividers |
@@ -1397,7 +1398,7 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 
 ## Component Selection Rules
 
-- `Button` commands · `Toggle` one pressed state · `ToggleGroup` a related set · `Switch` binary settings · `RadioGroup` few exclusive choices · `Select` longer option sets.
+- `Button` commands · `IconButton` an icon-only command · `Toggle` one pressed state · `ToggleGroup` a related set · `Switch` binary settings · `RadioGroup` few exclusive choices · `Select` longer option sets.
 - `Dialog` blocking decisions · `Popover` contextual controls · `Tooltip` short explanations · `DropdownMenu` action lists.
 - `ItemGroup` + `Item` lists and settings · `Card` one item in a collection or one tappable object, never a wrapper around a section, form, or row group, never nested · `EmptyState` no-data or recoverable errors · `Skeleton` loading content with stable layout · `Progress` real or indeterminate progress.
 - `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive into the exported HTML shell and the first client frame; use `FlatList` for large or unbounded data. Dots are pressable and jump to their slide. A fractional `itemWidth` (default `0.85`) measures the viewport until the first layout, so pass absolute pixels (`> 1`) when the parent is narrower than the window and the first frame matters.
@@ -3008,6 +3009,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/ErrorBoundary.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ErrorBoundary.tsx
 - packages/ui/src/components/Hydrated.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Hydrated.tsx
 - packages/ui/src/components/Icon.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Icon.tsx
+- packages/ui/src/components/IconButton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconButton.tsx
 - packages/ui/src/components/IconGlyph.native.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconGlyph.native.tsx
 - packages/ui/src/components/IconGlyph.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconGlyph.tsx
 - packages/ui/src/components/InputOTP.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/InputOTP.tsx

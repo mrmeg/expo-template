@@ -38,6 +38,7 @@ import { Drawer } from "@mrmeg/expo-ui/components/Drawer";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@mrmeg/expo-ui/components/DropdownMenu";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
+import { IconButton } from "@mrmeg/expo-ui/components/IconButton";
 import { InputOTP } from "@mrmeg/expo-ui/components/InputOTP";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@mrmeg/expo-ui/components/Item";
 import { Label } from "@mrmeg/expo-ui/components/Label";
@@ -122,6 +123,16 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
     <Row>
       <Button preset="default" size="sm" text="Continue" />
       <Button preset="outline" size="sm" text="Cancel" />
+    </Row>
+  ),
+
+  // Every control is named: an icon-only button has no other accessible name.
+  IconButton: () => (
+    <Row gap={spacing.md}>
+      <IconButton icon="settings" size="sm" preset="ghost" accessibilityLabel="Settings" />
+      <IconButton icon="refresh-cw" size="md" preset="outline" accessibilityLabel="Refresh" />
+      <IconButton icon="upload" size="lg" preset="default" accessibilityLabel="Upload" />
+      <IconButton icon="heart" shape="circle" preset="outline" accessibilityLabel="Like" />
     </Row>
   ),
 

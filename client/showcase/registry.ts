@@ -111,6 +111,7 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "DropdownMenu", importPath: "@mrmeg/expo-ui/components/DropdownMenu", category: "overlay" },
   { id: "EmptyState", importPath: "@mrmeg/expo-ui/components/EmptyState", category: "feedback" },
   { id: "Icon", importPath: "@mrmeg/expo-ui/components/Icon", category: "typography" },
+  { id: "IconButton", importPath: "@mrmeg/expo-ui/components/IconButton", category: "form" },
   { id: "InputOTP", importPath: "@mrmeg/expo-ui/components/InputOTP", category: "form" },
   { id: "Item", importPath: "@mrmeg/expo-ui/components/Item", category: "layout" },
   { id: "Label", importPath: "@mrmeg/expo-ui/components/Label", category: "form" },

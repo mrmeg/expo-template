@@ -5,6 +5,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`IconButton`** (`@mrmeg/expo-ui/components`): an icon-only button with a
+  required `accessibilityLabel` (dev-warned when empty), `Button`'s presets and
+  states, `sm`/`md`/`lg` visible sizes, `square` or `circle` shape, and a hit
+  area of at least 44 pt on iOS, Android and web. Use it for every icon-only
+  control; an unlabelled `Icon` is decorative since 0.28.
+
 ## [0.29.1]
 
 ### Changed

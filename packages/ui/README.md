@@ -729,6 +729,7 @@ building a new primitive.
 | `EmptyState` | No-data or recoverable error regions | Empty inbox, no results, failed list load |
 | `ErrorBoundary` | React render error fallback | Route-level and feature-level fallbacks |
 | `Icon` | Registered Lucide glyphs or custom art on theme tokens | Button accessories, menu icons, status glyphs |
+| `IconButton` | Icon-only command: required `accessibilityLabel`, `Button` presets and states, `square` or `circle`, 44 pt hit area on every platform | Refresh, close, camera and toolbar buttons |
 | `InputOTP` | Verification code entry | Email/SMS codes, MFA, invite codes |
 | `Item` | List and settings rows on the density tokens | Settings lists, inbox rows, pickers, detail rows |
 | `ItemGroup` | Flat grouped list: title, full-width `Item` rows with inset hairlines, footer | Settings sections, profile details, activity feeds |

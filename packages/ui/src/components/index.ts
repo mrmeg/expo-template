@@ -18,6 +18,7 @@ export * from "./EmptyState";
 export * from "./ErrorBoundary";
 export * from "./Hydrated";
 export * from "./Icon";
+export * from "./IconButton";
 export * from "./InputOTP";
 export * from "./Item";
 export * from "./KeyboardAvoidingView";

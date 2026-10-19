@@ -62,6 +62,13 @@ const SIZE_CONFIGS: Record<ButtonSize, { paddingVertical: number; paddingHorizon
   },
 };
 
+/** Visible height of each `ButtonSize`, in points (`IconButton` draws its square from it). */
+export const buttonHeights: Record<ButtonSize, number> = {
+  sm: SIZE_CONFIGS.sm.height,
+  md: SIZE_CONFIGS.md.height,
+  lg: SIZE_CONFIGS.lg.height,
+};
+
 /** `outline` border. The web hit extender adds it back (see `WebHitTarget`). */
 const OUTLINE_BORDER_WIDTH = 1;
 
