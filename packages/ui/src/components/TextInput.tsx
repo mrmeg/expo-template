@@ -28,6 +28,7 @@ import {
   type TextInputRef as ExpoTextInputRef,
 } from "@expo/ui";
 import { NativeTextField, type NativeTextFieldProps } from "./nativeTextField";
+import { ANDROID_NATIVE_FIELD_IS_NAMED } from "./nativeFieldLabelSupport";
 import { useTheme } from "../hooks/useTheme";
 import { shapeRadius, useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
@@ -615,7 +616,12 @@ function NativeTextInput({
   // below it (`errorText`, else `helperText`), matching what is on screen. A
   // consumer's own props win. With a name on the field, the visible label is
   // hidden from assistive tech below so it is not announced a second time.
+  // On Android the name only reaches TalkBack when the installed `@expo/ui`
+  // accepts `contentDescription` (57.0.21+, 58.0.8+); below that the field is
+  // unnamed natively, so the visible label stays readable.
   const fieldLabel = accessibilityLabel ?? label;
+  const labelHiddenFromAT =
+    !!fieldLabel && (Platform.OS !== "android" || ANDROID_NATIVE_FIELD_IS_NAMED);
   const fieldHint = accessibilityHint ?? (errorText || helperText);
 
   // Password visibility toggle. Flipping `secureTextEntry` toggles Compose's
@@ -924,9 +930,11 @@ function NativeTextInput({
       {!!label && (
         <View
           style={styles.labelContainer}
-          // The field itself carries the label (`fieldLabel`); read it once.
-          accessibilityElementsHidden={!!fieldLabel}
-          importantForAccessibility={fieldLabel ? "no-hide-descendants" : "auto"}
+          // The field itself carries the label (`fieldLabel`); read it once. On
+          // Android below @expo/ui 57.0.21 / 58.0.8 the native field cannot
+          // carry it (`contentDescription` is dropped), so this stays readable.
+          accessibilityElementsHidden={labelHiddenFromAT}
+          importantForAccessibility={labelHiddenFromAT ? "no-hide-descendants" : "auto"}
         >
           <StyledText selectable={false} size="base" fontWeight="medium" style={styles.label}>
             {label}

@@ -35,6 +35,11 @@
  *    one `semantics({ contentDescription })` modifier reading
  *    `"<label>, <hint>"` (Compose semantics has no hint key), merged with the
  *    `autoComplete` `contentType` into a single `semantics` call when both apply.
+ *    `@expo/ui`'s native `SemanticsModifier` only accepts `contentDescription`
+ *    from 57.0.21 (57.x) and 58.0.8 (58.x); below those it drops the param, so
+ *    the field stays unnamed. `TextInput` therefore hides its visible label from
+ *    TalkBack only on those versions or later (`nativeFieldLabelSupport.ts`) and
+ *    leaves it readable below them.
  *
  * Only `@expo/ui/jetpack-compose` and `@expo/ui/jetpack-compose/modifiers` are
  * imported, both in the peer's export map since SDK 56.
