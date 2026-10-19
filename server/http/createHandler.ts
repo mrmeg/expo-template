@@ -11,7 +11,10 @@
  *    keyed by client address (`TRUST_PROXY`).
  * 3. `GET`/`HEAD` for a file in `dist/client` is served statically, with
  *    precompressed siblings or the bounded runtime fallback
- *    (`./staticFiles.ts`).
+ *    (`./staticFiles.ts`). A miss under a hashed path (`/_expo/static/`,
+ *    `/assets/`) — a stale chunk URL after a deploy — gets a bare,
+ *    uncompressed, `no-store` 404 instead of the app's 404 page, once step 4
+ *    has had its turn.
  * 4. `GET`/`HEAD` for the FFmpeg worker URL is served from memory.
  * 5. Everything else goes to the Expo Server handler — SSR HTML, loaders,
  *    API routes, the 404 page — and its response is stream-compressed when
@@ -41,7 +44,7 @@ import {
   resolveClientAddress,
   type RateLimitRules,
 } from "./rateLimit";
-import { createStaticFileServer, SHORT_CACHE_CONTROL } from "./staticFiles";
+import { createStaticFileServer, isImmutableStaticPath, SHORT_CACHE_CONTROL } from "./staticFiles";
 
 type Env = Record<string, string | undefined>;
 
@@ -202,6 +205,20 @@ export function createHandler(options: CreateHandlerOptions): FetchHandler {
 
       if (ffmpegWorker && pathname === ffmpegWorker.url) {
         return serveFfmpegWorker(request);
+      }
+
+      if (isImmutableStaticPath(pathname)) {
+        // A stale hashed URL (an old chunk after a deploy), not a page. The
+        // body is not worth rendering the app's 404 for or compressing, and
+        // `no-store` keeps a CDN from caching a miss during a rollover.
+        return new Response(request.method === "HEAD" ? null : "Not Found", {
+          status: 404,
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Content-Length": "9",
+            "Cache-Control": "no-store",
+          },
+        });
       }
     }
 
