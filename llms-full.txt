@@ -618,7 +618,7 @@ Upgrade to `@mrmeg/expo-ui@^0.29.1`. Peer ranges: `expo`, `expo-font`, `expo-hap
 - Mount `UIProvider` once (props `notification`, `portalHost`, `statusBar` are opt-out). It renders the `@rn-primitives` portal host that `Dialog`, `Drawer`, `DropdownMenu`, `Popover`, `Select`, and `Tooltip` need, plus `Notification` and `StatusBar`.
 - Call `const { loaded } = useResources()` once near the root and hold rendering until `loaded`.
 
-**Icons (`@mrmeg/expo-ui` 0.29.0+).** `Icon` draws Lucide glyph data the package ships; no icon library is a peer. Run `bunx expo-ui-icons init` once (it seeds `client/icons.json` from the `name="…"` / `icon="…"` literals in `app/`, `client/`, `shared/` and writes `client/icons.generated.ts`), typecheck, and `bunx expo-ui-icons add` every name it reports. Call `registerIcons(appIcons)` at module scope in the root layout (`registerIcons` from `@mrmeg/expo-ui/components/Icon`, `appIcons` from `@/client/icons.generated`) and in the Jest setup (in a `beforeAll`, so test-file mocks still reach `Icon`); delete the Lucide Jest module mapping and any `iconRegistry.generated` mock. Replace direct `lucide-react-native` imports with `<Icon name>` (or `component` for non-Lucide art), and `@expo/vector-icons` tab glyphs with template PNGs: list them as `tabIcons`, run `bunx expo-ui-icons tabs`, and pass `src={TAB_ICONS.<name>} renderingMode="template"` to `NativeTabs.Trigger.Icon`. Then drop both packages from `package.json` and add `bunx expo-ui-icons --check` and `bunx expo-ui-icons tabs --check` to CI.
+**Icons (`@mrmeg/expo-ui` 0.29.0+).** `Icon` draws Lucide glyph data the package ships; no icon library is a peer. Run `bunx expo-ui-icons init` once (it seeds `client/icons.json` from the `name="…"` / `icon="…"` literals in `app/`, `client/`, `shared/` and writes `client/icons.generated.ts`), typecheck, and `bunx expo-ui-icons add` every name it reports. Call `registerIcons(appIcons)` at module scope in the root layout (`registerIcons` from `@mrmeg/expo-ui/components/Icon`, `appIcons` from `@/client/icons.generated`) and in the Jest setup (in a `beforeAll`, so test-file mocks still reach `Icon`); delete the Lucide Jest module mapping and any `iconRegistry.generated` mock. Replace direct `lucide-react-native` imports with `<Icon name>` (or `component` for non-Lucide art), and `@expo/vector-icons` tab glyphs with template PNGs: list them as `tabIcons`, run `bunx expo-ui-icons tabs`, and pass `src={TAB_ICONS.<name>} renderingMode="template"` to `NativeTabs.Trigger.Icon`. Then drop both packages from `package.json` and add `bunx expo-ui-icons --check` and `bunx expo-ui-icons tabs --check` to CI. An app already on 0.27.x or 0.28.x follows [Consumer migration to 0.29.1](#consumer-migration-to-0291) step by step.
 
 **Import only from public subpaths** (`.`, `/components`, `/hooks`, `/state`, `/constants`, `/lib`) — never `dist/` or a source checkout:
 
@@ -713,6 +713,219 @@ bun run build          # expo export → dist/client + dist/server
 ## Anti-Patterns to Remove While Migrating
 
 Sweep for and delete: app-local duplicates of `@mrmeg/expo-ui` primitives (buttons, inputs, menus, modals, cards, typography); hard-coded colors, shadows, radii, spacing in general-purpose UI; fetch-on-mount for initial route data; top-level server-module imports in client-reachable files; UI branching on raw `Response` objects; cross-feature internal imports; startup logic that blocks first paint on persisted browser state; integrations that crash on a blank `.env`.
+
+## Consumer migration to 0.29.1
+
+The upgrade every fleet app on `@mrmeg/expo-ui` 0.27.x or 0.28.x runs to reach 0.29.1. A per-app migration spec cites this section and lists only that app's deltas (call sites, prerequisite PRs, which steps it skips). Run the steps in order; each ends in a state that typechecks and passes tests.
+
+### 1. Prerequisites
+
+- **Clean lockfile.** The bump rewrites `bun.lock`, so start from a committed tree and a lockfile that installs as-is:
+
+  ```sh
+  git status --porcelain            # empty
+  bun install --frozen-lockfile     # passes without changes
+  ```
+
+- **No UI spec in flight in the same repo.** Two branches that both change `bun.lock` or the same screens conflict. Merge or park every open UI or dependency PR first, then branch the migration from the updated base.
+- **0.27 → 0.28 first, if the app is on 0.27.x.** 0.28 is a separate behavior change; apply it before the icon work (`packages/ui/CHANGELOG.md`, `[0.28.0]`):
+  - `Checkbox` and `RadioGroup.Item` with a `label` are now one control; update tests that query them by role.
+  - `Item`'s `separator` no longer defaults to `false`: delete manual dividers between rows, and replace bordered row panels with `ItemGroup` (step 9).
+  - Move radius overrides into `setShape` slots (`input`, `card`, `sheet`, `badge`, `dialog`).
+  - Optional adoptions: `Screen` + `useWindowInsets` instead of `SafeAreaView` / `useSafeAreaInsets` padding, `useNotificationOffset` in tab layouts, `<UIProvider haptics>` instead of per-control `expo-haptics` calls, `BottomSheet onDismissed` instead of timers.
+  - Re-check screenshots: dark shadows are edge-lit, the `Skeleton` fill is `borderStrong`, native ships four Inter files.
+- **Peers.** `expo` and `@expo/ui` ≥ 56 < 59, `react` ≥ 19.2, `react-native` ≥ 0.85 < 0.89, `react-native-svg` 15, `react-native-keyboard-controller` ≥ 1.21 (full list in Phase 4).
+
+### 2. Accessibility gate (before the bump)
+
+0.28 hides an `Icon` with no `accessibilityLabel` from assistive tech on every platform (`aria-hidden` on web, `accessible={false}` on native). An icon-only `Pressable` / `Button` that relied on the icon's old unnamed `role="img"` becomes an **unnamed button** after the bump. Fix these first, while the old behavior still lets you find them:
+
+- Give every icon-only control its own name: `accessibilityLabel` on the `Pressable` (translated), `accessibilityRole="button"`, and leave the `Icon` unlabelled (it is decoration inside a named control).
+- A standalone informational icon (status glyph with no text beside it) keeps `accessibilityLabel` on the `Icon`.
+
+Lock it in with a guard test that renders each screen with icon-only controls and fails on any unnamed button (RNTL 14: `render` is async and `UNSAFE_root` is gone, so query by role):
+
+```tsx
+// client/__tests__/namedControls.test.tsx
+import { render, screen, within } from "@testing-library/react-native";
+import SettingsScreen from "@/app/(main)/(tabs)/settings";
+
+function unnamedButtons() {
+  return screen.queryAllByRole("button").filter(
+    (button) =>
+      !button.props.accessibilityLabel &&
+      !button.props["aria-label"] &&
+      !button.props["aria-labelledby"] &&
+      within(button).queryAllByText(/\S/).length === 0
+  );
+}
+
+it.each([["settings", SettingsScreen]])("%s names every button", async (_, Screen) => {
+  await render(<Screen />);
+  expect(unnamedButtons()).toHaveLength(0);
+});
+```
+
+Add each screen with an icon-only control to the table. The test must pass on the old version and keep passing after step 3.
+
+### 3. The bump
+
+```sh
+bun add @mrmeg/expo-ui@^0.29.1
+bun install --frozen-lockfile     # the lockfile is now consistent
+test -f node_modules/@mrmeg/expo-ui/dist/design-system.json   # the lint plugin reads it
+```
+
+Commit `package.json` and `bun.lock` alone. Typecheck now fails wherever the app passes a Lucide component or an unregistered name; steps 4 to 6 fix that.
+
+### 4. Seed the icon manifest
+
+`Icon` draws glyph data the app registers; 19 names are built in and `IconName` covers those plus the app's own.
+
+```sh
+bunx expo-ui-icons init           # writes client/icons.json and client/icons.generated.ts
+bun run typecheck                 # lists names that are not registered
+bunx expo-ui-icons add <name...>  # add each reported name, then rerun typecheck
+```
+
+What `init` finds: double-quoted kebab-case literals after `name` or `icon` with `=` or `:` (`name="search"`, `icon={"bell"}`, `{ icon: "bell" }`) in `app/`, `client/` and `shared/`, skipping tests, `__tests__`, `__mocks__` and `*.generated.ts`. It reports alias names it skipped (`home → house`); use the canonical name. It refuses to overwrite an existing manifest without `--force`.
+
+What it misses, so grep for them and `add` by hand:
+
+- Object literals under other keys (`{ glyph: "map-pin" }`, `{ iconName: "flag" }`), single-quoted or template-literal names.
+- Names built at runtime (`` `signal-${level}` ``, `STATUS_ICON[status]`). List every value of the map in `add`, type the map as `Record<Status, IconName>`, and narrow untrusted strings with `isIconName(value)` from `@mrmeg/expo-ui/components/Icon`.
+- Names that reached the app through `as=` or `component=` (step 6).
+
+`add` resolves an alias to its canonical name and rejects names that are not in the shipped Lucide snapshot (1.57.0 in 0.29.1). Options: `--manifest <path>` (default `client/icons.json`), `--out <path>` (default `client/icons.generated.ts`).
+
+### 5. Register the icons
+
+Root layout, at module scope (not in a component or effect, so the server render, the first client render and the crash fallback all draw icons):
+
+```tsx
+// app/_layout.tsx (or the root layout module it renders)
+import { registerIcons } from "@mrmeg/expo-ui/components/Icon";
+import { appIcons } from "@/client/icons.generated";
+
+registerIcons(appIcons);
+```
+
+Jest setup, in a `beforeAll` with lazy `require`s, so a test file's own `jest.mock(...)` calls bind before `Icon` loads:
+
+```ts
+// test/setup.ts
+beforeAll(() => {
+  const { registerIcons } = require("@mrmeg/expo-ui/components/Icon");
+  const { appIcons } = require("@/client/icons.generated");
+  registerIcons(appIcons);
+});
+```
+
+An unregistered name renders nothing and warns once in development: `Icon: "x" is not a registered icon`.
+
+### 6. `as=` and `component=` → `name`
+
+App wrappers that take a Lucide component (`<AppIcon as={Search} />`, `<Icon component={ChevronRight} />`, `icon: Bell` in a config array) become names:
+
+```tsx
+// before
+import { ChevronRight } from "lucide-react-native";
+<Icon component={ChevronRight} size={16} color="mutedForeground" />
+// after
+<Icon name="chevron-right" size={16} color="mutedForeground" />
+```
+
+Type config arrays as `IconName` (`{ icon: "bell" as const }` or `icon: IconName`). Keep `component` only for non-Lucide art (a brand logo SVG). `ToggleIcon` and `ToggleGroupIcon` take `IconProps`, so `name` works there too. An app with many `as=` call sites rewrites them before running `init`, so the scan sees the names.
+
+### 7. Drop Lucide
+
+```sh
+grep -rn "lucide" app client shared test jest.config.* package.json   # no hits left except docs
+bun remove lucide-react-native
+```
+
+Also delete: the `lucide-react-native` entry in Jest `moduleNameMapper` or `transformIgnorePatterns`, any mock of `@mrmeg/expo-ui/components/iconRegistry.generated` (that export is gone), and `@expo/vector-icons` if tab icons were its last use (`tabIcons` in `client/icons.json`, then `bunx expo-ui-icons tabs`; it needs `rsvg-convert`, the check does not).
+
+### 8. `--check` in CI
+
+Add the drift checks to the app's validate job (or its `verify` script) so a name added to `icons.json` without regenerating fails the build:
+
+```sh
+bunx expo-ui-icons --check        # exit 1 if client/icons.generated.ts is missing or stale; writes nothing
+bunx expo-ui-icons tabs --check   # only for apps with NativeTabs tabIcons
+```
+
+After any later kit bump that moves the Lucide snapshot, rerun `bunx expo-ui-icons` (and `tabs`) and commit the output.
+
+### 9. Settings rows: `ThemeSelector`, `ItemGroup` / `Item`
+
+Replace hand-rolled theme pickers (three radio rows, a `SegmentedControl`, a `Select`, a `ToggleGroup`) with one row holding `ThemeSelector`, bound to `useThemeStore`:
+
+```tsx
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@mrmeg/expo-ui/components/Item";
+import { ThemeSelector } from "@mrmeg/expo-ui/components/ThemeSelector";
+import { useThemeStore } from "@mrmeg/expo-ui/state";
+
+<ItemGroup title={t("settings.preferences")}>
+  <Item>
+    <ItemContent>
+      <ItemTitle>{t("settings.themeTitle")}</ItemTitle>
+      {userTheme === "system" && <ItemDescription>{t("settings.matchesDevice", { scheme })}</ItemDescription>}
+    </ItemContent>
+    <ItemActions>
+      <ThemeSelector labels={{ system: t("settings.theme.system"), light: t("settings.theme.light"), dark: t("settings.theme.dark") }} />
+    </ItemActions>
+  </Item>
+</ItemGroup>
+```
+
+Pass translated `labels`: they name each segment for screen readers. Show "matches device" only for the system preference. Move every other settings and profile row onto `ItemGroup` + `Item`; delete manual dividers, bordered row panels and per-row `Card`s. The row title names a trailing `Switch` / `Checkbox` / `Toggle`, so those need no label of their own. The template's `app/(main)/(tabs)/settings.tsx` is the reference screen.
+
+### 10. `withAlpha`, not hex-suffix alpha
+
+On web every `theme.colors.*` value is `var(--c-*)`, so `theme.colors.primary + "20"` is invalid CSS and the tint silently disappears (native still shows it, which hides the bug).
+
+```ts
+import { withAlpha } from "@mrmeg/expo-ui/hooks";   // also returned by useTheme()
+backgroundColor: withAlpha(theme.colors.primary, 0.12)
+```
+
+Find them, then keep them out with a source-scan test:
+
+```sh
+grep -rnE "colors\.[A-Za-z]+ *\+ *[\"'\`]" app client shared
+```
+
+```ts
+// client/__tests__/noHexAlpha.test.ts
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const HEX_ALPHA = /colors\.\w+\s*\+\s*["'`]/;
+
+it("never appends hex alpha to a theme token", () => {
+  const hits = ["app", "client", "shared"].flatMap((dir) =>
+    (readdirSync(dir, { recursive: true }) as string[])
+      .filter((file) => /\.tsx?$/.test(file) && !file.includes("__tests__"))
+      .flatMap((file) =>
+        readFileSync(join(dir, file), "utf8")
+          .split("\n")
+          .flatMap((line, i) => (HEX_ALPHA.test(line) ? [`${dir}/${file}:${i + 1}`] : []))
+      )
+  );
+  expect(hits).toEqual([]);
+});
+```
+
+### 11. Validation checklist
+
+- [ ] `bun install --frozen-lockfile` passes; `git diff --stat` shows only the files this migration meant to touch.
+- [ ] `grep -rn lucide app client shared test package.json` is empty; `@mrmeg/expo-ui` resolves to 0.29.1 (`bun pm ls | grep expo-ui`).
+- [ ] `bun run typecheck`, `bun run lint` (and `bun lint:ui` where the app has it), `bun run test:ci` (or the app's CI test script) pass, including the named-controls and hex-alpha guards.
+- [ ] `bunx expo-ui-icons --check` (and `tabs --check` with NativeTabs) passes and is wired into CI.
+- [ ] Web: `bun run build && bun run start`; every route draws its icons in the server HTML, the theme row switches System / Light / Dark, tinted surfaces keep their tint in both schemes, and the console has no `is not a registered icon` warning or hydration warning.
+- [ ] Native: a dev build on iOS and Android; icons render on every tab, VoiceOver / TalkBack name every icon-only control, and the crash fallback (throw from a screen in development) draws its icons and reports to Sentry.
+- [ ] Screenshots re-checked where 0.28 changed shadows, skeletons or fonts.
 
 ## Appendix — Portfolio Tier Scan (June 2026)
 
