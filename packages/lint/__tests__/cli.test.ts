@@ -40,6 +40,7 @@ describe("expo-ui-lint", () => {
         "expo-ui/no-restyle",
         "expo-ui/no-raw-primitives",
         "expo-ui/no-raw-typography",
+        "expo-ui/icon-source",
       ]) {
         expect(stdout).toContain(rule);
       }
@@ -54,8 +55,11 @@ describe("expo-ui-lint", () => {
       expect(stderr).toBe("");
       // In this repo the facts come from the sources, not from a manifest.
       expect(stdout).toContain(`design system: sources at ${path.join(ROOT, "packages", "ui", "src")}`);
-      // The fixture trips all five rules; the counts are the wiring check.
-      expect(stdout).toContain("= 1/1/3/2/1 (expected 1/1/3/2/1)");
+      // The fixture trips all six rules; the counts are the wiring check.
+      expect(stdout).toContain("= 1/1/3/2/1/1 (expected 1/1/3/2/1/1)");
+      expect(stdout).toContain("6/6 rules at error");
+      // Informational: what the design system knows about icons.
+      expect(stdout).toMatch(/icons: \d+ builtin names, \d+ Lucide aliases \(lucide \d+\.\d+\.\d+\)/);
       expect(stdout).not.toContain("FAIL");
       expect(status).toBe(0);
     },

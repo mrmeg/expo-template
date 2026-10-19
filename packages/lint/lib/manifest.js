@@ -15,7 +15,7 @@
 
 const fs = require("node:fs");
 
-const { emptyDesignSystem } = require("./source");
+const { emptyDesignSystem, stringMap } = require("./source");
 
 /**
  * Bumped when the payload shape changes; a version this plugin does not know
@@ -49,6 +49,11 @@ const MTIME_CHECK_INTERVAL_MS = 2000;
  * @property {Record<string, {paletteKey: string | null, value: string | null}>} darkTheme
  * @property {string[] | null} fontVariants
  * @property {{families: import("./source").FontFamilies}} fonts
+ * @property {{names?: string[], aliases?: Record<string, string>, lucide?: string}} [icons]
+ *   written by the UI build after `serializeDesignSystem`, and optional: a release
+ *   before 0.28 has no `icons` key, and 0.28's block holds `names` only. Only
+ *   0.29.0 and later carry `aliases` and `lucide`. Additive, so the schema
+ *   version stays 2.
  * @property {import("./source").ComponentInfo[]} components
  */
 
@@ -206,6 +211,7 @@ function readManifest(manifestPath) {
   design.fontVariants = Array.isArray(raw.fontVariants) ? [...raw.fontVariants] : null;
   // Absent from a schemaVersion 1 manifest: an empty map, never a throw.
   design.fonts = { families: copyFamilies(raw.fonts && raw.fonts.families) };
+  design.icons = copyIcons(raw.icons);
   for (const info of raw.components) {
     if (!info || typeof info.name !== "string") continue;
     design.components.set(info.name, {
@@ -259,6 +265,22 @@ function copyFamilies(families) {
     if (Object.keys(out).length > 0) copy[variant] = out;
   }
   return copy;
+}
+
+/**
+ * @param {unknown} icons a manifest's `icons` block, which may be absent (a
+ *   release before 0.28), names-only (0.28), or complete (0.29.0 and later)
+ * @returns {import("./source").DesignSystem["icons"]} the well-formed part of it:
+ *   `names` as a list of strings, `aliases` as a plain string-to-string object,
+ *   `lucide` as a string. Whatever is missing or malformed is empty, never an error.
+ */
+function copyIcons(icons) {
+  const block = icons && typeof icons === "object" && !Array.isArray(icons) ? icons : {};
+  return {
+    names: Array.isArray(block.names) ? block.names.filter((name) => typeof name === "string") : [],
+    aliases: stringMap(block.aliases),
+    lucide: typeof block.lucide === "string" ? block.lucide : null,
+  };
 }
 
 /**
