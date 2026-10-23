@@ -61,6 +61,10 @@ export interface IconButtonProps
  * on iOS, Android and web through a numeric `hitSlop` (native `Pressable`
  * `hitSlop`; on web `Button`'s transparent hit extender).
  *
+ * The slop reaches past every edge, so adjacent IconButtons need a gap of at
+ * least twice it: 16 pt for `sm` (its slop extends 8 pt), 12 for `md`, 4 for
+ * `lg`.
+ *
  * ```tsx
  * <IconButton icon="refresh-cw" accessibilityLabel="Refresh" onPress={refetch} />
  * <IconButton icon="upload" preset="default" shape="circle" accessibilityLabel="Upload" onPress={upload} />

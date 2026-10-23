@@ -732,21 +732,23 @@ function useMediaScreenContent() {
             </SansSerifBoldText>
             <SansSerifText size="sm" style={styles.statLabel}>Total Size</SansSerifText>
           </View>
-          <IconButton
-            icon="refresh-cw"
-            accessibilityLabel="Refresh media"
-            preset="ghost"
-            size="sm"
-            onPress={() => refetch()}
-          />
-          <IconButton
-            icon="upload"
-            accessibilityLabel="Upload media"
-            preset="default"
-            size="sm"
-            onPress={handleUpload}
-            disabled={uploadDisabled}
-          />
+          <View style={styles.summaryActions}>
+            <IconButton
+              icon="refresh-cw"
+              accessibilityLabel="Refresh media"
+              preset="ghost"
+              size="sm"
+              onPress={() => refetch()}
+            />
+            <IconButton
+              icon="upload"
+              accessibilityLabel="Upload media"
+              preset="default"
+              size="sm"
+              onPress={handleUpload}
+              disabled={uploadDisabled}
+            />
+          </View>
         </View>
       </View>
 
@@ -1076,6 +1078,13 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
       paddingHorizontal: spacing.screenPadding,
       paddingVertical: spacing.sm,
+    },
+    // Each `sm` IconButton's hit slop reaches 8 pt past its edge, so the two
+    // need a 16 pt gap for their hit areas not to overlap.
+    summaryActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
     },
     stat: {
       flex: 1,

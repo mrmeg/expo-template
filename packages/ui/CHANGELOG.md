@@ -12,6 +12,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   states, `sm`/`md`/`lg` visible sizes, `square` or `circle` shape, and a hit
   area of at least 44 pt on iOS, Android and web. Use it for every icon-only
   control; an unlabelled `Icon` is decorative since 0.28.
+- **`buttonHeights`** (`@mrmeg/expo-ui/components/Button`, and the components
+  barrel): the visible height of each `Button` size (`sm` 28, `md` 32, `lg` 40),
+  which `IconButton` draws its square from.
 
 ## [0.29.1]
 
