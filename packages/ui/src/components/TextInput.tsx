@@ -1,6 +1,7 @@
 import {
   useEffect,
   useCallback,
+  useId,
   useImperativeHandle,
   useLayoutEffect,
   useMemo,
@@ -27,11 +28,13 @@ import {
   type TextInputRef as ExpoTextInputRef,
 } from "@expo/ui";
 import { NativeTextField, type NativeTextFieldProps } from "./nativeTextField";
+import { ANDROID_NATIVE_FIELD_IS_NAMED } from "./nativeFieldLabelSupport";
 import { useTheme } from "../hooks/useTheme";
 import { shapeRadius, useShape } from "../hooks/useShape";
 import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
 import { useFontStyle } from "../hooks/useFontStyle";
+import { useHydrated } from "../hooks/useHydrated";
 import { StyledText } from "./StyledText";
 import { Icon } from "./Icon";
 import { hapticLight } from "../lib/haptics";
@@ -288,9 +291,25 @@ function WebTextInput({
   const [focused, setFocused] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const reactId = useId();
+  const hydrated = useHydrated();
 
   const isDisabled = editable === false;
   const hasError = error || !!errorText;
+
+  // The helper/error text describes the field: `aria-describedby` on the input
+  // points at the text's `nativeID` (react-native-web has no `accessibilityHint`
+  // mapping, so the old hint was dropped). The id is built on the consumer's
+  // `nativeID` when given, else `useId()`, and both ends are emitted only once
+  // hydrated: `useId()` values differ between Expo Router's server render and
+  // hydration (see `useHydrated`), so an id pair emitted from the first render
+  // would log a hydration mismatch and link to a stale id.
+  const hasDescription = !!(helperText || errorText);
+  const descriptionId = hasDescription && hydrated
+    ? `${rest.nativeID ?? reactId}-desc`
+    : undefined;
+  // A consumer's own `aria-describedby` (an IDREF list) is kept, with ours added.
+  const describedBy = [rest["aria-describedby"], descriptionId].filter(Boolean).join(" ") || undefined;
 
   // Determine background color
   const backgroundColor = forceLight
@@ -420,8 +439,13 @@ function WebTextInput({
           ]}
           textAlignVertical={multiline ? "top" : "center"}
           value={value}
-          accessibilityLabel={label}
-          accessibilityHint={helperText || errorText}
+          // The name stays `aria-label` (via `accessibilityLabel`), not
+          // `aria-labelledby` or a `<label for>`: the visible label carries the
+          // required " *", so a labelledby name would read "Email star", and
+          // `aria-label` names the field from the server render on. A consumer's
+          // own `accessibilityLabel` wins, as on native.
+          accessibilityLabel={rest.accessibilityLabel ?? label}
+          aria-describedby={describedBy}
           accessibilityState={{ disabled: isDisabled }}
           aria-invalid={hasError}
           aria-required={required}
@@ -494,10 +518,11 @@ function WebTextInput({
       </View>
 
       {/* Helper Text or Error Text */}
-      {!!(helperText || errorText) && (
+      {hasDescription && (
         <StyledText
           selectable={false}
           size="sm"
+          nativeID={descriptionId}
           style={[
             styles.helperText,
             hasError && styles.errorText,
@@ -517,16 +542,25 @@ function WebTextInput({
  * eliminating the cursor flicker seen on controlled RN inputs.
  *
  * The field comes from `./nativeTextField`, a platform-split module. iOS gets
- * `@expo/ui`'s universal TextInput (SwiftUI `TextField`/`SecureField`, which
- * already reports a password field to the keyboard). Android gets a
- * package-owned port of that universal field built on
+ * a thin wrapper (`nativeTextField.ios.tsx`) around `@expo/ui`'s universal
+ * TextInput (SwiftUI `TextField`/`SecureField`, which already reports a password
+ * field to the keyboard) that turns the accessibility props into SwiftUI
+ * modifiers. Android gets a package-owned port of that universal field built on
  * `@expo/ui/jetpack-compose`'s `BasicTextField` (`nativeTextField.android.tsx`),
  * because the universal Android field maps `secureTextEntry` to a masking
  * transformation only and offers no way to set Compose's `KeyboardType.Password`
  * — the IME saw a plain text field, kept its suggestion strip and learned the
  * password. The port declares a password keyboard for secure fields and keeps it
  * across the eye toggle, so revealing the text never restarts the IME. Metro
- * picks the platform file; TypeScript types both through the default file.
+ * picks the platform file; TypeScript types all three through the default file.
+ *
+ * The native field is named from `label` (`accessibilityLabel`: SwiftUI
+ * `accessibilityLabel`, Compose `contentDescription`) and described by
+ * `errorText`, else `helperText` (`accessibilityHint`: SwiftUI
+ * `accessibilityHint`, appended to the Compose `contentDescription`). A
+ * consumer's own `accessibilityLabel` / `accessibilityHint` win. Because the
+ * field carries the label, the visible label `View` is hidden from assistive
+ * tech so it is not read twice; the helper/error text stays readable.
  *
  * This path supports label / helper / error text and a password visibility
  * toggle laid out beside the native Host. Clear buttons, left/right elements,
@@ -565,6 +599,8 @@ function NativeTextInput({
   // UniversalStyle and is replaced by the `boxStyle`/`textStyle` computed below.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   leftElement, rightElement, clearable, focusedStyle, style,
+  accessibilityLabel,
+  accessibilityHint,
   ...rest
 }: TextInputCustomProps) {
   const { theme, getContrastingColor } = useTheme();
@@ -575,6 +611,18 @@ function NativeTextInput({
 
   const hasError = error || !!errorText;
   const sizeConfig = SIZE_CONFIGS[size];
+
+  // The native field is named from `label` and described by the text shown
+  // below it (`errorText`, else `helperText`), matching what is on screen. A
+  // consumer's own props win. With a name on the field, the visible label is
+  // hidden from assistive tech below so it is not announced a second time.
+  // On Android the name only reaches TalkBack when the installed `@expo/ui`
+  // accepts `contentDescription` (57.0.21+, 58.0.8+); below that the field is
+  // unnamed natively, so the visible label stays readable.
+  const fieldLabel = accessibilityLabel ?? label;
+  const labelHiddenFromAT =
+    !!fieldLabel && (Platform.OS !== "android" || ANDROID_NATIVE_FIELD_IS_NAMED);
+  const fieldHint = accessibilityHint ?? (errorText || helperText);
 
   // Password visibility toggle. Flipping `secureTextEntry` toggles Compose's
   // visualTransformation in place on Android, but on iOS it selects a different
@@ -880,7 +928,14 @@ function NativeTextInput({
   return (
     <View style={wrapperStyle}>
       {!!label && (
-        <View style={styles.labelContainer}>
+        <View
+          style={styles.labelContainer}
+          // The field itself carries the label (`fieldLabel`); read it once. On
+          // Android below @expo/ui 57.0.21 / 58.0.8 the native field cannot
+          // carry it (`contentDescription` is dropped), so this stays readable.
+          accessibilityElementsHidden={labelHiddenFromAT}
+          importantForAccessibility={labelHiddenFromAT ? "no-hide-descendants" : "auto"}
+        >
           <StyledText selectable={false} size="base" fontWeight="medium" style={styles.label}>
             {label}
             {required && <StyledText selectable={false} fontWeight="bold" style={styles.required}> *</StyledText>}
@@ -945,6 +1000,8 @@ function NativeTextInput({
             >
               <NativeTextField
                 {...(rest as NativeTextFieldProps)}
+                accessibilityLabel={fieldLabel}
+                accessibilityHint={fieldHint}
                 autoFocus={(rest as NativeTextFieldProps).autoFocus || (handoff != null && active)}
                 ref={Platform.OS === "android" ? androidRef : secure ? secureRef : plainRef}
                 value={state}

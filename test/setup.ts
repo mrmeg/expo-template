@@ -98,6 +98,18 @@ jest.mock("@expo/ui", () => {
   return { __esModule: true, Host, TextInput, useNativeState };
 });
 
+// Mock @expo/ui/swift-ui/modifiers — jest-expo's default platform is iOS, so
+// Jest resolves `nativeTextField.ios.tsx` for every `./nativeTextField` import
+// (including under `forceWebPlatform`), and that module's real modifiers call
+// requireNativeModule('ExpoUI') at load. The two it uses record what they were
+// given as `{ name, value }`; the `@expo/ui` mock above forwards `modifiers` to
+// an RN TextInput, so tests read them off its props.
+jest.mock("@expo/ui/swift-ui/modifiers", () => ({
+  __esModule: true,
+  accessibilityLabel: (value: string) => ({ name: "accessibilityLabel", value }),
+  accessibilityHint: (value: string) => ({ name: "accessibilityHint", value }),
+}));
+
 // Mock expo-splash-screen
 jest.mock("expo-splash-screen", () => ({
   preventAutoHideAsync: jest.fn().mockResolvedValue(true),

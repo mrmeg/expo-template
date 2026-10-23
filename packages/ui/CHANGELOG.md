@@ -14,6 +14,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`square-centerline-dashed-vertical`), and `text-selection`
   (`square-dashed-text`). `expo-ui-icons add trash-2` now resolves to `trash`
   instead of failing. 0.29.1's "no alias changes" missed them.
+- `TextInput` now gives its field an accessible name and description on every
+  platform. On iOS and Android the native field is named from `label` (SwiftUI
+  `accessibilityLabel`, Compose `contentDescription`) and described by
+  `errorText`, else `helperText`, so VoiceOver and TalkBack no longer announce
+  it by its placeholder; the visible label is hidden from assistive tech so it
+  is not read twice (on Android only with `@expo/ui` 57.0.21+ / 58.0.8+, the
+  first releases that pass `contentDescription` through; below them the label
+  stays readable), and a consumer's own `accessibilityLabel` /
+  `accessibilityHint` win. On web the error/helper text is linked to the
+  `<input>` with `aria-describedby` once hydrated (the old `accessibilityHint`
+  was dropped by react-native-web), and a consumer's `accessibilityLabel` is no
+  longer overridden by `label`.
 
 ## [0.29.1]
 

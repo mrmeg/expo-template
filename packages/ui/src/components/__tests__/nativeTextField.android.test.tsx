@@ -1,22 +1,28 @@
 /**
  * Tests for the package-owned Android native text field.
  *
- * jest-expo runs as iOS, so a bare `../nativeTextField` import resolves the
- * default variant (the `@expo/ui` re-export the global setup mocks). The Android
- * variant is loaded through its explicit filename and rendered against
- * recording mocks of `@expo/ui/jetpack-compose` and its modifiers: no Compose
- * native module is involved, the assertions read the props the field hands to
- * `BasicTextField`.
+ * jest-expo runs as iOS, so a bare `../nativeTextField` import resolves the iOS
+ * variant. The default and Android variants are loaded through their explicit
+ * filenames; the Android one is rendered against recording mocks of
+ * `@expo/ui/jetpack-compose` and its modifiers: no Compose native module is
+ * involved, the assertions read the props the field hands to `BasicTextField`.
  */
 import React from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { TextProps, TextStyle, ViewProps } from "react-native";
 import { act, render, screen } from "@testing-library/react-native";
-import { TextInput as ExpoTextInput, type TextInputRef } from "@expo/ui";
+import type { TextInputRef } from "@expo/ui";
 import type { BasicTextFieldProps, TextFieldRef } from "@expo/ui/jetpack-compose";
-import { NativeTextField as DefaultNativeTextField } from "../nativeTextField";
 import { NativeTextField, type NativeTextFieldProps } from "../nativeTextField.android";
+
+// The default variant by explicit filename: a bare `../nativeTextField` import
+// resolves the iOS variant under Jest. `requireActual` takes the path as a
+// runtime string (an `import` of a `.tsx` specifier needs
+// `allowImportingTsExtensions`), while the type comes from the default file.
+const { NativeTextField: DefaultNativeTextField } = jest.requireActual<
+  typeof import("../nativeTextField")
+>("../nativeTextField.tsx");
 
 type Handle = { [K in keyof TextFieldRef]: jest.Mock };
 type RecordedProps = BasicTextFieldProps & { ref?: React.Ref<TextFieldRef> };
@@ -76,7 +82,10 @@ jest.mock("@expo/ui/jetpack-compose/modifiers", () => ({
   __esModule: true,
   fillMaxWidth: (fraction?: number) => ({ $type: "fillMaxWidth", fraction }),
   onSizeChanged: (handler: unknown) => ({ $type: "onSizeChanged", handler }),
-  semantics: (params: { contentType?: string }) => ({ $type: "semantics", ...params }),
+  semantics: (params: { contentType?: string; contentDescription?: string }) => ({
+    $type: "semantics",
+    ...params,
+  }),
   testID: (tag: string) => ({ $type: "testID", testID: tag }),
   padding: (start: number, top: number, end: number, bottom: number) => ({
     $type: "padding",
@@ -232,6 +241,69 @@ describe("NativeTextField (Android) modifiers", () => {
   });
 });
 
+describe("NativeTextField (Android) accessibility", () => {
+  /** The `semantics` modifiers on the mounted field, in order. */
+  const semanticsModifiers = () =>
+    (field().props.modifiers ?? []).filter(
+      (modifier) => (modifier as { $type?: string }).$type === "semantics"
+    );
+
+  it("folds the label and hint into one contentDescription", async () => {
+    await render(<NativeTextField accessibilityLabel="Email" accessibilityHint="Email is required" />);
+
+    expect(semanticsModifiers()).toStrictEqual([
+      { $type: "semantics", contentDescription: "Email, Email is required" },
+    ]);
+  });
+
+  it("uses the label alone when there is no hint, and the hint alone when there is no label", async () => {
+    await render(<NativeTextField accessibilityLabel="Email" />);
+    expect(semanticsModifiers()).toStrictEqual([{ $type: "semantics", contentDescription: "Email" }]);
+
+    await screen.rerender(<NativeTextField accessibilityHint="Email is required" />);
+    expect(semanticsModifiers()).toStrictEqual([
+      { $type: "semantics", contentDescription: "Email is required" },
+    ]);
+  });
+
+  it("merges the contentDescription with the autoComplete contentType into one semantics call", async () => {
+    const onContentSizeChange = jest.fn();
+    await render(
+      <NativeTextField
+        testID="password-field"
+        autoComplete="password"
+        accessibilityLabel="Password"
+        accessibilityHint="At least 8 characters"
+        onContentSizeChange={onContentSizeChange}
+      />
+    );
+
+    expect(semanticsModifiers()).toStrictEqual([
+      { $type: "semantics", contentType: "password", contentDescription: "Password, At least 8 characters" },
+    ]);
+    // It keeps the autoComplete slot: after testID, before the size listener.
+    expect(field().props.modifiers).toEqual([
+      { $type: "testID", testID: "password-field" },
+      expect.objectContaining({ $type: "semantics" }),
+      { $type: "onSizeChanged", handler: onContentSizeChange },
+    ]);
+  });
+
+  it("adds no semantics modifier when neither accessibility prop is set", async () => {
+    await render(<NativeTextField />);
+    expect(semanticsModifiers()).toHaveLength(0);
+
+    await screen.rerender(<NativeTextField accessibilityLabel="" accessibilityHint="" />);
+    expect(semanticsModifiers()).toHaveLength(0);
+  });
+
+  it("keeps the contentType-only semantics call when there is no label or hint", async () => {
+    await render(<NativeTextField autoComplete="email" />);
+
+    expect(semanticsModifiers()).toStrictEqual([{ $type: "semantics", contentType: "email" }]);
+  });
+});
+
 describe("NativeTextField (Android) focus and ref", () => {
   it("reports focus changes through onFocus/onBlur and tracks isFocused", async () => {
     const ref = React.createRef<TextInputRef>();
@@ -351,8 +423,20 @@ describe("NativeTextField (Android) field parity", () => {
 });
 
 describe("nativeTextField platform split", () => {
-  it("re-exports @expo/ui's TextInput from the default variant", () => {
-    expect(DefaultNativeTextField).toBe(ExpoTextInput);
+  it("renders @expo/ui's TextInput from the default variant without the accessibility props", async () => {
+    await render(
+      <DefaultNativeTextField
+        placeholder="Email"
+        accessibilityLabel="Email"
+        accessibilityHint="Email is required"
+      />
+    );
+
+    // The setup mock renders `@expo/ui`'s TextInput as an RN TextInput that
+    // forwards whatever it is given, so a leaked prop would show on the host.
+    const field = screen.getByPlaceholderText("Email");
+    expect(field.props).not.toHaveProperty("accessibilityLabel");
+    expect(field.props).not.toHaveProperty("accessibilityHint");
   });
 
   it("is the only route from TextInput.tsx to the native field", () => {

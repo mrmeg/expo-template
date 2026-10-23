@@ -53,7 +53,9 @@ describe("TextInput", () => {
     it("renders with label", async () => {
       await render(<TextInput label="Username" placeholder="Enter username" />);
 
-      expect(screen.getByText("Username")).toBeTruthy();
+      // The native field carries the label, so the visible text is hidden from
+      // assistive tech (see "Accessibility").
+      expect(screen.getByText("Username", { includeHiddenElements: true })).toBeTruthy();
     });
 
     it("renders with value", async () => {
@@ -347,6 +349,96 @@ describe("TextInput", () => {
 
       const input = screen.getByPlaceholderText("Disabled");
       expect(input.props.editable).toBe(false);
+    });
+  });
+
+  // Jest resolves `nativeTextField.ios.tsx` (jest-expo's default platform), which
+  // turns the field's accessibility props into SwiftUI modifiers; the setup mocks
+  // record them as `{ name, value }` and forward `modifiers` to an RN TextInput.
+  describe("Accessibility (iOS native field)", () => {
+    const labelModifier = (value: string) => ({ name: "accessibilityLabel", value });
+    const hintModifier = (value: string) => ({ name: "accessibilityHint", value });
+
+    it("names the field from label and describes it with errorText", async () => {
+      await render(<TextInput label="Email" errorText="Email is required" placeholder="Email address" />);
+
+      expect(screen.getByPlaceholderText("Email address").props.modifiers).toEqual([
+        labelModifier("Email"),
+        hintModifier("Email is required"),
+      ]);
+    });
+
+    it("describes the field with helperText when there is no errorText", async () => {
+      await render(<TextInput label="Password" helperText="At least 8 characters" placeholder="Password" />);
+
+      expect(screen.getByPlaceholderText("Password").props.modifiers).toEqual([
+        labelModifier("Password"),
+        hintModifier("At least 8 characters"),
+      ]);
+    });
+
+    it("prefers errorText over helperText, as the visible text does", async () => {
+      await render(
+        <TextInput label="Email" helperText="We never share it" errorText="Email is required" placeholder="Email address" />
+      );
+
+      expect(screen.getByPlaceholderText("Email address").props.modifiers).toEqual([
+        labelModifier("Email"),
+        hintModifier("Email is required"),
+      ]);
+    });
+
+    it("lets a consumer's accessibilityLabel and accessibilityHint win", async () => {
+      await render(
+        <TextInput
+          label="Email"
+          errorText="Email is required"
+          accessibilityLabel="Work email"
+          accessibilityHint="Enter the address you use at work"
+          placeholder="Email address"
+        />
+      );
+
+      expect(screen.getByPlaceholderText("Email address").props.modifiers).toEqual([
+        labelModifier("Work email"),
+        hintModifier("Enter the address you use at work"),
+      ]);
+    });
+
+    it("adds no accessibility modifiers without label, errorText or helperText", async () => {
+      await render(<TextInput placeholder="Search" />);
+
+      expect(screen.getByPlaceholderText("Search").props.modifiers).toEqual([]);
+    });
+
+    it("still describes an unlabeled field with its error text", async () => {
+      await render(<TextInput errorText="Required" placeholder="Search" />);
+
+      expect(screen.getByPlaceholderText("Search").props.modifiers).toEqual([hintModifier("Required")]);
+    });
+
+    it("names a secure field too", async () => {
+      await render(<TextInput label="Password" secureTextEntry placeholder="Password" />);
+
+      const field = screen.getByPlaceholderText("Password");
+      expect(field.props.secureTextEntry).toBe(true);
+      expect(field.props.modifiers).toEqual([labelModifier("Password")]);
+    });
+
+    it("hides the visible label from assistive tech so it is not read twice", async () => {
+      await render(<TextInput label="Email" errorText="Email is required" placeholder="Email address" />);
+
+      expect(screen.queryByText("Email")).toBeNull();
+      const label = screen.getByText("Email", { includeHiddenElements: true });
+      expect(label).toBeTruthy();
+      expect(label.parent?.props.accessibilityElementsHidden).toBe(true);
+      expect(label.parent?.props.importantForAccessibility).toBe("no-hide-descendants");
+    });
+
+    it("keeps the helper and error text readable", async () => {
+      await render(<TextInput label="Email" errorText="Email is required" placeholder="Email address" />);
+
+      expect(screen.getByText("Email is required")).toBeTruthy();
     });
   });
 });
