@@ -26,6 +26,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `<input>` with `aria-describedby` once hydrated (the old `accessibilityHint`
   was dropped by react-native-web), and a consumer's `accessibilityLabel` is no
   longer overridden by `label`.
+- Docs: the template's brand guide stated a 16/24 body and 14/20 caption;
+  `StyledText` renders body 15/24.75, caption 12/18, label 14/21, subheading
+  18/27. The tokens are unchanged. The `typography` constant's JSDoc now says it
+  is not the text scale.
 
 ## [0.29.1]
 
