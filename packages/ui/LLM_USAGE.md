@@ -401,7 +401,7 @@ Check this before creating a new app-local primitive. All components come from
 | `Icon` | Registered Lucide glyphs or custom art with theme tokens | Raw vector icons with hardcoded colors |
 | `IconButton` | Icon-only command; `accessibilityLabel` required; ≥44 pt hit area; adjacent `sm` IconButtons need a ≥16 pt gap (hit slop extends 8 pt) | `Button` with only an `Icon` child, or a raw `Pressable` + `Icon` |
 | `InputOTP` | Verification code entry | Several manually managed text inputs |
-| `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens | Hand-rolled row `View`s |
+| `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens; a pressable row takes `accessibilityLabel` / `Hint` / `accessibilityActions`, `testID`, `ref` | Hand-rolled row `View`s |
 | `ItemGroup` | A titled group of full-width `Item` rows with inset hairlines and an optional footer | Bordered or shadowed boxes around rows, a `Card` per row, hand-drawn dividers |
 | `KeyboardAvoidingView` | Native keyboard-aware layout root | Repeated app-local keyboard wrappers |
 | `Label` | Accessible form labels | Plain styled text labels |

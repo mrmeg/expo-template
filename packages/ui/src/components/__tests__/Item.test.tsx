@@ -7,6 +7,7 @@
 import "@/test/mockTheme";
 
 import React from "react";
+import type { View } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "../Item";
@@ -84,6 +85,126 @@ describe("Item", () => {
 
     expect(toJSON()).not.toBeNull();
     expect(screen.getByText("Row with separator")).toBeTruthy();
+  });
+});
+
+describe("Item accessibility props", () => {
+  const actions = [{ name: "open", label: "Open contact" }];
+  const row = (
+    <ItemContent>
+      <ItemTitle>Ada Lovelace</ItemTitle>
+      <ItemDescription>Acme</ItemDescription>
+    </ItemContent>
+  );
+
+  it("makes a pressable row one named button with a hint, actions and a test handle", async () => {
+    await render(
+      <Item
+        onPress={() => {}}
+        accessibilityLabel="Ada Lovelace, Acme"
+        accessibilityHint="Opens the contact"
+        accessibilityActions={actions}
+        testID="row-1"
+      >
+        {row}
+      </Item>,
+    );
+
+    const named = screen.getByLabelText("Ada Lovelace, Acme");
+    expect(named).toBe(screen.getByTestId("row-1"));
+    expect(named.props.accessibilityRole).toBe("button");
+    expect(named.props.accessibilityHint).toBe("Opens the contact");
+    expect(named.props.accessibilityActions).toEqual(actions);
+    expect(screen.getByRole("button")).toBe(named);
+  });
+
+  it("forwards accessibility actions to onAccessibilityAction", async () => {
+    const onAccessibilityAction = jest.fn();
+    await render(
+      <Item
+        onPress={() => {}}
+        accessibilityLabel="Ada Lovelace, Acme"
+        accessibilityActions={actions}
+        onAccessibilityAction={onAccessibilityAction}
+      >
+        {row}
+      </Item>,
+    );
+
+    await fireEvent(screen.getByLabelText("Ada Lovelace, Acme"), "accessibilityAction", {
+      nativeEvent: { actionName: "open" },
+    });
+    expect(onAccessibilityAction).toHaveBeenCalledTimes(1);
+    expect(onAccessibilityAction.mock.calls[0][0].nativeEvent.actionName).toBe("open");
+  });
+
+  it("keeps the disabled state and press handling next to the new props", async () => {
+    const onPress = jest.fn();
+    await render(
+      <Item onPress={onPress} disabled accessibilityLabel="Ada Lovelace, Acme">
+        {row}
+      </Item>,
+    );
+
+    const named = screen.getByLabelText("Ada Lovelace, Acme");
+    expect(named.props.accessibilityState).toEqual({ disabled: true });
+    expect(named.props.accessibilityRole).toBe("button");
+  });
+
+  it("points a ref at a pressable row", async () => {
+    const ref = React.createRef<React.ComponentRef<typeof View>>();
+    await render(
+      <Item onPress={() => {}} ref={ref}>
+        {row}
+      </Item>,
+    );
+
+    expect(ref.current).not.toBeNull();
+  });
+
+  it("points a ref at a static row", async () => {
+    const ref = React.createRef<React.ComponentRef<typeof View>>();
+    await render(<Item ref={ref}>{row}</Item>);
+
+    expect(ref.current).not.toBeNull();
+  });
+
+  it("points a ref at the wrapper of a static row with a separator", async () => {
+    const ref = React.createRef<React.ComponentRef<typeof View>>();
+    await render(
+      <Item ref={ref} separator>
+        {row}
+      </Item>,
+    );
+
+    expect(ref.current).not.toBeNull();
+  });
+
+  it.each([false, true])("exposes testID on a static row (separator: %s) without making it accessible", async (separator) => {
+    await render(
+      <Item testID="static-row" separator={separator} accessibilityLabel="ignored" accessibilityHint="ignored">
+        {row}
+      </Item>,
+    );
+
+    const outer = screen.getByTestId("static-row");
+    expect(outer.props).not.toHaveProperty("accessible");
+    expect(outer.props.accessibilityLabel).toBeUndefined();
+    expect(outer.props.accessibilityHint).toBeUndefined();
+    expect(screen.queryByRole("button")).toBeNull();
+    // Inner controls and text stay reachable.
+    expect(screen.getByText("Ada Lovelace")).toBeTruthy();
+  });
+
+  it("puts a separator row's testID on the wrapper that holds the row and its hairline", async () => {
+    await render(
+      <Item testID="static-row" separator>
+        {row}
+      </Item>,
+    );
+
+    const outer = screen.getByTestId("static-row");
+    expect(outer.children).toHaveLength(2);
   });
 });
 
