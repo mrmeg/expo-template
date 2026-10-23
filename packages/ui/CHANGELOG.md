@@ -10,6 +10,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `SegmentedControl` `size="lg"`: a 44 pt control drawn by the kit on iOS,
   Android and web (the native `md` control's height is fixed by the system:
   about 32 pt on iOS, the 40 dp Material 3 segmented button on Android).
+- **`IconButton`** (`@mrmeg/expo-ui/components`): an icon-only button with a
+  required `accessibilityLabel` (dev-warned when empty), `Button`'s presets and
+  states, `sm`/`md`/`lg` visible sizes, `square` or `circle` shape, and a hit
+  area of at least 44 pt on iOS, Android and web. Use it for every icon-only
+  control; an unlabelled `Icon` is decorative since 0.28.
+- **`buttonHeights`** (`@mrmeg/expo-ui/components/Button`, and the components
+  barrel): the visible height of each `Button` size (`sm` 28, `md` 32, `lg` 40),
+  which `IconButton` draws its square from.
 
 ### Fixed
 

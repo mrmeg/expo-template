@@ -9,7 +9,7 @@
  * media hooks are stubbed, so no request or native module is involved.
  */
 import React from "react";
-import { render } from "@testing-library/react-native";
+import { render, screen } from "@testing-library/react-native";
 
 import "@/test/mockTheme";
 
@@ -107,5 +107,14 @@ describe("media tab thumbnails", () => {
       "https://bucket.example.dev/uploads/photo.jpg?sig=second",
     );
     expect(mockImageSources.every((source) => source.cacheKey)).toBe(true);
+  });
+});
+
+describe("media tab actions", () => {
+  it("names the refresh and upload icon-only buttons", async () => {
+    await render(<MediaScreen />);
+
+    expect(screen.getByRole("button", { name: "Refresh media" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Upload media" })).toBeTruthy();
   });
 });
