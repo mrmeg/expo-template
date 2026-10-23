@@ -8,13 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - `SegmentedControl` `size="lg"`: a 44 pt control drawn by the kit on iOS,
-  Android and web (the native control's height is fixed by the system at about
-  32 pt).
+  Android and web (the native `md` control's height is fixed by the system:
+  about 32 pt on iOS, the 40 dp Material 3 segmented button on Android).
 
 ### Fixed
 
 - `SegmentedControl` no longer shows the first segment selected when `value`
   (or `defaultValue`) is not one of `values`; no segment is selected.
+- On web, each `SegmentedControl` `md` segment's tap target now spans the full
+  track height (32 pt), not 28.
 
 ## [0.29.1]
 
