@@ -41,6 +41,19 @@ const colorOf = (label: string) => StyleSheet.flatten(screen.getByText(label).pr
 const layoutTrack = async (width = 302) =>
   fireEvent(screen.getByTestId("segmented-control"), "layout", { nativeEvent: { layout: { width, height: 32 } } });
 
+/**
+ * Each drawn segment's tap target height: a segment stretches across the
+ * segment row, which is positioned inside the track.
+ */
+const segmentHeights = () => {
+  const track = StyleSheet.flatten(screen.getByTestId("segmented-control").props.style).height as number;
+  const row = StyleSheet.flatten(screen.getByTestId("segmented-control-segments").props.style);
+  return screen.getAllByRole("button").map((button) => {
+    const style = StyleSheet.flatten(button.props.style);
+    return style.height ?? track - (row.top as number) - (row.bottom as number) - ((style.marginVertical as number) ?? 0);
+  });
+};
+
 const selectedStates = () => screen.getAllByRole("button").map((button) => button.props.accessibilityState.selected);
 
 describe("SegmentedControl (web)", () => {
@@ -154,6 +167,16 @@ describe("SegmentedControl (web)", () => {
     it('is a 44 pt track for size="lg"', async () => {
       await render(<SegmentedControl size="lg" values={["A", "B"]} value="A" />);
       expect(trackHeight()).toBe(44);
+    });
+
+    it('gives each segment the full 44 pt track height as its tap target for size="lg"', async () => {
+      await render(<SegmentedControl size="lg" values={["A", "B"]} value="A" />);
+      expect(segmentHeights()).toEqual([44, 44]);
+    });
+
+    it("gives each segment the full 32 pt track height by default", async () => {
+      await render(<SegmentedControl values={["A", "B"]} value="A" />);
+      expect(segmentHeights()).toEqual([32, 32]);
     });
   });
 });

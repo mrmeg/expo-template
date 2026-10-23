@@ -271,7 +271,13 @@ function DrawnSegmentedControl({
           }}
         />
       )}
-      <View style={{ position: "absolute", top: PILL_INSET, bottom: PILL_INSET, left: PILL_INSET, right: PILL_INSET, flexDirection: "row" }}>
+      {/* The row spans the full track height so each segment's tap target is the
+          track height (44 pt on `lg`, also on web, where `hitSlop` does nothing);
+          only the pill and focus ring are inset. */}
+      <View
+        testID="segmented-control-segments"
+        style={{ position: "absolute", top: 0, bottom: 0, left: PILL_INSET, right: PILL_INSET, flexDirection: "row" }}
+      >
         {values.map((label, index) => (
           <DrawnSegment
             key={`${index}-${label}`}
@@ -310,27 +316,37 @@ function DrawnSegment({ label, selected, disabled, color, onPress }: DrawnSegmen
       style={[
         {
           flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: spacing.sm,
-          borderRadius: spacing.radiusSm,
+          paddingVertical: PILL_INSET,
           ...(Platform.OS === "web" && {
             cursor: (disabled ? "not-allowed" : "pointer") as any,
             userSelect: "none" as any,
             outlineStyle: "none" as any,
           }),
         },
-        focus.focused && !disabled && getFocusRingStyle(),
       ]}
     >
-      <StyledText
-        selectable={false}
-        numberOfLines={1}
-        fontWeight="medium"
-        style={{ fontSize: 14, lineHeight: 18, color }}
+      {/* Matches the pill's inset box, so the label and focus ring sit where they did. */}
+      <View
+        style={[
+          {
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: spacing.sm,
+            borderRadius: spacing.radiusSm,
+          },
+          focus.focused && !disabled && getFocusRingStyle(),
+        ]}
       >
-        {label}
-      </StyledText>
+        <StyledText
+          selectable={false}
+          numberOfLines={1}
+          fontWeight="medium"
+          style={{ fontSize: 14, lineHeight: 18, color }}
+        >
+          {label}
+        </StyledText>
+      </View>
     </Pressable>
   );
 }

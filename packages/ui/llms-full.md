@@ -174,7 +174,7 @@ before creating a new app-local primitive.
 | `Progress` | Determinate or indeterminate progress | Omit `value` for indeterminate. Prefer over layout-shifting spinners. |
 | `RadioGroup` | Small mutually exclusive choices | Use `Select` for longer option sets. |
 | `SectionHeader` | Eyebrow / title / description section intro | Prefer over stacked ad hoc heading text. |
-| `SegmentedControl` | Native segmented picker | Backed by `@expo/ui`; the platform owns its look. |
+| `SegmentedControl` | Segmented picker | `md` (default) is the native `@expo/ui` control on iOS/Android (about 32 pt; the platform owns its look). Web, and `size="lg"` on every platform, draw the kit control from theme tokens (`lg` is 44 pt; `appearance` is ignored). A `value` (or `defaultValue`) not in `values` selects no segment. |
 | `Select` | Option menus | `SelectContent` requires root `UIProvider` portal host; `label` drives default item text. |
 | `Separator` | Horizontal or vertical dividers | Prefer over border-only spacer views. |
 | `Skeleton` | Loading placeholders | Use stable dimensions to avoid layout shift. |
