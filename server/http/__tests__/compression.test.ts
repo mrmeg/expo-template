@@ -8,16 +8,23 @@
  * compression, and the bounds on the static runtime-compression fallback.
  */
 
-import { brotliDecompressSync, constants, gunzipSync, gzipSync } from "node:zlib";
+import { ReadableStream as RuntimeReadableStream } from "node:stream/web";
+import { brotliDecompressSync, constants, createGzip, gunzipSync, gzipSync } from "node:zlib";
 
 import {
   compressResponse,
   createStaticCompressor,
   isCompressibleContentType,
   negotiateEncodings,
+  zlibWebStream,
+  type ZlibCompressor,
 } from "../compression";
 
 const encoder = new TextEncoder();
+
+// The runtime's own `ReadableStream`, cast the way `compression.ts` does:
+// Jest's global polyfill is rejected by the runtime's `pipeThrough`.
+const NodeReadable = RuntimeReadableStream as unknown as typeof ReadableStream;
 
 function request(acceptEncoding?: string, method = "GET"): Request {
   return new Request("http://localhost/", {
@@ -201,6 +208,85 @@ describe("compressResponse", () => {
     expect(gunzipSync(Buffer.concat(received)).toString()).toBe(
       "<!DOCTYPE html><html><body><main>shell</main></body></html>",
     );
+  });
+});
+
+describe("zlibWebStream", () => {
+  const html = encoder.encode(`<p>${"not found ".repeat(400)}</p>`);
+
+  const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+  async function drain(reader: ReadableStreamDefaultReader<Uint8Array>): Promise<Buffer> {
+    const received: Uint8Array[] = [];
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      received.push(value);
+    }
+    return Buffer.concat(received);
+  }
+
+  it("cancelling mid-stream destroys the compressor and later output is ignored", async () => {
+    let pulls = 0;
+    const source = new NodeReadable<Uint8Array>({
+      async pull(controller) {
+        await sleep(5);
+        pulls += 1;
+        if (pulls > 20) controller.close();
+        else controller.enqueue(html);
+      },
+    });
+    const compressor: ZlibCompressor = createGzip();
+    const reader = source
+      .pipeThrough(zlibWebStream(compressor, constants.Z_SYNC_FLUSH))
+      .getReader();
+
+    const first = await reader.read();
+    expect(first.done).toBe(false);
+    await reader.cancel("client went away");
+
+    expect(compressor.destroyed).toBe(true);
+    expect(() => compressor.emit("data", Buffer.from("late"))).not.toThrow();
+
+    await sleep(100);
+    expect(pulls).toBeLessThan(20);
+  });
+
+  it("output after a normal end is ignored", async () => {
+    const input = html.subarray(0, 4000);
+    const compressor: ZlibCompressor = createGzip();
+    const { readable, writable } = zlibWebStream(compressor, constants.Z_SYNC_FLUSH);
+    const writer = writable.getWriter();
+
+    // With no buffering on the readable side, a write nobody reads never settles.
+    const [body] = await Promise.all([
+      drain(readable.getReader()),
+      (async () => {
+        await writer.write(input);
+        await writer.close();
+      })(),
+    ]);
+
+    expect(gunzipSync(body).equals(Buffer.from(input))).toBe(true);
+    expect(() => compressor.emit("data", Buffer.from("late"))).not.toThrow();
+  });
+
+  it("an upstream error destroys the compressor", async () => {
+    let pulls = 0;
+    const source = new NodeReadable<Uint8Array>({
+      pull(controller) {
+        pulls += 1;
+        if (pulls === 1) controller.enqueue(html);
+        else controller.error(new Error("render exploded"));
+      },
+    });
+    const compressor: ZlibCompressor = createGzip();
+    const reader = source
+      .pipeThrough(zlibWebStream(compressor, constants.Z_SYNC_FLUSH))
+      .getReader();
+
+    await expect(drain(reader)).rejects.toThrow("render exploded");
+    expect(compressor.destroyed).toBe(true);
   });
 });
 

@@ -248,7 +248,7 @@ describe("static files", () => {
 
     const traversal = await handler(get("/_expo/static/..%2F..%2F..%2Fetc%2Fpasswd"), peer("203.0.113.1"));
     expect(traversal.status).toBe(404);
-    expect(expoHandler).toHaveBeenCalledTimes(1);
+    expect(expoHandler).not.toHaveBeenCalled();
   });
 
   it("does not serve static files for non-GET methods", async () => {
@@ -256,6 +256,35 @@ describe("static files", () => {
     const response = await handler(get(ENTRY, {}, "POST"), peer("203.0.113.1"));
     expect(response.status).toBe(404);
     expect(expoHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["a stale hashed chunk", "/_expo/static/js/web/entry-00000000000000000000000000000000.js"],
+    ["a missing asset", "/assets/missing.png"],
+  ])("answers %s with a bare, uncompressed, no-store 404", async (_label, urlPath) => {
+    const { handler, expoHandler } = build();
+    const response = await handler(get(urlPath, { "Accept-Encoding": "gzip" }), peer("203.0.113.1"));
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("Content-Encoding")).toBeNull();
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("X-Request-ID")).toBe("test-request-id");
+    expect(await response.text()).toBe("Not Found");
+    expect(expoHandler).not.toHaveBeenCalled();
+  });
+
+  it("answers a HEAD for a stale hashed chunk with a 404 and no body", async () => {
+    const { handler, expoHandler } = build();
+    const response = await handler(
+      get("/_expo/static/js/web/entry-00000000000000000000000000000000.js", { "Accept-Encoding": "gzip" }, "HEAD"),
+      peer("203.0.113.1"),
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("Content-Encoding")).toBeNull();
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(await response.text()).toBe("");
+    expect(expoHandler).not.toHaveBeenCalled();
   });
 
   it("serves the FFmpeg worker from memory with a short cache and runtime compression", async () => {

@@ -8,7 +8,9 @@
  *   JSON) through a compressor chunk by chunk — reading ahead at most 1 KB
  *   to skip bodies too small to be worth it, never buffering the whole body —
  *   and flushes whenever the upstream pauses, so a streamed render still
- *   reaches the client progressively.
+ *   reaches the client progressively. A response the client abandons, or
+ *   whose upstream fails, destroys its compressor (`zlibWebStream`) rather
+ *   than relying on the runtime to cancel the transform.
  * - `createStaticCompressor` is the bounded runtime fallback for static
  *   files that have no build-time `.br` / `.gz` sibling
  *   (`scripts/precompress.mjs`): size-capped input, capped concurrency, and a
@@ -141,7 +143,8 @@ type CompressionStreamOptions = {
   gzipLevel?: number;
 };
 
-type ZlibCompressor = BrotliCompress | Gzip;
+/** The zlib streams `zlibWebStream` wraps. */
+export type ZlibCompressor = BrotliCompress | Gzip;
 
 function createZlibCompressor(encoding: ContentEncoding, options: CompressionStreamOptions): ZlibCompressor {
   return encoding === "br"
@@ -160,24 +163,50 @@ const scheduleIdle: (callback: () => void) => void =
     : (callback) => { setTimeout(callback, 0); };
 
 /**
- * A web `TransformStream` that compresses a byte stream as it flows.
+ * A web stream pair that compresses a byte stream as it flows.
  *
  * Chunks go into zlib as they arrive, without a flush each, so a burst of
  * small chunks (React streams HTML in ~2 KB pieces) compresses together. Once
  * the upstream goes quiet for a turn of the event loop, the compressor is
  * flushed (`Z_SYNC_FLUSH` / `BROTLI_OPERATION_FLUSH`) so everything written
  * so far reaches the client — a streamed render still arrives progressively.
+ *
+ * A cancelled or failed response destroys the compressor. Bun never calls
+ * `transformer.cancel` when a `TransformStream`'s readable side is cancelled
+ * (Node does), so the output is wrapped in a readable of its own whose
+ * `cancel` and failed `pull` tear the compressor down in every runtime.
  */
 export function createCompressionStream(
   encoding: ContentEncoding,
   options: CompressionStreamOptions = {},
-): TransformStream<Uint8Array, Bytes> {
-  const compressor = createZlibCompressor(encoding, options);
+): ReadableWritablePair<Bytes, Uint8Array> {
   const flushKind = encoding === "br"
     ? zlibConstants.BROTLI_OPERATION_FLUSH
     : zlibConstants.Z_SYNC_FLUSH;
+  return zlibWebStream(createZlibCompressor(encoding, options), flushKind);
+}
+
+/**
+ * `createCompressionStream` around a compressor the caller owns. Exported so
+ * tests can hold the compressor and observe that teardown destroyed it.
+ */
+export function zlibWebStream(
+  compressor: ZlibCompressor,
+  flushKind: number,
+): ReadableWritablePair<Bytes, Uint8Array> {
   let flushScheduled = false;
   let ended = false;
+  let closed = false;
+
+  // Idempotent. The `data` and `error` listeners stay attached: zlib output
+  // can still arrive after this, and an `error` with no listener is itself
+  // an uncaught exception.
+  const teardown = () => {
+    if (closed) return;
+    closed = true;
+    ended = true;
+    compressor.destroy();
+  };
 
   const scheduleFlush = () => {
     if (flushScheduled) return;
@@ -190,50 +219,99 @@ export function createCompressionStream(
     });
   };
 
-  // `cancel` (run when the client goes away) is newer than the DOM lib's
-  // Transformer type; a runtime without it just never calls it.
-  const transformer: Transformer<Uint8Array, Bytes> & { cancel?: () => void } = {
+  const transform = new StreamTransform<Uint8Array, Bytes>({
     start(controller) {
       compressor.on("data", (chunk: Buffer) => {
-        controller.enqueue(asBytes(chunk));
+        if (closed) return;
+        try {
+          controller.enqueue(asBytes(chunk));
+        } catch {
+          // The readable side is gone (cancelled, or already closed).
+          teardown();
+        }
       });
       compressor.on("error", (error) => {
-        controller.error(error);
+        if (closed) return;
+        try {
+          controller.error(error);
+        } catch {
+          // The readable side is already gone.
+        }
+        teardown();
       });
     },
     transform(chunk) {
+      if (closed || compressor.destroyed) {
+        // Stops the pipe, which cancels the upstream.
+        throw new Error("The compressor was closed");
+      }
       scheduleFlush();
       if (compressor.write(chunk)) {
         return;
       }
-      // zlib's input buffer is full: hold the upstream until it drains.
+      // zlib's input buffer is full: hold the upstream until it drains. A
+      // destroyed compressor never drains, so `close` ends the wait too.
       return new Promise<void>((resolve, reject) => {
-        const onDrain = () => {
-          compressor.off("error", onError);
-          resolve();
-        };
-        const onError = (error: Error) => {
+        const settle = (outcome: () => void) => {
           compressor.off("drain", onDrain);
-          reject(error);
+          compressor.off("error", onError);
+          compressor.off("close", onClose);
+          outcome();
         };
+        const onDrain = () => settle(resolve);
+        const onError = (error: Error) => settle(() => reject(error));
+        const onClose = () => settle(() => reject(new Error("The compressor was closed")));
         compressor.once("drain", onDrain);
         compressor.once("error", onError);
+        compressor.once("close", onClose);
       });
     },
     flush() {
+      if (closed) {
+        return Promise.reject(new Error("The compressor was closed"));
+      }
       ended = true;
       return new Promise<void>((resolve, reject) => {
-        compressor.once("end", resolve);
-        compressor.once("error", reject);
+        const settle = (outcome: () => void) => {
+          compressor.off("end", onEnd);
+          compressor.off("error", onError);
+          compressor.off("close", onClose);
+          outcome();
+        };
+        // `close` follows `end` on a normal finish, by which time it is off.
+        const onEnd = () => settle(resolve);
+        const onError = (error: Error) => settle(() => reject(error));
+        const onClose = () => settle(() => reject(new Error("The compressor was closed")));
+        compressor.once("end", onEnd);
+        compressor.once("error", onError);
+        compressor.once("close", onClose);
         compressor.end();
       });
     },
-    cancel() {
-      ended = true;
-      compressor.destroy();
+  });
+
+  const output = transform.readable.getReader();
+  const readable = new StreamReadable<Bytes>(
+    {
+      async pull(controller) {
+        let result: ReadableStreamReadResult<Bytes>;
+        try {
+          result = await output.read();
+        } catch (error) {
+          teardown();
+          throw error;
+        }
+        if (result.done) controller.close();
+        else controller.enqueue(result.value);
+      },
+      cancel(reason) {
+        teardown();
+        return output.cancel(reason);
+      },
     },
-  };
-  return new StreamTransform<Uint8Array, Bytes>(transformer);
+    { highWaterMark: 0 },
+  );
+  return { readable, writable: transform.writable };
 }
 
 export type CompressResponseOptions = CompressionStreamOptions & {
