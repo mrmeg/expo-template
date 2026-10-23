@@ -21,12 +21,13 @@ version, test mocks, or duplicated helpers:
   keyboard hook.
 - Jest mocks for `expo-video` and `expo-audio`, built-in media icons, and the docs skeleton.
 
-No public media component ships here. The follow-ups stack on this branch: `media-image` on foundation, then
-`media-video` and `media-audio` on image, then `media-viewer` on video. See each spec's `## Stacking`.
+No public media component ships here. The follow-ups stack on this branch: `media-lab` (test corpus and Media Lab
+screen) on foundation, `media-image` on lab, `media-video` and `media-audio` on image, then `media-viewer` on video.
+See each spec's `## Stacking`.
 
 ## Context
 
-Verified on `dev` at 54e0bc9.
+Verified on `dev` at df1a06a (2026-10-23, after #155–#161 merged).
 
 - **Barrel rule.** `packages/ui/src/index.ts` re-exports `./components`, and `components/index.ts` re-exports every
   component. If a module that imports `expo-video` lands in the barrel, every consumer must install `expo-video`, and
@@ -48,7 +49,7 @@ Verified on `dev` at 54e0bc9.
 - **Peers.** `packages/ui/package.json` has no `peerDependenciesMeta` today. All three media peers must be optional so
   apps that never import media keep installing nothing new. Adding `peerDependencies`/`peerDependenciesMeta` needs a
   version bump (`AGENTS.md`; gate `bun run packages:drift-check`, `scripts/check-package-publish-drift.mjs`). npm has
-  `@mrmeg/expo-ui@0.29.1`. Drafts #157/#159/#160 may already bump `dev` to an unreleased 0.29.2 or 0.30.0.
+  `@mrmeg/expo-ui@0.29.1`; `dev` carries an unreleased `0.29.2`. Merged #159/#160/#161 already add API.
 - **Peer gates.**
   - `scripts/check-package-peer-compatibility.mjs` asserts every runtime import in `packages/ui/src` is declared, and
     that each profile version in `scripts/package-compatibility-profiles.mjs` (`ui:` Expo 56/57/58) satisfies the
@@ -78,9 +79,19 @@ Verified on `dev` at 54e0bc9.
   (`packages/ui/src/components/__tests__/forceWebPlatform.ts`).
 - **Hit areas.** `lib/webHitTarget.tsx` has `verticalSlopFor(h)` and `getWebHitInsets`, the kit's 44 pt hit-area
   helpers.
-- **Collisions.** Drafts #156–#161 edit `packages/ui/CHANGELOG.md` and `packages/ui/LLM_USAGE.md`, and #156 edits the
-  icon generators. Rebase onto current `dev` before opening the PR, keep CHANGELOG entries under `## [Unreleased]`,
-  and rerun `bun run gen` after the rebase.
+- **`IconButton` exists** (`packages/ui/src/components/IconButton.tsx`, merged in #160):
+  - an icon-only `Button` with a required `accessibilityLabel` and a hit area of at least 44 pt;
+  - `preset` defaults to `ghost`;
+  - `size` is `sm`/`md`/`lg` (28/32/40);
+  - `shape` is `square` or `circle`.
+
+  It follows the theme, so it serves themed surfaces such as `AudioPlayer`. It has no appearance that reads over
+  video.
+- **Icons check.** The nine names in Work 9 plus `captions` exist in the shipped Lucide snapshot
+  (`packages/ui/src/icons/lucide.json`, checked 2026-10-23). #156 changed the icon generators, so run
+  `bun run ui:icons` and confirm it accepts them.
+- **Collisions.** Keep CHANGELOG entries under `## [Unreleased]`. Rebase onto current `dev` before opening the PR, then
+  rerun `bun run gen`.
 
 ## Work
 
@@ -88,8 +99,8 @@ Verified on `dev` at 54e0bc9.
    - In `packages/ui/package.json`, add `expo-image`, `expo-video` and `expo-audio` to `peerDependencies`, each
      `">=56.0.0 <59.0.0 || >=58.0.0-0 <59.0.0"` to match the existing Expo peers. Mark all three
      `peerDependenciesMeta.{name}.optional: true`.
-   - Version: if `dev`'s ui version is on npm, bump to the next minor. If it is already an unreleased bump, make sure
-     it is at least one minor above 0.29.1 (new API).
+   - Version: bump to `0.30.0`, the next minor above the published 0.29.1, because this adds API and peers. If `dev`
+     is already at an unreleased `0.30.x` when you run, keep it.
 2. **Root install.** Check `git status` first; per the vault note, never `bun install` over another thread's
    uncommitted dependency changes. Then run `bunx expo install expo-audio` so the version is SDK-pinned (expect
    `~58.0.10`) and commit `package.json` plus `bun.lock`. Add no `expo-audio` config plugin; background audio stays an
@@ -118,23 +129,21 @@ Verified on `dev` at 54e0bc9.
    NaN input returns `--:--`, and `Infinity` returns `translateText("media.live", "Live")`. Also export
    `mediaTimeA11y(current, duration)`, which returns `"1 minute 2 seconds of 3 minutes 45 seconds"` for
    `accessibilityValue.text` (route words through `translateText`).
-6. **`packages/ui/src/components/MediaControlButton.tsx`** (new, subpath-exported, documented as the media building
-   block):
+6. **`packages/ui/src/components/MediaControlButton.tsx`** (new, subpath-exported). It is the overlay control for
+   chrome drawn over video and images. Themed surfaces use `IconButton` (`preset="ghost"`, `shape="circle"`) instead:
    - Props:
      - `icon: IconName`;
      - `accessibilityLabel: string` (required by type; dev `console.warn` once if empty, following `Toggle.tsx:196-210`);
      - `onPress`;
-     - `tone: "overlay" | "default"` (default `"default"`);
      - `size: "sm" | "md" | "lg"` with glyph 16/20/28 and visual diameter 32/40/56;
      - `selected?`, which sets `accessibilityState.selected` (for mute toggles);
      - `disabled?`, `testID`, `style`.
    - The hit area is at least 44 pt on every platform: native `hitSlop` and web insets via `lib/webHitTarget.tsx`.
-   - `overlay` draws the glyph in `palette.white` on a `withAlpha(palette.black, 0.45)` circle, readable over any
-     frame. `default` follows the theme: foreground glyph, transparent background, and `theme.colors.muted` when
-     pressed.
+   - It draws the glyph in `palette.white` on a `withAlpha(palette.black, 0.45)` circle, so it reads over any frame.
+     Pressed raises the scrim to 0.6. Disabled drops the glyph opacity to 0.4.
    - Role is `button`. The web focus ring matches other pressables.
-   - Note in its JSDoc that it mirrors `IconButton` (#160) and can delegate to it once that ships with an overlay
-     tone.
+   - Match `IconButton`'s prop names and dev warning so the two read alike. Note in the JSDoc why this is not an
+     `IconButton` preset: Button presets follow the theme, and an overlay must not.
 7. **`packages/ui/src/components/MediaScrubber.tsx`** (new, subpath-exported):
    - Props:
      - `value` and `duration` (seconds), plus `buffered?` (seconds);
@@ -162,7 +171,7 @@ Verified on `dev` at 54e0bc9.
    - Call `preventDefault` only for handled keys. Scope is the focused container only, never `window`, so a page
      with two players or a text field is never hijacked. Ignore events whose target is an input or textarea.
 9. **Built-in icons.** Add `play`, `pause`, `volume-2`, `volume-x`, `maximize`, `minimize`, `rotate-ccw`,
-   `chevron-left` and `image-off` to `packages/ui/src/components/icon-names.json` (canonical Lucide names only, see
+   `chevron-left`, `image-off` and `captions` to `packages/ui/src/components/icon-names.json` (canonical Lucide names only, see
    the vault quirk on aliases). Then run `bun run ui:icons`.
 10. **Test mocks.**
     - Add `test/mocks/expoVideo.ts` with:
@@ -207,10 +216,10 @@ Verified on `dev` at 54e0bc9.
 
 ## Merge plan
 
-Process the five specs in one shift in this order: `media-foundation` → `media-image` → `media-video` and
-`media-audio` (either order) → `media-viewer`. Each is its own draft PR, stacked on its parent's branch. A follow-up
-whose parent branch does not exist yet is skipped for that pass, not marked `blocked`. Alphabetical order would put
-`media-audio` first, so follow this order instead. Merge into `dev` in the same order, retargeting each child PR to
+Process the six specs in one shift in this order: `media-foundation` → `media-lab` → `media-image` → `media-video`
+and `media-audio` (either order) → `media-viewer`. Each is its own draft PR, stacked on its parent's branch. A follow-up
+whose parent branch does not exist yet is skipped for that pass, not marked `blocked`. Follow this order rather than
+alphabetical, which would put `media-audio` first. Merge into `dev` in the same order, retargeting each child PR to
 `dev` after its parent merges.
 
 `expo-audio` adds native code. A dev client built before this branch throws a missing-native-module error when
@@ -219,8 +228,8 @@ whose parent branch does not exist yet is skipped for that pass, not marked `blo
 
 ## Exclusions
 
-No `Image`, `Video`, `AudioPlayer` or `MediaViewer` component, no showcase entry, no app dogfooding: those are the
-four follow-up specs. No native desktop target. Research on 2026-10-23 found that Expo SDK 58 has no macOS support
+No `Image`, `Video`, `AudioPlayer` or `MediaViewer` component, no test corpus, no showcase entry, and no app
+dogfooding: those belong to the five follow-up specs. No native desktop target. Research on 2026-10-23 found that Expo SDK 58 has no macOS support
 and none of the three modules has macOS or Windows native code. A desktop shell would wrap the web build, which these
 components already serve.
 

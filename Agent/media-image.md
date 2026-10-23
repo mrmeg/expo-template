@@ -17,15 +17,15 @@ text. `MediaViewer`, `Video` posters and `AudioPlayer` artwork reuse it.
 
 ## Stacking
 
-Stacks on spec `media-foundation`. Branch `agent/media-image` from `agent/media-foundation` (not `origin/dev`), and
-open the draft PR against `agent/media-foundation`. Retarget the PR to `dev` once foundation merges. If
-`agent/media-foundation` does not exist, skip with the unblock step "implement media-foundation first". `media-video`
-and `media-audio` stack on this branch.
+Stacks on spec `media-lab`, which sits on `media-foundation`. Branch `agent/media-image` from `agent/media-lab` (not
+`origin/dev`), and open the draft PR against `agent/media-lab`. Retarget it as the parents merge. If `agent/media-lab`
+does not exist, skip for this pass with the unblock step "implement media-lab first". Do not mark the spec blocked.
+`media-video` and `media-audio` stack on this branch.
 
 ## Context
 
-Verified on `dev` at 54e0bc9. Foundation adds the pieces below. Read them on `agent/media-foundation` before
-starting.
+Verified on `dev` at df1a06a (2026-10-23). The parent specs add the pieces below. Read them on `agent/media-lab`
+before starting.
 
 - From foundation:
   - `lib/mediaFrame.ts`: `MediaAspectRatio`, `parseAspectRatio`, `mediaFrameStyle` and `useMediaAspectRatio`.
@@ -34,6 +34,13 @@ starting.
   - The `## Media` stub in `packages/ui/LLM_USAGE.md`.
   - Subpath-only rule: never add `Image` to `components/index.ts` (`__tests__/mediaPeers.test.ts` enforces it).
     Module-scope styles carry `/*#__PURE__*/` (`packageSideEffects.test.ts`).
+- From `media-lab`:
+  - the core fixtures in `assets/media/`: `landscape.jpg` (`smptehdbars`, whose top and bottom bands differ),
+    `portrait.jpg`, `square.jpg` and `alpha.png`;
+  - the `MEDIA_FIXTURES` manifest (`client/showcase/mediaFixtures.ts`) and `resolveFixtureUri`;
+  - the `bun run media:fixtures` generator;
+  - the Media Lab screen (`client/showcase/MediaLabScreen.tsx`) with its playground state and a `renderers.image`
+    slot.
 - expo-image 58.0.14 types (`node_modules/expo-image/build/Image.types.d.ts`):
   - `ImageContentFit = 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'` (line 74);
   - `contentPosition` (152), `placeholder` (121), `placeholderContentFit` (146), `transition` (157),
@@ -101,10 +108,13 @@ starting.
      - `"auto"` starts at `fallbackAspectRatio` and switches to the natural ratio from `onLoad`. Document the one-time
        layout shift and recommend an explicit ratio when the size is known, for example from upload metadata.
      - With none of these, the frame is sized by `style` (width/height/flex), the same as raw expo-image.
-   - **Structure.** An outer `View` frame (radius, `overflow: hidden`, `theme.colors.muted` background) contains the
-     expo-image `Image` absolutely filling it, with `contentFit`, `contentPosition` and the radius applied.
+   - **Structure.** An outer `View` frame (radius, `overflow: hidden`) contains the expo-image `Image`, absolutely
+     filling it with `contentFit`, `contentPosition` and the radius applied.
+     - The frame paints `theme.colors.muted` only while loading and in the error state. Once loaded it is
+       transparent, so a transparent PNG, WebP, SVG or AVIF shows the surface behind it in both themes, not a grey box.
+     - `contain`, `scale-down` and `none` letterboxing is transparent too.
    - **States.**
-     - Loading: the muted frame shows the `placeholder` when given, otherwise stays empty. No spinner.
+     - Loading: the muted frame shows the `placeholder` when given, otherwise stays muted. No spinner.
      - Error: `fallback`, or by default a centered `image-off` icon in `mutedForeground`. Resolve the size from the
        frame: 24 pt, or 16 pt when the frame is under 48 pt.
      - When `source` changes, clear the error state.
@@ -136,15 +146,34 @@ starting.
      - `"auto"`;
      - a blurhash placeholder;
      - the error state (an invalid URI).
-   - Sample image: use `assets/brand/` or `assets/images/` art if a suitable non-square image exists. Otherwise
-     generate a small landscape PNG (≤ 60 KB, no third-party content) into `assets/media/sample-landscape.png`, for
-     example with `ffmpeg -f lavfi -i testsrc2=size=960x540 -frames:v 1`.
+   - Use the `media-lab` core fixtures (`assets/media/landscape.jpg` etc.). Add no new sample files.
    - Previews load only through the lazy gallery. Never import `Image` from outside `client/showcase/` except in the
      dogfood below (`client/showcase/__tests__/gallerySplitPoint.test.ts`).
-4. **Dogfood.** Replace the two raw `expo-image` thumbnails in `app/(main)/(tabs)/media.tsx:964-975` with `Image`.
+4. **Media Lab.** Implement `renderers.image` in `MediaLabScreen.tsx`.
+   - Render every `kind: "image"` fixture through `Image`, driven by the playground state (fit, position, sizing mode,
+     `maxHeight`, radius, width preset). Image tiles are `Card`s in a wrapping grid.
+   - The 60-thumbnail `scale` set renders in a `FlatList` grid with `recyclingKey`.
+   - The source-kinds row (bundled, public path, remote, data URI, picked `file://`) renders through `Image`.
+   - Run `bun run media:fixtures`, then go through **every** image fixture on each surface you test. Pay particular
+     attention to:
+     - EXIF orientation 6, which must display portrait;
+     - `alpha.png` and the alpha WebP in light and dark;
+     - the SVG with no size;
+     - the animated GIF, WebP and APNG;
+     - the 48 MP image (memory, and downsampling under `contain`);
+     - 16×16 upscaling;
+     - HEIC and CMYK on web;
+     - Display P3;
+     - the responsive source array (check the network panel for the width chosen);
+     - the broken files.
+   - Record what you saw in `observed` (`works`, `fails` or `partial`), and leave untested surfaces unset. Every
+     `expectError` fixture must reach the error state, never a crash or a blank frame.
+   - A fixture that fails where it should work is a bug to fix here. If it cannot be fixed (a platform gap), list it
+     in the PR with evidence and note it in the `LLM_USAGE.md` entry.
+5. **Dogfood.** Replace the two raw `expo-image` thumbnails in `app/(main)/(tabs)/media.tsx:964-975` with `Image`.
    Keep `source={{ uri, cacheKey }}` and `fit="cover"`, and use `alt=""` because the wrapping `Pressable` already
    names the item. Drop the `expo-image` import from that file if nothing else uses it.
-5. **Docs.**
+6. **Docs.**
    - Fill `Image` in the `LLM_USAGE.md` `## Media` section: when to pick each sizing mode, `alt` rules, `recyclingKey`
      in lists, and prefer an explicit `aspectRatio` for SSR-stable layout.
    - Add a CHANGELOG `## [Unreleased]` Added entry.
@@ -162,6 +191,13 @@ starting.
   - View source on the gallery route: the `<img>` tags are in the server HTML.
   - Resize the window from 1280 to 375 px: frames rescale without overflow.
   - The media tab thumbnails still render and cache (no re-download on refetch, per the 951-955 comment).
+  - Media Lab, Images section:
+    - every fixture under each fit, sizing mode and width preset;
+    - transparent fixtures in both themes;
+    - broken fixtures show the error icon;
+    - the 60-item grid scrolls smoothly;
+    - paste the observed table into the PR.
   - Report screenshots.
-- Native: iOS simulator via the run skill if available: the gallery preview and the media tab. Otherwise list it as
+- Native: iOS simulator via the run skill if available: the gallery preview, the media tab, and the Media Lab Images
+  section (generated fixtures load from the dev server). Otherwise list it as
   a manual check in the PR.

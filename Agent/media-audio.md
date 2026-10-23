@@ -17,7 +17,8 @@ speed, for episodes and tracks).
 
 ## Stacking
 
-Stacks on spec `media-image`, which provides `Image` for artwork. Branch `agent/media-audio` from
+Stacks on spec `media-image` (which sits on `media-lab` and `media-foundation`), which provides `Image` for
+artwork. Branch `agent/media-audio` from
 `agent/media-image` and open the draft PR against `agent/media-image`. Retarget the PR as the parents merge. If
 `agent/media-image` does not exist, skip with the unblock step "implement media-image first". This spec is
 independent of `media-video`. Both add showcase entries, so rebase over whichever lands first. Process it after
@@ -26,16 +27,25 @@ parent; skip it for that pass.
 
 ## Context
 
-Verified on `dev` at 54e0bc9, with the expo-audio 58.0.10 tarball inspected. `media-foundation` installs the package.
+Verified on `dev` at df1a06a (2026-10-23), with the expo-audio 58.0.10 tarball inspected. `media-foundation` installs the package.
 Read its `build/*.d.ts` there.
 
 - **From `media-foundation`:**
   - `formatMediaTime` / `mediaTimeA11y`.
-  - `MediaControlButton` (`tone="default"`), `MediaScrubber` (`tone="default"`), `useMediaKeyboard`.
+  - `MediaScrubber` (`tone="default"`) and `useMediaKeyboard`. `MediaControlButton` is overlay-only, so do not use it
+    here.
   - The `play`, `pause`, `volume-2`, `volume-x` icons.
   - The `test/mocks/expoAudio.ts` fake.
   - Subpath-only: never add the component to `components/index.ts`.
   - Module-scope styles carry `/*#__PURE__*/` (`packageSideEffects.test.ts`).
+- **`IconButton`** (`packages/ui/src/components/IconButton.tsx`, on `dev`): an icon-only themed button with a required
+  `accessibilityLabel`, a hit area of at least 44 pt, `preset` (default `ghost`), `size` `sm`/`md`/`lg`
+  (28/32/40), and `shape` `circle`. Every icon control in this player is an `IconButton`.
+- **From `media-lab`:**
+  - the core `assets/media/tone.m4a` and `square.jpg` (artwork);
+  - `MEDIA_FIXTURES` and `resolveFixtureUri`;
+  - the generator;
+  - the Media Lab `renderers.audio` slot with playground state (`variant`).
 - **From `media-image`:** `Image` with `radius`.
 - **expo-audio API:**
   - `useAudioPlayer(source?, { updateInterval?, downloadFirst?, crossOrigin? })` returns `AudioPlayer`.
@@ -91,7 +101,7 @@ Read its `build/*.d.ts` there.
      - Before mount, the shell shows the same layout with a disabled play button and `--:--`, so the server HTML and
        the first client frame match and nothing shifts.
    - **Compact layout.** A single row:
-     - play/pause `MediaControlButton` `size="md"`;
+     - play/pause `IconButton` (`shape="circle"`, `size="md"`);
      - a `MediaScrubber` with `flex: 1`;
      - the elapsed time, or the total when idle, in `mutedForeground` with tabular numbers;
      - an optional mute button.
@@ -132,12 +142,27 @@ Read its `build/*.d.ts` there.
    - On web, the shell renders without calling `useAudioPlayer` before hydration: mock `useHydrated` false and assert
      the fake hook was not called. Keyboard shortcuts work.
    - An external `player` is untouched on unmount.
-3. **Sample media.** Add `assets/media/sample-audio.m4a`: 20 s of generated tone, AAC 64 kb/s, ≤ 200 KB, no
-   third-party content.
-   `ffmpeg -f lavfi -i "sine=frequency=330:duration=20" -af "volume=0.3" -c:a aac -b:a 64k assets/media/sample-audio.m4a`.
+3. **Media Lab.** Implement `renderers.audio` in `MediaLabScreen.tsx`.
+   - Render every `kind: "audio"` fixture through `AudioPlayer` in the playground `variant`.
+   - Run `bun run media:fixtures`. Then, on each surface you test, go through **every** audio fixture. Pay particular
+     attention to:
+     - MP3 CBR and VBR, where duration and far seeks must be correct;
+     - WAV, FLAC, Ogg Opus, and WebM Opus (Chrome's recorder output, the format most likely to fail on iOS);
+     - the 1.5 s voice note in `compact`;
+     - the 1 h 05 m file, which shows `h:mm:ss` and allows far seeks;
+     - the stereo L/R test;
+     - the silent file;
+     - the ID3 file, where the artwork comes from the `artwork` prop and embedded art is not read; note it;
+     - the live BBC MP3 stream, where `duration` is 0 or Infinity, so disable the scrubber and show `Live`;
+     - the broken files.
+   - Record what you saw in `observed`, and leave untested surfaces unset. Every `expectError` fixture must reach the
+     error state.
+   - Live streams: when `duration` is not finite, or stays 0 after `isLoaded` while playing, render the time as
+     `formatMediaTime(Infinity)` (`Live`) and disable the scrubber.
+   - Fix failures that should work here. List platform gaps in the PR with evidence and in the `LLM_USAGE.md` entry.
 4. **Showcase.**
    - Register `{ id: "AudioPlayer", importPath: "@mrmeg/expo-ui/components/AudioPlayer", category: "media" }`.
-   - Preview: a compact player, a full player with title, subtitle, and artwork (the sample image from `media-image`),
+   - Preview: a compact player (`tone.m4a`), a full player with title, subtitle, and artwork (`square.jpg`),
      and a full player with a broken source.
    - Keep the previews behind the lazy gallery (`gallerySplitPoint.test.ts`).
 5. **Docs.**
@@ -159,6 +184,8 @@ Read its `build/*.d.ts` there.
     warning.
   - Play, pause, mouse scrubbing, speed cycling, and keyboard shortcuts all work while the player is focused.
   - Both variants look right at 1280 px and 375 px, in light and dark themes.
+  - Media Lab, Audio section: every fixture in Chrome, plus Safari and Firefox if available. Paste the observed table
+    into the PR.
   - Report screenshots.
 - On the iOS simulator (run skill), if available: play with the silent switch caveat noted, drag the scrubber, cycle
-  speed. Put Android and screen-reader checks in the PR's manual checks.
+  speed, and go through the Media Lab Audio section, especially WebM/Ogg Opus, VBR MP3 and the live stream. Put Android and screen-reader checks in the PR's manual checks.

@@ -20,22 +20,28 @@ mobile browsers):
 
 ## Stacking
 
-Stacks on spec `media-image`, because the poster uses `Image`. Branch `agent/media-video` from `agent/media-image`
-and open the draft PR against `agent/media-image`; retarget as the parents merge. If `agent/media-image` does not
-exist, skip with the unblock step "implement media-image first". `media-viewer` stacks on this branch.
+Stacks on spec `media-image` (which sits on `media-lab` and `media-foundation`), because the poster uses `Image`.
+Branch `agent/media-video` from `agent/media-image` and open the draft PR against `agent/media-image`; retarget as the
+parents merge. If `agent/media-image` does not exist, skip for this pass with the unblock step "implement media-image
+first". Do not mark it blocked. `media-viewer` stacks on this branch.
 
 ## Context
 
-Verified on `dev` at 54e0bc9, expo-video 58.0.10.
+Verified on `dev` at df1a06a (2026-10-23), expo-video 58.0.10.
 
 - From `media-foundation`:
   - `mediaFrameStyle` / `useMediaAspectRatio` (`lib/mediaFrame.ts`);
   - `formatMediaTime` / `mediaTimeA11y` (`lib/mediaTime.ts`);
-  - `MediaControlButton` (`tone="overlay"`), `MediaScrubber` and `useMediaKeyboard`;
-  - built-in `play`, `pause`, `volume-2`, `volume-x`, `maximize`, `minimize`, `rotate-ccw` icons;
+  - `MediaControlButton` (overlay-only), `MediaScrubber` and `useMediaKeyboard`;
+  - built-in `play`, `pause`, `volume-2`, `volume-x`, `maximize`, `minimize`, `rotate-ccw`, `captions` icons;
   - the `test/mocks/expoVideo.ts` fake.
   - Subpath-only: never add `Video` to `components/index.ts`. Module-scope styles carry `/*#__PURE__*/`
     (`packageSideEffects.test.ts`).
+- From `media-lab`:
+  - the core `assets/media/landscape.mp4`, `portrait.mp4` and `landscape.jpg` (as a poster);
+  - `MEDIA_FIXTURES` and `resolveFixtureUri`;
+  - the generator;
+  - the Media Lab `renderers.video` slot with playground state (controls, fit, autoplay+muted, loop, poster).
 - From `media-image`: `Image` for the poster.
 - expo-video API (`node_modules/expo-video/build/`):
   - `VideoContentFit = 'contain' | 'cover' | 'fill'` (`VideoView.types.d.ts:9`). This is narrower than `ImageFit`,
@@ -60,6 +66,13 @@ Verified on `dev` at 54e0bc9, expo-video 58.0.10.
   (`hooks/useHydrated.ts`) and mount the player after.
 - HLS: expo-video web sets `<video src>` directly and has no hls.js. `.m3u8` plays natively on Safari only. Document
   this and do not add hls.js.
+- Tracks and live (`VideoPlayer.types.d.ts`):
+  - `isLive` (line 109) and `bufferedPosition` (140);
+  - `subtitleTrack`, which is settable, takes an entry from `availableSubtitleTracks` or `null` (152-158, 180);
+  - `audioTrack` and `availableAudioTracks` (166, 173);
+  - events `availableSubtitleTracksChange` and `subtitleTrackChange`.
+- `VideoTrack.size` (line 565) carries no rotation field. Whether it reports pre- or post-rotation dimensions for a
+  file flagged with a 90° display rotation is unverified; the `media-lab` rotation fixture decides it.
 - Existing app player: `client/features/media/components/VideoPlayer.tsx`, a full-screen modal with hand-rolled
   loading and error overlays. `media-viewer` deletes it later. Here, swap only its inner `VideoView` and overlays for
   `<Video>` (see Work 4).
@@ -117,7 +130,18 @@ Verified on `dev` at 54e0bc9, expo-video 58.0.10.
          fullscreen, containing play/pause, the `MediaScrubber` (`tone="overlay"`, value from `timeUpdate`,
          `buffered` from `bufferedPosition` when available), the `formatMediaTime(current, duration) /
          formatMediaTime(duration)` text in `palette.white` with tabular numbers, mute (`volume-2`/`volume-x`,
-         `selected` when muted), and fullscreen (`maximize`/`minimize`) when `allowsFullscreen`.
+         `selected` when muted), captions (`captions`, only when `availableSubtitleTracks.length > 0`, `selected` when
+         a track is on), and fullscreen (`maximize`/`minimize`) when `allowsFullscreen`.
+     - Captions: the toggle sets `subtitleTrack` to the track matching the device language (fall back to the first
+       track), or to `null`. The labels are `media.captionsOn` and `media.captionsOff`. Choosing among several subtitle
+       tracks, and choosing audio tracks, is excluded from custom mode; the docs point to `controls="native"` for
+       both.
+       - Verify on each tested surface that the selected track renders while native controls are off.
+       - If a platform does not render it, hide the toggle there and record that in the Media Lab `observed` notes.
+     - Live (`isLive` or `duration === Infinity`): the scrubber is disabled, and the time text reads `Live` through
+       `formatMediaTime`.
+     - No video track (an audio-only file): keep the fallback ratio, show the poster or black, and keep the controls
+       working.
      - Scrubbing: `onScrubStart` remembers whether the video was playing and pauses. `onScrubEnd` sets
        `player.currentTime` and resumes if it was playing.
      - Visibility: chrome shows on mount, when paused, on focus, on hover (web `onHoverIn`/`onHoverOut` on the frame),
@@ -160,23 +184,35 @@ Verified on `dev` at 54e0bc9, expo-video 58.0.10.
    - Web keyboard: Space toggles, arrows seek, F calls `requestFullscreen` (stub it).
    - Native fullscreen opens the `Modal` and unmounts the inline view.
    - An external `player` is not released on unmount.
-3. **Sample media.** Generate `assets/media/sample-video.mp4`: 10 s, 640×360, H.264 baseline + AAC, ≤ 600 KB, with
-   no third-party content:
-
-   ```sh
-   ffmpeg -f lavfi -i testsrc2=size=640x360:rate=30 -f lavfi -i sine=frequency=440 -t 10 \
-     -c:v libx264 -profile:v baseline -pix_fmt yuv420p -crf 30 -c:a aac -b:a 64k -movflags +faststart \
-     assets/media/sample-video.mp4
-   ```
-
-   Also generate a 360×640 portrait clip (`sample-video-portrait.mp4`, same settings, ≤ 600 KB) to show
-   `maxHeight` clamping.
+3. **Media Lab.** Implement `renderers.video` in `MediaLabScreen.tsx`.
+   - Render every `kind: "video"` fixture through `Video`, driven by the playground state.
+   - Mount at most one playing player at a time. A tile shows its poster or a play glyph until tapped, so a grid of
+     30 fixtures does not create 30 players.
+   - Run `bun run media:fixtures`. Then, on each surface you test, go through **every** video fixture in each
+     controls mode. Pay particular attention to:
+     - the rotation-flagged clip: it must display portrait, with the auto aspect ratio portrait too. If
+       `videoTrack.size` is pre-rotation, fix it here or document it;
+     - the 1 h 05 m clip, which shows `h:mm:ss` and allows far seeks;
+     - the 2 s loop;
+     - no audio track, where mute does nothing harmful;
+     - the audio-only `.mp4`;
+     - HEVC and 10-bit HEVC, VP9 WebM, AV1 MP4/WebM, `.mov`, 60 fps and 4K;
+     - non-faststart, where the loading state stays visible until playable;
+     - fragmented MP4;
+     - the remote HLS streams: Apple TS with alternate audio and CC, Apple HEVC, Mux long VOD, and Mux with WebVTT
+       subtitles, where the captions toggle appears and works;
+     - DASH;
+     - both live HLS streams, which show `Live` with the scrubber disabled;
+     - the broken files.
+   - Record what you saw in `observed`, and leave untested surfaces unset. Never fill a surface from memory. Every
+     `expectError` fixture must reach the error state, with retry and no crash.
+   - Fix failures that should work here. List platform gaps in the PR with evidence and in the `LLM_USAGE.md` entry.
 4. **Showcase and dogfood.**
    - Register `{ id: "Video", importPath: "@mrmeg/expo-ui/components/Video", category: "media" }`.
    - Preview:
-     - the landscape sample with `controls="custom"`;
+     - the core `landscape.mp4` with `controls="custom"` and `landscape.jpg` as its poster;
      - the same with `"native"`;
-     - the portrait sample with `maxHeight={320}` (centered, not stretched);
+     - the core `portrait.mp4` with `maxHeight={320}` (centered, not stretched);
      - `fit="cover"` in a 1:1 frame;
      - a broken URI showing the error state.
    - Keep previews behind the lazy gallery (`gallerySplitPoint.test.ts`).
@@ -190,6 +226,10 @@ Verified on `dev` at 54e0bc9, expo-video 58.0.10.
      - PiP config plugin requirement;
      - autoplay needs `muted` on web;
      - HLS is Safari-only on web;
+     - captions in custom mode cover the one-track toggle only; use `native` controls to pick among tracks or audio
+       tracks;
+     - the codec and container results recorded in the Media Lab, summarized as a short support table that cites
+       what was observed;
      - pause on blur is app-owned;
      - prefer an explicit `aspectRatio` when known.
    - Add a CHANGELOG `## [Unreleased]` Added entry.
@@ -210,12 +250,15 @@ Verified on `dev` at 54e0bc9, expo-video 58.0.10.
   - F gives true fullscreen with custom chrome, and Esc exits.
   - Native mode shows the browser controls.
   - The portrait clip is centered at `maxHeight`, and the frame rescales from 1280 to 375 px.
+  - Media Lab, Video section: every fixture in each controls mode in Chrome, plus Safari and Firefox if available.
+    Paste the observed table into the PR.
   - Report screenshots.
 - iOS simulator (run skill) if available:
   - custom chrome tap and auto-hide;
   - scrubber drag;
   - the custom fullscreen modal;
   - native mode with PiP;
-  - the media tab video plays.
+  - the media tab video plays;
+  - the Media Lab Video section: rotation, HLS with captions, live, the codec set, and the broken files.
 
   Android and VoiceOver/TalkBack go in the PR's manual checks.

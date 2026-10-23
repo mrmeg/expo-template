@@ -22,17 +22,20 @@ The template's media tab then swaps its two single-item modals for one viewer ov
 
 ## Stacking
 
-Stacks on spec `media-video` (needs `Image` and `Video`). Branch `agent/media-viewer` from `agent/media-video` and
-open the draft PR against `agent/media-video`. Retarget it as the parents merge. If `agent/media-video` does not
-exist, skip with the unblock step "implement media-video first".
+Stacks on spec `media-video` (needs `Image` and `Video`; the chain is foundation → lab → image → video). Branch
+`agent/media-viewer` from `agent/media-video` and open the draft PR against `agent/media-video`. Retarget it as the
+parents merge. If `agent/media-video` does not exist, skip for this pass with the unblock step "implement media-video
+first". Do not mark it blocked.
 
 ## Context
 
-Verified on `dev` at 54e0bc9.
+Verified on `dev` at df1a06a (2026-10-23).
 
 - **From `media-foundation`:** subpath-only rule (`__tests__/mediaPeers.test.ts`), `/*#__PURE__*/` on module-scope
-  styles (`packageSideEffects.test.ts`), `MediaControlButton` (`tone="overlay"`), `useMediaKeyboard` (prev/next, escape, and
+  styles (`packageSideEffects.test.ts`), `MediaControlButton` (overlay-only), `useMediaKeyboard` (prev/next, escape, and
   zoom handlers), and the built-in `x`, `chevron-left`, `chevron-right` icons.
+- **From `media-lab`:** core fixtures in `assets/media/`, `MEDIA_FIXTURES` with `resolveFixtureUri`, and the
+  Media Lab `renderers.viewer` slot.
 - **From `media-image`:** `Image` with `fill`, `fit="contain"`, and `onLoad` natural size.
 - **From `media-video`:** `Video` with `controls`, `poster`, and `player`. In custom mode on native, `Video`'s own
   fullscreen opens a second `Modal`. Inside the viewer that is redundant, so pass `allowsFullscreen={false}`. The
@@ -168,9 +171,24 @@ Verified on `dev` at 54e0bc9.
      active item clamps the index.
 3. **Showcase.**
    - Register `{ id: "MediaViewer", importPath: "@mrmeg/expo-ui/components/MediaViewer", category: "media" }`.
-   - The preview is a three-thumbnail strip (sample image, landscape video poster, portrait video) built with
-     `Image`. Tapping opens the viewer at that item, with the samples from the earlier specs.
+   - The preview is a three-thumbnail strip built with `Image`: `landscape.jpg`, `landscape.mp4` with its poster, and
+     `portrait.mp4`. Tapping opens the viewer at that item.
    - Keep it behind the lazy gallery.
+   - **Media Lab.** Implement `renderers.viewer` in `MediaLabScreen.tsx`. It offers three preset sets, each opening
+     `MediaViewer`, plus "open the current filter as a set" for any Images or Video section filter:
+     - **All available images and videos (mixed):** extreme aspects (panorama, 1:3 strip, 21:9), the 48 MP image for
+       zoom, EXIF orientation 6, alpha PNG, animated GIF, the rotation-flagged video, and HLS with captions.
+     - **The 60-thumbnail scale set:** paging performance, and memory over many pages.
+     - **One item:** no counter or arrows.
+
+     Go through every set on each surface you test:
+     - zoom clamps at the panorama's and the strip's edges;
+     - double-tap at the corners of the 48 MP image;
+     - a broken file in the set shows its error state inside the page, and paging continues;
+     - a video page stops when you page away.
+
+     Record viewer-specific findings in the PR. Update `observed` only for fixture behavior that differs inside the
+     viewer.
 4. **Dogfood.**
    - In `app/(main)/(tabs)/media.tsx`:
      - Build `MediaViewerItem[]` from the loaded media list: images use their signed URL with `cacheKey`; videos use
@@ -201,8 +219,9 @@ Verified on `dev` at 54e0bc9.
     - F toggles fullscreen;
     - a video page plays with custom controls and stops when you page away.
   - Resize between 1280 and 375 px while open: the current item stays put.
+  - Media Lab, Viewer section: each preset set, as listed in Work 3.
   - Check the console for no hydration warnings.
   - Report screenshots.
 - iOS simulator (run skill), if available: swipe paging, pinch and double-tap zoom with edge clamping, paging off
-  while zoomed, swipe-down dismiss, rotation, and video playback.
+  while zoomed, swipe-down dismiss, rotation, video playback, and the Media Lab Viewer sets (60-item paging).
 - Put Android back-button close and VoiceOver/TalkBack navigation in the PR's manual checks.
