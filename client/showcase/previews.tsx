@@ -39,6 +39,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
 import { IconButton } from "@mrmeg/expo-ui/components/IconButton";
+import { Image, type ImageFit } from "@mrmeg/expo-ui/components/Image";
 import { InputOTP } from "@mrmeg/expo-ui/components/InputOTP";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@mrmeg/expo-ui/components/Item";
 import { Label } from "@mrmeg/expo-ui/components/Label";
@@ -103,6 +104,70 @@ function TogglePreview({ icon, label, initial }: { icon: IconName; label: string
     <Toggle pressed={pressed} onPressedChange={setPressed} size="sm" iconOnly accessibilityLabel={label}>
       <Icon name={icon} size={14} color={pressed ? "foreground" : "mutedForeground"} />
     </Toggle>
+  );
+}
+
+/**
+ * The `Image` card: the five fits on one non-square picture, a focal-point
+ * crop, a clamped 16:9 frame, `"auto"`, a placeholder and the error state. All
+ * of it uses the Media Lab's bundled core fixtures, so nothing here loads over
+ * the network except the deliberate failure.
+ */
+const LANDSCAPE = require("@/assets/media/landscape.jpg");
+const PORTRAIT = require("@/assets/media/portrait.jpg");
+const SQUARE = require("@/assets/media/square.jpg");
+/** The sample hash from the blurhash project, which has a bright top and a dark bottom. */
+const BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
+const IMAGE_FITS: ImageFit[] = ["cover", "contain", "fill", "none", "scale-down"];
+
+function Captioned({ caption, children, style }: { caption: string; children: React.ReactNode; style?: object }) {
+  return (
+    <View style={[{ alignItems: "center", gap: spacing.xxs }, style]}>
+      {children}
+      <CaptionText>{caption}</CaptionText>
+    </View>
+  );
+}
+
+function ImagePreview() {
+  return (
+    <Stack gap={spacing.md}>
+      {/* A 16:9 picture in square frames: the fit decides what shows. */}
+      <Row gap={spacing.sm}>
+        {IMAGE_FITS.map((fit) => (
+          <Captioned key={fit} caption={fit}>
+            <Image source={LANDSCAPE} alt="" fit={fit} radius="sm" style={{ width: 52, height: 52 }} />
+          </Captioned>
+        ))}
+      </Row>
+
+      {/* Frames wider than 16:9 crop top and bottom, where the bars differ. */}
+      <View style={{ flexDirection: "row", gap: spacing.sm }}>
+        {(["top", "bottom"] as const).map((position) => (
+          <Captioned key={position} caption={`position="${position}"`} style={{ flex: 1 }}>
+            <Image source={LANDSCAPE} alt="" aspectRatio="3:1" position={position} radius="sm" />
+          </Captioned>
+        ))}
+      </View>
+
+      <Captioned caption='aspectRatio="16:9" maxHeight={200}'>
+        <Image source={LANDSCAPE} alt="Color bars" aspectRatio="16:9" maxHeight={200} radius="md" />
+      </Captioned>
+
+      <Row gap={spacing.md}>
+        <Captioned caption='aspectRatio="auto"'>
+          <View style={{ width: 72 }}>
+            <Image source={PORTRAIT} alt="" aspectRatio="auto" radius="sm" />
+          </View>
+        </Captioned>
+        <Captioned caption="blurhash placeholder">
+          <Image source={SQUARE} alt="" placeholder={BLURHASH} transition={800} radius="sm" style={{ width: 72, height: 72 }} />
+        </Captioned>
+        <Captioned caption="error state">
+          <Image source="https://example.invalid/missing.jpg" alt="" radius="sm" style={{ width: 72, height: 72 }} />
+        </Captioned>
+      </Row>
+    </Stack>
   );
 }
 
@@ -471,6 +536,9 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
       />
     </View>
   ),
+
+  // ── Media ───────────────────────────────────────────────────────────────
+  Image: () => <ImagePreview />,
 
   // ── Typography ──────────────────────────────────────────────────────────
   Icon: () => (

@@ -12,7 +12,7 @@
  */
 import React from "react";
 import { Animated } from "react-native";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen, within } from "@testing-library/react-native";
 import { useThemeStore } from "@mrmeg/expo-ui/state";
 import { SCREEN_SIZES } from "@mrmeg/expo-ui/hooks";
 
@@ -298,8 +298,11 @@ describe("DrawerNavContent", () => {
     await render(<DrawerNavContent />);
 
     expect(screen.getByTestId("drawer-category-nav")).toBeTruthy();
+    // Scoped to the category list: the App section's "Media" tab shares the
+    // "Media" category's label.
+    const categoryNav = within(screen.getByTestId("drawer-category-nav"));
     for (const category of COMPONENT_CATEGORIES) {
-      expect(screen.getByText(COMPONENT_CATEGORY_LABELS[category])).toBeTruthy();
+      expect(categoryNav.getByText(COMPONENT_CATEGORY_LABELS[category])).toBeTruthy();
     }
     expect(
       screen.getByTestId("drawer-category-form").props.accessibilityState?.selected,

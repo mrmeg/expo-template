@@ -25,6 +25,7 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 
 import { GalleryChips, type GalleryChip } from "./GalleryChips";
 import { ALL_CATEGORIES, type CategoryFilter } from "./filters";
+import { ImageSection } from "./MediaLabImages";
 import { ThemeToggle } from "./ThemeToggle";
 import {
   FIXTURE_SURFACES,
@@ -45,9 +46,9 @@ import {
  * `mediaFixtures.ts` with its availability, and holds one set of playground
  * controls that every section receives.
  *
- * This screen ships with metadata lists only. Each component spec fills its own
- * slot in {@link renderers} (`media-image`, `media-video`, `media-audio`,
- * `media-viewer`); a section with no renderer shows a pending line.
+ * Each component spec fills its own slot in {@link renderers} (`media-image`
+ * is in; `media-video`, `media-audio` and `media-viewer` are pending); a section
+ * with no renderer shows a pending line.
  *
  * Availability is checked client-side after mount (HEAD, 5 s timeout, at most
  * six in flight). A fixture that is not available is never handed to a
@@ -343,11 +344,12 @@ export type SectionRenderer = React.ComponentType<SectionRendererProps>;
 export type LabRenderers = Partial<Record<SectionId, SectionRenderer>>;
 
 /**
- * The slot map the component specs fill: `media-image` sets `image`,
- * `media-video` sets `video`, `media-audio` sets `audio`, `media-viewer` sets
- * `viewer`. Each is a component receiving {@link SectionRendererProps}.
+ * The slot map the component specs fill: `media-image` sets `image` (see
+ * `MediaLabImages.tsx`), `media-video` sets `video`, `media-audio` sets
+ * `audio`, `media-viewer` sets `viewer`. Each is a component receiving
+ * {@link SectionRendererProps}.
  */
-export const renderers: LabRenderers = {};
+export const renderers: LabRenderers = { image: ImageSection };
 
 interface SectionDef {
   id: SectionId;
