@@ -49,6 +49,7 @@
     "media:pack": "node scripts/run-package-script.mjs media pack",
     "media:consumer-smoke": "node scripts/run-package-script.mjs media consumer-smoke",
     "media:release": "node scripts/run-package-script.mjs media release",
+    "media:fixtures": "node scripts/build-media-fixtures.mjs",
     "purchases:typecheck": "node scripts/run-package-script.mjs purchases typecheck",
     "purchases:test": "node scripts/run-package-script.mjs purchases test",
     "purchases:build": "node scripts/run-package-script.mjs purchases build",

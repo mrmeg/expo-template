@@ -140,6 +140,64 @@ The gallery route files under
 (`client/showcase/gallery.tsx`), keeping previews out of every other route's
 first-render download — see `docs/bundle-analysis.md`.
 
+### Media Lab and fixtures
+
+`/media-lab` (`client/showcase/MediaLabScreen.tsx`, listed in Explore under
+Demos & Tools) checks `Image`, `Video`, `AudioPlayer` and `MediaViewer` against
+every case a real app meets. It lists every fixture in
+`client/showcase/mediaFixtures.ts` with its availability and one observed-status
+badge per surface, and holds one set of playground controls (image fit,
+position, sizing, max height, radius; video controls, fit, autoplay, loop,
+poster; audio variant; container width 375 / 768 / 1280; theme) that every
+section receives. Each component spec fills its own `renderers` slot
+(`image`, `video`, `audio`, `viewer`) in `MediaLabScreen.tsx`; until then the
+section shows its metadata list and a "Component arrives with spec …" line.
+
+The corpus has three tiers:
+
+| Tier | Where | Notes |
+|------|-------|-------|
+| `core` | `assets/media/`, committed, 2.5 MB at most | `landscape.jpg`, `portrait.jpg`, `square.jpg`, `alpha.png`, `landscape.mp4`, `portrait.mp4`, `tone.m4a`, bundled with `require()`; gallery previews use these and they are always available |
+| `generated` | `public/media-fixtures/`, gitignored | Aspect ratios, formats, codecs, EXIF orientation, color profiles, rotation metadata, durations past 1 h, list-scale sets and broken files; served from the app's own origin |
+| `remote` | a public URL | Verified HLS, DASH, live, captions and alternate-audio streams |
+
+Build the generated tier with `bun run media:fixtures`. `--core` rebuilds only
+the committed core, `--only <id,…>` builds a subset (a trailing `*` matches a
+prefix), and `--list [--json]` prints every fixture with its tools and status.
+Every fixture is synthetic (lavfi `testsrc2`, `smptehdbars`, `mandelbrot`,
+`sine`, geq and hue filters, hand-written bytes), so the repo carries no
+third-party media. **ffmpeg and ffprobe are required**; `avifenc`, `cwebp`,
+`img2webp`, `cjpeg` and macOS `sips` each cover a few fixtures, and a fixture
+whose tool is missing is skipped with a warning while the run continues. The
+script ends with a table of what was built, what was skipped and why, and the
+total size. Output is not byte-stable across encoder versions and `sips` is
+macOS-only, so the generator is not part of `bun run gen` or `bun run verify`.
+CI and Railway have none of these tools; the lab shows a missing fixture as
+`not generated` (never an error tile) and the manifest tests read the generator
+through `--list --json`, which needs no tools.
+
+A generated path resolves against the app origin: relative on web, the API
+origin (or the dev server's `hostUri` in development) on native, and `no
+origin` on a native release build without one. The lab HEAD-checks every
+generated and remote fixture after mount and shows one of four states:
+`available`, `not generated`, `unreachable` (remote), `no origin`. A fixture
+that is not available is never handed to a renderer; an intentionally broken one
+is available and carries an `expects error` tag, so the two never look alike.
+
+To record what a component does, edit `observed` in `mediaFixtures.ts` for the
+fixture and surface you actually ran (`ios`, `android`, `web-chrome`,
+`web-safari`, `web-firefox`) with `works`, `fails` or `partial`, and leave
+every surface you did not test unset (shown as `unverified`). Never fill support
+from memory. Adding a generated fixture means one declaration in
+`scripts/build-media-fixtures.mjs` and one entry in `mediaFixtures.ts` with the
+same id and path; `client/showcase/__tests__/mediaFixtures.test.ts` fails when
+the two disagree.
+
+To see loading states, throttle the network rather than the fixture: Chrome
+DevTools network throttling (Slow 4G) on web, and Network Link Conditioner on an
+iOS simulator or device. The non-faststart MP4 (`vid-container-moov-end`, moov
+atom at the end, about 5 MB) and the 48 MP JPEG make slow starts visible.
+
 ## Component Selection
 
 Start with `packages/ui/src/components/index.ts` and
@@ -3010,6 +3068,7 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/detail-hero.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/detail-hero.tsx
 - app/(main)/(demos)/developer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/developer.tsx
 - app/(main)/(demos)/form-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/form-demo.tsx
+- app/(main)/(demos)/media-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/media-lab.tsx
 - app/(main)/(demos)/onboarding.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/onboarding.tsx
 - app/(main)/(demos)/screen-card-grid.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-card-grid.tsx
 - app/(main)/(demos)/screen-chat.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-chat.tsx
