@@ -180,10 +180,11 @@ describe("Media Lab: Images renderer", () => {
   });
 
   describe("scale set", () => {
-    it("renders in a FlatList grid, not in the tile grid, with a recyclingKey per cell", async () => {
+    it("renders in a horizontal FlatList strip, not in the tile grid, with a recyclingKey per cell", async () => {
       await render(section({ entries: SCALE_IDS.map((id) => entry(id)) }));
 
-      expect(screen.getByTestId("scale-grid")).toBeTruthy();
+      const strip = screen.getByTestId("scale-grid", { includeHiddenElements: true });
+      expect(strip.props.horizontal).toBe(true);
       expect(screen.queryByTestId("image-grid")).toBeNull();
       const first = within(screen.getByTestId("scale-image-img-scale-01", { includeHiddenElements: true })).getByTestId(
         "expo-image",
@@ -192,26 +193,14 @@ describe("Media Lab: Images renderer", () => {
       expect(first.props.recyclingKey).toBe("img-scale-01");
     });
 
-    it("sizes its cells from the width it is laid out in, not the window's", async () => {
-      await render(section({ entries: SCALE_IDS.map((id) => entry(id)) }));
-      const cell = () => flat(screen.getByTestId("scale-image-img-scale-01", { includeHiddenElements: true })).width;
-      // No layout yet: the window estimate (Jest's 750 pt window), 7 columns.
-      expect(cell()).toBe(95);
-
-      // A desktop rail makes the stage narrower than the window: 3 columns.
-      await act(async () => {
-        screen.getByTestId("image-scale").props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 400, height: 500 } } });
-      });
-
-      expect(cell()).toBe(117);
-    });
-
-    // Jest has no layout, so it cannot show windowing; it can show the list
-    // is bounded, which is what lets it window and scroll on its own.
-    it("is bounded in height, so it scrolls on its own and can window", async () => {
+    // A vertical list inside the lab's vertical ScrollView logs React Native's
+    // nested-VirtualizedList error on native and breaks windowing.
+    it("is horizontal and one cell tall, so it never nests a vertical list in the lab's ScrollView", async () => {
       await render(section({ entries: SCALE_IDS.map((id) => entry(id)) }));
 
-      expect(flat(screen.getByTestId("scale-grid", { includeHiddenElements: true })).height).toBe(360);
+      const strip = screen.getByTestId("scale-grid", { includeHiddenElements: true });
+      expect(flat(strip).height).toBe(96);
+      expect(flat(screen.getByTestId("scale-image-img-scale-01", { includeHiddenElements: true })).width).toBe(96);
     });
   });
 

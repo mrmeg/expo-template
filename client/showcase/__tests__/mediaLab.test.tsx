@@ -261,11 +261,10 @@ describe("Media Lab: availability", () => {
   });
 
   it("collapses a fixture with nothing observed into one unverified line", async () => {
-    await render(<MediaLabScreen />);
+    await render(<ObservedStatus fixture={{ ...MEDIA_FIXTURES[0], observed: {} }} />);
 
-    const landscape = row("image", "core-landscape");
-    expect(within(landscape).getByText("Not verified on any surface yet")).toBeTruthy();
-    expect(within(landscape).queryByText(/^iOS /)).toBeNull();
+    expect(screen.getByText("Not verified on any surface yet")).toBeTruthy();
+    expect(screen.queryByText(/^iOS /)).toBeNull();
   });
 
   it("shows chips only for observed surfaces and lists the untested ones", async () => {

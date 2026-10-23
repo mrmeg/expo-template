@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useMemo, useState } from "react";
-import { FlatList, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
+import React, { memo, useMemo } from "react";
+import { FlatList, StyleSheet, View } from "react-native";
 import { Card, CardDescription, CardHeader, CardTitle } from "@mrmeg/expo-ui/components/Card";
 import { Image, type ImageFit, type ImageRadius } from "@mrmeg/expo-ui/components/Image";
 import { StyledText } from "@mrmeg/expo-ui/components/StyledText";
@@ -30,9 +30,7 @@ const MAX_HEIGHT = 160;
 
 /** The scale set: its cells and the bounded height it scrolls in. */
 const SCALE_GAP = spacing.sm;
-const SCALE_MIN_CELL = 88;
-const SCALE_MAX_COLUMNS = 10;
-const SCALE_HEIGHT = 360;
+const SCALE_CELL = 96;
 
 /** The viewer-style `file://` and data URIs are strings; a bundled asset is a `require()` number. */
 type Uri = string | number | null;
@@ -154,40 +152,26 @@ function ResponsiveTile({ entries, options }: { entries: LabEntry[]; options: Fr
 }
 
 /**
- * The 60 list-scale thumbnails, in a bounded `FlatList` grid that windows and
- * scrolls on its own. `numColumns` cannot change on a mounted list, so the
- * list is keyed on it: a new width (a preset, a resized window) remounts it.
+ * The 60 list-scale thumbnails, in a horizontal `FlatList` strip that windows
+ * and recycles on its own. Horizontal on purpose: a vertical list inside the
+ * lab's vertical `ScrollView` breaks windowing and logs React Native's
+ * "VirtualizedLists should never be nested" error on native.
  */
-function ScaleGrid({ entries, options, estimatedWidth }: { entries: LabEntry[]; options: FrameOptions; estimatedWidth: number }) {
+function ScaleStrip({ entries, options }: { entries: LabEntry[]; options: FrameOptions }) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
   const { fit, position, radius } = options;
-
-  // The width this section really renders in is the stage's, which a desktop
-  // rail narrows below the window's. Measure it; the window-based estimate
-  // covers the first frame (and tests, which never lay out).
-  const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
-  const handleLayout = useCallback((event: LayoutChangeEvent) => {
-    const { width } = event.nativeEvent.layout;
-    if (width > 0) setMeasuredWidth(width);
-  }, []);
-
-  const available = (measuredWidth ?? estimatedWidth) - spacing.screenPadding * 2;
-  const columns = Math.max(2, Math.min(SCALE_MAX_COLUMNS, Math.floor((available + SCALE_GAP) / (SCALE_MIN_CELL + SCALE_GAP))));
-  const cell = Math.floor((available - SCALE_GAP * (columns - 1)) / columns);
-  const cellStyle = useMemo(() => ({ width: cell, height: cell }), [cell]);
-  const rowHeight = cell + SCALE_GAP;
+  const itemLength = SCALE_CELL + SCALE_GAP;
 
   return (
-    <View style={styles.gutter} onLayout={handleLayout} testID="image-scale">
+    <View style={styles.gutter} testID="image-scale">
       <StyledText semantic="subheading" accessibilityRole="header">List scale</StyledText>
       <StyledText semantic="caption" style={styles.dim}>
-        {`${entries.length} thumbnails in a FlatList, ${columns} columns, with recyclingKey. Scroll the grid.`}
+        {`${entries.length} thumbnails in a horizontal FlatList with recyclingKey. Scroll sideways.`}
       </StyledText>
       <FlatList
-        key={`scale-${columns}`}
+        horizontal
         data={entries}
-        numColumns={columns}
         keyExtractor={(entry) => entry.fixture.id}
         renderItem={({ item }) => (
           <Image
@@ -197,17 +181,16 @@ function ScaleGrid({ entries, options, estimatedWidth }: { entries: LabEntry[]; 
             position={position}
             radius={radius}
             recyclingKey={item.fixture.id}
-            style={cellStyle}
+            style={styles.scaleCell}
             testID={`scale-image-${item.fixture.id}`}
           />
         )}
-        getItemLayout={(_data, row) => ({ length: rowHeight, offset: rowHeight * row, index: row })}
-        columnWrapperStyle={styles.scaleRow}
+        getItemLayout={(_data, index) => ({ length: itemLength, offset: itemLength * index, index })}
         contentContainerStyle={styles.scaleContent}
         style={styles.scaleList}
-        initialNumToRender={columns * 4}
+        initialNumToRender={12}
         windowSize={5}
-        nestedScrollEnabled
+        showsHorizontalScrollIndicator
         testID="scale-grid"
       />
     </View>
@@ -257,7 +240,6 @@ function SourceKindTiles({ sourceKinds, options }: { sourceKinds: SourceKindEntr
 export function ImageSection({ entries, playground, sourceKinds }: SectionRendererProps) {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
-  const { width: windowWidth } = useWindowDimensions();
 
   const options = useMemo<FrameOptions>(
     () => ({
@@ -272,7 +254,6 @@ export function ImageSection({ entries, playground, sourceKinds }: SectionRender
 
   const tiles = useMemo(() => entries.filter((entry) => entry.fixture.category !== "scale"), [entries]);
   const scale = useMemo(() => entries.filter((entry) => entry.fixture.category === "scale"), [entries]);
-  const stageWidth = playground.width === "full" ? windowWidth : Math.min(windowWidth, playground.width);
 
   return (
     <View style={styles.section} testID="image-section">
@@ -293,7 +274,7 @@ export function ImageSection({ entries, playground, sourceKinds }: SectionRender
         </View>
       ) : null}
 
-      {scale.length > 0 ? <ScaleGrid entries={scale} options={options} estimatedWidth={stageWidth} /> : null}
+      {scale.length > 0 ? <ScaleStrip entries={scale} options={options} /> : null}
 
       <SourceKindTiles sourceKinds={sourceKinds} options={options} />
     </View>
@@ -335,13 +316,14 @@ const createStyles = (theme: Theme) =>
       height: BOX_HEIGHT,
     },
     scaleList: {
-      height: SCALE_HEIGHT,
+      height: SCALE_CELL,
     },
     scaleContent: {
       gap: SCALE_GAP,
     },
-    scaleRow: {
-      gap: SCALE_GAP,
+    scaleCell: {
+      width: SCALE_CELL,
+      height: SCALE_CELL,
     },
     kinds: {
       flexDirection: "row",

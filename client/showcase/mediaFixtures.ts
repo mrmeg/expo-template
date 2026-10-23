@@ -13,14 +13,16 @@
  *   two in step.
  * - `remote`: public streams that were reachable when the entry was added.
  *
- * `observed` starts empty everywhere and is the only field a component PR
- * edits afterwards: record `works`, `fails` or `partial` only for what you saw
- * on a surface you actually ran, and leave the rest unset (shown as
- * `unverified`). Never fill support from memory.
+ * `observed` starts empty in the declarations below. What a component PR saw
+ * goes in `mediaObserved.ts`, merged in at the end: record `works`, `fails`
+ * or `partial` only for what you saw on a surface you actually ran, and leave
+ * the rest unset (shown as `unverified`). Never fill support from memory.
  */
 import Constants from "expo-constants";
 
 import { resolveApiOrigin } from "@/client/lib/api/apiOrigin";
+
+import { OBSERVED } from "./mediaObserved";
 
 export type FixtureKind = "image" | "video" | "audio";
 export type FixtureTier = "core" | "generated" | "remote";
@@ -155,7 +157,7 @@ const scaleSet: MediaFixture[] = Array.from({ length: SCALE_COUNT }, (_, index) 
   });
 });
 
-export const MEDIA_FIXTURES: MediaFixture[] = [
+const DECLARED_FIXTURES: MediaFixture[] = [
   // --- Core: bundled with require(), always available ----------------------
   {
     id: "core-landscape",
@@ -533,6 +535,11 @@ export const MEDIA_FIXTURES: MediaFixture[] = [
     observed: {},
   },
 ];
+
+/** The manifest, with what each component PR observed (`mediaObserved.ts`) merged in. */
+export const MEDIA_FIXTURES: MediaFixture[] = DECLARED_FIXTURES.map((fixture) =>
+  OBSERVED[fixture.id] ? { ...fixture, observed: { ...fixture.observed, ...OBSERVED[fixture.id] } } : fixture,
+);
 
 export const fixturesOfKind = (kind: FixtureKind): MediaFixture[] =>
   MEDIA_FIXTURES.filter((fixture) => fixture.kind === kind);
