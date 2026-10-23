@@ -11,7 +11,8 @@
  *   the glyphs for the names in `icon-names.json` (the ones the package's own
  *   components draw), and the `BuiltinIconName` union.
  * - `packages/ui/src/icons/lucide.json` — the whole snapshot (every icon, plus
- *   the alias map derived from Lucide's font codepoints), which the
+ *   the alias map, derived from Lucide's font codepoints plus the names whose
+ *   glyph file is identical to a canonical icon's), which the
  *   `expo-ui-icons` CLI compiles an app's `client/icons.json` against. The
  *   package build copies it to `dist/icons/`.
  * - `packages/ui/src/icons/LICENSE.lucide` — Lucide's license, verbatim.
@@ -111,8 +112,8 @@ if (problems.length > 0) {
 
 const canonicalNames = Object.keys(iconNodes).sort();
 
-// A name in the font's codepoint table that is not an icon, but shares a real
-// icon's codepoint, is a renamed icon's old name: Lucide keeps those reachable.
+// A name in the font's codepoint table that is not an icon is a renamed icon's
+// old name: Lucide keeps those reachable. Most share a real icon's codepoint.
 const canonicalByCodepoint = new Map();
 for (const name of canonicalNames) {
   const codepoint = codepoints[name];
@@ -123,10 +124,54 @@ for (const name of canonicalNames) {
   canonicalByCodepoint.set(codepoint, name);
 }
 const aliases = {};
+const unresolved = [];
 for (const name of Object.keys(codepoints).sort()) {
   if (name in iconNodes) continue;
   const canonical = canonicalByCodepoint.get(codepoints[name]);
   if (canonical) aliases[name] = canonical;
+  else unresolved.push(name);
+}
+
+// The rest have a codepoint of their own, but their glyph file is a canonical
+// icon's, byte for byte once Lucide's license comment and `class` attribute are
+// stripped (`trash-2` is `trash`). Matching the drawing finds them.
+const normalizedSvg = (name) =>
+  readLucide(join("icons", `${name}.svg`))
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/\s+class="[^"]*"/g, "")
+    .trim();
+const canonicalBySvg = new Map();
+if (unresolved.length > 0) {
+  for (const name of canonicalNames) {
+    const svg = normalizedSvg(name);
+    const known = canonicalBySvg.get(svg);
+    canonicalBySvg.set(svg, known === undefined ? [name] : [...known, name]);
+  }
+}
+const unnamed = [];
+for (const name of unresolved) {
+  // The font table still lists names Lucide has dropped (the brand glyphs
+  // `github` and `chrome`, among others): no glyph file, and lucide-react does
+  // not export them, so there is nothing to resolve.
+  if (!existsSync(join(lucideDir, "icons", `${name}.svg`))) continue;
+  const svg = normalizedSvg(name);
+  const matches = canonicalBySvg.get(svg) ?? [];
+  if (matches.length > 1) fail(`${name} draws the same glyph as icons ${matches.join(" and ")}; it cannot be one alias`);
+  if (matches.length === 1) aliases[name] = matches[0];
+  else unnamed.push(name);
+}
+// Every name with a glyph file must be an icon or an alias of one. A release
+// that adds a name this cannot place must be looked at, not skipped: the four
+// names that went missing between Lucide 1.55 and 1.57 passed unnoticed.
+if (unnamed.length > 0) {
+  fail(
+    `lucide-static@${lucideVersion} has glyph files that are neither icons nor identical to one: ${unnamed.join(", ")}`,
+  );
+}
+// Codepoint matches and glyph matches arrive in separate passes: write sorted.
+for (const [name, canonical] of Object.entries(aliases).sort(([a], [b]) => (a < b ? -1 : 1))) {
+  delete aliases[name];
+  aliases[name] = canonical;
 }
 
 // --- Read and validate the builtin name list ---------------------------------

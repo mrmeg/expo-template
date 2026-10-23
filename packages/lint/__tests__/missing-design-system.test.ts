@@ -36,6 +36,7 @@ const RULE_NAMES = [
   "no-restyle",
   "no-raw-primitives",
   "no-raw-typography",
+  "icon-source",
 ];
 
 /**

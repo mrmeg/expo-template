@@ -9,6 +9,7 @@ import type typedPlugin from "../index";
 const plugin = require("../index");
 
 const RULE_NAMES = [
+  "icon-source",
   "no-arbitrary-values",
   "no-raw-colors",
   "no-raw-primitives",
@@ -25,7 +26,7 @@ describe("@mrmeg/eslint-plugin-expo-ui", () => {
     }
   });
 
-  it("enables all five rules at `error` in `configs.recommended`", () => {
+  it("enables all six rules at `error` in `configs.recommended`", () => {
     const config = plugin.configs.recommended;
     expect(config.rules).toEqual({
       "expo-ui/no-raw-colors": "error",
@@ -33,6 +34,7 @@ describe("@mrmeg/eslint-plugin-expo-ui", () => {
       "expo-ui/no-restyle": "error",
       "expo-ui/no-raw-primitives": "error",
       "expo-ui/no-raw-typography": "error",
+      "expo-ui/icon-source": "error",
     });
     // Every entry names a rule the plugin actually ships.
     for (const key of Object.keys(config.rules)) {
@@ -50,6 +52,7 @@ describe("@mrmeg/eslint-plugin-expo-ui", () => {
       "no-restyle",
       "no-raw-primitives",
       "no-raw-typography",
+      "icon-source",
     ];
     expect(recommended).toBe(plugin.configs.recommended);
     expect([...rules].sort()).toEqual(RULE_NAMES);

@@ -5,7 +5,7 @@
  *
  * `bun run lint` (`expo lint`) covers `app/` only, caches results in
  * `.expo/cache/eslint/` under a key that ignores this plugin's rule bodies and
- * `packages/ui/src`, and reports every other ESLint rule alongside these five —
+ * `packages/ui/src`, and reports every other ESLint rule alongside these six —
  * which in `client/` means the design-system findings arrive buried in unrelated
  * react-hooks errors. This runs ESLint with the project's own flat config, never
  * from cache, and keeps only `expo-ui/*` messages.
@@ -21,18 +21,28 @@ const { resolveOrigin } = require("../lib/settings.js");
 const { designSystemNotFoundMessage, loadDesignSystemFor } = require("../lib/source.js");
 
 const RULE_PREFIX = "expo-ui/";
-const RULE_NAMES = ["no-raw-colors", "no-arbitrary-values", "no-restyle", "no-raw-primitives", "no-raw-typography"];
+const RULE_NAMES = [
+  "no-raw-colors",
+  "no-arbitrary-values",
+  "no-restyle",
+  "no-raw-primitives",
+  "no-raw-typography",
+  "icon-source",
+];
 const DEFAULT_PATHS = ["app", "client", "shared"];
 const EXPO_LINT_CACHE = path.join(".expo", "cache", "eslint");
 
 /** Where the doctor's fixture claims to live: inside the design system's scope, unwritten. */
 const SMOKE_PATH = path.join("app", "__expo_ui_doctor__.tsx");
 
-/** One file that trips each of the five rules, with the counts it must produce. */
+/** One file that trips each of the six rules, with the counts it must produce. */
 const SMOKE_FIXTURE = [
   'import { Text } from "react-native";',
   'import { Slider } from "@expo/ui/community/slider";',
   'import { Button } from "@mrmeg/expo-ui";',
+  // The import alone: no alias usage, so the count holds against a manifest
+  // that carries no alias table (expo-ui 0.28 and older).
+  'import { Home } from "lucide-react-native";',
   "",
   "export default function Doctor() {",
   '  return <Button style={{ backgroundColor: "#f00", padding: 13, fontSize: 13 }} />;',
@@ -46,6 +56,7 @@ const SMOKE_EXPECTED = {
   "no-restyle": 3,
   "no-raw-primitives": 2,
   "no-raw-typography": 1,
+  "icon-source": 1,
 };
 
 const USAGE = `expo-ui-lint — design-system lint for @mrmeg/expo-ui
@@ -431,9 +442,17 @@ async function doctor(cwd, requestedSample = null) {
       Object.values(counts).every((count) => count > 0),
       `design system: ${describeOrigin(design.origin)} — ${summary}`,
     );
+    // Informational, never a FAIL: an older design system has no alias table,
+    // and `expo-ui/icon-source` still bans the imports without it.
+    const aliasCount = Object.keys(design.icons.aliases).length;
+    lines.push(
+      aliasCount > 0
+        ? `ok   icons: ${design.icons.names.length} builtin names, ${aliasCount} Lucide aliases (lucide ${design.icons.lucide || "unknown"})`
+        : "ok   icons: no Lucide alias table in this design system; expo-ui/icon-source bans icon-library imports but fixes no alias names (@mrmeg/expo-ui 0.29.0+ ships one)",
+    );
   }
 
-  // 4. The rules on a file that must trip all five: config, plugin, and design
+  // 4. The rules on a file that must trip all six: config, plugin, and design
   // system are only wired if this reports what it has always reported.
   try {
     const results = await eslint.lintText(SMOKE_FIXTURE, { filePath: path.join(cwd, SMOKE_PATH) });

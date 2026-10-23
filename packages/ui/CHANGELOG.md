@@ -5,6 +5,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- The Lucide alias map in `lucide.json` (and `design-system.json`'s
+  `icons.aliases`) now includes the four names Lucide 1.57 keeps with a codepoint
+  of their own: `trash-2` (`trash`), `flip-horizontal`
+  (`square-centerline-dashed-horizontal`), `flip-vertical`
+  (`square-centerline-dashed-vertical`), and `text-selection`
+  (`square-dashed-text`). `expo-ui-icons add trash-2` now resolves to `trash`
+  instead of failing. 0.29.1's "no alias changes" missed them.
+
 ## [0.29.1]
 
 ### Changed

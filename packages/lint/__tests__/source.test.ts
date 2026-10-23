@@ -3,6 +3,7 @@
  * check that the design system still spells its tokens and variants the way the
  * rule messages claim.
  */
+const fs = require("node:fs");
 const path = require("node:path");
 const { readSettings } = require("../lib/settings");
 const { loadDesignSystem } = require("../lib/source");
@@ -114,9 +115,24 @@ describe("design-system source loader", () => {
     ]);
   });
 
+  it("reads the builtin icon names and Lucide's alias table", () => {
+    // `expo-ui/icon-source` names the canonical icon from these, so a snapshot
+    // regenerated without them, or a renamed file, has to fail here.
+    expect(design.icons.names).toContain("check");
+    expect(design.icons.names).toEqual(
+      JSON.parse(fs.readFileSync(path.join(UI_SRC, "components", "icon-names.json"), "utf8")),
+    );
+    expect(design.icons.aliases.home).toBe("house");
+    expect(design.icons.aliases["alert-circle"]).toBe("circle-alert");
+    expect(design.icons.lucide).toMatch(/^\d+\.\d+\.\d+$/);
+    // The snapshot's glyphs are not facts the rules quote.
+    expect(design.icons).not.toHaveProperty("icons");
+  });
+
   it("degrades to unknown instead of throwing when the sources are missing", () => {
     const missing = loadDesignSystem(path.resolve(__dirname, "no-such-directory"));
     expect(missing.loaded).toBe(false);
+    expect(missing.icons).toEqual({ names: [], aliases: {}, lucide: null });
     expect(missing.components.size).toBe(0);
     expect(missing.tokens.spacing.values).toEqual([]);
     expect(missing.tokens.typography.values).toEqual([]);

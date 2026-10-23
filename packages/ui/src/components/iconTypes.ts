@@ -26,7 +26,7 @@ export type IconAccessibilityProps = Pick<
 /**
  * Escape hatch for non-Lucide art (a brand mark, an illustration): any
  * component that takes `size` and `color`. Lucide icons go through `name`; the
- * design-system lint rule (a follow-up) rejects Lucide imports here.
+ * `expo-ui/icon-source` lint rule rejects Lucide imports here.
  */
 export type IconComponent = ComponentType<
   { size: number; color: string; style?: StyleProp<ViewStyle> } & Partial<IconAccessibilityProps>
