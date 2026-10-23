@@ -46,6 +46,7 @@ jest.mock("expo-router", () => ({
 
 import * as ImagePicker from "expo-image-picker";
 import MediaLabScreen, {
+  ObservedStatus,
   AVAILABILITY_LOOKS,
   AvailabilityTag,
   GENERATE_HINT,
@@ -53,7 +54,7 @@ import MediaLabScreen, {
   type Availability,
   type SectionRendererProps,
 } from "../MediaLabScreen";
-import { MEDIA_FIXTURES } from "../mediaFixtures";
+import { MEDIA_FIXTURES, type MediaFixture } from "../mediaFixtures";
 
 const globalWithDev = globalThis as unknown as { __DEV__: boolean };
 const originalDev = globalWithDev.__DEV__;
@@ -256,13 +257,21 @@ describe("Media Lab: availability", () => {
     expect(within(row("video", "remote-hls-apple-hevc")).getByTestId("availability-available")).toBeTruthy();
   });
 
-  it("lists each fixture's observed status per surface, unverified by default", async () => {
+  it("collapses a fixture with nothing observed into one unverified line", async () => {
     await render(<MediaLabScreen />);
 
     const landscape = row("image", "core-landscape");
-    for (const label of ["iOS", "Android", "Chrome", "Safari", "Firefox"]) {
-      expect(within(landscape).getByText(`${label} unverified`)).toBeTruthy();
-    }
+    expect(within(landscape).getByText("Not verified on any surface yet")).toBeTruthy();
+    expect(within(landscape).queryByText(/^iOS /)).toBeNull();
+  });
+
+  it("shows chips only for observed surfaces and lists the untested ones", async () => {
+    const fixture: MediaFixture = { ...MEDIA_FIXTURES[0], observed: { ios: "works", "web-firefox": "fails" } };
+    await render(<ObservedStatus fixture={fixture} />);
+
+    expect(screen.getByText("iOS works")).toBeTruthy();
+    expect(screen.getByText("Firefox fails")).toBeTruthy();
+    expect(screen.getByText("Unverified: Android, Chrome, Safari")).toBeTruthy();
   });
 });
 

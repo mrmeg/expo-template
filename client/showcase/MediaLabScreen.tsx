@@ -535,22 +535,39 @@ const FixtureRow = memo(function FixtureRow({ fixture, availability }: { fixture
           <AvailabilityTag state={availability} />
           {fixture.expectError ? <Badge variant="secondary" text="expects error" /> : null}
         </View>
-        <View style={styles.badgeRow}>
-          {FIXTURE_SURFACES.map((surface) => {
-            const observed = fixture.observed[surface] ?? "unverified";
-            return (
-              <Badge
-                key={surface}
-                variant={OBSERVED_VARIANTS[observed]}
-                text={`${SURFACE_LABELS[surface]} ${observed}`}
-              />
-            );
-          })}
-        </View>
+        <ObservedStatus fixture={fixture} />
       </ItemContent>
     </Item>
   );
 });
+
+/**
+ * What was observed for a fixture, per surface. Chips only for surfaces a PR
+ * actually tested; untested surfaces collapse into one muted line, so a list
+ * of 200 fixtures with nothing verified yet doesn't carry 1,000 chips.
+ */
+export function ObservedStatus({ fixture }: { fixture: MediaFixture }) {
+  const { theme } = useTheme();
+  const styles = themedStyles(theme);
+  const verified = FIXTURE_SURFACES.filter((surface) => (fixture.observed[surface] ?? "unverified") !== "unverified");
+  const untested = FIXTURE_SURFACES.filter((surface) => !verified.includes(surface));
+
+  if (verified.length === 0) {
+    return <ItemDescription testID={`observed-${fixture.id}`}>Not verified on any surface yet</ItemDescription>;
+  }
+
+  return (
+    <View testID={`observed-${fixture.id}`} style={styles.badgeRow}>
+      {verified.map((surface) => {
+        const observed = fixture.observed[surface] as Observed;
+        return <Badge key={surface} variant={OBSERVED_VARIANTS[observed]} text={`${SURFACE_LABELS[surface]} ${observed}`} />;
+      })}
+      {untested.length > 0 ? (
+        <ItemDescription>{`Unverified: ${untested.map((surface) => SURFACE_LABELS[surface]).join(", ")}`}</ItemDescription>
+      ) : null}
+    </View>
+  );
+}
 
 interface ChoiceRowProps<T extends string | number> {
   title: string;
