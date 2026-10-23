@@ -39,7 +39,8 @@ no icon library is a peer (see [Icons](#icons)).
 
 `@rn-primitives/*` and `@expo-google-fonts/inter` are package dependencies, not
 peers. Animations use React Native `Animated`. `BottomSheet`, `Slider`, and
-`SegmentedControl` render native `@expo/ui` controls. i18n is optional.
+`SegmentedControl` render native `@expo/ui` controls (`SegmentedControl` is
+native except `size="lg"`, which the kit draws). i18n is optional.
 
 ## Imports
 
@@ -741,7 +742,7 @@ building a new primitive.
 | `Progress` | Determinate or indeterminate progress | Upload progress, onboarding completion |
 | `RadioGroup` | Mutually exclusive choices | Plan interval, visibility choice, survey answer |
 | `SectionHeader` | Eyebrow / title / description section intro | Landing sections, report headers, empty-screen intros |
-| `SegmentedControl` | Native segmented picker (`@expo/ui`) | Platform-native view switchers, iOS-style filters |
+| `SegmentedControl` | Segmented picker: native `@expo/ui` control at `md` on iOS/Android; the kit draws it on web and at `size="lg"` (44 pt on every platform); a `value` not in `values` selects none | View switchers, filters; `size="lg"` where segments need 44 pt targets |
 | `Select` | Option menus | Country, category, status pickers; `label` drives default item text |
 | `Separator` | Horizontal or vertical dividers | Section, menu, and toolbar dividers |
 | `Skeleton` | Loading placeholders | List, profile card, dashboard loading |

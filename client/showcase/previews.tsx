@@ -270,8 +270,9 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
   ),
 
   SegmentedControl: () => (
-    <View style={{ alignSelf: "stretch" }}>
+    <View style={{ alignSelf: "stretch", gap: spacing.sm }}>
       <SegmentedControl values={["List", "Grid", "Map"]} defaultValue="List" />
+      <SegmentedControl size="lg" values={["List", "Grid", "Map"]} defaultValue="List" />
     </View>
   ),
 

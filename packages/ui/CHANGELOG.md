@@ -5,6 +5,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `SegmentedControl` `size="lg"`: a 44 pt control drawn by the kit on iOS,
+  Android and web (the native `md` control's height is fixed by the system:
+  about 32 pt on iOS, the 40 dp Material 3 segmented button on Android).
+
 ### Fixed
 
 - The Lucide alias map in `lucide.json` (and `design-system.json`'s
@@ -30,6 +36,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `StyledText` renders body 15/24.75, caption 12/18, label 14/21, subheading
   18/27. The tokens are unchanged. The `typography` constant's JSDoc now says it
   is not the text scale.
+- `SegmentedControl` no longer shows the first segment selected when `value`
+  (or `defaultValue`) is not one of `values`; no segment is selected.
+- On web, each `SegmentedControl` `md` segment's tap target now spans the full
+  track height (32 pt), not 28.
 
 ## [0.29.1]
 

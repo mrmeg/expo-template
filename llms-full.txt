@@ -1140,7 +1140,7 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 - Use `StyledText` or its semantic aliases instead of raw `Text` for app UI.
 - Use `Button.preset`, not `variant`.
 - `disabled` blocks the press (no `onPress`, no scale/haptic, out of the web tab order). To keep a button focusable and pressable while announced and dimmed as disabled — so the press can explain why — use `aria-disabled` (or `accessibilityState={{ disabled: true }}`), never a hand-rolled opacity style.
-- Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36).
+- Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36). `SegmentedControl` `md` ≈32 (iOS, web) / 40 (Android) / `lg` 44.
 - Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the Button size.
 - Web SSR paints the visitor's scheme: wrap the root layout in `<InitialSchemeProvider scheme>` (`@mrmeg/expo-ui/state`) with the `"light"`/`"dark"` value read from a cookie on both server and client (template: `shared/ssrColorScheme.ts`, written by `+html.tsx` and `client/features/app/colorSchemeCookie.ts`); `useTheme()` uses it until `hasLoadedTheme`. Never read `localStorage` for the first render.
 - A Radix-backed component (`Tabs`, `Accordion`, `Collapsible`, `Select`, `DropdownMenu`, `Popover`) on a server-rendered web route logs a `useId` hydration mismatch (Expo Router hydrates `#root`, the server rendered `+html.tsx`). Wrap that subtree — not the page — in `<Hydrated fallback={…}>` (`@mrmeg/expo-ui/components`) with a fallback that holds its height; never branch on `typeof window`. Content that must be in the server HTML stays outside the gate.
@@ -1365,7 +1365,7 @@ Check this before creating a new app-local primitive. All components come from
 | `Progress` | Determinate or indeterminate progress | Layout-shifting spinners |
 | `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows |
 | `SectionHeader` | Eyebrow / title / description section intro | Stacked ad hoc heading text |
-| `SegmentedControl` | Native segmented picker (`@expo/ui`) | Custom segmented views |
+| `SegmentedControl` | Native segmented picker (`@expo/ui`); `size="lg"` = 44 pt drawn control; a value not in `values` selects none | Custom segmented views |
 | `Select` | Option menus | Custom dropdowns |
 | `Separator` | Horizontal or vertical dividers | Border-only spacer views |
 | `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Blank space or generic spinners |
