@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Image as NativeImage,
   Platform,
   StyleSheet,
@@ -20,7 +21,8 @@ import { useTheme } from "../hooks/useTheme";
 import { translateText } from "../lib/i18n";
 import { formatMediaTime } from "../lib/mediaTime";
 import { createThemedStyles } from "../lib/themedStyles";
-import { Button } from "./Button";
+import { verticalSlopFor } from "../lib/webHitTarget";
+import { Button, buttonHeights, type ButtonSize } from "./Button";
 import { IconButton } from "./IconButton";
 import { Image } from "./Image";
 import { MediaScrubber } from "./MediaScrubber";
@@ -83,6 +85,14 @@ const PLAYER_OPTIONS = { updateInterval: 250 } as const;
  * its duration is not called live.
  */
 const LIVE_PROBE_SECONDS = 1;
+/**
+ * After a scrub resumes playback, how long to keep drawing "playing" while the
+ * native player catches up and reports `playing: true`.
+ */
+const RESUME_GRACE_MS = 1000;
+/** Play-button size: the `Button` size, its glyph and the spinner that replaces it. */
+const PLAY_SIZES = { compact: "md", full: "lg" } as const satisfies Record<string, ButtonSize>;
+const PLAY_ICON_SIZES = { md: 18, lg: 22 } as const;
 
 const IDLE_STATUS: AudioStatus = {
   id: "",
@@ -108,6 +118,23 @@ const IDLE_STATUS: AudioStatus = {
  * Registered at module scope so web server rendering serializes them (see
  * `docs/server-guide.md`).
  */
+const playButtonStyles = /*#__PURE__*/ StyleSheet.create({
+  md: {
+    width: buttonHeights.md,
+    minWidth: buttonHeights.md,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderRadius: buttonHeights.md / 2,
+  },
+  lg: {
+    width: buttonHeights.lg,
+    minWidth: buttonHeights.lg,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderRadius: buttonHeights.lg / 2,
+  },
+});
+
 const styles = /*#__PURE__*/ StyleSheet.create({
   root: {
     borderRadius: spacing.radiusSm,
@@ -304,18 +331,28 @@ function AudioPlayerView({
 
   const id = (part: string) => (testID ? `${testID}-${part}` : undefined);
 
+  // `IconButton loading` would block presses, and a stalled load needs the press
+  // that cancels it. So this is the same button (circle, ghost, 44 pt hit area)
+  // with a spinner in place of the glyph and `aria-busy`, never `loading`.
+  const playSize = full ? PLAY_SIZES.full : PLAY_SIZES.compact;
   const play = (
-    <IconButton
-      icon={playing ? "pause" : "play"}
+    <Button
       preset="ghost"
-      shape="circle"
-      size={full ? "lg" : "md"}
-      loading={loading}
+      size={playSize}
+      style={playButtonStyles[playSize]}
+      hitSlop={verticalSlopFor(buttonHeights[playSize])}
       disabled={disabled}
+      aria-busy={loading}
       accessibilityLabel={loading ? loadingLabel : playing ? pauseLabel : playLabel}
       onPress={onTogglePlay}
       testID={id("play")}
-    />
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={theme.colors.text} />
+      ) : (
+        <Button.Icon name={playing ? "pause" : "play"} size={PLAY_ICON_SIZES[playSize]} />
+      )}
+    </Button>
   );
 
   const scrubber = (
@@ -500,7 +537,11 @@ function AudioPlayerLive({
   const [scrub, setScrub] = useState<Scrub | null>(null);
   const [muted, setMuted] = useState(status.mute);
   const [rate, setRate] = useState(status.playbackRate > 0 ? status.playbackRate : 1);
-  const [live, setLive] = useState(false);
+  // Latched only for the "duration stays 0 while playing" guess; every other
+  // way of being live is read from the current status (see Derived).
+  const [stalled, setStalled] = useState(false);
+  // A scrub resumed playback and the player has not yet said `playing: true`.
+  const [resuming, setResuming] = useState(false);
 
   // The callbacks are read through a ref so the player subscription below does
   // not resubscribe, and a caller's inline functions never go stale.
@@ -517,9 +558,11 @@ function AudioPlayerLive({
   // ----- Status -------------------------------------------------------------
   // This subscribes in a layout effect rather than through `useAudioPlayerStatus`,
   // whose `useEvent` subscribes in a passive effect: a player starts loading when
-  // it is created, so its one-shot error (and the first duration) can fire in the
-  // gap and be missed, leaving a broken file looking ready. The snapshot read
-  // catches up on what changed before the subscription.
+  // it is created, so its first updates can fire in the gap and be missed. The
+  // earlier subscription narrows that gap, and the snapshot read catches up on
+  // the state that changed before it (loaded, duration, playing). It cannot
+  // recover an error: `currentStatus` reports `error` as null on web, iOS and
+  // Android, so an error arrives only through the event.
   useLayoutEffect(() => {
     setStatus(snapshotOf(player));
     const subscription = player.addListener("playbackStatusUpdate", (next: AudioStatus) => {
@@ -561,16 +604,18 @@ function AudioPlayerLive({
 
   // ----- Derived ------------------------------------------------------------
   const duration = status.duration;
-  const liveNow =
-    status.isLive ||
-    duration === Number.POSITIVE_INFINITY ||
-    (status.isLoaded && status.playing && duration === 0 && status.currentTime >= LIVE_PROBE_SECONDS);
-  // Latched: pausing a live stream must not turn it back into an unknown length.
-  if (liveNow && !live) setLive(true);
+  const probed = status.isLoaded && status.playing && duration === 0 && status.currentTime >= LIVE_PROBE_SECONDS;
+  // Latched: pausing such a stream must not turn it back into an unknown length.
+  if (probed && !stalled) setStalled(true);
+  // A length that arrives after all means it was a slow file, not a stream.
+  if (stalled && status.isLoaded && !status.isLive && Number.isFinite(duration) && duration > 0) setStalled(false);
+  // iOS builds `isLive` from an item duration that is indefinite until the item
+  // is ready, so `isLive` means nothing before `isLoaded`.
+  const live = (status.isLoaded && status.isLive) || duration === Number.POSITIVE_INFINITY || stalled;
   const known = !live && Number.isFinite(duration) && duration > 0;
   const looping = loop ?? status.loop;
 
-  const playing = scrub ? scrub.resume : status.playing;
+  const playing = scrub ? scrub.resume : resuming || status.playing;
   const position = scrub ? scrub.seconds : status.currentTime;
   const loading = !failed && (status.isBuffering || (wantsPlay && !status.isLoaded));
 
@@ -594,6 +639,7 @@ function AudioPlayerLive({
 
   const pause = () => {
     setWantsPlay(false);
+    setResuming(false);
     player.pause();
   };
 
@@ -623,6 +669,7 @@ function AudioPlayerLive({
     const resume = status.playing;
     scrubbing.current = { seconds: status.currentTime, resume };
     setScrub(scrubbing.current);
+    setResuming(false);
     if (resume) player.pause();
   };
 
@@ -641,12 +688,26 @@ function AudioPlayerLive({
       setScrub(scrubbing.current);
     }
     await seek(seconds);
-    if (resume && mounted.current) player.play();
+    if (resume && mounted.current) {
+      player.play();
+      // Native reports `playing: true` a moment later; until then the clip still counts as playing.
+      setResuming(true);
+    }
     scrubbing.current = null;
     if (mounted.current) setScrub(null);
   };
 
   // ----- Effects ------------------------------------------------------------
+  useEffect(() => {
+    if (!resuming) return;
+    if (status.playing) {
+      setResuming(false);
+      return;
+    }
+    const timer = setTimeout(() => setResuming(false), RESUME_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [resuming, status.playing]);
+
   useEffect(() => {
     if (loop !== undefined) player.loop = loop;
   }, [player, loop]);

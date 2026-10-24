@@ -236,6 +236,18 @@ describe("AudioPlayer", () => {
       expect(screen.getByRole("button", { name: "Pause Episode 12" })).toBeTruthy();
     });
 
+    it("stays pressable while loading: a press pauses and cancels a stalled load", async () => {
+      const { player } = await mount();
+      await press(play());
+      expect(player.play).toHaveBeenCalledTimes(1);
+
+      await press(screen.getByRole("button", { name: "Loading" }));
+
+      expect(player.pause).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole("button", { name: "Loading" })).toBeNull();
+      expect(play()).toBeTruthy();
+    });
+
     it("shows the spinner while the player buffers", async () => {
       const { player } = await mount();
 
@@ -452,6 +464,48 @@ describe("AudioPlayer", () => {
       expect(player.seekTo.mock.invocationCallOrder[0]).toBeLessThan(player.play.mock.invocationCallOrder[0]);
     });
 
+    it("never reports a pause across a scrub of a playing clip, even before the player says it is playing again", async () => {
+      const onPlayingChange = jest.fn();
+      const { player } = await mount({ onPlayingChange, title: "Episode 12" });
+      await emit(player, PLAYING);
+      await layOut();
+      onPlayingChange.mockClear();
+
+      await down(at(0.5));
+      await emit(player, { playing: false });
+      await up(at(0.5));
+
+      // `play()` was called but the player has not reported it yet.
+      expect(player.play).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole("button", { name: "Pause Episode 12" })).toBeTruthy();
+
+      await emit(player, { playing: true });
+      expect(screen.getByRole("button", { name: "Pause Episode 12" })).toBeTruthy();
+      expect(onPlayingChange).not.toHaveBeenCalled();
+    });
+
+    it("gives up on a resume the player never reports after a second", async () => {
+      jest.useFakeTimers();
+      try {
+        const onPlayingChange = jest.fn();
+        const { player } = await mount({ onPlayingChange });
+        await emit(player, PLAYING);
+        await layOut();
+        onPlayingChange.mockClear();
+
+        await down(at(0.5));
+        await emit(player, { playing: false });
+        await up(at(0.5));
+        expect(onPlayingChange).not.toHaveBeenCalled();
+
+        await act(async () => void jest.advanceTimersByTime(1100));
+
+        expect(onPlayingChange.mock.calls).toEqual([[false]]);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     it("resumes only after the seek has finished", async () => {
       const { player } = await mount();
       await emit(player, PLAYING);
@@ -604,6 +658,29 @@ describe("AudioPlayer", () => {
       expect(textOf("player-time")).toBe("Live");
       expect(scrubber().props.accessibilityState).toEqual({ disabled: true });
       expect(scrubber().props.accessibilityValue).toEqual({ text: "Live" });
+    });
+
+    it("does not call a loading file live: iOS reports isLive until the item is ready", async () => {
+      const own = createAudioPlayer();
+      own.__status = { ...own.__status, isLive: true, isLoaded: false };
+      await render(<AudioPlayer player={own as never} testID="player" />);
+      expect(textOf("player-time")).not.toBe("Live");
+
+      await emit(own, { isLive: false, isLoaded: true, duration: 100 });
+
+      expect(textOf("player-time")).toBe("1:40");
+      expect(scrubber().props.accessibilityState).toEqual({ disabled: false });
+    });
+
+    it("still says Live for a loaded stream that reports isLive", async () => {
+      const own = createAudioPlayer();
+      own.__status = { ...own.__status, isLive: true, isLoaded: false };
+      await render(<AudioPlayer player={own as never} testID="player" />);
+
+      await emit(own, { isLive: true, isLoaded: true });
+
+      expect(textOf("player-time")).toBe("Live");
+      expect(scrubber().props.accessibilityState).toEqual({ disabled: true });
     });
 
     it("treats an infinite duration as live", async () => {
