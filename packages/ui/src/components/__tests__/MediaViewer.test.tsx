@@ -816,6 +816,16 @@ describe("video pages", () => {
     expect(screen.queryByTestId("media-viewer-video-bar", hidden)).toBeNull();
   });
 
+  it("does not autoplay a video page by default", async () => {
+    await mount({ items: MIXED, initialIndex: 1 });
+    expect((players()[0].props.player as TestPlayer).play).not.toHaveBeenCalled();
+  });
+
+  it("plays the shown video page when autoPlay is set", async () => {
+    await mount({ items: MIXED, initialIndex: 1, autoPlay: true });
+    await waitFor(() => expect((players()[0].props.player as TestPlayer).play).toHaveBeenCalled());
+  });
+
   it("pauses and unmounts the player when the viewer pages away from it", async () => {
     const { rerender } = await mount({ items: MIXED, index: 1 });
     const fake = players()[0].props.player as TestPlayer;

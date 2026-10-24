@@ -61,7 +61,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (which leaves zoom first), Android back and a swipe down close it, with the
   backdrop fading under the drag; videos play with `Video`'s custom controls.
   `items`, controlled `index` / `onIndexChange` or `initialIndex` (an item
-  deleted while open is followed by `key`), `videoControls`, `zoom`, `maxZoom`,
+  deleted while open is followed by `key`), `videoControls`, `autoPlay`, `zoom`, `maxZoom`,
   `doubleTapZoom` and `swipeToDismiss`. Focus lands on the close button, page
   changes are announced, and image pages offer `increment`, `decrement` and
   `escape` to a screen reader. Built on `Modal`, `PanResponder` and `Animated`

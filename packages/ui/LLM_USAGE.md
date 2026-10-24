@@ -693,6 +693,9 @@ Components (each entry is filled in when the component ships):
     edge. Paging is off while zoomed, and a page change resets zoom. A tap on an
     image toggles the chrome; a video page keeps its top bar and the video's own
     controls (`videoControls`: `"custom"` by default, or the platform's).
+    `autoPlay` starts each video page as it is shown (the one opened on and each
+    one paged to), as a photo library does; it is off by default. Set it when
+    the user opens the viewer by tapping a video.
   - Closing: the close button, Esc, Android back, and on a touch screen a swipe
     down (or up) past 120 pt or faster than 1 pt/ms, which fades the backdrop
     with the drag (`swipeToDismiss={false}` turns it off). Esc leaves zoom first

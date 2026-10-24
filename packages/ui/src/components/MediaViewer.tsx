@@ -104,6 +104,11 @@ export interface MediaViewerProps {
   onIndexChange?(index: number): void;
   /** Who draws a video page's controls: the kit's (`"custom"`) or the platform's. @default "custom" */
   videoControls?: "custom" | "native";
+  /**
+   * Start a video page playing as soon as it is shown: the one the viewer opens on and each one paged to,
+   * as a photo library does. Opening the viewer is a user gesture, so browsers allow it with sound. @default false
+   */
+  autoPlay?: boolean;
   /** Pinch, double-tap, wheel and keyboard zoom on images. @default true */
   zoom?: boolean;
   /** Largest zoom, as a multiple of the contain-fit size. @default 4 */
@@ -319,10 +324,11 @@ function VideoPoster({ item, testID }: { item: VideoItem; testID: string }) {
 interface VideoPageProps extends PageCommon {
   item: VideoItem;
   videoControls: "custom" | "native";
+  autoPlay: boolean;
 }
 
 /** Only the shown page mounts a `Video`; leaving it unmounts the player, which stops playback. */
-function VideoPage({ item, active, width, height, videoControls, swipeToDismiss, dismiss, testID }: VideoPageProps) {
+function VideoPage({ item, active, width, height, videoControls, autoPlay, swipeToDismiss, dismiss, testID }: VideoPageProps) {
   const insets = useWindowInsets();
   const latest = useRef({ swipeToDismiss, dismiss });
   latest.current = { swipeToDismiss, dismiss };
@@ -364,6 +370,7 @@ function VideoPage({ item, active, width, height, videoControls, swipeToDismiss,
             fill
             fit="contain"
             poster={item.poster}
+            autoPlay={autoPlay}
             allowsFullscreen={false}
             title={item.title}
             testID={`${testID}-video`}
@@ -913,6 +920,7 @@ function ViewerBody({
   initialIndex = 0,
   onIndexChange,
   videoControls = "custom",
+  autoPlay = false,
   zoom = true,
   maxZoom = DEFAULT_MAX_ZOOM,
   doubleTapZoom = DEFAULT_DOUBLE_TAP_ZOOM,
@@ -1211,7 +1219,7 @@ function ViewerBody({
         onEscape={handleEscape}
       />
     ) : (
-      <VideoPage {...common} item={item} videoControls={videoControls} />
+      <VideoPage {...common} item={item} videoControls={videoControls} autoPlay={autoPlay} />
     );
   };
 

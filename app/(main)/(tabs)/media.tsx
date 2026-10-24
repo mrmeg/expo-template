@@ -898,6 +898,7 @@ function useMediaScreenContent() {
         visible={viewer?.open ?? false}
         initialIndex={viewer?.start ?? 0}
         onClose={handleCloseViewer}
+        autoPlay
       />
     </View>
   );
