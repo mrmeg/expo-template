@@ -604,6 +604,7 @@ audio("aud-meta-id3-cover", "meta-id3-cover.mp3", {
     ]);
   },
   verify: (c) => {
+    if (!c.has("ffprobe")) return;
     const probe = c.probe();
     const tags = probe.format?.tags ?? {};
     const hasCover = (probe.streams ?? []).some((s) => s.codec_type === "video");

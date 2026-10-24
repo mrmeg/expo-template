@@ -71,9 +71,10 @@ export interface ImageProps {
   /** Corner radius. Applied to the frame and to the image, since Android drops a parent's clip on a child image in some cases. @default "none" */
   radius?: ImageRadius;
   /**
-   * Shown while the picture loads: a blurhash or thumbhash string (a bare
-   * hash, or with `blurhash:/` / `thumbhash:/`), or a low-resolution source
-   * (a URL string or `{ uri }`).
+   * Shown while the picture loads: a blurhash string (bare, or with
+   * `blurhash:/`), a thumbhash string (it must carry the `thumbhash:/` prefix;
+   * a bare string is read as a blurhash), or a low-resolution source (a URL
+   * string or `{ uri }`).
    */
   placeholder?: string | ImageSource;
   /** How the placeholder fills the frame. Defaults to `fit`, so it does not jump when the picture arrives. */
@@ -187,7 +188,8 @@ function frameAccessibilityProps(alt: string | undefined): ViewProps {
   if (typeof alt !== "string" || alt.trim() === "") {
     return {
       accessible: false,
-      importantForAccessibility: "no",
+      // Android: "no" would still expose a custom `fallback` inside the frame.
+      importantForAccessibility: "no-hide-descendants",
       accessibilityElementsHidden: true,
       ...(Platform.OS === "web" && { "aria-hidden": true }),
     };

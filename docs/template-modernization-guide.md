@@ -109,8 +109,9 @@ first-render download — see `docs/bundle-analysis.md`.
 `/media-lab` (`client/showcase/MediaLabScreen.tsx`, listed in Explore under
 Demos & Tools) checks `Image`, `Video`, `AudioPlayer` and `MediaViewer` against
 every case a real app meets. It lists every fixture in
-`client/showcase/mediaFixtures.ts` with its availability and one observed-status
-badge per surface, and holds one set of playground controls (image fit,
+`client/showcase/mediaFixtures.ts` with its availability and what each surface
+was observed to do (a chip per tested surface; untested ones collapse into one
+"unverified" line), and holds one set of playground controls (image fit,
 position, sizing, max height, radius; video controls, fit, autoplay, loop,
 poster; audio variant; container width 375 / 768 / 1280; theme) that every
 section receives. Each component spec fills its own `renderers` slot

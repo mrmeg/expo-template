@@ -15,6 +15,11 @@ const flat = (el: TestInstance) => (StyleSheet.flatten(el.props.style) ?? {}) as
 const button = (name = "Mute") => screen.getByRole("button", { name });
 
 describe("MediaControlButton", () => {
+  it("keeps a caller's accessibilityState.selected when `selected` is not given", async () => {
+    await render(<MediaControlButton icon="captions" accessibilityLabel="Captions" accessibilityState={{ selected: true }} />);
+    expect(screen.getByRole("button").props.accessibilityState).toEqual({ selected: true, disabled: false });
+  });
+
   it("is a button named by its accessibilityLabel", async () => {
     await render(<MediaControlButton icon="volume-2" accessibilityLabel="Mute" />);
 
