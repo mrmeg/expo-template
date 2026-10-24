@@ -5,6 +5,78 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The shipped Lucide snapshot (`dist/icons/lucide.json`) moves from Lucide
+  1.57.0 to 1.61.0: 17 new glyphs (among them `avocado`, `bacon`, `tombstone`,
+  `graph-hub`, `eighth-note`, `half-note`), and no name stops resolving. Four
+  names are renamed: `music`, `music-2`, `music-3` and `music-4` are now
+  aliases of `eighth-notes`, `eighth-note`, `half-note` and `sixteenth-notes`.
+  An alias is not accepted in `client/icons.json`: `expo-ui-icons` fails with
+  "use the canonical name" until the entry is renamed (`music` to
+  `eighth-notes`, and so on). Rename them in `client/icons.json`, then rerun it.
+  `music`, `music-2` and `music-4` also draw different glyphs under the new
+  names; only `music-3` keeps its drawing (it is `half-note`). Five glyphs are
+  redrawn under their own names (`barrel`, `brain`, `brain-circuit`,
+  `brain-cog`, `chess-queen`). None of the 29 built-in icons changes. After
+  upgrading, run `bunx expo-ui-icons` and `bunx expo-ui-icons tabs`.
+
+### Fixed
+
+- **`ThemeSelector` exposes its selected segment on web.** Each segment is a
+  `role="radio"` but stated its state only through `accessibilityState`, which
+  react-native-web 0.21 ignores, so the DOM had no `aria-checked` and a screen
+  reader could not tell which of System, Light and Dark was on. On web every
+  segment now renders `aria-checked` (`true` on the selected one, `false` on
+  the rest). Native still reads `accessibilityState` and is unchanged, and the
+  radiogroup keeps its accessible name.
+- **`TextInput` reads its helper text once, and keeps its error text reachable,
+  on iOS and Android.** The native field already carried `errorText`, else
+  `helperText`, as its hint (Android folds it into the field's
+  `contentDescription`), and the visible text stayed readable, so VoiceOver and
+  TalkBack announced it as the hint and again as a separate element. Now:
+  - `helperText` is the field's hint, and the visible text is hidden from
+    assistive tech the way the label is, whenever the hint carries it. It stays
+    readable when a consumer's own `accessibilityHint` replaces the hint, and on
+    Android below `@expo/ui` 57.0.21 / 58.0.8, whose native field drops
+    `contentDescription`.
+  - `errorText` is **not** in the hint any more. It is its own accessibility
+    element, never hidden, so it stays reachable when VoiceOver's "Speak Hints"
+    is off, and it is announced (`AccessibilityInfo.announceForAccessibility`)
+    when it appears or changes, since a changed hint speaks nothing. An error
+    already showing when the field mounts is read when the user reaches it. It
+    is spoken by the announcement and again when the user moves to it, never as
+    a hint on top of its own element.
+  - Web is unchanged: the text stays in the accessibility tree as the
+    `aria-describedby` target.
+  - **Tests that render `TextInput` on native** are affected. `getByText` on a
+    `helperText` (or `label`) now needs `{ includeHiddenElements: true }`, and
+    `queryByText(helper)` followed by `.toBeNull()` passes silently whether or
+    not the text exists, so assert the field's `accessibilityHint` instead.
+    `toBeVisible()` on that text is false. Maestro or Detox text assertions on
+    helper text may no longer find it (iOS reads the accessibility tree). A
+    hidden helper text is wrapped in one extra `View`, which shows up in
+    snapshots. `getByText` on an `errorText` is unchanged.
+- **`TextInput` announces `required` on iOS and Android, in your language.** The
+  visible " *" is hidden with the label, so a screen reader never heard that a
+  field was required (web already states it with `aria-required`). A `required`
+  field now appends ", required" to the native hint (`"At least 8 characters,
+  required"`, or `"required"` alone). The new `requiredHint` prop sets the
+  word, since the package has no i18n of its own: pass the translated string
+  (`requiredHint={t("common.required")}`). The field's name stays the plain
+  `label`. A consumer's own `accessibilityHint` is used as written, with no
+  `requiredHint` added. `requiredHint` is native only; web ignores it.
+  The template's sign-in, sign-up, forgot-password and reset-password forms
+  pass `common.required` (English and Spanish).
+
+### Known gaps
+
+- `Switch`, `Checkbox`, `Toggle` and `SegmentedControl` state checked, pressed
+  or selected through `accessibilityState` alone, which react-native-web 0.21
+  ignores. `ThemeSelector` was fixed with `aria-checked`; these four have not
+  been audited for the same gap on web (`SegmentedControl`'s selected segment
+  is known to expose none) and are left for a follow-up.
+
 ## [0.30.0]
 
 ### Added

@@ -147,6 +147,10 @@ function Segment({ testID, icon, label, showLabel, selected, disabled, onPress }
       accessibilityRole="radio"
       accessibilityLabel={label}
       accessibilityState={{ checked: selected, disabled }}
+      // react-native-web 0.21 ignores `accessibilityState`, so on web the
+      // checked state reaches the DOM only as `aria-checked`. Native reads
+      // `accessibilityState` above and is left as it was.
+      {...(Platform.OS === "web" ? { "aria-checked": selected } : null)}
       disabled={disabled}
       onPress={onPress}
       onFocus={focus.onFocus}

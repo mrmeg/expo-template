@@ -71,6 +71,17 @@ describe("SignInForm", () => {
     expect(screen.getByText("errors.invalidEmail")).toBeTruthy();
   });
 
+  it("tells a screen reader the email field is required, in the app's language", async () => {
+    await render(<SignInForm embedded onEmailCodeSignIn={jest.fn()} />);
+
+    // `t` is the identity under test/setup.ts, so the hint is the key itself. The
+    // visible " *" is hidden with the label on native, so the hint is the cue.
+    expect(screen.getByTestId("sign-in-email-input").props.modifiers).toContainEqual({
+      name: "accessibilityHint",
+      value: "common.required",
+    });
+  });
+
   it("toggles to the password layout and back", async () => {
     const onSignIn = jest.fn();
     const onEmailCodeSignIn = jest.fn();

@@ -92,6 +92,79 @@ describe("TextInput Android label accessibility", () => {
     }
   );
 
+  it.each(["57.0.21", "58.0.8", "59.0.0"])(
+    "hides the visible helper text when @expo/ui %s carries it in the field's description",
+    async (version) => {
+      const { renderInput } = loadWithExpoUi(version);
+      const screen = await renderInput((TextInput) => (
+        <TextInput label="Email" helperText="We never share it" required />
+      ));
+
+      // One copy in the field's contentDescription ("label, hint"), none as a separate element.
+      expect(screen.getByTestId("compose-input").props.accessibilityHint).toBe("We never share it, required");
+      expect(screen.queryByText("We never share it")).toBeNull();
+      const helper = screen.getByText("We never share it", { includeHiddenElements: true });
+      expect(helper.parent?.props.accessibilityElementsHidden).toBe(true);
+      expect(helper.parent?.props.importantForAccessibility).toBe("no-hide-descendants");
+    }
+  );
+
+  it.each(["57.0.21", "58.0.8", "59.0.0"])(
+    "keeps the error text its own element, out of the hint, when @expo/ui %s names the field",
+    async (version) => {
+      const { renderInput } = loadWithExpoUi(version);
+      const screen = await renderInput((TextInput) => (
+        <TextInput label="Email" errorText="Email is required" required />
+      ));
+
+      expect(screen.getByTestId("compose-input").props.accessibilityHint).toBe("required");
+      const error = screen.getByText("Email is required");
+      expect(error.props.accessibilityElementsHidden).toBeFalsy();
+      expect(error.parent?.props.importantForAccessibility).not.toBe("no-hide-descendants");
+    }
+  );
+
+  it.each(["56.0.26", "57.0.20", "58.0.7"])(
+    "keeps the visible helper and error text readable when @expo/ui %s drops contentDescription",
+    async (version) => {
+      const { renderInput } = loadWithExpoUi(version);
+      const helped = await renderInput((TextInput) => <TextInput label="Email" helperText="We never share it" />);
+
+      // The field's description never reaches TalkBack here, so the text is the only copy.
+      const helper = helped.getByText("We never share it");
+      expect(helper.parent?.props.accessibilityElementsHidden).toBeFalsy();
+      expect(helper.parent?.props.importantForAccessibility).not.toBe("no-hide-descendants");
+
+      const errored = await renderInput((TextInput) => <TextInput label="Email" errorText="Email is required" />);
+      expect(errored.getByText("Email is required")).toBeTruthy();
+    }
+  );
+
+  it("keeps the visible helper text readable when the @expo/ui version cannot be read", async () => {
+    const { renderInput } = loadWithExpoUi(undefined);
+    const screen = await renderInput((TextInput) => <TextInput label="Email" helperText="We never share it" />);
+
+    expect(screen.getByText("We never share it")).toBeTruthy();
+  });
+
+  it("keeps the visible helper text readable on Android when a consumer's accessibilityHint replaces it", async () => {
+    const { renderInput } = loadWithExpoUi("58.0.8");
+    const screen = await renderInput((TextInput) => (
+      <TextInput label="Email" helperText="We never share it" accessibilityHint="Use your work address" />
+    ));
+
+    expect(screen.getByTestId("compose-input").props.accessibilityHint).toBe("Use your work address");
+    expect(screen.getByText("We never share it")).toBeTruthy();
+  });
+
+  it("hides the visible helper text on iOS whatever the @expo/ui version", async () => {
+    const { renderInput } = loadWithExpoUi("57.0.4", "ios");
+    const screen = await renderInput((TextInput) => <TextInput label="Email" helperText="We never share it" />);
+
+    expect(screen.queryByText("We never share it")).toBeNull();
+    expect(screen.getByText("We never share it", { includeHiddenElements: true })).toBeTruthy();
+  });
+
   it("keeps the visible label readable when the @expo/ui version cannot be read", async () => {
     const { renderInput } = loadWithExpoUi(undefined);
     const screen = await renderInput((TextInput) => <TextInput label="Email" />);

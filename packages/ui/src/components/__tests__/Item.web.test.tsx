@@ -21,6 +21,13 @@ jest.mock("react-native", () => ({
   TurboModuleRegistry: jest.requireActual("react-native").TurboModuleRegistry,
 }));
 
+// `Item` imports `Icon`, which Jest resolves to the native react-native-svg glyph.
+// Since react-native-svg 15.16 that module reads `codegenNativeComponent` from the
+// `react-native` root, which the react-native-web swap above does not have, so the
+// suite failed to load. No row here draws an icon; `registerIcons` is what
+// test/setup.ts calls.
+jest.mock("../Icon", () => ({ Icon: () => null, registerIcons: () => {} }));
+
 jest.mock("../../hooks/useTheme", () => ({
   useTheme: () => ({
     theme: {

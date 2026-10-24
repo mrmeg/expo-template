@@ -47,6 +47,22 @@ describe("ThemeSelector", () => {
     expect(screen.getByTestId("theme-selector-dark").props.accessibilityState).toMatchObject({ checked: false });
   });
 
+  it("keeps the native checked state in accessibilityState and adds no aria-checked", async () => {
+    await render(<ThemeSelector value="light" />);
+
+    expect(screen.getByTestId("theme-selector-light").props.accessibilityState).toEqual({
+      checked: true,
+      disabled: false,
+    });
+    expect(screen.getByTestId("theme-selector-dark").props.accessibilityState).toEqual({
+      checked: false,
+      disabled: false,
+    });
+    // aria-checked is the web path; react-native-web 0.21 ignores accessibilityState.
+    expect(screen.getByTestId("theme-selector-light").props).not.toHaveProperty("aria-checked");
+    expect(screen.getByTestId("theme-selector-dark").props).not.toHaveProperty("aria-checked");
+  });
+
   it("writes the chosen preference to the store", async () => {
     const setTheme = jest.fn();
     useThemeStore.setState({ setTheme });
