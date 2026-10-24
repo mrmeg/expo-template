@@ -240,6 +240,7 @@
     "@radix-ui/react-primitive": "2.1.4",
     "@radix-ui/react-slot": "1.2.4",
     "baseline-browser-mapping": "^2.10.27",
+    "react-native-screens": "~4.29.0",
   },
   "packages": {
     "2g": ["2g@0.4.4", "", { "peerDependencies": { "typescript": ">=5.8.0" }, "optionalPeers": ["typescript"], "bin": { "2g": "bin/cli.js" } }, "sha512-ZwH02IRQicm+92YzJZMS8imSAJaqTPI+VASb1zMnisotnWcEP4e7nb57Mr8C2dGAA5G8ZmialbMmpkGLWgAY/w=="],
@@ -3427,8 +3428,6 @@
     "expo/pretty-format": ["pretty-format@29.7.0", "", { "dependencies": { "@jest/schemas": "^29.6.3", "ansi-styles": "^5.0.0", "react-is": "^18.0.0" } }, "sha512-Pdlw/oPxN+aXdmM9R00JVC9WVFoCLTKJvDVLgmJ+qAffBMxsV85l/Lu7sNx4zSzPyoL2euImuEwHhOXdEgNFZQ=="],
 
     "expo-constants/@expo/env": ["@expo/env@2.5.2", "", { "dependencies": { "chalk": "^4.0.0", "debug": "^4.3.4", "getenv": "^2.0.0" } }, "sha512-z8kCvBVJpd2S20a+Ab1otQgz8sJLeR7CXDTsuAMcNbYFsK10Fdhfb7rx9Ys1vvlbijnY55eZhQvJACajc1IjBQ=="],
-
-    "expo-router/react-native-screens": ["react-native-screens@4.30.0", "", { "dependencies": { "react-freeze": "^1.0.0", "warn-once": "^0.1.0" }, "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-FrZG/Q5gqoDu0SgP4d2Ly0qdio5DR1KdGPEYImhkz7tmrhpML4C39m6RYLGd5TVLHZwcCh8NPvW9rylevjD0uQ=="],
 
     "expo-system-ui/@react-native/normalize-colors": ["@react-native/normalize-colors@0.88.0-rc.3", "", {}, "sha512-el4NZ16vfh2quo56hB5G8cD8Bbk8N2+hamMfeaSWE5XCQC4vyTWGrE4FORjTdLAjv4Uh8LMuX87iMgwt2adArg=="],
 

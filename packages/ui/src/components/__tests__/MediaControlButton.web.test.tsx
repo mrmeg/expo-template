@@ -19,6 +19,18 @@ const insets = () => {
 };
 
 describe("MediaControlButton (web)", () => {
+  // react-native-web does not map accessibilityState, so a toggle needs aria-pressed.
+  it("states a toggle with aria-pressed, and leaves it off a plain button", async () => {
+    const { rerender } = await render(<MediaControlButton icon="volume-x" accessibilityLabel="Mute" selected />);
+    expect(screen.getByRole("button").props["aria-pressed"]).toBe(true);
+
+    await rerender(<MediaControlButton icon="volume-2" accessibilityLabel="Mute" selected={false} />);
+    expect(screen.getByRole("button").props["aria-pressed"]).toBe(false);
+
+    await rerender(<MediaControlButton icon="play" accessibilityLabel="Play" />);
+    expect(screen.getByRole("button").props["aria-pressed"]).toBeUndefined();
+  });
+
   it("is named by its accessibilityLabel", async () => {
     await render(<MediaControlButton icon="volume-2" accessibilityLabel="Mute" />);
 
