@@ -37,6 +37,14 @@ by your SDK): `npx expo install react-native-svg`. The icons themselves are
 [Lucide](https://lucide.dev/icons) glyph data the package ships and renders;
 no icon library is a peer (see [Icons](#icons)).
 
+The media components (`Image`, `Video`, `AudioPlayer`, `MediaViewer`) rest on
+three further peers, all optional: `expo-image`, `expo-video` and `expo-audio`.
+Install only the ones you import (`npx expo install expo-video`). The media
+components are subpath imports (`@mrmeg/expo-ui/components/Video`), never part
+of the `components` barrel or the root, so an app that does not use them
+installs and bundles none of them. `expo-audio` adds native code: rebuild your
+dev client after installing it.
+
 `@rn-primitives/*` and `@expo-google-fonts/inter` are package dependencies, not
 peers. Animations use React Native `Animated`. `BottomSheet`, `Slider`, and
 `SegmentedControl` render native `@expo/ui` controls (`SegmentedControl` is

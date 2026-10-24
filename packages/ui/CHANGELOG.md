@@ -7,6 +7,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Optional media peers.** `expo-image`, `expo-video` and `expo-audio` are now
+  `peerDependencies`, all marked optional in `peerDependenciesMeta`, so an app
+  that never renders media installs nothing new. The media components
+  (`Image`, `Video`, `AudioPlayer`, `MediaViewer`) will be subpath-only
+  (`@mrmeg/expo-ui/components/Video`), never in the `components` barrel; a test
+  fails if the root barrel reaches a media peer. `expo-audio` adds native code,
+  so rebuild a dev client after installing it.
+- **Media primitives**, none of which import a media module:
+  - `MediaControlButton` (`@mrmeg/expo-ui/components/MediaControlButton`): an
+    icon-only control for chrome over video and images, a white glyph on a
+    translucent black circle (`sm`/`md`/`lg`, `selected`, 44 pt hit area).
+    Themed surfaces keep using `IconButton`.
+  - `MediaScrubber` (`@mrmeg/expo-ui/components/MediaScrubber`): a seek bar with
+    `onScrubStart` / `onScrubChange` / `onScrubEnd`, a buffered fill, `overlay`
+    and `default` tones, screen-reader increment and decrement, and web
+    keyboard seeking.
+  - `useMediaKeyboard` (`hooks`): player shortcuts scoped to one focusable
+    container, web only.
+  - `formatMediaTime`, `mediaTimeA11y`, `mediaFrameStyle`, `parseAspectRatio`,
+    `useMediaAspectRatio` and the `MediaAspectRatio` type (`lib`).
+  - Built-in icons: `play`, `pause`, `volume-2`, `volume-x`, `maximize`,
+    `minimize`, `rotate-ccw`, `chevron-left`, `image-off`, `captions`.
 - `SegmentedControl` `size="lg"`: a 44 pt control drawn by the kit on iOS,
   Android and web (the native `md` control's height is fixed by the system:
   about 32 pt on iOS, the 40 dp Material 3 segmented button on Android).

@@ -95,6 +95,7 @@
     "aws-amplify": "^6.22.2",
     "aws-jwt-verify": "^5.2.1",
     "expo": "~58.0.9",
+    "expo-audio": "~58.0.10",
     "expo-auth-session": "~58.0.11",
     "expo-clipboard": "~58.0.3",
     "expo-constants": "~58.0.11",

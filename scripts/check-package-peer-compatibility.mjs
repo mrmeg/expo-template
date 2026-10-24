@@ -89,6 +89,21 @@ async function checkPackage(key) {
     }
   }
 
+  if (key === "ui") {
+    // The barrel imports every component, and 7 consumer apps import the barrel,
+    // so a required media peer would force `expo-image`, `expo-video` and
+    // `expo-audio` onto apps that never render media. The media components are
+    // subpath-only (`@mrmeg/expo-ui/components/Video`, …) and need these only
+    // when imported.
+    for (const name of ["expo-image", "expo-video", "expo-audio"]) {
+      assert(manifest.peerDependencies?.[name], `${manifest.name} must declare ${name} as a peer`);
+      assert(
+        manifest.peerDependenciesMeta?.[name]?.optional === true,
+        `${manifest.name} media peer ${name} must be optional: barrel consumers must not need media modules installed`,
+      );
+    }
+  }
+
   if (key === "media") {
     for (const removed of ["expo-crypto", "expo-image-picker", "expo-video-thumbnails"]) {
       assert(!declared[removed], `${manifest.name} still declares obsolete or unused peer ${removed}`);

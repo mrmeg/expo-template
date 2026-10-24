@@ -1409,6 +1409,56 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 - `Drawer.Header` takes `icon`, `title`, and `action` slots for a compact app-brand row; put `Drawer.ToggleCollapse` in `action` for a trailing rail control. `Drawer.Content` owns safe-area top/bottom padding — do not duplicate it in children.
 - `Icon` and `Button.Icon` take `name` (a kebab-case Lucide name typed `IconName`: the package builtins plus the names the app lists in `client/icons.json`, compiled with `bunx expo-ui-icons` and registered once with `registerIcons(appIcons)` at module scope in the root layout) or `component` (an `IconComponent` taking `size` and `color`, for art that is not a Lucide icon). Both are sized, colored with theme tokens, and hidden from assistive tech unless `accessibilityLabel` names a standalone icon (`decorative` only silences a labelled one); `Button.Icon` inherits the button's label color and is decorative by default. A missing name is a type error: run `bunx expo-ui-icons add <name>` (it maps an alias such as `home` to `house`) rather than importing an icon library. Check a name that arrives at runtime with `isIconName`.
 
+## Media
+
+Media components are subpath-only. Import `Image`, `Video`, `AudioPlayer` and
+`MediaViewer` from `@mrmeg/expo-ui/components/Image`, `components/Video`,
+`components/AudioPlayer` and `components/MediaViewer`, never from the
+`components` barrel or the root: the barrel stays free of media modules, so an
+app that never renders media installs nothing new. A test
+(`src/__tests__/mediaPeers.test.ts`) fails if anything reachable from the root
+barrel imports a media peer.
+
+Each media module is an optional peer; install only what you import, at the
+version your Expo SDK recommends (`npx expo install <name>`):
+
+- `expo-image` for `Image`.
+- `expo-video` for `Video`.
+- `expo-audio` for `AudioPlayer`. It adds native code, so a dev client built
+  before you installed it needs a fresh build.
+- `MediaViewer` needs the peers of the media it shows.
+
+Components (each entry is filled in when the component ships):
+
+- `Image`: not shipped yet.
+- `Video`: not shipped yet.
+- `AudioPlayer`: not shipped yet.
+- `MediaViewer`: not shipped yet.
+
+For custom media UI, build on the shared primitives, none of which import a
+media module:
+
+- `MediaControlButton` from `components/MediaControlButton`: an icon-only
+  control for chrome drawn over video or images (white glyph on a translucent
+  black circle that reads over any frame, at least 44 pt to hit). On a themed
+  surface use `IconButton` (`preset="ghost"`, `shape="circle"`) instead.
+  `accessibilityLabel` is required; `selected` sets the toggle state for mute.
+- `MediaScrubber` from `components/MediaScrubber`: a seek bar with
+  `onScrubStart`, `onScrubChange(seconds)` and `onScrubEnd(seconds)`,
+  `tone="overlay"` over video or `"default"` on a themed surface, a buffered
+  fill, screen-reader increment and decrement by `step`, and ←/→/Home/End on
+  web. It is not `Slider`, which has no sliding start or end events.
+- `useMediaKeyboard` from `hooks`: spread its result on a focusable container
+  for Space/`k`, arrows, `m`, `f`, Esc and zoom keys on web. It acts only on
+  keys you pass a handler for, and only inside that container.
+- `formatMediaTime`, `mediaTimeA11y`, `mediaFrameStyle`, `parseAspectRatio` and
+  `useMediaAspectRatio` from `lib`: `m:ss` or `h:mm:ss` readouts and their
+  spoken form, a full-width ratio frame capped by `maxHeight`, and the ratio an
+  `aspectRatio="auto"` prop resolves.
+
+Built-in icons for media controls: `play`, `pause`, `volume-2`, `volume-x`,
+`maximize`, `minimize`, `rotate-ccw`, `chevron-left`, `image-off`, `captions`.
+
 ## Minimal Examples
 
 A flat settings screen: groups of full-width rows, one 16 pt inset, a capped
@@ -3072,6 +3122,8 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/KeyboardAvoidingView.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/KeyboardAvoidingView.tsx
 - packages/ui/src/components/Label.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Label.tsx
 - packages/ui/src/components/MaxWidthContainer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MaxWidthContainer.tsx
+- packages/ui/src/components/MediaControlButton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaControlButton.tsx
+- packages/ui/src/components/MediaScrubber.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaScrubber.tsx
 - packages/ui/src/components/Notification.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Notification.tsx
 - packages/ui/src/components/Popover.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Popover.tsx
 - packages/ui/src/components/Progress.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Progress.tsx
