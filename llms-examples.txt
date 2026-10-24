@@ -20,6 +20,7 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/detail-hero.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/detail-hero.tsx
 - app/(main)/(demos)/developer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/developer.tsx
 - app/(main)/(demos)/form-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/form-demo.tsx
+- app/(main)/(demos)/media-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/media-lab.tsx
 - app/(main)/(demos)/onboarding.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/onboarding.tsx
 - app/(main)/(demos)/screen-card-grid.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-card-grid.tsx
 - app/(main)/(demos)/screen-chat.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-chat.tsx

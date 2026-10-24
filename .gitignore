@@ -57,3 +57,6 @@ CLAUDE.md
 /*.png
 
 /Agent/.secrets/
+
+# Generated media corpus (bun run media:fixtures); the committed core lives in assets/media/
+/public/media-fixtures/
