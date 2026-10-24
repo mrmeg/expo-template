@@ -318,6 +318,9 @@ export function MediaScrubber({
           "aria-valuemax": usable ? Math.round(duration) : undefined,
           "aria-valuenow": usable ? Math.round(position) : undefined,
           "aria-valuetext": valueText,
+          // react-native-web does not map `accessibilityState.disabled` for the
+          // slider role, so a live or broken track would read as usable.
+          "aria-disabled": interactive ? undefined : true,
         }
       : null;
 
