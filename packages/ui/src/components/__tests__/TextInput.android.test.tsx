@@ -172,6 +172,26 @@ describe("TextInput Android native identity", () => {
     expect(lifecycle.inputs[0].props.accessibilityHint).toBe("Email is required");
   });
 
+  it("appends ', required' to the description the native field carries", async () => {
+    await render(<TextInput label="Email" errorText="Enter an email" required />);
+
+    expect(lifecycle.inputs[0].props.accessibilityLabel).toBe("Email");
+    expect(lifecycle.inputs[0].props.accessibilityHint).toBe("Enter an email, required");
+  });
+
+  it("announces required on its own when there is no helper or error text", async () => {
+    await render(<TextInput label="Email" required />);
+
+    expect(lifecycle.inputs[0].props.accessibilityLabel).toBe("Email");
+    expect(lifecycle.inputs[0].props.accessibilityHint).toBe("required");
+  });
+
+  it("leaves a consumer's own accessibilityHint untouched", async () => {
+    await render(<TextInput label="Email" required accessibilityHint="Use your work address" />);
+
+    expect(lifecycle.inputs[0].props.accessibilityHint).toBe("Use your work address");
+  });
+
   it("keeps one focused host/input through show/hide/show and subsequent typing", async () => {
     const onChangeText = jest.fn();
     const onFocus = jest.fn();

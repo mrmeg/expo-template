@@ -95,6 +95,30 @@ describe("TextInput on web", () => {
     expect(screen.getByPlaceholderText("Email address").props.accessibilityLabel).toBe("Email");
   });
 
+  it("keeps the described-by element in the accessibility tree", async () => {
+    await render(<TextInput label="Email" errorText="Email is required" required placeholder="Email address" />);
+
+    // `aria-describedby` needs a referenceable element, so nothing hides it on web
+    // (the native path hides its copy because the field's hint carries the text).
+    const error = screen.getByText("Email is required");
+    expect(error.props.nativeID).toBeTruthy();
+    expect(error.parent?.props.accessibilityElementsHidden).toBeFalsy();
+    expect(error.parent?.props.importantForAccessibility).not.toBe("no-hide-descendants");
+    expect(error.props["aria-hidden"]).toBeFalsy();
+    expect(error.props.accessibilityElementsHidden).toBeFalsy();
+    expect(error.props.importantForAccessibility).not.toBe("no-hide-descendants");
+  });
+
+  it("states required with aria-required and leaves the name and description plain", async () => {
+    await render(<TextInput label="Email" helperText="We never share it" required placeholder="Email address" />);
+
+    const input = screen.getByPlaceholderText("Email address");
+    expect(input.props["aria-required"]).toBe(true);
+    expect(input.props.accessibilityLabel).toBe("Email");
+    expect(input.props).not.toHaveProperty("accessibilityHint");
+    expect(screen.getByText("We never share it")).toBeTruthy();
+  });
+
   it("emits no description id without helper or error text", async () => {
     await render(<TextInput label="Email" placeholder="Email address" />);
 

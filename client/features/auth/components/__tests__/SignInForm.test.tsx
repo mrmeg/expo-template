@@ -22,6 +22,10 @@ import { SignInForm } from "../SignInForm";
 const EMAIL = "ada@example.com";
 const PASSWORD = "password1";
 
+// `TextInput` hides its visible error text from assistive tech on native: the
+// field's hint already carries it. Query it with hidden elements included.
+const HIDDEN = { includeHiddenElements: true };
+
 describe("SignInForm", () => {
   it("leads with the email-code layout when the caller supports it", async () => {
     const onEmailCodeSignIn = jest.fn();
@@ -68,7 +72,7 @@ describe("SignInForm", () => {
     await fireEvent.press(screen.getByTestId("sign-in-email-code-button"));
 
     expect(onEmailCodeSignIn).not.toHaveBeenCalled();
-    expect(screen.getByText("errors.invalidEmail")).toBeTruthy();
+    expect(screen.getByText("errors.invalidEmail", HIDDEN)).toBeTruthy();
   });
 
   it("toggles to the password layout and back", async () => {

@@ -82,6 +82,13 @@ function writeNativeText(
 /** Platform touch-target guideline (pt); the compact fields sit below it. */
 const MIN_TOUCH_TARGET = 44;
 
+/**
+ * What the native field's description says for a `required` field. The package
+ * has no i18n (like "Show password" and "Clear input"); pass an
+ * `accessibilityHint` to say it in another language.
+ */
+const REQUIRED_HINT = "required";
+
 const SIZE_CONFIGS: Record<
   TextInputSize,
   {
@@ -159,7 +166,9 @@ interface TextInputCustomProps extends TextInputProps {
    */
   error?: boolean;
   /**
-   * Whether the field is required (shows asterisk)
+   * Whether the field is required (shows asterisk). Screen readers hear it as
+   * `aria-required` on web and as ", required" after the helper/error text in
+   * the field's native hint.
    */
   required?: boolean;
   /**
@@ -557,10 +566,15 @@ function WebTextInput({
  * The native field is named from `label` (`accessibilityLabel`: SwiftUI
  * `accessibilityLabel`, Compose `contentDescription`) and described by
  * `errorText`, else `helperText` (`accessibilityHint`: SwiftUI
- * `accessibilityHint`, appended to the Compose `contentDescription`). A
- * consumer's own `accessibilityLabel` / `accessibilityHint` win. Because the
- * field carries the label, the visible label `View` is hidden from assistive
- * tech so it is not read twice; the helper/error text stays readable.
+ * `accessibilityHint`, appended to the Compose `contentDescription`), with
+ * ", required" appended to that description when `required` (the visible " *"
+ * is hidden with the label, and the name stays plain so label selectors keep
+ * matching). A consumer's own `accessibilityLabel` / `accessibilityHint` win,
+ * and a consumer's hint is used as written: it carries no ", required".
+ * Because the field carries the label, the visible label `View` is hidden from
+ * assistive tech so it is not read twice; the visible helper/error text is
+ * hidden the same way whenever the field's hint carries it (no consumer
+ * `accessibilityHint`, and an Android `@expo/ui` that keeps the description).
  *
  * This path supports label / helper / error text and a password visibility
  * toggle laid out beside the native Host. Clear buttons, left/right elements,
@@ -620,9 +634,23 @@ function NativeTextInput({
   // accepts `contentDescription` (57.0.21+, 58.0.8+); below that the field is
   // unnamed natively, so the visible label stays readable.
   const fieldLabel = accessibilityLabel ?? label;
-  const labelHiddenFromAT =
-    !!fieldLabel && (Platform.OS !== "android" || ANDROID_NATIVE_FIELD_IS_NAMED);
-  const fieldHint = accessibilityHint ?? (errorText || helperText);
+  const fieldCarriesAccessibility = Platform.OS !== "android" || ANDROID_NATIVE_FIELD_IS_NAMED;
+  const labelHiddenFromAT = !!fieldLabel && fieldCarriesAccessibility;
+  // The visible helper/error text and the hint say the same thing, so the text
+  // is hidden from assistive tech rather than read as a second element. It is
+  // hidden only when the hint really carries it: a consumer's own hint replaces
+  // it (the text is then its only voice), and so does an Android `@expo/ui`
+  // that drops the description (as with the label above).
+  const descriptionText = errorText || helperText;
+  const descriptionHiddenFromAT =
+    fieldCarriesAccessibility && accessibilityHint === undefined && !!descriptionText;
+  // `required` has no native channel once the label (and its " *") is hidden, so
+  // the description carries it: ", required" after the helper/error text, or
+  // "required" alone. It goes in the hint, not the name, so `label` stays the
+  // field's plain name for selectors and tests. A consumer's own hint is used
+  // as written; they can localize or restate it there.
+  const derivedHint = [descriptionText, required ? REQUIRED_HINT : undefined].filter(Boolean).join(", ");
+  const fieldHint = accessibilityHint ?? (derivedHint || undefined);
 
   // Password visibility toggle. Flipping `secureTextEntry` toggles Compose's
   // visualTransformation in place on Android, but on iOS it selects a different
@@ -1039,14 +1067,20 @@ function NativeTextInput({
         )}
       </View>
 
-      {!!(helperText || errorText) && (
-        <StyledText
-          selectable={false}
-          size="sm"
-          style={[styles.helperText, hasError && styles.errorText]}
+      {!!descriptionText && (
+        <View
+          // Already read as the field's hint (`fieldHint`); see `descriptionHiddenFromAT`.
+          accessibilityElementsHidden={descriptionHiddenFromAT}
+          importantForAccessibility={descriptionHiddenFromAT ? "no-hide-descendants" : "auto"}
         >
-          {errorText || helperText}
-        </StyledText>
+          <StyledText
+            selectable={false}
+            size="sm"
+            style={[styles.helperText, hasError && styles.errorText]}
+          >
+            {descriptionText}
+          </StyledText>
+        </View>
       )}
     </View>
   );

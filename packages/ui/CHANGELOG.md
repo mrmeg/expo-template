@@ -5,6 +5,36 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`ThemeSelector` exposes its selected segment on web.** Each segment is a
+  `role="radio"` but stated its state only through `accessibilityState`, which
+  react-native-web 0.21 ignores, so the DOM had no `aria-checked` and a screen
+  reader could not tell which of System, Light and Dark was on. On web every
+  segment now renders `aria-checked` (`true` on the selected one, `false` on
+  the rest). Native still reads `accessibilityState` and is unchanged, and the
+  radiogroup keeps its accessible name.
+- **`TextInput` helper and error text are read once on iOS and Android.** The
+  native field already carries `errorText`, else `helperText`, as its hint (and
+  Android folds it into the field's `contentDescription`), but the visible text
+  stayed readable, so VoiceOver and TalkBack announced it as the hint and again
+  as a separate element. The visible text is now hidden from assistive tech the
+  way the label is, whenever the field's description carries it. It stays
+  readable when a consumer's own `accessibilityHint` replaces the description,
+  and on Android below `@expo/ui` 57.0.21 / 58.0.8, whose native field drops
+  `contentDescription`. Web is unchanged: the text stays in the accessibility
+  tree as the `aria-describedby` target. **Tests that render `TextInput` on
+  native** and query its helper or error text with `getByText` now need
+  `{ includeHiddenElements: true }`, or should assert the field's
+  `accessibilityHint` (the template's form and auth tests do the former).
+- **`TextInput` announces `required` on iOS and Android.** The visible " *" is
+  hidden with the label, so a screen reader never heard that a field was
+  required (web already states it with `aria-required`). A `required` field now
+  appends ", required" to the native hint (`"Enter an email, required"`, or
+  `"required"` alone with no helper or error text). The field's name stays the
+  plain `label`. A consumer's own `accessibilityHint` is used as written, so a
+  localized hint carries its own wording.
+
 ## [0.30.0]
 
 ### Added
