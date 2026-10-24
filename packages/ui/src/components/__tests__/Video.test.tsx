@@ -586,6 +586,32 @@ describe("layout", () => {
     }
   });
 
+  it("shrinks the center play button in a short frame and hides it in a very short one", async () => {
+    await mount({ controls: "custom" });
+    const center = () => screen.queryByTestId("video-center", hidden);
+    const diameter = () => flat(center()!).width;
+
+    const sizeAt = (width: number, height: number) =>
+      act(async () => {
+        frame().props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width, height } } });
+      });
+
+    await sizeAt(800, 450);
+    expect(diameter()).toBe(56);
+
+    // Wide frame, single-row bar: md fits above it.
+    await sizeAt(800, 200);
+    expect(diameter()).toBe(40);
+
+    // Narrow frame, two-row bar: a 189 pt phone frame has no room for it.
+    await sizeAt(336, 189);
+    expect(center()).toBeNull();
+    expect(screen.getByTestId("video-play", hidden)).toBeTruthy();
+
+    await sizeAt(800, 124);
+    expect(center()).toBeNull();
+  });
+
   it("clears the home indicator and the sides only inside the fullscreen modal", async () => {
     mockInsets = { top: 47, right: 44, bottom: 34, left: 44 };
     await mount({ controls: "custom" });

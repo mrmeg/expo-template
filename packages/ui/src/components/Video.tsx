@@ -122,6 +122,15 @@ const ACCESSIBILITY_SEEK_SECONDS = 10;
 const VOLUME_STEP = 0.1;
 /** A frame narrower than this puts the scrubber on its own row above the buttons. */
 const COMPACT_WIDTH = 420;
+/** Below this frame height the center play button drops to `md`, so it clears the bar. */
+const SHORT_HEIGHT = 240;
+/**
+ * Below this frame height the center button hides; the bar's own play button
+ * remains. A compact (narrow) frame stacks the bar in two rows, so it needs
+ * more room above the bar.
+ */
+const TINY_HEIGHT = 140;
+const TINY_HEIGHT_COMPACT = 216;
 
 /** The bar's scrim: fixed, never a theme color, because it sits over any frame. */
 const SCRIM = /*#__PURE__*/ withAlpha(palette.black, 0.45);
@@ -197,6 +206,8 @@ interface Stage {
   bump: () => void;
   setHovered: (hovered: boolean) => void;
   compact: boolean;
+  /** Center play button size for the frame height; `null` hides it in a very short frame. */
+  centerSize: "md" | "lg" | null;
   fullscreen: boolean;
   viewRef: React.RefObject<VideoView | null>;
   onFirstFrame: () => void;
@@ -520,7 +531,11 @@ function VideoStage({
   }, [retry, retrySource]);
 
   const [width, setWidth] = useState(0);
-  const handleLayout = useCallback((event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width), []);
+  const [height, setHeight] = useState(0);
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    setWidth(event.nativeEvent.layout.width);
+    setHeight(event.nativeEvent.layout.height);
+  }, []);
 
   const stage: Stage = {
     id: testID,
@@ -544,6 +559,12 @@ function VideoStage({
     bump,
     setHovered: handleHover,
     compact: width > 0 && width < COMPACT_WIDTH,
+    centerSize:
+      height > 0 && height < (width > 0 && width < COMPACT_WIDTH ? TINY_HEIGHT_COMPACT : TINY_HEIGHT)
+        ? null
+        : height > 0 && height < SHORT_HEIGHT
+          ? "md"
+          : "lg",
     fullscreen,
     viewRef,
     // The web `<video>` raises this on `loadeddata` even for a file with no picture;
@@ -875,10 +896,10 @@ function Chrome({ stage, insets }: ChromeProps) {
       style={[geometry.layer, shown ? geometry.boxNone : geometry.passive, { opacity: stage.chromeOpacity }]}
       testID={`${id}-chrome`}
     >
-      {stage.waiting ? null : (
+      {stage.waiting || (!stage.fullscreen && stage.centerSize === null) ? null : (
         <View style={[geometry.layer, geometry.centered, geometry.boxNone]}>
           <MediaControlButton
-            size="lg"
+            size={stage.fullscreen ? "lg" : (stage.centerSize ?? "lg")}
             icon={playIcon}
             accessibilityLabel={playLabel}
             onPress={stage.togglePlay}
