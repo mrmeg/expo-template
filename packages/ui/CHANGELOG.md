@@ -5,6 +5,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The shipped Lucide snapshot (`dist/icons/lucide.json`) moves from Lucide
+  1.57.0 to 1.61.0: 17 new glyphs (among them `avocado`, `bacon`, `tombstone`,
+  `graph-hub`, `eighth-note`, `half-note`), and no name stops resolving. Four
+  names are renamed: `music`, `music-2`, `music-3` and `music-4` are now
+  aliases of `eighth-notes`, `eighth-note`, `half-note` and `sixteenth-notes`,
+  so listing one in `client/icons.json` fails `expo-ui-icons` with "use the
+  canonical name". Five glyphs are redrawn under their own names (`barrel`,
+  `brain`, `brain-circuit`, `brain-cog`, `chess-queen`). None of the 29 built-in
+  icons changes. After upgrading, run `bunx expo-ui-icons` and
+  `bunx expo-ui-icons tabs`.
+
 ### Fixed
 
 - **`ThemeSelector` exposes its selected segment on web.** Each segment is a
