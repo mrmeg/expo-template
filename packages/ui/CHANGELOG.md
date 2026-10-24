@@ -5,12 +5,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.30.0]
+
 ### Added
 
 - **Optional media peers.** `expo-image`, `expo-video` and `expo-audio` are now
   `peerDependencies`, all marked optional in `peerDependenciesMeta`, so an app
   that never renders media installs nothing new. The media components
-  (`Image`, `Video`, `AudioPlayer`, `MediaViewer`) will be subpath-only
+  (`Image`, `Video`, `AudioPlayer`, `MediaViewer`) are subpath-only
   (`@mrmeg/expo-ui/components/Video`), never in the `components` barrel; a test
   fails if the root barrel reaches a media peer. `expo-audio` adds native code,
   so rebuild a dev client after installing it.

@@ -566,7 +566,7 @@ Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](http
 | react / react-dom | 19.3.0 |
 | react-native | 0.88.0-rc.4 |
 | react-native-web | ^0.21.4 |
-| @mrmeg/expo-ui | ^0.29.1 |
+| @mrmeg/expo-ui | ^0.30.0 |
 | @mrmeg/expo-media (if using media) | ^0.5.2 |
 | zustand | ^5.0.15 |
 | @tanstack/react-query | ^5.104.2 |
@@ -692,7 +692,7 @@ Conventions:
 
 ## Phase 4 — @mrmeg/expo-ui
 
-Upgrade to `@mrmeg/expo-ui@^0.29.1`. Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 59; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.89; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 4; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `react-native-svg` ≥ 15 < 16; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3.
+Upgrade to `@mrmeg/expo-ui@^0.30.0`. Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 59; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.89; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 4; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `react-native-svg` ≥ 15 < 16; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3. Optional, only for the media components: `expo-image`, `expo-video`, `expo-audio` ≥ 56 < 59.
 
 **Required root setup:**
 
@@ -794,6 +794,16 @@ bun run build          # expo export → dist/client + dist/server
 ## Anti-Patterns to Remove While Migrating
 
 Sweep for and delete: app-local duplicates of `@mrmeg/expo-ui` primitives (buttons, inputs, menus, modals, cards, typography); hard-coded colors, shadows, radii, spacing in general-purpose UI; fetch-on-mount for initial route data; top-level server-module imports in client-reachable files; UI branching on raw `Response` objects; cross-feature internal imports; startup logic that blocks first paint on persisted browser state; integrations that crash on a blank `.env`.
+
+## Consumer migration to 0.30.0
+
+From 0.29.1 the upgrade is mostly additive. Run `bun add @mrmeg/expo-ui@^0.30.0`, then typecheck and test. Behaviour that changed:
+
+- `SegmentedControl` selects no segment when `value` (or `defaultValue`) is not one of `values`; it used to show the first one selected. A screen that relied on that must pass a real value.
+- `TextInput` names its native field from `label` and describes it with `errorText` / `helperText`; a consumer's own `accessibilityLabel` / `accessibilityHint` still win. Re-check screen-reader output on forms that set both.
+- `Item` now forwards `accessibilityLabel`, `accessibilityHint`, `accessibilityActions`, `testID` and `ref`: drop any wrapper `Pressable` added only to carry them.
+
+New and opt-in: `IconButton`, `buttonHeights`, and the media components (`Image`, `Video`, `AudioPlayer`, `MediaViewer`, plus `MediaControlButton`, `MediaScrubber`, `useMediaKeyboard`). Media components are imported by subpath (`@mrmeg/expo-ui/components/Video`), never from the barrel, and need their optional peer: `bunx expo install expo-image expo-video expo-audio` for the ones you use. `expo-audio` is native code, so rebuild dev clients after adding it; `Video`'s Picture in Picture needs the `expo-video` config plugin with `supportsPictureInPicture: true`. An app on 0.27.x or 0.28.x runs [Consumer migration to 0.29.1](#consumer-migration-to-0291) first.
 
 ## Consumer migration to 0.29.1
 
