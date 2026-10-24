@@ -15,6 +15,13 @@ const flat = (el: TestInstance) => (StyleSheet.flatten(el.props.style) ?? {}) as
 const button = (name = "Mute") => screen.getByRole("button", { name });
 
 describe("MediaControlButton", () => {
+  // A centered overlay (Video's center play button, its error retry) relies on
+  // the parent's alignItems; a self-alignment here pinned them to the left edge.
+  it("leaves its alignment to the parent", async () => {
+    await render(<MediaControlButton icon="play" accessibilityLabel="Play" />);
+    expect(flat(screen.getByRole("button")).alignSelf).toBeUndefined();
+  });
+
   it("is a button named by its accessibilityLabel", async () => {
     await render(<MediaControlButton icon="volume-2" accessibilityLabel="Mute" />);
 

@@ -28,7 +28,6 @@ const styles = /*#__PURE__*/ StyleSheet.create({
   base: {
     alignItems: "center",
     justifyContent: "center",
-    alignSelf: "flex-start",
     backgroundColor: SCRIM,
   },
   sm: { width: DIAMETERS.sm, height: DIAMETERS.sm, borderRadius: DIAMETERS.sm / 2 },
