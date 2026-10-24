@@ -8,6 +8,9 @@ import { StyleSheet } from "react-native";
 import { act, render, screen, within } from "@testing-library/react-native";
 import type { TestInstance } from "test-renderer";
 
+// `AudioPlayer` (in the Audio section and the previews) imports `expo-audio`, which has no native module under Jest: opt in to the fake.
+jest.mock("expo-audio", () => require("@/test/mocks/expoAudio"));
+
 jest.mock("expo-image", () => {
   const { createElement } = require("react");
   const { View } = require("react-native");

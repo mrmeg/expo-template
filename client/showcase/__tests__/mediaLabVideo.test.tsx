@@ -10,6 +10,8 @@ import { StyleSheet } from "react-native";
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
 import type { TestInstance } from "test-renderer";
 
+// The lab also renders AudioPlayer, which imports expo-audio: opt in to the fake.
+jest.mock("expo-audio", () => require("@/test/mocks/expoAudio"));
 jest.mock("expo-video", () => require("@/test/mocks/expoVideo"));
 
 jest.mock("expo-image", () => {

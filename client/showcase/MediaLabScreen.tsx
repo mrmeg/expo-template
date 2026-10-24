@@ -25,6 +25,7 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 
 import { GalleryChips, type GalleryChip } from "./GalleryChips";
 import { ALL_CATEGORIES, type CategoryFilter } from "./filters";
+import { AudioSection } from "./MediaLabAudio";
 import { ImageSection } from "./MediaLabImages";
 import { VideoSection } from "./MediaLabVideo";
 import { ThemeToggle } from "./ThemeToggle";
@@ -47,8 +48,8 @@ import {
  * `mediaFixtures.ts` with its availability, and holds one set of playground
  * controls that every section receives.
  *
- * Each component spec fills its own slot in {@link renderers} (`media-image`
- * and `media-video` are in; `media-audio` and `media-viewer` are pending); a section
+ * Each component spec fills its own slot in {@link renderers} (`media-image`,
+ * `media-video` and `media-audio` are in; `media-viewer` is pending); a section
  * with no renderer shows a pending line.
  *
  * Availability is checked client-side after mount (HEAD, 5 s timeout, at most
@@ -347,10 +348,10 @@ export type LabRenderers = Partial<Record<SectionId, SectionRenderer>>;
 /**
  * The slot map the component specs fill: `media-image` sets `image` (see
  * `MediaLabImages.tsx`), `media-video` sets `video`, `media-audio` sets
- * `audio`, `media-viewer` sets `viewer`. Each is a component receiving
- * {@link SectionRendererProps}.
+ * `audio` (see `MediaLabAudio.tsx`), `media-viewer` sets `viewer`. Each is a
+ * component receiving {@link SectionRendererProps}.
  */
-export const renderers: LabRenderers = { image: ImageSection, video: VideoSection };
+export const renderers: LabRenderers = { image: ImageSection, video: VideoSection, audio: AudioSection };
 
 interface SectionDef {
   id: SectionId;

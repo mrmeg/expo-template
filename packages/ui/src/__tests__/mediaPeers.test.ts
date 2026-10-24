@@ -152,6 +152,7 @@ describe("the barrel does not import the optional media peers", () => {
 
   it("keeps the subpath-only media components out of the graph", () => {
     for (const subpathOnly of [
+      "components/AudioPlayer.tsx",
       "components/Image.tsx",
       "components/MediaControlButton.tsx",
       "components/MediaScrubber.tsx",

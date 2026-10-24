@@ -121,6 +121,11 @@ The Video renderer (`MediaLabVideo.tsx`) mounts one player at a time: a tile is
 a frame with a play glyph until it is tapped, so the corpus never creates thirty
 players, and tiles draw at `aspectRatio="auto"` and print the frame they ended
 up with, which is how the rotation-flagged clip is checked.
+The Audio section renders every audio fixture through `AudioPlayer` in the
+playground's variant, tags each expected-error fixture with the error it
+reached, and holds a remote stream behind a "Load stream" button so a live
+stream is not opened on every visit; each tile otherwise owns a player, and on
+web an idle `<audio>` element.
 
 The corpus has three tiers:
 

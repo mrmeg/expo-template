@@ -42,8 +42,9 @@ three further peers, all optional: `expo-image`, `expo-video` and `expo-audio`.
 Install only the ones you import (`npx expo install expo-video`). The media
 components are subpath imports (`@mrmeg/expo-ui/components/Video`), never part
 of the `components` barrel or the root, so an app that does not use them
-installs and bundles none of them. `expo-audio` adds native code: rebuild your
-dev client after installing it.
+installs and bundles none of them. `AudioPlayer` also draws artwork with
+`Image`, so it needs `expo-image` as well as `expo-audio`. `expo-audio` adds
+native code: rebuild your dev client after installing it.
 
 `@rn-primitives/*` and `@expo-google-fonts/inter` are package dependencies, not
 peers. Animations use React Native `Animated`. `BottomSheet`, `Slider`, and
@@ -740,6 +741,7 @@ before building a new primitive.
 | `ErrorBoundary` | React render error fallback | Route-level and feature-level fallbacks |
 | `Icon` | Registered Lucide glyphs or custom art on theme tokens | Button accessories, menu icons, status glyphs |
 | `IconButton` | Icon-only command: required `accessibilityLabel`, `Button` presets and states, `square` or `circle`, 44 pt hit area on every platform | Refresh, close, camera and toolbar buttons |
+| `AudioPlayer` | Themed audio player: `compact` row or `full` layout with artwork, title, scrubber, times and speed; `Live`, error and buffering states, web keyboard; subpath-only (`components/AudioPlayer`), needs `expo-audio` and `expo-image` | Voice notes, podcast episodes, track lists |
 | `Image` | Picture sized from an aspect ratio, with `fit` and focal `position`, placeholder, error state and required `alt`; subpath-only (`components/Image`), needs `expo-image` | Feed photos, grid thumbnails, covers and heroes |
 | `InputOTP` | Verification code entry | Email/SMS codes, MFA, invite codes |
 | `Item` | List and settings rows on the density tokens | Settings lists, inbox rows, pickers, detail rows |
