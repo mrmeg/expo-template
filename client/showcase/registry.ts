@@ -138,6 +138,7 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "Toggle", importPath: "@mrmeg/expo-ui/components/Toggle", category: "form" },
   { id: "ToggleGroup", importPath: "@mrmeg/expo-ui/components/ToggleGroup", category: "form" },
   { id: "Tooltip", importPath: "@mrmeg/expo-ui/components/Tooltip", category: "overlay" },
+  { id: "Video", importPath: "@mrmeg/expo-ui/components/Video", category: "media" },
 ];
 
 // ---------------------------------------------------------------------------

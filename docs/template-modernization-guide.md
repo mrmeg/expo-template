@@ -117,6 +117,10 @@ poster; audio variant; container width 375 / 768 / 1280; theme) that every
 section receives. Each component spec fills its own `renderers` slot
 (`image`, `video`, `audio`, `viewer`) in `MediaLabScreen.tsx`; until then the
 section shows its metadata list and a "Component arrives with spec …" line.
+The Video renderer (`MediaLabVideo.tsx`) mounts one player at a time: a tile is
+a frame with a play glyph until it is tapped, so the corpus never creates thirty
+players, and tiles draw at `aspectRatio="auto"` and print the frame they ended
+up with, which is how the rotation-flagged clip is checked.
 
 The corpus has three tiers:
 

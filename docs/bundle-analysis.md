@@ -61,6 +61,7 @@ through one `import()` specifier by every consumer.
 | `client/features/auth/provider/clerkClient` (statically imports `@clerk/clerk-expo`, re-exports `ClerkProviderBoundary`) | `AuthProviderGate`, `getAuthClient()` | Clerk SDK + `swr` + `expo-auth-session` (~280 kB) |
 | `client/features/auth/provider/cognitoSdk` (statically imports `aws-amplify`, `aws-amplify/utils`, `aws-amplify/auth`, re-exports `Amplify` / `Hub` / `amplifyAuth`) | `cognitoClient.ts`, via one `await import("./cognitoSdk")` | the `aws-amplify` cluster |
 | `client/features/auth/components` | `AuthGate`, `(demos)/auth-demo` | auth screen + 5 forms (~47 kB raw, ~14 kB gzip) |
+| `client/components/LazyVideo` (one `import()` of `@mrmeg/expo-ui/components/Video`) | `VideoPlayer` (media tab), the `Video` preview and the Media Lab video section | `expo-video`, the custom controls and the scrubber: ~42 kB raw / ~14 kB gzip as the `Video-*` chunk. Both consumers are separate async chunks, so a static import from each would have put it in `__common` (+40 kB raw on every route's first download); behind `LazyVideo` the `/` route's script set grew by about 2 kB (the `LazyVideo` module itself, in `__common`) |
 | `client/showcase/gallery`, via `client/showcase/lazyGallery` | Explore tab rail + block spotlight, `themed-showcase`, `surface-lab`, `media-lab`, `components`, `components/[id]`, `blocks` | the showcase cluster: previews of all 36 components, component details, block stages, plus the web engines only they reach (`vaul`, Radix select/menu/dialog/popover/tooltip, `@floating-ui`, `react-remove-scroll`) — ~575 kB raw / ~141 kB gzip as the `gallery-*` chunk; `__common` went from 906 kB to 504 kB raw |
 
 Adding a *static* import of one of those barrels — or a second `import()` with a
@@ -71,6 +72,7 @@ export can observe the regression directly:
 - `client/features/auth/__tests__/cognitoSdk.guardrail.test.ts`
 - `client/features/auth/components/__tests__/authComponentsSplitPoint.test.ts`
 - `client/showcase/__tests__/gallerySplitPoint.test.ts`
+- `client/components/__tests__/lazyVideoSplitPoint.test.ts`
 
 To check a boundary by hand, look for its sources in the `__common-*.js.map`
 sourcemap after `bun run build-web`.

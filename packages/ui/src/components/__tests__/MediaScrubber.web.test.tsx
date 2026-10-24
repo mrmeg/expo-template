@@ -38,6 +38,15 @@ describe("MediaScrubber (web)", () => {
     expect(scrubber().props.focusable).toBe(false);
     expect(scrubber().props["aria-valuemax"]).toBeUndefined();
     expect(scrubber().props["aria-valuetext"]).toBe("Live");
+    expect(scrubber().props["aria-disabled"]).toBe(true);
+  });
+
+  it("says it is disabled on web when disabled, and not when interactive", async () => {
+    const { rerender } = await render(<MediaScrubber value={5} duration={60} disabled />);
+    expect(scrubber().props["aria-disabled"]).toBe(true);
+
+    await rerender(<MediaScrubber value={5} duration={60} />);
+    expect(scrubber().props["aria-disabled"]).toBeUndefined();
   });
 
   it("ArrowRight and ArrowLeft move by the step and report onScrubEnd", async () => {

@@ -768,6 +768,7 @@ before building a new primitive.
 | `Toggle` | Pressed/unpressed control | Favorite, mute, bold/italic, view mode |
 | `ToggleGroup` | Single or multi toggle groups | Alignment, formatting toolbar, filter chips |
 | `Tooltip` | Short hover/focus help | Icon button labels, field hints, disabled-action reasons |
+| `Video` | Video sized from its own aspect ratio, with `native`, `custom` (themed, identical on every platform) or no controls, a poster, loading and error states, and web keyboard shortcuts; subpath-only (`components/Video`), needs `expo-video` | Clip players, feed videos, muted loops, lesson and tutorial video |
 
 ### Icons
 
