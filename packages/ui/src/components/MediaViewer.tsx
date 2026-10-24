@@ -106,7 +106,8 @@ export interface MediaViewerProps {
   videoControls?: "custom" | "native";
   /**
    * Start a video page playing as soon as it is shown: the one the viewer opens on and each one paged to,
-   * as a photo library does. Opening the viewer is a user gesture, so browsers allow it with sound. @default false
+   * as a photo library does. A browser that blocks unmuted autoplay leaves the page paused with its play button
+   * (expo-video's web player logs the rejected `play()`); no error state is shown. @default false
    */
   autoPlay?: boolean;
   /** Pinch, double-tap, wheel and keyboard zoom on images. @default true */
