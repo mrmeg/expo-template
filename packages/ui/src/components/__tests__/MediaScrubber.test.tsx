@@ -208,7 +208,7 @@ describe("MediaScrubber", () => {
       await fireEvent(scrubber(), "accessibilityAction", { nativeEvent: { actionName: "increment" } });
       expect(onScrubEnd).not.toHaveBeenCalled();
 
-      expect(scrubber().props.onStartShouldSetResponder).toBeUndefined();
+      expect(scrubber().props.onStartShouldSetResponder(touch(0, 0, 1))).toBe(false);
       expect(onScrubStart).not.toHaveBeenCalled();
     });
 
@@ -350,6 +350,21 @@ describe("MediaScrubber", () => {
       expect(second.onScrubChange).toHaveBeenCalledTimes(1);
       expect(first.onScrubEnd).not.toHaveBeenCalled();
       expect(second.onScrubEnd).toHaveBeenCalledTimes(1);
+    });
+
+    it("still ends a drag cleanly when the track goes live midway", async () => {
+      const { onScrubEnd, rerender } = await mount({ duration: 100 });
+      const f = finger();
+      await f.down(at(0.2));
+      await f.move(at(0.4));
+
+      await rerender(<MediaScrubber value={0} duration={Number.POSITIVE_INFINITY} onScrubEnd={onScrubEnd} />);
+      // The new props must still carry the release handler, or React Native has nothing to call.
+      expect(scrubber().props.onResponderRelease).toBeDefined();
+      await finger().up();
+
+      expect(onScrubEnd).toHaveBeenCalledTimes(1);
+      expect(onScrubEnd.mock.calls[0][0]).toBeCloseTo(40);
     });
 
     it("a terminated touch ends where the thumb was, so a consumer that paused resumes", async () => {
