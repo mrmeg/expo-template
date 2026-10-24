@@ -362,7 +362,7 @@ describe("Image: alt", () => {
     await render(<Image source={URI} alt="" testID="frame" />);
 
     expect(frame().props).toEqual(
-      expect.objectContaining({ accessible: false, importantForAccessibility: "no", accessibilityElementsHidden: true }),
+      expect.objectContaining({ accessible: false, importantForAccessibility: "no-hide-descendants", accessibilityElementsHidden: true }),
     );
     expect(frame().props).not.toHaveProperty("accessibilityLabel");
     expect(screen.queryByRole("image")).toBeNull();

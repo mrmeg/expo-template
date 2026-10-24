@@ -8,6 +8,8 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { MediaViewerProps } from "@mrmeg/expo-ui/components/MediaViewer";
 
 let mockViewer: MediaViewerProps | null = null;
+// The lab and gallery also render AudioPlayer, which imports expo-audio: opt in to the fake.
+jest.mock("expo-audio", () => require("@/test/mocks/expoAudio"));
 jest.mock("@/client/components/LazyMediaViewer", () => ({
   LazyMediaViewer: (props: MediaViewerProps) => {
     mockViewer = props;

@@ -109,8 +109,9 @@ first-render download — see `docs/bundle-analysis.md`.
 `/media-lab` (`client/showcase/MediaLabScreen.tsx`, listed in Explore under
 Demos & Tools) checks `Image`, `Video`, `AudioPlayer` and `MediaViewer` against
 every case a real app meets. It lists every fixture in
-`client/showcase/mediaFixtures.ts` with its availability and one observed-status
-badge per surface, and holds one set of playground controls (image fit,
+`client/showcase/mediaFixtures.ts` with its availability and what each surface
+was observed to do (a chip per tested surface; untested ones collapse into one
+"unverified" line), and holds one set of playground controls (image fit,
 position, sizing, max height, radius; video controls, fit, autoplay, loop,
 poster; audio variant; container width 375 / 768 / 1280; theme) that every
 section receives. Each component spec fills its own `renderers` slot
@@ -120,6 +121,11 @@ The Video renderer (`MediaLabVideo.tsx`) mounts one player at a time: a tile is
 a frame with a play glyph until it is tapped, so the corpus never creates thirty
 players, and tiles draw at `aspectRatio="auto"` and print the frame they ended
 up with, which is how the rotation-flagged clip is checked.
+The Audio section renders every audio fixture through `AudioPlayer` in the
+playground's variant, tags each expected-error fixture with the error it
+reached, and holds a remote stream behind a "Load stream" button so a live
+stream is not opened on every visit; each tile otherwise owns a player, and on
+web an idle `<audio>` element.
 The Viewer renderer (`MediaLabViewer.tsx`) is three buttons and two filter
 buttons, each opening `MediaViewer` on a set: every available image and video
 that is not a list-scale thumbnail (extreme aspects, the 48 MP picture,

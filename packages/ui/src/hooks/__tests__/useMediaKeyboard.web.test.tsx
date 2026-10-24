@@ -14,6 +14,7 @@ type FakeEvent = {
   ctrlKey?: boolean;
   metaKey?: boolean;
   altKey?: boolean;
+  repeat?: boolean;
   defaultPrevented?: boolean;
   target?: unknown;
   currentTarget?: unknown;
@@ -104,6 +105,32 @@ describe("useMediaKeyboard (web)", () => {
     for (const other of ALL_ACTIONS.filter((name) => name !== action)) {
       expect(h[other]).not.toHaveBeenCalled();
     }
+  });
+
+  it("ignores auto-repeat for toggles, but still claims the key", async () => {
+    const h = handlers();
+    const { send } = await setup(h);
+
+    for (const key of [" ", "k", "m", "f", "Escape"]) {
+      const event = await send({ ...keydown(key), repeat: true });
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    }
+    for (const action of ["togglePlay", "toggleMute", "toggleFullscreen", "escape"] as const) {
+      expect(h[action]).not.toHaveBeenCalled();
+    }
+  });
+
+  it("lets seek, volume and zoom keys repeat while held", async () => {
+    const h = handlers();
+    const { send } = await setup(h);
+
+    await send({ ...keydown("ArrowRight"), repeat: true });
+    await send({ ...keydown("ArrowUp"), repeat: true });
+    await send({ ...keydown("+"), repeat: true });
+
+    expect(h.seekForward).toHaveBeenCalledTimes(1);
+    expect(h.volumeUp).toHaveBeenCalledTimes(1);
+    expect(h.zoomIn).toHaveBeenCalledTimes(1);
   });
 
   it("arrows fall back to previous / next when there is no seek handler", async () => {

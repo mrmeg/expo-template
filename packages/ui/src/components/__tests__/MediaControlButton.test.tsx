@@ -22,6 +22,11 @@ describe("MediaControlButton", () => {
     expect(flat(screen.getByRole("button")).alignSelf).toBeUndefined();
   });
 
+  it("keeps a caller's accessibilityState.selected when `selected` is not given", async () => {
+    await render(<MediaControlButton icon="captions" accessibilityLabel="Captions" accessibilityState={{ selected: true }} />);
+    expect(screen.getByRole("button").props.accessibilityState).toEqual({ selected: true, disabled: false });
+  });
+
   it("is a button named by its accessibilityLabel", async () => {
     await render(<MediaControlButton icon="volume-2" accessibilityLabel="Mute" />);
 

@@ -51,6 +51,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   playback. Also a `poster`, loading and error states with retry, live streams
   (`Live`, disabled scrubber), `player` for your own `useVideoPlayer()`, and
   `autoPlay`, `loop`, `muted`, `allowsFullscreen`, `allowsPictureInPicture`.
+- **`AudioPlayer`** (`@mrmeg/expo-ui/components/AudioPlayer`, subpath-only,
+  needs the optional `expo-audio` and `expo-image` peers): a themed, flat
+  player on `expo-audio` with the same controls on iOS, Android and web. A
+  `compact` row (play and pause, scrubber, time) and a `full` layout (artwork,
+  title, subtitle, elapsed and `-remaining` times, a speed button), an optional
+  mute button, `autoPlay`, `loop`, `lockScreen`, `onPlayingChange`, `onEnd` and
+  `onError`, and a `player` prop to bring your own `useAudioPlayer()`. It shows
+  a spinner while buffering, "Audio unavailable" for a source that fails or is
+  missing, `Live` with a disabled scrubber for a live stream, and on web
+  Space/K, ←/→ and M while focused. Server rendering draws a static shell and
+  creates the player after hydration, because `expo-audio`'s web player needs
+  `Audio`. It never calls `setAudioModeAsync`; the docs cover the silent
+  switch, background playback and the lock screen.
 - **`MediaViewer`** (`@mrmeg/expo-ui/components/MediaViewer`, subpath-only,
   needs the optional `expo-image` and `expo-video` peers): a full-screen
   lightbox over a list of images and videos on iOS, Android and web. Swipe,

@@ -145,8 +145,9 @@ first-render download — see `docs/bundle-analysis.md`.
 `/media-lab` (`client/showcase/MediaLabScreen.tsx`, listed in Explore under
 Demos & Tools) checks `Image`, `Video`, `AudioPlayer` and `MediaViewer` against
 every case a real app meets. It lists every fixture in
-`client/showcase/mediaFixtures.ts` with its availability and one observed-status
-badge per surface, and holds one set of playground controls (image fit,
+`client/showcase/mediaFixtures.ts` with its availability and what each surface
+was observed to do (a chip per tested surface; untested ones collapse into one
+"unverified" line), and holds one set of playground controls (image fit,
 position, sizing, max height, radius; video controls, fit, autoplay, loop,
 poster; audio variant; container width 375 / 768 / 1280; theme) that every
 section receives. Each component spec fills its own `renderers` slot
@@ -156,6 +157,11 @@ The Video renderer (`MediaLabVideo.tsx`) mounts one player at a time: a tile is
 a frame with a play glyph until it is tapped, so the corpus never creates thirty
 players, and tiles draw at `aspectRatio="auto"` and print the frame they ended
 up with, which is how the rotation-flagged clip is checked.
+The Audio section renders every audio fixture through `AudioPlayer` in the
+playground's variant, tags each expected-error fixture with the error it
+reached, and holds a remote stream behind a "Load stream" button so a live
+stream is not opened on every visit; each tile otherwise owns a player, and on
+web an idle `<audio>` element.
 The Viewer renderer (`MediaLabViewer.tsx`) is three buttons and two filter
 buttons, each opening `MediaViewer` on a set: every available image and video
 that is not a list-scale thumbnail (extreme aspects, the 48 MP picture,
@@ -1499,8 +1505,9 @@ version your Expo SDK recommends (`npx expo install <name>`):
 
 - `expo-image` for `Image`.
 - `expo-video` for `Video`.
-- `expo-audio` for `AudioPlayer`. It adds native code, so a dev client built
-  before you installed it needs a fresh build.
+- `expo-audio` for `AudioPlayer`, which draws its artwork with `Image`, so it
+  needs `expo-image` as well. `expo-audio` adds native code, so a dev client
+  built before you installed it needs a fresh build.
 - `MediaViewer` needs the peers of the media it shows.
 
 Components (each entry is filled in when the component ships):
@@ -1544,12 +1551,16 @@ Components (each entry is filled in when the component ships):
     `recyclingKey={item.id}`, so a reused cell shows a blank frame instead of
     the previous picture. Pass `source={{ uri, cacheKey }}` when the URL changes
     but the picture does not (re-signed URLs), so the cache hits.
-  - `placeholder` takes a blurhash or thumbhash string (bare, or with a
-    `blurhash:/` / `thumbhash:/` prefix) or a low-resolution URL or `{ uri }`;
-    there is no spinner. `transition` (ms, default 200) is forced to 0 under
+  - `placeholder` takes a blurhash string (bare, or with `blurhash:/`), a
+    thumbhash string with its `thumbhash:/` prefix (a bare string is read as a
+    blurhash), or a low-resolution URL or `{ uri }`; there is no spinner. `transition` (ms, default 200) is forced to 0 under
     reduced motion. `onLoad({ width, height })` reports the natural size and
     `onError` the failure; a new `source` clears an error. A `null` source keeps
     the frame in its loading look and calls nothing.
+  - Formats are the platform decoder's. HEIC shows the error state in Chrome
+    (it has no HEIC decoder) while iOS and WebKit decode it; convert HEIC to
+    JPEG or WebP before serving it to the web (`@mrmeg/expo-media`'s processing
+    does). The Media Lab lists what each surface did per format.
   - Web: `expo-image` adds its `<img>` after mount, so the server HTML carries
     the sized, muted frame but not the `<img>` (a low-resolution `placeholder`
     URL is the exception). The `<img>` has `alt`, `loading="lazy"` and, from
@@ -1636,10 +1647,11 @@ Components (each entry is filled in when the component ships):
     expo-router's `useIsFocused()`.
   - Accessibility under `"custom"` on iOS and Android: the frame is one element
     named by `title`, else `accessibilityLabel`, else "Video", whose value is
-    the position in words. Its actions are activate (play or pause, also the iOS
-    two-finger magic tap), increment and decrement (seek 10 s), and custom
-    actions for mute, captions and fullscreen, because the children of an
-    accessible element are not separate stops on iOS. The chrome never
+    the position in words. Play or pause is the double tap (VoiceOver's
+    `onAccessibilityTap`, TalkBack's `activate` action) and, on iOS, the
+    two-finger magic tap (`onMagicTap`). The labeled actions are increment and
+    decrement (seek 10 s) and custom ones for mute, captions and fullscreen,
+    because the children of an accessible element are not separate stops on iOS. The chrome never
     auto-hides while a screen reader is on. On web the frame is a focusable
     group and its buttons are ordinary tab stops; focusing one brings the chrome
     back. react-native-web cannot detect a screen reader, so web relies on focus
@@ -1669,7 +1681,86 @@ Components (each entry is filled in when the component ships):
 
     For rotated phone video, pass an explicit `aspectRatio`. For captions on
     web, use `controls="native"`.
-- `AudioPlayer`: not shipped yet.
+- `AudioPlayer` (`components/AudioPlayer`, needs `expo-audio` and `expo-image`):
+  a themed, flat audio player with the same controls on iOS, Android and web,
+  including desktop browsers. It draws no container; put it in a `Card` (one
+  item in a collection) or an `Item` row.
+
+  ```tsx
+  import { AudioPlayer } from "@mrmeg/expo-ui/components/AudioPlayer";
+
+  <AudioPlayer source={note.url} title="Voice note" />
+  <AudioPlayer
+    variant="full"
+    source={episode.url}
+    title={episode.title}
+    subtitle={show.name}
+    artwork={show.cover}
+    onEnd={playNext}
+  />
+  ```
+
+  - `variant="compact"` (default) is one 44 pt row: play and pause, a scrubber,
+    and the total length until it starts, then the elapsed time. Use it for
+    voice notes and attachments. `variant="full"` adds 56 pt `artwork`, a
+    `title` over a `subtitle`, a full-width scrubber, elapsed and `-remaining`
+    times, and a speed button (1×, 1.25×, 1.5×, 2×, 0.75×; `showSpeed={false}`
+    hides it). Use it for episodes and tracks. `showMute` adds a mute button in
+    either variant.
+  - `title` also names the controls for assistive tech ("Play {title}", "Pause
+    {title}"). The scrubber announces the position in words, and the numeric
+    times are hidden from assistive tech. On iOS a magic tap on the player
+    toggles play.
+  - Words go through `translateText` under `media.play`, `media.pause`,
+    `media.playTitle` and `media.pauseTitle` (with `{ title }`), `media.loading`,
+    `media.audioError`, `media.mute`, `media.unmute`, `media.playbackSpeed`
+    (with `{ rate }`), `media.audioPlayer` and the shared `media.seek` /
+    `media.live`; the English fallback is already filled in.
+  - Web: focus the player, then Space or K plays and pauses, ←/→ move 5 s, and M
+    mutes (with or without the `showMute` button, which only shows the state).
+    The keys act only while focus is inside the player.
+  - A source that fails to load, or no `source` at all, disables the controls
+    and shows "Audio unavailable" in place of the time; `onError(message)` is
+    called once per message. A play request the browser refuses (autoplay
+    before a gesture) is reported to `onError` but leaves the player usable.
+    `onEnd` fires when playback reaches the end (not while `loop`), and the next
+    play starts from 0. A live stream, whose length is never known, shows
+    `Live` and disables the scrubber.
+  - Scrubbing pauses a playing clip, seeks on release and resumes. To own the
+    player (to read it elsewhere, or to set `useAudioPlayer` options such as
+    `downloadFirst`, `crossOrigin` or `updateInterval`), create it with
+    `useAudioPlayer(source, options)` and pass it as `player`. The component then
+    never pauses, replaces or releases it. Without `player` it creates one,
+    pauses it on unmount and releases it.
+  - Web server rendering: `expo-audio`'s web player builds an
+    `HTMLAudioElement`, which a server does not have. `AudioPlayer` renders the
+    same layout with a disabled play button and `--:--` on the server and
+    through the hydration pass, and creates the player once hydrated (on
+    native, and whenever you pass `player`, at once). Do not call
+    `useAudioPlayer` during a server render yourself.
+  - The audio session is yours. `AudioPlayer` never calls `setAudioModeAsync`,
+    which is process-wide, so set it once at app start:
+    - iOS plays nothing with the silent switch on unless you call
+      `setAudioModeAsync({ playsInSilentMode: true })`.
+    - Background playback needs the `expo-audio` config plugin (its
+      `enableBackgroundPlayback` adds the iOS `audio` background mode and the
+      Android foreground service) and
+      `setAudioModeAsync({ shouldPlayInBackground: true })`. On Android,
+      sustained background playback also needs `lockScreen`.
+    - `lockScreen` publishes `title`, `subtitle` (as the artist) and `artwork`
+      to the lock screen and notification while playing, and clears them on
+      unmount. It requires `setAudioModeAsync({ interruptionMode: "doNotMix" })`.
+  - Web, remote files: an `<audio>` element plays a file from another origin
+    without CORS headers. The server must send `Access-Control-Allow-Origin`
+    for the page's origin only when you pass `headers` in the source or create
+    the player with `downloadFirst` or `crossOrigin`.
+  - Platform gaps, from reading `expo-audio` 58.0.10: its web player reports
+    `isLoaded: true` and `isBuffering: false` on every update, so the loading
+    spinner (shown on native while buffering, or between play and load) never
+    appears on web. `AudioPlayer` does not read a file's embedded ID3 cover art:
+    the `artwork` prop is the only picture. Per-format results (MP3 CBR and VBR,
+    WAV, FLAC, Ogg and WebM Opus, long files, live, broken files) are in the
+    Media Lab Audio section (`/media-lab`) and its `observed` badges.
 - `MediaViewer` (`components/MediaViewer`, needs `expo-image` and `expo-video`):
   a full-screen lightbox for a list of images and videos, on iOS, Android and
   web. Build `items` from your whole list so swiping spans the library, and open
@@ -3423,6 +3514,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/Accordion.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Accordion.tsx
 - packages/ui/src/components/Alert.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Alert.tsx
 - packages/ui/src/components/AnimatedView.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/AnimatedView.tsx
+- packages/ui/src/components/AudioPlayer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/AudioPlayer.tsx
 - packages/ui/src/components/Avatar.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Avatar.tsx
 - packages/ui/src/components/Badge.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Badge.tsx
 - packages/ui/src/components/BottomSheet.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/BottomSheet.tsx

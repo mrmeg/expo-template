@@ -117,7 +117,9 @@ export function MediaControlButton({
       {...rest}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ ...accessibilityState, disabled: !!disabled, selected }}
+      accessibilityState={{ ...accessibilityState, disabled: !!disabled, ...(selected === undefined ? null : { selected }) }}
+      // react-native-web does not map `accessibilityState`; a toggle states itself with aria-pressed.
+      {...(Platform.OS === "web" && selected !== undefined ? { "aria-pressed": selected } : null)}
       disabled={disabled || undefined}
       hitSlop={effectiveHitSlop}
       onFocus={showFocusRing}

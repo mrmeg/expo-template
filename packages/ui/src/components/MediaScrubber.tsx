@@ -208,8 +208,10 @@ export function MediaScrubber({
 
   const secondsAt = useCallback((x: number) => {
     const width = trackWidth.current;
-    if (width <= 0) return 0;
-    return clamp((x - TRACK_INSET) / width, 0, 1) * live.current.duration;
+    const { duration } = live.current;
+    // The duration can go unknown or live mid-drag: hold the last position instead of reporting NaN or Infinity.
+    if (width <= 0 || !Number.isFinite(duration) || duration <= 0) return gesture.current.seconds;
+    return clamp((x - TRACK_INSET) / width, 0, 1) * duration;
   }, []);
 
   const [responder] = useState(() =>
@@ -327,7 +329,10 @@ export function MediaScrubber({
   return (
     <View
       {...webProps}
-      {...(interactive ? responder.panHandlers : null)}
+      // Always attached: the start and move guards read `interactive`, and a drag
+      // that began while interactive must still reach release or terminate if the
+      // track goes live, unknown or disabled midway, or the thumb would stay grown.
+      {...responder.panHandlers}
       testID={testID}
       accessible
       accessibilityRole="adjustable"
