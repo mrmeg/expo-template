@@ -38,6 +38,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   loading that goes transparent once loaded; an `image-off` error state or a
   `fallback`; a required `alt` (`""` for decorative); `recyclingKey` for
   recycled lists; and a cross-dissolve that is forced off under reduced motion.
+- **`Video`** (`@mrmeg/expo-ui/components/Video`, subpath-only, needs the
+  optional `expo-video` peer): a video that sizes from its own aspect ratio
+  (explicit, or `"auto"` from the video track) with `maxWidth` / `maxHeight`
+  clamping, `fill` and a `radius`, on iOS, Android and web.
+  `controls="native" | "custom" | "none"` picks the platform's controls, themed
+  controls that look the same everywhere (center play, scrubber with buffered
+  fill, time, mute, a captions toggle, fullscreen; hover, focus and tap reveal
+  that auto-hides after 3 s; web Space/K, arrows, M, F and Esc; a native
+  fullscreen `Modal` and web element fullscreen; screen-reader actions), or bare
+  playback. Also a `poster`, loading and error states with retry, live streams
+  (`Live`, disabled scrubber), `player` for your own `useVideoPlayer()`, and
+  `autoPlay`, `loop`, `muted`, `allowsFullscreen`, `allowsPictureInPicture`.
 - `SegmentedControl` `size="lg"`: a 44 pt control drawn by the kit on iOS,
   Android and web (the native `md` control's height is fixed by the system:
   about 32 pt on iOS, the 40 dp Material 3 segmented button on Android).
