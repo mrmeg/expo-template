@@ -625,7 +625,21 @@ Components (each entry is filled in when the component ships):
     non-faststart and fragmented MP4, audio-only, a 1 h 05 m clip, rotation
     flags, HLS, DASH, live streams, broken files) through `Video` under each
     controls mode and lists, per fixture, what each surface did; check it, not
-    memory, before promising a format.
+    memory, before promising a format. Observed on 2026-10-23 (Chrome 156,
+    Playwright WebKit 26.6, iOS 27 simulator):
+
+    | Case | Chrome | WebKit | iOS |
+    |---|---|---|---|
+    | H.264, HEVC (+10-bit), `.mov`, 60 fps, 4K, fragmented, moov-at-end | plays | plays | plays |
+    | VP9 / AV1 in WebM | plays | VP9 plays; AV1 hangs, no error | "Cannot Open" |
+    | AV1 in MP4 | plays | error | plays |
+    | HLS VOD | some streams | plays | plays |
+    | DASH | error | error | error |
+    | Rotation flag, `aspectRatio="auto"` | portrait frame | portrait frame | landscape frame (pre-rotation size) |
+    | Captions toggle (`"custom"`) | never shown | never shown | not checked |
+
+    For rotated phone video, pass an explicit `aspectRatio`. For captions on
+    web, use `controls="native"`.
 - `AudioPlayer`: not shipped yet.
 - `MediaViewer`: not shipped yet.
 
