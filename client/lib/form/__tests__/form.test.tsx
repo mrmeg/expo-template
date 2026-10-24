@@ -25,10 +25,6 @@ import {
   zodResolver,
 } from "..";
 
-// `TextInput` hides its visible error text from assistive tech on native: the
-// field's hint already carries it. Query it with hidden elements included.
-const HIDDEN = { includeHiddenElements: true };
-
 const schema = z.object({
   name: z.string().check(z.minLength(1, "Name is required")),
   newsletter: z.optional(z.boolean()),
@@ -75,6 +71,6 @@ describe("FormProvider + FormTextInput + FormCheckbox", () => {
     });
 
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByText("Name is required", HIDDEN)).toBeTruthy();
+    expect(screen.getByText("Name is required")).toBeTruthy();
   });
 });

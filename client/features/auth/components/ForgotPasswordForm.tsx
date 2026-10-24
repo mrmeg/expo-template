@@ -117,6 +117,7 @@ export function ForgotPasswordForm({
           autoCorrect={false}
           editable={!loading}
           required
+          requiredHint={t("common.required")}
           returnKeyType="go"
           onSubmitEditing={handleSubmit}
         />

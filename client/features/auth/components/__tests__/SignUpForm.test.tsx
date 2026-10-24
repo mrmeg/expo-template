@@ -23,10 +23,6 @@ const NAME = "Ada";
 const EMAIL = "ada@example.com";
 const PASSWORD = "password1";
 
-// `TextInput` hides its visible error text from assistive tech on native: the
-// field's hint already carries it. Query it with hidden elements included.
-const HIDDEN = { includeHiddenElements: true };
-
 describe("SignUpForm", () => {
   it("leads with the email-only layout when the caller supports passwordless sign-up", async () => {
     const onPasswordlessSignUp = jest.fn();
@@ -65,7 +61,7 @@ describe("SignUpForm", () => {
     await fireEvent.press(screen.getByTestId("sign-up-passwordless-button"));
 
     expect(onPasswordlessSignUp).not.toHaveBeenCalled();
-    expect(screen.getByText("errors.invalidEmail", HIDDEN)).toBeTruthy();
+    expect(screen.getByText("errors.invalidEmail")).toBeTruthy();
   });
 
   it("still collects the name when the caller requires one", async () => {
@@ -76,7 +72,7 @@ describe("SignUpForm", () => {
     await fireEvent.press(screen.getByTestId("sign-up-passwordless-button"));
 
     expect(onPasswordlessSignUp).not.toHaveBeenCalled();
-    expect(screen.getByText("errors.nameRequired", HIDDEN)).toBeTruthy();
+    expect(screen.getByText("errors.nameRequired")).toBeTruthy();
 
     await fireEvent.changeText(screen.getByTestId("sign-up-name-input"), NAME);
     await fireEvent.press(screen.getByTestId("sign-up-passwordless-button"));
@@ -132,8 +128,8 @@ describe("SignUpForm", () => {
     await fireEvent.press(screen.getByTestId("sign-up-submit-button"));
 
     expect(onSignUp).not.toHaveBeenCalled();
-    expect(screen.getByText("errors.passwordMinLength", HIDDEN)).toBeTruthy();
-    expect(screen.getByText("errors.passwordMismatch", HIDDEN)).toBeTruthy();
+    expect(screen.getByText("errors.passwordMinLength")).toBeTruthy();
+    expect(screen.getByText("errors.passwordMismatch")).toBeTruthy();
   });
 
   it("stays password-only for callers that never pass a passwordless handler", async () => {

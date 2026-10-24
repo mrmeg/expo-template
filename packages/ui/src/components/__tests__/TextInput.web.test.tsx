@@ -119,6 +119,15 @@ describe("TextInput on web", () => {
     expect(screen.getByText("We never share it")).toBeTruthy();
   });
 
+  it("ignores requiredHint on web, where aria-required states it", async () => {
+    await render(<TextInput label="Correo" required requiredHint="obligatorio" placeholder="Correo" />);
+
+    const input = screen.getByPlaceholderText("Correo");
+    expect(input.props["aria-required"]).toBe(true);
+    expect(input.props).not.toHaveProperty("requiredHint");
+    expect(input.props).not.toHaveProperty("accessibilityHint");
+  });
+
   it("emits no description id without helper or error text", async () => {
     await render(<TextInput label="Email" placeholder="Email address" />);
 

@@ -963,7 +963,15 @@ render from) is written once per page view and then once resizing settles.
   iOS uses `@expo/ui`'s universal field (SwiftUI `SecureField`). On Android the
   native field reports a blur when it is first composed; the package forwards
   `onBlur` only after the field has reported focus, so blur validation never
-  flags an untouched field and app code needs no touched-fields guard.
+  flags an untouched field and app code needs no touched-fields guard. The
+  native field is named from `label` and described by `helperText` plus, for a
+  `required` field, `requiredHint` (", required"); the visible label and helper
+  text are hidden from assistive tech so they are not read twice. `errorText`
+  stays its own element (out of the hint, which can be switched off and whose
+  change is never spoken) and is announced when it appears or changes. Pass a
+  translated `requiredHint` (default `"required"`); the package has no i18n of
+  its own. Web names the field with `aria-label`, describes it with
+  `aria-describedby` and states `required` with `aria-required`.
 - `BottomSheet` renders the platform's native sheet through `@expo/ui`: iOS
   SwiftUI `.sheet()`, Android Material3 `ModalBottomSheet`, web `vaul`. The
   platform owns gestures and keyboard avoidance, so `swipeEnabled`,

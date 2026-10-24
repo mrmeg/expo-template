@@ -184,7 +184,7 @@ before creating a new app-local primitive.
 | `StyledText` | Theme-aware typography | Prefer semantic aliases over raw `Text`. |
 | `Switch` | Binary settings | Prefer over custom toggles for on/off state. |
 | `Tabs` | In-page tabbed views | Sizes are `sm`/`md` only. |
-| `TextInput` | Text entry | Owns label, helper/error text, clear button, password reveal, numeric filtering, left/right elements. |
+| `TextInput` | Text entry | Owns label, helper/error text, clear button, password reveal, numeric filtering, left/right elements. On native the label and helper text are hidden from assistive tech (the field's name and hint carry them), `errorText` stays its own announced element, and a `required` field speaks a translated `requiredHint` (default `"required"`). |
 | `Toggle` | One pressed/unpressed control | Sizes are `sm`/`default`/`lg`. Use `Button` for commands, `Switch` for settings. |
 | `ToggleGroup` | Related pressed states | Use for segmented controls, formatting, and filter chips. |
 | `Tooltip` | Short hover/focus help | Requires root `UIProvider` portal host. |

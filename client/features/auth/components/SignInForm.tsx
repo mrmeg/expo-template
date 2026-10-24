@@ -135,6 +135,7 @@ export function SignInForm({
           autoCorrect={false}
           editable={!loading}
           required
+          requiredHint={t("common.required")}
           returnKeyType={showPasswordField ? "next" : "go"}
           blurOnSubmit={!showPasswordField}
           onSubmitEditing={
@@ -157,6 +158,7 @@ export function SignInForm({
             autoComplete="password"
             editable={!loading}
             required
+            requiredHint={t("common.required")}
             returnKeyType="go"
             onSubmitEditing={handleSubmit}
           />

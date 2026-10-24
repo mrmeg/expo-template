@@ -164,26 +164,39 @@ describe("TextInput Android native identity", () => {
     Platform.OS = originalOS;
   });
 
-  it("hands the native field its name from label and its description from errorText", async () => {
-    await render(<TextInput label="Email" errorText="Email is required" helperText="We never share it" />);
+  it("hands the native field its name from label and its description from helperText", async () => {
+    await render(<TextInput label="Email" helperText="We never share it" />);
 
     expect(lifecycle.inputs).toHaveLength(1);
     expect(lifecycle.inputs[0].props.accessibilityLabel).toBe("Email");
-    expect(lifecycle.inputs[0].props.accessibilityHint).toBe("Email is required");
+    expect(lifecycle.inputs[0].props.accessibilityHint).toBe("We never share it");
   });
 
-  it("appends ', required' to the description the native field carries", async () => {
-    await render(<TextInput label="Email" errorText="Enter an email" required />);
+  it("keeps errorText out of the field's description, since it is its own element", async () => {
+    await render(<TextInput label="Email" errorText="Email is required" helperText="We never share it" />);
+
+    expect(lifecycle.inputs[0].props.accessibilityHint).toBeUndefined();
+    expect(screen.getByText("Email is required")).toBeTruthy();
+  });
+
+  it("appends ', required' to the helper text in the description", async () => {
+    await render(<TextInput label="Email" helperText="Use your work address" required />);
 
     expect(lifecycle.inputs[0].props.accessibilityLabel).toBe("Email");
-    expect(lifecycle.inputs[0].props.accessibilityHint).toBe("Enter an email, required");
+    expect(lifecycle.inputs[0].props.accessibilityHint).toBe("Use your work address, required");
   });
 
-  it("announces required on its own when there is no helper or error text", async () => {
+  it("announces required on its own when there is no helper text", async () => {
     await render(<TextInput label="Email" required />);
 
     expect(lifecycle.inputs[0].props.accessibilityLabel).toBe("Email");
     expect(lifecycle.inputs[0].props.accessibilityHint).toBe("required");
+  });
+
+  it("says requiredHint in place of the English default", async () => {
+    await render(<TextInput label="Correo" required requiredHint="obligatorio" />);
+
+    expect(lifecycle.inputs[0].props.accessibilityHint).toBe("obligatorio");
   });
 
   it("leaves a consumer's own accessibilityHint untouched", async () => {
