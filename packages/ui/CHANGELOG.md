@@ -28,7 +28,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - `formatMediaTime`, `mediaTimeA11y`, `mediaFrameStyle`, `parseAspectRatio`,
     `useMediaAspectRatio` and the `MediaAspectRatio` type (`lib`).
   - Built-in icons: `play`, `pause`, `volume-2`, `volume-x`, `maximize`,
-    `minimize`, `rotate-ccw`, `chevron-left`, `image-off`, `captions`.
+    `minimize`, `rotate-ccw`, `chevron-left`, `chevron-right`, `x`,
+    `image-off`, `captions`.
 - **`Image`** (`@mrmeg/expo-ui/components/Image`, subpath-only, needs the
   optional `expo-image` peer): a picture that sizes from an aspect ratio
   (`16 / 9`, `"16:9"`, `{ width, height }` or `"auto"`) with `maxWidth` /
@@ -63,6 +64,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   creates the player after hydration, because `expo-audio`'s web player needs
   `Audio`. It never calls `setAudioModeAsync`; the docs cover the silent
   switch, background playback and the lock screen.
+- **`MediaViewer`** (`@mrmeg/expo-ui/components/MediaViewer`, subpath-only,
+  needs the optional `expo-image` and `expo-video` peers): a full-screen
+  lightbox over a list of images and videos on iOS, Android and web. Swipe,
+  arrow keys or edge buttons page between items (only the shown video page
+  mounts a player); images zoom by pinch, double-tap or double-click,
+  `Ctrl`/`Cmd` + wheel around the cursor, and `+` `-` `0`, with panning held
+  inside the picture's edges and paging off while zoomed; the close button, Esc
+  (which leaves zoom first), Android back and a swipe down close it, with the
+  backdrop fading under the drag; videos play with `Video`'s custom controls.
+  `items`, controlled `index` / `onIndexChange` or `initialIndex` (an item
+  deleted while open is followed by `key`), `videoControls`, `autoPlay`, `zoom`, `maxZoom`,
+  `doubleTapZoom` and `swipeToDismiss`. Focus lands on the close button, page
+  changes are announced, and image pages offer `increment`, `decrement` and
+  `escape` to a screen reader. Built on `Modal`, `PanResponder` and `Animated`
+  (no reanimated). Safari's own pinch event (`gesturechange`) is not handled
+  yet.
 - `SegmentedControl` `size="lg"`: a 44 pt control drawn by the kit on iOS,
   Android and web (the native `md` control's height is fixed by the system:
   about 32 pt on iOS, the 40 dp Material 3 segmented button on Android).

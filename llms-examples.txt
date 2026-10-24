@@ -137,6 +137,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/MaxWidthContainer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MaxWidthContainer.tsx
 - packages/ui/src/components/MediaControlButton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaControlButton.tsx
 - packages/ui/src/components/MediaScrubber.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaScrubber.tsx
+- packages/ui/src/components/MediaViewer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaViewer.tsx
 - packages/ui/src/components/Notification.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Notification.tsx
 - packages/ui/src/components/Popover.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Popover.tsx
 - packages/ui/src/components/Progress.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Progress.tsx

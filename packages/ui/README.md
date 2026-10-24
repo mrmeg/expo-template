@@ -748,6 +748,7 @@ before building a new primitive.
 | `ItemGroup` | Flat grouped list: title, full-width `Item` rows with inset hairlines, footer | Settings sections, profile details, activity feeds |
 | `KeyboardAvoidingView` | Native keyboard-aware layout | Screen roots, composer footers, form-heavy subtrees |
 | `Label` | Accessible form labels | Required, disabled, and group labels |
+| `MediaViewer` | Full-screen lightbox over a list of images and videos: swipe or arrow paging, pinch / double-tap / wheel / keyboard zoom, swipe-down or Esc to close, custom video controls; subpath-only (`components/MediaViewer`), needs `expo-image` and `expo-video` | Photo and video galleries, a media library's preview, an attachment viewer |
 | `MaxWidthContainer` | Centered responsive width | Web pages, tablet layouts, auth forms |
 | `Notification` | Global toast surface | Saved/error/sync toasts, action toasts, loading toast |
 | `Screen` | Page container: safe-area `edges`, one horizontal inset, theme background, optional scroll | Every screen root; under a header pass `edges={["bottom"]}` |

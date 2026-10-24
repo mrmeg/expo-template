@@ -5,6 +5,7 @@ import * as AlertDialogPrimitive from "@rn-primitives/alert-dialog";
 import { AnimatedView } from "./AnimatedView";
 import { KeyboardAvoidingView } from "./KeyboardAvoidingView";
 import { useWindowInsets } from "../hooks/useWindowInsets";
+import { SUPPORTED_ORIENTATIONS } from "../lib/modalOrientations";
 import { useKeyboardDismissResponder } from "./keyboardDismiss";
 import { TextClassContext, TextColorContext } from "./StyledText.context";
 import { StyledText } from "./StyledText";
@@ -16,15 +17,6 @@ import { palette } from "../constants/colors";
 // ============================================================================
 // Presentation
 // ============================================================================
-
-/** The Modal follows the app's own orientation mask instead of RN's portrait-only default. */
-const SUPPORTED_ORIENTATIONS = [
-  "portrait",
-  "portrait-upside-down",
-  "landscape",
-  "landscape-left",
-  "landscape-right",
-] as const;
 
 interface DialogPresentationProps {
   /** The primitive's portal for this dialog kind; Android and web render through it. */

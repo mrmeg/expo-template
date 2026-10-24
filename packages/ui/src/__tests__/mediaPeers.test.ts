@@ -156,9 +156,12 @@ describe("the barrel does not import the optional media peers", () => {
       "components/Image.tsx",
       "components/MediaControlButton.tsx",
       "components/MediaScrubber.tsx",
+      "components/MediaViewer.tsx",
       "components/Video.tsx",
       "components/videoPlayback.tsx",
+      "lib/mediaZoom.ts",
       "lib/webFullscreen.ts",
+      "lib/webZoomEvents.ts",
     ]) {
       expect(visitedRelative.has(subpathOnly)).toBe(false);
     }
