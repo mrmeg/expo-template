@@ -394,6 +394,81 @@ describe("zoom events", () => {
     expect(list().props.scrollEnabled).toBe(true);
   });
 
+  it("does not also toggle the chrome when a double click zooms", async () => {
+    jest.useFakeTimers({ now: 10_000 });
+    await mount();
+    const opacity = () => flat(screen.getByTestId("media-viewer-chrome", hidden)).opacity;
+    expect(opacity()).toBe(1);
+
+    // A click's responder gesture: down and up in place.
+    const click = async () => {
+      const history = (active: number) => ({
+        touchBank: [{ touchActive: active === 1, startPageX: 200, startPageY: 400, startTimeStamp: 1, currentPageX: 200, currentPageY: 400, currentTimeStamp: 2, previousPageX: 200, previousPageY: 400, previousTimeStamp: 1 }],
+        numberActiveTouches: active,
+        indexOfSingleActiveTouch: active === 1 ? 0 : -1,
+        mostRecentTimeStamp: 2,
+      });
+      const event = (active: number) => ({ touchHistory: history(active), nativeEvent: { touches: [{ pageX: 200, pageY: 400 }] }, persist: () => {} });
+      await act(async () => {
+        imagePage().props.onStartShouldSetResponder(event(1));
+        imagePage().props.onResponderGrant(event(1));
+        imagePage().props.onResponderRelease(event(0));
+      });
+    };
+
+    await click();
+    await act(async () => {
+      jest.advanceTimersByTime(120);
+    });
+    await click();
+    await act(async () => {
+      zoomHandlers().onDoubleClick({ x: 200, y: 400 });
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(400);
+    });
+
+    expect(JSON.stringify(flat(zoomLayer()).transform)).toContain('"scale":2.5');
+    expect(opacity()).toBe(1);
+  });
+
+  it("removes the wheel and double click listeners when zoom turns off", async () => {
+    const detach = jest.fn();
+    mockedZoomEvents.attachZoomEvents.mockClear();
+    mockedZoomEvents.attachZoomEvents.mockImplementation(() => detach);
+    try {
+      const { rerender } = await mount();
+      const attached = mockedZoomEvents.attachZoomEvents.mock.calls.length;
+      expect(attached).toBeGreaterThan(0);
+      expect(detach).not.toHaveBeenCalled();
+
+      await rerender({ zoom: false });
+
+      expect(detach).toHaveBeenCalledTimes(attached);
+    } finally {
+      mockedZoomEvents.attachZoomEvents.mockImplementation(() => () => {});
+    }
+  });
+
+  it("does not leave a page that unmounted while zoomed locking the pager", async () => {
+    const { rerender, onClose } = await mount({ index: 0 });
+    await act(async () => {
+      zoomHandlers().onWheelZoom(2, { x: 0, y: 0 });
+    });
+    expect(list().props.scrollEnabled).toBe(false);
+
+    // Index 3 leaves the render window of index 0 in one render: page "a" unmounts without a word.
+    await rerender({ index: 3 });
+    await rerender({ index: 0 });
+
+    expect(list().props.scrollEnabled).toBe(true);
+    // Esc: the Modal's close request. A stale zoomed entry would turn it into a zoom reset.
+    await act(async () => {
+      screen.getByTestId("rn-modal", hidden).props.onRequestClose();
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("ignores the wheel and a double click on a page that is not the shown one", async () => {
     const { rerender } = await mount({ index: 1 });
     const stale = zoomHandlers();

@@ -727,7 +727,11 @@ function ImagePage(props: ImagePageProps) {
         publish(next === 1 ? IDENTITY_TRANSFORM : zoomAround(transform.current, next, focal, geometry()));
       },
       doubleClick: (focal: Point) => {
-        if (latest.current.active) toggleZoomAt(focal);
+        if (!latest.current.active) return;
+        // Both clicks of the double click armed the chrome toggle (the tap path leaves doubles to the browser).
+        clearTapTimer();
+        lastTap.current = null;
+        toggleZoomAt(focal);
       },
     };
   })[0];
@@ -755,11 +759,27 @@ function ImagePage(props: ImagePageProps) {
 
   useEffect(() => () => controller.clearTapTimer(), [controller]);
 
-  const attachWebZoom = useCallback(
-    (node: unknown) =>
-      attachZoomEvents(node, { onWheelZoom: controller.wheel, onDoubleClick: controller.doubleClick }),
-    [controller],
+  // A page that unmounts while zoomed or pinching (a jump out of the render window) cannot report it later:
+  // clear its entries so the pager is not left locked on return.
+  useEffect(
+    () => () => {
+      const { item: gone, onZoomChange, onPinchChange } = latest.current;
+      onZoomChange(gone.key, false);
+      onPinchChange(gone.key, false);
+    },
+    [],
   );
+
+  // The listeners follow `zoom` and the page's life. react-native-web's merged refs drop a ref callback's
+  // return value, so they cannot be removed from the ref itself.
+  const webNode = useRef<unknown>(null);
+  const setWebNode = useCallback((node: unknown) => {
+    webNode.current = node;
+  }, []);
+  useEffect(() => {
+    if (!zoom || !isWeb()) return;
+    return attachZoomEvents(webNode.current, { onWheelZoom: controller.wheel, onDoubleClick: controller.doubleClick });
+  }, [zoom, controller]);
 
   const nativeAccessibility = Platform.OS !== "web";
   const described = item.alt.trim() !== "";
@@ -790,7 +810,7 @@ function ImagePage(props: ImagePageProps) {
 
   return (
     <View
-      ref={zoom && isWeb() ? attachWebZoom : undefined}
+      ref={zoom && isWeb() ? setWebNode : undefined}
       style={[styles.page, { width, height }, webCursor, webTouch]}
       {...hiddenWhenInactive(active)}
       {...controller.responder.panHandlers}
