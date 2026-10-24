@@ -19,12 +19,12 @@ export const OBSERVED: Record<string, Partial<Record<Surface, Observed>>> = {
   //   plus a screenshot pass (alpha, animation, SVG, EXIF orientation).
   // - web-safari: Playwright WebKit 26.6 (Safari 26's engine, not Safari itself), same production build and checks.
   // - ios: iPhone 18 Pro simulator, iOS 27, dev client; each tile's onLoad/onError event (EXIF 6 reported
-  //   450x800, i.e. portrait). Not a visual pass.
+  //   450x800, i.e. portrait). Not a visual pass, so transparency and animation stay unverified on iOS.
   // HEIC: Chrome has no HEIC decoder (iOS and WebKit decode it). Truncated JPEG: both paint the decoded part instead of erroring.
   "core-landscape": { "web-chrome": "works", ios: "works", "web-safari": "works" },
   "core-portrait": { "web-chrome": "works", ios: "works", "web-safari": "works" },
   "core-square": { "web-chrome": "works", ios: "works", "web-safari": "works" },
-  "core-alpha": { "web-chrome": "works", ios: "works", "web-safari": "works" },
+  "core-alpha": { "web-chrome": "works", "web-safari": "works" },
   "img-aspect-21x9": { "web-chrome": "works", ios: "works", "web-safari": "works" },
   "img-aspect-3x1": { "web-chrome": "works", ios: "works", "web-safari": "works" },
   "img-aspect-1x3": { "web-chrome": "works", ios: "works", "web-safari": "works" },
@@ -36,14 +36,14 @@ export const OBSERVED: Record<string, Partial<Record<Surface, Observed>>> = {
   "img-fmt-jpeg-baseline": { "web-chrome": "works", ios: "works", "web-safari": "works" },
   "img-fmt-jpeg-progressive": { "web-chrome": "works", ios: "works", "web-safari": "works" },
   "img-fmt-png-opaque": { "web-chrome": "works", ios: "works", "web-safari": "works" },
-  "img-fmt-png-alpha": { "web-chrome": "works", ios: "works", "web-safari": "works" },
+  "img-fmt-png-alpha": { "web-chrome": "works", "web-safari": "works" },
   "img-fmt-png-16bit": { "web-chrome": "works", ios: "works", "web-safari": "works" },
   "img-fmt-webp-lossy": { "web-chrome": "works", ios: "works", "web-safari": "works" },
-  "img-fmt-webp-lossless-alpha": { "web-chrome": "works", ios: "works", "web-safari": "works" },
+  "img-fmt-webp-lossless-alpha": { "web-chrome": "works", "web-safari": "works" },
   "img-fmt-avif": { "web-chrome": "works", ios: "works", "web-safari": "works" },
-  "img-fmt-gif-animated": { "web-chrome": "works", ios: "works", "web-safari": "works" },
-  "img-fmt-webp-animated": { "web-chrome": "works", ios: "works", "web-safari": "works" },
-  "img-fmt-apng": { "web-chrome": "works", ios: "works", "web-safari": "works" },
+  "img-fmt-gif-animated": { "web-chrome": "works", "web-safari": "works" },
+  "img-fmt-webp-animated": { "web-chrome": "works", "web-safari": "works" },
+  "img-fmt-apng": { "web-chrome": "works", "web-safari": "works" },
   "img-fmt-svg-viewbox": { "web-chrome": "works", ios: "works", "web-safari": "works" },
   "img-fmt-svg-fixed": { "web-chrome": "works", ios: "works", "web-safari": "works" },
   "img-fmt-heic": { "web-chrome": "fails", ios: "works", "web-safari": "works" },

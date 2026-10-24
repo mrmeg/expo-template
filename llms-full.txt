@@ -1527,12 +1527,16 @@ Components (each entry is filled in when the component ships):
     `recyclingKey={item.id}`, so a reused cell shows a blank frame instead of
     the previous picture. Pass `source={{ uri, cacheKey }}` when the URL changes
     but the picture does not (re-signed URLs), so the cache hits.
-  - `placeholder` takes a blurhash or thumbhash string (bare, or with a
-    `blurhash:/` / `thumbhash:/` prefix) or a low-resolution URL or `{ uri }`;
-    there is no spinner. `transition` (ms, default 200) is forced to 0 under
+  - `placeholder` takes a blurhash string (bare, or with `blurhash:/`), a
+    thumbhash string with its `thumbhash:/` prefix (a bare string is read as a
+    blurhash), or a low-resolution URL or `{ uri }`; there is no spinner. `transition` (ms, default 200) is forced to 0 under
     reduced motion. `onLoad({ width, height })` reports the natural size and
     `onError` the failure; a new `source` clears an error. A `null` source keeps
     the frame in its loading look and calls nothing.
+  - Formats are the platform decoder's. HEIC shows the error state in Chrome
+    (it has no HEIC decoder) while iOS and WebKit decode it; convert HEIC to
+    JPEG or WebP before serving it to the web (`@mrmeg/expo-media`'s processing
+    does). The Media Lab lists what each surface did per format.
   - Web: `expo-image` adds its `<img>` after mount, so the server HTML carries
     the sized, muted frame but not the `<img>` (a low-resolution `placeholder`
     URL is the exception). The `<img>` has `alt`, `loading="lazy"` and, from
