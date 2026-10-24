@@ -118,6 +118,7 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "InputOTP", importPath: "@mrmeg/expo-ui/components/InputOTP", category: "form" },
   { id: "Item", importPath: "@mrmeg/expo-ui/components/Item", category: "layout" },
   { id: "Label", importPath: "@mrmeg/expo-ui/components/Label", category: "form" },
+  { id: "MediaViewer", importPath: "@mrmeg/expo-ui/components/MediaViewer", category: "media" },
   { id: "Popover", importPath: "@mrmeg/expo-ui/components/Popover", category: "overlay" },
   { id: "Progress", importPath: "@mrmeg/expo-ui/components/Progress", category: "feedback" },
   { id: "RadioGroup", importPath: "@mrmeg/expo-ui/components/RadioGroup", category: "form" },

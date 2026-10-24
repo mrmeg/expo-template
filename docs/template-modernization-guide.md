@@ -120,6 +120,19 @@ The Video renderer (`MediaLabVideo.tsx`) mounts one player at a time: a tile is
 a frame with a play glyph until it is tapped, so the corpus never creates thirty
 players, and tiles draw at `aspectRatio="auto"` and print the frame they ended
 up with, which is how the rotation-flagged clip is checked.
+The Viewer renderer (`MediaLabViewer.tsx`) is three buttons and two filter
+buttons, each opening `MediaViewer` on a set: every available image and video
+that is not a list-scale thumbnail (extreme aspects, the 48 MP picture,
+EXIF orientation 6, alpha PNG, animated GIF, the rotation-flagged clip, HLS
+with captions, broken files), the 60-thumbnail scale set, one item, and the
+Images or Video section's current chip filter. Go through each set on every
+surface: zoom clamps at the panorama's and the strip's edges, double-tap at the
+48 MP picture's corners, a broken file shows its error state inside its page and
+paging carries on, and a video page stops when you page away. The renderer is
+rows of buttons, never a list: the lab is a vertical `ScrollView`, and a
+vertical `FlatList` inside it logs a nested-VirtualizedList error on native.
+The viewer itself, like `Video`, is loaded through `client/components/LazyMediaViewer`
+and the shared `mediaChunk` (see `docs/bundle-analysis.md`).
 
 The corpus has three tiers:
 

@@ -9,11 +9,13 @@
  * media hooks are stubbed, so no request or native module is involved.
  */
 import React from "react";
-import { render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import type { MediaViewerProps } from "@mrmeg/expo-ui/components/MediaViewer";
 
 import "@/test/mockTheme";
 
 const mockImageSources: Array<{ uri?: string; cacheKey?: string }> = [];
+let mockViewer: MediaViewerProps | null = null;
 let mockSignature = "sig=first";
 
 jest.mock("expo-image", () => ({
@@ -64,8 +66,13 @@ jest.mock("@/client/features/media/mediaClient", () => {
 jest.mock("@/client/features/media/hooks/useMediaLibrary", () => ({
   useMediaLibrary: () => ({ pickMedia: jest.fn(), processing: false }),
 }));
-jest.mock("@/client/features/media/components/VideoPlayer", () => ({ VideoPlayer: () => null }));
-jest.mock("@/client/features/media/components/ImagePreview", () => ({ ImagePreview: () => null }));
+// The lightbox is the kit's `MediaViewer`, covered in `packages/ui`; here only what the tab hands it.
+jest.mock("@/client/components/LazyMediaViewer", () => ({
+  LazyMediaViewer: (props: MediaViewerProps) => {
+    mockViewer = props;
+    return null;
+  },
+}));
 
 import MediaScreen from "@/app/(main)/(tabs)/media";
 
@@ -107,6 +114,95 @@ describe("media tab thumbnails", () => {
       "https://bucket.example.dev/uploads/photo.jpg?sig=second",
     );
     expect(mockImageSources.every((source) => source.cacheKey)).toBe(true);
+  });
+});
+
+describe("media tab viewer", () => {
+  beforeEach(() => {
+    mockViewer = null;
+    mockSignature = "sig=first";
+  });
+
+  const expectedItems = (signature: string) => [
+    {
+      type: "video",
+      key: "videos/clip.mp4",
+      source: `https://bucket.example.dev/videos/clip.mp4?${signature}`,
+      title: "clip.mp4",
+      poster: {
+        uri: `https://bucket.example.dev/thumbnails/clip.jpg?${signature}`,
+        cacheKey: "thumbnails/clip.jpg",
+      },
+    },
+    {
+      type: "image",
+      key: "uploads/photo.jpg",
+      source: { uri: `https://bucket.example.dev/uploads/photo.jpg?${signature}`, cacheKey: "uploads/photo.jpg" },
+      alt: "photo.jpg",
+      title: "photo.jpg",
+    },
+  ];
+
+  it("is closed until a tile is opened", async () => {
+    await render(<MediaScreen />);
+
+    expect(mockViewer?.visible).toBe(false);
+  });
+
+  it("opens on the image that was tapped, with every image and video in list order", async () => {
+    await render(<MediaScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Open photo.jpg"));
+
+    expect(mockViewer?.visible).toBe(true);
+    expect(mockViewer?.initialIndex).toBe(1);
+    expect(mockViewer?.items).toEqual(expectedItems("sig=first"));
+  });
+
+  it("opens on the video whose play button was tapped, with the other items alongside it", async () => {
+    await render(<MediaScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Play clip.mp4"));
+
+    expect(mockViewer?.visible).toBe(true);
+    expect(mockViewer?.initialIndex).toBe(0);
+    expect(mockViewer?.items).toHaveLength(2);
+  });
+
+  it("closes, and keeps its items so the viewer can play its exit", async () => {
+    await render(<MediaScreen />);
+    await fireEvent.press(screen.getByLabelText("Open photo.jpg"));
+
+    await act(async () => {
+      mockViewer?.onClose();
+    });
+
+    expect(mockViewer?.visible).toBe(false);
+    expect(mockViewer?.items).toHaveLength(2);
+  });
+
+  it("keeps the URLs it opened with when the list is re-signed under it, so a playing clip does not restart", async () => {
+    const { rerender } = await render(<MediaScreen />);
+    await fireEvent.press(screen.getByLabelText("Play clip.mp4"));
+
+    mockSignature = "sig=second";
+    await rerender(<MediaScreen />);
+
+    expect(mockViewer?.items).toEqual(expectedItems("sig=first"));
+  });
+
+  it("takes the new URLs the next time it opens, still under the same cache keys", async () => {
+    const { rerender } = await render(<MediaScreen />);
+    await fireEvent.press(screen.getByLabelText("Open photo.jpg"));
+    await act(async () => {
+      mockViewer?.onClose();
+    });
+
+    mockSignature = "sig=second";
+    await rerender(<MediaScreen />);
+    await fireEvent.press(screen.getByLabelText("Open photo.jpg"));
+
+    expect(mockViewer?.items).toEqual(expectedItems("sig=second"));
   });
 });
 

@@ -1,21 +1,23 @@
 /**
- * The one place the app loads `@mrmeg/expo-ui/components/Video`.
+ * The app's way to render `@mrmeg/expo-ui/components/Video`.
  *
  * `Video` pulls in `expo-video`, the custom controls and the scrubber. The
- * media tab (through `VideoPlayer`) and the showcase cluster (previews and the
- * Media Lab) are separate async chunks, and Metro hoists any module reachable
- * from two of them into `__common`, which every route loads first. A static
- * import of `Video` from both would therefore put all of that into the first
- * download of routes that never play a video.
+ * showcase cluster (previews and the Media Lab) and the media tab (through
+ * `MediaViewer`) are separate async chunks, and Metro hoists any module
+ * reachable from two of them into `__common`, which every route loads first.
+ * A static import of `Video` from both would therefore put all of that into the
+ * first download of routes that never play a video.
  *
- * So both reach it here, through one `import()` specifier: one `Video` chunk,
- * fetched when a player is first rendered. `client/components/__tests__/lazyVideo.test.ts`
- * fails on any other value import. Types are fine: they are erased.
+ * So the app reaches `Video` only through `client/components/mediaChunk.ts`,
+ * the one module behind every lazy import of it and of `MediaViewer`: one
+ * chunk, fetched when a player is first rendered.
+ * `client/components/__tests__/mediaChunkSplitPoint.test.ts` fails on any other
+ * value import. Types are fine: they are erased.
  *
- * Every use is client-only (a modal that opens on a tap, a gallery behind
- * `ClientOnly`), so the server and the hydration pass render the black frame at
- * the final size and the player mounts after. An app that wants the player in
- * its server HTML imports `Video` directly.
+ * Every use is client-only (a gallery behind `ClientOnly`), so the server and
+ * the hydration pass render the black frame at the final size and the player
+ * mounts after. An app that wants the player in its server HTML imports `Video`
+ * directly.
  */
 import React, { Suspense } from "react";
 import { StyleSheet, View } from "react-native";
@@ -24,8 +26,8 @@ import { Hydrated } from "@mrmeg/expo-ui/components/Hydrated";
 import { palette } from "@mrmeg/expo-ui/constants";
 import { mediaFrameStyle, parseAspectRatio } from "@mrmeg/expo-ui/lib";
 
-/** The single split point. Do not add a second `import()` of this module. */
-const loadVideo = () => import("@mrmeg/expo-ui/components/Video");
+/** The split point: the shared media chunk. Do not import `Video` any other way. */
+const loadVideo = () => import("@/client/components/mediaChunk");
 
 const VideoLazy = React.lazy(async () => ({ default: (await loadVideo()).Video }));
 

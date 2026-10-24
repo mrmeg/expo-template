@@ -21,7 +21,7 @@
  */
 
 import React from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@mrmeg/expo-ui/components/Accordion";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
@@ -61,8 +61,11 @@ import { ThemeSelector } from "@mrmeg/expo-ui/components/ThemeSelector";
 import { Toggle } from "@mrmeg/expo-ui/components/Toggle";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@mrmeg/expo-ui/components/Tooltip";
+import type { MediaViewerItem } from "@mrmeg/expo-ui/components/MediaViewer";
+import { LazyMediaViewer } from "@/client/components/LazyMediaViewer";
 import { LazyVideo } from "@/client/components/LazyVideo";
-import { spacing } from "@mrmeg/expo-ui/constants";
+import { withAlpha } from "@mrmeg/expo-ui/hooks";
+import { palette, spacing } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
 // Small shared helpers
@@ -223,6 +226,75 @@ function VideoPreview() {
           </View>
         </Captioned>
       </Row>
+    </Stack>
+  );
+}
+
+/**
+ * The `MediaViewer` card: a strip of three thumbnails (a picture and two clips,
+ * each with its poster) that opens the viewer at the one tapped, so swiping
+ * crosses between image and video. The same core fixtures as the cards above.
+ */
+const VIEWER_ITEMS: MediaViewerItem[] = [
+  { type: "image", key: "landscape", source: LANDSCAPE, alt: "Color bars, landscape", title: "landscape.jpg" },
+  { type: "video", key: "landscape-video", source: LANDSCAPE_VIDEO, poster: LANDSCAPE, title: "landscape.mp4" },
+  { type: "video", key: "portrait-video", source: PORTRAIT_VIDEO, poster: PORTRAIT, title: "portrait.mp4" },
+];
+
+/** A translucent disc with a play glyph, centered over a poster: it says "video" without being a player. */
+const PLAY_BADGE_LAYER = {
+  position: "absolute",
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+  alignItems: "center",
+  justifyContent: "center",
+  pointerEvents: "none",
+} as const;
+const PLAY_BADGE = {
+  width: 28,
+  height: 28,
+  borderRadius: spacing.radiusFull,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: withAlpha(palette.black, 0.45),
+} as const;
+
+function MediaViewerPreview() {
+  const [open, setOpen] = React.useState<number | null>(null);
+  const close = React.useCallback(() => setOpen(null), []);
+
+  return (
+    <Stack gap={spacing.md}>
+      <Row gap={spacing.sm}>
+        {VIEWER_ITEMS.map((item, index) => (
+          <Pressable
+            key={item.key}
+            onPress={() => setOpen(index)}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${item.title}`}
+            testID={`viewer-thumb-${item.key}`}
+          >
+            <Image
+              source={item.type === "image" ? item.source : (item.poster ?? null)}
+              alt=""
+              fit="cover"
+              radius="md"
+              style={{ width: 88, height: 88 }}
+            />
+            {item.type === "video" ? (
+              <View style={PLAY_BADGE_LAYER}>
+                <View style={PLAY_BADGE}>
+                  <Icon name="play" size={14} color={palette.white} />
+                </View>
+              </View>
+            ) : null}
+          </Pressable>
+        ))}
+      </Row>
+      <CaptionText style={{ textAlign: "center" }}>Tap one to open the viewer, then swipe, pinch or press ← →</CaptionText>
+      <LazyMediaViewer items={VIEWER_ITEMS} visible={open !== null} initialIndex={open ?? 0} onClose={close} />
     </Stack>
   );
 }
@@ -596,6 +668,7 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
   // ── Media ───────────────────────────────────────────────────────────────
   Image: () => <ImagePreview />,
   Video: () => <VideoPreview />,
+  MediaViewer: () => <MediaViewerPreview />,
 
   // ── Typography ──────────────────────────────────────────────────────────
   Icon: () => (

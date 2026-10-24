@@ -27,6 +27,7 @@ import { GalleryChips, type GalleryChip } from "./GalleryChips";
 import { ALL_CATEGORIES, type CategoryFilter } from "./filters";
 import { ImageSection } from "./MediaLabImages";
 import { VideoSection } from "./MediaLabVideo";
+import { ViewerSection } from "./MediaLabViewer";
 import { ThemeToggle } from "./ThemeToggle";
 import {
   FIXTURE_SURFACES,
@@ -47,8 +48,8 @@ import {
  * `mediaFixtures.ts` with its availability, and holds one set of playground
  * controls that every section receives.
  *
- * Each component spec fills its own slot in {@link renderers} (`media-image`
- * and `media-video` are in; `media-audio` and `media-viewer` are pending); a section
+ * Each component spec fills its own slot in {@link renderers} (`media-image`,
+ * `media-video` and `media-viewer` are in; `media-audio` is pending); a section
  * with no renderer shows a pending line.
  *
  * Availability is checked client-side after mount (HEAD, 5 s timeout, at most
@@ -350,7 +351,7 @@ export type LabRenderers = Partial<Record<SectionId, SectionRenderer>>;
  * `audio`, `media-viewer` sets `viewer`. Each is a component receiving
  * {@link SectionRendererProps}.
  */
-export const renderers: LabRenderers = { image: ImageSection, video: VideoSection };
+export const renderers: LabRenderers = { image: ImageSection, video: VideoSection, viewer: ViewerSection };
 
 interface SectionDef {
   id: SectionId;
