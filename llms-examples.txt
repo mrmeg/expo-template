@@ -160,6 +160,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/ToggleGroup.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ToggleGroup.tsx
 - packages/ui/src/components/Tooltip.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Tooltip.tsx
 - packages/ui/src/components/UIProvider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/UIProvider.tsx
+- packages/ui/src/components/Video.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Video.tsx
 - packages/ui/src/components/bottomSheetDismiss.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/bottomSheetDismiss.ts
 - packages/ui/src/components/bottomSheetHostSupport.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/bottomSheetHostSupport.ts
 - packages/ui/src/components/iconBuiltins.generated.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/iconBuiltins.generated.ts
@@ -173,6 +174,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/nativeTextField.android.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeTextField.android.tsx
 - packages/ui/src/components/nativeTextField.ios.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeTextField.ios.tsx
 - packages/ui/src/components/nativeTextField.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeTextField.tsx
+- packages/ui/src/components/videoPlayback.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/videoPlayback.tsx
 
 ## Form Wrappers (`client/lib/form/`)
 

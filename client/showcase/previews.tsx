@@ -62,6 +62,7 @@ import { ThemeSelector } from "@mrmeg/expo-ui/components/ThemeSelector";
 import { Toggle } from "@mrmeg/expo-ui/components/Toggle";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@mrmeg/expo-ui/components/Tooltip";
+import { LazyVideo } from "@/client/components/LazyVideo";
 import { spacing } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -195,6 +196,61 @@ function AudioPlayerPreview() {
         <AudioPlayer variant="full" source="https://example.invalid/missing.mp3" title="Missing episode" subtitle="Broken source" />
         <CaptionText>full, source that fails to load</CaptionText>
       </View>
+    </Stack>
+  );
+}
+
+/**
+ * The `Video` card: custom and native controls on the bundled clip, a portrait
+ * clip capped by `maxHeight`, `fit="cover"` in a square frame, and the error
+ * state. The clips are the Media Lab's bundled core fixtures; only the
+ * deliberate failure leaves the device.
+ */
+const LANDSCAPE_VIDEO = require("@/assets/media/landscape.mp4");
+const PORTRAIT_VIDEO = require("@/assets/media/portrait.mp4");
+
+function VideoPreview() {
+  return (
+    <Stack gap={spacing.md}>
+      <Captioned caption='controls="custom", with a poster'>
+        <LazyVideo
+          source={LANDSCAPE_VIDEO}
+          controls="custom"
+          aspectRatio={{ width: 640, height: 360 }}
+          poster={LANDSCAPE}
+          radius="md"
+          title="Color bars"
+        />
+      </Captioned>
+
+      <Captioned caption='controls="native"'>
+        <LazyVideo
+          source={LANDSCAPE_VIDEO}
+          controls="native"
+          aspectRatio={{ width: 640, height: 360 }}
+          poster={LANDSCAPE}
+          radius="md"
+          title="Color bars"
+        />
+      </Captioned>
+
+      {/* Centered at its natural width, not stretched across the card. */}
+      <Captioned caption='aspectRatio="9:16" maxHeight={320}'>
+        <LazyVideo source={PORTRAIT_VIDEO} controls="custom" aspectRatio="9:16" maxHeight={320} radius="md" title="Portrait clip" />
+      </Captioned>
+
+      <Row gap={spacing.md}>
+        <Captioned caption='fit="cover", 1:1'>
+          <View style={{ width: 150 }}>
+            <LazyVideo source={LANDSCAPE_VIDEO} controls="custom" fit="cover" aspectRatio={1} radius="md" title="Cropped to a square" />
+          </View>
+        </Captioned>
+        <Captioned caption="error state">
+          <View style={{ width: 150 }}>
+            <LazyVideo source="https://example.invalid/missing.mp4" controls="custom" aspectRatio={1} radius="md" title="Missing clip" />
+          </View>
+        </Captioned>
+      </Row>
     </Stack>
   );
 }
@@ -568,6 +624,7 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
   // ── Media ───────────────────────────────────────────────────────────────
   AudioPlayer: () => <AudioPlayerPreview />,
   Image: () => <ImagePreview />,
+  Video: () => <VideoPreview />,
 
   // ── Typography ──────────────────────────────────────────────────────────
   Icon: () => (

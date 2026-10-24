@@ -1,8 +1,8 @@
 /**
- * VideoPlayer component using expo-video.
+ * VideoPlayer component using the design system's `Video`.
  *
- * Provides a modal-based video player with native controls,
- * fullscreen support, and loading states.
+ * Provides a modal-based video player with native controls, fullscreen
+ * support, and loading and error states (`Video` draws the last two).
  *
  * @example
  * ```tsx
@@ -14,25 +14,20 @@
  * ```
  */
 
-import React, { useEffect } from "react";
-import { useEvent } from "expo";
+import React from "react";
 import {
   View,
   Modal,
   StyleSheet,
   Pressable,
-  ActivityIndicator,
-  Platform,
   // eslint-disable-next-line expo-ui/no-raw-primitives -- full-screen player over black forces light status-bar content; the design-system StatusBar follows the theme
   StatusBar,
 } from "react-native";
-import { useVideoPlayer, VideoView } from "expo-video";
-import { useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
-import { createThemedStyles } from "@mrmeg/expo-ui/lib";
+import { withAlpha } from "@mrmeg/expo-ui/hooks";
 import { palette, spacing } from "@mrmeg/expo-ui/constants";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
-import type { Theme } from "@mrmeg/expo-ui/constants";
+import { LazyVideo } from "@/client/components/LazyVideo";
 import {
   useSafeAreaInsets,
   initialWindowMetrics,
@@ -58,55 +53,16 @@ export function VideoPlayer({
   title,
   autoPlay = true,
 }: VideoPlayerProps) {
-  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   // Use initialWindowMetrics as fallback since Modal may not have SafeAreaProvider context
   const topInset = insets.top || initialWindowMetrics?.insets.top || 0;
-  const styles = themedStyles(theme);
-
-  // Create video player instance with the source
-  const player = useVideoPlayer(uri, (player) => {
-    player.loop = false;
-    if (autoPlay && visible) {
-      player.play();
-    }
-  });
-
-  // Derive loading/error UI straight from the player's reactive status —
-  // useEvent re-renders on each `statusChange`, so there's no mirrored state
-  // to fall out of sync and no polling interval to leak.
-  const { status } = useEvent(player, "statusChange", {
-    status: player.status,
-  });
-  const isLoading = status === "loading";
-  const hasError = status === "error";
-
-  // Sync playback with visibility — a genuine external-system effect.
-  // Pausing on cleanup stops audio when the modal closes or the player is
-  // swapped, instead of letting it bleed into the background.
-  useEffect(() => {
-    if (visible && autoPlay) {
-      player.play();
-    } else {
-      player.pause();
-    }
-    return () => {
-      player.pause();
-    };
-  }, [visible, autoPlay, player]);
-
-  // Handle close
-  const handleClose = () => {
-    player.pause();
-    onClose();
-  };
 
   return (
     <Modal
       visible={visible}
       animationType="fade"
       presentationStyle="fullScreen"
-      onRequestClose={handleClose}
+      onRequestClose={onClose}
       statusBarTranslucent
     >
       <View style={styles.container}>
@@ -122,7 +78,7 @@ export function VideoPlayer({
             )}
           </View>
           <Pressable
-            onPress={handleClose}
+            onPress={onClose}
             style={styles.closeButton}
             hitSlop={20}
           >
@@ -130,36 +86,15 @@ export function VideoPlayer({
           </Pressable>
         </View>
 
-        {/* Video content */}
+        {/* Video content: the modal's children unmount when it closes, which
+            pauses the player, so nothing keeps playing behind a closed sheet. */}
         <View style={styles.videoContainer}>
-          {isLoading && (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color="white" />
-              <SansSerifText size="base" style={styles.loadingText}>
-                Loading video…
-              </SansSerifText>
-            </View>
-          )}
-
-          {hasError && (
-            <View style={styles.errorOverlay}>
-              <SansSerifText style={styles.errorText}>
-                Failed to load video
-              </SansSerifText>
-              <Pressable onPress={handleClose} style={styles.errorButton}>
-                <SansSerifText size="base" fontWeight="medium" style={styles.errorButtonText}>
-                  Close
-                </SansSerifText>
-              </Pressable>
-            </View>
-          )}
-
-          <VideoView
-            player={player}
-            style={styles.video}
-            contentFit="contain"
-            nativeControls
-            allowsPictureInPicture={Platform.OS !== "web"}
+          <LazyVideo
+            source={{ uri }}
+            controls="native"
+            fill
+            autoPlay={autoPlay}
+            title={title}
           />
         </View>
       </View>
@@ -167,77 +102,39 @@ export function VideoPlayer({
   );
 }
 
-const createStyles = (theme: Theme) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: palette.black,
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.sm,
-      backgroundColor: withAlpha(palette.black, 0.8),
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 10,
-    },
-    headerContent: {
-      flex: 1,
-      marginRight: spacing.md,
-    },
-    title: {
-      color: palette.white,
-    },
-    closeButton: {
-      padding: spacing.xs,
-      borderRadius: spacing.radiusFull,
-      backgroundColor: withAlpha(palette.white, 0.2),
-    },
-    videoContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    video: {
-      width: "100%",
-      height: "100%",
-    },
-    loadingOverlay: {
-      ...StyleSheet.absoluteFill,
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundColor: palette.black,
-      zIndex: 5,
-    },
-    loadingText: {
-      color: palette.white,
-      marginTop: spacing.md,
-    },
-    errorOverlay: {
-      ...StyleSheet.absoluteFill,
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundColor: palette.black,
-      zIndex: 5,
-    },
-    errorText: {
-      color: palette.white,
-      marginBottom: spacing.md,
-    },
-    errorButton: {
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.lg,
-      backgroundColor: theme.colors.primary,
-      borderRadius: spacing.radiusMd,
-    },
-    errorButtonText: {
-      color: theme.colors.primaryForeground,
-    },
-  });
-
-const themedStyles = createThemedStyles(createStyles);
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: palette.black,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+    backgroundColor: withAlpha(palette.black, 0.8),
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  headerContent: {
+    flex: 1,
+    marginRight: spacing.md,
+  },
+  title: {
+    color: palette.white,
+  },
+  closeButton: {
+    padding: spacing.xs,
+    borderRadius: spacing.radiusFull,
+    backgroundColor: withAlpha(palette.white, 0.2),
+  },
+  videoContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});
