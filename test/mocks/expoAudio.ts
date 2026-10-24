@@ -44,6 +44,7 @@ export interface FakeAudioPlayer {
   seekTo: jest.Mock;
   replace: jest.Mock;
   setPlaybackRate: jest.Mock;
+  setActiveForLockScreen: jest.Mock;
   remove: jest.Mock;
   source: unknown;
   muted: boolean;
@@ -51,6 +52,8 @@ export interface FakeAudioPlayer {
   loop: boolean;
   /** The status `useAudioPlayerStatus` returns. Replaced on every `playbackStatusUpdate`. */
   __status: FakeAudioStatus;
+  /** The real player's snapshot getter: the same object as `__status`. */
+  readonly currentStatus: FakeAudioStatus;
   /** Test helper: call every listener registered for `event` with `payload`. `playbackStatusUpdate` payloads merge into `__status`. */
   emit: (event: string, payload?: unknown) => void;
   addListener: (event: string, listener: Listener) => { remove: () => void };
@@ -90,12 +93,16 @@ export function createAudioPlayer(source: unknown = null): FakeAudioPlayer {
     seekTo: jest.fn(async () => {}),
     replace: jest.fn(),
     setPlaybackRate: jest.fn(),
+    setActiveForLockScreen: jest.fn(),
     remove: jest.fn(),
     source,
     muted: false,
     volume: 1,
     loop: false,
     __status: initialStatus(),
+    get currentStatus() {
+      return player.__status;
+    },
     emit: (event, payload) => {
       if (event === "playbackStatusUpdate") {
         player.__status = { ...player.__status, ...(payload as Partial<FakeAudioStatus>) };

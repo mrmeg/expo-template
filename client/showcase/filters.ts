@@ -66,7 +66,7 @@ export const COMPONENT_CATEGORY_DESCRIPTIONS: Record<ComponentCategory, string> 
   navigation: "Disclosure and view switching.",
   overlay: "Sheets, dialogs, and floating surfaces — native-feeling on every platform.",
   layout: "Structure for lists, cards, and metrics.",
-  media: "Images that size from an aspect ratio, with loading and error states. Needs an optional peer, so import by subpath.",
+  media: "Images and audio that size and behave the same on iOS, Android and web. Each needs an optional peer, so import by subpath.",
   typography: "Text and iconography, themed and font-overridable per host app.",
 };
 

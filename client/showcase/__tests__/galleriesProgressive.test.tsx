@@ -31,6 +31,9 @@ import {
   COMPONENT_PREVIEW_SCHEDULE,
 } from "../useProgressivePreviewCount";
 
+// `AudioPlayer` (in the Audio section and the previews) imports `expo-audio`, which has no native module under Jest: opt in to the fake.
+jest.mock("expo-audio", () => require("@/test/mocks/expoAudio"));
+
 jest.mock("@expo/ui/community/slider", () => {
   const { View } = require("react-native");
   return { Slider: (props: object) => <View testID="native-slider" {...props} /> };

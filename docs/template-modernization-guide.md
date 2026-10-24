@@ -116,6 +116,11 @@ poster; audio variant; container width 375 / 768 / 1280; theme) that every
 section receives. Each component spec fills its own `renderers` slot
 (`image`, `video`, `audio`, `viewer`) in `MediaLabScreen.tsx`; until then the
 section shows its metadata list and a "Component arrives with spec …" line.
+The Audio section renders every audio fixture through `AudioPlayer` in the
+playground's variant, tags each expected-error fixture with the error it
+reached, and holds a remote stream behind a "Load stream" button so a live
+stream is not opened on every visit; each tile otherwise owns a player, and on
+web an idle `<audio>` element.
 
 The corpus has three tiers:
 

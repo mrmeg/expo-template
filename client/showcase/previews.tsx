@@ -25,6 +25,7 @@ import { View } from "react-native";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@mrmeg/expo-ui/components/Accordion";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
+import { AudioPlayer } from "@mrmeg/expo-ui/components/AudioPlayer";
 import { Avatar, AvatarGroup } from "@mrmeg/expo-ui/components/Avatar";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { BottomSheet } from "@mrmeg/expo-ui/components/BottomSheet";
@@ -167,6 +168,33 @@ function ImagePreview() {
           <Image source="https://example.invalid/missing.jpg" alt="" radius="sm" style={{ width: 72, height: 72 }} />
         </Captioned>
       </Row>
+    </Stack>
+  );
+}
+
+/**
+ * The `AudioPlayer` card: a compact player on the bundled tone, a full player
+ * with a title, subtitle and artwork, and a full player on a source that
+ * cannot load, which lands in the unavailable state. Nothing here plays until
+ * pressed, and the only network request is the deliberate failure.
+ */
+const TONE = require("@/assets/media/tone.m4a");
+
+function AudioPlayerPreview() {
+  return (
+    <Stack gap={spacing.md}>
+      <View style={{ gap: spacing.xxs }}>
+        <AudioPlayer source={TONE} title="Tone" />
+        <CaptionText>compact</CaptionText>
+      </View>
+      <View style={{ gap: spacing.xxs }}>
+        <AudioPlayer variant="full" source={TONE} title="Morning tone" subtitle="Template sounds" artwork={SQUARE} showMute />
+        <CaptionText>full: artwork, title, subtitle, speed</CaptionText>
+      </View>
+      <View style={{ gap: spacing.xxs }}>
+        <AudioPlayer variant="full" source="https://example.invalid/missing.mp3" title="Missing episode" subtitle="Broken source" />
+        <CaptionText>full, source that fails to load</CaptionText>
+      </View>
     </Stack>
   );
 }
@@ -538,6 +566,7 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
   ),
 
   // ── Media ───────────────────────────────────────────────────────────────
+  AudioPlayer: () => <AudioPlayerPreview />,
   Image: () => <ImagePreview />,
 
   // ── Typography ──────────────────────────────────────────────────────────
