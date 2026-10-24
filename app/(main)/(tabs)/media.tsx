@@ -8,7 +8,6 @@ import {
   RefreshControl,
   type LayoutChangeEvent,
 } from "react-native";
-import { Image } from "expo-image";
 import { useDimensions, useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { palette, spacing } from "@mrmeg/expo-ui/constants";
 import {
@@ -20,6 +19,7 @@ import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Checkbox } from "@mrmeg/expo-ui/components/Checkbox";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { IconButton } from "@mrmeg/expo-ui/components/IconButton";
+import { Image } from "@mrmeg/expo-ui/components/Image";
 import { ImagePreview } from "@/client/features/media/components/ImagePreview";
 import { VideoPlayer } from "@/client/features/media/components/VideoPlayer";
 import { useMediaList, formatBytes } from "@/client/features/media/hooks/useMediaList";
@@ -970,15 +970,17 @@ const MediaTile = memo(function MediaTile({
           >
             <Image
               source={{ uri: signedUrl, cacheKey: itemKey }}
+              alt=""
+              fit="cover"
               style={square}
-              contentFit="cover"
             />
           </Pressable>
         ) : isVideo && thumbnailUrl ? (
           <Image
             source={{ uri: thumbnailUrl, cacheKey: getVideoThumbnailKey(itemKey) }}
+            alt=""
+            fit="cover"
             style={square}
-            contentFit="cover"
           />
         ) : (
           <View style={[styles.thumbnailIcon, square]}>

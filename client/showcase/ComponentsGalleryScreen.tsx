@@ -148,7 +148,7 @@ export default function ComponentsGalleryScreen() {
     <>
       <Seo
         title="Components - Expo Template"
-        description="Every themed primitive in @mrmeg/expo-ui, rendered live: form, feedback, navigation, overlay, layout, and typography."
+        description="Every themed primitive in @mrmeg/expo-ui, rendered live: form, feedback, navigation, overlay, layout, media, and typography."
       />
       {/* The ScrollView stays the screen's first native child so the stack
           header's scroll-edge effect finds it (see (tabs)/index.tsx). */}

@@ -128,6 +128,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/IconButton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconButton.tsx
 - packages/ui/src/components/IconGlyph.native.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconGlyph.native.tsx
 - packages/ui/src/components/IconGlyph.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconGlyph.tsx
+- packages/ui/src/components/Image.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Image.tsx
 - packages/ui/src/components/InputOTP.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/InputOTP.tsx
 - packages/ui/src/components/Item.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Item.tsx
 - packages/ui/src/components/KeyboardAvoidingView.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/KeyboardAvoidingView.tsx

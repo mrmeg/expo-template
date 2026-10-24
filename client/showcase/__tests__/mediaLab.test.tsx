@@ -59,6 +59,10 @@ import { MEDIA_FIXTURES, type MediaFixture } from "../mediaFixtures";
 const globalWithDev = globalThis as unknown as { __DEV__: boolean };
 const originalDev = globalWithDev.__DEV__;
 const originalFetch = global.fetch;
+// The renderers the screen ships with (the Images section's, from
+// `media-image`). These tests probe the slot contract with their own
+// renderers, so each starts from an empty map and restores this one after.
+const SHIPPED_RENDERERS = { ...renderers };
 
 /** Generated fixtures that "exist" on the mocked server; every other generated path 404s. */
 const BUILT = new Set([
@@ -115,6 +119,7 @@ async function settle() {
 }
 
 beforeEach(() => {
+  for (const id of Object.keys(renderers) as (keyof typeof renderers)[]) delete renderers[id];
   setScheme("light");
   globalWithDev.__DEV__ = true;
   installFetch();
@@ -123,10 +128,8 @@ beforeEach(() => {
 afterEach(() => {
   global.fetch = originalFetch;
   globalWithDev.__DEV__ = originalDev;
-  delete renderers.image;
-  delete renderers.video;
-  delete renderers.audio;
-  delete renderers.viewer;
+  for (const id of Object.keys(renderers) as (keyof typeof renderers)[]) delete renderers[id];
+  Object.assign(renderers, SHIPPED_RENDERERS);
   useThemeStore.setState({ userTheme: "system", systemTheme: "light", colorOverrides: {} });
 });
 
@@ -258,11 +261,10 @@ describe("Media Lab: availability", () => {
   });
 
   it("collapses a fixture with nothing observed into one unverified line", async () => {
-    await render(<MediaLabScreen />);
+    await render(<ObservedStatus fixture={{ ...MEDIA_FIXTURES[0], observed: {} }} />);
 
-    const landscape = row("image", "core-landscape");
-    expect(within(landscape).getByText("Not verified on any surface yet")).toBeTruthy();
-    expect(within(landscape).queryByText(/^iOS /)).toBeNull();
+    expect(screen.getByText("Not verified on any surface yet")).toBeTruthy();
+    expect(screen.queryByText(/^iOS /)).toBeNull();
   });
 
   it("shows chips only for observed surfaces and lists the untested ones", async () => {

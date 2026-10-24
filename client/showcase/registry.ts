@@ -50,6 +50,7 @@ export type ComponentCategory =
   | "navigation"
   | "overlay"
   | "layout"
+  | "media"
   | "typography";
 
 // ---------------------------------------------------------------------------
@@ -113,6 +114,7 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "EmptyState", importPath: "@mrmeg/expo-ui/components/EmptyState", category: "feedback" },
   { id: "Icon", importPath: "@mrmeg/expo-ui/components/Icon", category: "typography" },
   { id: "IconButton", importPath: "@mrmeg/expo-ui/components/IconButton", category: "form" },
+  { id: "Image", importPath: "@mrmeg/expo-ui/components/Image", category: "media" },
   { id: "InputOTP", importPath: "@mrmeg/expo-ui/components/InputOTP", category: "form" },
   { id: "Item", importPath: "@mrmeg/expo-ui/components/Item", category: "layout" },
   { id: "Label", importPath: "@mrmeg/expo-ui/components/Label", category: "form" },

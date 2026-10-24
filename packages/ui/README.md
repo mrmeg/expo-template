@@ -715,8 +715,9 @@ as native, so emitting a numeric weight on top makes the browser synthesise a
 ## Component Guide
 
 Every component is exported from `@mrmeg/expo-ui/components`, and from
-`@mrmeg/expo-ui/components/<Name>` for a direct import. Check this table before
-building a new primitive.
+`@mrmeg/expo-ui/components/<Name>` for a direct import, except the media
+components, which are subpath-only (see [Install](#install)). Check this table
+before building a new primitive.
 
 | Component | Use For | Examples |
 |-----------|---------|----------|
@@ -739,6 +740,7 @@ building a new primitive.
 | `ErrorBoundary` | React render error fallback | Route-level and feature-level fallbacks |
 | `Icon` | Registered Lucide glyphs or custom art on theme tokens | Button accessories, menu icons, status glyphs |
 | `IconButton` | Icon-only command: required `accessibilityLabel`, `Button` presets and states, `square` or `circle`, 44 pt hit area on every platform | Refresh, close, camera and toolbar buttons |
+| `Image` | Picture sized from an aspect ratio, with `fit` and focal `position`, placeholder, error state and required `alt`; subpath-only (`components/Image`), needs `expo-image` | Feed photos, grid thumbnails, covers and heroes |
 | `InputOTP` | Verification code entry | Email/SMS codes, MFA, invite codes |
 | `Item` | List and settings rows on the density tokens | Settings lists, inbox rows, pickers, detail rows |
 | `ItemGroup` | Flat grouped list: title, full-width `Item` rows with inset hairlines, footer | Settings sections, profile details, activity feeds |

@@ -29,6 +29,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     `useMediaAspectRatio` and the `MediaAspectRatio` type (`lib`).
   - Built-in icons: `play`, `pause`, `volume-2`, `volume-x`, `maximize`,
     `minimize`, `rotate-ccw`, `chevron-left`, `image-off`, `captions`.
+- **`Image`** (`@mrmeg/expo-ui/components/Image`, subpath-only, needs the
+  optional `expo-image` peer): a picture that sizes from an aspect ratio
+  (`16 / 9`, `"16:9"`, `{ width, height }` or `"auto"`) with `maxWidth` /
+  `maxHeight` clamping, `fill`, or the caller's `style`; every `expo-image`
+  fit (`fit`) with focal `position`; a `radius` from the radius scale; a
+  blurhash, thumbhash or low-resolution `placeholder`; a muted frame while
+  loading that goes transparent once loaded; an `image-off` error state or a
+  `fallback`; a required `alt` (`""` for decorative); `recyclingKey` for
+  recycled lists; and a cross-dissolve that is forced off under reduced motion.
 - `SegmentedControl` `size="lg"`: a 44 pt control drawn by the kit on iOS,
   Android and web (the native `md` control's height is fixed by the system:
   about 32 pt on iOS, the 40 dp Material 3 segmented button on Android).

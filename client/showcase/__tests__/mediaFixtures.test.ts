@@ -292,3 +292,26 @@ describe("resolveFixtureUri", () => {
     }
   });
 });
+
+describe("mediaObserved", () => {
+  it("only names fixtures that exist, with valid surfaces and values", () => {
+    const { OBSERVED } = require("../mediaObserved") as typeof import("../mediaObserved");
+    const ids = new Set(MEDIA_FIXTURES.map((fixture) => fixture.id));
+    const surfaces = ["ios", "android", "web-chrome", "web-safari", "web-firefox"];
+    for (const [id, bySurface] of Object.entries(OBSERVED)) {
+      expect([id, ids.has(id)]).toEqual([id, true]);
+      for (const [surface, value] of Object.entries(bySurface)) {
+        expect(surfaces).toContain(surface);
+        expect(["works", "fails", "partial"]).toContain(value);
+      }
+    }
+  });
+
+  it("merges observations into the manifest", () => {
+    const { OBSERVED } = require("../mediaObserved") as typeof import("../mediaObserved");
+    for (const [id, bySurface] of Object.entries(OBSERVED)) {
+      const fixture = MEDIA_FIXTURES.find((f) => f.id === id);
+      expect(fixture?.observed).toMatchObject(bySurface);
+    }
+  });
+});
