@@ -29,6 +29,8 @@ export interface MediaKeyboardEvent {
   ctrlKey?: boolean;
   metaKey?: boolean;
   altKey?: boolean;
+  /** True for the browser's auto-repeat while a key is held. */
+  repeat?: boolean;
   defaultPrevented?: boolean;
   target?: unknown;
   currentTarget?: unknown;
@@ -69,6 +71,9 @@ function isInnerControl(target: unknown, container: unknown): boolean {
     return false;
   }
 }
+
+/** Keys that toggle state: a held key's auto-repeat would flip it at the repeat rate, so only the first press counts. */
+const TOGGLE_KEYS = new Set([" ", "Spacebar", "k", "K", "m", "M", "f", "F", "Escape", "Esc"]);
 
 function actionFor(key: string, handlers: MediaKeyboardHandlers, innerControl: boolean): (() => void) | undefined {
   switch (key) {
@@ -139,6 +144,11 @@ export function useMediaKeyboard(handlers: MediaKeyboardHandlers): MediaKeyboard
   const onKeyDown = useCallback((event: MediaKeyboardEvent) => {
     if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
     if (typeof event.key !== "string" || isTextEntry(event.target)) return;
+    if (event.repeat && TOGGLE_KEYS.has(event.key)) {
+      // Still claim the key so a held Space does not scroll the page.
+      if (actionFor(event.key, handlersRef.current, isInnerControl(event.target, event.currentTarget))) event.preventDefault?.();
+      return;
+    }
 
     const handler = actionFor(event.key, handlersRef.current, isInnerControl(event.target, event.currentTarget));
     if (!handler) return;
