@@ -8,6 +8,8 @@ type NativeProps = {
   value: { value: string };
   autoFocus?: boolean;
   secureTextEntry?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
   onFocus?: () => void;
   onBlur?: () => void;
   onChangeText?: (text: string) => void;
@@ -104,6 +106,21 @@ jest.mock("@expo/ui", () => {
   };
 });
 
+// Jest resolves `nativeTextField.ios.tsx` for every `./nativeTextField` import,
+// even with `Platform.OS` set to "android" here, and that variant folds the
+// accessibility props into SwiftUI modifiers before the mocked `@expo/ui`
+// TextInput above sees them. This pass-through hands the mock exactly what
+// `TextInput.tsx` gives the native field, as the suite had before the split.
+// The Android conversion itself is covered by nativeTextField.android.test.tsx.
+jest.mock("../nativeTextField", () => {
+  const React = require("react") as typeof import("react");
+  const { TextInput } = require("@expo/ui");
+  return {
+    __esModule: true,
+    NativeTextField: (props: object) => React.createElement(TextInput, props),
+  };
+});
+
 const { lifecycle } = jest.requireMock("@expo/ui") as {
   lifecycle: {
     hosts: object[];
@@ -145,6 +162,14 @@ describe("TextInput Android native identity", () => {
     await cleanup();
     jest.useRealTimers();
     Platform.OS = originalOS;
+  });
+
+  it("hands the native field its name from label and its description from errorText", async () => {
+    await render(<TextInput label="Email" errorText="Email is required" helperText="We never share it" />);
+
+    expect(lifecycle.inputs).toHaveLength(1);
+    expect(lifecycle.inputs[0].props.accessibilityLabel).toBe("Email");
+    expect(lifecycle.inputs[0].props.accessibilityHint).toBe("Email is required");
   });
 
   it("keeps one focused host/input through show/hide/show and subsequent typing", async () => {

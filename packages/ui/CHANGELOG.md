@@ -5,6 +5,129 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.30.0]
+
+### Added
+
+- **Optional media peers.** `expo-image`, `expo-video` and `expo-audio` are now
+  `peerDependencies`, all marked optional in `peerDependenciesMeta`, so an app
+  that never renders media installs nothing new. The media components
+  (`Image`, `Video`, `AudioPlayer`, `MediaViewer`) are subpath-only
+  (`@mrmeg/expo-ui/components/Video`), never in the `components` barrel; a test
+  fails if the root barrel reaches a media peer. `expo-audio` adds native code,
+  so rebuild a dev client after installing it.
+- **Media primitives**, none of which import a media module:
+  - `MediaControlButton` (`@mrmeg/expo-ui/components/MediaControlButton`): an
+    icon-only control for chrome over video and images, a white glyph on a
+    translucent black circle (`sm`/`md`/`lg`, `selected`, 44 pt hit area).
+    Themed surfaces keep using `IconButton`.
+  - `MediaScrubber` (`@mrmeg/expo-ui/components/MediaScrubber`): a seek bar with
+    `onScrubStart` / `onScrubChange` / `onScrubEnd`, a buffered fill, `overlay`
+    and `default` tones, screen-reader increment and decrement, and web
+    keyboard seeking.
+  - `useMediaKeyboard` (`hooks`): player shortcuts scoped to one focusable
+    container, web only.
+  - `formatMediaTime`, `mediaTimeA11y`, `mediaFrameStyle`, `parseAspectRatio`,
+    `useMediaAspectRatio` and the `MediaAspectRatio` type (`lib`).
+  - Built-in icons: `play`, `pause`, `volume-2`, `volume-x`, `maximize`,
+    `minimize`, `rotate-ccw`, `chevron-left`, `chevron-right`, `x`,
+    `image-off`, `captions`.
+- **`Image`** (`@mrmeg/expo-ui/components/Image`, subpath-only, needs the
+  optional `expo-image` peer): a picture that sizes from an aspect ratio
+  (`16 / 9`, `"16:9"`, `{ width, height }` or `"auto"`) with `maxWidth` /
+  `maxHeight` clamping, `fill`, or the caller's `style`; every `expo-image`
+  fit (`fit`) with focal `position`; a `radius` from the radius scale; a
+  blurhash, thumbhash or low-resolution `placeholder`; a muted frame while
+  loading that goes transparent once loaded; an `image-off` error state or a
+  `fallback`; a required `alt` (`""` for decorative); `recyclingKey` for
+  recycled lists; and a cross-dissolve that is forced off under reduced motion.
+- **`Video`** (`@mrmeg/expo-ui/components/Video`, subpath-only, needs the
+  optional `expo-video` peer): a video that sizes from its own aspect ratio
+  (explicit, or `"auto"` from the video track) with `maxWidth` / `maxHeight`
+  clamping, `fill` and a `radius`, on iOS, Android and web.
+  `controls="native" | "custom" | "none"` picks the platform's controls, themed
+  controls that look the same everywhere (center play, scrubber with buffered
+  fill, time, mute, a captions toggle, fullscreen; hover, focus and tap reveal
+  that auto-hides after 3 s; web Space/K, arrows, M, F and Esc; a native
+  fullscreen `Modal` and web element fullscreen; screen-reader actions), or bare
+  playback. Also a `poster`, loading and error states with retry, live streams
+  (`Live`, disabled scrubber), `player` for your own `useVideoPlayer()`, and
+  `autoPlay`, `loop`, `muted`, `allowsFullscreen`, `allowsPictureInPicture`.
+- **`AudioPlayer`** (`@mrmeg/expo-ui/components/AudioPlayer`, subpath-only,
+  needs the optional `expo-audio` and `expo-image` peers): a themed, flat
+  player on `expo-audio` with the same controls on iOS, Android and web. A
+  `compact` row (play and pause, scrubber, time) and a `full` layout (artwork,
+  title, subtitle, elapsed and `-remaining` times, a speed button), an optional
+  mute button, `autoPlay`, `loop`, `lockScreen`, `onPlayingChange`, `onEnd` and
+  `onError`, and a `player` prop to bring your own `useAudioPlayer()`. It shows
+  a spinner while buffering, "Audio unavailable" for a source that fails or is
+  missing, `Live` with a disabled scrubber for a live stream, and on web
+  Space/K, ←/→ and M while focused. Server rendering draws a static shell and
+  creates the player after hydration, because `expo-audio`'s web player needs
+  `Audio`. It never calls `setAudioModeAsync`; the docs cover the silent
+  switch, background playback and the lock screen.
+- **`MediaViewer`** (`@mrmeg/expo-ui/components/MediaViewer`, subpath-only,
+  needs the optional `expo-image` and `expo-video` peers): a full-screen
+  lightbox over a list of images and videos on iOS, Android and web. Swipe,
+  arrow keys or edge buttons page between items (only the shown video page
+  mounts a player); images zoom by pinch, double-tap or double-click,
+  `Ctrl`/`Cmd` + wheel around the cursor, and `+` `-` `0`, with panning held
+  inside the picture's edges and paging off while zoomed; the close button, Esc
+  (which leaves zoom first), Android back and a swipe down close it, with the
+  backdrop fading under the drag; videos play with `Video`'s custom controls.
+  `items`, controlled `index` / `onIndexChange` or `initialIndex` (an item
+  deleted while open is followed by `key`), `videoControls`, `autoPlay`, `zoom`, `maxZoom`,
+  `doubleTapZoom` and `swipeToDismiss`. Focus lands on the close button, page
+  changes are announced, and image pages offer `increment`, `decrement` and
+  `escape` to a screen reader. Built on `Modal`, `PanResponder` and `Animated`
+  (no reanimated). Safari's own pinch event (`gesturechange`) is not handled
+  yet.
+- `SegmentedControl` `size="lg"`: a 44 pt control drawn by the kit on iOS,
+  Android and web (the native `md` control's height is fixed by the system:
+  about 32 pt on iOS, the 40 dp Material 3 segmented button on Android).
+- **`IconButton`** (`@mrmeg/expo-ui/components`): an icon-only button with a
+  required `accessibilityLabel` (dev-warned when empty), `Button`'s presets and
+  states, `sm`/`md`/`lg` visible sizes, `square` or `circle` shape, and a hit
+  area of at least 44 pt on iOS, Android and web. Use it for every icon-only
+  control; an unlabelled `Icon` is decorative since 0.28.
+- **`buttonHeights`** (`@mrmeg/expo-ui/components/Button`, and the components
+  barrel): the visible height of each `Button` size (`sm` 28, `md` 32, `lg` 40),
+  which `IconButton` draws its square from.
+
+### Fixed
+
+- The Lucide alias map in `lucide.json` (and `design-system.json`'s
+  `icons.aliases`) now includes the four names Lucide 1.57 keeps with a codepoint
+  of their own: `trash-2` (`trash`), `flip-horizontal`
+  (`square-centerline-dashed-horizontal`), `flip-vertical`
+  (`square-centerline-dashed-vertical`), and `text-selection`
+  (`square-dashed-text`). `expo-ui-icons add trash-2` now resolves to `trash`
+  instead of failing. 0.29.1's "no alias changes" missed them.
+- `TextInput` now gives its field an accessible name and description on every
+  platform. On iOS and Android the native field is named from `label` (SwiftUI
+  `accessibilityLabel`, Compose `contentDescription`) and described by
+  `errorText`, else `helperText`, so VoiceOver and TalkBack no longer announce
+  it by its placeholder; the visible label is hidden from assistive tech so it
+  is not read twice (on Android only with `@expo/ui` 57.0.21+ / 58.0.8+, the
+  first releases that pass `contentDescription` through; below them the label
+  stays readable), and a consumer's own `accessibilityLabel` /
+  `accessibilityHint` win. On web the error/helper text is linked to the
+  `<input>` with `aria-describedby` once hydrated (the old `accessibilityHint`
+  was dropped by react-native-web), and a consumer's `accessibilityLabel` is no
+  longer overridden by `label`.
+- Docs: the template's brand guide stated a 16/24 body and 14/20 caption;
+  `StyledText` renders body 15/24.75, caption 12/18, label 14/21, subheading
+  18/27. The tokens are unchanged. The `typography` constant's JSDoc now says it
+  is not the text scale.
+- `SegmentedControl` no longer shows the first segment selected when `value`
+  (or `defaultValue`) is not one of `values`; no segment is selected.
+- On web, each `SegmentedControl` `md` segment's tap target now spans the full
+  track height (32 pt), not 28.
+- `Item` passes `accessibilityLabel`, `accessibilityHint`, `accessibilityActions`,
+  `onAccessibilityAction`, `testID` and `ref` to its row (the `Pressable` when
+  `onPress` is set). They were silently dropped, so apps wrapped `Item` in
+  their own Pressable and lost its press feedback.
+
 ## [0.29.1]
 
 ### Changed

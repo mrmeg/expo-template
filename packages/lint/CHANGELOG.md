@@ -34,6 +34,30 @@ Changes on top of the 0.1.0 notes below, which have not been published yet.
 
 ### Added
 
+- **`icon-source`, the plugin's first fixable rule.** Every import of Lucide's
+  React packages (`lucide-react-native`, `lucide-react`) and of the vector-icon
+  fonts (`@expo/vector-icons`, `react-native-vector-icons`,
+  `@react-native-vector-icons/*`), each with its subpaths, is reported — by
+  `import`, re-export, `import()`, or `require()`, by the TypeScript-only forms
+  (`import X = require("…")` and the `import("…")` type), and type-only imports
+  too. Type exports of the Lucide packages (`LucideIconNode`, `LucideIconData`,
+  `SVGAttributes`, …) are the library, not icons. The
+  message names `<Icon name="<canonical>" />` and how to register the name, with
+  the canonical name resolved from the component (`Home` is `house`,
+  `AlertCircle` is `circle-alert`). `eslint --fix` rewrites Lucide's old (alias)
+  names to the canonical name in a `name` attribute of the `Icon` family and an
+  `icon` attribute of any design-system component; imports are never rewritten.
+  In `configs.recommended` at `error`, in `--rules`, `--doctor` (whose fixture now
+  trips six rules, plus an informational `icons:` line that never fails) and
+  `index.d.ts`.
+- **Icon facts in the loaders.** The source loader reads
+  `components/icon-names.json` and `icons/lucide.json` (names, Lucide's alias
+  table, and the snapshot version), and the manifest loader reads the manifest's
+  `icons` block. The block is additive, so `schemaVersion` stays 2. A manifest
+  from `@mrmeg/expo-ui` 0.28 (a names-only block) or earlier (none) still loads:
+  the import ban holds, no alias names are fixed, and the message tells the reader
+  to upgrade `@mrmeg/expo-ui` to 0.29.0 or later before running
+  `bunx expo-ui-icons`.
 - **`no-raw-typography`.** Numeric `fontSize` and `lineHeight` literals and
   string `fontFamily` literals in a style are reported. The message names the
   `StyledText` `size` whose font size or line height the literal matches, or

@@ -20,6 +20,7 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/detail-hero.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/detail-hero.tsx
 - app/(main)/(demos)/developer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/developer.tsx
 - app/(main)/(demos)/form-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/form-demo.tsx
+- app/(main)/(demos)/media-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/media-lab.tsx
 - app/(main)/(demos)/onboarding.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/onboarding.tsx
 - app/(main)/(demos)/screen-card-grid.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-card-grid.tsx
 - app/(main)/(demos)/screen-chat.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-chat.tsx
@@ -108,6 +109,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/Accordion.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Accordion.tsx
 - packages/ui/src/components/Alert.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Alert.tsx
 - packages/ui/src/components/AnimatedView.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/AnimatedView.tsx
+- packages/ui/src/components/AudioPlayer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/AudioPlayer.tsx
 - packages/ui/src/components/Avatar.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Avatar.tsx
 - packages/ui/src/components/Badge.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Badge.tsx
 - packages/ui/src/components/BottomSheet.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/BottomSheet.tsx
@@ -124,13 +126,18 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/ErrorBoundary.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ErrorBoundary.tsx
 - packages/ui/src/components/Hydrated.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Hydrated.tsx
 - packages/ui/src/components/Icon.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Icon.tsx
+- packages/ui/src/components/IconButton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconButton.tsx
 - packages/ui/src/components/IconGlyph.native.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconGlyph.native.tsx
 - packages/ui/src/components/IconGlyph.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconGlyph.tsx
+- packages/ui/src/components/Image.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Image.tsx
 - packages/ui/src/components/InputOTP.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/InputOTP.tsx
 - packages/ui/src/components/Item.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Item.tsx
 - packages/ui/src/components/KeyboardAvoidingView.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/KeyboardAvoidingView.tsx
 - packages/ui/src/components/Label.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Label.tsx
 - packages/ui/src/components/MaxWidthContainer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MaxWidthContainer.tsx
+- packages/ui/src/components/MediaControlButton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaControlButton.tsx
+- packages/ui/src/components/MediaScrubber.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaScrubber.tsx
+- packages/ui/src/components/MediaViewer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaViewer.tsx
 - packages/ui/src/components/Notification.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Notification.tsx
 - packages/ui/src/components/Popover.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Popover.tsx
 - packages/ui/src/components/Progress.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Progress.tsx
@@ -154,6 +161,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/ToggleGroup.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ToggleGroup.tsx
 - packages/ui/src/components/Tooltip.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Tooltip.tsx
 - packages/ui/src/components/UIProvider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/UIProvider.tsx
+- packages/ui/src/components/Video.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Video.tsx
 - packages/ui/src/components/bottomSheetDismiss.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/bottomSheetDismiss.ts
 - packages/ui/src/components/bottomSheetHostSupport.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/bottomSheetHostSupport.ts
 - packages/ui/src/components/iconBuiltins.generated.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/iconBuiltins.generated.ts
@@ -163,8 +171,11 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/keyboardController.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/keyboardController.ts
 - packages/ui/src/components/keyboardDismiss.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/keyboardDismiss.ts
 - packages/ui/src/components/keyboardFocusRegistry.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/keyboardFocusRegistry.ts
+- packages/ui/src/components/nativeFieldLabelSupport.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeFieldLabelSupport.ts
 - packages/ui/src/components/nativeTextField.android.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeTextField.android.tsx
+- packages/ui/src/components/nativeTextField.ios.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeTextField.ios.tsx
 - packages/ui/src/components/nativeTextField.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeTextField.tsx
+- packages/ui/src/components/videoPlayback.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/videoPlayback.tsx
 
 ## Form Wrappers (`client/lib/form/`)
 

@@ -54,6 +54,10 @@ const DEFAULT_UI_SOURCE_DIR = "packages/ui/src";
  * @property {Record<string, {paletteKey: string | null, value: string | null}>} darkTheme
  * @property {string[] | null} fontVariants the `FontVariant` union, or null
  * @property {{families: FontFamilies}} fonts the `fontFamilies` map of `constants/fonts.ts`
+ * @property {{names: string[], aliases: Record<string, string>, lucide: string | null}} icons
+ *   the builtin `Icon` names (`components/icon-names.json`), Lucide's old (alias)
+ *   names mapped to their canonical names, and the Lucide snapshot version
+ *   (`icons/lucide.json`); empty and `null` when the design system has none
  * @property {Map<string, ComponentInfo>} components
  * @property {import("./settings").DesignSystemOrigin | null} origin where these
  *   facts came from; `origin.error` says why an empty one is empty
@@ -64,6 +68,8 @@ const COLORS_FILE = path.join("constants", "colors.ts");
 const FONTS_FILE = path.join("constants", "fonts.ts");
 const STYLED_TEXT_FILE = path.join("components", "StyledText.tsx");
 const COMPONENTS_INDEX = path.join("components", "index.ts");
+const ICON_NAMES_FILE = path.join("components", "icon-names.json");
+const LUCIDE_SNAPSHOT_FILE = path.join("icons", "lucide.json");
 
 /**
  * How long a cached parse is trusted without re-reading mtimes. Every rule
@@ -118,7 +124,14 @@ function parseFile(file) {
 function signatureFor(uiSourceDir) {
   /** @type {string[]} */
   const parts = [];
-  for (const relative of [SPACING_FILE, COLORS_FILE, FONTS_FILE, COMPONENTS_INDEX]) {
+  for (const relative of [
+    SPACING_FILE,
+    COLORS_FILE,
+    FONTS_FILE,
+    COMPONENTS_INDEX,
+    ICON_NAMES_FILE,
+    LUCIDE_SNAPSHOT_FILE,
+  ]) {
     parts.push(relative + ":" + mtimeOf(path.join(uiSourceDir, relative)));
   }
   const componentsDir = path.join(uiSourceDir, "components");
@@ -166,6 +179,7 @@ function emptyDesignSystem() {
     darkTheme: {},
     fontVariants: null,
     fonts: { families: {} },
+    icons: { names: [], aliases: {}, lucide: null },
     components: new Map(),
     origin: null,
   };
@@ -319,7 +333,61 @@ function build(uiSourceDir) {
     readComponents(indexProgram, componentsDir, result);
     result.loaded = true;
   }
+  // Icon facts are data files, read with `JSON.parse`. They never set `loaded`:
+  // a directory with icons and nothing else is not a design system.
+  readIcons(uiSourceDir, result);
   return result;
+}
+
+/**
+ * @param {string} file
+ * @returns {Record<string, any> | null} the parsed JSON, or null on any failure
+ */
+function readJsonFile(file) {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The builtin icon names and Lucide's alias table. Each file is read on its own,
+ * so an unreadable snapshot still leaves the names filled. The snapshot's
+ * `icons` map (every glyph) is deliberately dropped: only the version and the
+ * aliases are facts the rules quote.
+ *
+ * @param {string} uiSourceDir
+ * @param {DesignSystem} result
+ */
+function readIcons(uiSourceDir, result) {
+  const names = readJsonFile(path.join(uiSourceDir, ICON_NAMES_FILE));
+  if (Array.isArray(names)) {
+    result.icons.names = names.filter((name) => typeof name === "string");
+  }
+  const snapshot = readJsonFile(path.join(uiSourceDir, LUCIDE_SNAPSHOT_FILE));
+  if (snapshot && typeof snapshot === "object" && !Array.isArray(snapshot)) {
+    if (typeof snapshot.lucide === "string") result.icons.lucide = snapshot.lucide;
+    result.icons.aliases = stringMap(snapshot.aliases);
+  }
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Record<string, string>} the own string-valued entries of a plain
+ *   object, as a fresh object; `{}` for anything that is not one
+ */
+function stringMap(value) {
+  /** @type {Record<string, string>} */
+  const map = {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) return map;
+  for (const key of Object.keys(value)) {
+    // `__proto__` would hit the setter instead of becoming an entry.
+    if (key === "__proto__") continue;
+    const entry = /** @type {Record<string, unknown>} */ (value)[key];
+    if (typeof entry === "string") map[key] = entry;
+  }
+  return map;
 }
 
 // ---------------------------------------------------------------------------
@@ -1041,4 +1109,5 @@ module.exports = {
   reportMissingDesignSystem,
   // exported for tests and for `lib/manifest.js`
   emptyDesignSystem,
+  stringMap,
 };

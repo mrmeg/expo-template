@@ -61,7 +61,8 @@ through one `import()` specifier by every consumer.
 | `client/features/auth/provider/clerkClient` (statically imports `@clerk/clerk-expo`, re-exports `ClerkProviderBoundary`) | `AuthProviderGate`, `getAuthClient()` | Clerk SDK + `swr` + `expo-auth-session` (~280 kB) |
 | `client/features/auth/provider/cognitoSdk` (statically imports `aws-amplify`, `aws-amplify/utils`, `aws-amplify/auth`, re-exports `Amplify` / `Hub` / `amplifyAuth`) | `cognitoClient.ts`, via one `await import("./cognitoSdk")` | the `aws-amplify` cluster |
 | `client/features/auth/components` | `AuthGate`, `(demos)/auth-demo` | auth screen + 5 forms (~47 kB raw, ~14 kB gzip) |
-| `client/showcase/gallery`, via `client/showcase/lazyGallery` | Explore tab rail + block spotlight, `themed-showcase`, `surface-lab`, `components`, `components/[id]`, `blocks` | the showcase cluster: previews of all 36 components, component details, block stages, plus the web engines only they reach (`vaul`, Radix select/menu/dialog/popover/tooltip, `@floating-ui`, `react-remove-scroll`) — ~575 kB raw / ~141 kB gzip as the `gallery-*` chunk; `__common` went from 906 kB to 504 kB raw |
+| `client/components/mediaChunk` (statically re-exports `@mrmeg/expo-ui/components/Video` and `.../MediaViewer`), via `LazyVideo` and `LazyMediaViewer` | `LazyVideo` (the `Video` preview and the Media Lab video section) and `LazyMediaViewer` (the media tab, the `MediaViewer` preview and the Media Lab viewer section) | `expo-video`, the custom controls, the scrubber and the viewer (zoom, paging, gestures): ~67 kB raw / ~21 kB gzip as the `mediaChunk-*` chunk, fetched when a player or a viewer is first rendered. It is one module for both wrappers on purpose: `MediaViewer` draws a `Video` per video page, so a separate `import()` of the viewer would leave `Video` reachable from two chunks and hoist it (+40 kB raw into `__common` on every route's first download, measured). Behind the shared module `__common` is 625 bytes smaller than before the viewer (the media tab's two modals left it), `entry` is byte-identical, and the `/` route's script set is 625 bytes smaller (1,883,817 to 1,883,192) |
+| `client/showcase/gallery`, via `client/showcase/lazyGallery` | Explore tab rail + block spotlight, `themed-showcase`, `surface-lab`, `media-lab`, `components`, `components/[id]`, `blocks` | the showcase cluster: previews of all 36 components, component details, block stages, plus the web engines only they reach (`vaul`, Radix select/menu/dialog/popover/tooltip, `@floating-ui`, `react-remove-scroll`) — ~575 kB raw / ~141 kB gzip as the `gallery-*` chunk; `__common` went from 906 kB to 504 kB raw |
 
 Adding a *static* import of one of those barrels — or a second `import()` with a
 different specifier for the same file — silently moves the whole graph back into
@@ -71,6 +72,7 @@ export can observe the regression directly:
 - `client/features/auth/__tests__/cognitoSdk.guardrail.test.ts`
 - `client/features/auth/components/__tests__/authComponentsSplitPoint.test.ts`
 - `client/showcase/__tests__/gallerySplitPoint.test.ts`
+- `client/components/__tests__/mediaChunkSplitPoint.test.ts`
 
 To check a boundary by hand, look for its sources in the `__common-*.js.map`
 sourcemap after `bun run build-web`.

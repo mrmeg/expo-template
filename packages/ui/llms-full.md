@@ -164,7 +164,7 @@ before creating a new app-local primitive.
 | `ErrorBoundary` | React render error fallback | Use for route or feature boundaries. |
 | `Icon` | Registered Lucide glyphs or custom art with theme tokens | `name` is a builtin or a name in `client/icons.json` (`bunx expo-ui-icons add <name>`); `color` takes a theme color name; an unlabeled icon is hidden from a11y. |
 | `InputOTP` | Verification code entry | Prefer over manually managed text input groups. |
-| `Item` | List / settings rows | Applies the row density tokens and a 44px native hit area (40px on web). |
+| `Item` | List / settings rows | Applies the row density tokens and a 44px native hit area (40px on web). A pressable row (`onPress`) is one button and takes `accessibilityLabel`, `accessibilityHint`, `accessibilityActions`, `onAccessibilityAction`, `testID` and `ref`; hint and actions are native-only. A static row takes `testID` and `ref` and ignores the accessibility props. |
 | `ItemGroup` | A titled group of full-width `Item` rows | Props: `title`, `description`, `footer`, `style`, `testID`. Draws inset hairlines between rows; no border, fill, or horizontal padding, so the parent must not pad either. |
 | `KeyboardAvoidingView` | Native keyboard-aware roots, composer footers, form-heavy subtrees | `UIProvider` already mounts one root; use directly only for custom subtrees. |
 | `Label` | Accessible form labels | Two distinct ids: `nativeID` is the label's, `htmlFor` is the input's `nativeID`. Never reuse one id for both. |
@@ -174,7 +174,7 @@ before creating a new app-local primitive.
 | `Progress` | Determinate or indeterminate progress | Omit `value` for indeterminate. Prefer over layout-shifting spinners. |
 | `RadioGroup` | Small mutually exclusive choices | Use `Select` for longer option sets. |
 | `SectionHeader` | Eyebrow / title / description section intro | Prefer over stacked ad hoc heading text. |
-| `SegmentedControl` | Native segmented picker | Backed by `@expo/ui`; the platform owns its look. |
+| `SegmentedControl` | Segmented picker | `md` (default) is the native `@expo/ui` control on iOS/Android (about 32 pt on iOS, the 40 dp Material 3 segmented button on Android; the platform owns its look). Web, and `size="lg"` on every platform, draw the kit control from theme tokens (`lg` is 44 pt; `appearance` is ignored). A `value` (or `defaultValue`) not in `values` selects no segment. |
 | `Select` | Option menus | `SelectContent` requires root `UIProvider` portal host; `label` drives default item text. |
 | `Separator` | Horizontal or vertical dividers | Prefer over border-only spacer views. |
 | `Skeleton` | Loading placeholders | Use stable dimensions to avoid layout shift. |

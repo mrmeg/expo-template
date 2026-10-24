@@ -35,6 +35,7 @@ export const COMPONENT_CATEGORIES: ComponentCategory[] = [
   "navigation",
   "overlay",
   "layout",
+  "media",
   "typography",
 ];
 
@@ -44,6 +45,7 @@ export const COMPONENT_CATEGORY_LABELS: Record<ComponentCategory, string> = {
   navigation: "Navigation",
   overlay: "Overlay",
   layout: "Layout",
+  media: "Media",
   typography: "Typography",
 };
 
@@ -54,6 +56,7 @@ export const COMPONENT_CATEGORY_SHORT_LABELS: Record<ComponentCategory, string> 
   navigation: "nav",
   overlay: "overlay",
   layout: "layout",
+  media: "media",
   typography: "type",
 };
 
@@ -63,6 +66,7 @@ export const COMPONENT_CATEGORY_DESCRIPTIONS: Record<ComponentCategory, string> 
   navigation: "Disclosure and view switching.",
   overlay: "Sheets, dialogs, and floating surfaces — native-feeling on every platform.",
   layout: "Structure for lists, cards, and metrics.",
+  media: "Images, video and audio that size and behave the same on iOS, Android and web, with loading and error states, and a full-screen viewer to swipe and zoom through them. Each needs an optional peer, so import by subpath.",
   typography: "Text and iconography, themed and font-overridable per host app.",
 };
 

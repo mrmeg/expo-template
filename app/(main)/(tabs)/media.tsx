@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useReducer, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -8,7 +8,6 @@ import {
   RefreshControl,
   type LayoutChangeEvent,
 } from "react-native";
-import { Image } from "expo-image";
 import { useDimensions, useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { palette, spacing } from "@mrmeg/expo-ui/constants";
 import {
@@ -19,8 +18,10 @@ import {
 import { Button } from "@mrmeg/expo-ui/components/Button";
 import { Checkbox } from "@mrmeg/expo-ui/components/Checkbox";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
-import { ImagePreview } from "@/client/features/media/components/ImagePreview";
-import { VideoPlayer } from "@/client/features/media/components/VideoPlayer";
+import { IconButton } from "@mrmeg/expo-ui/components/IconButton";
+import { Image } from "@mrmeg/expo-ui/components/Image";
+import type { MediaViewerItem } from "@mrmeg/expo-ui/components/MediaViewer";
+import { LazyMediaViewer } from "@/client/components/LazyMediaViewer";
 import { useMediaList, formatBytes } from "@/client/features/media/hooks/useMediaList";
 import type { MediaItem } from "@mrmeg/expo-media/client";
 import { useSignedUrls } from "@/client/features/media/hooks/useSignedUrls";
@@ -50,16 +51,6 @@ import { Seo } from "@/client/components/Seo";
 import { useTabHeaderTitle } from "@/client/features/navigation/tabTitle";
 
 type FilterType = "all" | keyof typeof MEDIA_PATHS;
-type MediaViewerState =
-  | { type: "video"; url: string; title: string }
-  | { type: "image"; url: string; title: string }
-  | null;
-
-type MediaViewerAction =
-  | { type: "playVideo"; url: string; title: string }
-  | { type: "previewImage"; url: string; title: string }
-  | { type: "close" };
-
 /**
  * Stand-in for the server's 503 `media-disabled` problem, used when native has
  * no API origin configured. Built once at module scope so the screen's memoized
@@ -69,6 +60,8 @@ const UNCONFIGURED_MEDIA_ERROR = new MediaError({
   kind: "disabled",
   missing: ["EXPO_PUBLIC_API_URL"],
 });
+
+const NO_VIEWER_ITEMS: MediaViewerItem[] = [];
 
 const MEDIA_FILTERS: { key: FilterType; label: string }[] = [
   { key: "all", label: "All" },
@@ -125,20 +118,6 @@ function buildUploadMetadata(asset: ProcessedAsset) {
   return Object.keys(metadata).length > 0 ? metadata : undefined;
 }
 
-function mediaViewerReducer(
-  state: MediaViewerState,
-  action: MediaViewerAction
-): MediaViewerState {
-  switch (action.type) {
-  case "playVideo":
-    return { type: "video", url: action.url, title: action.title };
-  case "previewImage":
-    return { type: "image", url: action.url, title: action.title };
-  case "close":
-    return null;
-  }
-}
-
 export default function MediaScreen() {
   useTabHeaderTitle("media");
   return useMediaScreenContent();
@@ -160,10 +139,10 @@ function useMediaScreenContent() {
   const [selectedKeyCandidates, setSelectedKeyCandidates] = useState<Set<string>>(
     () => new Set()
   );
-  const [mediaViewer, dispatchMediaViewer] = useReducer(
-    mediaViewerReducer,
-    null
-  );
+  // What the viewer was opened with: the items as they were at that moment, and the one tapped. Frozen for the
+  // whole visit: every refetch re-signs the URLs, and a `Video` handed a new source restarts what it is playing.
+  // `open` is separate so closing keeps the items for the viewer's own exit.
+  const [viewer, setViewer] = useState<{ items: MediaViewerItem[]; start: number; open: boolean } | null>(null);
 
   // Each query's fields are destructured immediately rather than kept in a
   // keyed object or array of query objects. React Compiler widens the mutable
@@ -613,17 +592,55 @@ function useMediaScreenContent() {
     enabled: videoKeys.length > 0 && !isMediaOriginUnconfigured,
   });
 
-  const handlePlayVideo = useCallback((filename: string, signedUrl: string) => {
-    dispatchMediaViewer({ type: "playVideo", url: signedUrl, title: filename });
-  }, []);
+  // One viewer over the whole list, so swiping spans the library: every image and video that has a signed
+  // URL yet. Thumbnails are cached under their object key, not the re-signed URL (see MediaTile).
+  const viewerItems = useMemo<MediaViewerItem[]>(
+    () =>
+      mediaItems.flatMap((item): MediaViewerItem[] => {
+        const signedUrl = signedUrlData?.urls?.[item.key];
+        if (!signedUrl) return [];
+        const filename = item.key.split("/").pop() || item.key;
+        if (isVideoKey(item.key)) {
+          const thumbnailUrl = thumbnailUrlData?.urls?.[filename.replace(/\.[^.]+$/, ".jpg")];
+          return [
+            {
+              type: "video",
+              key: item.key,
+              source: signedUrl,
+              title: filename,
+              poster: thumbnailUrl
+                ? { uri: thumbnailUrl, cacheKey: getVideoThumbnailKey(item.key) }
+                : undefined,
+            },
+          ];
+        }
+        if (isImageKey(item.key)) {
+          return [
+            {
+              type: "image",
+              key: item.key,
+              source: { uri: signedUrl, cacheKey: item.key },
+              alt: filename,
+              title: filename,
+            },
+          ];
+        }
+        return [];
+      }),
+    [mediaItems, signedUrlData, thumbnailUrlData]
+  );
 
-  const handlePreviewImage = useCallback((filename: string, signedUrl: string) => {
-    dispatchMediaViewer({
-      type: "previewImage",
-      url: signedUrl,
-      title: filename,
-    });
-  }, []);
+  const handleOpenViewer = useCallback(
+    (itemKey: string) => {
+      const start = viewerItems.findIndex((item) => item.key === itemKey);
+      if (start >= 0) setViewer({ items: viewerItems, start, open: true });
+    },
+    [viewerItems]
+  );
+  const handleCloseViewer = useCallback(
+    () => setViewer((current) => (current ? { ...current, open: false } : current)),
+    []
+  );
 
   // Memoize the refresh control so the FlatList doesn't get a brand-new element
   // every render.
@@ -665,8 +682,7 @@ function useMediaScreenContent() {
           styles={styles}
           theme={theme}
           onToggleSelect={toggleSelectedKey}
-          onPreviewImage={handlePreviewImage}
-          onPlayVideo={handlePlayVideo}
+          onOpenViewer={handleOpenViewer}
           onDelete={handleDelete}
         />
       );
@@ -680,8 +696,7 @@ function useMediaScreenContent() {
       styles,
       theme,
       toggleSelectedKey,
-      handlePreviewImage,
-      handlePlayVideo,
+      handleOpenViewer,
       handleDelete,
     ]
   );
@@ -731,17 +746,23 @@ function useMediaScreenContent() {
             </SansSerifBoldText>
             <SansSerifText size="sm" style={styles.statLabel}>Total Size</SansSerifText>
           </View>
-          <Button preset="ghost" size="sm" onPress={() => refetch()}>
-            <Icon name="refresh-cw" size={16} color={theme.colors.primary} />
-          </Button>
-          <Button
-            preset="default"
-            size="sm"
-            onPress={handleUpload}
-            disabled={uploadDisabled}
-          >
-            <Icon name="upload" size={16} color={theme.colors.primaryForeground} />
-          </Button>
+          <View style={styles.summaryActions}>
+            <IconButton
+              icon="refresh-cw"
+              accessibilityLabel="Refresh media"
+              preset="ghost"
+              size="sm"
+              onPress={() => refetch()}
+            />
+            <IconButton
+              icon="upload"
+              accessibilityLabel="Upload media"
+              preset="default"
+              size="sm"
+              onPress={handleUpload}
+              disabled={uploadDisabled}
+            />
+          </View>
         </View>
       </View>
 
@@ -871,25 +892,14 @@ function useMediaScreenContent() {
         </>
       )}
 
-      {/* Video Player Modal */}
-      {mediaViewer?.type === "video" && (
-        <VideoPlayer
-          uri={mediaViewer.url}
-          visible
-          onClose={() => dispatchMediaViewer({ type: "close" })}
-          title={mediaViewer.title}
-        />
-      )}
-
-      {/* Image Preview Modal */}
-      {mediaViewer?.type === "image" && (
-        <ImagePreview
-          uri={mediaViewer.url}
-          visible
-          onClose={() => dispatchMediaViewer({ type: "close" })}
-          title={mediaViewer.title}
-        />
-      )}
+      {/* One viewer over every image and video in the list. */}
+      <LazyMediaViewer
+        items={viewer?.items ?? NO_VIEWER_ITEMS}
+        visible={viewer?.open ?? false}
+        initialIndex={viewer?.start ?? 0}
+        onClose={handleCloseViewer}
+        autoPlay
+      />
     </View>
   );
 }
@@ -918,8 +928,8 @@ interface MediaTileProps {
   styles: ReturnType<typeof createStyles>;
   theme: Theme;
   onToggleSelect: (key: string) => void;
-  onPreviewImage: (filename: string, signedUrl: string) => void;
-  onPlayVideo: (filename: string, signedUrl: string) => void;
+  /** Open the viewer on this item (an image's tile, a video's play button). */
+  onOpenViewer: (key: string) => void;
   onDelete: (key: string) => void;
 }
 
@@ -938,8 +948,7 @@ const MediaTile = memo(function MediaTile({
   styles,
   theme,
   onToggleSelect,
-  onPreviewImage,
-  onPlayVideo,
+  onOpenViewer,
   onDelete,
 }: MediaTileProps) {
   const filename = itemKey.split("/").pop() || itemKey;
@@ -957,21 +966,23 @@ const MediaTile = memo(function MediaTile({
       <View style={[styles.thumbnail, square]}>
         {isImage && signedUrl ? (
           <Pressable
-            onPress={() => onPreviewImage(filename, signedUrl)}
+            onPress={() => onOpenViewer(itemKey)}
             accessibilityRole="imagebutton"
             accessibilityLabel={`Open ${filename}`}
           >
             <Image
               source={{ uri: signedUrl, cacheKey: itemKey }}
+              alt=""
+              fit="cover"
               style={square}
-              contentFit="cover"
             />
           </Pressable>
         ) : isVideo && thumbnailUrl ? (
           <Image
             source={{ uri: thumbnailUrl, cacheKey: getVideoThumbnailKey(itemKey) }}
+            alt=""
+            fit="cover"
             style={square}
-            contentFit="cover"
           />
         ) : (
           <View style={[styles.thumbnailIcon, square]}>
@@ -987,7 +998,7 @@ const MediaTile = memo(function MediaTile({
         {isVideo && signedUrl && (
           <Pressable
             style={styles.playOverlay}
-            onPress={() => onPlayVideo(filename, signedUrl)}
+            onPress={() => onOpenViewer(itemKey)}
             accessibilityRole="button"
             accessibilityLabel={`Play ${filename}`}
           >
@@ -1071,6 +1082,13 @@ const createStyles = (theme: Theme) =>
       gap: spacing.sm,
       paddingHorizontal: spacing.screenPadding,
       paddingVertical: spacing.sm,
+    },
+    // Each `sm` IconButton's hit slop reaches 8 pt past its edge, so the two
+    // need a 16 pt gap for their hit areas not to overlap.
+    summaryActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
     },
     stat: {
       flex: 1,

@@ -140,6 +140,87 @@ The gallery route files under
 (`client/showcase/gallery.tsx`), keeping previews out of every other route's
 first-render download — see `docs/bundle-analysis.md`.
 
+### Media Lab and fixtures
+
+`/media-lab` (`client/showcase/MediaLabScreen.tsx`, listed in Explore under
+Demos & Tools) checks `Image`, `Video`, `AudioPlayer` and `MediaViewer` against
+every case a real app meets. It lists every fixture in
+`client/showcase/mediaFixtures.ts` with its availability and what each surface
+was observed to do (a chip per tested surface; untested ones collapse into one
+"unverified" line), and holds one set of playground controls (image fit,
+position, sizing, max height, radius; video controls, fit, autoplay, loop,
+poster; audio variant; container width 375 / 768 / 1280; theme) that every
+section receives. Each component spec fills its own `renderers` slot
+(`image`, `video`, `audio`, `viewer`) in `MediaLabScreen.tsx`; until then the
+section shows its metadata list and a "Component arrives with spec …" line.
+The Video renderer (`MediaLabVideo.tsx`) mounts one player at a time: a tile is
+a frame with a play glyph until it is tapped, so the corpus never creates thirty
+players, and tiles draw at `aspectRatio="auto"` and print the frame they ended
+up with, which is how the rotation-flagged clip is checked.
+The Audio section renders every audio fixture through `AudioPlayer` in the
+playground's variant, tags each expected-error fixture with the error it
+reached, and holds a remote stream behind a "Load stream" button so a live
+stream is not opened on every visit; each tile otherwise owns a player, and on
+web an idle `<audio>` element.
+The Viewer renderer (`MediaLabViewer.tsx`) is three buttons and two filter
+buttons, each opening `MediaViewer` on a set: every available image and video
+that is not a list-scale thumbnail (extreme aspects, the 48 MP picture,
+EXIF orientation 6, alpha PNG, animated GIF, the rotation-flagged clip, HLS
+with captions, broken files), the 60-thumbnail scale set, one item, and the
+Images or Video section's current chip filter. Go through each set on every
+surface: zoom clamps at the panorama's and the strip's edges, double-tap at the
+48 MP picture's corners, a broken file shows its error state inside its page and
+paging carries on, and a video page stops when you page away. The renderer is
+rows of buttons, never a list: the lab is a vertical `ScrollView`, and a
+vertical `FlatList` inside it logs a nested-VirtualizedList error on native.
+The viewer itself, like `Video`, is loaded through `client/components/LazyMediaViewer`
+and the shared `mediaChunk` (see `docs/bundle-analysis.md`).
+
+The corpus has three tiers:
+
+| Tier | Where | Notes |
+|------|-------|-------|
+| `core` | `assets/media/`, committed, 2.5 MB at most | `landscape.jpg`, `portrait.jpg`, `square.jpg`, `alpha.png`, `landscape.mp4`, `portrait.mp4`, `tone.m4a`, bundled with `require()`; gallery previews use these and they are always available |
+| `generated` | `public/media-fixtures/`, gitignored | Aspect ratios, formats, codecs, EXIF orientation, color profiles, rotation metadata, durations past 1 h, list-scale sets and broken files; served from the app's own origin |
+| `remote` | a public URL | Verified HLS, DASH, live, captions and alternate-audio streams |
+
+Build the generated tier with `bun run media:fixtures`. `--core` rebuilds only
+the committed core, `--only <id,…>` builds a subset (a trailing `*` matches a
+prefix), and `--list [--json]` prints every fixture with its tools and status.
+Every fixture is synthetic (lavfi `testsrc2`, `smptehdbars`, `mandelbrot`,
+`sine`, geq and hue filters, hand-written bytes), so the repo carries no
+third-party media. **ffmpeg and ffprobe are required**; `avifenc`, `cwebp`,
+`img2webp`, `cjpeg` and macOS `sips` each cover a few fixtures, and a fixture
+whose tool is missing is skipped with a warning while the run continues. The
+script ends with a table of what was built, what was skipped and why, and the
+total size. Output is not byte-stable across encoder versions and `sips` is
+macOS-only, so the generator is not part of `bun run gen` or `bun run verify`.
+CI and Railway have none of these tools; the lab shows a missing fixture as
+`not generated` (never an error tile) and the manifest tests read the generator
+through `--list --json`, which needs no tools.
+
+A generated path resolves against the app origin: relative on web, the API
+origin (or the dev server's `hostUri` in development) on native, and `no
+origin` on a native release build without one. The lab HEAD-checks every
+generated and remote fixture after mount and shows one of four states:
+`available`, `not generated`, `unreachable` (remote), `no origin`. A fixture
+that is not available is never handed to a renderer; an intentionally broken one
+is available and carries an `expects error` tag, so the two never look alike.
+
+To record what a component does, edit `observed` in `mediaFixtures.ts` for the
+fixture and surface you actually ran (`ios`, `android`, `web-chrome`,
+`web-safari`, `web-firefox`) with `works`, `fails` or `partial`, and leave
+every surface you did not test unset (shown as `unverified`). Never fill support
+from memory. Adding a generated fixture means one declaration in
+`scripts/build-media-fixtures.mjs` and one entry in `mediaFixtures.ts` with the
+same id and path; `client/showcase/__tests__/mediaFixtures.test.ts` fails when
+the two disagree.
+
+To see loading states, throttle the network rather than the fixture: Chrome
+DevTools network throttling (Slow 4G) on web, and Network Link Conditioner on an
+iOS simulator or device. The non-faststart MP4 (`vid-container-moov-end`, moov
+atom at the end, about 5 MB) and the 48 MP JPEG make slow starts visible.
+
 ## Component Selection
 
 Start with `packages/ui/src/components/index.ts` and
@@ -373,10 +454,10 @@ Two families at most.
 
 - **Sans (everything):** Inter, weights 400/500/600/700, loaded by
   `useResources()` (four static files on native, one Google Fonts family on
-  web). Body 16/24, captions 14/20 and 12/16, headings from the `StyledText`
-  size scale (`xs`…`display`) and semantics (`title`, `heading`, `subheading`,
-  `body`, `caption`, `label`, `eyebrow`). Eyebrows are 12 px, uppercase,
-  tracked, `mutedForeground`.
+  web). Roles (`StyledText` `semantic`): body 15/24.75, label 14/21 medium,
+  caption 12/18, subheading 18/27 medium, heading 22/26.4 semibold, title
+  28/33.6 semibold; eyebrows 12 px, uppercase, tracked, `mutedForeground`.
+  Sizes beyond the roles come from the `size` scale (`xs` 11 … `display` 34).
 - **Serif (display accents):** the `serif` variant. Georgia by default; the
   package's opt-in Newsreader preset (see the package README, Typography) is
   the recommended pairing for display text and section titles.
@@ -485,7 +566,7 @@ Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](http
 | react / react-dom | 19.3.0 |
 | react-native | 0.88.0-rc.4 |
 | react-native-web | ^0.21.4 |
-| @mrmeg/expo-ui | ^0.29.1 |
+| @mrmeg/expo-ui | ^0.30.0 |
 | @mrmeg/expo-media (if using media) | ^0.5.2 |
 | zustand | ^5.0.15 |
 | @tanstack/react-query | ^5.104.2 |
@@ -611,14 +692,14 @@ Conventions:
 
 ## Phase 4 — @mrmeg/expo-ui
 
-Upgrade to `@mrmeg/expo-ui@^0.29.1`. Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 59; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.89; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 4; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `react-native-svg` ≥ 15 < 16; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3.
+Upgrade to `@mrmeg/expo-ui@^0.30.0`. Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 59; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.89; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 4; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `react-native-svg` ≥ 15 < 16; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3. Optional, only for the media components: `expo-image`, `expo-video`, `expo-audio` ≥ 56 < 59.
 
 **Required root setup:**
 
 - Mount `UIProvider` once (props `notification`, `portalHost`, `statusBar` are opt-out). It renders the `@rn-primitives` portal host that `Dialog`, `Drawer`, `DropdownMenu`, `Popover`, `Select`, and `Tooltip` need, plus `Notification` and `StatusBar`.
 - Call `const { loaded } = useResources()` once near the root and hold rendering until `loaded`.
 
-**Icons (`@mrmeg/expo-ui` 0.29.0+).** `Icon` draws Lucide glyph data the package ships; no icon library is a peer. Run `bunx expo-ui-icons init` once (it seeds `client/icons.json` from the `name="…"` / `icon="…"` literals in `app/`, `client/`, `shared/` and writes `client/icons.generated.ts`), typecheck, and `bunx expo-ui-icons add` every name it reports. Call `registerIcons(appIcons)` at module scope in the root layout (`registerIcons` from `@mrmeg/expo-ui/components/Icon`, `appIcons` from `@/client/icons.generated`) and in the Jest setup (in a `beforeAll`, so test-file mocks still reach `Icon`); delete the Lucide Jest module mapping and any `iconRegistry.generated` mock. Replace direct `lucide-react-native` imports with `<Icon name>` (or `component` for non-Lucide art), and `@expo/vector-icons` tab glyphs with template PNGs: list them as `tabIcons`, run `bunx expo-ui-icons tabs`, and pass `src={TAB_ICONS.<name>} renderingMode="template"` to `NativeTabs.Trigger.Icon`. Then drop both packages from `package.json` and add `bunx expo-ui-icons --check` and `bunx expo-ui-icons tabs --check` to CI.
+**Icons (`@mrmeg/expo-ui` 0.29.0+).** `Icon` draws Lucide glyph data the package ships; no icon library is a peer. Run `bunx expo-ui-icons init` once (it seeds `client/icons.json` from the `name="…"` / `icon="…"` literals in `app/`, `client/`, `shared/` and writes `client/icons.generated.ts`), typecheck, and `bunx expo-ui-icons add` every name it reports. Call `registerIcons(appIcons)` at module scope in the root layout (`registerIcons` from `@mrmeg/expo-ui/components/Icon`, `appIcons` from `@/client/icons.generated`) and in the Jest setup (in a `beforeAll`, so test-file mocks still reach `Icon`); delete the Lucide Jest module mapping and any `iconRegistry.generated` mock. Replace direct `lucide-react-native` imports with `<Icon name>` (or `component` for non-Lucide art), and `@expo/vector-icons` tab glyphs with template PNGs: list them as `tabIcons`, run `bunx expo-ui-icons tabs`, and pass `src={TAB_ICONS.<name>} renderingMode="template"` to `NativeTabs.Trigger.Icon`. Then drop both packages from `package.json` and add `bunx expo-ui-icons --check` and `bunx expo-ui-icons tabs --check` to CI. An app already on 0.27.x or 0.28.x follows [Consumer migration to 0.29.1](#consumer-migration-to-0291) step by step.
 
 **Import only from public subpaths** (`.`, `/components`, `/hooks`, `/state`, `/constants`, `/lib`) — never `dist/` or a source checkout:
 
@@ -713,6 +794,229 @@ bun run build          # expo export → dist/client + dist/server
 ## Anti-Patterns to Remove While Migrating
 
 Sweep for and delete: app-local duplicates of `@mrmeg/expo-ui` primitives (buttons, inputs, menus, modals, cards, typography); hard-coded colors, shadows, radii, spacing in general-purpose UI; fetch-on-mount for initial route data; top-level server-module imports in client-reachable files; UI branching on raw `Response` objects; cross-feature internal imports; startup logic that blocks first paint on persisted browser state; integrations that crash on a blank `.env`.
+
+## Consumer migration to 0.30.0
+
+From 0.29.1 the upgrade is mostly additive. Run `bun add @mrmeg/expo-ui@^0.30.0`, then typecheck and test. Behaviour that changed:
+
+- `SegmentedControl` selects no segment when `value` (or `defaultValue`) is not one of `values`; it used to show the first one selected. A screen that relied on that must pass a real value.
+- `TextInput` names its native field from `label` and describes it with `errorText` / `helperText`; a consumer's own `accessibilityLabel` / `accessibilityHint` still win. Re-check screen-reader output on forms that set both.
+- `Item` now forwards `accessibilityLabel`, `accessibilityHint`, `accessibilityActions`, `testID` and `ref`: drop any wrapper `Pressable` added only to carry them.
+
+New and opt-in: `IconButton`, `buttonHeights`, and the media components (`Image`, `Video`, `AudioPlayer`, `MediaViewer`, plus `MediaControlButton`, `MediaScrubber`, `useMediaKeyboard`). Media components are imported by subpath (`@mrmeg/expo-ui/components/Video`), never from the barrel, and need their optional peer: `bunx expo install expo-image expo-video expo-audio` for the ones you use. `expo-audio` is native code, so rebuild dev clients after adding it; `Video`'s Picture in Picture needs the `expo-video` config plugin with `supportsPictureInPicture: true`. An app on 0.27.x or 0.28.x runs [Consumer migration to 0.29.1](#consumer-migration-to-0291) first.
+
+## Consumer migration to 0.29.1
+
+The upgrade every fleet app on `@mrmeg/expo-ui` 0.27.x or 0.28.x runs to reach 0.29.1. A per-app migration spec cites this section and lists only that app's deltas (call sites, prerequisite PRs, which steps it skips). Run the steps in order; each ends in a state that typechecks and passes tests.
+
+### 1. Prerequisites
+
+- **Clean lockfile.** The bump rewrites `bun.lock`, so start from a committed tree and a lockfile that installs as-is:
+
+  ```sh
+  git status --porcelain            # empty
+  bun install --frozen-lockfile     # passes without changes
+  ```
+
+- **No UI spec in flight in the same repo.** Two branches that both change `bun.lock` or the same screens conflict. Merge or park every open UI or dependency PR first, then branch the migration from the updated base.
+- **0.27 → 0.28 first, if the app is on 0.27.x.** 0.28 is a separate behavior change; apply it before the icon work (`packages/ui/CHANGELOG.md`, `[0.28.0]`):
+  - `Checkbox` and `RadioGroup.Item` with a `label` are now one control; update tests that query them by role.
+  - `Item`'s `separator` no longer defaults to `false`: delete manual dividers between rows, and replace bordered row panels with `ItemGroup` (step 9).
+  - Move radius overrides into `setShape` slots (`input`, `card`, `sheet`, `badge`, `dialog`).
+  - Optional adoptions: `Screen` + `useWindowInsets` instead of `SafeAreaView` / `useSafeAreaInsets` padding, `useNotificationOffset` in tab layouts, `<UIProvider haptics>` instead of per-control `expo-haptics` calls, `BottomSheet onDismissed` instead of timers.
+  - Re-check screenshots: dark shadows are edge-lit, the `Skeleton` fill is `borderStrong`, native ships four Inter files.
+- **Peers.** `expo` and `@expo/ui` ≥ 56 < 59, `react` ≥ 19.2, `react-native` ≥ 0.85 < 0.89, `react-native-svg` 15, `react-native-keyboard-controller` ≥ 1.21 (full list in Phase 4).
+
+### 2. Accessibility gate (before the bump)
+
+0.28 hides an `Icon` with no `accessibilityLabel` from assistive tech on every platform (`aria-hidden` on web, `accessible={false}` on native). An icon-only `Pressable` / `Button` that relied on the icon's old unnamed `role="img"` becomes an **unnamed button** after the bump. Fix these first, while the old behavior still lets you find them:
+
+- Give every icon-only control its own name: `accessibilityLabel` on the `Pressable` (translated), `accessibilityRole="button"`, and leave the `Icon` unlabelled (it is decoration inside a named control).
+- A standalone informational icon (status glyph with no text beside it) keeps `accessibilityLabel` on the `Icon`.
+
+Lock it in with a guard test that renders each screen with icon-only controls and fails on any unnamed button (RNTL 14: `render` is async and `UNSAFE_root` is gone, so query by role):
+
+```tsx
+// client/__tests__/namedControls.test.tsx
+import { render, screen, within } from "@testing-library/react-native";
+import SettingsScreen from "@/app/(main)/(tabs)/settings";
+
+function unnamedButtons() {
+  return screen.queryAllByRole("button").filter(
+    (button) =>
+      !button.props.accessibilityLabel &&
+      !button.props["aria-label"] &&
+      !button.props["aria-labelledby"] &&
+      within(button).queryAllByText(/\S/).length === 0
+  );
+}
+
+it.each([["settings", SettingsScreen]])("%s names every button", async (_, Screen) => {
+  await render(<Screen />);
+  expect(unnamedButtons()).toHaveLength(0);
+});
+```
+
+Add each screen with an icon-only control to the table. The test must pass on the old version and keep passing after step 3.
+
+### 3. The bump
+
+```sh
+bun add @mrmeg/expo-ui@^0.29.1
+bun install --frozen-lockfile     # the lockfile is now consistent
+test -f node_modules/@mrmeg/expo-ui/dist/design-system.json   # the lint plugin reads it
+```
+
+Commit `package.json` and `bun.lock` alone. Typecheck now fails wherever the app passes a Lucide component or an unregistered name; steps 4 to 6 fix that.
+
+### 4. Seed the icon manifest
+
+`Icon` draws glyph data the app registers; 19 names are built in and `IconName` covers those plus the app's own.
+
+```sh
+bunx expo-ui-icons init           # writes client/icons.json and client/icons.generated.ts
+bun run typecheck                 # lists names that are not registered
+bunx expo-ui-icons add <name...>  # add each reported name, then rerun typecheck
+```
+
+What `init` finds: double-quoted kebab-case literals after `name` or `icon` with `=` or `:` (`name="search"`, `icon={"bell"}`, `{ icon: "bell" }`) in `app/`, `client/` and `shared/`, skipping tests, `__tests__`, `__mocks__` and `*.generated.ts`. It reports alias names it skipped (`home → house`); use the canonical name. It refuses to overwrite an existing manifest without `--force`.
+
+What it misses, so grep for them and `add` by hand:
+
+- Object literals under other keys (`{ glyph: "map-pin" }`, `{ iconName: "flag" }`), single-quoted or template-literal names.
+- Names built at runtime (`` `signal-${level}` ``, `STATUS_ICON[status]`). List every value of the map in `add`, type the map as `Record<Status, IconName>`, and narrow untrusted strings with `isIconName(value)` from `@mrmeg/expo-ui/components/Icon`.
+- Names that reached the app through `as=` or `component=` (step 6).
+
+`add` resolves an alias to its canonical name and rejects names that are not in the shipped Lucide snapshot (1.57.0 in 0.29.1). Options: `--manifest <path>` (default `client/icons.json`), `--out <path>` (default `client/icons.generated.ts`).
+
+### 5. Register the icons
+
+Root layout, at module scope (not in a component or effect, so the server render, the first client render and the crash fallback all draw icons):
+
+```tsx
+// app/_layout.tsx (or the root layout module it renders)
+import { registerIcons } from "@mrmeg/expo-ui/components/Icon";
+import { appIcons } from "@/client/icons.generated";
+
+registerIcons(appIcons);
+```
+
+Jest setup, in a `beforeAll` with lazy `require`s, so a test file's own `jest.mock(...)` calls bind before `Icon` loads:
+
+```ts
+// test/setup.ts
+beforeAll(() => {
+  const { registerIcons } = require("@mrmeg/expo-ui/components/Icon");
+  const { appIcons } = require("@/client/icons.generated");
+  registerIcons(appIcons);
+});
+```
+
+An unregistered name renders nothing and warns once in development: `Icon: "x" is not a registered icon`.
+
+### 6. `as=` and `component=` → `name`
+
+App wrappers that take a Lucide component (`<AppIcon as={Search} />`, `<Icon component={ChevronRight} />`, `icon: Bell` in a config array) become names:
+
+```tsx
+// before
+import { ChevronRight } from "lucide-react-native";
+<Icon component={ChevronRight} size={16} color="mutedForeground" />
+// after
+<Icon name="chevron-right" size={16} color="mutedForeground" />
+```
+
+Type config arrays as `IconName` (`{ icon: "bell" as const }` or `icon: IconName`). Keep `component` only for non-Lucide art (a brand logo SVG). `ToggleIcon` and `ToggleGroupIcon` take `IconProps`, so `name` works there too. An app with many `as=` call sites rewrites them before running `init`, so the scan sees the names.
+
+### 7. Drop Lucide
+
+```sh
+grep -rn "lucide" app client shared test jest.config.* package.json   # no hits left except docs
+bun remove lucide-react-native
+```
+
+Also delete: the `lucide-react-native` entry in Jest `moduleNameMapper` or `transformIgnorePatterns`, any mock of `@mrmeg/expo-ui/components/iconRegistry.generated` (that export is gone), and `@expo/vector-icons` if tab icons were its last use (`tabIcons` in `client/icons.json`, then `bunx expo-ui-icons tabs`; it needs `rsvg-convert`, the check does not).
+
+### 8. `--check` in CI
+
+Add the drift checks to the app's validate job (or its `verify` script) so a name added to `icons.json` without regenerating fails the build:
+
+```sh
+bunx expo-ui-icons --check        # exit 1 if client/icons.generated.ts is missing or stale; writes nothing
+bunx expo-ui-icons tabs --check   # only for apps with NativeTabs tabIcons
+```
+
+After any later kit bump that moves the Lucide snapshot, rerun `bunx expo-ui-icons` (and `tabs`) and commit the output.
+
+### 9. Settings rows: `ThemeSelector`, `ItemGroup` / `Item`
+
+Replace hand-rolled theme pickers (three radio rows, a `SegmentedControl`, a `Select`, a `ToggleGroup`) with one row holding `ThemeSelector`, bound to `useThemeStore`:
+
+```tsx
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@mrmeg/expo-ui/components/Item";
+import { ThemeSelector } from "@mrmeg/expo-ui/components/ThemeSelector";
+import { useThemeStore } from "@mrmeg/expo-ui/state";
+
+<ItemGroup title={t("settings.preferences")}>
+  <Item>
+    <ItemContent>
+      <ItemTitle>{t("settings.themeTitle")}</ItemTitle>
+      {userTheme === "system" && <ItemDescription>{t("settings.matchesDevice", { scheme })}</ItemDescription>}
+    </ItemContent>
+    <ItemActions>
+      <ThemeSelector labels={{ system: t("settings.theme.system"), light: t("settings.theme.light"), dark: t("settings.theme.dark") }} />
+    </ItemActions>
+  </Item>
+</ItemGroup>
+```
+
+Pass translated `labels`: they name each segment for screen readers. Show "matches device" only for the system preference. Move every other settings and profile row onto `ItemGroup` + `Item`; delete manual dividers, bordered row panels and per-row `Card`s. The row title names a trailing `Switch` / `Checkbox` / `Toggle`, so those need no label of their own. The template's `app/(main)/(tabs)/settings.tsx` is the reference screen.
+
+### 10. `withAlpha`, not hex-suffix alpha
+
+On web every `theme.colors.*` value is `var(--c-*)`, so `theme.colors.primary + "20"` is invalid CSS and the tint silently disappears (native still shows it, which hides the bug).
+
+```ts
+import { withAlpha } from "@mrmeg/expo-ui/hooks";   // also returned by useTheme()
+backgroundColor: withAlpha(theme.colors.primary, 0.12)
+```
+
+Find them, then keep them out with a source-scan test:
+
+```sh
+grep -rnE "colors\.[A-Za-z]+ *\+ *[\"'\`]" app client shared
+```
+
+```ts
+// client/__tests__/noHexAlpha.test.ts
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const HEX_ALPHA = /colors\.\w+\s*\+\s*["'`]/;
+
+it("never appends hex alpha to a theme token", () => {
+  const hits = ["app", "client", "shared"].flatMap((dir) =>
+    (readdirSync(dir, { recursive: true }) as string[])
+      .filter((file) => /\.tsx?$/.test(file) && !file.includes("__tests__"))
+      .flatMap((file) =>
+        readFileSync(join(dir, file), "utf8")
+          .split("\n")
+          .flatMap((line, i) => (HEX_ALPHA.test(line) ? [`${dir}/${file}:${i + 1}`] : []))
+      )
+  );
+  expect(hits).toEqual([]);
+});
+```
+
+### 11. Validation checklist
+
+- [ ] `bun install --frozen-lockfile` passes; `git diff --stat` shows only the files this migration meant to touch.
+- [ ] `grep -rn lucide app client shared test package.json` is empty; `@mrmeg/expo-ui` resolves to 0.29.1 (`bun pm ls | grep expo-ui`).
+- [ ] `bun run typecheck`, `bun run lint` (and `bun lint:ui` where the app has it), `bun run test:ci` (or the app's CI test script) pass, including the named-controls and hex-alpha guards.
+- [ ] `bunx expo-ui-icons --check` (and `tabs --check` with NativeTabs) passes and is wired into CI.
+- [ ] Web: `bun run build && bun run start`; every route draws its icons in the server HTML, the theme row switches System / Light / Dark, tinted surfaces keep their tint in both schemes, and the console has no `is not a registered icon` warning or hydration warning.
+- [ ] Native: a dev build on iOS and Android; icons render on every tab, VoiceOver / TalkBack name every icon-only control, and the crash fallback (throw from a screen in development) draws its icons and reports to Sentry.
+- [ ] Screenshots re-checked where 0.28 changed shadows, skeletons or fonts.
 
 ## Appendix — Portfolio Tier Scan (June 2026)
 
@@ -927,7 +1231,7 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 - Use `StyledText` or its semantic aliases instead of raw `Text` for app UI.
 - Use `Button.preset`, not `variant`.
 - `disabled` blocks the press (no `onPress`, no scale/haptic, out of the web tab order). To keep a button focusable and pressable while announced and dimmed as disabled — so the press can explain why — use `aria-disabled` (or `accessibilityState={{ disabled: true }}`), never a hand-rolled opacity style.
-- Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36).
+- Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36). `SegmentedControl` `md` ≈32 (iOS, web) / 40 (Android) / `lg` 44.
 - Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the Button size.
 - Web SSR paints the visitor's scheme: wrap the root layout in `<InitialSchemeProvider scheme>` (`@mrmeg/expo-ui/state`) with the `"light"`/`"dark"` value read from a cookie on both server and client (template: `shared/ssrColorScheme.ts`, written by `+html.tsx` and `client/features/app/colorSchemeCookie.ts`); `useTheme()` uses it until `hasLoadedTheme`. Never read `localStorage` for the first render.
 - A Radix-backed component (`Tabs`, `Accordion`, `Collapsible`, `Select`, `DropdownMenu`, `Popover`) on a server-rendered web route logs a `useId` hydration mismatch (Expo Router hydrates `#root`, the server rendered `+html.tsx`). Wrap that subtree — not the page — in `<Hydrated fallback={…}>` (`@mrmeg/expo-ui/components`) with a fallback that holds its height; never branch on `typeof window`. Content that must be in the server HTML stays outside the gate.
@@ -1140,8 +1444,9 @@ Check this before creating a new app-local primitive. All components come from
 | `EmptyState` | No-data or recoverable error regions | One-off empty placeholders |
 | `ErrorBoundary` | React render error fallback | Unhandled screen crashes |
 | `Icon` | Registered Lucide glyphs or custom art with theme tokens | Raw vector icons with hardcoded colors |
+| `IconButton` | Icon-only command; `accessibilityLabel` required; ≥44 pt hit area; adjacent `sm` IconButtons need a ≥16 pt gap (hit slop extends 8 pt) | `Button` with only an `Icon` child, or a raw `Pressable` + `Icon` |
 | `InputOTP` | Verification code entry | Several manually managed text inputs |
-| `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens | Hand-rolled row `View`s |
+| `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens; a pressable row takes `accessibilityLabel` / `Hint` / `accessibilityActions`, `testID`, `ref` | Hand-rolled row `View`s |
 | `ItemGroup` | A titled group of full-width `Item` rows with inset hairlines and an optional footer | Bordered or shadowed boxes around rows, a `Card` per row, hand-drawn dividers |
 | `KeyboardAvoidingView` | Native keyboard-aware layout root | Repeated app-local keyboard wrappers |
 | `Label` | Accessible form labels | Plain styled text labels |
@@ -1152,7 +1457,7 @@ Check this before creating a new app-local primitive. All components come from
 | `Progress` | Determinate or indeterminate progress | Layout-shifting spinners |
 | `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows |
 | `SectionHeader` | Eyebrow / title / description section intro | Stacked ad hoc heading text |
-| `SegmentedControl` | Native segmented picker (`@expo/ui`) | Custom segmented views |
+| `SegmentedControl` | Native segmented picker (`@expo/ui`); `size="lg"` = 44 pt drawn control; a value not in `values` selects none | Custom segmented views |
 | `Select` | Option menus | Custom dropdowns |
 | `Separator` | Horizontal or vertical dividers | Border-only spacer views |
 | `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Blank space or generic spinners |
@@ -1184,7 +1489,7 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 
 ## Component Selection Rules
 
-- `Button` commands · `Toggle` one pressed state · `ToggleGroup` a related set · `Switch` binary settings · `RadioGroup` few exclusive choices · `Select` longer option sets.
+- `Button` commands · `IconButton` an icon-only command · `Toggle` one pressed state · `ToggleGroup` a related set · `Switch` binary settings · `RadioGroup` few exclusive choices · `Select` longer option sets.
 - `Dialog` blocking decisions · `Popover` contextual controls · `Tooltip` short explanations · `DropdownMenu` action lists.
 - `ItemGroup` + `Item` lists and settings · `Card` one item in a collection or one tappable object, never a wrapper around a section, form, or row group, never nested · `EmptyState` no-data or recoverable errors · `Skeleton` loading content with stable layout · `Progress` real or indeterminate progress.
 - `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive into the exported HTML shell and the first client frame; use `FlatList` for large or unbounded data. Dots are pressable and jump to their slide. A fractional `itemWidth` (default `0.85`) measures the viewport until the first layout, so pass absolute pixels (`> 1`) when the parent is narrower than the window and the first frame matters.
@@ -1194,6 +1499,390 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 - `TextInput` `onBlur` fires only after a real focus on Android (the native field's first-composition blur is dropped in the package); validate on blur directly and do not add a touched-fields guard in app code.
 - `Drawer.Header` takes `icon`, `title`, and `action` slots for a compact app-brand row; put `Drawer.ToggleCollapse` in `action` for a trailing rail control. `Drawer.Content` owns safe-area top/bottom padding — do not duplicate it in children.
 - `Icon` and `Button.Icon` take `name` (a kebab-case Lucide name typed `IconName`: the package builtins plus the names the app lists in `client/icons.json`, compiled with `bunx expo-ui-icons` and registered once with `registerIcons(appIcons)` at module scope in the root layout) or `component` (an `IconComponent` taking `size` and `color`, for art that is not a Lucide icon). Both are sized, colored with theme tokens, and hidden from assistive tech unless `accessibilityLabel` names a standalone icon (`decorative` only silences a labelled one); `Button.Icon` inherits the button's label color and is decorative by default. A missing name is a type error: run `bunx expo-ui-icons add <name>` (it maps an alias such as `home` to `house`) rather than importing an icon library. Check a name that arrives at runtime with `isIconName`.
+
+## Media
+
+Media components are subpath-only. Import `Image`, `Video`, `AudioPlayer` and
+`MediaViewer` from `@mrmeg/expo-ui/components/Image`, `components/Video`,
+`components/AudioPlayer` and `components/MediaViewer`, never from the
+`components` barrel or the root: the barrel stays free of media modules, so an
+app that never renders media installs nothing new. A test
+(`src/__tests__/mediaPeers.test.ts`) fails if anything reachable from the root
+barrel imports a media peer.
+
+Each media module is an optional peer; install only what you import, at the
+version your Expo SDK recommends (`npx expo install <name>`):
+
+- `expo-image` for `Image`.
+- `expo-video` for `Video`.
+- `expo-audio` for `AudioPlayer`, which draws its artwork with `Image`, so it
+  needs `expo-image` as well. `expo-audio` adds native code, so a dev client
+  built before you installed it needs a fresh build.
+- `MediaViewer` needs the peers of the media it shows.
+
+Components (each entry is filled in when the component ships):
+
+- `Image` (`components/Image`, needs `expo-image`): a picture that sizes itself
+  from an aspect ratio instead of fixed pixels. A muted frame shows while it
+  loads and when it fails (an `image-off` icon, or your `fallback`), then goes
+  transparent, so a transparent PNG, WebP, SVG or AVIF shows the surface behind
+  it in both themes.
+
+  ```tsx
+  import { Image } from "@mrmeg/expo-ui/components/Image";
+
+  <Image source={photo.url} alt={photo.title} aspectRatio={{ width: photo.width, height: photo.height }} radius="md" />
+  <Image source={cover} alt="" aspectRatio="16:9" maxHeight={240} position="top" />
+  <Image source={{ uri, cacheKey: key }} alt="" style={{ width: 96, height: 96 }} recyclingKey={key} />
+  ```
+
+  - Pick one sizing mode. `aspectRatio` (`16 / 9`, `"16:9"` or
+    `{ width, height }`, for example from upload metadata) draws full width of
+    the parent at that ratio, capped by `maxWidth` / `maxHeight` and centered;
+    prefer it whenever the size is known, since the box is pure style and a
+    server-rendered page already carries the final layout. `aspectRatio="auto"`
+    starts at `fallbackAspectRatio` (default 1) and moves to the picture's own
+    ratio once it loads: one layout shift, once per mount (change `key` to
+    re-measure for a new picture). `fill` absolutely fills a positioned parent
+    you size. With none of these, size the frame with `style` (width, height,
+    flex), as with a raw `expo-image`. `maxHeight` is enforced through the
+    width, so a tall picture in a wide column stays centered instead of
+    letterboxed.
+  - `fit` is `cover` by default; `contain`, `fill`, `none` and `scale-down`
+    follow CSS `object-fit`, and `position` (`"top"`, `{ top: "20%", left: 0 }`)
+    is the focal point of a `cover` or `none` crop. Letterboxing is
+    transparent. `radius` takes the `spacing.radius*` names and is applied to
+    the frame and the image.
+  - `alt` is required. Describe the picture; pass `alt=""` for a decorative one
+    (a thumbnail inside a pressable that is already named), which hides it from
+    assistive tech. A JS caller that omits it gets a development warning and
+    the image is treated as decorative.
+  - In a recycled list (FlashList, FlatList cells) set
+    `recyclingKey={item.id}`, so a reused cell shows a blank frame instead of
+    the previous picture. Pass `source={{ uri, cacheKey }}` when the URL changes
+    but the picture does not (re-signed URLs), so the cache hits.
+  - `placeholder` takes a blurhash string (bare, or with `blurhash:/`), a
+    thumbhash string with its `thumbhash:/` prefix (a bare string is read as a
+    blurhash), or a low-resolution URL or `{ uri }`; there is no spinner. `transition` (ms, default 200) is forced to 0 under
+    reduced motion. `onLoad({ width, height })` reports the natural size and
+    `onError` the failure; a new `source` clears an error. A `null` source keeps
+    the frame in its loading look and calls nothing.
+  - Formats are the platform decoder's. HEIC shows the error state in Chrome
+    (it has no HEIC decoder) while iOS and WebKit decode it; convert HEIC to
+    JPEG or WebP before serving it to the web (`@mrmeg/expo-media`'s processing
+    does). The Media Lab lists what each surface did per format.
+  - Web: `expo-image` adds its `<img>` after mount, so the server HTML carries
+    the sized, muted frame but not the `<img>` (a low-resolution `placeholder`
+    URL is the exception). The `<img>` has `alt`, `loading="lazy"` and, from
+    `priority`, `fetchpriority`.
+- `Video` (`components/Video`, needs `expo-video`): a video that sizes itself
+  from its own aspect ratio, with the platform's controls, themed controls that
+  look the same everywhere, or none. The frame is black and sized like `Image`.
+
+  ```tsx
+  import { Video } from "@mrmeg/expo-ui/components/Video";
+
+  <Video source={clip.url} controls="custom" aspectRatio={{ width: clip.width, height: clip.height }} poster={clip.poster} />
+  <Video source={{ uri }} aspectRatio="9:16" maxHeight={480} />
+  <Video source={clip.url} controls="none" aspectRatio="16:9" autoPlay muted loop />
+  <Video player={player} controls="custom" aspectRatio="16:9" />
+  ```
+
+  - Choose `controls`. `"native"` (the default) is the platform's own (AVKit,
+    the Media3 player UI, the browser's): the one mode that lets people pick
+    among several subtitle tracks or audio tracks, and the one with Picture in
+    Picture buttons. `"custom"` draws a center play button and a bottom bar
+    (play, scrubber with buffered fill, time, mute, captions, fullscreen) that
+    fades 3 s after the last interaction while playing and returns on hover,
+    focus and tap. On web it answers Space/K (play), ←/→ (±5 s), ↑/↓ (volume),
+    M, F and Esc while the frame is focused, and only then. `"none"` is bare
+    playback: no chrome and no tap handling, for a muted loop or controls of
+    your own (pass a `player`).
+  - Sizing is `Image`'s: `aspectRatio` (`16 / 9`, `"16:9"`, `{ width, height }`)
+    fills the parent's width at that ratio, capped by `maxWidth` / `maxHeight`
+    and centered; `fill` fills a positioned parent. `"auto"` (the default) draws
+    at 16:9 until the video reports its size, then moves once. Prefer an
+    explicit `aspectRatio` whenever you know it (upload metadata): the box is
+    pure style, so a server-rendered page carries the final layout and nothing
+    shifts. On native `"auto"` uses the size expo-video reports for the video
+    track, which is the coded size: AVFoundation's `naturalSize` and Media3's
+    `Format` both ignore a display-rotation flag, so a file that is landscape
+    with a "rotate 90" flag (how some phones record portrait) can draw a
+    landscape frame with the picture letterboxed inside it. On web it uses the
+    `<video>`'s own `videoWidth` and `videoHeight`, which the browser reports
+    after rotation. An explicit ratio avoids the question.
+  - `fit` is `contain` by default; `cover` and `fill` follow CSS `object-fit`
+    (expo-video has no `none` or `scale-down`, so `VideoFit` is narrower than
+    `ImageFit`). `radius` takes the `spacing.radius*` names.
+  - Fullscreen, per mode. `"native"`: the platform's control, which always shows
+    the platform's controls, as expo-video does in fullscreen. `"custom"`: on web
+    the frame itself goes fullscreen (the Fullscreen API), so the custom chrome
+    stays and Esc leaves; iPhone Safari cannot fullscreen an element, so there
+    the `<video>` goes fullscreen with the browser's controls. On iOS and Android
+    a full-screen `Modal` takes the same player with the same chrome, and the
+    inline view is unmounted while it is open so the player is attached to one
+    view at a time; close it with the minimize button or Android back.
+    `"none"`: none. `allowsFullscreen={false}` removes the control in every mode.
+  - Picture in Picture follows `allowsPictureInPicture` (default `true`) and
+    shows in the platform's controls. It needs the expo-video config plugin in
+    the app's config, `["expo-video", { supportsPictureInPicture: true }]`, then a
+    new native build; without it the prop does nothing. Firefox has no web PiP.
+  - `autoPlay` asks for playback on mount. Browsers only allow it when the video
+    is `muted`, so pass both for an inline loop. `loop` and `muted` are initial
+    values read when `Video` creates its player; with your own `player`, set
+    them on it. Changing `source` replaces it in place; on web a reload, Retry
+    included, starts playing.
+  - HLS: expo-video on web puts the URL in `<video src>` and ships no hls.js, so
+    an `.m3u8` plays natively in Safari only, though iOS and Android play HLS
+    natively. `Video` does not add a loader; serve an MP4 or WebM for the other
+    browsers.
+  - Captions: `"custom"` shows a captions button only when the player reports
+    subtitle tracks, and it toggles one track (the device's language, else the
+    first). To choose among tracks, or to choose an audio track, use `"native"`.
+    expo-video's web player reports no subtitle tracks, so the button never
+    appears in a browser: use `"native"` there. An audio-only file keeps the fallback ratio
+    and its poster (or black) and the controls keep working.
+  - A live stream (`isLive`, or an infinite duration) reads "Live" and the
+    scrubber is disabled; the readout of a long clip is `h:mm:ss` for both
+    numbers.
+  - States are part of the frame: a white spinner over the poster or black while
+    loading, and on failure a muted message with a retry button (`rotate-ccw`)
+    that reloads `source`, plus `onError(message)`. Retry needs `source`: give it
+    alongside your own `player` to get one. `poster` shows until playback first
+    starts (under `"native"` it carries a play glyph, since a poster would hide
+    the platform's own button), and is dropped if it fails to load.
+  - Lifecycle: it pauses on unmount, and releases the player it created; a
+    `player` you pass is only paused. Pausing when the screen loses focus is the
+    app's job, because the kit has no router: pause your own player from
+    expo-router's `useIsFocused()`.
+  - Accessibility under `"custom"` on iOS and Android: the frame is one element
+    named by `title`, else `accessibilityLabel`, else "Video", whose value is
+    the position in words. Play or pause is the double tap (VoiceOver's
+    `onAccessibilityTap`, TalkBack's `activate` action) and, on iOS, the
+    two-finger magic tap (`onMagicTap`). The labeled actions are increment and
+    decrement (seek 10 s) and custom ones for mute, captions and fullscreen,
+    because the children of an accessible element are not separate stops on iOS. The chrome never
+    auto-hides while a screen reader is on. On web the frame is a focusable
+    group and its buttons are ordinary tab stops; focusing one brings the chrome
+    back. react-native-web cannot detect a screen reader, so web relies on focus
+    and hover instead.
+  - It server-renders: the first HTML carries the black sized frame, the
+    `<video>` and the controls, and every timer starts after mount. Many players
+    on one screen are heavy (one decoder each): mount a `Video` when the user taps
+    a thumbnail, as the Media Lab does.
+  - Codec, container and stream support is the platform decoder's, not the
+    component's. The Media Lab's Video section (`/media-lab`) runs every
+    fixture (H.264, HEVC and 10-bit HEVC, VP9, AV1, `.mov`, 60 fps, 4K,
+    non-faststart and fragmented MP4, audio-only, a 1 h 05 m clip, rotation
+    flags, HLS, DASH, live streams, broken files) through `Video` under each
+    controls mode and lists, per fixture, what each surface did; check it, not
+    memory, before promising a format. Observed on 2026-10-23 (Chrome 156,
+    Playwright WebKit 26.6, iOS 27 simulator):
+
+    | Case | Chrome | WebKit | iOS |
+    |---|---|---|---|
+    | H.264, HEVC (+10-bit), `.mov`, 60 fps, 4K, fragmented, moov-at-end | plays | plays | plays |
+    | VP9 / AV1 in WebM | plays | VP9 plays; AV1 hangs, no error | "Cannot Open" |
+    | AV1 in MP4 | plays | error | plays |
+    | HLS VOD | some streams | plays | plays |
+    | DASH | error | error | error |
+    | Rotation flag, `aspectRatio="auto"` | portrait frame | portrait frame | landscape frame (pre-rotation size) |
+    | Captions toggle (`"custom"`) | never shown | never shown | not checked |
+
+    For rotated phone video, pass an explicit `aspectRatio`. For captions on
+    web, use `controls="native"`.
+- `AudioPlayer` (`components/AudioPlayer`, needs `expo-audio` and `expo-image`):
+  a themed, flat audio player with the same controls on iOS, Android and web,
+  including desktop browsers. It draws no container; put it in a `Card` (one
+  item in a collection) or an `Item` row.
+
+  ```tsx
+  import { AudioPlayer } from "@mrmeg/expo-ui/components/AudioPlayer";
+
+  <AudioPlayer source={note.url} title="Voice note" />
+  <AudioPlayer
+    variant="full"
+    source={episode.url}
+    title={episode.title}
+    subtitle={show.name}
+    artwork={show.cover}
+    onEnd={playNext}
+  />
+  ```
+
+  - `variant="compact"` (default) is one 44 pt row: play and pause, a scrubber,
+    and the total length until it starts, then the elapsed time. Use it for
+    voice notes and attachments. `variant="full"` adds 56 pt `artwork`, a
+    `title` over a `subtitle`, a full-width scrubber, elapsed and `-remaining`
+    times, and a speed button (1×, 1.25×, 1.5×, 2×, 0.75×; `showSpeed={false}`
+    hides it). Use it for episodes and tracks. `showMute` adds a mute button in
+    either variant.
+  - `title` also names the controls for assistive tech ("Play {title}", "Pause
+    {title}"). The scrubber announces the position in words, and the numeric
+    times are hidden from assistive tech. On iOS a magic tap on the player
+    toggles play.
+  - Words go through `translateText` under `media.play`, `media.pause`,
+    `media.playTitle` and `media.pauseTitle` (with `{ title }`), `media.loading`,
+    `media.audioError`, `media.mute`, `media.unmute`, `media.playbackSpeed`
+    (with `{ rate }`), `media.audioPlayer` and the shared `media.seek` /
+    `media.live`; the English fallback is already filled in.
+  - Web: focus the player, then Space or K plays and pauses, ←/→ move 5 s, and M
+    mutes (with or without the `showMute` button, which only shows the state).
+    The keys act only while focus is inside the player.
+  - A source that fails to load, or no `source` at all, disables the controls
+    and shows "Audio unavailable" in place of the time; `onError(message)` is
+    called once per message. A play request the browser refuses (autoplay
+    before a gesture) is reported to `onError` but leaves the player usable.
+    `onEnd` fires when playback reaches the end (not while `loop`), and the next
+    play starts from 0. A live stream, whose length is never known, shows
+    `Live` and disables the scrubber.
+  - Scrubbing pauses a playing clip, seeks on release and resumes. To own the
+    player (to read it elsewhere, or to set `useAudioPlayer` options such as
+    `downloadFirst`, `crossOrigin` or `updateInterval`), create it with
+    `useAudioPlayer(source, options)` and pass it as `player`. The component then
+    never pauses, replaces or releases it. Without `player` it creates one,
+    pauses it on unmount and releases it.
+  - Web server rendering: `expo-audio`'s web player builds an
+    `HTMLAudioElement`, which a server does not have. `AudioPlayer` renders the
+    same layout with a disabled play button and `--:--` on the server and
+    through the hydration pass, and creates the player once hydrated (on
+    native, and whenever you pass `player`, at once). Do not call
+    `useAudioPlayer` during a server render yourself.
+  - The audio session is yours. `AudioPlayer` never calls `setAudioModeAsync`,
+    which is process-wide, so set it once at app start:
+    - iOS plays nothing with the silent switch on unless you call
+      `setAudioModeAsync({ playsInSilentMode: true })`.
+    - Background playback needs the `expo-audio` config plugin (its
+      `enableBackgroundPlayback` adds the iOS `audio` background mode and the
+      Android foreground service) and
+      `setAudioModeAsync({ shouldPlayInBackground: true })`. On Android,
+      sustained background playback also needs `lockScreen`.
+    - `lockScreen` publishes `title`, `subtitle` (as the artist) and `artwork`
+      to the lock screen and notification while playing, and clears them on
+      unmount. It requires `setAudioModeAsync({ interruptionMode: "doNotMix" })`.
+  - Web, remote files: an `<audio>` element plays a file from another origin
+    without CORS headers. The server must send `Access-Control-Allow-Origin`
+    for the page's origin only when you pass `headers` in the source or create
+    the player with `downloadFirst` or `crossOrigin`.
+  - Platform gaps, from reading `expo-audio` 58.0.10: its web player reports
+    `isLoaded: true` and `isBuffering: false` on every update, so the loading
+    spinner (shown on native while buffering, or between play and load) never
+    appears on web. `AudioPlayer` does not read a file's embedded ID3 cover art:
+    the `artwork` prop is the only picture. Per-format results (MP3 CBR and VBR,
+    WAV, FLAC, Ogg and WebM Opus, long files, live, broken files) are in the
+    Media Lab Audio section (`/media-lab`) and its `observed` badges.
+- `MediaViewer` (`components/MediaViewer`, needs `expo-image` and `expo-video`):
+  a full-screen lightbox for a list of images and videos, on iOS, Android and
+  web. Build `items` from your whole list so swiping spans the library, and open
+  it at the one that was tapped.
+
+  ```tsx
+  import { MediaViewer, type MediaViewerItem } from "@mrmeg/expo-ui/components/MediaViewer";
+
+  const items: MediaViewerItem[] = media.map((m) =>
+    m.kind === "video"
+      ? { type: "video", key: m.id, source: m.url, poster: m.thumbnail, title: m.name }
+      : { type: "image", key: m.id, source: { uri: m.url, cacheKey: m.id }, alt: m.description, title: m.name },
+  );
+  const [open, setOpen] = useState<number | null>(null);
+
+  <MediaViewer items={items} visible={open !== null} initialIndex={open ?? 0} onClose={() => setOpen(null)} />
+  <MediaViewer items={items} visible index={index} onIndexChange={setIndex} onClose={close} videoControls="native" maxZoom={6} />
+  ```
+
+  - Items. `type: "image"` takes `source` (a URL, a `require()`d asset or an
+    `expo-image` source with `cacheKey`), a required `alt` (`""` for a
+    decorative picture), an optional `title` and a `placeholder` (blurhash,
+    thumbhash or low-resolution URL). `type: "video"` takes `source` (an
+    `expo-video` source), an optional `title` and a `poster`. `key` must be
+    unique and stable (an object key or id): it is how the viewer follows an
+    item. An empty list renders nothing.
+  - Position. Uncontrolled by default: `initialIndex` is read once per open
+    (the viewer remounts each time `visible` turns true). Pass `index` and
+    `onIndexChange` to control it. An index past the list is clamped, and
+    `onIndexChange` reports the clamp. If `items` changes while the viewer is
+    open (an item deleted elsewhere), it stays on the same `key` if it is still
+    there, otherwise it clamps, and `onIndexChange` reports the move. A video
+    whose `source` changes restarts (`Video` replaces a source in place), so
+    with signed URLs that a refetch re-signs, snapshot `items` when you open the
+    viewer and pass the snapshot while it is open, as the template's media tab
+    does.
+  - Paging is a horizontal swipe, the arrow keys, or the edge buttons. The
+    buttons show on web always (hidden on the first and last item) and on native
+    only while a screen reader is on, since swipe is the touch affordance. The
+    counter ("3 of 5", `media.counter`) is hidden for a single item. Only the
+    shown page and its two neighbors are mounted, so a list of hundreds stays
+    light. Only the shown page mounts a `Video`; the other video pages show their
+    `poster` (or black) and a play glyph, so paging away stops playback and a
+    long list never holds many decoders.
+  - Zoom is for images (`zoom={false}` turns it off): pinch, double-tap
+    (`doubleTapZoom`, default 2.5) or double-click, `Ctrl`/`Cmd` + wheel around
+    the cursor (a trackpad pinch on Chrome, Edge and Firefox arrives that way;
+    Safari's own pinch event is not handled), and `+` `-` `0`, up to `maxZoom`
+    (default 4). One finger or the mouse pans a zoomed image, never past its
+    edge. Paging is off while zoomed, and a page change resets zoom. A tap on an
+    image toggles the chrome; a video page keeps its top bar and the video's own
+    controls (`videoControls`: `"custom"` by default, or the platform's).
+    `autoPlay` starts each video page as it is shown (the one opened on and each
+    one paged to), as a photo library does; it is off by default. Set it when
+    the user opens the viewer by tapping a video. A browser that blocks unmuted
+    autoplay leaves the page paused with its play button showing.
+  - Closing: the close button, Esc, Android back, and on a touch screen a swipe
+    down (or up) past 120 pt or faster than 1 pt/ms, which fades the backdrop
+    with the drag (`swipeToDismiss={false}` turns it off). Esc leaves zoom first
+    and closes on the second press. There is no swipe-to-dismiss with a mouse.
+  - Web keys, on the viewer's root: ←/→ page, `+` `=` `-` `0` zoom, `F` toggles
+    browser fullscreen of the viewer. A custom video that has focus keeps its own
+    ←/→ for seeking. `Video` is told `allowsFullscreen={false}` inside the
+    viewer, since the viewer is already full-window.
+  - Accessibility: focus lands on the close button when it opens, each page
+    change is announced ("Title, 2 of 5"), the root is a modal view, and an image
+    page is one element named by its `alt`. On native an image page offers
+    `increment` and `decrement` (next and previous) and `escape` (close, iOS
+    two-finger Z); a video page leaves increment and decrement to the video's
+    own controls, so a screen reader pages with the edge buttons there. Copy goes
+    through `translateText`: `media.close`, `media.counter` (with `n` and
+    `total`), `media.previous`, `media.next` and `media.imageError`.
+  - It is a transparent `Modal` that fades (no animation under reduced motion),
+    black in both themes, with a light status bar, and it supports every
+    orientation. It reads the safe area with the `initialWindowMetrics` fallback
+    a `Modal` outside `SafeAreaProvider` needs. Gestures are RN `PanResponder`
+    plus `Animated`; the kit does not use reanimated or gesture-handler.
+  - In an app, keep it out of the first download. `MediaViewer` imports `Video`
+    and `Image`, so a static import from two lazy chunks hoists `expo-video`
+    into the shared bundle. The template loads it through
+    `client/components/LazyMediaViewer.tsx` (one `import()` of
+    `client/components/mediaChunk.ts`, shared with `LazyVideo`), and a test
+    fails on any other import. The Media Lab's Viewer section (`/media-lab`) opens
+    the viewer on a mixed set (extreme aspects, a 48 MP picture, EXIF
+    orientation, alpha PNG, animated GIF, a rotation-flagged video, HLS with
+    captions, broken files), the 60-thumbnail scale set, and one item; check it,
+    not memory, on each surface.
+
+For custom media UI, build on the shared primitives, none of which import a
+media module:
+
+- `MediaControlButton` from `components/MediaControlButton`: an icon-only
+  control for chrome drawn over video or images (white glyph on a translucent
+  black circle that reads over any frame, at least 44 pt to hit). On a themed
+  surface use `IconButton` (`preset="ghost"`, `shape="circle"`) instead.
+  `accessibilityLabel` is required; `selected` sets the toggle state for mute.
+- `MediaScrubber` from `components/MediaScrubber`: a seek bar with
+  `onScrubStart`, `onScrubChange(seconds)` and `onScrubEnd(seconds)`,
+  `tone="overlay"` over video or `"default"` on a themed surface, a buffered
+  fill, screen-reader increment and decrement by `step`, and ←/→/Home/End on
+  web. It is not `Slider`, which has no sliding start or end events.
+- `useMediaKeyboard` from `hooks`: spread its result on a focusable container
+  for Space/`k`, arrows, `m`, `f`, Esc and zoom keys on web. It acts only on
+  keys you pass a handler for, and only inside that container.
+- `formatMediaTime`, `mediaTimeA11y`, `mediaFrameStyle`, `parseAspectRatio` and
+  `useMediaAspectRatio` from `lib`: `m:ss` or `h:mm:ss` readouts and their
+  spoken form, a full-width ratio frame capped by `maxHeight`, and the ratio an
+  `aspectRatio="auto"` prop resolves.
+
+Built-in icons for media controls: `play`, `pause`, `volume-2`, `volume-x`,
+`maximize`, `minimize`, `rotate-ccw`, `chevron-left`, `chevron-right`, `x`,
+`image-off`, `captions`.
 
 ## Minimal Examples
 
@@ -1677,6 +2366,44 @@ MIT-licensed ([`LICENSE`](LICENSE)).
 | `expo-ui/no-restyle` | `style` / `*Style` props on design-system components that override appearance the component owns. |
 | `expo-ui/no-raw-primitives` | Importing a primitive the design system already wraps: a `react-native` component the design system exports a same-named component for (`TextInput`, `Switch`, `Button`, `KeyboardAvoidingView`, `StatusBar` today — read from the design system, not listed in the rule), `Text` from `react-native`, anything from `@rn-primitives/*`, and the wrapped `@expo/ui` surfaces. React Native APIs (`Alert`, `Keyboard`, …) are not primitives. A type-only import (`import type { Text }`, `import { type Text as T }`) is ignored — it renders nothing, so it cannot render unthemed. |
 | `expo-ui/no-raw-typography` | Numeric `fontSize` and `lineHeight` literals and string `fontFamily` literals in a [style](#what-counts-as-a-style). The message names the `StyledText` `size` whose font size or line height the literal matches, or the two sizes that bracket it; a `fontFamily` that is one of the kit's faces is named with its `variant` and weight. `0` and `undefined` are allowed. |
+| `expo-ui/icon-source` | Importing an icon library: `lucide-react-native`, `lucide-react`, `@expo/vector-icons`, `react-native-vector-icons`, or `@react-native-vector-icons/*`, by `import`, re-export, `import()`, `require()`, `import X = require()`, or an `import()` type (`typeof import("lucide-react-native").Home`). The message names the replacement, `<Icon name="…" />`, and how to register the name. Also **fixable**: Lucide's old (alias) icon names in a `name` or `icon` JSX attribute are rewritten to the canonical name. |
+
+`icon-source` is the plugin's only autofixing rule. `Icon` draws glyph data the
+app registers and no icon library is a peer, so this keeps those imports from
+coming back. It bans Lucide's React packages (`lucide-react-native`,
+`lucide-react`) and the vector-icon fonts (`@expo/vector-icons`,
+`react-native-vector-icons`, `@react-native-vector-icons/*`), each with every
+subpath. A type-only import is reported too, unlike `no-raw-primitives`: the aim
+is to drop the package from `package.json`, and a type import still needs it.
+The TypeScript-only forms are reported too (`import Lucide = require("lucide-react-native")`,
+`type P = typeof import("lucide-react-native").Home`), once each, on the module string.
+Lucide's own type exports (`LucideIcon`, `LucideProps`, `LucideIconNode`, …) are the
+library, not icons: they are never turned into an icon name.
+`lucide-static` and `lucide` are not banned.
+
+- **Names.** A Lucide component import is named with its canonical icon name: the
+  `Lucide` prefix and the `Icon` suffix are dropped, the rest is split on capitals
+  and on a letter-to-digit boundary (`Grid2x2` is `grid-2x2`, `CalendarX2` is
+  `calendar-x-2`), and Lucide's alias table maps an old name to the current one
+  (`Home` is `house`, `AlertCircle` is `circle-alert`). Without an alias table the
+  kebab name is used as written. A per-icon file import
+  (`lucide-react-native/icons/home`) is named by its path segment.
+- **The fix.** `eslint --fix` (also `bun run lint --fix` and the editor) rewrites an
+  alias name to the canonical one in a `name` attribute of the `Icon` family — a
+  design-system component whose imported name ends in `Icon`: `Icon`,
+  `Button.Icon`, `ToggleIcon`, `ToggleGroupIcon` — and in an `icon` attribute of
+  any design-system component. It follows a string, a template literal with no
+  expressions, either branch of a `?:`, and either side of `&&`, `||`, and `??`,
+  and keeps the quote the name was written with. Imports are not rewritten (that
+  needs call-site changes), nor are object literals or JSX that is not a
+  design-system component. `bun lint:ui` has no `--fix` flag.
+- **Registering a name.** The clause that says how depends on the design system
+  the rule read: `` run `bun run icons add <name>` `` where it read sources (this
+  repo and forks of the template); `` run `bunx expo-ui-icons add <name>` `` where
+  it read a manifest that carries Lucide's alias table (`@mrmeg/expo-ui` 0.29.0
+  and later); and `` upgrade `@mrmeg/expo-ui` to 0.29.0 or later, then run
+  `bunx expo-ui-icons add <name>` `` for anything older, because the
+  `expo-ui-icons` bin first ships in 0.29.0.
 
 `no-raw-colors` and `no-arbitrary-values` read the real design system to build
 their advice: the nearest palette entry by Euclidean RGB distance, the light-
@@ -1751,6 +2478,10 @@ so a project's own `packages/ui` is never mistaken for the design system:
 - `components/index.ts` — which component modules exist
 - every module that index re-exports, `.tsx` first then `.ts` — each component's
   `size` and variant unions
+- `components/icon-names.json` — the builtin `Icon` names
+- `icons/lucide.json` — Lucide's alias table and snapshot version, read with
+  `JSON.parse` (it is generated by `bun run ui:icons`, never edited by hand; only
+  `aliases` and `lucide` are kept)
 
 The manifest read instead, when no sources are on disk:
 
@@ -1763,6 +2494,11 @@ The manifest read instead, when no sources are on disk:
   a version 1 manifest still loads without them, and `no-raw-typography` reports
   once per file what it lacks. A manifest from a newer schema is refused rather
   than half-read
+- an `icons` block — `{ names, aliases, lucide }` — written beside the serialized
+  design system, additive, so `schemaVersion` stays 2. `@mrmeg/expo-ui` 0.29.0
+  and later carry all three; 0.28 carries `names` only; older manifests have no
+  `icons`. None of the three is an error: without aliases `expo-ui/icon-source`
+  keeps the import ban, fixes no alias names, and gets the upgrade wording
 - present in `@mrmeg/expo-ui` from the first release built after the manifest was
   added; `0.24.0` and earlier ship none, and the rules then report that they
   found neither sources nor one. `--doctor` prints the version it read the
@@ -1861,7 +2597,7 @@ work over.
 
    It fails loudly when the plugin does not resolve, the rules are not at `error`
    for that file, no design system could be read, or a fixture stops tripping all
-   five rules.
+   six rules.
 
 4. **Add it to CI** as `expo-ui-lint <paths>` (or
    `node node_modules/@mrmeg/eslint-plugin-expo-ui/bin/cli.js <paths>`). Name the
@@ -1889,7 +2625,7 @@ config and the resolution order are the same either way.
 
 ## CLI
 
-The same five rules on demand, over the paths the design system actually
+The same six rules on demand, over the paths the design system actually
 governs. In this repo, `bun lint:ui` (the root script runs
 `node packages/lint/bin/cli.js`):
 
@@ -1921,9 +2657,9 @@ the project's own flat config, never from cache, and reports `expo-ui/*` only.
 | `--changed` | Lint only changed `.ts`/`.tsx` files: the branch diff against the base, plus staged, unstaged, and untracked files. |
 | `--staged` | Lint only staged `.ts`/`.tsx` files — the pre-commit shape. |
 | `--base <ref>` | Base ref for `--changed`; defaults to `origin/dev`, else `dev`. |
-| `--rules` | List the five rules and what each catches. |
+| `--rules` | List the six rules and what each catches. |
 | `--clear-cache` | Delete `.expo/cache/eslint` so the next `bun run lint` re-reads the rules and the design system. |
-| `--doctor [file]` | Check that the plugin resolves, the config enables all five rules at `error`, a design system was found and parsed — sources or manifest — and a fixture still trips every rule. |
+| `--doctor [file]` | Check that the plugin resolves, the config enables all six rules at `error`, a design system was found and parsed — sources or manifest — and a fixture still trips every rule. |
 | `-h`, `--help` | Usage. |
 
 Default paths are `app client shared` — this repo's layout. Another project
@@ -1940,8 +2676,10 @@ failed `--doctor` check — and `2` bad usage or a lint run that could not start
 plugin path and version, the `expo-ui/*` rules and severities the config computes
 for a real file, the design system it resolved with its token, palette, theme,
 font, and component counts, and the observed-versus-expected rule counts on a
-fixture that must produce `1/1/2/2`. Any `FAIL` line exits 1. The last line
-reports the age of the `expo lint` cache and never fails.
+fixture that must produce `1/1/3/2/1/1`. An `icons:` line reports how many
+builtin icon names and Lucide aliases the design system holds (or that it holds
+no alias table, as 0.28 and older do) and never fails. Any `FAIL` line exits 1.
+The last line reports the age of the `expo lint` cache and never fails.
 
 The design-system line names the origin, which is the fastest way to see whether
 a run is quoting what you think it is: `sources at /repo/packages/ui/src` in this
@@ -1955,7 +2693,7 @@ the working directory; it must exist and end in `.ts` or `.tsx`, or the check
 `app/_layout.tsx`, else the first `.tsx` it finds in a shallow walk of `app/` —
 which is why a project with no `app/` directory should name a file. A file
 outside the config's `files` globs is a legitimate `FAIL`: it reports
-`0/4 rules at error`, which is the answer to "why is this file silent?".
+`0/6 rules at error`, which is the answer to "why is this file silent?".
 
 Both argument forms work: `bun lint:ui --doctor` and `bun run lint:ui -- --doctor`.
 
@@ -2042,7 +2780,7 @@ still reports `<Button>`, and compound members are spelled `Button.Text`.
 
 Reading the design system is best-effort and cached per directory, keyed on the
 mtimes of the files it read. Those mtimes are re-checked at most every two
-seconds — a full lint run asks five rules times every file for the same
+seconds — a full lint run asks six rules times every file for the same
 directory, and the design system changes between runs, not during one. If a file
 is missing or unparseable, the facts degrade to "unknown": the rules keep working
 with less specific advice, and `no-arbitrary-values` goes silent rather than
@@ -2197,7 +2935,7 @@ label.
 | Symptom | Cause | Fix |
 |---|---|---|
 | Every ESLint run — `bun run lint`, the CLI, the editor — dies with `ERR_MODULE_NOT_FOUND` loading `eslint.config.mjs` | `node_modules/@mrmeg/eslint-plugin-expo-ui` does not exist yet, so the config's import of the plugin cannot resolve | `bun install`, which creates the workspace symlink |
-| The rules are silent everywhere, no errors of any kind | The config block does not govern the file, or the plugin is not loaded | `bun lint:ui --doctor <the file>`: it prints the rules and severities computed for that exact path. `0/4 rules at error` means the `files` globs, not the rules |
+| The rules are silent everywhere, no errors of any kind | The config block does not govern the file, or the plugin is not loaded | `bun lint:ui --doctor <the file>`: it prints the rules and severities computed for that exact path. `0/6 rules at error` means the `files` globs, not the rules |
 | Every file reports "Design-system facts were not found" | Neither step of the resolution order landed: no directory at `uiSourceDir`, and no `@mrmeg/expo-ui/design-system.json` in `node_modules` | In this repo, point `settings["expo-ui"].uiSourceDir` at the real sources. In a consumer, install `@mrmeg/expo-ui`, or set `manifestPath`. `--doctor` prints what it looked for |
 | Every file reports "Design-system manifest could not be read at …" | The manifest that was found is not usable — no file at a configured `manifestPath`, invalid JSON, or a `schemaVersion` this plugin does not read | The message ends with the reason. A newer `schemaVersion` means the plugin is older than the design system: upgrade `@mrmeg/eslint-plugin-expo-ui` |
 | `--doctor` prints `skipped sources at …/packages/ui/src: they belong to @acme/ui`, or the not-found message says the sources are another package's | The project has a `packages/ui` of its own at the default `uiSourceDir` | Expected: those are not the design system, so the rules use the installed `@mrmeg/expo-ui` manifest. Install `@mrmeg/expo-ui` if the not-found message fires |
@@ -2252,14 +2990,19 @@ manifest half: it serializes the real design system, reads it back, and asserts
 the two loaders agree fact for fact, then lints through a manifest to pin the
 package-labelled message text, the auto-resolution of an installed
 `@mrmeg/expo-ui`, and the rejection of an unsupported `schemaVersion`.
-[`__tests__/settings.test.ts`](__tests__/settings.test.ts) builds projects whose
+[`__tests__/icon-source.test.ts`](__tests__/icon-source.test.ts) pins the exact
+text of every `icon-source` message, the packages it bans and the near-misses it
+leaves alone, each alias fix with its output, and the three register clauses —
+sources, a 0.29+ manifest, and the upgrade wording for a 0.28 manifest, a
+manifest with no `icons` block, sources without a Lucide snapshot, and no design
+system at all. [`__tests__/settings.test.ts`](__tests__/settings.test.ts) builds projects whose
 `packages/ui` is `@mrmeg/expo-ui`, or some other package with or without an
 installed manifest, and pins which one the rules read. The rule suites pin the
 exact text of the messages the design system documents, and the color and
 spacing suites pin both sides of [what counts as a style](#what-counts-as-a-style):
 chart data and config objects stay silent, every style position reports;
 [`__tests__/missing-design-system.test.ts`](__tests__/missing-design-system.test.ts)
-pins the one-per-file not-found report for each of the five rules — through
+pins the one-per-file not-found report for each of the six rules — through
 ESLint's `Linter` with a working directory outside this repo, since anywhere
 inside it the built manifest resolves and there is a design system to read — and
 [`__tests__/index.test.ts`](__tests__/index.test.ts) pins the shape of
@@ -2308,8 +3051,9 @@ covers `packages/lint/__tests__/*.ts` as TypeScript.
 
 `pkg lint consumer-smoke` is the interesting one: it packs *both* this package and
 `packages/ui`, installs them into a throwaway project with no design-system
-sources, and asserts the five rules fire with the right counts, that a message
-names `@mrmeg/expo-ui/components/Button.tsx`, and that `--doctor` reports
+sources, and asserts the six rules fire with the right counts, that a message
+names `@mrmeg/expo-ui/components/Button.tsx`, that the alias message sends the reader
+to `bunx expo-ui-icons add house`, and that `--doctor` reports
 `manifest @mrmeg/expo-ui@…`. That is the manifest path proven end to end from a
 consumer's position.
 
@@ -2442,7 +3186,7 @@ Two route-level rules follow. `expo-server` answers every unmatched `GET` with `
 
 1. Answers `OPTIONS` itself — a CORS preflight for `/api` paths, a bare 204 elsewhere.
 2. Runs `/api` requests through the rate limiters.
-3. Serves `GET`/`HEAD` for files in `dist/client`, then the FFmpeg worker (`server/ffmpegWorker.js`, one-hour cache: its URL carries no hash).
+3. Serves `GET`/`HEAD` for files in `dist/client`, then the FFmpeg worker (`server/ffmpegWorker.js`, one-hour cache: its URL carries no hash). Any other `GET`/`HEAD` miss under `/_expo/static/` or `/assets/` — a stale chunk URL after a deploy — gets a bare, uncompressed `404 Not Found` with `Cache-Control: no-store` (so a CDN cannot cache a miss during a rollover), not the app's 404 page.
 4. Hands everything else to Expo Server — SSR HTML, loaders, API routes, the 404 page — and stream-compresses the response when worthwhile. Loader requests lose a `.web`/`.native` suffix first so platform-specific loader files resolve.
 5. Adds security headers to every response (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Request-ID`, and HSTS when `NODE_ENV=production`), the CORS policy to `/api` responses, and writes one access-log line.
 
@@ -2482,7 +3226,7 @@ Nothing compresses on the event loop.
 - **Build time.** `scripts/precompress.mjs` writes a brotli (`.br`, quality 11) and a gzip (`.gz`, level 9) sibling next to each compressible file of 1 KB or more under `dist/client/_expo/static` and `dist/client/assets` — the content-hashed directories, where a sibling can never go stale. Source maps and already-compressed formats are skipped; a sibling that would not be smaller is not written.
 - **Hashed static files** are answered from the sibling `Accept-Encoding` picks (q-values honored, brotli preferred on a tie), with `Content-Encoding`, the sibling's `Content-Length`, and `Vary: Accept-Encoding`; a client that accepts neither gets the file as is.
 - **Runtime fallback** for compressible files without a sibling (unhashed files, an export that skipped the script): async brotli quality 5 or gzip level 6 on the thread pool, once per file, kept in a 32 MiB LRU. A file over 8 MiB, or a request arriving while two compressions are already running, is served uncompressed rather than queued.
-- **Dynamic responses** — SSR HTML, loader and API JSON, the 404 page — are compressed as a stream when the client accepts it, the type is compressible, and the body is at least 1 KB. A body of unknown length is read ahead only until 1 KB has arrived, it ends, or the upstream pauses, so a small JSON answer goes out as is with an exact `Content-Length`. The compressor flushes whenever the upstream pauses, so a streamed render still reaches the browser progressively. Responses that already carry `Content-Encoding`, or `Cache-Control: no-transform`, pass through untouched.
+- **Dynamic responses** — SSR HTML, loader and API JSON, the 404 page — are compressed as a stream when the client accepts it, the type is compressible, and the body is at least 1 KB. A body of unknown length is read ahead only until 1 KB has arrived, it ends, or the upstream pauses, so a small JSON answer goes out as is with an exact `Content-Length`. The compressor flushes whenever the upstream pauses, so a streamed render still reaches the browser progressively. Responses that already carry `Content-Encoding`, or `Cache-Control: no-transform`, pass through untouched. A response the client abandons, or whose upstream fails mid-stream, destroys its compressor (Bun does not cancel a `TransformStream`'s transformer, so `zlibWebStream` in `server/http/compression.ts` tears it down itself).
 
 ## API Routes
 
@@ -2691,6 +3435,7 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/detail-hero.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/detail-hero.tsx
 - app/(main)/(demos)/developer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/developer.tsx
 - app/(main)/(demos)/form-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/form-demo.tsx
+- app/(main)/(demos)/media-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/media-lab.tsx
 - app/(main)/(demos)/onboarding.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/onboarding.tsx
 - app/(main)/(demos)/screen-card-grid.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-card-grid.tsx
 - app/(main)/(demos)/screen-chat.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-chat.tsx
@@ -2779,6 +3524,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/Accordion.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Accordion.tsx
 - packages/ui/src/components/Alert.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Alert.tsx
 - packages/ui/src/components/AnimatedView.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/AnimatedView.tsx
+- packages/ui/src/components/AudioPlayer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/AudioPlayer.tsx
 - packages/ui/src/components/Avatar.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Avatar.tsx
 - packages/ui/src/components/Badge.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Badge.tsx
 - packages/ui/src/components/BottomSheet.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/BottomSheet.tsx
@@ -2795,13 +3541,18 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/ErrorBoundary.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ErrorBoundary.tsx
 - packages/ui/src/components/Hydrated.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Hydrated.tsx
 - packages/ui/src/components/Icon.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Icon.tsx
+- packages/ui/src/components/IconButton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconButton.tsx
 - packages/ui/src/components/IconGlyph.native.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconGlyph.native.tsx
 - packages/ui/src/components/IconGlyph.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/IconGlyph.tsx
+- packages/ui/src/components/Image.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Image.tsx
 - packages/ui/src/components/InputOTP.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/InputOTP.tsx
 - packages/ui/src/components/Item.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Item.tsx
 - packages/ui/src/components/KeyboardAvoidingView.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/KeyboardAvoidingView.tsx
 - packages/ui/src/components/Label.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Label.tsx
 - packages/ui/src/components/MaxWidthContainer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MaxWidthContainer.tsx
+- packages/ui/src/components/MediaControlButton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaControlButton.tsx
+- packages/ui/src/components/MediaScrubber.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaScrubber.tsx
+- packages/ui/src/components/MediaViewer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaViewer.tsx
 - packages/ui/src/components/Notification.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Notification.tsx
 - packages/ui/src/components/Popover.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Popover.tsx
 - packages/ui/src/components/Progress.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Progress.tsx
@@ -2825,6 +3576,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/ToggleGroup.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ToggleGroup.tsx
 - packages/ui/src/components/Tooltip.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Tooltip.tsx
 - packages/ui/src/components/UIProvider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/UIProvider.tsx
+- packages/ui/src/components/Video.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Video.tsx
 - packages/ui/src/components/bottomSheetDismiss.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/bottomSheetDismiss.ts
 - packages/ui/src/components/bottomSheetHostSupport.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/bottomSheetHostSupport.ts
 - packages/ui/src/components/iconBuiltins.generated.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/iconBuiltins.generated.ts
@@ -2834,8 +3586,11 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/keyboardController.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/keyboardController.ts
 - packages/ui/src/components/keyboardDismiss.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/keyboardDismiss.ts
 - packages/ui/src/components/keyboardFocusRegistry.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/keyboardFocusRegistry.ts
+- packages/ui/src/components/nativeFieldLabelSupport.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeFieldLabelSupport.ts
 - packages/ui/src/components/nativeTextField.android.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeTextField.android.tsx
+- packages/ui/src/components/nativeTextField.ios.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeTextField.ios.tsx
 - packages/ui/src/components/nativeTextField.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/nativeTextField.tsx
+- packages/ui/src/components/videoPlayback.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/videoPlayback.tsx
 
 ## Form Wrappers (`client/lib/form/`)
 

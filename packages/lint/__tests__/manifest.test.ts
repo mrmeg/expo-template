@@ -130,6 +130,93 @@ describe("design-system manifest round trip", () => {
 });
 
 // ---------------------------------------------------------------------------
+// The `icons` block
+// ---------------------------------------------------------------------------
+
+describe("the manifest's icons block", () => {
+  const source = loadDesignSystem(UI_SRC);
+  const base = serializeDesignSystem(source, { packageName: "@mrmeg/expo-ui", version: "9.9.9" });
+  const iconNames = JSON.parse(
+    fs.readFileSync(path.join(UI_SRC, "components", "icon-names.json"), "utf8"),
+  );
+  const snapshot = JSON.parse(fs.readFileSync(path.join(UI_SRC, "icons", "lucide.json"), "utf8"));
+
+  it("is attached by the UI build, not by `serializeDesignSystem`", () => {
+    expect(base).not.toHaveProperty("icons");
+  });
+
+  it("says what the source loader says, written the way the build writes it", () => {
+    // `scripts/build-design-system-manifest.mjs` spreads the serialized design
+    // system and adds `icons` after it; the schema version does not move.
+    const payload = {
+      ...base,
+      icons: { names: iconNames, aliases: snapshot.aliases, lucide: snapshot.lucide },
+    };
+    expect(payload.schemaVersion).toBe(2);
+    const loaded = loadDesignSystemFromManifest(writeManifest("icons-full.json", payload));
+    expect(loaded.loaded).toBe(true);
+    expect(loaded.icons).toEqual(source.icons);
+    expect(loaded.icons.aliases.home).toBe("house");
+    expect(loaded.icons.lucide).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  it("still loads expo-ui 0.28's block, which holds the names and nothing else", () => {
+    const loaded = loadDesignSystemFromManifest(
+      writeManifest("icons-names-only.json", { ...base, icons: { names: iconNames } }),
+    );
+    expect(loaded.loaded).toBe(true);
+    expect(loaded.icons).toEqual({ names: iconNames, aliases: {}, lucide: null });
+  });
+
+  it("still loads a manifest from before the block existed", () => {
+    const loaded = loadDesignSystemFromManifest(writeManifest("icons-absent.json", base));
+    expect(loaded.loaded).toBe(true);
+    expect(loaded.icons).toEqual({ names: [], aliases: {}, lucide: null });
+  });
+
+  it.each([
+    ["an array", ["home", "house"]],
+    ["a string", "home=house"],
+    ["a number", 7],
+    ["null", null],
+  ])("reads aliases that are %s as none", (label, aliases) => {
+    const loaded = loadDesignSystemFromManifest(
+      writeManifest(`icons-bad-aliases-${label.replace(/\W/g, "")}.json`, {
+        ...base,
+        icons: { names: iconNames, aliases, lucide: "1.0.0" },
+      }),
+    );
+    expect(loaded.loaded).toBe(true);
+    expect(loaded.icons.aliases).toEqual({});
+    expect(loaded.icons.names).toEqual(iconNames);
+  });
+
+  it("keeps the well-formed part of a block that is partly wrong", () => {
+    const loaded = loadDesignSystemFromManifest(
+      writeManifest("icons-partial.json", {
+        ...base,
+        icons: {
+          names: ["check", 3, null, "x"],
+          aliases: { home: "house", broken: 4, nested: { a: "b" } },
+          lucide: 1,
+        },
+      }),
+    );
+    expect(loaded.icons).toEqual({ names: ["check", "x"], aliases: { home: "house" }, lucide: null });
+  });
+
+  it("reads an `icons` that is not an object as no block at all", () => {
+    for (const [index, icons] of [[0, "icons"], [1, 12], [2, ["check"]]] as [number, unknown][]) {
+      const loaded = loadDesignSystemFromManifest(
+        writeManifest(`icons-not-an-object-${index}.json`, { ...base, icons }),
+      );
+      expect(loaded.loaded).toBe(true);
+      expect(loaded.icons).toEqual({ names: [], aliases: {}, lucide: null });
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // The rules, reading a manifest instead of sources
 // ---------------------------------------------------------------------------
 
@@ -417,6 +504,7 @@ const RULES = {
   "no-restyle": require("../rules/no-restyle"),
   "no-raw-primitives": require("../rules/no-raw-primitives"),
   "no-raw-typography": require("../rules/no-raw-typography"),
+  "icon-source": require("../rules/icon-source"),
 };
 
 // A manifest from a newer schema is a dead end, not a reason to lint silently.

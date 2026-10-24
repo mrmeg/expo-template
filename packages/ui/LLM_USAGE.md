@@ -186,7 +186,7 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 - Use `StyledText` or its semantic aliases instead of raw `Text` for app UI.
 - Use `Button.preset`, not `variant`.
 - `disabled` blocks the press (no `onPress`, no scale/haptic, out of the web tab order). To keep a button focusable and pressable while announced and dimmed as disabled — so the press can explain why — use `aria-disabled` (or `accessibilityState={{ disabled: true }}`), never a hand-rolled opacity style.
-- Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36).
+- Button visible heights: `sm` 28, `md` 32, `lg` 40. `TextInput`/`Select`: 32/36/40. `Toggle` sizes are `sm`/`default`/`lg` (32/36/40). `Tabs`: `sm`/`md` (32/36). `SegmentedControl` `md` ≈32 (iOS, web) / 40 (Android) / `lg` 44.
 - Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the Button size.
 - Web SSR paints the visitor's scheme: wrap the root layout in `<InitialSchemeProvider scheme>` (`@mrmeg/expo-ui/state`) with the `"light"`/`"dark"` value read from a cookie on both server and client (template: `shared/ssrColorScheme.ts`, written by `+html.tsx` and `client/features/app/colorSchemeCookie.ts`); `useTheme()` uses it until `hasLoadedTheme`. Never read `localStorage` for the first render.
 - A Radix-backed component (`Tabs`, `Accordion`, `Collapsible`, `Select`, `DropdownMenu`, `Popover`) on a server-rendered web route logs a `useId` hydration mismatch (Expo Router hydrates `#root`, the server rendered `+html.tsx`). Wrap that subtree — not the page — in `<Hydrated fallback={…}>` (`@mrmeg/expo-ui/components`) with a fallback that holds its height; never branch on `typeof window`. Content that must be in the server HTML stays outside the gate.
@@ -399,8 +399,9 @@ Check this before creating a new app-local primitive. All components come from
 | `EmptyState` | No-data or recoverable error regions | One-off empty placeholders |
 | `ErrorBoundary` | React render error fallback | Unhandled screen crashes |
 | `Icon` | Registered Lucide glyphs or custom art with theme tokens | Raw vector icons with hardcoded colors |
+| `IconButton` | Icon-only command; `accessibilityLabel` required; ≥44 pt hit area; adjacent `sm` IconButtons need a ≥16 pt gap (hit slop extends 8 pt) | `Button` with only an `Icon` child, or a raw `Pressable` + `Icon` |
 | `InputOTP` | Verification code entry | Several manually managed text inputs |
-| `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens | Hand-rolled row `View`s |
+| `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` | List / settings rows with density tokens; a pressable row takes `accessibilityLabel` / `Hint` / `accessibilityActions`, `testID`, `ref` | Hand-rolled row `View`s |
 | `ItemGroup` | A titled group of full-width `Item` rows with inset hairlines and an optional footer | Bordered or shadowed boxes around rows, a `Card` per row, hand-drawn dividers |
 | `KeyboardAvoidingView` | Native keyboard-aware layout root | Repeated app-local keyboard wrappers |
 | `Label` | Accessible form labels | Plain styled text labels |
@@ -411,7 +412,7 @@ Check this before creating a new app-local primitive. All components come from
 | `Progress` | Determinate or indeterminate progress | Layout-shifting spinners |
 | `RadioGroup`, `RadioGroupItem` | Mutually exclusive choices | Custom radio rows |
 | `SectionHeader` | Eyebrow / title / description section intro | Stacked ad hoc heading text |
-| `SegmentedControl` | Native segmented picker (`@expo/ui`) | Custom segmented views |
+| `SegmentedControl` | Native segmented picker (`@expo/ui`); `size="lg"` = 44 pt drawn control; a value not in `values` selects none | Custom segmented views |
 | `Select` | Option menus | Custom dropdowns |
 | `Separator` | Horizontal or vertical dividers | Border-only spacer views |
 | `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonCard` | Loading placeholders | Blank space or generic spinners |
@@ -443,7 +444,7 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 
 ## Component Selection Rules
 
-- `Button` commands · `Toggle` one pressed state · `ToggleGroup` a related set · `Switch` binary settings · `RadioGroup` few exclusive choices · `Select` longer option sets.
+- `Button` commands · `IconButton` an icon-only command · `Toggle` one pressed state · `ToggleGroup` a related set · `Switch` binary settings · `RadioGroup` few exclusive choices · `Select` longer option sets.
 - `Dialog` blocking decisions · `Popover` contextual controls · `Tooltip` short explanations · `DropdownMenu` action lists.
 - `ItemGroup` + `Item` lists and settings · `Card` one item in a collection or one tappable object, never a wrapper around a section, form, or row group, never nested · `EmptyState` no-data or recoverable errors · `Skeleton` loading content with stable layout · `Progress` real or indeterminate progress.
 - `Carousel` for a horizontal snap row of a known, small set of slides. It renders every child (no virtualization), so slides survive into the exported HTML shell and the first client frame; use `FlatList` for large or unbounded data. Dots are pressable and jump to their slide. A fractional `itemWidth` (default `0.85`) measures the viewport until the first layout, so pass absolute pixels (`> 1`) when the parent is narrower than the window and the first frame matters.
@@ -453,6 +454,390 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 - `TextInput` `onBlur` fires only after a real focus on Android (the native field's first-composition blur is dropped in the package); validate on blur directly and do not add a touched-fields guard in app code.
 - `Drawer.Header` takes `icon`, `title`, and `action` slots for a compact app-brand row; put `Drawer.ToggleCollapse` in `action` for a trailing rail control. `Drawer.Content` owns safe-area top/bottom padding — do not duplicate it in children.
 - `Icon` and `Button.Icon` take `name` (a kebab-case Lucide name typed `IconName`: the package builtins plus the names the app lists in `client/icons.json`, compiled with `bunx expo-ui-icons` and registered once with `registerIcons(appIcons)` at module scope in the root layout) or `component` (an `IconComponent` taking `size` and `color`, for art that is not a Lucide icon). Both are sized, colored with theme tokens, and hidden from assistive tech unless `accessibilityLabel` names a standalone icon (`decorative` only silences a labelled one); `Button.Icon` inherits the button's label color and is decorative by default. A missing name is a type error: run `bunx expo-ui-icons add <name>` (it maps an alias such as `home` to `house`) rather than importing an icon library. Check a name that arrives at runtime with `isIconName`.
+
+## Media
+
+Media components are subpath-only. Import `Image`, `Video`, `AudioPlayer` and
+`MediaViewer` from `@mrmeg/expo-ui/components/Image`, `components/Video`,
+`components/AudioPlayer` and `components/MediaViewer`, never from the
+`components` barrel or the root: the barrel stays free of media modules, so an
+app that never renders media installs nothing new. A test
+(`src/__tests__/mediaPeers.test.ts`) fails if anything reachable from the root
+barrel imports a media peer.
+
+Each media module is an optional peer; install only what you import, at the
+version your Expo SDK recommends (`npx expo install <name>`):
+
+- `expo-image` for `Image`.
+- `expo-video` for `Video`.
+- `expo-audio` for `AudioPlayer`, which draws its artwork with `Image`, so it
+  needs `expo-image` as well. `expo-audio` adds native code, so a dev client
+  built before you installed it needs a fresh build.
+- `MediaViewer` needs the peers of the media it shows.
+
+Components (each entry is filled in when the component ships):
+
+- `Image` (`components/Image`, needs `expo-image`): a picture that sizes itself
+  from an aspect ratio instead of fixed pixels. A muted frame shows while it
+  loads and when it fails (an `image-off` icon, or your `fallback`), then goes
+  transparent, so a transparent PNG, WebP, SVG or AVIF shows the surface behind
+  it in both themes.
+
+  ```tsx
+  import { Image } from "@mrmeg/expo-ui/components/Image";
+
+  <Image source={photo.url} alt={photo.title} aspectRatio={{ width: photo.width, height: photo.height }} radius="md" />
+  <Image source={cover} alt="" aspectRatio="16:9" maxHeight={240} position="top" />
+  <Image source={{ uri, cacheKey: key }} alt="" style={{ width: 96, height: 96 }} recyclingKey={key} />
+  ```
+
+  - Pick one sizing mode. `aspectRatio` (`16 / 9`, `"16:9"` or
+    `{ width, height }`, for example from upload metadata) draws full width of
+    the parent at that ratio, capped by `maxWidth` / `maxHeight` and centered;
+    prefer it whenever the size is known, since the box is pure style and a
+    server-rendered page already carries the final layout. `aspectRatio="auto"`
+    starts at `fallbackAspectRatio` (default 1) and moves to the picture's own
+    ratio once it loads: one layout shift, once per mount (change `key` to
+    re-measure for a new picture). `fill` absolutely fills a positioned parent
+    you size. With none of these, size the frame with `style` (width, height,
+    flex), as with a raw `expo-image`. `maxHeight` is enforced through the
+    width, so a tall picture in a wide column stays centered instead of
+    letterboxed.
+  - `fit` is `cover` by default; `contain`, `fill`, `none` and `scale-down`
+    follow CSS `object-fit`, and `position` (`"top"`, `{ top: "20%", left: 0 }`)
+    is the focal point of a `cover` or `none` crop. Letterboxing is
+    transparent. `radius` takes the `spacing.radius*` names and is applied to
+    the frame and the image.
+  - `alt` is required. Describe the picture; pass `alt=""` for a decorative one
+    (a thumbnail inside a pressable that is already named), which hides it from
+    assistive tech. A JS caller that omits it gets a development warning and
+    the image is treated as decorative.
+  - In a recycled list (FlashList, FlatList cells) set
+    `recyclingKey={item.id}`, so a reused cell shows a blank frame instead of
+    the previous picture. Pass `source={{ uri, cacheKey }}` when the URL changes
+    but the picture does not (re-signed URLs), so the cache hits.
+  - `placeholder` takes a blurhash string (bare, or with `blurhash:/`), a
+    thumbhash string with its `thumbhash:/` prefix (a bare string is read as a
+    blurhash), or a low-resolution URL or `{ uri }`; there is no spinner. `transition` (ms, default 200) is forced to 0 under
+    reduced motion. `onLoad({ width, height })` reports the natural size and
+    `onError` the failure; a new `source` clears an error. A `null` source keeps
+    the frame in its loading look and calls nothing.
+  - Formats are the platform decoder's. HEIC shows the error state in Chrome
+    (it has no HEIC decoder) while iOS and WebKit decode it; convert HEIC to
+    JPEG or WebP before serving it to the web (`@mrmeg/expo-media`'s processing
+    does). The Media Lab lists what each surface did per format.
+  - Web: `expo-image` adds its `<img>` after mount, so the server HTML carries
+    the sized, muted frame but not the `<img>` (a low-resolution `placeholder`
+    URL is the exception). The `<img>` has `alt`, `loading="lazy"` and, from
+    `priority`, `fetchpriority`.
+- `Video` (`components/Video`, needs `expo-video`): a video that sizes itself
+  from its own aspect ratio, with the platform's controls, themed controls that
+  look the same everywhere, or none. The frame is black and sized like `Image`.
+
+  ```tsx
+  import { Video } from "@mrmeg/expo-ui/components/Video";
+
+  <Video source={clip.url} controls="custom" aspectRatio={{ width: clip.width, height: clip.height }} poster={clip.poster} />
+  <Video source={{ uri }} aspectRatio="9:16" maxHeight={480} />
+  <Video source={clip.url} controls="none" aspectRatio="16:9" autoPlay muted loop />
+  <Video player={player} controls="custom" aspectRatio="16:9" />
+  ```
+
+  - Choose `controls`. `"native"` (the default) is the platform's own (AVKit,
+    the Media3 player UI, the browser's): the one mode that lets people pick
+    among several subtitle tracks or audio tracks, and the one with Picture in
+    Picture buttons. `"custom"` draws a center play button and a bottom bar
+    (play, scrubber with buffered fill, time, mute, captions, fullscreen) that
+    fades 3 s after the last interaction while playing and returns on hover,
+    focus and tap. On web it answers Space/K (play), ←/→ (±5 s), ↑/↓ (volume),
+    M, F and Esc while the frame is focused, and only then. `"none"` is bare
+    playback: no chrome and no tap handling, for a muted loop or controls of
+    your own (pass a `player`).
+  - Sizing is `Image`'s: `aspectRatio` (`16 / 9`, `"16:9"`, `{ width, height }`)
+    fills the parent's width at that ratio, capped by `maxWidth` / `maxHeight`
+    and centered; `fill` fills a positioned parent. `"auto"` (the default) draws
+    at 16:9 until the video reports its size, then moves once. Prefer an
+    explicit `aspectRatio` whenever you know it (upload metadata): the box is
+    pure style, so a server-rendered page carries the final layout and nothing
+    shifts. On native `"auto"` uses the size expo-video reports for the video
+    track, which is the coded size: AVFoundation's `naturalSize` and Media3's
+    `Format` both ignore a display-rotation flag, so a file that is landscape
+    with a "rotate 90" flag (how some phones record portrait) can draw a
+    landscape frame with the picture letterboxed inside it. On web it uses the
+    `<video>`'s own `videoWidth` and `videoHeight`, which the browser reports
+    after rotation. An explicit ratio avoids the question.
+  - `fit` is `contain` by default; `cover` and `fill` follow CSS `object-fit`
+    (expo-video has no `none` or `scale-down`, so `VideoFit` is narrower than
+    `ImageFit`). `radius` takes the `spacing.radius*` names.
+  - Fullscreen, per mode. `"native"`: the platform's control, which always shows
+    the platform's controls, as expo-video does in fullscreen. `"custom"`: on web
+    the frame itself goes fullscreen (the Fullscreen API), so the custom chrome
+    stays and Esc leaves; iPhone Safari cannot fullscreen an element, so there
+    the `<video>` goes fullscreen with the browser's controls. On iOS and Android
+    a full-screen `Modal` takes the same player with the same chrome, and the
+    inline view is unmounted while it is open so the player is attached to one
+    view at a time; close it with the minimize button or Android back.
+    `"none"`: none. `allowsFullscreen={false}` removes the control in every mode.
+  - Picture in Picture follows `allowsPictureInPicture` (default `true`) and
+    shows in the platform's controls. It needs the expo-video config plugin in
+    the app's config, `["expo-video", { supportsPictureInPicture: true }]`, then a
+    new native build; without it the prop does nothing. Firefox has no web PiP.
+  - `autoPlay` asks for playback on mount. Browsers only allow it when the video
+    is `muted`, so pass both for an inline loop. `loop` and `muted` are initial
+    values read when `Video` creates its player; with your own `player`, set
+    them on it. Changing `source` replaces it in place; on web a reload, Retry
+    included, starts playing.
+  - HLS: expo-video on web puts the URL in `<video src>` and ships no hls.js, so
+    an `.m3u8` plays natively in Safari only, though iOS and Android play HLS
+    natively. `Video` does not add a loader; serve an MP4 or WebM for the other
+    browsers.
+  - Captions: `"custom"` shows a captions button only when the player reports
+    subtitle tracks, and it toggles one track (the device's language, else the
+    first). To choose among tracks, or to choose an audio track, use `"native"`.
+    expo-video's web player reports no subtitle tracks, so the button never
+    appears in a browser: use `"native"` there. An audio-only file keeps the fallback ratio
+    and its poster (or black) and the controls keep working.
+  - A live stream (`isLive`, or an infinite duration) reads "Live" and the
+    scrubber is disabled; the readout of a long clip is `h:mm:ss` for both
+    numbers.
+  - States are part of the frame: a white spinner over the poster or black while
+    loading, and on failure a muted message with a retry button (`rotate-ccw`)
+    that reloads `source`, plus `onError(message)`. Retry needs `source`: give it
+    alongside your own `player` to get one. `poster` shows until playback first
+    starts (under `"native"` it carries a play glyph, since a poster would hide
+    the platform's own button), and is dropped if it fails to load.
+  - Lifecycle: it pauses on unmount, and releases the player it created; a
+    `player` you pass is only paused. Pausing when the screen loses focus is the
+    app's job, because the kit has no router: pause your own player from
+    expo-router's `useIsFocused()`.
+  - Accessibility under `"custom"` on iOS and Android: the frame is one element
+    named by `title`, else `accessibilityLabel`, else "Video", whose value is
+    the position in words. Play or pause is the double tap (VoiceOver's
+    `onAccessibilityTap`, TalkBack's `activate` action) and, on iOS, the
+    two-finger magic tap (`onMagicTap`). The labeled actions are increment and
+    decrement (seek 10 s) and custom ones for mute, captions and fullscreen,
+    because the children of an accessible element are not separate stops on iOS. The chrome never
+    auto-hides while a screen reader is on. On web the frame is a focusable
+    group and its buttons are ordinary tab stops; focusing one brings the chrome
+    back. react-native-web cannot detect a screen reader, so web relies on focus
+    and hover instead.
+  - It server-renders: the first HTML carries the black sized frame, the
+    `<video>` and the controls, and every timer starts after mount. Many players
+    on one screen are heavy (one decoder each): mount a `Video` when the user taps
+    a thumbnail, as the Media Lab does.
+  - Codec, container and stream support is the platform decoder's, not the
+    component's. The Media Lab's Video section (`/media-lab`) runs every
+    fixture (H.264, HEVC and 10-bit HEVC, VP9, AV1, `.mov`, 60 fps, 4K,
+    non-faststart and fragmented MP4, audio-only, a 1 h 05 m clip, rotation
+    flags, HLS, DASH, live streams, broken files) through `Video` under each
+    controls mode and lists, per fixture, what each surface did; check it, not
+    memory, before promising a format. Observed on 2026-10-23 (Chrome 156,
+    Playwright WebKit 26.6, iOS 27 simulator):
+
+    | Case | Chrome | WebKit | iOS |
+    |---|---|---|---|
+    | H.264, HEVC (+10-bit), `.mov`, 60 fps, 4K, fragmented, moov-at-end | plays | plays | plays |
+    | VP9 / AV1 in WebM | plays | VP9 plays; AV1 hangs, no error | "Cannot Open" |
+    | AV1 in MP4 | plays | error | plays |
+    | HLS VOD | some streams | plays | plays |
+    | DASH | error | error | error |
+    | Rotation flag, `aspectRatio="auto"` | portrait frame | portrait frame | landscape frame (pre-rotation size) |
+    | Captions toggle (`"custom"`) | never shown | never shown | not checked |
+
+    For rotated phone video, pass an explicit `aspectRatio`. For captions on
+    web, use `controls="native"`.
+- `AudioPlayer` (`components/AudioPlayer`, needs `expo-audio` and `expo-image`):
+  a themed, flat audio player with the same controls on iOS, Android and web,
+  including desktop browsers. It draws no container; put it in a `Card` (one
+  item in a collection) or an `Item` row.
+
+  ```tsx
+  import { AudioPlayer } from "@mrmeg/expo-ui/components/AudioPlayer";
+
+  <AudioPlayer source={note.url} title="Voice note" />
+  <AudioPlayer
+    variant="full"
+    source={episode.url}
+    title={episode.title}
+    subtitle={show.name}
+    artwork={show.cover}
+    onEnd={playNext}
+  />
+  ```
+
+  - `variant="compact"` (default) is one 44 pt row: play and pause, a scrubber,
+    and the total length until it starts, then the elapsed time. Use it for
+    voice notes and attachments. `variant="full"` adds 56 pt `artwork`, a
+    `title` over a `subtitle`, a full-width scrubber, elapsed and `-remaining`
+    times, and a speed button (1×, 1.25×, 1.5×, 2×, 0.75×; `showSpeed={false}`
+    hides it). Use it for episodes and tracks. `showMute` adds a mute button in
+    either variant.
+  - `title` also names the controls for assistive tech ("Play {title}", "Pause
+    {title}"). The scrubber announces the position in words, and the numeric
+    times are hidden from assistive tech. On iOS a magic tap on the player
+    toggles play.
+  - Words go through `translateText` under `media.play`, `media.pause`,
+    `media.playTitle` and `media.pauseTitle` (with `{ title }`), `media.loading`,
+    `media.audioError`, `media.mute`, `media.unmute`, `media.playbackSpeed`
+    (with `{ rate }`), `media.audioPlayer` and the shared `media.seek` /
+    `media.live`; the English fallback is already filled in.
+  - Web: focus the player, then Space or K plays and pauses, ←/→ move 5 s, and M
+    mutes (with or without the `showMute` button, which only shows the state).
+    The keys act only while focus is inside the player.
+  - A source that fails to load, or no `source` at all, disables the controls
+    and shows "Audio unavailable" in place of the time; `onError(message)` is
+    called once per message. A play request the browser refuses (autoplay
+    before a gesture) is reported to `onError` but leaves the player usable.
+    `onEnd` fires when playback reaches the end (not while `loop`), and the next
+    play starts from 0. A live stream, whose length is never known, shows
+    `Live` and disables the scrubber.
+  - Scrubbing pauses a playing clip, seeks on release and resumes. To own the
+    player (to read it elsewhere, or to set `useAudioPlayer` options such as
+    `downloadFirst`, `crossOrigin` or `updateInterval`), create it with
+    `useAudioPlayer(source, options)` and pass it as `player`. The component then
+    never pauses, replaces or releases it. Without `player` it creates one,
+    pauses it on unmount and releases it.
+  - Web server rendering: `expo-audio`'s web player builds an
+    `HTMLAudioElement`, which a server does not have. `AudioPlayer` renders the
+    same layout with a disabled play button and `--:--` on the server and
+    through the hydration pass, and creates the player once hydrated (on
+    native, and whenever you pass `player`, at once). Do not call
+    `useAudioPlayer` during a server render yourself.
+  - The audio session is yours. `AudioPlayer` never calls `setAudioModeAsync`,
+    which is process-wide, so set it once at app start:
+    - iOS plays nothing with the silent switch on unless you call
+      `setAudioModeAsync({ playsInSilentMode: true })`.
+    - Background playback needs the `expo-audio` config plugin (its
+      `enableBackgroundPlayback` adds the iOS `audio` background mode and the
+      Android foreground service) and
+      `setAudioModeAsync({ shouldPlayInBackground: true })`. On Android,
+      sustained background playback also needs `lockScreen`.
+    - `lockScreen` publishes `title`, `subtitle` (as the artist) and `artwork`
+      to the lock screen and notification while playing, and clears them on
+      unmount. It requires `setAudioModeAsync({ interruptionMode: "doNotMix" })`.
+  - Web, remote files: an `<audio>` element plays a file from another origin
+    without CORS headers. The server must send `Access-Control-Allow-Origin`
+    for the page's origin only when you pass `headers` in the source or create
+    the player with `downloadFirst` or `crossOrigin`.
+  - Platform gaps, from reading `expo-audio` 58.0.10: its web player reports
+    `isLoaded: true` and `isBuffering: false` on every update, so the loading
+    spinner (shown on native while buffering, or between play and load) never
+    appears on web. `AudioPlayer` does not read a file's embedded ID3 cover art:
+    the `artwork` prop is the only picture. Per-format results (MP3 CBR and VBR,
+    WAV, FLAC, Ogg and WebM Opus, long files, live, broken files) are in the
+    Media Lab Audio section (`/media-lab`) and its `observed` badges.
+- `MediaViewer` (`components/MediaViewer`, needs `expo-image` and `expo-video`):
+  a full-screen lightbox for a list of images and videos, on iOS, Android and
+  web. Build `items` from your whole list so swiping spans the library, and open
+  it at the one that was tapped.
+
+  ```tsx
+  import { MediaViewer, type MediaViewerItem } from "@mrmeg/expo-ui/components/MediaViewer";
+
+  const items: MediaViewerItem[] = media.map((m) =>
+    m.kind === "video"
+      ? { type: "video", key: m.id, source: m.url, poster: m.thumbnail, title: m.name }
+      : { type: "image", key: m.id, source: { uri: m.url, cacheKey: m.id }, alt: m.description, title: m.name },
+  );
+  const [open, setOpen] = useState<number | null>(null);
+
+  <MediaViewer items={items} visible={open !== null} initialIndex={open ?? 0} onClose={() => setOpen(null)} />
+  <MediaViewer items={items} visible index={index} onIndexChange={setIndex} onClose={close} videoControls="native" maxZoom={6} />
+  ```
+
+  - Items. `type: "image"` takes `source` (a URL, a `require()`d asset or an
+    `expo-image` source with `cacheKey`), a required `alt` (`""` for a
+    decorative picture), an optional `title` and a `placeholder` (blurhash,
+    thumbhash or low-resolution URL). `type: "video"` takes `source` (an
+    `expo-video` source), an optional `title` and a `poster`. `key` must be
+    unique and stable (an object key or id): it is how the viewer follows an
+    item. An empty list renders nothing.
+  - Position. Uncontrolled by default: `initialIndex` is read once per open
+    (the viewer remounts each time `visible` turns true). Pass `index` and
+    `onIndexChange` to control it. An index past the list is clamped, and
+    `onIndexChange` reports the clamp. If `items` changes while the viewer is
+    open (an item deleted elsewhere), it stays on the same `key` if it is still
+    there, otherwise it clamps, and `onIndexChange` reports the move. A video
+    whose `source` changes restarts (`Video` replaces a source in place), so
+    with signed URLs that a refetch re-signs, snapshot `items` when you open the
+    viewer and pass the snapshot while it is open, as the template's media tab
+    does.
+  - Paging is a horizontal swipe, the arrow keys, or the edge buttons. The
+    buttons show on web always (hidden on the first and last item) and on native
+    only while a screen reader is on, since swipe is the touch affordance. The
+    counter ("3 of 5", `media.counter`) is hidden for a single item. Only the
+    shown page and its two neighbors are mounted, so a list of hundreds stays
+    light. Only the shown page mounts a `Video`; the other video pages show their
+    `poster` (or black) and a play glyph, so paging away stops playback and a
+    long list never holds many decoders.
+  - Zoom is for images (`zoom={false}` turns it off): pinch, double-tap
+    (`doubleTapZoom`, default 2.5) or double-click, `Ctrl`/`Cmd` + wheel around
+    the cursor (a trackpad pinch on Chrome, Edge and Firefox arrives that way;
+    Safari's own pinch event is not handled), and `+` `-` `0`, up to `maxZoom`
+    (default 4). One finger or the mouse pans a zoomed image, never past its
+    edge. Paging is off while zoomed, and a page change resets zoom. A tap on an
+    image toggles the chrome; a video page keeps its top bar and the video's own
+    controls (`videoControls`: `"custom"` by default, or the platform's).
+    `autoPlay` starts each video page as it is shown (the one opened on and each
+    one paged to), as a photo library does; it is off by default. Set it when
+    the user opens the viewer by tapping a video. A browser that blocks unmuted
+    autoplay leaves the page paused with its play button showing.
+  - Closing: the close button, Esc, Android back, and on a touch screen a swipe
+    down (or up) past 120 pt or faster than 1 pt/ms, which fades the backdrop
+    with the drag (`swipeToDismiss={false}` turns it off). Esc leaves zoom first
+    and closes on the second press. There is no swipe-to-dismiss with a mouse.
+  - Web keys, on the viewer's root: ←/→ page, `+` `=` `-` `0` zoom, `F` toggles
+    browser fullscreen of the viewer. A custom video that has focus keeps its own
+    ←/→ for seeking. `Video` is told `allowsFullscreen={false}` inside the
+    viewer, since the viewer is already full-window.
+  - Accessibility: focus lands on the close button when it opens, each page
+    change is announced ("Title, 2 of 5"), the root is a modal view, and an image
+    page is one element named by its `alt`. On native an image page offers
+    `increment` and `decrement` (next and previous) and `escape` (close, iOS
+    two-finger Z); a video page leaves increment and decrement to the video's
+    own controls, so a screen reader pages with the edge buttons there. Copy goes
+    through `translateText`: `media.close`, `media.counter` (with `n` and
+    `total`), `media.previous`, `media.next` and `media.imageError`.
+  - It is a transparent `Modal` that fades (no animation under reduced motion),
+    black in both themes, with a light status bar, and it supports every
+    orientation. It reads the safe area with the `initialWindowMetrics` fallback
+    a `Modal` outside `SafeAreaProvider` needs. Gestures are RN `PanResponder`
+    plus `Animated`; the kit does not use reanimated or gesture-handler.
+  - In an app, keep it out of the first download. `MediaViewer` imports `Video`
+    and `Image`, so a static import from two lazy chunks hoists `expo-video`
+    into the shared bundle. The template loads it through
+    `client/components/LazyMediaViewer.tsx` (one `import()` of
+    `client/components/mediaChunk.ts`, shared with `LazyVideo`), and a test
+    fails on any other import. The Media Lab's Viewer section (`/media-lab`) opens
+    the viewer on a mixed set (extreme aspects, a 48 MP picture, EXIF
+    orientation, alpha PNG, animated GIF, a rotation-flagged video, HLS with
+    captions, broken files), the 60-thumbnail scale set, and one item; check it,
+    not memory, on each surface.
+
+For custom media UI, build on the shared primitives, none of which import a
+media module:
+
+- `MediaControlButton` from `components/MediaControlButton`: an icon-only
+  control for chrome drawn over video or images (white glyph on a translucent
+  black circle that reads over any frame, at least 44 pt to hit). On a themed
+  surface use `IconButton` (`preset="ghost"`, `shape="circle"`) instead.
+  `accessibilityLabel` is required; `selected` sets the toggle state for mute.
+- `MediaScrubber` from `components/MediaScrubber`: a seek bar with
+  `onScrubStart`, `onScrubChange(seconds)` and `onScrubEnd(seconds)`,
+  `tone="overlay"` over video or `"default"` on a themed surface, a buffered
+  fill, screen-reader increment and decrement by `step`, and ←/→/Home/End on
+  web. It is not `Slider`, which has no sliding start or end events.
+- `useMediaKeyboard` from `hooks`: spread its result on a focusable container
+  for Space/`k`, arrows, `m`, `f`, Esc and zoom keys on web. It acts only on
+  keys you pass a handler for, and only inside that container.
+- `formatMediaTime`, `mediaTimeA11y`, `mediaFrameStyle`, `parseAspectRatio` and
+  `useMediaAspectRatio` from `lib`: `m:ss` or `h:mm:ss` readouts and their
+  spoken form, a full-width ratio frame capped by `maxHeight`, and the ratio an
+  `aspectRatio="auto"` prop resolves.
+
+Built-in icons for media controls: `play`, `pause`, `volume-2`, `volume-x`,
+`maximize`, `minimize`, `rotate-ccw`, `chevron-left`, `chevron-right`, `x`,
+`image-off`, `captions`.
 
 ## Minimal Examples
 

@@ -304,12 +304,14 @@ export function resolveFontStyle(
 }
 
 // Navigation theme fonts configuration
-/**
- * Typography scale — Tailwind-matching sizes for consistent text hierarchy.
- * Components can progressively adopt these tokens.
- */
+/** Keys of the `typography` size table. */
 export type TypographySize = "xs" | "sm" | "base" | "lg" | "xl" | "2xl" | "3xl" | "4xl";
 
+/**
+ * A Tailwind-style size table for hand-built layouts. It is **not** the text
+ * scale: `StyledText` (`size` / `semantic`) renders its own scale (body
+ * 15/24.75, caption 12/18, label 14/21). Use `StyledText` for text.
+ */
 export const typography: Record<TypographySize, { fontSize: number; lineHeight: number }> = {
   xs:   { fontSize: 12, lineHeight: 16 },
   sm:   { fontSize: 14, lineHeight: 20 },

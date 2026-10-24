@@ -49,6 +49,7 @@
     "media:pack": "node scripts/run-package-script.mjs media pack",
     "media:consumer-smoke": "node scripts/run-package-script.mjs media consumer-smoke",
     "media:release": "node scripts/run-package-script.mjs media release",
+    "media:fixtures": "node scripts/build-media-fixtures.mjs",
     "purchases:typecheck": "node scripts/run-package-script.mjs purchases typecheck",
     "purchases:test": "node scripts/run-package-script.mjs purchases test",
     "purchases:build": "node scripts/run-package-script.mjs purchases build",
@@ -95,6 +96,7 @@
     "aws-amplify": "^6.22.2",
     "aws-jwt-verify": "^5.2.1",
     "expo": "~58.0.9",
+    "expo-audio": "~58.0.10",
     "expo-auth-session": "~58.0.11",
     "expo-clipboard": "~58.0.3",
     "expo-constants": "~58.0.11",
@@ -168,7 +170,8 @@
   "overrides": {
     "baseline-browser-mapping": "^2.10.27",
     "@radix-ui/react-slot": "1.2.4",
-    "@radix-ui/react-primitive": "2.1.4"
+    "@radix-ui/react-primitive": "2.1.4",
+    "react-native-screens": "~4.29.0"
   },
   "expo": {
     "install": {
@@ -178,5 +181,8 @@
     }
   },
   "license": "MIT",
-  "private": true
+  "private": true,
+  "engines": {
+    "node": "24.22.1"
+  }
 }

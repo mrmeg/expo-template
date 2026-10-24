@@ -50,6 +50,9 @@ import { buildCategoryChips } from "../GalleryChips";
  */
 const routeParams: { id?: string } = {};
 
+// `AudioPlayer` (in the Audio section and the previews) imports `expo-audio`, which has no native module under Jest: opt in to the fake.
+jest.mock("expo-audio", () => require("@/test/mocks/expoAudio"));
+
 jest.mock("expo-router", () => {
   const React_ = require("react");
   const { Text } = require("react-native");
@@ -104,6 +107,14 @@ const linkAsChildStyles: { testID?: string; style: unknown }[] =
 
 // jest-expo reports Platform.OS === "ios", so Slider / SegmentedControl /
 // BottomSheet all route to their native @expo/ui community modules.
+// `Video` loads through `LazyVideo`'s `import()`, which Jest cannot run (no
+// --experimental-vm-modules). The Video card only needs to render a frame here.
+jest.mock("@/client/components/LazyVideo", () => {
+  const { createElement } = require("react");
+  const { View } = require("react-native");
+  return { LazyVideo: ({ testID }: { testID?: string }) => createElement(View, { testID }) };
+});
+
 jest.mock("@expo/ui/community/slider", () => {
   const { View } = require("react-native");
   return { Slider: (props: object) => <View testID="native-slider" {...props} /> };

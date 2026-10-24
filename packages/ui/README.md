@@ -37,9 +37,19 @@ by your SDK): `npx expo install react-native-svg`. The icons themselves are
 [Lucide](https://lucide.dev/icons) glyph data the package ships and renders;
 no icon library is a peer (see [Icons](#icons)).
 
+The media components (`Image`, `Video`, `AudioPlayer`, `MediaViewer`) rest on
+three further peers, all optional: `expo-image`, `expo-video` and `expo-audio`.
+Install only the ones you import (`npx expo install expo-video`). The media
+components are subpath imports (`@mrmeg/expo-ui/components/Video`), never part
+of the `components` barrel or the root, so an app that does not use them
+installs and bundles none of them. `AudioPlayer` also draws artwork with
+`Image`, so it needs `expo-image` as well as `expo-audio`. `expo-audio` adds
+native code: rebuild your dev client after installing it.
+
 `@rn-primitives/*` and `@expo-google-fonts/inter` are package dependencies, not
 peers. Animations use React Native `Animated`. `BottomSheet`, `Slider`, and
-`SegmentedControl` render native `@expo/ui` controls. i18n is optional.
+`SegmentedControl` render native `@expo/ui` controls (`SegmentedControl` is
+native except `size="lg"`, which the kit draws). i18n is optional.
 
 ## Imports
 
@@ -706,8 +716,9 @@ as native, so emitting a numeric weight on top makes the browser synthesise a
 ## Component Guide
 
 Every component is exported from `@mrmeg/expo-ui/components`, and from
-`@mrmeg/expo-ui/components/<Name>` for a direct import. Check this table before
-building a new primitive.
+`@mrmeg/expo-ui/components/<Name>` for a direct import, except the media
+components, which are subpath-only (see [Install](#install)). Check this table
+before building a new primitive.
 
 | Component | Use For | Examples |
 |-----------|---------|----------|
@@ -729,11 +740,15 @@ building a new primitive.
 | `EmptyState` | No-data or recoverable error regions | Empty inbox, no results, failed list load |
 | `ErrorBoundary` | React render error fallback | Route-level and feature-level fallbacks |
 | `Icon` | Registered Lucide glyphs or custom art on theme tokens | Button accessories, menu icons, status glyphs |
+| `IconButton` | Icon-only command: required `accessibilityLabel`, `Button` presets and states, `square` or `circle`, 44 pt hit area on every platform | Refresh, close, camera and toolbar buttons |
+| `AudioPlayer` | Themed audio player: `compact` row or `full` layout with artwork, title, scrubber, times and speed; `Live`, error and buffering states, web keyboard; subpath-only (`components/AudioPlayer`), needs `expo-audio` and `expo-image` | Voice notes, podcast episodes, track lists |
+| `Image` | Picture sized from an aspect ratio, with `fit` and focal `position`, placeholder, error state and required `alt`; subpath-only (`components/Image`), needs `expo-image` | Feed photos, grid thumbnails, covers and heroes |
 | `InputOTP` | Verification code entry | Email/SMS codes, MFA, invite codes |
 | `Item` | List and settings rows on the density tokens | Settings lists, inbox rows, pickers, detail rows |
 | `ItemGroup` | Flat grouped list: title, full-width `Item` rows with inset hairlines, footer | Settings sections, profile details, activity feeds |
 | `KeyboardAvoidingView` | Native keyboard-aware layout | Screen roots, composer footers, form-heavy subtrees |
 | `Label` | Accessible form labels | Required, disabled, and group labels |
+| `MediaViewer` | Full-screen lightbox over a list of images and videos: swipe or arrow paging, pinch / double-tap / wheel / keyboard zoom, swipe-down or Esc to close, custom video controls; subpath-only (`components/MediaViewer`), needs `expo-image` and `expo-video` | Photo and video galleries, a media library's preview, an attachment viewer |
 | `MaxWidthContainer` | Centered responsive width | Web pages, tablet layouts, auth forms |
 | `Notification` | Global toast surface | Saved/error/sync toasts, action toasts, loading toast |
 | `Screen` | Page container: safe-area `edges`, one horizontal inset, theme background, optional scroll | Every screen root; under a header pass `edges={["bottom"]}` |
@@ -741,7 +756,7 @@ building a new primitive.
 | `Progress` | Determinate or indeterminate progress | Upload progress, onboarding completion |
 | `RadioGroup` | Mutually exclusive choices | Plan interval, visibility choice, survey answer |
 | `SectionHeader` | Eyebrow / title / description section intro | Landing sections, report headers, empty-screen intros |
-| `SegmentedControl` | Native segmented picker (`@expo/ui`) | Platform-native view switchers, iOS-style filters |
+| `SegmentedControl` | Segmented picker: native `@expo/ui` control at `md` on iOS/Android; the kit draws it on web and at `size="lg"` (44 pt on every platform); a `value` not in `values` selects none | View switchers, filters; `size="lg"` where segments need 44 pt targets |
 | `Select` | Option menus | Country, category, status pickers; `label` drives default item text |
 | `Separator` | Horizontal or vertical dividers | Section, menu, and toolbar dividers |
 | `Skeleton` | Loading placeholders | List, profile card, dashboard loading |
@@ -756,6 +771,7 @@ building a new primitive.
 | `Toggle` | Pressed/unpressed control | Favorite, mute, bold/italic, view mode |
 | `ToggleGroup` | Single or multi toggle groups | Alignment, formatting toolbar, filter chips |
 | `Tooltip` | Short hover/focus help | Icon button labels, field hints, disabled-action reasons |
+| `Video` | Video sized from its own aspect ratio, with `native`, `custom` (themed, identical on every platform) or no controls, a poster, loading and error states, and web keyboard shortcuts; subpath-only (`components/Video`), needs `expo-video` | Clip players, feed videos, muted loops, lesson and tutorial video |
 
 ### Icons
 

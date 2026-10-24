@@ -169,6 +169,18 @@ describe("expo-ui-icons add", () => {
     expect(icons(["--check"]).status).toBe(0);
   });
 
+  it("canonicalizes Lucide aliases that have their own font codepoints", () => {
+    writeManifest({ icons: ["check"] });
+    const result = icons(["add", "trash-2", "flip-horizontal"]);
+    expect(result.status).toBe(0);
+    expect(result.output).toContain("trash-2 → trash");
+    expect(JSON.parse(read("client/icons.json")).icons).toEqual([
+      "check",
+      "square-centerline-dashed-horizontal",
+      "trash",
+    ]);
+  });
+
   it("fails on an unknown name without touching the manifest", () => {
     writeManifest({ icons: ["check"] });
     const before = read("client/icons.json");

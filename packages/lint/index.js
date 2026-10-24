@@ -14,6 +14,7 @@ const rules = {
   "no-restyle": require("./rules/no-restyle"),
   "no-raw-primitives": require("./rules/no-raw-primitives"),
   "no-raw-typography": require("./rules/no-raw-typography"),
+  "icon-source": require("./rules/icon-source"),
 };
 
 /** @type {{meta: {name: string}, rules: object, configs: object}} */
@@ -36,6 +37,7 @@ plugin.configs.recommended = {
     "expo-ui/no-restyle": "error",
     "expo-ui/no-raw-primitives": "error",
     "expo-ui/no-raw-typography": "error",
+    "expo-ui/icon-source": "error",
   },
 };
 

@@ -21,10 +21,11 @@
  */
 
 import React from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@mrmeg/expo-ui/components/Accordion";
 import { AnimatedView } from "@mrmeg/expo-ui/components/AnimatedView";
+import { AudioPlayer } from "@mrmeg/expo-ui/components/AudioPlayer";
 import { Avatar, AvatarGroup } from "@mrmeg/expo-ui/components/Avatar";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { BottomSheet } from "@mrmeg/expo-ui/components/BottomSheet";
@@ -38,6 +39,8 @@ import { Drawer } from "@mrmeg/expo-ui/components/Drawer";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@mrmeg/expo-ui/components/DropdownMenu";
 import { EmptyState } from "@mrmeg/expo-ui/components/EmptyState";
 import { Icon, type IconName } from "@mrmeg/expo-ui/components/Icon";
+import { IconButton } from "@mrmeg/expo-ui/components/IconButton";
+import { Image, type ImageFit } from "@mrmeg/expo-ui/components/Image";
 import { InputOTP } from "@mrmeg/expo-ui/components/InputOTP";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@mrmeg/expo-ui/components/Item";
 import { Label } from "@mrmeg/expo-ui/components/Label";
@@ -59,7 +62,11 @@ import { ThemeSelector } from "@mrmeg/expo-ui/components/ThemeSelector";
 import { Toggle } from "@mrmeg/expo-ui/components/Toggle";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@mrmeg/expo-ui/components/Tooltip";
-import { spacing } from "@mrmeg/expo-ui/constants";
+import type { MediaViewerItem } from "@mrmeg/expo-ui/components/MediaViewer";
+import { LazyMediaViewer } from "@/client/components/LazyMediaViewer";
+import { LazyVideo } from "@/client/components/LazyVideo";
+import { withAlpha } from "@mrmeg/expo-ui/hooks";
+import { palette, spacing } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
 // Small shared helpers
@@ -105,6 +112,221 @@ function TogglePreview({ icon, label, initial }: { icon: IconName; label: string
   );
 }
 
+/**
+ * The `Image` card: the five fits on one non-square picture, a focal-point
+ * crop, a clamped 16:9 frame, `"auto"`, a placeholder and the error state. All
+ * of it uses the Media Lab's bundled core fixtures, so nothing here loads over
+ * the network except the deliberate failure.
+ */
+const LANDSCAPE = require("@/assets/media/landscape.jpg");
+const PORTRAIT = require("@/assets/media/portrait.jpg");
+const SQUARE = require("@/assets/media/square.jpg");
+/** The sample hash from the blurhash project, which has a bright top and a dark bottom. */
+const BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
+const IMAGE_FITS: ImageFit[] = ["cover", "contain", "fill", "none", "scale-down"];
+
+function Captioned({ caption, children, style }: { caption: string; children: React.ReactNode; style?: object }) {
+  return (
+    <View style={[{ alignItems: "center", gap: spacing.xxs }, style]}>
+      {children}
+      <CaptionText>{caption}</CaptionText>
+    </View>
+  );
+}
+
+function ImagePreview() {
+  return (
+    <Stack gap={spacing.md}>
+      {/* A 16:9 picture in square frames: the fit decides what shows. */}
+      <Row gap={spacing.sm}>
+        {IMAGE_FITS.map((fit) => (
+          <Captioned key={fit} caption={fit}>
+            <Image source={LANDSCAPE} alt="" fit={fit} radius="sm" style={{ width: 52, height: 52 }} />
+          </Captioned>
+        ))}
+      </Row>
+
+      {/* Frames wider than 16:9 crop top and bottom, where the bars differ. */}
+      <View style={{ flexDirection: "row", gap: spacing.sm }}>
+        {(["top", "bottom"] as const).map((position) => (
+          <Captioned key={position} caption={`position="${position}"`} style={{ flex: 1 }}>
+            <Image source={LANDSCAPE} alt="" aspectRatio="3:1" position={position} radius="sm" />
+          </Captioned>
+        ))}
+      </View>
+
+      <Captioned caption='aspectRatio="16:9" maxHeight={200}'>
+        <Image source={LANDSCAPE} alt="Color bars" aspectRatio="16:9" maxHeight={200} radius="md" />
+      </Captioned>
+
+      <Row gap={spacing.md}>
+        <Captioned caption='aspectRatio="auto"'>
+          <View style={{ width: 72 }}>
+            <Image source={PORTRAIT} alt="" aspectRatio="auto" radius="sm" />
+          </View>
+        </Captioned>
+        <Captioned caption="blurhash placeholder">
+          <Image source={SQUARE} alt="" placeholder={BLURHASH} transition={800} radius="sm" style={{ width: 72, height: 72 }} />
+        </Captioned>
+        <Captioned caption="error state">
+          <Image source="https://example.invalid/missing.jpg" alt="" radius="sm" style={{ width: 72, height: 72 }} />
+        </Captioned>
+      </Row>
+    </Stack>
+  );
+}
+
+/**
+ * The `AudioPlayer` card: a compact player on the bundled tone, a full player
+ * with a title, subtitle and artwork, and a full player on a source that
+ * cannot load, which lands in the unavailable state. Nothing here plays until
+ * pressed, and the only network request is the deliberate failure.
+ */
+const TONE = require("@/assets/media/tone.m4a");
+
+function AudioPlayerPreview() {
+  return (
+    <Stack gap={spacing.md}>
+      <View style={{ gap: spacing.xxs }}>
+        <AudioPlayer source={TONE} title="Tone" />
+        <CaptionText>compact</CaptionText>
+      </View>
+      <View style={{ gap: spacing.xxs }}>
+        <AudioPlayer variant="full" source={TONE} title="Morning tone" subtitle="Template sounds" artwork={SQUARE} showMute />
+        <CaptionText>full: artwork, title, subtitle, speed</CaptionText>
+      </View>
+      <View style={{ gap: spacing.xxs }}>
+        <AudioPlayer variant="full" source="https://example.invalid/missing.mp3" title="Missing episode" subtitle="Broken source" />
+        <CaptionText>full, source that fails to load</CaptionText>
+      </View>
+    </Stack>
+  );
+}
+
+/**
+ * The `Video` card: custom and native controls on the bundled clip, a portrait
+ * clip capped by `maxHeight`, `fit="cover"` in a square frame, and the error
+ * state. The clips are the Media Lab's bundled core fixtures; only the
+ * deliberate failure leaves the device.
+ */
+const LANDSCAPE_VIDEO = require("@/assets/media/landscape.mp4");
+const PORTRAIT_VIDEO = require("@/assets/media/portrait.mp4");
+
+function VideoPreview() {
+  return (
+    <Stack gap={spacing.md}>
+      <Captioned caption='controls="custom", with a poster'>
+        <LazyVideo
+          source={LANDSCAPE_VIDEO}
+          controls="custom"
+          aspectRatio={{ width: 640, height: 360 }}
+          poster={LANDSCAPE}
+          radius="md"
+          title="Color bars"
+        />
+      </Captioned>
+
+      <Captioned caption='controls="native"'>
+        <LazyVideo
+          source={LANDSCAPE_VIDEO}
+          controls="native"
+          aspectRatio={{ width: 640, height: 360 }}
+          poster={LANDSCAPE}
+          radius="md"
+          title="Color bars"
+        />
+      </Captioned>
+
+      {/* Centered at its natural width, not stretched across the card. */}
+      <Captioned caption='aspectRatio="9:16" maxHeight={320}'>
+        <LazyVideo source={PORTRAIT_VIDEO} controls="custom" aspectRatio="9:16" maxHeight={320} radius="md" title="Portrait clip" />
+      </Captioned>
+
+      <Row gap={spacing.md}>
+        <Captioned caption='fit="cover", 1:1'>
+          <View style={{ width: 150 }}>
+            <LazyVideo source={LANDSCAPE_VIDEO} controls="custom" fit="cover" aspectRatio={1} radius="md" title="Cropped to a square" />
+          </View>
+        </Captioned>
+        <Captioned caption="error state">
+          <View style={{ width: 150 }}>
+            <LazyVideo source="https://example.invalid/missing.mp4" controls="custom" aspectRatio={1} radius="md" title="Missing clip" />
+          </View>
+        </Captioned>
+      </Row>
+    </Stack>
+  );
+}
+
+/**
+ * The `MediaViewer` card: a strip of three thumbnails (a picture and two clips,
+ * each with its poster) that opens the viewer at the one tapped, so swiping
+ * crosses between image and video. The same core fixtures as the cards above.
+ */
+const VIEWER_ITEMS: MediaViewerItem[] = [
+  { type: "image", key: "landscape", source: LANDSCAPE, alt: "Color bars, landscape", title: "landscape.jpg" },
+  { type: "video", key: "landscape-video", source: LANDSCAPE_VIDEO, poster: LANDSCAPE, title: "landscape.mp4" },
+  { type: "video", key: "portrait-video", source: PORTRAIT_VIDEO, poster: PORTRAIT, title: "portrait.mp4" },
+];
+
+/** A translucent disc with a play glyph, centered over a poster: it says "video" without being a player. */
+const PLAY_BADGE_LAYER = {
+  position: "absolute",
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+  alignItems: "center",
+  justifyContent: "center",
+  pointerEvents: "none",
+} as const;
+const PLAY_BADGE = {
+  width: 28,
+  height: 28,
+  borderRadius: spacing.radiusFull,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: withAlpha(palette.black, 0.45),
+} as const;
+
+function MediaViewerPreview() {
+  const [open, setOpen] = React.useState<number | null>(null);
+  const close = React.useCallback(() => setOpen(null), []);
+
+  return (
+    <Stack gap={spacing.md}>
+      <Row gap={spacing.sm}>
+        {VIEWER_ITEMS.map((item, index) => (
+          <Pressable
+            key={item.key}
+            onPress={() => setOpen(index)}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${item.title}`}
+            testID={`viewer-thumb-${item.key}`}
+          >
+            <Image
+              source={item.type === "image" ? item.source : (item.poster ?? null)}
+              alt=""
+              fit="cover"
+              radius="md"
+              style={{ width: 88, height: 88 }}
+            />
+            {item.type === "video" ? (
+              <View style={PLAY_BADGE_LAYER}>
+                <View style={PLAY_BADGE}>
+                  <Icon name="play" size={14} color={palette.white} />
+                </View>
+              </View>
+            ) : null}
+          </Pressable>
+        ))}
+      </Row>
+      <CaptionText style={{ textAlign: "center" }}>Tap one to open the viewer, then swipe, pinch or press ← →</CaptionText>
+      <LazyMediaViewer items={VIEWER_ITEMS} visible={open !== null} initialIndex={open ?? 0} onClose={close} />
+    </Stack>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Preview map
 // ---------------------------------------------------------------------------
@@ -122,6 +344,16 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
     <Row>
       <Button preset="default" size="sm" text="Continue" />
       <Button preset="outline" size="sm" text="Cancel" />
+    </Row>
+  ),
+
+  // Every control is named: an icon-only button has no other accessible name.
+  IconButton: () => (
+    <Row gap={spacing.md}>
+      <IconButton icon="settings" size="sm" preset="ghost" accessibilityLabel="Settings" />
+      <IconButton icon="refresh-cw" size="md" preset="outline" accessibilityLabel="Refresh" />
+      <IconButton icon="upload" size="lg" preset="default" accessibilityLabel="Upload" />
+      <IconButton icon="heart" shape="circle" preset="outline" accessibilityLabel="Like" />
     </Row>
   ),
 
@@ -270,8 +502,9 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
   ),
 
   SegmentedControl: () => (
-    <View style={{ alignSelf: "stretch" }}>
+    <View style={{ alignSelf: "stretch", gap: spacing.sm }}>
       <SegmentedControl values={["List", "Grid", "Map"]} defaultValue="List" />
+      <SegmentedControl size="lg" values={["List", "Grid", "Map"]} defaultValue="List" />
     </View>
   ),
 
@@ -459,6 +692,12 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
       />
     </View>
   ),
+
+  // ── Media ───────────────────────────────────────────────────────────────
+  AudioPlayer: () => <AudioPlayerPreview />,
+  Image: () => <ImagePreview />,
+  Video: () => <VideoPreview />,
+  MediaViewer: () => <MediaViewerPreview />,
 
   // ── Typography ──────────────────────────────────────────────────────────
   Icon: () => (

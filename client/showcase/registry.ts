@@ -50,6 +50,7 @@ export type ComponentCategory =
   | "navigation"
   | "overlay"
   | "layout"
+  | "media"
   | "typography";
 
 // ---------------------------------------------------------------------------
@@ -77,6 +78,7 @@ export { BLOCKS };
 export const DEMOS: DemoEntry[] = [
   { id: "themed-showcase", route: "/(main)/(demos)/themed-showcase", icon: "droplet", label: "Themed Showcase" },
   { id: "surface-lab", route: "/(main)/(demos)/surface-lab", icon: "layers", label: "Surface Lab" },
+  { id: "media-lab", route: "/(main)/(demos)/media-lab", icon: "film", label: "Media Lab" },
   { id: "form-validation", route: "/(main)/(demos)/form-demo", icon: "pencil", label: "Form Validation" },
   { id: "auth", route: "/(main)/(demos)/auth-demo", icon: "shield", label: "Auth Demo" },
   { id: "server-alpha", route: "/(main)/(demos)/server-alpha", icon: "server", label: "Server Alpha" },
@@ -98,6 +100,7 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "Accordion", importPath: "@mrmeg/expo-ui/components/Accordion", category: "navigation" },
   { id: "Alert", importPath: "@mrmeg/expo-ui/components/Alert", category: "feedback" },
   { id: "AnimatedView", importPath: "@mrmeg/expo-ui/components/AnimatedView", category: "layout" },
+  { id: "AudioPlayer", importPath: "@mrmeg/expo-ui/components/AudioPlayer", category: "media" },
   { id: "Avatar", importPath: "@mrmeg/expo-ui/components/Avatar", category: "layout" },
   { id: "Badge", importPath: "@mrmeg/expo-ui/components/Badge", category: "feedback" },
   { id: "BottomSheet", importPath: "@mrmeg/expo-ui/components/BottomSheet", category: "overlay" },
@@ -111,9 +114,12 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "DropdownMenu", importPath: "@mrmeg/expo-ui/components/DropdownMenu", category: "overlay" },
   { id: "EmptyState", importPath: "@mrmeg/expo-ui/components/EmptyState", category: "feedback" },
   { id: "Icon", importPath: "@mrmeg/expo-ui/components/Icon", category: "typography" },
+  { id: "IconButton", importPath: "@mrmeg/expo-ui/components/IconButton", category: "form" },
+  { id: "Image", importPath: "@mrmeg/expo-ui/components/Image", category: "media" },
   { id: "InputOTP", importPath: "@mrmeg/expo-ui/components/InputOTP", category: "form" },
   { id: "Item", importPath: "@mrmeg/expo-ui/components/Item", category: "layout" },
   { id: "Label", importPath: "@mrmeg/expo-ui/components/Label", category: "form" },
+  { id: "MediaViewer", importPath: "@mrmeg/expo-ui/components/MediaViewer", category: "media" },
   { id: "Popover", importPath: "@mrmeg/expo-ui/components/Popover", category: "overlay" },
   { id: "Progress", importPath: "@mrmeg/expo-ui/components/Progress", category: "feedback" },
   { id: "RadioGroup", importPath: "@mrmeg/expo-ui/components/RadioGroup", category: "form" },
@@ -134,6 +140,7 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "Toggle", importPath: "@mrmeg/expo-ui/components/Toggle", category: "form" },
   { id: "ToggleGroup", importPath: "@mrmeg/expo-ui/components/ToggleGroup", category: "form" },
   { id: "Tooltip", importPath: "@mrmeg/expo-ui/components/Tooltip", category: "overlay" },
+  { id: "Video", importPath: "@mrmeg/expo-ui/components/Video", category: "media" },
 ];
 
 // ---------------------------------------------------------------------------
