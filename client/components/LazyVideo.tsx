@@ -9,7 +9,7 @@
  * download of routes that never play a video.
  *
  * So both reach it here, through one `import()` specifier: one `Video` chunk,
- * fetched when a player is first rendered. `client/components/__tests__/lazyVideo.test.ts`
+ * fetched when a player is first rendered. `client/components/__tests__/lazyVideoSplitPoint.test.ts`
  * fails on any other value import. Types are fine: they are erased.
  *
  * Every use is client-only (a modal that opens on a tap, a gallery behind
@@ -21,7 +21,7 @@ import React, { Suspense } from "react";
 import { StyleSheet, View } from "react-native";
 import type { VideoProps } from "@mrmeg/expo-ui/components/Video";
 import { Hydrated } from "@mrmeg/expo-ui/components/Hydrated";
-import { palette } from "@mrmeg/expo-ui/constants";
+import { palette, spacing } from "@mrmeg/expo-ui/constants";
 import { mediaFrameStyle, parseAspectRatio } from "@mrmeg/expo-ui/lib";
 
 /** The single split point. Do not add a second `import()` of this module. */
@@ -37,10 +37,10 @@ export type LazyVideoProps = VideoProps & {
 const FALLBACK_RATIO = 16 / 9;
 
 /** A black frame laid out like the `Video` that replaces it, so nothing shifts when the chunk arrives. */
-function FramePlaceholder({ aspectRatio, maxWidth, maxHeight, fill, style, testID }: VideoProps) {
+function FramePlaceholder({ aspectRatio, maxWidth, maxHeight, fill, radius = "none", style, testID }: VideoProps) {
   const ratio = aspectRatio === "auto" ? undefined : parseAspectRatio(aspectRatio);
   const layout = fill ? mediaFrameStyle({ fill: true }) : mediaFrameStyle({ aspectRatio: ratio ?? FALLBACK_RATIO, maxWidth, maxHeight });
-  return <View style={[styles.frame, layout, StyleSheet.flatten(style)]} testID={testID ? `${testID}-loading-frame` : undefined} />;
+  return <View style={[styles.frame, radiusStyles[radius] ?? radiusStyles.none, layout, StyleSheet.flatten(style)]} testID={testID ? `${testID}-loading-frame` : undefined} />;
 }
 
 /** `Video`, loaded on demand. Takes `Video`'s props. */
@@ -57,4 +57,16 @@ export function LazyVideo({ fallback, ...props }: LazyVideoProps) {
 
 const styles = StyleSheet.create({
   frame: { backgroundColor: palette.black, overflow: "hidden" },
+});
+
+/** The same tokens `Video` rounds its frame with. */
+const radiusStyles = StyleSheet.create({
+  none: { borderRadius: spacing.radiusNone },
+  xs: { borderRadius: spacing.radiusXs },
+  sm: { borderRadius: spacing.radiusSm },
+  md: { borderRadius: spacing.radiusMd },
+  lg: { borderRadius: spacing.radiusLg },
+  xl: { borderRadius: spacing.radiusXl },
+  "2xl": { borderRadius: spacing.radius2xl },
+  full: { borderRadius: spacing.radiusFull },
 });

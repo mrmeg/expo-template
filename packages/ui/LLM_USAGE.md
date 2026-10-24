@@ -607,10 +607,11 @@ Components (each entry is filled in when the component ships):
     expo-router's `useIsFocused()`.
   - Accessibility under `"custom"` on iOS and Android: the frame is one element
     named by `title`, else `accessibilityLabel`, else "Video", whose value is
-    the position in words. Its actions are activate (play or pause, also the iOS
-    two-finger magic tap), increment and decrement (seek 10 s), and custom
-    actions for mute, captions and fullscreen, because the children of an
-    accessible element are not separate stops on iOS. The chrome never
+    the position in words. Play or pause is the double tap (VoiceOver's
+    `onAccessibilityTap`, TalkBack's `activate` action) and, on iOS, the
+    two-finger magic tap (`onMagicTap`). The labeled actions are increment and
+    decrement (seek 10 s) and custom ones for mute, captions and fullscreen,
+    because the children of an accessible element are not separate stops on iOS. The chrome never
     auto-hides while a screen reader is on. On web the frame is a focusable
     group and its buttons are ordinary tab stops; focusing one brings the chrome
     back. react-native-web cannot detect a screen reader, so web relies on focus

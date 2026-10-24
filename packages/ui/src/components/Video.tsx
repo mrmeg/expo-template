@@ -40,7 +40,7 @@ import { Image, type ImageRadius } from "./Image";
 import { MediaControlButton } from "./MediaControlButton";
 import { MediaScrubber } from "./MediaScrubber";
 import { StyledText } from "./StyledText";
-import { TIME_UPDATE_INTERVAL, pickCaptionTrack, usePlayback, type Playback } from "./videoPlayback";
+import { TIME_UPDATE_INTERVAL, ignoreReleased, pickCaptionTrack, usePlayback, type Playback } from "./videoPlayback";
 
 /** How the picture fills its frame. `expo-video`'s `contentFit`: `contain` (default), `cover`, `fill`. */
 export type VideoFit = "contain" | "cover" | "fill";
@@ -300,12 +300,17 @@ function VideoStage({
   const errorFallback = copy("media.videoError", "Video failed to load");
   const handleError = useCallback((message: string) => onError?.(message || errorFallback), [onError, errorFallback]);
 
+  // A poster that failed to load is dropped; a new source gets a fresh try.
+  const [posterFailed, setPosterFailed] = useState(false);
+  const resetPoster = useCallback(() => setPosterFailed(false), []);
+
   const { playback, retrying, seekTo, retry, setSubtitleTrack, setNoVideo, failRetry } = usePlayback(player, {
     onStatusChange,
     onPlayingChange,
     onEnd,
     onError: handleError,
     onNaturalSize: reportNaturalSize,
+    onSourceLoad: resetPoster,
   });
 
   const frameRef = useRef<React.ComponentRef<typeof View>>(null);
@@ -319,7 +324,10 @@ function VideoStage({
     const previous = player.timeUpdateEventInterval;
     player.timeUpdateEventInterval = TIME_UPDATE_INTERVAL;
     return () => {
-      player.timeUpdateEventInterval = previous;
+      // A caller who released their player in their own cleanup got here first.
+      ignoreReleased(() => {
+        player.timeUpdateEventInterval = previous;
+      });
     };
   }, [player, custom]);
 
@@ -333,11 +341,7 @@ function VideoStage({
   // cleanups, so this is safe; a caller-owned player is only paused, never released.
   useEffect(() => {
     return () => {
-      try {
-        player.pause();
-      } catch {
-        // A player the caller already released.
-      }
+      ignoreReleased(() => player.pause());
     };
   }, [player]);
 
@@ -516,7 +520,6 @@ function VideoStage({
   const closeNativeFullscreen = useCallback(() => setNativeFullscreen(false), []);
 
   // --- Derived state ---------------------------------------------------------------
-  const [posterFailed, setPosterFailed] = useState(false);
   const failed = playback.status === "error" && !retrying;
   // Web's player stays `idle` until the browser can play, so idle while playing is loading.
   const waiting =
@@ -599,10 +602,13 @@ function VideoStage({
   );
 
   const hasCaptions = playback.subtitleTracks.length > 0;
+  const playActionLabel = playback.ended ? copy("media.replay", "Replay") : playback.playing ? copy("media.pause", "Pause") : copy("media.play", "Play");
+  // Every entry carries a label: iOS reads an unlabeled action out by its raw name in the rotor.
   const accessibilityActions = custom
     ? [
-        { name: "activate" },
-        { name: "magicTap" },
+        // TalkBack's double tap is a click, which RN delivers as the "activate" action. iOS has
+        // `onAccessibilityTap` for it, and listing it there would add a duplicate rotor entry.
+        ...(Platform.OS === "android" ? [{ name: "activate", label: playActionLabel }] : []),
         { name: "increment", label: copy("media.seekForward", "Forward 10 seconds") },
         { name: "decrement", label: copy("media.seekBack", "Back 10 seconds") },
         // Children of an accessible frame are not separate screen-reader stops on iOS, so the other controls are actions too.
@@ -619,7 +625,6 @@ function VideoStage({
   const handleAccessibilityAction = (event: AccessibilityActionEvent) => {
     switch (event.nativeEvent.actionName) {
       case "activate":
-      case "magicTap":
         togglePlay();
         break;
       case "increment":
@@ -652,6 +657,10 @@ function VideoStage({
             accessibilityValue: { text: mediaTimeA11y(playback.time, duration) },
             accessibilityActions,
             onAccessibilityAction: handleAccessibilityAction,
+            // On iOS, VoiceOver's double tap and the two-finger magic tap reach only these two props,
+            // never `onAccessibilityAction`.
+            onAccessibilityTap: togglePlay,
+            onMagicTap: togglePlay,
           }
         : controls === "none"
           ? { accessible: true, accessibilityLabel: label }

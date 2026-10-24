@@ -51,6 +51,22 @@ export interface PlaybackCallbacks {
   onError?: (message: string) => void;
   /** The track's size in pixels, from `videoTrackChange` or the initial `player.videoTrack`. */
   onNaturalSize?: (width: number, height: number) => void;
+  /** A source finished loading: the first one, a replaced one, or a retry's. */
+  onSourceLoad?: () => void;
+}
+
+/**
+ * Run `action` against a player the caller may already have released. React runs
+ * a parent's unmount cleanup before its children's, so a parent that releases its
+ * own `createVideoPlayer()` player in cleanup does so before `Video` tidies up,
+ * and the real player throws on any access after that.
+ */
+export function ignoreReleased(action: () => void): void {
+  try {
+    action();
+  } catch {
+    // The player was released; there is nothing left to undo.
+  }
 }
 
 const finiteOr = (value: unknown, fallback: number) =>
@@ -128,9 +144,10 @@ export interface Playback {
 }
 
 /**
- * Subscribe to `player`. Never reads a released player: the subscription is
- * removed in the effect cleanup, which runs before the lifecycle hook that
- * owns the player releases it.
+ * Subscribe to `player`. The subscriptions are removed in the effect cleanup,
+ * which runs before the lifecycle hook that owns a player `Video` created
+ * releases it. A caller who releases their own player in a parent cleanup gets
+ * there first, so the removals tolerate a released player.
  */
 export function usePlayback(player: VideoPlayer, callbacks: PlaybackCallbacks): Playback {
   const [playback, setPlayback] = useState<PlaybackState>(() => initialState(player));
@@ -196,11 +213,15 @@ export function usePlayback(player: VideoPlayer, callbacks: PlaybackCallbacks): 
         });
       }),
       player.addListener("sourceLoad", ({ duration, availableSubtitleTracks, availableVideoTracks }) => {
+        // A new source starts over: no "Replay" for a clip that never played, and the poster is due again.
         patch({
+          ended: false,
+          everPlayed: !!player.playing,
           ...durationOf(player, duration),
           subtitleTracks: availableSubtitleTracks ?? NO_TRACKS,
           noVideo: (availableVideoTracks?.length ?? 0) === 0,
         });
+        latest.current.onSourceLoad?.();
       }),
       player.addListener("videoTrackChange", ({ videoTrack }) => {
         if (!videoTrack?.size) return;
@@ -217,7 +238,7 @@ export function usePlayback(player: VideoPlayer, callbacks: PlaybackCallbacks): 
       }),
     ];
 
-    return () => subscriptions.forEach((subscription) => subscription.remove());
+    return () => subscriptions.forEach((subscription) => ignoreReleased(() => subscription.remove()));
   }, [player, patch]);
 
   const seekTo = useCallback(

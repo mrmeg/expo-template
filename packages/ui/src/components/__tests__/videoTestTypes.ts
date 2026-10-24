@@ -27,6 +27,7 @@ export interface TestPlayer {
   availableSubtitleTracks?: unknown[];
   /** Call every listener registered for `event` with `payload`. */
   emit: (event: string, payload?: unknown) => void;
+  addListener: (event: string, listener: (payload: unknown) => void) => { remove: () => void };
   listenerCount: (event: string) => number;
 }
 

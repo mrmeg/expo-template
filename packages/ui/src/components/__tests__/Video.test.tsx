@@ -8,8 +8,8 @@
  * every prop. `MediaScrubber` is the real one, wrapped to hand the test its
  * callbacks (its own drag handling is tested in `MediaScrubber.test.tsx`).
  */
-import React from "react";
-import { AccessibilityInfo, StyleSheet } from "react-native";
+import React, { useEffect } from "react";
+import { AccessibilityInfo, Platform, StyleSheet } from "react-native";
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
 import type { TestInstance } from "test-renderer";
 import { asPlayer, type TestPlayer } from "./videoTestTypes";
@@ -349,6 +349,31 @@ describe("states", () => {
     await fireEvent.press(screen.getByTestId("video-center", hidden));
 
     expect(player().replay).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts over when a new source loads: no Replay for a clip that never played", async () => {
+    await mount({ controls: "custom", poster: "https://example.com/p.jpg" });
+    await startPlaying();
+    await emit("playToEnd");
+    expect(screen.getByTestId("video-center", hidden).props.accessibilityLabel).toBe("Replay");
+    expect(screen.queryByTestId("video-poster", hidden)).toBeNull();
+
+    player().playing = false;
+    await emit("playingChange", { isPlaying: false });
+    await emit("sourceLoad", { duration: 30, availableSubtitleTracks: [], availableVideoTracks: [{}] });
+
+    expect(screen.getByTestId("video-center", hidden).props.accessibilityLabel).toBe("Play");
+    expect(screen.getByTestId("video-poster", hidden)).toBeTruthy();
+  });
+
+  it("tries the poster again for a new source after one failed", async () => {
+    await mount({ controls: "custom", poster: "https://example.com/p.jpg" });
+    await act(async () => screen.getByTestId("expo-image", hidden).props.onError?.());
+    expect(screen.queryByTestId("video-poster", hidden)).toBeNull();
+
+    await emit("sourceLoad", { duration: 30, availableSubtitleTracks: [], availableVideoTracks: [{}] });
+
+    expect(screen.getByTestId("video-poster", hidden)).toBeTruthy();
   });
 
   it("does not offer a replay when it loops", async () => {
@@ -949,24 +974,61 @@ describe("accessibility", () => {
     expect(frame().props.accessibilityLabel).toBe("Tour");
   });
 
-  it("offers activate, magicTap, increment and decrement, plus the controls it hides on iOS", async () => {
+  it("offers labeled increment, decrement and control actions on iOS, with no raw-named activate or magicTap", async () => {
     await mount({ controls: "custom" });
     await emit("availableSubtitleTracksChange", { availableSubtitleTracks: [{ language: "en", label: "English" }] });
 
-    const names = (frame().props.accessibilityActions as { name: string }[]).map((action) => action.name);
+    const actions = frame().props.accessibilityActions as { name: string; label?: string }[];
 
-    expect(names).toEqual(["activate", "magicTap", "increment", "decrement", "toggleMute", "toggleCaptions", "toggleFullscreen"]);
+    expect(actions.map((action) => action.name)).toEqual(["increment", "decrement", "toggleMute", "toggleCaptions", "toggleFullscreen"]);
+    expect(actions.map((action) => action.label)).toEqual([
+      "Forward 10 seconds",
+      "Back 10 seconds",
+      "Mute",
+      "Turn captions on",
+      "Enter full screen",
+    ]);
   });
 
-  it("plays and pauses on activate and magicTap", async () => {
+  it("keeps a labeled activate action on Android, where the double tap is a click", async () => {
+    jest.replaceProperty(Platform, "OS", "android");
+    try {
+      await mount({ controls: "custom" });
+
+      const actions = frame().props.accessibilityActions as { name: string; label?: string }[];
+      expect(actions[0]).toEqual({ name: "activate", label: "Play" });
+      expect(actions.every((action) => !!action.label)).toBe(true);
+
+      await act(async () => frame().props.onAccessibilityAction({ nativeEvent: { actionName: "activate" } }));
+      expect(player().play).toHaveBeenCalledTimes(1);
+
+      await startPlaying();
+      expect((frame().props.accessibilityActions as { name: string; label?: string }[])[0].label).toBe("Pause");
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
+  it("plays and pauses on VoiceOver's double tap and the iOS magic tap", async () => {
     await mount({ controls: "custom" });
 
-    await act(async () => frame().props.onAccessibilityAction({ nativeEvent: { actionName: "activate" } }));
+    await act(async () => frame().props.onAccessibilityTap());
     expect(player().play).toHaveBeenCalledTimes(1);
 
     await startPlaying();
-    await act(async () => frame().props.onAccessibilityAction({ nativeEvent: { actionName: "magicTap" } }));
+    await act(async () => frame().props.onMagicTap());
     expect(player().pause).toHaveBeenCalledTimes(1);
+  });
+
+  it("wires the double tap and magic tap on the fullscreen frame too", async () => {
+    await mount({ controls: "custom" });
+    await fireEvent.press(screen.getByTestId("video-fullscreen-toggle", hidden));
+
+    const modalFrame = screen.getByTestId("video-fullscreen", hidden);
+    await act(async () => modalFrame.props.onMagicTap());
+
+    expect(player().play).toHaveBeenCalledTimes(1);
+    expect(typeof modalFrame.props.onAccessibilityTap).toBe("function");
   });
 
   it("mutes and opens fullscreen through actions too", async () => {
@@ -1035,6 +1097,44 @@ describe("player lifecycle", () => {
 
     expect(own.pause).toHaveBeenCalled();
     expect(own.release).not.toHaveBeenCalled();
+  });
+
+  it("does not touch a caller's player that the caller released in their own cleanup", async () => {
+    const own: TestPlayer = createVideoPlayer(URI);
+    own.timeUpdateEventInterval = 1;
+    let released = false;
+    let touchedAfterRelease = 0;
+    const gone = () => {
+      touchedAfterRelease += 1;
+      throw new Error("released");
+    };
+    own.release.mockImplementation(() => {
+      released = true;
+    });
+    const addListener = own.addListener;
+    own.addListener = (event, listener) => {
+      const subscription = addListener(event, listener);
+      return { remove: () => (released ? gone() : subscription.remove()) };
+    };
+    own.pause.mockImplementation(() => (released ? gone() : undefined));
+    let interval = own.timeUpdateEventInterval;
+    Object.defineProperty(own, "timeUpdateEventInterval", {
+      get: () => interval,
+      set: (value: number) => (released ? gone() : void (interval = value)),
+    });
+
+    // A parent's cleanup runs before its child's, so this releases before `Video` tidies up.
+    function Parent() {
+      useEffect(() => () => own.release(), []);
+      return <Video player={asPlayer(own)} controls="custom" />;
+    }
+    const { unmount } = await render(<Parent />);
+
+    await expect(unmount()).resolves.not.toThrow();
+
+    expect(own.release).toHaveBeenCalledTimes(1);
+    // Every one of those touches was tried and swallowed: pause, the interval, and the subscriptions.
+    expect(touchedAfterRelease).toBeGreaterThan(5);
   });
 
   it("does not apply loop or muted to a caller's player", async () => {

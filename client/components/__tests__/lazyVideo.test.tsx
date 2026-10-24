@@ -15,6 +15,7 @@ jest.mock("@mrmeg/expo-ui/hooks/useHydrated", () => ({
   useHydrated: () => mockHydrated.value,
 }));
 
+import { spacing } from "@mrmeg/expo-ui/constants";
 import { LazyVideo } from "../LazyVideo";
 
 const flat = (el: TestInstance) => (StyleSheet.flatten(el.props.style) ?? {}) as Record<string, unknown>;
@@ -50,6 +51,12 @@ describe("LazyVideo before the chunk and hydration", () => {
 
     await rerender(<LazyVideo source="x.mp4" fill testID="clip" />);
     expect(flat(frame())).toEqual(expect.objectContaining({ position: "absolute", top: 0, left: 0, bottom: 0, right: 0 }));
+  });
+
+  it("rounds like Video does, so the corners do not flash square", async () => {
+    await render(<LazyVideo source="x.mp4" radius="lg" testID="clip" />);
+
+    expect(flat(frame()).borderRadius).toBe(spacing.radiusLg);
   });
 
   it("renders the caller's fallback instead when given one", async () => {
