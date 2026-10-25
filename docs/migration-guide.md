@@ -30,8 +30,8 @@ Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](http
 | react / react-dom | 19.3.0 |
 | react-native | 0.88.0-rc.4 |
 | react-native-web | ^0.21.4 |
-| @mrmeg/expo-ui | ^0.30.0 |
-| @mrmeg/expo-media (if using media) | ^0.5.2 |
+| @mrmeg/expo-ui | ^0.32.0 |
+| @mrmeg/expo-media (if using media) | ^0.6.0 |
 | zustand | ^5.0.15 |
 | @tanstack/react-query | ^5.104.2 |
 | react-hook-form | ^7.90.0 |
@@ -156,7 +156,7 @@ Conventions:
 
 ## Phase 4 — @mrmeg/expo-ui
 
-Upgrade to `@mrmeg/expo-ui@^0.30.0`. Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 59; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.89; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 4; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `react-native-svg` ≥ 15 < 16; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3. Optional, only for the media components: `expo-image`, `expo-video`, `expo-audio` ≥ 56 < 59.
+Upgrade to `@mrmeg/expo-ui@^0.32.0`. Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 59; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.89; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 4; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `react-native-svg` ≥ 15 < 16; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3. Optional, only for the media components: `expo-image`, `expo-video`, `expo-audio` ≥ 56 < 59.
 
 **Required root setup:**
 
@@ -258,6 +258,15 @@ bun run build          # expo export → dist/client + dist/server
 ## Anti-Patterns to Remove While Migrating
 
 Sweep for and delete: app-local duplicates of `@mrmeg/expo-ui` primitives (buttons, inputs, menus, modals, cards, typography); hard-coded colors, shadows, radii, spacing in general-purpose UI; fetch-on-mount for initial route data; top-level server-module imports in client-reachable files; UI branching on raw `Response` objects; cross-feature internal imports; startup logic that blocks first paint on persisted browser state; integrations that crash on a blank `.env`.
+
+## Consumer migration to 0.32.0
+
+From 0.30.x, run `bun add @mrmeg/expo-ui@^0.32.0` (and `@mrmeg/expo-media@^0.6.0` with media), then `bunx expo-ui-icons`, `bunx expo-ui-icons tabs`, typecheck and test. Behaviour that changed:
+
+- 0.31.0: Lucide 1.61 turns `music`, `music-2`, `music-3` and `music-4` into aliases, and `expo-ui-icons` rejects an alias in `client/icons.json`: rename them to `eighth-notes`, `eighth-note`, `half-note` and `sixteenth-notes`. `ThemeSelector` exposes `aria-checked` on web; `TextInput` reads helper text once on native.
+- 0.32.0: `Checkbox` with `indeterminate` and `checked={false}` now draws the dash and reads as "mixed"; drop any `checked` passed only to make the dash appear.
+
+New and opt-in, for a media library screen: `MediaTile`, `MediaGrid`, `MediaSelectionBar`, `UploadQueue` (subpath imports, `expo-image` for the tile and queue) and `useKeySelection`. `@mrmeg/expo-media` 0.6.0 adds `/picker` (`useMediaPicker`; `expo-image-picker` becomes an optional peer), `/upload-queue` (`useUploadQueue`, `useVideoThumbnailBackfill`), same-ID video thumbnail helpers (`videoThumbnailKey`, `withVideoThumbnailKeys`), `usePairedVideoList`, and the server option `deleteCompanions`; native video thumbnails, which were silently missing on iOS, now extract. The template's `app/(main)/(tabs)/media.tsx` is the reference screen.
 
 ## Consumer migration to 0.30.0
 

@@ -1,6 +1,6 @@
 # Expo Template
 
-> Bun-managed Expo SDK 58 (beta) template (React Native iOS/Android + server-rendered web on a Bun server) with three reusable npm packages: `@mrmeg/expo-ui` (design system: 36 components, semantic theme tokens, notifications), `@mrmeg/expo-media` (S3/R2 media pipeline), and `@mrmeg/expo-purchases` (RevenueCat purchases, entitlement state, webhook helpers). These docs teach an LLM agent to apply the template's components and best practices in another project.
+> Bun-managed Expo SDK 58 (beta) template (React Native iOS/Android + server-rendered web on a Bun server) with three reusable npm packages: `@mrmeg/expo-ui` (design system: components, semantic theme tokens, notifications, media UI), `@mrmeg/expo-media` (S3/R2 media pipeline), and `@mrmeg/expo-purchases` (RevenueCat purchases, entitlement state, webhook helpers). These docs teach an LLM agent to apply the template's components and best practices in another project.
 
 Two ways to consume this repo:
 
