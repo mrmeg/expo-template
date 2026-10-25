@@ -1,48 +1,53 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   View,
   StyleSheet,
-  FlatList,
   Pressable,
   ActivityIndicator,
   RefreshControl,
-  type LayoutChangeEvent,
 } from "react-native";
-import { useDimensions, useTheme, withAlpha } from "@mrmeg/expo-ui/hooks";
-import { palette, spacing } from "@mrmeg/expo-ui/constants";
+import { useKeySelection, useTheme } from "@mrmeg/expo-ui/hooks";
+import { spacing } from "@mrmeg/expo-ui/constants";
 import {
   SansSerifText,
   SansSerifBoldText,
   MonoText,
 } from "@mrmeg/expo-ui/components/StyledText";
+import { Alert } from "@mrmeg/expo-ui/components/Alert";
 import { Button } from "@mrmeg/expo-ui/components/Button";
-import { Checkbox } from "@mrmeg/expo-ui/components/Checkbox";
 import { Icon } from "@mrmeg/expo-ui/components/Icon";
 import { IconButton } from "@mrmeg/expo-ui/components/IconButton";
-import { Image } from "@mrmeg/expo-ui/components/Image";
+import { MediaGrid } from "@mrmeg/expo-ui/components/MediaGrid";
+import { MediaSelectionBar } from "@mrmeg/expo-ui/components/MediaSelectionBar";
+import { MediaTile } from "@mrmeg/expo-ui/components/MediaTile";
+import { UploadQueue } from "@mrmeg/expo-ui/components/UploadQueue";
 import type { MediaViewerItem } from "@mrmeg/expo-ui/components/MediaViewer";
 import { LazyMediaViewer } from "@/client/components/LazyMediaViewer";
 import { useMediaList, formatBytes } from "@/client/features/media/hooks/useMediaList";
 import type { MediaItem } from "@mrmeg/expo-media/client";
+import { useMediaPicker } from "@mrmeg/expo-media/picker";
+import { useUploadQueue, type UploadQueueItem } from "@mrmeg/expo-media/upload-queue";
 import { useSignedUrls } from "@/client/features/media/hooks/useSignedUrls";
 import {
   useMediaDelete,
   useMediaDeleteBatch,
 } from "@/client/features/media/hooks/useMediaDelete";
 import { useMediaUpload } from "@/client/features/media/hooks/useMediaUpload";
-import {
-  useMediaLibrary,
-  type ProcessedAsset,
-} from "@/client/features/media/hooks/useMediaLibrary";
 import { isMediaError, MediaError } from "@mrmeg/expo-media/client";
 import { isMediaOriginUnconfigured } from "@/client/features/media/mediaClient";
+import { useCompressionStore } from "@/client/features/media/stores/compressionStore";
 import {
+  MEDIA_CONTENT_TYPE_ALLOWLIST,
   MEDIA_PATHS,
   isVideoKey,
   isImageKey,
   getVideoThumbnailKey,
+  type MediaType,
 } from "@/shared/media";
-import { MEDIA_APP_SETTINGS } from "@/client/features/media/mediaSettings";
+import {
+  MEDIA_APP_SETTINGS,
+  resolveMediaUploadPolicy,
+} from "@/client/features/media/mediaSettings";
 import { notify } from "@mrmeg/expo-ui/state";
 import { createThemedStyles } from "@mrmeg/expo-ui/lib";
 import { logDev } from "@/client/lib/devtools";
@@ -70,22 +75,21 @@ const MEDIA_FILTERS: { key: FilterType; label: string }[] = [
   { key: "uploads", label: "Uploads" },
 ];
 
-// Media is the content here, so it fills the width: a grid of square tiles
-// sized to the column (2 up on a phone), not fixed-size thumbnails in rows.
-// Wide screens cap and centre the column instead of boxing it.
+// Media is the content here, so it fills the width: `MediaGrid` sizes square
+// tiles to the column (2 up on a phone) and caps and centres it on wide screens.
+// The header rows sit in the same capped column.
 const MAX_CONTENT_WIDTH = 960;
-const GRID_GAP = spacing.sm;
-const MIN_TILE_WIDTH = 160;
 
-/** Columns and tile size for a list `width` (capped at the content column). */
-function mediaGrid(width: number): { columns: number; tileSize: number } {
-  const column = Math.min(width, MAX_CONTENT_WIDTH) - spacing.screenPadding * 2;
-  const columns = Math.max(2, Math.floor((column + GRID_GAP) / (MIN_TILE_WIDTH + GRID_GAP)));
-  const tileSize = Math.floor((column - GRID_GAP * (columns - 1)) / columns);
-  return { columns, tileSize };
-}
+/**
+ * Upload rows drawn above the grid. A 20-file pick would otherwise push the
+ * grid off a phone screen; the rest are counted in the queue's footer.
+ */
+const MAX_VISIBLE_UPLOADS = 3;
 
-function getDeletePayloadKeys(keys: string[]) {
+/** The app's glyphs for the kit's media components, whose built-in defaults are generic. */
+const QUEUE_KIND_ICONS = { image: "image", video: "video" } as const;
+
+function getDeletePayloadKeys(keys: readonly string[]) {
   const payload = new Set<string>();
 
   for (const key of keys) {
@@ -101,21 +105,40 @@ function getDeletePayloadKeys(keys: string[]) {
   return [...payload];
 }
 
-/**
- * EXIF the pipeline parsed but deliberately stripped from the bytes.
- *
- * Returns `undefined` when there is nothing to send so the request body stays
- * clean; the server treats `metadata` as opaque and hands it to the upload
- * policy hook.
- */
-function buildUploadMetadata(asset: ProcessedAsset) {
-  const metadata: Record<string, string> = {};
+/** Toasts for one drained upload run; the per-file detail is on the queue rows. */
+function notifyUploadRun({ uploaded, failed }: { uploaded: UploadQueueItem[]; failed: UploadQueueItem[] }) {
+  const total = uploaded.length + failed.length;
+  if (total === 0) return;
 
-  if (asset.exifTakenAt) metadata.takenAt = asset.exifTakenAt.toISOString();
-  if (asset.exifLat !== undefined) metadata.lat = String(asset.exifLat);
-  if (asset.exifLng !== undefined) metadata.lng = String(asset.exifLng);
+  if (uploaded.length === 0) {
+    notify.error(failed.length === 1 ? "Upload Failed" : `${failed.length} Uploads Failed`, {
+      messages: failed.slice(0, 3).map((item) => `${item.fileName}: ${item.errorMessage ?? "Failed"}`),
+      duration: 6000,
+    });
+    return;
+  }
 
-  return Object.keys(metadata).length > 0 ? metadata : undefined;
+  if (failed.length > 0) {
+    notify.warning("Upload Incomplete", {
+      messages: [
+        `${uploaded.length} of ${total} files uploaded`,
+        `Failed: ${failed.map((item) => item.fileName).join(", ")}`,
+      ],
+      duration: 6000,
+    });
+    return;
+  }
+
+  notify.success("Uploaded", {
+    messages: [
+      uploaded.length === 1
+        ? uploaded[0].kind === "video"
+          ? "Video uploaded successfully"
+          : "File uploaded successfully"
+        : `${uploaded.length} files uploaded successfully`,
+    ],
+    duration: 3000,
+  });
 }
 
 export default function MediaScreen() {
@@ -126,19 +149,7 @@ export default function MediaScreen() {
 function useMediaScreenContent() {
   const { theme } = useTheme();
   const styles = themedStyles(theme);
-  // The window width seeds the grid until the list reports its own width (it
-  // is narrower beside the web nav rail).
-  const { width: windowWidth } = useDimensions();
-  const [listWidth, setListWidth] = useState(0);
-  const { columns, tileSize } = mediaGrid(listWidth || windowWidth);
-  const handleListLayout = useCallback((event: LayoutChangeEvent) => {
-    setListWidth(event.nativeEvent.layout.width);
-  }, []);
   const [filter, setFilter] = useState<FilterType>("all");
-  const [isUploadingBatch, setIsUploadingBatch] = useState(false);
-  const [selectedKeyCandidates, setSelectedKeyCandidates] = useState<Set<string>>(
-    () => new Set()
-  );
   // What the viewer was opened with: the items as they were at that moment, and the one tapped. Frozen for the
   // whole visit: every refetch re-signs the URLs, and a `Video` handed a new source restarts what it is playing.
   // `open` is separate so closing keeps the items for the viewer's own exit.
@@ -266,78 +277,64 @@ function useMediaScreenContent() {
   const { mutateAsync: deleteFile, isPending: isDeleting } = useMediaDelete();
   const { mutateAsync: deleteFiles, isPending: isDeletingBatch } =
     useMediaDeleteBatch();
-  const { mutateAsync: uploadFile, isPending: isUploading } = useMediaUpload();
-  const { pickMedia, processing: isPicking } = useMediaLibrary();
+  // The mutation invalidates the list queries after every upload, so new files
+  // appear without a manual refetch.
+  const { mutateAsync: uploadFile } = useMediaUpload();
+  const getCompressionConfig = useCompressionStore((state) => state.getConfig);
+  const { pick, picking } = useMediaPicker();
+
+  // Each picked file is processed and uploaded inside the queue, so its row
+  // appears the moment it is picked. Options are read at each step, so the
+  // inline `resolve` always sees the current filter.
+  const queue = useUploadQueue<MediaType>({
+    upload: uploadFile,
+    allowlist: MEDIA_CONTENT_TYPE_ALLOWLIST,
+    concurrency: MEDIA_APP_SETTINGS.processing.concurrency,
+    // The upload policy is resolved per asset and before processing, so a
+    // mixed selection compresses images, leaves videos alone, and the Avatars
+    // filter gets the avatar preset and prefix.
+    resolve: (asset) => {
+      const { policy } = resolveMediaUploadPolicy(
+        { type: asset.kind, mimeType: asset.contentType },
+        filter,
+      );
+      return { mediaType: policy.mediaType, compression: getCompressionConfig(policy.compression) };
+    },
+    // Thumbnails are named after their video (`thumbnails/<video>.jpg`), which
+    // is the queue's default; see `getVideoThumbnailKey`.
+    videoThumbnail: MEDIA_APP_SETTINGS.uploads.uploadVideoThumbnails
+      ? { mediaType: "thumbnails" }
+      : false,
+    onItemSettled: (item) => {
+      if (item.status === "failed") logDev(`Upload failed for ${item.fileName}: ${String(item.error)}`);
+      else logDev(`Uploaded ${item.fileName} -> ${item.key} [${item.processed?.applied.join(", ")}]`);
+    },
+    onSettled: (summary) => {
+      notifyUploadRun(summary);
+      // Uploaded rows have done their job once the toast and the grid show the
+      // files; failed rows stay for retry or remove.
+      queue.clearFinished();
+    },
+  });
+
   const mediaItems = useMemo(() => data?.items ?? [], [data?.items]);
   const visibleKeys = useMemo(
     () => mediaItems.map((item) => item.key),
     [mediaItems]
   );
-  const visibleKeySet = useMemo(() => new Set(visibleKeys), [visibleKeys]);
-  const selectedKeys = useMemo(() => {
-    if (selectedKeyCandidates.size === 0) return selectedKeyCandidates;
-
-    const visibleSelectedKeys = new Set(
-      [...selectedKeyCandidates].filter((key) => visibleKeySet.has(key))
-    );
-
-    return visibleSelectedKeys.size === selectedKeyCandidates.size
-      ? selectedKeyCandidates
-      : visibleSelectedKeys;
-  }, [selectedKeyCandidates, visibleKeySet]);
-  const selectedVisibleCount = useMemo(
-    () => visibleKeys.filter((key) => selectedKeys.has(key)).length,
-    [selectedKeys, visibleKeys]
-  );
-  const selectedCount = selectedKeys.size;
+  const selection = useKeySelection(visibleKeys);
+  const { selected: selectedKeys, toggle: toggleSelectedKey, remove: deselectKeys, clear: clearSelection } = selection;
   const isDeleteBusy = isDeleting || isDeletingBatch;
-  const isAllVisibleSelected =
-    visibleKeys.length > 0 && selectedVisibleCount === visibleKeys.length;
-  const isPartiallyVisibleSelected =
-    selectedVisibleCount > 0 && selectedVisibleCount < visibleKeys.length;
-  const uploadDisabled =
-    mediaDisabled || isPicking || isUploading || isUploadingBatch;
-
-  const clearSelection = () => {
-    setSelectedKeyCandidates(new Set());
-  };
-
-  const toggleSelectedKey = useCallback((key: string) => {
-    setSelectedKeyCandidates((current) => {
-      const next = new Set(current);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  }, []);
-
-  const toggleSelectAllVisible = () => {
-    if (visibleKeys.length === 0) return;
-
-    setSelectedKeyCandidates((current) => {
-      const next = new Set(current);
-
-      if (isAllVisibleSelected) {
-        for (const key of visibleKeys) next.delete(key);
-      } else {
-        for (const key of visibleKeys) next.add(key);
-      }
-
-      return next;
-    });
-  };
+  const uploadDisabled = mediaDisabled || picking;
 
   const handleDelete = useCallback(async (key: string) => {
     try {
       // If deleting a video, also delete its thumbnail
-      if (
-        MEDIA_APP_SETTINGS.uploads.deleteVideoThumbnailWithVideo &&
-        isVideoKey(key)
-      ) {
-        const thumbnailKey = getVideoThumbnailKey(key);
+      const thumbnailKey =
+        MEDIA_APP_SETTINGS.uploads.deleteVideoThumbnailWithVideo && isVideoKey(key)
+          ? getVideoThumbnailKey(key)
+          : null;
+      if (thumbnailKey) {
         try {
           await deleteFile(thumbnailKey);
           logDev(`Deleted video thumbnail: ${thumbnailKey}`);
@@ -347,24 +344,7 @@ function useMediaScreenContent() {
       }
 
       await deleteFile(key);
-      setSelectedKeyCandidates((current) => {
-        const thumbnailKey =
-          MEDIA_APP_SETTINGS.uploads.deleteVideoThumbnailWithVideo &&
-          isVideoKey(key)
-            ? getVideoThumbnailKey(key)
-            : null;
-
-        if (!current.has(key) && !(thumbnailKey && current.has(thumbnailKey))) {
-          return current;
-        }
-
-        const next = new Set(current);
-        next.delete(key);
-        if (thumbnailKey) {
-          next.delete(thumbnailKey);
-        }
-        return next;
-      });
+      deselectKeys(thumbnailKey ? [key, thumbnailKey] : [key]);
       notify.success("Deleted", {
         messages: ["File deleted successfully"],
         duration: 3000,
@@ -377,7 +357,7 @@ function useMediaScreenContent() {
         duration: 5000,
       });
     }
-  }, [deleteFile]);
+  }, [deleteFile, deselectKeys]);
 
   const handleDeleteSelected = async () => {
     const selectedForDelete = [...selectedKeys];
@@ -429,137 +409,29 @@ function useMediaScreenContent() {
     }
   };
 
-  const uploadAsset = async (asset: ProcessedAsset) => {
-    const isVideo = asset.type === "video";
-    const file = asset.blob || asset.uri;
-
-    const result = await uploadFile({
-      file,
-      // The pipeline guarantees an allowlisted content type or rejects the
-      // asset, so there is nothing to fall back to here.
-      contentType: asset.mimeType,
-      // Resolved per asset while picking, so avatars land in the avatar prefix.
-      mediaType: asset.mediaType,
-      // Re-encoding strips EXIF from the bytes by design; capture time and
-      // location travel as upload metadata instead.
-      metadata: buildUploadMetadata(asset),
-    });
-
-    if (
-      isVideo &&
-      MEDIA_APP_SETTINGS.uploads.uploadVideoThumbnails &&
-      (asset.thumbnailBlob || asset.thumbnailUri)
-    ) {
-      try {
-        const videoFilename = result.key.split("/").pop() || "";
-        const thumbnailBasename = videoFilename.replace(/\.[^.]+$/, "");
-        const thumbnailFile = asset.thumbnailBlob || asset.thumbnailUri;
-
-        if (thumbnailFile) {
-          await uploadFile({
-            file: thumbnailFile,
-            contentType: "image/jpeg",
-            mediaType: "thumbnails",
-            customFilename: thumbnailBasename,
-          });
-          logDev(`Uploaded video thumbnail: ${thumbnailBasename}.jpg`);
-        }
-      } catch (thumbnailError) {
-        logDev(`Failed to upload thumbnail: ${thumbnailError}`);
-      }
-    }
-
-    return { isVideo };
-  };
-
   const handleUpload = async () => {
-    setIsUploadingBatch(true);
-
     try {
-      // The picker resolves the upload policy per asset from this filter, so a
-      // mixed selection gets avatar/gallery/video handling per file instead of
-      // one screen-wide preset.
-      const assets = await pickMedia({
+      const result = await pick({
         mediaTypes: ["images", "videos"],
-        allowsMultipleSelection: true,
+        multiple: true,
         selectionLimit: MEDIA_APP_SETTINGS.uploads.selectionLimit,
-        filter,
       });
-      if (!assets || assets.length === 0) return;
-
-      notify.loading(assets.length > 1 ? `Uploading ${assets.length} files` : "Uploading", {
-        messages: [
-          assets.length > 1
-            ? "Uploading selected files"
-            : assets[0]?.fileName || "Uploading file",
-        ],
-      });
-
-      const uploadResults = await Promise.all(
-        assets.map(async (asset, index) => {
-          try {
-            const uploaded = await uploadAsset(asset);
-            return { ok: true as const, uploaded };
-          } catch (assetError) {
-            const fileName = asset.fileName || `File ${index + 1}`;
-            logDev(`Failed to upload ${fileName}: ${assetError}`);
-            return { ok: false as const, fileName };
-          }
-        })
-      );
-
-      const uploadedCount = uploadResults.filter((result) => result.ok).length;
-      const videoCount = uploadResults.filter(
-        (result) => result.ok && result.uploaded.isVideo
-      ).length;
-      const failedFiles = uploadResults.flatMap((result) =>
-        result.ok ? [] : [result.fileName]
-      );
-
-      notify.hide();
-
-      if (uploadedCount > 0) {
-        refetch();
-      }
-
-      if (uploadedCount === 0) {
-        notify.error("Upload Failed", {
-          messages: ["No files were uploaded"],
-          duration: 5000,
+      if (result.status === "denied") {
+        Alert.show({
+          message: result.canAskAgain
+            ? "Allow media library access to upload media."
+            : "You have denied media library access. You will need to allow access in your phone's Settings app to upload media.",
         });
         return;
       }
-
-      const successMessage =
-        uploadedCount === 1
-          ? videoCount === 1
-            ? "Video uploaded successfully"
-            : "File uploaded successfully"
-          : `${uploadedCount} files uploaded successfully`;
-      const toastMessages =
-        failedFiles.length > 0
-          ? [
-            `${uploadedCount} of ${assets.length} files uploaded`,
-            `Failed: ${failedFiles.join(", ")}`,
-          ]
-          : [successMessage];
-
-      notify({
-        type: failedFiles.length > 0 ? "warning" : "success",
-        title: failedFiles.length > 0 ? "Upload Incomplete" : "Uploaded",
-        messages: toastMessages,
-        duration: failedFiles.length > 0 ? 6000 : 3000,
-      });
+      if (result.status === "picked") queue.add(result.assets);
     } catch (error) {
-      notify.hide();
       notify.error("Upload Failed", {
         messages: [
-          error instanceof Error ? error.message : "Failed to upload file",
+          error instanceof Error ? error.message : "Could not open the media library",
         ],
         duration: 5000,
       });
-    } finally {
-      setIsUploadingBatch(false);
     }
   };
 
@@ -593,7 +465,7 @@ function useMediaScreenContent() {
   });
 
   // One viewer over the whole list, so swiping spans the library: every image and video that has a signed
-  // URL yet. Thumbnails are cached under their object key, not the re-signed URL (see MediaTile).
+  // URL yet. Thumbnails are cached under their object key, not the re-signed URL (see renderMediaItem).
   const viewerItems = useMemo<MediaViewerItem[]>(
     () =>
       mediaItems.flatMap((item): MediaViewerItem[] => {
@@ -655,35 +527,47 @@ function useMediaScreenContent() {
     [isRefetching, refetch, theme.colors.primary]
   );
 
-  // Stable renderItem so FlatList can window properly; MediaTile is memoized and
+  // Stable renderTile so the grid can window properly; MediaTile is memoized and
   // receives only primitives + stable callbacks, so untouched tiles skip
   // re-rendering when selection or sibling tiles change.
   const renderMediaItem = useCallback(
-    ({ item }: { item: MediaItem }) => {
+    ({ item, size }: { item: MediaItem; size: number }) => {
       const isVideo = isVideoKey(item.key);
+      const filename = item.key.split("/").pop() || item.key;
       const signedUrl = signedUrlData?.urls?.[item.key];
-      const thumbnailFilename = isVideo
-        ? (item.key.split("/").pop() || item.key).replace(/\.[^.]+$/, ".jpg")
-        : null;
-      const thumbnailUrl = thumbnailFilename
-        ? thumbnailUrlData?.urls?.[thumbnailFilename]
-        : null;
+      const thumbnailUrl = isVideo
+        ? thumbnailUrlData?.urls?.[filename.replace(/\.[^.]+$/, ".jpg")]
+        : undefined;
+      // Thumbnails are cached under their object key, not the signed URL: every
+      // refetch re-signs the URL (new query string, same object), so keying on the
+      // URL missed expo-image's cache and re-downloaded each thumbnail. Keys are
+      // never overwritten with different bytes — uploads get a fresh id, and a
+      // video's thumbnail is named after the video.
+      const source = isVideo
+        ? thumbnailUrl
+          ? { uri: thumbnailUrl, cacheKey: getVideoThumbnailKey(item.key) }
+          : undefined
+        : isImageKey(item.key) && signedUrl
+          ? { uri: signedUrl, cacheKey: item.key }
+          : undefined;
+      const kind = isVideo ? "video" : isImageKey(item.key) ? "image" : "file";
 
       return (
         <MediaTile
-          itemKey={item.key}
-          size={item.size}
-          lastModified={item.lastModified}
-          isSelected={selectedKeys.has(item.key)}
-          signedUrl={signedUrl}
-          thumbnailUrl={thumbnailUrl}
-          isDeleteBusy={isDeleteBusy}
-          tileSize={tileSize}
-          styles={styles}
-          theme={theme}
+          id={item.key}
+          kind={kind}
+          source={source}
+          size={size}
+          title={filename}
+          subtitle={`${formatBytes(item.size)} • ${formatDate(item.lastModified)}`}
+          selected={selectedKeys.has(item.key)}
+          // A tile opens the viewer only once it has a signed URL to show.
+          onPress={signedUrl && kind !== "file" ? handleOpenViewer : undefined}
           onToggleSelect={toggleSelectedKey}
-          onOpenViewer={handleOpenViewer}
           onDelete={handleDelete}
+          disabled={isDeleteBusy}
+          deleteIcon="trash"
+          fallbackIcon={isVideo ? "video" : "file"}
         />
       );
     },
@@ -692,9 +576,6 @@ function useMediaScreenContent() {
       thumbnailUrlData,
       selectedKeys,
       isDeleteBusy,
-      tileSize,
-      styles,
-      theme,
       toggleSelectedKey,
       handleOpenViewer,
       handleDelete,
@@ -764,6 +645,19 @@ function useMediaScreenContent() {
             />
           </View>
         </View>
+
+        {/* Files being processed and uploaded, and any that failed. `Item`
+            rows carry the 16 pt inset themselves. */}
+        <UploadQueue
+          title="Uploads"
+          entries={queue.items}
+          onRetry={queue.retry}
+          onRemove={queue.remove}
+          kindIcons={QUEUE_KIND_ICONS}
+          maxVisible={MAX_VISIBLE_UPLOADS}
+          style={styles.uploadQueue}
+          testID="media-upload-queue"
+        />
       </View>
 
       {/* File List */}
@@ -833,61 +727,27 @@ function useMediaScreenContent() {
       ) : (
         <>
           <View style={styles.column}>
-            <View style={styles.selectionToolbar}>
-              <Checkbox
-                checked={isAllVisibleSelected}
-                indeterminate={isPartiallyVisibleSelected}
-                onCheckedChange={toggleSelectAllVisible}
-                disabled={isDeleteBusy}
-                label={isAllVisibleSelected ? "Deselect all" : "Select all"}
-              />
-              <SansSerifText size="sm" style={styles.selectionSummary}>
-                {selectedCount > 0
-                  ? `${selectedCount} selected`
-                  : `${visibleKeys.length} visible`}
-              </SansSerifText>
-              <View style={styles.selectionActions}>
-                {selectedCount > 0 && (
-                  <Button
-                    preset="ghost"
-                    size="sm"
-                    text="Clear"
-                    onPress={clearSelection}
-                    disabled={isDeleteBusy}
-                  />
-                )}
-                <Button
-                  preset="destructive"
-                  size="sm"
-                  text={selectedCount > 0 ? `Delete (${selectedCount})` : "Delete"}
-                  onPress={handleDeleteSelected}
-                  disabled={selectedCount === 0 || isDeleteBusy}
-                  loading={isDeletingBatch}
-                  LeftAccessory={() => (
-                    <Icon
-                      name="trash"
-                      size={14}
-                      color={theme.colors.destructiveForeground}
-                    />
-                  )}
-                />
-              </View>
-            </View>
+            <MediaSelectionBar
+              selectedCount={selection.count}
+              totalCount={visibleKeys.length}
+              onToggleAll={selection.toggleAll}
+              onClear={clearSelection}
+              onDelete={handleDeleteSelected}
+              busy={isDeleteBusy}
+              deleting={isDeletingBatch}
+              deleteIcon="trash"
+              totalSummary={(count) => `${count} visible`}
+            />
           </View>
 
-          <FlatList
-            // numColumns can't change on a mounted list; a new key remounts it.
-            key={`grid-${columns}`}
+          <MediaGrid
             data={mediaItems}
             keyExtractor={(item) => item.key}
-            numColumns={columns}
+            renderTile={renderMediaItem}
+            maxWidth={MAX_CONTENT_WIDTH}
             refreshControl={refreshControl}
-            onLayout={handleListLayout}
-            contentContainerStyle={styles.listContent}
-            columnWrapperStyle={styles.gridRow}
             extraData={selectedKeys}
             style={styles.list}
-            renderItem={renderMediaItem}
           />
         </>
       )}
@@ -914,134 +774,6 @@ function formatDate(isoString: string): string {
     minute: "2-digit",
   });
 }
-
-interface MediaTileProps {
-  itemKey: string;
-  size: number;
-  lastModified: string;
-  isSelected: boolean;
-  signedUrl: string | undefined;
-  thumbnailUrl: string | null | undefined;
-  isDeleteBusy: boolean;
-  /** Tile edge in points: the column width split across the grid columns. */
-  tileSize: number;
-  styles: ReturnType<typeof createStyles>;
-  theme: Theme;
-  onToggleSelect: (key: string) => void;
-  /** Open the viewer on this item (an image's tile, a video's play button). */
-  onOpenViewer: (key: string) => void;
-  onDelete: (key: string) => void;
-}
-
-// Memoized tile: with primitive props and stable callbacks, untouched tiles skip
-// re-rendering when selection or sibling tiles change, so FlatList windowing pays
-// off. Handlers stay inline here but only close over this tile's own primitives.
-const MediaTile = memo(function MediaTile({
-  itemKey,
-  size,
-  lastModified,
-  isSelected,
-  signedUrl,
-  thumbnailUrl,
-  isDeleteBusy,
-  tileSize,
-  styles,
-  theme,
-  onToggleSelect,
-  onOpenViewer,
-  onDelete,
-}: MediaTileProps) {
-  const filename = itemKey.split("/").pop() || itemKey;
-  const isImage = isImageKey(itemKey);
-  const isVideo = isVideoKey(itemKey);
-  const square = { width: tileSize, height: tileSize };
-  // Thumbnails are cached under their object key, not the signed URL: every
-  // refetch re-signs the URL (new query string, same object), so keying on the
-  // URL missed expo-image's cache and re-downloaded each thumbnail. Keys are
-  // never overwritten with different bytes — uploads get a fresh id, and a
-  // video's thumbnail is named after the video.
-
-  return (
-    <View style={{ width: tileSize }}>
-      <View style={[styles.thumbnail, square]}>
-        {isImage && signedUrl ? (
-          <Pressable
-            onPress={() => onOpenViewer(itemKey)}
-            accessibilityRole="imagebutton"
-            accessibilityLabel={`Open ${filename}`}
-          >
-            <Image
-              source={{ uri: signedUrl, cacheKey: itemKey }}
-              alt=""
-              fit="cover"
-              style={square}
-            />
-          </Pressable>
-        ) : isVideo && thumbnailUrl ? (
-          <Image
-            source={{ uri: thumbnailUrl, cacheKey: getVideoThumbnailKey(itemKey) }}
-            alt=""
-            fit="cover"
-            style={square}
-          />
-        ) : (
-          <View style={[styles.thumbnailIcon, square]}>
-            <Icon
-              name={isVideo ? "video" : "file"}
-              size={32}
-              color={isVideo ? theme.colors.primary : theme.colors.mutedForeground}
-            />
-          </View>
-        )}
-
-        {/* Play overlay for videos */}
-        {isVideo && signedUrl && (
-          <Pressable
-            style={styles.playOverlay}
-            onPress={() => onOpenViewer(itemKey)}
-            accessibilityRole="button"
-            accessibilityLabel={`Play ${filename}`}
-          >
-            <View style={styles.playButton}>
-              <Icon name="play" size={20} color="primaryForeground" />
-            </View>
-          </Pressable>
-        )}
-
-        {/* Selection ring: drawn over the image so selecting doesn't resize it */}
-        {isSelected && <View style={styles.selectedRing} />}
-
-        <View style={[styles.tileControl, styles.tileCheckbox]}>
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => onToggleSelect(itemKey)}
-            disabled={isDeleteBusy}
-            accessibilityLabel={`Select ${filename}`}
-          />
-        </View>
-
-        <Pressable
-          style={[styles.tileControl, styles.tileDelete]}
-          onPress={() => onDelete(itemKey)}
-          disabled={isDeleteBusy}
-          hitSlop={spacing.sm}
-          accessibilityRole="button"
-          accessibilityLabel={`Delete ${filename}`}
-        >
-          <Icon name="trash" size={16} color={theme.colors.destructive} />
-        </Pressable>
-      </View>
-
-      {/* File info */}
-      <SansSerifText size="base" fontWeight="medium" style={styles.fileName} numberOfLines={1}>
-        {filename}
-      </SansSerifText>
-      <SansSerifText size="sm" style={styles.fileMeta} numberOfLines={1}>
-        {formatBytes(size)} • {formatDate(lastModified)}
-      </SansSerifText>
-    </View>
-  );
-});
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
@@ -1099,6 +831,9 @@ const createStyles = (theme: Theme) =>
     statLabel: {
       color: theme.colors.mutedForeground,
     },
+    uploadQueue: {
+      paddingTop: spacing.sm,
+    },
     loadingContainer: {
       flex: 1,
       justifyContent: "center",
@@ -1129,93 +864,8 @@ const createStyles = (theme: Theme) =>
     retryButton: {
       alignSelf: "center",
     },
-    // A flat toolbar row with a hairline under it, not a panel.
-    selectionToolbar: {
-      flexDirection: "row",
-      alignItems: "center",
-      flexWrap: "wrap",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.screenPadding,
-      paddingVertical: spacing.sm,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.border,
-    },
-    selectionSummary: {
-      flex: 1,
-      color: theme.colors.mutedForeground,
-    },
-    selectionActions: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.xs,
-    },
     list: {
       flex: 1,
-    },
-    listContent: {
-      width: "100%",
-      maxWidth: MAX_CONTENT_WIDTH,
-      alignSelf: "center",
-      paddingHorizontal: spacing.screenPadding,
-      paddingTop: spacing.md,
-      paddingBottom: spacing.xxl,
-      gap: spacing.md,
-    },
-    gridRow: {
-      gap: GRID_GAP,
-    },
-    thumbnail: {
-      borderRadius: spacing.radiusSm,
-      overflow: "hidden",
-      backgroundColor: theme.colors.muted,
-    },
-    thumbnailIcon: {
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    playOverlay: {
-      ...StyleSheet.absoluteFill,
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundColor: withAlpha(palette.black, 0.25),
-    },
-    playButton: {
-      width: 40,
-      height: 40,
-      borderRadius: spacing.radiusFull,
-      backgroundColor: theme.colors.primary,
-      justifyContent: "center",
-      alignItems: "center",
-      paddingLeft: spacing.xxs, // Offset play icon slightly for visual center
-    },
-    selectedRing: {
-      ...StyleSheet.absoluteFill,
-      pointerEvents: "none",
-      borderRadius: spacing.radiusSm,
-      borderWidth: 3,
-      borderColor: theme.colors.primary,
-    },
-    // Scrim chips behind the checkbox and delete control keep them legible on
-    // any photo.
-    tileControl: {
-      position: "absolute",
-      top: spacing.xs,
-      padding: spacing.xs,
-      borderRadius: spacing.radiusSm,
-      backgroundColor: withAlpha(palette.black, 0.45),
-    },
-    tileCheckbox: {
-      left: spacing.xs,
-    },
-    tileDelete: {
-      right: spacing.xs,
-    },
-    fileName: {
-      color: theme.colors.foreground,
-      marginTop: spacing.xs,
-    },
-    fileMeta: {
-      color: theme.colors.mutedForeground,
     },
   });
 

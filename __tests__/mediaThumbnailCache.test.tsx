@@ -63,8 +63,8 @@ jest.mock("@/client/features/media/mediaClient", () => {
   };
 });
 
-jest.mock("@/client/features/media/hooks/useMediaLibrary", () => ({
-  useMediaLibrary: () => ({ pickMedia: jest.fn(), processing: false }),
+jest.mock("@mrmeg/expo-media/picker", () => ({
+  useMediaPicker: () => ({ pick: jest.fn(), picking: false, permission: null }),
 }));
 // The lightbox is the kit's `MediaViewer`, covered in `packages/ui`; here only what the tab hands it.
 jest.mock("@/client/components/LazyMediaViewer", () => ({
