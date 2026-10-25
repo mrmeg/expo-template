@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import {
   useMutation,
   useQuery,
@@ -9,11 +10,17 @@ import {
 import {
   shouldRetryMediaError,
   type MediaClient,
+  type MediaItem,
   type MediaListOptions,
   type MediaUploadOptions,
   type SignedMediaUrlsOptions,
   type SignedMediaUrlsResult,
 } from "../client";
+import {
+  pairVideoThumbnails,
+  type PairedVideo,
+  type VideoThumbnailPairing,
+} from "../thumbnails";
 import { signedUrlExpiresAt, signedUrlRefreshAt } from "./signedUrlLifetime";
 
 export interface CreateMediaQueryHooksOptions {
@@ -35,6 +42,42 @@ export interface UseSignedMediaUrlsOptions
   extends Omit<SignedMediaUrlsOptions, "keys"> {
   mediaKeys: MediaKeyInput;
   enabled?: boolean;
+}
+
+export interface UsePairedVideoListOptions {
+  /** Media type the videos are listed from. */
+  videoMediaType: string;
+  /** Media type the thumbnails are listed from. */
+  thumbnailMediaType: string;
+  pairing: VideoThumbnailPairing;
+  /** Page size for both lists. Defaults to the list default (100). */
+  limit?: number;
+  enabled?: boolean;
+}
+
+export interface PairedVideoListData {
+  videos: PairedVideo<MediaItem>[];
+  orphanThumbnails: MediaItem[];
+}
+
+export interface UsePairedVideoListResult {
+  /**
+   * `undefined` until the videos have loaded and the thumbnails have loaded or
+   * failed. A failed thumbnail list pairs every video with none (see
+   * `thumbnailsError`) rather than hiding the videos.
+   */
+  data: PairedVideoListData | undefined;
+  isLoading: boolean;
+  isRefetching: boolean;
+  /** The video list's error. */
+  error: unknown;
+  /**
+   * The thumbnail list's error. While it is set every video reads as having no
+   * thumbnail, so don't offer a backfill on that basis.
+   */
+  thumbnailsError: unknown;
+  /** Refetches both lists. */
+  refetch: () => Promise<unknown>;
 }
 
 /**
@@ -86,6 +129,8 @@ function cachedExpiresAt(
   if (typeof recorded === "number" && Number.isFinite(recorded)) return recorded;
   return signedUrlExpiresAt(url, dataUpdatedAt);
 }
+
+const NO_ITEMS: MediaItem[] = [];
 
 export function createMediaQueryHooks({
   client,
@@ -283,6 +328,59 @@ export function createMediaQueryHooks({
     });
   }
 
+  /**
+   * Videos joined to their thumbnails (`pairVideoThumbnails`), from the two list
+   * queries the app already has: the keys are `queryKeys.list`'s, so an upload or
+   * delete mutation that invalidates the lists refreshes this too, and a list
+   * another hook already fetched is shared rather than requested again.
+   *
+   * `data` is `undefined` until both lists load, and stays the same object while
+   * neither list's data nor the pairing's `thumbnailPrefix` and `extension`
+   * change, so an inline `pairing` object is fine. Only the first page of each
+   * list is read (`limit`, at most 1000 on the server): with more objects than
+   * that, a video can look thumbnail-less and a thumbnail can look orphaned.
+   */
+  function usePairedVideoList({
+    videoMediaType,
+    thumbnailMediaType,
+    pairing,
+    limit,
+    enabled = true,
+  }: UsePairedVideoListOptions): UsePairedVideoListResult {
+    const videos = useMediaList({ mediaType: videoMediaType, limit, enabled });
+    const thumbnails = useMediaList({ mediaType: thumbnailMediaType, limit, enabled });
+
+    const videoItems = videos.data?.items;
+    const thumbnailsFailed = !thumbnails.data && Boolean(thumbnails.error);
+    // A failed thumbnail list degrades to "no thumbnails"; a loading one is
+    // waited for, so a video is never shown as missing one it has.
+    const thumbnailItems = thumbnails.data?.items ?? (thumbnailsFailed ? NO_ITEMS : undefined);
+    const { thumbnailPrefix, extension } = pairing;
+    const data = useMemo(
+      () =>
+        videoItems && thumbnailItems
+          ? pairVideoThumbnails(videoItems, thumbnailItems, { thumbnailPrefix, extension })
+          : undefined,
+      [videoItems, thumbnailItems, thumbnailPrefix, extension],
+    );
+
+    const refetchVideos = videos.refetch;
+    const refetchThumbnails = thumbnails.refetch;
+    const refetch = useCallback(
+      () => Promise.all([refetchVideos(), refetchThumbnails()]),
+      [refetchVideos, refetchThumbnails],
+    );
+
+    return {
+      data,
+      isLoading: videos.isLoading || (thumbnails.isLoading && !thumbnailsFailed),
+      isRefetching: videos.isRefetching || thumbnails.isRefetching,
+      error: videos.error ?? null,
+      thumbnailsError: thumbnails.error ?? null,
+      refetch,
+    };
+  }
+
   function useMediaUpload() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -317,6 +415,7 @@ export function createMediaQueryHooks({
     useMediaList,
     useSignedMediaUrls,
     useSignedUrls: useSignedMediaUrls,
+    usePairedVideoList,
     useMediaUpload,
     useMediaDelete,
     useMediaDeleteBatch,
@@ -334,6 +433,7 @@ function normalizeMediaKeys(input: MediaKeyInput): string[] {
   return typeof input === "string" && input.length > 0 ? [input] : [];
 }
 
+export type { PairedVideo, VideoThumbnailPairing } from "../thumbnails";
 export type {
   MediaClient,
   MediaDeleteResult,

@@ -16,6 +16,7 @@ import type { CompressionConfig } from "../processing/imageCompression/config";
 import { logMediaDebug } from "../processing/logger";
 import { processAsset as defaultProcessAsset } from "../processing/processAsset";
 import type { ProcessedUpload } from "../processing/processAsset";
+import { mediaKeyId } from "../thumbnails";
 import { describeUploadQueueError, type UploadQueueStage } from "./errors";
 import { buildExifUploadMetadata } from "./metadata";
 import { initialUploadQueueState, uploadQueueReducer } from "./reducer";
@@ -57,11 +58,6 @@ function urisOf(asset: PickedMediaAsset, processed: ProcessedUpload | undefined)
   return [asset.uri, processed?.uri, processed?.thumbnail?.uri].filter(
     (uri): uri is string => typeof uri === "string",
   );
-}
-
-function defaultThumbnailFilename(videoKey: string): string {
-  const name = videoKey.split("/").pop() || "";
-  return name.replace(/\.[^.]+$/, "");
 }
 
 /** One execution of one item. A retry is a new attempt with a new token. */
@@ -272,7 +268,7 @@ export function createUploadQueueRunner<TMediaType extends string = string>(
     if (!config || processed.kind !== "video" || !thumbnail || !isLive()) return;
 
     try {
-      const filename = (config.filename ?? defaultThumbnailFilename)(videoKey);
+      const filename = (config.filename ?? mediaKeyId)(videoKey);
       await options.upload({
         file: thumbnail.blob ?? thumbnail.uri,
         contentType: thumbnail.contentType,

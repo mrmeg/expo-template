@@ -22,5 +22,9 @@ Rules:
   settings screen does not pull the pipeline into a light bundle.
 - `/picker` and `/upload-queue` are headless: results and `onSettled` go to the
   app's own toasts and alerts. Only `/picker` imports `expo-image-picker`.
+- A video's thumbnail shares its ID: `videos/<ID>.mov` -> `thumbnails/<ID>.jpg`.
+  Use the root pairing helpers, `deleteCompanions` on the handlers to delete both,
+  `usePairedVideoList` to list both, and `/upload-queue` thumbnail backfill (never
+  automatic; web needs bucket CORS) instead of rebuilding that mapping.
 - Every peer is optional; the native path needs `expo`, `expo-file-system`,
   `expo-image-manipulator`, and `expo-video`.

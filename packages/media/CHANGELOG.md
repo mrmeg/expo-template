@@ -38,6 +38,46 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   React-free `createUploadQueueRunner` are exported for tests and non-React hosts.
   The subpath imports no picker, React Query, or UI.
 
+- **Video thumbnails.** The same-ID convention (`videos/<ID>.mov` keeps its
+  thumbnail at `thumbnails/<ID>.jpg`) moves from the app into the package.
+  - Root entry, pure: `mediaKeyId`, `videoThumbnailKey`, `isVideoThumbnailKey`,
+    `pairVideoThumbnails` (joins listed videos to listed thumbnails by key, in
+    video order, plus `orphanThumbnails`), `withVideoThumbnailKeys`, and
+    `videoThumbnailDeleteCompanions` (also exported from `/server`), with the
+    `VideoThumbnailPairing` and `PairedVideo` types. The upload queue's default
+    thumbnail filename now comes from `mediaKeyId`; its behavior is unchanged.
+  - `createMediaHandlers({ deleteCompanions })`: `deleteOne` and `deleteMany`
+    also delete the extra keys it returns for each requested key, so a client that
+    deletes only a video still removes its thumbnail. Companions pass the same
+    safety and media type checks as requested keys (one that does not is dropped),
+    are visible to `policy.canDelete`, are deleted only after the key that named
+    them was, and are best effort: a missing one counts as deleted, and a failure
+    never fails the request. `deleteMany`'s `deleted` and `events.onDeleted` keys
+    include the deleted companions, and failures are reported in a new optional
+    `companionErrors` (also on the client's `MediaDeleteResult`), present only when
+    there are any. `success`, `errors`, and `key` keep their meaning. A `404` for a
+    missing object (not a missing bucket) from a companion delete is treated as
+    success.
+  - `usePairedVideoList({ videoMediaType, thumbnailMediaType, pairing, limit?,
+    enabled? })` from `createMediaQueryHooks`: `{ data, isLoading, isRefetching,
+    error, thumbnailsError, refetch }` (a failed thumbnail list still shows the
+    videos, paired with none) over the existing list query keys, so mutation invalidation
+    refreshes it, with `data` stable while its inputs are unchanged.
+  - `/upload-queue`: `backfillVideoThumbnail` (one video, never rejects) and
+    `useVideoThumbnailBackfill` (`{ run, running, progress, results }`, bounded
+    concurrency) read a frame from a video's signed URL and upload it under the
+    video's ID. Nothing runs them automatically, because they download video data.
+    On web the bucket must allow CORS for the app's origin, or the canvas is
+    tainted and the result is a failure that says so.
+
+### Fixed
+
+- **Native video thumbnails.** Extraction now waits for the player's
+  `readyToPlay` before asking for a frame, because iOS returned no frames while
+  the player was idle; it falls back to the first frame for clips shorter than
+  the requested time; and failures are logged instead of silently returning no
+  thumbnail.
+
 ### Changed
 
 - **New optional peer `expo-image-picker`** (`>=55.0.0 <59.0.0 ||

@@ -9,6 +9,17 @@
  */
 
 export { useUploadQueue, type UseUploadQueueResult } from "./useUploadQueue";
+export {
+  backfillVideoThumbnail,
+  type BackfillVideoThumbnailInput,
+  type BackfillVideoThumbnailOptions,
+  type BackfillVideoThumbnailResult,
+} from "./backfill";
+export {
+  useVideoThumbnailBackfill,
+  type UseVideoThumbnailBackfillOptions,
+  type UseVideoThumbnailBackfillResult,
+} from "./useVideoThumbnailBackfill";
 export { createUploadQueueRunner, type UploadQueueRunner } from "./runner";
 export {
   countUploadQueueItems,
