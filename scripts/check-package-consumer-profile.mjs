@@ -180,7 +180,7 @@ try {
     );
   }
 
-  run("bun", ["install", "--linker", "isolated"], { cwd: fixture });
+  run("bun", ["install", "--linker", "isolated", "--verbose"], { cwd: fixture, timeout: 240000 });
   run("bunx", ["expo", "install", "--fix"], { cwd: fixture });
   run("bunx", ["expo", "install", "--check"], { cwd: fixture });
   run("bun", ["x", "tsc", "--noEmit"], { cwd: fixture });
