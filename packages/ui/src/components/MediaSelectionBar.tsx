@@ -144,9 +144,9 @@ export function MediaSelectionBar({
   return (
     <View style={[styles.bar, style]} testID={testID}>
       <Checkbox
-        // `Checkbox` draws its glyph only while `checked`, so the partial state
-        // is checked + indeterminate (the dash), not unchecked + indeterminate.
-        checked={allSelected || someSelected}
+        // A partial selection is unchecked + indeterminate: the dash, read as
+        // "mixed"; pressing it selects everything.
+        checked={allSelected}
         indeterminate={someSelected}
         onCheckedChange={onToggleAll}
         disabled={busy || totalCount === 0}
