@@ -56,6 +56,21 @@ jest.mock("@/client/features/media/mediaClient", () => {
           ),
         },
       }),
+      // Videos arrive joined to their thumbnails by ID; the clip has one.
+      usePairedVideoList: () => ({
+        data: {
+          videos: listFor("videos").items.map((video) => ({
+            video,
+            thumbnailKey: "thumbnails/clip.jpg",
+            thumbnail: { key: "thumbnails/clip.jpg", size: 128, lastModified: "2026-09-02T12:00:00Z" },
+          })),
+          orphanThumbnails: [],
+        },
+        isLoading: false,
+        isRefetching: false,
+        error: null,
+        refetch: jest.fn(),
+      }),
       useMediaDelete: () => idle,
       useMediaDeleteBatch: () => idle,
       useMediaUpload: () => idle,

@@ -24,9 +24,16 @@ import { UploadQueue } from "@mrmeg/expo-ui/components/UploadQueue";
 import type { MediaViewerItem } from "@mrmeg/expo-ui/components/MediaViewer";
 import { LazyMediaViewer } from "@/client/components/LazyMediaViewer";
 import { useMediaList, formatBytes } from "@/client/features/media/hooks/useMediaList";
+import { usePairedVideoList } from "@/client/features/media/hooks/usePairedVideoList";
+import { withVideoThumbnailKeys } from "@mrmeg/expo-media";
 import type { MediaItem } from "@mrmeg/expo-media/client";
 import { useMediaPicker } from "@mrmeg/expo-media/picker";
-import { useUploadQueue, type UploadQueueItem } from "@mrmeg/expo-media/upload-queue";
+import {
+  useUploadQueue,
+  useVideoThumbnailBackfill,
+  type BackfillVideoThumbnailResult,
+  type UploadQueueItem,
+} from "@mrmeg/expo-media/upload-queue";
 import { useSignedUrls } from "@/client/features/media/hooks/useSignedUrls";
 import {
   useMediaDelete,
@@ -39,9 +46,9 @@ import { useCompressionStore } from "@/client/features/media/stores/compressionS
 import {
   MEDIA_CONTENT_TYPE_ALLOWLIST,
   MEDIA_PATHS,
+  VIDEO_THUMBNAIL_PAIRING,
   isVideoKey,
   isImageKey,
-  getVideoThumbnailKey,
   type MediaType,
 } from "@/shared/media";
 import {
@@ -55,7 +62,8 @@ import type { Theme } from "@mrmeg/expo-ui/constants";
 import { Seo } from "@/client/components/Seo";
 import { useTabHeaderTitle } from "@/client/features/navigation/tabTitle";
 
-type FilterType = "all" | keyof typeof MEDIA_PATHS;
+/** Thumbnails are not a filter: they show on their videos' tiles. */
+type FilterType = "all" | Exclude<keyof typeof MEDIA_PATHS, "thumbnails">;
 /**
  * Stand-in for the server's 503 `media-disabled` problem, used when native has
  * no API origin configured. Built once at module scope so the screen's memoized
@@ -89,20 +97,36 @@ const MAX_VISIBLE_UPLOADS = 3;
 /** The app's glyphs for the kit's media components, whose built-in defaults are generic. */
 const QUEUE_KIND_ICONS = { image: "image", video: "video" } as const;
 
+/**
+ * What a delete sends: the keys, plus each video's thumbnail. The server also
+ * deletes thumbnails with their videos (`deleteCompanions`); sending them here
+ * as well keeps the pair together against a server that predates that, and a
+ * thumbnail that is already gone deletes as a no-op.
+ */
 function getDeletePayloadKeys(keys: readonly string[]) {
-  const payload = new Set<string>();
+  return MEDIA_APP_SETTINGS.uploads.deleteVideoThumbnailWithVideo
+    ? withVideoThumbnailKeys(keys, { pairing: VIDEO_THUMBNAIL_PAIRING, isVideoKey })
+    : [...keys];
+}
 
-  for (const key of keys) {
-    payload.add(key);
-    if (
-      MEDIA_APP_SETTINGS.uploads.deleteVideoThumbnailWithVideo &&
-      isVideoKey(key)
-    ) {
-      payload.add(getVideoThumbnailKey(key));
-    }
+/** Toasts for one backfill run. */
+function notifyBackfillRun(results: readonly BackfillVideoThumbnailResult[]) {
+  const failed = results.filter((result) => result.status === "failed");
+  const created = results.length - failed.length;
+  if (failed.length === 0) {
+    notify.success("Thumbnails Created", {
+      messages: [created === 1 ? "1 thumbnail created" : `${created} thumbnails created`],
+      duration: 3000,
+    });
+    return;
   }
-
-  return [...payload];
+  notify.warning(created === 0 ? "Thumbnails Failed" : "Some Thumbnails Failed", {
+    messages: [
+      `${created} of ${results.length} thumbnails created`,
+      ...failed.slice(0, 2).map((result) => (result.status === "failed" ? result.errorMessage : "")),
+    ],
+    duration: 6000,
+  });
 }
 
 /** Toasts for one drained upload run; the per-file detail is on the queue rows. */
@@ -164,13 +188,13 @@ function useMediaScreenContent() {
     mediaType: "avatars",
     enabled: (filter === "all" || filter === "avatars") && !isMediaOriginUnconfigured,
   });
-  const videosQuery = useMediaList({
-    mediaType: "videos",
+  // Videos come joined to their thumbnails by ID, so the thumbnails themselves
+  // never show as files of their own.
+  const videosQuery = usePairedVideoList({
+    videoMediaType: "videos",
+    thumbnailMediaType: "thumbnails",
+    pairing: VIDEO_THUMBNAIL_PAIRING,
     enabled: (filter === "all" || filter === "videos") && !isMediaOriginUnconfigured,
-  });
-  const thumbnailsQuery = useMediaList({
-    mediaType: "thumbnails",
-    enabled: (filter === "all" || filter === "thumbnails") && !isMediaOriginUnconfigured,
   });
   const uploadsQuery = useMediaList({
     mediaType: "uploads",
@@ -178,24 +202,31 @@ function useMediaScreenContent() {
   });
 
   const avatarsData = avatarsQuery.data;
-  const videosData = videosQuery.data;
-  const thumbnailsData = thumbnailsQuery.data;
+  const pairedVideos = videosQuery.data?.videos;
   const uploadsData = uploadsQuery.data;
+  const videoItems = useMemo(() => pairedVideos?.map((paired) => paired.video), [pairedVideos]);
+  // Each video's stored thumbnail key, for the ones that have one.
+  const thumbnailKeyByVideo = useMemo(
+    () =>
+      new Map(
+        (pairedVideos ?? []).flatMap((paired) =>
+          paired.thumbnail ? [[paired.video.key, paired.thumbnail.key] as const] : [],
+        ),
+      ),
+    [pairedVideos],
+  );
 
   const isAvatarsActive = filter === "all" || filter === "avatars";
   const isVideosActive = filter === "all" || filter === "videos";
-  const isThumbnailsActive = filter === "all" || filter === "thumbnails";
   const isUploadsActive = filter === "all" || filter === "uploads";
 
   const isLoading =
     (isAvatarsActive && avatarsQuery.isLoading) ||
     (isVideosActive && videosQuery.isLoading) ||
-    (isThumbnailsActive && thumbnailsQuery.isLoading) ||
     (isUploadsActive && uploadsQuery.isLoading);
   const isRefetching =
     (isAvatarsActive && avatarsQuery.isRefetching) ||
     (isVideosActive && videosQuery.isRefetching) ||
-    (isThumbnailsActive && thumbnailsQuery.isRefetching) ||
     (isUploadsActive && uploadsQuery.isRefetching);
   // With no media origin configured (native + blank EXPO_PUBLIC_API_URL) every
   // query above stays disabled, so React Query never produces an error. Feed the
@@ -206,7 +237,6 @@ function useMediaScreenContent() {
     ? UNCONFIGURED_MEDIA_ERROR
     : (isAvatarsActive ? avatarsQuery.error : null) ??
     (isVideosActive ? videosQuery.error : null) ??
-    (isThumbnailsActive ? thumbnailsQuery.error : null) ??
     (isUploadsActive ? uploadsQuery.error : null) ??
     null;
 
@@ -215,21 +245,17 @@ function useMediaScreenContent() {
   // RefreshControl built from it — stable across renders.
   const refetchAvatars = avatarsQuery.refetch;
   const refetchVideos = videosQuery.refetch;
-  const refetchThumbnails = thumbnailsQuery.refetch;
   const refetchUploads = uploadsQuery.refetch;
   const refetch = useCallback(() => {
     if (isAvatarsActive) void refetchAvatars();
     if (isVideosActive) void refetchVideos();
-    if (isThumbnailsActive) void refetchThumbnails();
     if (isUploadsActive) void refetchUploads();
   }, [
     isAvatarsActive,
     isVideosActive,
-    isThumbnailsActive,
     isUploadsActive,
     refetchAvatars,
     refetchVideos,
-    refetchThumbnails,
     refetchUploads,
   ]);
 
@@ -239,9 +265,7 @@ function useMediaScreenContent() {
       case "avatars":
         return avatarsData;
       case "videos":
-        return videosData;
-      case "thumbnails":
-        return thumbnailsData;
+        return videoItems ? { items: videoItems, totalCount: videoItems.length, nextCursor: undefined } : undefined;
       case "uploads":
         return uploadsData;
       }
@@ -249,8 +273,7 @@ function useMediaScreenContent() {
 
     const items = [
       ...(avatarsData?.items ?? []),
-      ...(videosData?.items ?? []),
-      ...(thumbnailsData?.items ?? []),
+      ...(videoItems ?? []),
       ...(uploadsData?.items ?? []),
     ];
 
@@ -262,8 +285,7 @@ function useMediaScreenContent() {
   }, [
     filter,
     avatarsData,
-    videosData,
-    thumbnailsData,
+    videoItems,
     uploadsData,
   ]);
   const mediaDisabled = isMediaError(error) && error.problem.kind === "disabled";
@@ -300,8 +322,8 @@ function useMediaScreenContent() {
       );
       return { mediaType: policy.mediaType, compression: getCompressionConfig(policy.compression) };
     },
-    // Thumbnails are named after their video (`thumbnails/<video>.jpg`), which
-    // is the queue's default; see `getVideoThumbnailKey`.
+    // Thumbnails take their video's ID (`thumbnails/<ID>.jpg`), which is the
+    // queue's default and `VIDEO_THUMBNAIL_PAIRING`.
     videoThumbnail: MEDIA_APP_SETTINGS.uploads.uploadVideoThumbnails
       ? { mediaType: "thumbnails" }
       : false,
@@ -329,22 +351,11 @@ function useMediaScreenContent() {
 
   const handleDelete = useCallback(async (key: string) => {
     try {
-      // If deleting a video, also delete its thumbnail
-      const thumbnailKey =
-        MEDIA_APP_SETTINGS.uploads.deleteVideoThumbnailWithVideo && isVideoKey(key)
-          ? getVideoThumbnailKey(key)
-          : null;
-      if (thumbnailKey) {
-        try {
-          await deleteFile(thumbnailKey);
-          logDev(`Deleted video thumbnail: ${thumbnailKey}`);
-        } catch {
-          // Thumbnail may not exist, that's OK
-        }
-      }
-
-      await deleteFile(key);
-      deselectKeys(thumbnailKey ? [key, thumbnailKey] : [key]);
+      // A video goes with its thumbnail, in one request.
+      const payloadKeys = getDeletePayloadKeys([key]);
+      if (payloadKeys.length > 1) await deleteFiles(payloadKeys);
+      else await deleteFile(key);
+      deselectKeys(payloadKeys);
       notify.success("Deleted", {
         messages: ["File deleted successfully"],
         duration: 3000,
@@ -357,7 +368,7 @@ function useMediaScreenContent() {
         duration: 5000,
       });
     }
-  }, [deleteFile, deselectKeys]);
+  }, [deleteFile, deleteFiles, deselectKeys]);
 
   const handleDeleteSelected = async () => {
     const selectedForDelete = [...selectedKeys];
@@ -448,20 +459,27 @@ function useMediaScreenContent() {
     enabled: mediaKeys.length > 0 && !isMediaOriginUnconfigured,
   });
 
-  // Get signed URLs for video thumbnails. flatMap filters videos, derives the
-  // thumbnail name, and drops any empty result in a single pass.
-  const videoKeys =
-    data?.items.flatMap((item) => {
-      if (!isVideoKey(item.key)) return [];
-      const filename = item.key.split("/").pop() || "";
-      const thumbnailKey = filename.replace(/\.[^.]+$/, ".jpg");
-      return thumbnailKey ? [thumbnailKey] : [];
-    }) ?? [];
+  // Signed URLs for the thumbnails that exist, by their own object keys. A
+  // video without one is never asked for, so nothing 404s.
+  const thumbnailKeys = [...thumbnailKeyByVideo.values()];
 
   const { data: thumbnailUrlData } = useSignedUrls({
-    mediaKeys: videoKeys,
-    path: MEDIA_PATHS.thumbnails,
-    enabled: videoKeys.length > 0 && !isMediaOriginUnconfigured,
+    mediaKeys: thumbnailKeys,
+    enabled: thumbnailKeys.length > 0 && !isMediaOriginUnconfigured,
+  });
+
+  // Videos uploaded before thumbnails worked (or whose thumbnail failed) can
+  // get one now: a frame is read from the stored video and uploaded under its
+  // ID. It downloads video data, so it runs only when asked.
+  const backfill = useVideoThumbnailBackfill<MediaType>({
+    upload: uploadFile,
+    thumbnailMediaType: "thumbnails",
+    onSettled: notifyBackfillRun,
+  });
+  // An unreadable thumbnail list makes every video look bare; offer nothing then.
+  const backfillInputs = videosQuery.thumbnailsError ? [] : (pairedVideos ?? []).flatMap((paired) => {
+    const videoUrl = signedUrlData?.urls?.[paired.video.key];
+    return !paired.thumbnail && videoUrl ? [{ videoKey: paired.video.key, videoUrl }] : [];
   });
 
   // One viewer over the whole list, so swiping spans the library: every image and video that has a signed
@@ -473,16 +491,15 @@ function useMediaScreenContent() {
         if (!signedUrl) return [];
         const filename = item.key.split("/").pop() || item.key;
         if (isVideoKey(item.key)) {
-          const thumbnailUrl = thumbnailUrlData?.urls?.[filename.replace(/\.[^.]+$/, ".jpg")];
+          const thumbnailKey = thumbnailKeyByVideo.get(item.key);
+          const thumbnailUrl = thumbnailKey ? thumbnailUrlData?.urls?.[thumbnailKey] : undefined;
           return [
             {
               type: "video",
               key: item.key,
               source: signedUrl,
               title: filename,
-              poster: thumbnailUrl
-                ? { uri: thumbnailUrl, cacheKey: getVideoThumbnailKey(item.key) }
-                : undefined,
+              poster: thumbnailKey && thumbnailUrl ? { uri: thumbnailUrl, cacheKey: thumbnailKey } : undefined,
             },
           ];
         }
@@ -499,7 +516,7 @@ function useMediaScreenContent() {
         }
         return [];
       }),
-    [mediaItems, signedUrlData, thumbnailUrlData]
+    [mediaItems, signedUrlData, thumbnailUrlData, thumbnailKeyByVideo]
   );
 
   const handleOpenViewer = useCallback(
@@ -535,17 +552,16 @@ function useMediaScreenContent() {
       const isVideo = isVideoKey(item.key);
       const filename = item.key.split("/").pop() || item.key;
       const signedUrl = signedUrlData?.urls?.[item.key];
-      const thumbnailUrl = isVideo
-        ? thumbnailUrlData?.urls?.[filename.replace(/\.[^.]+$/, ".jpg")]
-        : undefined;
+      const thumbnailKey = isVideo ? thumbnailKeyByVideo.get(item.key) : undefined;
+      const thumbnailUrl = thumbnailKey ? thumbnailUrlData?.urls?.[thumbnailKey] : undefined;
       // Thumbnails are cached under their object key, not the signed URL: every
       // refetch re-signs the URL (new query string, same object), so keying on the
       // URL missed expo-image's cache and re-downloaded each thumbnail. Keys are
       // never overwritten with different bytes — uploads get a fresh id, and a
       // video's thumbnail is named after the video.
       const source = isVideo
-        ? thumbnailUrl
-          ? { uri: thumbnailUrl, cacheKey: getVideoThumbnailKey(item.key) }
+        ? thumbnailKey && thumbnailUrl
+          ? { uri: thumbnailUrl, cacheKey: thumbnailKey }
           : undefined
         : isImageKey(item.key) && signedUrl
           ? { uri: signedUrl, cacheKey: item.key }
@@ -574,6 +590,7 @@ function useMediaScreenContent() {
     [
       signedUrlData,
       thumbnailUrlData,
+      thumbnailKeyByVideo,
       selectedKeys,
       isDeleteBusy,
       toggleSelectedKey,
@@ -645,6 +662,27 @@ function useMediaScreenContent() {
             />
           </View>
         </View>
+
+        {/* Videos without a thumbnail: one flat action on the gutter. */}
+        {backfill.running || backfillInputs.length > 0 ? (
+          <View style={styles.backfillRow}>
+            <Button
+              preset="outline"
+              size="sm"
+              testID="media-backfill-thumbnails"
+              text={
+                backfill.running
+                  ? `Creating thumbnails ${backfill.progress.done + backfill.progress.failed}/${backfill.progress.total}`
+                  : backfillInputs.length === 1
+                    ? "Create 1 missing thumbnail"
+                    : `Create ${backfillInputs.length} missing thumbnails`
+              }
+              loading={backfill.running}
+              disabled={backfill.running}
+              onPress={() => backfill.run(backfillInputs)}
+            />
+          </View>
+        ) : null}
 
         {/* Files being processed and uploaded, and any that failed. `Item`
             rows carry the 16 pt inset themselves. */}
@@ -830,6 +868,11 @@ const createStyles = (theme: Theme) =>
     },
     statLabel: {
       color: theme.colors.mutedForeground,
+    },
+    backfillRow: {
+      flexDirection: "row",
+      paddingHorizontal: spacing.screenPadding,
+      paddingBottom: spacing.sm,
     },
     uploadQueue: {
       paddingTop: spacing.sm,

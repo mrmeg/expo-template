@@ -53,6 +53,13 @@ jest.mock("@/client/features/media/mediaClient", () => {
         refetch: jest.fn(),
       }),
       useSignedUrls: () => ({ data: { urls: {} } }),
+      usePairedVideoList: () => ({
+        data: { videos: [], orphanThumbnails: [] },
+        isLoading: false,
+        isRefetching: false,
+        error: null,
+        refetch: jest.fn(),
+      }),
       useMediaDelete: () => idle,
       useMediaDeleteBatch: () => idle,
       useMediaUpload: () => idle,
@@ -65,6 +72,7 @@ jest.mock("@mrmeg/expo-media/picker", () => ({
 }));
 
 jest.mock("@mrmeg/expo-media/upload-queue", () => ({
+  useVideoThumbnailBackfill: () => ({ run: jest.fn(), running: false, progress: { done: 0, failed: 0, total: 0 }, results: [] }),
   useUploadQueue: (options: UploadQueueOptions) => {
     mockQueueOptions = options;
     return {
