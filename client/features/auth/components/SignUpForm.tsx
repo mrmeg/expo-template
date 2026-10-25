@@ -168,6 +168,7 @@ export function SignUpForm({
             autoCorrect={false}
             editable={!loading}
             required
+            requiredHint={t("common.required")}
             returnKeyType="next"
             blurOnSubmit={false}
             onSubmitEditing={() => emailRef.current?.focus()}
@@ -188,6 +189,7 @@ export function SignUpForm({
           autoCorrect={false}
           editable={!loading}
           required
+          requiredHint={t("common.required")}
           returnKeyType={showPasswordFields ? "next" : "go"}
           blurOnSubmit={!showPasswordFields}
           onSubmitEditing={
@@ -221,6 +223,7 @@ export function SignUpForm({
               autoComplete="new-password"
               editable={!loading}
               required
+              requiredHint={t("common.required")}
               returnKeyType="next"
               blurOnSubmit={false}
               onSubmitEditing={() => confirmPasswordRef.current?.focus()}
@@ -240,6 +243,7 @@ export function SignUpForm({
               autoComplete="new-password"
               editable={!loading}
               required
+              requiredHint={t("common.required")}
               returnKeyType="go"
               onSubmitEditing={handleSubmit}
             />

@@ -12,6 +12,7 @@ import {
   type Ref,
 } from "react";
 import {
+  AccessibilityInfo,
   StyleSheet,
   TextInput as RNTextInput,
   ViewStyle,
@@ -81,6 +82,12 @@ function writeNativeText(
 
 /** Platform touch-target guideline (pt); the compact fields sit below it. */
 const MIN_TOUCH_TARGET = 44;
+
+/**
+ * What the native field's hint says for a `required` field, unless the app
+ * passes its own `requiredHint` (the package has no i18n of its own).
+ */
+const DEFAULT_REQUIRED_HINT = "required";
 
 const SIZE_CONFIGS: Record<
   TextInputSize,
@@ -159,9 +166,18 @@ interface TextInputCustomProps extends TextInputProps {
    */
   error?: boolean;
   /**
-   * Whether the field is required (shows asterisk)
+   * Whether the field is required (shows asterisk). Screen readers hear it as
+   * `aria-required` on web and as `requiredHint` in the field's native hint.
    */
   required?: boolean;
+  /**
+   * What the field's native hint says when `required`, appended after the
+   * helper text (", required"), or alone. Pass the translated word: the package
+   * has no i18n of its own. Native only; web states it with `aria-required`.
+   * Ignored when `accessibilityHint` is passed, which is used as written.
+   * @default "required"
+   */
+  requiredHint?: string;
   /**
    * Number of rows for multiline input
    */
@@ -263,6 +279,10 @@ function WebTextInput({
   errorText,
   error,
   required,
+  // Native-only (the native hint); web states `required` with `aria-required`.
+  // Destructured so it is not forwarded to the DOM input.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  requiredHint,
   rows,
   showSecureEntryToggle,
   leftElement,
@@ -556,11 +576,23 @@ function WebTextInput({
  *
  * The native field is named from `label` (`accessibilityLabel`: SwiftUI
  * `accessibilityLabel`, Compose `contentDescription`) and described by
- * `errorText`, else `helperText` (`accessibilityHint`: SwiftUI
- * `accessibilityHint`, appended to the Compose `contentDescription`). A
- * consumer's own `accessibilityLabel` / `accessibilityHint` win. Because the
- * field carries the label, the visible label `View` is hidden from assistive
- * tech so it is not read twice; the helper/error text stays readable.
+ * `helperText` (`accessibilityHint`: SwiftUI `accessibilityHint`, appended to
+ * the Compose `contentDescription`), with `requiredHint` (", required")
+ * appended when `required`: the visible " *" is hidden with the label, and the
+ * name stays plain so label selectors keep matching. A consumer's own
+ * `accessibilityLabel` / `accessibilityHint` win, and a consumer's hint is used
+ * as written: it carries no `requiredHint`. Because the field carries the
+ * label, the visible label `View` is hidden from assistive tech so it is not
+ * read twice; the visible helper text is hidden the same way whenever the
+ * field's hint carries it (no consumer `accessibilityHint`, and an Android
+ * `@expo/ui` that keeps the description).
+ *
+ * `errorText` is not in the hint. It stays its own accessibility element, so
+ * it is reachable whether or not the user has VoiceOver hints on, and it is
+ * announced when it appears or changes (`AccessibilityInfo.
+ * announceForAccessibility`; a hint change speaks nothing). It is therefore
+ * read once by the announcement and once as the next element, never as a hint
+ * on top of its own element.
  *
  * This path supports label / helper / error text and a password visibility
  * toggle laid out beside the native Host. Clear buttons, left/right elements,
@@ -579,6 +611,7 @@ function NativeTextInput({
   errorText,
   error,
   required,
+  requiredHint = DEFAULT_REQUIRED_HINT,
   rows,
   forceLight,
   inputMode,
@@ -612,17 +645,44 @@ function NativeTextInput({
   const hasError = error || !!errorText;
   const sizeConfig = SIZE_CONFIGS[size];
 
-  // The native field is named from `label` and described by the text shown
-  // below it (`errorText`, else `helperText`), matching what is on screen. A
-  // consumer's own props win. With a name on the field, the visible label is
-  // hidden from assistive tech below so it is not announced a second time.
-  // On Android the name only reaches TalkBack when the installed `@expo/ui`
-  // accepts `contentDescription` (57.0.21+, 58.0.8+); below that the field is
-  // unnamed natively, so the visible label stays readable.
+  // The native field is named from `label` and described by the helper text
+  // shown below it, matching what is on screen. A consumer's own props win.
+  // With a name on the field, the visible label is hidden from assistive tech
+  // below so it is not announced a second time. On Android the name only
+  // reaches TalkBack when the installed `@expo/ui` accepts `contentDescription`
+  // (57.0.21+, 58.0.8+); below that the field is unnamed natively, so the
+  // visible label stays readable.
   const fieldLabel = accessibilityLabel ?? label;
-  const labelHiddenFromAT =
-    !!fieldLabel && (Platform.OS !== "android" || ANDROID_NATIVE_FIELD_IS_NAMED);
-  const fieldHint = accessibilityHint ?? (errorText || helperText);
+  const fieldCarriesAccessibility = Platform.OS !== "android" || ANDROID_NATIVE_FIELD_IS_NAMED;
+  const labelHiddenFromAT = !!fieldLabel && fieldCarriesAccessibility;
+  // `errorText` shows instead of `helperText`. The error is never in the hint:
+  // hints can be switched off (VoiceOver "Speak Hints") and a changed hint is
+  // not announced, so the error is its own element and is announced as it
+  // appears. The helper text is the field's hint, and is hidden from assistive
+  // tech only when the hint really carries it: a consumer's own hint replaces
+  // it (the text is then its only voice), and so does an Android `@expo/ui`
+  // that drops the description (as with the label above).
+  const helperShown = !errorText && !!helperText;
+  const helperHiddenFromAT =
+    helperShown && fieldCarriesAccessibility && accessibilityHint == null;
+  // `required` has no native channel once the label (and its " *") is hidden, so
+  // the hint carries it: ", required" after the helper text, or "required"
+  // alone. It goes in the hint, not the name, so `label` stays the field's plain
+  // name for selectors and tests. A consumer's own hint is used as written.
+  const derivedHint = [helperShown ? helperText : undefined, required ? requiredHint : undefined]
+    .filter(Boolean)
+    .join(", ");
+  const fieldHint = accessibilityHint ?? (derivedHint || undefined);
+
+  // A hint change speaks nothing, so an error that appears (or changes after a
+  // failed submit) is announced. The first render is the baseline: an error
+  // already showing on mount is read when the user reaches it.
+  const announcedErrorRef = useRef(errorText);
+  useEffect(() => {
+    if (announcedErrorRef.current === errorText) return;
+    announcedErrorRef.current = errorText;
+    if (errorText) AccessibilityInfo.announceForAccessibility(errorText);
+  }, [errorText]);
 
   // Password visibility toggle. Flipping `secureTextEntry` toggles Compose's
   // visualTransformation in place on Android, but on iOS it selects a different
@@ -1039,15 +1099,23 @@ function NativeTextInput({
         )}
       </View>
 
-      {!!(helperText || errorText) && (
-        <StyledText
-          selectable={false}
-          size="sm"
-          style={[styles.helperText, hasError && styles.errorText]}
-        >
-          {errorText || helperText}
-        </StyledText>
-      )}
+      {!!(errorText || helperText) &&
+        (helperHiddenFromAT ? (
+          <View
+            // Already read as the field's hint (`fieldHint`); see `helperHiddenFromAT`.
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <StyledText selectable={false} size="sm" style={[styles.helperText, hasError && styles.errorText]}>
+              {helperText}
+            </StyledText>
+          </View>
+        ) : (
+          // The error is its own element, never hidden (see `announcedErrorRef`).
+          <StyledText selectable={false} size="sm" style={[styles.helperText, hasError && styles.errorText]}>
+            {errorText || helperText}
+          </StyledText>
+        ))}
     </View>
   );
 }

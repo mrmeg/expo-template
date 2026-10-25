@@ -123,6 +123,7 @@ export function ResetPasswordForm({
           keyboardType="number-pad"
           editable={!loading}
           required
+          requiredHint={t("common.required")}
           returnKeyType="next"
           blurOnSubmit={false}
           onSubmitEditing={() => passwordRef.current?.focus()}
@@ -147,6 +148,7 @@ export function ResetPasswordForm({
           autoComplete="new-password"
           editable={!loading}
           required
+          requiredHint={t("common.required")}
           returnKeyType="next"
           blurOnSubmit={false}
           onSubmitEditing={() => confirmPasswordRef.current?.focus()}
@@ -166,6 +168,7 @@ export function ResetPasswordForm({
           autoComplete="new-password"
           editable={!loading}
           required
+          requiredHint={t("common.required")}
           returnKeyType="go"
           onSubmitEditing={handleSubmit}
         />

@@ -5,6 +5,8 @@ const es = {
   common: {
     save: "Guardar",
     continue: "Continuar",
+    // Spoken after a required field's helper text (a screen-reader hint, not shown).
+    required: "obligatorio",
   },
   auth: {
     email: "Correo electr\u00f3nico",
