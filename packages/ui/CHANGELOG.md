@@ -5,6 +5,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.31.0]
+
 ### Changed
 
 - The shipped Lucide snapshot (`dist/icons/lucide.json`) moves from Lucide

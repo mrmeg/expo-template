@@ -169,7 +169,7 @@
     },
     "packages/ui": {
       "name": "@mrmeg/expo-ui",
-      "version": "0.30.0",
+      "version": "0.31.0",
       "bin": {
         "expo-ui-icons": "./bin/expo-ui-icons.mjs",
       },
