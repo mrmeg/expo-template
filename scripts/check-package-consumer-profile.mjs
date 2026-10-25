@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { bunInstallWithRetry } from "./lib/bunInstallWithRetry.mjs";
 import { tarballName } from "./lib/workspacePackages.mjs";
 import { packageCompatibilityProfiles } from "./package-compatibility-profiles.mjs";
 
@@ -180,7 +181,7 @@ try {
     );
   }
 
-  run("bun", ["install", "--linker", "isolated"], { cwd: fixture });
+  bunInstallWithRetry(["install", "--linker", "isolated"], fixture);
   run("bunx", ["expo", "install", "--fix"], { cwd: fixture });
   run("bunx", ["expo", "install", "--check"], { cwd: fixture });
   run("bun", ["x", "tsc", "--noEmit"], { cwd: fixture });

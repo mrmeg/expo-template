@@ -22,6 +22,7 @@ import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { bundledPackages, findDuplicatePackages, readSourceMapSources } from "./lib/bundleSingletons.mjs";
+import { bunInstallWithRetry } from "./lib/bunInstallWithRetry.mjs";
 import { tarballName } from "./lib/workspacePackages.mjs";
 
 // The lint plugin's manifest schema: the tarball must carry the version the
@@ -1095,7 +1096,7 @@ try {
       await writeFile(file, contents);
     }
 
-    run("bun", fixture.install, { cwd: fixtureRoot });
+    bunInstallWithRetry(fixture.install, fixtureRoot);
 
     for (const step of fixture.steps) {
       if (step.kind === "assert-surface") {
