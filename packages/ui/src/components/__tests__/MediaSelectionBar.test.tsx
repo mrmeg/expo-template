@@ -45,6 +45,7 @@ describe("MediaSelectionBar", () => {
       await renderBar({ selectedCount: 3 });
 
       // The dash glyph marks the indeterminate state, and the box is not the "all" check.
+      expect(selectAll()).toBePartiallyChecked();
       expect(screen.queryByTestId("icon-check", { includeHiddenElements: true })).toBeNull();
       expect(screen.queryByTestId("icon-minus", { includeHiddenElements: true })).not.toBeNull();
       expect(screen.getByText("Select all")).toBeTruthy();

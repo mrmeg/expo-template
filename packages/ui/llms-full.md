@@ -154,7 +154,7 @@ before creating a new app-local primitive.
 | `Button` | Commands and CTAs | Use `preset`, not `variant`; heights are 28/32/40. |
 | `Card` | One item in a collection (feed entry, grid tile, carousel slide) or a single tappable object | Not a layout box: never around a section, form, or row group; never nested. Parts pad `spacing.cardPadding`. |
 | `Carousel` | Small known set of horizontally snapping slides | Renders every child (no virtualization); fractional `itemWidth` measures the viewport until first layout. |
-| `Checkbox` | Boolean selection in forms or lists | Prefer over custom checkmark controls. |
+| `Checkbox` | Boolean selection in forms or lists | Prefer over custom checkmark controls. `indeterminate` with `checked={false}` draws the dash and reads as "mixed"; pressing it checks. |
 | `Collapsible` | One-off disclosure | Use for advanced settings or helper sections. |
 | `Dialog`, `AlertDialog` | Blocking modal content or decisions | Requires root `UIProvider` portal host. |
 | `DismissKeyboard` | Tap-away keyboard dismissal | Prefer over screen-level keyboard wrappers. |
@@ -162,6 +162,7 @@ before creating a new app-local primitive.
 | `DropdownMenu` | Menus and command lists | Requires root `UIProvider` portal host. |
 | `EmptyState` | No-data or recoverable error regions | Props: `icon`, `title`, `description`, `actionLabel`, `onAction`, `actionPreset`. |
 | `ErrorBoundary` | React render error fallback | Use for route or feature boundaries. |
+| `IconButton` | Icon-only commands (refresh, close, toolbar) | `accessibilityLabel` is required; `Button` presets, `square` or `circle`, 44 pt hit area everywhere. Adjacent `sm` IconButtons need a 16 pt gap (their hit slop reaches 8 pt out). Never a `Button` with only an `Icon` child. |
 | `Icon` | Registered Lucide glyphs or custom art with theme tokens | `name` is a builtin or a name in `client/icons.json` (`bunx expo-ui-icons add <name>`); `color` takes a theme color name; an unlabeled icon is hidden from a11y. |
 | `InputOTP` | Verification code entry | Prefer over manually managed text input groups. |
 | `Item` | List / settings rows | Applies the row density tokens and a 44px native hit area (40px on web). A pressable row (`onPress`) is one button and takes `accessibilityLabel`, `accessibilityHint`, `accessibilityActions`, `onAccessibilityAction`, `testID` and `ref`; hint and actions are native-only. A static row takes `testID` and `ref` and ignores the accessibility props. |
@@ -188,6 +189,31 @@ before creating a new app-local primitive.
 | `Toggle` | One pressed/unpressed control | Sizes are `sm`/`default`/`lg`. Use `Button` for commands, `Switch` for settings. |
 | `ToggleGroup` | Related pressed states | Use for segmented controls, formatting, and filter chips. |
 | `Tooltip` | Short hover/focus help | Requires root `UIProvider` portal host. |
+
+### Media components (subpath-only)
+
+Not in the `@mrmeg/expo-ui/components` barrel: import each from
+`@mrmeg/expo-ui/components/<Name>` and install its optional peer
+(`bunx expo install expo-image expo-video expo-audio` for the ones you use).
+None knows about storage; `@mrmeg/expo-media` supplies the data. On iOS 26 set
+`fullScreenGestureEnabled: false` on a stack screen with a custom `Video`, an
+`AudioPlayer` or a `MediaScrubber`, or dragging the seek bar pops the screen.
+
+| Component | Use When | Gotchas |
+|-----------|----------|---------|
+| `Image` | Any picture | Needs `expo-image`. Sizes from an aspect ratio, with a muted frame while loading or failed. Pass `{ uri, cacheKey }` for signed URLs so a re-sign does not re-download. |
+| `Video` | Inline video | Needs `expo-video`. Platform, themed (`controls="custom"`) or no controls; pausing on blur is the app's job (`useIsFocused`). |
+| `AudioPlayer` | Audio with themed controls | Needs `expo-audio` and `expo-image`. Draws no container; does not call `setAudioModeAsync`. |
+| `MediaViewer` | Full-screen lightbox over images and videos | Needs the peers of what it shows. Build `items` from the whole list and open at the tapped one. |
+| `MediaControlButton` | Icon control over video or images | White glyph on a translucent circle; on themed surfaces use `IconButton`. |
+| `MediaScrubber` | Seek bar | `onScrubStart` / `onScrubChange` / `onScrubEnd`; not `Slider`. |
+| `MediaTile` | One square tile of a media library | Needs `expo-image`. Memoized, primitive props; select checkbox, delete chip and open/play render only with their handlers. `source` is `{ uri, cacheKey }` or a `require()`d asset. Delete defaults to the `x` glyph: pass your app's `trash`. |
+| `MediaGrid` | A grid of square tiles | A `FlatList` that fills the column (2+ up), caps at `maxWidth` and remounts on a column change; pass the selection as `extraData`. `mediaGridLayout` / `useMediaGridLayout` for the math. |
+| `MediaSelectionBar` | Select-all, count, Clear, Delete (N) over a grid | A flat row with a hairline, not a panel; a partial selection reads as "mixed". |
+| `UploadQueue` | Uploads in progress | `ItemGroup` rows; `entries` take `@mrmeg/expo-media`'s queue items as they are. `maxVisible` caps the rows over a grid. |
+
+Hooks for them: `useKeySelection(visibleKeys)` (selection that drops keys no
+longer visible) and `useMediaKeyboard` (web media keys), from `hooks`.
 
 Every compound part has a named export (`CardHeader`, `AccordionItem`,
 `SelectContent`, …). Dot notation exists only on `AlertDialog`, `BottomSheet`,

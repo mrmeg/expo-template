@@ -101,6 +101,26 @@ function CheckboxPreview({ label }: { label: string }) {
   return <Checkbox checked={checked} onCheckedChange={setChecked} label={label} />;
 }
 
+/** A parent box over two children: the dash (and "mixed") while only some are on. */
+function CheckboxGroupPreview() {
+  const [items, setItems] = React.useState({ photos: true, videos: false });
+  const values = Object.values(items);
+  const all = values.every(Boolean);
+  const some = values.some(Boolean) && !all;
+  return (
+    <Stack gap={spacing.xs}>
+      <Checkbox
+        checked={all}
+        indeterminate={some}
+        onCheckedChange={(next) => setItems({ photos: next, videos: next })}
+        label="All media"
+      />
+      <Checkbox checked={items.photos} onCheckedChange={(photos) => setItems((v) => ({ ...v, photos }))} label="Photos" />
+      <Checkbox checked={items.videos} onCheckedChange={(videos) => setItems((v) => ({ ...v, videos }))} label="Videos" />
+    </Stack>
+  );
+}
+
 function SwitchPreview({ label, initial }: { label: string; initial: boolean }) {
   const [checked, setChecked] = React.useState(initial);
   // A bare switch has no visible text; outside an Item row it must be named.
@@ -527,7 +547,12 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
     </Row>
   ),
 
-  Checkbox: () => <CheckboxPreview label="Remember me" />,
+  Checkbox: () => (
+    <Stack gap={spacing.md}>
+      <CheckboxPreview label="Remember me" />
+      <CheckboxGroupPreview />
+    </Stack>
+  ),
 
   InputOTP: () => <InputOTP value="42" onChangeText={() => {}} length={4} />,
 

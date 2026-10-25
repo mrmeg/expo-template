@@ -3,7 +3,7 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.32.0]
 
 ### Added
 
@@ -30,6 +30,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - `useKeySelection` (from `hooks`): multi-select state over string keys that
     prunes keys no longer visible and keeps `toggle`, `toggleAll`, `clear` and
     `remove` stable.
+
+### Fixed
+
+- **`Checkbox` shows and announces a partial state.** `indeterminate` with
+  `checked={false}` drew an empty box and read as "not checked": the primitive
+  mounts its indicator only while checked and sets `aria-checked` from
+  `checked`, which outranks `accessibilityState` on native and is the DOM
+  attribute on web. Now the dash draws and the control reads as "mixed" on iOS,
+  Android and web; pressing it checks. A consumer that passed `checked` with
+  `indeterminate` to get the dash can pass `checked={false}`.
 
 ## [0.31.0]
 

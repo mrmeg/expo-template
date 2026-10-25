@@ -157,6 +157,10 @@ function Checkbox({
         }}
         hitSlop={DEFAULT_HIT_SLOP}
         accessibilityRole="checkbox"
+        // The primitive sets `aria-checked={checked}`, which outranks
+        // `accessibilityState` on native and is the DOM attribute on web, so a
+        // partial state has to be stated here to read as "mixed".
+        aria-checked={indeterminate ? "mixed" : !!checked}
         accessibilityState={{
           checked: indeterminate ? "mixed" : checked,
           disabled: !!disabled,
@@ -174,7 +178,10 @@ function Checkbox({
             ...(flattenedStyle || {}),
           }}
         >
+          {/* The primitive mounts its indicator only while `checked`; an
+              indeterminate box is unchecked but still draws its dash. */}
           <CheckboxPrimitive.Indicator
+            forceMount={indeterminate || undefined}
             style={{
               justifyContent: "center",
               alignItems: "center",

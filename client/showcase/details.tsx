@@ -2,7 +2,7 @@
  * Seeded detail content for the component detail screen.
  *
  * Mockup 05 frame 3 shows a variant row plus a copyable snippet. Writing that
- * by hand for all 36 components would be a lot of prose to keep true, so this
+ * by hand for every component would be a lot of prose to keep true, so this
  * seeds the highest-traffic components and everything else falls back to its
  * live preview plus its import path (see `client/showcase/ComponentDetailScreen.tsx`).
  * A component with no entry here still gets a working detail screen — the
