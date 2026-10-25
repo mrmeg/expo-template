@@ -12,6 +12,8 @@
 | `/processing/image-compression/config` | `IMAGE_PRESETS`, `DEFAULT_PRESET`, `MIN_QUALITY`, `resolveCompressionConfig`, `CompressionConfig`, `ImagePreset` |
 | `/processing/video-conversion` | `needsConversion`, `convertVideo`, `FFMPEG_WORKER_URL` |
 | `/processing/video-thumbnails` | `extractVideoThumbnail` |
+| `/picker` | `useMediaPicker`, `pickMedia`, `toPickedMediaAsset`, `parseExifGps`/`parseExifDate`/`parseExifOrientation`, `PickedMediaAsset` |
+| `/upload-queue` | `useUploadQueue`, `uploadQueueReducer`, `createUploadQueueRunner`, `UploadQueueItem` |
 | `/server` | `createMediaHandlers` |
 | `/worker` | `createMediaWorker`, `createKvTokenAuthorizer` |
 
@@ -22,7 +24,8 @@ screens, preference stores) so light bundles skip the pipeline.
 
 Every peer is optional: native needs `expo`, `expo-file-system`,
 `expo-image-manipulator`, `expo-video`; web HEIC needs `heic2any`; hooks need
-`@tanstack/react-query`. Platform-split modules ship as `foo.js` /
+`@tanstack/react-query`; `/picker` needs `expo-image-picker` (no other
+entrypoint imports it). Platform-split modules ship as `foo.js` /
 `foo.native.js` with extension-less specifiers, so native builds need
 Metro-style platform resolution.
 
@@ -127,6 +130,33 @@ measure or upload a native file URI; FFmpeg only in web conversion. Core and
 server entrypoints need no React or Expo peer. Test seams:
 `processAsset({ adapter })`, `convertHeicToJpeg(blob, fileName, decoder)`,
 `resolveUploadSize(file, stat)`.
+
+## Picking And The Upload Queue
+
+`useMediaPicker()` (or `pickMedia(options)`) from `/picker` wraps
+`expo-image-picker` and resolves to `{ status: "picked", assets }`,
+`{ status: "canceled" }`, or `{ status: "denied", canAskAgain }`: no `Alert`, no
+toast, the app maps the result. Options: `source` (`"library"` | `"camera"`),
+`mediaTypes`, `multiple`, `selectionLimit`, `allowsEditing`; it always picks at
+`quality: 1` with EXIF. Assets are `PickedMediaAsset` (`ProcessAssetInput` + `id`
++ `exif?`).
+
+`useUploadQueue({ upload, allowlist, resolve, concurrency?, metadata?,
+videoThumbnail?, onItemSettled?, onSettled? })` from `/upload-queue` processes
+then uploads each asset through `queued -> processing -> uploading -> done |
+failed` and returns `{ items, add, retry, remove, clearFinished, clear, isActive,
+counts }`. Pass `useMediaUpload().mutateAsync` (invalidates the lists) or
+`client.upload` as `upload`; `resolve(asset)` runs once per asset when it is added
+(the policy current at pick time, kept through retries) and returns
+`{ mediaType, compression? }`. Concurrency (default 3) bounds processing
+and upload together. `videoThumbnail` is off unless set (`{ mediaType, filename? }`)
+and its failure never fails the item. `retry` resumes from upload when the
+processed result exists; `remove` of an in-flight item drops it and ignores its
+result but the slot frees only when the work settles (`upload()` has no abort);
+`clearFinished` drops `done` only. `onSettled` fires once per drain. Keep toasts,
+alerts, and settings stores in the app. `/upload-queue` must not import the
+picker, React Query, or UI. `UploadQueueItem` field names are consumed
+structurally by `@mrmeg/expo-ui/components/UploadQueue`; do not rename them.
 
 ## Repo Validation And Publishing
 

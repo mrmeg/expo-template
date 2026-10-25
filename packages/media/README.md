@@ -9,12 +9,14 @@ Package-owned: media config contracts and safe key helpers, client
 upload/list/read/delete API factories, React Query hook factories, the
 `processAsset` pipeline (content-type identification, upload format policy, image
 compression, HEIC conversion, thumbnails, optional web video conversion),
+headless picking (`/picker`) and the process-and-upload queue (`/upload-queue`),
 Fetch-compatible S3/R2 presigned-URL handlers, typed media error mapping.
 
 App-owned: auth and route mounting, bucket credentials and env var names, server
 policy decisions and database metadata, app-wide media settings including the
-content-type allowlist both sides share, UI screens, FFmpeg worker serving for
-web, monitoring and analytics SDKs.
+content-type allowlist both sides share, UI screens (and the toasts, alerts, and
+settings stores around picking and uploading), FFmpeg worker serving for web,
+monitoring and analytics SDKs.
 
 ## Install
 
@@ -30,6 +32,7 @@ Every peer is optional; install only what the entrypoints you import need.
 | `expo` | `>=55 <58` | native uploads (`expo/fetch`) |
 | `expo-file-system` | `>=55 <58` | native uploads, native size stat |
 | `expo-image-manipulator` | `>=55 <58` | native image encode, native video thumbnails |
+| `expo-image-picker` | `>=55 <59` | `/picker` only |
 | `expo-video` | `>=55 <58` | native video thumbnails |
 | `heic2any` | `^0.0.4` | web HEIC → JPEG |
 | `react` | `>=19.2 <20` | client, hooks, processing |
@@ -37,6 +40,7 @@ Every peer is optional; install only what the entrypoints you import need.
 
 ```sh
 bunx expo install expo-file-system expo-image-manipulator expo-video
+bunx expo install expo-image-picker # only if you import /picker
 bun add @tanstack/react-query heic2any
 ```
 
@@ -70,6 +74,8 @@ and no other toolchain sets the condition, so an installed release resolves
 import { createMediaConfig } from "@mrmeg/expo-media";
 import { createMediaClient } from "@mrmeg/expo-media/client";
 import { createMediaQueryHooks } from "@mrmeg/expo-media/react-query";
+import { pickMedia, useMediaPicker } from "@mrmeg/expo-media/picker";
+import { useUploadQueue } from "@mrmeg/expo-media/upload-queue";
 import { createMediaHandlers } from "@mrmeg/expo-media/server";
 import {
   createKvTokenAuthorizer,
@@ -102,7 +108,9 @@ modules, or storage signing code. It exports `createMediaConfig`,
 `isMediaError`, `toMediaError`, `shouldRetryMediaError`).
 
 Use `/server` only in server route files and `/worker` only in a Cloudflare
-Worker entry. Use `/processing` where the pipeline actually runs; consumers that
+Worker entry. `/picker` is the only entrypoint that imports `expo-image-picker`;
+`/upload-queue` imports no picker, React Query, or UI, so it works with any
+`upload` function and any `PickedMediaAsset` source. Use `/processing` where the pipeline actually runs; consumers that
 only read config (settings screens, preference stores) import
 `/processing/image-compression/config` so they do not pull the pipeline into a
 light bundle.
@@ -651,6 +659,118 @@ the config re-exports; `/processing/video-conversion` gives `needsConversion`,
 `{ uri, blob?, contentType, width, height, size, rung, attempts, overBudget }`.
 It does not consult the allowlist — that is what `processAsset` adds.
 
+## Picking And The Upload Queue
+
+Two headless subpaths cover the screen-side flow: `/picker` turns
+`expo-image-picker` into `PickedMediaAsset`s, and `/upload-queue` processes and
+uploads each one through a per-item state machine. Neither renders anything,
+shows a toast, or opens an `Alert`; the app maps results and `onSettled` to its
+own UI. `@mrmeg/expo-ui/components/UploadQueue` renders the queue's `items`
+directly.
+
+```tsx
+import { resolveCompressionConfig } from "@mrmeg/expo-media/processing/image-compression/config";
+import { useMediaPicker } from "@mrmeg/expo-media/picker";
+import { useUploadQueue } from "@mrmeg/expo-media/upload-queue";
+
+function UploadScreen() {
+  const { mutateAsync: upload } = useMediaUpload(); // from createMediaQueryHooks
+  const { pick, picking } = useMediaPicker();
+  const queue = useUploadQueue({
+    upload, // or mediaClient.upload
+    allowlist: MEDIA_CONTENT_TYPE_ALLOWLIST,
+    // Per asset, before processing: avatars get the avatar preset, videos skip the ladder.
+    resolve: (asset) =>
+      asset.kind === "video"
+        ? { mediaType: "videos", compression: null }
+        : { mediaType: "uploads", compression: resolveCompressionConfig("gallery") },
+    videoThumbnail: { mediaType: "thumbnails" },
+    onSettled: ({ uploaded, failed }) => notifyUploadResult(uploaded.length, failed.length),
+  });
+
+  async function onPress() {
+    const result = await pick({ mediaTypes: ["images", "videos"], multiple: true, selectionLimit: 20 });
+    if (result.status === "picked") queue.add(result.assets);
+    if (result.status === "denied") showPermissionHelp(result.canAskAgain);
+  }
+
+  // queue.items is what the UploadQueue component renders; wire retry and remove to it.
+}
+```
+
+### Picker
+
+`useMediaPicker()` returns `{ pick, picking, permission }`, and `pickMedia(options)`
+is the same call without the hook. Options: `source` (`"library"`, the default, or
+`"camera"`), `mediaTypes` (`["images"]` by default), `multiple`, `selectionLimit`,
+`allowsEditing`. `pick` resolves to one of three results rather than throwing:
+
+```ts
+type PickMediaResult =
+  | { status: "picked"; assets: PickedMediaAsset[] }
+  | { status: "canceled" }
+  | { status: "denied"; canAskAgain: boolean };
+```
+
+- It requests permission through the library or camera permission API when it is
+  not already granted and can still be asked, and decides from the *response*, so
+  a refusal given during this pick stops it. `denied` with `canAskAgain: false`
+  means the OS will no longer prompt: send the user to Settings.
+- It always picks at `quality: 1` with `exif: true` and `orderedSelection: true`,
+  because the compression ladder encodes once, later, and EXIF is read here before
+  re-encoding strips it.
+- `permission` is the OS `PermissionResponse` from the latest `pick` (`null`
+  before the first), for the source that pick used.
+- `PickedMediaAsset` is `ProcessAssetInput` plus a unique `id` and
+  `exif?: { takenAt?: Date; lat?: number; lng?: number }`. On web it carries the
+  `Blob` the pipeline and the upload both use. Video `duration` (milliseconds from
+  the picker) arrives as `durationSeconds`.
+- The pure helpers are exported: `toPickedMediaAsset(imagePickerAsset, index)`,
+  `parseExifGps`, `parseExifDate`, `parseExifOrientation`. A GPS coordinate that
+  cannot be read is dropped, never reported as `0`.
+
+### Upload Queue
+
+`useUploadQueue(options)` returns `{ items, add, retry, remove, clearFinished,
+clear, isActive, counts }`. Items appear the moment `add` is called, then move
+`queued -> processing -> uploading -> done`, or to `failed`. Processing runs
+inside the queue, so a UI shows every file as soon as it is picked.
+
+| Option | Purpose |
+|---|---|
+| `upload` | `(options: MediaUploadOptions) => Promise<MediaUploadResult>`: the React Query `useMediaUpload().mutateAsync` (it invalidates the list queries) or `client.upload` |
+| `allowlist` | the shared content-type allowlist handed to `processAsset` |
+| `resolve(asset)` | `{ mediaType, compression? }`, run once per asset when it is added (pick-time policy, kept through retries) |
+| `concurrency` | default 3; bounds processing and upload together, since each in-flight asset holds a full-resolution bitmap |
+| `metadata(item, processed)` | replaces the default, which forwards EXIF as `{ takenAt: ISO string, lat: string, lng: string }` (only the keys present, `undefined` when none) |
+| `videoThumbnail` | `{ mediaType, filename? }` uploads each video's frame as a second, best-effort file (a failure never fails the item); unset or `false` uploads none |
+| `onItemSettled(item)` | an item reached `done` or `failed` |
+| `onSettled({ uploaded, failed })` | the queue drained; fires once per run |
+| `adapter`, `processAsset` | test seams |
+
+`UploadQueueItem` is `{ id, fileName, kind, status, previewUri?, progress?,
+phase?, errorMessage?, error?, asset, processed?, key?, mediaType? }`. `progress`
+is `0..1` (video conversion's 0-100 is normalized), `phase` is the
+`processAsset` phase, and `errorMessage` is a short line mapped from
+`MediaProcessingError` and `MediaError`; the raw failure stays on `error`.
+
+- Options may be inline: the latest are read at each step.
+- `retry(id)` re-runs a failed item from processing, or from upload when its
+  processed result survived, so a failed upload never recompresses.
+- `remove(id)` drops an in-flight item at once and ignores its eventual result.
+  `upload()` has no abort signal, so the request is not cancelled, and the item
+  keeps its concurrency slot until the work settles.
+- `clearFinished()` drops `done` items; `failed` ones stay for `retry` or
+  `remove`. `clear()` drops everything.
+- On web the queue revokes `blob:` URLs it holds when an item is removed or
+  cleared, but never on failure (`retry` needs the bytes) and never on unmount.
+- The queue is not tied to the component's effects. StrictMode, Fast Refresh,
+  and hidden `Activity` screens leave it alone, and unmounting only stops
+  rendering: queued items still process and upload and the callbacks still fire,
+  so an upload outlives the screen that started it.
+- `createUploadQueueRunner(getOptions)` and `uploadQueueReducer` are exported for
+  tests and non-React hosts: the runner is plain async code with no React in it.
+
 ## Error Handling
 
 Client hooks throw `MediaError` with a typed `problem.kind`: `disabled`
@@ -681,7 +801,8 @@ on typed errors instead of parsing message text.
 5. Replace inline quality/path decisions with named upload policies, resolved per
    asset before processing.
 6. Replace copied image processing helpers with one `processAsset()` call, and the
-   multi-asset `Promise.all` with `mapWithConcurrency()`.
+   multi-asset `Promise.all` with `mapWithConcurrency()` (or with
+   `useUploadQueue`, which processes and uploads in one bounded pass).
 7. Reconcile app-owned metadata in handler events, and add a `media-disabled`
    setup state.
 8. Run validation.

@@ -12,7 +12,7 @@ extension-less specifiers, so Metro picks the native build on iOS/Android.
 Entrypoints: `.` (contracts, keys, `MediaError`), `/client`, `/react-query`,
 `/processing`, `/processing/image-compression`,
 `/processing/image-compression/config`, `/processing/video-conversion`,
-`/processing/video-thumbnails`, `/server`, `/worker`. Never import `/server` or
+`/processing/video-thumbnails`, `/picker`, `/upload-queue`, `/server`, `/worker`. Never import `/server` or
 `/worker` from client code; config-only consumers use the config subpath.
 
 ## Server
@@ -151,6 +151,59 @@ nothing here reaches `expo-video` on web; `expo-file-system` only to measure or
 upload a native file URI; FFmpeg only in web `convertVideo()`. Test seams:
 `processAsset({ adapter })`, `convertHeicToJpeg(blob, fileName, decoder)`,
 `resolveUploadSize(file, stat)`.
+
+## Picking And The Upload Queue
+
+`/picker` wraps `expo-image-picker` (the only entrypoint that imports it; an
+optional peer) and is UI-free. `useMediaPicker()` returns `{ pick, picking,
+permission }`; `pickMedia(options)` is the same call without the hook. `pick({
+source?, mediaTypes?, multiple?, selectionLimit?, allowsEditing? })` resolves to
+`{ status: "picked"; assets: PickedMediaAsset[] } | { status: "canceled" } | {
+status: "denied"; canAskAgain: boolean }` — a refusal is a result, never an
+`Alert`. `source` is `"library"` (default) or `"camera"` and picks the matching
+permission API; permission is requested when not granted and still askable, and
+the decision reads the response so a denial during the pick stops it. Always
+`quality: 1`, `exif: true`, `orderedSelection: true`. `permission` is the OS
+response from the latest pick. `PickedMediaAsset` is `ProcessAssetInput` plus a
+unique `id` and `exif?: { takenAt?: Date; lat?: number; lng?: number }`; on web it
+carries the `Blob`; `duration` (ms) becomes `durationSeconds`. `toPickedMediaAsset`,
+`parseExifGps` (unreadable coordinates are `null`, never `0`), `parseExifDate`,
+`parseExifOrientation` are exported pure helpers.
+
+`/upload-queue` imports no picker, React Query, or UI. `useUploadQueue<TMediaType>({
+upload, allowlist, resolve, concurrency?, metadata?, videoThumbnail?,
+onItemSettled?, onSettled?, adapter?, processAsset? })` returns `{ items, add,
+retry, remove, clearFinished, clear, isActive, counts }`. `UploadQueueItem` is `{
+id, fileName, kind, status, previewUri?, progress?, phase?, errorMessage?,
+error?, asset, processed?, key?, mediaType? }` with `status` one of `queued`,
+`processing`, `uploading`, `done`, `failed`; `progress` is 0..1 (video conversion's
+0-100 normalized), `phase` is a `ProcessingPhase["type"]`, and `errorMessage` is a
+short mapping of `MediaProcessingError`/`MediaError`. These names are consumed
+structurally by `@mrmeg/expo-ui/components/UploadQueue`.
+
+`upload` is `(MediaUploadOptions) => Promise<MediaUploadResult>`: pass
+`useMediaUpload().mutateAsync` or `client.upload`. `resolve(asset)` returns `{
+mediaType, compression? }` synchronously before processing (a throw fails the
+item). `concurrency` (default 3) bounds processing and upload together.
+`metadata(item, processed)` replaces the default, which sends `{ takenAt: ISO
+string, lat: string, lng: string }` with only the keys present, `undefined` when
+none. `videoThumbnail: { mediaType, filename? }` uploads each video's frame after
+the video, named by default after the video key's basename without extension; its
+failure never fails the item; unset or `false` uploads none. `onSettled({
+uploaded, failed })` fires once per drain.
+
+State machine: `queued -> processing -> uploading -> done`, `failed` from
+`processing`/`uploading` (or `queued` when `resolve` throws), `failed -> queued` on
+`retry`, which resumes at upload when `processed` is kept. A failure keeps
+`processed` and revokes nothing. `remove` of an in-flight item drops it from
+`items` and ignores its result, but its concurrency slot is held until the work
+settles, because `upload()` has no abort signal and processing cannot be
+interrupted. `clearFinished` drops `done`; `failed` stays. On web the queue revokes
+`blob:` URLs on remove and clear, never on failure. Unmount does not stop the
+queue (uploads outlive the screen; StrictMode, Fast Refresh, and `Activity` are
+harmless). The pure
+`uploadQueueReducer` and React-free `createUploadQueueRunner(getOptions)` are
+exported for tests.
 
 ## Validation
 
