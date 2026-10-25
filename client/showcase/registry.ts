@@ -119,6 +119,9 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "InputOTP", importPath: "@mrmeg/expo-ui/components/InputOTP", category: "form" },
   { id: "Item", importPath: "@mrmeg/expo-ui/components/Item", category: "layout" },
   { id: "Label", importPath: "@mrmeg/expo-ui/components/Label", category: "form" },
+  { id: "MediaGrid", importPath: "@mrmeg/expo-ui/components/MediaGrid", category: "media" },
+  { id: "MediaSelectionBar", importPath: "@mrmeg/expo-ui/components/MediaSelectionBar", category: "media" },
+  { id: "MediaTile", importPath: "@mrmeg/expo-ui/components/MediaTile", category: "media" },
   { id: "MediaViewer", importPath: "@mrmeg/expo-ui/components/MediaViewer", category: "media" },
   { id: "Popover", importPath: "@mrmeg/expo-ui/components/Popover", category: "overlay" },
   { id: "Progress", importPath: "@mrmeg/expo-ui/components/Progress", category: "feedback" },
@@ -140,6 +143,7 @@ export const COMPONENTS: ComponentEntry[] = [
   { id: "Toggle", importPath: "@mrmeg/expo-ui/components/Toggle", category: "form" },
   { id: "ToggleGroup", importPath: "@mrmeg/expo-ui/components/ToggleGroup", category: "form" },
   { id: "Tooltip", importPath: "@mrmeg/expo-ui/components/Tooltip", category: "overlay" },
+  { id: "UploadQueue", importPath: "@mrmeg/expo-ui/components/UploadQueue", category: "media" },
   { id: "Video", importPath: "@mrmeg/expo-ui/components/Video", category: "media" },
 ];
 
