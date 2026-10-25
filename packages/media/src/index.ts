@@ -27,6 +27,16 @@ export {
   type ResolvedMediaKey,
 } from "./keys";
 export {
+  isVideoThumbnailKey,
+  mediaKeyId,
+  pairVideoThumbnails,
+  videoThumbnailDeleteCompanions,
+  videoThumbnailKey,
+  withVideoThumbnailKeys,
+  type PairedVideo,
+  type VideoThumbnailPairing,
+} from "./thumbnails";
+export {
   MediaError,
   isMediaError,
   shouldRetryMediaError,

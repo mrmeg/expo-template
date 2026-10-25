@@ -44,6 +44,9 @@ import { Image, type ImageFit } from "@mrmeg/expo-ui/components/Image";
 import { InputOTP } from "@mrmeg/expo-ui/components/InputOTP";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@mrmeg/expo-ui/components/Item";
 import { Label } from "@mrmeg/expo-ui/components/Label";
+import { MediaGrid } from "@mrmeg/expo-ui/components/MediaGrid";
+import { MediaSelectionBar } from "@mrmeg/expo-ui/components/MediaSelectionBar";
+import { MediaTile } from "@mrmeg/expo-ui/components/MediaTile";
 import { Popover, PopoverBody, PopoverContent, PopoverTrigger } from "@mrmeg/expo-ui/components/Popover";
 import { Progress } from "@mrmeg/expo-ui/components/Progress";
 import { RadioGroup, RadioGroupItem } from "@mrmeg/expo-ui/components/RadioGroup";
@@ -62,10 +65,11 @@ import { ThemeSelector } from "@mrmeg/expo-ui/components/ThemeSelector";
 import { Toggle } from "@mrmeg/expo-ui/components/Toggle";
 import { ToggleGroup, ToggleGroupItem } from "@mrmeg/expo-ui/components/ToggleGroup";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@mrmeg/expo-ui/components/Tooltip";
+import { UploadQueue, type UploadQueueEntry } from "@mrmeg/expo-ui/components/UploadQueue";
 import type { MediaViewerItem } from "@mrmeg/expo-ui/components/MediaViewer";
 import { LazyMediaViewer } from "@/client/components/LazyMediaViewer";
 import { LazyVideo } from "@/client/components/LazyVideo";
-import { withAlpha } from "@mrmeg/expo-ui/hooks";
+import { useKeySelection, withAlpha } from "@mrmeg/expo-ui/hooks";
 import { palette, spacing } from "@mrmeg/expo-ui/constants";
 
 // ---------------------------------------------------------------------------
@@ -324,6 +328,172 @@ function MediaViewerPreview() {
       <CaptionText style={{ textAlign: "center" }}>Tap one to open the viewer, then swipe, pinch or press ← →</CaptionText>
       <LazyMediaViewer items={VIEWER_ITEMS} visible={open !== null} initialIndex={open ?? 0} onClose={close} />
     </Stack>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Media management: MediaTile, MediaGrid, MediaSelectionBar, UploadQueue
+// ---------------------------------------------------------------------------
+
+interface DemoMedia {
+  id: string;
+  title: string;
+  subtitle: string;
+  source: number;
+}
+
+/** Six stand-ins for a media library: the three bundled pictures, twice. */
+function demoMedia(): DemoMedia[] {
+  const pictures = [
+    { name: "landscape", asset: LANDSCAPE },
+    { name: "portrait", asset: PORTRAIT },
+    { name: "square", asset: SQUARE },
+  ];
+  return [...pictures, ...pictures].map(({ name, asset }, index) => ({
+    id: `${name}-${index}`,
+    title: `${name}-${index + 1}.jpg`,
+    subtitle: "240 KB",
+    source: asset,
+  }));
+}
+
+/**
+ * The `MediaTile` card: a picture you can select and delete, and a clip whose
+ * play button opens it. The delete chip only hides the tile; nothing is stored.
+ */
+function MediaTilePreview() {
+  const [selected, setSelected] = React.useState(true);
+  const [visible, setVisible] = React.useState(true);
+  const [played, setPlayed] = React.useState(false);
+  const toggle = React.useCallback(() => setSelected((value) => !value), []);
+  const hide = React.useCallback(() => setVisible(false), []);
+  const play = React.useCallback(() => setPlayed((value) => !value), []);
+
+  return (
+    <Stack gap={spacing.sm}>
+      <Row gap={spacing.sm}>
+        {visible ? (
+          <MediaTile
+            id="beach"
+            kind="image"
+            source={LANDSCAPE}
+            size={72}
+            title="beach.jpg"
+            subtitle="1.2 MB"
+            selected={selected}
+            onToggleSelect={toggle}
+            onDelete={hide}
+            deleteIcon="trash"
+          />
+        ) : (
+          <Button preset="outline" size="sm" text="Restore" onPress={() => setVisible(true)} />
+        )}
+        <MediaTile
+          id="clip"
+          kind="video"
+          source={PORTRAIT}
+          size={72}
+          title="clip.mp4"
+          subtitle={played ? "Playing" : "0:12"}
+          onPress={play}
+        />
+      </Row>
+    </Stack>
+  );
+}
+
+/** The `MediaGrid` card: six tiles in as many columns as the card fits. Its own scrolling is off; the card scrolls. */
+function MediaGridPreview() {
+  const items = React.useMemo(demoMedia, []);
+  const selection = useKeySelection(React.useMemo(() => items.map((item) => item.id), [items]));
+  const { toggle, selected } = selection;
+
+  return (
+    <View style={{ alignSelf: "stretch" }}>
+      <MediaGrid
+        data={items}
+        keyExtractor={(item) => item.id}
+        extraData={selected}
+        scrollEnabled={false}
+        minTileWidth={56}
+        gap={spacing.xs}
+        rowGap={spacing.xs}
+        renderTile={({ item, size }) => (
+          <MediaTile
+            id={item.id}
+            kind="image"
+            source={item.source}
+            size={size}
+            accessibilityLabel={item.title}
+            selected={selected.has(item.id)}
+            onPress={toggle}
+          />
+        )}
+      />
+    </View>
+  );
+}
+
+/** The `MediaSelectionBar` card: select all, partial selection, Clear and a Delete that removes the selected rows. */
+function MediaSelectionBarPreview() {
+  const [keys, setKeys] = React.useState(() => ["a", "b", "c", "d", "e"]);
+  const selection = useKeySelection(keys);
+  const { selected, remove } = selection;
+  const deleteSelected = React.useCallback(() => {
+    const doomed = [...selected];
+    setKeys((current) => current.filter((key) => !doomed.includes(key)));
+    remove(doomed);
+  }, [selected, remove]);
+
+  return (
+    <View style={{ alignSelf: "stretch" }}>
+      <MediaSelectionBar
+        selectedCount={selection.count}
+        totalCount={keys.length}
+        onToggleAll={selection.toggleAll}
+        onClear={selection.clear}
+        onDelete={deleteSelected}
+        deleteIcon="trash"
+      />
+      {keys.length === 0 ? (
+        <Button preset="outline" size="sm" text="Reset" onPress={() => setKeys(["a", "b", "c", "d", "e"])} style={{ alignSelf: "center", marginTop: spacing.sm }} />
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * The `UploadQueue` card: a video converting at 42%, an upload with no known
+ * progress, a file waiting, and a failure that retries. Retry re-queues the
+ * entry and remove drops it; nothing is uploaded.
+ */
+const INITIAL_UPLOADS = (): UploadQueueEntry[] => [
+  { id: "clip", fileName: "clip.mov", kind: "video", status: "processing", phase: "converting-video", progress: 0.42 },
+  { id: "beach", fileName: "beach.heic", kind: "image", status: "uploading" },
+  { id: "dusk", fileName: "dusk.jpg", kind: "image", status: "queued" },
+  { id: "big", fileName: "big-scan.png", kind: "image", status: "failed", errorMessage: "File is too large" },
+];
+
+function UploadQueuePreview() {
+  const [entries, setEntries] = React.useState(INITIAL_UPLOADS);
+  const retry = React.useCallback(
+    (id: string) =>
+      setEntries((current) =>
+        current.map((entry) => (entry.id === id ? { ...entry, status: "queued", errorMessage: undefined } : entry)),
+      ),
+    [],
+  );
+  const remove = React.useCallback(
+    (id: string) => setEntries((current) => current.filter((entry) => entry.id !== id)),
+    [],
+  );
+
+  return entries.length > 0 ? (
+    <View style={{ alignSelf: "stretch" }}>
+      <UploadQueue entries={entries} onRetry={retry} onRemove={remove} kindIcons={{ image: "image", video: "video" }} testID="upload-queue-preview" />
+    </View>
+  ) : (
+    <Button preset="outline" size="sm" text="Reset" onPress={() => setEntries(INITIAL_UPLOADS())} />
   );
 }
 
@@ -698,6 +868,10 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
   Image: () => <ImagePreview />,
   Video: () => <VideoPreview />,
   MediaViewer: () => <MediaViewerPreview />,
+  MediaTile: () => <MediaTilePreview />,
+  MediaGrid: () => <MediaGridPreview />,
+  MediaSelectionBar: () => <MediaSelectionBarPreview />,
+  UploadQueue: () => <UploadQueuePreview />,
 
   // ── Typography ──────────────────────────────────────────────────────────
   Icon: () => (

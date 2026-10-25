@@ -1,3 +1,5 @@
+import { videoThumbnailKey, type VideoThumbnailPairing } from "@mrmeg/expo-media";
+
 /**
  * Media path constants shared between client and server.
  * Defines the folder structure for different media types in R2/S3.
@@ -50,13 +52,18 @@ export const MEDIA_CONTENT_TYPE_ALLOWLIST = {
 } as const;
 
 /**
- * Get the thumbnail path for a video.
- * Videos stored at media/videos/abc.mp4 have thumbnails at media/thumbnails/abc.jpg
+ * How a video finds its thumbnail: the same ID under `thumbnails/`, so
+ * `videos/01ABC.mov` pairs with `thumbnails/01ABC.jpg`. The upload queue names
+ * thumbnails this way, the server deletes them with their video, and the media
+ * tab joins the two lists by it.
  */
+export const VIDEO_THUMBNAIL_PAIRING: VideoThumbnailPairing = {
+  thumbnailPrefix: MEDIA_PATHS.thumbnails,
+};
+
+/** `videos/01ABC.mov` -> `thumbnails/01ABC.jpg`. */
 export function getVideoThumbnailKey(videoKey: string): string {
-  const filename = videoKey.split("/").pop() || videoKey;
-  const nameWithoutExt = filename.replace(/\.[^.]+$/, "");
-  return `${MEDIA_PATHS.thumbnails}/${nameWithoutExt}.jpg`;
+  return videoThumbnailKey(videoKey, VIDEO_THUMBNAIL_PAIRING);
 }
 
 /**

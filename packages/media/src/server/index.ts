@@ -9,3 +9,4 @@ export {
   type MediaPolicyDecision,
   type MediaPolicyResult,
 } from "./handlers";
+export { videoThumbnailDeleteCompanions } from "../thumbnails";

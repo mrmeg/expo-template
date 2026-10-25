@@ -15,7 +15,7 @@ import type { VideoConversionOptions, VideoConversionResult } from "./types";
 /**
  * Shape-compatible stub of the web-only typed error. Native never loads a
  * worker, but exporting the class keeps `instanceof` checks in shared
- * consumer code (useMediaLibrary) platform-safe.
+ * consumer code platform-safe.
  */
 export class FFmpegWorkerUnavailableError extends Error {
   readonly url: string;

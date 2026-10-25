@@ -4,15 +4,17 @@
 
 | Subpath | Contents |
 |---|---|
-| `@mrmeg/expo-media` | contracts, key helpers, `MediaError` |
+| `@mrmeg/expo-media` | contracts, key helpers, video thumbnail pairing helpers, `MediaError` |
 | `/client` | `createMediaClient`, `resolveUploadSize` |
-| `/react-query` | `createMediaQueryHooks` |
+| `/react-query` | `createMediaQueryHooks` (incl. `usePairedVideoList`) |
 | `/processing` | `processAsset`, `mapWithConcurrency`, upload format policy, content-type sniffing, re-exports of the modules below |
 | `/processing/image-compression` | ladder, encoder, HEIC decode, canvas limits |
 | `/processing/image-compression/config` | `IMAGE_PRESETS`, `DEFAULT_PRESET`, `MIN_QUALITY`, `resolveCompressionConfig`, `CompressionConfig`, `ImagePreset` |
 | `/processing/video-conversion` | `needsConversion`, `convertVideo`, `FFMPEG_WORKER_URL` |
 | `/processing/video-thumbnails` | `extractVideoThumbnail` |
-| `/server` | `createMediaHandlers` |
+| `/picker` | `useMediaPicker`, `pickMedia`, `toPickedMediaAsset`, `parseExifGps`/`parseExifDate`/`parseExifOrientation`, `PickedMediaAsset` |
+| `/upload-queue` | `useUploadQueue`, `uploadQueueReducer`, `createUploadQueueRunner`, `UploadQueueItem`, `useVideoThumbnailBackfill`, `backfillVideoThumbnail` |
+| `/server` | `createMediaHandlers`, `videoThumbnailDeleteCompanions` |
 | `/worker` | `createMediaWorker`, `createKvTokenAuthorizer` |
 
 Never import `/server` or `/worker` from client code; the root must stay safe for
@@ -22,7 +24,8 @@ screens, preference stores) so light bundles skip the pipeline.
 
 Every peer is optional: native needs `expo`, `expo-file-system`,
 `expo-image-manipulator`, `expo-video`; web HEIC needs `heic2any`; hooks need
-`@tanstack/react-query`. Platform-split modules ship as `foo.js` /
+`@tanstack/react-query`; `/picker` needs `expo-image-picker` (no other
+entrypoint imports it). Platform-split modules ship as `foo.js` /
 `foo.native.js` with extension-less specifiers, so native builds need
 Metro-style platform resolution.
 
@@ -65,7 +68,8 @@ const hooks = createMediaQueryHooks({ client: mediaClient });
 ```
 
 Hooks: `useMediaUpload` (web `Blob`/`File` and native URI uploads),
-`useMediaList`, `useSignedMediaUrls`, `useMediaDelete`, `useMediaDeleteBatch`.
+`useMediaList`, `useSignedMediaUrls`, `usePairedVideoList`, `useMediaDelete`,
+`useMediaDeleteBatch`.
 The app provides the single `QueryClientProvider` so hooks share its query
 context. `useSignedMediaUrls` caches URLs per object key: a changed key list
 signs only keys without a fresh cached URL (unchanged items keep theirs and are
@@ -84,6 +88,38 @@ shared content-type allowlist, and named upload policies that screens pick and
 resolve per asset instead of hardcoding media types and quality inline. There is
 no `keepOriginalIfLarger` setting; the format-aware never-larger decision lives
 in `chooseUploadCandidate`.
+
+## Video Thumbnails
+
+`videos/<ID>.mov` keeps its thumbnail at `thumbnails/<ID>.jpg`: the same ID under
+another prefix. The pure root helpers own that mapping (`mediaKeyId`,
+`videoThumbnailKey`, `isVideoThumbnailKey`, `pairVideoThumbnails`,
+`withVideoThumbnailKeys`, all taking `pairing: { thumbnailPrefix, extension? }`
+with `extension` defaulting to `"jpg"`); do not rebuild the mapping in the app.
+
+- Delete both with `createMediaHandlers({ deleteCompanions:
+  videoThumbnailDeleteCompanions({ pairing, isVideoKey }) })`. Companions must
+  resolve to a configured media type or are dropped, `canDelete` sees them, they
+  are deleted only after the key that named them, and a missing or failing one
+  never fails the request. `deleteOne` is still `{ success, key }` and
+  `deleteMany` still `{ success, deleted, errors }` (`deleted` includes deleted
+  companions); companion failures go only in the optional `companionErrors`,
+  never `errors` or `success`.
+- `usePairedVideoList({ videoMediaType, thumbnailMediaType, pairing, limit?,
+  enabled? })` returns `{ data: { videos: { video, thumbnailKey, thumbnail? }[],
+  orphanThumbnails }, isLoading, isRefetching, error, thumbnailsError, refetch }`
+  (a failed thumbnail list pairs videos with none and sets `thumbnailsError`;
+  `error` is the video list's) over the
+  `useMediaList` query keys, so mutations refresh it. It reads one page per list:
+  never delete `orphanThumbnails` unless both lists were read in full.
+- `/upload-queue` `backfillVideoThumbnail({ videoKey, videoUrl }, { upload,
+  thumbnailMediaType, filename?, timeMs?, extract? })` (never rejects) and
+  `useVideoThumbnailBackfill({ ...same, concurrency?, onSettled? })` (`{ run,
+  running, progress, results }`) add missing thumbnails from signed video URLs.
+  They download video data, so never run them automatically: the app triggers
+  them. On web the bucket needs CORS for the app origin or the canvas is tainted
+  and the result is a failed result saying so. Thumbnail uploads need
+  `allowCustomFilename` from `canUpload` for the thumbnail media type.
 
 ## Processing
 
@@ -127,6 +163,33 @@ measure or upload a native file URI; FFmpeg only in web conversion. Core and
 server entrypoints need no React or Expo peer. Test seams:
 `processAsset({ adapter })`, `convertHeicToJpeg(blob, fileName, decoder)`,
 `resolveUploadSize(file, stat)`.
+
+## Picking And The Upload Queue
+
+`useMediaPicker()` (or `pickMedia(options)`) from `/picker` wraps
+`expo-image-picker` and resolves to `{ status: "picked", assets }`,
+`{ status: "canceled" }`, or `{ status: "denied", canAskAgain }`: no `Alert`, no
+toast, the app maps the result. Options: `source` (`"library"` | `"camera"`),
+`mediaTypes`, `multiple`, `selectionLimit`, `allowsEditing`; it always picks at
+`quality: 1` with EXIF. Assets are `PickedMediaAsset` (`ProcessAssetInput` + `id`
++ `exif?`).
+
+`useUploadQueue({ upload, allowlist, resolve, concurrency?, metadata?,
+videoThumbnail?, onItemSettled?, onSettled? })` from `/upload-queue` processes
+then uploads each asset through `queued -> processing -> uploading -> done |
+failed` and returns `{ items, add, retry, remove, clearFinished, clear, isActive,
+counts }`. Pass `useMediaUpload().mutateAsync` (invalidates the lists) or
+`client.upload` as `upload`; `resolve(asset)` runs once per asset when it is added
+(the policy current at pick time, kept through retries) and returns
+`{ mediaType, compression? }`. Concurrency (default 3) bounds processing
+and upload together. `videoThumbnail` is off unless set (`{ mediaType, filename? }`)
+and its failure never fails the item. `retry` resumes from upload when the
+processed result exists; `remove` of an in-flight item drops it and ignores its
+result but the slot frees only when the work settles (`upload()` has no abort);
+`clearFinished` drops `done` only. `onSettled` fires once per drain. Keep toasts,
+alerts, and settings stores in the app. `/upload-queue` must not import the
+picker, React Query, or UI. `UploadQueueItem` field names are consumed
+structurally by `@mrmeg/expo-ui/components/UploadQueue`; do not rename them.
 
 ## Repo Validation And Publishing
 

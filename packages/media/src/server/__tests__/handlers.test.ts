@@ -1,4 +1,5 @@
 import { createMediaConfig } from "../../config";
+import { videoThumbnailDeleteCompanions } from "../../thumbnails";
 import {
   createMediaHandlers,
   resetMediaStorageForTests,
@@ -624,5 +625,275 @@ describe("createMediaHandlers single delete", () => {
       "AWS4-HMAC-SHA256 Credential=test-access-key/",
     );
     expect(fetchedUrl(0).pathname).toBe("/uploads/b.jpg");
+  });
+});
+
+describe("createMediaHandlers deleteCompanions", () => {
+  const credentials = { accessKeyId: "key", secretAccessKey: "secret" };
+  const companionConfig = createMediaConfig({
+    buckets: {
+      videoBucket: { provider: "s3", bucket: "video-bucket", region: "us-east-1", credentials },
+      thumbBucket: { provider: "s3", bucket: "thumb-bucket", region: "us-east-1", credentials },
+    },
+    mediaTypes: {
+      videos: { bucket: "videoBucket", prefix: "videos", allowedContentTypes: ["video/mp4"] },
+      thumbnails: { bucket: "thumbBucket", prefix: "thumbnails", allowedContentTypes: ["image/jpeg"] },
+    },
+  });
+  const pairing = { thumbnailPrefix: "thumbnails" };
+  const isVideoKey = (key: string) => key.startsWith("videos/");
+  const deleteCompanions = videoThumbnailDeleteCompanions({ pairing, isVideoKey });
+
+  function deleteOneRequest(key: string): Request {
+    return new Request(`http://localhost/delete?key=${encodeURIComponent(key)}`, { method: "DELETE" });
+  }
+
+  function deleteManyRequest(keys: string[]): Request {
+    return new Request("http://localhost/delete", { method: "POST", body: JSON.stringify({ keys }) });
+  }
+
+  /** Respond to the DELETE of any object whose path ends with `suffix`. */
+  function respondFor(suffix: string, respond: () => Response | Promise<Response>): void {
+    const fallback = fetchMock.getMockImplementation();
+    fetchMock.mockImplementation(async (input) => {
+      if (new URL(requestOf(input).url).pathname.endsWith(suffix)) return respond();
+      return fallback ? fallback(input) : new Response(null, { status: 204 });
+    });
+  }
+
+  it("deleteOne removes the video and its thumbnail, each from its own bucket", async () => {
+    const onDeleted = jest.fn();
+    const handlers = createMediaHandlers({
+      config: companionConfig,
+      deleteCompanions,
+      events: { onDeleted },
+    });
+
+    const res = await handlers.deleteOne(deleteOneRequest("videos/01A.mp4"));
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ success: true, key: "videos/01A.mp4" });
+    expect(fetchedTargets()).toEqual([
+      "thumb-bucket.s3.us-east-1.amazonaws.com/thumbnails/01A.jpg",
+      "video-bucket.s3.us-east-1.amazonaws.com/videos/01A.mp4",
+    ]);
+    expect(onDeleted).toHaveBeenCalledWith(
+      expect.objectContaining({ keys: ["videos/01A.mp4", "thumbnails/01A.jpg"] }),
+    );
+  });
+
+  it("deleteMany expands, dedupes, and reports the deleted companions", async () => {
+    const handlers = createMediaHandlers({ config: companionConfig, deleteCompanions });
+
+    const res = await handlers.deleteMany(
+      deleteManyRequest(["videos/01A.mp4", "videos/01B.mp4", "thumbnails/01A.jpg"]),
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      success: true,
+      deleted: ["videos/01A.mp4", "videos/01B.mp4", "thumbnails/01A.jpg", "thumbnails/01B.jpg"],
+      errors: [],
+    });
+    // 01A's thumbnail was requested itself, so it is deleted once.
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("makes no companion delete when no deleteCompanions option is set", async () => {
+    const handlers = createMediaHandlers({ config: companionConfig });
+    await handlers.deleteOne(deleteOneRequest("videos/01A.mp4"));
+    expect(fetchedTargets()).toEqual(["video-bucket.s3.us-east-1.amazonaws.com/videos/01A.mp4"]);
+  });
+
+  it("shows canDelete the expanded keys and media types, before any storage call", async () => {
+    const canDelete = jest.fn(() => {
+      expect(fetchMock).not.toHaveBeenCalled();
+      return true;
+    });
+    const handlers = createMediaHandlers({
+      config: companionConfig,
+      deleteCompanions,
+      policy: { canDelete },
+    });
+
+    await handlers.deleteMany(deleteManyRequest(["videos/01A.mp4"]));
+
+    expect(canDelete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        keys: ["videos/01A.mp4", "thumbnails/01A.jpg"],
+        mediaTypes: ["videos", "thumbnails"],
+      }),
+    );
+  });
+
+  it("lets policy deny a delete because of a companion", async () => {
+    const handlers = createMediaHandlers({
+      config: companionConfig,
+      deleteCompanions,
+      policy: {
+        canDelete: ({ keys }) => ({
+          allowed: !keys.some((key) => key.startsWith("thumbnails/")),
+          code: "thumbnail-protected",
+        }),
+      },
+    });
+
+    const res = await handlers.deleteOne(deleteOneRequest("videos/01A.mp4"));
+
+    expect(res.status).toBe(403);
+    await expect(res.json()).resolves.toMatchObject({ code: "thumbnail-protected" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("drops companions that are unsafe or resolve to no media type, silently", async () => {
+    const onDeleted = jest.fn();
+    const canDelete = jest.fn(() => true);
+    const handlers = createMediaHandlers({
+      config: companionConfig,
+      policy: { canDelete },
+      events: { onDeleted },
+      deleteCompanions: () => [
+        "../secrets/key.jpg",
+        "/thumbnails/abs.jpg",
+        "unknown/prefix.jpg",
+        "thumbnails/../etc.jpg",
+        "",
+        "thumbnails/ok.jpg",
+      ],
+    });
+
+    const res = await handlers.deleteOne(deleteOneRequest("videos/01A.mp4"));
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ success: true, key: "videos/01A.mp4" });
+    expect(canDelete).toHaveBeenCalledWith(
+      expect.objectContaining({ keys: ["videos/01A.mp4", "thumbnails/ok.jpg"] }),
+    );
+    expect(fetchedTargets()).toEqual([
+      "thumb-bucket.s3.us-east-1.amazonaws.com/thumbnails/ok.jpg",
+      "video-bucket.s3.us-east-1.amazonaws.com/videos/01A.mp4",
+    ]);
+    expect(onDeleted).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a deleteCompanions callback that throws", async () => {
+    const handlers = createMediaHandlers({
+      config: companionConfig,
+      deleteCompanions: () => {
+        throw new Error("boom");
+      },
+    });
+
+    const res = await handlers.deleteOne(deleteOneRequest("videos/01A.mp4"));
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ success: true, key: "videos/01A.mp4" });
+  });
+
+  it("counts a missing companion (404) as deleted", async () => {
+    respondFor("/thumbnails/01A.jpg", () =>
+      xmlResponse("<Error><Code>NoSuchKey</Code></Error>", 404),
+    );
+    const handlers = createMediaHandlers({ config: companionConfig, deleteCompanions });
+
+    const one = await handlers.deleteOne(deleteOneRequest("videos/01A.mp4"));
+    await expect(one.json()).resolves.toEqual({ success: true, key: "videos/01A.mp4" });
+
+    const many = await handlers.deleteMany(deleteManyRequest(["videos/01A.mp4"]));
+    await expect(many.json()).resolves.toEqual({
+      success: true,
+      deleted: ["videos/01A.mp4", "thumbnails/01A.jpg"],
+      errors: [],
+    });
+  });
+
+  it("still fails a requested key that answers 404", async () => {
+    respondFor("/videos/01A.mp4", () => xmlResponse("<Error><Code>NoSuchKey</Code></Error>", 404));
+    const handlers = createMediaHandlers({ config: companionConfig, deleteCompanions });
+
+    const res = await handlers.deleteMany(deleteManyRequest(["videos/01A.mp4"]));
+    const payload = await res.json();
+
+    expect(payload.success).toBe(false);
+    expect(payload.deleted).toEqual([]);
+    expect(payload.errors).toEqual([
+      { key: "videos/01A.mp4", message: expect.stringContaining("404") },
+    ]);
+    // The video was not deleted, so its thumbnail is left alone.
+    expect(fetchedTargets()).toEqual(["video-bucket.s3.us-east-1.amazonaws.com/videos/01A.mp4"]);
+  });
+
+  it("reports a failing companion as companionErrors without failing deleteOne", async () => {
+    respondFor("/thumbnails/01A.jpg", () => xmlResponse("<Error><Code>AccessDenied</Code></Error>", 403));
+    const onDeleted = jest.fn();
+    const handlers = createMediaHandlers({
+      config: companionConfig,
+      deleteCompanions,
+      events: { onDeleted },
+    });
+
+    const res = await handlers.deleteOne(deleteOneRequest("videos/01A.mp4"));
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      success: true,
+      key: "videos/01A.mp4",
+      companionErrors: [{ key: "thumbnails/01A.jpg", message: expect.stringContaining("403") }],
+    });
+    expect(onDeleted).toHaveBeenCalledWith(expect.objectContaining({ keys: ["videos/01A.mp4"] }));
+  });
+
+  it("reports a failing companion as companionErrors without failing deleteMany", async () => {
+    respondFor("/thumbnails/01A.jpg", () => {
+      throw new Error("thumbnail bucket down");
+    });
+    const handlers = createMediaHandlers({ config: companionConfig, deleteCompanions });
+
+    const res = await handlers.deleteMany(deleteManyRequest(["videos/01A.mp4", "videos/01B.mp4"]));
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      success: true,
+      deleted: ["videos/01A.mp4", "videos/01B.mp4", "thumbnails/01B.jpg"],
+      errors: [],
+      companionErrors: [{ key: "thumbnails/01A.jpg", message: "thumbnail bucket down" }],
+    });
+  });
+
+  it("keeps the thumbnail when its video fails to delete", async () => {
+    respondFor("/videos/01A.mp4", () => xmlResponse("<Error><Code>AccessDenied</Code></Error>", 403));
+    const handlers = createMediaHandlers({ config: companionConfig, deleteCompanions });
+
+    const res = await handlers.deleteMany(deleteManyRequest(["videos/01A.mp4", "videos/01B.mp4"]));
+    const payload = await res.json();
+
+    expect(payload.success).toBe(false);
+    expect(payload.deleted).toEqual(["videos/01B.mp4", "thumbnails/01B.jpg"]);
+    expect(fetchedTargets()).not.toContain("thumb-bucket.s3.us-east-1.amazonaws.com/thumbnails/01A.jpg");
+  });
+
+  it("still fails deleteOne when the requested key fails", async () => {
+    respondFor("/videos/01A.mp4", () => xmlResponse("<Error><Code>AccessDenied</Code></Error>", 403));
+    const handlers = createMediaHandlers({ config: companionConfig, deleteCompanions });
+
+    const res = await handlers.deleteOne(deleteOneRequest("videos/01A.mp4"));
+
+    expect(res.status).toBe(500);
+    await expect(res.json()).resolves.toMatchObject({ code: "storage-failure" });
+    expect(fetchedTargets()).toEqual(["video-bucket.s3.us-east-1.amazonaws.com/videos/01A.mp4"]);
+  });
+
+  it("treats a 404 from a missing bucket as a companion failure, not a missing object", async () => {
+    respondFor("/thumbnails/01A.jpg", () =>
+      xmlResponse("<Error><Code>NoSuchBucket</Code></Error>", 404),
+    );
+    const handlers = createMediaHandlers({ config: companionConfig, deleteCompanions });
+
+    const res = await handlers.deleteOne(deleteOneRequest("videos/01A.mp4"));
+
+    await expect(res.json()).resolves.toMatchObject({
+      success: true,
+      companionErrors: [{ key: "thumbnails/01A.jpg" }],
+    });
   });
 });

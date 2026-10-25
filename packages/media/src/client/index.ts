@@ -59,6 +59,13 @@ export interface MediaDeleteResult {
   key?: string;
   deleted?: string[];
   errors?: { key?: string; message?: string }[];
+  /**
+   * Companion objects (a video's thumbnail) the server tried to delete along with
+   * the requested keys and could not. Present only when there were failures, and
+   * never part of `errors` or `success`: a request whose own keys were deleted
+   * succeeded.
+   */
+  companionErrors?: { key?: string; message?: string }[];
 }
 
 export interface MediaClient {

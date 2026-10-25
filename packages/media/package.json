@@ -1,6 +1,6 @@
 {
   "name": "@mrmeg/expo-media",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "private": false,
   "description": "Reusable Expo media contracts, storage handlers, client hooks, and processing helpers for MrMeg projects.",
   "keywords": [
@@ -84,6 +84,16 @@
       "types": "./dist/processing/videoThumbnails.d.ts",
       "default": "./dist/processing/videoThumbnails.js"
     },
+    "./picker": {
+      "@mrmeg/source": "./src/picker/index.ts",
+      "types": "./dist/picker/index.d.ts",
+      "default": "./dist/picker/index.js"
+    },
+    "./upload-queue": {
+      "@mrmeg/source": "./src/uploadQueue/index.ts",
+      "types": "./dist/uploadQueue/index.d.ts",
+      "default": "./dist/uploadQueue/index.js"
+    },
     "./server": {
       "@mrmeg/source": "./src/server/index.ts",
       "types": "./dist/server/index.d.ts",
@@ -110,6 +120,7 @@
     "expo": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
     "expo-file-system": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
     "expo-image-manipulator": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
+    "expo-image-picker": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
     "expo-video": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
     "heic2any": "^0.0.4",
     "react": ">=19.2.0 <20.0.0",
@@ -128,6 +139,9 @@
     "expo-image-manipulator": {
       "optional": true
     },
+    "expo-image-picker": {
+      "optional": true
+    },
     "expo-video": {
       "optional": true
     },
@@ -144,6 +158,7 @@
   "devDependencies": {
     "@tanstack/react-query": "^5.104.2",
     "@types/react": "~19.3.0",
+    "expo-image-picker": "~58.0.10",
     "typescript": "~6.0.3"
   }
 }

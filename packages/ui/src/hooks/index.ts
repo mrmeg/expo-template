@@ -1,6 +1,7 @@
 export * from "./useDimensions";
 export * from "./useFocusVisible";
 export * from "./useFontStyle";
+export * from "./useKeySelection";
 export * from "./useMediaKeyboard";
 export * from "./useReduceMotion";
 export * from "./useResources";

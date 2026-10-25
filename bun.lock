@@ -112,7 +112,7 @@
     },
     "packages/media": {
       "name": "@mrmeg/expo-media",
-      "version": "0.5.2",
+      "version": "0.6.0",
       "dependencies": {
         "aws4fetch": "^1.0.20",
         "ulid": "^3.0.2",
@@ -120,6 +120,7 @@
       "devDependencies": {
         "@tanstack/react-query": "^5.104.2",
         "@types/react": "~19.3.0",
+        "expo-image-picker": "~58.0.10",
         "typescript": "~6.0.3",
       },
       "peerDependencies": {
@@ -127,6 +128,7 @@
         "expo": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
         "expo-file-system": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
         "expo-image-manipulator": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
+        "expo-image-picker": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
         "expo-video": ">=55.0.0 <59.0.0 || >=58.0.0-0 <59.0.0",
         "heic2any": "^0.0.4",
         "react": ">=19.2.0 <20.0.0",
@@ -137,6 +139,7 @@
         "expo",
         "expo-file-system",
         "expo-image-manipulator",
+        "expo-image-picker",
         "expo-video",
         "heic2any",
         "react",

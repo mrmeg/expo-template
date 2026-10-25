@@ -35,6 +35,13 @@ export interface ListObjectsOptions {
 export interface DeleteObjectOptions {
   bucket: MediaBucketConfig;
   key: string;
+  /**
+   * Count a missing object as deleted. S3 and R2 already answer `204` for a key
+   * that is not there, but some S3-compatible stores answer `404`; with this set
+   * that `404` resolves instead of throwing. A `404` for a missing *bucket* still
+   * throws. Off by default: a requested delete reports what storage said.
+   */
+  missingOk?: boolean;
 }
 
 const ERROR_BODY_EXCERPT_LENGTH = 300;
@@ -80,7 +87,9 @@ export async function listObjects(options: ListObjectsOptions): Promise<MediaSto
 }
 
 export async function deleteObject(options: DeleteObjectOptions): Promise<void> {
-  await send(options.bucket, "DELETE", buildObjectUrl(options.bucket, options.key));
+  await send(options.bucket, "DELETE", buildObjectUrl(options.bucket, options.key), {
+    tolerateMissingObject: options.missingOk,
+  });
 }
 
 export function getBucketClientCacheKey(bucket: MediaBucketConfig): string {
@@ -96,13 +105,16 @@ async function send(
   bucket: MediaBucketConfig,
   method: string,
   url: URL,
+  { tolerateMissingObject = false }: { tolerateMissingObject?: boolean } = {},
 ): Promise<Response> {
   const signed = await getClient(bucket).sign(url.toString(), { method });
   const response = await fetch(signed);
   if (!response.ok) {
-    throw new Error(
-      `S3 ${method} ${url.pathname} failed with ${response.status}: ${await readBodyExcerpt(response)}`,
-    );
+    const excerpt = await readBodyExcerpt(response);
+    if (tolerateMissingObject && response.status === 404 && !excerpt.includes("NoSuchBucket")) {
+      return response;
+    }
+    throw new Error(`S3 ${method} ${url.pathname} failed with ${response.status}: ${excerpt}`);
   }
   return response;
 }

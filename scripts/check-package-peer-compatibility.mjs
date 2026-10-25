@@ -105,7 +105,7 @@ async function checkPackage(key) {
   }
 
   if (key === "media") {
-    for (const removed of ["expo-crypto", "expo-image-picker", "expo-video-thumbnails"]) {
+    for (const removed of ["expo-crypto", "expo-video-thumbnails"]) {
       assert(!declared[removed], `${manifest.name} still declares obsolete or unused peer ${removed}`);
     }
   }
