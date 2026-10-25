@@ -158,6 +158,10 @@ const percent = (seconds: number, duration: number) =>
  * infinite `duration` (a live stream) draws the track disabled and ignores
  * input.
  *
+ * On iOS 26 the native stack's full-width back swipe wins over this
+ * `PanResponder`, so a drag pops the screen: set `fullScreenGestureEnabled:
+ * false` on the stack screen that shows it (the edge swipe still works).
+ *
  * Subpath-only: `@mrmeg/expo-ui/components/MediaScrubber`.
  *
  * ```tsx

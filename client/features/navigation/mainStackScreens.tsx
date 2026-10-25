@@ -8,6 +8,14 @@ const webHeaderLeft = isWeb
   ? { headerLeft: () => <WebBackButton /> }
   : {};
 
+/**
+ * For screens with a horizontal drag control (`MediaScrubber` in custom
+ * `Video` controls and `AudioPlayer`, `Slider`). On iOS 26 the native stack
+ * turns on UIKit's full-width back swipe by default, and a JS `PanResponder`
+ * cannot stop it, so seeking pops the screen. This keeps the edge swipe only.
+ */
+const edgeBackSwipeOnly = { fullScreenGestureEnabled: false };
+
 type StackScreenOptions = ComponentProps<typeof Stack.Screen>["options"];
 
 export interface MainStackScreen {
@@ -31,12 +39,12 @@ export const MAIN_STACK_SCREENS: readonly MainStackScreen[] = [
   /* Three-scale galleries. `components/[id]` sets its own title from the
      component's registry id, so it only declares the web back button. */
   { name: "(demos)/components/index", options: { title: "Components", ...webHeaderLeft } },
-  { name: "(demos)/components/[id]", options: { ...webHeaderLeft } },
+  { name: "(demos)/components/[id]", options: { ...webHeaderLeft, ...edgeBackSwipeOnly } },
   { name: "(demos)/blocks/index", options: { title: "Blocks", ...webHeaderLeft } },
   { name: "(demos)/templates/index", options: { title: "Screen Templates", ...webHeaderLeft } },
   { name: "(demos)/themed-showcase", options: { title: "Themed Showcase", ...webHeaderLeft } },
   { name: "(demos)/surface-lab", options: { title: "Surface Lab", ...webHeaderLeft } },
-  { name: "(demos)/media-lab", options: { title: "Media Lab", ...webHeaderLeft } },
+  { name: "(demos)/media-lab", options: { title: "Media Lab", ...webHeaderLeft, ...edgeBackSwipeOnly } },
   { name: "(demos)/developer", options: { title: "Developer Tools", ...webHeaderLeft } },
   { name: "(demos)/server-alpha/index", options: { title: "Server Alpha", ...webHeaderLeft } },
   { name: "(demos)/server-alpha/[example]", options: { title: "Server Pattern", ...webHeaderLeft } },

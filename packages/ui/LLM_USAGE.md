@@ -476,6 +476,12 @@ version your Expo SDK recommends (`npx expo install <name>`):
   built before you installed it needs a fresh build.
 - `MediaViewer` needs the peers of the media it shows.
 
+On iOS 26 the native stack backs out on a horizontal swipe anywhere on the
+screen, and a JS gesture cannot stop it, so dragging the seek bar of a custom
+`Video` or an `AudioPlayer` (or any `MediaScrubber`) pops the screen. Set
+`fullScreenGestureEnabled: false` in the stack options of the screens that
+show them; the edge swipe still goes back.
+
 Components (each entry is filled in when the component ships):
 
 - `Image` (`components/Image`, needs `expo-image`): a picture that sizes itself

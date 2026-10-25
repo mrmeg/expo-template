@@ -841,6 +841,9 @@ function OwnedAudioPlayer({ source, ...rest }: OwnedAudioPlayerProps) {
  * The component does not call `setAudioModeAsync`: that is process-wide. See
  * `LLM_USAGE.md` for the silent switch, background playback and the lock screen.
  *
+ * On iOS 26 set `fullScreenGestureEnabled: false` on the stack screen that shows
+ * it, or dragging the scrubber swipes the screen back.
+ *
  * Subpath-only, and needs the optional `expo-audio` and `expo-image` peers:
  * `@mrmeg/expo-ui/components/AudioPlayer`.
  *
