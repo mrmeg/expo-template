@@ -566,8 +566,8 @@ Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](http
 | react / react-dom | 19.3.0 |
 | react-native | 0.88.0-rc.4 |
 | react-native-web | ^0.21.4 |
-| @mrmeg/expo-ui | ^0.30.0 |
-| @mrmeg/expo-media (if using media) | ^0.5.2 |
+| @mrmeg/expo-ui | ^0.32.0 |
+| @mrmeg/expo-media (if using media) | ^0.6.0 |
 | zustand | ^5.0.15 |
 | @tanstack/react-query | ^5.104.2 |
 | react-hook-form | ^7.90.0 |
@@ -692,7 +692,7 @@ Conventions:
 
 ## Phase 4 — @mrmeg/expo-ui
 
-Upgrade to `@mrmeg/expo-ui@^0.30.0`. Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 59; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.89; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 4; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `react-native-svg` ≥ 15 < 16; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3. Optional, only for the media components: `expo-image`, `expo-video`, `expo-audio` ≥ 56 < 59.
+Upgrade to `@mrmeg/expo-ui@^0.32.0`. Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 59; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.89; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 4; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `react-native-svg` ≥ 15 < 16; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3. Optional, only for the media components: `expo-image`, `expo-video`, `expo-audio` ≥ 56 < 59.
 
 **Required root setup:**
 
@@ -794,6 +794,15 @@ bun run build          # expo export → dist/client + dist/server
 ## Anti-Patterns to Remove While Migrating
 
 Sweep for and delete: app-local duplicates of `@mrmeg/expo-ui` primitives (buttons, inputs, menus, modals, cards, typography); hard-coded colors, shadows, radii, spacing in general-purpose UI; fetch-on-mount for initial route data; top-level server-module imports in client-reachable files; UI branching on raw `Response` objects; cross-feature internal imports; startup logic that blocks first paint on persisted browser state; integrations that crash on a blank `.env`.
+
+## Consumer migration to 0.32.0
+
+From 0.30.x, run `bun add @mrmeg/expo-ui@^0.32.0` (and `@mrmeg/expo-media@^0.6.0` with media), then `bunx expo-ui-icons`, `bunx expo-ui-icons tabs`, typecheck and test. Behaviour that changed:
+
+- 0.31.0: Lucide 1.61 turns `music`, `music-2`, `music-3` and `music-4` into aliases, and `expo-ui-icons` rejects an alias in `client/icons.json`: rename them to `eighth-notes`, `eighth-note`, `half-note` and `sixteenth-notes`. `ThemeSelector` exposes `aria-checked` on web; `TextInput` reads helper text once on native.
+- 0.32.0: `Checkbox` with `indeterminate` and `checked={false}` now draws the dash and reads as "mixed"; drop any `checked` passed only to make the dash appear.
+
+New and opt-in, for a media library screen: `MediaTile`, `MediaGrid`, `MediaSelectionBar`, `UploadQueue` (subpath imports, `expo-image` for the tile and queue) and `useKeySelection`. `@mrmeg/expo-media` 0.6.0 adds `/picker` (`useMediaPicker`; `expo-image-picker` becomes an optional peer), `/upload-queue` (`useUploadQueue`, `useVideoThumbnailBackfill`), same-ID video thumbnail helpers (`videoThumbnailKey`, `withVideoThumbnailKeys`), `usePairedVideoList`, and the server option `deleteCompanions`; native video thumbnails, which were silently missing on iOS, now extract. The template's `app/(main)/(tabs)/media.tsx` is the reference screen.
 
 ## Consumer migration to 0.30.0
 
@@ -1521,6 +1530,12 @@ version your Expo SDK recommends (`npx expo install <name>`):
   built before you installed it needs a fresh build.
 - `MediaViewer` needs the peers of the media it shows.
 
+On iOS 26 the native stack backs out on a horizontal swipe anywhere on the
+screen, and a JS gesture cannot stop it, so dragging the seek bar of a custom
+`Video` or an `AudioPlayer` (or any `MediaScrubber`) pops the screen. Set
+`fullScreenGestureEnabled: false` in the stack options of the screens that
+show them; the edge swipe still goes back.
+
 Components (each entry is filled in when the component ships):
 
 - `Image` (`components/Image`, needs `expo-image`): a picture that sizes itself
@@ -1885,6 +1900,119 @@ Built-in icons for media controls: `play`, `pause`, `volume-2`, `volume-x`,
 `maximize`, `minimize`, `rotate-ccw`, `chevron-left`, `chevron-right`, `x`,
 `image-off`, `captions`.
 
+### Media management components
+
+Presentational pieces for a media library screen: a grid of tiles, a selection
+toolbar, and an upload queue. They are subpath-only like the rest of Media
+(`MediaTile` and `UploadQueue` draw with `Image`, so they need `expo-image`;
+`MediaGrid` and `MediaSelectionBar` need no media peer) and know nothing about
+storage keys, signed URLs, queries or `@mrmeg/expo-media`: you pass
+primitives in and get the tile `id` back in every callback. Compose them as
+`MediaSelectionBar` over a `MediaGrid` of `MediaTile`s, with `useKeySelection`
+holding the selection and `UploadQueue` above or beside it.
+
+- `MediaTile` (`components/MediaTile`): one square tile. Props are primitives
+  and the component is memoized, so pass callbacks that keep their identity.
+  `id`, `kind` (`"image" | "video" | "file"`), `source` (`{ uri, cacheKey? }`
+  or a `require()`d asset: an image, or a video's poster), `size` (edge in points), `title` and
+  `subtitle` (one line each, under the tile), `selected`, `disabled`. An image
+  or file tile is pressable (`onPress(id)`); a video shows a centered play
+  button that calls `onPress(id)`. The checkbox chip (top left) and the delete
+  chip (top right) render only when `onToggleSelect(id)` / `onDelete(id)` are
+  given. The selection ring is drawn over the picture and does not resize it.
+  Without a `source` it draws an icon (`play` for video, `image-off` otherwise;
+  override with `fallbackIcon`), and the delete chip's glyph is `deleteIcon`
+  (default `x`: pass your app's `trash`). Screen-reader labels come from
+  `accessibilityLabel ?? title ?? kind` through `openLabel`, `playLabel`,
+  `selectLabel` and `deleteLabel`, each a `(name) => string` with an English
+  default that goes through `translateText` (`media.tile.open`, `.play`,
+  `.select`, `.delete`, each with `{ name }`). `source` is compared by `uri` and
+  `cacheKey`, so an inline `{ uri, cacheKey }` does not defeat the memo.
+
+  ```tsx
+  <MediaTile
+    id={file.key}
+    kind="image"
+    source={{ uri: file.url, cacheKey: file.key }}
+    size={tileSize}
+    title={file.name}
+    subtitle="1.2 MB"
+    selected={selection.isSelected(file.key)}
+    onPress={openViewer}
+    onToggleSelect={selection.toggle}
+    onDelete={confirmDelete}
+    deleteIcon="trash"
+  />
+  ```
+
+- `MediaGrid` (`components/MediaGrid`): a `FlatList` of square tiles.
+  `data`, `keyExtractor` and `renderTile({ item, index, size })` (hand `size`
+  to `MediaTile`), plus `minTileWidth` (160), `gap` (`spacing.sm`), `rowGap`
+  (`spacing.md`), `minColumns` (2) and `maxWidth` (960; the column is centered
+  and padded by `spacing.screenPadding`). It measures itself with `onLayout`,
+  seeds from the window width, and remounts when the column count changes
+  (`numColumns` cannot change on a mounted list). Every other `FlatList` prop
+  passes through: `refreshControl`, `ListHeaderComponent`,
+  `ListEmptyComponent`, `testID`; `contentContainerStyle` is merged and your
+  `onLayout` runs after the grid's. Pass `extraData={selection.selected}` so
+  tiles redraw when the selection changes. `mediaGridLayout(width, options)`
+  (pure, `{ columns, tileSize }`) and `useMediaGridLayout(options)` are
+  exported for a screen that sizes things itself.
+
+  ```tsx
+  <MediaGrid
+    data={files}
+    keyExtractor={(file) => file.key}
+    extraData={selection.selected}
+    renderTile={({ item, size }) => <MediaTile id={item.key} kind="image" source={{ uri: item.url }} size={size} />}
+  />
+  ```
+
+- `MediaSelectionBar` (`components/MediaSelectionBar`): the flat toolbar row
+  (hairline under it, not a panel) above the grid, in the same capped column.
+  `selectedCount`, `totalCount`, `onToggleAll`, `onClear`, `onDelete`, `busy`
+  (disables everything) and `deleting` (spinner on Delete). It shows the
+  select-all checkbox (indeterminate for a partial selection), "N selected" or
+  "N items", Clear once anything is selected, and a destructive "Delete (N)"
+  that is disabled at zero. Confirm the delete in your own dialog from
+  `onDelete`. Labels (`selectAllLabel`, `deselectAllLabel`, `clearLabel`,
+  `selectedSummary(count)`, `totalSummary(count)`, `deleteLabel(count)`) have
+  English defaults through `translateText`; `deleteIcon` defaults to `x`.
+- `UploadQueue` (`components/UploadQueue`): uploads in progress as `ItemGroup`
+  rows. `entries` are `UploadQueueEntry` (`id`, `fileName`, `kind`, `status`:
+  `"queued" | "processing" | "uploading" | "done" | "failed"`, `previewUri?`,
+  `progress?` 0 to 1, `phase?`, `errorMessage?`); the media package's queue
+  items satisfy it as they are. Each row shows a preview (or a kind icon), the
+  file name, status text, and a `Progress` bar while processing or uploading
+  (determinate when `progress` is a number, else indeterminate). `onRetry(id)`
+  adds a retry button to failed rows, `onRemove(id)` a remove button to queued,
+  failed and done rows, and `onClearFinished` a header action once anything is
+  done or failed; each exists only when its handler does. `title` is the
+  section header. `maxVisible` caps the rows drawn and counts the rest in a
+  footer (`moreLabel(count)`, default "N more"), so a large pick cannot push a
+  grid below it off screen. `statusLabel(entry)` replaces the status text (default
+  `uploadQueueStatusLabel`: "Waiting", "Optimizing…", "Converting 42%",
+  "Uploading…", "Uploaded", the `errorMessage` or "Failed"); `retryLabel`,
+  `removeLabel`, `clearFinishedLabel` and `kindIcons` localize the rest. Each
+  row is one screen-reader element reading "file name, status", and a row that
+  moves to done or failed is announced once.
+
+  ```tsx
+  <UploadQueue title="Uploading" entries={queue.items} onRetry={queue.retry} onRemove={queue.remove} onClearFinished={queue.clearFinished} />
+  ```
+
+- `useKeySelection(visibleKeys)` from `hooks`: selection state over string
+  keys for the grid above, returning `{ selected, count, isSelected, toggle,
+  toggleAll, clear, remove, allSelected, someSelected }`. Selected keys that
+  leave `visibleKeys` (an item deleted, a filter changed) are pruned, and
+  `toggle`, `toggleAll`, `clear` and `remove` keep their identity. Call
+  `remove(keys)` once a delete succeeds.
+
+Built-in glyphs only: the package draws `play`, `image-off`, `x`, `rotate-ccw`,
+`check` and `minus` in these components. Your app's registered `trash`,
+`video`, `file` and `image` give a closer look through `deleteIcon`,
+`fallbackIcon` and `kindIcons`.
+
 ## Minimal Examples
 
 A flat settings screen: groups of full-width rows, one 16 pt inset, a capped
@@ -2043,15 +2171,17 @@ Notifications auto-dismiss after 4s (`DEFAULT_NOTIFICATION_DURATION`) unless a
 
 | Subpath | Contents |
 |---|---|
-| `@mrmeg/expo-media` | contracts, key helpers, `MediaError` |
+| `@mrmeg/expo-media` | contracts, key helpers, video thumbnail pairing helpers, `MediaError` |
 | `/client` | `createMediaClient`, `resolveUploadSize` |
-| `/react-query` | `createMediaQueryHooks` |
+| `/react-query` | `createMediaQueryHooks` (incl. `usePairedVideoList`) |
 | `/processing` | `processAsset`, `mapWithConcurrency`, upload format policy, content-type sniffing, re-exports of the modules below |
 | `/processing/image-compression` | ladder, encoder, HEIC decode, canvas limits |
 | `/processing/image-compression/config` | `IMAGE_PRESETS`, `DEFAULT_PRESET`, `MIN_QUALITY`, `resolveCompressionConfig`, `CompressionConfig`, `ImagePreset` |
 | `/processing/video-conversion` | `needsConversion`, `convertVideo`, `FFMPEG_WORKER_URL` |
 | `/processing/video-thumbnails` | `extractVideoThumbnail` |
-| `/server` | `createMediaHandlers` |
+| `/picker` | `useMediaPicker`, `pickMedia`, `toPickedMediaAsset`, `parseExifGps`/`parseExifDate`/`parseExifOrientation`, `PickedMediaAsset` |
+| `/upload-queue` | `useUploadQueue`, `uploadQueueReducer`, `createUploadQueueRunner`, `UploadQueueItem`, `useVideoThumbnailBackfill`, `backfillVideoThumbnail` |
+| `/server` | `createMediaHandlers`, `videoThumbnailDeleteCompanions` |
 | `/worker` | `createMediaWorker`, `createKvTokenAuthorizer` |
 
 Never import `/server` or `/worker` from client code; the root must stay safe for
@@ -2061,7 +2191,8 @@ screens, preference stores) so light bundles skip the pipeline.
 
 Every peer is optional: native needs `expo`, `expo-file-system`,
 `expo-image-manipulator`, `expo-video`; web HEIC needs `heic2any`; hooks need
-`@tanstack/react-query`. Platform-split modules ship as `foo.js` /
+`@tanstack/react-query`; `/picker` needs `expo-image-picker` (no other
+entrypoint imports it). Platform-split modules ship as `foo.js` /
 `foo.native.js` with extension-less specifiers, so native builds need
 Metro-style platform resolution.
 
@@ -2104,7 +2235,8 @@ const hooks = createMediaQueryHooks({ client: mediaClient });
 ```
 
 Hooks: `useMediaUpload` (web `Blob`/`File` and native URI uploads),
-`useMediaList`, `useSignedMediaUrls`, `useMediaDelete`, `useMediaDeleteBatch`.
+`useMediaList`, `useSignedMediaUrls`, `usePairedVideoList`, `useMediaDelete`,
+`useMediaDeleteBatch`.
 The app provides the single `QueryClientProvider` so hooks share its query
 context. `useSignedMediaUrls` caches URLs per object key: a changed key list
 signs only keys without a fresh cached URL (unchanged items keep theirs and are
@@ -2123,6 +2255,38 @@ shared content-type allowlist, and named upload policies that screens pick and
 resolve per asset instead of hardcoding media types and quality inline. There is
 no `keepOriginalIfLarger` setting; the format-aware never-larger decision lives
 in `chooseUploadCandidate`.
+
+## Video Thumbnails
+
+`videos/<ID>.mov` keeps its thumbnail at `thumbnails/<ID>.jpg`: the same ID under
+another prefix. The pure root helpers own that mapping (`mediaKeyId`,
+`videoThumbnailKey`, `isVideoThumbnailKey`, `pairVideoThumbnails`,
+`withVideoThumbnailKeys`, all taking `pairing: { thumbnailPrefix, extension? }`
+with `extension` defaulting to `"jpg"`); do not rebuild the mapping in the app.
+
+- Delete both with `createMediaHandlers({ deleteCompanions:
+  videoThumbnailDeleteCompanions({ pairing, isVideoKey }) })`. Companions must
+  resolve to a configured media type or are dropped, `canDelete` sees them, they
+  are deleted only after the key that named them, and a missing or failing one
+  never fails the request. `deleteOne` is still `{ success, key }` and
+  `deleteMany` still `{ success, deleted, errors }` (`deleted` includes deleted
+  companions); companion failures go only in the optional `companionErrors`,
+  never `errors` or `success`.
+- `usePairedVideoList({ videoMediaType, thumbnailMediaType, pairing, limit?,
+  enabled? })` returns `{ data: { videos: { video, thumbnailKey, thumbnail? }[],
+  orphanThumbnails }, isLoading, isRefetching, error, thumbnailsError, refetch }`
+  (a failed thumbnail list pairs videos with none and sets `thumbnailsError`;
+  `error` is the video list's) over the
+  `useMediaList` query keys, so mutations refresh it. It reads one page per list:
+  never delete `orphanThumbnails` unless both lists were read in full.
+- `/upload-queue` `backfillVideoThumbnail({ videoKey, videoUrl }, { upload,
+  thumbnailMediaType, filename?, timeMs?, extract? })` (never rejects) and
+  `useVideoThumbnailBackfill({ ...same, concurrency?, onSettled? })` (`{ run,
+  running, progress, results }`) add missing thumbnails from signed video URLs.
+  They download video data, so never run them automatically: the app triggers
+  them. On web the bucket needs CORS for the app origin or the canvas is tainted
+  and the result is a failed result saying so. Thumbnail uploads need
+  `allowCustomFilename` from `canUpload` for the thumbnail media type.
 
 ## Processing
 
@@ -2166,6 +2330,33 @@ measure or upload a native file URI; FFmpeg only in web conversion. Core and
 server entrypoints need no React or Expo peer. Test seams:
 `processAsset({ adapter })`, `convertHeicToJpeg(blob, fileName, decoder)`,
 `resolveUploadSize(file, stat)`.
+
+## Picking And The Upload Queue
+
+`useMediaPicker()` (or `pickMedia(options)`) from `/picker` wraps
+`expo-image-picker` and resolves to `{ status: "picked", assets }`,
+`{ status: "canceled" }`, or `{ status: "denied", canAskAgain }`: no `Alert`, no
+toast, the app maps the result. Options: `source` (`"library"` | `"camera"`),
+`mediaTypes`, `multiple`, `selectionLimit`, `allowsEditing`; it always picks at
+`quality: 1` with EXIF. Assets are `PickedMediaAsset` (`ProcessAssetInput` + `id`
++ `exif?`).
+
+`useUploadQueue({ upload, allowlist, resolve, concurrency?, metadata?,
+videoThumbnail?, onItemSettled?, onSettled? })` from `/upload-queue` processes
+then uploads each asset through `queued -> processing -> uploading -> done |
+failed` and returns `{ items, add, retry, remove, clearFinished, clear, isActive,
+counts }`. Pass `useMediaUpload().mutateAsync` (invalidates the lists) or
+`client.upload` as `upload`; `resolve(asset)` runs once per asset when it is added
+(the policy current at pick time, kept through retries) and returns
+`{ mediaType, compression? }`. Concurrency (default 3) bounds processing
+and upload together. `videoThumbnail` is off unless set (`{ mediaType, filename? }`)
+and its failure never fails the item. `retry` resumes from upload when the
+processed result exists; `remove` of an in-flight item drops it and ignores its
+result but the slot frees only when the work settles (`upload()` has no abort);
+`clearFinished` drops `done` only. `onSettled` fires once per drain. Keep toasts,
+alerts, and settings stores in the app. `/upload-queue` must not import the
+picker, React Query, or UI. `UploadQueueItem` field names are consumed
+structurally by `@mrmeg/expo-ui/components/UploadQueue`; do not rename them.
 
 ## Repo Validation And Publishing
 
@@ -3552,7 +3743,10 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/Label.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Label.tsx
 - packages/ui/src/components/MaxWidthContainer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MaxWidthContainer.tsx
 - packages/ui/src/components/MediaControlButton.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaControlButton.tsx
+- packages/ui/src/components/MediaGrid.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaGrid.tsx
 - packages/ui/src/components/MediaScrubber.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaScrubber.tsx
+- packages/ui/src/components/MediaSelectionBar.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaSelectionBar.tsx
+- packages/ui/src/components/MediaTile.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaTile.tsx
 - packages/ui/src/components/MediaViewer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/MediaViewer.tsx
 - packages/ui/src/components/Notification.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Notification.tsx
 - packages/ui/src/components/Popover.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Popover.tsx
@@ -3577,6 +3771,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/ToggleGroup.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/ToggleGroup.tsx
 - packages/ui/src/components/Tooltip.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Tooltip.tsx
 - packages/ui/src/components/UIProvider.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/UIProvider.tsx
+- packages/ui/src/components/UploadQueue.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/UploadQueue.tsx
 - packages/ui/src/components/Video.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/Video.tsx
 - packages/ui/src/components/bottomSheetDismiss.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/bottomSheetDismiss.ts
 - packages/ui/src/components/bottomSheetHostSupport.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/bottomSheetHostSupport.ts

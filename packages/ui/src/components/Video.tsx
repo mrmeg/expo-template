@@ -254,6 +254,8 @@ interface Stage {
  *
  * Pausing when the screen loses focus is the app's job: the kit has no router,
  * so use `useIsFocused()` from expo-router with your own `player`.
+ * Likewise, on iOS 26 set `fullScreenGestureEnabled: false` on a stack screen
+ * with `controls="custom"`, or dragging the scrubber swipes the screen back.
  */
 export function Video(props: VideoProps) {
   return props.player ? <VideoStage {...props} player={props.player} /> : <VideoWithOwnPlayer {...props} />;

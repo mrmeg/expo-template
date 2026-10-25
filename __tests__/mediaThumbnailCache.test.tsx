@@ -56,6 +56,21 @@ jest.mock("@/client/features/media/mediaClient", () => {
           ),
         },
       }),
+      // Videos arrive joined to their thumbnails by ID; the clip has one.
+      usePairedVideoList: () => ({
+        data: {
+          videos: listFor("videos").items.map((video) => ({
+            video,
+            thumbnailKey: "thumbnails/clip.jpg",
+            thumbnail: { key: "thumbnails/clip.jpg", size: 128, lastModified: "2026-09-02T12:00:00Z" },
+          })),
+          orphanThumbnails: [],
+        },
+        isLoading: false,
+        isRefetching: false,
+        error: null,
+        refetch: jest.fn(),
+      }),
       useMediaDelete: () => idle,
       useMediaDeleteBatch: () => idle,
       useMediaUpload: () => idle,
@@ -63,8 +78,8 @@ jest.mock("@/client/features/media/mediaClient", () => {
   };
 });
 
-jest.mock("@/client/features/media/hooks/useMediaLibrary", () => ({
-  useMediaLibrary: () => ({ pickMedia: jest.fn(), processing: false }),
+jest.mock("@mrmeg/expo-media/picker", () => ({
+  useMediaPicker: () => ({ pick: jest.fn(), picking: false, permission: null }),
 }));
 // The lightbox is the kit's `MediaViewer`, covered in `packages/ui`; here only what the tab hands it.
 jest.mock("@/client/components/LazyMediaViewer", () => ({

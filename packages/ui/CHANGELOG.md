@@ -3,7 +3,43 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.32.0]
+
+### Added
+
+- **Media management components.** Presentational pieces for a media library
+  screen, all subpath-only (`@mrmeg/expo-ui/components/<Name>`) and kept out of
+  the `components` barrel; none knows about storage keys, signed URLs or
+  `@mrmeg/expo-media`.
+  - `MediaTile`: one memoized square tile with a picture or video poster (an
+    icon when there is none), a play button for videos, a selection ring that
+    does not resize the picture, optional checkbox and delete chips, and one
+    title and one subtitle line. Every callback receives the tile's `id`;
+    labels are localizable `(name) => string` props. Needs `expo-image`.
+  - `MediaGrid`: a `FlatList` of square tiles that fills the width, measures
+    itself, remounts when its column count changes, and passes every other
+    `FlatList` prop through. `mediaGridLayout(width, options)` returns
+    `{ columns, tileSize }`, and `useMediaGridLayout` does the measuring.
+  - `MediaSelectionBar`: a flat toolbar with a select-all checkbox
+    (indeterminate for a partial selection), a count, Clear and a destructive
+    Delete with a loading state.
+  - `UploadQueue`: uploads in progress as `ItemGroup` rows with a preview, a
+    status line, determinate or indeterminate `Progress`, retry, remove and
+    clear-finished actions, and `maxVisible` to cap the rows drawn. `UploadQueueEntry` is satisfied structurally by the
+    media package's queue items. Needs `expo-image`.
+  - `useKeySelection` (from `hooks`): multi-select state over string keys that
+    prunes keys no longer visible and keeps `toggle`, `toggleAll`, `clear` and
+    `remove` stable.
+
+### Fixed
+
+- **`Checkbox` shows and announces a partial state.** `indeterminate` with
+  `checked={false}` drew an empty box and read as "not checked": the primitive
+  mounts its indicator only while checked and sets `aria-checked` from
+  `checked`, which outranks `accessibilityState` on native and is the DOM
+  attribute on web. Now the dash draws and the control reads as "mixed" on iOS,
+  Android and web; pressing it checks. A consumer that passed `checked` with
+  `indeterminate` to get the dash can pass `checked={false}`.
 
 ## [0.31.0]
 

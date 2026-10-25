@@ -1,4 +1,9 @@
-import { createMediaHandlers, resetMediaStorageForTests } from "@mrmeg/expo-media/server";
+import {
+  createMediaHandlers,
+  resetMediaStorageForTests,
+  videoThumbnailDeleteCompanions,
+} from "@mrmeg/expo-media/server";
+import { VIDEO_THUMBNAIL_PAIRING, isVideoKey } from "@/shared/media";
 import {
   requireAuthenticatedUser,
   type AuthenticatedUser,
@@ -33,6 +38,11 @@ export const mediaHandlers = createMediaHandlers<TemplateMediaAuth>({
     canList: async ({ auth }) => ({ allowed: Boolean(auth) }),
     canDelete: async ({ auth }) => ({ allowed: Boolean(auth) }),
   },
+  // Deleting a video deletes its thumbnail, whichever client asked.
+  deleteCompanions: videoThumbnailDeleteCompanions({
+    pairing: VIDEO_THUMBNAIL_PAIRING,
+    isVideoKey,
+  }),
 });
 
 async function authorizeMediaRequest(

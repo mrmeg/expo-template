@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { logMediaDebug } from "./logger";
 import { loadNativeThumbnailDependencies } from "./videoThumbnailDeps";
 import { extractVideoThumbnailNative } from "./videoThumbnailNative";
 
@@ -28,8 +29,10 @@ async function extractThumbnailNative(
     if (!dependencies) {
       return null;
     }
-    return extractVideoThumbnailNative(uri, timeMs, dependencies);
-  } catch {
+    return await extractVideoThumbnailNative(uri, timeMs, dependencies);
+  } catch (error) {
+    // Best effort, but never silent: a missing thumbnail is otherwise invisible.
+    logMediaDebug(`Video thumbnail extraction failed for ${uri}: ${String(error)}`);
     return null;
   }
 }

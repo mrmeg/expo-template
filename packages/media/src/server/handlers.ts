@@ -94,6 +94,23 @@ export interface CreateMediaHandlersOptions<TAuth = unknown> {
   events?: MediaEventCallbacks<TAuth>;
   cors?: MediaCorsCallbacks;
   idFactory?: () => string;
+  /**
+   * Objects to delete along with a requested key, e.g. a video's thumbnail
+   * (`videoThumbnailDeleteCompanions`). Called once per requested key on
+   * `deleteOne` and `deleteMany`.
+   *
+   * Companions are held to the same rules as requested keys: they must be safe
+   * object keys that resolve to a configured media type, and `policy.canDelete`
+   * sees them in `keys` and `mediaTypes` next to the requested ones. One that
+   * does not resolve (or whose callback throws) is dropped silently.
+   *
+   * They are best effort. A companion is only deleted once the key that named it
+   * was, a missing one counts as deleted, and a failure never fails the request:
+   * it is reported as `companionErrors`, not in `errors`, and `success` ignores it.
+   * Deleted companions are added to `deleted` (`deleteMany`) and to
+   * `events.onDeleted` keys.
+   */
+  deleteCompanions?: (key: string) => readonly string[];
 }
 
 export interface MediaHandlers {
@@ -121,6 +138,18 @@ interface DeleteBucketGroup {
 interface DeleteTask {
   bucket: MediaBucketConfig;
   key: string;
+}
+
+/** A companion that passed the same checks as a requested key. */
+interface DeleteCompanion extends DeleteTask {
+  mediaType: string;
+  /** The requested keys that named it. */
+  owners: string[];
+}
+
+interface DeleteFailure {
+  key?: string;
+  message?: string;
 }
 
 const DELETE_CONCURRENCY = 10;
@@ -401,12 +430,13 @@ export function createMediaHandlers<TAuth = unknown>(
     if (!resolved) {
       return problem(request, options.cors, 400, "bad-key", "One or more keys are outside configured media prefixes.");
     }
+    const companions = resolveDeleteCompanions(config, resolved.keys, options.deleteCompanions);
     const policy = normalizePolicyDecision(
       await options.policy?.canDelete?.({
         request,
         auth,
-        keys: resolved.keys,
-        mediaTypes: resolved.mediaTypes,
+        keys: [...resolved.keys, ...companions.map((companion) => companion.key)],
+        mediaTypes: [...resolved.mediaTypes, ...companions.map((companion) => companion.mediaType)],
       }),
     );
     if (!policy.allowed) {
@@ -423,8 +453,17 @@ export function createMediaHandlers<TAuth = unknown>(
         const bucket = deleteGroups[0]?.bucket;
         if (!bucket) return problem(request, options.cors, 503, "media-disabled", "Media storage is not configured.");
         await deleteObject({ bucket, key: resolved.keys[0]! });
-        await options.events?.onDeleted?.({ request, auth, keys: resolved.keys });
-        return json(request, options.cors, 200, { success: true, key: resolved.keys[0] });
+        const companionResult = await deleteCompanionObjects(companions);
+        await options.events?.onDeleted?.({
+          request,
+          auth,
+          keys: [...resolved.keys, ...companionResult.deleted],
+        });
+        return json(request, options.cors, 200, {
+          success: true,
+          key: resolved.keys[0],
+          ...(companionResult.errors.length > 0 ? { companionErrors: companionResult.errors } : {}),
+        });
       }
 
       const tasks: DeleteTask[] = deleteGroups.flatMap((group) =>
@@ -434,7 +473,7 @@ export function createMediaHandlers<TAuth = unknown>(
         deleteObject({ bucket: task.bucket, key: task.key }),
       );
       const deleted: string[] = [];
-      const errors: { key?: string; message?: string }[] = [];
+      const errors: DeleteFailure[] = [];
 
       for (let index = 0; index < settled.length; index += 1) {
         const taskResult = settled[index]!;
@@ -446,6 +485,13 @@ export function createMediaHandlers<TAuth = unknown>(
         errors.push({ key, message: getErrorMessage(taskResult.reason) });
       }
 
+      // A thumbnail outlives its video only when the video delete failed.
+      const deletedRequested = new Set(deleted);
+      const companionResult = await deleteCompanionObjects(
+        companions.filter((companion) => companion.owners.some((owner) => deletedRequested.has(owner))),
+      );
+      deleted.push(...companionResult.deleted);
+
       if (deleted.length > 0) {
         await options.events?.onDeleted?.({ request, auth, keys: deleted });
       }
@@ -453,6 +499,7 @@ export function createMediaHandlers<TAuth = unknown>(
         success: errors.length === 0,
         deleted,
         errors,
+        ...(companionResult.errors.length > 0 ? { companionErrors: companionResult.errors } : {}),
       });
     } catch (error) {
       return storageFailure(
@@ -472,6 +519,69 @@ export function createMediaHandlers<TAuth = unknown>(
     deleteOne,
     deleteMany,
   };
+}
+
+/**
+ * What `deleteCompanions` adds to the requested keys: each candidate resolved
+ * like a requested key, deduped, and never a key that was requested itself. A
+ * candidate that does not resolve, has no bucket, or comes from a throwing
+ * callback is dropped, because a companion must never turn a good delete into an
+ * error.
+ */
+function resolveDeleteCompanions(
+  config: MediaConfig,
+  requestedKeys: string[],
+  deleteCompanions: CreateMediaHandlersOptions["deleteCompanions"],
+): DeleteCompanion[] {
+  if (!deleteCompanions) return [];
+
+  const requested = new Set(requestedKeys);
+  const companions = new Map<string, DeleteCompanion>();
+  for (const owner of requestedKeys) {
+    let candidates: readonly string[];
+    try {
+      candidates = deleteCompanions(owner) ?? [];
+    } catch {
+      continue;
+    }
+
+    for (const candidate of candidates) {
+      if (typeof candidate !== "string" || requested.has(candidate)) continue;
+      const known = companions.get(candidate);
+      if (known) {
+        if (!known.owners.includes(owner)) known.owners.push(owner);
+        continue;
+      }
+
+      const resolved = resolveRequestedKey(config, candidate);
+      const bucket = resolved && getBucketConfig(config, resolved.mediaType);
+      if (!resolved || !bucket || requested.has(resolved.key)) continue;
+      companions.set(resolved.key, {
+        key: resolved.key,
+        mediaType: resolved.mediaType,
+        bucket,
+        owners: [owner],
+      });
+    }
+  }
+  return [...companions.values()];
+}
+
+/** Best effort: nothing in here throws, and a missing object counts as deleted. */
+async function deleteCompanionObjects(
+  companions: DeleteCompanion[],
+): Promise<{ deleted: string[]; errors: DeleteFailure[] }> {
+  const settled = await settleWithConcurrency(companions, DELETE_CONCURRENCY, (companion) =>
+    deleteObject({ bucket: companion.bucket, key: companion.key, missingOk: true }),
+  );
+  const deleted: string[] = [];
+  const errors: DeleteFailure[] = [];
+  settled.forEach((result, index) => {
+    const key = companions[index]!.key;
+    if (result.status === "fulfilled") deleted.push(key);
+    else errors.push({ key, message: getErrorMessage(result.reason) });
+  });
+  return { deleted, errors };
 }
 
 function resolveListScope(

@@ -37,7 +37,8 @@ by your SDK): `npx expo install react-native-svg`. The icons themselves are
 [Lucide](https://lucide.dev/icons) glyph data the package ships and renders;
 no icon library is a peer (see [Icons](#icons)).
 
-The media components (`Image`, `Video`, `AudioPlayer`, `MediaViewer`) rest on
+The media components (`Image`, `Video`, `AudioPlayer`, `MediaViewer`, and the library
+parts `MediaTile`, `MediaGrid`, `MediaSelectionBar`, `UploadQueue`) rest on
 three further peers, all optional: `expo-image`, `expo-video` and `expo-audio`.
 Install only the ones you import (`npx expo install expo-video`). The media
 components are subpath imports (`@mrmeg/expo-ui/components/Video`), never part
@@ -749,6 +750,10 @@ before building a new primitive.
 | `KeyboardAvoidingView` | Native keyboard-aware layout | Screen roots, composer footers, form-heavy subtrees |
 | `Label` | Accessible form labels | Required, disabled, and group labels |
 | `MediaViewer` | Full-screen lightbox over a list of images and videos: swipe or arrow paging, pinch / double-tap / wheel / keyboard zoom, swipe-down or Esc to close, custom video controls; subpath-only (`components/MediaViewer`), needs `expo-image` and `expo-video` | Photo and video galleries, a media library's preview, an attachment viewer |
+| `MediaTile` | One square media tile: picture or video poster (or an icon when there is none), play button, selection ring, checkbox and delete chips, title and subtitle lines; memoized, callbacks get the `id`; subpath-only (`components/MediaTile`), needs `expo-image` | Cells of a photo or file library, an attachment picker |
+| `MediaGrid` | `FlatList` of square tiles that fills the width in 2+ columns, capped and centered, measuring itself; also `mediaGridLayout(width, options)` and `useMediaGridLayout`; subpath-only (`components/MediaGrid`) | The grid behind `MediaTile`, any square-tile gallery |
+| `MediaSelectionBar` | Flat toolbar over a media grid: select-all checkbox (indeterminate), "N selected" summary, Clear, destructive Delete (N) with a spinner; subpath-only (`components/MediaSelectionBar`) | Multi-select and bulk delete in a media library |
+| `UploadQueue` | Uploads in progress as `ItemGroup` rows: preview, file name, status text, determinate or indeterminate `Progress`, retry and remove buttons, "Clear finished"; subpath-only (`components/UploadQueue`), needs `expo-image` | Upload screens, a background-upload tray |
 | `MaxWidthContainer` | Centered responsive width | Web pages, tablet layouts, auth forms |
 | `Notification` | Global toast surface | Saved/error/sync toasts, action toasts, loading toast |
 | `Screen` | Page container: safe-area `edges`, one horizontal inset, theme background, optional scroll | Every screen root; under a header pass `edges={["bottom"]}` |
@@ -919,6 +924,7 @@ are named exports only.
 | `useFocusVisible(options?)` | `{ focused, onFocus, onBlur }` for a `Pressable`; on web `focused` follows `:focus-visible` (keyboard only), so layer `getFocusRingStyle()` while it is true — the gate every kit control uses |
 | `useScalePress(options?)` | Animated style plus `onPressIn`/`onPressOut` for a `Pressable` (`scaleTo`, `haptic`, `disabled`) |
 | `useStaggeredEntrance(options?)` | Entrance animated style for list rows (`delay`; `STAGGER_DELAY` is 30) |
+| `useKeySelection(visibleKeys)` | `{ selected, count, isSelected, toggle, toggleAll, clear, remove, allSelected, someSelected }`: multi-select over string keys that prunes keys no longer visible; `toggle`, `toggleAll`, `clear` and `remove` are stable |
 
 `SsrViewportContext` (from `state`) supplies the first-render viewport width on
 web, where the window cannot be read during export or hydration. Right after

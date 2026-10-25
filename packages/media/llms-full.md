@@ -12,7 +12,7 @@ extension-less specifiers, so Metro picks the native build on iOS/Android.
 Entrypoints: `.` (contracts, keys, `MediaError`), `/client`, `/react-query`,
 `/processing`, `/processing/image-compression`,
 `/processing/image-compression/config`, `/processing/video-conversion`,
-`/processing/video-thumbnails`, `/server`, `/worker`. Never import `/server` or
+`/processing/video-thumbnails`, `/picker`, `/upload-queue`, `/server`, `/worker`. Never import `/server` or
 `/worker` from client code; config-only consumers use the config subpath.
 
 ## Server
@@ -24,7 +24,7 @@ Media type:
 (expiry defaults 300 / 86400). Missing values make the config invalid and every
 handler answer `503 media-disabled` without building an S3 client.
 
-`createMediaHandlers({ config, authorize?, policy?, events?, cors?, idFactory? })`
+`createMediaHandlers({ config, authorize?, policy?, events?, cors?, idFactory?, deleteCompanions? })`
 → Fetch-compatible `{ getUploadUrl, getSignedUrls, list, deleteOne, deleteMany,
 options }` for Expo Router route exports. `config` may be a factory; a falsy
 `authorize` result is `401 unauthorized`. `policy.canUpload` / `canRead` /
@@ -46,6 +46,18 @@ unknown, absolute, traversal, or cross-media-type prefixes are `400 bad-key`.
 `deleteOne` takes `?key=`, `deleteMany` up to 1000 keys grouped by each resolved
 media type's bucket, returning merged `deleted` plus per-key `errors`. All read,
 delete, and list keys must stay inside configured prefixes.
+
+`deleteCompanions(key)` returns extra keys to delete with each requested key
+(`videoThumbnailDeleteCompanions({ pairing, isVideoKey })` for a video's
+thumbnail). Each companion must pass `isSafeObjectKey` and resolve to a configured
+media type, else it is dropped silently; `canDelete` receives the expanded `keys`
+and `mediaTypes`; a companion is deleted only after the key that named it was.
+They are best effort: a missing one (`204`, or `404` for a missing object) counts
+as deleted and a failure never fails the request. Response shapes keep their
+fields: `deleteOne` `{ success: true, key }`, `deleteMany` `{ success, deleted,
+errors }` where `deleted` also lists deleted companions and `success`/`errors`
+cover only requested keys; companion failures are reported in the optional
+`companionErrors: { key?, message? }[]`, present only when non-empty.
 
 Error codes: `media-disabled`, `bad-request`, `unauthorized`, `forbidden`,
 `custom-filename-forbidden`, `invalid-media-type`, `invalid-content-type`,
@@ -81,7 +93,7 @@ with `expo-file-system`), so the `maxBytes` check is not web-only. Native PUTs u
 
 `createMediaQueryHooks({ client, queryKeyNamespace = "media" })` → `useMediaList`,
 `useSignedMediaUrls` (alias `useSignedUrls`), `useMediaUpload`, `useMediaDelete`,
-`useMediaDeleteBatch`, `queryKeys`; mutations invalidate the list queries and
+`useMediaDeleteBatch`, `usePairedVideoList`, `queryKeys`; mutations invalidate the list queries and
 queries retry via `shouldRetryMediaError`. `useSignedMediaUrls` caches URLs per
 object key: a changed list signs only keys no cached list has a fresh URL for,
 shows the cached ones meanwhile (`isPlaceholderData`), serves a fully cached
@@ -91,6 +103,16 @@ list without a request, and sets `staleTime` from the URLs' lifetime
 path)` or `[namespace, "signed-urls"]` re-signs every key. Hooks throw `MediaError` with
 `problem.kind` `disabled`, `bad-request`, `unauthorized`, `forbidden`, or
 `unknown`. The app supplies the single `QueryClientProvider`.
+
+`usePairedVideoList({ videoMediaType, thumbnailMediaType, pairing, limit?,
+enabled? })` → `{ data: { videos: PairedVideo[]; orphanThumbnails }, isLoading,
+isRefetching, error, thumbnailsError, refetch }`, built from two `useMediaList` queries on the
+shared `queryKeys.list` keys so mutation invalidation refreshes it; `data` is
+`undefined` until the videos load and the thumbnails load or fail (a failed
+thumbnail list pairs videos with none and sets `thumbnailsError`), and is referentially stable while the lists and
+the pairing's `thumbnailPrefix`/`extension` are unchanged. One page per list
+(`limit`, max 1000), so orphans are trustworthy only when both lists were read in
+full.
 
 Client defaults are app-owned: one settings module holding default preset,
 overrides, concurrency, selection limit, thumbnail handling, the shared allowlist,
@@ -151,6 +173,93 @@ nothing here reaches `expo-video` on web; `expo-file-system` only to measure or
 upload a native file URI; FFmpeg only in web `convertVideo()`. Test seams:
 `processAsset({ adapter })`, `convertHeicToJpeg(blob, fileName, decoder)`,
 `resolveUploadSize(file, stat)`.
+
+## Picking And The Upload Queue
+
+`/picker` wraps `expo-image-picker` (the only entrypoint that imports it; an
+optional peer) and is UI-free. `useMediaPicker()` returns `{ pick, picking,
+permission }`; `pickMedia(options)` is the same call without the hook. `pick({
+source?, mediaTypes?, multiple?, selectionLimit?, allowsEditing? })` resolves to
+`{ status: "picked"; assets: PickedMediaAsset[] } | { status: "canceled" } | {
+status: "denied"; canAskAgain: boolean }` — a refusal is a result, never an
+`Alert`. `source` is `"library"` (default) or `"camera"` and picks the matching
+permission API; permission is requested when not granted and still askable, and
+the decision reads the response so a denial during the pick stops it. Always
+`quality: 1`, `exif: true`, `orderedSelection: true`. `permission` is the OS
+response from the latest pick. `PickedMediaAsset` is `ProcessAssetInput` plus a
+unique `id` and `exif?: { takenAt?: Date; lat?: number; lng?: number }`; on web it
+carries the `Blob`; `duration` (ms) becomes `durationSeconds`. `toPickedMediaAsset`,
+`parseExifGps` (unreadable coordinates are `null`, never `0`), `parseExifDate`,
+`parseExifOrientation` are exported pure helpers.
+
+`/upload-queue` imports no picker, React Query, or UI. `useUploadQueue<TMediaType>({
+upload, allowlist, resolve, concurrency?, metadata?, videoThumbnail?,
+onItemSettled?, onSettled?, adapter?, processAsset? })` returns `{ items, add,
+retry, remove, clearFinished, clear, isActive, counts }`. `UploadQueueItem` is `{
+id, fileName, kind, status, previewUri?, progress?, phase?, errorMessage?,
+error?, asset, processed?, key?, mediaType? }` with `status` one of `queued`,
+`processing`, `uploading`, `done`, `failed`; `progress` is 0..1 (video conversion's
+0-100 normalized), `phase` is a `ProcessingPhase["type"]`, and `errorMessage` is a
+short mapping of `MediaProcessingError`/`MediaError`. These names are consumed
+structurally by `@mrmeg/expo-ui/components/UploadQueue`.
+
+`upload` is `(MediaUploadOptions) => Promise<MediaUploadResult>`: pass
+`useMediaUpload().mutateAsync` or `client.upload`. `resolve(asset)` returns `{
+mediaType, compression? }` synchronously before processing (a throw fails the
+item). `concurrency` (default 3) bounds processing and upload together.
+`metadata(item, processed)` replaces the default, which sends `{ takenAt: ISO
+string, lat: string, lng: string }` with only the keys present, `undefined` when
+none. `videoThumbnail: { mediaType, filename? }` uploads each video's frame after
+the video, named by default after the video key's basename without extension; its
+failure never fails the item; unset or `false` uploads none. `onSettled({
+uploaded, failed })` fires once per drain.
+
+State machine: `queued -> processing -> uploading -> done`, `failed` from
+`processing`/`uploading` (or `queued` when `resolve` throws), `failed -> queued` on
+`retry`, which resumes at upload when `processed` is kept. A failure keeps
+`processed` and revokes nothing. `remove` of an in-flight item drops it from
+`items` and ignores its result, but its concurrency slot is held until the work
+settles, because `upload()` has no abort signal and processing cannot be
+interrupted. `clearFinished` drops `done`; `failed` stays. On web the queue revokes
+`blob:` URLs on remove and clear, never on failure. Unmount does not stop the
+queue (uploads outlive the screen; StrictMode, Fast Refresh, and `Activity` are
+harmless). The pure
+`uploadQueueReducer` and React-free `createUploadQueueRunner(getOptions)` are
+exported for tests.
+
+## Video Thumbnails
+
+Convention: `videos/<ID>.mov` keeps its thumbnail at `thumbnails/<ID>.jpg`, the
+same ID under another prefix. Pure root helpers (no React Native), all taking
+`pairing: VideoThumbnailPairing = { thumbnailPrefix, extension? = "jpg" }` with
+the prefix normalized like other prefixes: `mediaKeyId(key)` (basename without
+extension), `videoThumbnailKey(videoKey, pairing)`,
+`isVideoThumbnailKey(key, pairing)` (directly under the prefix, with the
+extension), `pairVideoThumbnails(videos, thumbnails, pairing)` → `{ videos:
+PairedVideo<T>[]; orphanThumbnails: T[] }` (exact-key join, video order kept;
+videos sharing an ID share the thumbnail), `withVideoThumbnailKeys(keys, {
+pairing, isVideoKey })` (keys first, then thumbnail keys, deduped), and
+`videoThumbnailDeleteCompanions({ pairing, isVideoKey })` (also from `/server`).
+`PairedVideo<T>` is `{ video, thumbnailKey, thumbnail? }`. IDs should stay in
+`[A-Za-z0-9_-]`: the thumbnail upload's `customFilename` is sanitized server-side,
+and the thumbnail media type needs `allowCustomFilename` from `canUpload`.
+
+`/upload-queue` backfill, for videos uploaded without a thumbnail. It downloads
+video data, so the app triggers it explicitly; nothing runs it automatically.
+`backfillVideoThumbnail({ videoKey, videoUrl }, { upload, thumbnailMediaType,
+filename? = mediaKeyId, timeMs? = 1000, extract? = extractVideoThumbnail })`
+never rejects and resolves `{ status: "uploaded", videoKey, key }` or `{ status:
+"failed", videoKey, errorMessage, error? }`. It uploads the frame as `image/jpeg`
+with `customFilename` set to the ID and `size` when the blob has one, fails
+instead of uploading when the key has no ID, and revokes any `blob:` URL the
+extraction made. When no frame can be read the `errorMessage` says so, and on web
+mentions CORS: the bucket must allow the app origin on the video URL, or the
+canvas is tainted. `useVideoThumbnailBackfill({ ...options, concurrency? = 1,
+onSettled? })` → `{ run, running, progress: { done, failed, total }, results }`;
+`run(inputs)` ignores a `videoKey` already queued or running, batches queue behind
+each other so `concurrency` bounds the whole hook, options are read through a ref,
+`onSettled` fires once per `run` batch, and after unmount unstarted videos are
+skipped and no state is set or callback fired.
 
 ## Validation
 

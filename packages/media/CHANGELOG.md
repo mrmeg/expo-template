@@ -3,6 +3,97 @@
 All notable changes to `@mrmeg/expo-media` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0]
+
+### Added
+
+- **`@mrmeg/expo-media/picker`.** Headless media picking over `expo-image-picker`,
+  with no `Alert` and no toast. `useMediaPicker()` returns `{ pick, picking,
+  permission }` and `pickMedia(options)` is the same call without the hook.
+  `pick` takes `source` (`"library"` or `"camera"`), `mediaTypes`, `multiple`,
+  `selectionLimit`, and `allowsEditing`, and resolves to `{ status: "picked",
+  assets }`, `{ status: "canceled" }`, or `{ status: "denied", canAskAgain }`. It
+  asks for the library or camera permission when it is not granted and can still
+  be asked, decides from the response (so a refusal given during the pick stops
+  it), and always picks at `quality: 1` with `exif: true` and
+  `orderedSelection: true`. Also exports `PickedMediaAsset` (`ProcessAssetInput`
+  plus a unique `id` and `exif?: { takenAt?, lat?, lng? }`), `toPickedMediaAsset`,
+  and the pure `parseExifGps`, `parseExifDate`, and `parseExifOrientation`.
+- **`@mrmeg/expo-media/upload-queue`.** `useUploadQueue({ upload, allowlist,
+  resolve, ... })` processes and uploads picked assets through a per-item state
+  machine (`queued`, `processing`, `uploading`, `done`, `failed`) with bounded
+  concurrency (default 3, shared by processing and upload because each in-flight
+  asset holds a full-resolution bitmap). It returns `{ items, add, retry, remove,
+  clearFinished, clear, isActive, counts }`, so a UI shows each file as soon as it
+  is picked. `resolve(asset)` chooses the media type and compression per asset
+  before processing; `metadata` defaults to the EXIF facts as `{ takenAt, lat,
+  lng }` strings; `videoThumbnail` uploads each video's frame as a best-effort
+  second file that never fails the item; `onItemSettled` and `onSettled` report
+  outcomes once per item and once per drain. `retry` resumes from upload when the
+  processed result survived. `remove` drops an in-flight item at once and ignores
+  its result (`upload()` cannot be aborted, so the work finishes and holds its slot
+  until it does). On web, `blob:` URLs the queue holds are revoked on remove and
+  clear, never on failure. Unmounting does not stop the queue, so uploads outlive
+  the screen that started them. The pure `uploadQueueReducer` and the
+  React-free `createUploadQueueRunner` are exported for tests and non-React hosts.
+  The subpath imports no picker, React Query, or UI.
+
+- **Video thumbnails.** The same-ID convention (`videos/<ID>.mov` keeps its
+  thumbnail at `thumbnails/<ID>.jpg`) moves from the app into the package.
+  - Root entry, pure: `mediaKeyId`, `videoThumbnailKey`, `isVideoThumbnailKey`,
+    `pairVideoThumbnails` (joins listed videos to listed thumbnails by key, in
+    video order, plus `orphanThumbnails`), `withVideoThumbnailKeys`, and
+    `videoThumbnailDeleteCompanions` (also exported from `/server`), with the
+    `VideoThumbnailPairing` and `PairedVideo` types. The upload queue's default
+    thumbnail filename now comes from `mediaKeyId`; its behavior is unchanged.
+  - `createMediaHandlers({ deleteCompanions })`: `deleteOne` and `deleteMany`
+    also delete the extra keys it returns for each requested key, so a client that
+    deletes only a video still removes its thumbnail. Companions pass the same
+    safety and media type checks as requested keys (one that does not is dropped),
+    are visible to `policy.canDelete`, are deleted only after the key that named
+    them was, and are best effort: a missing one counts as deleted, and a failure
+    never fails the request. `deleteMany`'s `deleted` and `events.onDeleted` keys
+    include the deleted companions, and failures are reported in a new optional
+    `companionErrors` (also on the client's `MediaDeleteResult`), present only when
+    there are any. `success`, `errors`, and `key` keep their meaning. A `404` for a
+    missing object (not a missing bucket) from a companion delete is treated as
+    success.
+  - `usePairedVideoList({ videoMediaType, thumbnailMediaType, pairing, limit?,
+    enabled? })` from `createMediaQueryHooks`: `{ data, isLoading, isRefetching,
+    error, thumbnailsError, refetch }` (a failed thumbnail list still shows the
+    videos, paired with none) over the existing list query keys, so mutation invalidation
+    refreshes it, with `data` stable while its inputs are unchanged.
+  - `/upload-queue`: `backfillVideoThumbnail` (one video, never rejects) and
+    `useVideoThumbnailBackfill` (`{ run, running, progress, results }`, bounded
+    concurrency) read a frame from a video's signed URL and upload it under the
+    video's ID. Nothing runs them automatically, because they download video data.
+    On web the bucket must allow CORS for the app's origin, or the canvas is
+    tainted and the result is a failure that says so.
+
+### Fixed
+
+- **Native video thumbnails.** Extraction now waits for the player's
+  `readyToPlay` before asking for a frame, because iOS returned no frames while
+  the player was idle; it falls back to the first frame for clips shorter than
+  the requested time; and failures are logged instead of silently returning no
+  thumbnail.
+
+### Changed
+
+- **New optional peer `expo-image-picker`** (`>=55.0.0 <59.0.0 ||
+  >=58.0.0-0 <59.0.0`), needed only by `/picker`. **Upgrade:** nothing, unless
+  you import `/picker`; then `bunx expo install expo-image-picker`.
+
+### Behavior differences from the template's old `useMediaLibrary`
+
+- Video `duration` from the picker is in milliseconds; it now reaches
+  `durationSeconds` divided by 1000 instead of being passed through as seconds.
+- A GPS coordinate that cannot be read is dropped rather than reported as `0`,
+  and iOS-style unsigned decimal coordinates with a hemisphere ref are read
+  instead of being flattened to `0`.
+- A denial that happens during a pick stops it; the old hook read stale
+  permission state after requesting and went on to launch the picker.
+
 ## [0.5.2]
 
 ### Fixed
