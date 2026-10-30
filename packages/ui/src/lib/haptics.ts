@@ -2,10 +2,13 @@ import { Platform } from "react-native";
 
 import { useFeedbackStore } from "../state/feedbackStore";
 
-function runHaptic(fn: () => void) {
+function runHaptic(fn: () => Promise<unknown> | void) {
   if (Platform.OS === "web") return;
   try {
-    fn();
+    // Swallow rejections too: an Android app that blocks the VIBRATE
+    // permission gets a rejected promise from every expo-haptics call, and an
+    // uncaught one surfaces as an unhandled rejection (and a Sentry event).
+    void Promise.resolve(fn()).catch(() => {});
   } catch {
     // Haptics not available
   }
@@ -15,21 +18,21 @@ function runHaptic(fn: () => void) {
 export function hapticLight() {
   runHaptic(() => {
     const H = require("expo-haptics");
-    H.impactAsync(H.ImpactFeedbackStyle.Light);
+    return H.impactAsync(H.ImpactFeedbackStyle.Light);
   });
 }
 
 export function hapticMedium() {
   runHaptic(() => {
     const H = require("expo-haptics");
-    H.impactAsync(H.ImpactFeedbackStyle.Medium);
+    return H.impactAsync(H.ImpactFeedbackStyle.Medium);
   });
 }
 
 export function hapticSuccess() {
   runHaptic(() => {
     const H = require("expo-haptics");
-    H.notificationAsync(H.NotificationFeedbackType.Success);
+    return H.notificationAsync(H.NotificationFeedbackType.Success);
   });
 }
 

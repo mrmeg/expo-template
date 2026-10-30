@@ -3,6 +3,18 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.32.1]
+
+### Fixed
+
+- **Haptics no longer leave an unhandled rejection on Android.** `hapticLight`,
+  `hapticMedium` and `hapticSuccess` (and so `hapticSelection`, `hapticPress`
+  and every control that plays one) fired expo-haptics without catching its
+  promise. An app that blocks `android.permission.VIBRATE` gets a rejection
+  from every call ("Requires VIBRATE permission"), which escaped as an
+  unhandled rejection and reached error trackers. Rejections are now swallowed
+  like synchronous throws.
+
 ## [0.32.0]
 
 ### Added
