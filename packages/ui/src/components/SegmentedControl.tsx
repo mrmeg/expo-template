@@ -9,7 +9,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { SegmentedControl as NativeSegmentedControl } from "@expo/ui/community/segmented-control";
+import { NativeSegmentedControl } from "./nativeSegmentedControl";
 import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useFocusVisible } from "../hooks/useFocusVisible";
@@ -22,11 +22,13 @@ import { StyledText } from "./StyledText";
 
 /**
  * SegmentedControl — a horizontal single-select control backed by the
- * platform's native segmented control via
- * `@expo/ui/community/segmented-control`:
+ * platform's native segmented control through `./nativeSegmentedControl`
+ * (`@expo/ui`'s community control on iOS, its Material segmented buttons on
+ * Android):
  *
  *   - iOS:     SwiftUI segmented `Picker` (system-styled).
- *   - Android: a Material segmented control, accent-tinted via `tintColor`.
+ *   - Android: a Material segmented control, accent-tinted via `tintColor`,
+ *     with a readable selected label (`nativeSegmentedControl.android.tsx`).
  *   - Web:     the kit's own themed control (see `DrawnSegmentedControl`).
  *
  * `size="lg"` draws the kit's own control (`DrawnSegmentedControl`) on every
@@ -114,7 +116,7 @@ function SegmentedControl({
   appearance,
   style,
 }: SegmentedControlProps) {
-  const { theme } = useTheme();
+  const { theme, getContrastingColor } = useTheme();
   const [internalValue, setInternalValue] = React.useState<string | undefined>(defaultValue);
 
   const isControlled = controlledValue !== undefined;
@@ -159,6 +161,7 @@ function SegmentedControl({
       enabled={!disabled}
       onValueChange={handleValueChange}
       tintColor={tintColor ?? theme.colors.accent}
+      selectedLabelColor={tintColor ? getContrastingColor(tintColor) : theme.colors.accentForeground}
       appearance={appearance ?? (theme.dark ? "dark" : "light")}
       style={style}
     />
