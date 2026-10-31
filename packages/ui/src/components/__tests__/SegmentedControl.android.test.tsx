@@ -9,6 +9,7 @@ import React from "react";
 import { Platform, StyleSheet } from "react-native";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react-native";
 import { SegmentedControl } from "../SegmentedControl";
+import { NativeSegmentedControl } from "../nativeSegmentedControl.android";
 
 jest.mock("../../hooks/useTheme", () => ({
   useTheme: () => ({
@@ -23,17 +24,34 @@ jest.mock("../../hooks/useTheme", () => ({
         ring: "#0F172A",
       },
     },
-    getContrastingColor: () => "#FFFFFF",
+    getContrastingColor: () => "#000000",
     getFocusRingStyle: () => ({}),
   }),
 }));
 
-// Mock the native segmented control as a row of pressable segments.
-jest.mock("@expo/ui/community/segmented-control", () => {
+// The Android variant's Material buttons, recorded by their props.
+jest.mock("@expo/ui/jetpack-compose", () => {
   const { View, Text, Pressable } = require("react-native");
-  function SegmentedControl({ values, selectedIndex, onValueChange }: any) {
+  const Host = ({ children }: any) => <View>{children}</View>;
+  const SingleChoiceSegmentedButtonRow = ({ children }: any) => <View>{children}</View>;
+  const SegmentedButton = ({ children, selected, onClick, colors }: any) => (
+    <Pressable testID="material-segment" accessibilityState={{ selected }} onPress={onClick} {...{ colors }}>
+      {children}
+    </Pressable>
+  );
+  SegmentedButton.Label = function Label({ children }: any) {
+    return <View>{children}</View>;
+  };
+  return { Host, SingleChoiceSegmentedButtonRow, SegmentedButton, Text };
+});
+
+// Mock the native segmented control as a row of pressable segments. It
+// records the label color the control picked for the selected segment.
+jest.mock("../nativeSegmentedControl", () => {
+  const { View, Text, Pressable } = require("react-native");
+  function NativeSegmentedControl({ values, selectedIndex, onValueChange, tintColor, selectedLabelColor }: any) {
     return (
-      <View testID="segmented" accessibilityValue={{ now: selectedIndex }}>
+      <View testID="segmented" accessibilityValue={{ now: selectedIndex }} {...{ tintColor, selectedLabelColor }}>
         {values.map((label: string) => (
           <Pressable key={label} testID={`seg-${label}`} onPress={() => onValueChange?.(label)}>
             <Text>{label}</Text>
@@ -42,7 +60,7 @@ jest.mock("@expo/ui/community/segmented-control", () => {
       </View>
     );
   }
-  return { SegmentedControl };
+  return { NativeSegmentedControl };
 });
 
 describe("SegmentedControl (android)", () => {
@@ -93,5 +111,38 @@ describe("SegmentedControl (android)", () => {
         expect(button.props.accessibilityState.selected).toBe(false);
       }
     });
+  });
+
+  describe("Material variant", () => {
+    const props = {
+      values: ["Cameras", "Groups"],
+      selectedIndex: 0,
+      enabled: true,
+      tintColor: "#F5D27A",
+      selectedLabelColor: "#14121F",
+      appearance: "dark" as const,
+    };
+
+    it("colors the selected label as well as the fill, so a light accent stays readable in dark mode", async () => {
+      await render(<NativeSegmentedControl {...props} onValueChange={() => {}} />);
+      for (const segment of screen.getAllByTestId("material-segment")) {
+        expect(segment.props.colors).toEqual({ activeContainerColor: "#F5D27A", activeContentColor: "#14121F" });
+      }
+    });
+
+    it("reports a pressed segment by its label", async () => {
+      const onValueChange = jest.fn();
+      await render(<NativeSegmentedControl {...props} onValueChange={onValueChange} />);
+      await fireEvent.press(screen.getAllByTestId("material-segment")[1]);
+      expect(onValueChange).toHaveBeenCalledWith("Groups");
+    });
+  });
+
+  it("pairs the theme accent with accentForeground, and a custom tint with its contrasting color", async () => {
+    await render(<SegmentedControl values={["A", "B"]} value="A" />);
+    expect(screen.getByTestId("segmented").props).toMatchObject({ tintColor: "#14B8A6", selectedLabelColor: "#FFFFFF" });
+    await cleanup();
+    await render(<SegmentedControl values={["A", "B"]} value="A" tintColor="#F5D27A" />);
+    expect(screen.getByTestId("segmented").props).toMatchObject({ tintColor: "#F5D27A", selectedLabelColor: "#000000" });
   });
 });
