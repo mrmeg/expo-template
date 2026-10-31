@@ -16,6 +16,11 @@ export interface PresignPutUrlOptions {
   bucket: MediaBucketConfig;
   key: string;
   contentType: string;
+  /**
+   * Bytes the upload must be. Signed as `Content-Length`, so storage refuses a
+   * body of any other length (403, signature mismatch).
+   */
+  contentLength?: number;
   expiresIn: number;
 }
 
@@ -57,7 +62,11 @@ export async function presignPutUrl(options: PresignPutUrlOptions): Promise<stri
   url.searchParams.set("X-Amz-Expires", String(options.expiresIn));
   const signed = await getClient(options.bucket).sign(url.toString(), {
     method: "PUT",
-    headers: { "Content-Type": options.contentType },
+    headers: {
+      "Content-Type": options.contentType,
+      ...(options.contentLength !== undefined ? { "Content-Length": String(options.contentLength) } : {}),
+    },
+    // `allHeaders` signs Content-Length too, which aws4fetch otherwise skips.
     aws: { signQuery: true, allHeaders: true },
   });
   return signed.url;

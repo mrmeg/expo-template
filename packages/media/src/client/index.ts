@@ -222,7 +222,8 @@ export async function resolveUploadSize(
   try {
     return await stat(file);
   } catch {
-    // An unstattable URI still uploads; the server enforces the cap on receipt.
+    // An unstattable URI still uploads, unsigned for length, unless the media
+    // type sets `requireSize`.
     return undefined;
   }
 }

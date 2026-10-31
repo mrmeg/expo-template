@@ -198,6 +198,59 @@ describe("createMediaHandlers upload signing", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("signs a declared size as Content-Length", async () => {
+    const handlers = createMediaHandlers({ config, idFactory: () => "01TESTID" });
+
+    const res = await handlers.getUploadUrl(
+      new Request("http://localhost/upload", {
+        method: "POST",
+        body: JSON.stringify({ mediaType: "uploads", contentType: "image/jpeg", size: 1234 }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const payload = await res.json();
+    const uploadUrl = new URL(payload.uploadUrl);
+    expect(uploadUrl.searchParams.get("X-Amz-SignedHeaders")).toBe("content-length;content-type;host");
+    // Browsers set Content-Length from the body and refuse it as a request header.
+    expect(payload.headers).toEqual({ "Content-Type": "image/jpeg" });
+  });
+
+  it.each([1.5, -1, "12", Number.MAX_SAFE_INTEGER + 2])("refuses size %p", async (size) => {
+    const handlers = createMediaHandlers({ config, idFactory: () => "01TESTID" });
+
+    const res = await handlers.getUploadUrl(
+      new Request("http://localhost/upload", {
+        method: "POST",
+        body: JSON.stringify({ mediaType: "uploads", contentType: "image/jpeg", size }),
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("invalid-size");
+  });
+
+  it("refuses signing without a size when the media type requires one", async () => {
+    const handlers = createMediaHandlers({
+      config: createMediaConfig({
+        buckets: config.buckets,
+        mediaTypes: { uploads: { ...config.mediaTypes.uploads, requireSize: true } },
+      }),
+      idFactory: () => "01TESTID",
+    });
+    const sign = (body: Record<string, unknown>) =>
+      handlers.getUploadUrl(
+        new Request("http://localhost/upload", { method: "POST", body: JSON.stringify(body) }),
+      );
+
+    const missing = await sign({ mediaType: "uploads", contentType: "image/jpeg" });
+    expect(missing.status).toBe(400);
+    expect((await missing.json()).code).toBe("size-required");
+
+    const sized = await sign({ mediaType: "uploads", contentType: "image/jpeg", size: 10 });
+    expect(sized.status).toBe(200);
+  });
+
   it("honors the media type upload expiry", async () => {
     const handlers = createMediaHandlers({
       config: createMediaConfig({

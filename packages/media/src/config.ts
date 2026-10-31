@@ -19,6 +19,13 @@ export interface MediaTypeConfig<TBucket extends string = string> {
   prefix: string;
   allowedContentTypes: readonly string[];
   maxBytes?: number;
+  /**
+   * Refuse an upload URL request that carries no `size`. A declared size is
+   * signed into the URL as `Content-Length`, so storage takes only a body of
+   * exactly that many bytes; with `maxBytes` this makes the cap binding rather
+   * than a check on what the client says.
+   */
+  requireSize?: boolean;
   uploadExpiresInSeconds?: number;
   readExpiresInSeconds?: number;
 }

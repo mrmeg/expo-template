@@ -31,7 +31,7 @@ Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](http
 | react-native | 0.88.0-rc.4 |
 | react-native-web | ^0.21.4 |
 | @mrmeg/expo-ui | ^0.32.0 |
-| @mrmeg/expo-media (if using media) | ^0.6.0 |
+| @mrmeg/expo-media (if using media) | ^0.7.0 |
 | zustand | ^5.0.15 |
 | @tanstack/react-query | ^5.104.2 |
 | react-hook-form | ^7.90.0 |

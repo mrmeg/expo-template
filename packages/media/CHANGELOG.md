@@ -3,6 +3,25 @@
 All notable changes to `@mrmeg/expo-media` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0]
+
+### Changed
+
+- **A declared upload `size` is signed as `Content-Length`.** `getUploadUrl`
+  signs the PUT with the size the client sent, so storage accepts only a body
+  of exactly that many bytes and answers anything else with a signature
+  mismatch. Before, `maxBytes` checked only the size the client claimed: a
+  client could declare a small size and upload a large body. `upload()` already
+  sends the payload's own size, so it needs no change; a caller that passes its
+  own `size` must pass the real one.
+- **`size` must be a whole, non-negative number of bytes.** Anything else is
+  `400 invalid-size`; a non-number `size` used to be ignored.
+
+### Added
+
+- **`mediaTypes.*.requireSize`.** Refuses signing without a `size`
+  (`400 size-required`), so `maxBytes` binds every upload of that media type.
+
 ## [0.6.0]
 
 ### Added
