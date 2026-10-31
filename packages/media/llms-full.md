@@ -20,7 +20,7 @@ Entrypoints: `.` (contracts, keys, `MediaError`), `/client`, `/react-query`,
 `createMediaConfig({ buckets, mediaTypes })`. Bucket:
 `{ provider: "s3" | "r2", bucket, endpoint?, region, forcePathStyle?, credentials }`.
 Media type:
-`{ bucket, prefix, allowedContentTypes, maxBytes?, uploadExpiresInSeconds?, readExpiresInSeconds? }`
+`{ bucket, prefix, allowedContentTypes, maxBytes?, requireSize?, uploadExpiresInSeconds?, readExpiresInSeconds? }`
 (expiry defaults 300 / 86400). Missing values make the config invalid and every
 handler answer `503 media-disabled` without building an S3 client.
 
@@ -88,7 +88,8 @@ KV `token:<token>` → JSON with at least `{ "app": "<name>" }`, yielding
 `{ getUploadUrl, upload, list, getSignedUrls, deleteOne, deleteMany }`. `upload()`
 sends `size` and `metadata` with the signing request; when `size` is omitted it
 measures the payload, native file URIs included (`resolveUploadSize()` stats them
-with `expo-file-system`), so the `maxBytes` check is not web-only. Native PUTs use
+with `expo-file-system`), so the `maxBytes` check is not web-only. A declared `size`
+is signed as `Content-Length`; `requireSize: true` refuses signing without one. Native PUTs use
 `expo/fetch` with an `expo-file-system` `File` body.
 
 `createMediaQueryHooks({ client, queryKeyNamespace = "media" })` → `useMediaList`,
