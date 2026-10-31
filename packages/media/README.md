@@ -305,6 +305,7 @@ export function POST(request: Request, { action }: { action: string }) {
 | `mediaTypes.*.prefix` | generated object key prefix |
 | `mediaTypes.*.allowedContentTypes` | accepted MIME allowlist |
 | `mediaTypes.*.maxBytes` | optional upload size limit |
+| `mediaTypes.*.requireSize` | refuse signing without `size` (`400 size-required`), so `maxBytes` binds |
 | `mediaTypes.*.uploadExpiresInSeconds` | signed upload URL lifetime (default 300) |
 | `mediaTypes.*.readExpiresInSeconds` | signed read URL lifetime (default 86400) |
 
@@ -323,7 +324,10 @@ thumbnails/01KQT7....jpg
 - Keys are generated server-side unless policy sets `allowCustomFilename`;
   custom filenames are sanitized, and an unapproved one returns
   `403 custom-filename-forbidden`.
-- Allowed content types and `maxBytes` are checked before signing.
+- Allowed content types and `maxBytes` are checked before signing. A declared
+  `size` is signed into the PUT as `Content-Length`, so storage accepts only a
+  body of exactly that length; `requireSize` makes `size` mandatory, which is
+  what makes `maxBytes` binding rather than advisory.
 - `Content-Type` is part of the signed PUT and comes back in the signing
   response `headers`.
 - Read, delete, and list keys must stay inside configured prefixes.
@@ -642,7 +646,9 @@ extension from the approved content type and returns
 `{ uploadUrl, key, expiresAt, headers: { "Content-Type" } }`.
 
 `size` is optional but should always be sent: it is what the server's
-per-media-type `maxBytes` check reads before the transfer. When it is omitted,
+per-media-type `maxBytes` check reads before the transfer, and it is signed as
+`Content-Length`, so the PUT body must be exactly that many bytes (a whole
+number; anything else is `400 invalid-size`). When it is omitted,
 `upload()` measures the payload — including native file URIs, via
 `resolveUploadSize()`, which stats them with `expo-file-system`. Native uploads
 PUT through `expo/fetch` with an `expo-file-system` `File` body.

@@ -205,7 +205,13 @@ export function createMediaHandlers<TAuth = unknown>(
       return problem(request, options.cors, 400, "invalid-content-type", "Content type is not allowed for this media type.");
     }
 
-    const size = typeof body.size === "number" && Number.isFinite(body.size) ? body.size : undefined;
+    if (body.size !== undefined && !(Number.isSafeInteger(body.size) && (body.size as number) >= 0)) {
+      return problem(request, options.cors, 400, "invalid-size", "size must be a whole number of bytes.");
+    }
+    const size = body.size as number | undefined;
+    if (size === undefined && mediaTypeConfig.requireSize) {
+      return problem(request, options.cors, 400, "size-required", "This media type needs the upload's size in bytes.");
+    }
     if (size !== undefined && mediaTypeConfig.maxBytes !== undefined && size > mediaTypeConfig.maxBytes) {
       return problem(request, options.cors, 400, "oversized-file", "File exceeds this media type's maximum size.", {
         maxBytes: mediaTypeConfig.maxBytes,
@@ -256,6 +262,7 @@ export function createMediaHandlers<TAuth = unknown>(
         bucket,
         key,
         contentType: body.contentType,
+        contentLength: size,
         expiresIn,
       });
       await options.events?.onUploadSigned?.({
