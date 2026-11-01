@@ -1,7 +1,7 @@
 import * as React from "react";
 import { GestureResponderEvent, Modal, Platform, StyleSheet, View, ViewProps, type ViewStyle } from "react-native";
-import * as DialogPrimitive from "@rn-primitives/dialog";
-import * as AlertDialogPrimitive from "@rn-primitives/alert-dialog";
+import * as DialogPrimitive from "./overlayPrimitives/dialog";
+import * as AlertDialogPrimitive from "./overlayPrimitives/alertDialog";
 import { AnimatedView } from "./AnimatedView";
 import { KeyboardAvoidingView } from "./KeyboardAvoidingView";
 import { useWindowInsets } from "../hooks/useWindowInsets";

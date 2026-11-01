@@ -4,7 +4,7 @@ import { AnimatedView } from "./AnimatedView";
 import { TextClassContext, TextColorContext, TextSelectabilityContext } from "./StyledText.context";
 import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
-import * as TooltipPrimitive from "@rn-primitives/tooltip";
+import * as TooltipPrimitive from "./overlayPrimitives/tooltip";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { palette } from "../constants/colors";
 
