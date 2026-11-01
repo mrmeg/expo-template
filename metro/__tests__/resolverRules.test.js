@@ -21,6 +21,7 @@ const {
   getScopedDedupeTarget,
   isRouteFileForOtherPlatform,
   isUnusedRouteFile,
+  isZodLocaleBarrelImport,
   packageOfModulePath,
 } = require("../resolverRules");
 
@@ -364,6 +365,38 @@ describe("route files for other platforms", () => {
         })
       ).toBe(false);
     });
+  });
+});
+
+describe("zod locale barrel", () => {
+  const core = "/repo/node_modules/zod/v4/core/index.js";
+
+  it("stubs zod's own barrel import, ESM and CJS, in every client bundle", () => {
+    for (const moduleName of ["../locales/index.js", "../locales/index.cjs"]) {
+      expect(isZodLocaleBarrelImport({ moduleName, originModulePath: core })).toBe(true);
+    }
+    expect(
+      isZodLocaleBarrelImport({
+        moduleName: "../locales/index.js",
+        originModulePath: "/repo/node_modules/zod/v4/mini/external.js",
+        environment: "client",
+      })
+    ).toBe(true);
+  });
+
+  it("keeps the English pack classic zod loads for its default messages", () => {
+    expect(isZodLocaleBarrelImport({ moduleName: "../locales/en.js", originModulePath: core })).toBe(false);
+  });
+
+  it("keeps the barrel for other packages, app code, and server bundles", () => {
+    const moduleName = "../locales/index.js";
+    expect(isZodLocaleBarrelImport({ moduleName, originModulePath: "/repo/client/i18n/x.ts" })).toBe(false);
+    expect(
+      isZodLocaleBarrelImport({ moduleName, originModulePath: "/repo/node_modules/other/core/index.js" })
+    ).toBe(false);
+    expect(isZodLocaleBarrelImport({ moduleName, originModulePath: core, environment: "node" })).toBe(false);
+    expect(isZodLocaleBarrelImport({ moduleName, originModulePath: core, environment: "react-server" })).toBe(false);
+    expect(isZodLocaleBarrelImport({ moduleName })).toBe(false);
   });
 });
 

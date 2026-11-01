@@ -168,6 +168,27 @@ function isUnusedRouteFile({ moduleName, originModulePath, platform, routerRoots
 }
 
 // ---------------------------------------------------------------------------
+// Zod locale barrel
+// ---------------------------------------------------------------------------
+
+/**
+ * Zod's own `../locales/index` import, in client bundles.
+ *
+ * `export * as locales` in zod's core, mini and classic entries keeps every
+ * language pack (~280 kB of ~490 kB on web) however the app imports zod: tree
+ * shaking cannot see through a namespace re-export. Default English messages are
+ * unaffected, because classic zod imports `../locales/en` directly. The app-level
+ * `zod/locales` subpath also resolves normally; only `z.locales.*` is empty.
+ */
+function isZodLocaleBarrelImport({ moduleName, originModulePath, environment }) {
+  if (isServerEnvironment(environment) || !originModulePath) return false;
+  return (
+    /^\.\.\/locales\/index\.c?js$/.test(moduleName) &&
+    packageOfModulePath(originModulePath) === "zod"
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Scoped dedupes
 // ---------------------------------------------------------------------------
 
@@ -261,5 +282,6 @@ module.exports = {
   getScopedDedupeTarget,
   isRouteFileForOtherPlatform,
   isUnusedRouteFile,
+  isZodLocaleBarrelImport,
   packageOfModulePath,
 };

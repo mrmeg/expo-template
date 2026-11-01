@@ -12,10 +12,12 @@ import { I18nManager } from "react-native";
 import * as Localization from "expo-localization";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import "intl-pluralrules";
+import { installPluralRules } from "./pluralRules";
 
 import en from "./translations/en";
 import { useLanguageStore } from "./stores/languageStore";
+
+installPluralRules();
 
 // Default/fallback locale
 const fallbackLocale = "en";

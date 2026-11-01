@@ -63,10 +63,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # `build` sets EXPO_UNSTABLE_TREE_SHAKING and EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH
-      # itself, so this measures the same tree-shaken bundle every production build ships.
+      # metro.config.js turns on tree shaking and graph optimization, so this measures
+      # the same bundle every production build ships.
       - name: Build web export
         run: bun run build
 
       - name: Bundle size check
         run: bun run bundle-size
+
+      - name: First-load budget
+        run: bun run first-load
