@@ -5,6 +5,12 @@ The shared media Worker is live (deployed 2026-09-03) at
 static per-app bearer token in the `MEDIA_AUTH` Workers KV namespace. Deployment
 and token provisioning: [`workers/media/README.md`](../workers/media/README.md).
 
+The Worker is outside the root Bun workspace with its own `bun.lock`:
+`cd workers/media && bun install && bun run deploy`. It depends on the
+**published** `@mrmeg/expo-media`, so an unreleased `packages/media` change must
+be released to npm (and the Worker's range bumped) before it can ship in the
+Worker.
+
 ## The contract
 
 Base URL: `https://cdn.mrmeg.com/api/media`

@@ -86,7 +86,11 @@ describe("metro.config.js resolver wiring", () => {
     expect(result).toEqual({ type: "empty" });
   });
 
-  it("collapses whatwg-url-without-unicode's buffer onto the app-level copy while Amplify ships", () => {
+  // The app-level `buffer` is hoisted by `@aws-amplify/react-native`; a fork
+  // that `bun run init` pruned of Cognito has no copy to collapse onto.
+  const itWithAppBuffer = fs.existsSync(path.join(APP, "node_modules/buffer")) ? it : it.skip;
+
+  itWithAppBuffer("collapses whatwg-url-without-unicode's buffer onto the app-level copy while Amplify ships", () => {
     const request = {
       moduleName: "buffer/",
       originModulePath: path.join(APP, "node_modules/whatwg-url-without-unicode/lib/url-state-machine.js"),
