@@ -3,6 +3,21 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.33.0]
+
+### Changed
+
+- **Overlay engines load on first use on web.** `Select`, `Dialog`, `AlertDialog`,
+  `DropdownMenu`, `Popover` and `Tooltip` reach their Radix primitives through one
+  `import()` (`components/overlayPrimitives/`), so a page without an open overlay
+  no longer downloads them: 191 kB raw / 36 kB brotli leave first load in the
+  template. An app gains the part of that it was shipping, about 50-130 kB raw.
+  Native is unchanged and no API changes.
+- On a client-side navigation to a route with an overlay, before the chunk has
+  loaded, that overlay `Root`'s subtree, including a `Select` trigger, renders
+  nothing until it arrives. Server-rendered routes are unaffected: the HTML carries
+  the real markup.
+
 ## [0.32.1]
 
 ### Fixed
