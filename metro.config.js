@@ -30,6 +30,15 @@ const appNodeModules = path.resolve(__dirname, "node_modules");
 const resolveAppPackage = (packageName) =>
   fs.realpathSync(path.resolve(appNodeModules, packageName));
 
+const isResolvable = (packageName) => {
+  try {
+    require.resolve(`${packageName}/package.json`);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const resolvePackageFrom = (packageName, fromPackageName) => {
   const fromPackageRoot = path.dirname(
     require.resolve(`${fromPackageName}/package.json`)
@@ -113,7 +122,11 @@ const dedupePackages = {
   // onto clerk-react's copy — but only in client bundles (see
   // clientOnlyDedupePackages): @clerk/backend, used by API routes in the node
   // environment, depends on @clerk/shared 4.x and must keep its own copy.
-  "@clerk/shared": resolvePackageFrom("@clerk/shared", "@clerk/clerk-react"),
+  // Omitted when Clerk is not installed (`bun run init` removes it when the
+  // fork does not use Clerk).
+  ...(isResolvable("@clerk/clerk-react")
+    ? { "@clerk/shared": resolvePackageFrom("@clerk/shared", "@clerk/clerk-react") }
+    : {}),
 };
 
 config.resolver.extraNodeModules = {

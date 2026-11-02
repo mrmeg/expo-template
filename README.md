@@ -71,6 +71,21 @@ project failing `tsc`. Init is optional: a fresh clone with no `.env` boots with
 auth, billing, and media disabled. `.env.example` enumerates every optional
 feature flag.
 
+The template ships both auth SDK clusters (Clerk and Amplify/Cognito), which is
+most of a fresh install. `init` removes the one you did not pick: `--auth
+cognito` drops Clerk, `--auth clerk` drops Cognito, and `--auth none` (the
+default) drops both. For each removed provider it deletes its packages from
+`package.json` (the client SDK, the server token-verifier library, and their
+native peers), replaces its implementation modules (`clerkClient.ts`,
+`ClerkProviderBoundary.tsx`, `clerkLoadSignal.ts`, `cognitoClient.ts`,
+`cognitoSdk.ts`, and the server `clerkTokenVerifier.ts` / `cognitoTokenVerifier.ts`)
+with typed stubs that throw a "not installed" error if env ever selects the
+provider, and deletes that provider's tests. Run `bun install` afterwards to
+update `node_modules` and `bun.lock`. Pass `--keep-auth-sdks` to keep both
+clusters. Pruning is idempotent, and the stubs are not a way back: to switch
+providers later, restore the modules from the template (or start from a fresh
+clone) and add the packages again.
+
 ## Renaming the Template
 
 App identity (name, slug, native scheme, iOS bundle id, Android package) lives
@@ -96,7 +111,7 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 
 | Script | Description |
 |--------|-------------|
-| `bun run init` | Name the project, pick an auth provider, prune screen templates |
+| `bun run init` | Name the project, pick an auth provider (removes the other provider's SDKs), prune screen templates |
 | `npx expo start` | Expo dev server (interactive) |
 | `bun run web` | Expo web dev server |
 | `bun run ios` / `bun run android` | Build + run on simulator / emulator |

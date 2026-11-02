@@ -46,7 +46,7 @@ unless the user asks for a plan.
 | Lint | `@mrmeg/eslint-plugin-expo-ui` workspace package | Design-system ESLint rules; `bun lint:ui` for `app`, `client`, `shared`; publishable but not yet on npm (first release pending); reads `packages/ui/src` here and `dist/design-system.json` in consumers |
 | Metro | `@mrmeg/expo-metro` workspace package | Plain CommonJS, no dependencies, Node only (loaded by `metro.config.js`, never bundled): `withBundleOptimizations` sets the tree-shaking env flags and stubs zod's locale barrel; publishable but not yet on npm (first release pending) |
 | State/data | Zustand 5, TanStack React Query 5 | Persisted client stores; query defaults in app providers |
-| Auth | Clerk or AWS Amplify/Cognito | Optional; env-selected (Clerk publishable key, or both Cognito vars; Cognito wins if both) behind a shared `AuthClient`/`TokenVerifier` |
+| Auth | Clerk or AWS Amplify/Cognito | Optional; env-selected (Clerk publishable key, or both Cognito vars; Cognito wins if both) behind a shared `AuthClient`/`TokenVerifier`; `bun run init --auth` removes the unused provider's SDKs and stubs its modules (`--keep-auth-sdks` opts out) |
 | Billing | Stripe hosted-external baseline | Optional; disabled unless Stripe/server env is configured |
 | Server | Bun server (`server.bun.ts`) | Expo Server adapter, compression, CORS, rate limits, security headers |
 | Observability | `@sentry/react-native` (native), `@sentry/react` (web, lazy) | Runtime DSN and native upload config are separately env-gated |

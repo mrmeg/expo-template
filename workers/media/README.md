@@ -4,9 +4,19 @@ Cloudflare Worker that serves the shared media API at
 `cdn.mrmeg.com/api/media/*` so consumer apps (downrangedays, terlo) call one
 endpoint instead of each bundling their own Expo API routes.
 
-Private workspace package — never published to npm. All routing, validation, and
-error contracts come from `@mrmeg/expo-media/worker`; `src/index.ts` is only
-deployment wiring (R2 coordinates from `env`, KV bearer-token auth, CORS).
+Private package — never published to npm — and deliberately **not** in the root
+Bun workspace, so a fresh template `bun install` does not pull in `wrangler` and
+the Workers types. It has its own `package.json` and committed `bun.lock`, and
+depends on the **published** `@mrmeg/expo-media` (a semver range, not
+`workspace:*`). All routing, validation, and error contracts come from
+`@mrmeg/expo-media/worker`; `src/index.ts` is only deployment wiring (R2
+coordinates from `env`, KV bearer-token auth, CORS).
+
+Because the Worker resolves `@mrmeg/expo-media` from npm, a change to
+`packages/media` reaches it only after that package is released
+(`bun run pkg media release`) and the range here is bumped (`bun update
+@mrmeg/expo-media` in this directory, then commit `bun.lock`). Do not deploy
+against source that npm does not have yet.
 
 ## URL Contract
 
@@ -47,10 +57,10 @@ vars plus placeholders that the runbook below replaces.
 Run from `workers/media/`. Deployment is manual and owner-run; there is no CI
 deploy.
 
-1. Build the package the Worker imports (from the repo root):
+1. Install the Worker's own dependencies (separate from the root install):
 
    ```sh
-   bun run pkg media build
+   cd workers/media && bun install
    ```
 
 2. Create the auth KV namespace and paste the printed id into
@@ -84,7 +94,7 @@ deploy.
 
    ```sh
    bunx wrangler deploy --dry-run --outdir=dist-check
-   bunx wrangler deploy
+   bun run deploy
    ```
 
 6. Smoke the live route:

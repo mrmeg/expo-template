@@ -3,8 +3,7 @@
   "main": "expo-router/entry",
   "version": "0.0.1",
   "workspaces": [
-    "packages/*",
-    "workers/*"
+    "packages/*"
   ],
   "scripts": {
     "start": "bun ./server.bun.ts",
@@ -157,7 +156,6 @@
     "@typescript-eslint/eslint-plugin": "^8.72.1",
     "@typescript-eslint/parser": "^8.72.1",
     "eslint": "^10.14.0",
-    "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.14.0",
     "jest": "~30.5.2",

@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@mrmeg/expo-media": "workspace:*"
+    "@mrmeg/expo-media": "^0.7.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261014.1",

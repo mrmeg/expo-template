@@ -578,7 +578,10 @@ per-app scoping. `MediaTokenStore` is the KV shape the authorizer needs
 satisfies.
 
 This repo ships a deployable example at `workers/media/` with a wrangler config
-and deploy runbook.
+and deploy runbook. It is not part of the root workspace: it has its own
+`bun.lock` and takes the published package from npm, so a change to this package
+must be released before the Worker can use it. Deploy with
+`cd workers/media && bun install && bun run deploy`.
 
 ## Client Setup
 

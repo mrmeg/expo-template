@@ -10,19 +10,27 @@
  */
 
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 
 import {
+  AUTH_STUB_MARKER,
   IDENTITY_ENV_KEYS,
+  applyAuthPrune,
+  authPruneSpec,
   buildEnvUpdates,
   buildPrunePlan,
   collectTemplateReferences,
   deriveIdentityDefaults,
+  isAuthStub,
+  isProviderPruned,
   parseArgs,
   parseAuthChoice,
   parseTemplateMeta,
   parseTemplateSelection,
+  providersToPrune,
   readSourceFiles,
+  removePackagesFromManifest,
   resolveIdentityFromOptions,
   resolvePrunePlan,
   rewriteEnvContent,
@@ -673,6 +681,12 @@ describe("parseArgs", () => {
     expect(parseArgs(["--templates", "none"]).templates).toBe("none");
   });
 
+  it("tracks --keep-auth-sdks, off by default", () => {
+    expect(parseArgs([]).keepAuthSdks).toBe(false);
+    expect(parseArgs(["--auth", "clerk", "--keep-auth-sdks"]).keepAuthSdks).toBe(true);
+    expect(parseArgs(["--keep-auth-sdks"]).unknownFlags).toEqual([]);
+  });
+
   it("collects unknown flags instead of ignoring them", () => {
     expect(parseArgs(["--nope", "--name", "Acme"]).unknownFlags).toEqual(["--nope"]);
   });
@@ -703,5 +717,214 @@ describe("resolveIdentityFromOptions", () => {
   it("leaves a missing --name invalid so the CLI fails instead of writing defaults", () => {
     const identity = resolveIdentityFromOptions(parseArgs(["--yes"]));
     expect(validateIdentity(identity).length).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Auth SDK pruning
+// ---------------------------------------------------------------------------
+
+describe("providersToPrune", () => {
+  it("prunes every provider that was not chosen", () => {
+    expect(providersToPrune("cognito", false)).toEqual(["clerk"]);
+    expect(providersToPrune("clerk", false)).toEqual(["cognito"]);
+    expect(providersToPrune("none", false)).toEqual(["clerk", "cognito"]);
+  });
+
+  it("prunes nothing with --keep-auth-sdks", () => {
+    expect(providersToPrune("none", true)).toEqual([]);
+    expect(providersToPrune("clerk", true)).toEqual([]);
+  });
+});
+
+describe("removePackagesFromManifest", () => {
+  const manifest = `${JSON.stringify(
+    {
+      name: "app",
+      dependencies: { a: "1", b: "2", c: "3" },
+      devDependencies: { b: "2", d: "4" },
+      scripts: { b: "echo b" },
+    },
+    null,
+    2,
+  )}\n`;
+
+  it("drops the named packages from every dependency block and nothing else", () => {
+    const { content, removed } = removePackagesFromManifest(manifest, ["b", "missing"]);
+    expect(removed).toEqual(["b"]);
+    expect(JSON.parse(content)).toEqual({
+      name: "app",
+      dependencies: { a: "1", c: "3" },
+      devDependencies: { d: "4" },
+      scripts: { b: "echo b" },
+    });
+    expect(content.endsWith("}\n")).toBe(true);
+  });
+
+  it("is a byte-identical no-op when nothing matches", () => {
+    const { content, removed } = removePackagesFromManifest(manifest, ["zzz"]);
+    expect(removed).toEqual([]);
+    expect(content).toBe(manifest);
+  });
+});
+
+describe("isAuthStub", () => {
+  it("recognises the generated sentinel, optionally per provider", () => {
+    const stub = `// ${AUTH_STUB_MARKER} clerk\nexport {};\n`;
+    expect(isAuthStub(stub)).toBe(true);
+    expect(isAuthStub(stub, "clerk")).toBe(true);
+    expect(isAuthStub(stub, "cognito")).toBe(false);
+    expect(isAuthStub("export {};\n")).toBe(false);
+  });
+});
+
+describe("authPruneSpec", () => {
+  it("gives each provider disjoint packages, stubs, and tests", () => {
+    const clerk = authPruneSpec("clerk");
+    const cognito = authPruneSpec("cognito");
+    const overlap = (a: string[], b: string[]) => a.filter((entry) => b.includes(entry));
+    expect(overlap(clerk.packages, cognito.packages)).toEqual([]);
+    expect(overlap(clerk.stubs.map((stub) => stub.path), cognito.stubs.map((stub) => stub.path))).toEqual([]);
+    expect(overlap(clerk.tests, cognito.tests)).toEqual([]);
+  });
+
+  it("never removes a package the rest of the app uses", () => {
+    const shared = [
+      "@react-native-async-storage/async-storage",
+      "expo-web-browser",
+      "expo-secure-store",
+      "expo-linking",
+      "expo-constants",
+    ];
+    for (const provider of ["clerk", "cognito"] as const) {
+      expect(authPruneSpec(provider).packages.filter((name) => shared.includes(name))).toEqual([]);
+    }
+  });
+
+  it("stamps every stub with its sentinel", () => {
+    for (const provider of ["clerk", "cognito"] as const) {
+      for (const stub of authPruneSpec(provider).stubs) {
+        expect(isAuthStub(stub.content, provider)).toBe(true);
+        expect(stub.content).toContain("throw new Error(NOT_INSTALLED)");
+      }
+    }
+  });
+
+  it("leaves no source file importing a pruned package outside its stubs and tests", () => {
+    // A new importer of an SDK the prune removes would break every pruned fork
+    // at `tsc`; this fails here first, naming the file.
+    const root = path.resolve(__dirname, "../..");
+    const sources = readSourceFiles(root);
+    for (const provider of ["clerk", "cognito"] as const) {
+      const spec = authPruneSpec(provider);
+      const owned = new Set([...spec.stubs.map((stub) => stub.path), ...spec.tests]);
+      for (const name of spec.packages) {
+        const importRe = new RegExp(
+          `(?:from\\s+|import\\(\\s*|require\\(\\s*|jest\\.mock\\(\\s*|requireActual\\(\\s*)["']${name.replace(
+            /[.*+?^${}()|[\]\\/]/g,
+            "\\$&",
+          )}(?:/[^"']*)?["']`,
+        );
+        const importers = sources
+          .filter((file) => !owned.has(file.path) && importRe.test(file.content))
+          .map((file) => file.path);
+        expect({ name, importers }).toEqual({ name, importers: [] });
+      }
+    }
+  });
+});
+
+describe("applyAuthPrune", () => {
+  let root: string;
+
+  const write = (relative: string, content: string) => {
+    const target = path.join(root, relative);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, content);
+  };
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "init-auth-prune-"));
+    const clerk = authPruneSpec("clerk");
+    const cognito = authPruneSpec("cognito");
+    write(
+      "package.json",
+      `${JSON.stringify(
+        {
+          dependencies: Object.fromEntries(
+            [...clerk.packages, ...cognito.packages, "expo-web-browser"].map((name) => [name, "1.0.0"]),
+          ),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    for (const spec of [clerk, cognito]) {
+      for (const stub of spec.stubs) write(stub.path, "export const real = true;\n");
+      for (const test of spec.tests) write(test, "it('real', () => {});\n");
+    }
+  });
+
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("removes the packages, stubs the modules, and deletes the tests of one provider", () => {
+    const [result] = applyAuthPrune(root, ["clerk"]);
+    const clerk = authPruneSpec("clerk");
+    const cognito = authPruneSpec("cognito");
+
+    expect(result.packagesRemoved.sort()).toEqual([...clerk.packages].sort());
+    expect(result.stubbed.sort()).toEqual(clerk.stubs.map((stub) => stub.path).sort());
+    expect(result.deleted.sort()).toEqual([...clerk.tests].sort());
+
+    const dependencies = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).dependencies;
+    expect(Object.keys(dependencies).sort()).toEqual([...cognito.packages, "expo-web-browser"].sort());
+    for (const stub of clerk.stubs) {
+      expect(fs.readFileSync(path.join(root, stub.path), "utf8")).toBe(stub.content);
+    }
+    for (const test of clerk.tests) expect(fs.existsSync(path.join(root, test))).toBe(false);
+
+    // The other provider is untouched.
+    for (const stub of cognito.stubs) {
+      expect(fs.readFileSync(path.join(root, stub.path), "utf8")).toBe("export const real = true;\n");
+    }
+    expect(isProviderPruned(root, "clerk")).toBe(true);
+    expect(isProviderPruned(root, "cognito")).toBe(false);
+  });
+
+  it("prunes both providers for --auth none", () => {
+    applyAuthPrune(root, providersToPrune("none", false));
+    const dependencies = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).dependencies;
+    expect(Object.keys(dependencies)).toEqual(["expo-web-browser"]);
+  });
+
+  it("is idempotent: a second run changes nothing and reports nothing", () => {
+    applyAuthPrune(root, ["clerk", "cognito"]);
+    const snapshot = (dir: string): Record<string, string> =>
+      Object.fromEntries(
+        fs
+          .readdirSync(dir, { recursive: true, withFileTypes: true })
+          .filter((entry) => entry.isFile())
+          .map((entry) => {
+            const file = path.join(entry.parentPath, entry.name);
+            return [path.relative(dir, file), fs.readFileSync(file, "utf8")];
+          }),
+      );
+    const before = snapshot(root);
+
+    const second = applyAuthPrune(root, ["clerk", "cognito"]);
+
+    expect(snapshot(root)).toEqual(before);
+    for (const result of second) {
+      expect(result.packagesRemoved).toEqual([]);
+      expect(result.stubbed).toEqual([]);
+      expect(result.deleted).toEqual([]);
+    }
+  });
+
+  it("tolerates a project that lacks some of the files", () => {
+    fs.rmSync(path.join(root, authPruneSpec("cognito").stubs[0].path));
+    expect(() => applyAuthPrune(root, ["cognito"])).not.toThrow();
   });
 });
