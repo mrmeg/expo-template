@@ -4,7 +4,7 @@ import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { useScalePress } from "../hooks/useScalePress";
 import { resolvePopoverPlacement } from "../lib/popoverPlacement";
-import * as PopoverPrimitive from "@rn-primitives/popover";
+import * as PopoverPrimitive from "./overlayPrimitives/popover";
 import * as React from "react";
 import {
   Animated,

@@ -9,7 +9,7 @@ import { useFocusVisible } from "../hooks/useFocusVisible";
 import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
 import { useScalePress } from "../hooks/useScalePress";
-import * as SelectPrimitive from "@rn-primitives/select";
+import * as SelectPrimitive from "./overlayPrimitives/select";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 

@@ -188,7 +188,13 @@ function inheritedFrom(checker: ts.TypeChecker, symbol: ts.Symbol): string | nul
     while (node && !ts.isImportDeclaration(node) && !ts.isSourceFile(node)) node = node.parent;
     if (node && ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
       const specifier = node.moduleSpecifier.text;
-      return specifier.startsWith(".") || specifier.startsWith("@mrmeg/") ? null : specifier;
+      if (specifier.startsWith("@mrmeg/")) return null;
+      if (!specifier.startsWith(".")) return specifier;
+      // A kit module re-declaring something (`overlayPrimitives/*`): look at that declaration.
+      const qualified = checker.getSymbolAtLocation(name);
+      if (!qualified || !ts.isQualifiedName(name)) return null;
+      const target = qualified.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(qualified) : qualified;
+      return target.declarations?.[0] ? fromDeclaration(target.declarations[0], depth + 1) : null;
     }
     return fromDeclaration(declaration, depth + 1);
   };
