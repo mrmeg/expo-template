@@ -31,7 +31,7 @@ on:
   workflow_dispatch:
     inputs:
       package:
-        description: "Package short name from scripts/lib/workspacePackages.mjs: ui, media, purchases, lint"
+        description: "Package short name from scripts/lib/workspacePackages.mjs: ui, media, purchases, lint, metro"
         required: true
       version:
         description: "Version bump: patch, minor, major, or exact x.y.z (the committed version releases as is)"

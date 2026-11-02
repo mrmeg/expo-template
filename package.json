@@ -88,6 +88,7 @@
     "@expo/ui": "~58.0.26",
     "@hookform/resolvers": "^7.0.1",
     "@mrmeg/expo-media": "workspace:*",
+    "@mrmeg/expo-metro": "workspace:*",
     "@mrmeg/expo-ui": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@sentry/react": "11.10.0",

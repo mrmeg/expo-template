@@ -13,7 +13,7 @@
  * approved is the file `npm publish` uploads.
  *
  * Usage:
- *   node scripts/check-package-consumer.mjs <ui|media|purchases|lint> [--tarball <path>]
+ *   node scripts/check-package-consumer.mjs <ui|media|purchases|lint|metro> [--tarball <path>]
  */
 import { existsSync } from "node:fs";
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -545,6 +545,123 @@ const LINT_RUNTIME_CJS = [
   "",
 ].join("\n");
 
+const METRO_TYPES_TS = [
+  "import {",
+  "  withBundleOptimizations,",
+  "  isZodLocaleBarrelImport,",
+  "  isServerEnvironment,",
+  "  packageOfModulePath,",
+  "  TREE_SHAKING_ENV,",
+  "  type BundleOptimizationOptions,",
+  "  type MetroResolveRequest,",
+  "} from \"@mrmeg/expo-metro\";",
+  "",
+  "// A config shaped like Expo's MetroConfig: the wrapper must hand back its own type.",
+  "interface AppConfig {",
+  "  projectRoot: string;",
+  "  resolver: { sourceExts: string[]; resolveRequest?: MetroResolveRequest };",
+  "}",
+  "const config: AppConfig = { projectRoot: \"/app\", resolver: { sourceExts: [\"ts\"] } };",
+  "const options: BundleOptimizationOptions = { treeShaking: false, zodLocaleStub: true };",
+  "",
+  "const wrapped: AppConfig = withBundleOptimizations(config, options);",
+  "const root: string = wrapped.projectRoot;",
+  "const barrel: boolean = isZodLocaleBarrelImport({",
+  "  moduleName: \"../locales/index.js\",",
+  "  originModulePath: \"/app/node_modules/zod/v4/core/index.js\",",
+  "  environment: \"node\",",
+  "});",
+  "const server: boolean = isServerEnvironment(undefined);",
+  "const owner: string | null = packageOfModulePath(\"/app/node_modules/zod/index.js\");",
+  "const flags: readonly string[] = TREE_SHAKING_ENV;",
+  "",
+  "// @ts-expect-error unknown options are rejected at compile time too",
+  "withBundleOptimizations(config, { treeShake: true });",
+  "",
+  "export { root, barrel, server, owner, flags };",
+  "",
+].join("\n");
+
+// Runs in a child `node` per case, because the env flags are read and written at
+// call time and each case needs its own starting environment.
+const METRO_RUNTIME_CJS = [
+  "const assert = require(\"node:assert/strict\");",
+  "const { spawnSync } = require(\"node:child_process\");",
+  "const fs = require(\"node:fs\");",
+  "const path = require(\"node:path\");",
+  "",
+  "const FLAGS = [\"EXPO_UNSTABLE_TREE_SHAKING\", \"EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH\"];",
+  "",
+  "// Load the installed package in a clean process with `env`, run `body`, print JSON.",
+  "function inChild(env, body) {",
+  "  const script = `const m = require(\"@mrmeg/expo-metro\"); ${body}`;",
+  "  const clean = { ...process.env };",
+  "  for (const name of FLAGS) delete clean[name];",
+  "  const result = spawnSync(process.execPath, [\"-e\", script], {",
+  "    cwd: __dirname,",
+  "    encoding: \"utf8\",",
+  "    env: { ...clean, ...env },",
+  "  });",
+  "  assert.equal(result.status, 0, result.stderr);",
+  "  return JSON.parse(result.stdout);",
+  "}",
+  "",
+  "const flagsOf = `JSON.stringify(${JSON.stringify(FLAGS)}.map((n) => process.env[n]))`;",
+  "",
+  "// Defaults turn both flags on.",
+  "assert.deepEqual(inChild({}, `m.withBundleOptimizations({}); console.log(${flagsOf})`), [\"1\", \"1\"]);",
+  "// A 0 in the environment is an opt-out.",
+  "assert.deepEqual(",
+  "  inChild(",
+  "    { EXPO_UNSTABLE_TREE_SHAKING: \"0\", EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH: \"0\" },",
+  "    `m.withBundleOptimizations({}); console.log(${flagsOf})`,",
+  "  ),",
+  "  [\"0\", \"0\"],",
+  ");",
+  "// treeShaking: false leaves both unset.",
+  "assert.deepEqual(",
+  "  inChild({}, `m.withBundleOptimizations({}, { treeShaking: false }); console.log(${flagsOf})`),",
+  "  [null, null],",
+  ");",
+  "",
+  "// The resolver: the zod barrel is empty in client bundles, everything else is delegated.",
+  "const resolver = inChild(",
+  "  {},",
+  "  `",
+  "  const calls = [];",
+  "  const upstream = (_c, name) => { calls.push('upstream:' + name); return { type: 'sourceFile', filePath: name }; };",
+  "  const config = m.withBundleOptimizations({ extra: 1, resolver: { resolveRequest: upstream, sourceExts: ['ts'] } });",
+  "  const zod = '/app/node_modules/zod/v4/core/index.js';",
+  "  const ctx = (origin, environment) => ({ originModulePath: origin, customResolverOptions: environment ? { environment } : {}, resolveRequest: () => { throw new Error('context fallback used'); } });",
+  "  const run = (name, origin, environment) => config.resolver.resolveRequest(ctx(origin, environment), name, 'ios');",
+  "  console.log(JSON.stringify({",
+  "    client: run('../locales/index.js', zod),",
+  "    server: run('../locales/index.js', zod, 'node'),",
+  "    english: run('../locales/en.js', zod),",
+  "    app: run('../locales/index.js', '/app/client/x.ts'),",
+  "    extra: config.extra,",
+  "    sourceExts: config.resolver.sourceExts,",
+  "    calls,",
+  "  }));",
+  "  `,",
+  ");",
+  "assert.deepEqual(resolver.client, { type: \"empty\" });",
+  "assert.deepEqual(resolver.server, { type: \"sourceFile\", filePath: \"../locales/index.js\" });",
+  "assert.deepEqual(resolver.english, { type: \"sourceFile\", filePath: \"../locales/en.js\" });",
+  "assert.deepEqual(resolver.app, { type: \"sourceFile\", filePath: \"../locales/index.js\" });",
+  "assert.equal(resolver.extra, 1);",
+  "assert.deepEqual(resolver.sourceExts, [\"ts\"]);",
+  "assert.deepEqual(resolver.calls, [\"upstream:../locales/index.js\", \"upstream:../locales/en.js\", \"upstream:../locales/index.js\"]);",
+  "",
+  "// No runtime dependencies, no required modules: it must load in a bare Node project.",
+  "const root = path.join(__dirname, \"node_modules\", \"@mrmeg\", \"expo-metro\");",
+  "const manifest = JSON.parse(fs.readFileSync(path.join(root, \"package.json\"), \"utf8\"));",
+  "assert.equal(manifest.dependencies, undefined);",
+  "assert.doesNotMatch(fs.readFileSync(path.join(root, \"index.js\"), \"utf8\"), /\\brequire\\(/);",
+  "console.log(\"metro consumer: flags, resolver, and package shape verified\");",
+  "",
+].join("\n");
+
 /**
  * Per-package fixtures. `files` receives `{ tarball, extraTarballs, rootPackage,
  * manifest, peerDependencies }` and returns the fixture's files keyed by relative
@@ -947,10 +1064,55 @@ const PACKAGES = {
       },
     ],
   },
+  metro: {
+    dir: "packages/metro",
+    packageName: "@mrmeg/expo-metro",
+    // Plain CommonJS, one entry point, no build step.
+    exportChecks: [{ entrypoint: "@mrmeg/expo-metro", key: ".", wildcardReplacement: "" }],
+    requiredDocs: ["index.js", "index.d.ts", "README.md", "CHANGELOG.md", "LICENSE"],
+    fixtures: [
+      {
+        prefix: "expo-metro-consumer-",
+        // The optional `expo` peer is never loaded by the package, so the fixture
+        // installs none: it proves the package works in a bare Node project.
+        install: ["install", "--omit", "peer"],
+        files: ({ tarball, rootPackage }) => ({
+          "package.json": json({
+            name: "expo-metro-consumer-smoke",
+            private: true,
+            dependencies: {
+              "@mrmeg/expo-metro": tarball,
+              "@types/node": rootPackage.devDependencies["@types/node"],
+              typescript: rootPackage.devDependencies.typescript,
+            },
+          }),
+          // Node16 resolution reads the `exports` map, as a consumer's does.
+          "tsconfig.json": json({
+            compilerOptions: {
+              strict: true,
+              module: "Node16",
+              moduleResolution: "Node16",
+              skipLibCheck: false,
+              noEmit: true,
+              types: ["node"],
+            },
+            include: ["*.ts"],
+          }),
+          "types.ts": METRO_TYPES_TS,
+          "runtime.cjs": METRO_RUNTIME_CJS,
+        }),
+        steps: [
+          { kind: "assert-surface" },
+          { kind: "run", command: "bun", args: ["x", "tsc", "--noEmit"] },
+          { kind: "run", command: "node", args: ["runtime.cjs"], expectStdout: "metro consumer: flags, resolver, and package shape verified" },
+        ],
+      },
+    ],
+  },
 };
 
 const packageNames = Object.keys(PACKAGES).sort();
-const USAGE = "Usage: node scripts/check-package-consumer.mjs <ui|media|purchases|lint> [--tarball <path>]";
+const USAGE = "Usage: node scripts/check-package-consumer.mjs <ui|media|purchases|lint|metro> [--tarball <path>]";
 const [packageName, ...options] = process.argv.slice(2);
 const target = PACKAGES[packageName];
 

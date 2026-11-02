@@ -52,6 +52,12 @@ const sources = [
       "design-system ESLint rules, CLI, settings, style contracts, adopting the plugin in another project, troubleshooting",
   },
   {
+    path: "packages/metro/README.md",
+    title: "@mrmeg/expo-metro",
+    summary:
+      "withBundleOptimizations: tree-shaking env flags, zod locale stub, composing with Sentry and Reanimated wrappers, opting out",
+  },
+  {
     path: "docs/server-guide.md",
     title: "Expo Server Guide",
     summary:

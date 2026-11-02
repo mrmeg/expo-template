@@ -21,8 +21,6 @@ const {
   getScopedDedupeTarget,
   isRouteFileForOtherPlatform,
   isUnusedRouteFile,
-  isZodLocaleBarrelImport,
-  packageOfModulePath,
 } = require("../resolverRules");
 
 const REPO_ROOT = path.resolve(__dirname, "../..");
@@ -368,57 +366,12 @@ describe("route files for other platforms", () => {
   });
 });
 
-describe("zod locale barrel", () => {
-  const core = "/repo/node_modules/zod/v4/core/index.js";
-
-  it("stubs zod's own barrel import, ESM and CJS, in every client bundle", () => {
-    for (const moduleName of ["../locales/index.js", "../locales/index.cjs"]) {
-      expect(isZodLocaleBarrelImport({ moduleName, originModulePath: core })).toBe(true);
-    }
-    expect(
-      isZodLocaleBarrelImport({
-        moduleName: "../locales/index.js",
-        originModulePath: "/repo/node_modules/zod/v4/mini/external.js",
-        environment: "client",
-      })
-    ).toBe(true);
-  });
-
-  it("keeps the English pack classic zod loads for its default messages", () => {
-    expect(isZodLocaleBarrelImport({ moduleName: "../locales/en.js", originModulePath: core })).toBe(false);
-  });
-
-  it("keeps the barrel for other packages, app code, and server bundles", () => {
-    const moduleName = "../locales/index.js";
-    expect(isZodLocaleBarrelImport({ moduleName, originModulePath: "/repo/client/i18n/x.ts" })).toBe(false);
-    expect(
-      isZodLocaleBarrelImport({ moduleName, originModulePath: "/repo/node_modules/other/core/index.js" })
-    ).toBe(false);
-    expect(isZodLocaleBarrelImport({ moduleName, originModulePath: core, environment: "node" })).toBe(false);
-    expect(isZodLocaleBarrelImport({ moduleName, originModulePath: core, environment: "react-server" })).toBe(false);
-    expect(isZodLocaleBarrelImport({ moduleName })).toBe(false);
-  });
-});
-
 describe("scoped dedupes", () => {
   const NM = `${ROOT}/node_modules`;
   const dedupes = SCOPED_DEDUPES.map((entry) => ({
     ...entry,
     packagePath: `${NM}/${entry.packageName}`,
   }));
-
-  describe("packageOfModulePath", () => {
-    it.each([
-      [`${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`, "whatwg-url-without-unicode"],
-      [`${NM}/@clerk/clerk-expo/dist/polyfills/index.js`, "@clerk/clerk-expo"],
-      [`${NM}/@clerk/clerk-expo/node_modules/react-native-url-polyfill/auto.js`, "react-native-url-polyfill"],
-      [`${NM}/react-native-web/dist/exports/processColor/index.js`, "react-native-web"],
-      [`${ROOT}/client/lib/sentry.ts`, null],
-      [`${NM}/@scope`, null],
-    ])("%s → %s", (file, expected) => {
-      expect(packageOfModulePath(file)).toBe(expected);
-    });
-  });
 
   it("collapses buffer onto the app copy for whatwg-url-without-unicode, keeping the subpath", () => {
     const originModulePath = `${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`;

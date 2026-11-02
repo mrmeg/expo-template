@@ -19,6 +19,7 @@ Links below are raw URLs on the `main` branch and can be fetched directly.
 - [UI package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/README.md): full `@mrmeg/expo-ui` install, setup, theming, and publishing reference
 - [Media package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/media/README.md): `@mrmeg/expo-media` contracts, client hooks, server handler factories, processing presets
 - [Purchases package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/purchases/README.md): `@mrmeg/expo-purchases` RevenueCat client, entitlement store, paywall gating, pure webhook and ledger helpers, setup and store-review checklists
+- [Metro package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/metro/README.md): `@mrmeg/expo-metro` `withBundleOptimizations`, tree-shaking env flags, zod locale stub, opting out
 - [Lint plugin README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/lint/README.md): `@mrmeg/eslint-plugin-expo-ui` design-system ESLint rules, CLI, settings, adoption in another project
 - [Expo server guide](https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/server-guide.md): server output, API routes, data loaders, middleware, server entries, replication checklist
 

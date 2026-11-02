@@ -14,7 +14,9 @@ For measured styling-engine pilots and the decision to retain `StyleSheet`, see 
 | `bun run build && bun run first-load --update` | Rewrite the first-load baseline; commit the result |
 
 `metro.config.js` turns on `EXPO_UNSTABLE_TREE_SHAKING` and
-`EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH`, so `expo export`, `export:embed` (Xcode, Gradle,
+`EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH` through `withBundleOptimizations` from
+[`@mrmeg/expo-metro`](../packages/metro/README.md) (`packages/metro`, which an app
+installs instead of copying the flags), so `expo export`, `export:embed` (Xcode, Gradle,
 EAS) and `eas update` all tree-shake without any env. Set either to `0` to opt out.
 With both off, this template's web JS grows from 6.0 to 7.7 MB raw and the Sentry
 chunk from 106 to 221 kB brotli.
@@ -152,8 +154,10 @@ Which side-effect imports survive is not predictable from the source
 ## Resolver Stubs and Dedupes
 
 `metro.config.js` resolves a few modules differently from Node. The selection
-logic lives in `metro/resolverRules.js`, unit-tested in `metro/__tests__/`, and
-every rule errs toward shipping code: when a condition is not certain, the real
+logic lives in `metro/resolverRules.js`, unit-tested in `metro/__tests__/`, except
+the zod locale rule, which is generic and ships in `@mrmeg/expo-metro`
+(`packages/metro`, tested in `packages/metro/__tests__/`). Every rule
+errs toward shipping code: when a condition is not certain, the real
 module resolves. Sizes below come from `expo export` with the tree-shaking
 flags (`--no-bytecode` on iOS) and a blank env unless a column says otherwise,
 attributed per package from the source maps.
@@ -236,7 +240,9 @@ inversion (move its code to `.native.tsx`) removes it.
 
 `export * as locales` in zod's core, mini, and classic entries keeps every language
 pack however the app imports zod: named imports from `zod/mini` measured the same
-size as `import * as z`. `isZodLocaleBarrelImport` resolves zod's own
+size as `import * as z`. `isZodLocaleBarrelImport` (`@mrmeg/expo-metro`, on by
+default through `withBundleOptimizations`; `zodLocaleStub: false` turns it off)
+resolves zod's own
 `../locales/index` to an empty module in client bundles, taking the form route's
 chunk from 652 to 329 kB raw (104 to 68 kB brotli), and 316 kB off the iOS bundle.
 
