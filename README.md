@@ -123,7 +123,7 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `bun lint:ui` | Design-system rules only, over `app`, `client`, `shared`; `--changed` for touched files, `--doctor` to check wiring — see [`packages/lint/README.md`](packages/lint/README.md) |
 | `bun run verify` | Every quality gate, in order — exactly what CI's `validate` job runs; the list is in [`CONTRIBUTING.md#verify-gates`](CONTRIBUTING.md#verify-gates) |
 | `bun run gen` | Regenerate every generated artifact (icon, template, and block registries, LLM docs); `--check` fails on a stale one |
-| `bun run pkg <package> <task>` | A workspace package task: `typecheck`, `test`, `build`, `pack`, `consumer-smoke`, `release` for `ui`, `media`, `purchases`, `lint` — see [Publishing packages](#publishing-packages) |
+| `bun run pkg <package> <task>` | A workspace package task: `typecheck`, `test`, `build`, `pack`, `consumer-smoke`, `release` for `ui`, `media`, `purchases`, `lint`, `metro` — see [Publishing packages](#publishing-packages) |
 | `bun run test:ci` | `jest --ci --forceExit` (`bun run test:coverage` adds the coverage report) |
 | `bun run e2e` | Maestro native smoke suite — see `docs/e2e.md` |
 | `bun run bundle-size` | Compare client JS against `scripts/bundle-baseline.json` |
@@ -215,6 +215,8 @@ does not collect it. The lint plugin's own suites live in
 /packages/ui                  # @mrmeg/expo-ui npm package source
 /packages/media               # @mrmeg/expo-media npm package source
 /packages/purchases           # @mrmeg/expo-purchases npm package source
+/packages/lint                # @mrmeg/eslint-plugin-expo-ui npm package source
+/packages/metro               # @mrmeg/expo-metro npm package source (Metro config wrapper)
 
 /server.bun.ts                # Bun production server (compression, CORS, rate limits)
 /server                       # Shared server helpers (rate limits, API helpers, media handlers)
@@ -331,7 +333,7 @@ implementation details such as
 
 ### Publishing packages
 
-Every workspace package (`ui`, `media`, `purchases`, `lint`) has the same tasks:
+Every workspace package (`ui`, `media`, `purchases`, `lint`, `metro`) has the same tasks:
 
 ```bash
 bun run pkg ui typecheck
@@ -490,7 +492,8 @@ eas build --profile production --platform all
 The dev profiles set no `channel` — a dev client pulls JS from the local dev
 server, not from EAS Update.
 
-`metro.config.js` sets `EXPO_UNSTABLE_TREE_SHAKING` and
+`metro.config.js` wraps its config in `withBundleOptimizations` from
+`@mrmeg/expo-metro` (`packages/metro`), which sets `EXPO_UNSTABLE_TREE_SHAKING` and
 `EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH`, so every production bundle is tree-shaken
 whichever build starts it. Set either to `0` in the environment to opt out.
 

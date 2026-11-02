@@ -11,13 +11,11 @@
  */
 
 const path = require("path");
+// Shared with the package so there is one implementation of each.
+const { isServerEnvironment, packageOfModulePath } = require("@mrmeg/expo-metro");
 
 function matchesPackage(moduleName, packageName) {
   return moduleName === packageName || moduleName.startsWith(`${packageName}/`);
-}
-
-function isServerEnvironment(environment) {
-  return environment === "node" || environment === "react-server";
 }
 
 /** `filePath` relative to each project root, POSIX-style (roots: the path and its realpath). */
@@ -168,27 +166,6 @@ function isUnusedRouteFile({ moduleName, originModulePath, platform, routerRoots
 }
 
 // ---------------------------------------------------------------------------
-// Zod locale barrel
-// ---------------------------------------------------------------------------
-
-/**
- * Zod's own `../locales/index` import, in client bundles.
- *
- * `export * as locales` in zod's core, mini and classic entries keeps every
- * language pack (~280 kB of ~490 kB on web) however the app imports zod: tree
- * shaking cannot see through a namespace re-export. Default English messages are
- * unaffected, because classic zod imports `../locales/en` directly. The app-level
- * `zod/locales` subpath also resolves normally; only `z.locales.*` is empty.
- */
-function isZodLocaleBarrelImport({ moduleName, originModulePath, environment }) {
-  if (isServerEnvironment(environment) || !originModulePath) return false;
-  return (
-    /^\.\.\/locales\/index\.c?js$/.test(moduleName) &&
-    packageOfModulePath(originModulePath) === "zod"
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Scoped dedupes
 // ---------------------------------------------------------------------------
 
@@ -231,17 +208,6 @@ const SCOPED_DEDUPES = [
   { packageName: "@react-native/normalize-colors", importers: ["react-native-web"] },
 ];
 
-/** The package a module path belongs to: the segment after its last `node_modules`. */
-function packageOfModulePath(filePath) {
-  const segments = filePath.split(/[\\/]/);
-  const index = segments.lastIndexOf("node_modules");
-  const name = index === -1 ? undefined : segments[index + 1];
-  if (!name) return null;
-  if (!name.startsWith("@")) return name;
-  const scopedName = segments[index + 2];
-  return scopedName ? `${name}/${scopedName}` : null;
-}
-
 /**
  * `moduleName` rewritten onto the app-level copy when a scoped dedupe applies,
  * else null. `request` carries the bundle (`platform`, `dev`, `environment`,
@@ -282,6 +248,4 @@ module.exports = {
   getScopedDedupeTarget,
   isRouteFileForOtherPlatform,
   isUnusedRouteFile,
-  isZodLocaleBarrelImport,
-  packageOfModulePath,
 };

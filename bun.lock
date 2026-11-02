@@ -14,6 +14,7 @@
         "@expo/ui": "~58.0.26",
         "@hookform/resolvers": "^7.0.1",
         "@mrmeg/expo-media": "workspace:*",
+        "@mrmeg/expo-metro": "workspace:*",
         "@mrmeg/expo-ui": "workspace:*",
         "@react-native-async-storage/async-storage": "2.2.0",
         "@sentry/react": "11.10.0",
@@ -143,6 +144,16 @@
         "heic2any",
         "react",
         "react-native",
+      ],
+    },
+    "packages/metro": {
+      "name": "@mrmeg/expo-metro",
+      "version": "0.1.0",
+      "peerDependencies": {
+        "expo": ">=52.0.0",
+      },
+      "optionalPeers": [
+        "expo",
       ],
     },
     "packages/purchases": {
@@ -741,6 +752,8 @@
     "@mrmeg/eslint-plugin-expo-ui": ["@mrmeg/eslint-plugin-expo-ui@workspace:packages/lint"],
 
     "@mrmeg/expo-media": ["@mrmeg/expo-media@workspace:packages/media"],
+
+    "@mrmeg/expo-metro": ["@mrmeg/expo-metro@workspace:packages/metro"],
 
     "@mrmeg/expo-purchases": ["@mrmeg/expo-purchases@workspace:packages/purchases"],
 

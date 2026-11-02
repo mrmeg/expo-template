@@ -18,13 +18,23 @@ const APP = fs.realpathSync(REPO_ROOT);
 let resolveRequest;
 // The resolver reads the env per request; pin a blank DSN whatever the shell has.
 const savedDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+// Loading the config must set the tree shaking flags (Expo reads them afterwards).
+const TREE_SHAKING_FLAGS = ["EXPO_UNSTABLE_TREE_SHAKING", "EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH"];
+const savedFlags = Object.fromEntries(TREE_SHAKING_FLAGS.map((name) => [name, process.env[name]]));
+let flagsAfterLoad;
 
 beforeAll(() => {
   delete process.env.EXPO_PUBLIC_SENTRY_DSN;
+  for (const name of TREE_SHAKING_FLAGS) delete process.env[name];
   resolveRequest = require("../../metro.config.js").resolver.resolveRequest;
+  flagsAfterLoad = TREE_SHAKING_FLAGS.map((name) => process.env[name]);
 });
 
 afterAll(() => {
+  for (const [name, value] of Object.entries(savedFlags)) {
+    if (value === undefined) delete process.env[name];
+    else process.env[name] = value;
+  }
   if (savedDsn === undefined) delete process.env.EXPO_PUBLIC_SENTRY_DSN;
   else process.env.EXPO_PUBLIC_SENTRY_DSN = savedDsn;
 });
@@ -111,6 +121,21 @@ describe("metro.config.js resolver wiring", () => {
       platform: "web",
     });
     expect(result).toEqual({ type: "empty" });
+  });
+
+  it("resolves zod's locale barrel to the empty module in client bundles only", () => {
+    const originModulePath = path.join(APP, "node_modules/zod/v4/core/index.js");
+    for (const platform of ["ios", "web"]) {
+      const { result, upstream } = resolveWith({ moduleName: "../locales/index.js", originModulePath, platform });
+      expect(result).toEqual({ type: "empty" });
+      expect(upstream).not.toHaveBeenCalled();
+    }
+    const server = resolveWith({ moduleName: "../locales/index.js", originModulePath, environment: "node" });
+    expect(server.result).toEqual({ type: "sourceFile", filePath: "../locales/index.js" });
+  });
+
+  it("turns on tree shaking and graph optimization when the config loads", () => {
+    expect(flagsAfterLoad).toEqual(["1", "1"]);
   });
 
   it("passes other requests through unchanged", () => {

@@ -47,11 +47,12 @@ stops matching `bun run verify --list`. Rerun any gate on its own as
 | 5 | `pkg media typecheck` | `@mrmeg/expo-media` against its own tsconfig |
 | 6 | `pkg purchases typecheck` | `@mrmeg/expo-purchases` against its own tsconfig |
 | 7 | `pkg lint typecheck` | `@mrmeg/eslint-plugin-expo-ui` against its own tsconfig |
-| 8 | `lint` | `expo lint` over `app/` (run `bun lint:ui` for `client/` and `shared/`) |
-| 9 | `check:features` | Feature-folder isolation |
-| 10 | `gen --check` | Every generated artifact is fresh: icon builtins and Lucide snapshot, app and tab icon modules, template and block registries, `llms-full.txt` / `llms-examples.txt`. Fix with `bun run gen` |
-| 11 | `docs:versions:check` | `README.md`'s version claims match `package.json` |
-| 12 | `test:ci` | `jest --ci --forceExit`, no coverage (`bun run test:coverage` when you want the report). `--forceExit` because some suites leave timers that hold a single-worker run open for minutes |
+| 8 | `pkg metro typecheck` | `@mrmeg/expo-metro` against its own tsconfig |
+| 9 | `lint` | `expo lint` over `app/` (run `bun lint:ui` for `client/` and `shared/`) |
+| 10 | `check:features` | Feature-folder isolation |
+| 11 | `gen --check` | Every generated artifact is fresh: icon builtins and Lucide snapshot, app and tab icon modules, template and block registries, `llms-full.txt` / `llms-examples.txt`. Fix with `bun run gen` |
+| 12 | `docs:versions:check` | `README.md`'s version claims match `package.json` |
+| 13 | `test:ci` | `jest --ci --forceExit`, no coverage (`bun run test:coverage` when you want the report). `--forceExit` because some suites leave timers that hold a single-worker run open for minutes |
 <!-- verify-gates:end -->
 
 `bun run verify --bail` stops at the first failure; `--max-workers <n>` caps
@@ -60,7 +61,7 @@ jest's workers on a shared machine.
 ## Packages
 
 Package tasks run through one runner, for every package in
-`scripts/lib/workspacePackages.mjs` (`ui`, `media`, `purchases`, `lint`):
+`scripts/lib/workspacePackages.mjs` (`ui`, `media`, `purchases`, `lint`, `metro`):
 
 ```bash
 bun run pkg <package> typecheck|test|build|pack|consumer-smoke|release
