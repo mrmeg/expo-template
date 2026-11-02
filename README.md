@@ -112,12 +112,13 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `bun run test:ci` | `jest --ci --forceExit` (`bun run test:coverage` adds the coverage report) |
 | `bun run e2e` | Maestro native smoke suite — see `docs/e2e.md` |
 | `bun run bundle-size` | Compare client JS against `scripts/bundle-baseline.json` |
+| `bun run first-load` | Compare the JS `/` downloads against `scripts/first-load-baseline.json` |
 | `bun run analyze` | `source-map-explorer` treemap of the client bundle |
 | `bun run generate component\|screen\|hook\|form <Name>` | Scaffold a module — see [Generator CLI](#generator-cli) |
 
 ## Render Performance Checks
 
-The web document injects React Scan only when a local URL includes `?scan`:
+The dev server's web document injects React Scan only when a local URL includes `?scan`:
 
 ```bash
 bun run web
@@ -420,8 +421,10 @@ jobs, no app credentials required:
   [`CONTRIBUTING.md#verify-gates`](CONTRIBUTING.md#verify-gates). Its `lint` is
   `expo lint`, so it gates `app/` only; run `bun lint:ui` for `client/` and
   `shared/`.
-- **Web Build + Bundle Size** — `bun run build` → `bun run bundle-size`. Fails
-  the PR on >10% client bundle growth against `scripts/bundle-baseline.json`.
+- **Web Build + Bundle Size** — `bun run build` → `bun run bundle-size` →
+  `bun run first-load`. Fails the PR on >10% client bundle growth against
+  `scripts/bundle-baseline.json`, or >5% growth in what `/` downloads against
+  `scripts/first-load-baseline.json`.
 
 `.github/workflows/package-compatibility.yml` installs each package's packed
 tarball into Expo SDK consumer profiles on the same events, for changes under
@@ -472,10 +475,9 @@ eas build --profile production --platform all
 The dev profiles set no `channel` — a dev client pulls JS from the local dev
 server, not from EAS Update.
 
-Every profile's `env` sets `EXPO_UNSTABLE_TREE_SHAKING=1` and
-`EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1`, as do `bun run build` / `build-web` and
-the EAS Update workflow job, so every production bundle is tree-shaken. `.env` is
-gitignored, so its copy of the flags reaches local exports only.
+`metro.config.js` sets `EXPO_UNSTABLE_TREE_SHAKING` and
+`EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH`, so every production bundle is tree-shaken
+whichever build starts it. Set either to `0` in the environment to opt out.
 
 A build's update channel comes only from its profile's `channel` in `eas.json`;
 `app.config.ts` does not derive one, so renaming a profile needs no config change.

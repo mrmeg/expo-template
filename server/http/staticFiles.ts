@@ -2,7 +2,8 @@
  * Static file serving from the web export's `dist/client`.
  *
  * Hashed paths (`/_expo/static/`, `/assets/`) are cached for a year as
- * immutable; everything else for an hour. For compressible files the
+ * immutable; the self-hosted fonts under `/fonts/`, which change only with a
+ * pinned package bump, for 30 days; everything else for an hour. For compressible files the
  * response varies on `Accept-Encoding`:
  *
  * 1. A hashed file with a build-time sibling (`<file>.br` / `<file>.gz`,
@@ -30,6 +31,8 @@ import { appendVary } from "./headers";
 
 export const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 export const SHORT_CACHE_CONTROL = "public, max-age=3600";
+/** Unhashed but rarely changing, so not immutable: a new face reaches visitors within 30 days. */
+export const FONT_CACHE_CONTROL = "public, max-age=2592000, stale-while-revalidate=604800";
 
 /** File suffix of each build-time precompressed sibling. */
 export const PRECOMPRESSED_SUFFIX: Record<ContentEncoding, string> = {
@@ -88,7 +91,8 @@ export function isImmutableStaticPath(pathname: string): boolean {
 }
 
 export function cacheControlFor(pathname: string): string {
-  return isImmutableStaticPath(pathname) ? IMMUTABLE_CACHE_CONTROL : SHORT_CACHE_CONTROL;
+  if (isImmutableStaticPath(pathname)) return IMMUTABLE_CACHE_CONTROL;
+  return pathname.startsWith("/fonts/") ? FONT_CACHE_CONTROL : SHORT_CACHE_CONTROL;
 }
 
 /**

@@ -1,4 +1,11 @@
 /* eslint-disable no-undef */
+
+// Tree shaking and graph optimization for every export, on every machine. Expo
+// reads both after loading this file, so a build with no `.env` (Railway, EAS, CI)
+// gets the same tree-shaken bundle as a local one. Set either to 0 to opt out.
+process.env.EXPO_UNSTABLE_TREE_SHAKING ??= "1";
+process.env.EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH ??= "1";
+
 const fs = require("fs");
 const { getDefaultConfig } = require("expo/metro-config");
 const {
@@ -14,6 +21,7 @@ const {
   getOmittedIntegrationFor,
   getScopedDedupeTarget,
   isUnusedRouteFile,
+  isZodLocaleBarrelImport,
 } = require("./metro/resolverRules");
 const path = require("path");
 
@@ -201,6 +209,10 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   }
 
   if (isUnusedRouteFile({ moduleName, originModulePath, platform, routerRoots })) {
+    return { type: "empty" };
+  }
+
+  if (isZodLocaleBarrelImport(request)) {
     return { type: "empty" };
   }
 

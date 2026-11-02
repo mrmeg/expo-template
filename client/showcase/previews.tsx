@@ -609,7 +609,7 @@ export const PREVIEWS: Record<string, () => React.ReactElement> = {
 
   Toggle: () => (
     <Row gap={spacing.xs}>
-      <TogglePreview icon="bold" label="Bold" initial />
+      <TogglePreview icon="letter-b" label="Bold" initial />
       <TogglePreview icon="italic" label="Italic" initial={false} />
       <TogglePreview icon="underline" label="Underline" initial={false} />
     </Row>
