@@ -3,8 +3,10 @@
  * bundle the app.
  *
  * Every production bundle is tree-shaken. `metro.config.js` is the one place that
- * sets `EXPO_UNSTABLE_TREE_SHAKING` and `EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH`, so a
- * build gets them whatever starts it: CI, Railway and EAS see no gitignored `.env`.
+ * turns on `EXPO_UNSTABLE_TREE_SHAKING` and `EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH`,
+ * through `withBundleOptimizations` from `@mrmeg/expo-metro` (the package sets
+ * the flags), so a build gets them whatever starts it: CI, Railway and EAS see no
+ * gitignored `.env`.
  */
 import { execFileSync } from "child_process";
 import { readFileSync } from "fs";
@@ -17,14 +19,19 @@ const scripts = (JSON.parse(read("package.json")) as { scripts: Record<string, s
 const FLAGS = ["EXPO_UNSTABLE_TREE_SHAKING", "EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH"];
 
 describe("tree-shaking flags", () => {
-  it("metro.config.js sets both flags before anything else, overridable from the environment", () => {
+  it("metro.config.js turns both flags on through @mrmeg/expo-metro, not opted out", () => {
     const config = read("metro.config.js");
-    const firstRequire = config.indexOf("require(");
 
-    for (const flag of FLAGS) {
-      const assignment = config.indexOf(`process.env.${flag} ??= "1";`);
-      expect([flag, assignment >= 0 && assignment < firstRequire]).toEqual([flag, true]);
-    }
+    expect(config).toContain("require(\"@mrmeg/expo-metro\")");
+    expect(config).toMatch(/withBundleOptimizations\(getDefaultConfig\(__dirname\)\)/);
+    expect(config).not.toContain("treeShaking: false");
+  });
+
+  it("the package sets each flag only when unset, so a 0 in the environment opts out", () => {
+    const source = read("packages/metro/index.js");
+
+    for (const flag of FLAGS) expect(source).toContain(flag);
+    expect(source).toContain("process.env[name] ??= \"1\"");
   });
 
   it("nothing else sets them, so one place decides", () => {

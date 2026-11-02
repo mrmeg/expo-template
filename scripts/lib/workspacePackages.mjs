@@ -16,6 +16,7 @@ export const WORKSPACE_PACKAGES = {
   media: { dir: "packages/media" },
   purchases: { dir: "packages/purchases" },
   lint: { dir: "packages/lint" },
+  metro: { dir: "packages/metro" },
 };
 
 /** Short names in table order: the order gates and plans run in. */

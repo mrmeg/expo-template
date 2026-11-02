@@ -97,6 +97,7 @@ describe("the gate list", () => {
       "pkg media typecheck",
       "pkg purchases typecheck",
       "pkg lint typecheck",
+      "pkg metro typecheck",
       "lint",
       "check:features",
       "gen --check",

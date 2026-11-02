@@ -30,6 +30,7 @@ unless the user asks for a plan.
 | Media Package | [`packages/media/README.md`](packages/media/README.md) | `@mrmeg/expo-media` install, setup, processing, server handlers |
 | Purchases Package | [`packages/purchases/README.md`](packages/purchases/README.md) | `@mrmeg/expo-purchases` RevenueCat client, entitlement store, gating, pure webhook/ledger helpers, setup and store-review checklists |
 | Lint Package | [`packages/lint/README.md`](packages/lint/README.md) | `@mrmeg/eslint-plugin-expo-ui` rules, CLI (`bun lint:ui`), settings, style contracts, adoption in other projects, troubleshooting, release |
+| Metro Package | [`packages/metro/README.md`](packages/metro/README.md) | `@mrmeg/expo-metro` `withBundleOptimizations`: tree-shaking env flags, zod locale stub, composing with other resolver wrappers, opting out |
 
 ### Tech Stack
 
@@ -43,6 +44,7 @@ unless the user asks for a plan.
 | Media | `@mrmeg/expo-media` workspace package | Client hooks, processing helpers, S3/R2 server handlers |
 | Purchases | `@mrmeg/expo-purchases` workspace package | RevenueCat client, entitlement store, paywall gating, pure webhook/ledger helpers; optional peers `react-native-purchases` / `react-native-purchases-ui`, not used by the template app |
 | Lint | `@mrmeg/eslint-plugin-expo-ui` workspace package | Design-system ESLint rules; `bun lint:ui` for `app`, `client`, `shared`; publishable but not yet on npm (first release pending); reads `packages/ui/src` here and `dist/design-system.json` in consumers |
+| Metro | `@mrmeg/expo-metro` workspace package | Plain CommonJS, no dependencies, Node only (loaded by `metro.config.js`, never bundled): `withBundleOptimizations` sets the tree-shaking env flags and stubs zod's locale barrel; publishable but not yet on npm (first release pending) |
 | State/data | Zustand 5, TanStack React Query 5 | Persisted client stores; query defaults in app providers |
 | Auth | Clerk or AWS Amplify/Cognito | Optional; env-selected (Clerk publishable key, or both Cognito vars; Cognito wins if both) behind a shared `AuthClient`/`TokenVerifier` |
 | Billing | Stripe hosted-external baseline | Optional; disabled unless Stripe/server env is configured |
@@ -52,7 +54,7 @@ unless the user asks for a plan.
 
 ### Project Notes
 
-- Use the exact package scripts in `package.json`; do not substitute generic Expo or npm commands when a local Bun script exists. Workspace package tasks run as `bun run pkg <ui|media|purchases|lint> <typecheck|test|build|pack|consumer-smoke|release>`; releases and CI publishing are in [`README.md#publishing-packages`](README.md#publishing-packages).
+- Use the exact package scripts in `package.json`; do not substitute generic Expo or npm commands when a local Bun script exists. Workspace package tasks run as `bun run pkg <ui|media|purchases|lint|metro> <typecheck|test|build|pack|consumer-smoke|release>`; releases and CI publishing are in [`README.md#publishing-packages`](README.md#publishing-packages).
 - Bun is pinned in `.bun-version`, the one place every CI job reads it from.
 - Quote route paths with parentheses or brackets in shell commands, for example `'app/(main)/(tabs)/index.tsx'`.
 - Design-system rules — raw colors, off-scale spacing, appearance overrides on `@mrmeg/expo-ui` components, raw primitives the design system already wraps, icon-library imports (Lucide, vector icons) — are enforced by `@mrmeg/eslint-plugin-expo-ui` ([`packages/lint/README.md`](packages/lint/README.md)) through `bun run lint`, which covers `app/` only. `bun lint:ui` lints `app`, `client`, and `shared` for design-system violations alone, `--changed` narrows it to the files you touched, and `--doctor [file]` checks the plugin, the config, and the design system are wired. Read the message and use the token, variant, or component it names; never disable one of these rules without a `-- reason` on the disable comment.

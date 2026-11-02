@@ -1,0 +1,61 @@
+{
+  "name": "@mrmeg/expo-metro",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Metro bundle optimizations for Expo apps: tree-shaking flags and a zod locale stub, as a composable config wrapper.",
+  "keywords": [
+    "expo",
+    "metro",
+    "bundle-size",
+    "tree-shaking",
+    "react-native"
+  ],
+  "author": "Matt Megenhardt",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrmeg/expo-template.git",
+    "directory": "packages/metro"
+  },
+  "bugs": {
+    "url": "https://github.com/mrmeg/expo-template/issues"
+  },
+  "homepage": "https://github.com/mrmeg/expo-template/tree/main/packages/metro",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "jest --config ../../jest.config.js packages/metro --runInBand --watchman=false",
+    "build": "node -e \"require('./index.js')\"",
+    "publish:dry-run": "bun pm pack --dry-run"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "peerDependencies": {
+    "expo": ">=52.0.0"
+  },
+  "peerDependenciesMeta": {
+    "expo": {
+      "optional": true
+    }
+  }
+}
