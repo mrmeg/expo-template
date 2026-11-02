@@ -17,6 +17,7 @@ import { brotliDecompressSync, constants, gunzipSync, gzipSync } from "node:zlib
 import { GET as templateStatus } from "@/app/api/template/status+api";
 import { createHandler, type CreateHandlerOptions, type PeerInfo } from "../createHandler";
 import type { RateLimitRules } from "../rateLimit";
+import { cacheControlFor, FONT_CACHE_CONTROL } from "../staticFiles";
 
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 const ALLOWED_ORIGIN = "https://app.example.com";
@@ -153,6 +154,12 @@ describe("static files", () => {
 
     const robots = await handler(get(ROBOTS), peer("203.0.113.1"));
     expect(robots.headers.get("Cache-Control")).toBe("public, max-age=3600");
+  });
+
+  it("caches the unhashed self-hosted fonts for 30 days, not as immutable", () => {
+    expect(cacheControlFor("/fonts/inter/inter-latin-wght-normal.woff2")).toBe(FONT_CACHE_CONTROL);
+    expect(FONT_CACHE_CONTROL).toContain("max-age=2592000");
+    expect(FONT_CACHE_CONTROL).not.toContain("immutable");
   });
 
   it("serves the build-time brotli sibling to a brotli client", async () => {

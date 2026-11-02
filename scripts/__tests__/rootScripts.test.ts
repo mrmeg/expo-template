@@ -2,10 +2,9 @@
  * Guardrails for the root `package.json` scripts and the build configs that
  * bundle the app.
  *
- * Every production bundle is tree-shaken. A build only gets
- * `EXPO_UNSTABLE_TREE_SHAKING` and `EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH` if the
- * script or profile that starts it sets them: `.env` is gitignored, so CI and
- * EAS never see its copy.
+ * Every production bundle is tree-shaken. `metro.config.js` is the one place that
+ * sets `EXPO_UNSTABLE_TREE_SHAKING` and `EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH`, so a
+ * build gets them whatever starts it: CI, Railway and EAS see no gitignored `.env`.
  */
 import { execFileSync } from "child_process";
 import { readFileSync } from "fs";
@@ -18,36 +17,29 @@ const scripts = (JSON.parse(read("package.json")) as { scripts: Record<string, s
 const FLAGS = ["EXPO_UNSTABLE_TREE_SHAKING", "EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH"];
 
 describe("tree-shaking flags", () => {
-  const bundling = Object.entries(scripts).filter(([, command]) => /\b(expo export|eas update)\b/.test(command));
+  it("metro.config.js sets both flags before anything else, overridable from the environment", () => {
+    const config = read("metro.config.js");
+    const firstRequire = config.indexOf("require(");
 
-  it("finds the bundling scripts", () => {
-    expect(bundling.map(([name]) => name)).toEqual(expect.arrayContaining(["build", "build-web"]));
-  });
-
-  it.each(bundling)("%s sets both flags", (_name, command) => {
-    for (const flag of FLAGS) expect(command).toContain(`${flag}=1 `);
-  });
-
-  it("every eas.json build profile sets both flags", () => {
-    const profiles = (JSON.parse(read("eas.json")) as { build: Record<string, { env?: Record<string, string> }> })
-      .build;
-
-    expect(Object.keys(profiles).length).toBeGreaterThan(0);
-    for (const [name, profile] of Object.entries(profiles)) {
-      for (const flag of FLAGS) expect([name, flag, profile.env?.[flag]]).toEqual([name, flag, "1"]);
+    for (const flag of FLAGS) {
+      const assignment = config.indexOf(`process.env.${flag} ??= "1";`);
+      expect([flag, assignment >= 0 && assignment < firstRequire]).toEqual([flag, true]);
     }
   });
 
-  it("the EAS Update workflow job sets both flags", () => {
+  it("nothing else sets them, so one place decides", () => {
+    const eas = read("eas.json");
     const workflow = read(".eas/workflows/update-production.yml");
-
-    for (const flag of FLAGS) expect(workflow).toContain(`${flag}: "1"`);
-  });
-
-  it(".env.example keeps both flags for local exports", () => {
     const env = read(".env.example");
 
-    for (const flag of FLAGS) expect(env).toMatch(new RegExp(`^${flag}=1$`, "m"));
+    for (const flag of FLAGS) {
+      expect(eas).not.toContain(flag);
+      expect(workflow).not.toContain(flag);
+      expect(env).not.toContain(flag);
+      for (const [name, command] of Object.entries(scripts)) {
+        expect([name, command.includes(flag)]).toEqual([name, false]);
+      }
+    }
   });
 });
 

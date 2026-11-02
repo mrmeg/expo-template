@@ -24,9 +24,11 @@ declare const Bun: {
 const root = process.cwd();
 const ffmpegWorker = loadFfmpegWorker(root) as { contents: string } | null;
 
+const expoHandler = createRequestHandler({ build: path.join(root, "dist/server") });
+
 const handler = createHandler({
   clientDir: path.join(root, "dist/client"),
-  expoHandler: createRequestHandler({ build: path.join(root, "dist/server") }),
+  expoHandler,
   ffmpegWorker: ffmpegWorker ? { url: FFMPEG_WORKER_URL, contents: ffmpegWorker.contents } : null,
 });
 
@@ -35,3 +37,10 @@ const port = Number(process.env.PORT || 3000);
 Bun.serve({ port, fetch: handler });
 
 console.log(`Bun server listening on port ${port}`);
+
+// The first render loads and parses the server bundle, which otherwise costs the
+// first visitor after every deploy several hundred milliseconds. Straight to the
+// Expo handler, so it stays out of the access log and the rate limiters.
+void Promise.resolve(expoHandler(new Request(`http://127.0.0.1:${port}/`)))
+  .then((response) => response.body?.cancel())
+  .catch((error) => console.error("SSR warmup failed:", error));
