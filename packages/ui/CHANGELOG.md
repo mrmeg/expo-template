@@ -5,7 +5,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.33.0]
 
+### Breaking
+
+- **Nine icon names changed with the move from Lucide 1.61 to 1.66.** A manifest
+  listing an old name now fails `expo-ui-icons generate` and `--check`, and the error
+  names the replacement. Glyphs an app has already generated keep working until it
+  regenerates. Rename them in the manifest and in code:
+  `archive-restore` → `archive-arrow-up`, `bold` → `letter-b`, `heading` → `letter-h`,
+  `copyright` → `circle-letter-c`, `circle-parking` → `circle-letter-p`,
+  `circle-parking-off` → `circle-letter-p-off`, `square-m` → `square-letter-m`,
+  `square-parking` → `square-letter-p`, `square-parking-off` → `square-letter-p-off`.
+
 ### Changed
+
+- Eleven currency icons (`dollar-sign`, `pound-sterling`, `indian-rupee` and others)
+  have new glyph data under the same names.
 
 - **Overlay engines load on first use on web.** `Select`, `Dialog`, `AlertDialog`,
   `DropdownMenu`, `Popover` and `Tooltip` reach their Radix primitives through one
@@ -13,10 +27,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   no longer downloads them: 191 kB raw / 36 kB brotli leave first load in the
   template. An app gains the part of that it was shipping, about 50-130 kB raw.
   Native is unchanged and no API changes.
-- On a client-side navigation to a route with an overlay, before the chunk has
-  loaded, that overlay `Root`'s subtree, including a `Select` trigger, renders
-  nothing until it arrives. Server-rendered routes are unaffected: the HTML carries
-  the real markup.
+- Until that chunk has loaded, an overlay `Root`'s subtree, including a `Select`
+  trigger, renders nothing. This applies to a client-side navigation and, in an app
+  without server rendering, to first load. Server-rendered routes keep their markup
+  in the HTML.
+- If the chunk fails to load (offline, or a deploy removed it), the overlay throws to
+  the nearest error boundary. A render at least 5 seconds later tries again.
+- **`expo-font` leaves the web bundle.** `useResources` only calls it on native, so
+  it now sits behind a `.native` split. Native and the hook's API are unchanged. An
+  app that imports `expo-font` itself on web still ships it.
 
 ## [0.32.1]
 

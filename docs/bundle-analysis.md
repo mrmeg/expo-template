@@ -117,6 +117,9 @@ is two chunks reaching one module — which hoists it into `__common`. A
 - `client/features/billing/hooks/browserHandoff.native.ts` is billing's only
   importer of `expo-web-browser`; web navigates with `window.location`. The
   package now lives solely in the lazy Clerk chunk.
+- `packages/ui/src/lib/loadNativeFonts.native.ts` is the kit's only importer of
+  `expo-font`; web loads its faces from stylesheets, so the web sibling has no
+  imports.
 
 For built package output, the suffix must be listed in `platformSuffixes` in
 `scripts/fix-package-esm.mjs` (`ui`: `native`, `web`, `ios`, `android`; `media`:

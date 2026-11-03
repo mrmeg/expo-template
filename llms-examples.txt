@@ -191,6 +191,7 @@ Source of every @mrmeg/expo-ui component. Consumers import from the npm package,
 - packages/ui/src/components/overlayPrimitives/lazyPart.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/overlayPrimitives/lazyPart.tsx
 - packages/ui/src/components/overlayPrimitives/popover.native.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/overlayPrimitives/popover.native.ts
 - packages/ui/src/components/overlayPrimitives/popover.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/overlayPrimitives/popover.ts
+- packages/ui/src/components/overlayPrimitives/retryingLoader.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/overlayPrimitives/retryingLoader.ts
 - packages/ui/src/components/overlayPrimitives/select.native.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/overlayPrimitives/select.native.ts
 - packages/ui/src/components/overlayPrimitives/select.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/overlayPrimitives/select.ts
 - packages/ui/src/components/overlayPrimitives/tooltip.native.ts: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/src/components/overlayPrimitives/tooltip.native.ts

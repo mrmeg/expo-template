@@ -8,15 +8,11 @@
  * hide an open Select's trigger the moment its content first mounts.
  */
 import * as React from "react";
+import { retryingLoader } from "./retryingLoader";
 
 type Engine = typeof import("./engine");
 
-let enginePromise: Promise<Engine> | null = null;
-
-function loadEngine(): Promise<Engine> {
-  enginePromise ??= import("./engine");
-  return enginePromise;
-}
+const loadEngine = retryingLoader<Engine>(() => import("./engine"), 5000);
 
 /** Reads one primitive from the engine, suspending until it has loaded. */
 function usePrimitive<K extends keyof Engine>(primitive: K): Engine[K] {
