@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/193
 ---
 
 # `expo-ui-agents`: managed `@mrmeg` package section in a consumer's AGENTS.md
