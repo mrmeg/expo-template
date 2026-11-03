@@ -9,7 +9,7 @@
  * not the lint package's tasks (`bun run pkg lint <task>`).
  *
  * Usage:
- *   bun run pkg <ui|media|purchases|lint> <typecheck|test|build|pack|consumer-smoke|release> [...args]
+ *   bun run pkg <ui|media|purchases|lint|metro> <typecheck|test|build|pack|consumer-smoke|release> [...args]
  *   bun run pkg ui release -- --patch --publish
  *   bun run pkg --print media test          # print the resolved command, run nothing
  */

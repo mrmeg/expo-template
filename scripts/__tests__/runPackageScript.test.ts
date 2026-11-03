@@ -5,7 +5,8 @@
  * caller in this repo (the release script, the publish workflow, `verify`, the
  * docs) uses the runner. The `ui:*`/`media:*`/`purchases:*`/`lint:*` root
  * aliases stay only as shims over the same runner, because automation outside
- * the repo still calls them. These tests pin the resolved command for every
+ * the repo still calls them (packages added later, like `metro`, have none).
+ * These tests pin the resolved command for every
  * (package, task) pair — if the table drifts, a publish silently runs the wrong
  * thing — pin each shim to its runner call, and fail when a repo caller uses a
  * shim instead of `pkg`.
@@ -40,7 +41,9 @@ function resolve(args: string[]): { status: number; stdout: string; stderr: stri
 
 const print = (args: string[]) => resolve(["--print", ...args]).stdout.trim();
 
-const PACKAGE_SLUGS = ["ui", "media", "purchases", "lint"];
+const PACKAGE_SLUGS = ["ui", "media", "purchases", "lint", "metro"];
+/** The packages that predate `pkg` and keep root aliases; later packages have none. */
+const SHIM_PACKAGES = ["ui", "media", "purchases", "lint"];
 const TASK_NAMES = ["typecheck", "test", "build", "pack", "consumer-smoke", "release"];
 
 /**
@@ -83,6 +86,12 @@ const EXPECTED: Record<string, string> = {
   "lint pack": "bun run --cwd packages/lint publish:dry-run",
   "lint consumer-smoke": "node scripts/check-package-consumer.mjs lint",
   "lint release": "node scripts/release-package.mjs lint",
+  "metro typecheck": "bun run --cwd packages/metro typecheck",
+  "metro test": "bun run --cwd packages/metro test",
+  "metro build": "bun run --cwd packages/metro build",
+  "metro pack": "bun run --cwd packages/metro publish:dry-run",
+  "metro consumer-smoke": "node scripts/check-package-consumer.mjs metro",
+  "metro release": "node scripts/release-package.mjs metro",
 };
 
 describe("run-package-script resolves every package task", () => {
@@ -127,7 +136,7 @@ describe("run-package-script argument validation", () => {
 
     expect(result.status).toBe(1);
     expect(`${result.stdout}${result.stderr}`).toMatch(/unknown package "nope"/i);
-    expect(`${result.stdout}${result.stderr}`).toContain("lint, media, purchases, ui");
+    expect(`${result.stdout}${result.stderr}`).toContain("lint, media, metro, purchases, ui");
   });
 
   it("rejects an unknown task and names the valid ones", () => {
@@ -174,7 +183,7 @@ function callerFiles(): string[] {
 }
 
 describe("the per-package aliases are folded into `pkg`", () => {
-  it.each(PACKAGE_SLUGS.flatMap((pkg) => TASK_NAMES.map((task) => [pkg, task])))(
+  it.each(SHIM_PACKAGES.flatMap((pkg) => TASK_NAMES.map((task) => [pkg, task])))(
     "keeps %s:%s as a shim over `pkg`",
     (pkg, task) => {
       expect(packageJson.scripts[`${pkg}:${task}`]).toBe(

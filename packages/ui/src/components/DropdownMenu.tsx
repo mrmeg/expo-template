@@ -7,7 +7,7 @@ import { useTheme } from "../hooks/useTheme";
 import { spacing } from "../constants/spacing";
 import { interaction } from "../constants/interaction";
 import { useScalePress } from "../hooks/useScalePress";
-import * as DropdownMenuPrimitive from "@rn-primitives/dropdown-menu";
+import * as DropdownMenuPrimitive from "./overlayPrimitives/dropdownMenu";
 import type { IconName } from "./Icon";
 import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // portable declaration emit — see the note in Dialog.tsx (TS2883).
 const DropdownMenu: typeof DropdownMenuPrimitive.Root = DropdownMenuPrimitive.Root;
 const DropdownMenuGroup: typeof DropdownMenuPrimitive.Group = DropdownMenuPrimitive.Group;
-const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
+const DropdownMenuPortal: typeof DropdownMenuPrimitive.Portal = DropdownMenuPrimitive.Portal;
 const DropdownMenuSub: typeof DropdownMenuPrimitive.Sub = DropdownMenuPrimitive.Sub;
 const DropdownMenuRadioGroup: typeof DropdownMenuPrimitive.RadioGroup =
   DropdownMenuPrimitive.RadioGroup;

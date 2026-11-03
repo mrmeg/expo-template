@@ -3,6 +3,44 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.33.0]
+
+### Breaking
+
+- **Nine icon names changed with the move from Lucide 1.61 to 1.66.** A manifest
+  listing an old name now fails `expo-ui-icons generate` and `--check`, and the error
+  names the replacement. Rename them in the manifest and in code:
+  `archive-restore` → `archive-arrow-up`, `bold` → `letter-b`, `heading` → `letter-h`,
+  `copyright` → `circle-letter-c`, `circle-parking` → `circle-letter-p`,
+  `circle-parking-off` → `circle-letter-p-off`, `square-m` → `square-letter-m`,
+  `square-parking` → `square-letter-p`, `square-parking-off` → `square-letter-p-off`.
+
+### Changed
+
+- Eleven currency icons (`dollar-sign`, `pound-sterling`, `indian-rupee` and others)
+  have new glyph data under the same names.
+- Run `bun run icons` after upgrading, even with none of the renamed icons: the
+  generated file records the Lucide version, so `expo-ui-icons generate --check`
+  reports it as stale until then.
+
+- **Overlay engines load on first use on web.** `Select`, `Dialog`, `AlertDialog`,
+  `DropdownMenu`, `Popover` and `Tooltip` reach their Radix primitives through one
+  `import()` (`components/overlayPrimitives/`), so a page without an open overlay
+  no longer downloads them: 191 kB raw / 36 kB brotli leave first load in the
+  template. An app saves what it was shipping in first load. The chunk holds all six
+  engines, so an app that only used an overlay on a lazy route saves nothing and its
+  total JS grows: Keepwatch, which uses only `Select`, kept the same first load and
+  gained about 14 kB brotli in total. Native is unchanged and no component API changes.
+- Until that chunk has loaded, an overlay `Root`'s subtree, including a `Select`
+  trigger, renders nothing. This applies to a client-side navigation and, in an app
+  without server rendering, to first load. Server-rendered routes keep their markup
+  in the HTML.
+- If the chunk fails to load (offline, or a deploy removed it), the overlay throws to
+  the nearest error boundary. A render at least 5 seconds later tries again.
+- **`expo-font` leaves the web bundle.** `useResources` only calls it on native, so
+  it now sits behind a `.native` split. Native and the hook's API are unchanged. An
+  app that imports `expo-font` itself on web still ships it.
+
 ## [0.32.1]
 
 ### Fixed

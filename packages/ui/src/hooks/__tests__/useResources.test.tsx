@@ -244,4 +244,14 @@ describe("Inter font imports", () => {
 
     expect(importSpecifiers(hookSource).filter((s) => s.includes("expo-google-fonts"))).toEqual([]);
   });
+
+  it("keeps expo-font out of the web graph", () => {
+    const hookSource = read(path.join(__dirname, "..", "useResources.ts"));
+    const webLoader = read(path.join(libDir, "loadNativeFonts.ts"));
+    const nativeLoader = read(path.join(libDir, "loadNativeFonts.native.ts"));
+
+    expect(importSpecifiers(hookSource)).not.toContain("expo-font");
+    expect(importSpecifiers(webLoader)).toEqual([]);
+    expect(importSpecifiers(nativeLoader)).toContain("expo-font");
+  });
 });

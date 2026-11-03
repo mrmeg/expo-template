@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import * as Font from "expo-font";
 import { Platform } from "react-native";
 
 import type { SerifPreset } from "../constants/fonts";
 import { interFontMap } from "../lib/interFonts";
+import { loadNativeFonts } from "../lib/loadNativeFonts";
 import { useThemeStore } from "../state/themeStore";
 
 interface LoadResourcesResult {
@@ -35,7 +35,7 @@ function loadNativeInterFonts(): Promise<void> {
   if (Platform.OS === "web" || !interFontMap) {
     return Promise.resolve();
   }
-  return Font.loadAsync(interFontMap);
+  return loadNativeFonts(interFontMap);
 }
 
 const INTER_STYLESHEET_ID = "mrmeg-expo-ui-inter";
@@ -98,7 +98,7 @@ async function loadSerifPreset(options: UseResourcesOptions): Promise<void> {
     return;
   }
 
-  await Font.loadAsync(options.serifFonts);
+  await loadNativeFonts(options.serifFonts);
   useThemeStore.getState().setSerifPreset("newsreader");
 }
 

@@ -65,6 +65,7 @@ const BASE: Record<string, Manifest> = {
   },
   purchases: { name: "@fixture/purchases", version: "0.1.0", files: ["dist"] },
   lint: { name: "@fixture/lint", version: "0.2.0", files: ["index.js"] },
+  metro: { name: "@fixture/metro", version: "0.1.0", files: ["index.js"] },
 };
 
 interface Published {
@@ -174,6 +175,7 @@ describe("packages:drift-check", () => {
     expect(result.output).toContain("ok @fixture/media@2.0.0 matches npm");
     expect(result.output).toContain("skip @fixture/purchases is not on npm yet");
     expect(result.output).toContain("skip @fixture/lint@0.2.0 is not on npm yet (unreleased version)");
+    expect(result.output).toContain("skip @fixture/metro is not on npm yet");
   });
 
   it("fails when a published version's peers changed without a bump, naming the keys", async () => {

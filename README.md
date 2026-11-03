@@ -71,6 +71,21 @@ project failing `tsc`. Init is optional: a fresh clone with no `.env` boots with
 auth, billing, and media disabled. `.env.example` enumerates every optional
 feature flag.
 
+The template ships both auth SDK clusters (Clerk and Amplify/Cognito), which is
+most of a fresh install. `init` removes the one you did not pick: `--auth
+cognito` drops Clerk, `--auth clerk` drops Cognito, and `--auth none` (the
+default) drops both. For each removed provider it deletes its packages from
+`package.json` (the client SDK, the server token-verifier library, and their
+native peers), replaces its implementation modules (`clerkClient.ts`,
+`ClerkProviderBoundary.tsx`, `clerkLoadSignal.ts`, `cognitoClient.ts`,
+`cognitoSdk.ts`, and the server `clerkTokenVerifier.ts` / `cognitoTokenVerifier.ts`)
+with typed stubs that throw a "not installed" error if env ever selects the
+provider, and deletes that provider's tests. Run `bun install` afterwards to
+update `node_modules` and `bun.lock`. Pass `--keep-auth-sdks` to keep both
+clusters. Pruning is idempotent, and the stubs are not a way back: to switch
+providers later, restore the modules from the template (or start from a fresh
+clone) and add the packages again.
+
 ## Renaming the Template
 
 App identity (name, slug, native scheme, iOS bundle id, Android package) lives
@@ -96,7 +111,7 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 
 | Script | Description |
 |--------|-------------|
-| `bun run init` | Name the project, pick an auth provider, prune screen templates |
+| `bun run init` | Name the project, pick an auth provider (removes the other provider's SDKs), prune screen templates |
 | `npx expo start` | Expo dev server (interactive) |
 | `bun run web` | Expo web dev server |
 | `bun run ios` / `bun run android` | Build + run on simulator / emulator |
@@ -108,16 +123,17 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `bun lint:ui` | Design-system rules only, over `app`, `client`, `shared`; `--changed` for touched files, `--doctor` to check wiring — see [`packages/lint/README.md`](packages/lint/README.md) |
 | `bun run verify` | Every quality gate, in order — exactly what CI's `validate` job runs; the list is in [`CONTRIBUTING.md#verify-gates`](CONTRIBUTING.md#verify-gates) |
 | `bun run gen` | Regenerate every generated artifact (icon, template, and block registries, LLM docs); `--check` fails on a stale one |
-| `bun run pkg <package> <task>` | A workspace package task: `typecheck`, `test`, `build`, `pack`, `consumer-smoke`, `release` for `ui`, `media`, `purchases`, `lint` — see [Publishing packages](#publishing-packages) |
+| `bun run pkg <package> <task>` | A workspace package task: `typecheck`, `test`, `build`, `pack`, `consumer-smoke`, `release` for `ui`, `media`, `purchases`, `lint`, `metro` — see [Publishing packages](#publishing-packages) |
 | `bun run test:ci` | `jest --ci --forceExit` (`bun run test:coverage` adds the coverage report) |
 | `bun run e2e` | Maestro native smoke suite — see `docs/e2e.md` |
 | `bun run bundle-size` | Compare client JS against `scripts/bundle-baseline.json` |
+| `bun run first-load` | Compare the JS `/` downloads against `scripts/first-load-baseline.json` |
 | `bun run analyze` | `source-map-explorer` treemap of the client bundle |
 | `bun run generate component\|screen\|hook\|form <Name>` | Scaffold a module — see [Generator CLI](#generator-cli) |
 
 ## Render Performance Checks
 
-The web document injects React Scan only when a local URL includes `?scan`:
+The dev server's web document injects React Scan only when a local URL includes `?scan`:
 
 ```bash
 bun run web
@@ -199,6 +215,8 @@ does not collect it. The lint plugin's own suites live in
 /packages/ui                  # @mrmeg/expo-ui npm package source
 /packages/media               # @mrmeg/expo-media npm package source
 /packages/purchases           # @mrmeg/expo-purchases npm package source
+/packages/lint                # @mrmeg/eslint-plugin-expo-ui npm package source
+/packages/metro               # @mrmeg/expo-metro npm package source (Metro config wrapper)
 
 /server.bun.ts                # Bun production server (compression, CORS, rate limits)
 /server                       # Shared server helpers (rate limits, API helpers, media handlers)
@@ -315,7 +333,7 @@ implementation details such as
 
 ### Publishing packages
 
-Every workspace package (`ui`, `media`, `purchases`, `lint`) has the same tasks:
+Every workspace package (`ui`, `media`, `purchases`, `lint`, `metro`) has the same tasks:
 
 ```bash
 bun run pkg ui typecheck
@@ -420,8 +438,10 @@ jobs, no app credentials required:
   [`CONTRIBUTING.md#verify-gates`](CONTRIBUTING.md#verify-gates). Its `lint` is
   `expo lint`, so it gates `app/` only; run `bun lint:ui` for `client/` and
   `shared/`.
-- **Web Build + Bundle Size** — `bun run build` → `bun run bundle-size`. Fails
-  the PR on >10% client bundle growth against `scripts/bundle-baseline.json`.
+- **Web Build + Bundle Size** — `bun run build` → `bun run bundle-size` →
+  `bun run first-load`. Fails the PR on >10% client bundle growth against
+  `scripts/bundle-baseline.json`, or >5% growth in what `/` downloads against
+  `scripts/first-load-baseline.json`.
 
 `.github/workflows/package-compatibility.yml` installs each package's packed
 tarball into Expo SDK consumer profiles on the same events, for changes under
@@ -472,10 +492,10 @@ eas build --profile production --platform all
 The dev profiles set no `channel` — a dev client pulls JS from the local dev
 server, not from EAS Update.
 
-Every profile's `env` sets `EXPO_UNSTABLE_TREE_SHAKING=1` and
-`EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH=1`, as do `bun run build` / `build-web` and
-the EAS Update workflow job, so every production bundle is tree-shaken. `.env` is
-gitignored, so its copy of the flags reaches local exports only.
+`metro.config.js` wraps its config in `withBundleOptimizations` from
+`@mrmeg/expo-metro` (`packages/metro`), which sets `EXPO_UNSTABLE_TREE_SHAKING` and
+`EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH`, so every production bundle is tree-shaken
+whichever build starts it. Set either to `0` in the environment to opt out.
 
 A build's update channel comes only from its profile's `channel` in `eas.json`;
 `app.config.ts` does not derive one, so renaming a profile needs no config change.

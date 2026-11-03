@@ -1,4 +1,3 @@
-import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import globals from "globals";
@@ -32,7 +31,6 @@ export default [
   },
   ...compat.extends(
     "eslint:recommended",
-    "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
   ),
   // React Compiler is enabled (app.config.ts `experiments.reactCompiler`), so
@@ -42,7 +40,6 @@ export default [
   reactHooks.configs.flat["recommended-latest"],
   {
     plugins: {
-      react,
       "@typescript-eslint": typescriptEslint,
     },
 
@@ -58,19 +55,9 @@ export default [
       sourceType: "module",
     },
 
-    settings: {
-      react: {
-        // Pinned instead of "detect" because eslint-plugin-react 7.37.x
-        // calls context.getFilename() during version detection, which was
-        // removed in ESLint 10 and crashes rule loading.
-        version: "19.2",
-      },
-    },
-
     rules: {
       "no-unused-expressions": "off",
       "@typescript-eslint/no-unused-expressions": "off",
-      "react/no-unescaped-entities": "off",
       "@/indent": ["warn", 2],
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/no-require-imports": "off",
@@ -80,9 +67,6 @@ export default [
       "linebreak-style": "off",
       quotes: ["warn", "double"],
       semi: ["error", "always"],
-      "react/jsx-uses-react": "off",
-      "react/react-in-jsx-scope": "off",
-      "react/prop-types": "off",
     },
   },
   // Design-system rules: raw colors, off-scale spacing, appearance overrides on

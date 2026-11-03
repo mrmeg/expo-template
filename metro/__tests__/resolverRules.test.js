@@ -21,7 +21,6 @@ const {
   getScopedDedupeTarget,
   isRouteFileForOtherPlatform,
   isUnusedRouteFile,
-  packageOfModulePath,
 } = require("../resolverRules");
 
 const REPO_ROOT = path.resolve(__dirname, "../..");
@@ -227,12 +226,18 @@ describe("optional native integrations", () => {
       sourceFiles(path.join(REPO_ROOT, dir))
     );
 
+    // `bun run init` replaces the importers of an auth provider the fork does
+    // not use with stubs (first line `// @init-auth-stub <provider>`) and removes
+    // the SDK; there is nothing left to gate or to keep out of a bundle.
+    const isPrunedStub = (importer) =>
+      /^\/\/ @init-auth-stub /.test(fs.readFileSync(path.join(REPO_ROOT, importer), "utf8"));
+
     it.each(OPTIONAL_NATIVE_INTEGRATIONS.map((integration) => [integration.name, integration]))(
       "%s: every listed importer exists and imports the SDK",
       (_name, integration) => {
         // A moved or renamed import leaves the stub pointing at nothing, and the
         // SDK silently ships in every native bundle again.
-        for (const importer of integration.importers) {
+        for (const importer of integration.importers.filter((entry) => !isPrunedStub(entry))) {
           const source = fs.readFileSync(path.join(REPO_ROOT, importer), "utf8");
           const imported = runtimeImports(source).some((specifier) =>
             integration.packages.some(
@@ -260,7 +265,9 @@ describe("optional native integrations", () => {
           )
           .map((file) => path.relative(REPO_ROOT, file).split(path.sep).join("/"))
           .sort();
-        expect(importers).toEqual([...integration.importers].sort());
+        expect(importers).toEqual(
+          integration.importers.filter((importer) => !isPrunedStub(importer)).sort()
+        );
       }
     );
   });
@@ -373,19 +380,6 @@ describe("scoped dedupes", () => {
     ...entry,
     packagePath: `${NM}/${entry.packageName}`,
   }));
-
-  describe("packageOfModulePath", () => {
-    it.each([
-      [`${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`, "whatwg-url-without-unicode"],
-      [`${NM}/@clerk/clerk-expo/dist/polyfills/index.js`, "@clerk/clerk-expo"],
-      [`${NM}/@clerk/clerk-expo/node_modules/react-native-url-polyfill/auto.js`, "react-native-url-polyfill"],
-      [`${NM}/react-native-web/dist/exports/processColor/index.js`, "react-native-web"],
-      [`${ROOT}/client/lib/sentry.ts`, null],
-      [`${NM}/@scope`, null],
-    ])("%s → %s", (file, expected) => {
-      expect(packageOfModulePath(file)).toBe(expected);
-    });
-  });
 
   it("collapses buffer onto the app copy for whatwg-url-without-unicode, keeping the subpath", () => {
     const originModulePath = `${NM}/whatwg-url-without-unicode/lib/url-state-machine.js`;

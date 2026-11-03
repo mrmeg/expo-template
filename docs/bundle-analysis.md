@@ -10,6 +10,16 @@ For measured styling-engine pilots and the decision to retain `StyleSheet`, see 
 | `bun run analyze:gzip` | Same, sized gzipped |
 | `bun run build && bun run bundle-size` | Compare `dist/client` JS against the baseline |
 | `bun run build && bun run bundle-size --update` | Rewrite the baseline; commit the result |
+| `bun run build && bun run first-load` | Compare the JS `/` makes every visitor download against its budget |
+| `bun run build && bun run first-load --update` | Rewrite the first-load baseline; commit the result |
+
+`metro.config.js` turns on `EXPO_UNSTABLE_TREE_SHAKING` and
+`EXPO_UNSTABLE_METRO_OPTIMIZE_GRAPH` through `withBundleOptimizations` from
+[`@mrmeg/expo-metro`](../packages/metro/README.md) (`packages/metro`, which an app
+installs instead of copying the flags), so `expo export`, `export:embed` (Xcode, Gradle,
+EAS) and `eas update` all tree-shake without any env. Set either to `0` to opt out.
+With both off, this template's web JS grows from 6.0 to 7.7 MB raw and the Sentry
+chunk from 106 to 221 kB brotli.
 
 ## Baseline
 
@@ -18,12 +28,17 @@ the known optional lazy chunks (`heic2any-*`, `VideoThumbnails-*`) and compares
 the total to `totalBytes` in `scripts/bundle-baseline.json`. Growth beyond
 `THRESHOLD` (`0.10`, a constant at the top of the script) exits 1.
 
-Current baseline: 4,476,780 bytes of budgeted client JS.
-
 The metric sums *every* budgeted chunk, so it barely moves when code is split out
 of the entry — it guards against new dependency weight, not against poor
-splitting. For what a single route downloads, compare individual chunk sizes and
-the `<script>` set in that route's exported HTML.
+splitting.
+
+## First-Load Budget
+
+`scripts/check-first-load.ts` renders `/` from `dist/server`, reads the `<script
+src>` set out of the HTML, and sums the brotli siblings. Growth beyond 5% of
+`scripts/first-load-baseline.json` exits 1, and CI's bundle-size job runs it. This
+is the check that catches a lazy graph being hoisted into `__common`, which the
+total above cannot see. When it fails, find what moved with `bun run analyze`.
 
 Run the check before merging changes to dependencies, asset loading, routing, or
 build output.
@@ -62,6 +77,7 @@ through one `import()` specifier by every consumer.
 | `client/features/auth/provider/cognitoSdk` (statically imports `aws-amplify`, `aws-amplify/utils`, `aws-amplify/auth`, re-exports `Amplify` / `Hub` / `amplifyAuth`) | `cognitoClient.ts`, via one `await import("./cognitoSdk")` | the `aws-amplify` cluster |
 | `client/features/auth/components` | `AuthGate`, `(demos)/auth-demo` | auth screen + 5 forms (~47 kB raw, ~14 kB gzip) |
 | `client/components/mediaChunk` (statically re-exports `@mrmeg/expo-ui/components/Video` and `.../MediaViewer`), via `LazyVideo` and `LazyMediaViewer` | `LazyVideo` (the `Video` preview and the Media Lab video section) and `LazyMediaViewer` (the media tab, the `MediaViewer` preview and the Media Lab viewer section) | `expo-video`, the custom controls, the scrubber and the viewer (zoom, paging, gestures): ~67 kB raw / ~21 kB gzip as the `mediaChunk-*` chunk, fetched when a player or a viewer is first rendered. It is one module for both wrappers on purpose: `MediaViewer` draws a `Video` per video page, so a separate `import()` of the viewer would leave `Video` reachable from two chunks and hoist it (+40 kB raw into `__common` on every route's first download, measured). Behind the shared module `__common` is 625 bytes smaller than before the viewer (the media tab's two modals left it), `entry` is byte-identical, and the `/` route's script set is 625 bytes smaller (1,883,817 to 1,883,192) |
+| `@mrmeg/expo-ui`'s `components/overlayPrimitives/engine`, via `lazyPart` | `Select`, `Dialog`, `DropdownMenu`, `Popover`, `Tooltip` on web (native imports each primitive directly) | Radix select/menu/dialog/popover/tooltip, `@floating-ui`, `react-remove-scroll`: ~191 kB raw / ~36 kB brotli as the `engine-*` chunk, fetched when one of them first renders. One chunk on purpose: those primitives share their floating and focus layers, so a chunk each would hoist the shared code. First load of `/` went from 411 to 390 kB brotli. Server rendering waits for it, so the HTML carries the real markup and hydration of that subtree waits for the chunk |
 | `client/showcase/gallery`, via `client/showcase/lazyGallery` | Explore tab rail + block spotlight, `themed-showcase`, `surface-lab`, `media-lab`, `components`, `components/[id]`, `blocks` | the showcase cluster: previews of every component, component details, block stages, plus the web engines only they reach (`vaul`, Radix select/menu/dialog/popover/tooltip, `@floating-ui`, `react-remove-scroll`) — ~575 kB raw / ~141 kB gzip as the `gallery-*` chunk; `__common` went from 906 kB to 504 kB raw |
 
 Adding a *static* import of one of those barrels — or a second `import()` with a
@@ -73,6 +89,7 @@ export can observe the regression directly:
 - `client/features/auth/components/__tests__/authComponentsSplitPoint.test.ts`
 - `client/showcase/__tests__/gallerySplitPoint.test.ts`
 - `client/components/__tests__/mediaChunkSplitPoint.test.ts`
+- `packages/ui/src/components/__tests__/overlayPrimitives.guardrail.test.ts`
 
 To check a boundary by hand, look for its sources in the `__common-*.js.map`
 sourcemap after `bun run build-web`.
@@ -100,6 +117,9 @@ is two chunks reaching one module — which hoists it into `__common`. A
 - `client/features/billing/hooks/browserHandoff.native.ts` is billing's only
   importer of `expo-web-browser`; web navigates with `window.location`. The
   package now lives solely in the lazy Clerk chunk.
+- `packages/ui/src/lib/loadNativeFonts.native.ts` is the kit's only importer of
+  `expo-font`; web loads its faces from stylesheets, so the web sibling has no
+  imports.
 
 For built package output, the suffix must be listed in `platformSuffixes` in
 `scripts/fix-package-esm.mjs` (`ui`: `native`, `web`, `ios`, `android`; `media`:
@@ -115,15 +135,32 @@ rule in [Route files for other platforms](#route-files-for-other-platforms).
 `client/lib/sentry.web.ts` replaces the RN SDK with `@sentry/react` (the same
 version the RN SDK pins) and defers the chunk fetch to `requestIdleCallback`
 (3 s cap) so it never competes with hydration; global errors thrown before the
-SDK is up are buffered and forwarded after `init`. The lazy Sentry chunk went
-from ~706 kB with the RN SDK to ~547 kB raw (~128 kB gzip), with Session Replay
-and User Feedback stubbed out of it (see below). See `docs/error-tracking.md`.
+SDK is up are buffered and forwarded after `init`. The lazy chunk is ~513 kB raw
+(~106 kB brotli), with Session Replay and User Feedback stubbed out of it (see
+below). See `docs/error-tracking.md`.
+
+Keep the `import("@sentry/react")` namespace. Reaching the SDK through a barrel of
+named re-exports makes the chunk 138 kB smaller, but tree shaking then removes code
+tracing depends on: errors still reach Sentry, while spans silently stop.
+
+## Bare Imports and Tree Shaking
+
+Expo's tree shaker can remove `import "some-package"` from production bundles when
+the package declares no `sideEffects`, while dev keeps it: `import
+"intl-pluralrules"` disappeared from release builds this way. A polyfill must run
+from a call, as `client/features/i18n/pluralRules.native.ts` does with a `require`
+inside a function. After adding one, confirm it in the production sourcemap.
+
+Which side-effect imports survive is not predictable from the source
+(`react-native-gesture-handler` does), so check instead of assuming.
 
 ## Resolver Stubs and Dedupes
 
 `metro.config.js` resolves a few modules differently from Node. The selection
-logic lives in `metro/resolverRules.js`, unit-tested in `metro/__tests__/`, and
-every rule errs toward shipping code: when a condition is not certain, the real
+logic lives in `metro/resolverRules.js`, unit-tested in `metro/__tests__/`, except
+the zod locale rule, which is generic and ships in `@mrmeg/expo-metro`
+(`packages/metro`, tested in `packages/metro/__tests__/`). Every rule
+errs toward shipping code: when a condition is not certain, the real
 module resolves. Sizes below come from `expo export` with the tree-shaking
 flags (`--no-bytecode` on iOS) and a blank env unless a column says otherwise,
 attributed per package from the source maps.
@@ -202,6 +239,20 @@ A plain route shadowed by a `.web` sibling, like `app/(main)/_layout.tsx`, still
 emits a web chunk that no page fetches; it is tiny today, and the same
 inversion (move its code to `.native.tsx`) removes it.
 
+### Zod locale barrel
+
+`export * as locales` in zod's core, mini, and classic entries keeps every language
+pack however the app imports zod: named imports from `zod/mini` measured the same
+size as `import * as z`. `isZodLocaleBarrelImport` (`@mrmeg/expo-metro`, on by
+default through `withBundleOptimizations`; `zodLocaleStub: false` turns it off)
+resolves zod's own
+`../locales/index` to an empty module in client bundles, taking the form route's
+chunk from 652 to 329 kB raw (104 to 68 kB brotli), and 316 kB off the iOS bundle.
+
+Default English messages still work, because classic zod imports `../locales/en`
+directly. `z.locales.*` is empty as a result; import a language pack from
+`zod/locales` to use one.
+
 ### Scoped dedupes
 
 `SCOPED_DEDUPES` collapses a nested copy onto the app-level install for the one
@@ -232,6 +283,7 @@ Watch for these in `source-map-explorer`:
 | Package | Typical size | Notes |
 |---------|--------------|-------|
 | `aws-amplify` | ~510 kB raw / ~105 kB gzip | Lazy in the `cognitoSdk-*` chunk; keep it to one split point. Left out of native bundles while the Cognito env is blank |
-| `zod` | ~475 kB raw in the `screen-form-*` chunk | `import * as z from "zod/mini"` is a namespace import, so tree shaking keeps every export: all locales, `toJSONSchema`, `zod/v4/core`. Lazy (form routes only), but named imports would let the optimizer drop most of it |
+| `zod` | ~215 kB raw in the `screen-form-*` chunk | Lazy (form routes only). Most of what remains is `zod/v4/core`; see [Zod locale barrel](#zod-locale-barrel). Named imports make no difference |
 | `react-hook-form` | ~43 kB | Form state |
 | `@rn-primitives/*` | ~5–10 kB each | 18 packages, declared in `packages/ui/package.json` |
+| `react-native-reanimated` | ~750 kB raw once anything imports it on web | Tree shaking cannot reduce it: its entry initializes the module at import time, and side effects propagate up through its internal imports. This template's web bundle has none, because `client/features/keyboard/platform` is a web no-op and the kit forbids importing it. An app keeps it off web by putting importers in `.native` files, and gesture handler with them, because its `reanimatedWrapper` requires reanimated in a `try`. To keep motion on web, make the base file a CSS transition or the Web Animations API and `X.native.tsx` the Reanimated half. Render no start state, so server markup and hydration agree, and skip entrances on views that mount during hydration |

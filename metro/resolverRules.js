@@ -11,13 +11,11 @@
  */
 
 const path = require("path");
+// Shared with the package so there is one implementation of each.
+const { isServerEnvironment, packageOfModulePath } = require("@mrmeg/expo-metro");
 
 function matchesPackage(moduleName, packageName) {
   return moduleName === packageName || moduleName.startsWith(`${packageName}/`);
-}
-
-function isServerEnvironment(environment) {
-  return environment === "node" || environment === "react-server";
 }
 
 /** `filePath` relative to each project root, POSIX-style (roots: the path and its realpath). */
@@ -210,17 +208,6 @@ const SCOPED_DEDUPES = [
   { packageName: "@react-native/normalize-colors", importers: ["react-native-web"] },
 ];
 
-/** The package a module path belongs to: the segment after its last `node_modules`. */
-function packageOfModulePath(filePath) {
-  const segments = filePath.split(/[\\/]/);
-  const index = segments.lastIndexOf("node_modules");
-  const name = index === -1 ? undefined : segments[index + 1];
-  if (!name) return null;
-  if (!name.startsWith("@")) return name;
-  const scopedName = segments[index + 2];
-  return scopedName ? `${name}/${scopedName}` : null;
-}
-
 /**
  * `moduleName` rewritten onto the app-level copy when a scoped dedupe applies,
  * else null. `request` carries the bundle (`platform`, `dev`, `environment`,
@@ -261,5 +248,4 @@ module.exports = {
   getScopedDedupeTarget,
   isRouteFileForOtherPlatform,
   isUnusedRouteFile,
-  packageOfModulePath,
 };

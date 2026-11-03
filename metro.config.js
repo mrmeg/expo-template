@@ -1,4 +1,5 @@
 /* eslint-disable no-undef */
+
 const fs = require("fs");
 const { getDefaultConfig } = require("expo/metro-config");
 const {
@@ -8,6 +9,7 @@ const {
   withSentryFeedbackResolver,
   withSentryResolver,
 } = require("@sentry/react-native/metro");
+const { withBundleOptimizations } = require("@mrmeg/expo-metro");
 const {
   SCOPED_DEDUPES,
   describeOmittedIntegration,
@@ -17,10 +19,25 @@ const {
 } = require("./metro/resolverRules");
 const path = require("path");
 
-const config = getDefaultConfig(__dirname);
+// @mrmeg/expo-metro (packages/metro) sets the tree shaking and graph optimization
+// flags for every export on every machine: Expo reads them after loading this
+// file, so a build with no `.env` (Railway, EAS, CI) gets the same tree-shaken
+// bundle as a local one. Set either to 0 in the environment to opt out. It also
+// resolves zod's locale barrel to an empty module in client bundles (see
+// docs/bundle-analysis.md); the resolvers below chain to it.
+const config = withBundleOptimizations(getDefaultConfig(__dirname));
 const appNodeModules = path.resolve(__dirname, "node_modules");
 const resolveAppPackage = (packageName) =>
   fs.realpathSync(path.resolve(appNodeModules, packageName));
+
+const isResolvable = (packageName) => {
+  try {
+    require.resolve(`${packageName}/package.json`);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const resolvePackageFrom = (packageName, fromPackageName) => {
   const fromPackageRoot = path.dirname(
@@ -105,7 +122,11 @@ const dedupePackages = {
   // onto clerk-react's copy — but only in client bundles (see
   // clientOnlyDedupePackages): @clerk/backend, used by API routes in the node
   // environment, depends on @clerk/shared 4.x and must keep its own copy.
-  "@clerk/shared": resolvePackageFrom("@clerk/shared", "@clerk/clerk-react"),
+  // Omitted when Clerk is not installed (`bun run init` removes it when the
+  // fork does not use Clerk).
+  ...(isResolvable("@clerk/clerk-react")
+    ? { "@clerk/shared": resolvePackageFrom("@clerk/shared", "@clerk/clerk-react") }
+    : {}),
 };
 
 config.resolver.extraNodeModules = {
@@ -154,7 +175,8 @@ const scopedDedupes = SCOPED_DEDUPES.map((entry) => {
   };
 });
 
-// Resolver stubs (metro/resolverRules.js, docs/bundle-analysis.md):
+// Resolver stubs (metro/resolverRules.js, docs/bundle-analysis.md; the zod locale
+// stub lives in @mrmeg/expo-metro):
 // - Optional native integrations. In production iOS/Android bundles, the
 //   Sentry, Amplify, and Clerk imports inside their env-gated app modules
 //   resolve to an empty module while that SDK's env is blank; native has no

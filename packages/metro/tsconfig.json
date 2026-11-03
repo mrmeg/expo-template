@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    // Standalone, like packages/lint: this package runs in Node only.
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "module": "commonjs",
+    "target": "es2022",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["index.js", "index.d.ts"]
+}

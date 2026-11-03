@@ -7,6 +7,7 @@
  *   bun run init --name "Acme" --slug acme --scheme acme \
  *     --bundle-id com.acme.app --android-package com.acme.app \
  *     --auth cognito --templates list,pricing --yes
+ *   bun run init --name "Acme" --auth clerk --keep-auth-sdks --yes
  *
  * What it does:
  *   1. Writes `.env` from `.env.example` with the five `EXPO_PUBLIC_APP_*`
@@ -19,7 +20,12 @@
  *      from `client/templates/__tests__/screens.test.tsx`, and regenerates the
  *      template registry. Templates that app code still imports (e.g. billing
  *      imports a type from `pricing/Screen`) are kept and reported.
- *   4. Offers to re-run `bunx expo prebuild --clean` so the committed
+ *   4. Removes the auth SDKs of every provider NOT chosen (`--auth none`
+ *      removes both): drops their packages from `package.json`, replaces their
+ *      implementation modules with typed stubs, and deletes their tests, so a
+ *      fresh install skips the unused cluster. `--keep-auth-sdks` opts out. See
+ *      `scripts/lib/authPrune.ts`.
+ *   5. Offers to re-run `bunx expo prebuild --clean` so the committed
  *      `ios/`/`android/` projects pick up the new identity.
  *
  * Prompts use `node:readline/promises` — no prompt dependency. Pure helpers
@@ -35,6 +41,14 @@ import * as path from "node:path";
 import * as readline from "node:readline/promises";
 
 import { getAppIdentity } from "../app.identity";
+import {
+  applyAuthPrune,
+  isProviderPruned,
+  providersToPrune,
+  type AuthProvider,
+} from "./lib/authPrune";
+
+export * from "./lib/authPrune";
 
 // ---------------------------------------------------------------------------
 // Output helpers (mirrors scripts/generate.ts)
@@ -574,6 +588,8 @@ export interface CliOptions {
   templates?: string;
   yes: boolean;
   force: boolean;
+  /** Keep both auth SDK clusters installed instead of pruning the unused ones. */
+  keepAuthSdks: boolean;
   /** `true` = run prebuild, `false` = skip it, `undefined` = ask. */
   prebuild?: boolean;
   help: boolean;
@@ -601,7 +617,13 @@ const VALUE_FLAGS: Record<string, StringOptionKey> = {
 };
 
 export function parseArgs(argv: string[]): CliOptions {
-  const options: CliOptions = { yes: false, force: false, help: false, unknownFlags: [] };
+  const options: CliOptions = {
+    yes: false,
+    force: false,
+    keepAuthSdks: false,
+    help: false,
+    unknownFlags: [],
+  };
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -619,6 +641,10 @@ export function parseArgs(argv: string[]): CliOptions {
     }
     if (flag === "--force") {
       options.force = true;
+      continue;
+    }
+    if (flag === "--keep-auth-sdks") {
+      options.keepAuthSdks = true;
       continue;
     }
     if (flag === "--prebuild") {
@@ -794,6 +820,23 @@ function applyPrune(projectRoot: string, plan: PrunePlan): void {
   log(`Updated: ${testFileRelative} (dropped ${stripped.removedIds.join(", ")})`, "yellow");
 }
 
+function authProviderLabel(provider: AuthProvider): string {
+  return provider === "clerk" ? "Clerk" : "Cognito";
+}
+
+function reportAuthPrune(results: ReturnType<typeof applyAuthPrune>): void {
+  for (const result of results) {
+    const changed = result.packagesRemoved.length + result.stubbed.length + result.deleted.length;
+    if (changed === 0) {
+      log(`${result.label} auth: already removed.`, "gray");
+      continue;
+    }
+    for (const name of result.packagesRemoved) log(`Removed package: ${name} (${result.label})`, "yellow");
+    for (const file of result.stubbed) log(`Stubbed: ${file}`, "yellow");
+    for (const file of result.deleted) log(`Removed: ${file}`, "yellow");
+  }
+}
+
 function run(command: string, args: string[], cwd: string): boolean {
   log(`\n$ ${command} ${args.join(" ")}`, "gray");
   const result = spawnSync(command, args, { cwd, stdio: "inherit" });
@@ -813,7 +856,9 @@ function showHelp() {
   log("  --scheme <scheme>          Deep-link scheme (default: slug)");
   log("  --bundle-id <id>           iOS bundle identifier (default: com.<name>)");
   log("  --android-package <id>      Android package (default: com.<name>)");
-  log("  --auth cognito|clerk|none  Auth provider (default: none)");
+  log("  --auth cognito|clerk|none  Auth provider (default: none). Removes the other provider's");
+  log("                             packages and code; \"none\" removes both");
+  log("  --keep-auth-sdks           Keep the unused auth providers' packages and code");
   log("  --templates <ids>          Screen templates to KEEP, or \"none\"/\"all\"");
   log("  --prebuild                 Run `bunx expo prebuild --clean` afterwards");
   log("  --no-prebuild              Skip prebuild (prints the command instead)");
@@ -909,6 +954,19 @@ async function main() {
       log(`  ${IDENTITY_ENV_KEYS[field]}=${identity[field]}`, "gray");
     }
     log(`  Auth provider: ${auth}`, "gray");
+    const authPrune = providersToPrune(auth, options.keepAuthSdks);
+    log(
+      options.keepAuthSdks
+        ? "  Auth SDKs: keeping both (--keep-auth-sdks)"
+        : `  Auth SDKs: removing ${authPrune.map(authProviderLabel).join(" and ")}`,
+      "gray",
+    );
+    if (auth !== "none" && isProviderPruned(projectRoot, auth)) {
+      log(
+        `  Warning: ${authProviderLabel(auth)} was removed from this project earlier; its modules are stubs. Restore them from the template to use it.`,
+        "yellow",
+      );
+    }
     log(
       plan.prune.length === 0
         ? `  Screen templates: keeping all ${plan.keep.length}`
@@ -933,6 +991,8 @@ async function main() {
     fs.writeFileSync(envPath, envContent);
     log("\nWrote: .env", "green");
 
+    if (authPrune.length > 0) reportAuthPrune(applyAuthPrune(projectRoot, authPrune));
+
     if (plan.prune.length > 0) {
       applyPrune(projectRoot, plan);
       if (!run("bun", ["run", "gen:templates"], projectRoot)) {
@@ -955,6 +1015,9 @@ async function main() {
     }
 
     log("\nDone. Next: bun install && npx expo start", "green");
+    if (authPrune.length > 0) {
+      log("Run `bun install` to drop the removed auth packages from node_modules and bun.lock.", "gray");
+    }
     log("");
   } finally {
     rl?.close();

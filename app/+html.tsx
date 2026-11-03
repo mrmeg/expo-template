@@ -314,9 +314,9 @@ export default function Root({ children }: PropsWithChildren) {
 
         <script>{COLOR_SCHEME_SCRIPT}</script>
 
-        {/* React Scan render highlighting for web.
-            Add ?scan to any local web URL to inject the CDN script for that page. */}
-        <script>{REACT_SCAN_SCRIPT}</script>
+        {/* React Scan render highlighting, dev server only. Add ?scan to a local
+            web URL to inject the CDN script for that page. */}
+        {__DEV__ ? <script>{REACT_SCAN_SCRIPT}</script> : null}
       </head>
       <body {...bodyAttributes}>
         {children}

@@ -66,13 +66,13 @@ beforeAll(async () => {
   repo = mkdtempSync(join(tmpdir(), "publish-plan-repo-"));
   tempDirs.push(repo);
   git(["init", "-q"]);
-  writeManifests({ ui: "1.0.0", media: "2.0.0", purchases: "0.1.0", lint: "0.1.0" });
+  writeManifests({ ui: "1.0.0", media: "2.0.0", purchases: "0.1.0", lint: "0.1.0", metro: "0.1.0" });
   git(["add", "-A"]);
   git(["commit", "-q", "-m", "before"]);
   before = git(["rev-parse", "HEAD"]);
 
   // The push: ui bumped to an unpublished version, media to one npm already has,
-  // lint to a version of a package npm has never seen; purchases untouched.
+  // lint to a version of a package npm has never seen; purchases and metro untouched.
   writeManifests({ ui: "1.1.0", media: "2.1.0", lint: "0.2.0" });
   git(["add", "-A"]);
   git(["commit", "-q", "-m", "after"]);
