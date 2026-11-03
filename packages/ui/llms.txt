@@ -6,6 +6,8 @@ Docs, in `node_modules/@mrmeg/expo-ui/`:
 - LLM_USAGE.md — concise component-selection and implementation rules.
 - llms-full.md — expanded contract, component catalog, notifications.
 
+`bunx expo-ui-agents` copies this index into the app's AGENTS.md; rerun it after upgrading.
+
 Public entrypoints (nothing else is importable):
 
 - @mrmeg/expo-ui

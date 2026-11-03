@@ -20,6 +20,34 @@ plugin's first npm release is still pending, and only `@mrmeg/expo-ui` releases
 built after the manifest was added ship it: the installed release has one when
 `node_modules/@mrmeg/expo-ui/dist/design-system.json` exists.
 
+## Agent Setup
+
+An agent follows the rules already in its context far more reliably than rules
+it has to decide to go and read. `expo-ui-agents` puts them there: it writes a
+marked section into the app's root `AGENTS.md` holding the version of each
+installed `@mrmeg` package (`@mrmeg/expo-ui`, `@mrmeg/expo-media`,
+`@mrmeg/expo-purchases`, `@mrmeg/eslint-plugin-expo-ui`), the compact `llms.txt`
+of each, and the version-matched doc files in `node_modules`.
+
+```sh
+bunx expo-ui-agents           # write or refresh the section (creates AGENTS.md if absent)
+bunx expo-ui-agents --check   # exit 1 when the section is missing or stale; writes nothing
+```
+
+Run it from the app root after installing, and again after upgrading a package.
+Packages come from `package.json` (`dependencies` and `devDependencies`) and are
+read from `node_modules`; one that is listed but not installed is skipped with a
+warning. `--file <path>` writes a different file. The section sits between
+`<!-- @mrmeg/packages:start -->` and `<!-- @mrmeg/packages:end -->`: a first run
+inserts it just before `## Agent Workflow` (or appends it), a later run replaces
+it in place, and every byte outside the markers, such as a Convex block or the
+workflow section, stays as it was. The output is deterministic, so CI can fail a
+package bump that left it stale:
+
+```sh
+bunx expo-ui-agents --check   # after the install step in CI
+```
+
 ## Install
 
 ```sh

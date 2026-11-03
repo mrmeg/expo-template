@@ -2,6 +2,12 @@
 
 Read from `node_modules/@mrmeg/expo-ui/LLM_USAGE.md` before building app UI.
 
+Run `bunx expo-ui-agents` in the app root so `AGENTS.md` carries these rules
+without a read: it writes a marked section with the compact index and
+version-matched doc paths of each installed `@mrmeg` package. Rerun it after
+upgrading a package; `bunx expo-ui-agents --check` in CI fails when the section
+is stale.
+
 ## First Rule
 
 Do not recreate primitives this package already provides. Import from
