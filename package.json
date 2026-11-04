@@ -33,6 +33,8 @@
     "bundle-size": "node scripts/check-bundle-size.js",
     "first-load": "bun scripts/check-first-load.ts",
     "check:features": "node scripts/check-feature-isolation.js",
+    "docs:ui": "node scripts/build-ui-docs.mjs",
+    "docs:ui:check": "node scripts/build-ui-docs.mjs --check",
     "docs:llms": "node scripts/build-llms-full.mjs",
     "docs:llms:check": "node scripts/build-llms-full.mjs --check",
     "docs:versions:check": "node scripts/check-readme-versions.mjs",

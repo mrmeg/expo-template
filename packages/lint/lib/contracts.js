@@ -129,14 +129,15 @@ const DEFAULT_CONTRACTS = [
     allow: ALL_CATEGORIES,
   },
   {
-    // The documented transparent-sheet path in `LLM_USAGE.md`.
+    // The documented transparent-sheet path in `packages/ui/docs/components/BottomSheet.md`.
     pattern: "^BottomSheet(?:\\.|$)",
     prop: "^backgroundStyle$",
     allow: ["color"],
   },
   {
-    // The RN content column paints its own card fill; `LLM_USAGE.md` clears it
-    // through `style` so custom chrome behind a transparent sheet shows.
+    // The RN content column paints its own card fill;
+    // `packages/ui/docs/components/BottomSheet.md` clears it through `style` so
+    // custom chrome behind a transparent sheet shows.
     pattern: "^BottomSheet\\.Content$",
     prop: "^style$",
     allow: ["color"],

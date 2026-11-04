@@ -310,8 +310,9 @@ function SectionIntro({ title, children }) {
 Screens are flat: one 16 pt horizontal inset, sections split by a header,
 spacing, or a hairline rather than boxed in bordered or shadowed panels, and
 lists and settings built from `ItemGroup` + `Item` rows. `Card` is for one item
-in a collection or one tappable object. The rules, with a full screen, are in
-[`packages/ui/LLM_USAGE.md`](packages/ui/LLM_USAGE.md#screen-layout).
+in a collection or one tappable object. The rules are in
+[`packages/ui/LLM_USAGE.md`](packages/ui/LLM_USAGE.md#screen-layout), and a full
+screen is in [`packages/ui/docs/components/Item.md`](packages/ui/docs/components/Item.md#minimal-examples).
 
 Color tokens live in `packages/ui/src/constants/colors.ts`, imported through
 `@mrmeg/expo-ui/constants`. The primitives, theme hooks, resource-loading hook,

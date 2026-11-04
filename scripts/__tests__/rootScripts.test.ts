@@ -86,7 +86,9 @@ describe("bun run gen", () => {
       .split("\n")
       .map((line) => line.split("\t")[0]);
 
-    expect(generators).toEqual(["ui:icons", "icons", "icons:tabs", "gen:templates", "gen:blocks", "docs:llms"]);
+    // `docs:ui` writes the ui LLM_USAGE.md and component docs that `docs:llms`
+    // concatenates into the root bundle, so it has to run first.
+    expect(generators).toEqual(["ui:icons", "icons", "icons:tabs", "gen:templates", "gen:blocks", "docs:ui", "docs:llms"]);
     for (const name of generators) {
       expect(scripts[name]).toBeDefined();
       expect(scripts[`${name}:check`]).toBeDefined();

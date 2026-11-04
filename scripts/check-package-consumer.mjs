@@ -691,7 +691,13 @@ const PACKAGES = {
         wildcardReplacement: "",
       },
     ],
-    requiredDocs: ["dist/design-system.json", "dist/icons/lucide.json", "dist/icons/LICENSE.lucide", "bin/expo-ui-icons.mjs"],
+    requiredDocs: [
+      "dist/design-system.json",
+      "dist/icons/lucide.json",
+      "dist/icons/LICENSE.lucide",
+      "bin/expo-ui-icons.mjs",
+      "docs/components/index.md",
+    ],
     fixtures: [
       {
         prefix: "expo-ui-consumer-",

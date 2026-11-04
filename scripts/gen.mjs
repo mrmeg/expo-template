@@ -17,8 +17,10 @@ import { spawnSync } from "node:child_process";
 
 /**
  * In run order. The Lucide snapshot and builtins feed the UI build and the
- * app's icon module, which the tab icons follow; the LLM docs walk the demo
- * routes, screens, and components, so they go last.
+ * app's icon module, which the tab icons follow; the UI component docs come
+ * before the LLM docs because `docs:llms` concatenates the `LLM_USAGE.md` and
+ * component docs `docs:ui` writes; the LLM docs walk the demo routes, screens,
+ * and components, so they go last.
  */
 const GENERATORS = [
   {
@@ -30,6 +32,11 @@ const GENERATORS = [
   { script: "icons:tabs", artifacts: "client/tabIcons.generated.ts, assets/icons/tabs/manifest.json" },
   { script: "gen:templates", artifacts: "client/templates/registry.generated.ts" },
   { script: "gen:blocks", artifacts: "client/blocks/registry.generated.ts" },
+  {
+    script: "docs:ui",
+    artifacts:
+      "packages/ui/LLM_USAGE.md (index table), packages/ui/docs/components/index.md, packages/ui/llms-full.md",
+  },
   { script: "docs:llms", artifacts: "llms-full.txt, llms-examples.txt" },
 ];
 

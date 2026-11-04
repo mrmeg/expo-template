@@ -5,9 +5,11 @@ a universal component library for iOS, Android, and web. MIT licensed.
 
 ## For LLMs And Coding Agents
 
-Read `node_modules/@mrmeg/expo-ui/llms.txt` first, then `LLM_USAGE.md` (concise
-rules) or `llms-full.md` (expanded contract), before creating app-local UI
-primitives. All three ship in the npm tarball.
+Read `node_modules/@mrmeg/expo-ui/llms.txt` first, then `LLM_USAGE.md`
+(cross-cutting rules and the component index), then only the component docs you
+use, from `docs/components/index.md` (one file per family), before creating
+app-local UI primitives. `llms-full.md` is all of them in one file. Everything
+ships in the npm tarball.
 
 The same rules are available as an ESLint plugin: `@mrmeg/eslint-plugin-expo-ui`
 turns the theme and text rules into diagnostics at the call site — raw colors,
@@ -374,8 +376,9 @@ built from this package are flat:
 
 On a 390 pt phone a boxed settings group puts row content 33 pt from each edge
 (16 screen + 1 border + 16 row) and leaves 324 pt for it; the flat group puts
-it 16 pt in and leaves 358 pt. [`LLM_USAGE.md`](LLM_USAGE.md#screen-layout)
-has a complete screen.
+it 16 pt in and leaves 358 pt. [`LLM_USAGE.md`](LLM_USAGE.md#screen-layout) has
+the rules and [`docs/components/Item.md`](docs/components/Item.md#minimal-examples)
+a complete screen.
 
 ### Color overrides
 

@@ -50,7 +50,7 @@ stops matching `bun run verify --list`. Rerun any gate on its own as
 | 8 | `pkg metro typecheck` | `@mrmeg/expo-metro` against its own tsconfig |
 | 9 | `lint` | `expo lint` over `app/` (run `bun lint:ui` for `client/` and `shared/`) |
 | 10 | `check:features` | Feature-folder isolation |
-| 11 | `gen --check` | Every generated artifact is fresh: icon builtins and Lucide snapshot, app and tab icon modules, template and block registries, `llms-full.txt` / `llms-examples.txt`. Fix with `bun run gen` |
+| 11 | `gen --check` | Every generated artifact is fresh: icon builtins and Lucide snapshot, app and tab icon modules, template and block registries, `@mrmeg/expo-ui` component docs (`LLM_USAGE.md` index, `docs/components/index.md`, `llms-full.md`), `llms-full.txt` / `llms-examples.txt`. Fix with `bun run gen` |
 | 12 | `docs:versions:check` | `README.md`'s version claims match `package.json` |
 | 13 | `test:ci` | `jest --ci --forceExit`, no coverage (`bun run test:coverage` when you want the report). `--forceExit` because some suites leave timers that hold a single-worker run open for minutes |
 <!-- verify-gates:end -->
