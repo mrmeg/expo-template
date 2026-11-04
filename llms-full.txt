@@ -3737,6 +3737,34 @@ export default middleware;
 
 `setResponseHeaders` callbacks run after the route has answered, so the CORS policy reaches every matched `/api` response — including the 405 Expo Server writes for an unexported method — and merges with the `Vary` a route set. Match the route shapes your app serves: the repo file lists the grouped paths (`/(main)/(demos)/server-alpha`, `/(main)/(demos)/server-alpha/[example]`) alongside the public ones. `server/__tests__/middleware.test.ts` runs the file through Expo Server's real pipeline.
 
+## Memory soak check
+
+A server-rendering leak is invisible to a single request and to peak memory: a render that keeps about 0.1 MB alive adds nothing you can see until sustained traffic pushes the process out of memory. `scripts/soak-check.mjs` catches it by measuring the trend.
+
+```bash
+bun run build
+bun run soak                                  # 500 warm-up + 3,000 measured requests
+bun run soak -- --routes=/,/settings --max-slope=10
+```
+
+It needs an existing `dist/` and does not build. It starts `bun --no-env-file ./server.bun.ts` (what `bun run start` runs) on a free port as a child process whose environment is only `PATH`, `HOME`, `NODE_ENV=production`, and `PORT`, so it never reads `.env` and no secret can reach the server; a blank env is a supported state of this template. It sends sequential `GET`s with `accept: text/html` to a list of server-rendered routes (default `/`, `/settings`, `/screen-pricing`, `/screen-list`), fails if any route does not answer 200, discards the warm-up, and samples the child's RSS with `ps` every `--sample-every=100` requests. It prints request count, start/end/peak RSS, the least-squares slope in MB per 1,000 requests, and p50/p95 latency, and exits 1 when the slope is over `--max-slope=20` (exit 2 for setup or request failures). The child is killed on every exit path, including Ctrl-C.
+
+Reference numbers on the template at this commit: a clean export measures about 2.5 MB per 1,000 requests (two runs: 2.41 and 2.63; a small residual climb after warm-up, not a leak); a render that retained 100 KB measured about 103 MB per 1,000 requests. `--max-slope=20` sits between the two with room on both sides. It is not part of `bun run verify` because it needs a build; run it after a build when you touch the root layout, providers, SSR style flush, or anything else that runs on every render, and in CI if you deploy this server to production.
+
+**Query clients on the server.** A React Query client created per request must not keep a finite `gcTime`: every query schedules a garbage-collection timer, and the timer's closure keeps that request's entire cache alive until it fires, so each render pins its data for the full `gcTime` (10 minutes with this template's default). Force `gcTime: Infinity` on the server, including for queries that set their own value, by overriding `defaultQueryOptions` rather than only setting `defaultOptions`, which a query's own options replace:
+
+```ts
+const client = new QueryClient();
+if (typeof window === "undefined") {
+  const defaults = client.defaultQueryOptions.bind(client);
+  client.defaultQueryOptions = (options) => ({ ...defaults(options), gcTime: Infinity });
+}
+```
+
+`Infinity` schedules no timer, and the per-request client is collected with the request.
+
+This template is not affected: `client/features/app/RootLayout.tsx` creates one module-level `QueryClient` (`staleTime` 5 minutes, `gcTime` 10 minutes) that every server render shares, so there is no per-request client and no per-request timer. A shared client carries a different risk. Its cache outlives the request, so a query result one request wrote can be served to later requests (within `staleTime`, and held until `gcTime`) instead of that request's own server data, and anything user-specific placed in the cache can reach another visitor. Today nothing populates it on the server (the only queries, the billing hooks, run for an authenticated client session), so nothing is exposed. If you start prefetching on the server, create the client per request (with the `gcTime: Infinity` override above), or key every cached value by what makes it request-specific.
+
 ## Replication Checklist
 
 1. Set `web.output: "server"` and the two `unstable_` router flags (server rendering, data loaders); confirm the SDK supports them. Budget for the Server Rendering constraints first — stylesheet flush, `+html.tsx` snapshot filter, request-derived viewport/persisted state.

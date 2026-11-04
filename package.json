@@ -23,6 +23,7 @@
     "icons:check": "node packages/ui/bin/expo-ui-icons.mjs --check",
     "icons:tabs": "node packages/ui/bin/expo-ui-icons.mjs tabs",
     "icons:tabs:check": "node packages/ui/bin/expo-ui-icons.mjs tabs --check",
+    "soak": "node scripts/soak-check.mjs",
     "build": "NODE_OPTIONS=--max-old-space-size=8192 expo export -p web --output-dir dist && node scripts/precompress.mjs dist/client",
     "build-web": "NODE_OPTIONS=--max-old-space-size=8192 expo export -p web --output-dir dist --dump-sourcemap && node scripts/precompress.mjs dist/client",
     "view-sourcemap": "bun x source-map-explorer 'dist/client/_expo/static/js/web/*.js' --no-border-checks",
