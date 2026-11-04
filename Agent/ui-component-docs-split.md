@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: AFK
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/194
 ---
 
 # Split `@mrmeg/expo-ui` LLM_USAGE.md into per-component docs with a generated index
