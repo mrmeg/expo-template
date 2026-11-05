@@ -530,7 +530,7 @@ a project adds a case without restating the design system. The defaults are:
 | Text, keys `fontStyle` / `textDecorationLine` / `textDecorationStyle` | deny, naming `StyledText.tsx` — there is no italic or text-decoration prop to point at, so the message does not pretend `size` or `fontWeight` would do it |
 | `AnimatedView`, `KeyboardAvoidingView`, `DismissKeyboard`, `MaxWidthContainer`, `Skeleton` | allow everything — they exist to carry another component's styles |
 | `BottomSheet.*`, prop `backgroundStyle` | allow `color` — the documented transparent-sheet path |
-| `BottomSheet.Content`, prop `style` | allow `color` — the RN content column paints its own card fill, and `LLM_USAGE.md` clears it here so custom chrome shows through |
+| `BottomSheet.Content`, prop `style` | allow `color` — the RN content column paints its own card fill, and `packages/ui/docs/components/BottomSheet.md` clears it here so custom chrome shows through |
 | `Button`, props `pressedStyle` / `disabledStyle` | allow `color` and `shape` — a pressed fill or a faded border is what the prop is for; typography stays denied |
 | `Button`, props `textStyle` / `pressedTextStyle` / `disabledTextStyle` | allow `color`; deny `typography` with a message that names `Button.Text`, which takes `StyledText`'s props |
 | `TextInput`, prop `focusedStyle` | allow `color` and `shape` — the focus treatment is the reason the prop exists |

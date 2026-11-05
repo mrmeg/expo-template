@@ -24,6 +24,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     section is missing or stale, nothing written) can run in CI after an install.
   - Rerun it after upgrading `@mrmeg/expo-ui` or any other `@mrmeg` package.
 
+### Changed
+
+- **Component rules moved out of `LLM_USAGE.md` into one doc per component family.**
+  `LLM_USAGE.md` went from 70 KB to under 25 KB and keeps the cross-cutting rules:
+  import paths, required app setup, theme and text rules, screen layout, the general
+  selection rules, and a component index whose rows link to `docs/components/<Family>.md`.
+  The `DismissKeyboard`, `BottomSheet`, `Dialog` and `Popover` setup notes, the
+  per-component selection rules, the `Button` and `Notification` theme rules, the
+  `ThemeSelector` and `StyledText` notes, the media components (`Image`, `Video`,
+  `AudioPlayer`, `MediaViewer`, the shared primitives in `Media.md`, and the library
+  pieces in `MediaLibrary.md`), and the minimal examples now live there. The complete
+  flat settings screen is the Minimal Example in `docs/components/Item.md`.
+- **`llms-full.md` is generated.** It is `LLM_USAGE.md` followed by every component
+  doc, and replaces the old hand-written "Full Contract". Its unique Notifications
+  content is in `docs/components/Notification.md`, and its per-component notes are in
+  each family's doc. `docs/components/index.md` lists every family with its use-for
+  and instead-of line. Read `llms.txt`, then `LLM_USAGE.md`, then only the component
+  docs you use.
+- The `docs` folder ships in the package tarball.
+
+### Fixed
+
+- `LLM_USAGE.md` listed 17 semantic color tokens; it now lists all 26 keys of
+  `ThemeColors`, including the `*Foreground` pairs, `cardForeground`,
+  `popoverForeground`, `text`, `textDim` and `overlay`.
+
 ## [0.33.0]
 
 ### Breaking

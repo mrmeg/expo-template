@@ -839,7 +839,8 @@ function OwnedAudioPlayer({ source, ...rest }: OwnedAudioPlayerProps) {
  * pause), ←/→ (5 s) and M (mute).
  *
  * The component does not call `setAudioModeAsync`: that is process-wide. See
- * `LLM_USAGE.md` for the silent switch, background playback and the lock screen.
+ * `docs/components/AudioPlayer.md` for the silent switch, background playback and the
+ * lock screen.
  *
  * On iOS 26 set `fullScreenGestureEnabled: false` on the stack screen that shows
  * it, or dragging the scrubber swipes the screen back.
