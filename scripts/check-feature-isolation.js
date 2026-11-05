@@ -49,6 +49,7 @@ const ALLOWED_DEPENDENCIES = {
   navigation: { allowed: [], reason: "Self-contained." },
   keyboard: { allowed: [], reason: "Self-contained." },
   "server-alpha": { allowed: [], reason: "Self-contained server/demo route pattern." },
+  "server-lab": { allowed: [], reason: "Self-contained local diagnostics screen for the Server Lab supervisor." },
 };
 
 const FEATURES_ROOT = path.join(__dirname, "..", "client", "features");

@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "bench:server": "node scripts/server-bench/run.mjs",
     "start": "bun ./server.bun.ts",
     "android": "expo run:android",
     "ios": "expo run:ios",
@@ -75,7 +76,11 @@
     "verify": "node scripts/verify.mjs",
     "generate": "bun scripts/generate.ts",
     "init": "bun scripts/init.ts",
-    "auth:emails": "bun scripts/apply-cognito-email-templates.ts"
+    "auth:emails": "bun scripts/apply-cognito-email-templates.ts",
+    "server:rust:build": "cargo build --locked --release --manifest-path server/rust/Cargo.toml --target-dir .build/server-rust",
+    "server:rust": ".build/server-rust/release/template-server",
+    "server:lab": "node scripts/server-lab.mjs",
+    "server:lab:test": "node --test scripts/server-lab.test.mjs"
   },
   "dependencies": {
     "@aws-amplify/react-native": "^1.3.3",

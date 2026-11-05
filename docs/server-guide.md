@@ -4,6 +4,11 @@ Reference for replicating this template's server stack — server-rendered web o
 
 ## Source Map
 
+For the optional Rust API and the local live-memory/console/benchmark page,
+see [`server/rust/README.md`](../server/rust/README.md). After `bun run build`,
+`bun run server:lab` serves `/server-lab` with Bun SSR and the native Rust API.
+The default production server remains Bun-only.
+
 | Concern | Source |
 |---------|--------|
 | Server output and router flags | `app.config.ts` |

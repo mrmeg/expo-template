@@ -47,6 +47,7 @@ export const MAIN_STACK_SCREENS: readonly MainStackScreen[] = [
   { name: "(demos)/media-lab", options: { title: "Media Lab", ...webHeaderLeft, ...edgeBackSwipeOnly } },
   { name: "(demos)/developer", options: { title: "Developer Tools", ...webHeaderLeft } },
   { name: "(demos)/server-alpha/index", options: { title: "Server Alpha", ...webHeaderLeft } },
+  { name: "(demos)/server-lab", options: { title: "Server Lab", ...webHeaderLeft } },
   { name: "(demos)/server-alpha/[example]", options: { title: "Server Pattern", ...webHeaderLeft } },
   { name: "(demos)/form-demo", options: { title: "Form Validation", ...webHeaderLeft } },
   { name: "(demos)/auth-demo", options: { title: "Auth Demo", ...webHeaderLeft } },

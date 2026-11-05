@@ -17,6 +17,7 @@ import { createHandler, type PeerInfo } from "./server/http/createHandler";
 declare const Bun: {
   serve(options: {
     port: number;
+    hostname?: string;
     fetch(request: Request, server: PeerInfo): Response | Promise<Response>;
   }): unknown;
 };
@@ -34,7 +35,7 @@ const handler = createHandler({
 
 const port = Number(process.env.PORT || 3000);
 
-Bun.serve({ port, fetch: handler });
+Bun.serve({ port, hostname: process.env.HOST || "0.0.0.0", fetch: handler });
 
 console.log(`Bun server listening on port ${port}`);
 

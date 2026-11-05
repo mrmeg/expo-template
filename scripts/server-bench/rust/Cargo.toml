@@ -1,0 +1,20 @@
+[package]
+name = "server-bench"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+tokio = { version = "1", features = ["rt", "net", "macros"] }
+axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "query", "tokio"] }
+jsonwebtoken = { version = "10", features = ["rust_crypto"] }
+rusqlite = { version = "0.41", features = ["bundled", "cache"] }
+serde = { version = "1", features = ["derive"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
