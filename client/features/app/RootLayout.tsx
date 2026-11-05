@@ -18,7 +18,8 @@ import { startColorSchemeCookieSync, useSsrColorScheme } from "@/client/features
 import { UIProvider } from "@mrmeg/expo-ui/components/UIProvider";
 import { registerIcons } from "@mrmeg/expo-ui/components/Icon";
 import { appIcons } from "@/client/icons.generated";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createQueryClient } from "@/client/lib/queryClient";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { KeyboardDismissBoundary, KeyboardProvider } from "@/client/features/keyboard/platform";
 import { ErrorBoundary } from "@mrmeg/expo-ui/components/ErrorBoundary";
@@ -68,27 +69,6 @@ function reportBoundaryError(error: Error, errorInfo: ErrorInfo) {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,  // 5 minutes
-      gcTime: 1000 * 60 * 10,    // 10 minutes
-      retry: (failureCount, error) => {
-        // Don't retry 4xx errors (client errors)
-        if (error && typeof error === "object" && "status" in error) {
-          const status = (error as { status: number }).status;
-          if (status >= 400 && status < 500) return false;
-        }
-        return failureCount < 2;
-      },
-      refetchOnWindowFocus: false,
-    },
-    mutations: {
-      retry: false,
-    },
-  },
-});
-
 /**
  * The scheme the first render paints, from the `color-scheme` cookie the
  * server and the browser both read (see shared/ssrColorScheme.ts). Wrapped
@@ -114,6 +94,7 @@ function RootLayoutContent() {
   // below.
   ensureI18nInitialized();
 
+  const [queryClient] = useState(createQueryClient);
   const { scheme } = useTheme();
   // The kit's serif preset: Newsreader instead of single-face Georgia. Native
   // registers the five files from client/lib/fonts; web gets the stylesheet
