@@ -17,6 +17,7 @@
 import "@/test/mockTheme";
 
 import React from "react";
+import { colors } from "../../constants/colors";
 import { StyleSheet, View, type ViewStyle } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { TestInstance } from "test-renderer";
@@ -356,6 +357,18 @@ describe("AvatarGroup", () => {
     expect(screen.queryByText("MJ", HIDDEN)).toBeNull();
     expect(screen.queryByText("DV", HIDDEN)).toBeNull();
     expect(screen.getByText("+2", HIDDEN)).toBeTruthy();
+  });
+
+  it("draws the +N tile on muted, not as white text on the teal accent", async () => {
+    await render(
+      <AvatarGroup max={1}>
+        <Avatar name="Ada Lovelace" />
+        <Avatar name="Grace Hopper" />
+      </AvatarGroup>,
+    );
+
+    const label = StyleSheet.flatten(screen.getByText("+1", HIDDEN).props.style);
+    expect(label.color).toBe(colors.light.colors.mutedForeground);
   });
 
   it("does not render an overflow avatar when the child count equals max", async () => {
