@@ -308,7 +308,7 @@ function ButtonRoot(props: ButtonProps) {
       : preset === "ghost"
         ? theme.colors.text
         : preset === "link"
-          ? theme.colors.accent
+          ? theme.colors.link
           : preset === "default"
             ? theme.colors.primaryForeground
             : preset === "secondary"
@@ -540,7 +540,7 @@ const createStyles = (theme: Theme, size: ButtonSize) => {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: spacing.radiusMd,
+      borderRadius: spacing.radiusSm,
       paddingVertical: sizeConfig.paddingVertical,
       paddingHorizontal: sizeConfig.paddingHorizontal,
       minHeight: sizeConfig.height,

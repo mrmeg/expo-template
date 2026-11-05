@@ -9,7 +9,7 @@ production server, and LLM-facing docs under `docs/`.
 ### Core
 
 - **Universal app** — iOS, Android, and Web from one codebase; TypeScript strict. Versions under Tech Stack.
-- **Design system** — 35+ shadcn-inspired components on `@rn-primitives`: zinc palette, teal accent, dark/light themes, WCAG contrast helpers.
+- **Design system** — 35+ shadcn-inspired components on `@rn-primitives`: Refined look by default (Geist, neutral greys, teal accent; `classicLook` for the old one), dark/light themes, WCAG contrast helpers.
 - **Routing** — Expo Router typed routes; server-rendered web build (routes render per request on the Bun server).
 - **State** — Zustand for client state, TanStack React Query for server state, persisted via `AsyncStorage` (native) or `localStorage` (web).
 - **i18n** — `i18next` + `expo-localization`, English/Spanish bundles, RTL support, type-safe translation keys.
@@ -225,7 +225,7 @@ does not collect it. The lint plugin's own suites live in
 /test                         # Jest setup
 ```
 
-Six gallery routes — `themed-showcase.tsx`,
+Seven gallery routes — `themed-showcase.tsx`, `looks.tsx`,
 `surface-lab.tsx`, `media-lab.tsx`, `components/index.tsx`, `components/[id].tsx`, `blocks/index.tsx` under
 `app/(main)/(demos)` — are one-line lazy shells. Their bodies live in
 `client/showcase/*Screen.tsx` behind the single split point
@@ -318,12 +318,14 @@ Color tokens live in `packages/ui/src/constants/colors.ts`, imported through
 `@mrmeg/expo-ui/constants`. The primitives, theme hooks, resource-loading hook,
 toast store, and UI helpers ship from the workspace package `@mrmeg/expo-ui`.
 
-Fonts: native loads Inter through `useResources()` (from
-`@expo-google-fonts/inter`). Web self-hosts it: `app/+html.tsx` preloads
-`public/fonts/inter/` (copied from the `@fontsource-variable/inter`
+Fonts: native loads Geist through `useResources()` (from
+`@expo-google-fonts/geist`). Web self-hosts it: `app/+html.tsx` preloads
+`public/fonts/geist/` (copied from the `@fontsource-variable/geist`
 devDependency; a guardrail test fails if they drift) and inlines the
-`@font-face` rules in `<style id="mrmeg-expo-ui-inter">`, the id that makes
+`@font-face` rules in `<style id="mrmeg-expo-ui-geist">`, the id that makes
 `useResources()` skip injecting its render-blocking Google Fonts stylesheet.
+Inter is the opt-in `classicLook` face; its rules sit inline under
+`mrmeg-expo-ui-inter` without a preload.
 
 Consumer Expo apps install `@mrmeg/expo-ui` plus the native and Expo peer
 dependencies listed in `packages/ui/package.json` (including `react-native-svg`

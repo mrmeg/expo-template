@@ -66,6 +66,12 @@ describe.each(schemes)("%s theme readability", (scheme) => {
     }
   });
 
+  it("keeps link at >= 4.5:1 on background, card, and popover", () => {
+    for (const surface of ["background", "card", "popover"] as const) {
+      expect(contrastRatio(theme.link, theme[surface])).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it.each(["text", "foreground"] as const)(
     "keeps %s at >= 12:1 on background and card",
     (token) => {
@@ -100,9 +106,11 @@ describe("labels on the accent", () => {
 });
 
 describe("surface tiers", () => {
-  it("orders dark chrome below content below raised panels", () => {
+  it("orders dark chrome at or below content, and content below raised panels", () => {
+    // Refined dark has no separate chrome tier: `surfaceSunken` and
+    // `background` are both #0A0A0A, and the raised panels lift off them.
     const dark = colors.dark.colors;
-    expect(luminance(dark.surfaceSunken)).toBeLessThan(luminance(dark.background));
+    expect(luminance(dark.surfaceSunken)).toBeLessThanOrEqual(luminance(dark.background));
     expect(luminance(dark.background)).toBeLessThan(luminance(dark.card));
   });
 
@@ -116,16 +124,37 @@ describe("surface tiers", () => {
 
 describe("semantic token values", () => {
   it("maps the new surface and border tokens to palette entries", () => {
-    expect(colors.dark.colors.surfaceSunken).toBe(palette.dark950);
-    expect(colors.dark.colors.borderStrong).toBe(palette.dark600);
-    expect(colors.light.colors.surfaceSunken).toBe(palette.gray50);
-    expect(colors.light.colors.borderStrong).toBe(palette.gray300);
+    expect(colors.dark.colors.surfaceSunken).toBe(palette.neutral950);
+    expect(colors.dark.colors.borderStrong).toBe(palette.neutral700);
+    expect(colors.light.colors.surfaceSunken).toBe(palette.neutral50);
+    expect(colors.light.colors.borderStrong).toBe(palette.neutral300);
   });
 
   it("uses the raised dim-text values in both schemes", () => {
-    expect(colors.dark.colors.textDim).toBe(palette.dark350);
-    expect(colors.dark.colors.mutedForeground).toBe(palette.dark350);
-    expect(colors.light.colors.textDim).toBe(palette.gray600);
-    expect(colors.light.colors.mutedForeground).toBe(palette.gray600);
+    expect(colors.dark.colors.textDim).toBe(palette.neutralDim);
+    expect(colors.dark.colors.mutedForeground).toBe(palette.neutralDim);
+    expect(colors.light.colors.textDim).toBe(palette.neutral600);
+    expect(colors.light.colors.mutedForeground).toBe(palette.neutral600);
+  });
+
+  it("ships the Refined neutral scale, not zinc", () => {
+    expect(colors.light.colors.primary).toBe("#171717");
+    expect(colors.light.colors.border).toBe("#E5E5E5");
+    expect(colors.dark.colors.background).toBe("#0A0A0A");
+    expect(colors.dark.colors.card).toBe("#171717");
+    expect(colors.dark.colors.primary).toBe("#E5E5E5");
+  });
+
+  it("keeps the zinc palette entries exported for Classic and existing imports", () => {
+    expect(palette.gray900).toBe("#18181B");
+    expect(palette.dark350).toBe("#B0B0B8");
+  });
+
+  it("keeps the navigation maps on the same neutrals", () => {
+    expect(colors.light.navigation.primary).toBe(colors.light.colors.primary);
+    expect(colors.light.navigation.border).toBe(colors.light.colors.border);
+    expect(colors.dark.navigation.background).toBe(colors.dark.colors.background);
+    expect(colors.dark.navigation.card).toBe(colors.dark.colors.card);
+    expect(colors.dark.navigation.border).toBe(colors.dark.colors.border);
   });
 });

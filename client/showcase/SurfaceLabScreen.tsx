@@ -46,8 +46,8 @@ import {
  * component, the specimen below, and the rest of the app re-skin live. The
  * override is cleared on unmount so the app returns to the package defaults.
  *
- * The Lab opens on what ships: the zinc ramps ("Current") and the edge-lit
- * shadows, which are `useTheme().getShadowStyle`. Candidate data lives in
+ * The Lab opens on what ships: the neutral ramps ("Current") and the package
+ * shadows, which are `useTheme().getShadowStyle` (hairline `subtle`). Candidate data lives in
  * `surfaceLabCandidates.ts` (Deep, Lifted, Slate and Canvas stay as alternate
  * presets for forks); `surfaceLabShadows.ts` freezes the old shadow presets as
  * "Previous" for the same comparison.
@@ -56,7 +56,7 @@ import {
 const PRINCIPLES: { title: string; body: string }[] = [
   {
     title: "Dark mode: higher is lighter",
-    body: "Each elevation step adds a little light. Shadows only help once the base is lifted off near-black, and on a very dark base the edge highlight does the work instead.",
+    body: "Each elevation step adds a little light. Shadows only help once the base is lifted off near-black; on a very dark base the 1px border and tier step do the work instead.",
   },
   {
     title: "Even steps in a perceptual space",
@@ -67,8 +67,8 @@ const PRINCIPLES: { title: string; body: string }[] = [
     body: "Chroma of 0.004 to 0.012 toward a cool hue reads as material instead of gray plastic, and stays quiet enough for the accent to own color.",
   },
   {
-    title: "Edge light on raised surfaces in dark",
-    body: "A 1px inset top highlight plus a deeper, larger black shadow. In light, the shadow does the work and the highlight is unnecessary.",
+    title: "Hairline cards, layered overlays",
+    body: "Cards take the 1px border (plus a faint 1px shadow in light, none in dark). Menus and toasts keep dual-layer shadows, with a 1px inset top highlight in dark. elevation: \"layered\" gives cards the dual-layer shadow back.",
   },
   {
     title: "Light mode: canvas and paper",
@@ -112,7 +112,7 @@ type LabAction =
 const INITIAL_LAB_STATE: LabState = {
   dark: DEFAULT_DARK_CANDIDATE,
   light: DEFAULT_LIGHT_CANDIDATE,
-  // The Lab opens on the package defaults: current palettes, edge-lit shadows.
+  // The Lab opens on the package defaults: current palettes, package shadows.
   shadow: DEFAULT_SHADOW_TREATMENT,
   email: "",
   push: true,
@@ -190,8 +190,8 @@ export default function SurfaceLabScreen() {
     };
   }, []);
 
-  // `edge-lit` is the package's own preset (the default); `previous` is the
-  // frozen copy of the old ones.
+  // `package` is the package's own getShadowStyle (the default); `previous` is
+  // the frozen copy of the pre-edge-lit presets.
   const surfaceShadow = (preset: ShadowPreset): ViewStyle =>
     shadow === "previous"
       ? ({ boxShadow: previousShadow(scheme, preset) } as ViewStyle)

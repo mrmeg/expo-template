@@ -78,6 +78,20 @@ describe("candidate ids", () => {
     }
   });
 
+  it("gives the dark alternates their own dim text and leaves the package ramp on its own", () => {
+    for (const candidate of DARK_CANDIDATES) {
+      const colors = rampToColors(candidate.ramp);
+      if (candidate.id === "current") {
+        expect(colors.textDim).toBeUndefined();
+        expect(colors.mutedForeground).toBeUndefined();
+      } else {
+        expect(candidate.ramp.textDim).toMatch(/^#[0-9A-F]{6}$/);
+        expect(colors.textDim).toBe(candidate.ramp.textDim);
+        expect(colors.mutedForeground).toBe(candidate.ramp.textDim);
+      }
+    }
+  });
+
   it("falls back to the first candidate for an unknown id", () => {
     expect(findCandidate(DARK_CANDIDATES, "nope")).toBe(DARK_CANDIDATES[0]);
   });
@@ -100,18 +114,23 @@ describe.each(SCHEME_CANDIDATES)("%s candidates", (scheme, list) => {
       }
     });
 
+    // A candidate may carry its own dim text (the dark alternates do); the
+    // Lab applies it to `textDim` and `mutedForeground` through `setColors`.
+    const applied = rampToColors(candidate.ramp);
+    const textDim = applied.textDim ?? text.textDim;
+    const mutedForeground = applied.mutedForeground ?? text.mutedForeground;
+
     it("keeps dim text >= 7:1 on background, card, and popover", () => {
       for (const surface of ["background", "card", "popover"] as const) {
-        expect(contrastRatio(text.textDim, candidate.ramp[surface])).toBeGreaterThanOrEqual(7);
-        expect(contrastRatio(text.mutedForeground, candidate.ramp[surface])).toBeGreaterThanOrEqual(7);
+        expect(contrastRatio(textDim, candidate.ramp[surface])).toBeGreaterThanOrEqual(7);
+        expect(contrastRatio(mutedForeground, candidate.ramp[surface])).toBeGreaterThanOrEqual(7);
       }
     });
 
     it("keeps dim text >= 6:1 on muted and secondary", () => {
-      const colors = rampToColors(candidate.ramp);
-      for (const surface of [colors.muted, colors.secondary] as string[]) {
-        expect(contrastRatio(text.textDim, surface)).toBeGreaterThanOrEqual(6);
-        expect(contrastRatio(text.mutedForeground, surface)).toBeGreaterThanOrEqual(6);
+      for (const surface of [applied.muted, applied.secondary] as string[]) {
+        expect(contrastRatio(textDim, surface)).toBeGreaterThanOrEqual(6);
+        expect(contrastRatio(mutedForeground, surface)).toBeGreaterThanOrEqual(6);
       }
     });
 
@@ -123,10 +142,14 @@ describe.each(SCHEME_CANDIDATES)("%s candidates", (scheme, list) => {
 
 describe("dark tier ordering", () => {
   it.each(DARK_CANDIDATES.map((candidate) => [candidate.name, candidate] as const))(
-    "%s sinks chrome below content below card",
+    "%s sinks chrome to or below content, and content below card",
     (_name, candidate) => {
       const { surfaceSunken, background, card } = candidate.ramp;
-      expect(oklabLightness(surfaceSunken)).toBeLessThan(oklabLightness(background));
+      // Refined dark has one base for chrome and content; the alternates keep a step.
+      expect(oklabLightness(surfaceSunken)).toBeLessThanOrEqual(oklabLightness(background));
+      if (candidate.id !== "current") {
+        expect(oklabLightness(surfaceSunken)).toBeLessThan(oklabLightness(background));
+      }
       expect(oklabLightness(background)).toBeLessThan(oklabLightness(card));
     },
   );
@@ -168,13 +191,19 @@ describe("rampToColors", () => {
     expect(colors.secondary).toBe(colors.muted);
     expect(colors.input).toBe(colors.border);
   });
+
+  it("lets a ramp set input apart from border (the Refined dark input)", () => {
+    const colors = rampToColors(findCandidate(DARK_CANDIDATES, "current").ramp);
+    expect(colors.input).toBe("#333333");
+    expect(colors.border).toBe("#262626");
+  });
 });
 
 describe("shadow treatments", () => {
-  it("offers the frozen previous presets as the baseline and edge-lit as the default", () => {
-    expect(SHADOW_TREATMENTS.map((treatment) => treatment.id)).toEqual(["previous", "edge-lit"]);
-    expect(DEFAULT_SHADOW_TREATMENT).toBe("edge-lit");
-    expect(findTreatment("edge-lit").label).toBe("Edge-lit");
+  it("offers the frozen previous presets as the baseline and the package shadows as the default", () => {
+    expect(SHADOW_TREATMENTS.map((treatment) => treatment.id)).toEqual(["previous", "package"]);
+    expect(DEFAULT_SHADOW_TREATMENT).toBe("package");
+    expect(findTreatment("package").label).toBe("Package");
     expect(findTreatment("nope").id).toBe("previous");
   });
 

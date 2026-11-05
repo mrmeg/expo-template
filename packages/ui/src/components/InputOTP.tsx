@@ -270,7 +270,7 @@ function OTPCell({
           {
             width: CELL_WIDTH,
             height: CELL_HEIGHT,
-            borderRadius: inputShape?.borderRadius ?? spacing.radiusMd,
+            borderRadius: inputShape?.borderRadius ?? spacing.radiusSm,
             borderWidth,
             justifyContent: "center",
             alignItems: "center",

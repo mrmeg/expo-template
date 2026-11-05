@@ -3,7 +3,7 @@ import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { ThemeColors } from "../constants/colors";
-import type { FontOverrides, SerifPreset } from "../constants/fonts";
+import type { FontOverrides, SansPreset, SerifPreset } from "../constants/fonts";
 
 const THEME_KEY = "user-theme-preference";
 
@@ -55,8 +55,8 @@ export type ShapeSlotOverride = {
  *
  * | Slot | Components | Package default |
  * |---|---|---|
- * | `button` | Button (every preset) | `spacing.radiusMd` (10) |
- * | `input` | TextInput (not `underlined`), Select trigger, InputOTP cells | `spacing.radiusMd` (10) |
+ * | `button` | Button (every preset) | `spacing.radiusSm` (8) |
+ * | `input` | TextInput (not `underlined`), Select trigger, InputOTP cells | `spacing.radiusSm` (8) |
  * | `card` | Card, StatCard, EmptyState (`bordered`), SkeletonCard | `spacing.radiusLg` (14) |
  * | `sheet` | BottomSheet top corners (where the platform lets the sheet draw them: web, Android) | platform |
  * | `badge` | Badge | `spacing.radiusFull` |
@@ -79,6 +79,38 @@ export type ShapeOverrides = {
 };
 
 export type ShapeSlot = keyof ShapeOverrides;
+
+/**
+ * Component treatments a host app (or a look, see `applyLook`) can switch.
+ * Every field is optional; omitted fields keep the package default, which is
+ * the Refined look. `classicLook` sets the pre-0.35 treatments.
+ *
+ * | Treatment | Values (default first) | What it changes |
+ * |---|---|---|
+ * | `segmentedSelection` | `"surface"` · `"accent"` | SegmentedControl's selected segment where the kit draws it (web): a raised `background` pill on the `muted` track, or an `accent` fill |
+ * | `switchTrack` | `"primary"` · `"accent"` | Switch's on-track: `primary` on every platform, or `accent` (iOS keeps the system green) |
+ * | `eyebrow` | `"sentence"` · `"uppercase"` | The `eyebrow` role: 13 medium, as written, no tracking; or 12 semibold, UPPERCASE, +0.08em |
+ * | `focusRing` | `"soft"` · `"offset"` | Web focus ring: a 3px `ring` halo at 50%; or a 2px `background` gap plus a 2px `ring` |
+ * | `elevation` | `"hairline"` · `"layered"` | `subtle` shadow (default Button, Card): a 1px light shadow and none in dark, the 1px `border` carrying the edge; or the dual-layer shadows with the dark top highlight |
+ */
+export type TreatmentOverrides = {
+  segmentedSelection?: "surface" | "accent";
+  switchTrack?: "primary" | "accent";
+  eyebrow?: "sentence" | "uppercase";
+  focusRing?: "soft" | "offset";
+  elevation?: "hairline" | "layered";
+};
+
+export type Treatment = keyof TreatmentOverrides;
+
+/** The package's own treatments: the Refined look. */
+export const defaultTreatments: Required<TreatmentOverrides> = {
+  segmentedSelection: "surface",
+  switchTrack: "primary",
+  eyebrow: "sentence",
+  focusRing: "soft",
+  elevation: "hairline",
+};
 
 export type ThemeStore = {
   userTheme: ThemePreference;
@@ -110,6 +142,11 @@ export type ThemeStore = {
    */
   shapeOverrides: ShapeOverrides;
   /**
+   * App-injected component treatments (see `TreatmentOverrides`). Same
+   * contract as the other override slots: empty means the package defaults.
+   */
+  treatmentOverrides: TreatmentOverrides;
+  /**
    * Which serif the `serif` variant resolves to when no `setFonts` serif
    * override exists: `"georgia"` (default, the system face) or
    * `"newsreader"`, set by `useResources({ serif: "newsreader" })` once its
@@ -117,6 +154,13 @@ export type ThemeStore = {
    * `StyledText` and `useFontStyle`.
    */
   serifPreset: SerifPreset;
+  /**
+   * Which sans the `sansSerif` variant resolves to when no `setFonts`
+   * sansSerif override exists: `"geist"` (default) or `"inter"`, set by
+   * `useResources({ sans: "inter", sansFonts })` or by `applyLook` once the
+   * faces are loaded.
+   */
+  sansPreset: SansPreset;
   setTheme: (theme: ThemePreference) => void;
   setSystemTheme: (theme: ResolvedTheme) => void;
   /**
@@ -137,12 +181,19 @@ export type ThemeStore = {
   /**
    * Replace the active shape overrides. Pass `{}` to clear them and fall back
    * to the package defaults (see the slot table on `ShapeOverrides`: button
-   * and input radius 10 = `spacing.radiusMd`, card and dialog 14 =
+   * and input radius 8 = `spacing.radiusSm`, card and dialog 14 =
    * `spacing.radiusLg`, badge pill, default-preset shadow on).
    */
   setShape: (overrides: ShapeOverrides) => void;
+  /**
+   * Replace the active treatment overrides. Pass `{}` to fall back to the
+   * package defaults (`defaultTreatments`).
+   */
+  setTreatments: (overrides: TreatmentOverrides) => void;
   /** Switch the serif preset. `useResources` calls this; apps rarely need to. */
   setSerifPreset: (preset: SerifPreset) => void;
+  /** Switch the sans preset. `useResources` and `applyLook` call this. */
+  setSansPreset: (preset: SansPreset) => void;
   loadTheme: () => void;
 };
 
@@ -183,7 +234,16 @@ export const useThemeStore = create<ThemeStore>((set) => ({
   // And again for shape: package geometry until a host app calls `setShape`.
   shapeOverrides: {},
 
+  // And for component treatments: the package's (Refined) until set.
+  treatmentOverrides: {},
+
   serifPreset: "georgia",
+
+  sansPreset: "geist",
+
+  setSansPreset: (preset) => {
+    set({ sansPreset: preset ?? "geist" });
+  },
 
   setSerifPreset: (preset) => {
     set({ serifPreset: preset ?? "georgia" });
@@ -199,6 +259,10 @@ export const useThemeStore = create<ThemeStore>((set) => ({
 
   setShape: (overrides) => {
     set({ shapeOverrides: overrides ?? {} });
+  },
+
+  setTreatments: (overrides) => {
+    set({ treatmentOverrides: overrides ?? {} });
   },
 
   setTheme: (theme) => {

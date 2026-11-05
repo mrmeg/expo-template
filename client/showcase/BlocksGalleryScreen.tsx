@@ -330,7 +330,7 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.mutedForeground,
     },
     recipeChipLink: {
-      color: theme.colors.accent,
+      color: theme.colors.link,
     },
   });
 

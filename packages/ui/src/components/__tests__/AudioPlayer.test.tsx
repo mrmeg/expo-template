@@ -132,7 +132,7 @@ describe("AudioPlayer", () => {
 
       const title = screen.getByTestId("player-title", { includeHiddenElements: true });
       expect(title.props.numberOfLines).toBe(1);
-      expect(flat(title).fontFamily).toBe("Inter_600SemiBold");
+      expect(flat(title).fontFamily).toBe("Geist_600SemiBold");
       const subtitle = screen.getByTestId("player-subtitle", { includeHiddenElements: true });
       expect(subtitle.props.numberOfLines).toBe(1);
       expect(flat(subtitle).color).toBe(rawThemeColors.light.mutedForeground);

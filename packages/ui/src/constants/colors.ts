@@ -4,16 +4,41 @@ import { navigationFonts } from "./fonts";
 /**
  * Raw color palette - use semantic colors in components instead
  *
- * Zinc-inspired neutral scale for a minimal, professional feel.
- * Status colors aligned with Tailwind's default palette.
+ * The default themes use the `neutral*` scale (the Refined look). The `gray*`
+ * and `dark*` zinc entries stay exported, unchanged, for apps that import them
+ * and for `classicLook` (`state/looks.ts`). Status colors follow Tailwind's
+ * default palette.
  */
 const palette = {
   // Brand (accent)
   teal400: "#2dd4bf",
   teal500: "#14b8a6",
   teal600: "#0d9488",
+  // Link text: teal600 is too light on white, teal700 clears 4.5:1; teal300
+  // does the same on the dark surfaces.
+  teal700: "#0F766E",
+  teal300: "#5EEAD4",
 
-  // Neutrals — zinc scale
+  // Neutrals — Tailwind neutral scale (the default themes)
+  neutral50: "#FAFAFA",
+  neutral100: "#F5F5F5",
+  neutral200: "#E5E5E5",
+  neutral300: "#D4D4D4",
+  neutral400: "#A3A3A3",
+  // Light `ring`.
+  neutralRing: "#A1A1A1",
+  // Dark dim text: the darkest grey that keeps 6:1 on `muted` (neutral400 is
+  // 5.999:1 there).
+  neutralDim: "#A4A4A4",
+  neutral500: "#737373",
+  neutral600: "#525252",
+  neutral700: "#404040",
+  neutral750: "#333333",
+  neutral800: "#262626",
+  neutral900: "#171717",
+  neutral950: "#0A0A0A",
+
+  // Neutrals — zinc scale (Classic look)
   white: "#FFFFFF",
   gray50: "#FAFAFA",
   gray100: "#F4F4F5",
@@ -48,6 +73,8 @@ const palette = {
   amber400: "#FBBF24",
   red500: "#EF4444",
   red400: "#F87171",
+  green700: "#15803D",
+  red600: "#DC2626",
 } as const;
 
 /**
@@ -108,6 +135,9 @@ export interface ThemeColors extends ThemeColorExtensions {
   // Accent (brand highlight — teal)
   accent: string;
   accentForeground: string;
+  // Link text (Button `link`, inline links). Separate from `accent` because
+  // the accent fill is too light to read as text on white.
+  link: string;
 
   // Status
   destructive: string;
@@ -161,44 +191,45 @@ const lightTheme: BaseTheme = {
   dark: false,
   fonts: navigationFonts,
   colors: {
-    surfaceSunken: palette.gray50,
+    surfaceSunken: palette.neutral50,
     background: palette.white,
-    foreground: palette.gray950,
+    foreground: palette.neutral950,
     card: palette.white,
-    cardForeground: palette.gray950,
+    cardForeground: palette.neutral950,
     popover: palette.white,
-    popoverForeground: palette.gray950,
+    popoverForeground: palette.neutral950,
 
-    text: palette.gray950,
-    textDim: palette.gray600,
+    text: palette.neutral950,
+    textDim: palette.neutral600,
 
-    primary: palette.gray900,
-    primaryForeground: palette.gray50,
-    secondary: palette.gray100,
-    secondaryForeground: palette.gray900,
-    muted: palette.gray100,
-    mutedForeground: palette.gray600,
+    primary: palette.neutral900,
+    primaryForeground: palette.neutral50,
+    secondary: palette.neutral100,
+    secondaryForeground: palette.neutral900,
+    muted: palette.neutral100,
+    mutedForeground: palette.neutral600,
 
     accent: palette.teal500,
     accentForeground: palette.white,
+    link: palette.teal700,
 
-    destructive: palette.red500,
+    destructive: palette.red600,
     destructiveForeground: palette.white,
-    success: palette.green500,
+    success: palette.green700,
     warning: palette.amber500,
 
-    border: palette.gray200,
-    borderStrong: palette.gray300,
-    input: palette.gray200,
-    ring: palette.gray400,
+    border: palette.neutral200,
+    borderStrong: palette.neutral300,
+    input: palette.neutral200,
+    ring: palette.neutralRing,
     overlay: "rgba(0, 0, 0, 0.5)",
   },
   navigation: {
-    primary: palette.gray900,
+    primary: palette.neutral900,
     background: palette.white,
-    card: palette.gray50,
-    text: palette.gray950,
-    border: palette.gray200,
+    card: palette.neutral50,
+    text: palette.neutral950,
+    border: palette.neutral200,
     notification: palette.teal500,
   },
 };
@@ -207,44 +238,45 @@ const darkTheme: BaseTheme = {
   dark: true,
   fonts: navigationFonts,
   colors: {
-    surfaceSunken: palette.dark950,
-    background: palette.dark900,
-    foreground: palette.dark100,
-    card: palette.dark800,
-    cardForeground: palette.dark100,
-    popover: palette.dark800,
-    popoverForeground: palette.dark100,
+    surfaceSunken: palette.neutral950,
+    background: palette.neutral950,
+    foreground: palette.neutral50,
+    card: palette.neutral900,
+    cardForeground: palette.neutral50,
+    popover: palette.neutral900,
+    popoverForeground: palette.neutral50,
 
-    text: palette.dark100,
-    textDim: palette.dark350,
+    text: palette.neutral50,
+    textDim: palette.neutralDim,
 
-    primary: palette.gray50,
-    primaryForeground: palette.gray900,
-    secondary: palette.gray800,
-    secondaryForeground: palette.gray50,
-    muted: palette.dark700,
-    mutedForeground: palette.dark350,
+    primary: palette.neutral200,
+    primaryForeground: palette.neutral900,
+    secondary: palette.neutral800,
+    secondaryForeground: palette.neutral50,
+    muted: palette.neutral800,
+    mutedForeground: palette.neutralDim,
 
     accent: palette.teal400,
-    accentForeground: palette.gray900,
+    accentForeground: palette.neutral900,
+    link: palette.teal300,
 
     destructive: palette.red400,
     destructiveForeground: palette.white,
     success: palette.green400,
     warning: palette.amber400,
 
-    border: palette.dark700,
-    borderStrong: palette.dark600,
-    input: palette.dark700,
-    ring: palette.dark400,
+    border: palette.neutral800,
+    borderStrong: palette.neutral700,
+    input: palette.neutral750,
+    ring: palette.neutral500,
     overlay: "rgba(0, 0, 0, 0.7)",
   },
   navigation: {
-    primary: palette.gray50,
-    background: palette.dark900,
-    card: palette.dark800,
-    text: palette.dark100,
-    border: palette.dark700,
+    primary: palette.neutral200,
+    background: palette.neutral950,
+    card: palette.neutral900,
+    text: palette.neutral50,
+    border: palette.neutral800,
     notification: palette.teal400,
   },
 };

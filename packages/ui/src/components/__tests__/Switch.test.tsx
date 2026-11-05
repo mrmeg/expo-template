@@ -8,15 +8,18 @@ import React from "react";
 import { StyleSheet } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { Switch } from "../Switch";
+import { useThemeStore } from "../../state/themeStore";
+
+let mockDark = false;
 
 // Mock useTheme hook
 jest.mock("../../hooks/useTheme", () => ({
   useTheme: () => ({
     theme: {
-      dark: false,
+      dark: mockDark,
       colors: {
         primary: "#18181B",
-        primaryForeground: "#FFFFFF",
+        primaryForeground: "#FAFAFA",
         accent: "#14B8A6",
         accentForeground: "#FFFFFF",
         text: "#0F172A",
@@ -151,21 +154,61 @@ describe("Switch", () => {
     );
   });
 
-  it("uses the accent token for the default checked track", async () => {
-    const tree = (await render(<Switch checked={true} onCheckedChange={() => {}} />)).toJSON();
-
-    expect(tree).toBeTruthy();
-    expect(Array.isArray(tree)).toBe(false);
-
+  const checkedParts = async (props: Partial<React.ComponentProps<typeof Switch>> = {}) => {
+    const tree = (await render(<Switch checked={true} onCheckedChange={() => {}} {...props} />)).toJSON();
     if (!tree || Array.isArray(tree)) {
       throw new Error("Expected a single switch tree");
     }
-
     const switchRoot = tree.children?.[0] as any;
     const track = switchRoot?.children?.[0] as any;
+    const thumbInner = switchRoot?.children?.[1]?.children?.[0] as any;
+    return {
+      track: StyleSheet.flatten(track?.props.style),
+      thumb: StyleSheet.flatten(thumbInner?.props.style),
+    };
+  };
 
-    expect(track?.props.style.backgroundColor).toBe("#14B8A6");
-    expect(track?.props.style.borderColor).toBe("rgba(20, 184, 166, 0.42)");
+  describe("switchTrack treatment", () => {
+    afterEach(() => {
+      useThemeStore.getState().setTreatments({});
+    });
+
+    it('"primary" (default) fills the checked track with primary and keeps a white thumb in light', async () => {
+      const { track, thumb } = await checkedParts();
+
+      expect(track.backgroundColor).toBe("#18181B");
+      expect(track.borderColor).toBe("rgba(24, 24, 27, 0.42)");
+      expect(thumb.backgroundColor).toBe("#FFFFFF");
+    });
+
+    it('"primary" also applies to the ios variant instead of the system green', async () => {
+      const { track } = await checkedParts({ variant: "ios" });
+
+      expect(track.backgroundColor).toBe("#18181B");
+    });
+
+    it('"primary" uses the primaryForeground thumb in dark, where primary is a light grey', async () => {
+      mockDark = true;
+      try {
+        const { track, thumb } = await checkedParts();
+
+        expect(track.backgroundColor).toBe("#18181B");
+        expect(thumb.backgroundColor).toBe("#FAFAFA");
+      } finally {
+        mockDark = false;
+      }
+    });
+
+    it('"accent" uses the accent token, and the ios variant keeps the system green', async () => {
+      useThemeStore.getState().setTreatments({ switchTrack: "accent" });
+      const accent = await checkedParts();
+
+      expect(accent.track.backgroundColor).toBe("#14B8A6");
+      expect(accent.track.borderColor).toBe("rgba(20, 184, 166, 0.42)");
+
+      const ios = await checkedParts({ variant: "ios" });
+      expect(ios.track.backgroundColor).toBe("#34C759");
+    });
   });
 
   it("keeps custom switch thumb inset equal to vertical clearance", async () => {

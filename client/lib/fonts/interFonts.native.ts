@@ -1,12 +1,8 @@
 /**
- * The packaged Inter faces `useResources` registers through `expo-font` —
- * native variant.
- *
- * Exactly the four static weights the native `sansSerif` family keys point at
- * (see `constants/fonts.ts`), each imported from its own per-weight subpath.
- * The `@expo-google-fonts/inter` root entry `require`s all 18 files (every
- * weight, plus italics), and Metro ships every file a bundle requires, so
- * importing it added 14 unused faces (~4.8 MB) to every native app.
+ * The Inter files the app registers for `@mrmeg/expo-ui`'s opt-in "inter" sans
+ * preset (the classic look): four weights, each from its own per-weight
+ * subpath so the native bundle carries exactly these four and no other Inter
+ * face. The names match `interFamilies.native` in the kit.
  */
 import { Inter_400Regular } from "@expo-google-fonts/inter/400Regular";
 import { Inter_500Medium } from "@expo-google-fonts/inter/500Medium";

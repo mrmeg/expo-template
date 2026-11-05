@@ -39,6 +39,7 @@ const CLUSTER_MODULES = [
   "ComponentDetailScreen",
   "BlocksGalleryScreen",
   "ThemedShowcaseScreen",
+  "LooksScreen",
   "SurfaceLabScreen",
   "MediaLabScreen",
   "Section",
@@ -50,6 +51,7 @@ const CLUSTER_MODULES = [
 /** Route files that must be one-line shells over `GalleryRoute`. */
 const GALLERY_ROUTES: Record<string, string> = {
   "app/(main)/(demos)/themed-showcase.tsx": "ThemedShowcaseScreen",
+  "app/(main)/(demos)/looks.tsx": "LooksScreen",
   "app/(main)/(demos)/surface-lab.tsx": "SurfaceLabScreen",
   "app/(main)/(demos)/media-lab.tsx": "MediaLabScreen",
   "app/(main)/(demos)/components/index.tsx": "ComponentsGalleryScreen",

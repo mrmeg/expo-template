@@ -37,6 +37,8 @@ jest.mock("../../hooks/useTheme", () => ({
         secondaryForeground: "#18181B",
         muted: "#F1F5F9",
         mutedForeground: "#64748B",
+        accent: "#14B8A6",
+        link: "#0F766E",
         destructive: "#EF4444",
         destructiveForeground: "#FFFFFF",
         success: "#22C55E",
@@ -624,6 +626,27 @@ describe("Button", () => {
     afterEach(() => {
       useThemeStore.getState().setShape({});
       useThemeStore.getState().setFonts({});
+    });
+
+    it("defaults every preset to the 8 pt radius (radiusSm), not radiusMd", async () => {
+      for (const preset of ["default", "outline", "ghost", "secondary"] as const) {
+        const { unmount } = await render(<Button preset={preset} text="Default radius" />);
+
+        const radii = getAllHostNodes()
+          .map((node) => (StyleSheet.flatten(node.props.style) as Record<string, unknown> | undefined)?.borderRadius)
+          .filter((radius) => radius !== undefined);
+
+        expect(radii).toContain(8);
+        expect(radii).not.toContain(10);
+        await unmount();
+      }
+    });
+
+    it("colors the link preset's label with the link token, not the accent", async () => {
+      await render(<Button preset="link" text="Read more" />);
+
+      const color = (StyleSheet.flatten(screen.getByText("Read more").props.style) as Record<string, unknown>).color;
+      expect(color).toBe("#0F766E");
     });
 
     it("applies the setShape button borderRadius to every preset", async () => {

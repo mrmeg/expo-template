@@ -36,6 +36,7 @@ export { default as ComponentsGalleryScreen } from "./ComponentsGalleryScreen";
 export { default as ComponentDetailScreen } from "./ComponentDetailScreen";
 export { default as BlocksGalleryScreen } from "./BlocksGalleryScreen";
 export { default as ThemedShowcaseScreen } from "./ThemedShowcaseScreen";
+export { default as LooksScreen } from "./LooksScreen";
 export { default as SurfaceLabScreen } from "./SurfaceLabScreen";
 export { default as MediaLabScreen } from "./MediaLabScreen";
 

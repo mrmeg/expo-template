@@ -8,14 +8,19 @@
  *
  * Values were generated in OKLCH (dark: hue 286 at chroma 0.004, or hue 264 at
  * chroma 0.012 for Slate; light: hue 286 at chroma 0.003) and emitted as hex.
- * "Current" is the zinc ramp the package ships (`packages/ui/src/constants/
- * colors.ts`); the Lab opens on it, and a test holds these hexes to the package
- * values. Deep, Lifted, Slate and Canvas are alternate presets for forks that
- * want more separation between tiers.
+ * "Current" is the neutral (Refined) ramp the package ships (`packages/ui/src/
+ * constants/colors.ts`); the Lab opens on it, and a test holds these hexes to
+ * the package values. Deep, Lifted, Slate and Canvas are alternate presets for
+ * forks that want more separation between tiers. Their lifted tiers sit too
+ * close to the Refined dim text (#A4A4A4) for its contrast floors, so each
+ * dark alternate carries its own `textDim` (applied to `textDim` and
+ * `mutedForeground`): the darkest neutral grey that clears 7:1 on background,
+ * card and popover and 6:1 on muted and secondary.
  *
- * Text tokens are not part of a candidate: they stay as the package defines
- * them, and `__tests__/surfaceLabCandidates.test.ts` holds every candidate to
- * the contrast floors in `packages/ui/src/constants/__tests__/colors.test.ts`.
+ * Other text tokens are not part of a candidate: they stay as the package
+ * defines them, and `__tests__/surfaceLabCandidates.test.ts` holds every
+ * candidate to the contrast floors in
+ * `packages/ui/src/constants/__tests__/colors.test.ts`.
  */
 
 import type { ThemeColors } from "@mrmeg/expo-ui/constants";
@@ -30,12 +35,19 @@ export interface SurfaceRamp {
   popover: string;
   /** Also applied to `secondary`. */
   muted: string;
-  /** Also applied to `input`. */
+  /** Also applied to `input`, unless `input` is set. */
   border: string;
   borderStrong: string;
+  /** `input` when it differs from `border` (the Refined dark input is #333333). */
+  input?: string;
+  /**
+   * Dim text (`textDim` and `mutedForeground`) when the ramp needs its own
+   * to clear the dim-text contrast floors; omitted, the package value stays.
+   */
+  textDim?: string;
 }
 
-export type SurfaceTier = keyof SurfaceRamp;
+export type SurfaceTier = Exclude<keyof SurfaceRamp, "input" | "textDim">;
 
 export interface SurfaceCandidate {
   id: string;
@@ -61,23 +73,24 @@ export const DARK_CANDIDATES: SurfaceCandidate[] = [
   {
     id: "current",
     label: "Current",
-    name: "Dark current (zinc)",
-    summary: "Zinc hexes picked by eye; card and popover share one tier.",
+    name: "Dark current (neutral)",
+    summary: "Neutral greys; chrome and content share one base, card and popover share one tier above it.",
     ramp: {
-      surfaceSunken: "#050506",
-      background: "#09090B",
-      card: "#18181B",
-      popover: "#18181B",
-      muted: "#27272A",
-      border: "#27272A",
-      borderStrong: "#3F3F46",
+      surfaceSunken: "#0A0A0A",
+      background: "#0A0A0A",
+      card: "#171717",
+      popover: "#171717",
+      muted: "#262626",
+      border: "#262626",
+      borderStrong: "#404040",
+      input: "#333333",
     },
   },
   {
     id: "deep",
     label: "D Deep",
     name: "Dark D \"deep\"",
-    summary: "Near-black base, wide tier spacing; the edge highlight carries depth. OKLCH L .11 / .145 / .195 / .235 / .265.",
+    summary: "Near-black base, wide tier spacing; the tier step and border carry depth. OKLCH L .11 / .145 / .195 / .235 / .265.",
     ramp: {
       surfaceSunken: "#040405",
       background: "#0A0A0C",
@@ -86,6 +99,8 @@ export const DARK_CANDIDATES: SurfaceCandidate[] = [
       muted: "#252527",
       border: "#27272A",
       borderStrong: "#363639",
+      // 8.42 / 7.76 / 7.08 on background / card / popover, 6.51 on muted
+      textDim: "#A9A9A9",
     },
   },
   {
@@ -101,6 +116,8 @@ export const DARK_CANDIDATES: SurfaceCandidate[] = [
       muted: "#27272A",
       border: "#2B2B2D",
       borderStrong: "#3A3A3D",
+      // 8.31 / 7.73 / 7.08, 6.56 on muted
+      textDim: "#ACACAC",
     },
   },
   {
@@ -116,6 +133,8 @@ export const DARK_CANDIDATES: SurfaceCandidate[] = [
       muted: "#25282E",
       border: "#282B31",
       borderStrong: "#373B41",
+      // 8.27 / 7.74 / 7.02, 6.51 on muted
+      textDim: "#ACACAC",
     },
   },
 ];
@@ -131,9 +150,9 @@ export const LIGHT_CANDIDATES: SurfaceCandidate[] = [
       background: "#FFFFFF",
       card: "#FFFFFF",
       popover: "#FFFFFF",
-      muted: "#F4F4F5",
-      border: "#E4E4E7",
-      borderStrong: "#D4D4D8",
+      muted: "#F5F5F5",
+      border: "#E5E5E5",
+      borderStrong: "#D4D4D4",
     },
   },
   {
@@ -161,9 +180,17 @@ export function findCandidate(list: SurfaceCandidate[], id: string): SurfaceCand
   return list.find((candidate) => candidate.id === id) ?? list[0];
 }
 
-/** Expands a ramp into the theme tokens `setColors` takes (`muted` also sets `secondary`, `border` also `input`). */
+/**
+ * Expands a ramp into the theme tokens `setColors` takes (`muted` also sets
+ * `secondary`, `border` also `input`, `textDim` also `mutedForeground`).
+ */
 export function rampToColors(ramp: SurfaceRamp): Partial<ThemeColors> {
+  const dimText: Partial<ThemeColors> = ramp.textDim
+    ? { textDim: ramp.textDim, mutedForeground: ramp.textDim }
+    : {};
+
   return {
+    ...dimText,
     surfaceSunken: ramp.surfaceSunken,
     background: ramp.background,
     card: ramp.card,
@@ -171,7 +198,7 @@ export function rampToColors(ramp: SurfaceRamp): Partial<ThemeColors> {
     muted: ramp.muted,
     secondary: ramp.muted,
     border: ramp.border,
-    input: ramp.border,
+    input: ramp.input ?? ramp.border,
     borderStrong: ramp.borderStrong,
   };
 }

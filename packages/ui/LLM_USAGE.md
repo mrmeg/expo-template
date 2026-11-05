@@ -39,8 +39,8 @@ Install the peer versions recommended by the consuming app's Expo SDK.
 ## Required App Setup
 
 Call `useResources()` once near the Expo app root; it resolves `{ loaded, error }`
-and loads the four static Inter weights on native (web gets a single Google Fonts
-Inter stylesheet). Mount `UIProvider` once near the root; it owns the package
+and loads the four static Geist weights on native (web gets a single Google Fonts
+Geist stylesheet). Mount `UIProvider` once near the root; it owns the package
 `Notification`, `StatusBar`, the default `@rn-primitives` portal host, and the
 native keyboard-avoiding root. It is required before `Dialog`, `AlertDialog`,
 `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`,
@@ -130,26 +130,26 @@ Semantic color tokens on `theme.colors`: `surfaceSunken`, `background`,
 `foreground`, `card`, `cardForeground`, `popover`, `popoverForeground`, `text`,
 `textDim`, `muted`, `mutedForeground`, `border`, `borderStrong`, `input`, `ring`,
 `overlay`, `primary`, `primaryForeground`, `secondary`, `secondaryForeground`,
-`accent`, `accentForeground`, `destructive`, `destructiveForeground`, `success`,
-`warning`.
+`accent`, `accentForeground`, `link`, `destructive`, `destructiveForeground`,
+`success`, `warning`.
 
 Token intent:
 
 - `primary`: neutral action color; `secondary`: neutral secondary surface
-- `accent`: teal highlight color
+- `accent`: teal dot and fills; `link`: link text
 - `input`: form-control border; `ring`: focus outline
 - `popover`: elevated overlay surface
 - `surfaceSunken`: app-chrome surface one tier below `background`
 - `borderStrong`: hairline for elements on filled surfaces, where `border` blends in
 
-Elevation is a surface-tier ladder plus, in dark, an edge highlight:
-`surfaceSunken` (chrome) < `background` (content) < `card`/`popover` (raised) <
-`muted` (chips, insets). `getShadowStyle` is scheme-aware: in dark the raised
-presets (`subtle`, `soft`, `elevated`, `card`, `cardSubtle`, `cardHover`,
-`glass`) start with a 1px inset white top highlight and use black shadows at
-real alpha; in light it is the shadow alone, at about twice the old alpha. A
-fork that overrides `background`, `card`, or `popover` should re-check against
-the template's `/surface-lab`.
+Elevation is a surface-tier ladder plus a hairline `border`: `surfaceSunken`
+(chrome) < `background` < `card`/`popover` < `muted`. In dark, `getShadowStyle`
+presets other than `subtle` add a 1px inset top highlight; `subtle` (Button,
+Card) is a 1px light shadow and none in dark unless `elevation: "layered"`. A
+fork that overrides `background`, `card`, or `popover` should
+re-check against the template's `/surface-lab`.
+
+Defaults are the Refined look; `applyLook(classicLook)` restores the pre-0.35 look. See README "Looks and treatments".
 
 On web every `theme.colors.*` value is a CSS custom property (`var(--c-*)`), so
 themes swap in CSS when `html[data-theme]` changes; native keeps literals. Both
@@ -211,9 +211,9 @@ scopes merge (inner wins, outer fills in). With no override at either layer,
 
 Fonts and shape have matching global injection points. `setFonts({ families: {
 sansSerif?, serif?, mono? }, webWeightStrategy? })` replaces the bundled faces
-(Inter / Georgia / system-mono) everywhere text renders; groups and weights are
+(Geist / Georgia / system-mono) everywhere text renders; groups and weights are
 partial, missing weights fall back to that group's `regular`, and an overridden
-`sansSerif` makes `useResources` skip downloading Inter (call `setFonts` before
+`sansSerif` makes `useResources` skip downloading Geist (call `setFonts` before
 mount for the skip). Each group also takes `italic: { weight: face }`; `<StyledText
 italic>` (or `useFontStyle(weight, variant, { italic: true })`) uses that face,
 else the group's italic `regular`, else `fontStyle: "italic"` on the upright face.
@@ -221,7 +221,8 @@ else the group's italic `regular`, else `fontStyle: "italic"` on the upright fac
 Newsreader preset (four weights + a 400 italic): the app depends on
 `@expo-google-fonts/newsreader` and passes the five per-weight faces on native;
 web gets one stylesheet (`id="mrmeg-expo-ui-newsreader"`). A `setFonts` serif
-override still wins. Use `webWeightStrategy: "family"` when loading per-weight
+override still wins. `useResources({ sans: "inter", sansFonts })` opts into Inter. Use
+`webWeightStrategy: "family"` when loading per-weight
 faces through `expo-font` / `@expo-google-fonts`, `"numeric"` (default) for one
 multi-weight CSS family. `setShape({ button?, input?, card?, sheet?, badge?,
 dialog? })` re-shapes a slot globally (`{ borderRadius }`; `button` also takes

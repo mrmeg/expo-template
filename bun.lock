@@ -9,6 +9,7 @@
         "@aws-amplify/rtn-web-browser": "^1.4.0",
         "@clerk/backend": "^3.26.5",
         "@clerk/clerk-expo": "^2.20.1",
+        "@expo-google-fonts/inter": "^0.4.2",
         "@expo-google-fonts/newsreader": "0.4.1",
         "@expo/metro-runtime": "~58.0.16",
         "@expo/ui": "~58.0.26",
@@ -71,6 +72,7 @@
         "@babel/runtime": "^8.0.10",
         "@eslint/eslintrc": "^3.3.7",
         "@eslint/js": "^10.0.1",
+        "@fontsource-variable/geist": "^5.3.0",
         "@fontsource-variable/inter": "^5.3.0",
         "@fontsource-variable/newsreader": "5.3.0",
         "@mrmeg/eslint-plugin-expo-ui": "workspace:*",
@@ -182,12 +184,13 @@
     },
     "packages/ui": {
       "name": "@mrmeg/expo-ui",
-      "version": "0.32.1",
+      "version": "0.34.0",
       "bin": {
+        "expo-ui-agents": "./bin/expo-ui-agents.mjs",
         "expo-ui-icons": "./bin/expo-ui-icons.mjs",
       },
       "dependencies": {
-        "@expo-google-fonts/inter": "^0.4.2",
+        "@expo-google-fonts/geist": "^0.4.2",
         "@rn-primitives/accordion": "~1.5.2",
         "@rn-primitives/alert-dialog": "~1.5.2",
         "@rn-primitives/checkbox": "~1.5.2",
@@ -573,6 +576,8 @@
 
     "@eslint/plugin-kit": ["@eslint/plugin-kit@0.7.3", "", { "dependencies": { "@eslint/core": "^1.2.1", "levn": "^0.4.1" } }, "sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q=="],
 
+    "@expo-google-fonts/geist": ["@expo-google-fonts/geist@0.4.2", "", {}, "sha512-cTsqJRQrvK5EniTVwH7UDK18RFf9Bc6yxciAuM936aViQ+eR6j3mLEI2rQkJXz5JP9kwtn8tHJviDyZ0ulH6oA=="],
+
     "@expo-google-fonts/inter": ["@expo-google-fonts/inter@0.4.2", "", {}, "sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ=="],
 
     "@expo-google-fonts/newsreader": ["@expo-google-fonts/newsreader@0.4.1", "", {}, "sha512-j96W112+mj/VYP06DCq00w+twyw42w0MY7eHB/XXioNK80BcG0cIk/zogjOENZSY7qejzIFbHE/PZYqlh/6VKQ=="],
@@ -662,6 +667,8 @@
     "@floating-ui/react-dom": ["@floating-ui/react-dom@2.1.8", "", { "dependencies": { "@floating-ui/dom": "^1.7.6" }, "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-cC52bHwM/n/CxS87FH0yWdngEZrjdtLW/qVruo68qg+prK7ZQ4YGdut2GyDVpoGeAYe/h899rVeOVm6Oi40k2A=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
+
+    "@fontsource-variable/geist": ["@fontsource-variable/geist@5.3.0", "", {}, "sha512-j0m+vLQuG5XAYoHtGCVu0spvlGreR3EzpECUVzkFmI1mTVnAO38l/NEPDCFgZ177JxzYJCLSmTQibIiYPilGrA=="],
 
     "@fontsource-variable/inter": ["@fontsource-variable/inter@5.3.0", "", {}, "sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA=="],
 

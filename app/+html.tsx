@@ -79,14 +79,14 @@ function getRootCssStyles() {
 const DEFAULT_DOCUMENT_TITLE = "Expo Template";
 
 /**
- * Self-hosted Inter, the web face of @mrmeg/expo-ui's sans-serif family.
+ * Self-hosted Geist, the default web face of @mrmeg/expo-ui's sans-serif family.
  *
- * `public/fonts/inter/` holds the variable font (weights 100–900) in the same
- * unicode-range subsets Google Fonts serves, copied from the pinned
- * `@fontsource-variable/inter` devDependency (`__tests__/webFonts.guardrail.test.ts`
- * fails if a copy drifts from the package). Served same-origin, so no
- * third-party stylesheet sits between the HTML and first paint, as the Google
- * Fonts `<link rel="stylesheet">` this replaces did.
+ * `public/fonts/geist/` holds the variable font (weights 100–900) in the same
+ * unicode-range subsets Google Fonts serves (Geist has no Greek subset),
+ * copied from the pinned `@fontsource-variable/geist` devDependency
+ * (`__tests__/webFonts.guardrail.test.ts` fails if a copy drifts from the
+ * package). Served same-origin, so no third-party stylesheet sits between the
+ * HTML and first paint.
  *
  * Only Latin is preloaded; the other subsets download only when a page uses a
  * character in their range. `font-display: optional` keeps the no-layout-shift
@@ -94,8 +94,43 @@ const DEFAULT_DOCUMENT_TITLE = "Expo Template";
  * renders from the first frame, otherwise the fallback stack stays for the
  * page's lifetime instead of swapping in later.
  */
-const INTER_PRELOAD_URL = "/fonts/inter/inter-latin-wght-normal.woff2";
+const GEIST_PRELOAD_URL = "/fonts/geist/geist-latin-wght-normal.woff2";
 
+const GEIST_SUBSETS: { url: string; unicodeRange: string }[] = [
+  {
+    url: "/fonts/geist/geist-cyrillic-ext-wght-normal.woff2",
+    unicodeRange: "U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F",
+  },
+  {
+    url: "/fonts/geist/geist-cyrillic-wght-normal.woff2",
+    unicodeRange: "U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116",
+  },
+  {
+    url: "/fonts/geist/geist-vietnamese-wght-normal.woff2",
+    unicodeRange: "U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB",
+  },
+  {
+    url: "/fonts/geist/geist-latin-ext-wght-normal.woff2",
+    unicodeRange: "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+  },
+  {
+    url: GEIST_PRELOAD_URL,
+    unicodeRange: "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+  },
+];
+
+const GEIST_FONT_FACES = GEIST_SUBSETS.map(
+  ({ url, unicodeRange }) =>
+    `@font-face{font-family:"Geist";font-style:normal;font-weight:100 900;font-display:optional;src:url(${url}) format("woff2");unicode-range:${unicodeRange}}`,
+).join("\n");
+
+/**
+ * Self-hosted Inter, the web face of the opt-in "inter" sans preset (the
+ * classic look: `loadSansPreset("inter")`). Same policy as Geist above, minus
+ * the preload: the rules are inline so the classic look needs no network fetch
+ * to find its faces, and the files download only once Inter text renders.
+ * Files come from the pinned `@fontsource-variable/inter` devDependency.
+ */
 const INTER_SUBSETS: { url: string; unicodeRange: string }[] = [
   {
     url: "/fonts/inter/inter-cyrillic-ext-wght-normal.woff2",
@@ -122,7 +157,7 @@ const INTER_SUBSETS: { url: string; unicodeRange: string }[] = [
     unicodeRange: "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
   },
   {
-    url: INTER_PRELOAD_URL,
+    url: "/fonts/inter/inter-latin-wght-normal.woff2",
     unicodeRange: "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
   },
 ];
@@ -135,7 +170,7 @@ const INTER_FONT_FACES = INTER_SUBSETS.map(
 /**
  * Self-hosted Newsreader, the web face of the kit's serif preset
  * (`useResources({ serif: "newsreader" })` in RootLayout). Same policy as
- * Inter above: variable weight (200 800) per unicode-range subset, upright and
+ * Geist above: variable weight (200 800) per unicode-range subset, upright and
  * italic, served from public/ with `font-display: optional`, and the `<style>`
  * id is the one useResources checks before injecting its Google Fonts
  * stylesheet. Files come from @fontsource-variable/newsreader (see
@@ -276,18 +311,23 @@ export default function Root({ children }: PropsWithChildren) {
             hydration. */}
         <style id="react-native-stylesheet" />
 
-        {/* Inter, self-hosted (see INTER_SUBSETS): the preload starts the
+        {/* Geist, self-hosted (see GEIST_SUBSETS): the preload starts the
             Latin file on byte 1 and the @font-face rules are inline, so no
             stylesheet request stands between the HTML and first paint. The
             style element's `id` is the one @mrmeg/expo-ui's useResources
             looks for, so it skips injecting its Google Fonts stylesheet. */}
         <link
           rel="preload"
-          href={INTER_PRELOAD_URL}
+          href={GEIST_PRELOAD_URL}
           as="font"
           type="font/woff2"
           crossOrigin="anonymous"
         />
+        <style id="mrmeg-expo-ui-geist">{GEIST_FONT_FACES}</style>
+
+        {/* Inter, self-hosted (see INTER_SUBSETS): the opt-in classic-look
+            sans. No preload; the rules sit here so loadSansPreset("inter")
+            finds its id and never fetches the Google Fonts stylesheet. */}
         <style id="mrmeg-expo-ui-inter">{INTER_FONT_FACES}</style>
 
         {/* Newsreader, self-hosted (see NEWSREADER_SUBSETS): the kit's serif

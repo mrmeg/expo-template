@@ -25,5 +25,10 @@ export function useFontStyle(
   // re-renders instead of leaving stale families on screen.
   const fontOverrides = useThemeStore((s) => s.fontOverrides);
   const serifPreset = useThemeStore((s) => s.serifPreset);
-  return resolveFontStyle(fontOverrides, variant, weight, { italic: options.italic, serifPreset });
+  const sansPreset = useThemeStore((s) => s.sansPreset);
+  return resolveFontStyle(fontOverrides, variant, weight, {
+    italic: options.italic,
+    serifPreset,
+    sansPreset,
+  });
 }

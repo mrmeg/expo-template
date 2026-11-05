@@ -50,11 +50,11 @@ ruleTester.run("no-raw-colors", rule, {
   ],
   invalid: [
     {
-      code: 'const x = <View style={{ color: "#DB4437" }} />;',
+      code: 'const x = <View style={{ color: "#DB2828" }} />;',
       errors: [
         {
           message:
-            '`"#DB4437"` is a raw color. Use a theme token from `useTheme()`: `theme.colors.destructive`. Use `palette.red500` from `"@mrmeg/expo-ui/constants"` only where the color must ignore the color scheme. ' +
+            '`"#DB2828"` is a raw color. Use a theme token from `useTheme()`: `theme.colors.destructive`. Use `palette.red600` from `"@mrmeg/expo-ui/constants"` only where the color must ignore the color scheme. ' +
             COLORS_FILE,
         },
       ],

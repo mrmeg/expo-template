@@ -2,6 +2,7 @@ import { palette } from "../constants/colors";
 import { spacing } from "../constants/spacing";
 import { useTheme } from "../hooks/useTheme";
 import { useFocusVisible } from "../hooks/useFocusVisible";
+import { useTreatment } from "../hooks/useTreatment";
 import { hapticSelection } from "../lib/haptics";
 import { interaction } from "../constants/interaction";
 import { stateSurfaceProps } from "../lib/stateSurface";
@@ -69,6 +70,7 @@ function Switch({
 }: SwitchProps) {
   const { theme, getContrastingColor, getShadowStyle, getFocusRingStyle, withAlpha } = useTheme();
   const reduceMotion = useReducedMotion();
+  const switchTrack = useTreatment("switchTrack");
   const hasMounted = useRef(false);
   const focusRingStyle = getFocusRingStyle();
   const { animatedStyle: scaleStyle, pressHandlers } = useScalePress({
@@ -125,7 +127,11 @@ function Switch({
   };
 
   const isIOS = variant === "ios";
-  const checkedColor = isIOS ? "#34C759" : theme.colors.accent;
+  // `switchTrack`: "primary" fills the on-track with `primary` on every
+  // platform (the `ios` variant included); "accent" is the accent, with the
+  // `ios` variant keeping the system green.
+  const primaryTrack = switchTrack === "primary";
+  const checkedColor = primaryTrack ? theme.colors.primary : isIOS ? "#34C759" : theme.colors.accent;
   const uncheckedColor = theme.dark ? withAlpha(palette.white, 0.12) : theme.colors.input;
   const trackBg = props.checked ? checkedColor : uncheckedColor;
   const trackBorderColor = props.checked
@@ -133,7 +139,11 @@ function Switch({
     : theme.dark
       ? withAlpha(palette.white, 0.16)
       : palette.gray300;
-  const thumbBackgroundColor = theme.dark ? palette.gray100 : palette.white;
+  // Dark `primary` is a light grey, so the primary track takes the dark
+  // `primaryForeground` thumb; light stays white.
+  const thumbBackgroundColor = primaryTrack
+    ? theme.dark ? theme.colors.primaryForeground : palette.white
+    : theme.dark ? palette.gray100 : palette.white;
   const thumbBorderColor = theme.dark
     ? withAlpha(palette.black, 0.36)
     : withAlpha(palette.black, 0.1);

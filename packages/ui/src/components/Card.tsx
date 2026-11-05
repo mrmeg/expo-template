@@ -67,6 +67,9 @@ export interface CardProps {
 function Card({ children, style: styleOverride, variant = "default", onPress, disabled }: CardProps) {
   const { theme, getShadowStyle, getFocusRingStyle } = useTheme();
   const styles = themedStyles(theme);
+  // `subtle` follows the `elevation` treatment: "hairline" (default) is a 1px
+  // light shadow and none in dark, so the `cardDefault` 1px `border` below is
+  // what draws the card's edge there; "layered" is the dual-layer shadow.
   const shadowStyle = getShadowStyle("subtle");
   // Host-app `setShape({ card })`, on the surface and on the pressable ring wrapper.
   const cardRadius = useShape("card")?.borderRadius ?? spacing.radiusLg;

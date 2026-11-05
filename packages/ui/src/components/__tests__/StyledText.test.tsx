@@ -1,9 +1,9 @@
 /**
  * StyledText typography tests — native platform (jest-expo's default
- * Platform.OS is "ios"). Covers weight -> real Inter family resolution, the
+ * Platform.OS is "ios"). Covers weight -> real Geist family resolution, the
  * per-size letter-spacing scale, and the eyebrow semantic variant.
  *
- * Web-specific weight resolution (numeric fontWeight on a shared "Inter"
+ * Web-specific weight resolution (numeric fontWeight on a shared "Geist"
  * family) is covered separately in StyledText.web.test.tsx — `fontFamilies`
  * resolves `Platform.OS` once at module load (see constants/fonts.ts), so a
  * web-scoped assertion needs a dedicated test file with Platform.OS set
@@ -25,6 +25,7 @@ import {
   TitleText,
   type FontWeight,
 } from "../StyledText";
+import { useThemeStore } from "../../state/themeStore";
 
 jest.mock("../../hooks/useTheme", () => ({
   useTheme: () => ({
@@ -43,11 +44,11 @@ function flattenTextStyle(text: string) {
 describe("StyledText typography", () => {
   describe("weight -> family resolution (native)", () => {
     it.each<[FontWeight, string]>([
-      ["light", "Inter_400Regular"],
-      ["regular", "Inter_400Regular"],
-      ["medium", "Inter_500Medium"],
-      ["semibold", "Inter_600SemiBold"],
-      ["bold", "Inter_700Bold"],
+      ["light", "Geist_400Regular"],
+      ["regular", "Geist_400Regular"],
+      ["medium", "Geist_500Medium"],
+      ["semibold", "Geist_600SemiBold"],
+      ["bold", "Geist_700Bold"],
     ])("resolves fontWeight=%s to the %s static file", async (weight, expectedFamily) => {
       await render(<StyledText fontWeight={weight}>{weight}</StyledText>);
 
@@ -59,7 +60,7 @@ describe("StyledText typography", () => {
       await render(<StyledText fontWeight="bold">Bold label</StyledText>);
 
       const style = flattenTextStyle("Bold label");
-      expect(style.fontFamily).toBe("Inter_700Bold");
+      expect(style.fontFamily).toBe("Geist_700Bold");
       expect(style.fontWeight).toBeUndefined();
     });
 
@@ -67,7 +68,7 @@ describe("StyledText typography", () => {
       await render(<StyledText>Default</StyledText>);
 
       const style = flattenTextStyle("Default");
-      expect(style.fontFamily).toBe("Inter_400Regular");
+      expect(style.fontFamily).toBe("Geist_400Regular");
     });
 
     it("uses Georgia for the serif variant regardless of requested weight", async () => {
@@ -90,12 +91,12 @@ describe("StyledText typography", () => {
 
   describe("semantic variant weight mapping", () => {
     it.each<[React.ComponentType<any>, string, string]>([
-      [TitleText, "Title copy", "Inter_600SemiBold"],
-      [HeadingText, "Heading copy", "Inter_600SemiBold"],
-      [SubheadingText, "Subheading copy", "Inter_500Medium"],
-      [BodyText, "Body copy", "Inter_400Regular"],
-      [CaptionText, "Caption copy", "Inter_400Regular"],
-      [LabelText, "Label copy", "Inter_500Medium"],
+      [TitleText, "Title copy", "Geist_600SemiBold"],
+      [HeadingText, "Heading copy", "Geist_600SemiBold"],
+      [SubheadingText, "Subheading copy", "Geist_500Medium"],
+      [BodyText, "Body copy", "Geist_400Regular"],
+      [CaptionText, "Caption copy", "Geist_400Regular"],
+      [LabelText, "Label copy", "Geist_500Medium"],
     ])("%p resolves to %s", async (Component, text, expectedFamily) => {
       await render(<Component>{text}</Component>);
 
@@ -141,28 +142,49 @@ describe("StyledText typography", () => {
   });
 
   describe("eyebrow semantic variant", () => {
-    it("uppercases the rendered text style, applies wide positive tracking, and semibold weight", async () => {
+    afterEach(() => {
+      useThemeStore.getState().setTreatments({});
+    });
+
+    it('"sentence" (default) is 13 medium, as written, with no tracking', async () => {
+      await render(<EyebrowText>Section label</EyebrowText>);
+
+      const style = flattenTextStyle("Section label");
+      expect(style.textTransform).toBeUndefined();
+      expect(style.letterSpacing).toBe(0);
+      expect(style.fontSize).toBe(13);
+      expect(style.lineHeight).toBe(19.5);
+      expect(style.fontFamily).toBe("Geist_500Medium");
+    });
+
+    it('"uppercase" uppercases, tracks +0.08em, and is 12 semibold', async () => {
+      useThemeStore.getState().setTreatments({ eyebrow: "uppercase" });
       await render(<EyebrowText>section label</EyebrowText>);
 
       const style = flattenTextStyle("section label");
       expect(style.textTransform).toBe("uppercase");
       expect(style.letterSpacing).toBe(0.96);
-      expect(style.fontFamily).toBe("Inter_600SemiBold");
-    });
-
-    it("uses the sm size for the eyebrow variant", async () => {
-      await render(<EyebrowText>eyebrow</EyebrowText>);
-
-      const style = flattenTextStyle("eyebrow");
       expect(style.fontSize).toBe(12);
+      expect(style.lineHeight).toBe(18);
+      expect(style.fontFamily).toBe("Geist_600SemiBold");
     });
 
     it("is available directly on StyledText via semantic=\"eyebrow\"", async () => {
       await render(<StyledText semantic="eyebrow">inline eyebrow</StyledText>);
+      expect(flattenTextStyle("inline eyebrow")).toMatchObject({ fontSize: 13, letterSpacing: 0 });
 
-      const style = flattenTextStyle("inline eyebrow");
-      expect(style.textTransform).toBe("uppercase");
-      expect(style.letterSpacing).toBe(0.96);
+      useThemeStore.getState().setTreatments({ eyebrow: "uppercase" });
+      await render(<StyledText semantic="eyebrow">shouting eyebrow</StyledText>);
+      expect(flattenTextStyle("shouting eyebrow")).toMatchObject({ textTransform: "uppercase", letterSpacing: 0.96 });
+    });
+
+    it("leaves the other roles on their own sizes under either treatment", async () => {
+      useThemeStore.getState().setTreatments({ eyebrow: "uppercase" });
+      await render(<CaptionText>caption</CaptionText>);
+      expect(flattenTextStyle("caption").fontSize).toBe(12);
+      useThemeStore.getState().setTreatments({});
+      await render(<LabelText>label</LabelText>);
+      expect(flattenTextStyle("label").fontSize).toBe(14);
     });
 
     it("does not uppercase non-eyebrow semantic variants", async () => {

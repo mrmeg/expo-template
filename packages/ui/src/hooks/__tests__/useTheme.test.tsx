@@ -8,7 +8,7 @@
 import React from "react";
 import { Platform, StyleSheet, type ViewStyle } from "react-native";
 import { act, renderHook } from "@testing-library/react-native";
-import { useStyles, useTheme } from "../useTheme";
+import { useStyles, useTheme, withAlpha } from "../useTheme";
 import { colors } from "../../constants/colors";
 import { useThemeStore } from "../../state/themeStore";
 import { ThemeColorScope } from "../../state/themeColorScope";
@@ -20,6 +20,7 @@ beforeEach(() => {
     // The post-mount steady state, which is what these tests are about.
     hasLoadedTheme: true,
     colorOverrides: {},
+    treatmentOverrides: {},
   });
 });
 
@@ -141,10 +142,10 @@ describe("useTheme", () => {
     });
 
     it("keeps secondary neutral and accent teal across themes", () => {
-      expect(colors.light.colors.secondary).toBe("#F4F4F5");
-      expect(colors.light.colors.secondaryForeground).toBe("#18181B");
+      expect(colors.light.colors.secondary).toBe("#F5F5F5");
+      expect(colors.light.colors.secondaryForeground).toBe("#171717");
       expect(colors.light.colors.accent).toBe("#14b8a6");
-      expect(colors.dark.colors.secondary).toBe("#27272A");
+      expect(colors.dark.colors.secondary).toBe("#262626");
       expect(colors.dark.colors.secondaryForeground).toBe("#FAFAFA");
       expect(colors.dark.colors.accent).toBe("#2dd4bf");
     });
@@ -373,6 +374,8 @@ describe("useTheme", () => {
     }
 
     it("emits a dual-layer boxShadow (contact + ambient) for soft-shadow presets", async () => {
+      // `subtle` is dual-layer under the "layered" elevation treatment only.
+      useThemeStore.setState({ treatmentOverrides: { elevation: "layered" } });
       const { result } = await renderHook(() => useTheme());
       const dualLayerTypes = [
         "subtle",
@@ -427,11 +430,47 @@ describe("useTheme", () => {
     });
 
     describe("edge-lit dark presets", () => {
-      const boxShadow = async (type: Parameters<ReturnType<typeof useTheme>["getShadowStyle"]>[0], scheme: "light" | "dark") => {
-        useThemeStore.setState({ userTheme: scheme, systemTheme: scheme });
+      // These pin the `"layered"` elevation values (the Classic look); the
+      // `"hairline"` default has its own tests below.
+      const boxShadow = async (
+        type: Parameters<ReturnType<typeof useTheme>["getShadowStyle"]>[0],
+        scheme: "light" | "dark",
+        elevation: "layered" | "hairline" = "layered",
+      ) => {
+        useThemeStore.setState({ userTheme: scheme, systemTheme: scheme, treatmentOverrides: { elevation } });
         const { result } = await renderHook(() => useTheme());
         return (result.current.getShadowStyle(type) as Record<string, unknown>).boxShadow as string;
       };
+
+      describe("elevation treatment on subtle", () => {
+        it('"hairline" (default) is one faint 1px layer in light', async () => {
+          expect(await boxShadow("subtle", "light", "hairline")).toBe("0px 1px 2px rgba(0, 0, 0, 0.05)");
+          // No override at all resolves to the same thing.
+          useThemeStore.setState({ userTheme: "light", systemTheme: "light", treatmentOverrides: {} });
+          const { result } = await renderHook(() => useTheme());
+          expect((result.current.getShadowStyle("subtle") as Record<string, unknown>).boxShadow).toBe(
+            "0px 1px 2px rgba(0, 0, 0, 0.05)"
+          );
+        });
+
+        it('"hairline" draws no shadow and no inset highlight in dark', async () => {
+          useThemeStore.setState({ userTheme: "dark", systemTheme: "dark", treatmentOverrides: {} });
+          const { result } = await renderHook(() => useTheme());
+          expect(result.current.getShadowStyle("subtle")).toEqual({});
+        });
+
+        it('"layered" keeps the dual-layer values and the dark highlight', async () => {
+          expect(await boxShadow("subtle", "light", "layered")).toBe(
+            "0px 1px 3px rgba(0, 0, 0, 0.08), 0px 2px 8px rgba(0, 0, 0, 0.06)"
+          );
+          expect(await boxShadow("subtle", "dark", "layered")).toContain("inset 0px 1px 0px");
+        });
+
+        it("leaves the other presets alone under hairline", async () => {
+          expect(await boxShadow("soft", "light", "hairline")).toBe(await boxShadow("soft", "light", "layered"));
+          expect(await boxShadow("elevated", "dark", "hairline")).toBe(await boxShadow("elevated", "dark", "layered"));
+        });
+      });
 
       const alphas = (value: string) =>
         [...value.matchAll(/rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)/g)].map((match) => Number(match[1]));
@@ -541,12 +580,37 @@ describe("useTheme", () => {
       const { result } = await renderHook(() => useTheme());
       const style = result.current.getFocusRingStyle() as Record<string, unknown>;
 
-      expect(style.boxShadow).toEqual(expect.stringContaining("0 0 0 4px"));
+      try {
+        // "soft" (default): a 3px ring halo at 50%, no background gap.
+        const soft = result.current.getFocusRingStyle() as Record<string, unknown>;
+        expect(soft.boxShadow).toBe(`0 0 0 3px ${withAlpha(colors.light.colors.ring, 0.5)}`);
+        expect(soft.boxShadow).not.toContain(colors.light.colors.background);
+        // The offset argument is for "offset" only.
+        expect((result.current.getFocusRingStyle(4) as Record<string, unknown>).boxShadow).toBe(soft.boxShadow);
+      } finally {
+        Object.defineProperty(Platform, "OS", {
+          configurable: true,
+          value: originalOS,
+        });
+      }
+    });
 
-      Object.defineProperty(Platform, "OS", {
-        configurable: true,
-        value: originalOS,
-      });
+    it('keeps the two-band "offset" ring behind the focusRing treatment', async () => {
+      const originalOS = Platform.OS;
+      Object.defineProperty(Platform, "OS", { configurable: true, value: "web" });
+      useThemeStore.setState({ treatmentOverrides: { focusRing: "offset" } });
+
+      try {
+        const { result } = await renderHook(() => useTheme());
+        const style = result.current.getFocusRingStyle() as Record<string, unknown>;
+        expect(style.boxShadow).toEqual(expect.stringContaining("0 0 0 2px"));
+        expect(style.boxShadow).toEqual(expect.stringContaining("0 0 0 4px"));
+        const wide = result.current.getFocusRingStyle(3) as Record<string, unknown>;
+        expect(wide.boxShadow).toEqual(expect.stringContaining("0 0 0 3px"));
+        expect(wide.boxShadow).toEqual(expect.stringContaining("0 0 0 5px"));
+      } finally {
+        Object.defineProperty(Platform, "OS", { configurable: true, value: originalOS });
+      }
     });
   });
 

@@ -21,6 +21,7 @@ import React from "react";
 import { StyleSheet } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 import { EyebrowText, StyledText, type FontWeight } from "../StyledText";
+import { useThemeStore } from "../../state/themeStore";
 
 jest.mock("../../hooks/useTheme", () => ({
   useTheme: () => ({
@@ -43,21 +44,54 @@ describe("StyledText typography (web)", () => {
     ["medium", "500"],
     ["semibold", "600"],
     ["bold", "700"],
-  ])("resolves fontWeight=%s to the shared Inter family plus numeric fontWeight=%s", async (weight, expectedNumericWeight) => {
+  ])("resolves fontWeight=%s to the shared Geist family plus numeric fontWeight=%s", async (weight, expectedNumericWeight) => {
     await render(<StyledText fontWeight={weight}>{weight}</StyledText>);
 
     const style = flattenTextStyle(weight);
-    expect(style.fontFamily).toContain("Inter");
-    expect(style.fontFamily).not.toMatch(/^Inter_/);
+    expect(style.fontFamily).toContain("Geist");
+    expect(style.fontFamily).not.toMatch(/^Geist_/);
     expect(style.fontWeight).toBe(expectedNumericWeight);
   });
 
-  it("uppercases and widely tracks the eyebrow variant on web too", async () => {
-    await render(<EyebrowText>section label</EyebrowText>);
+  describe("eyebrow treatment", () => {
+    afterEach(() => {
+      useThemeStore.getState().setTreatments({});
+    });
 
-    const style = flattenTextStyle("section label");
-    expect(style.textTransform).toBe("uppercase");
-    expect(style.letterSpacing).toBe(0.96);
-    expect(style.fontWeight).toBe("600");
+    it('"sentence" (default) is 13 medium with no transform or tracking on web too', async () => {
+      await render(<EyebrowText>Section label</EyebrowText>);
+
+      const style = flattenTextStyle("Section label");
+      expect(style.textTransform).toBeUndefined();
+      expect(style.letterSpacing).toBe(0);
+      expect(style.fontSize).toBe(13);
+      expect(style.fontWeight).toBe("500");
+    });
+
+    it('"uppercase" uppercases and widely tracks the eyebrow variant on web too', async () => {
+      useThemeStore.getState().setTreatments({ eyebrow: "uppercase" });
+      await render(<EyebrowText>section label</EyebrowText>);
+
+      const style = flattenTextStyle("section label");
+      expect(style.textTransform).toBe("uppercase");
+      expect(style.letterSpacing).toBe(0.96);
+      expect(style.fontWeight).toBe("600");
+    });
+  });
+});
+
+describe("StyledText sans preset (web)", () => {
+  afterEach(() => {
+    useThemeStore.getState().setSansPreset("geist");
+  });
+
+  it("renders the Inter stack with numeric weight once the inter preset is on", async () => {
+    useThemeStore.getState().setSansPreset("inter");
+    await render(<StyledText fontWeight="medium">classic</StyledText>);
+
+    const style = flattenTextStyle("classic");
+    expect(style.fontFamily).toContain("\"Inter\"");
+    expect(style.fontFamily).not.toContain("Geist");
+    expect(style.fontWeight).toBe("500");
   });
 });

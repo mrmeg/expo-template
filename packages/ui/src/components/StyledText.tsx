@@ -3,11 +3,12 @@ import { Platform, Text as RNText, TextProps as RNTextProps, StyleSheet } from "
 import { useTheme } from "../hooks/useTheme";
 import { resolveFontStyle, type FontVariant } from "../constants/fonts";
 import { useThemeStore } from "../state/themeStore";
+import { useTreatment } from "../hooks/useTreatment";
 import { translateText } from "../lib/i18n";
 import { TextColorContext, TextSelectabilityContext, TextStyleContext } from "./StyledText.context";
 
 /**
- * Font size variants for the type scale (Inter sans-serif / Georgia serif)
+ * Font size variants for the type scale (Geist sans-serif / Georgia serif)
  */
 export type FontSize = "xs" | "sm" | "base" | "body" | "lg" | "xl" | "xxl" | "display";
 
@@ -68,6 +69,13 @@ const LETTER_SPACING: Record<FontSize, number> = {
 // used for ordinary small text at that size. +0.08em × 12px (sm fontSize).
 const EYEBROW_LETTER_SPACING = 0.96;
 
+// The `eyebrow` treatment "sentence" (the default): 13 medium, as written, no
+// tracking. There is no 13 step in `FontSize` (adding one would widen the
+// public type), so the eyebrow role carries its own size, at the 1.5 line-height
+// ratio the `sm` step uses. "uppercase" keeps the `sm` / semibold / EYEBROW
+// values above and below.
+const EYEBROW_SENTENCE = { fontSize: 13, lineHeight: 19.5, letterSpacing: 0, weight: "medium" as FontWeight };
+
 const SEMANTIC_CONFIGS: Record<SemanticVariant, { size: FontSize; weight: FontWeight }> = {
   title: { size: "xxl", weight: "semibold" },
   heading: { size: "xl", weight: "semibold" },
@@ -75,14 +83,16 @@ const SEMANTIC_CONFIGS: Record<SemanticVariant, { size: FontSize; weight: FontWe
   body: { size: "body", weight: "regular" },
   caption: { size: "sm", weight: "regular" },
   label: { size: "base", weight: "medium" },
-  // Section-label idiom (uppercase, widely tracked) — see EYEBROW_LETTER_SPACING
-  // and the textTransform applied in StyledText below.
+  // The "uppercase" eyebrow treatment's section-label idiom (uppercase, widely
+  // tracked) — see EYEBROW_LETTER_SPACING and the textTransform applied in
+  // StyledText below. The default "sentence" treatment overrides these with
+  // EYEBROW_SENTENCE.
   eyebrow: { size: "sm", weight: "semibold" },
 };
 
 export type TextProps = RNTextProps & {
   /**
-   * Font variant - serif (Georgia), sans-serif (Inter), or mono (the
+   * Font variant - serif (Georgia), sans-serif (Geist), or mono (the
    * platform's system monospace). Host apps swap the families via `setFonts`.
    */
   variant?: FontVariant;
@@ -141,7 +151,7 @@ export type TextProps = RNTextProps & {
  * - Semantic variants (title, heading, subheading, body, caption, label, eyebrow)
  * - Text alignment prop
  * - Font weight options (light, regular, medium, semibold, bold) — resolves to
- *   real Inter font files on native, and family + numeric fontWeight on web
+ *   real Geist font files on native, and family + numeric fontWeight on web
  * - Per-size letter-spacing scale (tight on large headings, positive on micro
  *   labels); explicit `style` letterSpacing always wins
  * - Text selection on by default on iOS and web, off by default on Android:
@@ -175,6 +185,8 @@ export function StyledText(props: TextProps) {
   // re-renders text instead of leaving stale families on screen.
   const fontOverrides = useThemeStore((s) => s.fontOverrides);
   const serifPreset = useThemeStore((s) => s.serifPreset);
+  const sansPreset = useThemeStore((s) => s.sansPreset);
+  const eyebrowTreatment = useTreatment("eyebrow");
 
   // Check if there's a color override from parent context (e.g., Button)
   const contextColor = use(TextColorContext);
@@ -190,7 +202,10 @@ export function StyledText(props: TextProps) {
   // If semantic variant is provided, use its config
   const semanticConfig = semantic ? SEMANTIC_CONFIGS[semantic] : undefined;
   const finalSize = semanticConfig?.size ?? size ?? "body";
-  const finalFontWeight = semanticConfig?.weight ?? fontWeight ?? "regular";
+  const sentenceEyebrow = semantic === "eyebrow" && eyebrowTreatment === "sentence";
+  const finalFontWeight = sentenceEyebrow
+    ? EYEBROW_SENTENCE.weight
+    : semanticConfig?.weight ?? fontWeight ?? "regular";
 
   // Get font family (+ numeric fontWeight under the web "numeric" strategy)
   // based on variant and weight. Host apps replace the package's bundled
@@ -201,13 +216,17 @@ export function StyledText(props: TextProps) {
     fontOverrides,
     variant,
     finalFontWeight,
-    { italic, serifPreset },
+    { italic, serifPreset, sansPreset },
   );
 
   // Get fontSize and lineHeight from size variant
-  const fontSize = FONT_SIZES[finalSize];
-  const lineHeight = LINE_HEIGHTS[finalSize];
-  const letterSpacing = semantic === "eyebrow" ? EYEBROW_LETTER_SPACING : LETTER_SPACING[finalSize];
+  const fontSize = sentenceEyebrow ? EYEBROW_SENTENCE.fontSize : FONT_SIZES[finalSize];
+  const lineHeight = sentenceEyebrow ? EYEBROW_SENTENCE.lineHeight : LINE_HEIGHTS[finalSize];
+  const letterSpacing = sentenceEyebrow
+    ? EYEBROW_SENTENCE.letterSpacing
+    : semantic === "eyebrow"
+      ? EYEBROW_LETTER_SPACING
+      : LETTER_SPACING[finalSize];
 
   // If style overrides fontSize without lineHeight, drop the preset lineHeight
   // so RN uses its default (avoids clipping text with a mismatched lineHeight)
@@ -240,7 +259,7 @@ export function StyledText(props: TextProps) {
           userSelect: resolvedSelectable ? "auto" : "none",
           ...(letterSpacing !== undefined && { letterSpacing }),
           ...(align && { textAlign: align }),
-          ...(semantic === "eyebrow" && { textTransform: "uppercase" }),
+          ...(semantic === "eyebrow" && !sentenceEyebrow && { textTransform: "uppercase" }),
         },
         resolvedContextTextStyle,
         style,
@@ -263,7 +282,7 @@ export function SerifText(props: TextProps) {
 
 /**
  * Sans-Serif Text Component
- * Uses the sans-serif font family (Inter)
+ * Uses the sans-serif font family (Geist)
  */
 export function SansSerifText(props: TextProps) {
   return <StyledText {...props} variant="sansSerif" />;
@@ -289,7 +308,7 @@ export function SerifBoldText(props: TextProps) {
 
 /**
  * Sans-Serif Bold Text Component
- * Uses the sans-serif font family at semibold weight (Inter 600)
+ * Uses the sans-serif font family at semibold weight (Geist 600)
  */
 export function SansSerifBoldText(props: TextProps) {
   return <StyledText {...props} variant="sansSerif" fontWeight="semibold" />;
@@ -349,9 +368,9 @@ export function LabelText(props: TextProps) {
 }
 
 /**
- * Eyebrow Text - Small, semibold, uppercase section label with wide positive
- * tracking (the overline idiom above a heading). Consumed by the SectionHeader
- * primitive (separate spec).
+ * Eyebrow Text - Small section label above a heading. The `eyebrow` treatment
+ * picks the form: "sentence" (default) is 13 medium, as written, no tracking;
+ * "uppercase" is 12 semibold, UPPERCASE, +0.08em. Consumed by SectionHeader.
  */
 export function EyebrowText(props: TextProps) {
   return <StyledText {...props} semantic="eyebrow" />;
