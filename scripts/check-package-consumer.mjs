@@ -16,30 +16,27 @@
  *   node scripts/check-package-consumer.mjs <ui|media|purchases|lint|metro> [--tarball <path>]
  */
 import { existsSync } from "node:fs";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { bundledPackages, findDuplicatePackages, readSourceMapSources } from "./lib/bundleSingletons.mjs";
 import { bunInstallWithRetry } from "./lib/bunInstallWithRetry.mjs";
-import { tarballName } from "./lib/workspacePackages.mjs";
+import {
+  assertFileExists,
+  createPackager,
+  dependencyVersion,
+  json,
+  readJson,
+  run,
+  writeFiles,
+} from "./lib/packageConsumer.mjs";
 
 // The lint plugin's manifest schema: the tarball must carry the version the
 // plugin writes today (`packages/lint/lib/manifest.js`, CommonJS), read from the
 // source tree rather than repeated here, so a schema bump cannot fail the smoke.
 const { MANIFEST_SCHEMA_VERSION } = createRequire(import.meta.url)("../packages/lint/lib/manifest.js");
-
-function run(command, args, options = {}) {
-  const result = spawnSync(command, args, {
-    stdio: "inherit",
-    ...options,
-  });
-
-  if (result.status !== 0) {
-    throw new Error(`${command} ${args.join(" ")} failed with status ${result.status}`);
-  }
-}
 
 /**
  * A `run` step, with `expectStdout` when what the command printed is the check —
@@ -63,36 +60,6 @@ function runStep(step, cwd) {
     throw new Error(
       `${step.command} ${step.args.join(" ")} never printed ${JSON.stringify(step.expectStdout)}`
     );
-  }
-}
-
-async function readJson(path) {
-  return JSON.parse(await readFile(path, "utf8"));
-}
-
-/** Fixture manifests are written pretty-printed so failures are readable. */
-const json = (value) => JSON.stringify(value, null, 2);
-
-/**
- * Version a fixture should install a peer with. Prefers whatever the template
- * itself is pinned to, then the package's own pins (a devDependency is the
- * version the package was typed and tested against), then the peer range.
- */
-function dependencyVersion(name, rootPackage, manifest) {
-  return (
-    rootPackage.dependencies?.[name] ??
-    rootPackage.devDependencies?.[name] ??
-    manifest.dependencies?.[name] ??
-    manifest.devDependencies?.[name] ??
-    manifest.peerDependencies?.[name]
-  );
-}
-
-async function assertFileExists(path, label) {
-  try {
-    await access(path);
-  } catch {
-    throw new Error(`Missing packed file for ${label}: ${path}`);
   }
 }
 
@@ -1248,32 +1215,15 @@ const root = process.cwd();
 const fixtureRoots = [];
 /** Temporary pack and export directories, removed on exit. */
 const scratchDirs = [];
-/** Tarballs by package directory, so each one is built and packed once. */
-const tarballs = new Map();
-
 /**
- * @param {string} dir a workspace package directory, repo-relative
- * @returns {Promise<string>} absolute path to the packed tarball
+ * Builds and packs a workspace package once (`scripts/lib/packageConsumer.mjs`);
+ * the package under test is the provided tarball when `--tarball` named one.
  */
-async function packWorkspacePackage(dir) {
-  const existing = tarballs.get(dir);
-  if (existing) return existing;
-
-  if (dir === target.dir && providedTarball) {
-    tarballs.set(dir, providedTarball);
-    return providedTarball;
-  }
-
-  const manifest = await readJson(join(root, dir, "package.json"));
-  const destination = await mkdtemp(join(tmpdir(), "expo-package-pack-"));
-  scratchDirs.push(destination);
-  run("bun", ["run", "--cwd", dir, "build"], { cwd: root });
-  run("bun", ["pm", "pack", "--destination", destination, "--quiet"], { cwd: join(root, dir) });
-  const tarball = join(destination, tarballName(manifest.name, manifest.version));
-  await assertFileExists(tarball, `${manifest.name} tarball`);
-  tarballs.set(dir, tarball);
-  return tarball;
-}
+const packWorkspacePackage = createPackager({
+  root,
+  scratchDirs,
+  provided: providedTarball ? new Map([[target.dir, providedTarball]]) : undefined,
+});
 
 try {
   const manifest = await readJson(join(root, target.dir, "package.json"));
@@ -1298,12 +1248,7 @@ try {
       extraTarballs[name] = await packWorkspacePackage(dir);
     }
 
-    const files = fixture.files({ tarball, extraTarballs, rootPackage, manifest, peerDependencies });
-    for (const [name, contents] of Object.entries(files)) {
-      const file = join(fixtureRoot, name);
-      await mkdir(dirname(file), { recursive: true });
-      await writeFile(file, contents);
-    }
+    await writeFiles(fixtureRoot, fixture.files({ tarball, extraTarballs, rootPackage, manifest, peerDependencies }));
 
     bunInstallWithRetry(fixture.install, fixtureRoot);
 

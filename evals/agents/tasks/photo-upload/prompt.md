@@ -1,0 +1,1 @@
+Add a photos screen at `app/photos.tsx` where the user can pick photos from their library (several at a time) and upload them to the app's media API at `https://api.example.test/api/media`. That API does not exist yet, so just point at it. Show the photos as a grid together with each upload's progress, and let the user retry an upload that failed.
