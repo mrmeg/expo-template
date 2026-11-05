@@ -1,0 +1,1 @@
+Add a settings screen at `app/settings.tsx`. It should let the user pick a theme (system, light or dark), turn notifications on or off, and sign out. Signing out must ask the user to confirm first; once they confirm, call `signOut()` from `@/client/auth`.

@@ -31,6 +31,7 @@ unless the user asks for a plan.
 | Purchases Package | [`packages/purchases/README.md`](packages/purchases/README.md) | `@mrmeg/expo-purchases` RevenueCat client, entitlement store, gating, pure webhook/ledger helpers, setup and store-review checklists |
 | Lint Package | [`packages/lint/README.md`](packages/lint/README.md) | `@mrmeg/eslint-plugin-expo-ui` rules, CLI (`bun lint:ui`), settings, style contracts, adoption in other projects, troubleshooting, release |
 | Metro Package | [`packages/metro/README.md`](packages/metro/README.md) | `@mrmeg/expo-metro` `withBundleOptimizations`: tree-shaking env flags, zod locale stub, composing with other resolver wrappers, opting out |
+| Agent Evals | [`evals/agents/README.md`](evals/agents/README.md) | Does package guidance help agents? Task set, guidance variants, deterministic scoring, isolation probe, spend gate; `node scripts/run-agent-evals.mjs --dry-run`; real runs cost money |
 
 ### Tech Stack
 

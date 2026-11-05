@@ -58,5 +58,8 @@ CLAUDE.md
 
 /Agent/.secrets/
 
+# Agent eval runs: per-trial JSONL, raw agent logs, and kept trial workdirs
+/evals/agents/results/
+
 # Generated media corpus (bun run media:fixtures); the committed core lives in assets/media/
 /public/media-fixtures/

@@ -33,11 +33,19 @@ module.exports = {
   // `workers/` holds deployable Cloudflare Workers whose only runtime is
   // workerd. They have no jest-expo-compatible tests and their bundled
   // dependencies (wrangler) must not be walked by the app suite.
+  //
+  // `evals/` is the agent eval set: task fixtures (good and bad reference
+  // solutions) that are source text for the harness, not tests. Their checks run
+  // from `scripts/__tests__/agentEvals.test.ts`.
   testPathIgnorePatterns: [
     "<rootDir>/node_modules/",
     "<rootDir>/dist/",
     "<rootDir>/workers/",
+    "<rootDir>/evals/",
   ],
+
+  // Keep the eval fixtures out of the haste map as well.
+  modulePathIgnorePatterns: ["<rootDir>/evals/"],
 
   // Coverage configuration
   //

@@ -34,6 +34,7 @@
   "exclude": [
     "node_modules",
     "expo-env.d.ts",
-    "workers"
+    "workers",
+    "evals"
   ]
 }
