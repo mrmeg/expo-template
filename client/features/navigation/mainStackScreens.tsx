@@ -51,6 +51,7 @@ export const MAIN_STACK_SCREENS: readonly MainStackScreen[] = [
   },
   { name: "(demos)/blocks/index", options: { title: "Blocks", ...webHeaderLeft } },
   { name: "(demos)/templates/index", options: { title: "Screen Templates", ...webHeaderLeft } },
+  { name: "(demos)/looks", options: { title: "Looks", ...webHeaderLeft } },
   { name: "(demos)/themed-showcase", options: { title: "Themed Showcase", ...webHeaderLeft } },
   { name: "(demos)/surface-lab", options: { title: "Surface Lab", ...webHeaderLeft } },
   { name: "(demos)/media-lab", options: { title: "Media Lab", ...webHeaderLeft, ...edgeBackSwipeOnly } },

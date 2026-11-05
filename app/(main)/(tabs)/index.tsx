@@ -442,7 +442,7 @@ const createStyles = (theme: Theme) =>
       paddingLeft: spacing.sm,
     },
     sectionLinkText: {
-      color: theme.colors.accent,
+      color: theme.colors.link,
     },
     sectionLabel: {
       color: theme.colors.mutedForeground,

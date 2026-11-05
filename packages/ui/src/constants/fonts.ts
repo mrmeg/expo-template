@@ -83,29 +83,29 @@ const monoFamilies = isWebRuntime
     bold: nativeMonoFamily,
   };
 
-// Web ships one Inter CSS family for every weight — weight differentiation
+// Web ships one Geist CSS family for every weight — weight differentiation
 // comes from a numeric `fontWeight` set alongside this family (see
-// StyledText's getFontFamilyWeight). Native ships four discrete Inter static
-// font files (loaded by useResources via @expo-google-fonts/inter), each a
+// StyledText's getFontFamilyWeight). Native ships four discrete Geist static
+// font files (loaded by useResources via @expo-google-fonts/geist), each a
 // real weight, so the family name alone carries the weight — do NOT also set
 // `fontWeight` on native or it faux-bolds on top of an already-bold file.
 // `light` maps to the regular file on native: a 5th (300) static weight isn't
 // worth shipping for how rarely `light` is used.
 const sansSerifFamilies = isWebRuntime
   ? {
-    light: `"Inter", ${WEB_FONT_STACK}`,
-    regular: `"Inter", ${WEB_FONT_STACK}`,
-    medium: `"Inter", ${WEB_FONT_STACK}`,
-    semibold: `"Inter", ${WEB_FONT_STACK}`,
-    bold: `"Inter", ${WEB_FONT_STACK}`,
+    light: `"Geist", ${WEB_FONT_STACK}`,
+    regular: `"Geist", ${WEB_FONT_STACK}`,
+    medium: `"Geist", ${WEB_FONT_STACK}`,
+    semibold: `"Geist", ${WEB_FONT_STACK}`,
+    bold: `"Geist", ${WEB_FONT_STACK}`,
   }
   : isReactNativeRuntime
     ? {
-      light: "Inter_400Regular",
-      regular: "Inter_400Regular",
-      medium: "Inter_500Medium",
-      semibold: "Inter_600SemiBold",
-      bold: "Inter_700Bold",
+      light: "Geist_400Regular",
+      regular: "Geist_400Regular",
+      medium: "Geist_500Medium",
+      semibold: "Geist_600SemiBold",
+      bold: "Geist_700Bold",
     }
     : {
       light: "sans-serif",
@@ -122,7 +122,7 @@ export type FontFamilyWeight = "light" | "regular" | "medium" | "semibold" | "bo
  * How a platform expresses weight for a given family map.
  *
  * - `"numeric"` — one multi-weight CSS family (the package's own web default:
- *   a single `"Inter"` family where a numeric `fontWeight` selects the
+ *   a single `"Geist"` family where a numeric `fontWeight` selects the
  *   `@font-face` variant).
  * - `"family"` — each weight is its own separately-registered single-face
  *   family, so the family name alone carries the weight. Emitting a numeric
@@ -161,6 +161,31 @@ export type FontFamilyOverride = Partial<Record<FontFamilyWeight, string>> & {
  * Nothing about Newsreader ships to an app that keeps the default.
  */
 export type SerifPreset = "georgia" | "newsreader";
+
+/**
+ * Which face the `sansSerif` variant resolves to when no `setFonts` sansSerif
+ * override exists: `"geist"` (the package default, bundled) or `"inter"`
+ * (opt-in: the classic look's face; the app supplies the files on native).
+ */
+export type SansPreset = "geist" | "inter";
+
+/**
+ * The Inter faces the `"inter"` sans preset resolves to (the classic look's
+ * face). Native names match `@expo-google-fonts/inter`'s per-weight exports,
+ * which the app registers through `useResources({ sans: "inter", sansFonts })`
+ * or `loadSansPreset("inter", fonts)`; web is one stack the Inter stylesheet
+ * (or the host's self-hosted `@font-face`) serves, weight numeric.
+ */
+export const interFamilies = {
+  web: `"Inter", ${WEB_FONT_STACK}`,
+  native: {
+    light: "Inter_400Regular",
+    regular: "Inter_400Regular",
+    medium: "Inter_500Medium",
+    semibold: "Inter_600SemiBold",
+    bold: "Inter_700Bold",
+  } satisfies Record<FontFamilyWeight, string>,
+} as const;
 
 /**
  * The Newsreader faces the `"newsreader"` preset resolves to. Native names
@@ -206,7 +231,7 @@ export const fontFamilies: FontFamilyMap = {
 };
 
 /**
- * The package's own web weight strategy: one multi-weight "Inter" family, so
+ * The package's own web weight strategy: one multi-weight "Geist" family, so
  * weight comes from a numeric `fontWeight`. Native always behaves as
  * `"family"` regardless of this value.
  */
@@ -239,6 +264,8 @@ export type FontStyleOptions = {
   italic?: boolean;
   /** The active serif preset (`useThemeStore().serifPreset`); defaults to Georgia. */
   serifPreset?: SerifPreset;
+  /** The active sans preset (`useThemeStore().sansPreset`); defaults to Geist. */
+  sansPreset?: SansPreset;
 };
 
 /**
@@ -252,8 +279,8 @@ export type FontStyleOptions = {
  * Weight is carried either by a numeric `fontWeight` (one multi-weight CSS
  * family) or by the family name itself (discrete per-weight faces). Native is
  * always the latter: adding a numeric weight on top of an already-bold file
- * faux-bolds it. Web defaults to numeric for the package's own single "Inter"
- * family, but an app loading per-weight faces through `expo-font` gets its
+ * faux-bolds it. Web defaults to numeric for the package's own single "Geist"
+ * (or preset "Inter") family, but an app loading per-weight faces through `expo-font` gets its
  * own family per weight on web too, and must declare
  * `webWeightStrategy: "family"` to avoid a second synthesised layer of bold.
  */
@@ -263,16 +290,21 @@ export function resolveFontStyle(
   weight: FontFamilyWeight,
   options: FontStyleOptions = {},
 ): ResolvedFontStyle {
-  const { italic = false, serifPreset = "georgia" } = options;
+  const { italic = false, serifPreset = "georgia", sansPreset = "geist" } = options;
   const isWeb = Platform.OS === "web";
   const overrideGroup = overrides.families?.[variant];
-  // Precedence for the upright face: app override → serif preset → package default.
+  // Precedence for the upright face: app override → preset → package default.
   const preset = variant === "serif" && serifPreset === "newsreader" && !overrideGroup;
+  const interPreset = variant === "sansSerif" && sansPreset === "inter" && !overrideGroup;
   const defaults: Record<FontFamilyWeight, string> = preset
     ? isWeb
       ? { light: newsreaderFamilies.web, regular: newsreaderFamilies.web, medium: newsreaderFamilies.web, semibold: newsreaderFamilies.web, bold: newsreaderFamilies.web }
       : newsreaderFamilies.native
-    : fontFamilies[variant];
+    : interPreset
+      ? isWeb
+        ? { light: interFamilies.web, regular: interFamilies.web, medium: interFamilies.web, semibold: interFamilies.web, bold: interFamilies.web }
+        : interFamilies.native
+      : fontFamilies[variant];
 
   const upright = overrideGroup
     ? overrideGroup[weight] ?? overrideGroup.regular ?? defaults[weight]
@@ -323,7 +355,12 @@ export const typography: Record<TypographySize, { fontSize: number; lineHeight: 
   "4xl": { fontSize: 36, lineHeight: 40 },
 };
 
-// Web: single "Inter" family per weight slot, numeric fontWeight picks the
+// Navigation fonts are module-load constants (React Navigation themes are
+// built from them once), so they follow the package default (Geist) and cannot
+// follow `sansPreset` at runtime; an app on the Inter preset that wants Inter
+// in navigation headers builds its own theme fonts from `interFamilies`.
+//
+// Web: single "Geist" family per weight slot, numeric fontWeight picks the
 // right @font-face variant from the multi-weight stylesheet (see useResources).
 const webNavigationFonts: NavigationFonts = {
   regular: {
@@ -344,7 +381,7 @@ const webNavigationFonts: NavigationFonts = {
   },
 };
 
-// Native: each slot points at its own real Inter static file, so the family
+// Native: each slot points at its own real Geist static file, so the family
 // name alone carries the weight. No numeric fontWeight here — pairing one
 // with an already-weighted static file triggers faux-bold on top of a real
 // weight file (same rule as StyledText's getFontFamilyWeight).

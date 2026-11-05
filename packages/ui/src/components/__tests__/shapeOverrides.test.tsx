@@ -61,19 +61,19 @@ const CASES: Case[] = [
   {
     name: "TextInput",
     slot: "input",
-    defaultRadius: spacing.radiusMd,
+    defaultRadius: spacing.radiusSm,
     element: <TextInput label="Name" placeholder="Ada" />,
   },
   {
     name: "InputOTP",
     slot: "input",
-    defaultRadius: spacing.radiusMd,
+    defaultRadius: spacing.radiusSm,
     element: <InputOTP value="" onChangeText={() => {}} />,
   },
   {
     name: "Select trigger",
     slot: "input",
-    defaultRadius: spacing.radiusMd,
+    defaultRadius: spacing.radiusSm,
     element: (
       <Select>
         <SelectTrigger>

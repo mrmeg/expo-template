@@ -74,8 +74,8 @@ describe("Surface Lab color overrides", () => {
     await render(<SurfaceLabScreen />);
 
     const { colorOverrides } = useThemeStore.getState();
-    expect(colorOverrides.dark?.background).toBe("#09090B");
-    expect(colorOverrides.dark?.popover).toBe("#18181B");
+    expect(colorOverrides.dark?.background).toBe("#0A0A0A");
+    expect(colorOverrides.dark?.popover).toBe("#171717");
     expect(colorOverrides.light?.background).toBe("#FFFFFF");
     expect(colorOverrides.light?.card).toBe("#FFFFFF");
   });

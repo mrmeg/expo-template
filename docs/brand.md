@@ -14,36 +14,40 @@ with one accent, not a look a fork has to fight.
 ## Palette
 
 Semantic tokens only; components never read raw palette entries. Source:
-`packages/ui/src/constants/colors.ts`. Neutrals are Tailwind's zinc scale, the
-accent is teal, and status colors are Tailwind's defaults.
+`packages/ui/src/constants/colors.ts`. Neutrals are Tailwind's neutral grey
+scale (the Refined look), the accent is teal, and status colors are Tailwind's
+defaults.
 
 | Token | Light | Dark | Role |
 |---|---|---|---|
-| `surfaceSunken` | `#FAFAFA` | `#050506` | App chrome (tab bar, rail) |
-| `background` | `#FFFFFF` | `#09090B` | Content; also each scheme's launch background |
-| `card` / `popover` | `#FFFFFF` | `#18181B` | Raised surfaces: collection tiles, popovers, sheets |
-| `muted` | `#F4F4F5` | `#27272A` | Chips, insets, skeletons |
-| `text` / `foreground` | `#09090B` | `#F4F4F5` | Body text |
-| `textDim` / `mutedForeground` | `#52525B` | `#B0B0B8` | Secondary text |
-| `primary` / `primaryForeground` | `#18181B` / `#FAFAFA` | `#FAFAFA` / `#18181B` | Filled controls |
-| `accent` / `accentForeground` | `#14B8A6` / `#FFFFFF` | `#2DD4BF` / `#18181B` | The one brand color: links, selection, the dot |
-| `destructive` | `#EF4444` | `#F87171` | Danger |
-| `success` / `warning` | `#22C55E` / `#F59E0B` | `#4ADE80` / `#FBBF24` | Status |
-| `border` / `borderStrong` | `#E4E4E7` / `#D4D4D8` | `#27272A` / `#3F3F46` | Hairlines; strong sits on filled surfaces |
-| `ring` | `#A1A1AA` | `#A1A1AA` | Web focus ring |
+| `surfaceSunken` | `#FAFAFA` | `#0A0A0A` | App chrome (tab bar, rail) |
+| `background` | `#FFFFFF` | `#0A0A0A` | Content; light is also the launch background (dark launch stays `#09090B` in `app.config.ts`) |
+| `card` / `popover` | `#FFFFFF` | `#171717` | Raised surfaces: collection tiles, popovers, sheets |
+| `muted` | `#F5F5F5` | `#262626` | Chips, insets, skeletons |
+| `text` / `foreground` | `#0A0A0A` | `#FAFAFA` | Body text |
+| `textDim` / `mutedForeground` | `#525252` | `#A4A4A4` | Secondary text |
+| `primary` / `primaryForeground` | `#171717` / `#FAFAFA` | `#E5E5E5` / `#171717` | Filled controls |
+| `accent` / `accentForeground` | `#14B8A6` / `#FFFFFF` | `#2DD4BF` / `#171717` | The one brand color: the selection dot and fills |
+| `link` | `#0F766E` | `#5EEAD4` | Link text (Button `link`, "See all"); the accent is too light to read as text on white |
+| `destructive` | `#DC2626` | `#F87171` | Danger |
+| `success` / `warning` | `#15803D` / `#F59E0B` | `#4ADE80` / `#FBBF24` | Status |
+| `border` / `borderStrong` | `#E5E5E5` / `#D4D4D4` | `#262626` / `#404040` | Hairlines; strong sits on filled surfaces |
+| `ring` | `#A1A1A1` | `#737373` | Web focus ring |
 
 Contrast is tested, not hoped for: `packages/ui/src/constants/__tests__/colors.test.ts`
 holds `text` at ≥ 12:1 and `textDim`/`mutedForeground` at ≥ 7:1 on
-`background`, `card`, and `popover` (≥ 6:1 on `muted`/`secondary`) in both
-schemes (WCAG AA asks 4.5:1 for body text and 3:1 for large text and UI
-parts). A fork that re-brands through `setColors` should keep those floors; the
+`background`, `card`, and `popover` (≥ 6:1 on `muted`/`secondary`), and `link`
+at ≥ 4.5:1 on `background`, `card`, and `popover`, in both schemes (WCAG AA asks
+4.5:1 for body text and 3:1 for large text and UI parts). Dark `#A4A4A4` is the
+darkest grey that keeps the 6:1 floor on `muted`. A fork that re-brands through
+`setColors` should keep those floors; the
 same test file is the place to pin them. A fork that overrides `background`,
 `card`, or `popover` should re-check its values against the Surface Lab
 (`/surface-lab`), which shows the tier ladder and the specimens it has to read
 on.
 
 Rules: elevation is layered surfaces (`surfaceSunken` < `background` < `card` <
-`muted`) plus, in dark, an edge highlight (see
+`muted`) plus a hairline `border` (see
 [Shape, elevation, rhythm](#shape-elevation-rhythm)); the accent appears once
 per view as the thing to look at, never as a large fill; status colors mean
 status.
@@ -52,12 +56,14 @@ status.
 
 Two families at most.
 
-- **Sans (everything):** Inter, weights 400/500/600/700, loaded by
+- **Sans (everything):** Geist, weights 400/500/600/700, loaded by
   `useResources()` (four static files on native, one Google Fonts family on
-  web). Roles (`StyledText` `semantic`): body 15/24.75, label 14/21 medium,
-  caption 12/18, subheading 18/27 medium, heading 22/26.4 semibold, title
-  28/33.6 semibold; eyebrows 12 px, uppercase, tracked, `mutedForeground`.
-  Sizes beyond the roles come from the `size` scale (`xs` 11 … `display` 34).
+  web). Inter is the opt-in classic preset (`useResources({ sans: "inter",
+  sansFonts })`, part of `classicLook`). Roles (`StyledText` `semantic`): body
+  15/24.75, label 14/21 medium, caption 12/18, subheading 18/27 medium, heading
+  22/26.4 semibold, title 28/33.6 semibold; eyebrow 13 medium, sentence case,
+  untracked, `mutedForeground`. Sizes beyond the roles come from the `size`
+  scale (`xs` 11 … `display` 34).
 - **Serif (display accents):** the `serif` variant. Georgia by default; the
   package's opt-in Newsreader preset (see the package README, Typography) is
   the recommended pairing for display text and section titles.
@@ -68,22 +74,26 @@ Forks replace faces with `setFonts` — never by patching `node_modules`.
 
 ## Shape, elevation, rhythm
 
-- **Radii** (`spacing.radius*`): 4 chips/checkboxes, 8 menu items and
-  thumbnails, 10 controls (Button default, inputs), 14 collection tiles and
-  dialogs, 24 hero media, full for pills and avatars. Sheets keep the
-  platform's corner radius unless an app sets one. Forks retune Button (and
-  other slots as the package adds them) through `setShape`.
-- **Elevation:** surface tiers first, then light. In dark, raised surfaces
-  carry a 1px inset white highlight on the top edge (5 to 6 %) plus a deeper,
-  larger black shadow: the "lit from above" cue. On a near-black base a faint
-  drop shadow is invisible, so the highlight carries the depth and the shadow
-  only grounds the surface. Light has no highlight; the shadow does the work, at
-  about twice the alpha it once had. `getShadowStyle("subtle")` goes on the
-  `default` Button and on collection tiles (`Card`); overlays (`Popover`,
-  `Dialog`, `DropdownMenu`, `Select`, `Tooltip`) use `soft`, `Notification`
-  uses `elevated`; screen content is flat. The Surface Lab (`/surface-lab`)
-  shows the tier ladder, alternate surface ramps for forks, and the previous
-  shadows next to the current ones.
+- **Radii** (`spacing.radius*`): 4 chips/checkboxes, 8 controls (Button
+  default, inputs: TextInput, the Select trigger, InputOTP cells) and menu
+  items and thumbnails, 14 collection tiles and dialogs, 24 hero media, full
+  for pills and avatars. Sheets keep the platform's corner radius unless an app
+  sets one. Forks retune Button (and other slots as the package adds them)
+  through `setShape`.
+- **Controls:** the drawn SegmentedControl (web, and `size="lg"`) marks the
+  selection with a raised `background` segment on the `muted` track, not a teal
+  fill; Switch's on-track is `primary`; the web focus ring is a soft 3px `ring`
+  halo.
+- **Elevation:** surface tiers first, then a hairline. The `subtle` shadow
+  (`getShadowStyle("subtle")`, on the `default` Button and on collection tiles
+  (`Card`)) is a 1px light shadow in light and nothing in dark, where the 1px
+  `border` carries the edge. `elevation: "layered"` (a treatment, and part of
+  `classicLook`) restores the dual-layer `subtle` shadow with the dark top
+  highlight.
+  Overlays (`Popover`, `Dialog`, `DropdownMenu`, `Select`, `Tooltip`) use
+  `soft`, `Notification` uses `elevated`; screen content is flat. The Surface
+  Lab (`/surface-lab`) shows the tier ladder and alternate surface ramps for
+  forks.
 - **Rhythm:** 8-pt base (`spacing.sm` 8, `md` 16, `lg` 24, `xl` 32) with 4 and
   12 as half steps; screen gutter 16; section spacing 24; rows 10 × 16 padding;
   44-pt touch targets.
@@ -110,12 +120,25 @@ Masters live in `assets/brand/`; `bun run brand:assets` renders every raster
 | `mark-tinted.svg` | `icon-tinted.png` | `ios.icon.tinted` (grayscale for the system tint) |
 | `adaptive-foreground.svg` | `adaptive-icon.png` | Android adaptive foreground, mark at 66 % for the safe zone; background `#09090B` |
 | `adaptive-monochrome.svg` | `adaptive-icon-monochrome.png` | Android themed icon |
-| `splash-light.svg` / `splash-dark.svg` | `splash-icon.png` / `splash-icon-dark.png` | Splash on `#FFFFFF` / `#09090B` — each scheme's `background` |
+| `splash-light.svg` / `splash-dark.svg` | `splash-icon.png` / `splash-icon-dark.png` | Splash on `#FFFFFF` / `#09090B` (launch colors set in `app.config.ts`, pinned by `brandAssets.test.ts`; dark is one step off the dark `background`) |
 | `favicon.svg` | `favicon.png` 48² | Web favicon (heavier stroke so it survives 16 px) |
 
 The showcase's sample avatar and the auth screen's logo `require` `icon.png`,
 so they follow the mark automatically. `__tests__/brandAssets.test.ts` pins the
 sizes and the config wiring.
+
+## Looks
+
+A look bundles colors, fonts, shape, and treatments (`segmentedSelection`,
+`switchTrack`, `eyebrow`, `focusRing`, `elevation`) as one named value. The
+default is Refined (`refinedLook`, everything on this page). `classicLook` is
+the pre-0.35 look: Inter, zinc neutrals, teal selection, radius 10 controls,
+uppercase eyebrow, offset focus ring, layered shadows. `applyLook(look)`
+applies one through `setColors`, `setFonts`, `setShape`, and `setTreatments`;
+`useTreatment(name)` reads a treatment. The `/looks` demo (Refined, Classic,
+Strand, Glass, Editorial) switches between them live; its source is
+`client/showcase/LooksScreen.tsx`. Package details are in
+[`packages/ui/README.md`](../packages/ui/README.md#looks-and-treatments).
 
 ## What a fork replaces
 
@@ -125,6 +148,12 @@ sizes and the config wiring.
    `bun run brand:assets`, commit both. Keep the dark/tinted/monochrome
    variants — iOS and Android render them without asking.
 3. Palette: `setColors({ light, dark })` once at startup with the brand's
-   `primary`/`accent` (and any other tokens); re-run the contrast test.
-4. Type: `setFonts` with the brand faces, loaded through `expo-font`.
-5. Wordmark: `client/features/navigation/WebNavShell.tsx` (`Wordmark`).
+   `primary`/`accent`/`link` (and any other tokens); re-run the contrast test.
+   To start from another look, `applyLook(look)` instead (or after, to layer
+   brand colors on a look), and pass the same colors to
+   `getThemeCssVariables` in `app/+html.tsx`.
+4. Type: `setFonts` with the brand faces, loaded through `expo-font`, or a
+   look's `sans`/`serif` preset.
+5. Treatments: `setTreatments` (or a look's `treatments`) for the selection,
+   switch, eyebrow, focus ring, and elevation styling.
+6. Wordmark: `client/features/navigation/WebNavShell.tsx` (`Wordmark`).

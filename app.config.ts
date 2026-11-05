@@ -51,7 +51,7 @@ function basePlugins(): NonNullable<ExpoConfig["plugins"]> {
         // `surfaceSunken` from the package palette) with the matching mark.
         dark: {
           image: "./assets/images/splash-icon-dark.png",
-          backgroundColor: "#09090B",
+          backgroundColor: "#0A0A0A",
         },
       },
     ],
@@ -121,7 +121,7 @@ export default function appConfig(_: ConfigContext): ExpoConfig {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         monochromeImage: "./assets/images/adaptive-icon-monochrome.png",
-        backgroundColor: "#09090B",
+        backgroundColor: "#0A0A0A",
       },
       package: identity.androidPackage,
     },

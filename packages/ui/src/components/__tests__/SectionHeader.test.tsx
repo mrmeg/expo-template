@@ -10,6 +10,7 @@ import React from "react";
 import { StyleSheet } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 
+import { rawThemeColors } from "../../constants";
 import { SectionHeader } from "../SectionHeader";
 
 function flattenStyle(text: string) {
@@ -29,6 +30,15 @@ describe("SectionHeader", () => {
     expect(screen.getByText("Pricing")).toBeTruthy();
     expect(screen.getByText("Simple, transparent plans")).toBeTruthy();
     expect(screen.getByText("Pick the plan that fits your team.")).toBeTruthy();
+  });
+
+  it("colors the eyebrow with mutedForeground, not the accent", async () => {
+    await render(<SectionHeader eyebrow="Pricing" title="Plans" />);
+
+    // Accent is 2.4:1 on white; in the Refined look teal is only selection and links.
+    const color = flattenStyle("Pricing").color;
+    expect(color).not.toBe(rawThemeColors.light.accent);
+    expect(color).toBe(rawThemeColors.light.mutedForeground);
   });
 
   it("renders with only the required title", async () => {

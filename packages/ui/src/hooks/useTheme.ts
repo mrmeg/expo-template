@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { Colors, colors, palette, resolveRawColor } from "../constants/colors";
 import { ImageStyle, TextStyle, ViewStyle, Platform, StyleSheet } from "react-native";
-import { resolveThemePreference, useThemeStore, type ThemeStore } from "../state/themeStore";
+import { defaultTreatments, resolveThemePreference, useThemeStore, type ThemeStore } from "../state/themeStore";
 import { useThemeColorScope } from "../state/themeColorScope";
 import { useInitialScheme } from "../state/initialScheme";
 import { spacing as spacingConstants } from "../constants/spacing";
@@ -197,6 +197,17 @@ const SHADOW_CONFIGS: Record<ShadowType, ShadowConfig> = {
   },
 };
 
+/**
+ * `subtle` under the `elevation: "hairline"` treatment (the default): one
+ * faint 1px layer in light, nothing in dark. The 1px `border` carries the edge
+ * (the default Card draws it), so there is no ambient layer and no inset top
+ * highlight. `elevation: "layered"` uses `SHADOW_CONFIGS.subtle`.
+ */
+const SUBTLE_HAIRLINE: ShadowConfig = {
+  light: [{ x: 0, y: 1, blur: 2, opacity: 0.05 }],
+  dark: [],
+};
+
 interface ExtendedColorScheme {
   theme: Colors["light" | "dark"];
   scheme: "light" | "dark";
@@ -219,8 +230,10 @@ interface ExtendedColorScheme {
  * Returns:
  * - theme: active theme colors (light or dark)
  * - scheme: "light" | "dark"
- * - getShadowStyle(type): returns cross-platform shadow style object
- * - getFocusRingStyle(offset): returns web focus ring style object
+ * - getShadowStyle(type): returns cross-platform shadow style object (`subtle`
+ *   follows the `elevation` treatment)
+ * - getFocusRingStyle(offset): returns web focus ring style object (follows the
+ *   `focusRing` treatment; `offset` applies to "offset" only)
  * - getContrastingColor(bg, color1?, color2?): pick best contrast of two options
  * - getTextColorForBackground(bg): returns "light" or "dark"
  * - withAlpha(color, alpha): adds transparency
@@ -238,14 +251,17 @@ export function useTheme(): ExtendedColorScheme & {
   currentTheme: "system" | "light" | "dark";
   } {
   // One store subscription per consumer, re-rendering only when one of these
-  // four fields changes (shallow compare), instead of four subscriptions.
-  const { userTheme, systemTheme, hasLoadedTheme, setTheme, colorOverrides } = useThemeStore(
+  // fields changes (shallow compare), instead of one subscription each. The
+  // two treatments are the same reads `useTreatment` makes.
+  const { userTheme, systemTheme, hasLoadedTheme, setTheme, colorOverrides, elevation, focusRing } = useThemeStore(
     useShallow((s) => ({
       userTheme: s.userTheme,
       systemTheme: s.systemTheme,
       hasLoadedTheme: s.hasLoadedTheme,
       setTheme: s.setTheme,
       colorOverrides: s.colorOverrides,
+      elevation: s.treatmentOverrides.elevation ?? defaultTreatments.elevation,
+      focusRing: s.treatmentOverrides.focusRing ?? defaultTreatments.focusRing,
     }))
   );
   const scoped = useThemeColorScope();
@@ -319,8 +335,10 @@ export function useTheme(): ExtendedColorScheme & {
    */
   const getShadowStyle = useCallback((type: ShadowType): ViewStyle => {
     const overlay = theme.colors.overlay;
-    const config = SHADOW_CONFIGS[type];
+    const config = type === "subtle" && elevation === "hairline" ? SUBTLE_HAIRLINE : SHADOW_CONFIGS[type];
     const layers: ShadowLayer[] = theme.dark ? config.dark : config.light;
+    // Nothing to draw (hairline `subtle` in dark): no `boxShadow` at all.
+    if (layers.length === 0) return {};
 
     // Don't tint `glow` with the overlay: it is a deliberate, vivid accent glow.
     const color = type === "glow" ? theme.colors.primary : overlay;
@@ -335,17 +353,26 @@ export function useTheme(): ExtendedColorScheme & {
     return {
       boxShadow: parts.join(", "),
     } as ViewStyle;
-  }, [theme]);
+  }, [theme, elevation]);
 
+  // `focusRing: "soft"` (default) is a 3px `ring` halo at 50%, flush against
+  // the element; it ignores `offset`. "offset" is a `offset`px `background`
+  // gap (2 by default) plus a 2px `ring` band outside it.
   const getFocusRingStyle = useCallback((offset = 2): ViewStyle => {
     if (Platform.OS !== "web") {
       return {};
     }
 
+    if (focusRing === "soft") {
+      return {
+        boxShadow: `0 0 0 3px ${withAlpha(theme.colors.ring, 0.5)}`,
+      } as ViewStyle;
+    }
+
     return {
       boxShadow: `0 0 0 ${offset}px ${theme.colors.background}, 0 0 0 ${offset + 2}px ${theme.colors.ring}`,
     } as ViewStyle;
-  }, [theme.colors.background, theme.colors.ring]);
+  }, [focusRing, theme.colors.background, theme.colors.ring]);
 
   // Helper to calculate contrast ratio between two colors.
   // On web theme colors are `var(--c-*)` strings, which cannot be parsed —

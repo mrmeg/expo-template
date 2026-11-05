@@ -11,6 +11,7 @@ import { StyleSheet } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 
 import { StatCard } from "../StatCard";
+import { useThemeStore } from "../../state/themeStore";
 
 function flattenStyle(text: string) {
   return StyleSheet.flatten(screen.getByText(text).props.style) as Record<string, unknown>;
@@ -47,7 +48,7 @@ describe("StatCard", () => {
       <StatCard label="Revenue" value="48.2" change={{ value: "+12.5%", direction: "up" }} />,
     );
 
-    expect(flattenStyle("+12.5%").color).toBe("#22C55E");
+    expect(flattenStyle("+12.5%").color).toBe("#15803D");
     expect(screen.getByTestId("icon-trending-up", { includeHiddenElements: true })).toBeTruthy();
   });
 
@@ -56,7 +57,7 @@ describe("StatCard", () => {
       <StatCard label="Refunds" value="182" change={{ value: "-4.1%", direction: "down" }} />,
     );
 
-    expect(flattenStyle("-4.1%").color).toBe("#EF4444");
+    expect(flattenStyle("-4.1%").color).toBe("#DC2626");
     expect(screen.getByTestId("icon-trending-down", { includeHiddenElements: true })).toBeTruthy();
   });
 
@@ -65,7 +66,7 @@ describe("StatCard", () => {
       <StatCard label="Active Users" value="1,204" change={{ value: "No change", direction: "neutral" }} />,
     );
 
-    expect(flattenStyle("No change").color).toBe("#52525B");
+    expect(flattenStyle("No change").color).toBe("#525252");
     expect(screen.queryByTestId(/^icon-trending-/, { includeHiddenElements: true })).toBeNull();
   });
 
@@ -87,5 +88,21 @@ describe("StatCard", () => {
     await render(<StatCard label="Orders" value="342" />);
 
     expect(screen.queryByRole("button")).toBeNull();
+  });
+});
+
+describe("StatCard label and the eyebrow treatment", () => {
+  afterEach(() => useThemeStore.getState().setTreatments({}));
+
+  it("keeps the label as written by default (sentence)", async () => {
+    await render(<StatCard label="Active users" value="2,481" />);
+    expect(flattenStyle("Active users").textTransform).toBeUndefined();
+  });
+
+  it("uppercases and tracks the label under eyebrow: uppercase", async () => {
+    useThemeStore.getState().setTreatments({ eyebrow: "uppercase" });
+    await render(<StatCard label="Active users" value="2,481" />);
+    expect(flattenStyle("Active users").textTransform).toBe("uppercase");
+    expect(flattenStyle("Active users").letterSpacing).toBe(0.96);
   });
 });

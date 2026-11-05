@@ -9,7 +9,7 @@ type TextPassthroughProps = Omit<TextProps, "style" | "children"> & {
 };
 
 export interface SectionHeaderProps {
-  /** Small uppercase label rendered above the title. */
+  /** Small label above the title; sentence case by default, uppercase under the `eyebrow` treatment. */
   eyebrow?: string;
   /** Section title. */
   title: string;
@@ -61,7 +61,7 @@ export function SectionHeader({
       {!!eyebrow && (
         <EyebrowText
           style={{
-            color: theme.colors.accent,
+            color: theme.colors.mutedForeground,
             marginBottom: spacing.xs,
             textAlign,
           }}

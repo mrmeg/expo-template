@@ -77,8 +77,8 @@ installs and bundles none of them. `AudioPlayer` also draws artwork with
 `Image`, so it needs `expo-image` as well as `expo-audio`. `expo-audio` adds
 native code: rebuild your dev client after installing it.
 
-`@rn-primitives/*` and `@expo-google-fonts/inter` are package dependencies, not
-peers. Animations use React Native `Animated`. `BottomSheet`, `Slider`, and
+`@rn-primitives/*` and `@expo-google-fonts/geist` are package dependencies, not
+peers (`@expo-google-fonts/inter` is not; see [Keep the old look](#keep-the-old-look)). Animations use React Native `Animated`. `BottomSheet`, `Slider`, and
 `SegmentedControl` render native `@expo/ui` controls (`SegmentedControl` is
 native except `size="lg"`, which the kit draws). i18n is optional.
 
@@ -267,17 +267,25 @@ and react-native-web 0.21 deprecate the legacy `shadow*` props). The layers
 follow the scheme: in dark the raised presets add a 1px inset white top
 highlight to black shadows at real alpha (a faint drop shadow is invisible on a
 near-black base); in light it is the shadow alone, at about twice the original
-alpha.
+alpha. Only `subtle` follows the `elevation` treatment: the default, `hairline`,
+makes it (default Button, Card) a 1px light shadow, and none in dark, where the
+1px `border` carries the edge; `layered` gives it the dual-layer shadow above.
+The other presets are unchanged.
 
 Semantic tokens on `theme.colors`: `surfaceSunken`, `background`, `foreground`,
 `card`, `cardForeground`, `popover`, `popoverForeground`, `text`, `textDim`,
 `muted`, `mutedForeground`, `border`, `borderStrong`, `input`, `ring`,
 `overlay`, `primary`, `secondary`, `accent`, their `*Foreground` pairs,
-`destructive`, `success`, `warning`. `primary` is the neutral action color,
-`secondary` a neutral secondary surface, `accent` the teal highlight, `input`
-the default form-control border, `ring` the focus outline.
+`link`, `destructive`, `success`, `warning`. `primary` is the neutral action
+color, `secondary` a neutral secondary surface, `accent` the teal highlight
+(the selection dot and fills), `link` the teal for link text (Button's `link`
+preset, "See all" actions; light `#0F766E`, dark `#5EEAD4`), `input` the default
+form-control border, `ring` the focus outline. The built-in palette is Tailwind's
+neutral greys (light text `#0A0A0A`, primary `#171717`, border `#E5E5E5`; dark
+background `#0A0A0A`, card `#171717`, muted `#262626`, primary `#E5E5E5`, dim text
+`#A4A4A4`).
 
-Surfaces are layered tiers, with an edge highlight in dark: `surfaceSunken` (app
+Surfaces are layered tiers: `surfaceSunken` (app
 chrome such as the Drawer rail) < `background` (content) < `card`/`popover`
 (raised panels) < `muted` (chips, insets). `border` is the hairline on `background`/`card`; use
 `borderStrong` on filled surfaces. `textDim`/`mutedForeground` hold at least
@@ -410,7 +418,7 @@ a complete screen.
 
 ### Color overrides
 
-Colors resolve in three layers, last wins: package defaults (zinc/teal) →
+Colors resolve in three layers, last wins: package defaults (neutral greys/teal) →
 global brand (`setColors`) → subtree scope (`ThemeColorScope`). Each override is
 `{ light?, dark? }` of `Partial<ThemeColors>`, so you only pass the keys you
 re-skin. With no override at either layer, `useTheme()` returns the base theme
@@ -490,8 +498,8 @@ useThemeStore.getState().setShape({
 
 | Slot | Reaches | Package default |
 |---|---|---|
-| `button` | Button, every preset (`withShadow` only affects `default`) | `spacing.radiusMd` (10), shadow on |
-| `input` | TextInput (`outline` and `filled`; `underlined` stays square), Select trigger, InputOTP cells | `spacing.radiusMd` (10) |
+| `button` | Button, every preset (`withShadow` only affects `default`) | `spacing.radiusSm` (8), shadow on |
+| `input` | TextInput (`outline` and `filled`; `underlined` stays square), Select trigger, InputOTP cells | `spacing.radiusSm` (8) |
 | `card` | Card (surface and pressable focus ring), StatCard, EmptyState with `bordered`, SkeletonCard | `spacing.radiusLg` (14) |
 | `sheet` | BottomSheet top corners, where the platform lets the sheet draw them (web, Android); iOS system sheets keep the system radius | platform |
 | `badge` | Badge | `spacing.radiusFull` (pill) |
@@ -503,6 +511,49 @@ Precedence is caller-wins: a per-instance `style={{ borderRadius }}` or
 `useShape(slot)` from `@mrmeg/expo-ui/hooks` and layers the radius after its
 static one; `shapeRadius(override)` turns the slot into a `{ borderRadius }`
 style or `undefined` for that layering.
+
+### Looks and treatments
+
+The built-in values are the Refined look: Geist, neutral greys, 8 / 14 radius,
+hairline elevation. A look bundles colors, fonts, shape, treatments, and the
+sans/serif presets into one `Look` value; `applyLook(look)` sets them through
+`setColors`, `setFonts`, `setShape`, `setTreatments`, and the preset setters, and
+clears any slot the look omits back to the package default. All four come from
+`@mrmeg/expo-ui/state`: `Look`, `applyLook`, `refinedLook` (the defaults), and
+`classicLook` (the pre-0.35 look). Pair `applyLook` with
+`getThemeCssVariables(look.colors)` in `+html.tsx` so the first web paint matches.
+
+Treatments are the component styling a color or radius cannot express.
+`useThemeStore.getState().setTreatments(overrides)` sets them, `useTreatment(name)`
+(from `hooks`) reads one, and `defaultTreatments` / `TreatmentOverrides` are
+exported from `state`:
+
+| Treatment | Values (default first) | Changes |
+|---|---|---|
+| `segmentedSelection` | `"surface"`, `"accent"` | The drawn SegmentedControl's selected segment (web, and `size="lg"`): a raised `background` segment on the `muted` track, or an `accent` fill |
+| `switchTrack` | `"primary"`, `"accent"` | Switch's on-track (`primary` on every platform; `accent` keeps the iOS system green) |
+| `eyebrow` | `"sentence"`, `"uppercase"` | The `eyebrow` role: 13 medium as written, or 12 semibold uppercase with +0.08em tracking |
+| `focusRing` | `"soft"`, `"offset"` | Web focus ring: a 3px `ring` halo at 50%, or a 2px `background` gap plus a 2px `ring` |
+| `elevation` | `"hairline"`, `"layered"` | Only the `subtle` shadow: a 1px light shadow (none in dark), or the dual-layer shadow with the dark top highlight |
+
+```tsx
+import { applyLook, refinedLook, useThemeStore } from "@mrmeg/expo-ui/state";
+import { useTreatment } from "@mrmeg/expo-ui/hooks";
+
+useThemeStore.getState().setTreatments({ eyebrow: "uppercase" }); // one treatment
+applyLook({ ...refinedLook, id: "brand", name: "Brand", treatments: { switchTrack: "accent" } });
+const selection = useTreatment("segmentedSelection"); // "surface" | "accent"
+```
+
+The template's `/looks` demo switches between Refined, Classic, Strand, Glass,
+and Editorial live.
+
+#### Keep the old look
+
+Call `applyLook(classicLook)` once at startup, and load Inter as well (it is an
+opt-in preset now; see [Bundled fonts](#bundled-fonts)). The step-by-step
+migration (native font map, web first paint, navigation fonts) is in the
+[0.35.0 CHANGELOG entry](CHANGELOG.md#migrating-keep-the-old-look).
 
 ### Press feedback and haptics
 
@@ -562,9 +613,9 @@ import { BodyText, CaptionText, HeadingText, StyledText } from "@mrmeg/expo-ui/c
 - `fontWeight`: `light`, `regular`, `medium`, `semibold`, `bold`
 - `italic`: a real italic face where the family has one (an app's `setFonts`
   `italic` map, or the Newsreader serif preset below), otherwise
-  `fontStyle: "italic"` and the platform synthesizes the slant. Inter ships no
-  italic file on native (four upright weights, by design); on web the injected
-  Inter stylesheet carries the 400 italic, so body-weight italic is real there
+  `fontStyle: "italic"` and the platform synthesizes the slant. Geist ships no
+  italic, so `italic` on the sans face is always synthesized (Inter, the classic
+  preset, has a real 400 italic on web only)
 - `variant`: `sansSerif`, `serif`, `mono`
 - `align`, `text`, `tx`, `txOptions`
 - `selectable`: defaults to `true` on iOS and web and to `false` on Android
@@ -599,33 +650,67 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 
 ### Bundled fonts
 
-Inter is the sans face on every platform, in four static weights
-(`Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`, `Inter_700Bold`)
-from the bundled `@expo-google-fonts/inter`. Serif is Georgia by default, or
+Geist is the sans face on every platform, in four static weights
+(`Geist_400Regular`, `Geist_500Medium`, `Geist_600SemiBold`, `Geist_700Bold`)
+from the bundled `@expo-google-fonts/geist`. Serif is Georgia by default, or
 Newsreader through the serif preset below; mono is the platform system
-monospace.
+monospace. Inter is an opt-in sans preset (see
+[Sans preset: Inter](#sans-preset-inter)).
 
 `useResources()` loads those four weights on native, so `StyledText`'s
 `light`–`bold` range resolves to real files instead of a faked OS bold. Each
-weight is imported from its own `@expo-google-fonts/inter/<weight>` subpath, so
-a native bundle carries those four files and no other Inter face, and a web
-bundle carries no Inter file at all. Icons
+weight is imported from its own `@expo-google-fonts/geist/<weight>` subpath, so
+a native bundle carries those four files and no other Geist face, and a web
+bundle carries no Geist file at all. Icons
 are SVG drawn from glyph data, so there is no icon font to load on any
 platform. On web
-it injects one Google Fonts Inter stylesheet (all four weights) after hydration
+it injects one Google Fonts Geist stylesheet (all four weights) after hydration
 unless the app already added it; web weight differentiation then comes from a
-numeric `fontWeight` on the shared `"Inter"` family. For better first paint in
+numeric `fontWeight` on the shared `"Geist"` family. For better first paint in
 Expo Router web apps, add the links to app-owned `app/+html.tsx`:
 
 ```tsx
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 <link
-  id="mrmeg-expo-ui-inter"
+  id="mrmeg-expo-ui-geist"
   rel="stylesheet"
-  href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+  href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap"
 />
 ```
+
+### Sans preset: Inter
+
+Inter is the sans face of `classicLook`, offered as an opt-in preset that mirrors
+the Newsreader serif preset: the package does not depend on the font package, so
+the app adds it and hands the native files over.
+
+```bash
+bun add @expo-google-fonts/inter
+```
+
+```tsx
+import { Inter_400Regular } from "@expo-google-fonts/inter/400Regular";
+import { Inter_500Medium } from "@expo-google-fonts/inter/500Medium";
+import { Inter_600SemiBold } from "@expo-google-fonts/inter/600SemiBold";
+import { Inter_700Bold } from "@expo-google-fonts/inter/700Bold";
+
+const { loaded } = useResources({
+  sans: "inter",
+  sansFonts: { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold },
+});
+```
+
+On native the files register first and the theme store's `sansPreset` switches
+to `"inter"` after; without `sansFonts` the hook warns once and keeps Geist. On
+web `sans: "inter"` injects a Google Fonts stylesheet (id
+`mrmeg-expo-ui-inter`, four weights plus the 400 italic) unless the document
+already has an element with that id. `loadSansPreset(preset, nativeFonts?)`
+(from `hooks`) switches at runtime, for example before `applyLook(classicLook)`.
+A `setFonts` sansSerif override wins over any preset. `interFamilies` (from
+`constants`) holds the family names, for building navigation fonts. The
+`light`–`bold` weights and `SansPreset` (`"geist" | "inter"`) apply as for
+Geist.
 
 ### Serif preset: Newsreader
 
@@ -726,14 +811,14 @@ falls back to that group's `regular` (never to a package face), so Regular +
 Medium is enough. `setFonts({})` clears back to the defaults.
 
 When `sansSerif` is overridden, `useResources` skips downloading the packaged
-Inter faces entirely (native `.ttf`s and the web stylesheet). For the skip to
+Geist faces entirely (native `.ttf`s and the web stylesheet). For the skip to
 apply, call `setFonts` before the hook mounts (module scope, or ahead of
 rendering the root); a later call still re-skins all text, it just doesn't
 prevent the download.
 
 | `webWeightStrategy` | Use when | Effect |
 |---|---|---|
-| `"numeric"` (default) | You ship **one multi-weight CSS family** (a variable font, or Google Fonts' single `"Inter"` family) | A numeric `fontWeight` selects the `@font-face` variant |
+| `"numeric"` (default) | You ship **one multi-weight CSS family** (a variable font, or Google Fonts' single `"Geist"` family) | A numeric `fontWeight` selects the `@font-face` variant |
 | `"family"` | You load **per-weight faces via `expo-font`** | The family name alone carries the weight; the numeric `fontWeight` is suppressed |
 
 `expo-font` registers each weight as its own single-face family on web as well
@@ -946,7 +1031,9 @@ are named exports only.
 
 | Hook | Returns |
 |------|---------|
-| `useResources()` | `{ loaded, error }` — loads the Inter faces (icons are SVG drawn from glyph data, nothing to load) |
+| `useResources(options?)` | `{ loaded, error }` — loads the Geist faces (icons are SVG drawn from glyph data, nothing to load); `{ serif, serifFonts, sans, sansFonts }` opt into the Newsreader and Inter presets |
+| `useTreatment(name)` | The active value of one treatment (`segmentedSelection`, `switchTrack`, `eyebrow`, `focusRing`, `elevation`) |
+| `loadSansPreset(preset, nativeFonts?)` | Loads a sans preset and switches `sansSerif` to it |
 | `useTheme()` | Active theme, scheme helpers, shadow/contrast/alpha helpers |
 | `useStyles(factory)` | Memoized theme-aware styles plus the `useTheme()` helpers |
 | `useDimensions()` | `{ width, height, orientation, isSmallScreen, isMediumScreen, isLargeScreen }` against `SCREEN_SIZES` (768 / 1000 / 1200) |

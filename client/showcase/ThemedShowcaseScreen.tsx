@@ -22,7 +22,7 @@ import { Section, SubSection, ThemeToggle } from "@/client/showcase";
  * Themed Showcase
  *
  * Exercises the package's color-override API (`useThemeStore().setColors`).
- * The package ships a neutral zinc + teal palette; a host app forwards its own
+ * The package ships a neutral + teal palette; a host app forwards its own
  * brand palette so every package component (Button, Badge, inputs, …) resolves
  * against the same source of truth. This screen injects a brand palette for
  * BOTH light and dark schemes and lets you flip between them live, alongside
@@ -73,7 +73,7 @@ const SHAPES: Record<string, { label: string; overrides: ShapeOverrides } | null
 const SHAPE_ORDER = Object.keys(SHAPES);
 
 // `default` intentionally has no overrides — selecting it clears `setColors`
-// and the gallery falls back to the package's built-in zinc + teal palette.
+// and the gallery falls back to the package's built-in neutral + teal palette.
 const PALETTES: Record<string, BrandPalette | null> = {
   default: null,
 

@@ -1,9 +1,10 @@
 import React from "react";
 import { View, StyleProp, ViewStyle } from "react-native";
 import { Card } from "./Card";
-import { CaptionText, StyledText } from "./StyledText";
+import { CaptionText, EyebrowText, StyledText } from "./StyledText";
 import { Icon, type IconName } from "./Icon";
 import { useTheme } from "../hooks/useTheme";
+import { useTreatment } from "../hooks/useTreatment";
 import { spacing } from "../constants/spacing";
 
 export type StatChangeDirection = "up" | "down" | "neutral";
@@ -16,7 +17,7 @@ export interface StatCardChange {
 }
 
 export interface StatCardProps {
-  /** Small uppercase label describing the stat. */
+  /** Small label describing the stat; its case follows the `eyebrow` treatment. */
   label: string;
   /** The headline stat value. */
   value: string | number;
@@ -41,7 +42,7 @@ const DIRECTION_ICON: Record<"up" | "down", IconName> = {
 /**
  * StatCard
  *
- * Dashboard stat idiom: a tiny uppercase tracked label, a large
+ * Dashboard stat idiom: a small label (its case follows the `eyebrow` treatment), a large
  * tabular-nums value (with an optional muted unit suffix), and an optional
  * signed change line (success/destructive/muted by direction). Builds on
  * `Card` for the container, default shadow, and press feedback, so it follows
@@ -60,6 +61,7 @@ const DIRECTION_ICON: Record<"up" | "down", IconName> = {
  */
 export function StatCard({ label, value, unit, change, icon, onPress, style }: StatCardProps) {
   const { theme } = useTheme();
+  const eyebrow = useTreatment("eyebrow");
 
   const changeColor = !change
     ? undefined
@@ -73,13 +75,20 @@ export function StatCard({ label, value, unit, change, icon, onPress, style }: S
     <Card onPress={onPress} style={style}>
       <View style={{ padding: spacing.cardPadding, gap: spacing.xs }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          {/* Tracking matches the EyebrowText overline treatment (+0.08em @ 12px). */}
-          <CaptionText
-            selectable={false}
-            style={{ color: theme.colors.textDim, textTransform: "uppercase", letterSpacing: 0.96 }}
-          >
-            {label}
-          </CaptionText>
+          {/* Follows the `eyebrow` treatment: sentence case as written, or the
+              classic UPPERCASE overline (+0.08em @ 12px). */}
+          {eyebrow === "uppercase" ? (
+            <CaptionText
+              selectable={false}
+              style={{ color: theme.colors.textDim, textTransform: "uppercase", letterSpacing: 0.96 }}
+            >
+              {label}
+            </CaptionText>
+          ) : (
+            <EyebrowText selectable={false} style={{ color: theme.colors.textDim }}>
+              {label}
+            </EyebrowText>
+          )}
           {!!icon && <Icon name={icon} size={spacing.iconSm} color={theme.colors.mutedForeground} decorative />}
         </View>
 

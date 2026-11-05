@@ -113,7 +113,7 @@ Docs index: `AGENTS.md`. Modernization reference:
 
 ## Design System
 
-- Shadcn-inspired, zinc palette + teal accent.
+- Shadcn-inspired, Refined look by default: Geist, neutral greys + teal accent (`classicLook` is the old Inter/zinc look).
 - Tokens (colors, fonts, spacing) in `packages/ui/src/constants/`; reference in `packages/ui/README.md`.
 - Control heights: `TextInput` / `Select` sm=32, md=36, lg=40; `Button` sm=28, md=32, lg=40.
 - Use `StyleSheet.flatten([...])` (not raw arrays) for `@rn-primitives` style props — nested style arrays crash React Native Web.

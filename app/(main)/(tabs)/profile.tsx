@@ -540,7 +540,7 @@ function AccountInfoSection({
             iconColor={theme.colors.accent}
           />
           <ItemContent>
-            <ItemTitle style={{ color: theme.colors.accent }}>
+            <ItemTitle style={{ color: theme.colors.link }}>
               {billingAction === "manage"
                 ? isCreatingPortal
                   ? "Opening…"

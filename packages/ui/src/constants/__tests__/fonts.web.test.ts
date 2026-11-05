@@ -1,17 +1,17 @@
 /**
  * Web resolves weight numerically on one multi-weight family (the package's
  * "numeric" strategy). Italic therefore rides on `fontStyle` — Google Fonts
- * serves the real 400 italic for Inter and Newsreader from the stylesheets
+ * serves the real 400 italic for Geist and Newsreader from the stylesheets
  * `useResources` injects, and the browser synthesizes the other weights.
  */
 import "../../components/__tests__/forceWebPlatform";
 
-import { resolveFontStyle, newsreaderFamilies } from "../fonts";
+import { interFamilies, resolveFontStyle, newsreaderFamilies } from "../fonts";
 
 describe("resolveFontStyle (web)", () => {
-  it("keeps today's defaults: Inter + numeric weight, Georgia stack for serif", () => {
+  it("defaults to Geist + numeric weight, Georgia stack for serif", () => {
     expect(resolveFontStyle({}, "sansSerif", "semibold")).toEqual({
-      fontFamily: expect.stringContaining("\"Inter\""),
+      fontFamily: expect.stringContaining("\"Geist\""),
       fontWeight: "600",
     });
     expect(resolveFontStyle({}, "serif", "regular")).toEqual({
@@ -22,7 +22,7 @@ describe("resolveFontStyle (web)", () => {
 
   it("italic adds fontStyle and keeps the numeric weight", () => {
     expect(resolveFontStyle({}, "sansSerif", "medium", { italic: true })).toEqual({
-      fontFamily: expect.stringContaining("\"Inter\""),
+      fontFamily: expect.stringContaining("\"Geist\""),
       fontWeight: "500",
       fontStyle: "italic",
     });
@@ -52,6 +52,28 @@ describe("resolveFontStyle (web)", () => {
       fontFamily: newsreaderFamilies.web,
       fontWeight: "400",
       fontStyle: "italic",
+    });
+  });
+
+  it("the inter sans preset is one Inter stack with numeric weights", () => {
+    expect(resolveFontStyle({}, "sansSerif", "semibold", { sansPreset: "inter" })).toEqual({
+      fontFamily: interFamilies.web,
+      fontWeight: "600",
+    });
+    expect(interFamilies.web.startsWith("\"Inter\"")).toBe(true);
+    expect(interFamilies.web).toContain("system-ui");
+    expect(resolveFontStyle({}, "sansSerif", "regular", { sansPreset: "inter", italic: true })).toEqual({
+      fontFamily: interFamilies.web,
+      fontWeight: "400",
+      fontStyle: "italic",
+    });
+  });
+
+  it("a setFonts sansSerif override beats the inter sans preset", () => {
+    const overrides = { families: { sansSerif: { regular: "Brand" } } };
+    expect(resolveFontStyle(overrides, "sansSerif", "medium", { sansPreset: "inter" })).toEqual({
+      fontFamily: "Brand",
+      fontWeight: "500",
     });
   });
 });

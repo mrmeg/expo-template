@@ -81,6 +81,7 @@ export type GalleryScreenName =
   | "ComponentDetailScreen"
   | "BlocksGalleryScreen"
   | "ThemedShowcaseScreen"
+  | "LooksScreen"
   | "SurfaceLabScreen"
   | "MediaLabScreen";
 
@@ -98,6 +99,7 @@ const SCREENS: Record<GalleryScreenName, React.LazyExoticComponent<GalleryScreen
   ComponentDetailScreen: lazyScreen("ComponentDetailScreen"),
   BlocksGalleryScreen: lazyScreen("BlocksGalleryScreen"),
   ThemedShowcaseScreen: lazyScreen("ThemedShowcaseScreen"),
+  LooksScreen: lazyScreen("LooksScreen"),
   SurfaceLabScreen: lazyScreen("SurfaceLabScreen"),
   MediaLabScreen: lazyScreen("MediaLabScreen"),
 };

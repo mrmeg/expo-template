@@ -5,3 +5,4 @@ export * from "./themeStore";
 export * from "./themeColorScope";
 export * from "./initialScheme";
 export * from "./feedbackStore";
+export * from "./looks";

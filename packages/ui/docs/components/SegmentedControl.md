@@ -6,4 +6,4 @@ instead-of: "Custom segmented views"
 
 # SegmentedControl
 
-`md` (default) is the native `@expo/ui` control on iOS/Android (about 32 pt on iOS, the 40 dp Material 3 segmented button on Android; the platform owns its look). Web, and `size="lg"` on every platform, draw the kit control from theme tokens (`lg` is 44 pt; `appearance` is ignored). A `value` (or `defaultValue`) not in `values` selects no segment.
+`md` (default) is the native `@expo/ui` control on iOS/Android (about 32 pt on iOS, the 40 dp Material 3 segmented button on Android; the platform owns its look). Web, and `size="lg"` on every platform, draw the kit control from theme tokens (`lg` is 44 pt; `appearance` is ignored). A `value` (or `defaultValue`) not in `values` selects no segment. The drawn control marks the selection with a raised `background` segment on the `muted` track; the `segmentedSelection: "accent"` treatment (`useThemeStore.getState().setTreatments`) restores the teal fill.

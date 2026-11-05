@@ -314,8 +314,9 @@ export function Item({
 
 export interface ItemGroupProps {
   /**
-   * Section label above the rows: an uppercase eyebrow in the muted color,
-   * announced as a header.
+   * Section label above the rows: an eyebrow in the muted color (sentence
+   * case by default, uppercase under the `eyebrow` treatment), announced as a
+   * header.
    */
   title?: string;
   /** Supporting copy under the title. */
