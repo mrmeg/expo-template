@@ -691,7 +691,13 @@ const PACKAGES = {
         wildcardReplacement: "",
       },
     ],
-    requiredDocs: ["dist/design-system.json", "dist/icons/lucide.json", "dist/icons/LICENSE.lucide", "bin/expo-ui-icons.mjs"],
+    requiredDocs: [
+      "dist/design-system.json",
+      "dist/icons/lucide.json",
+      "dist/icons/LICENSE.lucide",
+      "bin/expo-ui-icons.mjs",
+      "bin/expo-ui-agents.mjs",
+    ],
     fixtures: [
       {
         prefix: "expo-ui-consumer-",
@@ -756,6 +762,38 @@ const PACKAGES = {
             expectStdout: "Wrote client/icons.generated.ts (1 icon,",
           },
           { kind: "run", command: "bun", args: ["x", "expo-ui-icons", "--check"] },
+          {
+            // The bin the package ships writes its own index into the app's
+            // AGENTS.md (created here) and `--check` then passes on it.
+            kind: "run",
+            command: "bun",
+            args: ["x", "expo-ui-agents"],
+            expectStdout: "Wrote AGENTS.md (@mrmeg/expo-ui@",
+          },
+          { kind: "run", command: "bun", args: ["x", "expo-ui-agents", "--check"] },
+          {
+            // The section must name the installed release, read back from the
+            // fixture's node_modules so the step also holds for `--tarball`.
+            kind: "run",
+            command: "node",
+            args: [
+              "-e",
+              [
+                'const fs = require("node:fs");',
+                'const { version } = JSON.parse(fs.readFileSync("node_modules/@mrmeg/expo-ui/package.json", "utf8"));',
+                'const agents = fs.readFileSync("AGENTS.md", "utf8");',
+                "for (const expected of [",
+                '  "<!-- @mrmeg/packages:start -->",',
+                "  `Installed: @mrmeg/expo-ui@${version}`,",
+                '  "### @mrmeg/expo-ui",',
+                '  "`node_modules/@mrmeg/expo-ui/LLM_USAGE.md`",',
+                "]) {",
+                "  if (!agents.includes(expected)) throw new Error(`AGENTS.md is missing ${JSON.stringify(expected)}`);",
+                "}",
+                "console.log(`AGENTS.md section names @mrmeg/expo-ui@${version}`);",
+              ].join("\n"),
+            ],
+          },
           { kind: "run", command: "bun", args: ["x", "tsc", "--noEmit"] },
           { kind: "run", command: "node", args: ["runtime-check.mjs"] },
           {
