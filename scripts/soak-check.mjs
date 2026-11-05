@@ -30,7 +30,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Real routes that answer 200 with server-rendered HTML on a blank env. */
-export const DEFAULT_ROUTES = ["/", "/settings", "/screen-pricing", "/screen-list"];
+export const DEFAULT_ROUTES = ["/", "/settings", "/screen-pricing", "/profile"];
 
 export const DEFAULTS = {
   routes: DEFAULT_ROUTES,
@@ -146,7 +146,8 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function fetchHtml(base, route) {
   const response = await fetch(base + route, {
-    headers: { accept: "text/html" },
+    // Without this cookie every route server-renders onboarding, not its screen.
+    headers: { accept: "text/html", cookie: "has-seen-onboarding=1" },
     redirect: "manual",
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
