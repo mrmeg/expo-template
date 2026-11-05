@@ -5,6 +5,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.34.0]
 
+### Added
+
+- **`expo-ui-agents` writes the package rules into an app's `AGENTS.md`.** A new bin
+  next to `expo-ui-icons`: `bunx expo-ui-agents` inserts a marked section (between
+  `<!-- @mrmeg/packages:start -->` and `<!-- @mrmeg/packages:end -->`) holding the
+  installed version and the compact `llms.txt` of every installed `@mrmeg` package
+  (`@mrmeg/expo-ui`, `@mrmeg/expo-media`, `@mrmeg/expo-purchases`,
+  `@mrmeg/eslint-plugin-expo-ui`) plus the version-matched doc paths in `node_modules`,
+  so an agent has the rules in context without deciding to read a doc. It reads
+  `package.json` and each package's `package.json` and `llms.txt` by file path, and
+  skips with a warning a package that is listed but not installed.
+  - A first run inserts the section before `## Agent Workflow`, or appends it; a later
+    run replaces the marked span in place. Bytes outside the markers never change, so
+    a `convex-ai-start` block and the workflow section are left alone. `--file <path>`
+    picks another file, and the file is created when absent.
+  - The output is deterministic, so `bunx expo-ui-agents --check` (exit 1 when the
+    section is missing or stale, nothing written) can run in CI after an install.
+  - Rerun it after upgrading `@mrmeg/expo-ui` or any other `@mrmeg` package.
+
 ### Changed
 
 - **Component rules moved out of `LLM_USAGE.md` into one doc per component family.**

@@ -30,6 +30,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
+    "expo-ui-agents": "./bin/expo-ui-agents.mjs",
     "expo-ui-icons": "./bin/expo-ui-icons.mjs"
   },
   "sideEffects": [

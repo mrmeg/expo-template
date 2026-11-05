@@ -240,21 +240,25 @@ describe("UI package pack contents", () => {
     files: string[];
     scripts: Record<string, string>;
   };
-  const binPath = join(uiDir, "bin", "expo-ui-icons.mjs");
+  const bins = { "expo-ui-agents": "./bin/expo-ui-agents.mjs", "expo-ui-icons": "./bin/expo-ui-icons.mjs" };
 
-  it("ships the expo-ui-icons CLI as an executable bin", () => {
-    expect(manifest.bin).toEqual({ "expo-ui-icons": "./bin/expo-ui-icons.mjs" });
+  it("ships the expo-ui-agents and expo-ui-icons CLIs as executable bins", () => {
+    expect(manifest.bin).toEqual(bins);
     expect(manifest.files).toContain("bin");
-    expect(statSync(binPath).mode & 0o111).not.toBe(0);
-    expect(readFileSync(binPath, "utf8").startsWith("#!/usr/bin/env node\n")).toBe(true);
+    for (const target of Object.values(bins)) {
+      const binPath = join(uiDir, target);
+      expect(statSync(binPath).mode & 0o111).not.toBe(0);
+      expect(readFileSync(binPath, "utf8").startsWith("#!/usr/bin/env node\n")).toBe(true);
+    }
   });
 
-  it("lists the bin in `bun run pkg ui pack`", () => {
+  it("lists the bins in `bun run pkg ui pack`", () => {
     const listing = execFileSync("bun", ["pm", "pack", "--dry-run"], {
       cwd: uiDir,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });
+    expect(listing).toMatch(/packed .* bin\/expo-ui-agents\.mjs$/m);
     expect(listing).toMatch(/packed .* bin\/expo-ui-icons\.mjs$/m);
   });
 

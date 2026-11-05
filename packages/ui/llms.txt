@@ -10,6 +10,8 @@ Docs, in `node_modules/@mrmeg/expo-ui/`:
 - llms-full.md — LLM_USAGE.md plus every component doc in one file; large, so
   prefer the files above.
 
+`bunx expo-ui-agents` copies this index into the app's AGENTS.md; rerun it after upgrading.
+
 Public entrypoints (nothing else is importable):
 
 - @mrmeg/expo-ui
