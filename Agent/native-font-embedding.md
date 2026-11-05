@@ -1,9 +1,9 @@
 ---
-status: ready
+status: in-review
 mode: HITL
 base-branch: dev
 blocked-by: -
-pr: -
+pr: https://github.com/mrmeg/expo-template/pull/198
 ---
 
 # Embed Inter on native instead of loading it at startup
