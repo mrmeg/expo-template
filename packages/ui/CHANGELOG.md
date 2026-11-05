@@ -3,6 +3,57 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.34.0]
+
+### Added
+
+- **`expo-ui-agents` writes the package rules into an app's `AGENTS.md`.** A new bin
+  next to `expo-ui-icons`: `bunx expo-ui-agents` inserts a marked section (between
+  `<!-- @mrmeg/packages:start -->` and `<!-- @mrmeg/packages:end -->`) holding the
+  installed version and the compact `llms.txt` of every installed `@mrmeg` package
+  (`@mrmeg/expo-ui`, `@mrmeg/expo-media`, `@mrmeg/expo-purchases`,
+  `@mrmeg/eslint-plugin-expo-ui`) plus the version-matched doc paths in `node_modules`,
+  so an agent has the rules in context without deciding to read a doc. It reads
+  `package.json` and each package's `package.json` and `llms.txt` by file path, and
+  skips with a warning a package that is listed but not installed.
+  - A first run inserts the section before `## Agent Workflow`, or appends it; a later
+    run replaces the marked span in place. Bytes outside the markers never change, so
+    a `convex-ai-start` block and the workflow section are left alone. `--file <path>`
+    picks another file, and the file is created when absent.
+  - The output is deterministic, so `bunx expo-ui-agents --check` (exit 1 when the
+    section is missing or stale, nothing written) can run in CI after an install.
+  - Rerun it after upgrading `@mrmeg/expo-ui` or any other `@mrmeg` package.
+
+### Changed
+
+- **Component rules moved out of `LLM_USAGE.md` into one doc per component family.**
+  `LLM_USAGE.md` went from 70 KB to under 25 KB and keeps the cross-cutting rules:
+  import paths, required app setup, theme and text rules, screen layout, the general
+  selection rules, and a component index whose rows link to `docs/components/<Family>.md`.
+  The `DismissKeyboard`, `BottomSheet`, `Dialog` and `Popover` setup notes, the
+  per-component selection rules, the `Button` and `Notification` theme rules, the
+  `ThemeSelector` and `StyledText` notes, the media components (`Image`, `Video`,
+  `AudioPlayer`, `MediaViewer`, the shared primitives in `Media.md`, and the library
+  pieces in `MediaLibrary.md`), and the minimal examples now live there. The complete
+  flat settings screen is the Minimal Example in `docs/components/Item.md`.
+- **`llms-full.md` is generated.** It is `LLM_USAGE.md` followed by every component
+  doc, and replaces the old hand-written "Full Contract". Its unique Notifications
+  content is in `docs/components/Notification.md`, and its per-component notes are in
+  each family's doc. `docs/components/index.md` lists every family with its use-for
+  and instead-of line. Read `llms.txt`, then `LLM_USAGE.md`, then only the component
+  docs you use.
+- The `docs` folder ships in the package tarball.
+
+### Fixed
+
+- `LLM_USAGE.md` listed 17 semantic color tokens; it now lists all 26 keys of
+  `ThemeColors`, including the `*Foreground` pairs, `cardForeground`,
+  `popoverForeground`, `text`, `textDim` and `overlay`.
+- `SegmentedControl`: the selected label now picks the readable color for its pill. White on the light teal was 2.4:1. The default pill's label is dark in both schemes; `accentForeground` is no longer used here.
+- `SegmentedControl`: the drawn control (web, and `size="lg"` on iOS and Android) no longer collapses to zero width beside a sibling in a row. It now takes one column per segment, each as wide as its widest label; a full-width parent still sets the width.
+- `AvatarGroup`: the `+N` tile sits on `muted` with `mutedForeground`, not white on the teal accent.
+- `MaxWidthContainer`: `maxWidth` now applies. `preset` defaulted to `2xl`, which always overrode it. `preset` still wins when both are set, and the width still caps at `2xl` with neither.
+
 ## [0.33.0]
 
 ### Breaking

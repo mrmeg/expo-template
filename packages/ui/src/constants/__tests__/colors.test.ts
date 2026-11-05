@@ -88,6 +88,17 @@ describe.each(schemes)("%s theme readability", (scheme) => {
   });
 });
 
+describe("labels on the accent", () => {
+  // SegmentedControl picks between these two; `accentForeground` is not the
+  // readable one in light (white on the teal is 2.4:1).
+  it("keeps a readable candidate on the accent in both schemes", () => {
+    const light = colors.light.colors;
+    const dark = colors.dark.colors;
+    expect(contrastRatio(light.foreground, light.accent)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(dark.background, dark.accent)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
 describe("surface tiers", () => {
   it("orders dark chrome below content below raised panels", () => {
     const dark = colors.dark.colors;

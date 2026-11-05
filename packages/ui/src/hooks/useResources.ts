@@ -31,6 +31,10 @@ export interface UseResourcesOptions {
   serifFonts?: Record<string, number | string> | null;
 }
 
+// Loading at startup stays: all nine faces the template registers (Inter plus
+// the serif preset) took 19 to 30 ms in release builds on an iPhone 13 Pro and
+// a Pixel 6a, cold start. Embedding them would need a native rebuild per app
+// and per-platform family names, which isn't worth that wait.
 function loadNativeInterFonts(): Promise<void> {
   if (Platform.OS === "web" || !interFontMap) {
     return Promise.resolve();

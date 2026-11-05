@@ -5,9 +5,11 @@ a universal component library for iOS, Android, and web. MIT licensed.
 
 ## For LLMs And Coding Agents
 
-Read `node_modules/@mrmeg/expo-ui/llms.txt` first, then `LLM_USAGE.md` (concise
-rules) or `llms-full.md` (expanded contract), before creating app-local UI
-primitives. All three ship in the npm tarball.
+Read `node_modules/@mrmeg/expo-ui/llms.txt` first, then `LLM_USAGE.md`
+(cross-cutting rules and the component index), then only the component docs you
+use, from `docs/components/index.md` (one file per family), before creating
+app-local UI primitives. `llms-full.md` is all of them in one file. Everything
+ships in the npm tarball.
 
 The same rules are available as an ESLint plugin: `@mrmeg/eslint-plugin-expo-ui`
 turns the theme and text rules into diagnostics at the call site — raw colors,
@@ -19,6 +21,34 @@ the diagnostics quote the tokens, presets and sizes of the installed release. Th
 plugin's first npm release is still pending, and only `@mrmeg/expo-ui` releases
 built after the manifest was added ship it: the installed release has one when
 `node_modules/@mrmeg/expo-ui/dist/design-system.json` exists.
+
+## Agent Setup
+
+An agent follows the rules already in its context far more reliably than rules
+it has to decide to go and read. `expo-ui-agents` puts them there: it writes a
+marked section into the app's root `AGENTS.md` holding the version of each
+installed `@mrmeg` package (`@mrmeg/expo-ui`, `@mrmeg/expo-media`,
+`@mrmeg/expo-purchases`, `@mrmeg/eslint-plugin-expo-ui`), the compact `llms.txt`
+of each, and the version-matched doc files in `node_modules`.
+
+```sh
+bunx expo-ui-agents           # write or refresh the section (creates AGENTS.md if absent)
+bunx expo-ui-agents --check   # exit 1 when the section is missing or stale; writes nothing
+```
+
+Run it from the app root after installing, and again after upgrading a package.
+Packages come from `package.json` (`dependencies` and `devDependencies`) and are
+read from `node_modules`; one that is listed but not installed is skipped with a
+warning. `--file <path>` writes a different file. The section sits between
+`<!-- @mrmeg/packages:start -->` and `<!-- @mrmeg/packages:end -->`: a first run
+inserts it just before `## Agent Workflow` (or appends it), a later run replaces
+it in place, and every byte outside the markers, such as a Convex block or the
+workflow section, stays as it was. The output is deterministic, so CI can fail a
+package bump that left it stale:
+
+```sh
+bunx expo-ui-agents --check   # after the install step in CI
+```
 
 ## Install
 
@@ -374,8 +404,9 @@ built from this package are flat:
 
 On a 390 pt phone a boxed settings group puts row content 33 pt from each edge
 (16 screen + 1 border + 16 row) and leaves 324 pt for it; the flat group puts
-it 16 pt in and leaves 358 pt. [`LLM_USAGE.md`](LLM_USAGE.md#screen-layout)
-has a complete screen.
+it 16 pt in and leaves 358 pt. [`LLM_USAGE.md`](LLM_USAGE.md#screen-layout) has
+the rules and [`docs/components/Item.md`](docs/components/Item.md#minimal-examples)
+a complete screen.
 
 ### Color overrides
 

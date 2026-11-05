@@ -1,6 +1,7 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { renderDocForBundle } from "./lib/uiComponentDocs.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fullOutputPath = join(root, "llms-full.txt");
@@ -31,7 +32,17 @@ const sources = [
     path: "packages/ui/LLM_USAGE.md",
     title: "@mrmeg/expo-ui Usage",
     summary:
-      "import paths, required app setup, theme rules, component use-case index, examples",
+      "import paths, required app setup, theme rules, screen layout, component use-case index",
+  },
+  {
+    // One doc per component family, written by `bun run docs:ui` (which runs
+    // before this script in `bun run gen`). `index.md` is left out: it lists
+    // the same families the usage section's index table already does.
+    dir: "packages/ui/docs/components",
+    exclude: ["index.md"],
+    title: "@mrmeg/expo-ui Component Docs",
+    summary:
+      "one doc per component family: rules, gotchas, and minimal examples (each with its exported names, use-for and instead-of lines)",
   },
   {
     path: "packages/media/LLM_USAGE.md",
@@ -117,6 +128,18 @@ const serverFiles = [
 
 const codeExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs"]);
 
+/** Markdown files of a source `dir`, minus `exclude`, in the same case-insensitive order as `docs:ui`. */
+async function listSourceFiles({ dir, exclude = [] }) {
+  const names = (await readdir(join(root, dir))).filter((name) => name.endsWith(".md") && !exclude.includes(name));
+  return names
+    .sort((a, b) => {
+      const x = a.toLowerCase();
+      const y = b.toLowerCase();
+      return x !== y ? (x < y ? -1 : 1) : a < b ? -1 : a > b ? 1 : 0;
+    })
+    .map((name) => `${dir}/${name}`);
+}
+
 function rawUrl(path) {
   return `${rawBase}/${path.split("/").map(encodeURIComponent).join("/")}`;
 }
@@ -183,7 +206,8 @@ Two ways to consume this repo:
 1. Published packages: run \`bun add @mrmeg/expo-ui\` (and optionally
    \`@mrmeg/expo-media\`), then follow the "@mrmeg/expo-ui Usage" and
    "@mrmeg/expo-media Usage" sections below. Each ships in its npm tarball as
-   \`LLM_USAGE.md\`, with the full contract in \`llms-full.md\`.
+   \`LLM_USAGE.md\`, with the full contract in \`llms-full.md\`;
+   \`@mrmeg/expo-ui\` also ships one doc per component under \`docs/components/\`.
 2. Pattern reference: follow the "Template Modernization Guide" and "Expo
    Server Guide" sections below; fetch concrete example files through the
    "Examples Index" section, or clone ${repoUrl}.git for bulk access.
@@ -207,14 +231,23 @@ async function build() {
     },
   ];
 
-  const bodies = await Promise.all(
-    allSections.map(async ({ path, content }) => {
-      const body = (content ?? (await readFile(join(root, path), "utf8"))).trim();
-      return ["---", "", `<!-- Source: ${path} -->`, `<!-- Raw: ${rawUrl(path)} -->`, "", body].join(
-        "\n"
-      );
-    })
-  );
+  const bodies = (
+    await Promise.all(
+      allSections.map(async (section) => {
+        // A `dir` source is one numbered section made of one body per file.
+        const files = section.dir ? await listSourceFiles(section) : [section.path];
+        return Promise.all(
+          files.map(async (path) => {
+            const text = section.content ?? (await readFile(join(root, path), "utf8"));
+            const body = (section.dir ? renderDocForBundle(text, path) : text).trim();
+            return ["---", "", `<!-- Source: ${path} -->`, `<!-- Raw: ${rawUrl(path)} -->`, "", body].join(
+              "\n"
+            );
+          })
+        );
+      })
+    )
+  ).flat();
 
   return {
     examplesContent,

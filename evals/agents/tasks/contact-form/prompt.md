@@ -1,0 +1,1 @@
+Add a contact form screen at `app/contact.tsx` with name, email and message fields. Name and message are required, and the email must look like an email address. Show each field's problem next to that field. When the form is valid, send it with `submitContact` from `@/client/api/contact` and tell the user it worked with a success toast.

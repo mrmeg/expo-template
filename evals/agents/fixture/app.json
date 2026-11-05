@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "Eval App",
+    "slug": "eval-app",
+    "scheme": "evalapp",
+    "platforms": ["ios", "android", "web"],
+    "plugins": ["expo-router"]
+  }
+}

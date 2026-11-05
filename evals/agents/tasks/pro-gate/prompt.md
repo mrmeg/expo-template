@@ -1,0 +1,1 @@
+Add a screen at `app/pro-report.tsx` that only users with the `pro` subscription can see. Everyone else should be offered the paywall instead. The RevenueCat public keys are in `process.env.EXPO_PUBLIC_RC_IOS_KEY` and `process.env.EXPO_PUBLIC_RC_ANDROID_KEY`, and the signed-in user comes from `useAuth()` in `@/client/auth`. The app has no purchases setup yet.

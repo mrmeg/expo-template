@@ -50,8 +50,8 @@ import { StyledText } from "./StyledText";
  * once a `tintColor` is passed, so unselected labels vanished on the light
  * track and the disabled state was unreadable; it also exposes no label
  * styling. The kit draws the control itself on web, and for `size="lg"` on iOS
- * and Android, from theme tokens (`muted` track, accent pill,
- * `accentForeground` / `mutedForeground` labels, the shared disabled opacity
+ * and Android, from theme tokens (`muted` track, accent pill, a contrasting
+ * selected label, `mutedForeground` for the rest, the shared disabled opacity
  * and focus ring). `appearance` is ignored there; the theme decides.
  *
  * @example
@@ -161,7 +161,7 @@ function SegmentedControl({
       enabled={!disabled}
       onValueChange={handleValueChange}
       tintColor={tintColor ?? theme.colors.accent}
-      selectedLabelColor={tintColor ? getContrastingColor(tintColor) : theme.colors.accentForeground}
+      selectedLabelColor={getContrastingColor(tintColor ?? theme.colors.accent, theme.colors.foreground, theme.colors.background)}
       appearance={appearance ?? (theme.dark ? "dark" : "light")}
       style={style}
     />
@@ -176,6 +176,7 @@ function SegmentedControl({
 const TRACK_HEIGHTS = { md: 32, lg: spacing.touchTarget };
 /** Gap between the track edge and the selected pill. */
 const PILL_INSET = 2;
+const SEGMENT_LABEL_SIZE = { fontSize: 14, lineHeight: 18 };
 
 interface DrawnSegmentedControlProps {
   values: string[];
@@ -231,8 +232,9 @@ function DrawnSegmentedControl({
   const segmentWidth = Math.max(0, trackWidth - PILL_INSET * 2) / count;
   const travel = Math.max(1, count - 1);
   const pillColor = tintColor ?? theme.colors.accent;
-  // A custom tint may not pair with `accentForeground`; pick the readable one.
-  const selectedLabelColor = tintColor ? getContrastingColor(tintColor) : theme.colors.accentForeground;
+  // White on the light teal is 2.4:1, and a custom tint may not pair with
+  // `accentForeground` either, so pick the readable label.
+  const selectedLabelColor = getContrastingColor(pillColor, theme.colors.foreground, theme.colors.background);
 
   return (
     <View
@@ -251,6 +253,34 @@ function DrawnSegmentedControl({
         style,
       ]}
     >
+      {/* The pill and segments are absolute, so without this the track has no width
+          of its own and collapses to zero beside a sibling in a row. One hidden
+          column per segment, each as wide as the widest label, gives it one; a
+          full-width parent still decides. */}
+      <View
+        testID="segmented-control-sizer"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        aria-hidden
+        style={{
+          pointerEvents: "none",
+          flexDirection: "row",
+          height: 0,
+          overflow: "hidden",
+          opacity: 0,
+          paddingHorizontal: PILL_INSET,
+        }}
+      >
+        {values.map((_, column) => (
+          <View key={column} style={{ paddingHorizontal: spacing.sm }}>
+            {values.map((label, index) => (
+              <StyledText key={index} selectable={false} numberOfLines={1} fontWeight="medium" style={SEGMENT_LABEL_SIZE}>
+                {label}
+              </StyledText>
+            ))}
+          </View>
+        ))}
+      </View>
       {segmentWidth > 0 && selectedIndex >= 0 && (
         <Animated.View
           testID="segmented-control-pill"
@@ -345,7 +375,7 @@ function DrawnSegment({ label, selected, disabled, color, onPress }: DrawnSegmen
           selectable={false}
           numberOfLines={1}
           fontWeight="medium"
-          style={{ fontSize: 14, lineHeight: 18, color }}
+          style={[SEGMENT_LABEL_SIZE, { color }]}
         >
           {label}
         </StyledText>

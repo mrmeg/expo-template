@@ -1,0 +1,1 @@
+Add a screen at `app/people.tsx` that shows a searchable list of people. The user types in a search box to filter the list. Results come from `fetchPeople(query)` in `@/client/api/people`, which returns a promise and can fail. The screen needs to look right while it loads, when nothing matches, and when the request fails, and the user should be able to try again after a failure.

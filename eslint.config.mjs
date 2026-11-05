@@ -27,6 +27,9 @@ export default [
       // Deployable Cloudflare Workers: workerd globals, no React, and their own
       // tsconfig. This config's browser globals and React rules do not apply.
       "workers/**/*",
+      // Agent eval fixtures: reference and deliberately bad solutions that
+      // import packages only the eval fixture app installs.
+      "evals/**/*",
     ],
   },
   ...compat.extends(

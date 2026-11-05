@@ -13,7 +13,7 @@ import { interaction } from "../../constants/interaction";
 
 const colors = {
   accent: "#14B8A6",
-  accentForeground: "#FFFFFF",
+  foreground: "#09090B",
   muted: "#F1F5F9",
   mutedForeground: "#64748B",
   text: "#111111",
@@ -24,6 +24,7 @@ const colors = {
 jest.mock("../../hooks/useTheme", () => ({
   useTheme: () => ({
     theme: { dark: false, colors },
+    getContrastingColor: (_background: string, first: string) => first,
     getFocusRingStyle: () => ({ boxShadow: "ring" }),
     getShadowStyle: () => ({}),
   }),
@@ -57,9 +58,19 @@ const segmentHeights = () => {
 const selectedStates = () => screen.getAllByRole("button").map((button) => button.props.accessibilityState.selected);
 
 describe("SegmentedControl (web)", () => {
-  it("colors the selected label with accentForeground and the rest with mutedForeground", async () => {
+  it("reserves one hidden column per segment, as wide as the widest label, so a row can't collapse it", async () => {
+    await render(<SegmentedControl values={["Day", "Fortnight", "Month"]} defaultValue="Day" />);
+    const sizer = screen.getByTestId("segmented-control-sizer", { includeHiddenElements: true });
+    expect(sizer.props["aria-hidden"]).toBe(true);
+    expect(StyleSheet.flatten(sizer.props.style)).toMatchObject({ height: 0, overflow: "hidden" });
+    expect(sizer.children).toHaveLength(3);
+    expect(screen.getAllByText("Fortnight", { includeHiddenElements: true })).toHaveLength(4);
+    expect(screen.getAllByText("Fortnight")).toHaveLength(1);
+  });
+
+  it("colors the selected label for contrast with the pill and the rest with mutedForeground", async () => {
     await render(<SegmentedControl values={["Day", "Week", "Month"]} value="Week" onValueChange={() => {}} />);
-    expect(colorOf("Week")).toBe(colors.accentForeground);
+    expect(colorOf("Week")).toBe(colors.foreground);
     expect(colorOf("Day")).toBe(colors.mutedForeground);
     expect(colorOf("Month")).toBe(colors.mutedForeground);
   });
@@ -85,9 +96,9 @@ describe("SegmentedControl (web)", () => {
 
   it("drives uncontrolled selection from defaultValue", async () => {
     await render(<SegmentedControl values={["A", "B"]} defaultValue="B" />);
-    expect(colorOf("B")).toBe(colors.accentForeground);
+    expect(colorOf("B")).toBe(colors.foreground);
     await fireEvent.press(screen.getByText("A"));
-    expect(colorOf("A")).toBe(colors.accentForeground);
+    expect(colorOf("A")).toBe(colors.foreground);
     expect(colorOf("B")).toBe(colors.mutedForeground);
   });
 

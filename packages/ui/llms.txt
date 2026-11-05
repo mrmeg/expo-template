@@ -3,8 +3,14 @@
 Docs, in `node_modules/@mrmeg/expo-ui/`:
 
 - README.md — install, setup, theme, component guide, release.
-- LLM_USAGE.md — concise component-selection and implementation rules.
-- llms-full.md — expanded contract, component catalog, notifications.
+- LLM_USAGE.md — cross-cutting rules (imports, app setup, theme, screen layout)
+  and the component index.
+- docs/components/index.md — one line per component family. Open only the
+  docs/components/<Family>.md files for the components you use.
+- llms-full.md — LLM_USAGE.md plus every component doc in one file; large, so
+  prefer the files above.
+
+`bunx expo-ui-agents` copies this index into the app's AGENTS.md; rerun it after upgrading.
 
 Public entrypoints (nothing else is importable):
 

@@ -505,10 +505,10 @@ const createStyles = (theme: Theme) =>
       borderColor: theme.colors.background,
     },
     overflow: {
-      backgroundColor: theme.colors.accent,
+      backgroundColor: theme.colors.muted,
     },
     overflowText: {
-      color: theme.colors.accentForeground,
+      color: theme.colors.mutedForeground,
     },
   });
 
