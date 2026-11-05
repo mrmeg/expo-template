@@ -36,10 +36,19 @@ export const MAIN_STACK_SCREENS: readonly MainStackScreen[] = [
      the tab the app opens on; each tab screen retitles the header on focus
      through `useTabHeaderTitle`. */
   { name: "(tabs)", options: { headerShown: true, title: "Explore", headerBackTitle: " " } },
-  /* Three-scale galleries. `components/[id]` sets its own title from the
-     component's registry id, so it only declares the web back button. */
+  /* Three-scale galleries. `components/[id]` titles itself from the URL here:
+     its screen body loads in a lazy chunk, and until then nothing else has set
+     a title, so the header would show the route name. The screen still sets its
+     own title once it mounts, for an id the registry doesn't have. */
   { name: "(demos)/components/index", options: { title: "Components", ...webHeaderLeft } },
-  { name: "(demos)/components/[id]", options: { ...webHeaderLeft, ...edgeBackSwipeOnly } },
+  {
+    name: "(demos)/components/[id]",
+    options: ({ route }) => ({
+      title: (route.params as { id?: string } | undefined)?.id ?? "Component",
+      ...webHeaderLeft,
+      ...edgeBackSwipeOnly,
+    }),
+  },
   { name: "(demos)/blocks/index", options: { title: "Blocks", ...webHeaderLeft } },
   { name: "(demos)/templates/index", options: { title: "Screen Templates", ...webHeaderLeft } },
   { name: "(demos)/themed-showcase", options: { title: "Themed Showcase", ...webHeaderLeft } },
@@ -64,6 +73,10 @@ export const MAIN_STACK_SCREENS: readonly MainStackScreen[] = [
   { name: "(demos)/screen-notifications", options: { title: "Notifications Screen", ...webHeaderLeft } },
   { name: "(demos)/screen-search", options: { title: "Search Results Screen", ...webHeaderLeft } },
   { name: "(demos)/screen-error", options: { title: "Error Screen", ...webHeaderLeft } },
+  { name: "(demos)/screen-faq", options: { title: "FAQ Screen", ...webHeaderLeft } },
+  { name: "(demos)/screen-hero", options: { title: "Hero Screen", ...webHeaderLeft } },
+  { name: "(demos)/screen-stats", options: { title: "Stats Screen", ...webHeaderLeft } },
+  { name: "(demos)/screen-testimonials", options: { title: "Testimonials Screen", ...webHeaderLeft } },
 ] as const;
 
 /**
