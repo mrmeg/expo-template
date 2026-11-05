@@ -314,6 +314,29 @@ export default middleware;
 
 `setResponseHeaders` callbacks run after the route has answered, so the CORS policy reaches every matched `/api` response — including the 405 Expo Server writes for an unexported method — and merges with the `Vary` a route set. Match the route shapes your app serves: the repo file lists the grouped paths (`/(main)/(demos)/server-alpha`, `/(main)/(demos)/server-alpha/[example]`) alongside the public ones. `server/__tests__/middleware.test.ts` runs the file through Expo Server's real pipeline.
 
+## Memory soak check
+
+A server-rendering leak is invisible to a single request and to peak memory: a render that keeps about 0.1 MB alive adds nothing you can see until sustained traffic pushes the process out of memory. `scripts/soak-check.mjs` catches it by measuring the trend.
+
+```bash
+bun run build
+bun run soak                                  # 500 warm-up + 3,000 measured requests
+bun run soak -- --routes=/,/settings --max-slope=10
+```
+
+It needs an existing `dist/` and does not build. It starts `bun --no-env-file ./server.bun.ts` (what `bun run start` runs) on a free port as a child process whose environment is only `PATH`, `HOME`, `NODE_ENV=production`, and `PORT`, so it never reads `.env` and no secret can reach the server; a blank env is a supported state of this template. It sends sequential `GET`s with `accept: text/html` and the `has-seen-onboarding=1` cookie, without which every route server-renders onboarding instead of its screen, to a list of routes (default `/`, `/settings`, `/screen-pricing`, `/profile`; the last two use React Query), fails if any route does not answer 200, discards the warm-up, and samples the child's RSS with `ps` every `--sample-every=100` requests. It prints request count, start/end/peak RSS, the least-squares slope in MB per 1,000 requests, and p50/p95 latency, and exits 1 when the slope is over `--max-slope=20` (exit 2 for setup or request failures). The child is killed on every exit path, including Ctrl-C.
+
+Reference numbers on the template at this commit: a clean export measures about 7.7 MB per 1,000 requests (two runs: 8.37 and 6.95; some climb after warm-up is normal), and the same build without the server `gcTime` override below measures about 42 (43.91 and 39.99). `--max-slope=20` sits between the two with room on both sides. Judge the slope, not the absolute RSS: it can vary widely between runs of the same build, and slopes flatten over longer runs (4.37 and 4.76 over 12,000 requests to `/screen-pricing`). The check is not part of `bun run verify` because it needs a build; run it after a build when you touch the root layout, providers, SSR style flush, or anything else that runs on every render, and in CI if you deploy this server to production.
+
+**Query clients on the server.** `client/lib/queryClient.ts` gets two things right, and both matter:
+
+1. **One client per root mount, never at module scope.** `RootLayout` calls `useState(createQueryClient)`. The server renders every request with the same module instance, so a module-level client would keep one request's cache for the next: stale server HTML, and potentially another visitor's data.
+2. **`gcTime: Infinity` on the server.** Every query schedules a garbage-collection timer, and the timer's closure keeps that request's entire cache alive until it fires, so each render pins its data for the full `gcTime` (10 minutes here). The client overrides `defaultQueryOptions` rather than only setting `defaultOptions`, because a query's own options replace those. `Infinity` schedules no timer, and the client is collected with the request.
+
+Don't apply the second without the first: on a shared client those timers are the only thing evicting entries, so the cache would grow without limit.
+
+`client/lib/__tests__/queryClient.test.ts` guards both rules, and the soak check catches the second: without the override, `/screen-pricing` alone grew about 80 MB per 1,000 requests. An app with more server data retains more per render (about 0.1 MB on one production app), so pass the routes that use your queries with `--routes`.
+
 ## Replication Checklist
 
 1. Set `web.output: "server"` and the two `unstable_` router flags (server rendering, data loaders); confirm the SDK supports them. Budget for the Server Rendering constraints first — stylesheet flush, `+html.tsx` snapshot filter, request-derived viewport/persisted state.
@@ -322,6 +345,7 @@ export default middleware;
 4. Add API routes under `app/api/**/+api.ts` with `OPTIONS` preflight and CORS headers on every response. Consolidate sibling actions sharing heavy dependencies behind a `[action]+api.ts` dispatcher — each `+api.ts` exports as its own bundle.
 5. Add `app/+middleware.ts` with an explicit matcher, limited to headers and observability.
 6. Add loaders per feature folder, consume with `useLoaderData<typeof loaderFn>()`, and pair each with an API route for client refetch. Declare the `loader` and `default` exports in the route file, never as specifier re-exports.
+7. Create the React Query client per root mount with the server `gcTime` override; copy `client/lib/queryClient.ts` (see [Memory soak check](#memory-soak-check)).
 
 ## Validation
 

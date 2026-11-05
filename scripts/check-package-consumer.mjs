@@ -697,6 +697,7 @@ const PACKAGES = {
       "dist/icons/LICENSE.lucide",
       "bin/expo-ui-icons.mjs",
       "bin/expo-ui-agents.mjs",
+      "docs/components/index.md",
     ],
     fixtures: [
       {

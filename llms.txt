@@ -4,7 +4,7 @@
 
 Two ways to consume this repo:
 
-- **Published packages**: `bun add @mrmeg/expo-ui` (and optionally `@mrmeg/expo-media`, `@mrmeg/expo-purchases`), then read `node_modules/@mrmeg/expo-ui/LLM_USAGE.md` — the usage guide ships in the npm tarball.
+- **Published packages**: `bun add @mrmeg/expo-ui` (and optionally `@mrmeg/expo-media`, `@mrmeg/expo-purchases`), then read `node_modules/@mrmeg/expo-ui/LLM_USAGE.md` and the component docs it links under `docs/components/` — both ship in the npm tarball.
 - **Pattern reference**: fetch `llms-full.txt` below for everything in one request, or follow individual links. Clone `https://github.com/mrmeg/expo-template.git` when you need screen or component source, not just docs.
 
 Links below are raw URLs on the `main` branch and can be fetched directly.
@@ -15,7 +15,8 @@ Links below are raw URLs on the `main` branch and can be fetched directly.
 - [llms-examples.txt](https://raw.githubusercontent.com/mrmeg/expo-template/main/llms-examples.txt): fetchable raw URLs for every demo route, screen template, component source file, form wrapper, and server-stack file
 - [Migration guide](https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/migration-guide.md): migrating an existing Expo app to this baseline — tier self-assessment, server output config, loaders, ui package, screen templates, verification gates
 - [Template modernization guide](https://raw.githubusercontent.com/mrmeg/expo-template/main/docs/template-modernization-guide.md): repo map, component selection, screen templates, feature patterns, migration order, anti-patterns
-- [UI package LLM usage](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/LLM_USAGE.md): `@mrmeg/expo-ui` import paths, required app setup, theme rules, component use-case index, minimal examples
+- [UI package LLM usage](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/LLM_USAGE.md): `@mrmeg/expo-ui` import paths, required app setup, theme rules, screen layout, component use-case index
+- [UI component docs](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/docs/components/index.md): one doc per `@mrmeg/expo-ui` component family (rules, gotchas, minimal examples); open only the components in use
 - [UI package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/ui/README.md): full `@mrmeg/expo-ui` install, setup, theming, and publishing reference
 - [Media package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/media/README.md): `@mrmeg/expo-media` contracts, client hooks, server handler factories, processing presets
 - [Purchases package README](https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/purchases/README.md): `@mrmeg/expo-purchases` RevenueCat client, entitlement store, paywall gating, pure webhook and ledger helpers, setup and store-review checklists
