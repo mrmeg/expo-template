@@ -138,9 +138,9 @@ describe("SegmentedControl (android)", () => {
     });
   });
 
-  it("pairs the theme accent with accentForeground, and a custom tint with its contrasting color", async () => {
+  it("pairs the theme accent and a custom tint with a contrasting label", async () => {
     await render(<SegmentedControl values={["A", "B"]} value="A" />);
-    expect(screen.getByTestId("segmented").props).toMatchObject({ tintColor: "#14B8A6", selectedLabelColor: "#FFFFFF" });
+    expect(screen.getByTestId("segmented").props).toMatchObject({ tintColor: "#14B8A6", selectedLabelColor: "#000000" });
     await cleanup();
     await render(<SegmentedControl values={["A", "B"]} value="A" tintColor="#F5D27A" />);
     expect(screen.getByTestId("segmented").props).toMatchObject({ tintColor: "#F5D27A", selectedLabelColor: "#000000" });

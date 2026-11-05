@@ -473,9 +473,9 @@ Forks replace faces with `setFonts` — never by patching `node_modules`.
 
 - **Radii** (`spacing.radius*`): 4 chips/checkboxes, 8 menu items and
   thumbnails, 10 controls (Button default, inputs), 14 collection tiles and
-  dialogs, 16 sheets (moving to the scale's 18), 24 hero media, full for pills
-  and avatars. Forks retune Button (and other slots as the
-  package adds them) through `setShape`.
+  dialogs, 24 hero media, full for pills and avatars. Sheets keep the
+  platform's corner radius unless an app sets one. Forks retune Button (and
+  other slots as the package adds them) through `setShape`.
 - **Elevation:** surface tiers first, then light. In dark, raised surfaces
   carry a 1px inset white highlight on the top edge (5 to 6 %) plus a deeper,
   larger black shadow: the "lit from above" cue. On a near-black base a faint

@@ -25,7 +25,7 @@ interface MaxWidthContainerProps {
   maxWidth?: number;
   /**
    * Preset width option (sm, md, lg, xl, 2xl, full)
-   * Overrides maxWidth if provided
+   * Overrides maxWidth if provided. With neither, the width caps at 2xl.
    */
   preset?: MaxWidthPreset;
   /**
@@ -70,14 +70,14 @@ interface MaxWidthContainerProps {
 export function MaxWidthContainer({
   children,
   maxWidth,
-  preset = "2xl",
+  preset,
   style,
   centered = true,
 }: MaxWidthContainerProps) {
   const { width } = useDimensions();
 
   // Determine final max width
-  const finalMaxWidth = preset ? MAX_WIDTH_PRESETS[preset] : maxWidth;
+  const finalMaxWidth = preset ? MAX_WIDTH_PRESETS[preset] : (maxWidth ?? MAX_WIDTH_PRESETS["2xl"]);
 
   // Only apply max-width on web and large screens
   const shouldApplyMaxWidth =

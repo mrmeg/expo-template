@@ -49,6 +49,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `LLM_USAGE.md` listed 17 semantic color tokens; it now lists all 26 keys of
   `ThemeColors`, including the `*Foreground` pairs, `cardForeground`,
   `popoverForeground`, `text`, `textDim` and `overlay`.
+- `SegmentedControl`: the selected label now picks the readable color for its pill. White on the light teal was 2.4:1. The default pill's label is dark in both schemes; `accentForeground` is no longer used here.
+- `SegmentedControl`: the drawn control (web, and `size="lg"` on iOS and Android) no longer collapses to zero width beside a sibling in a row. It now takes one column per segment, each as wide as its widest label; a full-width parent still sets the width.
+- `AvatarGroup`: the `+N` tile sits on `muted` with `mutedForeground`, not white on the teal accent.
+- `MaxWidthContainer`: `maxWidth` now applies. `preset` defaulted to `2xl`, which always overrode it. `preset` still wins when both are set, and the width still caps at `2xl` with neither.
 
 ## [0.33.0]
 
