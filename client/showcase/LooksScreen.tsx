@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View, type LayoutChangeEvent } from "react-native";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { Badge } from "@mrmeg/expo-ui/components/Badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@mrmeg/expo-ui/components/Card";
+import { Icon } from "@mrmeg/expo-ui/components/Icon";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@mrmeg/expo-ui/components/Item";
 import { SansSerifText } from "@mrmeg/expo-ui/components/StyledText";
 import { spacing, type Theme } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
@@ -12,7 +14,7 @@ import { refinedLook } from "@mrmeg/expo-ui/state";
 import { Seo } from "@/client/components/Seo";
 import { blurActiveElementOnWeb } from "@/client/features/navigation/blurActiveElementOnWeb";
 import { linkPressableStyle } from "@/client/features/navigation/linkPressableStyle";
-import { lookRoute } from "./filters";
+import { LOOK_TOOLS, lookRoute } from "./filters";
 import { DEMO_LOOKS } from "./looks";
 import { LookSwatchStrip } from "./LookSwatches";
 
@@ -22,7 +24,9 @@ import { LookSwatchStrip } from "./LookSwatches";
  * Style references for the base design system. Each tile shows the look's own
  * palette (drawn from its colors, light and dark) and opens its detail page,
  * which is where the look is applied. This screen applies nothing: it stays in
- * whatever look the app has, the package default (Refined).
+ * whatever look the app has, the package default (Refined). After the tiles, a
+ * Tools group links the Themed Showcase and the Surface Lab, the two screens
+ * for testing your own palette and surfaces (`LOOK_TOOLS`).
  */
 
 const COLUMN_MAX_WIDTH = 960;
@@ -31,6 +35,7 @@ const TWO_UP_FROM = 560;
 
 export default function LooksScreen() {
   const { theme } = useTheme();
+  const router = useRouter();
   const styles = themedStyles(theme);
   const [columnWidth, setColumnWidth] = useState(0);
   const twoUp = columnWidth >= TWO_UP_FROM;
@@ -54,7 +59,7 @@ export default function LooksScreen() {
         <View style={styles.column} onLayout={onLayout}>
           <SansSerifText size="base" style={styles.intro}>
             Style references for the base design system. Refined is the default. Open one to
-            preview it across the app.
+            preview it across the app, or use the tools to test your own palette.
           </SansSerifText>
 
           <View style={styles.grid} testID="looks-grid">
@@ -84,6 +89,26 @@ export default function LooksScreen() {
               </Link>
             ))}
           </View>
+
+          <ItemGroup title="Tools" testID="looks-tools">
+            {LOOK_TOOLS.map((tool) => (
+              <Item
+                key={tool.id}
+                onPress={() => router.push(tool.route as never)}
+                accessibilityLabel={`${tool.label}, ${tool.description}`}
+                testID={`looks-tool-${tool.id}`}
+              >
+                <ItemMedia icon={tool.icon} />
+                <ItemContent>
+                  <ItemTitle>{tool.label}</ItemTitle>
+                  <ItemDescription>{tool.description}</ItemDescription>
+                </ItemContent>
+                <ItemActions>
+                  <Icon name="chevron-right" size={18} color="mutedForeground" decorative />
+                </ItemActions>
+              </Item>
+            ))}
+          </ItemGroup>
         </View>
       </ScrollView>
     </>

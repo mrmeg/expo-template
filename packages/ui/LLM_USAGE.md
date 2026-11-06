@@ -147,7 +147,7 @@ Elevation is a surface-tier ladder plus a hairline `border`: `surfaceSunken`
 presets other than `subtle` add a 1px inset top highlight; `subtle` (Button,
 Card) is a 1px light shadow and none in dark unless `elevation: "layered"`. A
 fork that overrides `background`, `card`, or `popover` should
-re-check against the template's `/surface-lab`.
+re-check against the template's `/looks/surface-lab`.
 
 Defaults are the Refined look; `applyLook(classicLook)` restores the pre-0.35 look. See README "Looks and treatments".
 

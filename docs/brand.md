@@ -43,7 +43,7 @@ darkest grey that keeps the 6:1 floor on `muted`. A fork that re-brands through
 `setColors` should keep those floors; the
 same test file is the place to pin them. A fork that overrides `background`,
 `card`, or `popover` should re-check its values against the Surface Lab
-(`/surface-lab`), which shows the tier ladder and the specimens it has to read
+(`/looks/surface-lab`), which shows the tier ladder and the specimens it has to read
 on.
 
 Rules: elevation is layered surfaces (`surfaceSunken` < `background` < `card` <
@@ -92,7 +92,7 @@ Forks replace faces with `setFonts` — never by patching `node_modules`.
   highlight.
   Overlays (`Popover`, `Dialog`, `DropdownMenu`, `Select`, `Tooltip`) use
   `soft`, `Notification` uses `elevated`; screen content is flat. The Surface
-  Lab (`/surface-lab`) shows the tier ladder and alternate surface ramps for
+  Lab (`/looks/surface-lab`) shows the tier ladder and alternate surface ramps for
   forks.
 - **Rhythm:** 8-pt base (`spacing.sm` 8, `md` 16, `lg` 24, `xl` 32) with 4 and
   12 as half steps; screen gutter 16; section spacing 24; rows 10 × 16 padding;
@@ -140,7 +140,9 @@ Components, Blocks and Templates: `/looks` lists the style references (Refined,
 Classic, Strand, Glass, Editorial) and `/looks/<id>` applies one across the app
 while the page is open, with its colors, type, shape, treatments and a copyable
 snippet. The sources are `client/showcase/LooksScreen.tsx` and
-`client/showcase/LookDetailScreen.tsx`. Package details are in
+`client/showcase/LookDetailScreen.tsx`. Two tools for testing your own palette
+live under it, linked from a Tools group on `/looks`: the Themed Showcase
+(`/looks/themed-showcase`) and the Surface Lab (`/looks/surface-lab`). Package details are in
 [`packages/ui/README.md`](../packages/ui/README.md#looks-and-treatments).
 
 ## What a fork replaces

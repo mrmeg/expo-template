@@ -291,7 +291,7 @@ chrome such as the Drawer rail) < `background` (content) < `card`/`popover`
 `borderStrong` on filled surfaces. `textDim`/`mutedForeground` hold at least
 7:1 against `background`/`card` and 6:1 against `muted` in both schemes,
 enforced by a package test. If you override `background`, `card`, or `popover`,
-re-check them against the template's Surface Lab (`/surface-lab`).
+re-check them against the template's Surface Lab (`/looks/surface-lab`).
 
 When `currentTheme` is `"system"` the package tracks the OS color scheme and
 updates every `useTheme()`/`useStyles()` consumer through the theme store. Do
@@ -547,7 +547,9 @@ const selection = useTreatment("segmentedSelection"); // "surface" | "accent"
 
 The template's Looks section (`/looks`, then `/looks/<id>` per look) previews
 Refined, Classic, Strand, Glass, and Editorial across the app and shows each
-one's colors, type, shape, treatments, and snippet.
+one's colors, type, shape, treatments, and snippet. Two tools sit under it: the
+Themed Showcase (`/looks/themed-showcase`) and the Surface Lab
+(`/looks/surface-lab`).
 
 #### Keep the old look
 

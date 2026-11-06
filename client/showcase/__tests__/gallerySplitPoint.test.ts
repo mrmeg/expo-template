@@ -51,10 +51,10 @@ const CLUSTER_MODULES = [
 
 /** Route files that must be one-line shells over `GalleryRoute`. */
 const GALLERY_ROUTES: Record<string, string> = {
-  "app/(main)/(demos)/themed-showcase.tsx": "ThemedShowcaseScreen",
+  "app/(main)/(demos)/looks/themed-showcase.tsx": "ThemedShowcaseScreen",
   "app/(main)/(demos)/looks/index.tsx": "LooksScreen",
   "app/(main)/(demos)/looks/[id].tsx": "LookDetailScreen",
-  "app/(main)/(demos)/surface-lab.tsx": "SurfaceLabScreen",
+  "app/(main)/(demos)/looks/surface-lab.tsx": "SurfaceLabScreen",
   "app/(main)/(demos)/media-lab.tsx": "MediaLabScreen",
   "app/(main)/(demos)/components/index.tsx": "ComponentsGalleryScreen",
   "app/(main)/(demos)/components/[id].tsx": "ComponentDetailScreen",

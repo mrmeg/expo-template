@@ -225,8 +225,8 @@ does not collect it. The lint plugin's own suites live in
 /test                         # Jest setup
 ```
 
-Eight gallery routes — `themed-showcase.tsx`, `surface-lab.tsx`,
-`media-lab.tsx`, `looks/index.tsx`, `looks/[id].tsx`, `components/index.tsx`, `components/[id].tsx`, `blocks/index.tsx` under
+Eight gallery routes — `media-lab.tsx`, `looks/index.tsx`, `looks/[id].tsx`,
+`looks/themed-showcase.tsx`, `looks/surface-lab.tsx`, `components/index.tsx`, `components/[id].tsx`, `blocks/index.tsx` under
 `app/(main)/(demos)` — are one-line lazy shells. Their bodies live in
 `client/showcase/*Screen.tsx` (`LooksScreen.tsx` and `LookDetailScreen.tsx` for
 Looks) behind the single split point
