@@ -2,9 +2,9 @@
  * Explore — the three-scale home.
  *
  * Structure follows mockups/01-home.html §Scale 01–03 and mockups/05-mobile.html
- * frame 1: a search field over all three registries, then one section per scale
- * (component rail → block spotlight → template grid), each with its count and a
- * link to its gallery. "Demos & Tools" stays at the bottom — it's app plumbing,
+ * frame 1: a search field over the registries and the looks, then one section per scale
+ * (component rail → block spotlight → template grid → look rail), each with its
+ * count and a link to its gallery. "Demos & Tools" stays at the bottom — it's app plumbing,
  * not part of the library story.
  *
  * The search field is plain client-side filtering over the registries, not a
@@ -34,12 +34,15 @@ import {
   EXPLORE_TEMPLATE_PREVIEW_COUNT,
   SHOWCASE_ROUTES,
   componentDetailRoute,
+  lookRoute,
   pickComponents,
   pickSpotlightBlock,
   searchRegistries,
   type SearchHit,
 } from "@/client/showcase/filters";
 import { LazyBlockStage, LazyPreview } from "@/client/showcase/lazyGallery";
+import { LookSwatchStrip } from "@/client/showcase/LookSwatches";
+import { DEMO_LOOKS, type DemoLook } from "@/client/showcase/looks";
 import {
   BLOCKS,
   COMPONENTS,
@@ -98,13 +101,13 @@ export default function ExploreScreen() {
             testID="explore-search"
             value={query}
             onChangeText={setQuery}
-            placeholder="Search components, blocks, templates…"
+            placeholder="Search the library…"
             variant="outline"
             size="md"
             autoCorrect={false}
             autoCapitalize="none"
             returnKeyType="search"
-            accessibilityLabel="Search components, blocks, and templates"
+            accessibilityLabel="Search components, blocks, templates, and looks"
             leftElement={
               <Icon name="search" size={18} color={theme.colors.mutedForeground} />
             }
@@ -224,8 +227,34 @@ export default function ExploreScreen() {
               </View>
             </AnimatedView>
 
+            {/* ── Looks — style references for the base design system ── */}
+            <AnimatedView
+              type="fadeSlideUp"
+              delay={STAGGER_DELAY * 4}
+              style={styles.section}
+            >
+              <SectionHead
+                title="Looks"
+                count={DEMO_LOOKS.length}
+                href={SHOWCASE_ROUTES.looks}
+                accent={theme.colors.accent}
+                styles={styles}
+                testID="explore-looks-link"
+              />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.railContent}
+                testID="explore-look-rail"
+              >
+                {DEMO_LOOKS.map((demo) => (
+                  <LookRailCard key={demo.look.id} demo={demo} styles={styles} />
+                ))}
+              </ScrollView>
+            </AnimatedView>
+
             {/* ── Demos & Tools — compact list ─────────────────────── */}
-            <AnimatedView type="fadeSlideUp" delay={STAGGER_DELAY * 4} style={styles.section}>
+            <AnimatedView type="fadeSlideUp" delay={STAGGER_DELAY * 5} style={styles.section}>
               <SansSerifText semantic="eyebrow" style={styles.sectionLabel}>Demos & Tools</SansSerifText>
               <View style={styles.demoCard}>
                 {DEMOS.map((item, index) => (
@@ -328,7 +357,35 @@ function RailCard({ entry, styles }: { entry: ComponentEntry; styles: ExploreSty
 }
 
 /**
- * Search results across all three registries. Each row carries the tier it came
+ * One tile in the look rail: the look's light and dark palette strips and its
+ * name, drawn from the look's own colors (no look is applied on this screen).
+ * Plain Views, so it renders on native too.
+ */
+function LookRailCard({ demo, styles }: { demo: DemoLook; styles: ExploreStyles }) {
+  const { look } = demo;
+  return (
+    <Link href={lookRoute(look.id) as never} asChild>
+      <Pressable
+        onPressIn={blurActiveElementOnWeb}
+        accessibilityRole="link"
+        accessibilityLabel={`${look.name} look`}
+        testID={`explore-look-${look.id}`}
+        style={linkPressableStyle(styles.lookCard)}
+      >
+        <View style={styles.lookSwatches}>
+          <LookSwatchStrip look={look} scheme="light" height={22} />
+          <LookSwatchStrip look={look} scheme="dark" height={22} />
+        </View>
+        <SansSerifText size="sm" fontWeight="medium" style={styles.railName} numberOfLines={1}>
+          {look.name}
+        </SansSerifText>
+      </Pressable>
+    </Link>
+  );
+}
+
+/**
+ * Search results across the registries and the looks. Each row carries the tier it came
  * from, because "Hero" exists as both a block and a template and the badge is
  * what disambiguates them.
  */
@@ -349,7 +406,7 @@ function SearchResults({
         <EmptyState
           icon="search"
           title="No matches"
-          description={`Nothing in the component, block, or template registries matches "${query.trim()}".`}
+          description={`Nothing in the component, block, template, or look lists matches "${query.trim()}".`}
         />
       </View>
     );
@@ -482,6 +539,23 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.foreground,
       paddingVertical: spacing.xs + 1,
       paddingHorizontal: spacing.sm,
+    },
+
+    // ── Look rail ──────────────────────────────────────────
+    lookCard: {
+      width: 148,
+      backgroundColor: theme.colors.card,
+      borderRadius: spacing.radiusMd,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      overflow: "hidden",
+    },
+    lookSwatches: {
+      gap: spacing.xs,
+      padding: spacing.sm,
+      backgroundColor: theme.colors.surfaceSunken,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
     },
 
     // ── Block spotlight (mockup 05 `.m-block`) ──────────────

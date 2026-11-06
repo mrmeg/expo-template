@@ -65,6 +65,8 @@ export type DemoLook = {
   display: DemoDisplay;
   /** A Google Fonts stylesheet the web build injects when the look is selected. */
   fonts?: { webStylesheet: { id: string; href: string } };
+  /** `look.fonts` is empty off web; this is what the look asks for there, for the reference snippet. */
+  referenceFonts?: Look["fonts"];
 };
 
 const ARCHIVO = "\"Archivo\", system-ui, sans-serif";
@@ -77,13 +79,10 @@ const JETBRAINS_MONO = "\"JetBrains Mono\", ui-monospace, monospace";
  * dependency is added, so Strand keeps the default sans and the platform mono;
  * a native family name that is not registered is an error, not a fallback.
  */
-const STRAND_WEB_FONTS: Look["fonts"] =
-  Platform.OS === "web"
-    ? {
-      families: { sansSerif: { regular: ARCHIVO }, mono: { regular: JETBRAINS_MONO } },
-      webWeightStrategy: "numeric",
-    }
-    : undefined;
+const STRAND_WEB_FONTS: NonNullable<Look["fonts"]> = {
+  families: { sansSerif: { regular: ARCHIVO }, mono: { regular: JETBRAINS_MONO } },
+  webWeightStrategy: "numeric",
+};
 
 const STRAND_STYLESHEET = {
   id: "mrmeg-demo-looks-strand",
@@ -96,7 +95,7 @@ const strandLook: Look = {
   id: "strand",
   name: "Strand",
   description: "Archivo Expanded and JetBrains Mono, carbon and white-out, 2px corners, hairlines, an ice-blue signal.",
-  fonts: STRAND_WEB_FONTS,
+  fonts: Platform.OS === "web" ? STRAND_WEB_FONTS : undefined,
   colors: {
     light: {
       surfaceSunken: "#e6e9e6",
@@ -376,6 +375,7 @@ export const DEMO_LOOKS: DemoLook[] = [
       gridLine: { light: "rgba(10, 106, 166, 0.06)", dark: "rgba(143, 211, 255, 0.05)" },
     },
     fonts: { webStylesheet: STRAND_STYLESHEET },
+    referenceFonts: STRAND_WEB_FONTS,
   },
   {
     look: glassLook,

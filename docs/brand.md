@@ -135,9 +135,12 @@ default is Refined (`refinedLook`, everything on this page). `classicLook` is
 the pre-0.35 look: Inter, zinc neutrals, teal selection, radius 10 controls,
 uppercase eyebrow, offset focus ring, layered shadows. `applyLook(look)`
 applies one through `setColors`, `setFonts`, `setShape`, and `setTreatments`;
-`useTreatment(name)` reads a treatment. The `/looks` demo (Refined, Classic,
-Strand, Glass, Editorial) switches between them live; its source is
-`client/showcase/LooksScreen.tsx`. Package details are in
+`useTreatment(name)` reads a treatment. Looks is a Library section next to
+Components, Blocks and Templates: `/looks` lists the style references (Refined,
+Classic, Strand, Glass, Editorial) and `/looks/<id>` applies one across the app
+while the page is open, with its colors, type, shape, treatments and a copyable
+snippet. The sources are `client/showcase/LooksScreen.tsx` and
+`client/showcase/LookDetailScreen.tsx`. Package details are in
 [`packages/ui/README.md`](../packages/ui/README.md#looks-and-treatments).
 
 ## What a fork replaces

@@ -3,6 +3,7 @@ import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { ThemeColors } from "../constants/colors";
+import { spacing } from "../constants/spacing";
 import type { FontOverrides, SansPreset, SerifPreset } from "../constants/fonts";
 
 const THEME_KEY = "user-theme-preference";
@@ -79,6 +80,24 @@ export type ShapeOverrides = {
 };
 
 export type ShapeSlot = keyof ShapeOverrides;
+
+/**
+ * The package's own corner radius per shape slot (the table on
+ * `ShapeOverrides`): the Refined look. `"platform"` means the platform draws
+ * the corners (the `sheet` slot), so there is no number. `defaultButtonShadow`
+ * is the `button.withShadow` default.
+ */
+export const defaultShapeRadius: Record<ShapeSlot, number | "platform"> = {
+  button: spacing.radiusSm,
+  input: spacing.radiusSm,
+  card: spacing.radiusLg,
+  sheet: "platform",
+  badge: spacing.radiusFull,
+  dialog: spacing.radiusLg,
+};
+
+/** `button.withShadow` when no shape override sets it. */
+export const defaultButtonShadow = true;
 
 /**
  * Component treatments a host app (or a look, see `applyLook`) can switch.
