@@ -545,8 +545,9 @@ applyLook({ ...refinedLook, id: "brand", name: "Brand", treatments: { switchTrac
 const selection = useTreatment("segmentedSelection"); // "surface" | "accent"
 ```
 
-The template's `/looks` demo switches between Refined, Classic, Strand, Glass,
-and Editorial live.
+The template's Looks section (`/looks`, then `/looks/<id>` per look) previews
+Refined, Classic, Strand, Glass, and Editorial across the app and shows each
+one's colors, type, shape, treatments, and snippet.
 
 #### Keep the old look
 

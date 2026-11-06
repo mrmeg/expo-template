@@ -225,10 +225,11 @@ does not collect it. The lint plugin's own suites live in
 /test                         # Jest setup
 ```
 
-Seven gallery routes — `themed-showcase.tsx`, `looks.tsx`,
-`surface-lab.tsx`, `media-lab.tsx`, `components/index.tsx`, `components/[id].tsx`, `blocks/index.tsx` under
+Eight gallery routes — `themed-showcase.tsx`, `surface-lab.tsx`,
+`media-lab.tsx`, `looks/index.tsx`, `looks/[id].tsx`, `components/index.tsx`, `components/[id].tsx`, `blocks/index.tsx` under
 `app/(main)/(demos)` — are one-line lazy shells. Their bodies live in
-`client/showcase/*Screen.tsx` behind the single split point
+`client/showcase/*Screen.tsx` (`LooksScreen.tsx` and `LookDetailScreen.tsx` for
+Looks) behind the single split point
 `client/showcase/gallery.tsx` / `lazyGallery.tsx`.
 
 ## Internationalization

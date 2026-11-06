@@ -37,6 +37,7 @@ import {
   countByCategory,
 } from "../filters";
 import { buildCategoryChips } from "../GalleryChips";
+import { DEMO_LOOKS } from "../looks";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -283,6 +284,29 @@ describe("Explore", () => {
 
     expect(screen.getByText("Pricing")).toBeTruthy();
     expect(screen.getByText("Plans & comparison")).toBeTruthy();
+  });
+
+  it("renders the Looks rail on every platform, one tile per look, after Templates", async () => {
+    await render(<ExploreScreen />);
+
+    const rail = screen.getByTestId("explore-look-rail");
+    for (const { look } of DEMO_LOOKS) {
+      expect(within(rail).getByTestId(`explore-look-${look.id}`)).toBeTruthy();
+      expect(within(rail).getByText(look.name)).toBeTruthy();
+    }
+    expect(screen.getByTestId("explore-looks-link").props.accessibilityLabel).toBe(
+      `All ${DEMO_LOOKS.length} looks`,
+    );
+    // Looks left the Demos list: it is a Library section now.
+    expect(DEMOS.map((demo) => demo.id)).not.toContain("looks");
+  });
+
+  it("finds looks in search and links to their detail page", async () => {
+    await render(<ExploreScreen />);
+
+    await fireEvent.changeText(screen.getByTestId("explore-search"), "strand");
+
+    expect(screen.getByTestId("explore-hit-look-strand")).toBeTruthy();
   });
 
   it("renders every demo row", async () => {

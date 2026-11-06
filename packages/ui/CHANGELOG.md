@@ -41,6 +41,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Sans presets:** `useResources({ sans: "inter", sansFonts })` and
   `loadSansPreset(preset, nativeFonts?)`, which mirror the Newsreader serif preset.
   `interFamilies` exports the Inter family map.
+- **`defaultShapeRadius` / `defaultButtonShadow`:** the package's corner radius per
+  shape slot, exported next to `ShapeOverrides` so a look reference can show what a
+  look changes without copying the numbers.
 
 ### Migrating: keep the old look
 

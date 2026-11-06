@@ -16,6 +16,7 @@ import {
   SHOWCASE_ROUTES,
   countByCategory,
 } from "@/client/showcase/filters";
+import { DEMO_LOOKS } from "@/client/showcase/looks";
 import {
   COMPONENTS,
   SCREEN_TEMPLATES,
@@ -192,6 +193,14 @@ export function DrawerNavContent({
             active={pathname.startsWith("/templates")}
             count={SCREEN_TEMPLATES.length}
             testID="drawer-nav-templates"
+            onNavigate={onNavigate}
+          />
+          <DrawerNavItem
+            label="Looks"
+            href={SHOWCASE_ROUTES.looks}
+            active={pathname.startsWith("/looks")}
+            count={DEMO_LOOKS.length}
+            testID="drawer-nav-looks"
             onNavigate={onNavigate}
           />
         </View>

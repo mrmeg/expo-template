@@ -44,4 +44,10 @@ describe("MAIN_STACK_SCREENS", () => {
     expect(resolvedOptions("(demos)/components/[id]", { id: "Button" })?.title).toBe("Button");
     expect(resolvedOptions("(demos)/components/[id]")?.title).toBe("Component");
   });
+
+  it("titles a look detail route with the look's name from the URL, never the raw route", () => {
+    expect(resolvedOptions("(demos)/looks/[id]", { id: "glass" })?.title).toBe("Glass");
+    expect(resolvedOptions("(demos)/looks/[id]", { id: "nope" })?.title).toBe("Look");
+    expect(resolvedOptions("(demos)/looks/[id]")?.title).toBe("Look");
+  });
 });
