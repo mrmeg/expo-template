@@ -321,6 +321,19 @@ describe("searchRegistries", () => {
     expect(hits[hits.length - 1].kind).toBe("look");
   });
 
+  it("finds the styling tools and routes them under Looks, after the looks", () => {
+    const hits = searchRegistries("surface");
+    const tool = hits.find((h) => h.kind === "tool");
+    expect(tool).toMatchObject({
+      id: "surface-lab",
+      label: "Surface Lab",
+      categoryLabel: "Tool",
+      route: "/(main)/(demos)/looks/surface-lab",
+    });
+    expect(hits[hits.length - 1].kind).toBe("tool");
+    expect(searchRegistries("themed")[0].route).toBe(SHOWCASE_ROUTES.themedShowcase);
+  });
+
   it("searches the real registries by default", () => {
     const hits = searchRegistries("SegmentedControl");
     expect(hits.map((h) => `${h.kind}:${h.id}`)).toContain("component:SegmentedControl");

@@ -309,6 +309,14 @@ describe("Explore", () => {
     expect(screen.getByTestId("explore-hit-look-strand")).toBeTruthy();
   });
 
+  it("finds the styling tools in search now that they live under Looks", async () => {
+    await render(<ExploreScreen />);
+
+    await fireEvent.changeText(screen.getByTestId("explore-search"), "surface lab");
+
+    expect(screen.getByTestId("explore-hit-tool-surface-lab")).toBeTruthy();
+  });
+
   it("renders every demo row", async () => {
     await render(<ExploreScreen />);
 

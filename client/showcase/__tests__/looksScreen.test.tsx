@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
 import { useThemeStore } from "@mrmeg/expo-ui/state";
 
 import { DEMO_LOOKS } from "../looks";
@@ -79,6 +79,19 @@ describe("LooksScreen (index)", () => {
     expect(store().shapeOverrides).toEqual({});
     expect(store().treatmentOverrides).toEqual({});
     expect(store().sansPreset).toBe("geist");
+  });
+
+  it("lists the styling tools after the tiles and opens them under /looks", async () => {
+    await render(<LooksScreen />);
+
+    const tools = within(screen.getByTestId("looks-tools"));
+    expect(tools.getByText("Themed Showcase")).toBeTruthy();
+    expect(tools.getByText("Surface Lab")).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId("looks-tool-surface-lab"));
+    expect(mockPush).toHaveBeenCalledWith("/(main)/(demos)/looks/surface-lab");
+    await fireEvent.press(screen.getByTestId("looks-tool-themed-showcase"));
+    expect(mockPush).toHaveBeenLastCalledWith("/(main)/(demos)/looks/themed-showcase");
   });
 });
 

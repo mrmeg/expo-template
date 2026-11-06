@@ -62,8 +62,9 @@ export const MAIN_STACK_SCREENS: readonly MainStackScreen[] = [
       ...webHeaderLeft,
     }),
   },
-  { name: "(demos)/themed-showcase", options: { title: "Themed Showcase", ...webHeaderLeft } },
-  { name: "(demos)/surface-lab", options: { title: "Surface Lab", ...webHeaderLeft } },
+  /* The two styling tools live under Looks. Static segments win over `[id]`. */
+  { name: "(demos)/looks/themed-showcase", options: { title: "Themed Showcase", ...webHeaderLeft } },
+  { name: "(demos)/looks/surface-lab", options: { title: "Surface Lab", ...webHeaderLeft } },
   { name: "(demos)/media-lab", options: { title: "Media Lab", ...webHeaderLeft, ...edgeBackSwipeOnly } },
   { name: "(demos)/developer", options: { title: "Developer Tools", ...webHeaderLeft } },
   { name: "(demos)/server-alpha/index", options: { title: "Server Alpha", ...webHeaderLeft } },

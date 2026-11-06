@@ -446,7 +446,7 @@ darkest grey that keeps the 6:1 floor on `muted`. A fork that re-brands through
 `setColors` should keep those floors; the
 same test file is the place to pin them. A fork that overrides `background`,
 `card`, or `popover` should re-check its values against the Surface Lab
-(`/surface-lab`), which shows the tier ladder and the specimens it has to read
+(`/looks/surface-lab`), which shows the tier ladder and the specimens it has to read
 on.
 
 Rules: elevation is layered surfaces (`surfaceSunken` < `background` < `card` <
@@ -495,7 +495,7 @@ Forks replace faces with `setFonts` — never by patching `node_modules`.
   highlight.
   Overlays (`Popover`, `Dialog`, `DropdownMenu`, `Select`, `Tooltip`) use
   `soft`, `Notification` uses `elevated`; screen content is flat. The Surface
-  Lab (`/surface-lab`) shows the tier ladder and alternate surface ramps for
+  Lab (`/looks/surface-lab`) shows the tier ladder and alternate surface ramps for
   forks.
 - **Rhythm:** 8-pt base (`spacing.sm` 8, `md` 16, `lg` 24, `xl` 32) with 4 and
   12 as half steps; screen gutter 16; section spacing 24; rows 10 × 16 padding;
@@ -543,7 +543,9 @@ Components, Blocks and Templates: `/looks` lists the style references (Refined,
 Classic, Strand, Glass, Editorial) and `/looks/<id>` applies one across the app
 while the page is open, with its colors, type, shape, treatments and a copyable
 snippet. The sources are `client/showcase/LooksScreen.tsx` and
-`client/showcase/LookDetailScreen.tsx`. Package details are in
+`client/showcase/LookDetailScreen.tsx`. Two tools for testing your own palette
+live under it, linked from a Tools group on `/looks`: the Themed Showcase
+(`/looks/themed-showcase`) and the Surface Lab (`/looks/surface-lab`). Package details are in
 [`packages/ui/README.md`](../packages/ui/README.md#looks-and-treatments).
 
 ## What a fork replaces
@@ -1241,7 +1243,7 @@ Elevation is a surface-tier ladder plus a hairline `border`: `surfaceSunken`
 presets other than `subtle` add a 1px inset top highlight; `subtle` (Button,
 Card) is a 1px light shadow and none in dark unless `elevation: "layered"`. A
 fork that overrides `background`, `card`, or `popover` should
-re-check against the template's `/surface-lab`.
+re-check against the template's `/looks/surface-lab`.
 
 Defaults are the Refined look; `applyLook(classicLook)` restores the pre-0.35 look. See README "Looks and treatments".
 
@@ -4586,6 +4588,8 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/form-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/form-demo.tsx
 - app/(main)/(demos)/looks/[id].tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/looks/%5Bid%5D.tsx
 - app/(main)/(demos)/looks/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/looks/index.tsx
+- app/(main)/(demos)/looks/surface-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/looks/surface-lab.tsx
+- app/(main)/(demos)/looks/themed-showcase.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/looks/themed-showcase.tsx
 - app/(main)/(demos)/media-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/media-lab.tsx
 - app/(main)/(demos)/onboarding.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/onboarding.tsx
 - app/(main)/(demos)/screen-card-grid.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-card-grid.tsx
@@ -4606,9 +4610,7 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/screen-welcome.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-welcome.tsx
 - app/(main)/(demos)/server-alpha/[example].tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha/%5Bexample%5D.tsx
 - app/(main)/(demos)/server-alpha/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha/index.tsx
-- app/(main)/(demos)/surface-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/surface-lab.tsx
 - app/(main)/(demos)/templates/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/templates/index.tsx
-- app/(main)/(demos)/themed-showcase.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/themed-showcase.tsx
 
 ## Screen Templates (`client/templates/`)
 

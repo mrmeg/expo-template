@@ -16,6 +16,8 @@ import type {
   ScreenTemplateEntry,
 } from "@/client/templates/types";
 
+import type { IconName } from "@mrmeg/expo-ui/components/Icon";
+
 import { DEMO_LOOKS, type DemoLook } from "./looks";
 import {
   BLOCKS,
@@ -257,7 +259,39 @@ export const SHOWCASE_ROUTES = {
   blocks: "/(main)/(demos)/blocks",
   templates: "/(main)/(demos)/templates",
   looks: "/(main)/(demos)/looks",
+  themedShowcase: "/(main)/(demos)/looks/themed-showcase",
+  surfaceLab: "/(main)/(demos)/looks/surface-lab",
 } as const;
+
+/**
+ * The styling tools that live in the Looks section, after the looks. They are
+ * not looks: each is a screen for testing your own palette and surfaces, shown
+ * as a "Tools" group on the Looks index and findable from Explore search.
+ */
+export interface ShowcaseTool {
+  id: string;
+  label: string;
+  description: string;
+  icon: IconName;
+  route: string;
+}
+
+export const LOOK_TOOLS: ShowcaseTool[] = [
+  {
+    id: "themed-showcase",
+    label: "Themed Showcase",
+    description: "Brand palettes and shape presets on live components",
+    icon: "droplet",
+    route: SHOWCASE_ROUTES.themedShowcase,
+  },
+  {
+    id: "surface-lab",
+    label: "Surface Lab",
+    description: "Surface tiers, alternate ramps and shadow treatments",
+    icon: "layers",
+    route: SHOWCASE_ROUTES.surfaceLab,
+  },
+];
 
 /** Detail route for one component id, e.g. `Button` → `.../components/Button`. */
 export function componentDetailRoute(id: string): string {
@@ -273,7 +307,7 @@ export function lookRoute(id: string): string {
 // Search
 // ---------------------------------------------------------------------------
 
-export type SearchHitKind = "component" | "block" | "template" | "look";
+export type SearchHitKind = "component" | "block" | "template" | "look" | "tool";
 
 export interface SearchHit {
   /** Which tier the hit came from — drives the badge and the destination. */
@@ -301,7 +335,7 @@ function matches(haystack: string | undefined, needle: string): boolean {
 
 /**
  * Client-side search across the registries and the looks, ordered components →
- * blocks → templates → looks so the smallest scale (and the most common lookup, a component
+ * blocks → templates → looks → tools so the smallest scale (and the most common lookup, a component
  * name) surfaces first.
  *
  * A blank or whitespace-only query returns `[]` rather than everything: the
@@ -391,6 +425,19 @@ export function searchRegistries(
         description: look.description,
         categoryLabel: "Look",
         route: lookRoute(look.id),
+      });
+    }
+  }
+
+  for (const tool of LOOK_TOOLS) {
+    if (matches(tool.id, needle) || matches(tool.label, needle) || matches(tool.description, needle)) {
+      hits.push({
+        kind: "tool",
+        id: tool.id,
+        label: tool.label,
+        description: tool.description,
+        categoryLabel: "Tool",
+        route: tool.route,
       });
     }
   }
