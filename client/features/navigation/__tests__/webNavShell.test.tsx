@@ -38,6 +38,7 @@ jest.mock("@mrmeg/expo-ui/hooks", () => {
 });
 
 import { DrawerNavContent } from "../DrawerNavContent";
+import { DEMO_LOOKS } from "@/client/showcase/looks";
 import { WebNavShell } from "../WebNavShell";
 import { NAV_DESTINATIONS } from "../navDestinations";
 import {
@@ -274,6 +275,18 @@ describe("DrawerNavContent", () => {
     expect(
       screen.getByTestId("drawer-nav-components").props.accessibilityState?.selected,
     ).toBe(true);
+  });
+
+  it("lists Looks with its count and keeps it active on a look's detail page", async () => {
+    route.pathname = "/looks/glass";
+    await render(<DrawerNavContent />);
+
+    const looks = screen.getByTestId("drawer-nav-looks");
+    expect(looks.props.accessibilityState?.selected).toBe(true);
+    expect(within(looks).getByText(String(DEMO_LOOKS.length))).toBeTruthy();
+    expect(
+      screen.getByTestId("drawer-nav-templates").props.accessibilityState?.selected,
+    ).toBe(false);
   });
 
   it("marks Overview active only on the Explore index", async () => {

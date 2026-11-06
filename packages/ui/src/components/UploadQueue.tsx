@@ -46,7 +46,7 @@ export interface UploadQueueProps {
   onRetry?: (id: string) => void;
   /** Renders a remove button on queued, failed and done rows, only when set. */
   onRemove?: (id: string) => void;
-  /** Section header text, an uppercase eyebrow announced as a header. */
+  /** Section header text, an eyebrow announced as a header. */
   title?: string;
   /** Header action, shown only when set and at least one entry is done or failed. */
   onClearFinished?: () => void;

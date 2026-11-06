@@ -405,7 +405,7 @@ const styles = /*#__PURE__*/ StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderWidth: 1,
-    borderRadius: spacing.radiusMd,
+    borderRadius: spacing.radiusSm,
   },
   item: {
     position: "relative",

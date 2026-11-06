@@ -1,8 +1,8 @@
 /**
  * Showcase filtering + search.
  *
- * Pure functions over the three registries (`COMPONENTS`, `BLOCKS`,
- * `SCREEN_TEMPLATES`) that the galleries and the Explore search field share.
+ * Pure functions over the registries (`COMPONENTS`, `BLOCKS`,
+ * `SCREEN_TEMPLATES`) and the looks list that the galleries and the Explore search field share.
  * Nothing here touches React or the theme, so the filter behaviour is unit
  * tested directly rather than through a rendered screen.
  *
@@ -16,6 +16,9 @@ import type {
   ScreenTemplateEntry,
 } from "@/client/templates/types";
 
+import type { IconName } from "@mrmeg/expo-ui/components/Icon";
+
+import { DEMO_LOOKS, type DemoLook } from "./looks";
 import {
   BLOCKS,
   COMPONENTS,
@@ -255,18 +258,56 @@ export const SHOWCASE_ROUTES = {
   components: "/(main)/(demos)/components",
   blocks: "/(main)/(demos)/blocks",
   templates: "/(main)/(demos)/templates",
+  looks: "/(main)/(demos)/looks",
+  themedShowcase: "/(main)/(demos)/looks/themed-showcase",
+  surfaceLab: "/(main)/(demos)/looks/surface-lab",
 } as const;
+
+/**
+ * The styling tools that live in the Looks section, after the looks. They are
+ * not looks: each is a screen for testing your own palette and surfaces, shown
+ * as a "Tools" group on the Looks index and findable from Explore search.
+ */
+export interface ShowcaseTool {
+  id: string;
+  label: string;
+  description: string;
+  icon: IconName;
+  route: string;
+}
+
+export const LOOK_TOOLS: ShowcaseTool[] = [
+  {
+    id: "themed-showcase",
+    label: "Themed Showcase",
+    description: "Brand palettes and shape presets on live components",
+    icon: "droplet",
+    route: SHOWCASE_ROUTES.themedShowcase,
+  },
+  {
+    id: "surface-lab",
+    label: "Surface Lab",
+    description: "Surface tiers, alternate ramps and shadow treatments",
+    icon: "layers",
+    route: SHOWCASE_ROUTES.surfaceLab,
+  },
+];
 
 /** Detail route for one component id, e.g. `Button` → `.../components/Button`. */
 export function componentDetailRoute(id: string): string {
   return `${SHOWCASE_ROUTES.components}/${id}`;
 }
 
+/** Detail route for one look id, e.g. `glass` → `.../looks/glass`. */
+export function lookRoute(id: string): string {
+  return `${SHOWCASE_ROUTES.looks}/${id}`;
+}
+
 // ---------------------------------------------------------------------------
 // Search
 // ---------------------------------------------------------------------------
 
-export type SearchHitKind = "component" | "block" | "template";
+export type SearchHitKind = "component" | "block" | "template" | "look" | "tool";
 
 export interface SearchHit {
   /** Which tier the hit came from — drives the badge and the destination. */
@@ -281,8 +322,8 @@ export interface SearchHit {
   categoryLabel?: string;
   /**
    * Where tapping the hit goes. Components get their detail route, blocks the
-   * blocks gallery, and templates their own `meta.route` — never a path
-   * assembled from the id.
+   * blocks gallery, templates their own `meta.route`, and looks `lookRoute` —
+   * never a path assembled from the id.
    */
   route: string;
 }
@@ -293,8 +334,8 @@ function matches(haystack: string | undefined, needle: string): boolean {
 }
 
 /**
- * Client-side search across all three registries, ordered components → blocks
- * → templates so the smallest scale (and the most common lookup, a component
+ * Client-side search across the registries and the looks, ordered components →
+ * blocks → templates → looks → tools so the smallest scale (and the most common lookup, a component
  * name) surfaces first.
  *
  * A blank or whitespace-only query returns `[]` rather than everything: the
@@ -307,6 +348,7 @@ export function searchRegistries(
     components?: ComponentEntry[];
     blocks?: BlockEntry[];
     templates?: ScreenTemplateEntry[];
+    looks?: DemoLook[];
   } = {},
 ): SearchHit[] {
   const needle = query.trim().toLowerCase();
@@ -316,6 +358,7 @@ export function searchRegistries(
     components = COMPONENTS,
     blocks = BLOCKS,
     templates = SCREEN_TEMPLATES,
+    looks = DEMO_LOOKS,
   } = registries;
 
   const hits: SearchHit[] = [];
@@ -369,6 +412,32 @@ export function searchRegistries(
           ? TEMPLATE_CATEGORY_LABELS[entry.category]
           : undefined,
         route: entry.route,
+      });
+    }
+  }
+
+  for (const { look } of looks) {
+    if (matches(look.id, needle) || matches(look.name, needle) || matches(look.description, needle)) {
+      hits.push({
+        kind: "look",
+        id: look.id,
+        label: look.name,
+        description: look.description,
+        categoryLabel: "Look",
+        route: lookRoute(look.id),
+      });
+    }
+  }
+
+  for (const tool of LOOK_TOOLS) {
+    if (matches(tool.id, needle) || matches(tool.label, needle) || matches(tool.description, needle)) {
+      hits.push({
+        kind: "tool",
+        id: tool.id,
+        label: tool.label,
+        description: tool.description,
+        categoryLabel: "Tool",
+        route: tool.route,
       });
     }
   }

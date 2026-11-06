@@ -944,7 +944,7 @@ function NativeTextInput({
   const surfaceStyle: ViewStyle = {
     backgroundColor,
     borderColor,
-    borderRadius: variant === "underlined" ? 0 : inputShape?.borderRadius ?? spacing.radiusMd,
+    borderRadius: variant === "underlined" ? 0 : inputShape?.borderRadius ?? spacing.radiusSm,
     borderWidth: variant === "outline" ? 1 : 0,
     opacity: editable === false ? interaction.disabledOpacity : 1,
     overflow: "hidden",
@@ -1153,13 +1153,13 @@ const createStyles = (theme: Theme, variant: TextInputVariant, size: TextInputSi
       width: "100%",
       position: "relative",
       backgroundColor: "transparent",
-      borderRadius: variant === "underlined" ? 0 : spacing.radiusMd,
+      borderRadius: variant === "underlined" ? 0 : spacing.radiusSm,
       justifyContent: "center",
     },
     input: {
       // fontFamily is resolved per-render through the theme store (see
       // `useFontStyle("regular")` in WebTextInput) so `setFonts` applies.
-      borderRadius: spacing.radiusMd,
+      borderRadius: spacing.radiusSm,
       borderWidth: 1,
       ...(Platform.OS === "web" && { outlineStyle: "none" as any }),
     },

@@ -3,6 +3,58 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.35.0]
+
+### Changed
+
+- **The Refined look is the new default.** Every built-in value moved; an app that
+  calls nothing new gets the new look on upgrade.
+  - **Type:** Geist replaces Inter as the sans face (`@expo-google-fonts/geist`
+    replaces `@expo-google-fonts/inter` in `dependencies`; web loads the Geist Google
+    Fonts stylesheet). The `eyebrow` role is sentence case, 13 medium, untracked.
+  - **Color:** neutral greys replace zinc (light text `#0A0A0A`, primary `#171717`,
+    border `#E5E5E5`; dark background `#0A0A0A`, card `#171717`, muted `#262626`,
+    primary `#E5E5E5`, dim text `#A4A4A4`). Teal stays as `accent`, now used only for
+    the selection dot and fills. Light `destructive` is `#DC2626` and light `success`
+    is `#15803D`.
+  - **Shape:** Button and inputs (TextInput, the Select trigger, InputOTP cells)
+    default to radius 8 (`radiusSm`) instead of 10. Cards and dialogs stay at 14.
+  - **Controls:** the drawn SegmentedControl (web, and `size="lg"`) marks the
+    selection with a raised `background` segment, not a teal fill. Switch's on-track
+    is `primary` on every platform, iOS included. The web focus ring is a soft 3px
+    `ring` halo.
+  - **Elevation:** the `subtle` shadow (default Button, Card) is a 1px light shadow,
+    and there is none in dark, where the 1px `border` carries the edge. Overlay
+    shadows are unchanged.
+
+### Added
+
+- **`link` color token** for link text (Button's `link` preset, "See all" actions):
+  light `#0F766E` (5.5:1 on white), dark `#5EEAD4`. Floors are in the contrast test.
+- **Looks:** `Look`, `applyLook(look)`, `refinedLook` (the defaults) and `classicLook`
+  (the pre-0.35 look) from `@mrmeg/expo-ui/state`. A look bundles colors, fonts,
+  shape, treatments and the sans/serif presets, and `applyLook` sets them through the
+  existing setters.
+- **Treatments:** `setTreatments` / `useTreatment` for `segmentedSelection`,
+  `switchTrack`, `eyebrow`, `focusRing` and `elevation`
+  (`TreatmentOverrides`, `defaultTreatments`).
+- **Sans presets:** `useResources({ sans: "inter", sansFonts })` and
+  `loadSansPreset(preset, nativeFonts?)`, which mirror the Newsreader serif preset.
+  `interFamilies` exports the Inter family map.
+- **`defaultShapeRadius` / `defaultButtonShadow`:** the package's corner radius per
+  shape slot, exported next to `ShapeOverrides` so a look reference can show what a
+  look changes without copying the numbers.
+
+### Migrating: keep the old look
+
+Call `applyLook(classicLook)` once at startup. Load Inter as well: on native, add
+`@expo-google-fonts/inter` and pass its four weights as
+`useResources({ sans: "inter", sansFonts: { Inter_400Regular, Inter_500Medium,
+Inter_600SemiBold, Inter_700Bold } })`; on web, `sans: "inter"` loads the stylesheet.
+For a first paint that matches on web, emit `getThemeCssVariables(classicLook.colors)`
+in `+html.tsx`. Navigation fonts are fixed when the module loads, so they stay on
+Geist; build them from `interFamilies` if you need Inter there.
+
 ## [0.34.0]
 
 ### Added

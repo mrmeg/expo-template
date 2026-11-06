@@ -10,6 +10,7 @@ import { StyleSheet } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { SegmentedControl } from "../SegmentedControl";
 import { interaction } from "../../constants/interaction";
+import { useThemeStore } from "../../state/themeStore";
 
 const colors = {
   accent: "#14B8A6",
@@ -57,6 +58,10 @@ const segmentHeights = () => {
 
 const selectedStates = () => screen.getAllByRole("button").map((button) => button.props.accessibilityState.selected);
 
+afterEach(() => {
+  useThemeStore.getState().setTreatments({});
+});
+
 describe("SegmentedControl (web)", () => {
   it("reserves one hidden column per segment, as wide as the widest label, so a row can't collapse it", async () => {
     await render(<SegmentedControl values={["Day", "Fortnight", "Month"]} defaultValue="Day" />);
@@ -68,11 +73,46 @@ describe("SegmentedControl (web)", () => {
     expect(screen.getAllByText("Fortnight")).toHaveLength(1);
   });
 
-  it("colors the selected label for contrast with the pill and the rest with mutedForeground", async () => {
+  it("colors the selected label `text` and the rest mutedForeground by default (surface)", async () => {
     await render(<SegmentedControl values={["Day", "Week", "Month"]} value="Week" onValueChange={() => {}} />);
-    expect(colorOf("Week")).toBe(colors.foreground);
+    expect(colorOf("Week")).toBe(colors.text);
     expect(colorOf("Day")).toBe(colors.mutedForeground);
     expect(colorOf("Month")).toBe(colors.mutedForeground);
+  });
+
+  describe("segmentedSelection treatment", () => {
+    const pillStyle = () => StyleSheet.flatten(screen.getByTestId("segmented-control-pill").props.style);
+    const trackStyle = () => StyleSheet.flatten(screen.getByTestId("segmented-control").props.style);
+
+    it('"surface" (default) raises a background pill with a soft shadow on the muted track', async () => {
+      await render(<SegmentedControl values={["Day", "Week"]} value="Week" />);
+      await layoutTrack();
+      expect(pillStyle()).toMatchObject({
+        backgroundColor: colors.background,
+        borderRadius: 7,
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)",
+      });
+      expect(trackStyle()).toMatchObject({ backgroundColor: colors.muted, borderRadius: 10 });
+    });
+
+    it('"accent" fills the pill with the accent and picks a contrasting label, with no shadow', async () => {
+      useThemeStore.getState().setTreatments({ segmentedSelection: "accent" });
+      await render(<SegmentedControl values={["Day", "Week"]} value="Week" />);
+      await layoutTrack();
+      expect(pillStyle()).toMatchObject({ backgroundColor: colors.accent, borderRadius: 8 });
+      expect(pillStyle().boxShadow).toBeUndefined();
+      expect(trackStyle()).toMatchObject({ backgroundColor: colors.muted, borderRadius: 10 });
+      // The mocked getContrastingColor returns its first candidate: foreground.
+      expect(colorOf("Week")).toBe(colors.foreground);
+      expect(colorOf("Day")).toBe(colors.mutedForeground);
+    });
+
+    it("an explicit tintColor fills the pill under either treatment", async () => {
+      await render(<SegmentedControl values={["Day", "Week"]} value="Week" tintColor="#FF00FF" />);
+      await layoutTrack();
+      expect(pillStyle().backgroundColor).toBe("#FF00FF");
+      expect(pillStyle().boxShadow).toBeUndefined();
+    });
   });
 
   it("exposes each segment as a selectable button and reports taps by value", async () => {
@@ -96,9 +136,9 @@ describe("SegmentedControl (web)", () => {
 
   it("drives uncontrolled selection from defaultValue", async () => {
     await render(<SegmentedControl values={["A", "B"]} defaultValue="B" />);
-    expect(colorOf("B")).toBe(colors.foreground);
+    expect(colorOf("B")).toBe(colors.text);
     await fireEvent.press(screen.getByText("A"));
-    expect(colorOf("A")).toBe(colors.foreground);
+    expect(colorOf("A")).toBe(colors.text);
     expect(colorOf("B")).toBe(colors.mutedForeground);
   });
 

@@ -199,7 +199,7 @@ const createStyles = (theme: Theme) =>
     },
 
     eyebrow: {
-      color: theme.colors.accent,
+      color: theme.colors.mutedForeground,
       marginBottom: spacing.sm,
     },
     intro: {

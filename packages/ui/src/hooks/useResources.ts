@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Platform } from "react-native";
 
-import type { SerifPreset } from "../constants/fonts";
-import { interFontMap } from "../lib/interFonts";
+import type { SansPreset, SerifPreset } from "../constants/fonts";
+import { geistFontMap } from "../lib/geistFonts";
 import { loadNativeFonts } from "../lib/loadNativeFonts";
 import { useThemeStore } from "../state/themeStore";
 
@@ -12,6 +12,25 @@ interface LoadResourcesResult {
 }
 
 export interface UseResourcesOptions {
+  /**
+   * Which sans to switch the `sansSerif` variant to. Geist (the package
+   * default, bundled) always loads: the native files ship with the package and
+   * the web stylesheet is skipped when `app/+html.tsx` already self-hosts it.
+   * `"inter"` additionally loads Inter (the classic look's face): the
+   * Google Fonts stylesheet on web and, on native, the files passed as
+   * `sansFonts`, then sets the theme store's `sansPreset` so sans text
+   * resolves to Inter. An app `setFonts` sansSerif override skips every sans
+   * face and the preset (the override wins anyway).
+   */
+  sans?: SansPreset;
+  /**
+   * Native font map for the Inter preset, from the app's own dependency:
+   * `@expo-google-fonts/inter/400Regular` … `700Bold` (the names
+   * `interFamilies.native` expects). The package does not depend on the Inter
+   * font package, so an app that never opts in ships none of it; on web this
+   * is ignored (the stylesheet serves the faces).
+   */
+  sansFonts?: Record<string, number | string> | null;
   /**
    * Which serif to load and switch the `serif` variant to. `"georgia"`
    * (default) loads nothing: the system face. `"newsreader"` injects the
@@ -31,16 +50,22 @@ export interface UseResourcesOptions {
   serifFonts?: Record<string, number | string> | null;
 }
 
-// Loading at startup stays: all nine faces the template registers (Inter plus
+// Loading at startup stays: all nine faces the template registers (Geist plus
 // the serif preset) took 19 to 30 ms in release builds on an iPhone 13 Pro and
 // a Pixel 6a, cold start. Embedding them would need a native rebuild per app
 // and per-platform family names, which isn't worth that wait.
-function loadNativeInterFonts(): Promise<void> {
-  if (Platform.OS === "web" || !interFontMap) {
+function loadNativeGeistFonts(): Promise<void> {
+  if (Platform.OS === "web" || !geistFontMap) {
     return Promise.resolve();
   }
-  return loadNativeFonts(interFontMap);
+  return loadNativeFonts(geistFontMap);
 }
+
+const GEIST_STYLESHEET_ID = "mrmeg-expo-ui-geist";
+// The four upright weights the native files mirror; Geist ships no italic, so
+// `italic` is synthesized everywhere.
+const GEIST_STYLESHEET_URL =
+  "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap";
 
 const INTER_STYLESHEET_ID = "mrmeg-expo-ui-inter";
 // Four upright weights plus the 400 italic, so `italic` renders a real italic
@@ -70,6 +95,60 @@ function ensureWebFontStylesheet(id: string, href: string, label: string): Promi
     link.onerror = () => reject(new Error(`${label} stylesheet failed to load`));
     document.head.appendChild(link);
   });
+}
+
+let warnedMissingSansFonts = false;
+
+/**
+ * Load a sans preset and switch the `sansSerif` variant to it.
+ *
+ * Web: the preset switches at once and the Google Fonts stylesheet loads
+ * after it (the stack falls back to the system face until the faces arrive,
+ * and a self-hosted `<style id="mrmeg-expo-ui-geist|inter">` in the document
+ * counts as already loaded). Native: the files register first and the preset
+ * switches after, since a native font name that is not loaded is an error,
+ * not a fallback. `"geist"` registers the bundled files; `"inter"` registers
+ * `nativeFonts` (the app's `@expo-google-fonts/inter` per-weight map) and,
+ * when it is missing, warns once and keeps the current sans.
+ *
+ * `useResources` runs this at startup; call it directly to switch at runtime,
+ * e.g. before `applyLook(classicLook)`. A `setFonts` sansSerif override wins
+ * over any preset, so nothing is loaded or switched while one is set.
+ */
+export async function loadSansPreset(
+  preset: SansPreset,
+  nativeFonts?: Record<string, number | string> | null,
+): Promise<void> {
+  const store = useThemeStore.getState();
+  if (store.fontOverrides.families?.sansSerif) return;
+
+  if (Platform.OS === "web") {
+    store.setSansPreset(preset);
+    if (preset === "inter") {
+      await ensureWebFontStylesheet(INTER_STYLESHEET_ID, INTER_STYLESHEET_URL, "Inter");
+    } else {
+      await ensureWebFontStylesheet(GEIST_STYLESHEET_ID, GEIST_STYLESHEET_URL, "Geist");
+    }
+    return;
+  }
+
+  if (preset === "inter") {
+    if (!nativeFonts) {
+      if (!warnedMissingSansFonts) {
+        warnedMissingSansFonts = true;
+        console.warn(
+          "The \"inter\" sans preset needs a font map on native: pass the @expo-google-fonts/inter " +
+            "faces (400Regular, 500Medium, 600SemiBold, 700Bold) as `sansFonts` / the second " +
+            "argument of loadSansPreset. Keeping Geist.",
+        );
+      }
+      return;
+    }
+    await loadNativeFonts(nativeFonts);
+  } else {
+    await loadNativeGeistFonts();
+  }
+  useThemeStore.getState().setSansPreset(preset);
 }
 
 let warnedMissingSerifFonts = false;
@@ -109,11 +188,11 @@ async function loadSerifPreset(options: UseResourcesOptions): Promise<void> {
 export const useResources = (options: UseResourcesOptions = {}): LoadResourcesResult => {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const { serif, serifFonts } = options;
+  const { serif, serifFonts, sans, sansFonts } = options;
 
   useEffect(
-    () => startResourceLoad({ serif, serifFonts }, setError, () => setLoaded(true)),
-    [serif, serifFonts],
+    () => startResourceLoad({ serif, serifFonts, sans, sansFonts }, setError, () => setLoaded(true)),
+    [serif, serifFonts, sans, sansFonts],
   );
 
   return { loaded, error };
@@ -132,10 +211,11 @@ function startResourceLoad(
   async function loadResourcesAndDataAsync() {
     try {
       const fontPromise = Promise.all([
-        sansSerifOverridden ? Promise.resolve() : loadNativeInterFonts(),
+        sansSerifOverridden ? Promise.resolve() : loadNativeGeistFonts(),
         sansSerifOverridden
           ? Promise.resolve()
-          : ensureWebFontStylesheet(INTER_STYLESHEET_ID, INTER_STYLESHEET_URL, "Inter"),
+          : ensureWebFontStylesheet(GEIST_STYLESHEET_ID, GEIST_STYLESHEET_URL, "Geist"),
+        options.sans === "inter" ? loadSansPreset("inter", options.sansFonts) : Promise.resolve(),
         loadSerifPreset(options),
       ]);
 

@@ -596,7 +596,7 @@ style.
 on `StyledText` instead of `lineHeight` in a style; every size carries its line
 height.
 
-`"Inter_500Medium"` is a raw font family. It is the kit's `sansSerif` face at
+`"Geist_500Medium"` is a raw font family. It is the kit's `sansSerif` face at
 `medium`: use `StyledText variant="sansSerif" fontWeight="medium"` or
 `useFontStyle("medium", "sansSerif")`. A brand face goes through `setFonts`,
 never a literal.

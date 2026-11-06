@@ -1,38 +1,40 @@
 /**
  * Surface Lab shadow treatments.
  *
- * `edge-lit` is the package's own `getShadowStyle` (prototyped here, picked, and
- * now the default): in dark a 1px inset top highlight plus deeper black layers
- * at real alpha, in light the same dual-layer shadow at about double the
- * original alpha. The Lab calls `getShadowStyle` for it, so the specimen always
- * shows what ships.
+ * `package` is the package's own `getShadowStyle`, so the specimen always shows
+ * what ships. `subtle` follows the `elevation` treatment, whose default is
+ * "hairline": one faint 1px shadow in light and none in dark, the 1px border
+ * drawing the edge. `soft` and `elevated` stay dual-layer, with the 1px inset
+ * top highlight in dark. The dual-layer `subtle` of earlier releases is what
+ * `elevation: "layered"` (or `classicLook`) gives.
  *
  * `previous` is a frozen copy of the presets the package used before the
- * change, kept as a baseline: black dual-layer shadows, with the dark alpha tripled
- * (`0.04 * 3`), which is invisible on a near-black base. Only the presets the
- * Lab specimen draws are kept (`Card` uses `subtle`; `Popover`, `Dialog`,
- * `DropdownMenu` and `Select` use `soft`; `Notification` uses `elevated`).
+ * edge-lit change, kept as a baseline: black dual-layer shadows with the dark
+ * alpha tripled (`0.04 * 3`) and no highlight, which is invisible on a
+ * near-black base. Only the presets the Lab specimen draws are kept (`Card`
+ * uses `subtle`; `Popover`, `Dialog`, `DropdownMenu` and `Select` use `soft`;
+ * `Notification` uses `elevated`).
  */
 
 import type { SurfaceScheme } from "./surfaceLabCandidates";
 
-export type ShadowTreatment = "previous" | "edge-lit";
+export type ShadowTreatment = "previous" | "package";
 export type ShadowPreset = "subtle" | "soft" | "elevated";
 
 export const SHADOW_TREATMENTS: { id: ShadowTreatment; label: string; summary: string }[] = [
   {
     id: "previous",
     label: "Previous",
-    summary: "The old getShadowStyle: dual-layer black, alpha tripled in dark where it barely shows.",
+    summary: "The pre-edge-lit getShadowStyle: dual-layer black, alpha tripled in dark where it barely shows.",
   },
   {
-    id: "edge-lit",
-    label: "Edge-lit",
-    summary: "The package default. Dark: 1px inset top highlight plus a deeper black shadow. Light: the shadow at about double the old alpha.",
+    id: "package",
+    label: "Package",
+    summary: "The package default. Cards use the hairline subtle shadow (1px in light, none in dark); menus and toasts stay dual-layer, with a 1px inset top highlight in dark. elevation: \"layered\" restores the dual-layer card shadow.",
   },
 ];
 
-export const DEFAULT_SHADOW_TREATMENT: ShadowTreatment = "edge-lit";
+export const DEFAULT_SHADOW_TREATMENT: ShadowTreatment = "package";
 
 export function findTreatment(id: string) {
   return SHADOW_TREATMENTS.find((item) => item.id === id) ?? SHADOW_TREATMENTS[0];

@@ -478,7 +478,7 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.foreground,
     },
     viewAllText: {
-      color: theme.colors.accent,
+      color: theme.colors.link,
     },
 
     // Activity feed. No horizontal padding on the container: the rows carry

@@ -13,6 +13,7 @@ import { NativeSegmentedControl } from "./nativeSegmentedControl";
 import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useFocusVisible } from "../hooks/useFocusVisible";
+import { useTreatment } from "../hooks/useTreatment";
 import { hapticSelection } from "../lib/haptics";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { spacing } from "../constants/spacing";
@@ -42,8 +43,14 @@ import { StyledText } from "./StyledText";
  * haptic fires on each change, matching Switch / Checkbox (see
  * `hapticSelection`).
  *
- * Theming: the accent color tints the selected segment on Android, web and
- * `size="lg"`. The native iOS control draws the system segmented control,
+ * Theming: the `segmentedSelection` treatment (`setTreatments`, `applyLook`)
+ * picks how the drawn control (web, and `size="lg"` on every platform) marks
+ * the selected segment. The default, `"surface"`, raises a `background` pill
+ * with a soft shadow on the `muted` track and keeps the label in `text`;
+ * `"accent"` fills the pill with the theme accent (or `tintColor`) instead. An
+ * explicit `tintColor` always fills the pill, whichever treatment is active.
+ * The native `md` controls are unaffected by the treatment: Android is
+ * accent-tinted via `tintColor`, and iOS draws the system segmented control,
  * which ignores a custom tint — pass `appearance` to force light/dark there.
  *
  * Drawn control: `@expo/ui`'s vendored web control paints every label white
@@ -91,9 +98,10 @@ export interface SegmentedControlProps {
    */
   size?: "md" | "lg";
   /**
-   * Accent color for the selected segment. Defaults to the theme accent.
-   * Applied on Android, web and `size="lg"`; the native iOS control uses the
-   * system style.
+   * Fill for the selected segment. Defaults to the theme accent on Android and
+   * under the `"accent"` treatment, and to the raised `background` pill under
+   * `"surface"` (an explicit value always wins). Applied on Android, web and
+   * `size="lg"`; the native iOS control uses the system style.
    */
   tintColor?: string;
   /**
@@ -176,7 +184,15 @@ function SegmentedControl({
 const TRACK_HEIGHTS = { md: 32, lg: spacing.touchTarget };
 /** Gap between the track edge and the selected pill. */
 const PILL_INSET = 2;
+/** Pill radius in the `"surface"` treatment, one step inside the 10 pt track. */
+const SURFACE_PILL_RADIUS = 7;
 const SEGMENT_LABEL_SIZE = { fontSize: 14, lineHeight: 18 };
+
+/** The raised pill's shadow in the `"surface"` treatment. */
+const PILL_SHADOW = {
+  light: "0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)",
+  dark: "0 1px 2px rgba(0, 0, 0, 0.4)",
+};
 
 interface DrawnSegmentedControlProps {
   values: string[];
@@ -200,6 +216,7 @@ function DrawnSegmentedControl({
 }: DrawnSegmentedControlProps) {
   const { theme, getContrastingColor } = useTheme();
   const reduceMotion = useReducedMotion();
+  const selection = useTreatment("segmentedSelection");
   const [trackWidth, setTrackWidth] = useState(0);
   const position = useAnimatedValue(selectedIndex);
   const previousIndex = useRef(selectedIndex);
@@ -231,10 +248,16 @@ function DrawnSegmentedControl({
   const count = Math.max(1, values.length);
   const segmentWidth = Math.max(0, trackWidth - PILL_INSET * 2) / count;
   const travel = Math.max(1, count - 1);
-  const pillColor = tintColor ?? theme.colors.accent;
+  // "surface" raises a `background` pill carrying `text`; an explicit
+  // `tintColor` or the "accent" treatment fills it instead.
+  const raised = selection === "surface" && tintColor === undefined;
+  const pillColor = raised ? theme.colors.background : tintColor ?? theme.colors.accent;
+  const pillRadius = raised ? SURFACE_PILL_RADIUS : spacing.radiusSm;
   // White on the light teal is 2.4:1, and a custom tint may not pair with
   // `accentForeground` either, so pick the readable label.
-  const selectedLabelColor = getContrastingColor(pillColor, theme.colors.foreground, theme.colors.background);
+  const selectedLabelColor = raised
+    ? theme.colors.text
+    : getContrastingColor(pillColor, theme.colors.foreground, theme.colors.background);
 
   return (
     <View
@@ -291,8 +314,9 @@ function DrawnSegmentedControl({
             bottom: PILL_INSET,
             left: PILL_INSET,
             width: segmentWidth,
-            borderRadius: spacing.radiusSm,
+            borderRadius: pillRadius,
             backgroundColor: pillColor,
+            ...(raised && { boxShadow: theme.dark ? PILL_SHADOW.dark : PILL_SHADOW.light }),
             transform: [
               {
                 translateX: position.interpolate({
@@ -317,6 +341,7 @@ function DrawnSegmentedControl({
             label={label}
             selected={index === selectedIndex}
             disabled={disabled}
+            radius={pillRadius}
             color={index === selectedIndex ? selectedLabelColor : theme.colors.mutedForeground}
             onPress={() => onSelect(label)}
           />
@@ -330,11 +355,12 @@ interface DrawnSegmentProps {
   label: string;
   selected: boolean;
   disabled: boolean;
+  radius: number;
   color: string;
   onPress: () => void;
 }
 
-function DrawnSegment({ label, selected, disabled, color, onPress }: DrawnSegmentProps) {
+function DrawnSegment({ label, selected, disabled, radius, color, onPress }: DrawnSegmentProps) {
   const { getFocusRingStyle } = useTheme();
   const focus = useFocusVisible();
 
@@ -366,7 +392,7 @@ function DrawnSegment({ label, selected, disabled, color, onPress }: DrawnSegmen
             alignItems: "center",
             justifyContent: "center",
             paddingHorizontal: spacing.sm,
-            borderRadius: spacing.radiusSm,
+            borderRadius: radius,
           },
           focus.focused && !disabled && getFocusRingStyle(),
         ]}

@@ -20,6 +20,10 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/detail-hero.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/detail-hero.tsx
 - app/(main)/(demos)/developer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/developer.tsx
 - app/(main)/(demos)/form-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/form-demo.tsx
+- app/(main)/(demos)/looks/[id].tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/looks/%5Bid%5D.tsx
+- app/(main)/(demos)/looks/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/looks/index.tsx
+- app/(main)/(demos)/looks/surface-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/looks/surface-lab.tsx
+- app/(main)/(demos)/looks/themed-showcase.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/looks/themed-showcase.tsx
 - app/(main)/(demos)/media-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/media-lab.tsx
 - app/(main)/(demos)/onboarding.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/onboarding.tsx
 - app/(main)/(demos)/screen-card-grid.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-card-grid.tsx
@@ -40,9 +44,7 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/screen-welcome.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-welcome.tsx
 - app/(main)/(demos)/server-alpha/[example].tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha/%5Bexample%5D.tsx
 - app/(main)/(demos)/server-alpha/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha/index.tsx
-- app/(main)/(demos)/surface-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/surface-lab.tsx
 - app/(main)/(demos)/templates/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/templates/index.tsx
-- app/(main)/(demos)/themed-showcase.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/themed-showcase.tsx
 
 ## Screen Templates (`client/templates/`)
 

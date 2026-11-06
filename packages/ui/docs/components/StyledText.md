@@ -21,3 +21,8 @@ the keyboard; pass `selectable` to opt copyable content in. Package controls
 already scope label selectability; ordinary iOS/web text stays selectable.
 
 Prefer semantic aliases over raw `Text`.
+
+The sans face is Geist (Inter is the opt-in `sans: "inter"` preset). `eyebrow`
+is 13 medium, sentence case, untracked; the `eyebrow` treatment
+(`useThemeStore.getState().setTreatments({ eyebrow: "uppercase" })`) switches it to 12 semibold uppercase.
+Geist has no italic, so `italic` on the default sans is synthesized.

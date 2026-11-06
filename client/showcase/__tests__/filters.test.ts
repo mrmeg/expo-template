@@ -24,6 +24,7 @@ import {
   filterComponents,
   filterTemplates,
   groupComponentsByCategory,
+  lookRoute,
   searchRegistries,
 } from "../filters";
 import { BLOCKS, COMPONENTS, SCREEN_TEMPLATES, type ComponentEntry } from "../registry";
@@ -229,6 +230,7 @@ const FIXTURE_REGISTRIES = {
   components: FIXTURE_COMPONENTS,
   blocks: FIXTURE_BLOCKS,
   templates: FIXTURE_TEMPLATES,
+  looks: [],
 };
 
 describe("searchRegistries", () => {
@@ -312,6 +314,26 @@ describe("searchRegistries", () => {
     expect(hit.categoryLabel).toBeUndefined();
   });
 
+  it("finds a look by name and routes it to its detail page, after the other tiers", () => {
+    const hits = searchRegistries("glass");
+    const look = hits.find((h) => h.kind === "look");
+    expect(look).toMatchObject({ id: "glass", label: "Glass", categoryLabel: "Look", route: "/(main)/(demos)/looks/glass" });
+    expect(hits[hits.length - 1].kind).toBe("look");
+  });
+
+  it("finds the styling tools and routes them under Looks, after the looks", () => {
+    const hits = searchRegistries("surface");
+    const tool = hits.find((h) => h.kind === "tool");
+    expect(tool).toMatchObject({
+      id: "surface-lab",
+      label: "Surface Lab",
+      categoryLabel: "Tool",
+      route: "/(main)/(demos)/looks/surface-lab",
+    });
+    expect(hits[hits.length - 1].kind).toBe("tool");
+    expect(searchRegistries("themed")[0].route).toBe(SHOWCASE_ROUTES.themedShowcase);
+  });
+
   it("searches the real registries by default", () => {
     const hits = searchRegistries("SegmentedControl");
     expect(hits.map((h) => `${h.kind}:${h.id}`)).toContain("component:SegmentedControl");
@@ -360,5 +382,12 @@ describe("componentDetailRoute", () => {
     expect(componentDetailRoute("BottomSheet")).toBe(
       "/(main)/(demos)/components/BottomSheet",
     );
+  });
+});
+
+describe("lookRoute", () => {
+  it("hangs the look id off the looks route", () => {
+    expect(lookRoute("strand")).toBe("/(main)/(demos)/looks/strand");
+    expect(SHOWCASE_ROUTES.looks).toBe("/(main)/(demos)/looks");
   });
 });

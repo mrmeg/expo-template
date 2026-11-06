@@ -417,36 +417,40 @@ with one accent, not a look a fork has to fight.
 ## Palette
 
 Semantic tokens only; components never read raw palette entries. Source:
-`packages/ui/src/constants/colors.ts`. Neutrals are Tailwind's zinc scale, the
-accent is teal, and status colors are Tailwind's defaults.
+`packages/ui/src/constants/colors.ts`. Neutrals are Tailwind's neutral grey
+scale (the Refined look), the accent is teal, and status colors are Tailwind's
+defaults.
 
 | Token | Light | Dark | Role |
 |---|---|---|---|
-| `surfaceSunken` | `#FAFAFA` | `#050506` | App chrome (tab bar, rail) |
-| `background` | `#FFFFFF` | `#09090B` | Content; also each scheme's launch background |
-| `card` / `popover` | `#FFFFFF` | `#18181B` | Raised surfaces: collection tiles, popovers, sheets |
-| `muted` | `#F4F4F5` | `#27272A` | Chips, insets, skeletons |
-| `text` / `foreground` | `#09090B` | `#F4F4F5` | Body text |
-| `textDim` / `mutedForeground` | `#52525B` | `#B0B0B8` | Secondary text |
-| `primary` / `primaryForeground` | `#18181B` / `#FAFAFA` | `#FAFAFA` / `#18181B` | Filled controls |
-| `accent` / `accentForeground` | `#14B8A6` / `#FFFFFF` | `#2DD4BF` / `#18181B` | The one brand color: links, selection, the dot |
-| `destructive` | `#EF4444` | `#F87171` | Danger |
-| `success` / `warning` | `#22C55E` / `#F59E0B` | `#4ADE80` / `#FBBF24` | Status |
-| `border` / `borderStrong` | `#E4E4E7` / `#D4D4D8` | `#27272A` / `#3F3F46` | Hairlines; strong sits on filled surfaces |
-| `ring` | `#A1A1AA` | `#A1A1AA` | Web focus ring |
+| `surfaceSunken` | `#FAFAFA` | `#0A0A0A` | App chrome (tab bar, rail) |
+| `background` | `#FFFFFF` | `#0A0A0A` | Content; light is also the launch background (dark launch stays `#09090B` in `app.config.ts`) |
+| `card` / `popover` | `#FFFFFF` | `#171717` | Raised surfaces: collection tiles, popovers, sheets |
+| `muted` | `#F5F5F5` | `#262626` | Chips, insets, skeletons |
+| `text` / `foreground` | `#0A0A0A` | `#FAFAFA` | Body text |
+| `textDim` / `mutedForeground` | `#525252` | `#A4A4A4` | Secondary text |
+| `primary` / `primaryForeground` | `#171717` / `#FAFAFA` | `#E5E5E5` / `#171717` | Filled controls |
+| `accent` / `accentForeground` | `#14B8A6` / `#FFFFFF` | `#2DD4BF` / `#171717` | The one brand color: the selection dot and fills |
+| `link` | `#0F766E` | `#5EEAD4` | Link text (Button `link`, "See all"); the accent is too light to read as text on white |
+| `destructive` | `#DC2626` | `#F87171` | Danger |
+| `success` / `warning` | `#15803D` / `#F59E0B` | `#4ADE80` / `#FBBF24` | Status |
+| `border` / `borderStrong` | `#E5E5E5` / `#D4D4D4` | `#262626` / `#404040` | Hairlines; strong sits on filled surfaces |
+| `ring` | `#A1A1A1` | `#737373` | Web focus ring |
 
 Contrast is tested, not hoped for: `packages/ui/src/constants/__tests__/colors.test.ts`
 holds `text` at ≥ 12:1 and `textDim`/`mutedForeground` at ≥ 7:1 on
-`background`, `card`, and `popover` (≥ 6:1 on `muted`/`secondary`) in both
-schemes (WCAG AA asks 4.5:1 for body text and 3:1 for large text and UI
-parts). A fork that re-brands through `setColors` should keep those floors; the
+`background`, `card`, and `popover` (≥ 6:1 on `muted`/`secondary`), and `link`
+at ≥ 4.5:1 on `background`, `card`, and `popover`, in both schemes (WCAG AA asks
+4.5:1 for body text and 3:1 for large text and UI parts). Dark `#A4A4A4` is the
+darkest grey that keeps the 6:1 floor on `muted`. A fork that re-brands through
+`setColors` should keep those floors; the
 same test file is the place to pin them. A fork that overrides `background`,
 `card`, or `popover` should re-check its values against the Surface Lab
-(`/surface-lab`), which shows the tier ladder and the specimens it has to read
+(`/looks/surface-lab`), which shows the tier ladder and the specimens it has to read
 on.
 
 Rules: elevation is layered surfaces (`surfaceSunken` < `background` < `card` <
-`muted`) plus, in dark, an edge highlight (see
+`muted`) plus a hairline `border` (see
 [Shape, elevation, rhythm](#shape-elevation-rhythm)); the accent appears once
 per view as the thing to look at, never as a large fill; status colors mean
 status.
@@ -455,12 +459,14 @@ status.
 
 Two families at most.
 
-- **Sans (everything):** Inter, weights 400/500/600/700, loaded by
+- **Sans (everything):** Geist, weights 400/500/600/700, loaded by
   `useResources()` (four static files on native, one Google Fonts family on
-  web). Roles (`StyledText` `semantic`): body 15/24.75, label 14/21 medium,
-  caption 12/18, subheading 18/27 medium, heading 22/26.4 semibold, title
-  28/33.6 semibold; eyebrows 12 px, uppercase, tracked, `mutedForeground`.
-  Sizes beyond the roles come from the `size` scale (`xs` 11 … `display` 34).
+  web). Inter is the opt-in classic preset (`useResources({ sans: "inter",
+  sansFonts })`, part of `classicLook`). Roles (`StyledText` `semantic`): body
+  15/24.75, label 14/21 medium, caption 12/18, subheading 18/27 medium, heading
+  22/26.4 semibold, title 28/33.6 semibold; eyebrow 13 medium, sentence case,
+  untracked, `mutedForeground`. Sizes beyond the roles come from the `size`
+  scale (`xs` 11 … `display` 34).
 - **Serif (display accents):** the `serif` variant. Georgia by default; the
   package's opt-in Newsreader preset (see the package README, Typography) is
   the recommended pairing for display text and section titles.
@@ -471,22 +477,26 @@ Forks replace faces with `setFonts` — never by patching `node_modules`.
 
 ## Shape, elevation, rhythm
 
-- **Radii** (`spacing.radius*`): 4 chips/checkboxes, 8 menu items and
-  thumbnails, 10 controls (Button default, inputs), 14 collection tiles and
-  dialogs, 24 hero media, full for pills and avatars. Sheets keep the
-  platform's corner radius unless an app sets one. Forks retune Button (and
-  other slots as the package adds them) through `setShape`.
-- **Elevation:** surface tiers first, then light. In dark, raised surfaces
-  carry a 1px inset white highlight on the top edge (5 to 6 %) plus a deeper,
-  larger black shadow: the "lit from above" cue. On a near-black base a faint
-  drop shadow is invisible, so the highlight carries the depth and the shadow
-  only grounds the surface. Light has no highlight; the shadow does the work, at
-  about twice the alpha it once had. `getShadowStyle("subtle")` goes on the
-  `default` Button and on collection tiles (`Card`); overlays (`Popover`,
-  `Dialog`, `DropdownMenu`, `Select`, `Tooltip`) use `soft`, `Notification`
-  uses `elevated`; screen content is flat. The Surface Lab (`/surface-lab`)
-  shows the tier ladder, alternate surface ramps for forks, and the previous
-  shadows next to the current ones.
+- **Radii** (`spacing.radius*`): 4 chips/checkboxes, 8 controls (Button
+  default, inputs: TextInput, the Select trigger, InputOTP cells) and menu
+  items and thumbnails, 14 collection tiles and dialogs, 24 hero media, full
+  for pills and avatars. Sheets keep the platform's corner radius unless an app
+  sets one. Forks retune Button (and other slots as the package adds them)
+  through `setShape`.
+- **Controls:** the drawn SegmentedControl (web, and `size="lg"`) marks the
+  selection with a raised `background` segment on the `muted` track, not a teal
+  fill; Switch's on-track is `primary`; the web focus ring is a soft 3px `ring`
+  halo.
+- **Elevation:** surface tiers first, then a hairline. The `subtle` shadow
+  (`getShadowStyle("subtle")`, on the `default` Button and on collection tiles
+  (`Card`)) is a 1px light shadow in light and nothing in dark, where the 1px
+  `border` carries the edge. `elevation: "layered"` (a treatment, and part of
+  `classicLook`) restores the dual-layer `subtle` shadow with the dark top
+  highlight.
+  Overlays (`Popover`, `Dialog`, `DropdownMenu`, `Select`, `Tooltip`) use
+  `soft`, `Notification` uses `elevated`; screen content is flat. The Surface
+  Lab (`/looks/surface-lab`) shows the tier ladder and alternate surface ramps for
+  forks.
 - **Rhythm:** 8-pt base (`spacing.sm` 8, `md` 16, `lg` 24, `xl` 32) with 4 and
   12 as half steps; screen gutter 16; section spacing 24; rows 10 × 16 padding;
   44-pt touch targets.
@@ -513,12 +523,30 @@ Masters live in `assets/brand/`; `bun run brand:assets` renders every raster
 | `mark-tinted.svg` | `icon-tinted.png` | `ios.icon.tinted` (grayscale for the system tint) |
 | `adaptive-foreground.svg` | `adaptive-icon.png` | Android adaptive foreground, mark at 66 % for the safe zone; background `#09090B` |
 | `adaptive-monochrome.svg` | `adaptive-icon-monochrome.png` | Android themed icon |
-| `splash-light.svg` / `splash-dark.svg` | `splash-icon.png` / `splash-icon-dark.png` | Splash on `#FFFFFF` / `#09090B` — each scheme's `background` |
+| `splash-light.svg` / `splash-dark.svg` | `splash-icon.png` / `splash-icon-dark.png` | Splash on `#FFFFFF` / `#09090B` (launch colors set in `app.config.ts`, pinned by `brandAssets.test.ts`; dark is one step off the dark `background`) |
 | `favicon.svg` | `favicon.png` 48² | Web favicon (heavier stroke so it survives 16 px) |
 
 The showcase's sample avatar and the auth screen's logo `require` `icon.png`,
 so they follow the mark automatically. `__tests__/brandAssets.test.ts` pins the
 sizes and the config wiring.
+
+## Looks
+
+A look bundles colors, fonts, shape, and treatments (`segmentedSelection`,
+`switchTrack`, `eyebrow`, `focusRing`, `elevation`) as one named value. The
+default is Refined (`refinedLook`, everything on this page). `classicLook` is
+the pre-0.35 look: Inter, zinc neutrals, teal selection, radius 10 controls,
+uppercase eyebrow, offset focus ring, layered shadows. `applyLook(look)`
+applies one through `setColors`, `setFonts`, `setShape`, and `setTreatments`;
+`useTreatment(name)` reads a treatment. Looks is a Library section next to
+Components, Blocks and Templates: `/looks` lists the style references (Refined,
+Classic, Strand, Glass, Editorial) and `/looks/<id>` applies one across the app
+while the page is open, with its colors, type, shape, treatments and a copyable
+snippet. The sources are `client/showcase/LooksScreen.tsx` and
+`client/showcase/LookDetailScreen.tsx`. Two tools for testing your own palette
+live under it, linked from a Tools group on `/looks`: the Themed Showcase
+(`/looks/themed-showcase`) and the Surface Lab (`/looks/surface-lab`). Package details are in
+[`packages/ui/README.md`](../packages/ui/README.md#looks-and-treatments).
 
 ## What a fork replaces
 
@@ -528,9 +556,15 @@ sizes and the config wiring.
    `bun run brand:assets`, commit both. Keep the dark/tinted/monochrome
    variants — iOS and Android render them without asking.
 3. Palette: `setColors({ light, dark })` once at startup with the brand's
-   `primary`/`accent` (and any other tokens); re-run the contrast test.
-4. Type: `setFonts` with the brand faces, loaded through `expo-font`.
-5. Wordmark: `client/features/navigation/WebNavShell.tsx` (`Wordmark`).
+   `primary`/`accent`/`link` (and any other tokens); re-run the contrast test.
+   To start from another look, `applyLook(look)` instead (or after, to layer
+   brand colors on a look), and pass the same colors to
+   `getThemeCssVariables` in `app/+html.tsx`.
+4. Type: `setFonts` with the brand faces, loaded through `expo-font`, or a
+   look's `sans`/`serif` preset.
+5. Treatments: `setTreatments` (or a look's `treatments`) for the selection,
+   switch, eyebrow, focus ring, and elevation styling.
+6. Wordmark: `client/features/navigation/WebNavShell.tsx` (`Wordmark`).
 
 ---
 
@@ -570,7 +604,7 @@ Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](http
 | react / react-dom | 19.3.0 |
 | react-native | 0.88.0-rc.4 |
 | react-native-web | ^0.21.4 |
-| @mrmeg/expo-ui | ^0.33.0 |
+| @mrmeg/expo-ui | ^0.35.0 |
 | @mrmeg/expo-media (if using media) | ^0.7.0 |
 | zustand | ^5.0.15 |
 | @tanstack/react-query | ^5.104.2 |
@@ -630,7 +664,7 @@ plugins: [
 Then:
 
 1. Add `expo-server` (`~57.0.3`).
-2. Add `app/+html.tsx` (fetch the template's). It wraps every route's HTML with the viewport meta, global CSS, a blocking script that stamps the color scheme on `<html>` before first paint, and — under server rendering — the framework's SSR head/body resources. Adapt fonts and scripts. The template self-hosts Inter (`public/fonts/inter/`, Latin preloaded, `@font-face` inline with `font-display: optional`) instead of a render-blocking Google Fonts stylesheet; keep the `mrmeg-expo-ui-inter` id on that `<style>` so `useResources()` does not inject a second copy.
+2. Add `app/+html.tsx` (fetch the template's). It wraps every route's HTML with the viewport meta, global CSS, a blocking script that stamps the color scheme on `<html>` before first paint, and — under server rendering — the framework's SSR head/body resources. Adapt fonts and scripts. The template self-hosts Geist (`public/fonts/geist/`, Latin preloaded, `@font-face` inline with `font-display: optional`) instead of a render-blocking Google Fonts stylesheet; keep the `mrmeg-expo-ui-geist` id on that `<style>` so `useResources()` does not inject a second copy. It also inlines Inter's rules under `mrmeg-expo-ui-inter` (no preload) for the opt-in `classicLook` preset; drop that block if the app never uses Inter.
 3. Add a production server entry. Template: `server.bun.ts` (`Bun.serve`) serves `dist/client/` statics and mounts the `dist/server/` handler through `expo-server/adapter/bun`. On a non-Bun host, use the matching `expo-server` adapter and reimplement the same static/CORS/rate-limit/header layers.
 4. **First-render rules.** Persisted browser state (localStorage, `matchMedia`, dimensions) exists only after mount, so a route's first render must not depend on it — read it in an effect or accept the pre-hydration default. Anything that must be correct before paint belongs in a `+html.tsx` blocking script (how the color scheme is stamped). Under server rendering, any value the markup depends on must come off the request: mirror it into a cookie and re-derive it from identical bytes on both sides so hydration matches (`shared/ssrViewport.ts`, `shared/ssrOnboarding.ts`, `client/features/app/ssrViewportMetrics.ts`). Without a viewport signal, react-native-web lays out the tree at width 0.
 
@@ -696,7 +730,7 @@ Conventions:
 
 ## Phase 4 — @mrmeg/expo-ui
 
-Upgrade to `@mrmeg/expo-ui@^0.33.0`. Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 59; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.89; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 4; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `react-native-svg` ≥ 15 < 16; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3. Optional, only for the media components: `expo-image`, `expo-video`, `expo-audio` ≥ 56 < 59.
+Upgrade to `@mrmeg/expo-ui@^0.35.0`; 0.35.0 makes the Refined look (Geist, neutral greys, radius 8 controls) the default, and `applyLook(classicLook)` keeps the old one (see [Consumer migration to 0.35.0](#consumer-migration-to-0350)). Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 59; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.89; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 4; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `react-native-svg` ≥ 15 < 16; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3. Optional, only for the media components: `expo-image`, `expo-video`, `expo-audio` ≥ 56 < 59.
 
 **Required root setup:**
 
@@ -799,9 +833,13 @@ bun run build          # expo export → dist/client + dist/server
 
 Sweep for and delete: app-local duplicates of `@mrmeg/expo-ui` primitives (buttons, inputs, menus, modals, cards, typography); hard-coded colors, shadows, radii, spacing in general-purpose UI; fetch-on-mount for initial route data; top-level server-module imports in client-reachable files; UI branching on raw `Response` objects; cross-feature internal imports; startup logic that blocks first paint on persisted browser state; integrations that crash on a blank `.env`.
 
+## Consumer migration to 0.35.0
+
+From 0.34.x, run `bun add @mrmeg/expo-ui@^0.35.0`, then typecheck, test, and re-check screenshots: every built-in value of the look moved. The Refined look is the new default, so an app that calls nothing new gets it on upgrade: Geist replaces Inter (`@expo-google-fonts/geist` replaces `@expo-google-fonts/inter` in the package's `dependencies`), neutral greys replace zinc, Button and inputs use radius 8, the eyebrow is sentence case, and a new `link` color token colors link text. To keep the old look, call `applyLook(classicLook)` once at startup and load Inter (`useResources({ sans: "inter", sansFonts })` with `@expo-google-fonts/inter` on native); the steps are in `packages/ui/CHANGELOG.md`, `[0.35.0]`, "Migrating: keep the old look". A re-branded app that sets `link` itself keeps its link color; one that does not gets teal `#0F766E` / `#5EEAD4`.
+
 ## Consumer migration to 0.32.0
 
-From 0.30.x, run `bun add @mrmeg/expo-ui@^0.33.0` (and `@mrmeg/expo-media@^0.6.0` with media), then `bunx expo-ui-icons`, `bunx expo-ui-icons tabs`, typecheck and test. Behaviour that changed:
+From 0.30.x, run `bun add @mrmeg/expo-ui@^0.35.0` (and `@mrmeg/expo-media@^0.6.0` with media), then `bunx expo-ui-icons`, `bunx expo-ui-icons tabs`, typecheck and test. Behaviour that changed:
 
 - 0.31.0: Lucide 1.61 turns `music`, `music-2`, `music-3` and `music-4` into aliases, and `expo-ui-icons` rejects an alias in `client/icons.json`: rename them to `eighth-notes`, `eighth-note`, `half-note` and `sixteenth-notes`. `ThemeSelector` exposes `aria-checked` on web; `TextInput` reads helper text once on native.
 - 0.32.0: `Checkbox` with `indeterminate` and `checked={false}` now draws the dash and reads as "mixed"; drop any `checked` passed only to make the dash appear.
@@ -1097,8 +1135,8 @@ Install the peer versions recommended by the consuming app's Expo SDK.
 ## Required App Setup
 
 Call `useResources()` once near the Expo app root; it resolves `{ loaded, error }`
-and loads the four static Inter weights on native (web gets a single Google Fonts
-Inter stylesheet). Mount `UIProvider` once near the root; it owns the package
+and loads the four static Geist weights on native (web gets a single Google Fonts
+Geist stylesheet). Mount `UIProvider` once near the root; it owns the package
 `Notification`, `StatusBar`, the default `@rn-primitives` portal host, and the
 native keyboard-avoiding root. It is required before `Dialog`, `AlertDialog`,
 `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`,
@@ -1188,26 +1226,26 @@ Semantic color tokens on `theme.colors`: `surfaceSunken`, `background`,
 `foreground`, `card`, `cardForeground`, `popover`, `popoverForeground`, `text`,
 `textDim`, `muted`, `mutedForeground`, `border`, `borderStrong`, `input`, `ring`,
 `overlay`, `primary`, `primaryForeground`, `secondary`, `secondaryForeground`,
-`accent`, `accentForeground`, `destructive`, `destructiveForeground`, `success`,
-`warning`.
+`accent`, `accentForeground`, `link`, `destructive`, `destructiveForeground`,
+`success`, `warning`.
 
 Token intent:
 
 - `primary`: neutral action color; `secondary`: neutral secondary surface
-- `accent`: teal highlight color
+- `accent`: teal dot and fills; `link`: link text
 - `input`: form-control border; `ring`: focus outline
 - `popover`: elevated overlay surface
 - `surfaceSunken`: app-chrome surface one tier below `background`
 - `borderStrong`: hairline for elements on filled surfaces, where `border` blends in
 
-Elevation is a surface-tier ladder plus, in dark, an edge highlight:
-`surfaceSunken` (chrome) < `background` (content) < `card`/`popover` (raised) <
-`muted` (chips, insets). `getShadowStyle` is scheme-aware: in dark the raised
-presets (`subtle`, `soft`, `elevated`, `card`, `cardSubtle`, `cardHover`,
-`glass`) start with a 1px inset white top highlight and use black shadows at
-real alpha; in light it is the shadow alone, at about twice the old alpha. A
-fork that overrides `background`, `card`, or `popover` should re-check against
-the template's `/surface-lab`.
+Elevation is a surface-tier ladder plus a hairline `border`: `surfaceSunken`
+(chrome) < `background` < `card`/`popover` < `muted`. In dark, `getShadowStyle`
+presets other than `subtle` add a 1px inset top highlight; `subtle` (Button,
+Card) is a 1px light shadow and none in dark unless `elevation: "layered"`. A
+fork that overrides `background`, `card`, or `popover` should
+re-check against the template's `/looks/surface-lab`.
+
+Defaults are the Refined look; `applyLook(classicLook)` restores the pre-0.35 look. See README "Looks and treatments".
 
 On web every `theme.colors.*` value is a CSS custom property (`var(--c-*)`), so
 themes swap in CSS when `html[data-theme]` changes; native keeps literals. Both
@@ -1269,9 +1307,9 @@ scopes merge (inner wins, outer fills in). With no override at either layer,
 
 Fonts and shape have matching global injection points. `setFonts({ families: {
 sansSerif?, serif?, mono? }, webWeightStrategy? })` replaces the bundled faces
-(Inter / Georgia / system-mono) everywhere text renders; groups and weights are
+(Geist / Georgia / system-mono) everywhere text renders; groups and weights are
 partial, missing weights fall back to that group's `regular`, and an overridden
-`sansSerif` makes `useResources` skip downloading Inter (call `setFonts` before
+`sansSerif` makes `useResources` skip downloading Geist (call `setFonts` before
 mount for the skip). Each group also takes `italic: { weight: face }`; `<StyledText
 italic>` (or `useFontStyle(weight, variant, { italic: true })`) uses that face,
 else the group's italic `regular`, else `fontStyle: "italic"` on the upright face.
@@ -1279,7 +1317,8 @@ else the group's italic `regular`, else `fontStyle: "italic"` on the upright fac
 Newsreader preset (four weights + a 400 italic): the app depends on
 `@expo-google-fonts/newsreader` and passes the five per-weight faces on native;
 web gets one stylesheet (`id="mrmeg-expo-ui-newsreader"`). A `setFonts` serif
-override still wins. Use `webWeightStrategy: "family"` when loading per-weight
+override still wins. `useResources({ sans: "inter", sansFonts })` opts into Inter. Use
+`webWeightStrategy: "family"` when loading per-weight
 faces through `expo-font` / `@expo-google-fonts`, `"numeric"` (default) for one
 multi-weight CSS family. `setShape({ button?, input?, card?, sheet?, badge?,
 dialog? })` re-shapes a slot globally (`{ borderRadius }`; `button` also takes
@@ -1672,6 +1711,8 @@ show through.
 - Instead of: Pressable plus custom text styling
 
 - `disabled` blocks the press (no `onPress`, no scale/haptic, out of the web tab order). To keep a button focusable and pressable while announced and dimmed as disabled — so the press can explain why — use `aria-disabled` (or `accessibilityState={{ disabled: true }}`), never a hand-rolled opacity style.
+
+- The default radius is 8 (`spacing.radiusSm`, retuned through `setShape({ button })`). The `link` preset's text is the `link` color token, not `accent`, and the `default` preset's shadow is the hairline `subtle` (none in dark).
 
 - Use `Button size="sm"` for compact popover, tooltip, and toolbar triggers; nested `StyledText` inherits the Button size.
 
@@ -2525,7 +2566,7 @@ The `Screen` rules (explicit `edges`, `scroll`, `padded`, the one 16 pt horizont
 - Use for: Eyebrow / title / description section intro
 - Instead of: Stacked ad hoc heading text
 
-Prefer over stacked ad hoc heading text.
+Prefer over stacked ad hoc heading text. The eyebrow follows the `eyebrow` treatment: sentence case by default, uppercase with the `eyebrow: "uppercase"` treatment (`useThemeStore.getState().setTreatments`).
 
 ---
 
@@ -2538,7 +2579,7 @@ Prefer over stacked ad hoc heading text.
 - Use for: Native segmented picker (`@expo/ui`); `size="lg"` = 44 pt drawn control; a value not in `values` selects none
 - Instead of: Custom segmented views
 
-`md` (default) is the native `@expo/ui` control on iOS/Android (about 32 pt on iOS, the 40 dp Material 3 segmented button on Android; the platform owns its look). Web, and `size="lg"` on every platform, draw the kit control from theme tokens (`lg` is 44 pt; `appearance` is ignored). A `value` (or `defaultValue`) not in `values` selects no segment.
+`md` (default) is the native `@expo/ui` control on iOS/Android (about 32 pt on iOS, the 40 dp Material 3 segmented button on Android; the platform owns its look). Web, and `size="lg"` on every platform, draw the kit control from theme tokens (`lg` is 44 pt; `appearance` is ignored). A `value` (or `defaultValue`) not in `values` selects no segment. The drawn control marks the selection with a raised `background` segment on the `muted` track; the `segmentedSelection: "accent"` treatment (`useThemeStore.getState().setTreatments`) restores the teal fill.
 
 ---
 
@@ -2647,6 +2688,11 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 
 Prefer semantic aliases over raw `Text`.
 
+The sans face is Geist (Inter is the opt-in `sans: "inter"` preset). `eyebrow`
+is 13 medium, sentence case, untracked; the `eyebrow` treatment
+(`useThemeStore.getState().setTreatments({ eyebrow: "uppercase" })`) switches it to 12 semibold uppercase.
+Geist has no italic, so `italic` on the default sans is synthesized.
+
 ---
 
 <!-- Source: packages/ui/docs/components/Switch.md -->
@@ -2658,7 +2704,7 @@ Prefer semantic aliases over raw `Text`.
 - Use for: Binary settings
 - Instead of: Custom toggle switches
 
-Prefer over custom toggles for on/off state.
+Prefer over custom toggles for on/off state. The on-track is `primary` on every platform, iOS included; the `switchTrack: "accent"` treatment (`useThemeStore.getState().setTreatments`) makes it `accent` (iOS keeps the system green).
 
 ---
 
@@ -3838,7 +3884,7 @@ style.
 on `StyledText` instead of `lineHeight` in a style; every size carries its line
 height.
 
-`"Inter_500Medium"` is a raw font family. It is the kit's `sansSerif` face at
+`"Geist_500Medium"` is a raw font family. It is the kit's `sansSerif` face at
 `medium`: use `StyledText variant="sansSerif" fontWeight="medium"` or
 `useFontStyle("medium", "sansSerif")`. A brand face goes through `setFonts`,
 never a literal.
@@ -4540,6 +4586,10 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/detail-hero.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/detail-hero.tsx
 - app/(main)/(demos)/developer.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/developer.tsx
 - app/(main)/(demos)/form-demo.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/form-demo.tsx
+- app/(main)/(demos)/looks/[id].tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/looks/%5Bid%5D.tsx
+- app/(main)/(demos)/looks/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/looks/index.tsx
+- app/(main)/(demos)/looks/surface-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/looks/surface-lab.tsx
+- app/(main)/(demos)/looks/themed-showcase.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/looks/themed-showcase.tsx
 - app/(main)/(demos)/media-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/media-lab.tsx
 - app/(main)/(demos)/onboarding.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/onboarding.tsx
 - app/(main)/(demos)/screen-card-grid.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-card-grid.tsx
@@ -4560,9 +4610,7 @@ Working in-app examples for every component and screen template; the best refere
 - app/(main)/(demos)/screen-welcome.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/screen-welcome.tsx
 - app/(main)/(demos)/server-alpha/[example].tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha/%5Bexample%5D.tsx
 - app/(main)/(demos)/server-alpha/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/server-alpha/index.tsx
-- app/(main)/(demos)/surface-lab.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/surface-lab.tsx
 - app/(main)/(demos)/templates/index.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/templates/index.tsx
-- app/(main)/(demos)/themed-showcase.tsx: https://raw.githubusercontent.com/mrmeg/expo-template/main/app/(main)/(demos)/themed-showcase.tsx
 
 ## Screen Templates (`client/templates/`)
 

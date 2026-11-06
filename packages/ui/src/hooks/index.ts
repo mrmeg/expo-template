@@ -7,6 +7,7 @@ export * from "./useReduceMotion";
 export * from "./useResources";
 export * from "./useScalePress";
 export * from "./useShape";
+export * from "./useTreatment";
 export * from "./useStaggeredEntrance";
 export * from "./useTheme";
 export { useHydrated } from "./useHydrated";

@@ -64,7 +64,7 @@ describe("brand assets", () => {
     expect(config.android?.adaptiveIcon).toEqual({
       foregroundImage: "./assets/images/adaptive-icon.png",
       monochromeImage: "./assets/images/adaptive-icon-monochrome.png",
-      backgroundColor: "#09090B",
+      backgroundColor: "#0A0A0A",
     });
     expect(config.web?.favicon).toBe("./assets/images/favicon.png");
     const splash = (config.plugins ?? []).find(
@@ -77,7 +77,7 @@ describe("brand assets", () => {
       backgroundColor: "#FFFFFF",
       dark: {
         image: "./assets/images/splash-icon-dark.png",
-        backgroundColor: "#09090B",
+        backgroundColor: "#0A0A0A",
       },
     });
   });

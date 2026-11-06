@@ -29,7 +29,7 @@ describe("design-system source loader", () => {
   it("reads the palette and resolves theme tokens through it", () => {
     expect(design.palette.red500).toBe("#EF4444");
     expect(design.palette.white).toBe("#FFFFFF");
-    expect(design.lightTheme.destructive).toEqual({ paletteKey: "red500", value: "#EF4444" });
+    expect(design.lightTheme.destructive).toEqual({ paletteKey: "red600", value: "#DC2626" });
     expect(design.darkTheme.destructive).toEqual({ paletteKey: "red400", value: "#F87171" });
     // A literal rather than a palette reference.
     expect(design.lightTheme.overlay).toEqual({ paletteKey: null, value: "rgba(0, 0, 0, 0.5)" });
@@ -70,9 +70,9 @@ describe("design-system source loader", () => {
     expect(Object.keys(families).sort()).toEqual(["mono", "sansSerif", "serif"]);
     // Web stack, native static file, and the fallback branch all count.
     expect(families.sansSerif.medium).toEqual(
-      expect.arrayContaining(["Inter_500Medium", "sans-serif"]),
+      expect.arrayContaining(["Geist_500Medium", "sans-serif"]),
     );
-    expect(families.sansSerif.medium.some((family) => family.startsWith("\"Inter\","))).toBe(true);
+    expect(families.sansSerif.medium.some((family) => family.startsWith("\"Geist\","))).toBe(true);
     expect(families.serif.bold).toEqual(expect.arrayContaining(["Georgia"]));
     // `Platform.OS === "ios" ? "Menlo" : "monospace"` is two families.
     expect(families.mono.regular).toEqual(expect.arrayContaining(["Menlo", "monospace"]));

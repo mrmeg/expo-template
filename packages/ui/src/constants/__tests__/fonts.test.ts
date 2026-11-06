@@ -8,18 +8,18 @@
  * preset (`"newsreader"`) supplies faces for the serif variant only, and an
  * app's `setFonts` serif override still beats it.
  */
-import { resolveFontStyle, newsreaderFamilies } from "../fonts";
+import { interFamilies, resolveFontStyle, newsreaderFamilies } from "../fonts";
 
 describe("resolveFontStyle (native)", () => {
-  it("keeps today's defaults: Georgia serif, Inter files, no fontStyle", () => {
+  it("keeps today's defaults: Georgia serif, Geist files, no fontStyle", () => {
     expect(resolveFontStyle({}, "serif", "bold")).toEqual({ fontFamily: "Georgia" });
-    expect(resolveFontStyle({}, "sansSerif", "semibold")).toEqual({ fontFamily: "Inter_600SemiBold" });
-    expect(resolveFontStyle({}, "sansSerif", "regular", {})).toEqual({ fontFamily: "Inter_400Regular" });
+    expect(resolveFontStyle({}, "sansSerif", "semibold")).toEqual({ fontFamily: "Geist_600SemiBold" });
+    expect(resolveFontStyle({}, "sansSerif", "regular", {})).toEqual({ fontFamily: "Geist_400Regular" });
   });
 
   it("synthesizes italic when no italic face exists", () => {
     expect(resolveFontStyle({}, "sansSerif", "regular", { italic: true })).toEqual({
-      fontFamily: "Inter_400Regular",
+      fontFamily: "Geist_400Regular",
       fontStyle: "italic",
     });
     expect(resolveFontStyle({}, "serif", "regular", { italic: true })).toEqual({
@@ -77,11 +77,32 @@ describe("resolveFontStyle (native)", () => {
 
   it("leaves sansSerif and mono alone under the serif preset, and setFonts serif still wins", () => {
     const preset = { serifPreset: "newsreader" as const };
-    expect(resolveFontStyle({}, "sansSerif", "regular", preset)).toEqual({ fontFamily: "Inter_400Regular" });
+    expect(resolveFontStyle({}, "sansSerif", "regular", preset)).toEqual({ fontFamily: "Geist_400Regular" });
     expect(resolveFontStyle({}, "mono", "regular", preset).fontFamily).not.toContain("Newsreader");
 
     const overrides = { families: { serif: { regular: "Brand_Serif", italic: { regular: "Brand_SerifItalic" } } } };
     expect(resolveFontStyle(overrides, "serif", "regular", preset)).toEqual({ fontFamily: "Brand_Serif" });
     expect(resolveFontStyle(overrides, "serif", "regular", { ...preset, italic: true })).toEqual({ fontFamily: "Brand_SerifItalic" });
+  });
+
+  it("the inter sans preset resolves to the four Inter static files", () => {
+    const preset = { sansPreset: "inter" as const };
+    expect(resolveFontStyle({}, "sansSerif", "light", preset)).toEqual({ fontFamily: "Inter_400Regular" });
+    expect(resolveFontStyle({}, "sansSerif", "regular", preset)).toEqual({ fontFamily: "Inter_400Regular" });
+    expect(resolveFontStyle({}, "sansSerif", "medium", preset)).toEqual({ fontFamily: "Inter_500Medium" });
+    expect(resolveFontStyle({}, "sansSerif", "semibold", preset)).toEqual({ fontFamily: "Inter_600SemiBold" });
+    expect(resolveFontStyle({}, "sansSerif", "bold", preset)).toEqual({ fontFamily: "Inter_700Bold" });
+    expect(interFamilies.native.bold).toBe("Inter_700Bold");
+    // The explicit default is the same as no preset.
+    expect(resolveFontStyle({}, "sansSerif", "bold", { sansPreset: "geist" })).toEqual({ fontFamily: "Geist_700Bold" });
+  });
+
+  it("the inter sans preset leaves serif and mono alone, and setFonts sansSerif still wins", () => {
+    const preset = { sansPreset: "inter" as const };
+    expect(resolveFontStyle({}, "serif", "regular", preset)).toEqual({ fontFamily: "Georgia" });
+    expect(resolveFontStyle({}, "mono", "regular", preset).fontFamily).not.toContain("Inter");
+
+    const overrides = { families: { sansSerif: { regular: "Brand_Regular" } } };
+    expect(resolveFontStyle(overrides, "sansSerif", "bold", preset)).toEqual({ fontFamily: "Brand_Regular" });
   });
 });

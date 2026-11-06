@@ -76,8 +76,6 @@ export { BLOCKS };
 // ---------------------------------------------------------------------------
 
 export const DEMOS: DemoEntry[] = [
-  { id: "themed-showcase", route: "/(main)/(demos)/themed-showcase", icon: "droplet", label: "Themed Showcase" },
-  { id: "surface-lab", route: "/(main)/(demos)/surface-lab", icon: "layers", label: "Surface Lab" },
   { id: "media-lab", route: "/(main)/(demos)/media-lab", icon: "film", label: "Media Lab" },
   { id: "form-validation", route: "/(main)/(demos)/form-demo", icon: "pencil", label: "Form Validation" },
   { id: "auth", route: "/(main)/(demos)/auth-demo", icon: "shield", label: "Auth Demo" },

@@ -2,6 +2,7 @@ import type { ComponentProps } from "react";
 import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import { WebBackButton } from "@/client/features/navigation/WebBackButton";
+import { getDemoLook } from "@/client/showcase/lookReference";
 
 const isWeb = Platform.OS === "web";
 const webHeaderLeft = isWeb
@@ -51,8 +52,19 @@ export const MAIN_STACK_SCREENS: readonly MainStackScreen[] = [
   },
   { name: "(demos)/blocks/index", options: { title: "Blocks", ...webHeaderLeft } },
   { name: "(demos)/templates/index", options: { title: "Screen Templates", ...webHeaderLeft } },
-  { name: "(demos)/themed-showcase", options: { title: "Themed Showcase", ...webHeaderLeft } },
-  { name: "(demos)/surface-lab", options: { title: "Surface Lab", ...webHeaderLeft } },
+  { name: "(demos)/looks/index", options: { title: "Looks", ...webHeaderLeft } },
+  /* `looks/[id]` titles itself with the look's name for the same reason as
+     `components/[id]`; an id the list doesn't have falls back to "Look". */
+  {
+    name: "(demos)/looks/[id]",
+    options: ({ route }) => ({
+      title: getDemoLook((route.params as { id?: string } | undefined)?.id)?.look.name ?? "Look",
+      ...webHeaderLeft,
+    }),
+  },
+  /* The two styling tools live under Looks. Static segments win over `[id]`. */
+  { name: "(demos)/looks/themed-showcase", options: { title: "Themed Showcase", ...webHeaderLeft } },
+  { name: "(demos)/looks/surface-lab", options: { title: "Surface Lab", ...webHeaderLeft } },
   { name: "(demos)/media-lab", options: { title: "Media Lab", ...webHeaderLeft, ...edgeBackSwipeOnly } },
   { name: "(demos)/developer", options: { title: "Developer Tools", ...webHeaderLeft } },
   { name: "(demos)/server-alpha/index", options: { title: "Server Alpha", ...webHeaderLeft } },
@@ -86,8 +98,9 @@ export const MAIN_STACK_SCREENS: readonly MainStackScreen[] = [
  * with no top bar — the drawer IS their chrome). `(tabs)` loses its header at
  * every web width: on desktop the rail replaces it, and below the breakpoint
  * the shell's own top bar (hamburger + wordmark) already occupies that slot.
- * The three gallery indexes keep their header below the breakpoint, where it
- * is the only thing carrying the page title and the back affordance.
+ * The gallery indexes (components, blocks, templates, looks) keep their header
+ * below the breakpoint, where it is the only thing carrying the page title and
+ * the back affordance.
  * Everything deeper (component detail, demo screens) keeps its header at all
  * widths — the drawer doesn't link there, so the header's back button is the
  * only way home that isn't the browser's.
@@ -96,6 +109,7 @@ export const WEB_SHELL_RAIL_HEADERLESS = new Set<string>([
   "(demos)/components/index",
   "(demos)/blocks/index",
   "(demos)/templates/index",
+  "(demos)/looks/index",
 ]);
 
 export const WEB_SHELL_ALWAYS_HEADERLESS = new Set<string>(["(tabs)"]);
