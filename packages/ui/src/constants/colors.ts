@@ -299,8 +299,10 @@ export type ResolvedContrast = "standard" | "more";
 
 /**
  * The tokens "more" contrast changes, per scheme; every other token inherits
- * the scheme's normal value. Light: `accent` (white on teal700 is 5.5:1),
- * `warning` and `ring` darken so each clears its WCAG floor on white. Dark:
+ * the scheme's normal value. Light: `accent` (white on teal700 is 5.5:1) and
+ * `warning` darken to clear 4.5:1 on white. `ring` moves to the far end of the
+ * scale in both schemes (neutral900 light, neutral300 dark) so the default soft
+ * focus halo (3px at 50%) clears 3:1 as drawn: 3.4:1 and 3.9:1. Dark:
  * `destructiveForeground` flips to near-black so it clears 4.5:1 on `red400`.
  * `accentForeground` stays white in light.
  *
@@ -311,10 +313,11 @@ export const contrastColorOverrides: { light: Partial<ThemeColorTokens>; dark: P
   light: {
     accent: palette.teal700,
     warning: palette.amber700,
-    ring: palette.neutral500,
+    ring: palette.neutral900,
   },
   dark: {
     destructiveForeground: palette.neutral900,
+    ring: palette.neutral300,
   },
 };
 

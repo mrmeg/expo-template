@@ -27,8 +27,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `"standard"` so a web first render matches the server markup.
 - **Overrides for `more`.** `contrastColorOverrides` lists them; every other token
   inherits the normal scheme. Light: `accent` `#0F766E` (white on it is 5.5:1),
-  `warning` `#B45309` and `ring` `#737373` (each clears its WCAG floor on white).
-  Dark: `destructiveForeground` `#171717` (4.5:1+ on `destructive`).
+  `warning` `#B45309` (5.0:1 on white), `ring` `#171717`. Dark:
+  `destructiveForeground` `#171717` (4.5:1+ on `destructive`), `ring` `#D4D4D4`.
+  The ring values let the default soft halo (3px at 50%) clear 3:1 as drawn:
+  3.4:1 in light, 3.9:1 in dark.
   `rawMoreContrastColors` is the literal table (`rawThemeColors` plus the overrides).
   New palette entry `amber700` (`#B45309`).
 - **`resolveRawColor(color, scheme, contrast = "standard")`.** The optional third

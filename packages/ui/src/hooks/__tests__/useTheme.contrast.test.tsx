@@ -52,7 +52,7 @@ describe("useTheme contrast", () => {
 
     expect(themed.accent).toBe(palette.teal700);
     expect(themed.warning).toBe(palette.amber700);
-    expect(themed.ring).toBe(palette.neutral500);
+    expect(themed.ring).toBe(palette.neutral900);
     expect(themed.accentForeground).toBe(palette.white);
     expect(themed.destructiveForeground).toBe(colors.light.colors.destructiveForeground);
     expect(result.current.theme.dark).toBe(false);
@@ -64,6 +64,7 @@ describe("useTheme contrast", () => {
     const { colors: themed } = result.current.theme;
 
     expect(themed.destructiveForeground).toBe(palette.neutral900);
+    expect(themed.ring).toBe(palette.neutral300);
     expect(themed.accent).toBe(colors.dark.colors.accent);
     expect(result.current.theme.dark).toBe(true);
   });

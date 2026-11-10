@@ -35,9 +35,9 @@ defaults.
 | `ring` | `#A1A1A1` | `#737373` | Web focus ring |
 
 **More contrast.** A second level on top of light/dark (`standard` / `more`,
-following the OS unless the user sets it) swaps four tokens and inherits the
-rest: light `accent` `#0F766E`, `warning` `#B45309`, `ring` `#737373`; dark
-`destructiveForeground` `#171717`. An app's own overrides win. The template's
+following the OS unless the user sets it) swaps a few tokens and inherits the
+rest: light `accent` `#0F766E`, `warning` `#B45309`, `ring` `#171717`; dark
+`destructiveForeground` `#171717`, `ring` `#D4D4D4`. An app's own overrides win. The template's
 Settings screen has the "Increase contrast" switch.
 
 Contrast is tested, not hoped for: `packages/ui/src/constants/__tests__/colors.test.ts`

@@ -326,8 +326,9 @@ resolves them. Under `more` a few tokens change and the rest inherit the scheme
 |---|---|---|
 | light | `accent` | `teal700` `#0F766E` |
 | light | `warning` | `amber700` `#B45309` |
-| light | `ring` | `neutral500` `#737373` |
+| light | `ring` | `neutral900` `#171717` |
 | dark | `destructiveForeground` | `neutral900` `#171717` |
+| dark | `ring` | `neutral300` `#D4D4D4` |
 
 Tokens the app overrides through `setColors`, `ThemeColorScope` or a look
 (`applyLook(classicLook)` sets full palettes) keep the app's value under more
