@@ -34,6 +34,12 @@ defaults.
 | `border` / `borderStrong` | `#E5E5E5` / `#D4D4D4` | `#262626` / `#404040` | Hairlines; strong sits on filled surfaces |
 | `ring` | `#A1A1A1` | `#737373` | Web focus ring |
 
+**More contrast.** A second level on top of light/dark (`standard` / `more`,
+following the OS unless the user sets it) swaps four tokens and inherits the
+rest: light `accent` `#0F766E`, `warning` `#B45309`, `ring` `#737373`; dark
+`destructiveForeground` `#171717`. An app's own overrides win. The template's
+Settings screen has the "Increase contrast" switch.
+
 Contrast is tested, not hoped for: `packages/ui/src/constants/__tests__/colors.test.ts`
 holds `text` at ≥ 12:1 and `textDim`/`mutedForeground` at ≥ 7:1 on
 `background`, `card`, and `popover` (≥ 6:1 on `muted`/`secondary`), and `link`

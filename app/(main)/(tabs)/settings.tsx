@@ -10,6 +10,7 @@ import {
   ItemDescription,
   ItemActions,
 } from "@mrmeg/expo-ui/components/Item";
+import { Switch } from "@mrmeg/expo-ui/components/Switch";
 import { ThemeSelector } from "@mrmeg/expo-ui/components/ThemeSelector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@mrmeg/expo-ui/components/Select";
 import { Hydrated } from "@mrmeg/expo-ui/components/Hydrated";
@@ -34,14 +35,23 @@ const LANGUAGES = [
  */
 export default function SettingsRoute() {
   useTabHeaderTitle("settings");
-  const { theme, scheme } = useTheme();
+  const { theme, scheme, contrast, setContrast } = useTheme();
   const userTheme = useThemeStore((state) => state.userTheme);
+  const userContrast = useThemeStore((state) => state.userContrast);
+  const systemContrast = useThemeStore((state) => state.systemContrast);
   const { t, i18n } = useTranslation();
   const styles = themedStyles(theme);
 
   const language =
     LANGUAGES.find((lang) => i18n.language === lang.value || i18n.language?.startsWith(lang.value + "-")) ??
     LANGUAGES[0];
+
+  // The switch shows the resolved level. Landing back on the device's own level
+  // returns to following the device, so a later OS change still applies.
+  const onContrastChange = (checked: boolean) => {
+    const desired = checked ? "more" : "standard";
+    setContrast(desired === systemContrast ? "system" : desired);
+  };
 
   return (
     <>
@@ -75,6 +85,21 @@ export default function SettingsRoute() {
                   light: t("settings.theme.light"),
                   dark: t("settings.theme.dark"),
                 }}
+              />
+            </ItemActions>
+          </Item>
+          <Item>
+            <ItemContent>
+              <ItemTitle>{t("settings.contrastTitle")}</ItemTitle>
+              {userContrast === "system" && (
+                <ItemDescription>{t("settings.contrastMatchesDevice")}</ItemDescription>
+              )}
+            </ItemContent>
+            <ItemActions>
+              <Switch
+                testID="settings-contrast-switch"
+                checked={contrast === "more"}
+                onCheckedChange={onContrastChange}
               />
             </ItemActions>
           </Item>

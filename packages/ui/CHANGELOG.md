@@ -3,6 +3,67 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.36.0]
+
+### Added
+
+- **Contrast setting: `standard` or `more`, layered on light/dark.** It is not a
+  new value of the theme preference. The preference is `ContrastPreference`
+  (`"system"` by default, `"standard"`, `"more"`); `ResolvedContrast` is what it
+  resolves to. `useThemeStore` gains `userContrast`, `systemContrast`,
+  `setContrast(pref)` and `setSystemContrast`, persisted under
+  `CONTRAST_STORAGE_KEY` (`"user-contrast-preference"`; `localStorage` on web,
+  `AsyncStorage` on native) and restored by `loadTheme()`.
+  `resolveContrastPreference(user, system)` resolves it. `useTheme()` and
+  `useStyles()` return `contrast` (resolved), `currentContrast` (the preference)
+  and `setContrast`.
+- **OS following, in the same shared listener as the color scheme** (one hold from
+  `startSystemThemeListener` / `syncThemeFromEnvironment` covers both): web reads
+  `prefers-contrast: more`; iOS reads Increase Contrast
+  (`AccessibilityInfo.isDarkerSystemColorsEnabled`, `darkerSystemColorsChanged`);
+  Android reads high text contrast (`isHighTextContrastEnabled`,
+  `highTextContrastChanged`). Native reads are async and guarded: a missing function
+  or a rejected read leaves the level at `"standard"`. `systemContrast` boots as
+  `"standard"` so a web first render matches the server markup.
+- **Overrides for `more`.** `contrastColorOverrides` lists them; every other token
+  inherits the normal scheme. Light: `accent` `#0F766E` (white on it is 5.5:1),
+  `warning` `#B45309` and `ring` `#737373` (each clears its WCAG floor on white).
+  Dark: `destructiveForeground` `#171717` (4.5:1+ on `destructive`).
+  `rawMoreContrastColors` is the literal table (`rawThemeColors` plus the overrides).
+  New palette entry `amber700` (`#B45309`).
+- **`resolveRawColor(color, scheme, contrast = "standard")`.** The optional third
+  argument maps a `var(--c-*)` to the contrast level's literal; existing calls are
+  unchanged.
+- **Web: `data-contrast`.** The package writes `<html data-contrast="standard|more">`
+  next to `data-theme` (only when it changes), and `getThemeCssVariables()` appends
+  contrast blocks after the base ones, keyed on `data-theme` + `data-contrast` with
+  `prefers-color-scheme` / `prefers-contrast` fallbacks for the paint before any
+  script runs. Each block names its scheme, because `html[data-theme="dark"]` and
+  `html[data-contrast="more"]` have equal specificity and a bare contrast selector
+  would leak light values into dark. A token you override in
+  `getThemeCssVariables(overrides)` is left out of the contrast blocks.
+
+### Changed
+
+- **Apps with their own `+html.tsx` boot script** should stamp `data-contrast` too,
+  or the first frame paints at standard contrast until the package takes over
+  after hydration. Add this to the same `try` as the `data-theme` stamp:
+
+  ```js
+  var c = localStorage.getItem("user-contrast-preference");
+  root.dataset.contrast =
+    c === "more" || (c !== "standard" && matchMedia("(prefers-contrast:more)").matches)
+      ? "more"
+      : "standard";
+  ```
+
+- **App color overrides win.** Tokens the app sets through `setColors`,
+  `ThemeColorScope` or a look (`applyLook(classicLook)` sets full palettes) keep the
+  app's value under more contrast; the package overrides apply only to tokens the
+  app leaves alone.
+- On web both contrast levels share the same `theme` objects (CSS does the
+  re-theming), so memoized styles do not churn when the level changes.
+
 ## [0.35.0]
 
 ### Changed

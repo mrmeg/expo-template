@@ -107,6 +107,8 @@ const es = {
       dark: "Oscuro",
     },
     matchesDevice: "Igual que tu dispositivo: {{scheme}}",
+    contrastTitle: "Aumentar el contraste",
+    contrastMatchesDevice: "Igual que tu dispositivo",
     language: "Idioma",
     about: "Acerca de",
     version: "Versión",

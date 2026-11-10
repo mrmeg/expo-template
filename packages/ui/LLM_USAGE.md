@@ -91,9 +91,9 @@ server or exported HTML):
 1. `app/+html.tsx`: put `getThemeCssVariables()` (from `constants`) in the
    global `<style>`, with the same overrides passed to `setColors` if the app
    re-brands; without it every theme color is unset. Optionally add a blocking
-   inline script that sets `document.documentElement.dataset.theme` from
-   `localStorage[THEME_STORAGE_KEY]` (from `state`) or `prefers-color-scheme`,
-   so the first frame paints in the visitor's scheme.
+   inline script that sets `documentElement.dataset.theme` and `.contrast` from
+   `localStorage[THEME_STORAGE_KEY]` / `[CONTRAST_STORAGE_KEY]` (from `state`)
+   or the OS media queries, so the first frame paints right.
 2. Root layout: `useEffect(() => syncThemeFromEnvironment(), []);`
    (`syncThemeFromEnvironment` from `state`). It reads the persisted preference
    and follows the OS color scheme, and returns its cleanup. Never call it
@@ -194,8 +194,8 @@ tokens and keeps a 44px hit area on native while rendering 40px on web.
 not a layout inset. See Screen Layout below.
 
 When the saved theme preference is `system`, the package theme store owns the OS
-color-scheme subscription, including web `prefers-color-scheme`. Do not add
-app-local Appearance or `matchMedia` listeners. `THEME_STORAGE_KEY` (from
+color-scheme and contrast subscription (web included). Do not add app-local
+Appearance or `matchMedia` listeners. `THEME_STORAGE_KEY` (from
 `state`) is the persisted-preference key, for a pre-boot theme script.
 
 `useTheme()` resolves colors in three layers, last wins: package defaults →

@@ -103,7 +103,7 @@ Importable paths: root, `components`, `components/*`, `constants`,
 
 The package declares `sideEffects`: only `state/themeStore` does work at import
 time (on native it loads the saved theme and starts the OS color-scheme
-listener). A bundler that tree-shakes (Expo with `EXPO_UNSTABLE_TREE_SHAKING=1`,
+and contrast listeners). A bundler that tree-shakes (Expo with `EXPO_UNSTABLE_TREE_SHAKING=1`,
 esbuild, Rollup, webpack) keeps only the modules a barrel import actually uses,
 so `import { Button } from "@mrmeg/expo-ui"` costs about what the
 `components/Button` deep import does. Metro without tree shaking bundles
@@ -191,7 +191,9 @@ server-rendered or exported HTML:
    unset. A blocking inline script that stamps `data-theme` on `<html>` from
    the persisted preference (`THEME_STORAGE_KEY`, from `state`) or
    `prefers-color-scheme` makes the first frame paint in the visitor's scheme
-   before any JS runs.
+   before any JS runs. Stamp `data-contrast` in the same script, from
+   `CONTRAST_STORAGE_KEY` or `prefers-contrast: more` (see [Contrast](#contrast)),
+   so the first frame paints at the right contrast too.
 2. **Root layout: sync the store after the first commit.** Call
    `syncThemeFromEnvironment()` (from `state`) in a top-level `useEffect` and
    return its result as the cleanup. It reads the persisted preference and
@@ -258,7 +260,8 @@ Sections sit on the screen's 16 pt gutter and end in a hairline, not in a
 bordered, shadowed panel; see [Screen layout](#screen-layout).
 
 `useTheme()` returns the active `theme`, resolved `scheme`, persisted
-`currentTheme`, `setTheme`, `toggleTheme`, `getShadowStyle`,
+`currentTheme`, `setTheme`, `toggleTheme`, resolved `contrast` with its
+`currentContrast` and `setContrast` (see [Contrast](#contrast)), `getShadowStyle`,
 `getFocusRingStyle(offset = 2)`, `getContrastingColor`, `getContrastRatio`,
 `getTextColorForBackground`, and `withAlpha`. `getShadowStyle(type)` takes
 `base`, `soft`, `sharp`, `subtle`, `elevated`, `glow`, `glass`, `card`,
@@ -298,6 +301,42 @@ updates every `useTheme()`/`useStyles()` consumer through the theme store. Do
 not add app-level `Appearance` or `matchMedia` listeners for package
 components. `THEME_STORAGE_KEY` (from `state`) is the persisted-preference key,
 for a pre-boot theme script.
+
+### Contrast
+
+Contrast is a second level on top of light/dark, not a theme: `standard` or
+`more`. The preference (`ContrastPreference`, from `state`) is `"system"` by
+default, which follows the OS (web `prefers-contrast: more`, iOS Increase
+Contrast, Android high text contrast, all through the same shared listener as
+the color scheme); `"standard"` and `"more"` force a level. It is persisted
+under `CONTRAST_STORAGE_KEY` (`"user-contrast-preference"`).
+
+```tsx
+const { contrast, currentContrast, setContrast } = useTheme();
+// contrast: "standard" | "more" (resolved); currentContrast: "system" | "standard" | "more"
+setContrast("more");
+```
+
+`useThemeStore` holds `userContrast`, `systemContrast` (boots as `"standard"`),
+`setContrast` and `setSystemContrast`; `resolveContrastPreference(user, system)`
+resolves them. Under `more` a few tokens change and the rest inherit the scheme
+(`contrastColorOverrides`; `rawMoreContrastColors` is the literal table):
+
+| Scheme | Token | Value |
+|---|---|---|
+| light | `accent` | `teal700` `#0F766E` |
+| light | `warning` | `amber700` `#B45309` |
+| light | `ring` | `neutral500` `#737373` |
+| dark | `destructiveForeground` | `neutral900` `#171717` |
+
+Tokens the app overrides through `setColors`, `ThemeColorScope` or a look
+(`applyLook(classicLook)` sets full palettes) keep the app's value under more
+contrast: the app owns those. On web the package writes `html[data-contrast]`
+and `getThemeCssVariables()` emits the contrast blocks (an app override for a
+token removes it from them); both levels share the same `theme` objects, so
+memoized styles do not churn. A settings screen shows the resolved level in a
+`Switch`: on toggle call `setContrast(desired === systemContrast ? "system" :
+desired)` so landing back on the device's level follows the device again.
 
 `useStyles()` memoizes theme-aware styles; its factory receives
 `{ theme, spacing, withAlpha }` and its return also carries the `useTheme()`
@@ -341,7 +380,8 @@ from `useTheme()`.
 |---|---|
 | `getThemeCssVariables(overrides?)` | The `--c-*` (and `--c-*-rgb`) definitions per scheme for a global `<style>` in `+html.tsx`; takes per-scheme brand overrides |
 | `rawThemeColors.light` / `.dark` | Literal hex/rgba maps on every platform, for sinks that cannot take `var()` (e.g. `<meta name="theme-color">`) |
-| `resolveRawColor(color, scheme)` | Maps a `var(--c-*)` color back to that scheme's literal; literals pass through |
+| `rawMoreContrastColors.light` / `.dark` | The same literal maps under more contrast (`contrastColorOverrides` merged in) |
+| `resolveRawColor(color, scheme, contrast = "standard")` | Maps a `var(--c-*)` color back to that scheme's (and contrast level's) literal; literals pass through |
 
 The React Navigation maps (`colors.<scheme>.navigation`) stay literal on web
 too, because @react-navigation parses them with a color library.
