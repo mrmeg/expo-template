@@ -31,7 +31,7 @@ Self-contained: use this in any Expo app to reach the [mrmeg/expo-template](http
 | react / react-dom | 19.3.0 |
 | react-native | 0.88.0-rc.4 |
 | react-native-web | ^0.21.4 |
-| @mrmeg/expo-ui | ^0.35.0 |
+| @mrmeg/expo-ui | ^0.36.0 |
 | @mrmeg/expo-media (if using media) | ^0.7.0 |
 | zustand | ^5.0.15 |
 | @tanstack/react-query | ^5.104.2 |
@@ -91,7 +91,7 @@ plugins: [
 Then:
 
 1. Add `expo-server` (`~57.0.3`).
-2. Add `app/+html.tsx` (fetch the template's). It wraps every route's HTML with the viewport meta, global CSS, a blocking script that stamps the color scheme on `<html>` before first paint, and — under server rendering — the framework's SSR head/body resources. Adapt fonts and scripts. The template self-hosts Geist (`public/fonts/geist/`, Latin preloaded, `@font-face` inline with `font-display: optional`) instead of a render-blocking Google Fonts stylesheet; keep the `mrmeg-expo-ui-geist` id on that `<style>` so `useResources()` does not inject a second copy. It also inlines Inter's rules under `mrmeg-expo-ui-inter` (no preload) for the opt-in `classicLook` preset; drop that block if the app never uses Inter.
+2. Add `app/+html.tsx` (fetch the template's). It wraps every route's HTML with the viewport meta, global CSS, a blocking script that stamps the color scheme and contrast level (`data-theme`, `data-contrast`) on `<html>` before first paint, and — under server rendering — the framework's SSR head/body resources. Adapt fonts and scripts. The template self-hosts Geist (`public/fonts/geist/`, Latin preloaded, `@font-face` inline with `font-display: optional`) instead of a render-blocking Google Fonts stylesheet; keep the `mrmeg-expo-ui-geist` id on that `<style>` so `useResources()` does not inject a second copy. It also inlines Inter's rules under `mrmeg-expo-ui-inter` (no preload) for the opt-in `classicLook` preset; drop that block if the app never uses Inter.
 3. Add a production server entry. Template: `server.bun.ts` (`Bun.serve`) serves `dist/client/` statics and mounts the `dist/server/` handler through `expo-server/adapter/bun`. On a non-Bun host, use the matching `expo-server` adapter and reimplement the same static/CORS/rate-limit/header layers.
 4. **First-render rules.** Persisted browser state (localStorage, `matchMedia`, dimensions) exists only after mount, so a route's first render must not depend on it — read it in an effect or accept the pre-hydration default. Anything that must be correct before paint belongs in a `+html.tsx` blocking script (how the color scheme is stamped). Under server rendering, any value the markup depends on must come off the request: mirror it into a cookie and re-derive it from identical bytes on both sides so hydration matches (`shared/ssrViewport.ts`, `shared/ssrOnboarding.ts`, `client/features/app/ssrViewportMetrics.ts`). Without a viewport signal, react-native-web lays out the tree at width 0.
 
@@ -157,7 +157,7 @@ Conventions:
 
 ## Phase 4 — @mrmeg/expo-ui
 
-Upgrade to `@mrmeg/expo-ui@^0.35.0`; 0.35.0 makes the Refined look (Geist, neutral greys, radius 8 controls) the default, and `applyLook(classicLook)` keeps the old one (see [Consumer migration to 0.35.0](#consumer-migration-to-0350)). Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 59; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.89; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 4; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `react-native-svg` ≥ 15 < 16; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3. Optional, only for the media components: `expo-image`, `expo-video`, `expo-audio` ≥ 56 < 59.
+Upgrade to `@mrmeg/expo-ui@^0.36.0`; 0.36.0 adds a contrast setting (`standard` / `more`, following the OS by default; an app with its own `+html.tsx` boot script also stamps `data-contrast` in the same `try` as `data-theme`: `var c=localStorage.getItem("user-contrast-preference");root.dataset.contrast=(c==="more"||(c!=="standard"&&matchMedia("(prefers-contrast:more)").matches))?"more":"standard"`, otherwise the first frame paints at standard contrast), and 0.35.0 makes the Refined look (Geist, neutral greys, radius 8 controls) the default, and `applyLook(classicLook)` keeps the old one (see [Consumer migration to 0.35.0](#consumer-migration-to-0350)). Peer ranges: `expo`, `expo-font`, `expo-haptics`, `@expo/ui` ≥ 56 < 59; `react` ≥ 19.2 < 20; `react-native` ≥ 0.85 < 0.89; `react-native-web` ≥ 0.21 < 0.22; `zustand` ≥ 5 < 6; `react-native-gesture-handler` ≥ 2.30 < 4; `react-native-keyboard-controller` ≥ 1.21 < 2; `react-native-safe-area-context` ≥ 5.6 < 6; `react-native-screens` ≥ 4.23 < 5; `react-native-svg` ≥ 15 < 16; `@react-native-async-storage/async-storage` ≥ 2.2 < 2.3. Optional, only for the media components: `expo-image`, `expo-video`, `expo-audio` ≥ 56 < 59.
 
 **Required root setup:**
 

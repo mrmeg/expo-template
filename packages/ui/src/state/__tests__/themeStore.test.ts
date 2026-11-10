@@ -17,7 +17,15 @@
 
 import { Platform } from "react-native";
 
-import { THEME_STORAGE_KEY, resolveThemePreference, useThemeStore } from "../themeStore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import {
+  CONTRAST_STORAGE_KEY,
+  THEME_STORAGE_KEY,
+  resolveContrastPreference,
+  resolveThemePreference,
+  useThemeStore,
+} from "../themeStore";
 
 type WindowShim = { localStorage: typeof localStorage };
 
@@ -72,6 +80,8 @@ beforeEach(() => {
   useThemeStore.setState({
     userTheme: "system",
     systemTheme: "light",
+    userContrast: "system",
+    systemContrast: "standard",
     hasLoadedTheme: false,
     colorOverrides: {},
     shapeOverrides: {},
@@ -287,7 +297,7 @@ describe("system theme listener sharing", () => {
   type StoreModule = typeof import("../themeStore");
   type ReactNativeModule = typeof import("react-native");
 
-  function freshStore(os: "web" | "ios", setup: (rn: ReactNativeModule) => void = () => {}): StoreModule {
+  function freshStore(os: "web" | "ios" | "android",setup: (rn: ReactNativeModule) => void = () => {}): StoreModule {
     let store: StoreModule | undefined;
     jest.isolateModules(() => {
       const rn = require("react-native") as ReactNativeModule;
@@ -302,10 +312,15 @@ describe("system theme listener sharing", () => {
     const originalOS = Platform.OS;
     const originalWindow = (globalThis as { window?: unknown }).window;
     const originalLocalStorage = (globalThis as { localStorage?: unknown }).localStorage;
+    // Scheme listeners are counted separately from the contrast ones.
     let addEventListener: jest.Mock;
     let removeEventListener: jest.Mock;
     let changeListeners: Set<() => void>;
     let prefersDark: boolean;
+    let contrastAdd: jest.Mock;
+    let contrastRemove: jest.Mock;
+    let contrastListeners: Set<() => void>;
+    let prefersMoreContrast: boolean;
 
     beforeEach(() => {
       // The store reads the platform at call time too, and jest-expo resets
@@ -313,8 +328,12 @@ describe("system theme listener sharing", () => {
       (Platform as { OS: string }).OS = "web";
       changeListeners = new Set();
       prefersDark = false;
+      contrastListeners = new Set();
+      prefersMoreContrast = false;
       addEventListener = jest.fn((_: string, listener: () => void) => changeListeners.add(listener));
       removeEventListener = jest.fn((_: string, listener: () => void) => changeListeners.delete(listener));
+      contrastAdd = jest.fn((_: string, listener: () => void) => contrastListeners.add(listener));
+      contrastRemove = jest.fn((_: string, listener: () => void) => contrastListeners.delete(listener));
       const mediaQuery = {
         get matches() {
           return prefersDark;
@@ -322,8 +341,16 @@ describe("system theme listener sharing", () => {
         addEventListener,
         removeEventListener,
       };
+      const contrastQuery = {
+        get matches() {
+          return prefersMoreContrast;
+        },
+        addEventListener: contrastAdd,
+        removeEventListener: contrastRemove,
+      };
       installLocalStorage();
-      (globalThis as unknown as { window: Record<string, unknown> }).window.matchMedia = () => mediaQuery;
+      (globalThis as unknown as { window: Record<string, unknown> }).window.matchMedia = (query: string) =>
+        query.includes("prefers-contrast") ? contrastQuery : mediaQuery;
     });
 
     afterEach(() => {
@@ -335,6 +362,11 @@ describe("system theme listener sharing", () => {
     function emitSchemeChange(dark: boolean) {
       prefersDark = dark;
       for (const listener of [...changeListeners]) listener();
+    }
+
+    function emitContrastChange(more: boolean) {
+      prefersMoreContrast = more;
+      for (const listener of [...contrastListeners]) listener();
     }
 
     it("attaches one listener however many times it is called", () => {
@@ -409,6 +441,45 @@ describe("system theme listener sharing", () => {
       release();
       releaseAgain();
     });
+
+    it("follows prefers-contrast alongside the scheme under one hold", () => {
+      const store = freshStore("web");
+      prefersMoreContrast = true;
+
+      const releaseA = store.syncThemeFromEnvironment();
+      const releaseB = store.startSystemThemeListener();
+
+      expect(store.useThemeStore.getState().systemContrast).toBe("more");
+      expect(contrastAdd).toHaveBeenCalledTimes(1);
+      expect(contrastListeners.size).toBe(1);
+
+      emitContrastChange(false);
+      expect(store.useThemeStore.getState().systemContrast).toBe("standard");
+      emitContrastChange(true);
+      expect(store.useThemeStore.getState().systemContrast).toBe("more");
+      // A contrast change leaves the scheme alone, and vice versa.
+      expect(store.useThemeStore.getState().systemTheme).toBe("light");
+      emitSchemeChange(true);
+      expect(store.useThemeStore.getState().systemContrast).toBe("more");
+
+      releaseA();
+      expect(contrastRemove).not.toHaveBeenCalled();
+      releaseB();
+      releaseB();
+      expect(contrastRemove).toHaveBeenCalledTimes(1);
+      expect(removeEventListener).toHaveBeenCalledTimes(1);
+      expect(contrastListeners.size).toBe(0);
+    });
+
+    it("restores the persisted contrast preference with the theme", () => {
+      const store = freshStore("web");
+      localStorage.setItem(CONTRAST_STORAGE_KEY, "more");
+
+      const release = store.syncThemeFromEnvironment();
+
+      expect(store.useThemeStore.getState().userContrast).toBe("more");
+      release();
+    });
   });
 
   describe("native", () => {
@@ -432,6 +503,198 @@ describe("system theme listener sharing", () => {
       release();
       release();
       expect(remove).not.toHaveBeenCalled();
+    });
+
+    describe.each([
+      ["ios", "isDarkerSystemColorsEnabled", "darkerSystemColorsChanged"],
+      ["android", "isHighTextContrastEnabled", "highTextContrastChanged"],
+    ] as const)("system contrast on %s", (os, readName, eventName) => {
+      let handlers: Record<string, (enabled: boolean) => void>;
+      let removeContrast: jest.Mock;
+      let read: jest.Mock;
+
+      function loadStore(enabled: boolean | Error) {
+        handlers = {};
+        removeContrast = jest.fn();
+        read = jest.fn(() => (enabled instanceof Error ? Promise.reject(enabled) : Promise.resolve(enabled)));
+        return freshStore(os, (rn) => {
+          const info = rn.AccessibilityInfo as unknown as Record<string, unknown>;
+          info[readName] = read;
+          info.addEventListener = jest.fn((event: string, handler: (enabled: boolean) => void) => {
+            handlers[event] = handler;
+            return { remove: removeContrast };
+          });
+          jest.spyOn(rn.Appearance, "addChangeListener").mockImplementation(
+            () => ({ remove: jest.fn() }) as unknown as ReturnType<ReactNativeModule["Appearance"]["addChangeListener"]>
+          );
+        });
+      }
+
+      afterEach(() => {
+        (Platform as { OS: string }).OS = "ios";
+      });
+
+      it("reads the OS setting at module load and follows its change event", async () => {
+        const store = loadStore(true);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(read).toHaveBeenCalled();
+        expect(store.useThemeStore.getState().systemContrast).toBe("more");
+
+        handlers[eventName](false);
+        expect(store.useThemeStore.getState().systemContrast).toBe("standard");
+        handlers[eventName](true);
+        expect(store.useThemeStore.getState().systemContrast).toBe("more");
+      });
+
+      it("keeps the OS contrast listener when an app releases its call", () => {
+        const store = loadStore(false);
+        const release = store.syncThemeFromEnvironment();
+        release();
+        release();
+        expect(removeContrast).not.toHaveBeenCalled();
+      });
+
+      it("swallows a rejected OS read and stays standard", async () => {
+        const store = loadStore(new Error("unavailable"));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(store.useThemeStore.getState().systemContrast).toBe("standard");
+      });
+
+      it("re-reads the OS setting when the preference returns to system", async () => {
+        const store = loadStore(false);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        read.mockImplementation(() => Promise.resolve(true));
+
+        store.useThemeStore.getState().setContrast("system");
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(store.useThemeStore.getState().systemContrast).toBe("more");
+      });
+    });
+
+    it("tolerates a platform without the accessibility-info functions", () => {
+      const store = freshStore("ios", (rn) => {
+        const info = rn.AccessibilityInfo as unknown as Record<string, unknown>;
+        info.isDarkerSystemColorsEnabled = undefined;
+        info.addEventListener = undefined;
+      });
+      expect(store.useThemeStore.getState().systemContrast).toBe("standard");
+    });
+  });
+});
+
+describe("contrast preference", () => {
+  it("defaults to following the system at standard", () => {
+    const state = useThemeStore.getState();
+    expect(state.userContrast).toBe("system");
+    expect(state.systemContrast).toBe("standard");
+  });
+
+  it("setContrast changes the preference without touching the theme", () => {
+    useThemeStore.getState().setContrast("more");
+    expect(useThemeStore.getState().userContrast).toBe("more");
+    expect(useThemeStore.getState().userTheme).toBe("system");
+    useThemeStore.getState().setContrast("standard");
+    expect(useThemeStore.getState().userContrast).toBe("standard");
+  });
+
+  it("updates systemContrast independently from the user preference", () => {
+    useThemeStore.getState().setSystemContrast("more");
+    expect(useThemeStore.getState().userContrast).toBe("system");
+    expect(useThemeStore.getState().systemContrast).toBe("more");
+  });
+
+  it("resolves system to the OS level and explicit values to themselves", () => {
+    expect(resolveContrastPreference("system", "more")).toBe("more");
+    expect(resolveContrastPreference("system", "standard")).toBe("standard");
+    expect(resolveContrastPreference("more", "standard")).toBe("more");
+    expect(resolveContrastPreference("standard", "more")).toBe("standard");
+  });
+
+  describe("persistence (web)", () => {
+    const originalOS = Platform.OS;
+
+    beforeEach(() => {
+      (Platform as { OS: string }).OS = "web";
+    });
+
+    afterEach(() => {
+      (Platform as { OS: string }).OS = originalOS;
+      delete (globalThis as unknown as { window?: unknown }).window;
+      delete (globalThis as unknown as { localStorage?: unknown }).localStorage;
+    });
+
+    it("exposes the storage key it reads and writes", () => {
+      expect(CONTRAST_STORAGE_KEY).toBe("user-contrast-preference");
+    });
+
+    it("setContrast persists to localStorage", () => {
+      installLocalStorage();
+      const setItemSpy = jest.spyOn(globalThis.localStorage, "setItem");
+
+      useThemeStore.getState().setContrast("more");
+
+      expect(setItemSpy).toHaveBeenCalledWith(CONTRAST_STORAGE_KEY, "more");
+    });
+
+    it("setContrast(system) re-reads the OS contrast", () => {
+      installLocalStorage();
+      (globalThis as unknown as { window: Record<string, unknown> }).window.matchMedia = (query: string) => ({
+        matches: query.includes("prefers-contrast"),
+      });
+
+      useThemeStore.getState().setContrast("system");
+
+      expect(useThemeStore.getState().systemContrast).toBe("more");
+    });
+
+    it("loadTheme restores the persisted contrast", () => {
+      installLocalStorage({ [CONTRAST_STORAGE_KEY]: "more" });
+      useThemeStore.getState().loadTheme();
+      expect(useThemeStore.getState().userContrast).toBe("more");
+    });
+
+    it("loadTheme ignores a persisted contrast the store would never write", () => {
+      installLocalStorage({ [CONTRAST_STORAGE_KEY]: "extreme" });
+      useThemeStore.getState().loadTheme();
+      expect(useThemeStore.getState().userContrast).toBe("system");
+    });
+  });
+
+  describe("persistence (native)", () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it("setContrast writes AsyncStorage", async () => {
+      const setItem = jest.spyOn(AsyncStorage, "setItem");
+      useThemeStore.getState().setContrast("standard");
+      await Promise.resolve();
+      expect(setItem).toHaveBeenCalledWith(CONTRAST_STORAGE_KEY, "standard");
+    });
+
+    it("loadTheme restores the persisted contrast before marking the theme loaded", async () => {
+      jest.spyOn(AsyncStorage, "getItem").mockImplementation(async (key: string) =>
+        key === CONTRAST_STORAGE_KEY ? "more" : null
+      );
+
+      useThemeStore.getState().loadTheme();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(useThemeStore.getState().userContrast).toBe("more");
+      expect(useThemeStore.getState().hasLoadedTheme).toBe(true);
+    });
+
+    it("loadTheme rejects junk values", async () => {
+      jest.spyOn(AsyncStorage, "getItem").mockImplementation(async (key: string) =>
+        key === CONTRAST_STORAGE_KEY ? "loud" : null
+      );
+
+      useThemeStore.getState().loadTheme();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(useThemeStore.getState().userContrast).toBe("system");
     });
   });
 });

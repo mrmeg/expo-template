@@ -214,15 +214,16 @@ const NEWSREADER_FONT_FACES = NEWSREADER_SUBSETS.map(
     `@font-face{font-family:"Newsreader";font-style:${style};font-weight:200 800;font-display:optional;src:url(${url}) format("woff2-variations");unicode-range:${unicodeRange}}`,
 ).join("\n");
 
-// Blocking script that resolves the visitor's color scheme before the app
-// bundle boots: it stamps `data-theme` on <html>, which switches the `--c-*`
-// variables above so the whole static shell paints in the right theme on the
-// first frame. (Persisted in-app preference overrides the OS scheme, which
-// the prefers-color-scheme fallback alone cannot know about.) It also mirrors
-// the resolved scheme into the `color-scheme` cookie `shared/ssrColorScheme.ts`
-// reads, so from the NEXT request on the server renders that theme itself.
+// Blocking script that resolves the visitor's color scheme and contrast level
+// before the app bundle boots: it stamps `data-theme` and `data-contrast` on
+// <html>, which switch the `--c-*` variables above so the whole static shell
+// paints in the right theme on the first frame. (Persisted in-app preferences
+// override the OS settings, which the prefers-color-scheme / prefers-contrast
+// fallbacks alone cannot know about.) It also mirrors the resolved scheme into
+// the `color-scheme` cookie `shared/ssrColorScheme.ts` reads, so from the NEXT
+// request on the server renders that theme itself.
 const COLOR_SCHEME_SCRIPT =
-  "(function(){try{var root=document.documentElement;var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;document.cookie=\"color-scheme=\"+resolved+\"; path=/; max-age=31536000; SameSite=Lax\";}catch(e){}})()";
+  "(function(){try{var root=document.documentElement;var t=localStorage.getItem(\"user-theme-preference\");var resolved=(t===\"dark\"||(t!==\"light\"&&window.matchMedia(\"(prefers-color-scheme:dark)\").matches))?\"dark\":\"light\";root.dataset.theme=resolved;root.style.colorScheme=resolved;document.cookie=\"color-scheme=\"+resolved+\"; path=/; max-age=31536000; SameSite=Lax\";var c=localStorage.getItem(\"user-contrast-preference\");root.dataset.contrast=(c===\"more\"||(c!==\"standard\"&&window.matchMedia(\"(prefers-contrast:more)\").matches))?\"more\":\"standard\";}catch(e){}})()";
 
 const REACT_SCAN_SCRIPT = `
   (function () {

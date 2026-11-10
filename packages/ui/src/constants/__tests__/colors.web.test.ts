@@ -9,6 +9,7 @@
 // Must be the first import: `colors` resolves its platform at module load.
 import "../../components/__tests__/forceWebPlatform";
 import { colors, rawThemeColors } from "../colors";
+import { moreContrastColors } from "../contrastThemes";
 
 describe("web colors", () => {
   it("shares one colors object between the light and dark schemes", () => {
@@ -30,5 +31,12 @@ describe("web colors", () => {
       const kebab = token.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
       expect(colors.dark.colors[token as keyof typeof rawThemeColors.light]).toBe(`var(--c-${kebab})`);
     }
+  });
+
+  it("reuses the same colors objects for both contrast levels", () => {
+    expect(moreContrastColors).toBe(colors);
+    expect(moreContrastColors.light).toBe(colors.light);
+    expect(moreContrastColors.dark).toBe(colors.dark);
+    expect(moreContrastColors.light.colors.accent).toBe("var(--c-accent)");
   });
 });

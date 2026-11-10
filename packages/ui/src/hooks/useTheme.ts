@@ -2,7 +2,16 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { Colors, colors, palette, resolveRawColor } from "../constants/colors";
 import { ImageStyle, TextStyle, ViewStyle, Platform, StyleSheet } from "react-native";
-import { defaultTreatments, resolveThemePreference, useThemeStore, type ThemeStore } from "../state/themeStore";
+import { moreContrastColors } from "../constants/contrastThemes";
+import {
+  defaultTreatments,
+  resolveContrastPreference,
+  resolveThemePreference,
+  useThemeStore,
+  type ContrastPreference,
+  type ResolvedContrast,
+  type ThemeStore,
+} from "../state/themeStore";
 import { useThemeColorScope } from "../state/themeColorScope";
 import { useInitialScheme } from "../state/initialScheme";
 import { spacing as spacingConstants } from "../constants/spacing";
@@ -39,8 +48,9 @@ function getCachedOrCompute(key: string, compute: () => string): string {
 }
 
 /**
- * Web: keeps `<html data-theme>` and `color-scheme` — what the CSS variables
- * from `getThemeCssVariables()` key on — on the store's resolved scheme.
+ * Web: keeps `<html data-theme>`, `<html data-contrast>` and `color-scheme` —
+ * what the CSS variables from `getThemeCssVariables()` key on — on the store's
+ * resolved scheme and contrast.
  *
  * One store subscription for the whole app, started by the first `useTheme`
  * consumer to mount (the same moment the old per-consumer effect first
@@ -50,13 +60,22 @@ function getCachedOrCompute(key: string, compute: () => string): string {
  */
 let documentThemeSyncStarted = false;
 let documentScheme: "light" | "dark" | null = null;
+let documentContrast: ResolvedContrast | null = null;
 
-function writeDocumentScheme(state: Pick<ThemeStore, "userTheme" | "systemTheme">): void {
+function writeDocumentScheme(
+  state: Pick<ThemeStore, "userTheme" | "systemTheme" | "userContrast" | "systemContrast">
+): void {
   const scheme = resolveThemePreference(state.userTheme, state.systemTheme);
-  if (scheme === documentScheme) return;
-  documentScheme = scheme;
-  document.documentElement.dataset.theme = scheme;
-  document.documentElement.style.colorScheme = scheme;
+  if (scheme !== documentScheme) {
+    documentScheme = scheme;
+    document.documentElement.dataset.theme = scheme;
+    document.documentElement.style.colorScheme = scheme;
+  }
+  const contrast = resolveContrastPreference(state.userContrast, state.systemContrast);
+  if (contrast !== documentContrast) {
+    documentContrast = contrast;
+    document.documentElement.dataset.contrast = contrast;
+  }
 }
 
 function startDocumentThemeSync(): void {
@@ -211,6 +230,8 @@ const SUBTLE_HAIRLINE: ShadowConfig = {
 interface ExtendedColorScheme {
   theme: Colors["light" | "dark"];
   scheme: "light" | "dark";
+  /** The resolved contrast level: the preference, or the OS's when it is `"system"`. */
+  contrast: ResolvedContrast;
   // Shadow helper function
   getShadowStyle: (type: ShadowType) => ViewStyle;
   getFocusRingStyle: (offset?: number) => ViewStyle;
@@ -230,6 +251,8 @@ interface ExtendedColorScheme {
  * Returns:
  * - theme: active theme colors (light or dark)
  * - scheme: "light" | "dark"
+ * - contrast: "standard" | "more" (resolved; `currentContrast` is the
+ *   preference, `setContrast` changes it)
  * - getShadowStyle(type): returns cross-platform shadow style object (`subtle`
  *   follows the `elevation` treatment)
  * - getFocusRingStyle(offset): returns web focus ring style object (follows the
@@ -249,16 +272,32 @@ export function useTheme(): ExtendedColorScheme & {
   toggleTheme: () => void;
   setTheme: (theme: "system" | "light" | "dark") => void;
   currentTheme: "system" | "light" | "dark";
+  currentContrast: ContrastPreference;
+  setContrast: (contrast: ContrastPreference) => void;
   } {
   // One store subscription per consumer, re-rendering only when one of these
   // fields changes (shallow compare), instead of one subscription each. The
   // two treatments are the same reads `useTreatment` makes.
-  const { userTheme, systemTheme, hasLoadedTheme, setTheme, colorOverrides, elevation, focusRing } = useThemeStore(
+  const {
+    userTheme,
+    systemTheme,
+    userContrast,
+    systemContrast,
+    hasLoadedTheme,
+    setTheme,
+    setContrast,
+    colorOverrides,
+    elevation,
+    focusRing,
+  } = useThemeStore(
     useShallow((s) => ({
       userTheme: s.userTheme,
       systemTheme: s.systemTheme,
+      userContrast: s.userContrast,
+      systemContrast: s.systemContrast,
       hasLoadedTheme: s.hasLoadedTheme,
       setTheme: s.setTheme,
+      setContrast: s.setContrast,
       colorOverrides: s.colorOverrides,
       elevation: s.treatmentOverrides.elevation ?? defaultTreatments.elevation,
       focusRing: s.treatmentOverrides.focusRing ?? defaultTreatments.focusRing,
@@ -274,7 +313,10 @@ export function useTheme(): ExtendedColorScheme & {
     initialScheme !== undefined && !hasLoadedTheme
       ? initialScheme
       : resolveThemePreference(userTheme, systemTheme);
-  const base = colors[effectiveScheme];
+  const contrast = resolveContrastPreference(userContrast, systemContrast);
+  // Native: the base theme with the contrast overrides merged in. Web: the same
+  // objects as `colors` (CSS re-themes the `var(--c-*)` refs on `data-contrast`).
+  const base = (contrast === "more" ? moreContrastColors : colors)[effectiveScheme];
 
   // Layer overrides on top of the package defaults for the active scheme, in
   // precedence order: package default → global store (app brand) → scoped
@@ -378,8 +420,8 @@ export function useTheme(): ExtendedColorScheme & {
   // On web theme colors are `var(--c-*)` strings, which cannot be parsed —
   // resolve them to the active scheme's literal value first.
   const getContrastRatio = useCallback((color1: string, color2: string): number => {
-    const rgb1 = parseColor(resolveRawColor(color1, effectiveScheme));
-    const rgb2 = parseColor(resolveRawColor(color2, effectiveScheme));
+    const rgb1 = parseColor(resolveRawColor(color1, effectiveScheme, contrast));
+    const rgb2 = parseColor(resolveRawColor(color2, effectiveScheme, contrast));
 
     if (!rgb1 || !rgb2) {
       console.error("Invalid colors for contrast ratio:", color1, color2);
@@ -390,7 +432,7 @@ export function useTheme(): ExtendedColorScheme & {
     const lum2 = calculateLuminance(rgb2[0], rgb2[1], rgb2[2]);
 
     return calculateContrastRatio(lum1, lum2);
-  }, [effectiveScheme]);
+  }, [effectiveScheme, contrast]);
 
   // Cached version of getContrastingColor for performance
   // Uses module-level cache to prevent memory leak. `var(--c-*)` inputs are
@@ -402,9 +444,9 @@ export function useTheme(): ExtendedColorScheme & {
     color1?: string,
     color2?: string
   ): string => {
-    const bg = resolveRawColor(backgroundColor, effectiveScheme);
-    const c1 = color1 === undefined ? undefined : resolveRawColor(color1, effectiveScheme);
-    const c2 = color2 === undefined ? undefined : resolveRawColor(color2, effectiveScheme);
+    const bg = resolveRawColor(backgroundColor, effectiveScheme, contrast);
+    const c1 = color1 === undefined ? undefined : resolveRawColor(color1, effectiveScheme, contrast);
+    const c2 = color2 === undefined ? undefined : resolveRawColor(color2, effectiveScheme, contrast);
     const cacheKey = `${bg}-${c1}-${c2}`;
     const winner = getCachedOrCompute(cacheKey, () =>
       getBetterContrast(bg, c1, c2)
@@ -412,27 +454,31 @@ export function useTheme(): ExtendedColorScheme & {
     if (color1 !== undefined && winner === c1) return color1;
     if (color2 !== undefined && winner === c2) return color2;
     return winner;
-  }, [effectiveScheme]);
+  }, [effectiveScheme, contrast]);
 
   const getResolvedTextColorForBackground = useCallback(
     (backgroundColor: string): "light" | "dark" =>
-      getTextColorForBackground(resolveRawColor(backgroundColor, effectiveScheme)),
-    [effectiveScheme]
+      getTextColorForBackground(resolveRawColor(backgroundColor, effectiveScheme, contrast)),
+    [effectiveScheme, contrast]
   );
 
   return useMemo(() => ({
     theme,
     scheme: theme.dark ? "dark" : "light",
+    contrast,
     getShadowStyle,
     getFocusRingStyle,
     toggleTheme,
     setTheme,
     currentTheme: userTheme,
+    currentContrast: userContrast,
+    setContrast,
     getContrastingColor: getCachedContrastingColor,
     getTextColorForBackground: getResolvedTextColorForBackground,
     withAlpha,
     getContrastRatio,
   }), [
+    contrast,
     getCachedContrastingColor,
     getContrastRatio,
     getFocusRingStyle,
@@ -440,7 +486,9 @@ export function useTheme(): ExtendedColorScheme & {
     getShadowStyle,
     setTheme,
     theme,
+    setContrast,
     toggleTheme,
+    userContrast,
     userTheme,
   ]);
 }
@@ -711,6 +759,7 @@ export function useStyles<T extends NamedStyles<T>>(
     theme: themeContext.theme,
     spacing: spacingConstants,
     scheme: themeContext.scheme,
+    contrast: themeContext.contrast,
     getShadowStyle: themeContext.getShadowStyle,
     getFocusRingStyle: themeContext.getFocusRingStyle,
     getContrastingColor: themeContext.getContrastingColor,
@@ -720,5 +769,7 @@ export function useStyles<T extends NamedStyles<T>>(
     toggleTheme: themeContext.toggleTheme,
     setTheme: themeContext.setTheme,
     currentTheme: themeContext.currentTheme,
+    currentContrast: themeContext.currentContrast,
+    setContrast: themeContext.setContrast,
   }), [styles, themeContext]);
 }
