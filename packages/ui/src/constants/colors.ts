@@ -71,6 +71,9 @@ const palette = {
   green400: "#4ADE80",
   amber500: "#F59E0B",
   amber400: "#FBBF24",
+  // Light `warning` under more contrast: amber500 is too light for text on
+  // white, amber700 clears 4.5:1.
+  amber700: "#B45309",
   red500: "#EF4444",
   red400: "#F87171",
   green700: "#15803D",
@@ -291,7 +294,44 @@ export const rawThemeColors: { light: ThemeColorTokens; dark: ThemeColorTokens }
   dark: darkTheme.colors,
 };
 
+/** The contrast level a theme resolves to: the OS or user asked for more, or not. */
+export type ResolvedContrast = "standard" | "more";
+
+/**
+ * The tokens "more" contrast changes, per scheme; every other token inherits
+ * the scheme's normal value. Light: `accent` (white on teal700 is 5.5:1) and
+ * `warning` darken to clear 4.5:1 on white. `ring` moves to the far end of the
+ * scale in both schemes (neutral900 light, neutral300 dark) so the default soft
+ * focus halo (3px at 50%) clears 3:1 as drawn: 3.4:1 and 3.9:1. Dark:
+ * `destructiveForeground` flips to near-black so it clears 4.5:1 on `red400`.
+ * `accentForeground` stays white in light.
+ *
+ * Tokens an app overrides itself (`setColors`, `ThemeColorScope`, a look)
+ * keep the app's value: the app owns those.
+ */
+export const contrastColorOverrides: { light: Partial<ThemeColorTokens>; dark: Partial<ThemeColorTokens> } = {
+  light: {
+    accent: palette.teal700,
+    warning: palette.amber700,
+    ring: palette.neutral900,
+  },
+  dark: {
+    destructiveForeground: palette.neutral900,
+    ring: palette.neutral300,
+  },
+};
+
 const themeColorTokens = Object.keys(lightTheme.colors) as (keyof ThemeColorTokens)[];
+
+/**
+ * Raw hex/rgba theme colors under "more" contrast: `rawThemeColors` with
+ * `contrastColorOverrides` merged in. Literal strings on every platform, like
+ * `rawThemeColors`.
+ */
+export const rawMoreContrastColors: { light: ThemeColorTokens; dark: ThemeColorTokens } = {
+  light: { ...lightTheme.colors, ...contrastColorOverrides.light },
+  dark: { ...darkTheme.colors, ...contrastColorOverrides.dark },
+};
 
 // `surfaceSunken` → `--c-surface-sunken`
 function cssVarName(token: string): string {
@@ -308,12 +348,17 @@ const varToToken = new Map<string, keyof ThemeColorTokens>(
 /**
  * Resolves a theme color value to a literal color string. On web, theme
  * colors are `var(--c-*)` references; this maps one back to the given
- * scheme's raw hex/rgba. Literal inputs (including app override colors)
- * pass through unchanged.
+ * scheme's (and contrast level's, "standard" by default) raw hex/rgba. Literal
+ * inputs (including app override colors) pass through unchanged.
  */
-export function resolveRawColor(color: string, scheme: "light" | "dark"): string {
+export function resolveRawColor(
+  color: string,
+  scheme: "light" | "dark",
+  contrast: ResolvedContrast = "standard",
+): string {
   const token = varToToken.get(color);
-  return token ? rawThemeColors[scheme][token] : color;
+  if (!token) return color;
+  return (contrast === "more" ? rawMoreContrastColors : rawThemeColors)[scheme][token];
 }
 
 // "R, G, B" from "#RRGGBB", "#RGB", or "rgb(a)(R, G, B[, A])" (alpha dropped).
@@ -337,6 +382,16 @@ function toRgbTriplet(value: string): string | null {
  * Light values are defined on `:root`; dark values apply under
  * `html[data-theme="dark"]`, with a `prefers-color-scheme` fallback for the
  * paint before any theme script stamps `data-theme`.
+ *
+ * "More" contrast (`contrastColorOverrides`) follows, after those blocks, in
+ * four selectors per scheme: the stamped pair (`data-theme` + `data-contrast`),
+ * each stamped attribute with the other's OS media fallback, and both
+ * fallbacks. Each names its scheme explicitly because `html[data-theme="dark"]`
+ * and `html[data-contrast="more"]` have equal specificity, so a bare
+ * `html[data-contrast="more"]` block would leak light values into dark. A
+ * contrast token the caller's `overrides` set for that scheme is left out
+ * (the app's value wins, as on native), and a scheme with no tokens left emits
+ * no block.
  *
  * Apps that override brand colors can pass those overrides so the emitted
  * CSS matches their theme. Extension tokens (`ThemeColorExtensions`) present
@@ -369,6 +424,41 @@ export function getThemeCssVariables(overrides?: {
       }),
     ].join("\n      ");
 
+  // Contrast blocks go last so they beat the base blocks at equal specificity.
+  const contrastDeclarations = (scheme: "light" | "dark"): string =>
+    (Object.keys(contrastColorOverrides[scheme]) as (keyof ThemeColorTokens)[])
+      .filter((token) => overrides?.[scheme]?.[token] === undefined)
+      .map((token) => declaration(token, contrastColorOverrides[scheme][token] as string))
+      .join("\n        ");
+
+  const contrastBlocks = (scheme: "light" | "dark"): string => {
+    const body = contrastDeclarations(scheme);
+    if (!body) return "";
+    return `
+    html[data-theme="${scheme}"][data-contrast="more"] {
+        ${body}
+    }
+
+    @media (prefers-color-scheme: ${scheme}) {
+      html:not([data-theme])[data-contrast="more"] {
+        ${body}
+      }
+    }
+
+    @media (prefers-contrast: more) {
+      html[data-theme="${scheme}"]:not([data-contrast]) {
+        ${body}
+      }
+    }
+
+    @media (prefers-color-scheme: ${scheme}) and (prefers-contrast: more) {
+      html:not([data-theme]):not([data-contrast]) {
+        ${body}
+      }
+    }
+`;
+  };
+
   return `
     :root {
       ${declarations("light")}
@@ -383,7 +473,7 @@ export function getThemeCssVariables(overrides?: {
     html[data-theme="dark"] {
       ${declarations("dark")}
     }
-  `;
+${contrastBlocks("light")}${contrastBlocks("dark")}  `;
 }
 
 // On web, semantic theme colors resolve to CSS custom properties so the

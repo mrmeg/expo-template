@@ -18,6 +18,7 @@ import { useThemeStore } from "../../state/themeStore";
 
 const themeWrites: string[] = [];
 const colorSchemeWrites: string[] = [];
+const contrastWrites: string[] = [];
 const originalOS = Platform.OS;
 
 function recordingProperty(target: object, key: string, writes: string[]) {
@@ -34,6 +35,7 @@ beforeAll(() => {
   const dataset = {};
   const style = {};
   recordingProperty(dataset, "theme", themeWrites);
+  recordingProperty(dataset, "contrast", contrastWrites);
   recordingProperty(style, "colorScheme", colorSchemeWrites);
   (globalThis as { document?: unknown }).document = { documentElement: { dataset, style } };
   Platform.OS = "web";
@@ -96,5 +98,35 @@ describe("useTheme document sync (web)", () => {
     expect(colorSchemeWrites).toEqual(["light", "dark", "light"]);
 
     useThemeStore.getState().setFonts({});
+  });
+
+  it("writes data-contrast once per resolved-contrast change", async () => {
+    useThemeStore.setState({ userTheme: "light", userContrast: "system", systemContrast: "standard" });
+    const before = contrastWrites.length;
+    expect(contrastWrites).toEqual(["standard"]);
+
+    await render(
+      <>
+        <Consumer />
+        <Consumer />
+      </>
+    );
+    // The sync was started by the first test, which already wrote "standard";
+    // an unchanged level writes nothing.
+    await act(() => {
+      useThemeStore.getState().setSystemContrast("more");
+    });
+    expect(contrastWrites.slice(before)).toEqual(["more"]);
+
+    // The preference changing without changing the resolved level writes nothing.
+    await act(() => {
+      useThemeStore.getState().setContrast("more");
+    });
+    expect(contrastWrites.slice(before)).toEqual(["more"]);
+
+    await act(() => {
+      useThemeStore.getState().setContrast("standard");
+    });
+    expect(contrastWrites.slice(before)).toEqual(["more", "standard"]);
   });
 });

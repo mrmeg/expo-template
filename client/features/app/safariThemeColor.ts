@@ -12,10 +12,10 @@ import { resolveRawColor } from "@mrmeg/expo-ui/constants";
  * DOM: create it once, then keep its content on the store's active background.
  */
 export function useSafariThemeColorSync(): void {
-  const { theme, scheme } = useTheme();
+  const { theme, scheme, contrast } = useTheme();
   // The meta content must be a literal color — on web `theme.colors.*` are
   // CSS var() references, which this sink cannot take.
-  const background = resolveRawColor(theme.colors.background, scheme);
+  const background = resolveRawColor(theme.colors.background, scheme, contrast);
 
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;

@@ -103,6 +103,8 @@ const en = {
       dark: "Dark",
     },
     matchesDevice: "Matches your device: {{scheme}}",
+    contrastTitle: "Increase contrast",
+    contrastMatchesDevice: "Matches your device",
     language: "Language",
     about: "About",
     version: "Version",

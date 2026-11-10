@@ -17,7 +17,16 @@
  * `hooks/useTheme.ts`, which keeps those helpers private.
  */
 
-import { colors, palette } from "../colors";
+import {
+  colors,
+  contrastColorOverrides,
+  getThemeCssVariables,
+  palette,
+  rawMoreContrastColors,
+  rawThemeColors,
+  resolveRawColor,
+} from "../colors";
+import { moreContrastColors } from "../contrastThemes";
 import type { ThemeColors } from "../colors";
 
 /** WCAG relative luminance for an `#RRGGBB` string. */
@@ -29,6 +38,14 @@ function luminance(hex: string): number {
     return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
   });
   return sRGB[0] * 0.2126 + sRGB[1] * 0.7152 + sRGB[2] * 0.0722;
+}
+
+/** `fg` at `alpha` over `bg`, both `#RRGGBB`, as `#RRGGBB`. */
+function blend(fg: string, bg: string, alpha: number): string {
+  const channel = (hex: string, i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+  return `#${[0, 1, 2]
+    .map((i) => Math.round(channel(fg, i) * alpha + channel(bg, i) * (1 - alpha)).toString(16).padStart(2, "0"))
+    .join("")}`;
 }
 
 /** WCAG contrast ratio (1–21) between two `#RRGGBB` strings. */
@@ -156,5 +173,150 @@ describe("semantic token values", () => {
     expect(colors.dark.navigation.background).toBe(colors.dark.colors.background);
     expect(colors.dark.navigation.card).toBe(colors.dark.colors.card);
     expect(colors.dark.navigation.border).toBe(colors.dark.colors.border);
+  });
+});
+
+describe("more contrast", () => {
+  it("overrides exactly the documented tokens, from palette entries", () => {
+    expect(contrastColorOverrides).toEqual({
+      light: { accent: palette.teal700, warning: palette.amber700, ring: palette.neutral900 },
+      dark: { destructiveForeground: palette.neutral900, ring: palette.neutral300 },
+    });
+    expect(palette.amber700).toBe("#B45309");
+    expect(palette.teal700).toBe("#0F766E");
+    expect(palette.neutral300).toBe("#D4D4D4");
+    expect(palette.neutral900).toBe("#171717");
+  });
+
+  it("builds rawMoreContrastColors as rawThemeColors plus the overrides", () => {
+    for (const scheme of schemes) {
+      expect(rawMoreContrastColors[scheme]).toEqual({
+        ...rawThemeColors[scheme],
+        ...contrastColorOverrides[scheme],
+      });
+    }
+    // Everything not overridden is untouched.
+    expect(rawMoreContrastColors.light.link).toBe(rawThemeColors.light.link);
+    expect(rawMoreContrastColors.light.accentForeground).toBe(palette.white);
+    expect(rawMoreContrastColors.dark.accent).toBe(rawThemeColors.dark.accent);
+  });
+
+  it("resolves var() references against the contrast level, standard by default", () => {
+    expect(resolveRawColor("var(--c-accent)", "light")).toBe(palette.teal500);
+    expect(resolveRawColor("var(--c-accent)", "light", "standard")).toBe(palette.teal500);
+    expect(resolveRawColor("var(--c-accent)", "light", "more")).toBe(palette.teal700);
+    expect(resolveRawColor("var(--c-warning)", "light", "more")).toBe(palette.amber700);
+    expect(resolveRawColor("var(--c-destructive-foreground)", "dark", "more")).toBe(palette.neutral900);
+    expect(resolveRawColor("var(--c-destructive-foreground)", "dark")).toBe(palette.white);
+    // Un-overridden tokens and literals are unaffected.
+    expect(resolveRawColor("var(--c-background)", "dark", "more")).toBe(palette.neutral950);
+    expect(resolveRawColor("#123456", "light", "more")).toBe("#123456");
+  });
+
+  it("clears the WCAG floors the overrides exist for", () => {
+    const light = rawMoreContrastColors.light;
+    const dark = rawMoreContrastColors.dark;
+    expect(contrastRatio(light.accentForeground, light.accent)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(light.warning, palette.white)).toBeGreaterThanOrEqual(4.5);
+    // The default (soft) focus ring is a 3px halo at 50%: judge it as drawn.
+    expect(contrastRatio(blend(light.ring, light.background, 0.5), light.background)).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(blend(dark.ring, dark.background, 0.5), dark.background)).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(dark.destructiveForeground, dark.destructive)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(palette.neutral900, palette.red400)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("merges the overrides into the native base themes without touching the standard ones", () => {
+    expect(moreContrastColors.light.colors.accent).toBe(palette.teal700);
+    expect(moreContrastColors.light.colors.warning).toBe(palette.amber700);
+    expect(moreContrastColors.light.colors.ring).toBe(palette.neutral900);
+    expect(moreContrastColors.dark.colors.destructiveForeground).toBe(palette.neutral900);
+    expect(moreContrastColors.dark.colors.ring).toBe(palette.neutral300);
+    expect(moreContrastColors.light.colors.background).toBe(colors.light.colors.background);
+    expect(moreContrastColors.light.dark).toBe(false);
+    expect(moreContrastColors.dark.dark).toBe(true);
+    expect(colors.light.colors.accent).toBe(palette.teal500);
+    expect(colors.dark.colors.destructiveForeground).toBe(palette.white);
+  });
+});
+
+describe("getThemeCssVariables more contrast", () => {
+  const css = getThemeCssVariables();
+  const compact = (value: string) => value.replace(/\s+/g, " ");
+
+  /** Declarations of the rule `selector` (inside `@media <media> { … }` when given), or null. */
+  function ruleBody(selector: string, media?: string): string | null {
+    const flat = compact(css);
+    const head = media ? `@media ${media} { ${selector} {` : `${selector} {`;
+    const start = flat.indexOf(head);
+    if (start === -1) return null;
+    return flat.slice(start, flat.indexOf("}", start));
+  }
+
+  const combos = (scheme: "light" | "dark") => [
+    ruleBody(`html[data-theme="${scheme}"][data-contrast="more"]`),
+    ruleBody(`html:not([data-theme])[data-contrast="more"]`, `(prefers-color-scheme: ${scheme})`),
+    ruleBody(`html[data-theme="${scheme}"]:not([data-contrast])`, "(prefers-contrast: more)"),
+    ruleBody(
+      "html:not([data-theme]):not([data-contrast])",
+      `(prefers-color-scheme: ${scheme}) and (prefers-contrast: more)`
+    ),
+  ];
+
+  it("emits all eight selector and media combinations", () => {
+    for (const scheme of schemes) {
+      for (const body of combos(scheme)) expect(body).not.toBeNull();
+    }
+  });
+
+  it("puts the light overrides only under light selectors and the dark ones only under dark", () => {
+    for (const body of combos("light")) {
+      expect(body).toContain(`--c-accent: ${palette.teal700};`);
+      expect(body).toContain(`--c-warning: ${palette.amber700};`);
+      expect(body).toContain(`--c-ring: ${palette.neutral900};`);
+      expect(body).not.toContain("--c-destructive-foreground");
+    }
+    for (const body of combos("dark")) {
+      expect(body).toContain(`--c-destructive-foreground: ${palette.neutral900};`);
+      expect(body).toContain(`--c-ring: ${palette.neutral300};`);
+      expect(body).not.toContain("--c-accent");
+      expect(body).not.toContain("--c-warning");
+    }
+    // No bare contrast selector that would leak light values into dark.
+    expect(compact(css)).not.toMatch(/(^|[^\]\w])html\[data-contrast="more"\] \{/);
+  });
+
+  it("overrides the rgb triplet too, so withAlpha(ring) follows", () => {
+    expect(combos("light")[0]).toContain("--c-ring-rgb: 23, 23, 23;");
+    expect(combos("dark")[0]).toContain("--c-ring-rgb: 212, 212, 212;");
+    expect(combos("light")[0]).toContain("--c-accent-rgb: 15, 118, 110;");
+    expect(combos("dark")[0]).toContain("--c-destructive-foreground-rgb: 23, 23, 23;");
+  });
+
+  it("emits the contrast blocks after the base blocks", () => {
+    const flat = compact(css);
+    expect(flat.indexOf(`html[data-theme="dark"][data-contrast="more"]`)).toBeGreaterThan(
+      flat.indexOf(`html[data-theme="dark"] {`)
+    );
+  });
+
+  it("lets an app override win over a contrast token", () => {
+    const overridden = compact(getThemeCssVariables({ light: { accent: "#ff0000" } }));
+    const start = overridden.indexOf(`html[data-theme="light"][data-contrast="more"]`);
+    const body = overridden.slice(start, overridden.indexOf("}", start));
+    expect(body).not.toContain("--c-accent");
+    expect(body).toContain("--c-warning");
+    // The base block still carries the app's accent.
+    expect(overridden).toContain("--c-accent: #ff0000;");
+    // The overrides for a scheme never affect the other scheme's blocks.
+    expect(overridden).toContain(`--c-destructive-foreground: ${palette.neutral900};`);
+  });
+
+  it("emits no block for a scheme whose contrast tokens are all overridden", () => {
+    const flat = compact(
+      getThemeCssVariables({ dark: { destructiveForeground: "#000000", ring: "#888888" } })
+    );
+    expect(flat).not.toContain(`html[data-theme="dark"][data-contrast="more"]`);
+    expect(flat).not.toContain("(prefers-color-scheme: dark) and (prefers-contrast: more)");
+    expect(flat).toContain(`html[data-theme="light"][data-contrast="more"]`);
   });
 });

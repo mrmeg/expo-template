@@ -1,15 +1,18 @@
-import { Appearance, Platform } from "react-native";
+import { AccessibilityInfo, Appearance, Platform } from "react-native";
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import type { ThemeColors } from "../constants/colors";
+import type { ResolvedContrast, ThemeColors } from "../constants/colors";
 import { spacing } from "../constants/spacing";
 import type { FontOverrides, SansPreset, SerifPreset } from "../constants/fonts";
 
 const THEME_KEY = "user-theme-preference";
+const CONTRAST_KEY = "user-contrast-preference";
 
 export type ThemePreference = "system" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
+export type ContrastPreference = "system" | "standard" | "more";
+export type { ResolvedContrast };
 
 /**
  * Key the persisted preference lives under (`localStorage` on web,
@@ -19,8 +22,19 @@ export type ResolvedTheme = "light" | "dark";
  */
 export const THEME_STORAGE_KEY = THEME_KEY;
 
+/**
+ * Key the persisted contrast preference lives under (`localStorage` on web,
+ * `AsyncStorage` on native). Exported for the same reason as
+ * `THEME_STORAGE_KEY`: the blocking script in `app/+html.tsx` reads it.
+ */
+export const CONTRAST_STORAGE_KEY = CONTRAST_KEY;
+
 function isThemePreference(value: string): value is ThemePreference {
   return value === "system" || value === "light" || value === "dark";
+}
+
+function isContrastPreference(value: string): value is ContrastPreference {
+  return value === "system" || value === "standard" || value === "more";
 }
 
 /**
@@ -135,6 +149,23 @@ export type ThemeStore = {
   userTheme: ThemePreference;
   systemTheme: ResolvedTheme;
   /**
+   * The contrast level the user chose: `"system"` (default) follows the OS
+   * (`prefers-contrast: more` on web, Increase Contrast on iOS, high text
+   * contrast on Android), `"standard"` / `"more"` force one. Layered on top of
+   * light/dark, not a theme of its own.
+   *
+   * "More" contrast darkens a handful of tokens (`contrastColorOverrides`).
+   * Tokens the app overrides through `setColors` / `ThemeColorScope` / a look
+   * (e.g. `applyLook(classicLook)`, which sets full palettes) keep the app's
+   * value under more contrast: the app owns those.
+   */
+  userContrast: ContrastPreference;
+  /**
+   * The OS contrast level. Boots as `"standard"` so a web app's first render
+   * matches the server markup; real values arrive from the OS listener.
+   */
+  systemContrast: ResolvedContrast;
+  /**
    * True once the persisted preference has actually been read (or explicitly
    * set by the user). Until then `userTheme` / `systemTheme` still hold the
    * boot defaults ("system" / light), so a host app that needs to hold a
@@ -182,6 +213,9 @@ export type ThemeStore = {
   sansPreset: SansPreset;
   setTheme: (theme: ThemePreference) => void;
   setSystemTheme: (theme: ResolvedTheme) => void;
+  /** Choose a contrast level and persist it; `"system"` follows the OS again. */
+  setContrast: (contrast: ContrastPreference) => void;
+  setSystemContrast: (contrast: ResolvedContrast) => void;
   /**
    * Replace the active color overrides. Pass `{}` (or omit both schemes) to
    * clear overrides and fall back to the package defaults.
@@ -223,6 +257,59 @@ export function resolveThemePreference(
   return userTheme === "system" ? systemTheme : userTheme;
 }
 
+export function resolveContrastPreference(
+  userContrast: ContrastPreference,
+  systemContrast: ResolvedContrast
+): ResolvedContrast {
+  return userContrast === "system" ? systemContrast : userContrast;
+}
+
+const MORE_CONTRAST_QUERY = "(prefers-contrast: more)";
+
+function canMatchMedia(): boolean {
+  return Platform.OS === "web" && typeof window !== "undefined" && typeof window.matchMedia === "function";
+}
+
+/** The OS contrast level, synchronously where the platform allows (web); else "standard". */
+function getSystemContrast(): ResolvedContrast {
+  if (canMatchMedia()) {
+    return window.matchMedia(MORE_CONTRAST_QUERY).matches ? "more" : "standard";
+  }
+  return "standard";
+}
+
+/**
+ * Native OS contrast reads are async promises and the accessibility-info
+ * functions differ per platform. Everything is guarded and rejections are
+ * swallowed: a missing function or a failed read leaves the contrast as is.
+ */
+function nativeContrastAccessors(): { read: string; event: string } | null {
+  if (Platform.OS === "ios") {
+    return { read: "isDarkerSystemColorsEnabled", event: "darkerSystemColorsChanged" };
+  }
+  if (Platform.OS === "android") {
+    return { read: "isHighTextContrastEnabled", event: "highTextContrastChanged" };
+  }
+  return null;
+}
+
+function readNativeContrast(): void {
+  const accessors = nativeContrastAccessors();
+  const read = (AccessibilityInfo as unknown as Record<string, unknown> | undefined)?.[accessors?.read ?? ""];
+  if (typeof read !== "function") return;
+  try {
+    Promise.resolve((read as () => Promise<boolean>).call(AccessibilityInfo))
+      .then((enabled) => {
+        useThemeStore.getState().setSystemContrast(enabled ? "more" : "standard");
+      })
+      .catch(() => {
+        // Keep the current contrast if the OS read fails
+      });
+  } catch {
+    // A throwing accessor is treated like a missing one
+  }
+}
+
 function getSystemTheme(): ResolvedTheme {
   if (Platform.OS === "web" && typeof window !== "undefined" && typeof window.matchMedia === "function") {
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -233,6 +320,9 @@ function getSystemTheme(): ResolvedTheme {
 
 export const useThemeStore = create<ThemeStore>((set) => ({
   userTheme: "system",
+  userContrast: "system",
+  // "standard" at boot for the same reason `systemTheme` boots as "light".
+  systemContrast: "standard",
   // Always start with "light" so a web app's first render matches the HTML
   // shell that was rendered in Node at export time (no `window`, no storage).
   // Real values arrive from `syncThemeFromEnvironment()` after mount; a host
@@ -306,14 +396,44 @@ export const useThemeStore = create<ThemeStore>((set) => ({
     set({ systemTheme: theme });
   },
 
+  setContrast: (contrast) => {
+    set({ userContrast: contrast });
+    if (contrast === "system") {
+      // Web reads synchronously; native resolves the promise into the store.
+      if (Platform.OS === "web") set({ systemContrast: getSystemContrast() });
+      else readNativeContrast();
+    }
+    if (Platform.OS !== "web") {
+      AsyncStorage.setItem(CONTRAST_KEY, contrast).catch(() => {
+        // Silently fail if storage is not available
+      });
+      return;
+    }
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.setItem(CONTRAST_KEY, contrast);
+    }
+  },
+
+  setSystemContrast: (contrast) => {
+    set({ systemContrast: contrast });
+  },
+
   loadTheme: () => {
     if (Platform.OS !== "web") {
-      AsyncStorage.getItem(THEME_KEY).then((saved) => {
-        if (saved && isThemePreference(saved)) {
-          set({ userTheme: saved });
+      // Both preferences are read before `hasLoadedTheme` flips, so a host
+      // waiting on it never paints with one still at its default.
+      Promise.all([
+        AsyncStorage.getItem(THEME_KEY).catch(() => null),
+        AsyncStorage.getItem(CONTRAST_KEY).catch(() => null),
+      ]).then(([savedTheme, savedContrast]) => {
+        if (savedTheme && isThemePreference(savedTheme)) {
+          set({ userTheme: savedTheme });
+        }
+        if (savedContrast && isContrastPreference(savedContrast)) {
+          set({ userContrast: savedContrast });
         }
       }).catch(() => {
-        // Use default if loading fails
+        // Use defaults if loading fails
       }).finally(() => {
         set({ hasLoadedTheme: true });
       });
@@ -324,50 +444,93 @@ export const useThemeStore = create<ThemeStore>((set) => ({
       if (saved && isThemePreference(saved)) {
         set({ userTheme: saved });
       }
+      const savedContrast = localStorage.getItem(CONTRAST_KEY);
+      if (savedContrast && isContrastPreference(savedContrast)) {
+        set({ userContrast: savedContrast });
+      }
     }
     set({ hasLoadedTheme: true });
   }
 }));
 
-// The OS color-scheme listener is shared: one subscription however many
-// callers hold it, removed when the last holder releases. Each
-// `startSystemThemeListener()` call takes a hold and gets its own release.
+// The OS listeners are shared: one subscription (color scheme and contrast
+// together) however many callers hold it, removed when the last holder
+// releases. Each `startSystemThemeListener()` call takes a hold and gets its
+// own release.
 let systemThemeSubscription: { remove: () => void } | null = null;
 let systemThemeHolds = 0;
 
 export function syncSystemTheme(): void {
-  useThemeStore.getState().setSystemTheme(getSystemTheme());
+  const state = useThemeStore.getState();
+  state.setSystemTheme(getSystemTheme());
+  if (Platform.OS === "web") state.setSystemContrast(getSystemContrast());
+  else readNativeContrast();
+}
+
+/** Subscribe to a media query's changes with the `addListener` fallback for old Safari. */
+function subscribeToMediaQuery(query: string, onChange: (matches: boolean) => void): { remove: () => void } {
+  const mediaQuery = window.matchMedia(query);
+  const listener = () => onChange(mediaQuery.matches);
+
+  if (typeof mediaQuery.addEventListener === "function") {
+    mediaQuery.addEventListener("change", listener);
+    return { remove: () => mediaQuery.removeEventListener("change", listener) };
+  }
+  mediaQuery.addListener(listener);
+  return { remove: () => mediaQuery.removeListener(listener) };
+}
+
+function subscribeToSystemContrast(): { remove: () => void } | null {
+  const accessors = nativeContrastAccessors();
+  if (!accessors) return null;
+  try {
+    const subscription = (AccessibilityInfo as unknown as {
+      addEventListener?: (event: string, handler: (enabled: boolean) => void) => { remove: () => void } | undefined;
+    }).addEventListener?.(accessors.event, (enabled) => {
+      useThemeStore.getState().setSystemContrast(enabled ? "more" : "standard");
+    });
+    return subscription ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function subscribeToSystemTheme(): { remove: () => void } {
-  if (Platform.OS === "web" && typeof window !== "undefined" && typeof window.matchMedia === "function") {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => {
-      useThemeStore.getState().setSystemTheme(mediaQuery.matches ? "dark" : "light");
-    };
-
-    if (typeof mediaQuery.addEventListener === "function") {
-      mediaQuery.addEventListener("change", onChange);
-      return { remove: () => mediaQuery.removeEventListener("change", onChange) };
-    }
-    mediaQuery.addListener(onChange);
-    return { remove: () => mediaQuery.removeListener(onChange) };
+  if (canMatchMedia()) {
+    const subscriptions = [
+      subscribeToMediaQuery("(prefers-color-scheme: dark)", (dark) => {
+        useThemeStore.getState().setSystemTheme(dark ? "dark" : "light");
+      }),
+      subscribeToMediaQuery(MORE_CONTRAST_QUERY, (more) => {
+        useThemeStore.getState().setSystemContrast(more ? "more" : "standard");
+      }),
+    ];
+    return { remove: () => subscriptions.forEach((subscription) => subscription.remove()) };
   }
 
-  return Appearance.addChangeListener(({ colorScheme }) => {
+  const appearance = Appearance.addChangeListener(({ colorScheme }) => {
     useThemeStore.getState().setSystemTheme(colorScheme === "dark" ? "dark" : "light");
   });
+  const contrast = subscribeToSystemContrast();
+  return {
+    remove: () => {
+      appearance.remove();
+      contrast?.remove();
+    },
+  };
 }
 
 /**
- * Keep `systemTheme` following the OS color scheme (`prefers-color-scheme` on
- * web, `Appearance` on native). The first holder reads the current scheme and
- * attaches the one listener; later calls share it.
+ * Keep `systemTheme` and `systemContrast` following the OS (`prefers-color-scheme`
+ * and `prefers-contrast` on web; `Appearance` and the Increase Contrast /
+ * high text contrast accessibility settings on iOS / Android). The first
+ * holder reads the current values and attaches the listeners; later calls
+ * share them.
  *
  * Returns this caller's release: once every holder has released, the
- * listener is removed. Calling a release again is a no-op, so an effect
+ * listeners are removed. Calling a release again is a no-op, so an effect
  * cleanup that runs twice can't drop another caller's hold. On native the
- * package holds the listener for the app's lifetime (see the module-load
+ * package holds the listeners for the app's lifetime (see the module-load
  * init below), so an app's release never stops OS tracking there.
  */
 export function startSystemThemeListener(): () => void {
@@ -391,7 +554,8 @@ export function startSystemThemeListener(): () => void {
 
 /**
  * Single entry point for host apps to populate the store from the
- * environment: the OS color-scheme listener plus the persisted preference.
+ * environment: the OS color-scheme and contrast listeners plus the persisted
+ * preferences.
  *
  * Web apps call it once, from a top-level `useEffect` (never during render or
  * at module scope — see below), and return its result as the cleanup:
