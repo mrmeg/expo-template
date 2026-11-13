@@ -97,7 +97,7 @@ export default function ServerAlphaExampleScreen() {
       <View style={styles.hero}>
         <View style={styles.heroIcon}>
           <Icon
-            name={state.phase === "ready" && !example ? "triangle-alert" : "server"}
+            name={state.phase === "ready" && !example ? "triangle-exclamation-point" : "server"}
             color={theme.colors.primaryForeground}
             size={24}
           />

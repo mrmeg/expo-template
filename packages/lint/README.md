@@ -68,8 +68,8 @@ library, not icons: they are never turned into an icon name.
   `Lucide` prefix and the `Icon` suffix are dropped, the rest is split on capitals
   and on a letter-to-digit boundary (`Grid2x2` is `grid-2x2`, `CalendarX2` is
   `calendar-x-2`), and Lucide's alias table maps an old name to the current one
-  (`Home` is `house`, `AlertCircle` is `circle-alert`). Without an alias table the
-  kebab name is used as written. A per-icon file import
+  (`Home` is `house`, `AlertCircle` is `circle-exclamation-point`). Without an alias
+  table the kebab name is used as written. A per-icon file import
   (`lucide-react-native/icons/home`) is named by its path segment.
 - **The fix.** `eslint --fix` (also `bun run lint --fix` and the editor) rewrites an
   alias name to the canonical one in a `name` attribute of the `Icon` family — a

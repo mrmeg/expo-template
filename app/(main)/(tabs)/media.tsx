@@ -733,7 +733,7 @@ function useMediaScreenContent() {
         </View>
       ) : fetchError ? (
         <View style={styles.emptyContainer} testID="media-error">
-          <Icon name="triangle-alert" size={48} color={theme.colors.destructive} />
+          <Icon name="triangle-exclamation-point" size={48} color={theme.colors.destructive} />
           <SansSerifText size="body" style={styles.emptyText}>Couldn&apos;t load media</SansSerifText>
           <SansSerifText size="base" style={styles.emptySubtext}>
             {fetchError instanceof Error ? fetchError.message : "Try again in a moment."}

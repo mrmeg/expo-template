@@ -105,7 +105,7 @@ ruleTester.run("icon-source", rule, {
       code: 'import { Archive, AlertCircle as Alert } from "lucide-react";',
       errors: [
         { message: sources.component("Archive", "lucide-react", "archive", "archive") },
-        { message: sources.component("AlertCircle", "lucide-react", "alert-circle", "circle-alert") },
+        { message: sources.component("AlertCircle", "lucide-react", "alert-circle", "circle-exclamation-point") },
       ],
     },
     {
@@ -275,8 +275,8 @@ ruleTester.run("icon-source", rule, {
     {
       // The quote it was written with is the quote it keeps.
       code: `${COMPONENTS}const a = <Button.Icon name='alert-circle' />;`,
-      output: `${COMPONENTS}const a = <Button.Icon name='circle-alert' />;`,
-      errors: [{ message: sources.alias("alert-circle", "circle-alert", "name") }],
+      output: `${COMPONENTS}const a = <Button.Icon name='circle-exclamation-point' />;`,
+      errors: [{ message: sources.alias("alert-circle", "circle-exclamation-point", "name") }],
     },
     {
       code: `${COMPONENTS}const a = <ToggleIcon name="home" />;`,
@@ -318,8 +318,8 @@ ruleTester.run("icon-source", rule, {
     },
     {
       code: `${COMPONENTS}const a = <Icon name={open ? "x" : "alert-circle"} />;`,
-      output: `${COMPONENTS}const a = <Icon name={open ? "x" : "circle-alert"} />;`,
-      errors: [{ message: sources.alias("alert-circle", "circle-alert", "name") }],
+      output: `${COMPONENTS}const a = <Icon name={open ? "x" : "circle-exclamation-point"} />;`,
+      errors: [{ message: sources.alias("alert-circle", "circle-exclamation-point", "name") }],
     },
     {
       code: `${COMPONENTS}const a = <Item icon={icon ?? "home"} />;`,
@@ -334,10 +334,10 @@ ruleTester.run("icon-source", rule, {
     {
       // Both branches, both fixed.
       code: `${COMPONENTS}const a = <Icon name={open ? "home" : "alert-circle"} />;`,
-      output: `${COMPONENTS}const a = <Icon name={open ? "house" : "circle-alert"} />;`,
+      output: `${COMPONENTS}const a = <Icon name={open ? "house" : "circle-exclamation-point"} />;`,
       errors: [
         { message: sources.alias("home", "house", "name") },
-        { message: sources.alias("alert-circle", "circle-alert", "name") },
+        { message: sources.alias("alert-circle", "circle-exclamation-point", "name") },
       ],
     },
     {
