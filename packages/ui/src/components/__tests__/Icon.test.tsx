@@ -195,7 +195,7 @@ describe("icon registry", () => {
       "chevron-down",
       "chevron-right",
       "chevron-up",
-      "circle-alert",
+      "circle-exclamation-point",
       "circle-check-big",
       "eye",
       "eye-off",
@@ -207,7 +207,7 @@ describe("icon registry", () => {
       "sun",
       "trending-down",
       "trending-up",
-      "triangle-alert",
+      "triangle-exclamation-point",
       "user",
       "x",
     ]) {

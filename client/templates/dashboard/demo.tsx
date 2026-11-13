@@ -44,7 +44,7 @@ const ACTIVITY_FEED: ActivityItem[] = [
   },
   {
     id: "a4",
-    icon: "triangle-alert",
+    icon: "triangle-exclamation-point",
     title: "Inventory low",
     description: "Widget Pro has 3 units remaining",
     timestamp: "2h ago",

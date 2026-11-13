@@ -123,7 +123,7 @@ describe("design-system source loader", () => {
       JSON.parse(fs.readFileSync(path.join(UI_SRC, "components", "icon-names.json"), "utf8")),
     );
     expect(design.icons.aliases.home).toBe("house");
-    expect(design.icons.aliases["alert-circle"]).toBe("circle-alert");
+    expect(design.icons.aliases["alert-circle"]).toBe("circle-exclamation-point");
     expect(design.icons.lucide).toMatch(/^\d+\.\d+\.\d+$/);
     // The snapshot's glyphs are not facts the rules quote.
     expect(design.icons).not.toHaveProperty("icons");

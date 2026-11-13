@@ -199,7 +199,7 @@ export const Notification = () => {
     switch (alert?.type) {
     case "error":
       return {
-        icon: "circle-alert",
+        icon: "circle-exclamation-point",
         color: theme.colors.destructive,
         bgColor: withAlpha(theme.colors.destructive, 0.08),
       };
@@ -211,7 +211,7 @@ export const Notification = () => {
       };
     case "warning":
       return {
-        icon: "triangle-alert",
+        icon: "triangle-exclamation-point",
         color: theme.colors.warning,
         bgColor: withAlpha(theme.colors.warning, 0.08),
       };

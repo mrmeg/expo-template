@@ -39,7 +39,7 @@ export default function PeopleScreen() {
       </View>
       {failed ? (
         <EmptyState
-          icon="circle-alert"
+          icon="circle-exclamation-point"
           title="Could not load people"
           actionLabel="Try again"
           onAction={() => setAttempt((count) => count + 1)}

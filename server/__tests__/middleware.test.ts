@@ -102,12 +102,32 @@ describe("app/+middleware.ts", () => {
   });
 
   it("adds CORS to responses the route never wrote, like Expo Server's 405", async () => {
-    const response = await send("/api/template/status", { method: "PUT", headers: { Origin: ALLOWED_ORIGIN } });
+    const response = await send("/api/template/status", {
+      method: "PUT",
+      headers: { Origin: ALLOWED_ORIGIN, "Content-Type": "application/json" },
+    });
 
     expect(response.status).toBe(405);
     expect(response.headers.get("X-Expo-Router-Middleware")).toBe("1");
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(ALLOWED_ORIGIN);
     expect(response.headers.get("Vary")).toBe("Origin");
+  });
+
+  it("leaves Expo Server's origin check on: a cross-origin write a browser sends without a preflight is refused before the middleware", async () => {
+    for (const headers of [{}, { "Content-Type": "multipart/form-data; boundary=x" }] as Record<string, string>[]) {
+      const response = await send("/api/template/status", {
+        method: "POST",
+        headers: { Origin: ALLOWED_ORIGIN, ...headers },
+      });
+
+      expect(response.status).toBe(403);
+      expect(response.headers.get("X-Expo-Router-Middleware")).toBeNull();
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
+    }
+
+    // No `Origin` (native apps, webhooks, curl) is not a browser cross-origin request.
+    const native = await send("/api/template/status", { method: "PUT" });
+    expect(native.status).toBe(405);
   });
 
   it("keeps the route's preflight headers on OPTIONS", async () => {

@@ -73,7 +73,7 @@ const VARIANT_DEFAULTS: Record<ErrorVariant, { icon: IconName; title: string; de
     description: "You don't have permission to view this page.",
   },
   generic: {
-    icon: "circle-alert",
+    icon: "circle-exclamation-point",
     title: "Something went wrong",
     description: "An unexpected error occurred. Please try again.",
   },

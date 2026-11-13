@@ -136,6 +136,7 @@ One policy, in `server/api/shared/cors.ts`, behind every CORS header the app sen
 | Request headers | `Content-Type, Authorization` (what `client/lib/api/authenticatedFetch.ts` sends), plus `sentry-trace, baggage` (Sentry browser tracing) |
 | Preflight | 204 with `Access-Control-Max-Age: 86400`; methods and headers are advertised to allowed origins only |
 | `Vary` | `Origin` on every API response, with or without an `Origin` header; merged with a route's own entries |
+| Cross-origin writes | Expo Server (58.1+, `checkOrigin`, on by default) answers 403 before the middleware, with no CORS headers, to a `POST`/`PUT`/`DELETE` from another origin that has no `Content-Type` or a form one (`multipart/form-data`, `application/x-www-form-urlencoded`, `text/plain`), allowlisted or not. Send `Content-Type: application/json` from an allowlisted web origin, even with no body. Same-origin pages, native apps, and webhooks (no `Origin`) are unaffected |
 
 ### Rate Limits
 

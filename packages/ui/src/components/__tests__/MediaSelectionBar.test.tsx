@@ -110,9 +110,9 @@ describe("MediaSelectionBar", () => {
     });
 
     it("draws the delete icon the caller names", async () => {
-      await renderBar({ selectedCount: 1, deleteIcon: "circle-alert" });
+      await renderBar({ selectedCount: 1, deleteIcon: "circle-exclamation-point" });
 
-      expect(screen.queryByTestId("icon-circle-alert", { includeHiddenElements: true })).not.toBeNull();
+      expect(screen.queryByTestId("icon-circle-exclamation-point", { includeHiddenElements: true })).not.toBeNull();
     });
 
     it("shows a spinner only while deleting", async () => {

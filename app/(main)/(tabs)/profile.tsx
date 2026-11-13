@@ -509,7 +509,7 @@ function AccountInfoSection({
       </Item>
       {billing?.cancelAtPeriodEnd && (
         <Item>
-          <ItemMedia size={36} icon="triangle-alert" iconColor={theme.colors.warning} />
+          <ItemMedia size={36} icon="triangle-exclamation-point" iconColor={theme.colors.warning} />
           <ItemContent>
             <ItemDescription>
               Your plan is scheduled to end. Re-enable from Manage
@@ -520,7 +520,7 @@ function AccountInfoSection({
       )}
       {billing?.status === "past_due" && (
         <Item>
-          <ItemMedia size={36} icon="triangle-alert" iconColor={theme.colors.warning} />
+          <ItemMedia size={36} icon="triangle-exclamation-point" iconColor={theme.colors.warning} />
           <ItemContent>
             <ItemDescription>
               Your last payment failed. Update your payment method in Manage
