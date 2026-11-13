@@ -39,7 +39,8 @@ beforeAll(() => {
 
 describe("createClerkTokenVerifier", () => {
   function clerkToken(payload: Record<string, unknown>, privateKey = clerkKeys.privateKey): string {
-    return signJwt(privateKey, { alg: "RS256", typ: "JWT", kid: "ins_test" }, {
+    // `cat` is Clerk's session-token category; `@clerk/backend` 3.28 rejects a token without it.
+    return signJwt(privateKey, { alg: "RS256", typ: "JWT", kid: "ins_test", cat: "cl_B7d4PD111AAA" }, {
       iss: "https://clerk.example.com",
       sid: "sess_123",
       iat: now() - 5,
