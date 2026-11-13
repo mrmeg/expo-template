@@ -240,7 +240,7 @@ export default function DeveloperScreen() {
         <Item onPress={triggerError}>
           <ItemMedia
             size={36}
-            icon="triangle-alert"
+            icon="triangle-exclamation-point"
             iconColor={theme.colors.destructive}
             style={styles.destructiveTile}
           />

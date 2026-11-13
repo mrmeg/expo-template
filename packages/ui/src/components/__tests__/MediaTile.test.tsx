@@ -199,9 +199,9 @@ describe("MediaTile", () => {
     });
 
     it("draws the delete icon the caller names", async () => {
-      await renderTile({ onDelete: jest.fn(), deleteIcon: "circle-alert" });
+      await renderTile({ onDelete: jest.fn(), deleteIcon: "circle-exclamation-point" });
 
-      expect(screen.queryByTestId("icon-circle-alert", { includeHiddenElements: true })).not.toBeNull();
+      expect(screen.queryByTestId("icon-circle-exclamation-point", { includeHiddenElements: true })).not.toBeNull();
       expect(screen.queryByTestId("icon-x", { includeHiddenElements: true })).toBeNull();
     });
 

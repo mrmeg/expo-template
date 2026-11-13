@@ -3,6 +3,39 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.37.0]
+
+### Breaking
+
+- **Twenty-one icon names changed with the move from Lucide 1.66 to 1.72.** Two are
+  builtins the package's own components draw, so they are no longer `IconName`s
+  without a manifest entry: `circle-alert` → `circle-exclamation-point` and
+  `triangle-alert` → `triangle-exclamation-point`. A manifest listing an old name
+  now fails `expo-ui-icons generate` and `--check`, and the error names the
+  replacement. Rename them in the manifest and in code; `eslint --fix` with
+  `@mrmeg/eslint-plugin-expo-ui` rewrites the `name` / `icon` attributes. The rest:
+  `badge-alert` → `badge-exclamation-point`, `battery-warning` →
+  `battery-exclamation-point`, `book-alert` → `book-exclamation-point`,
+  `clock-alert` → `clock-exclamation-point`, `cloud-alert` →
+  `cloud-exclamation-point`, `mail-warning` → `mail-exclamation-point`,
+  `message-circle-warning` → `message-circle-exclamation-point`,
+  `message-square-warning` → `message-square-exclamation-point`,
+  `octagon-alert` → `octagon-exclamation-point`, `search-alert` →
+  `search-exclamation-point`, `shield-alert` → `shield-exclamation-point`,
+  `circle-arrow-out-<dir>` → `circle-arrow-<dir>-exit` and
+  `square-arrow-out-<dir>` → `square-arrow-<dir>-exit` (`<dir>` is `down-left`,
+  `down-right`, `up-left`, `up-right`).
+
+### Changed
+
+- Twelve icons are redrawn under the same name: the six question-mark icons
+  (`circle-question-mark`, `badge-question-mark`, `file-question-mark`,
+  `mail-question-mark`, `message-circle-question-mark`, `shield-question-mark`),
+  `chef-hat`, `route`, `circle-letter-j`, `square-letter-j`,
+  `square-arrow-right-enter` and `square-arrow-right-exit`. Regenerate
+  (`bunx expo-ui-icons`, and `bunx expo-ui-icons tabs` for tab icons) to pick them up.
+- The snapshot holds 2052 icons (37 new) and 304 aliases.
+
 ## [0.36.0]
 
 ### Added

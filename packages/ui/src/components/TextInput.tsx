@@ -528,7 +528,7 @@ function WebTextInput({
             accessibilityLabel="Error"
           >
             <Icon
-              name="circle-alert"
+              name="circle-exclamation-point"
               size={spacing.iconSm}
               color="destructive"
               decorative

@@ -83,7 +83,7 @@ describe("build-icon-registry (ui:icons)", () => {
     expect(snapshot.lucide).toMatch(/^\d+\.\d+\.\d+$/);
     expect(Object.keys(snapshot.icons).length).toBeGreaterThan(1000);
     expect(snapshot.aliases.home).toBe("house");
-    expect(snapshot.aliases["alert-circle"]).toBe("circle-alert");
+    expect(snapshot.aliases["alert-circle"]).toBe("circle-exclamation-point");
     for (const canonical of Object.values(snapshot.aliases)) expect(snapshot.icons[canonical]).toBeDefined();
   });
 
