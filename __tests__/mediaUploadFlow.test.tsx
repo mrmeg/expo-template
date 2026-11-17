@@ -195,7 +195,7 @@ describe("media tab uploads", () => {
       });
     });
 
-    expect(mockNotify.warning).toHaveBeenCalledWith("Upload Incomplete", {
+    expect(mockNotify.warning).toHaveBeenCalledWith("Upload incomplete", {
       messages: ["1 of 2 files uploaded", "Failed: clip.mov"],
       duration: 6000,
     });
