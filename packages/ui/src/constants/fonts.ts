@@ -83,29 +83,33 @@ const monoFamilies = isWebRuntime
     bold: nativeMonoFamily,
   };
 
-// Web ships one Geist CSS family for every weight — weight differentiation
-// comes from a numeric `fontWeight` set alongside this family (see
-// StyledText's getFontFamilyWeight). Native ships four discrete Geist static
-// font files (loaded by useResources via @expo-google-fonts/geist), each a
-// real weight, so the family name alone carries the weight — do NOT also set
+// The default sans is Allo at its sharp roundness ("Allo Sharp"): one of three
+// cuts of the Allo variable font the package bundles (see `sansPresetFamilies`
+// and `scripts/build-allo-fonts.py`).
+//
+// Web ships one "Allo Sharp" CSS family for every weight — weight
+// differentiation comes from a numeric `fontWeight` set alongside this family
+// (see StyledText's getFontFamilyWeight). Native ships four discrete static
+// font files (bundled with the package, loaded by useResources), each a real
+// weight, so the family name alone carries the weight — do NOT also set
 // `fontWeight` on native or it faux-bolds on top of an already-bold file.
 // `light` maps to the regular file on native: a 5th (300) static weight isn't
 // worth shipping for how rarely `light` is used.
 const sansSerifFamilies = isWebRuntime
   ? {
-    light: `"Geist", ${WEB_FONT_STACK}`,
-    regular: `"Geist", ${WEB_FONT_STACK}`,
-    medium: `"Geist", ${WEB_FONT_STACK}`,
-    semibold: `"Geist", ${WEB_FONT_STACK}`,
-    bold: `"Geist", ${WEB_FONT_STACK}`,
+    light: `"Allo Sharp", ${WEB_FONT_STACK}`,
+    regular: `"Allo Sharp", ${WEB_FONT_STACK}`,
+    medium: `"Allo Sharp", ${WEB_FONT_STACK}`,
+    semibold: `"Allo Sharp", ${WEB_FONT_STACK}`,
+    bold: `"Allo Sharp", ${WEB_FONT_STACK}`,
   }
   : isReactNativeRuntime
     ? {
-      light: "Geist_400Regular",
-      regular: "Geist_400Regular",
-      medium: "Geist_500Medium",
-      semibold: "Geist_600SemiBold",
-      bold: "Geist_700Bold",
+      light: "AlloSharp_400Regular",
+      regular: "AlloSharp_400Regular",
+      medium: "AlloSharp_500Medium",
+      semibold: "AlloSharp_600SemiBold",
+      bold: "AlloSharp_700Bold",
     }
     : {
       light: "sans-serif",
@@ -122,7 +126,7 @@ export type FontFamilyWeight = "light" | "regular" | "medium" | "semibold" | "bo
  * How a platform expresses weight for a given family map.
  *
  * - `"numeric"` — one multi-weight CSS family (the package's own web default:
- *   a single `"Geist"` family where a numeric `fontWeight` selects the
+ *   a single `"Allo Sharp"` family where a numeric `fontWeight` selects the
  *   `@font-face` variant).
  * - `"family"` — each weight is its own separately-registered single-face
  *   family, so the family name alone carries the weight. Emitting a numeric
@@ -164,28 +168,59 @@ export type SerifPreset = "georgia" | "newsreader";
 
 /**
  * Which face the `sansSerif` variant resolves to when no `setFonts` sansSerif
- * override exists: `"geist"` (the package default, bundled) or `"inter"`
- * (opt-in: the classic look's face; the app supplies the files on native).
+ * override exists.
+ *
+ * - `"allo"` — the package default: Allo at its sharp roundness. Bundled.
+ * - `"allo-friendly"` / `"allo-round"` — the same Allo at roundness 50 and
+ *   100. Opt-in: the native files come from `@mrmeg/expo-ui/fonts/allo-friendly`
+ *   and `@mrmeg/expo-ui/fonts/allo-round`.
+ * - `"geist"` — the default before 0.39.0. Opt-in: the app supplies the
+ *   `@expo-google-fonts/geist` files on native.
+ * - `"inter"` — the classic look's face. Opt-in: the app supplies the
+ *   `@expo-google-fonts/inter` files on native.
  */
-export type SansPreset = "geist" | "inter";
+export type SansPreset = "allo" | "allo-friendly" | "allo-round" | "geist" | "inter";
+
+/** One sans preset's faces: a single multi-weight web stack, and a native family per weight. */
+export type SansPresetFamilies = {
+  web: string;
+  native: Record<FontFamilyWeight, string>;
+};
+
+function nativeWeights(prefix: string): Record<FontFamilyWeight, string> {
+  return {
+    light: `${prefix}_400Regular`,
+    regular: `${prefix}_400Regular`,
+    medium: `${prefix}_500Medium`,
+    semibold: `${prefix}_600SemiBold`,
+    bold: `${prefix}_700Bold`,
+  };
+}
 
 /**
- * The Inter faces the `"inter"` sans preset resolves to (the classic look's
- * face). Native names match `@expo-google-fonts/inter`'s per-weight exports,
- * which the app registers through `useResources({ sans: "inter", sansFonts })`
- * or `loadSansPreset("inter", fonts)`; web is one stack the Inter stylesheet
- * (or the host's self-hosted `@font-face`) serves, weight numeric.
+ * The faces every sans preset resolves to. Web is one stack the preset's
+ * stylesheet (or the host's self-hosted `@font-face`) serves, weight numeric.
+ * Native names are the keys the font map registers: the bundled Allo maps for
+ * the three Allo presets, and `@expo-google-fonts/geist` / `inter`'s
+ * per-weight exports for those two, which the app registers through
+ * `useResources({ sans, sansFonts })` or `loadSansPreset(preset, fonts)`.
  */
-export const interFamilies = {
-  web: `"Inter", ${WEB_FONT_STACK}`,
-  native: {
-    light: "Inter_400Regular",
-    regular: "Inter_400Regular",
-    medium: "Inter_500Medium",
-    semibold: "Inter_600SemiBold",
-    bold: "Inter_700Bold",
-  } satisfies Record<FontFamilyWeight, string>,
-} as const;
+export const sansPresetFamilies: Record<SansPreset, SansPresetFamilies> = {
+  allo: { web: `"Allo Sharp", ${WEB_FONT_STACK}`, native: nativeWeights("AlloSharp") },
+  "allo-friendly": { web: `"Allo Friendly", ${WEB_FONT_STACK}`, native: nativeWeights("AlloFriendly") },
+  "allo-round": { web: `"Allo Round", ${WEB_FONT_STACK}`, native: nativeWeights("AlloRound") },
+  geist: { web: `"Geist", ${WEB_FONT_STACK}`, native: nativeWeights("Geist") },
+  inter: { web: `"Inter", ${WEB_FONT_STACK}`, native: nativeWeights("Inter") },
+};
+
+/** The package default sans preset: Allo at its sharp roundness. */
+export const defaultSansPreset: SansPreset = "allo";
+
+/**
+ * The Inter faces the `"inter"` sans preset resolves to. Same value as
+ * `sansPresetFamilies.inter`, kept under its pre-0.39.0 name.
+ */
+export const interFamilies: SansPresetFamilies = sansPresetFamilies.inter;
 
 /**
  * The Newsreader faces the `"newsreader"` preset resolves to. Native names
@@ -231,7 +266,7 @@ export const fontFamilies: FontFamilyMap = {
 };
 
 /**
- * The package's own web weight strategy: one multi-weight "Geist" family, so
+ * The package's own web weight strategy: one multi-weight "Allo Sharp" family, so
  * weight comes from a numeric `fontWeight`. Native always behaves as
  * `"family"` regardless of this value.
  */
@@ -264,7 +299,7 @@ export type FontStyleOptions = {
   italic?: boolean;
   /** The active serif preset (`useThemeStore().serifPreset`); defaults to Georgia. */
   serifPreset?: SerifPreset;
-  /** The active sans preset (`useThemeStore().sansPreset`); defaults to Geist. */
+  /** The active sans preset (`useThemeStore().sansPreset`); defaults to Allo (sharp). */
   sansPreset?: SansPreset;
 };
 
@@ -279,9 +314,9 @@ export type FontStyleOptions = {
  * Weight is carried either by a numeric `fontWeight` (one multi-weight CSS
  * family) or by the family name itself (discrete per-weight faces). Native is
  * always the latter: adding a numeric weight on top of an already-bold file
- * faux-bolds it. Web defaults to numeric for the package's own single "Geist"
- * (or preset "Inter") family, but an app loading per-weight faces through `expo-font` gets its
- * own family per weight on web too, and must declare
+ * faux-bolds it. Web defaults to numeric for the package's own single
+ * "Allo Sharp" (or another preset's) family, but an app loading per-weight
+ * faces through `expo-font` gets its own family per weight on web too, and must declare
  * `webWeightStrategy: "family"` to avoid a second synthesised layer of bold.
  */
 export function resolveFontStyle(
@@ -290,20 +325,25 @@ export function resolveFontStyle(
   weight: FontFamilyWeight,
   options: FontStyleOptions = {},
 ): ResolvedFontStyle {
-  const { italic = false, serifPreset = "georgia", sansPreset = "geist" } = options;
+  const { italic = false, serifPreset = "georgia", sansPreset = defaultSansPreset } = options;
   const isWeb = Platform.OS === "web";
   const overrideGroup = overrides.families?.[variant];
   // Precedence for the upright face: app override → preset → package default.
   const preset = variant === "serif" && serifPreset === "newsreader" && !overrideGroup;
-  const interPreset = variant === "sansSerif" && sansPreset === "inter" && !overrideGroup;
+  // The default preset is `fontFamilies.sansSerif` itself, so only another
+  // preset swaps the map.
+  const sansFamilies =
+    variant === "sansSerif" && sansPreset !== defaultSansPreset && !overrideGroup
+      ? sansPresetFamilies[sansPreset]
+      : undefined;
   const defaults: Record<FontFamilyWeight, string> = preset
     ? isWeb
       ? { light: newsreaderFamilies.web, regular: newsreaderFamilies.web, medium: newsreaderFamilies.web, semibold: newsreaderFamilies.web, bold: newsreaderFamilies.web }
       : newsreaderFamilies.native
-    : interPreset
+    : sansFamilies
       ? isWeb
-        ? { light: interFamilies.web, regular: interFamilies.web, medium: interFamilies.web, semibold: interFamilies.web, bold: interFamilies.web }
-        : interFamilies.native
+        ? { light: sansFamilies.web, regular: sansFamilies.web, medium: sansFamilies.web, semibold: sansFamilies.web, bold: sansFamilies.web }
+        : sansFamilies.native
       : fontFamilies[variant];
 
   const upright = overrideGroup
@@ -356,11 +396,12 @@ export const typography: Record<TypographySize, { fontSize: number; lineHeight: 
 };
 
 // Navigation fonts are module-load constants (React Navigation themes are
-// built from them once), so they follow the package default (Geist) and cannot
-// follow `sansPreset` at runtime; an app on the Inter preset that wants Inter
-// in navigation headers builds its own theme fonts from `interFamilies`.
+// built from them once), so they follow the package default (Allo, sharp) and
+// cannot follow `sansPreset` at runtime; an app on another preset that wants
+// its face in navigation headers builds its own theme fonts from
+// `sansPresetFamilies[preset]`.
 //
-// Web: single "Geist" family per weight slot, numeric fontWeight picks the
+// Web: single "Allo Sharp" family per weight slot, numeric fontWeight picks the
 // right @font-face variant from the multi-weight stylesheet (see useResources).
 const webNavigationFonts: NavigationFonts = {
   regular: {
@@ -381,7 +422,7 @@ const webNavigationFonts: NavigationFonts = {
   },
 };
 
-// Native: each slot points at its own real Geist static file, so the family
+// Native: each slot points at its own real Allo static file, so the family
 // name alone carries the weight. No numeric fontWeight here — pairing one
 // with an already-weighted static file triggers faux-bold on top of a real
 // weight file (same rule as StyledText's getFontFamilyWeight).

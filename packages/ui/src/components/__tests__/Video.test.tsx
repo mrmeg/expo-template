@@ -781,7 +781,7 @@ describe("chrome visibility", () => {
     expect(chrome()?.props.accessibilityElementsHidden).toBe(true);
   });
 
-  it("restarts the 3 s whenever the frame is touched", async () => {
+  it("restarts the 3 s whenever a control is used", async () => {
     jest.useFakeTimers();
     await mount({ controls: "custom" });
     await startPlaying();
@@ -789,7 +789,7 @@ describe("chrome visibility", () => {
     await act(async () => {
       jest.advanceTimersByTime(2000);
     });
-    await fireEvent.press(screen.getByTestId("video-surface", hidden));
+    await fireEvent.press(screen.getByTestId("video-mute", hidden));
     await act(async () => {
       jest.advanceTimersByTime(2000);
     });
@@ -799,6 +799,60 @@ describe("chrome visibility", () => {
       jest.advanceTimersByTime(1000);
     });
     expect(shown()).toBe(false);
+  });
+
+  it("hides at once on a tap of the frame while playing, and the next tap brings it back for 3 s", async () => {
+    jest.useFakeTimers();
+    await mount({ controls: "custom" });
+    await startPlaying();
+
+    await fireEvent.press(screen.getByTestId("video-surface", hidden));
+    expect(shown()).toBe(false);
+
+    await fireEvent.press(screen.getByTestId("video-surface", hidden));
+    expect(shown()).toBe(true);
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(shown()).toBe(false);
+  });
+
+  it("lets a tap hide the controls while paused, and keeps them hidden until the next tap", async () => {
+    jest.useFakeTimers();
+    await mount({ controls: "custom" });
+
+    await fireEvent.press(screen.getByTestId("video-surface", hidden));
+    expect(shown()).toBe(false);
+    await act(async () => {
+      jest.advanceTimersByTime(10000);
+    });
+    expect(shown()).toBe(false);
+
+    await fireEvent.press(screen.getByTestId("video-surface", hidden));
+    expect(shown()).toBe(true);
+  });
+
+  it("reports each change of the controls, starting with the first state", async () => {
+    jest.useFakeTimers();
+    const onControlsVisibilityChange = jest.fn();
+    await mount({ controls: "custom", onControlsVisibilityChange });
+    expect(onControlsVisibilityChange.mock.calls).toEqual([[true]]);
+
+    await startPlaying();
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(onControlsVisibilityChange.mock.calls).toEqual([[true], [false]]);
+
+    await fireEvent.press(screen.getByTestId("video-surface", hidden));
+    expect(onControlsVisibilityChange.mock.calls).toEqual([[true], [false], [true]]);
+  });
+
+  it("reports nothing with the platform's controls", async () => {
+    const onControlsVisibilityChange = jest.fn();
+    await mount({ controls: "native", onControlsVisibilityChange });
+
+    expect(onControlsVisibilityChange).not.toHaveBeenCalled();
   });
 
   it("comes back on a tap of the frame", async () => {

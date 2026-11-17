@@ -86,7 +86,7 @@ describe("design-system manifest round trip", () => {
   it("carries the typography sizes with their line heights, and the font families", () => {
     expect(payload.tokens.typography.entries).toContainEqual({ name: "base", value: 14, lineHeight: 21 });
     expect(loaded.tokens.typography.nameByValue.get(14)).toBe("base");
-    expect(loaded.fonts.families.sansSerif.medium).toContain("Geist_500Medium");
+    expect(loaded.fonts.families.sansSerif.medium).toContain("AlloSharp_500Medium");
   });
 
   it("still loads a schemaVersion 1 manifest, with empty typography and families", () => {

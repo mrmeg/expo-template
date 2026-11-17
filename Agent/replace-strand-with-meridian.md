@@ -10,7 +10,7 @@ pr: -
 
 ## Goal
 
-Remove Strand from the Looks demo and put a new look, Meridian, in its slot. Matt compared Strand and Editorial on the Housefold hub design canvas and chose a look between them: Strand's cool carbon neutrals, hairlines and single blue signal, without its 2px corners, uppercase expanded Archivo titles and mono figures; plus Editorial's soft corners. Type is Geist throughout: Newsreader is kept only as an accent an app may use for one headline per screen, and Geist Mono only for time axes. Housefold will adopt Meridian next, so the template must define and preview it.
+Remove Strand from the Looks demo and put a new look, Meridian, in its slot. Matt compared Strand and Editorial on the Housefold hub design canvas and chose a look between them: Strand's cool carbon neutrals, hairlines and single blue signal, without its 2px corners, uppercase expanded Archivo titles and mono figures; plus Editorial's soft corners. Type is the kit's default sans throughout (Allo in its sharp cut, since expo-ui 0.39.0): Newsreader is kept only as an accent an app may use for one headline per screen, and Geist Mono only for time axes. Housefold will adopt Meridian next, so the template must define and preview it.
 
 ## Context
 
@@ -46,7 +46,7 @@ const MERIDIAN_STYLESHEET = {
 const meridianLook: Look = {
   id: "meridian",
   name: "Meridian",
-  description: "Geist, with Newsreader for one headline and Geist Mono for time axes, cool carbon neutrals, soft 6 / 12 corners, hairlines, one blue signal.",
+  description: "Allo, with Newsreader for one headline and Geist Mono for time axes, cool carbon neutrals, soft 6 / 12 corners, hairlines, one blue signal.",
   serif: "newsreader",
   fonts: Platform.OS === "web" ? MERIDIAN_WEB_FONTS : undefined,
   colors: {
@@ -144,9 +144,9 @@ Put Meridian third in `DEMO_LOOKS`, where Strand was:
 },
 ```
 
-No `figure` or `labelVariant` entry: titles, figures, eyebrows and tab labels all stay Geist. Matt reviewed a version with serif titles and mono labels and found it too much, so the demo screens must not set either. The `serif` and `mono` variants still resolve to Newsreader and Geist Mono for apps that ask for them. Rewrite the file's header comment: Strand is gone, and Meridian does not come from the design boards; it was designed on the Housefold hub canvas, so its values are authored here.
+No `figure` or `labelVariant` entry: titles, figures, eyebrows and tab labels all stay the default sans (Allo). Matt reviewed a version with serif titles and mono labels and found it too much, so the demo screens must not set either. The `serif` and `mono` variants still resolve to Newsreader and Geist Mono for apps that ask for them. Rewrite the file's header comment: Strand is gone, and Meridian does not come from the design boards; it was designed on the Housefold hub canvas, so its values are authored here.
 
-Before relying on a mono-only `fonts` override, read how the theme store applies `FontOverrides` (`packages/ui/src/state`) and confirm that `webWeightStrategy: "numeric"` with only `mono` set leaves the default Geist sans and the Newsreader serif rendering at their normal weights on web. If it does not, adjust the override so it does, and say what you changed in the PR.
+Before relying on a mono-only `fonts` override, read how the theme store applies `FontOverrides` (`packages/ui/src/state`) and confirm that `webWeightStrategy: "numeric"` with only `mono` set leaves the default sans (Allo) and the Newsreader serif rendering at their normal weights on web. If it does not, adjust the override so it does, and say what you changed in the PR.
 
 ### 2. Remove Strand-only presentation
 
@@ -191,9 +191,9 @@ Run from the repo root and report the output:
 Check on web (a fresh origin opens onboarding: Skip first), in light and dark:
 
 - `/looks` lists Refined, Classic, Meridian, Glass, Editorial.
-- `/looks/meridian` applies the look: Geist screen titles, body, eyebrows and tab labels, 6px buttons, 12px cards, blue focus ring and links. No serif or mono text appears on the sample screens.
+- `/looks/meridian` applies the look: Allo screen titles, body, eyebrows and tab labels, 6px buttons, 12px cards, blue focus ring and links. No serif or mono text appears on the sample screens.
 - Its reference page shows the colors, type (serif Newsreader, mono Geist Mono), shape, treatments and a snippet naming Geist Mono.
 - Switching Meridian to Classic, Glass or Editorial and back leaves no stale face (Inter loads; the mono override clears).
 - `/looks/strand` shows the screen's existing unknown-look state and does not crash.
 
-Check on the iOS simulator that `/looks/meridian` renders in Geist with no missing-font error.
+Check on the iOS simulator that `/looks/meridian` renders in Allo with no missing-font error.

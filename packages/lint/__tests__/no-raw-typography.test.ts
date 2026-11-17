@@ -103,11 +103,11 @@ ruleTester.run("no-raw-typography", rule, {
     },
     {
       // A kit face at one weight: name the variant and the weight.
-      code: style("{ fontFamily: \"Geist_500Medium\" }"),
+      code: style("{ fontFamily: \"AlloSharp_500Medium\" }"),
       errors: [
         {
           message:
-            "`\"Geist_500Medium\"` is a raw font family. It is the kit's `sansSerif` face at `medium`: use `StyledText variant=\"sansSerif\" fontWeight=\"medium\"` or `useFontStyle(\"medium\", \"sansSerif\")`. " +
+            "`\"AlloSharp_500Medium\"` is a raw font family. It is the kit's `sansSerif` face at `medium`: use `StyledText variant=\"sansSerif\" fontWeight=\"medium\"` or `useFontStyle(\"medium\", \"sansSerif\")`. " +
             FAMILY_TAIL,
         },
       ],
@@ -125,7 +125,7 @@ ruleTester.run("no-raw-typography", rule, {
     },
     {
       // The first family of a stack matches the kit's stack.
-      code: style("{ fontFamily: \"Geist\" }"),
+      code: style("{ fontFamily: \"Allo Sharp\" }"),
       errors: [{ message: /is the kit's `sansSerif` face: use `StyledText variant="sansSerif"`/ }],
     },
     {

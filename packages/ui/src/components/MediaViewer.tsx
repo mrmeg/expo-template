@@ -326,10 +326,22 @@ interface VideoPageProps extends PageCommon {
   item: VideoItem;
   videoControls: "custom" | "native";
   autoPlay: boolean;
+  onControlsVisibilityChange?: (visible: boolean) => void;
 }
 
 /** Only the shown page mounts a `Video`; leaving it unmounts the player, which stops playback. */
-function VideoPage({ item, active, width, height, videoControls, autoPlay, swipeToDismiss, dismiss, testID }: VideoPageProps) {
+function VideoPage({
+  item,
+  active,
+  width,
+  height,
+  videoControls,
+  autoPlay,
+  swipeToDismiss,
+  dismiss,
+  onControlsVisibilityChange,
+  testID,
+}: VideoPageProps) {
   const insets = useWindowInsets();
   const latest = useRef({ swipeToDismiss, dismiss });
   latest.current = { swipeToDismiss, dismiss };
@@ -374,6 +386,7 @@ function VideoPage({ item, active, width, height, videoControls, autoPlay, swipe
             autoPlay={autoPlay}
             allowsFullscreen={false}
             title={item.title}
+            onControlsVisibilityChange={onControlsVisibilityChange}
             testID={`${testID}-video`}
           />
         </View>
@@ -888,6 +901,9 @@ function ImagePage(props: ImagePageProps) {
  *   `+` `-` `0`, up to `maxZoom`. One finger or the mouse pans a zoomed image,
  *   never past its edge. Paging is off while zoomed, and a page change resets
  *   zoom. A tap toggles the chrome.
+ * - **Video.** The top bar follows the video's custom controls: both fade
+ *   3 s into playback, a tap on the video hides or shows both, and a pause or
+ *   the end brings them back. With `videoControls="native"` the bar stays.
  * - **Close.** The close button, Esc (it leaves zoom first), Android back, or
  *   on a touch screen a swipe down, which fades the backdrop with the drag.
  * - **Web keys.** ←/→ page, `+`/`=`/`-`/`0` zoom, `F` full screen. A custom
@@ -1133,8 +1149,15 @@ function ViewerBody({
     };
   }, []);
 
-  // A video page keeps its top bar (and the video its own controls); a screen reader keeps everything.
-  const chromeShown = chromeVisible || activeItem.type === "video" || screenReader;
+  // A video page's top bar follows the video's own controls: both fade while it plays and a tap toggles
+  // both. The platform's controls report nothing, so with those the bar stays. Keyed by item, so a page
+  // just swiped to starts with its bar up, before its `Video` has mounted and reported.
+  const [videoChrome, setVideoChrome] = useState<{ key: string; shown: boolean } | null>(null);
+  const activeKey = activeItem.key;
+  const handleVideoChrome = useCallback((shown: boolean) => setVideoChrome({ key: activeKey, shown }), [activeKey]);
+  const videoChromeShown = videoControls !== "custom" || videoChrome?.key !== activeKey || videoChrome.shown;
+  // A screen reader keeps everything.
+  const chromeShown = (activeItem.type === "video" ? videoChromeShown : chromeVisible) || screenReader;
   const chromeOpacity = useAnimatedValue(1);
   useEffect(() => {
     const toValue = chromeShown ? 1 : 0;
@@ -1240,7 +1263,13 @@ function ViewerBody({
         onEscape={handleEscape}
       />
     ) : (
-      <VideoPage {...common} item={item} videoControls={videoControls} autoPlay={autoPlay} />
+      <VideoPage
+        {...common}
+        item={item}
+        videoControls={videoControls}
+        autoPlay={autoPlay}
+        onControlsVisibilityChange={videoControls === "custom" ? handleVideoChrome : undefined}
+      />
     );
   };
 

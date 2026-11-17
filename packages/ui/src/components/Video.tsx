@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -110,6 +110,12 @@ export interface VideoProps {
   onEnd?: () => void;
   /** Loading or playback failed. The message is the player's, or the default error text. */
   onError?: (message: string) => void;
+  /**
+   * `controls="custom"` only: the custom controls faded in or out. Called once
+   * on mount with the first state. A host that draws its own bar over the video
+   * (as `MediaViewer` does) shows and hides it with them.
+   */
+  onControlsVisibilityChange?: (visible: boolean) => void;
   /** Layout of the frame: margins, width, height, flex. */
   style?: StyleProp<ViewStyle>;
   testID?: string;
@@ -204,6 +210,7 @@ interface Stage {
   chromeShown: boolean;
   chromeOpacity: Animated.Value;
   bump: () => void;
+  toggleChrome: () => void;
   setHovered: (hovered: boolean) => void;
   compact: boolean;
   /** Center play button size for the frame height; `null` hides it in a very short frame. */
@@ -234,8 +241,10 @@ interface Stage {
  * - `"custom"`: themed controls that look the same on iOS, Android and web: a
  *   center play button, and a bar with play, a scrubber, the time, mute,
  *   captions (when the video has subtitle tracks) and fullscreen. They fade
- *   3 s after the last interaction while playing, come back on hover, focus
- *   and tap, and never hide under a screen reader. On web they respond to
+ *   3 s after the last interaction while playing, and a tap on the video
+ *   hides or shows them at any time. They come back on hover and focus, and
+ *   whenever playback pauses or ends, and never hide under a screen reader.
+ *   `onControlsVisibilityChange` reports each change. On web they respond to
  *   Space/K, ←/→, ↑/↓, M, F and Esc while the frame is focused.
  * - `"none"`: bare playback, for a muted loop or your own controls (pass a
  *   `player`).
@@ -292,6 +301,7 @@ function VideoStage({
   onPlayingChange,
   onEnd,
   onError,
+  onControlsVisibilityChange,
   style,
   testID = "video",
 }: VideoProps & { player: VideoPlayer }) {
@@ -392,6 +402,14 @@ function VideoStage({
     [bump],
   );
 
+  // A tap on the video itself: hide the controls when they are up, show them
+  // when they are not. Under a pointer they stay up while it hovers, so a click
+  // only resets the timer.
+  const toggleChrome = useCallback(() => {
+    if (hovered || !visible) bump();
+    else setVisible(false);
+  }, [bump, hovered, visible]);
+
   useEffect(() => {
     // react-native-web reports a screen reader as always on, which would pin the
     // chrome open; on web focus and hover are the signals instead.
@@ -408,14 +426,26 @@ function VideoStage({
   }, [custom]);
 
   const playing = playback.playing;
+  // A pause or the end brings the controls back, so the way to resume is always
+  // on screen when playback stops by itself. A tap can still hide them after.
+  const [wasPlaying, setWasPlaying] = useState(playing);
+  if (wasPlaying !== playing) {
+    setWasPlaying(playing);
+    if (!playing) setVisible(true);
+  }
+
   useEffect(() => {
     if (!custom || !visible || !playing || hovered || screenReader) return;
     const timer = setTimeout(() => setVisible(false), HIDE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [custom, visible, playing, hovered, screenReader, bumps]);
 
-  // Paused chrome stays up; so does everything while someone is pointing at it.
-  const chromeShown = custom && (visible || !playing || hovered || screenReader);
+  // Nothing hides while someone is pointing at it, or under a screen reader.
+  const chromeShown = custom && (visible || hovered || screenReader);
+  const reportChrome = useEffectEvent((shown: boolean) => onControlsVisibilityChange?.(shown));
+  useEffect(() => {
+    if (custom) reportChrome(chromeShown);
+  }, [custom, chromeShown]);
   useEffect(() => {
     const toValue = chromeShown ? 1 : 0;
     if (reducedMotion) {
@@ -562,6 +592,7 @@ function VideoStage({
     chromeShown,
     chromeOpacity,
     bump,
+    toggleChrome,
     setHovered: handleHover,
     compact: width > 0 && width < COMPACT_WIDTH,
     centerSize:
@@ -800,7 +831,7 @@ function VideoSurface({ stage, insetsApply = false }: VideoSurfaceProps) {
   return custom ? (
     <Pressable
       style={geometry.layer}
-      onPress={stage.bump}
+      onPress={stage.toggleChrome}
       onHoverIn={() => stage.setHovered(true)}
       onHoverOut={() => stage.setHovered(false)}
       accessible={false}

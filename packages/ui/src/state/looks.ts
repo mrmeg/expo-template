@@ -1,4 +1,4 @@
-import type { FontOverrides, SansPreset, SerifPreset } from "../constants/fonts";
+import { defaultSansPreset, type FontOverrides, type SansPreset, type SerifPreset } from "../constants/fonts";
 import {
   useThemeStore,
   type ColorOverrides,
@@ -12,9 +12,11 @@ import {
  * overrides on top of them, so applying one is the same `setColors` /
  * `setFonts` / `setShape` / `setTreatments` an app would call by hand.
  *
- * `sans` / `serif` pick a font preset. The faces must already be loaded
- * (`useResources({ sans: "inter", sansFonts })` on native; web loads the
- * stylesheet on demand) — `applyLook` only switches which family resolves.
+ * `sans` / `serif` pick a font preset. `sans` is how a look sets Allo's
+ * roundness: omitted is sharp, `"allo-friendly"` and `"allo-round"` are the
+ * softer cuts. The faces must already be loaded (`useResources({ sans,
+ * sansFonts })` on native; web loads the stylesheet on demand) — `applyLook`
+ * only switches which family resolves.
  */
 export type Look = {
   id: string;
@@ -28,11 +30,11 @@ export type Look = {
   serif?: SerifPreset;
 };
 
-/** The package default since 0.35.0: Geist, neutral greys, teal as the dot and links. */
+/** The package default since 0.35.0 (Allo since 0.39.0): neutral greys, teal as the dot and links. */
 export const refinedLook: Look = {
   id: "refined",
   name: "Refined",
-  description: "Geist, neutral greys, teal only as the selection dot and links, 8 / 14 radius.",
+  description: "Allo, neutral greys, teal only as the selection dot and links, 8 / 14 radius.",
 };
 
 /**
@@ -131,6 +133,6 @@ export function applyLook(look: Look): void {
   store.setFonts(look.fonts ?? {});
   store.setShape(look.shape ?? {});
   store.setTreatments(look.treatments ?? {});
-  store.setSansPreset(look.sans ?? "geist");
+  store.setSansPreset(look.sans ?? defaultSansPreset);
   if (look.serif) store.setSerifPreset(look.serif);
 }

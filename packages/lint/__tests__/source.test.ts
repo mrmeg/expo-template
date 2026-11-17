@@ -70,9 +70,9 @@ describe("design-system source loader", () => {
     expect(Object.keys(families).sort()).toEqual(["mono", "sansSerif", "serif"]);
     // Web stack, native static file, and the fallback branch all count.
     expect(families.sansSerif.medium).toEqual(
-      expect.arrayContaining(["Geist_500Medium", "sans-serif"]),
+      expect.arrayContaining(["AlloSharp_500Medium", "sans-serif"]),
     );
-    expect(families.sansSerif.medium.some((family) => family.startsWith("\"Geist\","))).toBe(true);
+    expect(families.sansSerif.medium.some((family) => family.startsWith("\"Allo Sharp\","))).toBe(true);
     expect(families.serif.bold).toEqual(expect.arrayContaining(["Georgia"]));
     // `Platform.OS === "ios" ? "Menlo" : "monospace"` is two families.
     expect(families.mono.regular).toEqual(expect.arrayContaining(["Menlo", "monospace"]));

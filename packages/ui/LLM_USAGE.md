@@ -29,7 +29,8 @@ import { Button, colors, UIProvider, useTheme } from "@mrmeg/expo-ui";
 ```
 
 Importable paths: root, `components`, `components/*`, `constants`,
-`constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`. Never import from
+`constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`, `fonts/allo-friendly`,
+`fonts/allo-round`. Never import from
 `@mrmeg/expo-ui/dist/*`, a source checkout path, or copied app-local component files.
 
 Hosts: Expo 56–58 (58 in beta), React 19.2, React Native 0.85–0.88, React
@@ -39,8 +40,7 @@ Install the peer versions recommended by the consuming app's Expo SDK.
 ## Required App Setup
 
 Call `useResources()` once near the Expo app root; it resolves `{ loaded, error }`
-and loads the four static Geist weights on native (web gets a single Google Fonts
-Geist stylesheet). Mount `UIProvider` once near the root; it owns the package
+and loads the Allo Sharp weights (web: one stylesheet). Mount `UIProvider` once near the root; it owns the package
 `Notification`, `StatusBar`, the default `@rn-primitives` portal host, and the
 native keyboard-avoiding root. It is required before `Dialog`, `AlertDialog`,
 `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`,
@@ -211,9 +211,9 @@ scopes merge (inner wins, outer fills in). With no override at either layer,
 
 Fonts and shape have matching global injection points. `setFonts({ families: {
 sansSerif?, serif?, mono? }, webWeightStrategy? })` replaces the bundled faces
-(Geist / Georgia / system-mono) everywhere text renders; groups and weights are
+(Allo / Georgia / system-mono) everywhere text renders; groups and weights are
 partial, missing weights fall back to that group's `regular`, and an overridden
-`sansSerif` makes `useResources` skip downloading Geist (call `setFonts` before
+`sansSerif` makes `useResources` skip downloading Allo (call `setFonts` before
 mount for the skip). Each group also takes `italic: { weight: face }`; `<StyledText
 italic>` (or `useFontStyle(weight, variant, { italic: true })`) uses that face,
 else the group's italic `regular`, else `fontStyle: "italic"` on the upright face.

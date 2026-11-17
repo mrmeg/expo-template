@@ -33,7 +33,8 @@ import { Button, colors, UIProvider, useTheme } from "@mrmeg/expo-ui";
 ```
 
 Importable paths: root, `components`, `components/*`, `constants`,
-`constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`. Never import from
+`constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`, `fonts/allo-friendly`,
+`fonts/allo-round`. Never import from
 `@mrmeg/expo-ui/dist/*`, a source checkout path, or copied app-local component files.
 
 Hosts: Expo 56–58 (58 in beta), React 19.2, React Native 0.85–0.88, React
@@ -43,8 +44,7 @@ Install the peer versions recommended by the consuming app's Expo SDK.
 ## Required App Setup
 
 Call `useResources()` once near the Expo app root; it resolves `{ loaded, error }`
-and loads the four static Geist weights on native (web gets a single Google Fonts
-Geist stylesheet). Mount `UIProvider` once near the root; it owns the package
+and loads the Allo Sharp weights (web: one stylesheet). Mount `UIProvider` once near the root; it owns the package
 `Notification`, `StatusBar`, the default `@rn-primitives` portal host, and the
 native keyboard-avoiding root. It is required before `Dialog`, `AlertDialog`,
 `BottomSheet`, `Drawer`, `DropdownMenu`, `Popover`, `SelectContent`, `Tooltip`,
@@ -215,9 +215,9 @@ scopes merge (inner wins, outer fills in). With no override at either layer,
 
 Fonts and shape have matching global injection points. `setFonts({ families: {
 sansSerif?, serif?, mono? }, webWeightStrategy? })` replaces the bundled faces
-(Geist / Georgia / system-mono) everywhere text renders; groups and weights are
+(Allo / Georgia / system-mono) everywhere text renders; groups and weights are
 partial, missing weights fall back to that group's `regular`, and an overridden
-`sansSerif` makes `useResources` skip downloading Geist (call `setFonts` before
+`sansSerif` makes `useResources` skip downloading Allo (call `setFonts` before
 mount for the skip). Each group also takes `italic: { weight: face }`; `<StyledText
 italic>` (or `useFontStyle(weight, variant, { italic: true })`) uses that face,
 else the group's italic `regular`, else `fontStyle: "italic"` on the upright face.
@@ -1278,8 +1278,10 @@ const [open, setOpen] = useState<number | null>(null);
   Safari's own pinch event is not handled), and `+` `-` `0`, up to `maxZoom`
   (default 4). One finger or the mouse pans a zoomed image, never past its
   edge. Paging is off while zoomed, and a page change resets zoom. A tap on an
-  image toggles the chrome; a video page keeps its top bar and the video's own
-  controls (`videoControls`: `"custom"` by default, or the platform's).
+  image toggles the chrome. On a video page the top bar follows the video's own
+  controls (`videoControls`: `"custom"` by default): both fade 3 s into
+  playback, a tap hides or shows both, and a pause or the end brings them
+  back. With the platform's controls (`"native"`) the top bar stays.
   `autoPlay` starts each video page as it is shown (the one opened on and each
   one paged to), as a photo library does; it is off by default. Set it when
   the user opens the viewer by tapping a video. A browser that blocks unmuted
@@ -1570,10 +1572,15 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 
 Prefer semantic aliases over raw `Text`.
 
-The sans face is Geist (Inter is the opt-in `sans: "inter"` preset). `eyebrow`
+The sans face is Allo Sharp. Roundness is a preset: `useResources({ sans:
+"allo-round", sansFonts: alloRoundFonts })` with `alloRoundFonts` from
+`@mrmeg/expo-ui/fonts/allo-round` (or `allo-friendly` / `alloFriendlyFonts`),
+or `sans` on a `Look`. Inter and Geist are opt-in presets too. `eyebrow`
 is 13 medium, sentence case, untracked; the `eyebrow` treatment
 (`useThemeStore.getState().setTreatments({ eyebrow: "uppercase" })`) switches it to 12 semibold uppercase.
-Geist has no italic, so `italic` on the default sans is synthesized.
+The Allo cuts have no italic, so `italic` on the default sans is synthesized.
+Allo's contextual alternates turn a typed `->` into an arrow, and text widths
+differ slightly from Geist's, so re-check tight single-line layouts.
 
 ---
 
@@ -1721,8 +1728,9 @@ import { Video } from "@mrmeg/expo-ui/components/Video";
   among several subtitle tracks or audio tracks, and the one with Picture in
   Picture buttons. `"custom"` draws a center play button and a bottom bar
   (play, scrubber with buffered fill, time, mute, captions, fullscreen) that
-  fades 3 s after the last interaction while playing and returns on hover,
-  focus and tap. On web it answers Space/K (play), ←/→ (±5 s), ↑/↓ (volume),
+  fades 3 s after the last interaction while playing. A tap on the video hides
+  or shows it; hover, focus, a pause and the end bring it back
+  (`onControlsVisibilityChange` reports each change). On web it answers Space/K (play), ←/→ (±5 s), ↑/↓ (volume),
   M, F and Esc while the frame is focused, and only then. `"none"` is bare
   playback: no chrome and no tap handling, for a muted loop or controls of
   your own (pass a `player`).
