@@ -48,9 +48,13 @@ function contentSize(px: number): { fontSize: number; iconSize: number } {
   return { fontSize: Math.round(px * 0.4), iconSize: Math.round(px * 0.5) };
 }
 
-/** Overlap for stacked avatars — 30% keeps ~70% of each face visible. */
+/**
+ * Overlap for stacked avatars. 20% is the most that still clears two-letter
+ * initials: they are 40% of the avatar tall and about 60% wide, so 30% cut the
+ * first letter of every avatar after the first ("GH" read "3H").
+ */
 function overlap(px: number): number {
-  return -Math.round(px * 0.3);
+  return -Math.round(px * 0.2);
 }
 
 /**

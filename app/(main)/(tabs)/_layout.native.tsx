@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { useIsFocused } from "expo-router";
 import { NativeTabs } from "expo-router/native-tabs";
 import { useNotificationOffset, useTheme } from "@mrmeg/expo-ui/hooks";
 import { NAV_DESTINATIONS } from "@/client/features/navigation/navDestinations";
@@ -38,9 +39,11 @@ export default function TabLayout() {
 
   // Bottom toasts (`notify(..., { position: "bottom" })`) render in the root
   // layout, above this navigator, so tell them where the tab bar ends. While
-  // the bar is hidden behind the keyboard the toast returns to the inset.
+  // the bar is hidden behind the keyboard, or a pushed screen covers the tabs
+  // (this layout stays mounted under it), the toast returns to the inset.
   const tabBarOffset = useNativeTabBarOffset();
-  useNotificationOffset(keyboardVisible ? null : { bottom: tabBarOffset });
+  const tabsFocused = useIsFocused();
+  useNotificationOffset(keyboardVisible || !tabsFocused ? null : { bottom: tabBarOffset });
 
   // On Android the selected icon is drawn on top of the accent indicator
   // pill, so it must use the accent's *contrast* color — accent-on-accent

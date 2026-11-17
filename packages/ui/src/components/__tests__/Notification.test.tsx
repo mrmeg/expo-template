@@ -80,6 +80,181 @@ describe("Notification", () => {
   });
 });
 
+describe("Notification content", () => {
+  afterEach(async () => {
+    cleanup();
+    globalUIStore.setState({ alert: null });
+  });
+
+  it("shows a message-only notification as the title, with no generic title above it", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "success", messages: ["Profile updated"] });
+    });
+    await render(<Notification />);
+
+    expect(screen.getByText("Profile updated")).toBeTruthy();
+    expect(screen.queryByText("Success")).toBeNull();
+  });
+
+  it("falls back to the type's title when there is neither a title nor a message", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "warning", messages: ["  "] });
+    });
+    await render(<Notification />);
+
+    expect(screen.getByText("Warning")).toBeTruthy();
+  });
+
+  it("interrupts for an error and waits its turn for everything else", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "error", title: "Upload failed" });
+    });
+    await render(<Notification />);
+    expect(screen.getByTestId("ui-notification").props.role).toBe("alert");
+    expect(screen.getByTestId("ui-notification").props.accessibilityLiveRegion).toBe("assertive");
+
+    await act(() => {
+      globalUIStore.getState().show({ type: "success", title: "Saved" });
+    });
+    expect(screen.getByTestId("ui-notification").props.role).toBe("status");
+    expect(screen.getByTestId("ui-notification").props.accessibilityLiveRegion).toBe("polite");
+  });
+
+  it("has no close button while it dismisses itself, and one when it is persistent", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "success", title: "Saved" });
+    });
+    await render(<Notification />);
+    expect(screen.queryByLabelText("Dismiss")).toBeNull();
+
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Offline", duration: 0 });
+    });
+    await act(() => {
+      fireEvent.press(screen.getByLabelText("Dismiss"));
+    });
+    expect(globalUIStore.getState().alert).toBeNull();
+
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Uploading", loading: true });
+    });
+    expect(screen.getByLabelText("Dismiss")).toBeTruthy();
+  });
+});
+
+describe("Notification swipe to dismiss", () => {
+  afterEach(async () => {
+    cleanup();
+    globalUIStore.setState({ alert: null });
+  });
+
+  /**
+   * Drag one finger vertically through the given offsets, the way the
+   * responder system would call the container's handlers. Returns whether the
+   * toast claimed the gesture. PanResponder measures the drag from the move
+   * that claimed it, so the first offset only starts the gesture.
+   */
+  async function drag(offsets: number[]) {
+    const target = () => screen.getByTestId("ui-notification").props;
+    const startY = 100;
+    let time = 1000;
+    let y = startY;
+    let previousY = y;
+    let previousTime = time;
+    const event = (active: boolean) => ({
+      touchHistory: {
+        touchBank: [{
+          touchActive: active,
+          startPageX: 50,
+          startPageY: startY,
+          startTimeStamp: 1000,
+          currentPageX: 50,
+          currentPageY: y,
+          currentTimeStamp: time,
+          previousPageX: 50,
+          previousPageY: previousY,
+          previousTimeStamp: previousTime,
+        }],
+        numberActiveTouches: active ? 1 : 0,
+        indexOfSingleActiveTouch: active ? 0 : -1,
+        mostRecentTimeStamp: time,
+      },
+      nativeEvent: { touches: active ? [{ identifier: 0, pageX: 50, pageY: y }] : [], changedTouches: [] },
+      persist: () => {},
+    });
+
+    await act(async () => {
+      target().onStartShouldSetResponderCapture(event(true));
+    });
+    let claimed = false;
+    for (const offset of offsets) {
+      previousY = y;
+      previousTime = time;
+      y = startY + offset;
+      time += 100;
+      await act(async () => {
+        if (claimed) {
+          target().onResponderMove(event(true));
+          return;
+        }
+        // The capture phase is where PanResponder accumulates the movement.
+        target().onMoveShouldSetResponderCapture(event(true));
+        if (target().onMoveShouldSetResponder(event(true))) {
+          claimed = true;
+          target().onResponderGrant(event(true));
+        }
+      });
+    }
+    time += 100;
+    if (claimed) {
+      await act(async () => {
+        target().onResponderRelease(event(false));
+      });
+    }
+    return claimed;
+  }
+
+  it("dismisses a top banner swiped up", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Top" });
+    });
+    await render(<Notification />);
+
+    expect(await drag([-20, -40, -60])).toBe(true);
+    expect(globalUIStore.getState().alert).toBeNull();
+  });
+
+  it("dismisses a bottom toast swiped down", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Bottom", position: "bottom" });
+    });
+    await render(<Notification />);
+
+    expect(await drag([20, 40, 60])).toBe(true);
+    expect(globalUIStore.getState().alert).toBeNull();
+  });
+
+  it("keeps a toast that was only nudged", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Top" });
+    });
+    await render(<Notification />);
+
+    expect(await drag([-8, -10])).toBe(true);
+    expect(globalUIStore.getState().alert?.title).toBe("Top");
+  });
+
+  it("ignores a drag away from the toast's edge", async () => {
+    await act(() => {
+      globalUIStore.getState().show({ type: "info", title: "Top" });
+    });
+    await render(<Notification />);
+
+    expect(await drag([20, 40])).toBe(false);
+    expect(globalUIStore.getState().alert?.title).toBe("Top");
+  });
+});
+
 describe("Notification placement", () => {
   const ISLAND = { top: 59, bottom: 34, left: 0, right: 0 };
   const containerStyle = () =>
