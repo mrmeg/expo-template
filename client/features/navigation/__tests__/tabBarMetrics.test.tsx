@@ -1,7 +1,7 @@
 /**
  * The native tab layout tells global toasts where the tab bar ends: a bottom
  * `notify` must clear the bar's labels, and return to the safe-area inset
- * while the bar hides behind the keyboard.
+ * while the bar hides behind the keyboard or under a pushed screen.
  */
 import React from "react";
 import { Platform } from "react-native";
@@ -11,6 +11,11 @@ import { globalUIStore, selectNotificationOffset } from "@mrmeg/expo-ui/state";
 import { NATIVE_TAB_BAR_HEIGHT, useNativeTabBarOffset } from "../tabBarMetrics";
 
 const keyboardState = { visible: false };
+const focusState = { focused: true };
+
+jest.mock("expo-router", () => ({
+  useIsFocused: () => focusState.focused,
+}));
 jest.mock("@/client/features/keyboard/platform", () => ({
   useKeyboardVisible: () => keyboardState.visible,
 }));
@@ -46,6 +51,7 @@ describe("useNativeTabBarOffset", () => {
 describe("native TabLayout toast offset", () => {
   afterEach(() => {
     keyboardState.visible = false;
+    focusState.focused = true;
     globalUIStore.setState({ notificationOffsets: {} });
   });
 
@@ -62,6 +68,16 @@ describe("native TabLayout toast offset", () => {
 
   it("registers nothing while the keyboard hides the tab bar", async () => {
     keyboardState.visible = true;
+    await render(
+      <SafeAreaInsetsContext.Provider value={INSETS}>
+        <TabLayout />
+      </SafeAreaInsetsContext.Provider>
+    );
+    expect(offset().bottom).toBe(0);
+  });
+
+  it("registers nothing while a pushed screen covers the tabs", async () => {
+    focusState.focused = false;
     await render(
       <SafeAreaInsetsContext.Provider value={INSETS}>
         <TabLayout />
