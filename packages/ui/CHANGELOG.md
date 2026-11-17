@@ -34,6 +34,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   type is `role="status"` and waits. VoiceOver, which has no live regions, is
   told about each notification as it appears.
 
+### Fixed
+
+- **`AvatarGroup` no longer clips initials.** Stacked avatars overlap by 20% of
+  their width, was 30%, which hid the first letter of every avatar after the
+  first.
+
 ## [0.37.0]
 
 ### Breaking
