@@ -3,6 +3,37 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.38.0]
+
+### Changed
+
+- **`Notification` is redrawn from the kit's own parts.** One compact row
+  (46 pt for a single line, down from 70) on the overlay surface `Popover` and
+  `Dialog` use: `popover` on a `border` hairline in both schemes, at the app's
+  card radius (`setShape({ card })`). Dark mode no longer paints the package's
+  own zinc greys, so an app's `setColors` re-themes the toast. The tinted icon
+  tile is gone: a plain 20 pt status icon sits on the title's line, colored for
+  `error`, `success` and `warning` and neutral for `info` and loading. The title
+  is the `label` role and wraps to two lines, the message is `caption` and wraps
+  to three, and the action is a `secondary` `sm` `Button`. `top` and `bottom`
+  share one shape.
+- **A notification with only `messages` shows the first as its title.**
+  `notify({ type: "success", messages: ["Profile updated"] })` used to read
+  "Success" over "Profile updated". The generic title (`notification.success`
+  and the rest) now appears only when there is neither a title nor a message.
+- **The close button shows only where nothing else dismisses the toast**: on a
+  persistent one (`duration: 0`, `notify.loading`) and on web. Its label is
+  "Dismiss" (`notification.dismiss`), was "Dismiss notification".
+
+### Added
+
+- **Swipe to dismiss on iOS and Android**: drag a toast toward its own edge (up
+  for `top`, down for `bottom`). The auto-dismiss timer pauses during the drag
+  and restarts if the toast is let go.
+- **Screen readers**: an `error` is `role="alert"` and interrupts; every other
+  type is `role="status"` and waits. VoiceOver, which has no live regions, is
+  told about each notification as it appears.
+
 ## [0.37.0]
 
 ### Breaking

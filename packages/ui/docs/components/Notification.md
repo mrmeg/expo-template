@@ -24,6 +24,24 @@ Notifications auto-dismiss after 4s (`DEFAULT_NOTIFICATION_DURATION`) unless a
 `globalUIStore` (the underlying zustand store) stays available for reactive
 selectors and tests. Use `notify` for imperative triggers in app code.
 
+## Anatomy
+
+One compact row on the overlay surface (`popover` on a `border` hairline, the
+app's card radius, `shadow-elevated`): a status icon, the title (`label`), an
+optional message under it (`caption`, muted), an optional action (a `secondary`
+`sm` Button).
+
+- Write the title as the whole message: "Profile updated", not "Success". A
+  notification with only `messages` shows the first one as its title; the
+  generic "Success" / "Error" title appears only when there is neither.
+- Status colors mark `error`, `success` and `warning` only; `info` and loading
+  stay neutral.
+- A notification that dismisses itself has no close button on iOS and Android:
+  swipe it toward its edge (up for `top`, down for `bottom`). A persistent one
+  (`duration: 0`, `notify.loading`) and every notification on web has one.
+- An `error` is announced at once (`role="alert"`); the rest wait their turn
+  (`role="status"`). VoiceOver reads each one as it appears.
+
 ## Minimal Examples
 
 ```tsx

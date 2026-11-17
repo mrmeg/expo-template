@@ -1,24 +1,55 @@
-import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef } from "react";
-import { Animated, Easing, StyleSheet, View, ActivityIndicator, Pressable, Platform } from "react-native";
+import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Animated,
+  Easing,
+  PanResponder,
+  Platform,
+  StyleSheet,
+  View,
+} from "react-native";
+import type { PanResponderGestureState } from "react-native";
 import { useStore } from "zustand";
+import { Button, buttonHeights } from "./Button";
 import { Icon } from "./Icon";
 import type { IconName } from "./Icon";
-import { useTheme, withAlpha } from "../hooks/useTheme";
+import { IconButton } from "./IconButton";
+import { useTheme } from "../hooks/useTheme";
 import { useReducedMotion } from "../hooks/useReduceMotion";
+import { useShape } from "../hooks/useShape";
 import { useWindowInsets } from "../hooks/useWindowInsets";
 import { spacing } from "../constants/spacing";
 import { durations } from "../constants/motion";
 import { StyledText } from "./StyledText";
-import { palette } from "../constants/colors";
 import type { Theme } from "../constants/colors";
 import { translateText } from "../lib/i18n";
 import { createThemedStyles } from "../lib/themedStyles";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
 import { shouldUseNativeDriver } from "../lib/animations";
 import { globalUIStore, selectNotificationOffset } from "../state/globalUIStore";
+import type { GlobalNotificationType } from "../state/globalUIStore";
 
 const timingIn = { duration: durations.fast, easing: Easing.out(Easing.quad), useNativeDriver: shouldUseNativeDriver };
 const timingOut = { duration: durations.instant, easing: Easing.in(Easing.quad), useNativeDriver: shouldUseNativeDriver };
+
+/** Height of the toast's first row: the `sm` Button the action and close use. */
+const ROW_HEIGHT = buttonHeights.sm;
+/** `label` line height (see StyledText); centers the title in `ROW_HEIGHT`. */
+const TITLE_LINE_HEIGHT = 21;
+const STATUS_ICON_SIZE = 20;
+
+/** A drag toward the toast's own edge dismisses past this distance or speed. */
+const SWIPE_START_DISTANCE = 6;
+const SWIPE_DISMISS_DISTANCE = 24;
+const SWIPE_DISMISS_VELOCITY = 0.5;
+
+const STATUS_ICONS: Record<GlobalNotificationType, IconName> = {
+  error: "circle-exclamation-point",
+  success: "circle-check-big",
+  warning: "triangle-exclamation-point",
+  info: "info",
+};
 
 /**
  * Run an action's handler, then dismiss, even when the handler throws. A
@@ -33,11 +64,94 @@ function runThenDismiss(run: () => void, dismiss: () => void): void {
   }
 }
 
+/** The title shown when a notification has neither a title nor a message. */
+function fallbackTitle(type: GlobalNotificationType | undefined, loading: boolean | undefined) {
+  if (loading) return translateText("notification.loading", "Loading");
+
+  switch (type) {
+  case "error":
+    return translateText("notification.error", "Error");
+  case "success":
+    return translateText("notification.success", "Success");
+  case "warning":
+    return translateText("notification.warning", "Warning");
+  case "info":
+  default:
+    return translateText("notification.info", "Info");
+  }
+}
+
+type GestureState = {
+  isBottom: boolean;
+  dismiss: () => void;
+  pauseTimer: () => void;
+  resumeTimer: () => void;
+};
+
+/**
+ * Swipe a toast toward its own edge to dismiss it (up for a top banner, down
+ * for a bottom toast), moving `dragY` with the finger. Native only, like
+ * `Drawer`: web has the close button. Returns the handlers to spread on the
+ * toast, or nothing on web.
+ *
+ * The responder is created once, so it reads the current position and
+ * callbacks through a ref (the `MediaScrubber` pattern). That keeps the React
+ * Compiler off this hook, which is why it is not inlined in `Notification`.
+ */
+function useSwipeToDismiss(dragY: Animated.Value, state: GestureState) {
+  const live = useRef(state);
+  useEffect(() => {
+    live.current = state;
+  });
+
+  const [responder] = useState(() => {
+    if (Platform.OS === "web") return null;
+
+    /** Distance dragged toward the edge; 0 or less means away from it. */
+    const towardEdge = (gesture: PanResponderGestureState) =>
+      live.current.isBottom ? gesture.dy : -gesture.dy;
+    const settle = () => {
+      Animated.timing(dragY, { toValue: 0, ...timingIn }).start();
+      live.current.resumeTimer();
+    };
+
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_event, gesture) =>
+        towardEdge(gesture) > SWIPE_START_DISTANCE && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+      onPanResponderGrant: () => {
+        live.current.pauseTimer();
+      },
+      // Measured from the move that claimed the gesture, so nothing jumps.
+      onPanResponderMove: (_event, gesture) => {
+        const distance = Math.max(0, towardEdge(gesture));
+        dragY.setValue(live.current.isBottom ? distance : -distance);
+      },
+      onPanResponderRelease: (_event, gesture) => {
+        const velocity = live.current.isBottom ? gesture.vy : -gesture.vy;
+        if (towardEdge(gesture) > SWIPE_DISMISS_DISTANCE || velocity > SWIPE_DISMISS_VELOCITY) {
+          live.current.dismiss();
+        } else {
+          settle();
+        }
+      },
+      onPanResponderTerminate: settle,
+    });
+  });
+
+  return responder?.panHandlers;
+}
+
 /**
  * Notification
  *
  * Global animated notification component rendered in the root `_layout`.
- * Supports top (banner) and bottom (toast) positions.
+ * Supports top (banner) and bottom (toast) positions. One compact row: a
+ * status icon, the title, an optional message under it, an optional action.
+ *
+ * A notification that dismisses itself has no close button on iOS and
+ * Android: swipe it toward its edge. A persistent one (`duration: 0`,
+ * `notify.loading`) and every notification on web shows one.
  *
  * Usage:
  * ```ts
@@ -73,6 +187,15 @@ export const Notification = () => {
     [notificationOffsets]
   );
   const styles = themedStyles(theme);
+  // A raised panel like `Card`, so it follows the host app's card radius.
+  const radius = useShape("card")?.borderRadius ?? spacing.radiusLg;
+
+  // A notification with only a message shows it as the title: "Profile
+  // updated" needs no "Success" above it.
+  const firstMessage = alert?.messages?.find((item) => item.trim().length > 0);
+  const explicitTitle = alert?.title?.trim() ? alert.title : undefined;
+  const title = explicitTitle ?? firstMessage ?? fallbackTitle(alert?.type, alert?.loading);
+  const message = explicitTitle ? firstMessage : undefined;
 
   const position = alert?.position ?? "top";
   const isBottom = position === "bottom";
@@ -80,6 +203,8 @@ export const Notification = () => {
   // Just opacity + translateY — no scale (scale = bouncy feel)
   const opacity = useAnimatedValue(0);
   const translateY = useAnimatedValue(0);
+  // The swipe-to-dismiss drag, added to the enter/exit slide.
+  const dragY = useAnimatedValue(0);
 
   const wasVisibleRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -126,11 +251,32 @@ export const Notification = () => {
     runThenDismiss(() => action.onPress(), animateOut);
   }, [alert?.action, animateOut]);
 
-  // The auto-dismiss timer only needs the latest animateOut; wrapping it in an
-  // Effect Event keeps it out of the deps so the effect doesn't re-run (and
-  // restart the timer) every time animateOut's identity changes.
-  const onAutoDismiss = useEffectEvent(() => {
-    animateOut();
+  const duration = alert?.duration;
+  const startAutoDismissTimer = useCallback(() => {
+    clearAutoDismissTimer();
+    if (!duration) return;
+    timerRef.current = setTimeout(() => {
+      animateOut();
+    }, duration);
+  }, [clearAutoDismissTimer, duration, animateOut]);
+
+  const panHandlers = useSwipeToDismiss(dragY, {
+    isBottom,
+    dismiss: animateOut,
+    pauseTimer: clearAutoDismissTimer,
+    resumeTimer: startAutoDismissTimer,
+  });
+
+  // The enter animation and timer only need the latest callbacks; Effect
+  // Events keep them out of the deps so the effect doesn't re-run (and restart
+  // the timer) every time their identity changes.
+  const onAutoDismissStart = useEffectEvent(() => {
+    startAutoDismissTimer();
+  });
+  const onAnnounce = useEffectEvent(() => {
+    // iOS has no live regions: VoiceOver only reads a toast it is told about.
+    if (Platform.OS !== "ios" || !alert?.show) return;
+    AccessibilityInfo.announceForAccessibility([title, message].filter(Boolean).join(". "));
   });
 
   useEffect(() => {
@@ -138,12 +284,8 @@ export const Notification = () => {
     const wasVisible = wasVisibleRef.current;
 
     if (isNowVisible && !wasVisible) {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-
       const slideFrom = isBottom ? 8 : -8;
+      dragY.setValue(0);
 
       if (reduceMotion) {
         opacity.setValue(1);
@@ -166,28 +308,26 @@ export const Notification = () => {
     }
 
     wasVisibleRef.current = isNowVisible;
+    if (!isNowVisible) return;
 
+    onAnnounce();
     // Schedule on every alert change, not just hidden→visible: a notification
     // that replaces a visible one (e.g. loading → success) still needs its
-    // auto-dismiss timer. The cleanup below clears the previous alert's timer.
-    if (isNowVisible && alert?.duration) {
-      timerRef.current = setTimeout(() => {
-        onAutoDismiss();
-      }, alert.duration);
-
-      return () => {
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
-          timerRef.current = null;
-        }
-      };
-    }
-    // onAutoDismiss is an Effect Event — intentionally omitted from deps.
-  }, [alert, reduceMotion, isBottom, opacity, translateY]);
+    // auto-dismiss timer. The cleanup clears the previous alert's timer.
+    onAutoDismissStart();
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+    // onAnnounce and onAutoDismissStart are Effect Events — intentionally
+    // omitted from deps.
+  }, [alert, reduceMotion, isBottom, opacity, translateY, dragY]);
 
   const animatedContainerStyle = {
     opacity,
-    transform: [{ translateY }],
+    transform: [{ translateY: Animated.add(translateY, dragY) }],
   };
 
   // 8 pt of air past the inset or a registered bar, whichever reaches further;
@@ -195,62 +335,19 @@ export const Notification = () => {
   const topPosition = Math.max(insets.top, spacing.smd, offset.top) + spacing.sm;
   const bottomPosition = Math.max(insets.bottom, spacing.smd, offset.bottom) + spacing.sm;
 
-  const getIconProps = (): { icon: IconName; color: string; bgColor: string } => {
-    switch (alert?.type) {
-    case "error":
-      return {
-        icon: "circle-exclamation-point",
-        color: theme.colors.destructive,
-        bgColor: withAlpha(theme.colors.destructive, 0.08),
-      };
-    case "success":
-      return {
-        icon: "circle-check-big",
-        color: theme.colors.success,
-        bgColor: withAlpha(theme.colors.success, 0.08),
-      };
-    case "warning":
-      return {
-        icon: "triangle-exclamation-point",
-        color: theme.colors.warning,
-        bgColor: withAlpha(theme.colors.warning, 0.08),
-      };
-    case "info":
-    default:
-      return {
-        icon: "info",
-        color: theme.colors.accent,
-        bgColor: withAlpha(theme.colors.accent, 0.08),
-      };
-    }
-  };
+  const type = alert?.type ?? "info";
+  const isError = type === "error";
+  // Status colors mean status only; info and loading stay neutral.
+  const iconColor = {
+    error: theme.colors.destructive,
+    success: theme.colors.success,
+    warning: theme.colors.warning,
+    info: theme.colors.popoverForeground,
+  }[type];
 
-  const getTitle = (message?: string) => {
-    if (alert?.title?.trim()) return alert.title;
-
-    if (alert?.loading) {
-      return translateText("notification.loading", "Loading");
-    }
-
-    switch (alert?.type) {
-    case "error":
-      return translateText("notification.error", "Error");
-    case "success":
-      return translateText("notification.success", "Success");
-    case "warning":
-      return translateText("notification.warning", "Warning");
-    case "info":
-      return message ? "" : translateText("notification.info", "Info");
-    default:
-      return "";
-    }
-  };
-
-  const { icon, color: iconColor, bgColor: iconBgColor } = getIconProps();
-  const message = alert?.messages?.find((item) => item.trim().length > 0);
-  const title = getTitle(message);
-  const hasMessage = !!message;
   const action = alert?.action;
+  // Nothing else dismisses a persistent toast, and web has no swipe.
+  const showClose = Platform.OS === "web" || !alert?.duration;
 
   if (!alert?.show) {
     return null;
@@ -259,94 +356,73 @@ export const Notification = () => {
   return (
     <Animated.View
       testID="ui-notification"
-      accessibilityLiveRegion="polite"
-      accessibilityRole="alert"
+      role={isError ? "alert" : "status"}
+      accessibilityLiveRegion={isError ? "assertive" : "polite"}
       style={[
         styles.container,
         isBottom
           ? { bottom: bottomPosition }
           : { top: topPosition },
         animatedContainerStyle,
-        !alert?.show && { opacity: 0 },
-        { pointerEvents: alert?.show ? "auto" : "none" },
       ]}
+      {...panHandlers}
     >
       <View style={[
-        styles.alert,
-        isBottom && styles.alertBottom,
+        styles.toast,
+        { borderRadius: radius },
+        !showClose && !action && styles.toastTextOnly,
         getShadowStyle("elevated"),
       ]}>
-        {/* Colored icon badge */}
-        <View style={[styles.iconBadge, { backgroundColor: iconBgColor }]}>
-          {alert?.loading ? (
-            <ActivityIndicator size="small" color={iconColor} />
+        <View style={styles.status}>
+          {alert.loading ? (
+            <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
           ) : (
-            <Icon name={icon} size={18} color={iconColor} />
+            <Icon name={STATUS_ICONS[type]} size={STATUS_ICON_SIZE} color={iconColor} />
           )}
         </View>
 
-        {/* Text content */}
-        <View style={styles.alertContent}>
-          {!!title && (
+        <View style={styles.content}>
+          <StyledText
+            selectable={false}
+            semantic="label"
+            style={{ color: theme.colors.popoverForeground }}
+            numberOfLines={2}
+          >
+            {title}
+          </StyledText>
+          {!!message && (
             <StyledText
               selectable={false}
-              size="base"
-              fontWeight="semibold"
-              style={{ color: theme.colors.foreground }}
-              numberOfLines={1}
-            >
-              {title}
-            </StyledText>
-          )}
-          {hasMessage && (
-            <StyledText
-              selectable={false}
-              size="sm"
+              semantic="caption"
               style={{ color: theme.colors.mutedForeground }}
-              numberOfLines={2}
+              numberOfLines={3}
             >
               {message}
             </StyledText>
           )}
         </View>
 
-        {action && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionButton,
-              {
-                borderColor: withAlpha(theme.colors.primary, 0.19),
-                backgroundColor: withAlpha(theme.colors.primary, 0.06),
-              },
-              pressed && styles.actionButtonPressed,
-            ]}
-            hitSlop={spacing.xs}
-            onPress={handleActionPress}
-            accessibilityLabel={action.label}
-            accessibilityRole="button"
-          >
-            <StyledText
-              selectable={false}
-              size="sm"
-              fontWeight="semibold"
-              style={{ color: theme.colors.primary }}
-              numberOfLines={1}
-            >
-              {action.label}
-            </StyledText>
-          </Pressable>
+        {(!!action || showClose) && (
+          <View style={styles.actions}>
+            {!!action && (
+              <Button
+                preset="secondary"
+                size="sm"
+                text={action.label}
+                onPress={handleActionPress}
+                style={styles.action}
+              />
+            )}
+            {showClose && (
+              <IconButton
+                icon="x"
+                size="sm"
+                accessibilityLabel={translateText("notification.dismiss", "Dismiss") ?? "Dismiss"}
+                onPress={animateOut}
+              />
+            )}
+          </View>
         )}
-
-        {/* Close button */}
-        <Pressable
-          style={styles.closeButton}
-          hitSlop={spacing.sm}
-          onPress={animateOut}
-          accessibilityLabel="Dismiss notification"
-          accessibilityRole="button"
-        >
-          <Icon name="x" size={16} color={theme.colors.mutedForeground} />
-        </Pressable>
       </View>
     </Animated.View>
   );
@@ -355,74 +431,54 @@ export const Notification = () => {
 const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     position: "absolute",
-    left: spacing.md,
-    right: spacing.md,
+    left: spacing.screenPadding,
+    right: spacing.screenPadding,
     // Toast sits above the overlay layer (dialogs/drawers/dropdowns top out
     // around 52); no need to escalate into the hundreds.
     zIndex: 60,
     alignItems: "center",
   },
-  alert: {
+  // The overlay surface `Popover` and `Dialog` use: `popover` on a `border`
+  // hairline, in both schemes, so an app's `setColors` re-themes it.
+  toast: {
     width: "100%",
     maxWidth: 420,
-    paddingVertical: spacing.md,
-    paddingLeft: spacing.md,
-    paddingRight: spacing.xl + spacing.sm,
-    borderRadius: spacing.radiusLg,
+    paddingVertical: spacing.sm,
+    paddingLeft: spacing.smd,
+    paddingRight: spacing.sm,
     borderWidth: 1,
-    // Shadows barely read on dark backgrounds, so dark mode separates the
-    // toast from the page by lifting the surface a step above `card` instead.
-    borderColor: theme.dark ? palette.dark600 : theme.colors.border,
-    backgroundColor: theme.dark ? palette.dark700 : theme.colors.card,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.popover,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
+    gap: spacing.sm,
   },
-  alertBottom: {
-    borderRadius: spacing.radiusXl,
+  // Without a trailing button the text gets the same inset on both sides.
+  toastTextOnly: {
+    paddingRight: spacing.smd,
   },
-  iconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: spacing.radiusMd,
+  // The icon sits on the title's line, however many lines follow.
+  status: {
+    alignSelf: "flex-start",
+    width: STATUS_ICON_SIZE,
+    height: ROW_HEIGHT,
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
   },
-  alertContent: {
+  content: {
     flex: 1,
-    justifyContent: "center",
+    paddingVertical: (ROW_HEIGHT - TITLE_LINE_HEIGHT) / 2,
     gap: spacing.xxs,
   },
-  // alertTitle/alertDescription/actionLabel font styling (family, size,
-  // weight, lineHeight) now comes entirely from StyledText's size/fontWeight
-  // props (see JSX above) — the nearest tokens to the previous hardcoded
-  // values (14/20/600, 13/18/regular, 13/18/600) are "base"+"semibold",
-  // "sm", and "sm"+"semibold" respectively.
-  actionButton: {
-    minHeight: 28,
-    maxWidth: 140,
-    paddingHorizontal: spacing.sm,
-    borderRadius: spacing.radiusSm,
-    borderWidth: 1,
-    justifyContent: "center",
+  actions: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: spacing.xs,
     flexShrink: 0,
-    ...(Platform.OS === "web" && { cursor: "pointer" as any }),
   },
-  actionButtonPressed: {
-    opacity: 0.75,
-  },
-  closeButton: {
-    position: "absolute",
-    top: spacing.sm,
-    right: spacing.sm,
-    width: 28,
-    height: 28,
-    borderRadius: spacing.radiusSm,
-    justifyContent: "center",
-    alignItems: "center",
-    ...(Platform.OS === "web" && { cursor: "pointer" as any }),
+  action: {
+    maxWidth: 160,
   },
 });
 
